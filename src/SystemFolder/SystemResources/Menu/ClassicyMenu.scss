@@ -55,7 +55,7 @@
 // position below the menu bar.
 .classicySubMenu .classicyMenuWrapper > .classicySubMenu {
   left: 100%;
-  margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
+  margin: calc(var(--menu-sub-menu-offset-block) * -1) calc(var(--menu-sub-menu-offset-inline) * -1);
 
   &.classicySubMenuFlipLeft {
     left: auto;
@@ -89,7 +89,7 @@
   display: none;
   flex-direction: column;
   min-width: var(--menu-min-width);
-  margin: calc(var(--window-padding-size) * -4) calc(var(--window-padding-size) * -2);
+  margin: calc(var(--menu-sub-menu-offset-block) * -1) calc(var(--menu-sub-menu-offset-inline) * -1);
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
@@ -103,7 +103,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   margin: 0;
-  padding: 0 calc(var(--window-padding-size)* 1.25);
+  padding: 0 var(--menu-item-padding-inline);
   box-sizing: content-box;
   height: 100%;
 

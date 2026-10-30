@@ -165,6 +165,16 @@ const PLATINUM_KNOB_FAMILIES = [
 	"menu",
 	"table",
 	"stripMenu",
+	// H 6.2a: component knobs for named multipliers.
+	"assistant",
+	"buttonToolbar",
+	"desktopIcon",
+	"disclosureTriangle",
+	"fileBrowser",
+	"radio",
+	"tab",
+	"textEditor",
+	"timePicker",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one

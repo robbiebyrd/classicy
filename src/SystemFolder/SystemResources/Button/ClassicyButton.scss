@@ -77,7 +77,7 @@ $classicy-button-spacing: (
 
 @each $suffix, $mult in $classicy-button-spacing {
   .classicyButtonPadding#{$suffix} {
-    padding: calc(var(--window-padding-size) / 2 * #{$mult})
+    padding: calc(var(--control-padding) * #{$mult})
       max(var(--button-text-padding), calc(var(--window-padding-size) * #{$mult}));
   }
 

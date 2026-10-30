@@ -2,8 +2,8 @@
 
 .classicyDatePickerHolder {
   display: flex;
-  width: calc(100% - var(--window-padding-size) * 2);
-  padding: calc(var(--window-padding-size) + var(--window-border-size) * 2);
+  width: calc(100% - var(--window-padding-size) - var(--window-padding-size));
+  padding: calc(var(--window-padding-size) + var(--control-frame-width));
 }
 
 .classicyDatePicker {

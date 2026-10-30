@@ -2,7 +2,7 @@
 
 .classicyTimePickerHolder {
   display: flex;
-  width: calc(100% - var(--window-padding-size) * 2);
+  width: calc(100% - var(--window-padding-size) - var(--window-padding-size));
   padding: var(--window-padding-size);
 }
 
@@ -49,7 +49,7 @@
 }
 
 .classicyTimePickerPeriod {
-  min-width: calc(var(--ui-font-size) * 4);
+  min-width: var(--time-picker-period-min-width);
 }
 
 .classicyTimePickerField {

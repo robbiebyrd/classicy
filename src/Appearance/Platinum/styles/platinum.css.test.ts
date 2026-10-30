@@ -658,13 +658,13 @@ describe("platinum.scss (compiled)", () => {
 					`.classicySliderIndicatorNondirectional${pseudo}`,
 					`.classicySlider${pseudo}`,
 					"clip-path",
-					"inset(0 round calc(var(--window-border-size) * 1.5))",
+					"inset(0 round var(--slider-thumb-corner-radius))",
 				);
 				winsOver(
 					`.classicySliderIndicatorNondirectional${pseudo}`,
 					`.classicySliderHighlighted${pseudo}`,
 					"clip-path",
-					"inset(0 round calc(var(--window-border-size) * 1.5))",
+					"inset(0 round var(--slider-thumb-corner-radius))",
 				);
 				expect(
 					rule(`${P} .classicySliderHighlighted${pseudo}`).at,
@@ -674,7 +674,7 @@ describe("platinum.scss (compiled)", () => {
 				".classicySliderGhost.classicySliderIndicatorNondirectional",
 				".classicySliderGhost",
 				"clip-path",
-				"inset(0 round calc(var(--window-border-size) * 1.5))",
+				"inset(0 round var(--slider-thumb-corner-radius))",
 			);
 			expect(rule(`${P} .classicySliderGhost`).props["clip-path"]).toBe(
 				thumb["clip-path"],
@@ -806,11 +806,14 @@ describe("platinum.scss (compiled)", () => {
 				"border-radius",
 				"0",
 			);
-			// P8b: the default ring comes from --button-default-ring, and a disabled
+			// P8b: the default ring's layers are one border each (border, frame,
+			// --button-default-ring), and a disabled
 			// default button shows no pressed shadow.
 			expect(
 				rules(":where(.classicyButton).default").props["box-shadow"],
-			).toMatch(/^0 0 0 calc\(var\(--button-default-ring\) \/ 3\)/);
+			).toMatch(
+				/^0 0 0 var\(--window-border-size\) var\(--color-system-04\), 0 0 0 var\(--control-frame-width\) var\(--color-system-02\), 0 0 0 var\(--button-default-ring\) /,
+			);
 			winsOver(
 				":where(.classicyButton).default:active:disabled",
 				":where(.classicyButton).default:active",
@@ -1216,7 +1219,7 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-window-undepressable compiles to its pinned output", () =>
 		expect(mixin("platinum-window-undepressable")).toMatchInlineSnapshot(`
 			".x {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
 			  background-color: var(--color-system-02);
 			  border: var(--window-border-size) solid var(--color-black);
 			  border-radius: var(--window-padding-size);
@@ -1226,13 +1229,13 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-window-depressable compiles to its pinned output", () =>
 		expect(mixin("platinum-window-depressable")).toMatchInlineSnapshot(`
 			".x {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
 			  background-color: var(--color-system-02);
 			  border: var(--window-border-size) solid var(--color-black);
 			  border-radius: var(--window-padding-size);
 			}
 			.x:active {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
 			  background-color: var(--color-system-05);
 			  color: var(--color-white);
 			}
@@ -1251,7 +1254,7 @@ describe("the moved Platinum mixin files", () => {
 		expect(mixin("platinum-window-depressed")).toMatchInlineSnapshot(`
 			".x {
 			  border-radius: var(--window-padding-size);
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
 			  background-color: var(--color-system-05);
 			  color: var(--color-white);
 			}"
@@ -1260,13 +1263,13 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-depressable-default compiles to its pinned output", () =>
 		expect(mixin("platinum-depressable-default")).toMatchInlineSnapshot(`
 			".x {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-04), inset var(--window-border-size) var(--window-border-size) var(--color-system-04), inset var(--control-frame-width) var(--control-frame-width) var(--color-white);
 			  background-color: var(--color-system-02);
 			  border: var(--window-border-size) solid var(--color-black);
 			  border-radius: var(--window-padding-size);
 			}
 			.x:active {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06);
 			  background-color: var(--color-system-05);
 			  color: var(--color-white);
 			}
@@ -1283,7 +1286,7 @@ describe("the moved Platinum mixin files", () => {
 			  box-shadow: 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 var(--control-frame-width) var(--color-system-02), 0 0 0 var(--control-bevel-md) var(--color-black), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 			}
 			.x:active {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 var(--control-frame-width) var(--color-black), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 var(--control-frame-width) var(--color-black), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 			}"
 		`));
 
@@ -1292,7 +1295,7 @@ describe("the moved Platinum mixin files", () => {
 			mixin("platinum-depressable-box-shadow-active"),
 		).toMatchInlineSnapshot(`
 			".x {
-			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 var(--control-frame-width) var(--color-black), inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
+			  box-shadow: inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-07), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) var(--color-system-06), inset var(--window-border-size) var(--window-border-size) var(--color-system-07), inset var(--control-frame-width) var(--control-frame-width) var(--color-system-06), 0 0 0 var(--window-border-size) var(--color-system-04), 0 0 0 var(--control-frame-width) var(--color-black), inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-system-05), inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-06);
 			}"
 		`));
 
@@ -1487,10 +1490,10 @@ describe("the moved Platinum mixin files", () => {
 			  border: var(--window-border-size) solid var(--color-black);
 			}
 			.x::-webkit-scrollbar-track:vertical {
-			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * -1) var(--control-frame-width) 0 var(--color-system-03), inset var(--control-frame-width) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--window-border-size) * -2) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset calc(var(--window-border-size) * -1) var(--control-frame-width) 0 var(--color-system-03), inset var(--control-frame-width) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--control-frame-width) * -1) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
 			}
 			.x::-webkit-scrollbar-track:horizontal {
-			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset var(--control-frame-width) calc(var(--window-border-size) * -1) 0 var(--color-system-03), inset var(--control-frame-width) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--window-border-size) * -2) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
+			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06), inset var(--control-frame-width) calc(var(--window-border-size) * -1) 0 var(--color-system-03), inset var(--control-frame-width) 0 0 color-mix(in srgb, var(--color-black) 25%, transparent), inset calc(var(--control-frame-width) * -1) 0 0 color-mix(in srgb, var(--color-white) 25%, transparent);
 			}
 			.x::-webkit-scrollbar-corner {
 			  border-top: var(--window-border-size) solid var(--color-black);

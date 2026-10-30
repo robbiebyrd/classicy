@@ -5,7 +5,7 @@
   flex-direction: column;
   height: 100%;
   font-family: var(--ui-font), serif;
-  font-size: calc(var(--ui-font-size) * 0.8571);
+  font-size: var(--finder-about-font-size);
   background-color: var(--color-system-02);
 }
 
@@ -34,7 +34,7 @@
 
   p {
     color: var(--color-white);
-    font-size: calc(var(--ui-font-size) * 1.8571);
+    font-size: var(--finder-about-title-font-size);
     font-family: var(--header-font), serif;
     font-style: italic;
     text-align: center;
@@ -58,7 +58,7 @@
 
   span {
     font-family: var(--header-font), serif;
-    font-size: calc(var(--ui-font-size) * 1.0714);
+    font-size: var(--finder-about-heading-font-size);
     font-weight: bold;
   }
 }
@@ -76,7 +76,7 @@
 }
 
 .finderAboutThisComputerCopyright {
-  font-size: calc(var(--ui-font-size) * 0.7857);
+  font-size: var(--finder-about-copyright-font-size);
   text-align: right;
   white-space: nowrap;
 }

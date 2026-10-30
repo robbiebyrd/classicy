@@ -28,15 +28,15 @@
 }
 
 .classicyControlLabelSizeLarge {
-  font-size: calc(var(--ui-font-size) * 2);
+  font-size: var(--ui-font-size-xlarge);
 }
 
 .classicyControlLabelMarginLeft {
-  margin-left: calc(var(--window-control-size) / 2);
+  margin-left: var(--control-label-spacing);
 }
 
 .classicyControlLabelMarginRight {
-  margin-right: calc(var(--window-control-size) / 2);
+  margin-right: var(--control-label-spacing);
 }
 
 .classicyLabelAbove {
@@ -53,7 +53,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: calc(var(--window-control-size) / 2);
+  gap: var(--control-label-spacing);
 }
 
 .classicyLabelRight {
@@ -61,7 +61,7 @@
   flex-direction: row-reverse;
   justify-content: flex-end;
   align-items: center;
-  gap: calc(var(--window-control-size) / 2);
+  gap: var(--control-label-spacing);
 }
 
 // classicyLabelAlignLeft (from labelAlignClass) deliberately has no rule:

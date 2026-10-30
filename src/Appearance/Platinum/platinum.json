@@ -166,7 +166,9 @@
 				"crayonSelectedLift": 5,
 				"boxLipHeight": 22,
 				"fieldWidth": 44,
-				"unitWidth": 14
+				"unitWidth": 14,
+				"swatchSize": 30,
+				"layoutGap": 12
 			},
 			"dialog": {
 				"alertMinWidth": 280,
@@ -195,16 +197,63 @@
 				"glyphSize": 14
 			},
 			"quickTime": {
-				"captionShadowBlur": 3
+				"captionShadowBlur": 3,
+				"undockedVideoInset": 4,
+				"controlsEndReserve": 24,
+				"volumeBarLength": 60,
+				"volumeBarOffset": 21,
+				"thumbRise": 6,
+				"thumbShiftInline": 3,
+				"volumeTrackTop": 3,
+				"progressTrackTop": 3,
+				"progressTrackHeight": 9
 			},
 			"menu": {
-				"popUpMaxHeight": 300
+				"popUpMaxHeight": 300,
+				"subMenuOffsetBlock": 24,
+				"subMenuOffsetInline": 12
 			},
 			"table": {
 				"resizerWidth": 15
 			},
 			"stripMenu": {
 				"overlap": 3
+			},
+			"assistant": {
+				"headerGap": 6,
+				"accessoryIconMedium": 21,
+				"accessoryIconLarge": 30
+			},
+			"buttonToolbar": {
+				"squareButtonWidth": 36
+			},
+			"desktopIcon": {
+				"labelGap": 6
+			},
+			"disclosureTriangle": {
+				"offset": 6
+			},
+			"fileBrowser": {
+				"listIconSpacing": 3
+			},
+			"radio": {
+				"offsetTop": 6
+			},
+			"tab": {
+				"gap": 12,
+				"paddingInline": 18,
+				"scrollButtonMinWidth": 36,
+				"smallRowIndent": 6,
+				"smallPaddingInline": 12,
+				"smallIconSize": 9,
+				"largePaddingInline": 24
+			},
+			"textEditor": {
+				"heightInset": 4,
+				"autoMinHeight": 36
+			},
+			"timePicker": {
+				"periodMinWidth": 56
 			}
 		},
 		"desktop": {

@@ -16,16 +16,16 @@
   min-height: var(--control-row-height);
 
   &.quickTimePlayerWrapperDocked {
-    height: calc(100% - var(--window-control-size) * 1);
+    height: calc(100% - var(--window-control-size));
   }
 }
 
 .quickTimePlayerVideoHolderDocked {
-  height: calc(100% - var(--window-control-size) * 1);
+  height: calc(100% - var(--window-control-size));
 }
 
 .quickTimePlayerVideoHolderUndocked {
-  height: calc(100% - var(--window-border-size) * 4);
+  height: calc(100% - var(--quick-time-undocked-video-inset));
 }
 
 .quickTimePlayerVideoControlsHolderDocked {
@@ -47,7 +47,7 @@
   @include layout.classicy-no-select;
   bottom: var(--window-border-size);
   display: flex;
-  width: calc(100% - var(--window-control-size) * 2);
+  width: calc(100% - var(--quick-time-controls-end-reserve));
 
   height: var(--control-row-height);
   margin-bottom: calc(var(--window-padding-size) - var(--window-border-size));
@@ -57,7 +57,7 @@
 
 .quickTimePlayerVideoControlsTime {
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) * .85);
+  font-size: var(--quick-time-time-font-size);
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -84,8 +84,8 @@
 }
 
 .quickTimePlayerVideoControlsIcon {
-  width: calc(var(--window-control-size) * .875);
-  height: calc(var(--window-control-size) * .875);
+  width: var(--quick-time-control-icon-size);
+  height: var(--quick-time-control-icon-size);
 }
 
 .quickTimePlayerVideoControlsPlayIcon {
@@ -102,9 +102,9 @@
   z-index: 999;
   bottom: var(--control-row-height);
   width: var(--control-row-height);
-  height: calc(var(--window-control-size) * 5);
-  margin-top: calc(var(--window-control-size) * 1.75);
-  margin-right: calc(var(--window-control-size) * -1.75);
+  height: var(--quick-time-volume-bar-length);
+  margin-top: var(--quick-time-volume-bar-offset);
+  margin-right: calc(var(--quick-time-volume-bar-offset) * -1);
   padding: var(--window-border-size);
   background: transparent; /* Otherwise white in Chrome */
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
@@ -137,8 +137,8 @@
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-thumb, .quickTimePlayerVideoControlsVolumeBar::-webkit-slider-thumb {
   width: var(--control-glyph-size);
   height: var(--control-row-height);
-  margin-top: calc(var(--window-control-size) * -0.5);
-  margin-left: calc(var(--window-control-size) * -0.25);
+  margin-top: calc(var(--quick-time-thumb-rise) * -1);
+  margin-left: calc(var(--quick-time-thumb-shift-inline) * -1);
   cursor: pointer;
   // The thumb art (and its drop shadow) is the package's
   // (`quickTimeThumbSlider`, `quickTimeVolumeSlider`); this keeps its geometry.
@@ -151,7 +151,7 @@
   width: var(--control-row-height);
   height: var(--window-control-size);
   margin-top: 0;
-  margin-right: calc(var(--window-control-size) * -0.25);
+  margin-right: calc(var(--quick-time-thumb-shift-inline) * -1);
   margin-left: 0;
   background-repeat: no-repeat;
   background-size: auto;
@@ -161,9 +161,9 @@
   //height: calc(var(--window-control-size) * 0.825);
   width: var(--window-control-size);
   height: var(--control-row-height);
-  margin-top: calc(var(--window-control-size) * 0.25);
+  margin-top: var(--quick-time-volume-track-top);
   margin-right: var(--control-padding);
-  margin-left: calc(var(--window-padding-size) * .75);
+  margin-left: var(--quick-time-volume-track-inset);
   cursor: pointer;
   background: transparent;
   // Its border, inset bevel and focus color are in the Platinum package.
@@ -171,8 +171,8 @@
 
 
 .quickTimePlayerVideoControlsProgressBar::-webkit-slider-runnable-track {
-  height: calc(var(--window-control-size) * 0.75);
-  margin-top: calc(var(--window-control-size) * -0.25);
+  height: var(--quick-time-progress-track-height);
+  margin-top: calc(var(--quick-time-progress-track-top) * -1);
   margin-right: var(--window-padding-size);
   margin-left: var(--control-padding);
   cursor: pointer;

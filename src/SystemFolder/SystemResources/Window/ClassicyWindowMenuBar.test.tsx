@@ -104,7 +104,7 @@ describe("ClassicyWindowMenuBar.scss", () => {
 		"src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss",
 	);
 	const height =
-		"var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75))";
+		"var(--classicy-window-menu-bar-height, var(--window-menu-bar-height))";
 
 	it.each([
 		".classicyWindow.classicyWindowWithMenuBar",

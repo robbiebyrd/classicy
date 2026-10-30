@@ -37,7 +37,7 @@ $_thumb-strikes-svg: var(--classicy-art-slider-strikes);
 // the registered system art `sliderThumbRect` (Platinum:
 // assets/art/slider-thumb-rect.svg).
 $_thumb-rect-svg: var(--classicy-art-slider-thumb-rect);
-$_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
+$_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
 
 // ── Thumb appearance mixin ────────────────────────────────────────────────────
 @mixin platinum-slider-thumb(

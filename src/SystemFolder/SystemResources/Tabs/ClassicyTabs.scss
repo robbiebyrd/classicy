@@ -21,7 +21,7 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
   // Scroll-arrow triangle size. Declared on the container, not on the glyph
   // itself, so the size modifiers below can override it by inheritance — a
   // declaration on the glyph would always beat an inherited ancestor value.
-  --tab-scroll-glyph-size: calc(var(--window-control-size) / 3);
+  --tab-scroll-glyph-size: var(--tab-scroll-arrow-size);
 }
 
 .classicyTabsHolder {
@@ -74,7 +74,7 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
   // Hold the tabs at their intrinsic widths so the strip overflows (and the
   // arrows appear) instead of squeezing every tab narrower.
   width: max-content;
-  gap: calc(var(--window-padding-size) * 2);
+  gap: var(--tab-gap);
 }
 
 // clip-path on <button> does not reliably clip background-color in all browsers.
@@ -101,13 +101,13 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
   font-size: var(--ui-font-size);
   width: 100%;
   height: var(--control-square-size);
-  padding: var(--control-padding) calc(var(--window-padding-size) * 3) var(--window-padding-size) calc(var(--window-padding-size) * 3);
+  padding: var(--control-padding) var(--tab-padding-inline) var(--window-padding-size) var(--tab-padding-inline);
   user-select: none;
   -webkit-appearance: none;
   appearance: none; // resets the UA-default buttonface background
   border: none;
   background: transparent; // wrapper provides all visual background
-  min-width: calc(var(--window-control-size) * 7);
+  min-width: var(--tab-min-width-medium);
   text-wrap: nowrap;
   // Icon + label sit on one baseline row; either may be omitted.
   display: inline-flex;
@@ -132,7 +132,7 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 // trapezoid and fill) but they are never selectable, so they never pick up the
 // active fill and sit permanently in the inactive color.
 .classicyTabScrollButton {
-  min-width: calc(var(--window-control-size) * 3);
+  min-width: var(--tab-scroll-button-min-width);
   padding-inline: var(--window-padding-size);
   cursor: pointer;
 
@@ -199,7 +199,7 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
   // shrunken triangle reads as a smudge rather than a direction.
 
   .classicyTabButtonsRow {
-    margin-left: calc(var(--window-control-size) / 2);
+    margin-left: var(--tab-small-row-indent);
   }
 
   // The reference art butts adjacent tabs together; where two trapezoids meet
@@ -217,12 +217,12 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
     // HIG 10 pt tab label = system font × (10 / 12); see the size note above.
     font-size: var(--ui-font-size-compact);
     min-width: var(--tab-min-width);
-    padding: var(--control-padding-narrow) calc(var(--window-padding-size) * 2) var(--control-padding-loose) calc(var(--window-padding-size) * 2);
+    padding: var(--control-padding-narrow) var(--tab-small-padding-inline) var(--control-padding-loose) var(--tab-small-padding-inline);
   }
 
   .classicyTabButtonIcon {
-    width: calc(var(--window-control-size) * 0.75);
-    height: calc(var(--window-control-size) * 0.75);
+    width: var(--tab-small-icon-size);
+    height: var(--tab-small-icon-size);
   }
 
   .classicyTabScrollButton {
@@ -233,17 +233,17 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 
 // Large: type up half again, box scaled to match.
 .classicyTabsSizeLarge {
-  --tab-scroll-glyph-size: calc(var(--window-control-size) / 2.25);
+  --tab-scroll-glyph-size: var(--tab-scroll-arrow-size-large);
 
   .classicyTabButtonWrapper,
   .classicyTabButton {
-    height: calc(var(--window-control-size) * 3);
+    height: var(--tab-height-large);
   }
 
   .classicyTabButton {
     font-size: var(--ui-font-size-large);
     min-width: var(--tab-min-width-large);
-    padding: calc(var(--window-padding-size) * 0.75) calc(var(--window-padding-size) * 4) var(--control-padding-wide) calc(var(--window-padding-size) * 4);
+    padding: var(--tab-large-padding-top) var(--tab-large-padding-inline) var(--control-padding-wide) var(--tab-large-padding-inline);
   }
 
   .classicyTabButtonIcon {

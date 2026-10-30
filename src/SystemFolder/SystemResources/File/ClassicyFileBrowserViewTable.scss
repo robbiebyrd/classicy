@@ -32,7 +32,7 @@
 // Arrow would stop with the selected row hidden underneath it. (One line of
 // header text plus its padding — erring slightly tall is harmless.)
 .classicyFileBrowserViewTableRow {
-  scroll-margin-top: calc(var(--ui-font-size) + var(--window-padding-size) * 2);
+  scroll-margin-top: calc(var(--ui-font-size) + var(--window-padding-size) + var(--window-padding-size));
 }
 
 .classicyFileBrowserViewTableContainer .classicyTableCell {
@@ -47,12 +47,12 @@
 }
 
 .classicyFileBrowserViewTableRowIcon {
-  margin: calc(var(--desktop-icon-size) / 16);
+  margin: var(--file-browser-list-icon-spacing);
   flex-shrink: 0;
 }
 
 .classicyFileBrowserViewTableRowIconLabel {
-  padding: calc(var(--desktop-icon-size) / 16);
+  padding: var(--file-browser-list-icon-spacing);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

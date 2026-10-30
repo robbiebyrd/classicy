@@ -16,10 +16,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 describe("CLASSICY_THEME_DERIVATIONS", () => {
-	it("has 42 unique cssVars, each starting with --", () => {
+	it("has 73 unique cssVars, each starting with --", () => {
 		const names = CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar);
-		expect(names).toHaveLength(42);
-		expect(new Set(names).size).toBe(42);
+		expect(names).toHaveLength(73);
+		expect(new Set(names).size).toBe(73);
 		for (const name of names) {
 			expect(name.startsWith("--"), name).toBe(true);
 		}
@@ -109,6 +109,15 @@ describe("classicyThemeDerivations", () => {
 			"--ui-font-size-compact",
 			"--ui-font-size-mini",
 			"--ui-font-size-large",
+			"--ui-font-size-xlarge",
+			"--checkbox-x-mark-font-size",
+			"--checkbox-x-mark-line-height",
+			"--balloon-help-font-size",
+			"--quick-time-time-font-size",
+			"--finder-about-font-size",
+			"--finder-about-title-font-size",
+			"--finder-about-heading-font-size",
+			"--finder-about-copyright-font-size",
 		]);
 	});
 

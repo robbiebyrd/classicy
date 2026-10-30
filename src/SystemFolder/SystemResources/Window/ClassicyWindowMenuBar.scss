@@ -25,7 +25,7 @@
 // package sets it (on the desktop or any ancestor; it inherits), else
 // control × 1.75. It is read with that fallback at each use and declared
 // nowhere here, so an inherited value always reaches it.
-$_bar-height: var(--classicy-window-menu-bar-height, calc(var(--window-control-size) * 1.75));
+$_bar-height: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
 
 // The rules for a window root that holds a menu bar. `$root` is the window's
 // selector; `$doubled` repeats it with a leading `.classicyWindow`, which
@@ -38,16 +38,14 @@ $_bar-height: var(--classicy-window-menu-bar-height, calc(var(--window-control-s
 
     .classicyWindowContents {
       height: calc(
-        100% - (var(--window-control-size) * 1) - var(--window-padding-size) * 1.5 -
-          #{$_bar-height}
+        100% - var(--window-contents-chrome-height) - #{$_bar-height}
       );
     }
   }
 
   #{$doubled} .classicyWindowContentsWithHeader {
     height: calc(
-      100% - (var(--window-control-size) * 3) - (var(--window-padding-size)) -
-        #{$_bar-height}
+      100% - var(--window-contents-header-chrome-height) - #{$_bar-height}
     );
   }
 }

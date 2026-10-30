@@ -174,7 +174,7 @@
 
         &:before {
           position: relative;
-          left: calc((var(--window-padding-size) * -1) / 2);
+          left: calc(var(--control-padding) * -1);
           display: block;
           content: " ";
           background-repeat: no-repeat;
