@@ -1,8 +1,10 @@
 // The type declarations the package ships (dist/types, emitted by
 // vite-plugin-dts) are for the library only. Tests, test helpers, stories and
-// the build scripts in bin/ and the root build configs (vite.config.ts,
-// vitest.config.ts) are compiled by tsc like everything else, so without an
-// explicit exclude every one of them shipped a .d.ts in the tarball.
+// the build scripts in bin/, the root build configs (vite.config.ts,
+// vitest.config.ts) and every imported JSON file (resolveJsonModule:
+// package.json, platinum.json, the sound sprite map) are compiled by tsc like
+// everything else, so without an explicit exclude every one of them shipped a
+// .d.ts in the tarball.
 //
 // Plain erasable TypeScript: check-dist-imports.mjs imports this file through
 // Node's type stripping.
@@ -23,6 +25,8 @@ export const CLASSICY_DTS_EXCLUDE = [
 	"bin/**",
 	// Root only: no leading **/, so a library module named *.config.ts ships.
 	"*.config.ts",
+	// JSON is bundled into the JS; no exported type refers to its declaration.
+	"**/*.json",
 ];
 
 const TEST_DECLARATION = /\.(?:test|stories)\.d\.ts(?:\.map)?$/;
@@ -55,3 +59,13 @@ export const findClassicyBuildScriptDeclarations = (
 		(file) =>
 			BUILD_SCRIPT_DECLARATION.test(file) || ROOT_CONFIG_DECLARATION.test(file),
 	);
+
+const JSON_DECLARATION = /\.json\.d\.ts(?:\.map)?$/;
+
+/**
+ * The paths among `files` (relative to dist/types) that declare an imported
+ * JSON file (package.json, platinum.json, …), or are such a declaration's map.
+ */
+export const findClassicyJsonDeclarations = (
+	files: ReadonlyArray<string>,
+): string[] => files.filter((file) => JSON_DECLARATION.test(file));

@@ -82,8 +82,9 @@
 //    its `exclude` named them (CLASSICY_DTS_EXCLUDE in
 //    bin/classicyDistTypes.ts) the tarball shipped a declaration for every
 //    test, every __tests__ helper, every story and every build script in bin/
-//    (dist/types/bin/**), and for the root build configs (vite.config.d.ts,
-//    vitest.config.d.ts). Checked by walking dist/types (skipped when the
+//    (dist/types/bin/**), for the root build configs (vite.config.d.ts,
+//    vitest.config.d.ts) and for every imported JSON file (package.json.d.ts,
+//    platinum.json.d.ts, …). Checked by walking dist/types (skipped when the
 //    caller names files).
 
 import { readdir, readFile } from "node:fs/promises";
@@ -96,6 +97,7 @@ import {
 } from "./classicyDistAssets.ts";
 import {
 	findClassicyBuildScriptDeclarations,
+	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
 import {
@@ -450,6 +452,8 @@ if (!argv.slice(2).length) {
 		declarations === null
 			? []
 			: findClassicyBuildScriptDeclarations(declarations);
+	const json =
+		declarations === null ? [] : findClassicyJsonDeclarations(declarations);
 	const listed = (paths) =>
 		`${paths.slice(0, 5).join(", ")}${paths.length > 5 ? ", …" : ""}`;
 	if (declarations === null) {
@@ -468,9 +472,20 @@ if (!argv.slice(2).length) {
 			`${typesDir}: ${scripts.length} declaration(s) of build scripts in bin/ or root build configs (${listed(scripts)}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
 		);
 	}
-	if (declarations !== null && !shipped.length && !scripts.length) {
+	if (json.length) {
+		failed = true;
+		console.error(
+			`${typesDir}: ${json.length} declaration(s) of imported JSON (${listed(json)}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
+		);
+	}
+	if (
+		declarations !== null &&
+		!shipped.length &&
+		!scripts.length &&
+		!json.length
+	) {
 		console.log(
-			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/ or root build config`,
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON`,
 		);
 	}
 }
