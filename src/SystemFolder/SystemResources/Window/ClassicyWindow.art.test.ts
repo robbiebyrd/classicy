@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { compile } from "sass";
 import { describe, expect, it } from "vitest";
+import {
+	cssRuleLookup,
+	PLATINUM_ROOT,
+	parseCssRules,
+} from "@/__tests__/compiledCss";
 
 /**
  * The Platinum title-bar art (Part E 2.1): the pinstripes, the red stripes and
@@ -19,60 +24,21 @@ import { describe, expect, it } from "vitest";
 const PLATINUM = "src/Appearance/Platinum/styles";
 const css = compile(`${PLATINUM}/platinum.scss`, { loadPaths: ["src"] }).css;
 
-const P = ".classicyDesktop[data-classicy-appearance=platinum]";
-// One selector list per line, unindented.
-const flat = css.replace(/,\s*\n\s*/g, ", ").replace(/\n\s+/g, "\n");
-
-/** Every rule of a flattened stylesheet as its selector list and its block. */
-const parseRules = (source: string) =>
-	[...source.matchAll(/\n([^\n{}@][^\n{}]*) \{\n([^}]*)\}/g)].map(
-		([, selectors, body]) => ({
-			selectors: selectors.split(", "),
-			body,
-		}),
-	);
-
-const rules = parseRules(flat);
-
-/**
- * The declarations of every rule whose selector list names `full`, merged in
- * source order (a later rule's value wins, as it does in the cascade between
- * equal selectors).
- */
-const declarations = (
-	from: ReturnType<typeof parseRules>,
-	full: string,
-	selector: string,
-): Record<string, string> => {
-	const matched = from.filter((r) => r.selectors.includes(full));
-	if (matched.length === 0) throw new Error(`no rule for ${selector}`);
-	const props: Record<string, string> = {};
-	for (const { body } of matched)
-		for (const line of body.split(";\n")) {
-			const colon = line.indexOf(":");
-			if (colon > 0)
-				props[line.slice(0, colon).trim()] = line
-					.slice(colon + 1)
-					.trim()
-					.replace(/;$/, "");
-		}
-	return props;
-};
+const P = PLATINUM_ROOT;
+const rules = parseCssRules(css);
 
 /** The merged declarations for `${P} ${selector}` in the package. */
-const rule = (selector: string): Record<string, string> =>
-	declarations(rules, `${P} ${selector}`, selector);
+const rule = cssRuleLookup(rules, P);
 
-// The base (structure-only) window sheet, for the geometry the art keeps.
-const baseRules = parseRules(
-	`\n${compile("src/SystemFolder/SystemResources/Window/ClassicyWindow.scss").css}`
-		.replace(/,\s*\n\s*/g, ", ")
-		.replace(/\n\s+/g, "\n"),
+/**
+ * The merged declarations for `selector` in the base (structure-only) window
+ * sheet, for the geometry the art keeps.
+ */
+const baseRule = cssRuleLookup(
+	parseCssRules(
+		compile("src/SystemFolder/SystemResources/Window/ClassicyWindow.scss").css,
+	),
 );
-
-/** The merged declarations for `selector` in the base window sheet. */
-const baseRule = (selector: string): Record<string, string> =>
-	declarations(baseRules, selector, selector);
 
 const ACTIVE =
 	":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle";
