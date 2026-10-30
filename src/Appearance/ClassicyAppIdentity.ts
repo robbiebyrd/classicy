@@ -1,11 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
+import { subscribeClassicyActiveAppearancePackage } from "./ClassicyActiveAppearancePackage.internal";
 import type { ClassicyAppIdentityOverride } from "./ClassicyAppearancePackage";
-import {
-	getRegisteredClassicyAppearancePackageOrDefault,
-	subscribeClassicyAppearancePackages,
-} from "./ClassicyAppearancePackageRegistry";
+import { getRegisteredClassicyAppearancePackageOrDefault } from "./ClassicyAppearancePackageRegistry";
 import { getClassicyAssetPackageSource } from "./ClassicyAssetPackageSource.internal";
-import { subscribeClassicyAssets } from "./ClassicyAssetRegistry";
 
 // Store-free, so reducers may import it: this module never reaches the app
 // manager or the package module (which reads the store), the rule of
@@ -47,8 +44,9 @@ export const getClassicyAppIdentityOverrides = (
 
 /**
  * Pure merge: each override field wins over the fallback's; no override for
- * `appId` returns `fallback` itself. Looked up with `Object.hasOwn`, so an
- * id such as `"constructor"` never reaches the prototype.
+ * `appId`, or one that changes no field (`{}`), returns `fallback` itself.
+ * Looked up with `Object.hasOwn`, so an id such as `"constructor"` never
+ * reaches the prototype.
  */
 export const classicyAppIdentityFrom = (
 	overrides: ClassicyAppIdentityOverrides,
@@ -57,11 +55,17 @@ export const classicyAppIdentityFrom = (
 ): ClassicyAppIdentity => {
 	if (!Object.hasOwn(overrides, appId)) return fallback;
 	const override = overrides[appId];
-	const identity: ClassicyAppIdentity = {
-		name: override.name ?? fallback.name,
-		icon: override.icon ?? fallback.icon,
-	};
+	const name = override.name ?? fallback.name;
+	const icon = override.icon ?? fallback.icon;
 	const description = override.description ?? fallback.description;
+	if (
+		name === fallback.name &&
+		icon === fallback.icon &&
+		description === fallback.description
+	) {
+		return fallback;
+	}
+	const identity: ClassicyAppIdentity = { name, icon };
 	if (description !== undefined) identity.description = description;
 	return identity;
 };
@@ -83,19 +87,6 @@ export const resolveClassicyAppIdentity = (
 		fallback,
 	);
 
-// The twin of useClassicyAppearanceLayout.ts's subscribeActiveLayout: the
-// asset registry follows the active package id (and the store's connection,
-// whenever it happens); the package registry covers a package re-registered
-// under the active id with new `apps`.
-const subscribeActivePackage = (onChange: () => void): (() => void) => {
-	const unsubscribeAssets = subscribeClassicyAssets(onChange);
-	const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
-	return () => {
-		unsubscribeAssets();
-		unsubscribePackages();
-	};
-};
-
 const getActiveOverrides = (): ClassicyAppIdentityOverrides =>
 	getClassicyAppIdentityOverrides();
 
@@ -107,7 +98,7 @@ const getActiveOverrides = (): ClassicyAppIdentityOverrides =>
 export const useClassicyAppIdentityOverrides =
 	(): ClassicyAppIdentityOverrides =>
 		useSyncExternalStore(
-			subscribeActivePackage,
+			subscribeClassicyActiveAppearancePackage,
 			getActiveOverrides,
 			getActiveOverrides,
 		);

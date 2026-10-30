@@ -152,6 +152,27 @@ describe("classicyAppIdentityFrom", () => {
 				{ ...fb, description: "Original." },
 			),
 		).toEqual({ ...fb, description: "Overridden." }));
+
+	// K 1.2 review, Minor 1: an override that changes nothing is no change, so
+	// identity comparisons (`React.memo` props, `toBe`) see none.
+	it("returns the fallback itself when the override changes no field", () => {
+		expect(classicyAppIdentityFrom({ "A.app": {} }, "A.app", fb)).toBe(fb);
+		expect(
+			classicyAppIdentityFrom(
+				{ "A.app": { name: fb.name, icon: fb.icon } },
+				"A.app",
+				fb,
+			),
+		).toBe(fb);
+		const described = { ...fb, description: "Same." };
+		expect(
+			classicyAppIdentityFrom(
+				{ "A.app": { description: "Same." } },
+				"A.app",
+				described,
+			),
+		).toBe(described);
+	});
 });
 
 describe("useClassicyAppIdentityOverrides", () => {
@@ -270,6 +291,8 @@ describe("the identity module", () => {
 			expect(storeLoads).toBe(0);
 		} finally {
 			vi.doUnmock(storeModule);
+			// Leave no second module graph for a later dynamic import.
+			vi.resetModules();
 		}
 	});
 });
