@@ -1,7 +1,8 @@
 // The type declarations the package ships (dist/types, emitted by
 // vite-plugin-dts) are for the library only. Tests, test helpers, stories and
-// the build scripts in bin/ are compiled by tsc like everything else, so
-// without an explicit exclude every one of them shipped a .d.ts in the tarball.
+// the build scripts in bin/ and the root build configs (vite.config.ts,
+// vitest.config.ts) are compiled by tsc like everything else, so without an
+// explicit exclude every one of them shipped a .d.ts in the tarball.
 //
 // Plain erasable TypeScript: check-dist-imports.mjs imports this file through
 // Node's type stripping.
@@ -20,6 +21,8 @@ export const CLASSICY_DTS_EXCLUDE = [
 	"**/*.stories.ts",
 	"**/*.stories.tsx",
 	"bin/**",
+	// Root only: no leading **/, so a library module named *.config.ts ships.
+	"*.config.ts",
 ];
 
 const TEST_DECLARATION = /\.(?:test|stories)\.d\.ts(?:\.map)?$/;
@@ -37,12 +40,18 @@ export const findClassicyTestDeclarations = (
 	);
 
 const BUILD_SCRIPT_DECLARATION = /^bin[\\/]/;
+const ROOT_CONFIG_DECLARATION = /^[^\\/]+\.config\.d\.ts(?:\.map)?$/;
 
 /**
  * The paths among `files` (relative to dist/types) that declare one of the
- * build scripts in the repository's bin/ (the Vite plugins, the dist checks),
- * or are such a declaration's map. Consumers never import them.
+ * build scripts in the repository's bin/ (the Vite plugins, the dist checks)
+ * or a root build config (vite.config.ts, vitest.config.ts), or are such a
+ * declaration's map. Consumers never import them.
  */
 export const findClassicyBuildScriptDeclarations = (
 	files: ReadonlyArray<string>,
-): string[] => files.filter((file) => BUILD_SCRIPT_DECLARATION.test(file));
+): string[] =>
+	files.filter(
+		(file) =>
+			BUILD_SCRIPT_DECLARATION.test(file) || ROOT_CONFIG_DECLARATION.test(file),
+	);

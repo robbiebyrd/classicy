@@ -20,6 +20,9 @@ describe("CLASSICY_DTS_EXCLUDE", () => {
 
 	it("keeps the build scripts in bin/ out of the declarations", () =>
 		expect(CLASSICY_DTS_EXCLUDE).toContain("bin/**"));
+
+	it("keeps the root build configs (vite.config.ts, vitest.config.ts) out of the declarations", () =>
+		expect(CLASSICY_DTS_EXCLUDE).toContain("*.config.ts"));
 });
 
 describe("findClassicyTestDeclarations", () => {
@@ -69,12 +72,30 @@ describe("findClassicyBuildScriptDeclarations", () => {
 			"bin\\classicyDistTypes.d.ts",
 		]));
 
+	it("finds declarations of the root build configs and their maps", () =>
+		expect(
+			findClassicyBuildScriptDeclarations([
+				"vite.config.d.ts",
+				"vite.config.d.ts.map",
+				"vitest.config.d.ts",
+				"vitest.config.d.ts.map",
+				"src/index.d.ts",
+			]),
+		).toEqual([
+			"vite.config.d.ts",
+			"vite.config.d.ts.map",
+			"vitest.config.d.ts",
+			"vitest.config.d.ts.map",
+		]));
+
 	it("passes the library's own declarations, even one under a bin folder", () =>
 		expect(
 			findClassicyBuildScriptDeclarations([
 				"src/index.d.ts",
 				"src/SystemFolder/bin/Trash.d.ts",
 				"binary.d.ts",
+				"src/Theme/ClassicyTheme.config.d.ts",
+				"package.json.d.ts",
 			]),
 		).toEqual([]));
 });
