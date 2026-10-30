@@ -1,5 +1,6 @@
 {
 	"src/Appearance/Platinum/styles/components/_BevelButton.scss": 2,
+	"src/Appearance/Platinum/styles/components/_QuickTimeMovieEmbed.scss": 1,
 	"src/Appearance/Platinum/styles/components/_Window.scss": 2,
 	"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss": 1,
 	"src/SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss": 5,
@@ -21,9 +22,8 @@
 	"src/SystemFolder/SystemResources/Placard/ClassicyPlacard.scss": 2,
 	"src/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss": 1,
 	"src/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar.scss": 4,
-	"src/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss": 1,
 	"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss": 2,
 	"src/SystemFolder/SystemResources/Table/ClassicyTable.scss": 1,
 	"src/SystemFolder/SystemResources/Tree/ClassicyTree.scss": 2,
-	"src/SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss": 2
+	"src/SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss": 3
 }
