@@ -17,12 +17,13 @@ pnpm build                # Full build (audio sprites + source)
 pnpm build:audio          # Generate audio sprites from assets/sounds/
 pnpm build:watch          # Watch mode: rebuilds source + audio on file changes
 pnpm lint                 # Run Biome (`biome check .`); lint:fix writes changes
+pnpm storybook:typecheck  # Type-check the stories under storybook/tsconfig.json (strict)
 pnpm preview              # Full build → run example app
 pnpm storybook            # Run the component showcase (Storybook) dev server
 pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
 ```
 
-**CI** (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm exec tsc --noEmit -p .` and `pnpm test` on every pull request and push to `main`; run the same three locally before pushing.
+**CI** (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm exec tsc --noEmit -p .`, `pnpm storybook:typecheck` (the stories and `storybook/.storybook/`, under the strict `storybook/tsconfig.json`; the root tsconfig excludes stories) and `pnpm test` on every pull request and push to `main`; run the same four locally before pushing.
 
 **Local dev workflow**: `pnpm build:source` to (re)build the library; the `example/` app resolves it automatically through the workspace symlink. For live iteration use `pnpm build:watch` (or `pnpm preview`, which builds then runs the example dev server with the source watcher).
 
