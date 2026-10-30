@@ -14,6 +14,7 @@ import {
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -61,26 +62,30 @@ const MODULE_POPUP_INSET = { top: 3, left: -1 };
 
 // Pixels a press on the tab may travel and still count as a click.
 const TAB_CLICK_SLOP = 3;
-// A module and its separator (30 + 1 px), for when nothing can be measured.
-const MODULE_STEP_FALLBACK = 31;
 
 /**
  * One module's width with its separator: the scroll arrows' step, the tab's
- * resize step, and the strip's narrowest size.
+ * resize step, and the strip's narrowest size. Measured from the first
+ * module; with nothing to measure, the theme's module width plus its
+ * separator (H-R12), read from the variables the viewport inherits. Each call
+ * may force a style read: call it once per gesture.
  */
 const moduleStepOf = (viewport: HTMLElement | null): number =>
 	viewport?.querySelector<HTMLElement>(".classicyControlStripModule")
-		?.offsetWidth || MODULE_STEP_FALLBACK;
+		?.offsetWidth ||
+	readClassicyThemeVar("--control-strip-module-width", undefined, viewport) +
+		readClassicyThemeVar("--control-strip-border-width", undefined, viewport);
 
 /**
  * Snap a requested width to whole modules — the strip never shows part of
- * one — between one module and all of them.
+ * one — between one module and all of them. `step` is the module step when
+ * the caller already holds it (a drag reads it once, on the press).
  */
 const clampStripWidth = (
 	viewport: HTMLElement | null,
 	next: number,
+	step: number = moduleStepOf(viewport),
 ): number => {
-	const step = moduleStepOf(viewport);
 	const snapped = Math.round(next / step) * step;
 	return Math.max(step, Math.min(snapped, viewport?.scrollWidth || snapped));
 };
@@ -307,6 +312,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 	const dragRef = useRef<{
 		startX: number;
 		startWidth: number;
+		/** The module step, read once on the press (G14). */
+		step: number;
 		moved: boolean;
 	} | null>(null);
 
@@ -364,6 +371,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 		dragRef.current = {
 			startX: e.clientX,
 			startWidth: viewportRef.current?.clientWidth ?? 0,
+			step: moduleStepOf(viewportRef.current),
 			moved: false,
 		};
 	};
@@ -387,6 +395,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				clampStripWidth(
 					viewportRef.current,
 					drag.startWidth + growDirection * dx,
+					drag.step,
 				),
 			);
 		};
@@ -489,8 +498,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 		e.preventDefault();
 		const el = viewportRef.current;
 		const current = el?.clientWidth ?? 0;
-		const step = (e.key === "ArrowRight" ? 1 : -1) * growDirection;
-		setWidth(clampStripWidth(el, current + step * moduleStepOf(el)));
+		const direction = (e.key === "ArrowRight" ? 1 : -1) * growDirection;
+		const step = moduleStepOf(el);
+		setWidth(clampStripWidth(el, current + direction * step, step));
 	};
 
 	// Hidden from the Control Strip control panel; the panel brings it back.
