@@ -1,18 +1,35 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
-import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	registerTestRenamePackage,
+	TEST_RENAME_PACKAGE_ID,
+} from "@/__tests__/testRenamePackage";
+import {
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
+import {
+	type ActionMessage,
+	DefaultAppManagerState,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	registerClassicyControlStripModule,
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	getClassicyFileSystemAdapters,
 	registerClassicyFileSystemAdapter,
@@ -25,10 +42,29 @@ import {
 	useClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import {
+	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+// Side-effect imports: register the Movie Player and Finder reducers, as the
+// package barrel does in the real app.
+import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
+import "@/SystemFolder/Finder/FinderContext";
+
+// Every action dispatched through the module, recorded on its way into the
+// real store: the wrapper calls straight through, so the reducers still run.
+const dispatched = vi.hoisted((): ActionMessage[] => []);
+
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => {
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
+	},
+);
 
 type ContextValue = {
 	defaultFileSystem?: ClassicyFileSystemTree;
@@ -218,6 +254,152 @@ describe("useClassicyFileSystem Applications overlay", () => {
 			},
 		);
 		expect(result.current.resolve("Macintosh HD:Applications")).toBeUndefined();
+	});
+});
+
+describe("useClassicyFileSystem derived folders by display name", () => {
+	// Importing the Platinum module registered it; keep that object so every
+	// test can put the real Platinum registration back after a reset.
+	const platinum = getClassicyAppearancePackage(
+		PLATINUM_APPEARANCE_PACKAGE_ID,
+	) as ClassicyAppearancePackage;
+
+	const APPLICATIONS = "Macintosh HD:Applications";
+	const MEDIA_PLAYER_PATH = `${APPLICATIONS}:Media Player`;
+
+	const resetToPlatinum = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(DefaultAppManagerState, true);
+	};
+
+	const switchPackage = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+
+	// The real hook on the real store, with Movie Player mounted beside it.
+	const renderWithMoviePlayer = async () => {
+		const view: { fs?: ClassicyFileSystem } = {};
+		const Probe = () => {
+			view.fs = useClassicyFileSystem();
+			return null;
+		};
+		render(
+			<>
+				<MoviePlayer />
+				<Probe />
+			</>,
+		);
+		await waitFor(() =>
+			expect(
+				view.fs?.resolve(`${APPLICATIONS}:${MoviePlayerAppInfo.name}`),
+			).toBeDefined(),
+		);
+		return () => view.fs as ClassicyFileSystem;
+	};
+
+	// Names a folder lists, metadata keys aside.
+	const listed = (folder: ClassicyFileSystemEntry) =>
+		Object.keys(folder).filter((key) => !key.startsWith("_"));
+
+	beforeEach(() => {
+		localStorage.clear();
+		resetToPlatinum();
+		registerTestRenamePackage();
+		dispatched.length = 0;
+	});
+
+	afterEach(() => {
+		resetToPlatinum();
+	});
+
+	it("relists Applications by display name on a package switch, and back", async () => {
+		const fs = await renderWithMoviePlayer();
+		expect(listed(fs().resolve(APPLICATIONS))).toContain("Movie Player");
+
+		dispatched.length = 0;
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		const renamed = listed(fs().resolve(APPLICATIONS));
+		expect(renamed).toContain("Media Player");
+		expect(renamed).not.toContain("Movie Player");
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+
+		const restored = listed(fs().resolve(APPLICATIONS));
+		expect(restored).toContain("Movie Player");
+		expect(restored).not.toContain("Media Player");
+		// The overlay followed the package alone: no other action reached the
+		// store, so the store's icon and app sets never changed.
+		expect(dispatched).toEqual([
+			{
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_RENAME_PACKAGE_ID,
+			},
+			{
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+			},
+		]);
+	});
+
+	it("opens Movie Player from its renamed Applications entry", async () => {
+		const fs = await renderWithMoviePlayer();
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		const entry = fs().resolve(MEDIA_PLAYER_PATH);
+		expect(entry).toBeDefined();
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				MoviePlayerAppInfo.id
+			].open,
+		).toBeFalsy();
+
+		act(() =>
+			dispatch({
+				type: "ClassicyAppFinderOpenFile",
+				file: entry,
+				path: MEDIA_PLAYER_PATH,
+			}),
+		);
+
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				MoviePlayerAppInfo.id
+			].open,
+		).toBe(true);
+	});
+
+	it("persists no display name outside derived entries", async () => {
+		const fs = await renderWithMoviePlayer();
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)).toBeDefined();
+
+		fs().flushNow();
+		const persisted = localStorage.getItem("classicyStorage");
+		expect(persisted).not.toBeNull();
+
+		// Every "Media Player" key in the stored tree, with whether it is derived.
+		const found: { path: string; derived: boolean }[] = [];
+		const walk = (entry: ClassicyFileSystemEntry, path: string) => {
+			for (const [key, child] of Object.entries(entry)) {
+				if (key.startsWith("_") || typeof child !== "object" || !child) {
+					continue;
+				}
+				const childPath = path ? `${path}:${key}` : key;
+				if (key === "Media Player") {
+					found.push({ path: childPath, derived: child._derived === true });
+				}
+				walk(child as ClassicyFileSystemEntry, childPath);
+			}
+		};
+		walk(JSON.parse(persisted as string), "");
+
+		expect(found.filter((hit) => !hit.derived)).toEqual([]);
 	});
 });
 

@@ -126,8 +126,10 @@ export function useClassicyFileSystem(
 	// mounted-app set, both runtime-only, so the derived folder follows them.
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
-	// A module an app owns is filed under the app's display name (K-D7), so a
-	// package switch that renames it changes the key and rebuilds the folder.
+	// The active package's display names and icons for apps. They key the
+	// derived Applications and Extensions entries, and a module an app owns is
+	// filed under the app's display name (K-D7). Live and reference-stable, so
+	// a package switch rebuilds every overlay with no store change.
 	const appIdentityOverrides = useClassicyAppIdentityOverrides();
 	// Serialized so an unrelated app mounting (which changes mountedApps)
 	// doesn't rebuild the file system.
@@ -165,7 +167,7 @@ export function useClassicyFileSystem(
 		() => 0,
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and treeVersion are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render, and the tree is read through the shared instance
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and treeVersion are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render, and the tree is read through the shared instance; appIdentityOverrides is read directly, and is the key for a package switch
 	const fs = useMemo(() => {
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
 		const fs = new ClassicyFileSystem(
@@ -183,6 +185,8 @@ export function useClassicyFileSystem(
 			withApplicationsFolder(
 				fs.fs,
 				useAppManager.getState().System.Manager.Desktop.icons,
+				appIdentityOverrides,
+				fs.separator,
 			),
 		);
 		// Same live-only overlay strategy for System Folder/Extensions, derived
@@ -194,6 +198,8 @@ export function useClassicyFileSystem(
 				Object.values(
 					useAppManager.getState().System.Manager.Applications.apps,
 				),
+				appIdentityOverrides,
+				fs.separator,
 			),
 		);
 		// System Folder/Control Strip Modules: one file per installed module.
@@ -213,6 +219,7 @@ export function useClassicyFileSystem(
 		separator,
 		appShortcutsKey,
 		extensionAppsKey,
+		appIdentityOverrides,
 		fsVersion,
 		treeVersion,
 	]);
