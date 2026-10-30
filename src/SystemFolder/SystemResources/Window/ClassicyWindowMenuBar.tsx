@@ -42,10 +42,11 @@ export type ClassicyWindowMenuBarProps = {
  * Only the app's menus have a home here. The Apple, Help and App Switcher
  * menus, the clock and menu bar extensions (`ClassicyMenuBarExtension`, which
  * portals into the screen bar's extensions list) are not shown in window
- * placement. Window geometry still reserves the screen bar's 30 px top band
+ * placement. Window geometry still reserves the screen bar's top band
  * (`windowViewportFloor` in `ClassicyWindow.tsx`), so a window is never
- * placed, zoomed or dragged into it. The band's height is that constant, not
- * the theme's `--menu-bar-height`.
+ * placed, zoomed, dragged or resized into it. The band's height is the
+ * theme's live `--menu-bar-height` (30 px under Platinum), whatever the
+ * placement.
  */
 export const ClassicyWindowMenuBar: FunctionalComponent<
 	ClassicyWindowMenuBarProps
