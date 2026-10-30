@@ -757,6 +757,44 @@ describe("Control Strip under a renaming package", () => {
 		expect(moduleNames()).toEqual(["Owner Display", "Plain"]);
 	});
 
+	it("follows a package switch after mount: the module's name and the panel item", () => {
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "platinum",
+		});
+		register({
+			id: "owned",
+			appId: "Owner.app",
+			label: "Owned",
+			icon: "o.png",
+		});
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		expect(moduleNames()).toEqual(["Owned"]);
+
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PACKAGE_ID,
+			}),
+		);
+
+		expect(moduleNames()).toEqual(["Owner Display"]);
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		expect(
+			screen.getByRole("menuitem", { name: "Open Strip Control Panel" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("menuitem", {
+				name: "Open Control Strip Control Panel",
+			}),
+		).toBeNull();
+	});
+
 	it("labels an app's module with its own label under Platinum", () => {
 		dispatch({
 			type: "ClassicyDesktopChangeAppearancePackage",
