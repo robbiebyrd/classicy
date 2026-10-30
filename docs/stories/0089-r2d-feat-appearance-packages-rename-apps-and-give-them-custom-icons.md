@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-10-30T15:53:27.367Z"
+updated: "2026-10-30T16:25:04.377Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -67,3 +67,9 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T15:15:36.445Z - Part K started on feat/appearance-part-k (worktree from 5ebaff579, after Part E landed): Phase 0 baseline and 1.1 (the validated apps field) dispatched. Plan 0013-l9f holds the surface inventory and the controller rulings (K-D7 changed per the owner's 'everywhere' ruling).
 
 ### 2026-10-30T15:53:27.367Z - K Phase 0 done (76 stories + 4 app shots, deterministic; name-built action-type inventory 12 sites + 2 JSDoc incl. the PDF Viewer space bug) and K 1.1 implemented (55f5d6b0c: validated apps field, display-name rules, raw-input prototype-key guard). 4778 tests. K 1.1 review and K 1.2 (resolver + live hooks) dispatched.
+
+### 2026-10-30T15:57:23.797Z - K 1.1 task review APPROVED: schema, K-D11 rules and the raw-input prototype-key guard verified with adversarial probes across object shapes; registration refuses an invalid apps map whole, consistent with the registry. Minors (more pinned cases, control characters refused, length messages) folded into the 1.2 worker's separate commit; the resolver must use Object.hasOwn.
+
+### 2026-10-30T16:20:55.797Z - K 1.2 implemented (75b4813ef resolveClassicyAppIdentity + useClassicyAppIdentity, Object.hasOwn lookups; d86c53849 K 1.1 review minors). 4822 tests; mutation checks prove the store-free, snapshot-cache and hasOwn tests discriminate. K 1.2 review and K 2.1 (literal action types, PDF Viewer fix) dispatched.
+
+### 2026-10-30T16:25:04.377Z - K 1.2 task review APPROVED: resolution rules, live hooks under StrictMode (re-registration and package switches update a mounted component, no render loop) and the store-free guarantee (fails on direct and transitive store imports) all verified by probes. The duplicated active-package subscriber and four minors folded into the 2.1 worker's separate commit.

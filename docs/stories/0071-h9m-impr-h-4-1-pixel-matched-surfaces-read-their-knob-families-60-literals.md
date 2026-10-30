@@ -3,12 +3,13 @@ id: 0071-h9m
 title: 'H 4.1: Pixel-matched surfaces read their knob families (60 literals)'
 purpose: Rewrite the menu frame, scrollbar arrow glyphs, Pager, Balloon Help and PopUpSlider literals to their `measurements.<family>` knobs, pixel-identical.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: M
 created: "2026-10-28T20:37:19.203Z"
-updated: "2026-10-30T15:52:15.108Z"
+updated: "2026-10-30T16:44:21.121Z"
 started: "2026-10-30T13:37:57.366Z"
+completed: "2026-10-30T16:44:21.121Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -88,8 +89,8 @@ Menu frame (`_mixins.scss`, the former `platinumMenuFrame` lines 20-52): `border
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/check-pixel-literals.ts && ! grep -E 'Pager|BalloonHelp|PopUpSlider|_mixins|_scrollbars' bin/pixel-literal-allowlist.json
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Pager src/SystemFolder/SystemResources/BalloonHelp src/Appearance/Platinum/styles
+- [x] VERIFY: node bin/check-pixel-literals.ts && ! grep -E 'Pager|BalloonHelp|PopUpSlider|_mixins|_scrollbars' bin/pixel-literal-allowlist.json
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/Pager src/SystemFolder/SystemResources/BalloonHelp src/Appearance/Platinum/styles
 
 ## Files
 
@@ -109,3 +110,5 @@ Menu frame (`_mixins.scss`, the former `platinumMenuFrame` lines 20-52): `border
 ### 2026-10-30T15:52:13.048Z - H 4.1 implemented on h/4.1 (35952dfe2): menu frame, scrollbar arrows, pager (H-B1), balloon help and pop-up slider read package knobs; allowlist 328 -> 270. 4708 tests; 342 stories + 16 interaction scenes AE 0; 121 computed-style dumps and 67 forced states identical.
 
 ### 2026-10-30T15:52:15.107Z - Task review APPROVED (1743 per-preset comparisons all equal). Rulings H-R20 to H-R24 plus the label ruling; integrating onto feat/appearance-part-h with the review fixes (PopUpSlider focus ring, grip rename, tail centering, slider travel, menu shadow gap).
+
+### 2026-10-30T16:44:19.035Z - Integrated into feat/appearance-part-h at 066e6c32b with the review fixes (PopUpSlider focus ring, H-R20 grip rename, H-R22 tail centering, H-R23 slider travel with side knobs locked, H-R24 shadow gap, Row height label). Gate 4735 tests; 346/346 shots and 16/16 interaction scenes AE 0.
