@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
@@ -9,6 +9,11 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const appIcon = (
 	appId: string,
@@ -121,5 +126,134 @@ describe("Applications folder opt-out", () => {
 
 		expect(result["Macintosh HD"].Applications.TV).toBeDefined();
 		expect(result["Macintosh HD"].Applications.Secret).toBeUndefined();
+	});
+});
+
+describe("buildApplicationsFolder display names", () => {
+	const SINK_ID = "applications-folder-display-names";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	it("keys an entry by its display name and icon, keeping its creator", () => {
+		const folder = buildApplicationsFolder([appIcon("A.app", "A")], {
+			"A.app": { name: "Ay", icon: "i.png" },
+		});
+
+		expect(folder.Ay).toEqual({
+			_type: ClassicyFileSystemEntryFileType.AppShortcut,
+			_icon: "i.png",
+			_creator: "A.app",
+			_readOnly: true,
+			_nameLocked: true,
+			_derived: true,
+		});
+		expect(folder.A).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("gives a colliding display name to the first app and the later one its own name", () => {
+		const folder = buildApplicationsFolder(
+			[appIcon("A.app", "A"), appIcon("B.app", "B")],
+			{ "A.app": { name: "Same" }, "B.app": { name: "Same" } },
+		);
+
+		expect(folder.Same._creator).toBe("A.app");
+		expect(folder.B._creator).toBe("B.app");
+		expect(folder.A).toBeUndefined();
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message: "App display name unusable in Applications; using its own name",
+			details: [{ appId: "B.app", name: "Same" }],
+		});
+	});
+
+	it("falls back to the app's own name when the display name holds the separator", () => {
+		const folder = buildApplicationsFolder(
+			[appIcon("A.app", "A")],
+			{ "A.app": { name: "A/B" } },
+			"/",
+		);
+
+		expect(folder.A._creator).toBe("A.app");
+		expect(folder["A/B"]).toBeUndefined();
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0].details).toEqual([{ appId: "A.app", name: "A/B" }]);
+	});
+
+	it("falls back to the app's own name when the display name starts with an underscore", () => {
+		const folder = buildApplicationsFolder([appIcon("A.app", "A")], {
+			"A.app": { name: "_icon" },
+		});
+
+		expect(folder.A._creator).toBe("A.app");
+		expect(folder._icon).toBe(ClassicyIcons.system.folders.applications);
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("keeps last-wins when the fallback name is taken too", () => {
+		const folder = buildApplicationsFolder(
+			[appIcon("A.app", "A"), appIcon("C.app", "C"), appIcon("B.app", "B")],
+			{
+				"A.app": { name: "Same" },
+				"C.app": { name: "B" },
+				"B.app": { name: "Same" },
+			},
+		);
+
+		// B cannot have "Same" (A's) and falls back to "B", which C took: the
+		// later entry overwrites, as two apps with one name always have.
+		expect(folder.Same._creator).toBe("A.app");
+		expect(folder.B._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("keeps last-wins, with no warning, for two apps with one own name", () => {
+		const folder = buildApplicationsFolder([
+			appIcon("A.app", "Twin"),
+			appIcon("B.app", "Twin"),
+		]);
+
+		expect(folder.Twin._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("lists every app by its own name with no overrides", () => {
+		const folder = buildApplicationsFolder([appIcon("A.app", "A")], {});
+		expect(folder.A._creator).toBe("A.app");
+		expect(folder.A._icon).toBe("/icons/A.app.png");
+	});
+
+	it("forwards overrides and the separator through withApplicationsFolder", () => {
+		const tree = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+		} as ClassicyFileSystemEntry;
+		const result = withApplicationsFolder(
+			tree,
+			[appIcon("A.app", "A"), appIcon("B.app", "B")],
+			{ "A.app": { name: "Ay" }, "B.app": { name: "B/2" } },
+			"/",
+		);
+		const apps = result["Macintosh HD"].Applications;
+
+		expect(apps.Ay._creator).toBe("A.app");
+		expect(apps.B._creator).toBe("B.app");
+		expect(apps["B/2"]).toBeUndefined();
 	});
 });

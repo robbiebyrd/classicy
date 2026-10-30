@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
@@ -9,6 +9,11 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const app = (
 	id: string,
@@ -126,5 +131,88 @@ describe("withExtensionsFolder", () => {
 		expect(withExtensionsFolder(tree, [app("ClockExt.app", "Clock")])).toBe(
 			tree,
 		);
+	});
+});
+
+describe("buildExtensionsFolder display names", () => {
+	const SINK_ID = "extensions-folder-display-names";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	it("keys an entry by its display name and icon, keeping its creator", () => {
+		const folder = buildExtensionsFolder([app("A.app", "A")], {
+			"A.app": { name: "Ay", icon: "i.png" },
+		});
+
+		expect(folder.Ay).toEqual({
+			_type: ClassicyFileSystemEntryFileType.Extension,
+			_icon: "i.png",
+			_creator: "A.app",
+			_readOnly: true,
+			_nameLocked: true,
+			_derived: true,
+		});
+		expect(folder.A).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("gives a colliding display name to the first extension and the later one its own name", () => {
+		const folder = buildExtensionsFolder(
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Same" }, "B.app": { name: "Same" } },
+		);
+
+		expect(folder.Same._creator).toBe("A.app");
+		expect(folder.B._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message: "App display name unusable in Extensions; using its own name",
+			details: [{ appId: "B.app", name: "Same" }],
+		});
+	});
+
+	it("falls back to the extension's own name when the display name holds the separator", () => {
+		const folder = buildExtensionsFolder(
+			[app("A.app", "A")],
+			{ "A.app": { name: "A/B" } },
+			"/",
+		);
+
+		expect(folder.A._creator).toBe("A.app");
+		expect(folder["A/B"]).toBeUndefined();
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("forwards overrides and the separator through withExtensionsFolder", () => {
+		const tree = {
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+		} as unknown as ClassicyFileSystemEntry;
+		const result = withExtensionsFolder(
+			tree,
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Ay" }, "B.app": { name: "B/2" } },
+			"/",
+		);
+		const extensions = result["Macintosh HD"]["System Folder"].Extensions;
+
+		expect(extensions.Ay._creator).toBe("A.app");
+		expect(extensions.B._creator).toBe("B.app");
+		expect(extensions["B/2"]).toBeUndefined();
 	});
 });
