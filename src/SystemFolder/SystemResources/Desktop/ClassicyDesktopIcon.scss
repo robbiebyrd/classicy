@@ -7,8 +7,8 @@
   display: flex;
   align-items: center;
   flex-direction: column;
-  width: calc(var(--desktop-icon-size) * 2);
-  height: calc(var(--desktop-icon-size) * 2);
+  width: var(--desktop-icon-cell);
+  height: var(--desktop-icon-cell);
   user-select: none;
   text-align: center;
   image-rendering: pixelated;
@@ -30,7 +30,7 @@
     font-size: var(--desktop-icon-font-size);
     width: fit-content;
     margin-top: calc(var(--desktop-icon-font-size) / 2);
-    padding: calc(var(--desktop-icon-font-size) / 4);
+    padding: var(--desktop-icon-label-pad);
     color: var(--color-black);
     background: c.classicy-alpha("--color-white", 50%);
   }

@@ -33,7 +33,7 @@
   border-radius: var(--window-control-size) var(--window-control-size) 0 0;
   background-color: var(--color-system-02);
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
-    calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+    var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
   -webkit-user-drag: none;
 
 
@@ -76,7 +76,7 @@
   }
 
   &:before {
-    width: calc(var(--window-border-size) * 2);
+    width: var(--control-frame-width);
     height: 75%;
     margin-right: var(--window-padding-size);
     content: '';

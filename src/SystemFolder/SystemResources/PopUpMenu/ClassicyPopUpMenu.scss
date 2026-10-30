@@ -5,7 +5,7 @@
 
 // ----- Size variants (unchanged public API) --------------------------------
 .classicyPopUpMenuSizeMini {
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
   aspect-ratio: 1/1;
   overflow: hidden;
 
@@ -25,7 +25,7 @@
 }
 
 .classicyPopUpMenuSizeSmall {
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
 }
 
 .classicyPopUpMenuSizeMedium {
@@ -45,7 +45,7 @@
   line-height: 1.1;
 
   width: 100%;
-  height: calc(var(--window-control-size) * 2.125);
+  height: var(--popup-height);
   flex-grow: 2;
 
   position: relative;
@@ -64,8 +64,8 @@
 // The mini pop-up is a fixed square. Two classes: beats the control's own
 // width and height above.
 .classicyPopUpMenu.classicyPopUpMenuSizeMini {
-  width: calc(var(--window-control-size) * 1.3125);
-  height: calc(var(--window-control-size) * 1.3125);
+  width: var(--popup-mini-size);
+  height: var(--popup-mini-size);
 }
 
 // The visible trigger: current selection on the left, indicator on the right.
@@ -78,7 +78,7 @@
   width: 100%;
   height: 100%;
   margin: 0;
-  padding: 0 0 0 calc(var(--window-padding-size) * 1);
+  padding: 0 0 0 var(--window-padding-size);
 
   font: inherit;
   color: inherit;
@@ -89,7 +89,7 @@
 
   &:focus {
     border-radius: var(--window-padding-size);
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline: var(--color-outline) solid var(--control-frame-width);
   }
 
   &:focus:not(:focus-visible) {
@@ -108,7 +108,7 @@
 .classicyPopUpMenuIndicator {
   flex: 0 0 auto;
   align-self: stretch;
-  width: calc(var(--window-control-size) * 1.75);
+  width: var(--popup-arrow-width);
 
   border-left: var(--window-border-size) solid var(--color-system-05);
   border-top-right-radius: var(--window-padding-size);
@@ -119,7 +119,7 @@
   background-position: center;
   background-size: 45%;
 
-  box-shadow: inset calc(var(--window-border-size) * 2) var(--window-border-size) 0 0 var(--color-white);
+  box-shadow: inset var(--control-frame-width) var(--window-border-size) 0 0 var(--color-white);
 }
 
 // ----- The floating menu ---------------------------------------------------
@@ -144,7 +144,7 @@
   border: var(--window-border-size) solid var(--color-black);
   box-shadow:
     inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
-    calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 0 var(--color-black);
+    var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
 
   font: inherit;
 }
@@ -152,9 +152,9 @@
 .classicyPopUpMenuListItem {
   display: flex;
   align-items: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 
-  padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) / 1.5);
+  padding: var(--control-padding-narrow) var(--control-padding-loose);
 
   color: var(--color-black);
   white-space: nowrap;
@@ -188,7 +188,7 @@
 // Non-selectable <optgroup>-equivalent title. Platinum menus render group
 // titles like disabled items: grayed, never highlighted, default cursor.
 .classicyPopUpMenuGroupHeader {
-  padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) / 1.5);
+  padding: var(--control-padding-narrow) var(--control-padding-loose);
   color: var(--color-system-05);
   font-family: var(--ui-font);
   white-space: nowrap;
@@ -199,5 +199,5 @@
 // Members of a group indent past the checkmark gutter so the header reads
 // as their title.
 .classicyPopUpMenuListItemGrouped {
-  padding-left: calc(var(--window-padding-size) * 1.5);
+  padding-left: var(--control-padding-wide);
 }

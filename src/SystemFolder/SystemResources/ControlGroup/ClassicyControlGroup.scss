@@ -14,7 +14,7 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   // rendered legend contributes to fieldset height, and WebKit's initial
   // layout pass over-reserves the legend height until an interaction forces
   // a relayout, visibly collapsing the group.
-  margin: 0 calc(var(--window-border-size) * 2);
+  margin: 0 var(--control-frame-width);
   // HIG interior margins: 12px top, 10px sides, 10px bottom.
   padding: var(--group-box-margin-top) var(--group-box-margin-side) var(--group-box-margin-bottom);
 
@@ -42,12 +42,12 @@ $legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
   // Content clears the legend overhanging the top border; keep the HIG 12px
   // top margin as the floor so short text titles still get headroom and
   // taller checkbox / pop-up titles are not clipped.
-  padding-top: max(var(--group-box-margin-top), calc(var(--ui-font-size) * 0.8));
+  padding-top: max(var(--group-box-margin-top), var(--ui-font-size-small));
 }
 
 .classicyControlGroupLegend {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * 0.75);
+  font-size: var(--ui-font-size-caption);
   line-height: 1.4;
   margin: 0;
   // Horizontal padding extends the painted background slightly past the

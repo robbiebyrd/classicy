@@ -188,13 +188,13 @@
 
   // The dotted drag and resize outline.
   :where(.classicyWindow).dragging {
-    border: calc(var(--window-padding-size) / 4) dotted;
+    border: var(--control-padding-tight) dotted;
     border-color: var(--color-black);
     box-shadow: none;
   }
 
   .classicyWindowResizing {
-    border: calc(var(--window-padding-size) / 4) dotted;
+    border: var(--control-padding-tight) dotted;
     border-color: var(--color-black);
     box-shadow: none;
   }

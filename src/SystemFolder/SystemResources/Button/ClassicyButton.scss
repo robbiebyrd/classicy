@@ -4,7 +4,7 @@
 
   align-self: center;
 
-  border-radius: calc(var(--window-padding-size)/2);
+  border-radius: var(--control-padding);
 
   // Mac OS 8 HIG push-button metrics (theme tokens, injected at runtime).
   // Minimum button height (HIG 20px).
@@ -14,7 +14,7 @@
   -webkit-user-select: none;
 
   &:focus {
-    outline: var(--color-outline) solid calc(var(--window-border-size) * 2);
+    outline: var(--color-outline) solid var(--control-frame-width);
   }
 
   // The bevel, its pressed and disabled faces, and every face below are the
@@ -40,7 +40,7 @@
 // the focused button, mirroring a mouse press) are the Platinum package's.
 
 .classicyButtonShapeSquare {
-  width: calc(var(--window-control-size) * 4);
+  width: var(--button-square-width);
   padding: 0;
   aspect-ratio: 1/1;
 
@@ -50,13 +50,13 @@
 }
 
 .classicyButtonSmall {
-  font-size: calc(var(--ui-font-size)/1.5);
+  font-size: var(--ui-font-size-mini);
 }
 
 .classicyButtonShapeSquare.classicyButtonSmall {
-  width: calc(var(--window-control-size) * 2);
-  height: calc(var(--window-control-size) * 2);
-  padding: calc(var(--window-padding-size) * 0.5);
+  width: var(--control-square-size);
+  height: var(--control-square-size);
+  padding: var(--control-padding);
 
   img {
     width: 90%;

@@ -46,7 +46,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   flex-direction: row;
   align-items: flex-end;
   margin-bottom: calc(var(--window-border-size) * -1);
-  margin-left: calc(var(--window-control-size) * 1);
+  margin-left: var(--window-control-size);
 }
 
 .classicyTabScroller {
@@ -78,7 +78,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 // Active fill is detected via :has() so the button element stays transparent.
 .classicyTabButtonWrapper {
   flex: 0 0 auto;
-  height: calc(var(--window-control-size) * 2);
+  height: var(--control-square-size);
   clip-path: $tab-shape;
   // SVG layer (top): 3-sided border tracing the tab outline via stroke.
   // background-color (bottom): fill — overridden to active color via :has() below.
@@ -96,8 +96,8 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   font-family: var(--ui-font), sans-serif;
   font-size: var(--ui-font-size);
   width: 100%;
-  height: calc(var(--window-control-size) * 2);
-  padding: calc(var(--window-padding-size) * 0.5) calc(var(--window-padding-size) * 3) calc(var(--window-padding-size) * 1) calc(var(--window-padding-size) * 3);
+  height: var(--control-square-size);
+  padding: var(--control-padding) calc(var(--window-padding-size) * 3) var(--window-padding-size) calc(var(--window-padding-size) * 3);
   user-select: none;
   -webkit-appearance: none;
   appearance: none; // resets the UA-default buttonface background
@@ -109,7 +109,7 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--window-padding-size) / 2);
+  gap: var(--control-padding);
 }
 
 .classicyTabButtonIcon {
@@ -206,14 +206,14 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
   .classicyTabButtonWrapper,
   .classicyTabButton {
-    height: calc(var(--window-control-size) * 4 / 2.5);
+    height: var(--tab-height);
   }
 
   .classicyTabButton {
     // HIG 10 pt tab label = system font × (10 / 12); see the size note above.
-    font-size: calc(var(--ui-font-size) * 10 / 12);
-    min-width: calc(var(--window-control-size) * 4);
-    padding: calc(var(--window-padding-size) / 3) calc(var(--window-padding-size) * 2) calc(var(--window-padding-size) / 1.5) calc(var(--window-padding-size) * 2);
+    font-size: var(--ui-font-size-compact);
+    min-width: var(--tab-min-width);
+    padding: var(--control-padding-narrow) calc(var(--window-padding-size) * 2) var(--control-padding-loose) calc(var(--window-padding-size) * 2);
   }
 
   .classicyTabButtonIcon {
@@ -222,8 +222,8 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   }
 
   .classicyTabScrollButton {
-    min-width: calc(var(--window-control-size) * 2);
-    padding-inline: calc(var(--window-padding-size) / 2);
+    min-width: var(--control-square-size);
+    padding-inline: var(--control-padding);
   }
 }
 
@@ -237,17 +237,17 @@ $_tab-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
   }
 
   .classicyTabButton {
-    font-size: calc(var(--ui-font-size) * 1.5);
-    min-width: calc(var(--window-control-size) * 9);
-    padding: calc(var(--window-padding-size) * 0.75) calc(var(--window-padding-size) * 4) calc(var(--window-padding-size) * 1.5) calc(var(--window-padding-size) * 4);
+    font-size: var(--ui-font-size-large);
+    min-width: var(--tab-min-width-large);
+    padding: calc(var(--window-padding-size) * 0.75) calc(var(--window-padding-size) * 4) var(--control-padding-wide) calc(var(--window-padding-size) * 4);
   }
 
   .classicyTabButtonIcon {
-    width: calc(var(--window-control-size) * 1.5);
-    height: calc(var(--window-control-size) * 1.5);
+    width: var(--control-row-height);
+    height: var(--control-row-height);
   }
 
   .classicyTabScrollButton {
-    min-width: calc(var(--window-control-size) * 4);
+    min-width: var(--tab-min-width);
   }
 }
