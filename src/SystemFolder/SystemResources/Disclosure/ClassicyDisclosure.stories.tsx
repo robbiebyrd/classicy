@@ -2,7 +2,8 @@ import {
 	appearanceHooksParameters,
 	ClassicyAppearanceProbe,
 } from "@sb/ClassicyAppearanceProbe";
-import { mirroredParameters, StoryWindow } from "@sb/helpers";
+import { StoryWindow } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 import { ClassicyDisclosure } from "./ClassicyDisclosure";

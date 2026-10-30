@@ -1,9 +1,5 @@
-import {
-	desktopParameters,
-	mirroredParameters,
-	SB_ICON,
-	StoryApp,
-} from "@sb/helpers";
+import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
 import { fn } from "storybook/test";

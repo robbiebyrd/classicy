@@ -5,11 +5,12 @@
 //     bottom-left, menus in each window, desktop icons from the top left);
 //   - mirrored.scss is Platinum's look, rescoped, plus CSS `order` and flex
 //     flips on the part attributes (data-classicy-control, -role, -part).
-// preview.tsx imports this module, so it registers once per Storybook
-// session and is listed with the registered packages ("(Storybook test)").
-// Only stories with `parameters.classicy.appearancePackage: "mirrored"`
-// (`mirroredParameters`) switch to it; the decorator resets the store for
-// every desktop story, so the switch never outlives its story.
+// Only ./mirrored.ts imports this module, and only the six `Mirrored` story
+// files import that, so the package registers only in a story iframe that
+// has loaded one of them (ruling F-R6), never in every iframe. Stories with
+// `parameters.classicy.appearancePackage: "mirrored"` (`mirroredParameters`)
+// switch to it; the decorator resets the store when such a story leaves, so
+// the switch never outlives its story.
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import mirroredCss from "./mirrored.scss?inline";

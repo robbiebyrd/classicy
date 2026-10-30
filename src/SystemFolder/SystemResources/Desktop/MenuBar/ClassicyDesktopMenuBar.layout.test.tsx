@@ -130,9 +130,6 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 			).toBe(order);
 	});
 
-	// A browser without :has() drops a whole rule whose selector list contains
-	// it, so the plain order rule must stand alone, ahead of its :has() twin,
-	// or such a browser loses the order (and the extensions' auto margin) too.
 	// F 7.1 (F 2.1 carry-forward): the balloon anchor is `display: block;
 	// width: 100%` for dropdown items, which on the bar made a balloon-wrapped
 	// title as wide as the bar. On the bar it is sized by its title.
@@ -147,6 +144,9 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 		).toEqual({ width: "auto" });
 	});
 
+	// A browser without :has() drops a whole rule whose selector list contains
+	// it, so the plain order rule must stand alone, ahead of its :has() twin,
+	// or such a browser loses the order (and the extensions' auto margin) too.
 	it("keeps each plain order rule apart from its :has() twin", () => {
 		for (const part of [
 			"apple",

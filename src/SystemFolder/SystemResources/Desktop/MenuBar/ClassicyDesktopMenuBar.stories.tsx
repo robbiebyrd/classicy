@@ -1,9 +1,5 @@
-import {
-	desktopParameters,
-	mirroredParameters,
-	SB_ICON,
-	StoryApp,
-} from "@sb/helpers";
+import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
+import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useMemo } from "react";
 import { fn } from "storybook/test";
@@ -144,9 +140,7 @@ const BalloonMenuWindow = () => {
  * package places menus in each window, so the desktop's own bar is headless;
  * this story draws one with `placement="screen"` to show the package's CSS
  * `order` flips: the App Switcher leads at the far left and Apple, the app's
- * menus, Help and the clock sit at the right. (The desktop's headless bar
- * and this one both dispatch keyboard equivalents here, so a chord fires
- * twice in this story only.)
+ * menus, Help and the clock sit at the right.
  */
 export const Mirrored: Story = {
 	args: { placement: "screen" },

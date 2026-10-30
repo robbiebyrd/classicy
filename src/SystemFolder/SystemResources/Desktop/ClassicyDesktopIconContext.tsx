@@ -31,7 +31,10 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
  * places by), so every counted column fits the viewport (F-R5). A bottom
  * origin also reserves the menu bar's band at the top (`8 * iconPadding`:
  * the top origins' `4 * iconPadding` lead, plus the bottom origins' own), so
- * its last row never lands under the menu bar.
+ * its last row never lands under the menu bar. Some row must exist, so a
+ * viewport shorter than `8 * iconPadding` plus one cell still gets one; there
+ * `classicyDesktopIconGridPosition` clamps a bottom origin's y to at least
+ * `4 * iconPadding`, keeping that row on screen.
  */
 const createGrid = (
 	iconSize: number,
@@ -67,7 +70,12 @@ export const classicyDesktopIconGridPosition = (
 			: Math.floor(cell * (col - 1) + iconPadding),
 		origin.startsWith("top")
 			? Math.floor(cell * row) + iconPadding * 4
-			: Math.floor(window.innerHeight - cell * (row + 1)) - iconPadding * 4,
+			: // Never above the top origins' first row (y = 4 × padding), so a
+				// row forced into a viewport too short for it stays on screen.
+				Math.max(
+					iconPadding * 4,
+					Math.floor(window.innerHeight - cell * (row + 1)) - iconPadding * 4,
+				),
 	];
 };
 
