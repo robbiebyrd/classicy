@@ -170,7 +170,7 @@ export const ClassicyDriveSetup: FC = () => {
 							>
 								Initialize…
 							</ClassicyButton>
-							<ClassicyButton onClickFunc={ () =>quitApp() }>
+							<ClassicyButton onClickFunc={() =>quitApp()}>
 								Quit
 							</ClassicyButton>
 						</div>
