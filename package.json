@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "classicy",
-	"version": "2.1.5",
-	"release": "Gershwin",
+	"version": "2.1.6",
+	"release": "Sonata",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
