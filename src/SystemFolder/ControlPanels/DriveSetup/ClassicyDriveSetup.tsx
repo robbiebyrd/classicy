@@ -36,7 +36,7 @@ export const ClassicyDriveSetup: FC = () => {
 	const fsVersion = useAppManager(
 		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
 	);
-	const desktopEventDispatch = useAppManagerDispatch()
+	const desktopEventDispatch = useAppManagerDispatch();
 
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
@@ -114,7 +114,6 @@ export const ClassicyDriveSetup: FC = () => {
 		desktopEventDispatch(quitAppHelper(APP_ID, APP_NAME, appIcon));
 	};
 
-
 	return (
 		<>
 			<DriveSetupController />
@@ -170,7 +169,7 @@ export const ClassicyDriveSetup: FC = () => {
 							>
 								Initialize…
 							</ClassicyButton>
-							<ClassicyButton onClickFunc={() =>quitApp()}>
+							<ClassicyButton onClickFunc={() => quitApp()}>
 								Quit
 							</ClassicyButton>
 						</div>
