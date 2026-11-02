@@ -68,7 +68,7 @@ export const BlueBox = () => {
 					<div className="blueBoxContents">
 						<iframe
 							title="Infinite Mac"
-							src="https://infinitemac.org/embed?disk=Mac+OS+8.1&machine=Quadra+650&paused=false&auto_pause=true"
+							src="https://infinitemac.org/embed?disk=Mac+OS+8.5&infinite_hd=true&machine=Power+Macintosh+9500"
 							width="640"
 							height="480"
 							allow="cross-origin-isolated"
