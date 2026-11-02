@@ -235,10 +235,10 @@ Then visit the site in your browser at http://localhost:3000.
 
 ### Browser app — TimeMachine Proxy
 
-The Browser app requires the [TimeMachine Web Proxy](https://hub.docker.com/r/robbiebyrd/time-machine-proxy) to fetch archived web pages. A Docker Compose setup is included in `example/timemachine/`:
+The Browser app requires the [TimeMachine Web Proxy](https://hub.docker.com/r/robbiebyrd/time-machine-proxy) to fetch archived web pages. A Docker Compose setup is included in the `example/` folder:
 
 ```sh
-cd example/timemachine
+cd example
 cp .env.example .env   # adjust if needed
 docker compose up -d
 ```
@@ -249,10 +249,10 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 
 - New Dawn by [`Nathanael Gentry`](https://github.com/npjg)
 - Scrollbars of the Classic Mac OS by [`Jessica Stokes (@ticky)`](https://github.com/ticky)
-- `after-dark-css`, for the basic System 7.1.1 interface
+- [`after-dark-css`](https://github.com/bryanbraun/after-dark-css), for the basic System 7.1.1 interface and screen savers
 - [`flyer`](https://www.masswerk.at/flyer/), for further inspiration
-- Robin Casady, for releasing ChicagoFLF into the public domain
-- Apple, who maintains the copyright on the background patterns, icons and interface components
+- Robin Casady, from the legendary [Casady & Greene](https://en.wikipedia.org/wiki/Casady_%26_Greene) for releasing ChicagoFLF into the public domain
+- [Apple](https://www.apple.com), who maintains the copyright on the background patterns, icons and interface components
 
 ## Features
 
