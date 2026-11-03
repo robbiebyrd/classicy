@@ -280,4 +280,46 @@ describe("withControlStripModulesFolder reserves static names against display na
 		expect(folder.Sound._data).toBe("edited");
 		expect(folder["Sound (classicy-sound)"]._creator).toBe("ControlStrip");
 	});
+
+	// K-R13 (m4): like Applications and Extensions, the folder takes the file
+	// system's separator, and a display name holding it is never a key.
+	const slashed = { ...owned, name: "Owner/Display" };
+
+	it("lists the module under its own label when its display name holds the separator", () => {
+		const folder = buildControlStripModulesFolder([slashed], [], "/");
+
+		expect(folder["Owner/Display"]).toBeUndefined();
+		expect(folder.Owned._creator).toBe("Owner.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			message:
+				"App display name unusable in Control Strip Modules; using its own name",
+			details: [
+				{ moduleId: "owned", appId: "Owner.app", name: "Owner/Display" },
+			],
+		});
+	});
+
+	it('lists it as "<label> (<id>)" when its own label is taken too', () => {
+		const folder = buildControlStripModulesFolder([slashed], ["Owned"], "/");
+
+		expect(folder["Owner/Display"]).toBeUndefined();
+		expect(folder["Owned (owned)"]._creator).toBe("Owner.app");
+	});
+
+	it("keeps a display name holding another file system's separator", () => {
+		const folder = buildControlStripModulesFolder([slashed]);
+
+		expect(folder["Owner/Display"]._creator).toBe("Owner.app");
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("forwards the separator through withControlStripModulesFolder", () => {
+		const folder = modulesFolder(
+			withControlStripModulesFolder(treeWith({}), [slashed], "/"),
+		);
+
+		expect(folder["Owner/Display"]).toBeUndefined();
+		expect(folder.Owned._creator).toBe("Owner.app");
+	});
 });

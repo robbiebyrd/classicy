@@ -905,6 +905,58 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 		expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
 	});
 
+	// K-R13 (m4): the overlay passes the file system's own separator, so a
+	// display name holding it falls back to the module's label.
+	it("never keys a module file by a display name holding the file system's separator", () => {
+		registerTestAppsPackage("test-fs-strip-separator", {
+			"FsOwner.app": { name: "Owner/Display" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-separator", "/"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: drive(),
+						mode: "exclusive",
+					}),
+				},
+			);
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-separator",
+				});
+			});
+			const slashFolder = "Macintosh HD/System Folder/Control Strip Modules";
+			expect(
+				Object.keys(result.current.resolve(slashFolder)).filter(
+					(key) => !key.startsWith("_"),
+				),
+			).toEqual(["Owned"]);
+			expect(result.current.resolve(`${slashFolder}/Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+		} finally {
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+				});
+			});
+			act(() => unmount());
+			unregisterClassicyAppearancePackage("test-fs-strip-separator");
+			warn.mockRestore();
+		}
+	});
+
 	// K-D7: a module an app owns is filed under the app's display name; a
 	// module with no owner keeps its own label. Display names never persist.
 	it("names an app's module file by the app's display name", () => {

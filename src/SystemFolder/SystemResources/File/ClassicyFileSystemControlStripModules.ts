@@ -41,12 +41,15 @@ export type ClassicyControlStripModuleFile = {
  * name are told apart by id. No module takes one of `reservedNames` (the
  * folder's static entries): one shown under a display name falls back to its
  * own label, then to "<label> (<id>)"; one shown under its own label goes
- * straight to "<label> (<id>)", numbered when a static entry holds even that.
- * Each fallback warns once (K-R7, story 0096).
+ * straight to "<label> (<id>)", numbered when that is taken too. A display
+ * name holding `separator` (the file system's) falls back the same way, as in
+ * the Applications and Extensions folders. Each fallback warns once (K-R7,
+ * K-R13, story 0096).
  */
 export const buildControlStripModulesFolder = (
 	modules: readonly ClassicyControlStripModuleFile[],
 	reservedNames: Iterable<string> = [],
+	separator = ":",
 ): ClassicyFileSystemEntry => {
 	const folder: ClassicyFileSystemEntry = {
 		_type: ClassicyFileSystemEntryFileType.Directory,
@@ -59,8 +62,12 @@ export const buildControlStripModulesFolder = (
 
 	for (const module of modules) {
 		const label = module.label ?? module.name;
+		const unusableDisplayName =
+			module.name !== label &&
+			separator !== "" &&
+			module.name.includes(separator);
 		let name: string;
-		if (reserved.has(module.name)) {
+		if (reserved.has(module.name) || unusableDisplayName) {
 			name =
 				module.name !== label && !isTaken(label)
 					? label
@@ -101,10 +108,12 @@ export const buildControlStripModulesFolder = (
  * entry still exactly as seeded gives way to the module of its name. Entries from an earlier build
  * whose module is gone are dropped. The input is not mutated, and a tree with no
  * drive — or with nothing to add or drop — passes through unchanged.
+ * `separator` goes to `buildControlStripModulesFolder`.
  */
 export const withControlStripModulesFolder = (
 	tree: ClassicyFileSystemEntry,
 	modules: readonly ClassicyControlStripModuleFile[],
+	separator = ":",
 ): ClassicyFileSystemEntry => {
 	const driveKey = Object.keys(tree).find(
 		(key) => tree[key]?._type === ClassicyFileSystemEntryFileType.Drive,
@@ -130,6 +139,7 @@ export const withControlStripModulesFolder = (
 							...buildControlStripModulesFolder(
 								modules,
 								classicyDerivedFolderReservedNames(kept),
+								separator,
 							),
 						}
 					: (kept as ClassicyFileSystemEntry),
