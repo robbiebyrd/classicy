@@ -102,10 +102,19 @@ sounds, theming, and persistence of its window position across reloads.
 - **The id ends in `.app`.** Every bundled app follows this (`Finder.app`,
   `SimpleText.app`), a test pins it, and `"Finder.app"` is hard-coded as the
   menu-bar fallback.
-- **The name is load-bearing, not decoration.** Finder builds the action type
-  `` `ClassicyApp${app.name}OpenFile` `` from the stored name, verbatim. A name
-  with a space produces an action type with a space in it, which will not match
-  your registered prefix. **Prefer a single word for `name`.**
+- **The name is the internal name.** It is the app's own name, shown unless
+  the active Appearance Package says otherwise, and it is load-bearing: Finder
+  builds the action type `` `ClassicyApp${app.name}OpenFile` `` from the stored
+  name, verbatim, and `ClassicyApp` builds `` `ClassicyApp${name}CloseFile` ``
+  from the prop. A name with a space produces an action type with a space in
+  it, which will not match your registered prefix. **Prefer a single word for
+  `name`.**
+- **A package may display another name.** An Appearance Package can show your
+  app under another name or icon, by its id (`apps["MyApp.app"]`;
+  AGENT-REFERENCE §8, "App display overrides"). Your action types, Finder's
+  OpenFile routing and every store record keep this one; only what is drawn
+  changes. You need do nothing for it, unless your app draws its own name
+  (below) or builds something from a name.
 
 ---
 
@@ -162,12 +171,13 @@ interface ClassicyAppProps {
 | Prop | Default | Purpose |
 |---|---|---|
 | `id` | — | Unique app id. Convention: `MyApp.app`. |
-| `name` | — | Display name. Also builds file-open action types — prefer one word. |
+| `name` | — | Internal name, and the display name unless a package overrides it. Builds file-open action types — prefer one word. |
 | `icon` | — | Icon URL. Required even for extensions, which never render it. |
+| *(display overrides)* | — | Not a prop: an Appearance Package's `apps[id]` may show another `name`, `icon` and balloon `description` for your app wherever it is drawn. The props stay the internal identity and the default. Text your app draws that names the app reads `useClassicyAppIdentity(id, { name, icon })`. |
 | `defaultWindow` | — | Enables focus restore: when the app is focused but none of its open windows is, the most recently focused one is refocused (this window if none has been). |
 | `showDesktopIcon` | `true` | Draw an icon on the desktop. |
 | `showInApplicationsFolder` | `true` | List the app in the derived Applications folder. Independent of the above. |
-| `desktopIconBalloonHelp` | manifest `description` | Balloon help for the desktop icon. A bare string is titled with the app name. |
+| `desktopIconBalloonHelp` | manifest `description` | Balloon help for the desktop icon. A bare string is titled with the name the icon shows. Pass it only for copy of your own: given, it beats a package's `description`; omitted, the icon shows the package's `description`, else the manifest's, resolved at render. |
 | `addSystemMenu` | — | Add an Apple-menu entry. Forced off for extensions. |
 | `extension` | `false` | Background app: always open, no icon, no focus, no Apple-menu entry. |
 | `globalShortcuts` | — | Honored **only** when `extension` is set. |
@@ -190,7 +200,6 @@ Children render only when the app is open.
     icon={appIcon}
     defaultWindow="myapp_main"
     addSystemMenu={false}
-    desktopIconBalloonHelp={getAppManifest(appId)?.description}
 >
 ```
 
@@ -217,7 +226,8 @@ Children render only when the app is open.
 
 On mount, `ClassicyApp` dispatches, in order:
 
-1. `ClassicyAppLoad` — creates or refreshes `apps[id]`, storing `contextMenu`.
+1. `ClassicyAppLoad` — creates or refreshes `apps[id]`, storing `contextMenu`
+   and refreshing `name` and `icon` from the props (never a package's override).
 2. `ClassicyDesktopAppMenuAdd` / `…Remove` — per `addSystemMenu`.
 3. `ClassicyDesktopIconAdd` with `kind: "app_shortcut"`, or `ClassicyDesktopIconRemove`
    when both icon surfaces are off. (The removal matters: icons persist to
@@ -234,6 +244,38 @@ inline array literal does not re-fire the effect.
 Every icon `ClassicyApp` registers has kind `app_shortcut`, so it renders the
 Mac OS 8 alias arrow over its bottom-left corner and italicizes its label. System
 kinds (`drive`, `trash`, `directory`, `file`, `icon`) get neither.
+
+### Display overrides: what your app must do
+
+An Appearance Package can show your app under another name, icon and balloon
+copy (`apps[id]`). The shell does the rest by itself: the desktop icon, the
+Applications or Extensions entry, the App Switcher, the Apple menu, the About
+box, the startup parade and a Control Strip module you own with `appId` all
+follow the package, with no code in your app.
+
+Your app has work to do only where it draws or builds from its own name:
+
+- **Text that names the app** (a window title that is the app name, a proxy
+  icon that is the app icon, an "Open … Control Panel" item) reads the display
+  identity:
+
+  ```tsx
+  const identity = useClassicyAppIdentity(appId, { name: appName, icon: appIcon })
+  <ClassicyWindow title={identity.name} icon={identity.icon} /* … */ />
+  ```
+
+  Pass the internal `appName`/`appIcon` everywhere else: `ClassicyApp`,
+  `useClassicyAboutMenu`, `quitMenuItemHelper`, `ClassicyAppOpen` payloads.
+- **Action types, paths and lookups** never use a displayed name. Write your
+  action types as literals (`"ClassicyAppMyAppCloseFile"`), not
+  `` `ClassicyApp${appName}CloseFile` ``.
+- **Your About item** keeps the id `useClassicyAboutMenu` gives it,
+  `${appId}_about`, and a title in the internal name: its plain "About", or
+  `` `About ${appName}` `` when you retitle it (stored menus never hold a
+  display name). A window's own menu bar retitles the item "About <display
+  name>" only when it finds `${appId}_about` titled `` `About ${appName}` ``;
+  another id, or other wording, is drawn as stored. The screen menu bar always
+  titles the hoisted Apple-menu copy "About <display name>".
 
 ---
 
@@ -795,7 +837,9 @@ const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(appId, appName, appI
 ```
 
 `ClassicyDesktopMenuBar` hoists the About entry into the Apple menu and strips it
-from your File menu before rendering, so listing it in File is correct.
+from your File menu before rendering, so listing it in File is correct. Keep the
+item's id, `${appId}_about`: it is how both menu bars find it and title it with
+a package's display name (§4, "Display overrides: what your app must do").
 
 ### Balloon help on menu items
 
@@ -899,6 +943,12 @@ useClassicyAsset('icons', 'system.drives.disk')
 useClassicyAsset('icons', 'system.macos')
 ```
 
+An Appearance Package can also replace your app's icon by id
+(`apps["MyApp.app"].icon`), separately from the icon registry: the registry
+swaps the art behind a key for every user of that key, while `apps[id].icon`
+changes only how your app is shown, wherever its icon is drawn. Your `icon`
+prop stays the app's own icon in the store.
+
 Override the alias-badge artwork with `registerClassicySystemArt("platinum", { aliasBadge })`. Cursors, wallpapers, fonts and the rest of the system art register the same way; see AGENT-REFERENCE §5 (Asset registries).
 
 ---
@@ -921,7 +971,9 @@ Declare the types you handle:
 When the user opens a matching file, Finder dispatches
 `` `ClassicyApp${name}OpenFile` ``. Unless you registered a reducer for that
 type, it lands in the generic handler, which appends the path to
-`apps[id].data.openFiles` and opens the app.
+`apps[id].data.openFiles` and opens the app. `name` here is always the internal
+name (the record's), never a package's display name, so the type does not
+change with the Appearance Package.
 
 By default `ClassicyApp` then renders one plain window per queued path. To render
 your own windows instead, set `handlesOwnFiles` and read the queue:
@@ -1024,7 +1076,11 @@ All methods are optional. Errors always degrade to local-wins. Journal `op`s are
 `write`, `mkdir`, `rmdir`, `meta`, `load` and `move` (the old path in `path`, the
 new one in `to`; metadata it set in `metadata`, keys it removed in
 `unsetMetadata`). Derived folders (Applications, Extensions, Control Strip
-Modules) are applied through `applyDerivedTree()` and never journal.
+Modules) are applied through `applyDerivedTree()` and never journal; their
+entries are left out of every snapshot and the localStorage write. Their names
+can follow an Appearance Package's display names: an entry never overwrites a
+static file of the same name, and takes "<own name> (<id>)" instead
+(AGENT-REFERENCE §8, "App display overrides").
 
 ---
 
@@ -1272,6 +1328,14 @@ registerClassicyControlStripModule({
   reorders them, in the Control Strip control panel.
 - **HIG p.125.** A module that belongs to a control panel includes an
   "Open … Control Panel" command (`classicyControlStripOpenControlPanelItem`).
+  Name the panel with `useClassicyAppIdentity(panelId, { name, icon }).name`
+  inside the `menuItems` hook, as the Screen Saver module does, so a package
+  that renames the panel renames the command; keep the internal identity in
+  the `app` argument, which is what opens it.
+- **Display names.** A module with an `appId` is shown by that app's display
+  name (the button's accessible name, the control panel and its file) when an
+  Appearance Package renames the app; otherwise, and with no `appId`, by its
+  `label`.
 - **Anywhere on screen.** The user can Control-drag the strip's collapse box
   to dock it on the left or right edge at any height, so don't assume it sits
   at the lower left: a module's menu or `content` opens beside the module and
@@ -1382,6 +1446,7 @@ the vitest setup file — Classicy uses all three.
 **Before you ship an app:**
 
 - [ ] The id ends in `.app` and the `name` is a single word.
+- [ ] No action type, path or lookup is built from a displayed name; text that names the app reads `useClassicyAppIdentity`.
 - [ ] A manifest is registered at module load, with a `description`.
 - [ ] The `state` schema is a `z.looseObject` with `.optional()` top-level fields.
 - [ ] The action prefix is not a prefix of another registered prefix.
@@ -1407,6 +1472,9 @@ the vitest setup file — Classicy uses all three.
 | An icon persists after the app is removed | Icons persist to `localStorage`; turning both icon surfaces off dispatches the removal. |
 | State change is ignored after reload | Persisted state beats `defaultState`. Clear `classicyDesktopState`. |
 | A desktop icon has no balloon help | The manifest has no `description`. |
+| A package's `description` never shows on your desktop icon | You pass `desktopIconBalloonHelp`, which beats it. Omit the prop to use the manifest's description. |
+| A package renames your app, but a window title still shows the old name | The window reads the `name` constant. Use `useClassicyAppIdentity(id, { name, icon }).name`. |
+| Your window's About item keeps its old title under a renaming package | Its id is not `${appId}_about`, or its title is not `` `About ${appName}` ``. |
 | A Control Strip module never appears | Its `appId` app is not mounted, the host lists it in `disabledModules`, or the user hid it in the Control Strip control panel. |
 | A Control Strip registration is ignored | Another `appId` already registered that module id. |
 | Schema warnings in the console | Dev-only manifest validation. Warn-only — state is never rejected. |
