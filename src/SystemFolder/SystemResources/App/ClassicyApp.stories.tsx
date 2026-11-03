@@ -10,6 +10,15 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { hasAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import {
+	registerClassicyControlStripModule,
+	unregisterClassicyControlStripModule,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+// Side effect: registers Movie Player's manifest and reducer, as a host's
+// `import "classicy"` does, so its documents open and its description is
+// the balloon fallback. Storybook's graph does not otherwise import it
+// (story 0097-p8k tracks the general fix).
+import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyApp } from "./ClassicyApp";
 
@@ -141,6 +150,21 @@ export const AppContextMenu: Story = {
 
 const APPLICATIONS_FOLDER = "Macintosh HD:Applications";
 
+/** A Control Strip module the host app owns, so its label follows the app. */
+const TV_CONTROL_STRIP_MODULE_ID = "storybook-tv";
+
+/**
+ * A movie for Movie Player to open, so it has a focused window publishing
+ * its menus (and with them the Apple menu's About item). Opened as audio:
+ * the window draws only the controller, never a video frame. Relative, so it
+ * resolves under any Storybook base path (`staticDirs` serves /assets).
+ */
+const SAMPLE_MOVIE = {
+	url: "assets/vid/quicktime/sample.mp4",
+	name: "Sample",
+	type: "audio",
+} as const;
+
 const RenamedByPackageDesktop = () => {
 	const dispatch = useAppManagerDispatch();
 	// A host app opts its own window into the package's identity the way the
@@ -159,6 +183,22 @@ const RenamedByPackageDesktop = () => {
 	const moviePlayerOpened = useRef(false);
 
 	useEffect(() => {
+		// Owned by TV.app, so the strip, its control panel and the Control
+		// Strip Modules folder show it under the app's display name.
+		registerClassicyControlStripModule({
+			id: TV_CONTROL_STRIP_MODULE_ID,
+			appId: "TV.app",
+			label: "TV",
+			icon: SB_ICON,
+			menuItems: [
+				{
+					id: "storybook-tv-channel",
+					title: "Channel 8",
+					disabled: true,
+					className: "classicyControlStripStatus",
+				},
+			],
+		});
 		dispatch({
 			type: "ClassicyAppOpen",
 			app: { id: "TV.app", name: "TV", icon: SB_ICON },
@@ -167,12 +207,27 @@ const RenamedByPackageDesktop = () => {
 			type: "ClassicyAppFinderOpenFolder",
 			path: APPLICATIONS_FOLDER,
 		});
+		return () => {
+			unregisterClassicyControlStripModule(TV_CONTROL_STRIP_MODULE_ID);
+		};
 	}, [dispatch]);
 
 	useEffect(() => {
 		if (!windowsReady || moviePlayerOpened.current) return;
 		moviePlayerOpened.current = true;
+		// Movie Player on the desktop too (a bundled app registers a hidden
+		// icon): with no balloon of its own, its icon's balloon is the
+		// package's `description` override.
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: MoviePlayerAppInfo,
+			kind: "app_shortcut",
+		});
 		dispatch({ type: "ClassicyAppOpen", app: MoviePlayerAppInfo });
+		dispatch({
+			type: "ClassicyAppMoviePlayerOpenDocument",
+			document: SAMPLE_MOVIE,
+		});
 	}, [dispatch, windowsReady]);
 
 	return (
@@ -204,10 +259,14 @@ const RenamedByPackageDesktop = () => {
  * TV.app is 'Television' on the desktop. Switch the package back in the
  * Appearance control panel and every name and icon returns.
  *
- * The TV window titles itself with `useClassicyAppIdentity`, as the bundled
- * control panels do, so its title and proxy icon follow the package too.
- * Persisted state never changes: records, menus and the file system keep
- * the apps' own names.
+ * Movie Player has a document open and focused, so the Apple menu offers
+ * "About Media Player" and its About box; its desktop icon's balloon is the
+ * package's description. The TV window titles itself with
+ * `useClassicyAppIdentity`, as the bundled control panels do, so its title
+ * and proxy icon follow the package too, and TV.app's Control Strip module
+ * is labeled "Television" in the strip and its control panel. Persisted
+ * state never changes: records, menus and the file system keep the apps'
+ * own names.
  */
 export const RenamedByPackage: Story = {
 	parameters: renamedParameters,
