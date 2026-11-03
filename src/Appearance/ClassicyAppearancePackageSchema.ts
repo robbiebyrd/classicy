@@ -72,8 +72,8 @@ const knob = z
 	});
 
 // Keys that would reach Object.prototype through a plain-object lookup. The
-// registry stores the package object as given, not the parsed one, so these
-// are refused rather than stripped.
+// registry stores the package object as given (its `apps` as a frozen copy of
+// the parsed value), so these are refused rather than stripped.
 const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
 	"__proto__",
 	"constructor",
@@ -101,7 +101,8 @@ const appIdKey = z
 // of the emoji (K-R13). Checked by code point, so characters outside the BMP
 // are seen. The joiners U+200C and U+200D stay allowed: emoji sequences and
 // several scripts need them. Refinements, never `.trim()`: the registry keeps
-// the original object, so nothing may be transformed. The length checks keep
+// the package as given and `apps` as the parsed value, which must equal what
+// the package declared, so nothing may be transformed. The length checks keep
 // zod's own messages, which name the bound.
 const DISPLAY_NAME_ERROR =
 	"must be a display name usable as a file name (no leading _, no :)";
@@ -187,8 +188,9 @@ export const ClassicyAppIdentityOverrideSchema = z
 const appsRecord = z.record(appIdKey, ClassicyAppIdentityOverrideSchema);
 
 // zod's record skips an own `__proto__` key without an issue (it is never
-// copied into the parsed output), and the registry keeps the object as
-// given, so the raw input's keys are checked before the record parses it.
+// copied into the parsed output), and an override the parse dropped must not
+// pass silently, so the raw input's keys are checked before the record
+// parses it.
 const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
 	(value) =>
 		typeof value !== "object" ||

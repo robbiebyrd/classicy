@@ -9,6 +9,10 @@ import {
 	subscribeClassicyAppearancePackages,
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	getClassicyAppIdentityOverrides,
+	resolveClassicyAppIdentity,
+} from "@/Appearance/ClassicyAppIdentity";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
@@ -163,10 +167,41 @@ describe("registerClassicyAppearancePackage", () => {
 		const first = { "A.app": { name: "A" } };
 		const second = { "B.app": { name: "B" } };
 		registerClassicyAppearancePackage({ ...irix, apps: first });
-		expect(getClassicyAppearancePackage("irix")?.apps).toBe(first);
+		expect(getClassicyAppearancePackage("irix")?.apps).toEqual(first);
 		registerClassicyAppearancePackage({ ...irix, apps: second });
-		expect(getClassicyAppearancePackage("irix")?.apps).toBe(second);
+		expect(getClassicyAppearancePackage("irix")?.apps).toEqual(second);
 		registerClassicyAppearancePackage(irix);
 		expect(getClassicyAppearancePackage("irix")?.apps).toBeUndefined();
+	});
+
+	// K-R13 (m5): what is stored is what was validated, so a later change to
+	// the caller's object can never bypass the schema.
+	it("stores a frozen, validated copy of apps, so mutating the caller's object changes nothing", () => {
+		const apps: Record<string, { name?: string; icon?: string }> = {
+			"A.app": { name: "A" },
+		};
+		registerClassicyAppearancePackage({ ...irix, apps });
+		apps["A.app"].name = "_not:valid";
+		apps["A.app"].icon = "javascript:alert(1)";
+		apps["B.app"] = { name: "B" };
+		delete apps["A.app"];
+
+		const stored = getClassicyAppearancePackage("irix")?.apps;
+		expect(stored).toEqual({ "A.app": { name: "A" } });
+		expect(Object.isFrozen(stored)).toBe(true);
+		expect(Object.isFrozen(stored?.["A.app"])).toBe(true);
+		expect(
+			resolveClassicyAppIdentity(
+				"A.app",
+				{ name: "Own", icon: "/a.png" },
+				"irix",
+			),
+		).toEqual({ name: "A", icon: "/a.png" });
+		expect(getClassicyAppIdentityOverrides("irix")).toBe(stored);
+	});
+
+	it("keeps a package with no apps as given", () => {
+		registerClassicyAppearancePackage(irix);
+		expect(getClassicyAppearancePackage("irix")).toBe(irix);
 	});
 });

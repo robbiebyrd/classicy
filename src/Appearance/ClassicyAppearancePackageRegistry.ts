@@ -7,7 +7,10 @@ import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 } from "./ClassicyAppearanceDefaults";
-import type { ClassicyAppearancePackage } from "./ClassicyAppearancePackage";
+import type {
+	ClassicyAppearancePackage,
+	ClassicyAppIdentityOverride,
+} from "./ClassicyAppearancePackage";
 import { ClassicyAppearancePackageSchema } from "./ClassicyAppearancePackageSchema";
 import {
 	CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX,
@@ -53,12 +56,29 @@ const publish = () => {
 };
 
 /**
+ * A frozen copy of a package's validated `apps`, each override frozen too, so
+ * a later change to the caller's object never reaches the registry unchecked
+ * (K-R13).
+ */
+const frozenAppsCopy = (
+	apps: NonNullable<ClassicyAppearancePackage["apps"]>,
+): NonNullable<ClassicyAppearancePackage["apps"]> => {
+	const copy: Record<string, ClassicyAppIdentityOverride> = {};
+	for (const [appId, override] of Object.entries(apps)) {
+		copy[appId] = Object.freeze({ ...override });
+	}
+	return Object.freeze(copy);
+};
+
+/**
  * Add an Appearance Package. Call it at module scope; consumers update live.
  * The package is validated against `ClassicyAppearancePackageSchema` (all but
  * `css`, `options` and `hooks`); an invalid one is logged as an error and not
  * registered. On success its CSS is injected (`injectClassicyAppearanceStyles`)
- * and the package object itself is stored. Re-registering an id replaces the
- * package and keeps its position.
+ * and the package object itself is stored, except that a package with `apps`
+ * is stored as a shallow copy whose `apps` is a frozen copy of the validated
+ * value: mutating the caller's `apps` afterward changes nothing.
+ * Re-registering an id replaces the package and keeps its position.
  */
 export function registerClassicyAppearancePackage(
 	pkg: ClassicyAppearancePackage,
@@ -79,7 +99,11 @@ export function registerClassicyAppearancePackage(
 		return;
 	}
 	injectClassicyAppearanceStyles(pkg.id, pkg.css);
-	registry.set(pkg.id, pkg);
+	const apps = parsed.data?.apps;
+	registry.set(
+		pkg.id,
+		apps === undefined ? pkg : { ...pkg, apps: frozenAppsCopy(apps) },
+	);
 	publish();
 }
 
