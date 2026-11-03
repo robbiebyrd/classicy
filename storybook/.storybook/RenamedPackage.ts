@@ -38,9 +38,17 @@ export const rescopeToRenamed = (css: string): string =>
 		`$1$2${RENAMED_APPEARANCE_PACKAGE_ID}$2`,
 	);
 
-const platinum = getClassicyAppearancePackage(
-	PLATINUM_APPEARANCE_PACKAGE_ID,
-) as ClassicyAppearancePackage;
+const platinumPackage = (): ClassicyAppearancePackage => {
+	const platinum = getClassicyAppearancePackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+	if (!platinum) {
+		throw new Error(
+			"The renamed package is built on Platinum, which is not registered.",
+		);
+	}
+	return platinum;
+};
+
+const platinum = platinumPackage();
 
 registerClassicyAppearancePackage({
 	id: RENAMED_APPEARANCE_PACKAGE_ID,
