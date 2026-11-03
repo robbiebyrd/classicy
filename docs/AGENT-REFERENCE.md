@@ -2318,7 +2318,10 @@ stored as a shallow copy whose `apps` is a frozen copy of the validated value
   U+2061–U+2064, the Hangul fillers U+115F, U+1160, U+3164 and U+FFA0, the tag
   characters U+E0000–U+E007F, and the variation selectors U+FE00–U+FE0F and
   U+E0100–U+E01EF, except VS16 (U+FE0F) right after an emoji (`\p{Emoji}`, so
-  "❤️", ZWJ sequences such as "🏳️‍🌈" and keycaps pass). It is checked by code
+  "❤️", ZWJ sequences such as "🏳️‍🌈" and keycaps pass). That refuses CJK
+  ideographic variation sequences (`葛` + U+E0100) and standardized variants
+  (`一` + U+FE00) too, though Japanese proper names may use them, so write the
+  base ideograph alone. It is checked by code
   point (K-R13), so characters outside the BMP are seen, and it is not a
   prototype key either. The joiners U+200C and U+200D are allowed. The rules
   exist because the derived folders use the name as a file-system key.

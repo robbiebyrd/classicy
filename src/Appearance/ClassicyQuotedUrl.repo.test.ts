@@ -1,4 +1,6 @@
 import { globSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -16,23 +18,32 @@ const UNQUOTED_URL = [
 	/["'`]url\(["']?\s*["'`]\s*\+/, // "url(" + …
 ];
 
+// The repo root, resolved from this file (`src/Appearance/`), so the scan
+// covers src whatever directory vitest was started from.
+const REPO_ROOT = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../..",
+);
+
 const isLibraryModule = (file: string): boolean =>
 	!/\.(test|stories)\.tsx?$/.test(file) && !file.includes("__tests__");
 
 describe("CSS url() emitters", () => {
 	it("no src module writes an interpolated value into an unquoted url()", () => {
-		const hits = globSync("src/**/*.{ts,tsx}")
-			.filter(isLibraryModule)
-			.flatMap((file) =>
-				readFileSync(file, "utf8")
-					.split("\n")
-					.map((line, i) =>
-						UNQUOTED_URL.some((pattern) => pattern.test(line))
-							? `${file}:${i + 1}`
-							: null,
-					)
-					.filter(Boolean),
-			);
+		const files = globSync("src/**/*.{ts,tsx}", { cwd: REPO_ROOT }).filter(
+			isLibraryModule,
+		);
+		expect(files.length).toBeGreaterThan(0);
+		const hits = files.flatMap((file) =>
+			readFileSync(path.join(REPO_ROOT, file), "utf8")
+				.split("\n")
+				.map((line, i) =>
+					UNQUOTED_URL.some((pattern) => pattern.test(line))
+						? `${file}:${i + 1}`
+						: null,
+				)
+				.filter(Boolean),
+		);
 		expect(hits).toEqual([]);
 	});
 });

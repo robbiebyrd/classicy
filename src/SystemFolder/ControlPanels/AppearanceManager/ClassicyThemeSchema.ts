@@ -75,11 +75,12 @@ const UNSAFE_URL_CHARS = /[\s"'`()\\;<>{}]/;
 
 /**
  * True for a `desktop.backgroundImage` value that is safe to interpolate into
- * `url(…)`: empty (colour-only), a bundled wallpaper (its filename or the URL
- * the bundler resolved it to), or an absolute http(s) URL with no characters
- * that could break out of `url()` — whitespace, quotes, parentheses,
- * backslashes, semicolons, angle brackets or braces. `javascript:`, `data:`
- * (other than a bundled wallpaper's own) and relative paths are rejected.
+ * the double-quoted `url("…")` that `getThemeVars` writes: empty (color-only),
+ * a bundled wallpaper (its filename or the URL the bundler resolved it to), or
+ * an absolute http(s) URL with no characters that could break out of the
+ * quoted string or the `url()` — whitespace, quotes, parentheses, backslashes,
+ * semicolons, angle brackets or braces. `javascript:`, `data:` (other than a
+ * bundled wallpaper's own) and relative paths are rejected.
  */
 export const isSafeClassicyThemeBackgroundImage = (value: string): boolean => {
 	if (value === "") return true;
