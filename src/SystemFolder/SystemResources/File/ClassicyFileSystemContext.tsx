@@ -208,6 +208,7 @@ export function useClassicyFileSystem(
 			withControlStripModulesFolder(
 				fs.fs,
 				JSON.parse(controlStripModulesKey) as ClassicyControlStripModuleFile[],
+				fs.separator,
 			),
 		);
 		return fs;
