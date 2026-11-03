@@ -88,7 +88,7 @@ describe("ClassicyBootSequence", () => {
 			".classicyPreBootScreen",
 		) as HTMLElement;
 		expect(overlay.style.getPropertyValue("--classicy-preboot-halftone")).toBe(
-			"url(halftone-large.png)",
+			'url("halftone-large.png")',
 		);
 	});
 

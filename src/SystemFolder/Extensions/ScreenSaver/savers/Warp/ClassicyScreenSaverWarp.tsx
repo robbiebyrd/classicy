@@ -33,7 +33,7 @@ export const ClassicyScreenSaverWarp: FunctionalComponent<
 					className="classicySaverWarpStars"
 					style={
 						{
-							"--classicy-saver-warp-stars": `url(${starImages[i % starImages.length]})`,
+							"--classicy-saver-warp-stars": `url("${starImages[i % starImages.length]}")`,
 							animationDelay: `${i * 500}ms`,
 						} as CSSProperties
 					}

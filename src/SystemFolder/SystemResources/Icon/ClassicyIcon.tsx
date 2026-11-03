@@ -280,7 +280,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
 			)}
-			style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
+			style={{ "--classicy-icon-mask": `url("${icon}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
 				<img src={icon} alt={name} />

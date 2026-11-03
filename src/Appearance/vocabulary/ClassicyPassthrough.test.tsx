@@ -955,7 +955,7 @@ describe("className and style passthrough", () => {
 			".classicyIconMaskOuter",
 		) as HTMLElement;
 		expect(mask.style.getPropertyValue("--classicy-icon-mask")).toBe(
-			"url(/i.png)",
+			'url("/i.png")',
 		);
 	});
 

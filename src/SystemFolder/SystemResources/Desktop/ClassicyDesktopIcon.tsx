@@ -576,7 +576,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							className={"classicyDesktopIconMaskOuter"}
 							style={
 								{
-									"--classicy-icon-mask": `url(${identity.icon})`,
+									"--classicy-icon-mask": `url("${identity.icon}")`,
 								} as CSSProperties
 							}
 						>
@@ -591,7 +591,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								}
 								style={
 									{
-										"--classicy-icon-mask": `url(${aliasBadge})`,
+										"--classicy-icon-mask": `url("${aliasBadge}")`,
 									} as CSSProperties
 								}
 							>

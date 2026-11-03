@@ -107,7 +107,7 @@ export const FinderAboutThisComputer: FunctionalComponent<
 						style={{
 							backgroundSize: "cover",
 							backgroundPosition: "bottom left",
-							backgroundImage: `url(${classicyBg})`,
+							backgroundImage: `url("${classicyBg}")`,
 							backgroundRepeat: "no-repeat",
 						}}
 					>

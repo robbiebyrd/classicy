@@ -23,8 +23,8 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
  *
  * Every string a theme carries ends up in a CSS custom property on the
  * desktop root (`getThemeVars`), so strings are restricted to the characters
- * their CSS role needs — and `desktop.backgroundImage`, interpolated unquoted
- * into `url(…)`, must be a bundled wallpaper or a plain http(s) URL.
+ * their CSS role needs — and `desktop.backgroundImage`, interpolated into
+ * `url("…")`, must be a bundled wallpaper or a plain http(s) URL.
  */
 
 /** A 24-bit RGB colour, as themes store them (`0xRRGGBB`). */

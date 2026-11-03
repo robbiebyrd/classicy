@@ -132,8 +132,8 @@ export const ClassicyScreenSaverFlyingToasters: FunctionalComponent<
 			className={classNames("classicySaverFlyingToasters", className)}
 			style={
 				{
-					"--classicy-saver-toaster": `url(${toasterSprite})`,
-					"--classicy-saver-toast": `url(${toastImage})`,
+					"--classicy-saver-toaster": `url("${toasterSprite}")`,
+					"--classicy-saver-toast": `url("${toastImage}")`,
 					...style,
 				} as CSSProperties
 			}

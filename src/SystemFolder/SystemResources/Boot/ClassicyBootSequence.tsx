@@ -83,7 +83,7 @@ export const ClassicyBootSequence: FunctionalComponent<
 		// Hide the desktop behind an opaque white sheet tiled with the halftone
 		// pattern (a transparent PNG resolved in JS, handed to SCSS as a var).
 		const overlayStyle = {
-			"--classicy-preboot-halftone": `url(${halftoneLarge})`,
+			"--classicy-preboot-halftone": `url("${halftoneLarge}")`,
 			...style,
 		} as CSSProperties;
 		return (
