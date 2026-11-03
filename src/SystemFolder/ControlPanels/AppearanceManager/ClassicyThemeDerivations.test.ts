@@ -11,15 +11,16 @@ import {
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 import {
 	CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	classicyMeasurementVarName,
 	classicyMeasurementVars,
 	isReservedClassicyThemeVar,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 
 describe("CLASSICY_THEME_DERIVATIONS", () => {
-	it("has 104 unique cssVars, each starting with --", () => {
+	it("has 105 unique cssVars, each starting with --", () => {
 		const names = CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar);
-		expect(names).toHaveLength(104);
-		expect(new Set(names).size).toBe(104);
+		expect(names).toHaveLength(105);
+		expect(new Set(names).size).toBe(105);
 		for (const name of names) {
 			expect(name.startsWith("--"), name).toBe(true);
 		}
@@ -51,6 +52,22 @@ describe("CLASSICY_THEME_DERIVATIONS", () => {
 		expect(reserved.every(isReservedClassicyThemeVar)).toBe(true);
 		expect(reserved.filter((name) => inputs.includes(name))).toEqual([]);
 		expect(inputs.filter(isReservedClassicyThemeVar)).toEqual([]);
+	});
+
+	// H-R28c: derivation names may sit in a knob family's namespace
+	// (--balloon-help-font-size, --menu-*, --picker-*, --quick-time-*). G13
+	// reserves them, so a later knob of that name is skipped with a warning;
+	// none of Platinum's knob variables may be one today.
+	it("no Platinum knob variable collides with a derivation name", () => {
+		const derived = new Set(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
+		const knobVars = [
+			...Object.entries(platinumJson.defaults.measurements),
+			...Object.entries(platinumJson.knobs),
+		].flatMap(([family, keys]) =>
+			Object.keys(keys).map((key) => classicyMeasurementVarName(family, key)),
+		);
+		expect(knobVars.length).toBeGreaterThan(90);
+		expect(knobVars.filter((name) => derived.has(name))).toEqual([]);
 	});
 
 	it("every file a doc names as a reader reads the variable", () => {

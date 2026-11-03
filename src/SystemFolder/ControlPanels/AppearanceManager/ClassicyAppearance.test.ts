@@ -39,7 +39,8 @@ import {
 // and --progress-bar-stripe-period, 20px, which replaced the 40px stripePeriod
 // knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a); H
 // 6.2a appended 62 derivations for the named multipliers (H-R25: none of
-// them a knob) (every other key and value unchanged each time).
+// them a knob) and H-R28b --window-title-cap-offset (every other key and
+// value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -360,9 +361,11 @@ describe("getThemeVars", () => {
 			"--text-editor-height-inset": "4px",
 			"--text-editor-auto-min-height": "36px",
 			"--time-picker-period-min-width": "56px",
+			// H-R28b: the title-bar cap offset, its own role.
+			"--window-title-cap-offset": "3px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(104);
+		expect(Object.keys(expected)).toHaveLength(105);
 	});
 
 	it("derives from the inputs, not constants", () => {
