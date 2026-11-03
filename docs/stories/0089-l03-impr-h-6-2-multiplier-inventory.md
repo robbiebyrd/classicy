@@ -3,11 +3,12 @@ id: 0089-l03
 title: 'H 6.2: Multiplier inventory'
 purpose: Work Part G's 86-site one-off multiplier inventory down to the sites kept on purpose, so no unnamed calc(var(--x) * N) proportion survives in the stylesheets.
 type: impr
-status: ready
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-11-03T21:30:53.318Z"
+updated: "2026-11-03T22:47:16.507Z"
+started: "2026-11-03T22:47:14.319Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -86,3 +87,5 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ### 2026-10-30T21:21:34.698Z - 6.2a review: Needs fixes. The scanner misses Sass #{$x} operands (4 live Slider sites; the true total is 182, not 178) and sign-flip-plus-factor chains such as var(--x) * -1 / 2. Values verified: 33,212 old-vs-new comparisons across every editable input; H-R25 fully applied. Ruling H-R28 covers the scanner fix, the title-bar cap offset's own name, a knob/derivation collision test and a duplicate-role check. Fix round running.
 
 ### 2026-11-03T21:30:53.318Z - 6.2a review fixes (fa2e74728, cdd929f44): the scanner counts Sass #{$x} operands and multiplies factor chains (* -1 / 2 is now caught); the 4 Slider thumb halves are allowlisted under H-R21 (the live total is 176, since ±1 products are not sites); the title-bar cap offset gets --window-title-cap-offset; a knob/derivation collision test is added; no duplicate role is merged, with reasons recorded. Parity AE 0, computed styles and forced states identical. Accepted; integrating with 6.1 onto land/part-h.
+
+### 2026-11-03T22:47:16.507Z - 6.2a integrated with 6.1 onto land/part-h (d7e159c5e): 105 derivations, 93 knobs, 59 allowlisted sites over 16 files, no H-R6 conflicts. H 6.2b (the 24 remaining sites, all derivations under H-R25) started on land/part-h.

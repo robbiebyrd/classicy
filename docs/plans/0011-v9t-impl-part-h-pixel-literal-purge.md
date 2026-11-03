@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-28T19:31:45.820Z"
-updated: "2026-10-30T17:33:00.741Z"
+updated: "2026-11-03T22:47:18.762Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,7 +49,7 @@ progress:
   "6":
     status: in_progress
   "6.1":
-    status: in_progress
+    status: complete
   "6.2":
     status: in_progress
   "7":

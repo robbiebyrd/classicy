@@ -3,12 +3,13 @@ id: 0073-wte
 title: 'H 6.1: Remaining 43 literals, the 50 fallbacks, four derivations, coverage test'
 purpose: Purge the long tail of pixel literals across 25 files, drop every `var(--x, Npx)` fallback, add the four derivations Part G did not name, empty the allowlist, and pin a test that every `var(--…)` read in SCSS is emitted, declared or set.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-28T20:39:09.687Z"
-updated: "2026-10-30T21:20:57.417Z"
+updated: "2026-11-03T22:47:10.663Z"
 started: "2026-10-30T17:33:43.278Z"
+completed: "2026-11-03T22:47:08.975Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -60,17 +61,17 @@ links:
     - ["0011-v9t", "included", ["6.1"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
   "6":
-    status: pending
+    status: complete
 ---
 
 # H 6.1: Remaining 43 literals, the 50 fallbacks, four derivations, coverage test
@@ -111,10 +112,10 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/check-pixel-literals.ts && test "$(cat bin/pixel-literal-allowlist.json | tr -d ' \n')" = '{}'
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.varCoverage.test.ts
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'focus ring, corner radius and window shadow'
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/HelpButton
+- [x] VERIFY: node bin/check-pixel-literals.ts && test "$(cat bin/pixel-literal-allowlist.json | tr -d ' \n')" = '{}'
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.varCoverage.test.ts
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.test.ts -t 'focus ring, corner radius and window shadow'
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/HelpButton
 
 ## Files
 
@@ -161,3 +162,5 @@ Derivations, added to `getThemeVars` ONLY if absent (`grep -c '<name>' ClassicyA
 ### 2026-10-30T20:16:00.441Z - H 6.1 review: Needs fixes. (1) the pop-up height cap is still a hard-coded 300 in JS (H-R26); (2) the crash screen's new width variable never applies, because the Sad Mac renders outside the themed desktop (H-R27a). H-R25 holds: all 20 Metrics-tab metrics checked, 61/61 equal. Ruling H-R27 also derives the progress-bar stripe period, renames controlStripPopup to stripMenu, and makes Kbd/Link read their border role. Fix round running.
 
 ### 2026-10-30T21:20:57.417Z - 6.1 review fixes (675afa3b9): the pop-up height cap reads the theme once per opening (H-R26; checked in a real browser at 200px); the crash-screen knob is dropped (H-R27a); the progress-bar stripe period is derived (b); the strip menu family is renamed stripMenu (c); Kbd/Link read the border role (d); coverage test tightened. 17 new tests failed first; parity AE 0 on 346 shots. Accepted; integrates with 6.2a after the 6.2a review.
+
+### 2026-11-03T22:47:10.663Z - Integrated onto land/part-h with 6.2a (a56aead48, 3a625221e; integration HEAD d7e159c5e, pushed as feat/appearance-part-h-v2). Its 4 VERIFY criteria pass (empty pixel allowlist, var coverage, the derivation tests, HelpButton). Integration gate: 415 files / 4900 tests; parity 342/342 + 4/4 AE 0, computed styles and forced states identical. Complete.
