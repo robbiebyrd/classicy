@@ -93,34 +93,51 @@ const appIdKey = z
 // (metadata keys), no `:` (the path separator), no control character (C0,
 // DEL, C1) or line/paragraph separator (U+2028, U+2029), and no bidi control
 // (U+202A–U+202E, U+2066–U+2069; the marks U+200E, U+200F, U+061C) or
-// invisible character (U+200B, U+2060, U+FEFF, the soft hyphen U+00AD), which
-// could make a label read as another app's. The joiners U+200C and U+200D
-// stay allowed: emoji sequences and several scripts need them. Refinements,
-// never `.trim()`: the registry keeps the original object, so nothing may be
-// transformed. The length checks keep zod's own messages, which name the
-// bound.
+// invisible character, which could make a label read as another app's: U+200B,
+// U+2060, U+FEFF, the soft hyphen U+00AD, the invisible operators
+// U+2061–U+2064, the Hangul fillers (U+115F, U+1160, U+3164, U+FFA0), the tag
+// characters U+E0000–U+E007F, and the variation selectors U+FE00–U+FE0F and
+// U+E0100–U+E01EF, except VS16 (U+FE0F) right after an emoji, which is part
+// of the emoji (K-R13). Checked by code point, so characters outside the BMP
+// are seen. The joiners U+200C and U+200D stay allowed: emoji sequences and
+// several scripts need them. Refinements, never `.trim()`: the registry keeps
+// the original object, so nothing may be transformed. The length checks keep
+// zod's own messages, which name the bound.
 const DISPLAY_NAME_ERROR =
 	"must be a display name usable as a file name (no leading _, no :)";
+const isUnsafeCodePoint = (code: number): boolean =>
+	code <= 0x1f ||
+	(code >= 0x7f && code <= 0x9f) ||
+	code === 0x2028 ||
+	code === 0x2029 ||
+	(code >= 0x202a && code <= 0x202e) ||
+	(code >= 0x2066 && code <= 0x2069) ||
+	code === 0x200b ||
+	code === 0x200e ||
+	code === 0x200f ||
+	code === 0x061c ||
+	code === 0x2060 ||
+	(code >= 0x2061 && code <= 0x2064) ||
+	code === 0x00ad ||
+	code === 0xfeff ||
+	code === 0x115f ||
+	code === 0x1160 ||
+	code === 0x3164 ||
+	code === 0xffa0 ||
+	(code >= 0xe0000 && code <= 0xe007f);
+const VS16 = 0xfe0f;
+const isVariationSelector = (code: number): boolean =>
+	(code >= 0xfe00 && code <= 0xfe0f) || (code >= 0xe0100 && code <= 0xe01ef);
+const EMOJI = /^\p{Emoji}$/u;
 const hasUnsafeCharacter = (text: string): boolean => {
-	for (let i = 0; i < text.length; i++) {
-		const code = text.charCodeAt(i);
-		if (
-			code <= 0x1f ||
-			(code >= 0x7f && code <= 0x9f) ||
-			code === 0x2028 ||
-			code === 0x2029 ||
-			(code >= 0x202a && code <= 0x202e) ||
-			(code >= 0x2066 && code <= 0x2069) ||
-			code === 0x200b ||
-			code === 0x200e ||
-			code === 0x200f ||
-			code === 0x061c ||
-			code === 0x2060 ||
-			code === 0x00ad ||
-			code === 0xfeff
-		) {
+	let previous = "";
+	for (const char of text) {
+		const code = char.codePointAt(0) as number;
+		if (isUnsafeCodePoint(code)) return true;
+		if (isVariationSelector(code) && !(code === VS16 && EMOJI.test(previous))) {
 			return true;
 		}
+		previous = char;
 	}
 	return false;
 };

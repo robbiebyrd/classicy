@@ -302,6 +302,30 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["A\u2060B"],
 		["A\u00adB"],
 		["A\ufeffB"],
+		// K-R13: checked by code point, so astral characters are seen too.
+		// Tag characters (invisible "ASCII smuggling").
+		["A\u{E0000}B"],
+		["SimpleText\u{E0020}"],
+		["A\u{E007F}B"],
+		// The invisible math operators.
+		["A\u2061B"],
+		["A\u2064B"],
+		// The Hangul fillers, which draw as blanks.
+		["A\u115fB"],
+		["A\u1160B"],
+		["A\u3164B"],
+		["A\uffa0B"],
+		// Variation selectors, but VS16 right after an emoji.
+		["A\ufe00B"],
+		["A\ufe0eB"],
+		["A\ufe0fB"],
+		["\ufe0fA"],
+		["\u2764\ufe0e"],
+		["\u2764\ufe0f\ufe0f"],
+		["\u2764\u200d\ufe0f"],
+		["A\u{E0100}B"],
+		["A\u{E01EF}B"],
+		["\u2764\u{E0100}"],
 		["prototype"],
 	])("refuses the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })[0]?.path).toEqual([
@@ -326,10 +350,28 @@ describe("ClassicyAppearancePackageSchema apps", () => {
 		["A\u2010B"],
 		["A\u202fB"],
 		["A\u205fB"],
-		["A\u2061B"],
 		["A\u2065B"],
 		["A\u206aB"],
+		["A\u115eB"],
+		["A\u1161B"],
+		["A\u3163B"],
+		["A\u3165B"],
+		["A\uff9fB"],
+		["A\uffa1B"],
+		["A\ufdfcB"],
+		["A\ufe10B"],
+		["A\u{DFFFF}B"],
+		["A\u{E0080}B"],
+		["A\u{E00FF}B"],
+		["A\u{E01F0}B"],
+		// Emoji: a ZWJ sequence, VS16 after an emoji (alone, inside a ZWJ
+		// sequence, and twice in one), and a keycap.
 		["\u{1F468}\u200d\u{1F469}\u200d\u{1F467}"],
+		["\u2764\ufe0f"],
+		["\u{1F3F3}\ufe0f\u200d\u{1F308}"],
+		["\u{1F441}\ufe0f\u200d\u{1F5E8}\ufe0f"],
+		["1\ufe0f\u20e3"],
+		["Media Player \u2764\ufe0f"],
 	])("accepts the name %j", (name) => {
 		expect(appsIssues({ "A.app": { name } })).toEqual([]);
 	});
