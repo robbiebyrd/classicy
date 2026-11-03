@@ -126,9 +126,12 @@ Migrations of existing direct-mutation sites:
 - **Derived overlays**: `useClassicyFileSystem`'s `fs.fs = withApplicationsFolder(...)`
   / `withExtensionsFolder(...)` assignments become an internal
   `applyDerivedTree(tree)` that neither journals nor notifies — overlay
-  application never *triggers* sync. Snapshots serialize the whole current
-  tree, so they mirror localStorage exactly (including overlays present at
-  snapshot time — the same existing quirk noted in Out of scope).
+  application never *triggers* sync. Snapshots serialize the current tree
+  minus its derived entries, so they mirror localStorage exactly. (Superseded
+  by K-R5, plan 0013-l9f: they once included the overlays present at snapshot
+  time, the quirk noted in Out of scope; `snapshot()` now leaves out every
+  `_derived` entry at any depth, so neither the localStorage write nor an
+  adapter snapshot or its hash holds one.)
 
 Because `persist()` is debounced, a pending write could be lost if the tab
 closes inside the debounce window. A `pagehide` listener flushes any pending
@@ -200,4 +203,5 @@ Vitest, following `ClassicyFileSystem.test.ts` patterns:
 - Journal persistence/replay buffering for offline adapters — adapters that
   miss entries recover via snapshot + reconcile.
 - Stripping derived folders from localStorage persistence (existing quirk:
-  post-boot persists include overlays; unchanged by this design).
+  post-boot persists include overlays; unchanged by this design). Since done
+  by K-R5 (plan 0013-l9f): `snapshot()` strips `_derived` entries.
