@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-11-03T22:13:11.114Z"
+updated: "2026-11-03T23:34:45.305Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -109,3 +109,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-11-03T21:50:48.975Z - K 6.1 docs done (6bc6862fa, pushed): AGENT-REFERENCE §8 'App display overrides' with the full contract and an Upgrading list, CLAUDE.md (the store type corrected to ClassicyStore), BUILDING-APPS (internal vs display name), and a README note; the gate passed with 420 files / 5035 tests. Ruling K-R12 accepts the window analytics icon as built. All K sections complete; the whole-branch final review (two reviewers: correctness and contract/docs) is running.
 
 ### 2026-11-03T22:13:11.114Z - Final review. Contract and docs: Ready to land (9/9 plan and 3/3 story criteria met; 9 doc minors). Correctness: Needs fixes. An end-to-end probe renamed and re-iconed 16 apps across every surface, and switching back restored state byte for byte, but (I1) a refused move or trash alert persists a display name via Desktop.errorDialog, and (I2) package icons go into an unquoted CSS url(), so a data: SVG with quotes breaks the icon mask in real browsers. Ruling K-R13; the fix round, including the doc minors, is running.
+
+### 2026-11-03T23:34:45.305Z - Final-review fixes (K-R13, 4371c9727..d51898359, pushed): errorDialog no longer persists; 15 unquoted url() sites quoted, with a repo test, verified in headless Chromium (mask-image was none and now holds the data: URL) and 80/80 parity; code-point display-name checks; separator plumbing; frozen validated apps copy; all doc minors. 421 files / 5080 tests; build:storybook ok. Correctness re-review running; landing follows.
