@@ -3435,7 +3435,7 @@ The table's types and one helper are public:
   rounded or unrounded as above. `getThemeVars` spreads it last.
 
 Equal formulas are separate names on purpose: each name is one role (H-R6),
-and a package may want two roles apart. These 17 groups share a formula
+and a package may want two roles apart. These 18 groups share a formula
 (`c` = `controlSize`, `p` = `paddingSize`, `b` = `borderSize`, `u` =
 `uiSize`):
 
@@ -3456,11 +3456,14 @@ and a package may want two roles apart. These 17 groups share a formula
 | `p × 0.75` | `--quick-time-volume-track-inset`, `--tab-large-padding-top` |
 | `p × 2` | `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-small-padding-inline` |
 | `p × 4` | `--menu-sub-menu-offset-block`, `--tab-large-padding-inline` |
+| `b × 2` | `--control-corner-radius`, `--window-shadow-offset` |
 | `b × 4` | `--quick-time-undocked-video-inset`, `--text-editor-height-inset` |
 | `u × 0.85` | `--balloon-help-font-size`, `--quick-time-time-font-size` |
 
 The earlier derived variables, outside this table, have equal pairs of their
-own: `--control-frame-width` and `--control-bevel-sm` (`b × 2`); and
+own: `--control-frame-width` and `--control-bevel-sm` (`b × 2`, the
+formula of the named `--control-corner-radius` and `--window-shadow-offset`,
+which H-R5 names apart: a key cap's corner and a frame's drop shadow); and
 `--control-bevel-md`, `--button-default-ring` and the named
 `--focus-ring-inset` (`b × 3`).
 
