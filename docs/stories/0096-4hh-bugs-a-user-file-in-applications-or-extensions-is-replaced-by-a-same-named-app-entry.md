@@ -3,11 +3,13 @@ id: 0096-4hh
 title: A user file in Applications or Extensions is replaced by a same-named app entry
 purpose: Never lose a user's file to a derived folder entry that shares its name.
 type: bugs
-status: ready
+status: complete
 priority: "1"
 effort: S
 created: "2026-10-30T19:15:44.106Z"
-updated: "2026-10-30T21:44:17.358Z"
+updated: "2026-11-03T21:25:45.076Z"
+started: "2026-11-03T21:25:28.624Z"
+completed: "2026-11-03T21:25:43.154Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -22,16 +24,16 @@ links:
       - src/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions.ts
       - src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts
   stories:
-    - ["0089-r2d", "depends"]
+    - ["0089-r2d", "blocks"]
   plans:
     - ["0013-l9f", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
 ---
 
 # A user file in Applications or Extensions is replaced by a same-named app entry
@@ -58,9 +60,9 @@ Pin the SimpleText and Calculator placeholder handoff, the user-file case and th
 
 ## Acceptance Criteria
 
-- [ ] A user file named like an installed app survives a derived-folder rebuild, a save and a reload.
-- [ ] Platinum's SimpleText and Calculator placeholders still give way to the real apps.
-- [ ] VERIFY: pnpm test --maxWorkers=3
+- [x] A user file named like an installed app survives a derived-folder rebuild, a save and a reload.
+- [x] Platinum's SimpleText and Calculator placeholders still give way to the real apps.
+- [x] VERIFY: pnpm test --maxWorkers=3
 
 ## Files
 
@@ -77,3 +79,5 @@ Pin the SimpleText and Calculator placeholder handoff, the user-file case and th
 ### 2026-10-30T21:18:32.633Z - Review: Needs fixes. A user's edits to a still-marked placeholder (for example a saved Calculator document) would be lost when a Calculator app appears; probe P1 proves it. Ruling K-R11: a placeholder gives way only while untouched (no _modifiedOn, seeded content unchanged). Everything else holds: no other loss path, legacy shape unreachable from user actions, handoff intact. Fix round running.
 
 ### 2026-10-30T21:44:17.358Z - Review fixes (703eded06): a placeholder gives way only while it matches the frozen CLASSICY_SEEDED_PLACEHOLDER exactly (K-R11); the reviewer's P1 sequence is a hook test (the edited Calculator file survives, and the app is listed as 'Calculator (Calculator.app)'); minors m1-m3 done; 17 mutants killed; 417 files / 4993 tests; parity 8/8 AE 0. Accepted; cherry-picks onto feat/appearance-part-k after K 5.1's fix round. Filed 0098-drm for the pre-existing default-tree aliasing found here.
+
+### 2026-11-03T21:25:45.076Z - Integrated onto feat/appearance-part-k (0da022f4f, fc9c3398e) and pushed. Full gate on the combined branch: 420 files / 5035 tests, lint, both type-checks, vocabulary, color sweep, build:source. Complete; it ships when Part K lands.
