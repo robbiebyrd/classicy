@@ -118,7 +118,11 @@ describe("resolveClassicyAppIdentity", () => {
 			apps: Object.create({ "TV.app": { name: "_unvalidated" } }),
 		};
 		registerClassicyAppearancePackage(renamed);
-		expect(getClassicyAppearancePackage("inherited")).toBe(renamed);
+		// Registered, with `apps` stored as a copy of the validated own
+		// entries (K-R13), so the inherited one is not even carried over.
+		const stored = getClassicyAppearancePackage("inherited")?.apps;
+		expect(stored).toBeDefined();
+		expect("TV.app" in (stored ?? {})).toBe(false);
 		const tv = { name: "TV", icon: "tv.png" };
 		expect(resolveClassicyAppIdentity("TV.app", tv, "inherited")).toBe(tv);
 		expect(
