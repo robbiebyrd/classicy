@@ -424,13 +424,13 @@ Full props:
 | Prop | Type | Default | Notes |
 |---|---|---|---|
 | `id` | `string` | — | **required** |
-| `name` | `string` | — | **required** |
-| `icon` | `string` | — | **required** (URL/data URI) |
+| `name` | `string` | — | **required**. The app's **internal** name, and its display name unless the active Appearance Package overrides it (§8, "App display overrides"). It keys `ClassicyApp${name}OpenFile`/`CloseFile` and every store record, so it never changes with the package |
+| `icon` | `string` | — | **required** (URL/data URI). The app's own icon, stored on its records; a package's `apps[id].icon` is shown in its place but never stored |
 | `defaultWindow` | `string` | — | window id opened on launch |
 | `restoreWindowFocus` | `boolean` | `true` | when the app is focused with no window focused, raise its most recent window (else `defaultWindow`); Finder turns it off so the desktop stays active |
 | `showDesktopIcon` | `boolean` | `true` | ignored for extensions (they never get icons) |
 | `showInApplicationsFolder` | `boolean` | `true` | independent of `showDesktopIcon` |
-| `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | string form is titled with the app name |
+| `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | stored on the icon record as given; an untitled balloon is titled at render with the name the icon shows. Omitted, the icon shows the package's `apps[id].description`, else the manifest `description`, resolved at render |
 | `addSystemMenu` | `boolean` | — | contribute to the system menu |
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
 | `globalShortcuts` | `{ shortcut, event, eventData? }[]` | — | honored only for extensions |
@@ -446,6 +446,11 @@ Menu/lifecycle hooks for app authors: `useClassicyWindowClose`,
 menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 `closeWindowMenuItemHelper`, `closeAllWindowsMenuItemHelper`.
 `ClassicyAppIdContext` provides the current app id to descendants.
+
+Text your app draws that names the app (a window title, a proxy icon, an
+"Open … Control Panel" item) reads `useClassicyAppIdentity(id, { name, icon })`
+(§8, "App display overrides"), never the `name` prop directly; action types,
+paths, record lookups and analytics keep the prop.
 
 ### App manifest registration — `registerApp`
 
@@ -990,7 +995,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 | `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` | |
 | `ClassicyColorPickerDialog` | `id` *, `open` *, `initialColor?`, `onSelectFunc?(color: number)`, `onCancelFunc?`, `crayons?` | |
 | `ClassicyColorPicker` | `id` *, `value?`/`defaultValue?` (int color), `onChangeFunc?(color)`, `labelTitle?` | swatch control that opens the dialog |
-| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box |
+| `ClassicyAboutWindow` | `appId` *, `appName` *, `appIcon` *, `hideFunc` *, `appMenu?` (`ClassicyMenuItem[]`, the menu bar while it is focused) | standard About box. `appName`/`appIcon` are the app's own; the heading and icon show the package's display identity for `appId` (§8, "App display overrides"), while its analytics keep `appName` |
 | `ClassicyAssistant` | `pages` * (`{title, content, buttons?, canAdvance?, labelIcon?, accessoryIcon?, accessoryIconSize? ("sm"\|"md"\|"lg")}[]`), `buttons?`, `page?`/`onPageChange?`, `initialPage? (0)` | setup-assistant flow. `page` makes it controlled; `initialPage` is the zero-based starting page when uncontrolled. Per page, `labelIcon` is a small icon left of the title and `accessoryIcon` a decorative icon at the right of the header (default size `"sm"`; `"lg"` overflows the header) |
 
 Keyboard-equivalent helpers: `checkKeyboardEquivalent(shortcut, {inUse,
@@ -1013,13 +1018,13 @@ plain integers (`0xRRGGBB`).
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
-| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
@@ -1113,6 +1118,14 @@ are also individually exported (`ClassicyAppearanceManager`,
 `ClassicyDateAndTimeManager`, `ClassicyDriveSetup`, `ClassicySoundManager`),
 and `PDFViewerDocument` (`{ url, data? }` — data = gzip+base64url bytes) is a
 standalone PDF renderer with zoom/pan usable inside any consumer window.
+
+An Appearance Package may rename or re-icon any built-in app by its id
+(`apps: { "MoviePlayer.app": { name: "Media Player" } }`, §8, "App display
+overrides"). The ids, `*AppInfo` constants and action types below never
+change with the package. The bundled apps dispatch literal file action types
+(`ClassicyAppMoviePlayerCloseFile`, `ClassicyAppPictureViewerCloseFile`,
+`ClassicyAppPDFViewerCloseFile`, `ClassicyAppSimpleTextOpenFile`/`CloseFile`),
+never ones built from a name.
 
 #### Driving the built-in apps by dispatch
 
@@ -1771,7 +1784,7 @@ An entry is a plain object: underscore-prefixed keys are metadata
 | `_createdOn` / `_modifiedOn` | `Date` | timestamps |
 | `_readOnly` / `_nameLocked` / `_trashed` / `_system` / `_invisible` | `boolean` | content locked / name locked / in Trash / system file / hidden |
 | `_derived` | `boolean` | generated by a derived-folder overlay (Applications, Extensions, Control Strip Modules); dropped when the overlay is rebuilt |
-| `_placeholder` | `boolean` | a seeded stand-in in a derived folder that gives way to the app or module of its name while it is exactly as seeded (Platinum's invisible SimpleText and Calculator in Applications; unmarked ones from older builds are recognized by their exact seeded shape). Once edited (a `_modifiedOn`, other `_data`, any other key changed) it is the user's file. Any other entry, a user's file included, keeps its name, and the app is listed beside it as "<own name> (<id>)" |
+| `_placeholder` | `boolean` | a seeded stand-in in a derived folder that gives way to the app or module of its name while it is exactly as seeded (Platinum's invisible SimpleText and Calculator in Applications; unmarked ones from older builds are recognized by their exact seeded shape). Once edited (a `_modifiedOn`, other `_data`, any other key changed) it is the user's file. Any other entry, a user's file included, keeps its name, and the app is listed beside it as "<own name> (<id>)", numbered ("… 2") when a static entry holds that too. "Exactly as seeded" means Platinum's stand-in, every key and value (`CLASSICY_SEEDED_PLACEHOLDER`, in the internal `ClassicyDerivedFolderPlaceholders.internal.ts`): a host-marked `_placeholder` of any other shape is kept like a user's file, and the app is suffixed. A host tree merged over `Applications:SimpleText` or `Calculator` inherits the marker, so it gives way only while it equals the seed. See §8, "App display overrides" |
 | `_versions` | `ClassicyFileSystemEntry[]` | prior versions |
 
 Content helpers: `useResolvedMediaSource(url, data, mimeType)` turns an
@@ -1821,7 +1834,13 @@ All hooks are optional (capability-based). Register at app entry before
 rendering. Re-registering an id replaces it; `unregisterClassicyFileSystemAdapter(id)`
 removes it. Adapter exceptions are isolated — a faulty adapter can never block
 local operation. Derived folders (Applications, Extensions, Control Strip
-Modules) never journal.
+Modules) never journal, and their `_derived` entries never reach persistence:
+`snapshot()` (the localStorage write and every adapter snapshot, whose `tree`
+and `hash` are built from the stripped serialization) leaves them out at any
+depth, and they are rebuilt on load. So switching Appearance Packages, which renames derived
+entries, never changes persisted bytes or a snapshot hash. **Upgrading:** an
+adapter sees one snapshot-hash change on the first save after upgrading to a
+build with this rule, as the derived entries leave the persisted tree.
 
 ---
 
@@ -2077,6 +2096,7 @@ registerClassicyAppearancePackage({
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
 | `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
+| `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
 **Registering.** `registerClassicyAppearancePackage(pkg)` runs at module
@@ -2170,6 +2190,246 @@ Loading a theme file or dispatching `ClassicyDesktopImportTheme` for a package
 that is not registered is refused (`This theme needs the "<id>" appearance
 package, which is not installed.`, shown as `Desktop.errorDialog`); the
 default package always counts as installed.
+
+#### App display overrides
+
+A package's `apps` shows any app, bundled or a host's, under another name,
+icon or balloon copy, keyed by the app's id. It is display only: the app keeps
+its own identity everywhere else.
+
+```ts
+import { registerClassicyAppearancePackage } from 'classicy'
+import mediaPlayerIcon from './media-player.svg'
+
+registerClassicyAppearancePackage({
+    id: 'media',
+    // name, css, defaults, layout, … as above
+    apps: {
+        'MoviePlayer.app': {
+            name: 'Media Player',
+            icon: mediaPlayerIcon,           // an asset source: a URL or a data: URI
+            description: 'Plays movies and sound.',
+        },
+        'TV.app': { name: 'Television' },    // a host app, by its ClassicyApp id
+    },
+})
+```
+
+Each field falls back on its own (`{ name }` alone keeps the app's icon).
+Platinum declares no `apps`, so under it every surface shows the app's own
+identity. The Storybook-only `renamed` package
+(`storybook/.storybook/RenamedPackage.ts`: Platinum's CSS rescoped, plus the
+two overrides above with their own icons; parameters `renamedParameters` from
+`renamed.ts`) is the proof and the template, in the `Desktop/App`
+`RenamedByPackage` story. As with `mirrored`, the unit that registers it is the
+story file: every story in `ClassicyApp.stories.tsx` lists the package, though
+only `RenamedByPackage` switches to it.
+
+**Where the override shows.** Every surface resolves at render and follows
+`ClassicyDesktopChangeAppearancePackage` (or a re-registration) live:
+
+| # | Surface | Shows |
+|---|---|---|
+| D1 | Desktop icon label, image, alt text and mask (`kind: "app_shortcut"` only) | name, icon |
+| D2 | Desktop icon balloon title | name |
+| D3 | Desktop icon balloon copy, when the app passes no `desktopIconBalloonHelp` | `description`, else the manifest's |
+| D4 | Desktop type-select (typing a name selects an unlabeled app shortcut) | name |
+| D5 | Special ▸ Clean Up / Arrange by Name order of app shortcuts | name |
+| D6 | Applications folder entry (Finder's views, file dialogs) | name (as the entry's key), icon |
+| D7 | Extensions folder entry | name (as the entry's key), icon |
+| D8 | App Switcher title, icon and menu entries | name, icon |
+| D9 | Apple menu "About <app>" (Finder's included, with no app focused) | name |
+| D10 | Apple-menu app entries (`addSystemMenu`, the control panels) | name, icon |
+| D11 | The app's own About item in a window's menu bar (`menuBar.placement: "window"`) | "About <name>", by the rule below |
+| D12 | About box heading and icon (`ClassicyAboutWindow`, every `useClassicyAboutMenu` app and the desktop's Finder About) | name, icon |
+| D13 | Window titles that are the app name: the six control panels (Appearance, Control Strip, Date & Time, Drive Setup, Screen Saver, Sound), HyperCard with no stack open, HyperCard's answer dialog | name |
+| D14 | The six control panels' window proxy icons | icon |
+| D15 | Startup parade title and icon | name; the icon for `bootIcon={true}` entries and extensions (an entry with an icon of its own keeps it) |
+| D16 | The Control Strip's "Open Control Strip Control Panel" | name |
+| D17 | The Screen Saver module's "Open Screen Saver Control Panel" | name |
+
+A Control Strip module with an `appId` also shows that app's display name, but
+only when the package renames the app (otherwise its own `label`), in the
+button's `aria-label`, the Control Strip control panel and its file in Control
+Strip Modules (`classicyControlStripModuleLabel`). A module with no `appId`
+keeps its `label`.
+
+**What never changes.**
+
+- **Ids.** The app's id and its `ClassicyApp` `name`/`icon` props, which stay
+  the internal identity.
+- **Action types.** Finder's `` `ClassicyApp${record.name}OpenFile` ``,
+  `ClassicyApp`'s `` `ClassicyApp${name}CloseFile` `` (from the prop) and the
+  bundled apps' literal types (§4.10).
+- **Routing.** Plugin prefixes, `ClassicyAppOpen`/icon-open payloads, the
+  derived entries' `_creator` (the app id, which is what opens them) and
+  `ClassicyDesktopIconRemove`'s `appName` match.
+- **Records.** `apps[id].name`/`icon` (which `loadApp` refreshes from the
+  props on every mount), desktop icon `appName`/`icon`, `systemMenu` items'
+  `title`/`image`/`eventData`, stored menus' `` `About ${name}` `` titles, and
+  parade entries, which carry only a `followsAppIcon` flag, never the
+  override.
+- **Persisted state.** `classicyDesktopState` and the file-system tree hold
+  no display name or icon; `ClassicyAppIdentityPersistence.test.tsx` renames
+  apps and checks the sanitized state.
+- **Analytics.** The pageview title's app segment
+  (`classicyWindowPageTitle(currentApp?.name, …)`), the About box's and the
+  desktop icon's `track` payloads, and every path (built from the app id).
+- **Quit** items stay a plain "Quit", and HyperCard's window keeps the default
+  proxy icon.
+
+Two consequences follow:
+
+- Window titles go to GA verbatim (§9), so a window titled with the app's
+  display name (D13) sends it as the pageview title's window segment, and a
+  window's `track` payload carries its `icon` prop, the display icon for the
+  control panels (D14). The app segment and the path stay internal.
+- Positions are layout, not identity. Arrange by Name sorts app shortcuts by
+  display name, and an arrangement made under one package stays after a
+  switch: nothing re-sorts. "Never stored" covers names, icons and
+  descriptions, not icon locations computed from them.
+
+**Precedence.** For display, the package beats the `ClassicyApp` `name` and
+`icon` props, which stay the internal identity and the default display. A
+desktop icon's non-empty `label` beats both. For balloon copy, a stored
+balloon (the app passed `desktopIconBalloonHelp`) beats the package's
+`description`, which beats the manifest's, which beats the kind's stock copy.
+
+**Validation.** `apps` is checked with the rest of the package by
+`ClassicyAppearancePackageSchema` (an invalid package is logged and not
+registered). Each override is `ClassicyAppIdentityOverrideSchema`, a strict
+object (unknown keys refused). Nothing is trimmed or transformed, because the
+registry keeps the object as given.
+
+- **App id keys:** 1–128 characters, never `__proto__`, `constructor` or
+  `prototype` (checked on the raw object's own keys, since zod's record skips
+  an own `__proto__`).
+- **`name`:** 1–64 characters, with no leading or trailing whitespace, no
+  leading `_` (file-system metadata keys) and no `:` (the path separator). It
+  may hold no control character (C0, DEL, C1), U+2028 or U+2029, no bidi
+  control (U+202A–U+202E, U+2066–U+2069, U+200E, U+200F, U+061C) and no
+  invisible character (U+200B, U+2060, U+FEFF, U+00AD); it is not a prototype
+  key either. The joiners U+200C and U+200D are allowed. The rules exist
+  because the derived folders use the name as a file-system key.
+- **`icon`:** an asset source (`isClassicyAssetSource`: a URL or a `data:`
+  URI, never a script scheme).
+- **`description`:** 1–512 characters, with no leading or trailing whitespace.
+
+Lookups use `Object.hasOwn`, so an app id such as `"constructor"` never
+reaches the prototype.
+
+**Reading it.** `src/Appearance/ClassicyAppIdentity.ts` is store-free: it
+never imports the app manager, so reducers may use it. The active package id
+comes from `Appearance.packageId` (through the asset registry's package
+source), never `activeTheme.package`.
+
+```ts
+type ClassicyAppIdentity = { name: string; icon: string; description?: string }
+type ClassicyAppIdentityOverrides = Readonly<Record<string, ClassicyAppIdentityOverride>>
+
+useClassicyAppIdentity(appId: string | undefined, fallback: ClassicyAppIdentity): ClassicyAppIdentity
+useClassicyAppIdentityOverrides(): ClassicyAppIdentityOverrides
+resolveClassicyAppIdentity(appId: string, fallback: ClassicyAppIdentity, packageId?: string): ClassicyAppIdentity
+getClassicyAppIdentityOverrides(packageId?: string): ClassicyAppIdentityOverrides
+classicyAppIdentityFrom(overrides: ClassicyAppIdentityOverrides, appId: string, fallback: ClassicyAppIdentity): ClassicyAppIdentity
+CLASSICY_NO_APP_IDENTITY_OVERRIDES   // the frozen {} of a package with no `apps`
+```
+
+- **Components** call `useClassicyAppIdentity(id, { name, icon })`. It is
+  live (it re-renders on a package switch or re-registration) and memoized on
+  the fallback's fields, so an inline literal is fine. `appId === undefined`
+  returns the fallback, for callers that gate on an icon's kind.
+- **Reducers and effects** call `resolveClassicyAppIdentity`. `packageId`
+  defaults to the active package, and an unregistered id resolves as
+  Platinum.
+- **Many apps at once** (the folders, the switcher, the parade):
+  `useClassicyAppIdentityOverrides()` (reference-stable: the package's own
+  `apps` object) with `classicyAppIdentityFrom`, which returns `fallback`
+  itself when the override changes nothing.
+
+The helpers built on it:
+
+- `ClassicyAppSwitcherUtils.ts` (`src/SystemFolder/SystemResources/Desktop/MenuBar/`)
+  holds the menu helpers, including the one the window menu bar uses:
+  `appSwitcherAppsFrom(apps, overrides?)`;
+  `withClassicyAppIdentityMenuItems(items, overrides)`, which retitles and
+  re-images the Apple-menu app entries (ids
+  `` `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}` ``, `"system_menu_<appId>"`)
+  and leaves their `eventData` alone; and
+  `withClassicyAppIdentityAboutItem(items, appId, appName, overrides)`.
+- `classicyControlStripModuleLabel(module, overrides)`, in
+  `ClassicyControlStripRegistry.ts`.
+- `classicyDerivedAppEntryNames(folderName, sources, reservedNames, separator)`,
+  with `ClassicyDerivedAppEntrySource` (`{ appId, name, displayName }`), in
+  `ClassicyFileSystemApplications.ts`, plus
+  `resetClassicyDerivedAppEntryNameWarnings()` for tests.
+
+**About titles (K-R8, K-R9).** Stored menus (a window's `menuBar`/`appMenu`
+record and `Desktop.appMenu`) keep `` `About ${internal name}` ``. The title is
+resolved where it is drawn:
+
+- **The screen menu bar** always titles the hoisted Apple-menu item "About
+  <display name>". It finds the item by `${appId}_about`, then any `_about`
+  id, then a title of "About".
+- **A window's own menu bar** (`ClassicyWindowMenuBar`, window placement)
+  runs `withClassicyAppIdentityAboutItem`. It finds the item only by its exact
+  id, `${appId}_about`, at any depth, and retitles it only when its title is
+  `` `About ${record name}` ``. A plain "About" (the `useClassicyAboutMenu`
+  item, which SimpleText, Web Viewer, Movie Player, Picture Viewer and Finder
+  store as is) or any other wording is drawn as stored. A host app whose About
+  item uses another id keeps its stored title in its window's menu bar.
+
+**Derived folders: keys and collisions.** The Applications, Extensions and
+Control Strip Modules folders are the one place a display name becomes a
+file-system key. Their entries are `_derived`: read-only, name-locked, opened
+by `_creator`, never journaled or persisted (§7), and rebuilt on every
+file-system change and on a package switch with no store change.
+`classicyDerivedAppEntryNames` names the Applications entries (in desktop icon
+order) and the Extensions entries (in app record order):
+
+1. **Reserved first:** the folder's static entries, except untouched
+   placeholders (`_placeholder`, §7), and the own names of the apps the
+   package does not rename.
+2. **An app that is not renamed** keeps its own name unless a static entry
+   holds it. Two such apps that share a name stay last-wins, as before.
+3. **A renamed app** takes its display name when that is free, holds no
+   separator (`fs.separator`) and does not start with `_`. Otherwise it falls
+   back to its own name or, when that is taken too, to "<own name> (<id>)".
+
+When a static entry holds even "<own name> (<id>)", it is numbered: "<own
+name> (<id>) 2", then "… 3". So no app drops out and no static file is
+overwritten. Each fallback logs one `ClassicyFileSystem` warning per folder,
+display name, app id and name used (`Name "TV" already taken in Applications;
+using "TV (TV.app)"`, or `App display name unusable in …`).
+
+In Control Strip Modules a module's file is named by
+`classicyControlStripModuleLabel`. When a static entry holds that name, a
+renamed module falls back to its own label, then to "<label> (<id>)"; a module
+shown under its own label goes straight to "<label> (<id>)". Either is
+numbered when needed. Of two modules with one name, the later takes "<name>
+(<id>)".
+
+**Upgrading.** What a host sees change with this feature, under any package:
+
+- **File-system adapters see one snapshot-hash change** on the first save after
+  upgrading, as the derived entries leave the persisted tree (§7).
+- **A static entry in a derived folder is never overwritten.** A user's file
+  named like an app is kept, and the app is listed beside it as "<own name>
+  (<id>)". Only an untouched placeholder (`_placeholder`) gives way.
+- **`apps[id].name`/`icon` follow the props.** `loadApp` refreshes them on
+  every mount, where they were frozen at first load, so the App Switcher and
+  the parade show a renamed or re-iconed app's current values.
+- **Desktop icon balloons are resolved at render.** `ClassicyApp` stores a
+  balloon only when it is given `desktopIconBalloonHelp`, untitled unless the
+  app gave a title; the manifest description is no longer copied into the
+  record. An untitled balloon given to `ClassicyDesktopIconAdd` for any kind
+  is now titled with the name the icon shows.
+- **PDF Viewer's close reaches its own reducer.** It dispatched
+  `"ClassicyAppPDF ViewerCloseFile"` (with a space), which only the generic
+  handler caught; it now dispatches `ClassicyAppPDFViewerCloseFile`. The two
+  agree on every state the UI can reach. On a close with no record, the PDF
+  reducer creates one; on a close with invalid `data`, it replaces `data` with
+  `{ openFiles: [] }`.
 
 #### Package hooks
 
@@ -3158,7 +3418,13 @@ consumer data without a separator (e.g. a bare relative URL), pass
 `analyticsPath` explicitly**, building it with
 `classicyWindowPagePath(appId, "<safe-token>")` so the app segment stays in
 sync. Use `analyticsExclude` to suppress a window's pageviews entirely. Window
-*titles* go to GA verbatim (deliberate, for readable content reports).
+*titles* go to GA verbatim (deliberate, for readable content reports). The
+pageview title's app segment is the app record's internal name, but its window
+segment is the window's title, so a window titled with an Appearance Package's
+display name for its app (the control panels, HyperCard) sends that name
+(§8, "App display overrides"). The About box's and desktop icons' `track`
+payloads keep the app's own name and icon; a window's `track` payload carries
+its `icon` prop, which for the control panels' windows is the display icon.
 
 ---
 
@@ -3523,3 +3789,4 @@ untrusted disposition strings.
 10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
+13. **Never build an action type, path or lookup from a display name.** The `ClassicyApp` `name` prop is the internal name: action types (`ClassicyApp${name}OpenFile`/`CloseFile`), records and analytics use it, and an Appearance Package may show another (§8, "App display overrides"). UI text that names an app reads `useClassicyAppIdentity(id, { name, icon })` (`resolveClassicyAppIdentity` outside React); nothing display-derived is written to the store, localStorage or the file-system journal.

@@ -201,6 +201,29 @@ The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
   (`menu.minWidth` → `--menu-min-width`) is skipped with a warning and left
   out of the Options tab.
 
+**New: Appearance Packages can rename and re-icon apps.** A package's
+optional `apps` field (`{ "MoviePlayer.app": { name: "Media Player", icon,
+description } }`, keyed by app id, bundled or your own) changes how an app is
+shown everywhere its name or icon is drawn. It is display only: ids, action
+types, records, persisted state and analytics paths keep the app's own name
+(window titles still reach GA as drawn), so build nothing from a displayed
+name, and read
+`useClassicyAppIdentity(id, { name, icon })` for text that names an app.
+Under any package:
+
+- **File-system adapters see one snapshot-hash change** on the first save
+  after upgrading: the derived Applications, Extensions and Control Strip
+  Modules entries are no longer persisted or sent in snapshots.
+- **A derived folder never overwrites a static entry.** A user's file named
+  like an app is kept, and the app is listed beside it as "<name> (<id>)";
+  only Platinum's untouched placeholders (`_placeholder`) give way.
+- **App records and desktop icon balloons follow the code.** `apps[id].name`
+  and `icon` are refreshed from `ClassicyApp`'s props on every mount, and a
+  desktop icon's balloon is stored only when `desktopIconBalloonHelp` is given
+  (the manifest description is resolved at render).
+
+Details: `docs/AGENT-REFERENCE.md` §8, "App display overrides".
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:
