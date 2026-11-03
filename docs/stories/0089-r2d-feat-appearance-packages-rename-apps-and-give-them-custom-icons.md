@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-11-03T21:25:58.333Z"
+updated: "2026-11-03T21:50:48.975Z"
 started: "2026-10-30T15:15:36.055Z"
 tags: []
 milestone: ""
@@ -105,3 +105,5 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-10-30T21:40:17.204Z - K 5.1 review: Needs fixes. The story alone never shows 'About Media Player' or the About box (the check script imported Movie Player's module and opened a document itself), and the Control Strip check passed without opening the panel or exercising a module tied to a renamed app (K-D7/K-R2). Lazy registration, persistence and parity verified. Fix round running.
 
 ### 2026-11-03T21:25:58.333Z - K 5.1 complete (7764bb143, 5b0dd975b): 54/54 browser checks against the story alone, 80/80 Platinum parity. Story 0096-4hh integrated (fc9c3398e); the combined branch gate is 420 files / 5035 tests, pushed. K sections 0-5 complete; K 6.1 (docs) next.
+
+### 2026-11-03T21:50:48.975Z - K 6.1 docs done (6bc6862fa, pushed): AGENT-REFERENCE §8 'App display overrides' with the full contract and an Upgrading list, CLAUDE.md (the store type corrected to ClassicyStore), BUILDING-APPS (internal vs display name), and a README note; the gate passed with 420 files / 5035 tests. Ruling K-R12 accepts the window analytics icon as built. All K sections complete; the whole-branch final review (two reviewers: correctness and contract/docs) is running.

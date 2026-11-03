@@ -6,7 +6,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T15:03:17.932Z"
-updated: "2026-11-03T21:25:56.087Z"
+updated: "2026-11-03T21:50:46.641Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -57,9 +57,9 @@ progress:
   "5.1":
     status: complete
   "6":
-    status: in_progress
+    status: complete
   "6.1":
-    status: in_progress
+    status: complete
 ---
 
 Story: 0089-r2d. Parent: 0002-ldj (umbrella). Starts after Part E (`origin/land/part-e-v3`) lands.
