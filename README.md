@@ -205,9 +205,9 @@ The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
 optional `apps` field (`{ "MoviePlayer.app": { name: "Media Player", icon,
 description } }`, keyed by app id, bundled or your own) changes how an app is
 shown everywhere its name or icon is drawn. It is display only: ids, action
-types, records, persisted state and analytics paths keep the app's own name
-(window titles still reach GA as drawn), so build nothing from a displayed
-name, and read
+types, records and persisted state keep the app's own name, and analytics
+paths are built from the app id (window titles still reach GA as drawn), so
+build nothing from a displayed name, and read
 `useClassicyAppIdentity(id, { name, icon })` for text that names an app.
 Under any package:
 
@@ -221,6 +221,16 @@ Under any package:
   and `icon` are refreshed from `ClassicyApp`'s props on every mount, and a
   desktop icon's balloon is stored only when `desktopIconBalloonHelp` is given
   (the manifest description is resolved at render).
+- **PDF Viewer's close action type is fixed.** It dispatched
+  `"ClassicyAppPDF ViewerCloseFile"` (with a space); it now dispatches
+  `ClassicyAppPDFViewerCloseFile`. A host matching the old string must match
+  the new one.
+- **Every asset `url()` is quoted.** CSS variables and styles that carry an
+  asset (`--classicy-icon-mask`, `--desktop-background-image`, the cursor, …)
+  are written `url("…")`, so a `data:` SVG icon keeps its mask. Tests that
+  matched the unquoted string must expect the quotes.
+- **Error alerts are session-only.** `Desktop.errorDialog` is no longer
+  persisted, so a reload never re-shows an open alert.
 
 Details: `docs/AGENT-REFERENCE.md` §8, "App display overrides".
 
