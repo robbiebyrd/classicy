@@ -56,10 +56,10 @@ const stripeWidth = (i: ClassicyThemeDerivationInputs): number =>
  * the names are reserved: a package measurement that would make one is
  * skipped by `classicyMeasurementVars`.
  *
- * Equal formulas are kept as separate entries on purpose (the 1.25× glyph,
- * collapsed-height, stripe and menu-icon sizes; the 2× square and thumb
- * widths; the 1.75× arrow and thumb heights; the 4× button and tab widths):
- * each has its own structural reason, and a package may want them apart.
+ * Equal formulas are kept as separate entries on purpose: each name is one
+ * role (H-R6), and a package may want two roles apart (for example the 1.25×
+ * glyph, collapsed-height, stripe and menu-icon sizes; docs/AGENT-REFERENCE.md
+ * §8 lists every group).
  */
 export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
@@ -700,6 +700,12 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		formula: "typography.uiSize * 4",
 		doc: "Minimum width of a time picker's AM/PM field, room for its text (ClassicyTimePicker.scss).",
 		compute: (i) => ui(i) * 4,
+	},
+	{
+		cssVar: "--window-title-cap-offset",
+		formula: "window.paddingSize / 2",
+		doc: "How far the end box before each title-bar stripe band is pulled back into the title bar's padding (ClassicyWindowTitleBar.scss). Its own role, not --control-padding (H-R28b).",
+		compute: (i) => padding(i) / 2,
 	},
 ];
 

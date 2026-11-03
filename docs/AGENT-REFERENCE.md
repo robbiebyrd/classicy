@@ -3421,6 +3421,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--text-editor-height-inset` | `borderSize × 4` | 4 | ClassicyTextEditor.scss |
 | `--text-editor-auto-min-height` | `controlSize × 3` | 36 | ClassicyTextEditor.scss |
 | `--time-picker-period-min-width` | `uiSize × 4` | 56 | ClassicyTimePicker.scss |
+| `--window-title-cap-offset` | `paddingSize / 2` | 3 | ClassicyWindowTitleBar.scss |
 
 The table's types and one helper are public:
 
@@ -3433,12 +3434,54 @@ The table's types and one helper are public:
 - `classicyThemeDerivations(inputs)`: every entry as `cssVar` → pixel string,
   rounded or unrounded as above. `getThemeVars` spreads it last.
 
-Equal formulas are separate names on purpose (the 1.25× collapsed height,
-title stripe, menu icon and control glyph; the 2× square control and slider
-thumb; the 1.75× pop-up arrow and slider thumb; the 4× square button and
-tab): each has its own reason, and a package may want them apart. The
-contract's `--menu-item-height` is not emitted, because no stylesheet reads a
-menu row height.
+Equal formulas are separate names on purpose: each name is one role (H-R6),
+and a package may want two roles apart. These 17 groups share a formula
+(`c` = `controlSize`, `p` = `paddingSize`, `b` = `borderSize`, `u` =
+`uiSize`):
+
+| Formula | Names |
+|---|---|
+| `c × 1.25` | `--window-collapsed-height`, `--window-title-stripe-height`, `--menu-item-icon-size`, `--control-glyph-size` |
+| `c × 0.5` (or `c / 2`) | `--window-utility-collapsed-height`, `--menu-item-icon-gap`, `--control-label-spacing`, `--assistant-header-gap`, `--disclosure-triangle-offset`, `--quick-time-thumb-rise`, `--radio-offset-top`, `--tab-small-row-indent` |
+| `c × 2.5` | `--menu-bar-height`, `--assistant-accessory-icon-large`, `--picker-swatch-size` |
+| `c × 1.75` | `--popup-arrow-width`, `--slider-thumb-height`, `--window-menu-bar-height`, `--assistant-accessory-icon-medium`, `--quick-time-volume-bar-offset` |
+| `c × 2` | `--control-square-size`, `--slider-thumb-width`, `--quick-time-controls-end-reserve` |
+| `c × 3` | `--tab-height-large`, `--button-toolbar-square-button-width`, `--tab-scroll-button-min-width`, `--text-editor-auto-min-height` |
+| `c × 4` | `--button-square-width`, `--tab-min-width` |
+| `c × 5` | `--window-modal-title-reserve`, `--quick-time-volume-bar-length` |
+| `c / 3` | `--radio-mark-width`, `--tab-scroll-arrow-size` |
+| `c / 4` (or `c × 0.25`) | `--radio-mixed-mark-height`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top` |
+| `c × 0.75` | `--quick-time-progress-track-height`, `--tab-small-icon-size` |
+| `p × 0.5` (or `p / 2`) | `--control-padding`, `--window-title-cap-offset` |
+| `p × 0.75` | `--quick-time-volume-track-inset`, `--tab-large-padding-top` |
+| `p × 2` | `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-small-padding-inline` |
+| `p × 4` | `--menu-sub-menu-offset-block`, `--tab-large-padding-inline` |
+| `b × 4` | `--quick-time-undocked-video-inset`, `--text-editor-height-inset` |
+| `u × 0.85` | `--balloon-help-font-size`, `--quick-time-time-font-size` |
+
+The earlier derived variables, outside this table, have equal pairs of their
+own: `--control-frame-width` and `--control-bevel-sm` (`b × 2`); and
+`--control-bevel-md`, `--button-default-ring` and the named
+`--focus-ring-inset` (`b × 3`).
+
+Two pairs were checked against H-R6 and kept apart (H-R28d):
+
+- `--assistant-header-gap` and `--menu-item-icon-gap` (`c × 0.5`): both
+  are an icon-to-title gap, but in different components. The menu gap is
+  part of the menu item's own metrics (with `--menu-item-icon-size` and
+  `--menu-min-width`), and the Assistant's is its window header's; a
+  package that respaces menus should not move the Assistant header. This is
+  G's own precedent: `--menu-item-icon-size` and `--control-glyph-size` share
+  `c × 1.25` and stay apart.
+- `--button-toolbar-square-button-width` (`c × 3`) and the square-button
+  scale: the toolbar's three square sizes step `--button-square-width`
+  (`c × 4`, large), this name (`c × 3`, medium) and `--control-square-size`
+  (`c × 2`, small). No existing name has the medium step's formula, so there
+  is nothing to merge; only the toolbar has a medium square size (push and
+  bevel buttons have none), so the name stays toolbar-scoped.
+
+The contract's `--menu-item-height` is not emitted, because no stylesheet
+reads a menu row height.
 
 **Reserved names.** `getThemeVars` spreads the measurement inputs first and
 sets everything else after them, so a package measurement whose variable it
@@ -3447,7 +3490,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 104 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 105 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -3477,7 +3520,7 @@ variable itself:
 | Input variable | Derived variables to override |
 |---|---|
 | `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large`, `--assistant-header-gap`, `--assistant-accessory-icon-medium`, `--assistant-accessory-icon-large`, `--button-toolbar-square-button-width`, `--disclosure-triangle-offset`, `--picker-swatch-size`, `--quick-time-controls-end-reserve`, `--quick-time-volume-bar-length`, `--quick-time-volume-bar-offset`, `--quick-time-thumb-rise`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top`, `--quick-time-progress-track-height`, `--radio-offset-top`, `--tab-scroll-button-min-width`, `--tab-small-row-indent`, `--tab-small-icon-size`, `--text-editor-auto-min-height` |
-| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top`, `--menu-sub-menu-offset-block`, `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-padding-inline`, `--tab-small-padding-inline`, `--tab-large-padding-inline` (and the four window contents chrome heights and `--window-max-height-reserve`) |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top`, `--window-title-cap-offset`, `--menu-sub-menu-offset-block`, `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-padding-inline`, `--tab-small-padding-inline`, `--tab-large-padding-inline` (and the four window contents chrome heights and `--window-max-height-reserve`) |
 | `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius`, `--quick-time-undocked-video-inset`, `--text-editor-height-inset` (and `--window-zoom-margin`, `--window-resize-inset`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |

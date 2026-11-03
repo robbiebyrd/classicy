@@ -114,6 +114,9 @@ const ROWS: readonly [string, readonly Metric[], (i: Inputs) => number][] = [
 	["--text-editor-height-inset", ["border"], (i) => i.border * 4],
 	["--text-editor-auto-min-height", ["control"], (i) => i.control * 3],
 	["--time-picker-period-min-width", ["ui"], (i) => i.ui * 4],
+	// H-R28b: the title-bar cap offset, formerly read from --control-padding.
+	// (The site negates it: calc((var(--window-padding-size) * -1) / 2).)
+	["--window-title-cap-offset", ["padding"], (i) => i.padding / 2],
 ];
 
 // How a user edits each metric, and the non-default value it is set to.
@@ -195,7 +198,7 @@ describe("H-R25: the named multipliers follow the metrics a user edits", () => {
 	it("lists every H 6.2 name, each a named derivation", () => {
 		const derived = new Set(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
 		for (const [cssVar] of ROWS) expect(derived.has(cssVar), cssVar).toBe(true);
-		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(62);
+		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(63);
 	});
 
 	it.each(

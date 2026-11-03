@@ -195,7 +195,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			});
 			expect(baseRule(`${base} ${band}:before`), band).toEqual({
 				position: "relative",
-				left: "calc(var(--control-padding) * -1)",
+				left: "calc(var(--window-title-cap-offset) * -1)",
 				display: "block",
 				content: '" "',
 				"background-repeat": "no-repeat",
