@@ -68,7 +68,7 @@ export const ClassicyScreenSaverRainstorm: FunctionalComponent<
 					className="classicySaverRainstormRain"
 					style={
 						{
-							"--classicy-saver-rain-tile": `url(${tiles[layer.tile]})`,
+							"--classicy-saver-rain-tile": `url("${tiles[layer.tile]}")`,
 							animationDuration: `${layer.duration}s`,
 							animationDelay: `${layer.delay}s`,
 						} as CSSProperties

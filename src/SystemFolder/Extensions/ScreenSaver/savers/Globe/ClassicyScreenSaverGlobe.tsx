@@ -15,7 +15,7 @@ export const ClassicyScreenSaverGlobe: FunctionalComponent<
 		className={classNames("classicySaverGlobe", className)}
 		style={
 			{
-				"--classicy-saver-globe": `url(${globeSprite})`,
+				"--classicy-saver-globe": `url("${globeSprite}")`,
 				...style,
 			} as CSSProperties
 		}

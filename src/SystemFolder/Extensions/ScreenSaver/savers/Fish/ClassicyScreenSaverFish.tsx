@@ -73,8 +73,8 @@ export const ClassicyScreenSaverFish: FunctionalComponent<
 			className={classNames("classicySaverFish", className)}
 			style={
 				{
-					"--classicy-saver-fish-seafloor": `url(${String(seafloor)})`,
-					"--classicy-saver-fish-bubbles": `url(${String(bubbles)})`,
+					"--classicy-saver-fish-seafloor": `url("${String(seafloor)}")`,
+					"--classicy-saver-fish-bubbles": `url("${String(bubbles)}")`,
 					...style,
 				} as CSSProperties
 			}
@@ -87,7 +87,7 @@ export const ClassicyScreenSaverFish: FunctionalComponent<
 					className={`classicySaverFishFish classicySaverFishRoute-${route}`}
 					style={{
 						top: `${(row - 1) * 9}%`,
-						backgroundImage: `url(${SPRITES[sprite]})`,
+						backgroundImage: `url("${SPRITES[sprite]}")`,
 					}}
 				/>
 			))}

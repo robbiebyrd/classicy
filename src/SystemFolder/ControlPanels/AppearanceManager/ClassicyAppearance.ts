@@ -252,7 +252,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-outline": intToHex(theme.color.outline),
 		"--color-select": intToHex(theme.color.select),
 		"--color-highlight": intToHex(theme.color.highlight),
-		"--desktop-background-image": `url(${theme.desktop.backgroundImage})`,
+		"--desktop-background-image": `url("${theme.desktop.backgroundImage}")`,
 		"--desktop-background-color": intToHex(theme.desktop.backgroundColor),
 		"--desktop-background-repeat": theme.desktop.backgroundRepeat,
 		"--desktop-background-position": theme.desktop.backgroundPosition,

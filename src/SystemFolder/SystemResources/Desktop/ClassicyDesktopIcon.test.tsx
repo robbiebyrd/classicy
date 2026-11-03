@@ -197,7 +197,7 @@ describe("ClassicyDesktopIcon alias badging", () => {
 			badgeEl.querySelector(".classicyDesktopIconMask > img"),
 		).toBeInTheDocument();
 		expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toMatch(
-			/^url\(.+\)$/,
+			/^url\(".+"\)$/,
 		);
 	});
 
@@ -216,7 +216,7 @@ describe("ClassicyDesktopIcon alias badging", () => {
 			const badgeEl = badge(container) as HTMLElement;
 			expect(badgeEl.querySelector("img")).toHaveAttribute("src", "custom.png");
 			expect(badgeEl.style.getPropertyValue("--classicy-icon-mask")).toBe(
-				"url(custom.png)",
+				'url("custom.png")',
 			);
 		});
 

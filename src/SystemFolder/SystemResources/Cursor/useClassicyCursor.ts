@@ -4,12 +4,12 @@ import {
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 
-// An unquoted CSS `url()` cannot hold whitespace, quotes, parentheses or
-// backslashes; the bundler's SVG data URIs (the Platinum arrow) contain them.
+// Always quoted, as every emitter writes a source: an unquoted CSS `url()`
+// cannot hold whitespace, quotes, parentheses or backslashes, and the
+// bundler's SVG data URIs (the Platinum arrow) contain them. A cursor is not
+// validated as an asset source, so a quote or backslash in it is escaped.
 const cssUrl = (src: string): string =>
-	/[\s'"()\\]/.test(src)
-		? `url("${src.replace(/["\\]/g, "\\$&")}")`
-		: `url(${src})`;
+	`url("${src.replace(/["\\]/g, "\\$&")}")`;
 
 /**
  * Returns a stable `setCursor(role?)` function that swaps the whole page's

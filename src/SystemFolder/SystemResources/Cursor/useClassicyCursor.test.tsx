@@ -23,7 +23,7 @@ describe("useClassicyCursor", () => {
 		const { result } = renderHook(() => useClassicyCursor());
 		result.current("resizeLr");
 		expect(document.body.style.cursor).toBe(
-			`url(${ClassicyIcons.ui.cursors.resizeLr}), auto`,
+			`url("${ClassicyIcons.ui.cursors.resizeLr}"), auto`,
 		);
 	});
 
@@ -34,7 +34,7 @@ describe("useClassicyCursor", () => {
 		expect(resolveClassicyAsset("cursors", "arrow")).toBe(arrowUrl);
 	});
 
-	it("quotes a source an unquoted url() could not hold, such as an SVG data URI", () => {
+	it("quotes every source, an SVG data URI included", () => {
 		const { result } = renderHook(() => useClassicyCursor());
 		result.current("arrow");
 		expect(document.body.style.cursor).toBe(`url("${arrowUrl}"), auto`);
@@ -73,7 +73,7 @@ describe("useClassicyCursor", () => {
 		try {
 			registerClassicyCursors("platinum", { watch: "host-watch.png" });
 			result.current("watch");
-			expect(document.body.style.cursor).toBe("url(host-watch.png), auto");
+			expect(document.body.style.cursor).toBe('url("host-watch.png"), auto');
 		} finally {
 			registerClassicyCursors("platinum", { watch: original });
 		}

@@ -155,7 +155,7 @@ describe("test-rename", () => {
 			".classicyDesktopIconMaskOuter",
 		);
 		expect(mask?.style.getPropertyValue("--classicy-icon-mask")).toBe(
-			`url(${TEST_RENAMED_ICON})`,
+			`url("${TEST_RENAMED_ICON}")`,
 		);
 	});
 
