@@ -22,6 +22,10 @@ import {
 import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import {
+	moveClassicyFileSystemItems,
+	moveClassicyItemsToTrash,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { flushClassicyFileSystemPendingForStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 
@@ -166,5 +170,59 @@ describe("app identity overrides and persistence (I13)", () => {
 		runTimers();
 		expect(tvLabel()).toBe("TV");
 		expect(switcherTitle()).toBe("Movie Player");
+	});
+
+	// K-R13 (I1): the refusal alert names the entry by its path, which in the
+	// derived Applications folder is the display name. The alert is shown,
+	// but, like every transient dialog, never persisted.
+	it.each([
+		[
+			"moved to the Trash",
+			(fs: ClassicyFileSystem, path: string) =>
+				moveClassicyItemsToTrash(fs, [path], dispatch),
+		],
+		[
+			"moved to another folder",
+			(fs: ClassicyFileSystem, path: string) =>
+				moveClassicyFileSystemItems(
+					fs,
+					[path],
+					{ kind: "folder", path: "Macintosh HD" },
+					dispatch,
+				),
+		],
+	])("a renamed Applications entry refused when %s leaves no display name in persisted state", (_, move) => {
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false} controlStrip={false} />
+			</ClassicyAppManagerProvider>,
+		);
+		act(() => {
+			dispatch({ type: "ClassicyAppOpen", app: MoviePlayerAppInfo });
+		});
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		runTimers();
+
+		const fs = new ClassicyFileSystem();
+		const entry = "Macintosh HD:Applications:Media Player";
+		expect(fs.resolve(entry)).toBeTruthy();
+		act(() => {
+			expect(move(fs, entry)).toEqual([]);
+		});
+
+		// The alert is drawn under the display name…
+		expect(
+			useAppManager.getState().System.Manager.Desktop.errorDialog?.message,
+		).toContain("Media Player");
+
+		// …and reaches neither the persisted form nor localStorage.
+		runTimers();
+		const desktopState = localStorage.getItem("classicyDesktopState");
+		expect(desktopState).toContain('"name":"Movie Player"');
+		for (const stored of [persisted(), desktopState]) {
+			for (const text of DISPLAY_ONLY) {
+				expect(stored).not.toContain(text);
+			}
+		}
 	});
 });

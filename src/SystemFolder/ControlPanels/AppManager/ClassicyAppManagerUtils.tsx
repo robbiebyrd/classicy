@@ -220,9 +220,13 @@ export function sanitizeStateForPersistence(
 			delete (screenSaverApp.data as Record<string, unknown>).active;
 		}
 		// The Special menu's confirmation alert belongs to the session that
-		// opened it; a reload must not greet the user with Empty Trash.
+		// opened it; a reload must not greet the user with Empty Trash. An
+		// error alert is just as transient, and its message may name an item
+		// by its display name (a refused move in the derived Applications
+		// folder), which persisted state never holds (K-R13).
 		if (draft.System.Manager.Desktop) {
 			draft.System.Manager.Desktop.systemDialog = null;
+			draft.System.Manager.Desktop.errorDialog = null;
 		}
 		// Boot parade icons are session-only: owners re-register them on every
 		// mount, so persisting them would resurrect icons whose owner removed
