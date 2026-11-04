@@ -13,6 +13,7 @@ import {
 	isClassicyFontSizeMeasurementKey,
 	isClassicyThemeFontSizeKey,
 	isValidClassicyThemeFontSize,
+	withClassicyThemeFontSizesClamped,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 
@@ -219,6 +220,69 @@ describe("the theme schema bounds font-size measurement keys", () => {
 			expect(result.error).toContain(
 				"measurements.hyperCard.fontSize: must be at least 8",
 			);
+	});
+});
+
+describe("withClassicyThemeFontSizesClamped", () => {
+	const outOfRange = (): ClassicyTheme => {
+		const theme = structuredClone(getTheme("default"));
+		theme.typography.uiSize = 400;
+		theme.typography.bodySize = 0;
+		theme.desktop.iconFontSize = 2;
+		Object.assign(theme.measurements, {
+			hyperCard: { fontSize: 0, handleSize: 6 },
+			appleGuide: { headerFontSize: 13, bodyFontSize: 400 },
+			someVendorPkg: { titleFontSize: 500 },
+			pager: { cellHeight: 400, fontSize: 12 },
+		});
+		return theme;
+	};
+
+	it("clamps every font size, core and measurement, into 8–72", () => {
+		const theme = withClassicyThemeFontSizesClamped(outOfRange());
+		expect(theme.typography.uiSize).toBe(72);
+		expect(theme.typography.bodySize).toBe(8);
+		expect(theme.desktop.iconFontSize).toBe(8);
+		expect(theme.measurements.hyperCard).toEqual({
+			fontSize: 8,
+			handleSize: 6,
+		});
+		expect(theme.measurements.appleGuide).toEqual({
+			headerFontSize: 13,
+			bodyFontSize: 72,
+		});
+		expect(theme.measurements.someVendorPkg).toEqual({ titleFontSize: 72 });
+		// Not a font size: the measurement bounds are not this helper's.
+		expect(theme.measurements.pager).toEqual({ cellHeight: 400, fontSize: 12 });
+	});
+
+	it("returns the same theme when every size is in range", () => {
+		const theme = getTheme("default");
+		expect(withClassicyThemeFontSizesClamped(theme)).toBe(theme);
+	});
+
+	it("is copy-on-write and idempotent", () => {
+		const before = outOfRange();
+		const snapshot = JSON.stringify(before);
+		const once = withClassicyThemeFontSizesClamped(before);
+		expect(JSON.stringify(before)).toBe(snapshot);
+		expect(once).not.toBe(before);
+		// Untouched branches are shared, not copied.
+		expect(once.color).toBe(before.color);
+		expect(once.measurements.window).toBe(before.measurements.window);
+		expect(once.measurements.pager).toBe(before.measurements.pager);
+		expect(withClassicyThemeFontSizesClamped(once)).toBe(once);
+	});
+
+	it("leaves values it cannot read as a size alone", () => {
+		const theme = structuredClone(getTheme("default"));
+		(theme.typography as Record<string, unknown>).uiSize = "14";
+		theme.typography.bodySize = Number.NaN;
+		Object.assign(theme.measurements, {
+			hyperCard: { fontSize: null },
+			broken: null,
+		});
+		expect(withClassicyThemeFontSizesClamped(theme)).toBe(theme);
 	});
 });
 

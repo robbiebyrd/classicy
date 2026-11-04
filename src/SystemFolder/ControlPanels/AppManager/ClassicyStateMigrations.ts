@@ -5,6 +5,10 @@ import {
 	withDefaultThemePackageList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	withClassicyThemeFontSizesClamped,
+	withClassicyThemeFontSizesClampedList,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -44,6 +48,14 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  * - 2.3: Appearance.packageId and theme.package default to "platinum" on the
  *   Appearance slice and the active, built-in and custom themes
  *   (`migrateAppearancePackage`).
+ * - 2.4: out-of-range font sizes clamped into 8–72 px
+ *   (`CLASSICY_THEME_FONT_SIZE_MIN`–`MAX`) on the active, built-in and custom
+ *   themes (`withClassicyThemeFontSizesClamped`): the typography sizes,
+ *   `desktop.iconFontSize`, and every measurement whose key names a font size
+ *   (`isClassicyFontSizeMeasurementKey`), in whatever families the stored
+ *   theme carries — by key name, since no package is registered yet (H-R17).
+ *   Saved before the bounds applied, such a size would break the derived
+ *   sizes and fail the theme's own export.
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
@@ -51,9 +63,11 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateAppearancePackage(
-		migrateThemeSoundPack(
-			migrateThemeMetrics(stripWindowGestureFlags(migrateAppWindows(state))),
+	return migrateThemeFontSizes(
+		migrateAppearancePackage(
+			migrateThemeSoundPack(
+				migrateThemeMetrics(stripWindowGestureFlags(migrateAppWindows(state))),
+			),
 		),
 	);
 }
@@ -285,6 +299,48 @@ function migrateAppearancePackage(state: ClassicyStore): ClassicyStore {
 				Appearance: {
 					...appearance,
 					packageId,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+function migrateThemeFontSizes(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? withClassicyThemeFontSizesClamped(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		withClassicyThemeFontSizesClampedList,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		withClassicyThemeFontSizesClampedList,
+	);
+	if (
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
 					activeTheme,
 					availableThemes,
 					customThemes,
