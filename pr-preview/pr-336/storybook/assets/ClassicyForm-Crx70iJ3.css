@@ -1,0 +1,1 @@
+.classicyForm{display:flex;flex-direction:column;gap:var(--layout-item-gap)}.classicyFormDialog{padding:var(--layout-dialog-edge)}.classicyFormButtonRow{display:flex;justify-content:flex-end;gap:var(--button-gap);margin-top:var(--layout-group-gap)}
