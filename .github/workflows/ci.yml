@@ -31,7 +31,8 @@ concurrency:
 jobs:
   checks:
     name: Lint, type check and test
-    runs-on: ubuntu-latest
+    # Pinned with push/pages/pr-preview, whose distro ffmpeg and audio sprites must not change with ubuntu-latest; revisit them together.
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     steps:

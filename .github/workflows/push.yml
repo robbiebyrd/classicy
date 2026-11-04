@@ -27,7 +27,8 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Pinned: the distro ffmpeg (8.0.1 here) builds the audio sprites and must not change with ubuntu-latest; revisit when 26.04 nears retirement.
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       id-token: write
