@@ -510,6 +510,17 @@ Start with [Install and build](#install-and-build).
   *Migrate:* add `package: "platinum"` to a theme, or spread `getTheme(id)`.
   Add `packageId: "platinum"` (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) to
   an Appearance Manager state literal.
+- **`ClassicyDesktopLoadThemes` validates each theme.** Every entry is
+  checked against `ClassicyThemeSchema`, as theme files and imports are. An
+  entry with a font size outside 8–72, a bad color, a `backgroundImage` that
+  is not a bundled wallpaper or plain http(s) URL, or that is not an object
+  at all, is dropped with a warning naming its id and first issue; the rest
+  load. A list with no valid entry leaves the theme list unchanged.
+  Undeclared keys are stripped and a wallpaper filename is resolved to its
+  asset URL. A theme for an unregistered package is still kept.
+
+  *Who:* hosts that load hand-built themes. *Migrate:* fix the theme the
+  warning names; `ClassicyThemeSchema.safeParse(theme)` reports every issue.
 - **Theme files and imports need an installed package.**
   Loading a file, or dispatching `ClassicyDesktopImportTheme`, for a package
   that is not registered (Platinum always counts as installed) is refused

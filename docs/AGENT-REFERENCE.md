@@ -402,7 +402,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme color (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
-| `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list (missing metric groups are filled, and a missing `package` becomes `"platinum"`) |
+| `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a wallpaper filename is resolved. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (the default `"platinum"` always counts as installed) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
@@ -3328,6 +3328,7 @@ import {
     downloadClassicyTheme,    // (theme) => { ok: true } | { ok: false, error } — round-trip checked first
     parseClassicyThemeFile,   // (text) => { ok: true, theme } | { ok: false, error }
     readClassicyTheme,        // (unknown) => same result; validate + make loadable (no envelope)
+    readClassicyLoadedThemes, // (unknown[]) => { themes, dropped: { index, id, issue }[] }; ClassicyDesktopLoadThemes' check
     classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
     assignImportedClassicyThemeIdentity, // (theme, existingThemes, reservedIds?) => theme with unique id/name
 } from 'classicy'
@@ -3363,6 +3364,16 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
 An imported theme is a custom theme, so edits modify it in place (no fork).
 Like every `ClassicyDesktop*` action it is unreachable to untrusted
 (HyperCard) dispatches.
+
+Themes a host hands to `ClassicyDesktopLoadThemes` pass the same schema,
+one entry at a time (`readClassicyLoadedThemes`): each is completed from its
+package's metric defaults, parsed, and its wallpaper filename resolved. An
+entry that fails is dropped with a `ClassicyDesktopManager` warning naming
+its id (or index) and first issue, and the rest load; a list with no valid
+entry leaves `availableThemes` unchanged (an empty list still empties it).
+Unlike an import, a theme for an unregistered package is kept, since a host
+may load its themes before registering the package. A dropped theme is not
+in the list, so `ClassicyDesktopChangeTheme` can never activate it.
 
 ### Appearance Manager tabs
 
