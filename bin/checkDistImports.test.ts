@@ -283,11 +283,8 @@ describe("check-dist-imports.mjs invariant 11: plain .css under src (named files
 		const FILE = join("src", "a", "leak.css");
 		const { status, stderr } = check({}, { [FILE]: ".leak{color:red}" });
 		expect(status).toBe(1);
-		expect(stderr.trim()).toMatch(
-			new RegExp(
-				`^${FILE.replace(/\./g, "\\.")}: a plain \\.css file with rules`,
-			),
-		);
+		const prefix = `${FILE}: a plain .css file with rules`;
+		expect(stderr.trim().slice(0, prefix.length)).toBe(prefix);
 	});
 });
 

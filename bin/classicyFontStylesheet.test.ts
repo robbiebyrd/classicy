@@ -162,13 +162,10 @@ describe("findClassicyFontStylesheetProblems", () => {
 		],
 	])("fails a face whose %s differs from the runtime's rule", (_name, from, to) => {
 		const changed = css.replace(from, to);
-		expect(problems(changed)).toEqual([
-			expect.stringMatching(
-				new RegExp(
-					`^${FILE.replace(/\./g, "\\.")}: the @font-face for "Charcoal" normal normal is not the rule the runtime writes`,
-				),
-			),
-		]);
+		const prefix = `${FILE}: the @font-face for "Charcoal" normal normal is not the rule the runtime writes`;
+		expect(
+			problems(changed).map((problem) => problem.slice(0, prefix.length)),
+		).toEqual([prefix]);
 	});
 
 	it("fails a url that does not resolve to a file in dist/assets", () =>
