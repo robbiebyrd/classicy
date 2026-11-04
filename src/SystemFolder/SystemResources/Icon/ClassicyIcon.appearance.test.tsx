@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
@@ -97,6 +101,35 @@ describe("ClassicyIcon appearance", () => {
 		]);
 	});
 
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a positional drag where it is on a %s", (loss) => {
+		const holder = { current: document.createElement("div") };
+		const { container } = render(
+			<ClassicyIcon
+				appId="Test.app"
+				name="Read Me"
+				icon={ICON}
+				holder={holder}
+			/>,
+		);
+		const el = root(container);
+		fireEvent.mouseDown(el, { clientX: 10, clientY: 10 });
+		fireEvent.mouseMove(el, { clientX: 40, clientY: 30 });
+		const left = el.style.left;
+		expect(left).toBe("40px");
+		losePointerStream(loss);
+		expect(el).not.toHaveClass("dragging");
+		// The pointer coming back over the icon no longer moves it.
+		fireEvent.mouseMove(el, { clientX: 90, clientY: 80 });
+		expect(el.style.left).toBe(left);
+		fireEvent.mouseUp(el);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: undefined },
+			{ event: "dragEnd", detail: undefined },
+		]);
+	});
+
 	it("emits no drag for a position-locked icon", () => {
 		const { container } = render(
 			<ClassicyIcon
@@ -180,6 +213,33 @@ describe("ClassicyIcon appearance", () => {
 				moveTo(40, 30);
 				fireEvent.keyDown(document, { key: "Escape" });
 				releaseAt(40, 30);
+			});
+			expect(onFileDrag).not.toHaveBeenCalled();
+			expect(emitted().filter((e) => e.event.startsWith("drag"))).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, canceled: true },
+				},
+			]);
+		});
+
+		it.each(
+			POINTER_STREAM_LOSSES,
+		)("emits one dragEnd, canceled, and drops nothing on a %s", (loss) => {
+			const folder = document.createElement("div");
+			folder.setAttribute("data-classicy-drop-folder", "Macintosh HD:Archive");
+			const { el, onFileDrag } = renderFileIcon();
+			withElementsFromPoint([folder], () => {
+				press(el);
+				moveTo(40, 30);
+				expect(folder).toHaveClass("classicyFileDropTarget");
+				losePointerStream(loss);
+				expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+				expect(folder).not.toHaveClass("classicyFileDropTarget");
+				// The pointer comes back over the folder and is let go.
+				moveTo(60, 40);
+				releaseAt(60, 40);
 			});
 			expect(onFileDrag).not.toHaveBeenCalled();
 			expect(emitted().filter((e) => e.event.startsWith("drag"))).toEqual([

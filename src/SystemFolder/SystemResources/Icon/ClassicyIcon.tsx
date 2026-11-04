@@ -27,6 +27,7 @@ import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 interface ClassicyIconProps {
@@ -225,6 +226,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			appearance.emit("dragEnd");
 		}
 	};
+
+	// The pointer stream lost mid-drag (the window blurred, a pointercancel,
+	// the page hidden): the icon stays where it was dragged, as if released
+	// there, instead of following the pointer back with no button held.
+	useClassicyPointerStreamLost(dragging, stopChangeIcon);
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 		if (onFileDrag) {
