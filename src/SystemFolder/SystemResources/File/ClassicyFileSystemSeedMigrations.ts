@@ -1,4 +1,5 @@
 import type { ClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { copyClassicyFileSystemSeed } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedCopy.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -146,7 +147,9 @@ function applyAdd(
 	const ref = resolveParent(tree, segments);
 	if (!ref || Object.hasOwn(ref.parent, ref.key)) return;
 
-	ref.parent[ref.key] = migration.entry;
+	// A copy: the live tree is edited in place, and the migration's own entry
+	// must stay as the host wrote it (story 0098).
+	ref.parent[ref.key] = copyClassicyFileSystemSeed(migration.entry);
 	classicyLog(
 		"info",
 		"ClassicyFileSystemSeedMigrations",

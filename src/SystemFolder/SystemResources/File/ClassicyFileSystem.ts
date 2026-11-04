@@ -17,6 +17,7 @@ import {
 	type ClassicyFileSystemEntryMetadata,
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { copyClassicyFileSystemSeed } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedCopy.internal";
 import {
 	applyClassicyFileSystemSeedMigrations,
 	type ClassicyFileSystemSeedMigration,
@@ -151,31 +152,6 @@ const omitDerivedEntries = (key: string, value: unknown): unknown =>
 		? undefined
 		: value;
 
-/**
- * A deep copy of a default tree, to seed a live tree from (story 0098). The
- * live tree is edited in place, so seeding it with the defaults themselves
- * would write a session's edits into `DefaultFSContent` or a host's
- * `defaultFileSystem`, which every other storage key, a later boot with no
- * storage, and Drive Setup's Initialize read. A tree `structuredClone`
- * refuses (one holding a function, say) is copied as JSON instead, the form
- * it is persisted in anyway.
- */
-const classicyFileSystemSeed = (
-	defaultFS: ClassicyFileSystemEntry,
-): ClassicyFileSystemEntry => {
-	try {
-		return structuredClone(defaultFS);
-	} catch (error) {
-		classicyLog(
-			"warn",
-			"ClassicyFileSystem",
-			"default tree cannot be structured-cloned; seeding from its JSON form",
-			error,
-		);
-		return JSON.parse(JSON.stringify(defaultFS));
-	}
-};
-
 export class ClassicyFileSystem {
 	storageKey: string;
 	separator: string;
@@ -238,7 +214,7 @@ export class ClassicyFileSystem {
 
 		// A reload replaces the tree in place, so instances already holding this
 		// record see the reloaded tree too.
-		const tree = this.readStoredTree() ?? classicyFileSystemSeed(defaultFS);
+		const tree = this.readStoredTree() ?? copyClassicyFileSystemSeed(defaultFS);
 		this.shared = existing ?? { tree, version: 0 };
 		this.shared.epoch = epoch;
 		sharedTrees.set(storageKey, this.shared);
