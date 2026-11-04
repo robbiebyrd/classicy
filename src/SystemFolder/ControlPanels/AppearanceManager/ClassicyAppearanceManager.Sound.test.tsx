@@ -1,6 +1,10 @@
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
+import {
 	fireEvent,
 	render,
 	renderHook,
@@ -147,5 +151,26 @@ describe("useSoundTab — Alert Volume", () => {
 		fireEvent.pointerUp(slider);
 		expect(props.previewAlertVolume).toHaveBeenCalledOnce();
 		expect(props.previewAlertVolume).toHaveBeenCalledWith(25);
+	});
+
+	// A slider press lost to an Alt-Tab (or a pointercancel, or the page
+	// hidden) keeps the level it reached, but plays nothing: the user never
+	// let go, and is likely elsewhere.
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("keeps the level of a drag lost on a %s, with no preview, and previews the next release", (loss) => {
+		const props = baseProps();
+		render(<Host {...props} />);
+		const slider = screen.getByRole("slider", { name: "Alert Volume" });
+		fireEvent.pointerDown(slider);
+		fireEvent.change(slider, { target: { value: "25" } });
+		losePointerStream(loss);
+		expect(props.changeAlertVolume).toHaveBeenLastCalledWith(25);
+		expect(props.previewAlertVolume).not.toHaveBeenCalled();
+		fireEvent.pointerDown(slider);
+		fireEvent.change(slider, { target: { value: "40" } });
+		fireEvent.pointerUp(slider);
+		expect(props.changeAlertVolume).toHaveBeenLastCalledWith(40);
+		expect(props.previewAlertVolume).toHaveBeenCalledExactlyOnceWith(40);
 	});
 });

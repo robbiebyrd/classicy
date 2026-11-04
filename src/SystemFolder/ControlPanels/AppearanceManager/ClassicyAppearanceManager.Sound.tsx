@@ -17,7 +17,10 @@ interface SoundTabProps {
 	alertVolume: number;
 	/** Fired on every slider step with the new level. */
 	changeAlertVolume: (alertVolume: number) => void;
-	/** Fired once on release with the committed level; plays the alert. */
+	/**
+	 * Fired once on release with the committed level; plays the alert. Not
+	 * fired for a drag whose pointer stream was lost.
+	 */
 	previewAlertVolume: (alertVolume: number) => void;
 }
 
@@ -83,7 +86,12 @@ export const useSoundTab = ({
 								max={100}
 								valueLabel={`${alertVolume}%`}
 								onChangeFunc={(e) => changeAlertVolume(Number(e.target.value))}
-								onCommitFunc={(value) => previewAlertVolume(value)}
+								// A drag lost to the pointer stream (an Alt-Tab, say) keeps
+								// the level its steps saved, but never auditions it: the
+								// user did not let go.
+								onCommitFunc={(value, { lost }) => {
+									if (!lost) previewAlertVolume(value);
+								}}
 							/>
 						</div>
 					</div>
