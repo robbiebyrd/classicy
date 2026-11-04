@@ -973,7 +973,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
-| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value)`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is rounded with `"nondirectional"`; `highlighted` fills the thumb with the theme accent; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label |
+| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is rounded with `"nondirectional"`; `highlighted` fills the thumb with the theme accent; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label |
 | `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?` | plain textarea |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
@@ -1005,7 +1005,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
-| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits |
+| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
 (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
@@ -2810,7 +2810,8 @@ those changes.
 - `emit(event, detail?)` runs `hooks.on[component][event]` synchronously
   with `{ component, event, element, state, detail }` (the latest state and
   `ref.current`). Its type (`ClassicyAppearanceEmit`) requires a `dragEnd`
-  detail carrying `lost` (below); every other event's detail is optional.
+  or `release` detail carrying `lost` (below); every other event's detail
+  is optional.
 - With no package hooks the result is a pure function of `state`
   (`classicyStateClasses(state)`, no `style`, `attrs` `{}`), so a component
   renders exactly as before.
@@ -2896,18 +2897,28 @@ user gesture with a keyboard path emits from it. Rules:
   behind it reports the latest press. Handlers that only a pointer can reach
   (Placard's mouse down and up, MenuItem's hover) pass `"pointer"` outright.
 
-**`detail.lost`.** Every `dragEnd` carries `lost: boolean`
-(`ClassicyAppearanceDragEnd`) beside its own fields: `true` when the gesture
-ended because the pointer stream was lost (a window `blur`, a
-`pointercancel`, the page turning hidden), `false` for a release. A lost
+**`detail.lost`.** Every `dragEnd` and `release` carries `lost: boolean`
+(`ClassicyAppearanceDragEnd`, an alias of `ClassicyGestureEnd`) beside its
+own fields: `true` when the gesture ended because the pointer stream was
+lost (a window `blur`, a `pointercancel`, the page turning hidden), `false`
+for a release. A lost
 window move or resize, Control Strip drag, icon drag or slider press still
 ends where it is, as a release there would, and still emits its one
 `dragEnd`; `lost` lets a package tell the two apart, say to skip a drop
 sound or animation for a gesture the user never let go of. A file drag's
 `lost` is `true` only for a lost stream, so `canceled: true, lost: false` is
-Escape or the source unmounting. Platinum ignores it: its window `dragEnd`
-sound plays either way. A handler reads it as
-`(ctx.detail as ClassicyAppearanceDragEnd).lost`.
+Escape or the source unmounting. A mouse `press` on Button, BevelButton,
+Placard or RadioInput whose stream is lost ends in one `release`
+`{ input: "pointer", lost: true }` (RadioInput adds `itemId`); one released
+over the control reports `lost: false`, and one released elsewhere still
+emits no `release`. Platinum's window `dragEnd` sound plays either way, but
+a lost `release` is silent (no button-up click for a press never let go
+of, as before it was emitted). A handler reads it as
+`(ctx.detail as ClassicyAppearanceDragEnd).lost`. Host callbacks fired at
+a gesture's end take the same shape as a trailing argument:
+`ClassicySplitView`'s `onResizeCommit(sizes, { lost })` and
+`ClassicySlider`'s `onCommitFunc(value, { lost })` (`false` on a key
+release); a one-argument handler still type-checks.
 
 **Events per component.** The decoration lands on the root listed. "States"
 are exactly the state classes the component already emitted; states shown on
@@ -2915,16 +2926,16 @@ inner elements (rows, tab buttons, items) stay there.
 
 | Component | Decoration root | States | Events (detail) |
 |---|---|---|---|
-| Button | `button.classicyButton` | default, pressed | press `{ input }`, release `{ input }` (mouse, Return/Space), click `{ input }` |
-| BevelButton | `button.classicyBevelButton` | disabled, mixed, pressed, checked, open | press, release (mouse only), click `{ input }`, open `{ trigger: "click" \| "hold", input }`, close `{ input }` |
+| Button | `button.classicyButton` | default, pressed | press `{ input }`, release `{ input, lost }` (mouse, Return/Space; a lost mouse press, `lost: true`), click `{ input }` |
+| BevelButton | `button.classicyBevelButton` | disabled, mixed, pressed, checked, open | press, release `{ lost }` (mouse only; a lost press, held menu included, `{ input: "pointer", lost: true }`), click `{ input }`, open `{ trigger: "click" \| "hold", input }`, close `{ input }` |
 | Checkbox | `input.classicyCheckbox` | default, mixed, checked, disabled | change `{ checked, input }` |
-| RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press/release `{ itemId }` (mouse only, on the input or label), change `{ itemId, input }` (click, arrow keys) |
+| RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press `{ itemId }` and release `{ itemId, lost }` (mouse only, on the input or label; a lost press adds `input: "pointer"`), change `{ itemId, input }` (click, arrow keys) |
 | PopUpMenu | `div.classicyPopUpMenu` | disabled, open | open `{ input }`, change `{ value, input }`, close `{ input }` |
 | ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
 | Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
 | ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
-| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart `{ value }` and dragEnd `{ value, lost }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`) |
-| Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press/release `{ input }` (mouse, Return/Space), click `{ menu, input }`, open `{ input }`, close `{ input }` |
+| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart `{ value }` and dragEnd `{ value, lost }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`, with `lost: true`) |
+| Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press `{ input }` and release `{ input, lost }` (mouse, Return/Space; a lost mouse press, `lost: true`), click `{ menu, input }`, open `{ input }`, close `{ input }` |
 | Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
 | Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
 | Tree | `ul.classicyTree` | none (row states stay on rows) | expand/collapse `{ nodeId, open, input }`, select `{ nodeId, input }` |
@@ -2934,7 +2945,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
-| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
+| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
 | DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |

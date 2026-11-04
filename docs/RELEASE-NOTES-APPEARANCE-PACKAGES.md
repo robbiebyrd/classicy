@@ -770,8 +770,13 @@ Everything is exported from `classicy`. The links go to the full reference.
   `blur`, a `pointercancel`, a hidden page), `false` for a release, so a
   package can skip a drop sound or animation for a lost gesture. A lost file
   drag is `canceled: true, lost: true`; Escape is `canceled: true,
-  lost: false`. `emit`'s type, `ClassicyAppearanceEmit`, requires `lost` on
-  a `dragEnd` detail.
+  lost: false`. A lost mouse press on Button, BevelButton, Placard or
+  RadioInput ends in a `release` with `lost: true` (Platinum plays no
+  button-up click for it); other releases say `lost: false`. `emit`'s type,
+  `ClassicyAppearanceEmit`, requires `lost` on a `dragEnd` or `release`
+  detail. `ClassicySplitView`'s `onResizeCommit` and `ClassicySlider`'s
+  `onCommitFunc` take the same `{ lost }` (`ClassicyGestureEnd`) as a
+  trailing argument; one-argument handlers keep working.
 - Handlers play sounds with `playClassicyAppearanceSound(sound, { interrupt? })`.
 - [Package hooks](AGENT-REFERENCE.md#package-hooks).
 
@@ -964,7 +969,8 @@ warnings about derived folder names.
   menu closes choosing nothing; window moves and resizes, split views,
   table column resizes, the Control Strip, sliders and icon drags end where
   they are, committed as a release there would be, and the ones that emit a
-  `dragEnd` say `lost: true`. For `ClassicySlider` that means `onCommitFunc` now
+  `dragEnd` say `lost: true`, as do `onResizeCommit` and `onCommitFunc`, and a
+  lost press's `release`. For `ClassicySlider` that means `onCommitFunc` now
   fires once on a `pointercancel` (it used not to), the ghost is hidden on a
   document-level `pointercancel` too, and the input no longer carries its
   own `onPointerCancel` handler (the document listener ends the press).
