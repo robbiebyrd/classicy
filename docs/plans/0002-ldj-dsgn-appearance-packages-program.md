@@ -188,6 +188,21 @@ File `src/Appearance/useClassicyAppearanceLayout.ts`: `CLASSICY_DEFAULT_APPEARAN
 
 Each line names the part plan whose text it corrects; executors apply the amendment over the plan's wording.
 
+- **0011-v9t (H) as built, and 0004-vqt (G)'s count (added 2026-11-04, H final review)**: supersedes the "Families Part H adds" list and G's "35 entries" above.
+  - **Derivations.** `CLASSICY_THEME_DERIVATIONS` holds 119 entries. H appended 84, among them the four this contract names, plus `--layout-item-gap-half` (H-R19) and `--window-title-cap-offset` (H-R28b). H-R25: a size that multiplies one of the 20 editable metrics (`CLASSICY_THEME_METRIC_TARGETS`) is always a derivation of that metric, never a fixed knob, so the Metrics tab keeps rescaling it.
+  - **Families.** Platinum's `defaults.measurements` carries 20 knob families with 93 keys (`PLATINUM_KNOB_COUNT`), beside the core five:
+    - The contract families: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`, `popUpSlider`, `scrollbar`.
+    - App and component families: `hyperCard`, `finder`, `appleGuide`, `dialog`, `controlPanel`, `progressBar`, `utilityTitleBar`, `boot`, `helpButton`, `quickTime`, `menu` and `table`.
+    - The color picker's family is `picker` (`--picker-*`), not `colorPicker` (H-R16).
+    - The Control Strip pop-up's family is `stripMenu` (H-R27c), not `controlStripPopup`.
+  - **Options-tab metadata.** Only the six contract families carry `knobs` metadata and appear in the Options tab (H-R4, owner ruling). The other fourteen are emitted, editable in theme files and persisted, but not shown in the Options tab.
+  - **Reserved names.** `isReservedClassicyThemeVar` reserves every derivation, every variable `getThemeVars` sets after the measurement inputs, `--classicy-*`, and the palette's `--color-*` space. A family that would emit into `--color-*` is refused (H-R16). A package measurement that would make a reserved name is skipped with a logged warning, and is never an editable knob (H-R28c).
+  - **Defaults and persistence (H-R17).**
+    - Store creation fills only the core five. Knob families are healed at read time from `classicyThemeMeasurementDefaults(packageId)`, which merges key by key: the Platinum floor, then the core five, then the package's own values.
+    - `sanitizeStateForPersistence` drops a knob value equal to its package's default, but only when that package is known.
+    - `withoutDefaultActiveThemeMeasurements` (`@internal`) is the merge base for saved state and for a host's `defaultState`.
+  - **JS constants.** `POPUP_MENU_MAX_HEIGHT` is gone: the pop-up menu reads `--menu-pop-up-max-height` with `readClassicyThemeVar` (H-R26). PopUpSlider reads `popUpSlider.trackTop` the same way, and its `trackLeft`/`thumbLeft` ranges are locked to their defaults (H-R23).
+  - **Gates.** `pnpm lint` runs `bin/check-pixel-literals.ts`. Its pixel allowlist (`bin/pixel-literal-allowlist.json`) is empty and must stay empty. Its multiplier allowlist (`bin/multiplier-allowlist.json`) holds 37 sites over 8 files, each with a reason; any other `calc(var(--x) * N)`, `#{}` interpolation or factor chain with a product other than ±1 fails (H-R6, H-R28a).
 - **0013-l9f (K, added 2026-10-30, owner request, story 0089-r2d)**: additive. `ClassicyAppearancePackage` gains an optional `apps?: Record<appId, { name?: string; icon?: ClassicyAssetSource; description?: string }>` (zod-validated, `.describe()`d), resolved by `resolveClassicyAppIdentity`/`useClassicyAppIdentity`; display only — internal ids, action types and persisted state keep the original identity.
 
 - **0005-1b3 (B) §2.1/§3.1**: `useClassicyAppearanceLayout` and friends live in `src/Appearance/useClassicyAppearanceLayout.ts` (above), not in `ClassicyAppearancePackage.ts`; layout vars are emitted by `classicyLayoutVars`, not `getThemeVars`.
