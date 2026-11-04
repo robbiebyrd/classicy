@@ -85,6 +85,20 @@ export function findClassicyFileDropTarget(
 	return null;
 }
 
+/** How a file drag ended, as `onEnd` reports it. */
+export type ClassicyFileDragEnd = {
+	/**
+	 * Released over a drop target, which is handed to `onDrop`. The source may
+	 * still refuse the move (a locked item, the same folder).
+	 */
+	dropped: boolean;
+	/**
+	 * Ended without a release: Escape, or the function `startClassicyFileDrag`
+	 * returns. A release over nothing is neither dropped nor cancelled.
+	 */
+	cancelled: boolean;
+};
+
 export type ClassicyFileDragOptions = {
 	/** The press that may become a drag. */
 	start: { clientX: number; clientY: number };
@@ -108,15 +122,27 @@ export type ClassicyFileDragOptions = {
 	) => void;
 	/** Release without the pointer ever travelling far enough to drag. */
 	onClick?: () => void;
+	/**
+	 * The press became a drag: called once, when the pointer first travels
+	 * `CLASSICY_FILE_DRAG_THRESHOLD` px, just after the outline appears. A
+	 * press that never travels that far (a click) never calls it.
+	 */
+	onStart?: () => void;
+	/**
+	 * The drag that `onStart` reported is over: called exactly once per
+	 * `onStart`, and never without one, after the outline is removed and before
+	 * `onDrop`. See `ClassicyFileDragEnd` for how it ended.
+	 */
+	onEnd?: (end: ClassicyFileDragEnd) => void;
 	/** Injectable for tests. */
 	elementsFromPoint?: ElementsFromPoint;
 };
 
 /**
- * Track a press as a possible drag. Returns a function that abandons it. The
- * outline is only created once the pointer has travelled
- * `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click stays a click; Escape
- * cancels a drag in progress without dropping.
+ * Track a press as a possible drag. Returns a function that abandons it (a
+ * drag in progress then ends as cancelled). The outline is only created once
+ * the pointer has travelled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
+ * stays a click; Escape cancels a drag in progress without dropping.
  */
 export function startClassicyFileDrag(
 	options: ClassicyFileDragOptions,
@@ -174,6 +200,7 @@ export function startClassicyFileDrag(
 			);
 			if (travelled < CLASSICY_FILE_DRAG_THRESHOLD) return;
 			createGhost();
+			options.onStart?.();
 		}
 		e.preventDefault();
 		placeGhost(e.clientX, e.clientY);
@@ -189,22 +216,34 @@ export function startClassicyFileDrag(
 			options.onClick?.();
 			return;
 		}
+		// Hit-tested once the outline and highlight are gone.
+		const target = targetAt(e.clientX, e.clientY);
+		options.onEnd?.({ dropped: target !== null, cancelled: false });
 		options.onDrop(
-			targetAt(e.clientX, e.clientY),
+			target,
 			[e.clientX, e.clientY],
 			[e.clientX - grabOffset[0], e.clientY - grabOffset[1]],
 		);
 	}
 
+	// Escape, or the caller abandoning the press: a drag in progress ends
+	// cancelled. Once: cleanup removes the listeners and the outline, so
+	// nothing can end it again.
+	const cancel = () => {
+		const dragged = ghost !== null;
+		cleanup();
+		if (dragged) options.onEnd?.({ dropped: false, cancelled: true });
+	};
+
 	function onKey(e: KeyboardEvent) {
 		if (e.key !== "Escape" || !ghost) return;
 		e.preventDefault();
 		e.stopPropagation();
-		cleanup();
+		cancel();
 	}
 
 	document.addEventListener("mousemove", onMove, true);
 	document.addEventListener("mouseup", onUp, true);
 	document.addEventListener("keydown", onKey, true);
-	return cleanup;
+	return cancel;
 }

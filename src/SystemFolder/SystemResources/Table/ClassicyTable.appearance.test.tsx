@@ -129,4 +129,33 @@ describe("ClassicyTable appearance", () => {
 		expect(el.hasAttribute("style")).toBe(false);
 		expect(el.getAttribute("class")).toBe("classicyTableContainer");
 	});
+
+	it("emits the drags a cell reports through emitDrag, from its root", () => {
+		const { container } = renderTable({
+			columns: [
+				{
+					...COLUMNS[0],
+					render: (row, cell) => (
+						<button
+							type="button"
+							onMouseDown={() => cell.emitDrag("dragStart", { row: row.id })}
+							onMouseUp={() => cell.emitDrag("dragEnd", { row: row.id })}
+						>
+							{row.name}
+						</button>
+					),
+				},
+			],
+		});
+		const button = screen.getByRole("button", { name: "Alpha" });
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(button);
+		expect(
+			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
+		).toEqual([
+			{ event: "dragStart", detail: { row: "2" } },
+			{ event: "dragEnd", detail: { row: "2" } },
+		]);
+		expect(root(container)).toHaveClass("probe-Table");
+	});
 });

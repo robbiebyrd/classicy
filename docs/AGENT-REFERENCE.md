@@ -944,7 +944,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle }` so a column can draw its own disclosure (this is how the Finder list view is built) |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks") |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
 | `ClassicySpinner` | see inputs | |
@@ -1813,7 +1813,10 @@ the callback moves them. Drop targets are any element marked
 `data-classicy-drop-folder="<path>"` or `data-classicy-drop-desktop`
 (`CLASSICY_DROP_FOLDER_ATTRIBUTE`/`…DESKTOP…`); windows, the menu bar, the
 Control Strip and dialogs block drops. The drag engine is
-`startClassicyFileDrag` (`ClassicyFileDrag.ts`). The desktop's files and
+`startClassicyFileDrag` (`ClassicyFileDrag.ts`); its optional `onStart()` (at
+the 4 px threshold) and `onEnd({ dropped, cancelled })` (exactly once per
+start) callbacks are how the views emit the appearance `dragStart`/`dragEnd`
+events (§8, "Package hooks"). The desktop's files and
 folders live in the invisible `Desktop Folder` on the startup disk; Finder
 mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
 
@@ -2657,15 +2660,15 @@ inner elements (rows, tab buttons, items) stay there.
 | Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
 | Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
 | Tree | `ul.classicyTree` | none (row states stay on rows) | expand/collapse `{ nodeId, open, input }`, select `{ nodeId, input }` |
-| Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable) |
+| Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below), pointer only |
 | Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
 | FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
 | Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change/dragEnd `{ kind: "move" \| "resize" }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
-| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only) |
-| Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only) |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
 
@@ -2743,11 +2746,37 @@ DesktopIcon and Icon:
 - Icon `select { selected }` is emitted only by a click toggle. Selection
   set programmatically (after a positional or file drag) emits nothing; the
   `selected` state class is authoritative.
-- `dragStart`/`dragEnd` bracket every pointer press that can move the icon, a
-  plain click included, mirroring the `dragging` state (as on the Slider).
-  Finder outline drags of file-backed desktop icons, and `ClassicyIcon` file
-  drags (`onFileDrag`), emit no drag events, and the `dragging` class stays
-  off.
+- `dragStart`/`dragEnd` with no detail bracket every pointer press that can
+  move the icon itself, a plain click included, mirroring the `dragging`
+  state (as on the Slider). Finder outline drags (file-backed desktop icons,
+  `ClassicyIcon` with `onFileDrag`) emit `{ kind: "file" }` events instead, as
+  described next, and the `dragging` class stays off for them: the outline
+  moves, not the icon.
+
+Finder outline drags (`startClassicyFileDrag`): a file-backed desktop icon
+(DesktopIcon), an icon in a file browser's icon view (Icon) and a row in its
+list view (Table, through the cell's `emitDrag`) emit them through their own
+emitter:
+
+- `dragStart { kind: "file" }`, once, when the pointer has travelled
+  `CLASSICY_FILE_DRAG_THRESHOLD` (4 px) and the outline appears. A press that
+  never travels that far is a click and emits no drag event.
+- `dragEnd { kind: "file", dropped, cancelled }`, exactly once per
+  `dragStart`, after the outline is removed and before the move is made:
+  `{ dropped: true, cancelled: false }` for a release over a drop target
+  (the move may still be refused: a locked item, the same folder),
+  `{ dropped: false, cancelled: false }` for a release over nothing (or over
+  a window that refuses drops), `{ dropped: false, cancelled: true }` for
+  Escape.
+- The detail is exactly those fields. It never carries the dragged items'
+  paths or names, how many there are, the drop target or the pointer, so a
+  package learns no more of the user's data than from a window or icon
+  drag. Pointer only, so no `input`.
+
+`startClassicyFileDrag` reports the same moments to any caller through
+optional `onStart()` and `onEnd({ dropped, cancelled })` callbacks; a drag
+the caller abandons (the function it returns) after `onStart` ends as
+cancelled.
 
 **Platinum's hooks.** `platinumAppearanceHooks`
 (`src/Appearance/Platinum/hooks.ts`, exported) holds Platinum's feedback

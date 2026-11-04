@@ -23,6 +23,7 @@ import {
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 
 interface ClassicyIconProps {
@@ -230,6 +231,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
 				],
 				source: el,
+				// The outline drags, not the icon: `dragging` stays off.
+				...classicyFileDragAppearanceCallbacks(appearance.emit),
 				onDrop: (target, point, outlineTopLeft) => {
 					if (onFileDrag(target, point, outlineTopLeft)) return;
 					if (positionLocked) return;

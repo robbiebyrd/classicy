@@ -29,7 +29,8 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
  * first) can draw its own disclosure affordance and depth indent. All-zero /
- * no-op when the table has no `getSubRows`.
+ * no-op when the table has no `getSubRows`. Also carries `emitDrag`, for a
+ * cell that starts a drag of its own.
  */
 export type ClassicyTableCellContext = {
 	/** Nesting level of the row; 0 for top-level rows. */
@@ -40,6 +41,14 @@ export type ClassicyTableCellContext = {
 	isExpanded: boolean;
 	/** Expand or collapse the row (fires `onToggleRow`). */
 	toggle: () => void;
+	/**
+	 * Reports a drag the cell starts (the file browser's list view drags rows
+	 * as Finder items) to the active Appearance Package: the table emits
+	 * `dragStart` or `dragEnd` with `detail` from its own root. Pair every
+	 * `dragStart` with exactly one `dragEnd`, and keep user data (paths,
+	 * names) out of `detail`.
+	 */
+	emitDrag: (event: "dragStart" | "dragEnd", detail?: unknown) => void;
 };
 
 export type ClassicyTableColumn<T> = {
@@ -589,6 +598,7 @@ export function ClassicyTable<T>({
 												canExpand: row.getCanExpand(),
 												isExpanded: row.getIsExpanded(),
 												toggle: () => toggleRow(row.id),
+												emitDrag: appearance.emit,
 											})
 										) : (
 											<span>{`${cell.getValue() ?? ""}`}</span>

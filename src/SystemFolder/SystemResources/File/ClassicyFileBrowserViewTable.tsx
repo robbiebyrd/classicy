@@ -28,6 +28,7 @@ import {
 	CLASSICY_FILE_PATH_ATTRIBUTE,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -35,6 +36,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	ClassicyTable,
+	type ClassicyTableCellContext,
 	type ClassicyTableColumn,
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
@@ -133,7 +135,11 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			);
 
 			const startRowDrag = useCallback(
-				(e: MouseEvent<HTMLDivElement>, rowPath: string) => {
+				(
+					e: MouseEvent<HTMLDivElement>,
+					rowPath: string,
+					emitDrag: ClassicyTableCellContext["emitDrag"],
+				) => {
 					if (e.button !== 0 || !onMoveItems) return;
 					const selection = selectionRef.current;
 					const paths = selection.includes(rowPath) ? selection : [rowPath];
@@ -159,6 +165,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							),
 						})),
 						source: e.currentTarget,
+						...classicyFileDragAppearanceCallbacks(emitDrag),
 						onDrop: (target, _point, outlineTopLeft) => {
 							if (!target) return;
 							if (
@@ -314,7 +321,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								row._path
 									? { [CLASSICY_DROP_FOLDER_ATTRIBUTE]: row._path }
 									: {})}
-								onMouseDown={(e) => row._path && startRowDrag(e, row._path)}
+								onMouseDown={(e) =>
+									row._path && startRowDrag(e, row._path, expansion.emitDrag)
+								}
 								style={{
 									paddingLeft: `calc(var(--window-control-size) * ${expansion.depth})`,
 								}}

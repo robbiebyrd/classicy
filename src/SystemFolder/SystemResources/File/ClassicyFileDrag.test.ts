@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	CLASSICY_FILE_DRAG_THRESHOLD,
 	findClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
@@ -187,5 +188,135 @@ describe("startClassicyFileDrag", () => {
 		fire("mouseup", 40, 30);
 		expect(onDrop).not.toHaveBeenCalled();
 		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+	});
+});
+
+describe("startClassicyFileDrag start and end callbacks", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		document.body.className = "";
+	});
+
+	const fire = (type: string, x: number, y: number) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+		);
+	const pressEscape = () =>
+		document.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
+
+	/** A drag from (10, 10); `overTarget` decides what the pointer is over. */
+	const setup = (overTarget = true) => {
+		document.body.innerHTML = `<div id="browser" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"></div>`;
+		const browser = document.getElementById("browser") as Element;
+		const calls: string[] = [];
+		const onStart = vi.fn(() => calls.push("start"));
+		const onEnd = vi.fn(() => calls.push("end"));
+		const onDrop = vi.fn(() => calls.push("drop"));
+		const onClick = vi.fn();
+		const abandon = startClassicyFileDrag({
+			start: { clientX: 10, clientY: 10 },
+			parts: [],
+			onDrop,
+			onClick,
+			onStart,
+			onEnd,
+			elementsFromPoint: () => (overTarget ? [browser] : []),
+		});
+		return { onStart, onEnd, onDrop, onClick, abandon, calls };
+	};
+
+	it("reports nothing for a press that never crosses the threshold", () => {
+		const { onStart, onEnd, onClick } = setup();
+		fire("mousemove", 10 + CLASSICY_FILE_DRAG_THRESHOLD - 1, 11);
+		fire("mouseup", 10 + CLASSICY_FILE_DRAG_THRESHOLD - 1, 11);
+		expect(onClick).toHaveBeenCalledOnce();
+		expect(onStart).not.toHaveBeenCalled();
+		expect(onEnd).not.toHaveBeenCalled();
+	});
+
+	it("starts once at the threshold, however far the pointer goes", () => {
+		const { onStart, onEnd } = setup();
+		fire("mousemove", 10 + CLASSICY_FILE_DRAG_THRESHOLD - 1, 10);
+		expect(onStart).not.toHaveBeenCalled();
+		fire("mousemove", 10 + CLASSICY_FILE_DRAG_THRESHOLD, 10);
+		expect(onStart).toHaveBeenCalledOnce();
+		// The outline is up when the start is reported.
+		expect(document.querySelector(".classicyFileDragGhost")).not.toBeNull();
+		fire("mousemove", 60, 40);
+		fire("mousemove", 80, 50);
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onEnd).not.toHaveBeenCalled();
+	});
+
+	it("ends once on a drop, before the drop is handed over", () => {
+		const { onStart, onEnd, onDrop, calls } = setup();
+		fire("mousemove", 40, 30);
+		fire("mouseup", 40, 30);
+		// A stray second release ends nothing.
+		fire("mouseup", 40, 30);
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledWith({ dropped: true, cancelled: false });
+		expect(onDrop).toHaveBeenCalledOnce();
+		expect(calls).toEqual(["start", "end", "drop"]);
+		// The outline is gone by the time the end is reported.
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+	});
+
+	it("ends once, not dropped, on a release over nothing", () => {
+		const { onStart, onEnd, onDrop } = setup(false);
+		fire("mousemove", 40, 30);
+		fire("mouseup", 40, 30);
+		fire("mouseup", 40, 30);
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: false });
+		expect(onDrop).toHaveBeenCalledWith(null, [40, 30], [40, 30]);
+	});
+
+	it("ends once, cancelled, on Escape, and the release after it ends nothing", () => {
+		const { onStart, onEnd, onDrop } = setup();
+		fire("mousemove", 40, 30);
+		pressEscape();
+		pressEscape();
+		fire("mouseup", 40, 30);
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: true });
+		expect(onDrop).not.toHaveBeenCalled();
+	});
+
+	it("ignores Escape before the drag starts", () => {
+		const { onStart, onEnd, onClick } = setup();
+		pressEscape();
+		fire("mouseup", 11, 11);
+		expect(onStart).not.toHaveBeenCalled();
+		expect(onEnd).not.toHaveBeenCalled();
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it("ends once, cancelled, when a started drag is abandoned", () => {
+		const { onStart, onEnd, onDrop, abandon } = setup();
+		fire("mousemove", 40, 30);
+		abandon();
+		abandon();
+		fire("mouseup", 40, 30);
+		expect(onStart).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: true });
+		expect(onDrop).not.toHaveBeenCalled();
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+	});
+
+	it("reports nothing when a press is abandoned before it drags", () => {
+		const { onStart, onEnd, onClick, abandon } = setup();
+		abandon();
+		fire("mousemove", 40, 30);
+		fire("mouseup", 40, 30);
+		expect(onStart).not.toHaveBeenCalled();
+		expect(onEnd).not.toHaveBeenCalled();
+		expect(onClick).not.toHaveBeenCalled();
 	});
 });

@@ -23,6 +23,7 @@ import {
 	type ClassicyFileDropDestination,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -491,6 +492,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
+					// The outline drags, not the icon: `dragging` stays off.
+					...classicyFileDragAppearanceCallbacks(appearance.emit),
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });

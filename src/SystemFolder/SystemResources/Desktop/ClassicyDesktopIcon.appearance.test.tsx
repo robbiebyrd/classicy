@@ -158,6 +158,121 @@ describe("ClassicyDesktopIcon appearance", () => {
 		]);
 	});
 
+	describe("Finder outline drags (file-backed icons)", () => {
+		const PLAN = "Macintosh HD:Desktop Folder:Plan.txt";
+		const ITEM = `classicy-desktop-item:${PLAN}`;
+		const renderFileIcon = () => {
+			act(() => {
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Desktop.icons = [
+							{
+								appId: ITEM,
+								appName: "Plan.txt",
+								icon: "/p.png",
+								kind: "file",
+								filePath: PLAN,
+								location: [100, 100],
+							},
+						];
+					}),
+				);
+			});
+			const { container } = render(
+				<ClassicyDesktopIcon
+					appId={ITEM}
+					appName="Plan.txt"
+					icon="/p.png"
+					kind="file"
+					filePath={PLAN}
+				/>,
+			);
+			return root(container);
+		};
+		const desktop = () => {
+			const el = document.createElement("div");
+			el.setAttribute("data-classicy-drop-desktop", "");
+			return el;
+		};
+		// jsdom has no elementsFromPoint: the hit-test sees `hits`.
+		const withHits = (hits: Element[], run: () => void) => {
+			const original = document.elementsFromPoint;
+			document.elementsFromPoint = () => hits;
+			try {
+				run();
+			} finally {
+				document.elementsFromPoint = original;
+			}
+		};
+		const drags = () =>
+			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd");
+
+		it("emits one dragStart at the threshold and one dragEnd on a drop", () => {
+			const el = renderFileIcon();
+			withHits([desktop()], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 13, clientY: 10 });
+				expect(drags()).toEqual([]);
+				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+				fireEvent.mouseMove(document, { clientX: 50, clientY: 40 });
+				fireEvent.mouseUp(document, { clientX: 50, clientY: 40 });
+				fireEvent.mouseUp(el, { clientX: 50, clientY: 40 });
+			});
+			expect(drags()).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: true, cancelled: false },
+				},
+			]);
+			expect(el).not.toHaveClass("dragging");
+		});
+
+		it("emits one dragEnd, not dropped, on a release over nothing", () => {
+			const el = renderFileIcon();
+			withHits([], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+				fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+			});
+			expect(drags()).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, cancelled: false },
+				},
+			]);
+		});
+
+		it("emits one dragEnd, cancelled, on Escape", () => {
+			const el = renderFileIcon();
+			withHits([desktop()], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+				fireEvent.keyDown(document, { key: "Escape" });
+				fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+			});
+			expect(drags()).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, cancelled: true },
+				},
+			]);
+		});
+
+		it("emits no drag for a click", () => {
+			const el = renderFileIcon();
+			withHits([desktop()], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 12, clientY: 11 });
+				fireEvent.mouseUp(document, { clientX: 12, clientY: 11 });
+				fireEvent.mouseUp(el, { clientX: 12, clientY: 11 });
+			});
+			expect(drags()).toEqual([]);
+		});
+	});
+
 	it("never lets the package's style move or restack the icon", () => {
 		probe.uninstall();
 		probe = installClassicyAppearanceProbe({

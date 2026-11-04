@@ -91,3 +91,27 @@ export const AppearanceHooks: Story = {
 	),
 	parameters: appearanceHooksParameters(),
 };
+
+/**
+ * The same probe surface for a Finder outline drag (`onFileDrag`): past the
+ * 4 px threshold a dotted outline follows the pointer and the Actions panel
+ * logs one `dragStart { kind: "file" }`; releasing it, or pressing Escape,
+ * logs exactly one `dragEnd { kind: "file", dropped, cancelled }`. A plain
+ * click logs no drag event. `onFileDrag` reports the drop as handled, so the
+ * icon stays put.
+ */
+export const AppearanceHooksFileDrag: Story = {
+	args: {
+		...Default.args,
+		name: "Read Me",
+		label: "Read Me",
+		filePath: "Macintosh HD:Read Me",
+		onFileDrag: fn(() => true),
+	},
+	render: (args: ComponentProps<typeof ClassicyIcon>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyIcon {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
+};
