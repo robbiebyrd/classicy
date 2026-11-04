@@ -9,6 +9,7 @@ import {
 	PARITY_MID_CLOCK_MS,
 	parseMidAt,
 	selectsMidShot,
+	unfrozenAnimations,
 } from "./parityMidTime.ts";
 
 const timing = (t: Partial<Parameters<typeof midAnimationTime>[0]> = {}) => ({
@@ -105,6 +106,7 @@ describe("selectsMidShot", () => {
 
 type FakeAnimation = {
 	paused: boolean;
+	playState?: string;
 	currentTime: number | null;
 	effect: { getComputedTiming: () => ReturnType<typeof timing> } | null;
 	pause: () => void;
@@ -116,6 +118,7 @@ const fake = (t: ReturnType<typeof timing> | null): FakeAnimation => ({
 	effect: t ? { getComputedTiming: () => t } : null,
 	pause() {
 		this.paused = true;
+		this.playState = "paused";
 	},
 });
 
@@ -148,6 +151,26 @@ describe("freezeAnimationsAt", () => {
 	});
 });
 
+describe("unfrozenAnimations", () => {
+	const half = { unit: "%", value: 50 } as const;
+	it("counts animations that are not paused at their mid time", () => {
+		const frozen = fake(timing());
+		freezeAnimationsAt([frozen], half);
+		const running = fake(timing());
+		const moved = fake(timing());
+		freezeAnimationsAt([moved], half);
+		moved.currentTime = 501;
+		const resumed = fake(timing());
+		freezeAnimationsAt([resumed], half);
+		resumed.playState = "running";
+		expect(unfrozenAnimations([frozen], half)).toBe(0);
+		expect(unfrozenAnimations([frozen, running, moved, resumed], half)).toBe(3);
+	});
+
+	it("ignores an animation without an effect, as the freeze does", () =>
+		expect(unfrozenAnimations([fake(null)], half)).toBe(0));
+});
+
 describe("midFreezeScript", () => {
 	it("defines a self-contained freeze that runs without this module", () => {
 		const listeners: string[] = [];
@@ -166,5 +189,25 @@ describe("midFreezeScript", () => {
 		expect(a.currentTime).toBe(400);
 		mid.watch({ unit: "%", value: 50 });
 		expect(listeners.sort()).toEqual(["animationstart", "transitionrun"]);
+	});
+
+	it("reports the unfrozen count and how many animations it has frozen so far", () => {
+		const anims = [fake(timing())];
+		const win: Record<string, unknown> = {};
+		const doc = { getAnimations: () => anims, addEventListener: () => {} };
+		new Function("window", "document", midFreezeScript())(win, doc);
+		const mid = win.__parityMid as {
+			freeze: (at: unknown) => number;
+			state: (at: unknown) => { unfrozen: number; seen: number };
+		};
+		const half = { unit: "%", value: 50 };
+		expect(mid.state(half)).toEqual({ unfrozen: 1, seen: 0 });
+		mid.freeze(half);
+		mid.freeze(half);
+		expect(mid.state(half)).toEqual({ unfrozen: 0, seen: 1 });
+		anims.push(fake(timing()));
+		expect(mid.state(half)).toEqual({ unfrozen: 1, seen: 1 });
+		mid.freeze(half);
+		expect(mid.state(half)).toEqual({ unfrozen: 0, seen: 2 });
 	});
 });

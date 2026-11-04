@@ -102,6 +102,7 @@ export type ParityFreezableAnimation = {
 	effect: { getComputedTiming?: () => ParityAnimationTiming } | null;
 	pause: () => void;
 	currentTime: unknown;
+	playState?: string;
 };
 
 /** Pause every animation at its mid time; returns how many were frozen.
@@ -123,19 +124,58 @@ export function freezeAnimationsAt(
 	return frozen;
 }
 
+/** How many animations are not paused at their mid time: running ones (a
+ * late starter the listener has not caught yet) or ones moved since. Two
+ * matching frames cannot tell: a stepped blink holds still for a second. */
+export function unfrozenAnimations(
+	animations: Iterable<ParityFreezableAnimation>,
+	at: ParityMidAt,
+): number {
+	let unfrozen = 0;
+	for (const a of animations) {
+		try {
+			const timing = a.effect?.getComputedTiming?.();
+			if (!timing) continue;
+			if (
+				a.playState !== "paused" ||
+				Math.abs(Number(a.currentTime) - midAnimationTime(timing, at)) > 0.001
+			)
+				unfrozen++;
+		} catch {}
+	}
+	return unfrozen;
+}
+
 /** Page script: defines `window.__parityMid` with `freeze(at)` (every
- * document animation, CSS animations and transitions alike) and `watch(at)`
+ * document animation, CSS animations and transitions alike), `watch(at)`
  * (freeze again whenever an animation or transition starts later, from a
- * capture-phase listener). */
+ * capture-phase listener) and `state(at)`: the unfrozen count, and `seen`,
+ * how many distinct animations have been frozen so far, which grows when a
+ * late starter is caught, so a shot taken across that is retaken. */
 export function midFreezeScript(): string {
 	return `(() => {
 	const midAnimationTime = ${midAnimationTime.toString()};
 	const freezeAnimationsAt = ${freezeAnimationsAt.toString()};
-	const freeze = (at) => freezeAnimationsAt(document.getAnimations(), at);
+	const unfrozenAnimations = ${unfrozenAnimations.toString()};
+	const frozen = new WeakSet();
+	let seen = 0;
+	const freeze = (at) => {
+		const animations = document.getAnimations();
+		for (const a of animations)
+			if (!frozen.has(a)) {
+				frozen.add(a);
+				seen++;
+			}
+		return freezeAnimationsAt(animations, at);
+	};
 	const watch = (at) => {
 		for (const type of ["animationstart", "transitionrun"])
 			document.addEventListener(type, () => freeze(at), true);
 	};
-	window.__parityMid = { freeze, watch };
+	const state = (at) => ({
+		unfrozen: unfrozenAnimations(document.getAnimations(), at),
+		seen,
+	});
+	window.__parityMid = { freeze, watch, state };
 })();`;
 }

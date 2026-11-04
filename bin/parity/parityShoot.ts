@@ -43,39 +43,62 @@ export type ParityShootResult = {
 const countAnimations = (page: Page) =>
 	page.evaluate(() => document.getAnimations().length);
 
+type ParityMidPage = {
+	freeze: (at: unknown) => number;
+	watch: (at: unknown) => void;
+	state: (at: unknown) => { unfrozen: number; seen: number };
+};
+
 /** Freeze every animation at its mid time, a frame apart, twice. */
 const freezeMid = (page: Page, at: ParityMidAt) =>
 	page.evaluate(async (at) => {
-		const mid = (
-			window as unknown as { __parityMid: { freeze: (at: unknown) => void } }
-		).__parityMid;
+		const mid = (window as unknown as { __parityMid: ParityMidPage })
+			.__parityMid;
 		for (let i = 0; i < 2; i++) {
 			mid.freeze(at);
 			await new Promise<void>((r) => requestAnimationFrame(() => r()));
 		}
 	}, at);
 
+const midState = (page: Page, at: ParityMidAt) =>
+	page.evaluate(
+		(at) =>
+			(window as unknown as { __parityMid: ParityMidPage }).__parityMid.state(
+				at,
+			),
+		at,
+	);
+
 /** The mid-time shot of a ready page: the fixed Date moved on by `clockMs`
  * (so Date.now-driven state, such as the startup progress, advances), every
  * animation frozen at its mid time and watched for late starters, 500 ms,
- * frozen again, then the stable shot. No `animations: "disabled"`: it would
- * finish or cancel the paused animations. */
+ * frozen again, then the stable shot. The shot is retaken (up to three
+ * rounds, else reported unstable) unless every animation was still frozen
+ * after it and none was caught during it: a late starter that runs unfrozen
+ * through the shot can still give two matching frames. No
+ * `animations: "disabled"`: it would finish or cancel the paused animations. */
 async function shootMid(page: Page, mid: ParityMidOptions) {
 	await page.evaluate(midFreezeScript());
 	await page.clock.setFixedTime(PARITY_STORY_TIME.getTime() + mid.clockMs);
 	await page.evaluate(
 		(at) =>
-			(
-				window as unknown as {
-					__parityMid: { watch: (at: unknown) => void };
-				}
-			).__parityMid.watch(at),
+			(window as unknown as { __parityMid: ParityMidPage }).__parityMid.watch(
+				at,
+			),
 		mid.at,
 	);
 	await freezeMid(page, mid.at);
 	await page.waitForTimeout(500);
-	await freezeMid(page, mid.at);
-	return shootUntilStable(page);
+	let shot: Awaited<ReturnType<typeof shootUntilStable>> | undefined;
+	for (let round = 0; round < 3; round++) {
+		await freezeMid(page, mid.at);
+		const before = await midState(page, mid.at);
+		shot = await shootUntilStable(page);
+		const after = await midState(page, mid.at);
+		if (shot.stable && after.unfrozen === 0 && after.seen === before.seen)
+			return shot;
+	}
+	return { ...(shot as NonNullable<typeof shot>), stable: false };
 }
 
 export async function shootStories({
