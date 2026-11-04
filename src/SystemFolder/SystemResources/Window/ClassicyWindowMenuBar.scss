@@ -30,13 +30,17 @@ $_bar-height: var(--classicy-window-menu-bar-height, var(--window-menu-bar-heigh
 // The rules for a window root that holds a menu bar. `$root` is the window's
 // selector; `$doubled` repeats it with a leading `.classicyWindow`, which
 // lifts the header variant over ClassicyWindow.scss's own doubled rule.
+// Header contents carry classicyWindowContents as well, so the plain rule
+// leaves them out: each rule then matches only its own case, and none ties
+// with ClassicyWindow.scss's doubled rule on one element (a tie would be
+// decided by stylesheet order).
 @mixin _with-menu-bar($root, $doubled) {
   #{$root} {
     > .classicyWindowMenuBar {
       height: $_bar-height;
     }
 
-    .classicyWindowContents {
+    .classicyWindowContents:not(.classicyWindowContentsWithHeader) {
       height: calc(
         100% - var(--window-contents-chrome-height) - #{$_bar-height}
       );

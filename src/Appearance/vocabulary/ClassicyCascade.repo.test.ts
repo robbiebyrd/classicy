@@ -378,23 +378,6 @@ describe("cross-file overrides do not depend on import order", () => {
 			".classicyWindow .classicyWindowTitleBarModal",
 			".classicyWindowFrame > .classicyWindowTitleBar",
 		)]: FRAME,
-		// KNOWN ORDER DEPENDENCIES found once the guard compared classes that
-		// sit on one element (0082-lgo review), reported rather than changed:
-		// each is decided today by dist/classicy.css order, as noted.
-		// A window with both a header and its own menu bar (menuBar.placement
-		// "window") has contents carrying classicyWindowContents and
-		// classicyWindowContentsWithHeader (height); ClassicyWindowMenuBar.scss
-		// comes later, so the height leaves out the header's chrome.
-		[tieKey(
-			".classicyWindow.classicyWindow .classicyWindowContentsWithHeader",
-			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents",
-		)]:
-			"latent, follow-up story: header plus window menu bar contents height (see above)",
-		[tieKey(
-			".classicyWindow.classicyWindow .classicyWindowContentsWithHeader",
-			".classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContents",
-		)]:
-			"latent, follow-up story: header plus window menu bar contents height (see above)",
 	};
 
 	// Which classes can sit on one element, read from the components' JSX
@@ -484,9 +467,16 @@ describe("cross-file overrides do not depend on import order", () => {
 			"min-width",
 		],
 		[
-			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents",
+			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents:not(.classicyWindowContentsWithHeader)",
 			`${W}Window/ClassicyWindowMenuBar.scss`,
 			".classicyWindow .classicyWindowContents",
+			`${W}Window/ClassicyWindow.scss`,
+			"height",
+		],
+		[
+			".classicyWindow.classicyWindow.classicyWindowWithMenuBar .classicyWindowContentsWithHeader",
+			`${W}Window/ClassicyWindowMenuBar.scss`,
+			".classicyWindow.classicyWindow .classicyWindowContentsWithHeader",
 			`${W}Window/ClassicyWindow.scss`,
 			"height",
 		],

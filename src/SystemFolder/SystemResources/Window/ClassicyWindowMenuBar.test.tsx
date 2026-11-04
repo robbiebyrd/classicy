@@ -113,9 +113,12 @@ describe("ClassicyWindowMenuBar.scss", () => {
 		expect(scssRule(css, `${root} > .classicyWindowMenuBar`)).toEqual({
 			height,
 		});
-		expect(scssRule(css, `${root} .classicyWindowContents`).height).toContain(
-			height,
-		);
+		expect(
+			scssRule(
+				css,
+				`${root} .classicyWindowContents:not(.classicyWindowContentsWithHeader)`,
+			).height,
+		).toContain(height);
 		expect(
 			scssRule(css, `.classicyWindow${root} .classicyWindowContentsWithHeader`)
 				.height,

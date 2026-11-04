@@ -6,6 +6,7 @@ import {
 	registerTestMirrorPackage,
 	TEST_MIRROR_PACKAGE_ID,
 } from "@/__tests__/testMirrorPackage";
+import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
 import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
@@ -266,6 +267,34 @@ describe("ClassicyDesktop layout", () => {
 			expect(win()).not.toHaveClass("classicyWindowWithMenuBar");
 			activate(PLATINUM_APPEARANCE_PACKAGE_ID);
 			expect(win()).not.toHaveClass("classicyWindowWithMenuBar");
+		});
+
+		// The contents' height takes off the title bar's chrome (the header's
+		// too, when there is one) and the window's menu bar, whichever of the
+		// two stylesheets loads first: each height rule matches only its own
+		// case, so no two of them tie on one element.
+		it.each([
+			["header", { header: <span>Header</span> }, "contents-header-chrome"],
+			["no header", {}, "contents-chrome"],
+		] as const)("fits the contents (%s) under a window menu bar in either stylesheet order", (_name, windowProps, chrome) => {
+			registerTestMirrorPackage();
+			openApp();
+			renderDesktopWithWindow(windowProps);
+			activate(TEST_MIRROR_PACKAGE_ID);
+			const contents = document.querySelector(
+				".classicyWindowWithMenuBar .classicyWindowContents",
+			);
+			if (!contents) throw new Error("no contents");
+			const sheets = [
+				"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+				"src/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar.scss",
+			];
+			const bar =
+				"var(--classicy-window-menu-bar-height, var(--window-menu-bar-height))";
+			for (const order of [sheets, [...sheets].reverse()])
+				expect(classicyCascadeWinner(contents, order, "height")?.value).toBe(
+					`calc(100% - var(--window-${chrome}-height) - ${bar})`,
+				);
 		});
 
 		// The slot's negative branches: utility windows, modals (Mac OS 8
