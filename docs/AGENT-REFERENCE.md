@@ -2039,7 +2039,13 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
   five typography sizes and `desktop.iconFontSize` to the same bounds, so
   theme files, `ClassicyDesktopImportTheme` and `ChangeAppearanceOption`
   (`typography.uiSize`, `desktop.iconFontSize`, …) agree, and the Fonts tab's
-  size fields use them and dispatch a typed size clamped to them.
+  size fields use them and dispatch a typed size clamped to them. A package's
+  knob-family font sizes (Platinum's `pager.fontSize`, `hyperCard.fontSize`,
+  `appleGuide.headerFontSize` and `bodyFontSize`) are measurements, not
+  typography: the schema holds them to the measurement bounds and
+  `ClassicyDesktopChangeMetric` to their knob's range, and Platinum's defaults
+  and its one Options-tab range (`pager.fontSize`, 8–32) sit inside 8–72
+  (pinned in `ClassicyThemeFontSizes.test.ts`).
 - `ClassicyDesktopChangeTheme` looks the id up in the active package's
   `availableThemes` entries (the registered package for `packageId`, else
   the default), then that package's own themes (its `defaults`, unless a

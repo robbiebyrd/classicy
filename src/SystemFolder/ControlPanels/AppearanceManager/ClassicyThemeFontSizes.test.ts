@@ -134,3 +134,64 @@ describe("the theme schema uses the same bounds", () => {
 		).toBe(ok);
 	});
 });
+
+// Part H's knob families carry font sizes of their own (pager.fontSize,
+// hyperCard.fontSize, appleGuide.headerFontSize and bodyFontSize). They are
+// package measurements, not typography sizes, so the schema holds them to the
+// measurement bounds and the Options tab to their knob's range; both must sit
+// inside the shared font-size bounds, so no knob offers a size the Fonts tab
+// would refuse.
+describe("Platinum's knob-family font sizes", () => {
+	const isFontSizeKey = (key: string) =>
+		key === "fontSize" || key.endsWith("FontSize");
+	const measurements = platinum.defaults.measurements as Record<
+		string,
+		Record<string, number>
+	>;
+	const knobs = platinum.knobs as Record<
+		string,
+		Record<string, { min: number; max: number; default: number }>
+	>;
+	const fontSizeLeaves = Object.entries(measurements).flatMap(
+		([family, keys]) =>
+			Object.entries(keys)
+				.filter(([key]) => isFontSizeKey(key))
+				.map(([key, value]) => ({ family, key, value })),
+	);
+
+	it("are the four Part H declares", () => {
+		expect(
+			fontSizeLeaves.map(({ family, key }) => `${family}.${key}`).sort(),
+		).toEqual([
+			"appleGuide.bodyFontSize",
+			"appleGuide.headerFontSize",
+			"hyperCard.fontSize",
+			"pager.fontSize",
+		]);
+	});
+
+	it("default to sizes within the shared bounds", () => {
+		for (const { family, key, value } of fontSizeLeaves)
+			expect(isValidClassicyThemeFontSize(value), `${family}.${key}`).toBe(
+				true,
+			);
+	});
+
+	it("offer an Options-tab range within the shared bounds", () => {
+		const ranged = fontSizeLeaves.filter(
+			({ family, key }) => knobs[family]?.[key] !== undefined,
+		);
+		expect(ranged.map(({ family, key }) => `${family}.${key}`)).toEqual([
+			"pager.fontSize",
+		]);
+		for (const { family, key } of ranged) {
+			const knob = knobs[family][key];
+			expect(knob.min, `${family}.${key} min`).toBeGreaterThanOrEqual(
+				CLASSICY_THEME_FONT_SIZE_MIN,
+			);
+			expect(knob.max, `${family}.${key} max`).toBeLessThanOrEqual(
+				CLASSICY_THEME_FONT_SIZE_MAX,
+			);
+		}
+	});
+});
