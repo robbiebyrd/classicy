@@ -53,6 +53,62 @@ export const wrapInClassicyLayer = (
 	layer = "classicy.base",
 ): string => (isLayered(css, layer) ? css : `@layer ${layer} {\n${css}\n}`);
 
+const BASE64 =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/** One source-map VLQ field. */
+const vlq = (n: number): string => {
+	let value = n < 0 ? (-n << 1) | 1 : n << 1;
+	let out = "";
+	do {
+		let digit = value & 31;
+		value >>>= 5;
+		if (value > 0) digit |= 32;
+		out += BASE64[digit];
+	} while (value > 0);
+	return out;
+};
+
+/**
+ * The source map of `css` moved down `shift` whole lines (the wrapper's
+ * prefix ends in a newline, so columns are unchanged; the closing `}` is
+ * appended on a line of its own). One segment per input character, so the
+ * map is exact wherever the previous step's (Sass's) map points, however
+ * Vite chains it. Written here rather than with MagicString, which is not
+ * a dependency of this package.
+ */
+export const classicyLineShiftMap = (
+	css: string,
+	shift: number,
+	source: string,
+): { version: 3; sources: string[]; names: string[]; mappings: string } => {
+	const lines: string[] = Array.from({ length: shift }, () => "");
+	let previousLine = 0;
+	let previousColumn = 0;
+	css.split("\n").forEach((text, line) => {
+		const segments: string[] = [];
+		let generatedColumn = 0;
+		for (let column = 0; column < text.length; column++) {
+			segments.push(
+				vlq(column - generatedColumn) +
+					vlq(0) +
+					vlq(line - previousLine) +
+					vlq(column - previousColumn),
+			);
+			generatedColumn = column;
+			previousLine = line;
+			previousColumn = column;
+		}
+		lines.push(segments.join(","));
+	});
+	return {
+		version: 3,
+		sources: [source],
+		names: [],
+		mappings: lines.join(";"),
+	};
+};
+
 // Classicy's own sources: this repository's src/ (the plugin file lives in
 // bin/). Excludes the example app's and node_modules' stylesheets, which are
 // host CSS and stay unlayered.
@@ -108,10 +164,11 @@ export function classicyCssLayerPlugin(layer = "classicy.base"): Plugin {
 		transform(code, id) {
 			if (!isClassicyComponentScss(id) || isLayered(code, layer)) return null;
 			const css = wrapInClassicyLayer(code, layer);
-			return {
-				code: serving ? `${CLASSICY_LAYER_ORDER}\n${css}` : css,
-				map: null,
-			};
+			const out = serving ? `${CLASSICY_LAYER_ORDER}\n${css}` : css;
+			// Only whole lines go before the input: the order statement when
+			// serving, then the block's opening `@layer … {` line.
+			const shift = serving ? 2 : 1;
+			return { code: out, map: classicyLineShiftMap(code, shift, id) };
 		},
 	};
 }

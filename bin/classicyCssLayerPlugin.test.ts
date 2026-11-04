@@ -11,7 +11,10 @@ import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 type Transform = (
 	code: string,
 	id: string,
-) => Promise<{ code: string; map: null } | null>;
+) => Promise<{
+	code: string;
+	map: { version: number; sources: string[]; mappings: string } | null;
+} | null>;
 
 // The plugin only wraps stylesheets under this repository's own src/.
 const ROOT = path
@@ -200,5 +203,66 @@ describe("classicyCssLayerPlugin", () => {
 				injectTo: "head-prepend",
 			},
 		]);
+	});
+});
+
+const BASE64 =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+/** Every segment of a v3 `mappings` string as [genLine, genCol, srcLine, srcCol]. */
+const decodeMappings = (mappings: string): number[][] => {
+	const out: number[][] = [];
+	let srcLine = 0;
+	let srcCol = 0;
+	mappings.split(";").forEach((line, genLine) => {
+		let genCol = 0;
+		for (const segment of line.split(",").filter(Boolean)) {
+			const fields: number[] = [];
+			let value = 0;
+			let shift = 0;
+			for (const ch of segment) {
+				const digit = BASE64.indexOf(ch);
+				value += (digit & 31) << shift;
+				if (digit & 32) shift += 5;
+				else {
+					fields.push(value & 1 ? -(value >> 1) : value >> 1);
+					value = 0;
+					shift = 0;
+				}
+			}
+			genCol += fields[0];
+			srcLine += fields[2];
+			srcCol += fields[3];
+			out.push([genLine, genCol, srcLine, srcCol]);
+		}
+	});
+	return out;
+};
+
+describe("classicyCssLayerPlugin source maps", () => {
+	const css = ".a {\n  color: red;\n}\n.bb { margin: 0 }";
+	const id = `${ROOT}/src/X/X.scss`;
+
+	it.each([
+		"serve",
+		"build",
+	] as const)("maps every input character back to itself (%s)", async (command) => {
+		const result = await transform(command).call({}, css, id);
+		const map = result?.map;
+		expect(map).not.toBeNull();
+		expect(map?.version).toBe(3);
+		expect(map?.sources).toEqual([id]);
+		const segments = decodeMappings(map?.mappings ?? "");
+		// The wrapper adds whole lines before the input: one when building,
+		// two (the order statement too) when serving.
+		const shift = command === "serve" ? 2 : 1;
+		const inputLines = css.split("\n");
+		const expected = inputLines.flatMap((text, line) =>
+			[...text].map((_, col) => [line + shift, col, line, col]),
+		);
+		expect(segments).toEqual(expected);
+		// And the generated text at each mapped spot is that input character.
+		const outLines = (result?.code ?? "").split("\n");
+		for (const [gl, gc, sl, sc] of segments)
+			expect(outLines[gl][gc]).toBe(inputLines[sl][sc]);
 	});
 });
