@@ -95,6 +95,7 @@ import {
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { useClassicyFileSystemAccessor } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import {
 	CLASSICY_TRASH_PATH,
 	emptyClassicyTrash,
@@ -496,6 +497,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		setSelectBoxStart([0, 0]);
 		setSelectBox(false);
 	};
+
+	// The pointer stream lost mid-selection (the window blurred, a
+	// pointercancel, the page hidden): the rectangle ends where it is, as a
+	// release would end it, keeping the icons it selected.
+	useClassicyPointerStreamLost(selectBox, clearSelectBox);
 
 	const clearActives = (e: MouseEvent<HTMLDivElement>) => {
 		clearSelectedIcons();
