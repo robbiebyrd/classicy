@@ -274,7 +274,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: true, cancelled: false });
+		expect(onEnd).toHaveBeenCalledWith({ dropped: true, canceled: false });
 		expect(onDrop).toHaveBeenCalledOnce();
 		expect(calls).toEqual(["start", "end", "drop"]);
 		// The outline is gone by the time the end is reported.
@@ -288,11 +288,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: false });
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: false });
 		expect(onDrop).toHaveBeenCalledWith(null, [40, 30], [40, 30]);
 	});
 
-	it("ends once, cancelled, on Escape, and the release after it ends nothing", () => {
+	it("ends once, canceled, on Escape, and the release after it ends nothing", () => {
 		const { onStart, onEnd, onDrop, ghostAt } = setup();
 		fire("mousemove", 40, 30);
 		pressEscape();
@@ -301,7 +301,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: true });
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
 		expect(onDrop).not.toHaveBeenCalled();
 	});
 
@@ -314,7 +314,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		expect(onClick).toHaveBeenCalledOnce();
 	});
 
-	it("ends once, cancelled, when a started drag is abandoned", () => {
+	it("ends once, canceled, when a started drag is abandoned", () => {
 		const { onStart, onEnd, onDrop, abandon, ghostAt } = setup();
 		fire("mousemove", 40, 30);
 		abandon();
@@ -323,7 +323,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, cancelled: true });
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
 		expect(onDrop).not.toHaveBeenCalled();
 		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
 	});

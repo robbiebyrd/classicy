@@ -95,9 +95,9 @@ export type ClassicyFileDragEnd = {
 	dropped: boolean;
 	/**
 	 * Ended without a release: Escape, or the function `startClassicyFileDrag`
-	 * returns. A release over nothing is neither dropped nor cancelled.
+	 * returns. A release over nothing is neither dropped nor canceled.
 	 */
-	cancelled: boolean;
+	canceled: boolean;
 };
 
 export type ClassicyFileDragOptions = {
@@ -143,7 +143,7 @@ export type ClassicyFileDragOptions = {
 
 /**
  * Track a press as a possible drag. Returns a function that abandons it (a
- * drag in progress then ends as cancelled, and nothing is dropped): a source
+ * drag in progress then ends as canceled, and nothing is dropped): a source
  * component calls it when it unmounts, so the drag never outlives it. The outline is only created once
  * the pointer has traveled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
  * stays a click; Escape cancels a drag in progress without dropping.
@@ -232,7 +232,7 @@ export function startClassicyFileDrag(
 		}
 		// Hit-tested once the outline and highlight are gone.
 		const target = targetAt(e.clientX, e.clientY);
-		reportEnd({ dropped: target !== null, cancelled: false });
+		reportEnd({ dropped: target !== null, canceled: false });
 		options.onDrop(
 			target,
 			[e.clientX, e.clientY],
@@ -241,12 +241,12 @@ export function startClassicyFileDrag(
 	}
 
 	// Escape, or the caller abandoning the press: a drag in progress ends
-	// cancelled. Once: cleanup removes the listeners and the outline, so
+	// canceled. Once: cleanup removes the listeners and the outline, so
 	// nothing can end it again.
 	const cancel = () => {
 		const dragged = ghost !== null;
 		cleanup();
-		if (dragged) reportEnd({ dropped: false, cancelled: true });
+		if (dragged) reportEnd({ dropped: false, canceled: true });
 	};
 
 	function onKey(e: KeyboardEvent) {

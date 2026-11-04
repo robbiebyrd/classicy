@@ -180,7 +180,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	);
 	// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 	const dragEmittedRef = useRef(false);
-	// A file drag in progress ends (cancelled) before the icon unmounts.
+	// A file drag in progress ends (canceled) before the icon unmounts.
 	const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
 	const id = `${appId}.shortcut`;

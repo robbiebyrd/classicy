@@ -1961,7 +1961,7 @@ the callback moves them. Drop targets are any element marked
 (`CLASSICY_DROP_FOLDER_ATTRIBUTE`/`…DESKTOP…`); windows, the menu bar, the
 Control Strip and dialogs block drops. The drag engine is
 `startClassicyFileDrag` (`ClassicyFileDrag.ts`); its optional `onStart()` (at
-the 4 px threshold) and `onEnd({ dropped, cancelled })` (exactly once per
+the 4 px threshold) and `onEnd({ dropped, canceled })` (exactly once per
 start) callbacks are how the views emit the appearance `dragStart`/`dragEnd`
 events (§8, "Package hooks"). The desktop's files and
 folders live in the invisible `Desktop Folder` on the startup disk; Finder
@@ -2935,12 +2935,12 @@ emitter:
 - `dragStart { kind: "file" }`, once, when the pointer has traveled
   `CLASSICY_FILE_DRAG_THRESHOLD` (4 px) and the outline appears. A press that
   never travels that far is a click and emits no drag event.
-- `dragEnd { kind: "file", dropped, cancelled }`, exactly once per
+- `dragEnd { kind: "file", dropped, canceled }`, exactly once per
   `dragStart`, after the outline is removed and before the move is made:
-  `{ dropped: true, cancelled: false }` for a release over a drop target
+  `{ dropped: true, canceled: false }` for a release over a drop target
   (the move may still be refused: a locked item, the same folder),
-  `{ dropped: false, cancelled: false }` for a release over nothing (or over
-  a window that refuses drops), `{ dropped: false, cancelled: true }` for
+  `{ dropped: false, canceled: false }` for a release over nothing (or over
+  a window that refuses drops), `{ dropped: false, canceled: true }` for
   Escape, or for the source unmounting mid-drag (a Finder window closing, a
   folder view switching): the outline is removed, nothing is dropped, and
   the `dragEnd` arrives before the source's `unmount`.
@@ -2953,9 +2953,9 @@ emitter:
   drag. Pointer only, so no `input`.
 
 `startClassicyFileDrag` reports the same moments to any caller through
-optional `onStart()` and `onEnd({ dropped, cancelled })` callbacks; a drag
+optional `onStart()` and `onEnd({ dropped, canceled })` callbacks; a drag
 the caller abandons (the function it returns) after `onStart` ends as
-cancelled, which is how each source ends its drag when it unmounts (it
+canceled, which is how each source ends its drag when it unmounts (it
 keeps that function and calls it from a layout-effect cleanup). An `onEnd`
 that throws is logged (`classicyLog`, subsystem `ClassicyFileDrag`) and the
 drop still happens.

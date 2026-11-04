@@ -260,7 +260,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const selectReportedRef = useRef(false);
 			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 			const dragEmittedRef = useRef(false);
-			// A file drag in progress ends (cancelled) before the icon unmounts.
+			// A file drag in progress ends (canceled) before the icon unmounts.
 			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
 			// Stock copy, the app's description and the title are resolved here,

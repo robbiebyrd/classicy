@@ -136,7 +136,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				[onSelectionChange],
 			);
 
-			// A row drag in progress ends (cancelled) before the list unmounts.
+			// A row drag in progress ends (canceled) before the list unmounts.
 			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 			const startRowDrag = useCallback(
 				(

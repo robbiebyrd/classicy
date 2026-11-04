@@ -9,7 +9,7 @@ export type ClassicyFileDragStartDetail = { kind: "file" };
 export type ClassicyFileDragEndDetail = {
 	kind: "file";
 	dropped: boolean;
-	cancelled: boolean;
+	canceled: boolean;
 };
 
 /**
@@ -17,7 +17,7 @@ export type ClassicyFileDragEndDetail = {
  * Finder outline drag reaches the active Appearance Package through the
  * component's own `useClassicyAppearance` emitter: one `dragStart
  * { kind: "file" }` at the drag threshold, then exactly one `dragEnd
- * { kind: "file", dropped, cancelled }`.
+ * { kind: "file", dropped, canceled }`.
  *
  * The detail is built field by field, so it never carries the dragged items'
  * paths or names, the drop target, or the pointer: like a window or icon
@@ -32,17 +32,17 @@ export function classicyFileDragAppearanceCallbacks(
 ): Required<Pick<ClassicyFileDragOptions, "onStart" | "onEnd">> {
 	return {
 		onStart: () => emit("dragStart", { kind: "file" }),
-		onEnd: ({ dropped, cancelled }) =>
-			emit("dragEnd", { kind: "file", dropped, cancelled }),
+		onEnd: ({ dropped, canceled }) =>
+			emit("dragEnd", { kind: "file", dropped, canceled }),
 	};
 }
 
 /**
  * Ends a source's file drag when the source unmounts. Pass it the function
  * `startClassicyFileDrag` returns; on unmount it is called, so a drag in
- * progress ends as cancelled: the outline is removed, nothing is dropped
+ * progress ends as canceled: the outline is removed, nothing is dropped
  * (the unmounted source's `onDrop` never runs), and `onEnd` reports
- * `{ dropped: false, cancelled: true }`. It runs in a layout-effect cleanup,
+ * `{ dropped: false, canceled: true }`. It runs in a layout-effect cleanup,
  * ahead of `useClassicyAppearance`'s passive `unmount` emit, so a package
  * sees `dragStart, dragEnd, unmount`. Calling it after the drag already
  * ended is a no-op.

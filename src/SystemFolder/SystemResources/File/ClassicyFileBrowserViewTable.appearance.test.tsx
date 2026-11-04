@@ -81,7 +81,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: true, cancelled: false },
+				detail: { kind: "file", dropped: true, canceled: false },
 			},
 		]);
 	});
@@ -97,12 +97,12 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, cancelled: false },
+				detail: { kind: "file", dropped: false, canceled: false },
 			},
 		]);
 	});
 
-	it("emits one dragEnd, cancelled, on Escape", () => {
+	it("emits one dragEnd, canceled, on Escape", () => {
 		const { row, onMoveItems } = renderList();
 		withElementsFromPoint([folder()], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
@@ -115,7 +115,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, cancelled: true },
+				detail: { kind: "file", dropped: false, canceled: true },
 			},
 		]);
 	});
@@ -141,7 +141,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 		expect(drags()).toEqual([]);
 	});
 
-	it("ends the drag, cancelled, before unmount when the list unmounts mid-drag", () => {
+	it("ends the drag, canceled, before unmount when the list unmounts mid-drag", () => {
 		const { row, onMoveItems, unmount } = renderList();
 		withElementsFromPoint([folder()], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
@@ -156,7 +156,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, cancelled: true },
+				detail: { kind: "file", dropped: false, canceled: true },
 			},
 			{ event: "unmount", detail: undefined },
 		]);

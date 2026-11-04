@@ -96,7 +96,7 @@ export const AppearanceHooks: Story = {
  * The same probe surface for a Finder outline drag (`onFileDrag`): past the
  * 4 px threshold a dotted outline follows the pointer and the Actions panel
  * logs one `dragStart { kind: "file" }`; releasing it, or pressing Escape,
- * logs exactly one `dragEnd { kind: "file", dropped, cancelled }`. A plain
+ * logs exactly one `dragEnd { kind: "file", dropped, canceled }`. A plain
  * click logs no drag event. `onFileDrag` reports the drop as handled, so the
  * icon stays put.
  */

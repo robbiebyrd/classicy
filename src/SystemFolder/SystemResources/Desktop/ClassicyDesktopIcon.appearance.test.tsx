@@ -213,7 +213,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: true, cancelled: false },
+					detail: { kind: "file", dropped: true, canceled: false },
 				},
 			]);
 			expect(el).not.toHaveClass("dragging");
@@ -230,12 +230,12 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, cancelled: false },
+					detail: { kind: "file", dropped: false, canceled: false },
 				},
 			]);
 		});
 
-		it("emits one dragEnd, cancelled, on Escape", () => {
+		it("emits one dragEnd, canceled, on Escape", () => {
 			const el = renderFileIcon();
 			withElementsFromPoint([desktop()], () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
@@ -247,12 +247,12 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, cancelled: true },
+					detail: { kind: "file", dropped: false, canceled: true },
 				},
 			]);
 		});
 
-		it("ends the drag, cancelled, before unmount when the icon unmounts mid-drag", () => {
+		it("ends the drag, canceled, before unmount when the icon unmounts mid-drag", () => {
 			const el = renderFileIcon();
 			const before = useAppManager.getState().System.Manager.Desktop.icons;
 			withElementsFromPoint([desktop()], () => {
@@ -271,7 +271,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, cancelled: true },
+					detail: { kind: "file", dropped: false, canceled: true },
 				},
 				{ event: "unmount", detail: undefined },
 			]);
