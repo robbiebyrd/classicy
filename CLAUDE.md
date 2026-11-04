@@ -333,12 +333,17 @@ keystroke/click is swallowed in the capture phase.
   animations from JS when the saver mounts or changes and, through a
   capture-phase `animationstart` listener, every CSS animation that starts
   later — so CSS animations (stylesheet or inline, whenever they start) are
-  paused. Web Animations API `element.animate()` animations are not: savers
-  should use CSS animations.
+  paused. It pauses only running animations and, when reduced motion is
+  turned off, resumes only those, so an animation a saver paused itself stays
+  paused. Web Animations API `element.animate()` animations are not caught:
+  savers should use CSS animations.
 - The pointer is hidden by a stylesheet rule too
   (`html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay) *`, no
   `!important`), so savers must set `cursor` from stylesheets, never inline —
-  an inline `cursor` on a saver element shows the pointer over it.
+  an inline `cursor` on a saver element shows the pointer over it. Browsers
+  without `:has()` (Firefox < 121, Safari < 15.4, Chrome < 105) drop that
+  rule; a separate `#classicy-screen-saver-overlay, … *` rule hides the
+  pointer over the full-viewport overlay there.
 
 ### Split Views
 

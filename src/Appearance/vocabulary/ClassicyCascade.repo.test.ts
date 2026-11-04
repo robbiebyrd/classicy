@@ -203,6 +203,25 @@ describe("rules that replaced !important", () => {
 		);
 		expect(css).toContain("#classicy-screen-saver-overlay *");
 	});
+
+	it("the screen saver hides the pointer without :has() too", () => {
+		// A browser without :has() (Firefox before 121, Safari before 15.4)
+		// drops the whole :has() rule; this one, on the full-viewport overlay
+		// and its subtree, still hides the pointer there at id weight.
+		const css = compile("Extensions/ScreenSaver/ClassicyScreenSaver.scss");
+		const fallback = classicyCssRules(css).find(
+			(r) =>
+				!r.selector.includes(":has(") &&
+				r.declarations.some(([p, v]) => p === "cursor" && v === "none") &&
+				splitClassicySelectorList(r.selector).includes(
+					"#classicy-screen-saver-overlay *",
+				),
+		);
+		expect(fallback?.selector).toBe(
+			"#classicy-screen-saver-overlay,\n#classicy-screen-saver-overlay *",
+		);
+		expect(fallback?.context).toEqual([]);
+	});
 });
 
 /**

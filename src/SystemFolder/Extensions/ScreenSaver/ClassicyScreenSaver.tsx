@@ -128,9 +128,13 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
  * - from then on, each CSS animation that starts later (an element spawned on
  *   a timer, a style written after render), via a capture-phase
  *   `animationstart` listener on the overlay;
- * - when the preference flips (resuming the subtree when it is turned off).
- * Web Animations API animations (`element.animate()`) fire no
- * `animationstart` and are not caught once the saver has mounted.
+ * - when the preference flips (resuming, when it is turned off, only the
+ *   animations this hook paused).
+ * An animation that is already paused (by the stylesheet's rule, or by the
+ * saver itself) is left alone: pausing it from script would detach it from
+ * `animation-play-state`, and resuming it would replay an animation the saver
+ * stopped on purpose. Web Animations API animations (`element.animate()`)
+ * fire no `animationstart` and are not caught once the saver has mounted.
  */
 const usePauseForReducedMotion = (
 	overlayRef: RefObject<HTMLDivElement | null>,
@@ -145,17 +149,28 @@ const usePauseForReducedMotion = (
 		)
 			return;
 		const query = window.matchMedia(REDUCED_MOTION_QUERY);
+		// The running animations this hook paused, the only ones it resumes.
+		const paused = new Set<Animation>();
+		const pause = (animation: Animation) => {
+			if (animation.playState === "paused") return;
+			animation.pause();
+			paused.add(animation);
+		};
 		const apply = (reduce: boolean) => {
+			if (!reduce) {
+				for (const animation of paused) animation.play();
+				paused.clear();
+				return;
+			}
 			if (typeof overlay.getAnimations !== "function") return;
 			for (const animation of overlay.getAnimations({ subtree: true }))
-				if (reduce) animation.pause();
-				else animation.play();
+				pause(animation);
 		};
 		if (query.matches) apply(true);
 		const onAnimationStart = (event: Event) => {
 			if (!query.matches) return;
 			for (const animation of (event.target as Element).getAnimations?.() ?? [])
-				animation.pause();
+				pause(animation);
 		};
 		const onChange = (e: MediaQueryListEvent) => apply(e.matches);
 		overlay.addEventListener("animationstart", onAnimationStart, true);

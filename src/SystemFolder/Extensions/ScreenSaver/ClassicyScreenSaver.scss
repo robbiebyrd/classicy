@@ -22,6 +22,18 @@ html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay) * {
 	cursor: none;
 }
 
+/*
+ * The fallback for browsers without :has() (Firefox before 121, Safari before
+ * 15.4, Chrome before 105), which drop the whole rule above. The overlay
+ * covers the viewport, so the pointer is always over it or its subtree; this
+ * hides it there at the same id weight. Its own rule, so the :has() above
+ * cannot void it.
+ */
+#classicy-screen-saver-overlay,
+#classicy-screen-saver-overlay * {
+	cursor: none;
+}
+
 /* Savers that dim or reveal the live desktop (Fade Out, Spotlight). */
 .classicyScreenSaverOverlayTransparent {
 	background: transparent;

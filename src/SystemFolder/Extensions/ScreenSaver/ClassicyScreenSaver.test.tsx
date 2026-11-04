@@ -166,6 +166,37 @@ describe("ClassicyScreenSaver overlay", () => {
 			expect(animation.pause).toHaveBeenCalled();
 		});
 
+		it("resumes only what it paused when reduced motion is turned off", () => {
+			// One animation the overlay pauses, one the saver had paused itself.
+			const ours = { playState: "running", pause: vi.fn(), play: vi.fn() };
+			const theirs = { playState: "paused", pause: vi.fn(), play: vi.fn() };
+			ours.pause.mockImplementation(() => {
+				ours.playState = "paused";
+			});
+			let onChange: ((e: { matches: boolean }) => void) | undefined;
+			vi.stubGlobal(
+				"matchMedia",
+				vi.fn((query: string) => ({
+					matches: query === "(prefers-reduced-motion: reduce)",
+					addEventListener: (_: string, listener: typeof onChange) => {
+						onChange = listener;
+					},
+					removeEventListener: vi.fn(),
+				})),
+			);
+			Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+				configurable: true,
+				value: () => [ours, theirs],
+			});
+			setData({ active: true, selectedSaver: "test-inline-animation" });
+			render(<ClassicyScreenSaver />);
+			expect(ours.pause).toHaveBeenCalled();
+			expect(theirs.pause).not.toHaveBeenCalled();
+			act(() => onChange?.({ matches: false }));
+			expect(ours.play).toHaveBeenCalledTimes(1);
+			expect(theirs.play).not.toHaveBeenCalled();
+		});
+
 		it("keeps running without a reduced-motion preference", () => {
 			const { animation } = stubMotion(false);
 			setData({ active: true, selectedSaver: "test-inline-animation" });
