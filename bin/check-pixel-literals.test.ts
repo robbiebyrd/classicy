@@ -222,6 +222,32 @@ describe("scanPixelLiteralsInSource", () => {
 			),
 		).toEqual(["2 bare"]));
 
+	// Sass reads `name:` and whitespace as a property, so a nested property's
+	// value is a length even with a block after it.
+	it.each([
+		["on one line", ".a { font: #{$n}px { family: x; } }", ["2 #{$n}px"]],
+		[
+			"across lines",
+			".a {\n  margin:\n    #{$n}px {\n    top: var(--x);\n  }\n}",
+			["4 #{$n}px"],
+		],
+	])("still counts an interpolated unit in a nested property's value %s", (_, rule, expected) =>
+		expect(
+			scanPixelLiteralsInSource(`$n: 5;\n${rule}`, "f.scss").map(
+				(found) => `${found.line} ${found.text}`,
+			),
+		).toEqual(expected));
+
+	// A colon with no whitespace after it is a pseudo-class, so these stay
+	// selectors.
+	it.each([
+		["a:hover .g-#{$n}px { top: var(--x); }"],
+		["a:not(.g-#{$n}px) { top: var(--x); }"],
+		["li:nth-child(2) .g-#{$n}px { top: var(--x); }"],
+		[".a { &:hover .g-#{$n}px { top: var(--x); } }"],
+	])("does not count an interpolated unit in a pseudo-class selector: %s", (rule) =>
+		expect(scanPixelLiteralsInSource(`$n: 5;\n${rule}`, "f.scss")).toEqual([]));
+
 	// An at-rule's arguments are values even when a block follows them
 	// (`@include m(#{$n}px) { … }`, a content block).
 	it("still counts an interpolated unit in an at-rule's arguments before its block", () =>
@@ -454,6 +480,15 @@ describe("scanMultipliersInSource", () => {
 				"f.scss",
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["2 $a * 2", "2 var(--x) * $a"]));
+
+	// A quoted parenthesis in a default does not hide the parameters after it.
+	it("splits a parameter list past a quoted parenthesis", () =>
+		expect(
+			scanMultipliersInSource(
+				'$f: 1;\n@mixin m($s: "(", $f) {\n  width: calc(var(--x) * $f);\n}',
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["3 var(--x) * $f"]));
 
 	// Arithmetic over a parameter inside an interpolation is one site with
 	// the chain it sits in, as it is over a constant; alone, it is its own.

@@ -4058,8 +4058,11 @@ Not seen at all (none is live): `math.div(var(--x), 2)`. The pixel scanner,
 likewise, counts a unit written after an interpolation (`#{$n}px`,
 `1#{$n}px`, `.#{$n}px`), unless it is in a selector, which it knows by
 context: the statement holding it ends at a block's `{` before any `;` or
-`}`, and is not an at-rule (`.gap-#{$n}px { … }` is a name, not a length;
-`@include m(#{$n}px) { … }` still counts). It exempts only an
+`}`, and is neither an at-rule nor, as Sass reads a name, a colon and
+whitespace, a nested property (`.gap-#{$n}px { … }` and
+`a:hover .g-#{$n}px { … }` are names, not lengths;
+`@include m(#{$n}px) { … }` and `font: #{$n}px { family: x; }` still
+count). It exempts only an
 `@media`/`@container` prelude itself, interpolations included (`@media
 #{$mq} and (min-width: 600px)`), up to its `{`, never a rule written after it
 on the same line; an `@media` nested after other text on its line

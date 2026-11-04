@@ -124,10 +124,16 @@ const statementBoundaries = (text: string): number[] => {
 	return boundaries;
 };
 
+// A property name, its colon and whitespace: how Sass tells a declaration,
+// a nested property's included (`font: 12px { family: x; }`), from a
+// selector with a pseudo-class (`a:hover`), which has no space after it.
+const PROPERTY_START = /^-?[A-Za-z_][\w-]*:\s/;
+
 /**
  * Whether `text[start, end)` sits in a selector: its statement is ended by
- * a block's `{` (not a `;` or `}`) and is not an at-rule, whose arguments
- * are values even before a block (`@include m(#{$n}px) { … }`).
+ * a block's `{` (not a `;` or `}`) and is neither an at-rule, whose
+ * arguments are values even before a block (`@include m(#{$n}px) { … }`),
+ * nor a nested property (`font: #{$n}px { family: x; }`).
  */
 const isInSelector = (
 	text: string,
@@ -138,10 +144,8 @@ const isInSelector = (
 	const next = boundaries.find((at) => at >= end);
 	if (next === undefined || text[next] !== "{") return false;
 	const previous = boundaries.findLast((at) => at < start) ?? -1;
-	return !text
-		.slice(previous + 1, start)
-		.trimStart()
-		.startsWith("@");
+	const statement = text.slice(previous + 1, start).trimStart();
+	return !statement.startsWith("@") && !PROPERTY_START.test(statement);
 };
 
 /** The index of the `#{` opening the interpolation that closes at `close`. */
@@ -583,11 +587,16 @@ const sassBindingsOf = (text: string): SassLookup => {
 		const open = close + body[0].length;
 		// Each parameter is in scope from the end of its own item, so a later
 		// default reads it (`$b: $a * 2`) and its own reads what is outside.
+		// Quoted strings are skipped (`$s: "("`).
 		const parameters: { name: string; from: number }[] = [];
 		for (let i = paren + 1, item = i, depth = 0; i <= close; i++) {
-			if (text[i] === "(") depth++;
-			else if (text[i] === ")" && i < close) depth--;
-			else if (i === close || (text[i] === "," && depth === 0)) {
+			if (text[i] === '"' || text[i] === "'") {
+				i = Math.min(close, quotedEnd(text, i)) - 1;
+			} else if (text[i] === "(") {
+				depth++;
+			} else if (text[i] === ")" && i < close) {
+				depth--;
+			} else if (i === close || (text[i] === "," && depth === 0)) {
 				const name = /^\s*\$([\w-]+)/.exec(text.slice(item, i))?.[1];
 				if (name !== undefined) parameters.push({ name, from: i });
 				item = i + 1;
@@ -611,12 +620,16 @@ const sassBindingsOf = (text: string): SassLookup => {
 	return lookup;
 };
 
-/** The index of the bracket closing the one at `open`, or the text's end. */
+/**
+ * The index of the bracket closing the one at `open`, or the text's end;
+ * brackets inside quoted strings do not count.
+ */
 const closingBracket = (text: string, open: number): number => {
 	const opening = text[open];
 	const closing = opening === "(" ? ")" : "}";
 	for (let depth = 0, i = open; i < text.length; i++) {
-		if (text[i] === opening) depth++;
+		if (text[i] === '"' || text[i] === "'") i = quotedEnd(text, i) - 1;
+		else if (text[i] === opening) depth++;
 		else if (text[i] === closing && --depth === 0) return i;
 	}
 	return text.length - 1;
