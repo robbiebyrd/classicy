@@ -7,6 +7,7 @@ import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePac
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
+	type ClassicyThemeWithPartialMetrics,
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -194,8 +195,10 @@ export const readClassicyLoadedThemes = (
 				? value.package
 				: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
 		const parsed = ClassicyThemeSchema.safeParse(
+			// Unvalidated until the parse: the completion only reads
+			// `measurements`, and copies anything it does not recognize.
 			withDefaultThemeMetrics(
-				value as Partial<ClassicyTheme>,
+				value as unknown as ClassicyThemeWithPartialMetrics,
 				classicyThemeMeasurementDefaults(packageId),
 			),
 		);
