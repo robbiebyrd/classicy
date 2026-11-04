@@ -73,6 +73,22 @@ describe("ClassicyAppearancePackageSchema", () => {
 		expect(ClassicyAppearancePackageSchema.safeParse(input).success).toBe(true);
 	});
 
+	it("rejects defaults carrying a font-size knob outside 8–72", () => {
+		const defaults = structuredClone(getTheme("default"));
+		Object.assign(defaults.measurements, { hyperCard: { fontSize: 400 } });
+		const result = ClassicyAppearancePackageSchema.safeParse({
+			...platinumShaped(),
+			defaults,
+		});
+		expect(result.success).toBe(false);
+		expect(result.error?.issues).toContainEqual(
+			expect.objectContaining({
+				path: ["defaults", "measurements", "hyperCard", "fontSize"],
+				message: "must be at most 72",
+			}),
+		);
+	});
+
 	it("rejects an id that is not kebab-case", () => {
 		for (const id of ["Not Kebab", "a--b", "-a", "a-", ""])
 			expect(

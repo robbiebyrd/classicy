@@ -486,9 +486,13 @@ Start with [Install and build](#install-and-build).
     knob's own range intersected with 8–72) and by the Options tab.
   - Persisted out-of-range sizes, core and knob, are clamped into 8–72 on
     load (`migrateClassicyState`).
+  - `registerClassicyAppearancePackage` validates a package's `defaults`
+    and `presets` with the same schema, so a package carrying a font-size
+    knob outside 8–72 is not registered (logged as an error).
 
   *Who:* theme files with a size outside 8–72, a package font-size knob
-  included, no longer load. *Migrate:* edit those sizes into range.
+  included, no longer load, and packages whose themes carry one no longer
+  register. *Migrate:* edit those sizes into range.
 - **Themes name their package.** `ClassicyTheme` has a required
   `package: string`.
   - Persisted themes are migrated on load.
