@@ -16,8 +16,8 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
 
 /**
  * Runtime schema for `ClassicyTheme`, used wherever a theme arrives from
- * outside the build: an imported theme file, or a `ClassicyDesktopImportTheme`
- * payload.
+ * outside the build: an imported theme file, a `ClassicyDesktopImportTheme`
+ * payload, or a theme a host hands to `ClassicyDesktopLoadThemes`.
  *
  * Unknown keys are tolerated and STRIPPED (zod's default object behavior),
  * so a file written by a newer build that adds an optional field still loads

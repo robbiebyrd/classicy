@@ -447,14 +447,21 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 		});
 	});
 
-	it("keeps the provided list itself when every theme is complete", () => {
+	// Each theme is schema-validated, so the store holds the parsed copies,
+	// never the caller's objects (getAllThemes() hands out shared ones).
+	it("stores validated copies equal to complete themes", () => {
 		const ds = makeStoreForDesktop();
 		const newThemes = [getTheme("default"), getTheme("azul")];
 		classicyDesktopEventHandler(ds, {
 			type: "ClassicyDesktopLoadThemes",
 			availableThemes: newThemes,
 		});
-		expect(ds.System.Manager.Appearance.availableThemes).toBe(newThemes);
+		const loaded = ds.System.Manager.Appearance.availableThemes ?? [];
+		expect(loaded).toEqual(newThemes);
+		expect(loaded).not.toBe(newThemes);
+		loaded.forEach((theme, i) => {
+			expect(theme).not.toBe(newThemes[i]);
+		});
 	});
 });
 

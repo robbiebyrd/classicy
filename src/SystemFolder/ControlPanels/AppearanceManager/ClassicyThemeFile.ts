@@ -159,6 +159,63 @@ export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** An entry `readClassicyLoadedThemes` refused: its position, its id (when
+ * it has a string one) and the first problem found. */
+export type ClassicyDroppedTheme = {
+	index: number;
+	id: string | undefined;
+	issue: string;
+};
+
+/**
+ * Validates the themes a host hands to `ClassicyDesktopLoadThemes`, each
+ * against `ClassicyThemeSchema` exactly as an import is (unknown keys
+ * stripped, `package` defaulted, the wallpaper resolved for this build). A
+ * theme written before the metric groups existed is completed from its
+ * package's defaults first, as before. Unlike an import, a theme for an
+ * Appearance Package that is not registered (yet) is kept: a host may load
+ * its themes before it registers the package. Invalid entries are left out
+ * and reported, so one bad theme never costs the host the rest. The input is
+ * never mutated.
+ */
+export const readClassicyLoadedThemes = (
+	values: readonly unknown[],
+): { themes: ClassicyTheme[]; dropped: ClassicyDroppedTheme[] } => {
+	const themes: ClassicyTheme[] = [];
+	const dropped: ClassicyDroppedTheme[] = [];
+	values.forEach((value, index) => {
+		if (!isRecord(value)) {
+			dropped.push({ index, id: undefined, issue: "not a theme object" });
+			return;
+		}
+		const id = typeof value.id === "string" ? value.id : undefined;
+		const packageId =
+			typeof value.package === "string"
+				? value.package
+				: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+		const parsed = ClassicyThemeSchema.safeParse(
+			withDefaultThemeMetrics(
+				value as Partial<ClassicyTheme>,
+				classicyThemeMeasurementDefaults(packageId),
+			),
+		);
+		if (!parsed.success) {
+			dropped.push({
+				index,
+				id,
+				issue: describeIssues(parsed.error.issues.slice(0, 1)),
+			});
+			return;
+		}
+		const theme = parsed.data;
+		theme.desktop.backgroundImage = loadableClassicyThemeBackground(
+			theme.desktop.backgroundImage,
+		);
+		themes.push(theme);
+	});
+	return { themes, dropped };
+};
+
 /**
  * Parses the text of a theme file. Returns the validated, loadable theme or a
  * human-readable reason it cannot be loaded.

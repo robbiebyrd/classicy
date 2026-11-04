@@ -7,10 +7,7 @@ import {
 	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import {
-	type ClassicyTheme,
-	withDefaultThemePackageList,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import {
 	assignImportedClassicyThemeIdentity,
@@ -22,7 +19,10 @@ import {
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
-import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import {
+	readClassicyLoadedThemes,
+	readClassicyTheme,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	CLASSICY_THEME_FONT_SIZE_KEYS,
 	CLASSICY_THEME_FONT_SIZE_MAX,
@@ -31,7 +31,6 @@ import {
 import {
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
-	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	isValidThemeMetricFamily,
@@ -638,17 +637,32 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopLoadThemes": {
 			if (!hasAvailableThemes(action)) break;
-			// A host may hand over themes written before the metric groups or
-			// Appearance Packages existed; complete them here so the next
-			// ChangeTheme never clones a metric-less or package-less theme into
-			// activeTheme (the load path does the same in migrateClassicyState).
-			ds.System.Manager.Appearance.availableThemes =
-				withDefaultThemePackageList(
-					withDefaultThemeMetricsList(
-						action.availableThemes as ClassicyTheme[],
-						(theme) => classicyThemeMeasurementDefaults(theme.package),
-					),
+			// Host themes are validated like imported ones (a backgroundImage
+			// lands in a CSS url(), font sizes are bounded), and completed: a
+			// theme written before the metric groups or Appearance Packages
+			// existed gets them, so the next ChangeTheme never clones a
+			// metric-less or package-less theme into activeTheme. An invalid
+			// entry is dropped with a warning; a list with nothing valid left
+			// is refused, so a bad batch never empties the theme list.
+			const { themes, dropped } = readClassicyLoadedThemes(
+				action.availableThemes,
+			);
+			for (const { index, id, issue } of dropped) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopLoadThemes dropped ${id === undefined ? `entry ${index}` : `theme "${id}" (entry ${index})`}: ${issue}`,
 				);
+			}
+			if (themes.length === 0 && dropped.length > 0) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					"ClassicyDesktopLoadThemes rejected: no valid theme was given, so the theme list is unchanged",
+				);
+				break;
+			}
+			ds.System.Manager.Appearance.availableThemes = themes;
 			break;
 		}
 		case "ClassicyDesktopSetBalloonHelp": {
