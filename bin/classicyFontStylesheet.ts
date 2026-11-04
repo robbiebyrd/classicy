@@ -88,8 +88,9 @@ const faceName = (family: string, weight: string, style: string) =>
  * Invariant 12's problems with the font stylesheet `file` (its text, or
  * `null` when missing): it must hold only unlayered `@font-face` rules, one
  * per face in `faces` and no other, each exactly the rule the runtime writes
- * for its sources, and every `url()` must name a file in dist/assets that
- * `exists` (called with the url as written, relative to the stylesheet).
+ * for its sources, and every `url()` must name the face's own file in
+ * dist/assets, one that `exists` (called with the url as written, relative
+ * to the stylesheet).
  */
 export const findClassicyFontStylesheetProblems = (
 	file: string,
@@ -137,7 +138,10 @@ export const findClassicyFontStylesheetProblems = (
 			continue;
 		}
 		seen.add(key);
-		if (!faces.some((f) => `${f.family}|${f.weight}|${f.style}` === key)) {
+		const registered = faces.find(
+			(f) => `${f.family}|${f.weight}|${f.style}` === key,
+		);
+		if (!registered) {
 			problems.push(
 				`${file}: @font-face for ${name}, which the runtime does not register.`,
 			);
@@ -149,9 +153,24 @@ export const findClassicyFontStylesheetProblems = (
 			);
 		}
 		for (const url of sources) {
-			if (!ASSET_URL.test(url) || !exists(url))
+			if (!ASSET_URL.test(url) || !exists(url)) {
 				problems.push(
 					`${file}: url("${url}") does not resolve to a file in dist/assets.`,
+				);
+				continue;
+			}
+			// Its own file: `<file>.woff2`, or `<file>-<hash>.woff2` should the
+			// emitted names ever be hashed (no face's file is another's prefix).
+			const emitted = url.slice("assets/".length);
+			if (
+				emitted !== `${registered.file}.woff2` &&
+				!(
+					emitted.startsWith(`${registered.file}-`) &&
+					emitted.endsWith(".woff2")
+				)
+			)
+				problems.push(
+					`${file}: the @font-face for ${name} points at "${url}", not its own file ${registered.file}.woff2.`,
 				);
 		}
 	}

@@ -134,6 +134,17 @@ describe("findClassicyFontStylesheetProblems", () => {
 			`${FILE}: @font-face for "Chicago" normal normal, which the runtime does not register.`,
 		]));
 
+	it("fails a face whose url() names another face's file", () => {
+		const swapped = css.replace(
+			'url("assets/Monaco-normal-normal.woff2")',
+			'url("assets/Charcoal-normal-normal.woff2")',
+		);
+		expect(swapped).not.toBe(css);
+		expect(problems(swapped)).toEqual([
+			`${FILE}: the @font-face for "Monaco" normal normal points at "assets/Charcoal-normal-normal.woff2", not its own file Monaco-normal-normal.woff2.`,
+		]);
+	});
+
 	it("fails a duplicated face", () => {
 		const first = css.split("\n")[0];
 		expect(problems(`${first}\n${css}`)).toEqual([

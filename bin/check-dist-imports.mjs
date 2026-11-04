@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Twelve invariants on the *published* bundle (and, for the last, on the
-// sources it is built from). The first two have shipped
+// Twelve invariants on the *published* bundle (and, for invariant 11, on
+// the sources it is built from). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
 // surfaced as production outages.
@@ -637,7 +637,7 @@ if (!argv.slice(2).length) {
 		if (problems.length) failed = true;
 		else
 			console.log(
-				`${file}: the ${PLATINUM_FONT_FACES.length} @font-face rules the runtime writes, unlayered, every url() a file in assets/`,
+				`${file}: the ${PLATINUM_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
 			);
 	}
 }
