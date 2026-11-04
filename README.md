@@ -22,6 +22,8 @@ icons are drawn with unprefixed `mask-image` and mask compositing (Chrome
 120); in an older browser those declarations are dropped, so tints, overlays
 and icon art go missing.
 
+**Upgrading from 2.1.x?** [`docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`](docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md) lists every breaking change below, and the rest of the release, with its migration step.
+
 Importing `classicy` injects its stylesheet; its fonts and art are files in
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
