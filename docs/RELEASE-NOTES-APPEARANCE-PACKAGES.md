@@ -479,9 +479,16 @@ Start with [Install and build](#install-and-build).
   - `ClassicyThemeSchema` holds the five typography sizes and
     `desktop.iconFontSize` to the same range.
   - The Fonts tab clamps what you type.
+  - A package knob whose key names a font size (`fontSize`, or a name
+    ending in `FontSize`, such as `hyperCard.fontSize` or
+    `appleGuide.bodyFontSize`) is held to the same range, in any family of
+    any package: by the theme schema, by `ClassicyDesktopChangeMetric` (the
+    knob's own range intersected with 8–72) and by the Options tab.
+  - Persisted out-of-range sizes, core and knob, are clamped into 8–72 on
+    load (`migrateClassicyState`).
 
-  *Who:* theme files with a size outside 8–72 no longer load. *Migrate:*
-  edit those sizes into range.
+  *Who:* theme files with a size outside 8–72, a package font-size knob
+  included, no longer load. *Migrate:* edit those sizes into range.
 - **Themes name their package.** `ClassicyTheme` has a required
   `package: string`.
   - Persisted themes are migrated on load.

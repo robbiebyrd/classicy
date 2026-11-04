@@ -2112,12 +2112,19 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
   theme files, `ClassicyDesktopImportTheme` and `ChangeAppearanceOption`
   (`typography.uiSize`, `desktop.iconFontSize`, …) agree, and the Fonts tab's
   size fields use them and dispatch a typed size clamped to them. A package's
-  knob-family font sizes (Platinum's `pager.fontSize`, `hyperCard.fontSize`,
-  `appleGuide.headerFontSize` and `bodyFontSize`) are measurements, not
-  typography: the schema holds them to the measurement bounds and
-  `ClassicyDesktopChangeMetric` to their knob's range, and Platinum's defaults
-  and its one Options-tab range (`pager.fontSize`, 8–32) sit inside 8–72
-  (pinned in `ClassicyThemeFontSizes.test.ts`).
+  knob-family font sizes are held to the same bounds **by key name**: any
+  measurement key, in any family of any package, that is `fontSize` or ends
+  in `FontSize` (`isClassicyFontSizeMeasurementKey`; Platinum's
+  `pager.fontSize`, `hyperCard.fontSize`, `appleGuide.headerFontSize` and
+  `bodyFontSize`). The schema refuses one outside 8–72 (a theme file reports
+  `measurements.hyperCard.fontSize: must be at least 8`),
+  `ClassicyDesktopChangeMetric` and the Options tab bound it to the knob's
+  range intersected with 8–72 (`getThemeMetricFamilyBounds(knob, key)`), and
+  Platinum's defaults and its one Options-tab range (`pager.fontSize`, 8–32)
+  sit inside it (pinned in `ClassicyThemeFontSizes.test.ts`). Persisted
+  sizes outside 8–72, core and knob, are clamped into it on load
+  (`migrateClassicyState`, through `withClassicyThemeFontSizesClamped`; by
+  key name over whatever families the stored theme carries, H-R17).
 - `ClassicyDesktopChangeTheme` looks the id up in the active package's
   `availableThemes` entries (the registered package for `packageId`, else
   the default), then that package's own themes (its `defaults`, unless a
@@ -2212,8 +2219,10 @@ which the walker skips, so the edit could never take effect, and a family
 as `resolveClassicyAppearancePackage` resolves it (the registered package for
 `Appearance.packageId`, else the registered default package; see "The active
 package" below). `value` must be within the knob's bounds,
-`getThemeMetricFamilyBounds(knob)`: its declared `min`–`max` intersected with
-0–512, or `undefined` when the two do not meet — such a knob is not editable
+`getThemeMetricFamilyBounds(knob, key)`: its declared `min`–`max` intersected
+with 0–512 (8–72 when `key` names a font size,
+`isClassicyFontSizeMeasurementKey`), or `undefined` when the two do not
+meet — such a knob is not editable
 at all (the reducer refuses every value; the Options tab leaves it out). The
 Options tab also leaves out a knob whose family or key fails
 `isThemeMetricFamilyTarget`, which the reducer refuses too, and logs one
@@ -3302,9 +3311,11 @@ and is kept. Types are strict:
 | colors (incl. `desktop.backgroundColor`) | integer `0x000000`–`0xFFFFFF` |
 | `color.system` / `color.theme` | exactly 7 colors |
 | `name` | 1–64 chars after trimming |
-| typography sizes, `desktop.iconSize`/`iconFontSize` | positive, ≤ 512 |
+| typography sizes, `desktop.iconFontSize` | 8–72 (`CLASSICY_THEME_FONT_SIZE_MIN`–`MAX`) |
+| `desktop.iconSize` | positive, ≤ 512 |
 | `package` | ≤ 64 chars; defaults to `"platinum"` |
 | `measurements.<family>.*` (core and package families) | ≥ 0, ≤ 512 |
+| a package measurement whose key is `fontSize` or ends in `FontSize` (`hyperCard.fontSize`, `appleGuide.bodyFontSize`) | 8–72, like the typography sizes |
 | package family and key names (`measurements.controlStrip.cellHeight`) | lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`, `/^[a-z][A-Za-z0-9]*$/`) |
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
