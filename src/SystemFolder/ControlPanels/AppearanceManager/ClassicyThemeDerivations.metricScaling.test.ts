@@ -10,6 +10,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 import {
+	exportClassicyTheme,
+	parseClassicyThemeFile,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	type ClassicyThemeMetricKey,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
@@ -127,6 +131,13 @@ const ROWS: readonly [string, readonly Metric[], (i: Inputs) => number][] = [
 	// H-R28b: the title-bar cap offset, formerly read from --control-padding.
 	// (The site negates it: calc((var(--window-padding-size) * -1) / 2).)
 	["--window-title-cap-offset", ["padding"], (i) => i.padding / 2],
+	// H-R29d: the H 2.1–6.1 derivations of an editable metric.
+	[
+		"--window-frame-inset-whole",
+		["padding"],
+		(i) => Math.floor(i.padding / 1.25),
+	],
+	["--layout-item-gap-half", ["itemGap"], (i) => i.itemGap / 2],
 	// H 6.2b: the sites in H 6.1's files.
 	[
 		"--window-utility-control-box-size",
@@ -258,10 +269,10 @@ const edited = (metric: Metric): ClassicyTheme => {
 };
 
 describe("H-R25: the named multipliers follow the metrics a user edits", () => {
-	it("lists every H 6.2 name, each a named derivation", () => {
+	it("lists every H 6.2 name and the H-R29d pair, each a named derivation", () => {
 		const derived = new Set(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
 		for (const [cssVar] of ROWS) expect(derived.has(cssVar), cssVar).toBe(true);
-		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(77);
+		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(79);
 	});
 
 	it.each(
@@ -383,5 +394,43 @@ describe("H 6.2: each named multiplier reads only the metrics it lists", () => {
 			}
 		}
 		expect(moved, `${cssVar} follows a metric it does not list`).toEqual([]);
+	});
+});
+
+// H-R29d: the stripe period derives from a knob, progressBar.stripeWidth, that
+// no tab edits; a theme file sets it. The period must follow every width a
+// theme file can carry, through the file's own round trip.
+describe("--progress-bar-stripe-period follows progressBar.stripeWidth", () => {
+	const withStripeWidth = (stripeWidth: number): ClassicyTheme => {
+		const theme = getTheme("default");
+		return {
+			...theme,
+			measurements: { ...theme.measurements, progressBar: { stripeWidth } },
+		};
+	};
+
+	it("is twice the stripe width at every whole-pixel width", () => {
+		for (let w = 1; w <= 512; w++) {
+			const vars = getThemeVars(withStripeWidth(w)) as Record<string, string>;
+			expect(vars["--progress-bar-stripe-width"], `width ${w}`).toBe(`${w}px`);
+			expect(vars["--progress-bar-stripe-period"], `width ${w}`).toBe(
+				px3(w * 2),
+			);
+		}
+	});
+
+	it("follows a stripe width loaded from a theme file", () => {
+		const loaded = parseClassicyThemeFile(
+			exportClassicyTheme(withStripeWidth(7)),
+		);
+		expect(loaded.ok).toBe(true);
+		if (!loaded.ok) return;
+		const vars = getThemeVars(loaded.theme) as Record<string, string>;
+		expect(vars["--progress-bar-stripe-period"]).toBe("14px");
+		expect(
+			(getThemeVars(getTheme("default")) as Record<string, string>)[
+				"--progress-bar-stripe-period"
+			],
+		).toBe("20px");
 	});
 });
