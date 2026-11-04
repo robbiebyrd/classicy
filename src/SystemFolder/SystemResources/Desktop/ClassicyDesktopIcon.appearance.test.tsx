@@ -1,6 +1,10 @@
 import { produce } from "immer";
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
@@ -159,6 +163,34 @@ describe("ClassicyDesktopIcon appearance", () => {
 		]);
 	});
 
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a positional drag where it is on a %s", (loss) => {
+		const location = () =>
+			useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.find((i) => i.appId === APP)?.location;
+		const { container } = renderIcon();
+		const el = root(container);
+		fireEvent.mouseDown(el, { clientX: 110, clientY: 210 });
+		fireEvent.mouseMove(el, { clientX: 150, clientY: 260 });
+		const dragged = location();
+		expect(dragged).not.toEqual([100, 200]);
+
+		losePointerStream(loss);
+		expect(el).not.toHaveClass("dragging");
+		// The pointer coming back over the icon no longer carries it.
+		fireEvent.mouseMove(el, { clientX: 300, clientY: 400 });
+		expect(location()).toEqual(dragged);
+		fireEvent.mouseUp(el);
+		expect(
+			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
+		).toEqual([
+			{ event: "dragStart", detail: undefined },
+			{ event: "dragEnd", detail: undefined },
+		]);
+	});
+
 	describe("Finder outline drags (file-backed icons)", () => {
 		const PLAN = "Macintosh HD:Desktop Folder:Plan.txt";
 		const ITEM = `classicy-desktop-item:${PLAN}`;
@@ -241,6 +273,26 @@ describe("ClassicyDesktopIcon appearance", () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
 				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
 				fireEvent.keyDown(document, { key: "Escape" });
+				fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+			});
+			expect(drags()).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, canceled: true },
+				},
+			]);
+		});
+
+		it.each(
+			POINTER_STREAM_LOSSES,
+		)("emits one dragEnd, canceled, on a %s", (loss) => {
+			const el = renderFileIcon();
+			withElementsFromPoint([desktop()], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+				losePointerStream(loss);
+				expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
 				fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
 			});
 			expect(drags()).toEqual([

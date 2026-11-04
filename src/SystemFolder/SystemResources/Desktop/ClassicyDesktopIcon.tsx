@@ -29,6 +29,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -430,6 +431,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					appearance.emit("dragEnd");
 				}
 			};
+
+			// The pointer stream lost mid-drag (the window blurred, a
+			// pointercancel, the page hidden): the icon stays where it was
+			// dragged, as if released there, instead of following the pointer
+			// back with no button held.
+			useClassicyPointerStreamLost(dragging, stopChangeIcon);
 
 			const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 				if (iconRef.current == null) {
