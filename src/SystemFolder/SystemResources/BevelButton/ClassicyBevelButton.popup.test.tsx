@@ -6,6 +6,7 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import {
+	act,
 	fireEvent,
 	render,
 	screen,
@@ -347,6 +348,119 @@ describe("ClassicyBevelButton press-and-hold options (HIGOS8 p.33)", () => {
 		fireEvent.mouseUp(screen.getByText("No Shrink"));
 		fireEvent.click(tool, { detail: 0 });
 		expect(onClick).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("ClassicyBevelButton press-and-hold ending before its delay", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	const renderHold = (onClick = vi.fn(), onPick = vi.fn()) => {
+		vi.useFakeTimers();
+		const view = render(
+			<ClassicyBevelButton
+				mode="push"
+				aria-label="Lasso"
+				menuItems={lassoItems(onPick)}
+				popupHoldDelayMs={500}
+				onClickFunc={onClick}
+			/>,
+		);
+		const tool = screen.getByRole("button", { name: "Lasso" });
+		return { ...view, tool, onClick, onPick };
+	};
+	const pastTheDelay = () => act(() => vi.advanceTimersByTime(1_000));
+
+	const pressEnds: [string, (tool: HTMLElement) => void][] = [
+		[
+			"let go elsewhere",
+			(tool) => {
+				// A browser reports the pointer leaving before the release.
+				fireEvent.mouseLeave(tool);
+				fireEvent.mouseUp(document.body);
+			},
+		],
+		...POINTER_STREAM_LOSSES.map(
+			(loss): [string, (tool: HTMLElement) => void] => [
+				`lost on a ${loss}`,
+				() => losePointerStream(loss),
+			],
+		),
+	];
+
+	it.each(pressEnds)("never opens the options of a press %s", (_, end) => {
+		const { tool, onClick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		act(() => vi.advanceTimersByTime(200));
+		end(tool);
+		// The hold is canceled with the press, not left to fire.
+		expect(vi.getTimerCount()).toBe(0);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(tool).not.toHaveClass("pressed");
+		// A later release anywhere opens nothing either.
+		fireEvent.mouseUp(document.body);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("never opens the options of a press let go over the button, which clicks it", () => {
+		const { tool, onClick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		fireEvent.mouseUp(tool, { button: 0 });
+		fireEvent.click(tool, { detail: 1 });
+		expect(vi.getTimerCount()).toBe(0);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it("never opens the options of a press whose button unmounts", () => {
+		const { tool, unmount } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		unmount();
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it("still opens the options of a press held past the delay", () => {
+		const { tool, onClick, onPick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		// Dragging off toward the menu is part of the gesture.
+		fireEvent.mouseLeave(tool);
+		act(() => vi.advanceTimersByTime(499));
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		act(() => vi.advanceTimersByTime(1));
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		fireEvent.mouseUp(screen.getByText("No Shrink"));
+		act(() => completeMenuItemFlash("no-shrink"));
+		pastTheDelay();
+		expect(onPick).toHaveBeenCalledExactlyOnceWith("no-shrink");
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("leaves a click trigger's quick click, here or let go elsewhere, sticky", () => {
+		vi.useFakeTimers();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={500}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		quickClick(button);
+		pastTheDelay();
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		fireEvent.mouseDown(button, { button: 0 });
+		fireEvent.mouseUp(document.body);
+		pastTheDelay();
+		expect(screen.getByRole("menu")).toBeInTheDocument();
 	});
 });
 

@@ -482,9 +482,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// Follows a press to the next mouseup anywhere (in the capture phase, so
 	// a target that stops it cannot hide it), watching the pointer stream
 	// meanwhile. Run after onPopupMouseDown, so a press that closes a sticky
-	// surface is watched too. A press with no surface to track (none, or one
-	// that closed it) stops watching the pointer stream at that mouseup; one
-	// that may open the surface leaves that to the surface's own release.
+	// surface is watched too. That mouseup cancels a hold still pending,
+	// wherever it lands: a press let go before its delay is over opens
+	// nothing later. A press with no surface to track (none, one that closed
+	// it, or a hold it just canceled) stops watching the pointer stream at
+	// that mouseup; one whose surface is open leaves that to the surface's
+	// own release.
 	// That mouseup ends the press in its one `release`: over the button, or
 	// let go elsewhere (`canceled`: dragged off, a held menu let go over an
 	// item or outside). It comes before any of the mouseup's own handlers,
@@ -497,8 +500,8 @@ export const ClassicyBevelButton: FunctionalComponent<
 			onClassicyPointerStreamLost(losePress);
 		const onUp = (e: globalThis.MouseEvent) => {
 			endPressRef.current?.();
-			if (!releaseListenerRef.current && holdTimerRef.current === null)
-				stopWatchingPointerStream();
+			clearHoldTimer();
+			if (!releaseListenerRef.current) stopWatchingPointerStream();
 			const over =
 				e.target instanceof Node && !!buttonRef.current?.contains(e.target);
 			if (over) {

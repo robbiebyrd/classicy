@@ -282,7 +282,7 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		]);
 	});
 
-	it("ends a pending hold let go elsewhere in a canceled release, owing nothing on a loss", async () => {
+	it("ends a pending hold let go elsewhere in a canceled release, opening nothing and owing nothing on a loss", async () => {
 		const { container } = render(
 			<ClassicyBevelButton
 				mode="push"
@@ -294,8 +294,8 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		);
 		fireEvent.mouseDown(root(container), { button: 0 });
 		fireEvent.mouseUp(document.body);
-		// The press has ended, though its hold is still pending; the loss
-		// cancels the hold and owes no second release.
+		// The release canceled the hold with the press: past the delay
+		// nothing opens, and a loss owes no second release.
 		losePointerStream("blur");
 		await new Promise((resolve) => setTimeout(resolve, 40));
 		expect(emitted()).toEqual([
@@ -347,7 +347,7 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		).toHaveLength(1);
 	});
 
-	it("watches the pointer stream once for a new press over a pending hold", () => {
+	it("watches the pointer stream once for a new press over a pending hold, which a release elsewhere cancels", () => {
 		const live = trackPointerStreamListeners();
 		const { container, unmount } = render(
 			<ClassicyBevelButton
@@ -360,9 +360,12 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		);
 		const el = root(container);
 		fireEvent.mouseDown(el, { button: 0 });
-		// Let go elsewhere: the hold is still pending, and still watched.
+		// Let go elsewhere: the hold is canceled with the press.
 		fireEvent.mouseUp(document.body);
-		expect(live.size).toBe(3);
+		expect(live.size).toBe(0);
+		// A second press with no release between (a mouseup the browser
+		// never delivered) takes over the first one's watch.
+		fireEvent.mouseDown(el, { button: 0 });
 		fireEvent.mouseDown(el, { button: 0 });
 		expect(live.size).toBe(3);
 		unmount();
