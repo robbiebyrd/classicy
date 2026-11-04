@@ -91,15 +91,18 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 		// Opened from Finder via a ClassicyFileSystem path — resolved to an
 		// actual video/audio source (url or _data) at render time in MoviePlayer.tsx.
 		case "ClassicyAppMoviePlayerOpenFile": {
-			if (action.path && !appData.openFiles.includes(action.path)) {
+			if (!action.path) break;
+			if (!appData.openFiles.includes(action.path)) {
 				appData.openFiles = [...appData.openFiles, action.path];
-				openApp(
-					ds,
-					MoviePlayerAppInfo.id,
-					MoviePlayerAppInfo.name,
-					MoviePlayerAppInfo.icon,
-				);
 			}
+			// Opening an already-open file still brings the app forward, as
+			// the generic OpenFile handler does.
+			openApp(
+				ds,
+				MoviePlayerAppInfo.id,
+				MoviePlayerAppInfo.name,
+				MoviePlayerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppMoviePlayerCloseFile": {

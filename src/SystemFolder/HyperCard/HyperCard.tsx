@@ -482,7 +482,7 @@ export const HyperCard: FunctionalComponent = () => {
 
 	// --- load queued `.stack` documents (Finder OpenFile routing) ---
 	// Double-clicking a Stack file appends its path to this app's
-	// data.openFiles (the kernel's generic *OpenFile handling). Read it raw —
+	// data.openFiles (ClassicyAppHyperCardOpenFile). Read it raw —
 	// not through useHyperCardData — because on first open the kernel writes
 	// { openFiles } before any HyperCard action has seeded openStacks. This
 	// effect resolves each entry through the file system, fetches/decodes its

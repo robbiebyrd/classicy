@@ -498,6 +498,15 @@ Rules (enforced/warned by the kernel):
   validates script-authored args against `params` before dispatch.
 - Dev builds validate `apps[id].data` against the schema after each routed
   action — **warn-only**, never rejects.
+- **Opening files from Finder.** Declare `<prefix>OpenFile` (e.g.
+  `ClassicyAppTVOpenFile`) in `actions` and Finder's open-with reaches your
+  reducer's own case with `{ app: { id }, path }`
+  (`routeClassicyAppOpenFile`, `ClassicyAppOpenFileRouting.ts`), reduced as a
+  dispatch would be, under the trust Finder's own action arrived with. Without
+  that declaration (or when the kernel would route the type to another app's
+  shorter prefix) the generic handler queues the path on `data.openFiles` and
+  opens the app, as before. `AppEventHandler` takes an optional third `trust`
+  argument for a handler that reduces a further action from inside the reducer.
 
 Read-side helpers:
 
@@ -2275,7 +2284,8 @@ keeps its `label`.
 
 - **Ids.** The app's id and its `ClassicyApp` `name`/`icon` props, which stay
   the internal identity.
-- **Action types.** Finder's `` `ClassicyApp${record.name}OpenFile` ``,
+- **Action types.** Finder's generic `` `ClassicyApp${record.name}OpenFile` ``
+  (an app's own declared `<prefix>OpenFile` comes from its manifest, not a name),
   `ClassicyApp`'s `` `ClassicyApp${name}CloseFile` `` (from the prop) and the
   bundled apps' literal types (§4.10).
 - **Routing.** Plugin prefixes, `ClassicyAppOpen`/icon-open payloads, the

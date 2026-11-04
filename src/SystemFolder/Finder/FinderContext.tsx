@@ -4,6 +4,7 @@ import {
 	hasPath,
 	hasPaths,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
 	openApp,
@@ -20,6 +21,7 @@ import {
 	parseAppData,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
+import { routeClassicyAppOpenFile } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
 import {
 	getAppWindow,
 	removeAppWindow,
@@ -154,6 +156,7 @@ const readPathMoves = (
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
+	trust: ClassicyActionTrust = "trusted",
 ) => {
 	const appId = "Finder.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
@@ -427,7 +430,14 @@ export const classicyFinderEventHandler = (
 				const targetApp = targetAppId
 					? ds.System.Manager.Applications.apps[targetAppId]
 					: undefined;
-				if (targetApp) {
+				if (targetApp && targetApp.id !== appId) {
+					// Reduced as a dispatch would be: the app's own OpenFile case
+					// when its manifest declares one, else the generic handler;
+					// under the trust this open arrived with.
+					ds = routeClassicyAppOpenFile(ds, targetApp, action.path, trust);
+				} else if (targetApp) {
+					// Finder's own OpenFile case is this dispatcher (it takes a
+					// `file`), so a file Finder opens itself is queued generically.
 					ds = classicyAppEventHandler(ds, {
 						type: `ClassicyApp${targetApp.name}OpenFile`,
 						app: { id: targetAppId },

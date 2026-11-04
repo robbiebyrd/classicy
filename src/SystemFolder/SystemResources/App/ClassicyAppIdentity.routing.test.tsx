@@ -45,9 +45,10 @@ vi.mock(
 	},
 );
 
-// The action types Finder hands straight to the generic app handler. Finder's
-// OpenFile builds its type inside the reducer and calls
-// `classicyAppEventHandler` directly, so the dispatch recorder never sees it;
+// The action types Finder hands straight to the generic app handler. For an
+// app that declares no OpenFile of its own, Finder's OpenFile builds its type
+// inside the reducer and calls `classicyAppEventHandler` directly (itself or
+// through `routeClassicyAppOpenFile`), so the dispatch recorder never sees it;
 // the generic handler routes on `app.id` alone, so a display-name type would
 // open the file just the same. Only the type it received can tell. (The
 // kernel's own calls use its local binding and are not recorded.)

@@ -198,9 +198,17 @@ export type ActionMessage = Record<string, unknown> & {
 	type: string;
 };
 
+/**
+ * A plugin reducer. `trust` is the trust the kernel reduced `action` under
+ * (absent when a caller such as `dispatchToPlugin` hands it over directly,
+ * which is trusted): a handler that reduces a further action from inside the
+ * reducer, as Finder's open-with does, passes it on so the trust floor and
+ * the untrusted allowlist apply to that action too.
+ */
 export type AppEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
+	trust?: ClassicyActionTrust,
 ) => ClassicyStore;
 
 const pluginEventHandlers: Array<{
@@ -229,6 +237,25 @@ export function registerAppEventHandler(
 		return;
 	}
 	pluginEventHandlers.push({ prefix, handler });
+}
+
+/**
+ * The registered prefix the kernel routes `actionType` to — the first
+ * registration it starts with, the same lookup `classicyDesktopStateEventReducer`
+ * makes — or undefined when it would reach no plugin handler. Built-in routes
+ * (`ClassicyWindow*`, `ClassicyDesktop*`, …) are checked by the kernel before
+ * plugins and are not reported here.
+ */
+export function findAppEventHandlerPrefix(
+	actionType: string,
+): string | undefined {
+	return findPluginEventHandler(actionType)?.prefix;
+}
+
+function findPluginEventHandler(actionType: string) {
+	return pluginEventHandlers.find(({ prefix }) =>
+		actionType.startsWith(prefix),
+	);
 }
 
 /**
@@ -497,11 +524,9 @@ export const classicyDesktopStateEventReducer = (
 		} else if (action.type.startsWith("ClassicyShortcut")) {
 			ds = classicyShortcutEventHandler(ds, action);
 		} else {
-			const plugin = pluginEventHandlers.find(({ prefix }) =>
-				action.type.startsWith(prefix),
-			);
+			const plugin = findPluginEventHandler(action.type);
 			if (plugin) {
-				ds = plugin.handler(ds, action);
+				ds = plugin.handler(ds, action, trust);
 			} else if (action.type.startsWith("ClassicyApp")) {
 				ds = classicyAppEventHandler(ds, action);
 			} else {

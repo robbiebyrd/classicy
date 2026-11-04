@@ -177,10 +177,9 @@ export interface HyperCardData {
 	activeStackId?: string;
 	openStacks: Record<string, HCOpenStack>;
 	/**
-	 * File-system paths of `.stack` documents awaiting load — written by the
-	 * kernel's generic *OpenFile handler (Finder routing for
-	 * ClassicyFileSystemEntryFileType.Stack) or by
-	 * ClassicyAppHyperCardOpenFile. The HyperCard component fetches, validates,
+	 * File-system paths of `.stack` documents awaiting load — written by
+	 * ClassicyAppHyperCardOpenFile (dispatched, or Finder's open-with for
+	 * ClassicyFileSystemEntryFileType.Stack). The HyperCard component fetches, validates,
 	 * and opens each, then consumes the path (OpenFileConsumed/OpenFileFailed).
 	 */
 	openFiles?: string[];

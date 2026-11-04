@@ -45,15 +45,18 @@ export const classicyPDFViewerEventHandler = (
 
 	switch (action.type) {
 		case "ClassicyAppPDFViewerOpenFile": {
-			if (action.path && !appData.openFiles.includes(action.path)) {
+			if (!action.path) break;
+			if (!appData.openFiles.includes(action.path)) {
 				appData.openFiles = [...appData.openFiles, action.path];
-				openApp(
-					ds,
-					PDFViewerAppInfo.id,
-					PDFViewerAppInfo.name,
-					PDFViewerAppInfo.icon,
-				);
 			}
+			// Opening an already-open file still brings the app forward, as
+			// the generic OpenFile handler does.
+			openApp(
+				ds,
+				PDFViewerAppInfo.id,
+				PDFViewerAppInfo.name,
+				PDFViewerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppPDFViewerCloseFile": {
