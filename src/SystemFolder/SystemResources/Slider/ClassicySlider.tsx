@@ -18,6 +18,7 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export interface ClassicySliderTicks {
 	/** Tick positions as percentages (0–100) along the thumb-travel axis. */
@@ -54,11 +55,6 @@ export const computeSliderTicks = (
 		Math.min(100, (k * interval * 100) / range),
 	);
 	return { positions, snapStep: interval };
-};
-
-const removeReleaseListener = (listener: () => void) => {
-	document.removeEventListener("pointerup", listener);
-	document.removeEventListener("pointercancel", listener);
 };
 
 /** Orientation of the slider's travel axis. */
@@ -264,25 +260,34 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// Keyboard stepping is not a drag: it reports `change` alone.
 	const pointerDragRef = useRef(false);
 	// While a press lasts, the document is watched for its release, so one
-	// that lands outside the input still ends the drag.
-	const releaseListenerRef = useRef<(() => void) | null>(null);
+	// that lands outside the input still ends the drag, and for the pointer
+	// stream being lost (see loseDrag). This stops watching both.
+	const stopWatchingRef = useRef<(() => void) | null>(null);
 	const finishPointerDrag = () => {
-		const listener = releaseListenerRef.current;
-		releaseListenerRef.current = null;
-		if (listener) removeReleaseListener(listener);
+		const stopWatching = stopWatchingRef.current;
+		stopWatchingRef.current = null;
+		stopWatching?.();
 		if (!pointerDragRef.current) return;
 		pointerDragRef.current = false;
 		appearance.emit("dragEnd", { value: Number(inputRef.current?.value) });
 	};
 	// Unmounted mid-press: stop watching (no dragEnd; the slider is gone).
-	useEffect(
-		() => () => {
-			if (releaseListenerRef.current) {
-				removeReleaseListener(releaseListenerRef.current);
-			}
-		},
-		[],
-	);
+	useEffect(() => () => stopWatchingRef.current?.(), []);
+
+	// The pointer stream lost mid-press (the window blurs, a pointercancel,
+	// the page is hidden): the browser ends its own thumb drag where the
+	// thumb is, so the press ends there too, committing the value on screen
+	// as a release would, the way a window's move or a split view's divider
+	// ends where it is. Read through a ref by the document listener, so the
+	// latest onCommitFunc is the one called.
+	const loseDrag = () => {
+		const pressed = pointerDragRef.current;
+		setDragging(false);
+		finishPointerDrag();
+		if (pressed && onCommitFunc) onCommitFunc(Number(inputRef.current?.value));
+	};
+	const loseDragRef = useRef(loseDrag);
+	loseDragRef.current = loseDrag;
 
 	const handlePointerDown = (e: ReactPointerEvent<HTMLInputElement>) => {
 		if (disabled) return;
@@ -295,9 +300,14 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			// The guard in finishPointerDrag keeps it to one dragEnd when the
 			// input saw the release too.
 			const listener = () => finishPointerDrag();
-			releaseListenerRef.current = listener;
 			document.addEventListener("pointerup", listener);
-			document.addEventListener("pointercancel", listener);
+			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
+				loseDragRef.current(),
+			);
+			stopWatchingRef.current = () => {
+				document.removeEventListener("pointerup", listener);
+				stopWatchingPointerStream();
+			};
 			appearance.emit("dragStart", { value: Number(e.currentTarget.value) });
 		}
 	};
@@ -306,11 +316,6 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		if (dragging) setDragging(false);
 		finishPointerDrag();
 		if (onCommitFunc) handleCommit(e);
-	};
-
-	const cancelDrag = () => {
-		setDragging(false);
-		finishPointerDrag();
 	};
 
 	const sizeClassMap: Record<ClassicyControlLabelSize, string> = {
@@ -358,7 +363,6 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			onChange={handleChange}
 			onPointerDown={handlePointerDown}
 			onPointerUp={endDrag}
-			onPointerCancel={cancelDrag}
 			onKeyUp={onCommitFunc ? handleCommit : undefined}
 		/>
 	);

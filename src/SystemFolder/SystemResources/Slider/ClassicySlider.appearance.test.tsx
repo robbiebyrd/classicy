@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
@@ -132,6 +137,60 @@ describe("ClassicySlider appearance", () => {
 		// Unmounted mid-drag: the listeners go with it.
 		fireEvent.pointerDown(el);
 		expect(live.size).toBe(2);
+		unmount();
+		expect(live.size).toBe(0);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a press where it is, committing that value, on a %s", (loss) => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} ghost onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		const ghostEl = container.querySelector(".classicySliderGhost");
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		expect(ghostEl).not.toHaveClass("classicySliderGhostHidden");
+
+		losePointerStream(loss);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: { value: 10 } },
+			{ event: "change", detail: { value: 40, input: "pointer" } },
+			{ event: "dragEnd", detail: { value: 40 } },
+		]);
+		expect(ghostEl).toHaveClass("classicySliderGhostHidden");
+		expect(onCommit.mock.calls).toEqual([[40]]);
+
+		// A second loss, or a release on the document, ends nothing more.
+		losePointerStream(loss);
+		fireEvent.pointerUp(document.body);
+		expect(emitted()).toHaveLength(3);
+		expect(onCommit).toHaveBeenCalledOnce();
+	});
+
+	it("commits nothing for a loss with no press under way", () => {
+		const onCommit = vi.fn();
+		render(<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />);
+		losePointerStream("blur");
+		expect(onCommit).not.toHaveBeenCalled();
+		expect(emitted()).toEqual([]);
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { container, unmount } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(3);
+		fireEvent.pointerUp(el);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
 		unmount();
 		expect(live.size).toBe(0);
 	});
