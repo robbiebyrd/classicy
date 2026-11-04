@@ -3,6 +3,11 @@ import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import {
+	classicyClassesMeet,
+	classicyClassSets,
+	classicyStylesheetClasses,
+} from "@/Appearance/__tests__/classicyClassCooccurrence";
+import {
 	type ClassicySpecificity,
 	classicyCssRules,
 	classicySelectorSpecificity,
@@ -10,6 +15,7 @@ import {
 	compareClassicySpecificity,
 	splitClassicySelectorList,
 } from "../../../bin/classicyCssCascade";
+import { CLASSICY_COMPONENT } from "./ClassicyVocabulary";
 import vocabulary from "./ClassicyVocabulary.json";
 
 /**
@@ -20,7 +26,7 @@ import vocabulary from "./ClassicyVocabulary.json";
  * pinned on the compiled stylesheets.
  */
 
-// The cross-file scan compiles every component stylesheet (about 3 s alone);
+// The cross-file scan compiles every component stylesheet (about 4 s alone);
 // sized for a loaded machine, like the vocabulary scan.
 const SCAN_TIMEOUT_MS = 60_000;
 
@@ -232,6 +238,13 @@ describe("rules that replaced !important", () => {
  * specificity, never by coming later: reordering two imports must not flip
  * it (plan 0003-7x7, residual risk 2). The Appearance Packages are outside
  * this: each compiles to one stylesheet, ordered by its own includes.
+ *
+ * Two rules meet on an element when their subjects share a class or name
+ * classes that can sit on one element, which classicyClassCooccurrence.ts
+ * derives from the components' JSX (a help button is also a bevel button),
+ * pinned against the rendered DOM by ClassicyClassCooccurrence.test.tsx.
+ * A subject with no non-state class (`li:after`) is not compared; pin such
+ * an override in KNOWN_OVERRIDES.
  */
 describe("cross-file overrides do not depend on import order", () => {
 	const STATES = new Set<string>(vocabulary.states);
@@ -248,16 +261,18 @@ describe("cross-file overrides do not depend on import order", () => {
 	type Declaration = {
 		file: string;
 		selector: string;
+		/** The subject's non-state classes. */
+		classes: string[];
 		property: string;
 		value: string;
 		specificity: ClassicySpecificity;
 	};
 	let cache: Map<string, Declaration[]> | undefined;
 	/**
-	 * Every declaration of every component stylesheet, keyed by what it
-	 * styles: a non-state class of its subject, the pseudo-element and the
-	 * property. At-rule context is ignored: a rule under a matching @media
-	 * ties with one outside it.
+	 * Every declaration of every component stylesheet whose subject names a
+	 * non-state class, keyed by its pseudo-element and property. At-rule
+	 * context is ignored: a rule under a matching @media ties with one
+	 * outside it.
 	 */
 	const declarationsByTarget = (): Map<string, Declaration[]> => {
 		if (cache) return cache;
@@ -271,13 +286,21 @@ describe("cross-file overrides do not depend on import order", () => {
 				for (const selector of splitClassicySelectorList(rule.selector)) {
 					const { classes, pseudoElement } = classicySelectorSubject(selector);
 					const specificity = classicySelectorSpecificity(selector);
-					for (const [property, value] of rule.declarations)
-						for (const cls of classes.filter((c) => !STATES.has(c))) {
-							const key = `${cls}|${pseudoElement}|${property}`;
-							const list = cache.get(key) ?? [];
-							list.push({ file, selector, property, value, specificity });
-							cache.set(key, list);
-						}
+					const targets = classes.filter((c) => !STATES.has(c));
+					if (!targets.length) continue;
+					for (const [property, value] of rule.declarations) {
+						const key = `${pseudoElement}|${property}`;
+						const list = cache.get(key) ?? [];
+						list.push({
+							file,
+							selector,
+							classes: targets,
+							property,
+							value,
+							specificity,
+						});
+						cache.set(key, list);
+					}
 				}
 		}
 		return cache;
@@ -350,22 +373,81 @@ describe("cross-file overrides do not depend on import order", () => {
 		[tieKey(
 			".classicyBevelButton.classicyBevelButtonSquare",
 			".classicyBevelButton.classicyHelpButton",
-		)]: "latent: a help button in a large toolbar (see above)",
+		)]: "latent, follow-up story: a help button in a large toolbar (see above)",
+		[tieKey(
+			".classicyWindow .classicyWindowTitleBarModal",
+			".classicyWindowFrame > .classicyWindowTitleBar",
+		)]: FRAME,
+		// KNOWN ORDER DEPENDENCIES found once the guard compared classes that
+		// sit on one element (0082-lgo review), reported rather than changed:
+		// each is decided today by dist/classicy.css order, as noted.
+		// ComboBox's "No matches" row is also a pop-up list item (color,
+		// cursor); ClassicyComboBox.scss comes later, so the gray wins.
+		[tieKey(".classicyComboBoxNoMatches", ".classicyPopUpMenuListItem")]:
+			"latent, follow-up story: the combo box's no-matches row (see above)",
+		// The menu-bar clock is also a menu item (margin); the clock's sheet
+		// comes later, so its margin wins.
+		[tieKey(".classicyDesktopMenuTime", ".classicyMenuItem")]:
+			"latent, follow-up story: the menu-bar clock's margin (see above)",
+		// A window with both a header and its own menu bar (menuBar.placement
+		// "window") has contents carrying classicyWindowContents and
+		// classicyWindowContentsWithHeader (height); ClassicyWindowMenuBar.scss
+		// comes later, so the height leaves out the header's chrome.
+		[tieKey(
+			".classicyWindow.classicyWindow .classicyWindowContentsWithHeader",
+			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents",
+		)]:
+			"latent, follow-up story: header plus window menu bar contents height (see above)",
+		[tieKey(
+			".classicyWindow.classicyWindow .classicyWindowContentsWithHeader",
+			".classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContents",
+		)]:
+			"latent, follow-up story: header plus window menu bar contents height (see above)",
+		// The slider's value label also carries its labelSize class
+		// (sizeClassMap in ClassicySlider.tsx; font-size); ClassicySlider.scss
+		// comes later, so the value is always the small size.
+		[tieKey(".classicyControlLabelSizeMedium", ".classicySliderValue")]:
+			"latent, follow-up story: the slider value label's size (see above)",
+		[tieKey(".classicyControlLabelSizeLarge", ".classicySliderValue")]:
+			"latent, follow-up story: the slider value label's size (see above)",
+	};
+
+	// Which classes can sit on one element, read from the components' JSX
+	// (classicyClassCooccurrence.ts), so it follows them as they change.
+	let meet: ((a: string, b: string) => boolean) | undefined;
+	const canMeet = (a: string[], b: string[]) => {
+		meet ??= classicyClassesMeet(
+			classicyClassSets(CLASSICY_COMPONENT, classicyStylesheetClasses()),
+		);
+		const m = meet;
+		return a.some((x) => b.some((y) => m(x, y)));
+	};
+
+	/**
+	 * Every pair of rules from two stylesheets that set one property of one
+	 * element (their subjects share a class, or name classes that can sit on
+	 * one element: `.classicyHelpButton` and `.classicyBevelButton`) to
+	 * different values at the same specificity.
+	 */
+	const crossFileTies = (): Set<string> => {
+		const ties = new Set<string>();
+		for (const list of declarationsByTarget().values())
+			for (const a of list)
+				for (const b of list)
+					if (
+						a.file < b.file &&
+						a.value !== b.value &&
+						compareClassicySpecificity(a.specificity, b.specificity) === 0 &&
+						canMeet(a.classes, b.classes)
+					)
+						ties.add(tieKey(a.selector, b.selector));
+		return ties;
 	};
 
 	it(
-		"every cross-file pair that styles the same target differently differs in specificity",
+		"every cross-file pair that styles one element differently differs in specificity",
 		() => {
-			const ties = new Set<string>();
-			for (const list of declarationsByTarget().values())
-				for (const a of list)
-					for (const b of list)
-						if (
-							a.file < b.file &&
-							a.value !== b.value &&
-							compareClassicySpecificity(a.specificity, b.specificity) === 0
-						)
-							ties.add(tieKey(a.selector, b.selector));
+			const ties = crossFileTies();
 			expect(
 				[...ties].filter((t) => !(t in TIES_THAT_NEVER_MEET)).sort(),
 			).toEqual([]);
