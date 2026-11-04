@@ -1,4 +1,7 @@
-.classicyDesktopMenuTime {
+// The clock is also a menu item (ClassicyDesktopMenuWidgetTime.tsx); both
+// classes so its margin beats .classicyMenuItem's whichever stylesheet loads
+// first.
+.classicyMenuItem.classicyDesktopMenuTime {
   margin: 0 var(--window-control-size);
 }
 

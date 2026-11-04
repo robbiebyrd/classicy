@@ -381,14 +381,6 @@ describe("cross-file overrides do not depend on import order", () => {
 		// KNOWN ORDER DEPENDENCIES found once the guard compared classes that
 		// sit on one element (0082-lgo review), reported rather than changed:
 		// each is decided today by dist/classicy.css order, as noted.
-		// ComboBox's "No matches" row is also a pop-up list item (color,
-		// cursor); ClassicyComboBox.scss comes later, so the gray wins.
-		[tieKey(".classicyComboBoxNoMatches", ".classicyPopUpMenuListItem")]:
-			"latent, follow-up story: the combo box's no-matches row (see above)",
-		// The menu-bar clock is also a menu item (margin); the clock's sheet
-		// comes later, so its margin wins.
-		[tieKey(".classicyDesktopMenuTime", ".classicyMenuItem")]:
-			"latent, follow-up story: the menu-bar clock's margin (see above)",
 		// A window with both a header and its own menu bar (menuBar.placement
 		// "window") has contents carrying classicyWindowContents and
 		// classicyWindowContentsWithHeader (height); ClassicyWindowMenuBar.scss
@@ -497,6 +489,27 @@ describe("cross-file overrides do not depend on import order", () => {
 			".classicyWindow .classicyWindowContents",
 			`${W}Window/ClassicyWindow.scss`,
 			"height",
+		],
+		[
+			".classicyComboBoxNoMatches.classicyPopUpMenuListItem",
+			`${W}ComboBox/ClassicyComboBox.scss`,
+			".classicyPopUpMenuListItem",
+			`${W}PopUpMenu/ClassicyPopUpMenu.scss`,
+			"color",
+		],
+		[
+			".classicyComboBoxNoMatches.classicyPopUpMenuListItem",
+			`${W}ComboBox/ClassicyComboBox.scss`,
+			".classicyPopUpMenuListItem",
+			`${W}PopUpMenu/ClassicyPopUpMenu.scss`,
+			"cursor",
+		],
+		[
+			".classicyMenuItem.classicyDesktopMenuTime",
+			`${W}Desktop/MenuBar/Widgets/Time/ClassicyDesktopMenuWidgetTime.scss`,
+			".classicyMenuItem",
+			`${W}Menu/ClassicyMenu.scss`,
+			"margin",
 		],
 		[
 			".classicyWindowPlacardBar .classicyPlacardHolder",

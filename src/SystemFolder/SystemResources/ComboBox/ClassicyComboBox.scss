@@ -27,7 +27,10 @@
   }
 }
 
-.classicyComboBoxNoMatches {
+// The "No matches" row is also a pop-up list item (ClassicyComboBox.tsx); both
+// classes so its gray and arrow beat .classicyPopUpMenuListItem's whichever
+// stylesheet loads first.
+.classicyComboBoxNoMatches.classicyPopUpMenuListItem {
   color: var(--color-system-05);
   cursor: default;
 }
