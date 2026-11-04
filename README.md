@@ -154,7 +154,10 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   The published `platinum-window-control-box` and
   `platinum-window-control-box-depressable` mixins draw their dither from
   `--classicy-art-window-dither`, so a host using them outside a desktop must
-  define it (or accept no dither).
+  define it (or accept no dither). They and `platinum-menu-divider` now draw
+  only the look: the box's size and its `::before`/`::after` geometry, and the
+  divider's full-width stretch, are base structure, so a host including them
+  on an element of its own sets those itself.
 - **Text glyphs are package CSS.** The menu check and dash, the pop-up and
   combo-box check, the bevel button's ▸ ▾, the placard's ▾, the file input's
   ✕ and the HyperCard tools palette's ✓ are now empty `aria-hidden` spans the

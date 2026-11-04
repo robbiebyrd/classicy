@@ -1538,7 +1538,11 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   gradient included, is invalid at computed-value time. The published
   `platinum-window-control-box` and `platinum-window-control-box-depressable`
   mixins draw their dither from `--classicy-art-window-dither`, so a host
-  using them outside a desktop must define it (or accept no dither).
+  using them outside a desktop must define it (or accept no dither). They
+  and `platinum-menu-divider` draw only the look: the box's size and its
+  `::before`/`::after` geometry, and the divider's full-width stretch, are
+  base structure ("What the base sheets already carry", §8), so a host
+  including them on an element of its own sets those itself.
 - **The window frame draws the window's title bar.** `ClassicyWindowFrame`
   renders `ClassicyWindowTitleBar` (§4.1); its `classicyWindowFrameTitleBar`
   and `classicyWindowFrameTitleText` classes are gone. Target
