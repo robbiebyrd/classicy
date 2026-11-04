@@ -228,6 +228,32 @@ describe("useClassicyAppearance", () => {
 		expect(result.current.emit).toBe(first);
 	});
 
+	// Checked by tsc (the root tsconfig includes tests): a dragEnd must say
+	// whether its gesture was lost; no other event needs a detail.
+	it("requires lost on a dragEnd detail, and passes it to the handler", () => {
+		const details: unknown[] = [];
+		install({ on: { dragEnd: (ctx) => void details.push(ctx.detail) } });
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Window", PRESSED),
+		);
+		const { emit } = result.current;
+		act(() => {
+			emit("dragEnd", { kind: "move", lost: true });
+			emit("dragEnd", { lost: false });
+			emit("dragStart");
+			// @ts-expect-error: a dragEnd must carry lost
+			emit("dragEnd");
+			// @ts-expect-error: a dragEnd must carry lost
+			emit("dragEnd", { kind: "move" });
+		});
+		expect(details).toEqual([
+			{ kind: "move", lost: true },
+			{ lost: false },
+			undefined,
+			{ kind: "move" },
+		]);
+	});
+
 	it("clears the emitted decoration when the package changes", () => {
 		install({ on: { press: () => ({ className: "flash" }) } });
 		const { result } = renderHook(() =>

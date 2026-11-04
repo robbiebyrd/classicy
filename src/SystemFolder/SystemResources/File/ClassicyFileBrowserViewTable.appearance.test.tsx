@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
@@ -81,7 +85,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: true, canceled: false },
+				detail: { kind: "file", dropped: true, canceled: false, lost: false },
 			},
 		]);
 	});
@@ -97,7 +101,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, canceled: false },
+				detail: { kind: "file", dropped: false, canceled: false, lost: false },
 			},
 		]);
 	});
@@ -115,7 +119,27 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, canceled: true },
+				detail: { kind: "file", dropped: false, canceled: true, lost: false },
+			},
+		]);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("emits one dragEnd, canceled and lost, on a %s", (loss) => {
+		const { row, onMoveItems } = renderList();
+		withElementsFromPoint([folder()], () => {
+			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+			losePointerStream(loss);
+			fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+		});
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(drags()).toEqual([
+			{ event: "dragStart", detail: { kind: "file" } },
+			{
+				event: "dragEnd",
+				detail: { kind: "file", dropped: false, canceled: true, lost: true },
 			},
 		]);
 	});
@@ -156,7 +180,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 			{ event: "dragStart", detail: { kind: "file" } },
 			{
 				event: "dragEnd",
-				detail: { kind: "file", dropped: false, canceled: true },
+				detail: { kind: "file", dropped: false, canceled: true, lost: false },
 			},
 			{ event: "unmount", detail: undefined },
 		]);

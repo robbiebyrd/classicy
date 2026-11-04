@@ -1,6 +1,10 @@
 import { produce } from "immer";
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import {
@@ -201,7 +205,10 @@ describe("ClassicyWindow appearance", () => {
 			["dragStart", "change", "dragEnd"].includes(e.event),
 		);
 		expect(drag[0]).toEqual({ event: "dragStart", detail: { kind: "move" } });
-		expect(drag.at(-1)).toEqual({ event: "dragEnd", detail: { kind: "move" } });
+		expect(drag.at(-1)).toEqual({
+			event: "dragEnd",
+			detail: { kind: "move", lost: false },
+		});
 		const moves = drag.slice(1, -1);
 		expect(moves.length).toBeGreaterThan(0);
 		for (const move of moves)
@@ -221,7 +228,7 @@ describe("ClassicyWindow appearance", () => {
 			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
 		).toEqual([
 			{ event: "dragStart", detail: { kind: "move" } },
-			{ event: "dragEnd", detail: { kind: "move" } },
+			{ event: "dragEnd", detail: { kind: "move", lost: false } },
 		]);
 	});
 
@@ -241,7 +248,7 @@ describe("ClassicyWindow appearance", () => {
 		});
 		expect(drag.at(-1)).toEqual({
 			event: "dragEnd",
-			detail: { kind: "resize" },
+			detail: { kind: "resize", lost: false },
 		});
 		expect(drag.filter((e) => e.event === "dragEnd")).toHaveLength(1);
 	});
@@ -263,7 +270,7 @@ describe("ClassicyWindow appearance", () => {
 			{ event: "dragStart", detail: { kind: "resize" } },
 			{ event: "change", detail: { kind: "resize" } },
 			{ event: "change", detail: { kind: "resize" } },
-			{ event: "dragEnd", detail: { kind: "resize" } },
+			{ event: "dragEnd", detail: { kind: "resize", lost: false } },
 		]);
 	});
 
@@ -284,7 +291,7 @@ describe("ClassicyWindow appearance", () => {
 			{ event: "dragStart", detail: { kind: "move" } },
 			{ event: "change", detail: { kind: "move" } },
 			{ event: "change", detail: { kind: "move" } },
-			{ event: "dragEnd", detail: { kind: "move" } },
+			{ event: "dragEnd", detail: { kind: "move", lost: false } },
 		]);
 	});
 
@@ -347,5 +354,39 @@ describe("ClassicyWindow appearance", () => {
 		expect(root().getAttribute("class")).toBe(
 			"classicyWindow classicyWindowDocument active classicyWindowScrollBarsHidden",
 		);
+	});
+});
+
+// A gesture whose pointer stream is lost (the window blurs, a pointercancel,
+// the page is hidden) ends where it is, as a release there would, and its
+// one dragEnd says so with `lost: true`; a release says `lost: false`.
+describe("ClassicyWindow appearance when the pointer stream is lost", () => {
+	const dragEnds = () => emitted().filter((e) => e.event === "dragEnd");
+
+	it.each(POINTER_STREAM_LOSSES)("a move's dragEnd is lost on a %s", (loss) => {
+		renderWindow();
+		const title = part("classicyWindowTitle");
+		fireEvent.mouseDown(title, { clientX: 100, clientY: 60 });
+		fireEvent.mouseMove(document.body, { clientX: 140, clientY: 90 });
+		losePointerStream(loss);
+		// The release that finally comes ends nothing more.
+		fireEvent.mouseUp(document.body, { clientX: 140, clientY: 90 });
+		expect(dragEnds()).toEqual([
+			{ event: "dragEnd", detail: { kind: "move", lost: true } },
+		]);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("a resize's dragEnd is lost on a %s", (loss) => {
+		renderWindow();
+		const grow = part("classicyWindowResizer");
+		fireEvent.mouseDown(grow, { clientX: 340, clientY: 250 });
+		fireEvent.mouseMove(document.body, { clientX: 380, clientY: 290 });
+		losePointerStream(loss);
+		fireEvent.mouseUp(document.body, { clientX: 380, clientY: 290 });
+		expect(dragEnds()).toEqual([
+			{ event: "dragEnd", detail: { kind: "resize", lost: true } },
+		]);
 	});
 });

@@ -101,6 +101,11 @@ export type ClassicyFileDragEnd = {
 	 * dropped nor canceled.
 	 */
 	canceled: boolean;
+	/**
+	 * Ended by the pointer stream being lost (always canceled too), not by
+	 * Escape, a release or the caller abandoning it.
+	 */
+	lost: boolean;
 };
 
 export type ClassicyFileDragOptions = {
@@ -243,7 +248,7 @@ export function startClassicyFileDrag(
 		}
 		// Hit-tested once the outline and highlight are gone.
 		const target = targetAt(e.clientX, e.clientY);
-		reportEnd({ dropped: target !== null, canceled: false });
+		reportEnd({ dropped: target !== null, canceled: false, lost: false });
 		options.onDrop(
 			target,
 			[e.clientX, e.clientY],
@@ -251,25 +256,25 @@ export function startClassicyFileDrag(
 		);
 	}
 
-	// Escape, a lost pointer stream, or the caller abandoning the press: a
-	// drag in progress ends canceled. Once: cleanup removes the listeners and the outline, so
+	// Escape, a lost pointer stream (`lost`), or the caller abandoning the
+	// press: a drag in progress ends canceled. Once: cleanup removes the listeners and the outline, so
 	// nothing can end it again.
-	const cancel = () => {
+	const cancel = (lost: boolean) => {
 		const dragged = ghost !== null;
 		cleanup();
-		if (dragged) reportEnd({ dropped: false, canceled: true });
+		if (dragged) reportEnd({ dropped: false, canceled: true, lost });
 	};
 
 	function onKey(e: KeyboardEvent) {
 		if (e.key !== "Escape" || !ghost) return;
 		e.preventDefault();
 		e.stopPropagation();
-		cancel();
+		cancel(false);
 	}
 
 	document.addEventListener("mousemove", onMove, true);
 	document.addEventListener("mouseup", onUp, true);
 	document.addEventListener("keydown", onKey, true);
-	stopWatchingPointerStream = onClassicyPointerStreamLost(cancel);
-	return cancel;
+	stopWatchingPointerStream = onClassicyPointerStreamLost(() => cancel(true));
+	return () => cancel(false);
 }

@@ -261,15 +261,19 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const pointerDragRef = useRef(false);
 	// While a press lasts, the document is watched for its release, so one
 	// that lands outside the input still ends the drag, and for the pointer
-	// stream being lost (see loseDrag). This stops watching both.
+	// stream being lost (see loseDrag). This stops watching both. `lost`:
+	// ended by the pointer stream being lost, not by a release.
 	const stopWatchingRef = useRef<(() => void) | null>(null);
-	const finishPointerDrag = () => {
+	const finishPointerDrag = (lost: boolean) => {
 		const stopWatching = stopWatchingRef.current;
 		stopWatchingRef.current = null;
 		stopWatching?.();
 		if (!pointerDragRef.current) return;
 		pointerDragRef.current = false;
-		appearance.emit("dragEnd", { value: Number(inputRef.current?.value) });
+		appearance.emit("dragEnd", {
+			value: Number(inputRef.current?.value),
+			lost,
+		});
 	};
 	// Unmounted mid-press: stop watching (no dragEnd; the slider is gone).
 	useEffect(() => () => stopWatchingRef.current?.(), []);
@@ -287,7 +291,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const loseDrag = () => {
 		const pressed = pointerDragRef.current;
 		setDragging(false);
-		finishPointerDrag();
+		finishPointerDrag(true);
 		if (pressed && onCommitFunc) {
 			committedByLossRef.current = true;
 			onCommitFunc(Number(inputRef.current?.value));
@@ -307,7 +311,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			pointerDragRef.current = true;
 			// The guard in finishPointerDrag keeps it to one dragEnd when the
 			// input saw the release too.
-			const listener = () => finishPointerDrag();
+			const listener = () => finishPointerDrag(false);
 			document.addEventListener("pointerup", listener);
 			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
 				loseDragRef.current(),
@@ -322,7 +326,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 
 	const endDrag = (e: SyntheticEvent<HTMLInputElement>) => {
 		if (dragging) setDragging(false);
-		finishPointerDrag();
+		finishPointerDrag(false);
 		if (onCommitFunc && !committedByLossRef.current) handleCommit(e);
 	};
 

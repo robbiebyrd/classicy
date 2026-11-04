@@ -213,7 +213,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		}
 	};
 
-	const stopChangeIcon = () => {
+	// `lost`: ended by the pointer stream being lost, not by a release.
+	const stopChangeIcon = (lost: boolean) => {
 		// Gated on a real drag: mouseup also ends a bare click, and Mac OS 8 never
 		// moved an icon you only clicked to select it.
 		if (snapTo && movedWhileDragging.current) {
@@ -223,14 +224,14 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		setDragging(false);
 		if (dragEmittedRef.current) {
 			dragEmittedRef.current = false;
-			appearance.emit("dragEnd");
+			appearance.emit("dragEnd", { lost });
 		}
 	};
 
 	// The pointer stream lost mid-drag (the window blurred, a pointercancel,
 	// the page hidden): the icon stays where it was dragged, as if released
 	// there, instead of following the pointer back with no button held.
-	useClassicyPointerStreamLost(dragging, stopChangeIcon);
+	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 		if (onFileDrag) {
@@ -353,7 +354,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			}}
 			onMouseDown={startDrag}
 			onMouseMove={changeIcon}
-			onMouseUp={stopChangeIcon}
+			onMouseUp={() => stopChangeIcon(false)}
 			onDoubleClick={doDoubleClick}
 		>
 			{labelPosition === "above" ? labelEl : iconEl}

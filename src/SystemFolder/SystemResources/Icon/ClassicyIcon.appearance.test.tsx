@@ -97,7 +97,7 @@ describe("ClassicyIcon appearance", () => {
 		fireEvent.mouseUp(el);
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: undefined },
-			{ event: "dragEnd", detail: undefined },
+			{ event: "dragEnd", detail: { lost: false } },
 		]);
 	});
 
@@ -126,7 +126,7 @@ describe("ClassicyIcon appearance", () => {
 		fireEvent.mouseUp(el);
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: undefined },
-			{ event: "dragEnd", detail: undefined },
+			{ event: "dragEnd", detail: { lost: true } },
 		]);
 	});
 
@@ -183,7 +183,7 @@ describe("ClassicyIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: true, canceled: false },
+					detail: { kind: "file", dropped: true, canceled: false, lost: false },
 				},
 			]);
 			// The outline drags, not the icon.
@@ -201,7 +201,12 @@ describe("ClassicyIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: false },
+					detail: {
+						kind: "file",
+						dropped: false,
+						canceled: false,
+						lost: false,
+					},
 				},
 			]);
 		});
@@ -219,7 +224,7 @@ describe("ClassicyIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: false },
 				},
 			]);
 		});
@@ -246,7 +251,7 @@ describe("ClassicyIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: true },
 				},
 			]);
 		});
@@ -267,7 +272,7 @@ describe("ClassicyIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: false },
 				},
 				{ event: "unmount", detail: undefined },
 			]);

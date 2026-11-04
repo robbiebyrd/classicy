@@ -159,7 +159,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
 		).toEqual([
 			{ event: "dragStart", detail: undefined },
-			{ event: "dragEnd", detail: undefined },
+			{ event: "dragEnd", detail: { lost: false } },
 		]);
 	});
 
@@ -187,7 +187,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
 		).toEqual([
 			{ event: "dragStart", detail: undefined },
-			{ event: "dragEnd", detail: undefined },
+			{ event: "dragEnd", detail: { lost: true } },
 		]);
 	});
 
@@ -245,7 +245,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: true, canceled: false },
+					detail: { kind: "file", dropped: true, canceled: false, lost: false },
 				},
 			]);
 			expect(el).not.toHaveClass("dragging");
@@ -262,7 +262,12 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: false },
+					detail: {
+						kind: "file",
+						dropped: false,
+						canceled: false,
+						lost: false,
+					},
 				},
 			]);
 		});
@@ -279,7 +284,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: false },
 				},
 			]);
 		});
@@ -299,7 +304,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: true },
 				},
 			]);
 		});
@@ -323,7 +328,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 				{ event: "dragStart", detail: { kind: "file" } },
 				{
 					event: "dragEnd",
-					detail: { kind: "file", dropped: false, canceled: true },
+					detail: { kind: "file", dropped: false, canceled: true, lost: false },
 				},
 				{ event: "unmount", detail: undefined },
 			]);

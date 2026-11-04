@@ -1,5 +1,6 @@
 import "@/Appearance/Platinum";
 import { describe, expect, it, vi } from "vitest";
+import { losePointerStream } from "@/__tests__/losePointerStream";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
 	type ClassicyAppearancePackage,
@@ -10,6 +11,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 // The root vitest config has no `@sb` alias, so the Storybook helper is
 // imported by its relative path.
 import { ClassicyAppearanceProbe } from "../../storybook/.storybook/ClassicyAppearanceProbe";
@@ -193,5 +195,23 @@ describe("ClassicyAppearanceProbe (Storybook)", () => {
 		expect(names).toContain("Button.mount");
 		expect(names).toContain("Button.press");
 		expect(names).toContain("Button.release");
+	});
+
+	it("logs whether a dragEnd's gesture was lost", () => {
+		logged.length = 0;
+		const { container } = render(
+			<ClassicyAppearanceProbe>
+				<ClassicySlider id="s" value={10} />
+			</ClassicyAppearanceProbe>,
+		);
+		const slider = container.querySelector("input") as HTMLInputElement;
+		fireEvent.pointerDown(slider);
+		fireEvent.pointerUp(document.body);
+		fireEvent.pointerDown(slider);
+		losePointerStream("blur");
+		expect(logged.filter(({ name }) => name === "Slider.dragEnd")).toEqual([
+			{ name: "Slider.dragEnd", detail: { value: 10, lost: false } },
+			{ name: "Slider.dragEnd", detail: { value: 10, lost: true } },
+		]);
 	});
 });

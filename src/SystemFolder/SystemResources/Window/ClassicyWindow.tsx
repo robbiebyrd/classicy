@@ -720,7 +720,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(
 		() => {},
 	);
-	const docUpHandlerRef = useRef<() => void>(() => {});
+	// `lost`: ended by the pointer stream being lost, not by a release.
+	const docUpHandlerRef = useRef<(lost: boolean) => void>(() => {});
 	// While a press lasts (a title-bar or frame press that may become a move,
 	// or a resize), the pointer stream is watched: lost (the window blurs, a
 	// pointercancel, the page is hidden), the gesture ends where it is,
@@ -736,14 +737,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const watchPointerStream = () => {
 		stopWatchingPointerStream();
 		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(() =>
-			docUpHandlerRef.current(),
+			docUpHandlerRef.current(true),
 		);
 	};
 
 	useEffect(() => {
 		const moveHandler = (e: globalThis.MouseEvent) =>
 			docMoveHandlerRef.current(e);
-		const upHandler = () => docUpHandlerRef.current();
+		const upHandler = () => docUpHandlerRef.current(false);
 		document.addEventListener("mousemove", moveHandler);
 		document.addEventListener("mouseup", upHandler);
 		return () => {
@@ -1145,7 +1146,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	// Every release (the document hears those on the window too, after
 	// stopChangeWindow), or the pointer stream lost.
-	docUpHandlerRef.current = () => {
+	docUpHandlerRef.current = (lost) => {
 		stopWatchingPointerStream();
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
@@ -1154,7 +1155,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		isDraggingRef.current = false;
 		isResizingRef.current = false;
 
-		emit("dragEnd", { kind: wasResizing ? "resize" : "move" });
+		emit("dragEnd", { kind: wasResizing ? "resize" : "move", lost });
 		setActive();
 		if (wasResizing || ws.resizing) {
 			endResize();
@@ -1352,6 +1353,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			e.preventDefault();
 			emit("dragEnd", {
 				kind: isResizingRef.current || ws.resizing ? "resize" : "move",
+				lost: false,
 			});
 		}
 		const wasResizing = isResizingRef.current;

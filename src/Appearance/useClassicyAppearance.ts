@@ -14,6 +14,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { subscribeClassicyActiveAppearancePackage } from "./ClassicyActiveAppearancePackage.internal";
 import type {
 	ClassicyAppearanceDecoration,
+	ClassicyAppearanceEmit,
 	ClassicyAppearanceEvent,
 	ClassicyAppearancePackage,
 } from "./ClassicyAppearancePackage";
@@ -123,6 +124,8 @@ type EmittedDecoration = {
  *   React has detached refs by then, so an `unmount` handler sees
  *   `element: null`. In development StrictMode React runs that effect twice,
  *   so a handler sees mount, unmount, mount.
+ * - A `dragEnd` detail must carry `lost` (`ClassicyAppearanceDragEnd`):
+ *   true when the gesture ended because the pointer stream was lost.
  *
  * With no package hooks the result is a pure function of `state`:
  * `className` is `classicyStateClasses(state)`, `style` is undefined and
@@ -136,7 +139,7 @@ export function useClassicyAppearance<E extends HTMLElement = HTMLElement>(
 	className: string;
 	style?: CSSProperties;
 	attrs: Record<string, string>;
-	emit: (event: ClassicyAppearanceEvent, detail?: unknown) => void;
+	emit: ClassicyAppearanceEmit;
 } {
 	const pkg = useSyncExternalStore(
 		subscribeClassicyActiveAppearancePackage,

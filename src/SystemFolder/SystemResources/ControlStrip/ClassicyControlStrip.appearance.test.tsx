@@ -1,5 +1,9 @@
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -105,7 +109,7 @@ describe("ClassicyControlStrip appearance", () => {
 		fireEvent.mouseUp(document);
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: { kind: "resize" } },
-			{ event: "dragEnd", detail: { kind: "resize" } },
+			{ event: "dragEnd", detail: { kind: "resize", lost: false } },
 		]);
 	});
 
@@ -124,7 +128,7 @@ describe("ClassicyControlStrip appearance", () => {
 		fireEvent.mouseUp(document);
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: { kind: "move" } },
-			{ event: "dragEnd", detail: { kind: "move" } },
+			{ event: "dragEnd", detail: { kind: "move", lost: false } },
 		]);
 		desktop.remove();
 	});
@@ -208,5 +212,49 @@ describe("ClassicyControlStrip appearance", () => {
 		expect(strip().hasAttribute("data-probe-state")).toBe(false);
 		expect(strip().hasAttribute("style")).toBe(false);
 		expect(strip().getAttribute("class")).toBe("classicyControlStrip");
+	});
+});
+
+// A drag whose pointer stream is lost (the window blurs, a pointercancel,
+// the page is hidden) ends where it is, and its one dragEnd says
+// `lost: true`; a release says `lost: false`.
+describe("ClassicyControlStrip appearance when the pointer stream is lost", () => {
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("a tab drag's dragEnd is lost on a %s", (loss) => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(30);
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 160 });
+		losePointerStream(loss);
+		fireEvent.mouseUp(document);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: { kind: "resize" } },
+			{ event: "dragEnd", detail: { kind: "resize", lost: true } },
+		]);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("a Control-drag's dragEnd is lost on a %s", (loss) => {
+		const desktop = document.createElement("div");
+		document.body.appendChild(desktop);
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			desktop,
+		);
+		vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(24);
+		renderStrip();
+		const box = screen.getByRole("button", { name: "Collapse Control Strip" });
+		fireEvent.mouseDown(box, { button: 0, ctrlKey: true, clientX: 5 });
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		losePointerStream(loss);
+		fireEvent.mouseUp(document);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: { kind: "move" } },
+			{ event: "dragEnd", detail: { kind: "move", lost: true } },
+		]);
+		desktop.remove();
 	});
 });

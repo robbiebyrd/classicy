@@ -279,7 +279,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: true, canceled: false });
+		expect(onEnd).toHaveBeenCalledWith({
+			dropped: true,
+			canceled: false,
+			lost: false,
+		});
 		expect(onDrop).toHaveBeenCalledOnce();
 		expect(calls).toEqual(["start", "end", "drop"]);
 		// The outline is gone by the time the end is reported.
@@ -293,7 +297,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: false });
+		expect(onEnd).toHaveBeenCalledWith({
+			dropped: false,
+			canceled: false,
+			lost: false,
+		});
 		expect(onDrop).toHaveBeenCalledWith(null, [40, 30], [40, 30]);
 	});
 
@@ -306,7 +314,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
+		expect(onEnd).toHaveBeenCalledWith({
+			dropped: false,
+			canceled: true,
+			lost: false,
+		});
 		expect(onDrop).not.toHaveBeenCalled();
 	});
 
@@ -328,7 +340,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
+		expect(onEnd).toHaveBeenCalledWith({
+			dropped: false,
+			canceled: true,
+			lost: false,
+		});
 		expect(onDrop).not.toHaveBeenCalled();
 		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
 	});
@@ -415,7 +431,11 @@ describe("startClassicyFileDrag when the pointer stream is lost", () => {
 		expect(browser).toHaveClass("classicyFileDropTarget");
 		losePointerStream(loss);
 		expect(onEnd).toHaveBeenCalledOnce();
-		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
+		expect(onEnd).toHaveBeenCalledWith({
+			dropped: false,
+			canceled: true,
+			lost: true,
+		});
 		// The outline, the highlight and the body class are gone.
 		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
 		expect(browser).not.toHaveClass("classicyFileDropTarget");

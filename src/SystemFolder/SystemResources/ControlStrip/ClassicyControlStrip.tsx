@@ -360,7 +360,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 	useEffect(() => stopWatchingPointerStream, [stopWatchingPointerStream]);
 	// The gestures' ends, kept current by the effects that own them below.
 	const endTabDragRef = useRef<(released: boolean) => void>(() => {});
-	const endMoveRef = useRef<() => void>(() => {});
+	// `lost`: ended by the pointer stream being lost, not by a release.
+	const endMoveRef = useRef<(lost: boolean) => void>(() => {});
 
 	const updateScrollState = useCallback(() => {
 		const el = viewportRef.current;
@@ -451,7 +452,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			const drag = dragRef.current;
 			dragRef.current = null;
 			if (released && drag && !drag.moved) setCollapsed(!collapsed);
-			if (drag?.moved) emit("dragEnd", { kind: "resize" });
+			if (drag?.moved) emit("dragEnd", { kind: "resize", lost: !released });
 		};
 		endTabDragRef.current = endTabDrag;
 		const onUp = () => endTabDrag(true);
@@ -496,7 +497,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			});
 			setMovePreview(move.position);
 		};
-		const onUp = () => {
+		const endMove = (lost: boolean) => {
 			stopWatchingPointerStream();
 			const move = moveRef.current;
 			moveRef.current = null;
@@ -507,7 +508,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			setTimeout(() => {
 				suppressCollapseClickRef.current = false;
 			}, 0);
-			if (move.moved) emit("dragEnd", { kind: "move" });
+			if (move.moved) emit("dragEnd", { kind: "move", lost });
 			if (!move.position) return;
 			dispatch({
 				type: "ClassicyDesktopControlStripSetPosition",
@@ -515,7 +516,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 			});
 			setMovePreview(null);
 		};
-		endMoveRef.current = onUp;
+		endMoveRef.current = endMove;
+		const onUp = () => endMove(false);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
 		return () => {
@@ -540,7 +542,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			moved: false,
 			position: null,
 		};
-		watchPointerStream(() => endMoveRef.current());
+		watchPointerStream(() => endMoveRef.current(true));
 	};
 
 	// A Control-click raises a contextual menu on macOS; on the collapse box it

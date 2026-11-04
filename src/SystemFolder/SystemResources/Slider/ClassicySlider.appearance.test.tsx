@@ -90,7 +90,7 @@ describe("ClassicySlider appearance", () => {
 			expect(emitted()).toEqual([
 				{ event: "dragStart", detail: { value: 10 } },
 				{ event: "change", detail: { value: 40, input: "pointer" } },
-				{ event: "dragEnd", detail: { value: 40 } },
+				{ event: "dragEnd", detail: { value: 40, lost: false } },
 			]);
 			unmount();
 			probe.events.length = 0;
@@ -115,7 +115,7 @@ describe("ClassicySlider appearance", () => {
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: { value: 10 } },
 			{ event: "change", detail: { value: 30, input: "pointer" } },
-			{ event: "dragEnd", detail: { value: 30 } },
+			{ event: "dragEnd", detail: { value: 30, lost: false } },
 		]);
 		// A later release on the input is not a second end.
 		fireEvent.pointerUp(el);
@@ -158,7 +158,7 @@ describe("ClassicySlider appearance", () => {
 		expect(emitted()).toEqual([
 			{ event: "dragStart", detail: { value: 10 } },
 			{ event: "change", detail: { value: 40, input: "pointer" } },
-			{ event: "dragEnd", detail: { value: 40 } },
+			{ event: "dragEnd", detail: { value: 40, lost: true } },
 		]);
 		expect(ghostEl).toHaveClass("classicySliderGhostHidden");
 		expect(onCommit.mock.calls).toEqual([[40]]);

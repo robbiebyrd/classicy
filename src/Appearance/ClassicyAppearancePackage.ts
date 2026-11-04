@@ -92,6 +92,28 @@ export type ClassicyAppearanceEvent =
  */
 export type ClassicyAppearanceInput = "pointer" | "keyboard";
 
+/**
+ * What every `dragEnd` detail carries beside the component's own fields:
+ * `detail.lost` is true when the gesture ended because the pointer stream
+ * was lost (the window blurred, a `pointercancel`, the page turned hidden),
+ * false when it ended any other way (a release; for a file drag, Escape or
+ * its source unmounting too). A package uses it to, say, skip a drop sound
+ * for a gesture the user never let go of.
+ */
+export type ClassicyAppearanceDragEnd = { lost: boolean };
+
+/**
+ * A component's `emit` (`useClassicyAppearance`): a `dragEnd` must carry
+ * `lost` (`ClassicyAppearanceDragEnd`) with its own fields; any other event
+ * takes the component's own detail, or none.
+ */
+export type ClassicyAppearanceEmit = <E extends ClassicyAppearanceEvent>(
+	event: E,
+	...detail: E extends "dragEnd"
+		? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
+		: [detail?: unknown]
+) => void;
+
 /** What a package hook adds to a component's root element. */
 export type ClassicyAppearanceDecoration = {
 	className?: string;

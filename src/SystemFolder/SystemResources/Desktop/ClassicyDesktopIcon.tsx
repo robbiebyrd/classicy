@@ -414,7 +414,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					emitAppearance("select", { input: "keyboard" });
 			}, [appId, isSelected, isMultipleSelection, emitAppearance]);
 
-			const stopChangeIcon = () => {
+			// `lost`: ended by the pointer stream being lost, not by a release.
+			const stopChangeIcon = (lost: boolean) => {
 				// Bound to onMouseUp, so this runs on every release on the icon.
 				// Report only a drag that actually happened. didDragRef -- not
 				// the `dragging` state -- is the signal: setDragging(true) runs
@@ -428,7 +429,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				setClickPosition([0, 0]);
 				if (dragEmittedRef.current) {
 					dragEmittedRef.current = false;
-					appearance.emit("dragEnd");
+					appearance.emit("dragEnd", { lost });
 				}
 			};
 
@@ -436,7 +437,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// pointercancel, the page hidden): the icon stays where it was
 			// dragged, as if released there, instead of following the pointer
 			// back with no button held.
-			useClassicyPointerStreamLost(dragging, stopChangeIcon);
+			useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
 			const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 				if (iconRef.current == null) {
@@ -549,7 +550,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					id={`${id}`}
 					onMouseDown={startDrag}
 					onMouseMove={changeIcon}
-					onMouseUp={stopChangeIcon}
+					onMouseUp={() => stopChangeIcon(false)}
 					onDoubleClick={launchIcon}
 					draggable={false}
 					{...(filePath !== undefined &&
