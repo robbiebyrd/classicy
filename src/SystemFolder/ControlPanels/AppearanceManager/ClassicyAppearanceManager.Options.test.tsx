@@ -12,12 +12,16 @@ import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	appearanceOptionInputId,
@@ -157,6 +161,61 @@ describe("useOptionsTab", () => {
 		render(<Host theme={getTheme("default")} />);
 		expect(field("controlStrip", "cellHeight")).toHaveValue(22);
 		expect(field("menuBar", "barHeight")).toHaveValue(20);
+	});
+
+	// H-R29c: a missing value shows what getThemeVars draws, the theme's
+	// package defaults over the Platinum floor, not the knob's own default.
+	it("shows the value getThemeVars draws when the theme lacks one, not knob.default", () => {
+		const mismatchKnobs: ClassicyAppearanceKnobs = {
+			controlStrip: {
+				cellHeight: { label: "Cell height", min: 1, max: 512, default: 22 },
+				moduleWidth: { label: "Module width", min: 1, max: 512, default: 99 },
+			},
+			menuBar: {
+				barHeight: { label: "Menu bar height", min: 10, max: 60, default: 20 },
+			},
+		};
+		const mismatchPack: ClassicyAppearancePackage = {
+			...testPack,
+			id: "test-mismatch",
+			name: "Mismatch Pack",
+			defaults: {
+				...testPack.defaults,
+				package: "test-mismatch",
+				measurements: {
+					...getTheme("default").measurements,
+					controlStrip: { cellHeight: 26 },
+				},
+			},
+			knobs: mismatchKnobs,
+			options: classicyKnobsToSchema(mismatchKnobs),
+		};
+		registerClassicyAppearancePackage(mismatchPack);
+		try {
+			// As persistence leaves it (H-R17): the core five only.
+			const { window, control, button, groupBox, layout } =
+				getTheme("default").measurements;
+			const theme: ClassicyTheme = {
+				...getTheme("default"),
+				package: "test-mismatch",
+				measurements: { window, control, button, groupBox, layout },
+			};
+			render(<Host pkg={mismatchPack} theme={theme} />);
+			const vars = getThemeVars(theme) as Record<string, string>;
+			// The package's own value, and the Platinum key it inherits.
+			expect(field("controlStrip", "cellHeight")).toHaveValue(26);
+			expect(vars["--control-strip-cell-height"]).toBe("26px");
+			expect(field("controlStrip", "moduleWidth")).toHaveValue(
+				platinumJson.defaults.measurements.controlStrip.moduleWidth,
+			);
+			expect(vars["--control-strip-module-width"]).toBe(
+				`${platinumJson.defaults.measurements.controlStrip.moduleWidth}px`,
+			);
+			// No measurement default anywhere: the knob's own default.
+			expect(field("menuBar", "barHeight")).toHaveValue(20);
+		} finally {
+			unregisterClassicyAppearancePackage("test-mismatch");
+		}
 	});
 
 	it("routes every knob through changeMetric as a family target", () => {

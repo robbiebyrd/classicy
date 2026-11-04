@@ -9,6 +9,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import { appearanceThemeEditNotice } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
 import {
 	classicyMeasurementVarName,
+	classicyThemeMeasurementDefaults,
 	isReservedClassicyThemeVar,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
@@ -77,19 +78,34 @@ const knobFamilySchema = (
 // render or remount of the tab.
 const warnedPackages = new Set<string>();
 
-// The theme's value for each knob, or the knob's default when the theme
-// predates it (the reducer creates the key on the first edit).
+// The theme's value for each knob. When the theme lacks it (it predates the
+// knob, or persistence dropped a value equal to the package default, H-R17;
+// the reducer creates the key on the first edit), the value getThemeVars
+// draws: the theme's package defaults over the Platinum floor
+// (`classicyThemeMeasurementDefaults`, H-R29c). Only a knob with no
+// measurement default anywhere shows its own `default`.
 const knobFamilyValues = (
 	theme: ClassicyTheme,
 	family: string,
 	knobs: readonly EditableKnob[],
-): Record<string, number> =>
-	Object.fromEntries(
+): Record<string, number> => {
+	const defaults: Readonly<Record<string, unknown>> | undefined =
+		classicyThemeMeasurementDefaults(theme.package)[family];
+	return Object.fromEntries(
 		knobs.map(({ key, knob }) => {
 			const value = getThemeMetricFamily(theme, { family, key });
-			return [key, Number.isFinite(value) ? value : knob.default];
+			if (Number.isFinite(value)) return [key, value];
+			const drawn =
+				defaults && Object.hasOwn(defaults, key) ? defaults[key] : undefined;
+			return [
+				key,
+				typeof drawn === "number" && Number.isFinite(drawn)
+					? drawn
+					: knob.default,
+			];
 		}),
 	);
+};
 
 /**
  * The Appearance Manager's Options tab: the active package's knobs
