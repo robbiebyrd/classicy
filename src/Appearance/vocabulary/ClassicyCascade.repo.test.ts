@@ -2,6 +2,15 @@ import { globSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
+import {
+	type ClassicySpecificity,
+	classicyCssRules,
+	classicySelectorSpecificity,
+	classicySelectorSubject,
+	compareClassicySpecificity,
+	splitClassicySelectorList,
+} from "../../../bin/classicyCssCascade";
+import vocabulary from "./ClassicyVocabulary.json";
 
 /**
  * Every stylesheet under src resolves its states by source order and
@@ -10,6 +19,10 @@ import { describe, expect, it } from "vitest";
  * so the rule order and the raised selectors that replaced `!important` are
  * pinned on the compiled stylesheets.
  */
+
+// The cross-file scan compiles every component stylesheet (about 3 s alone);
+// sized for a loaded machine, like the vocabulary scan.
+const SCAN_TIMEOUT_MS = 60_000;
 
 const compile = (file: string): string =>
 	sass.compile(path.resolve(process.cwd(), "src/SystemFolder", file), {
@@ -190,4 +203,267 @@ describe("rules that replaced !important", () => {
 		);
 		expect(css).toContain("#classicy-screen-saver-overlay *");
 	});
+});
+
+/**
+ * Vite concatenates the component stylesheets in import order, one
+ * `@layer classicy.base` block each, so between two files the later block
+ * wins a tie. A cross-file override (the Control Strip restyling its bevel
+ * buttons, the menu bar hiding the submenu triangle) must therefore win by
+ * specificity, never by coming later: reordering two imports must not flip
+ * it (plan 0003-7x7, residual risk 2). The Appearance Packages are outside
+ * this: each compiles to one stylesheet, ordered by its own includes.
+ */
+describe("cross-file overrides do not depend on import order", () => {
+	const STATES = new Set<string>(vocabulary.states);
+	// The component stylesheets: every compiled SCSS under src except the
+	// Appearance Packages' and the partials.
+	const sheets = globSync("src/**/*.scss")
+		.map((f) => f.split(path.sep).join("/"))
+		.filter(
+			(f) =>
+				!f.startsWith("src/Appearance/") && !path.basename(f).startsWith("_"),
+		)
+		.sort();
+
+	type Declaration = {
+		file: string;
+		selector: string;
+		property: string;
+		value: string;
+		specificity: ClassicySpecificity;
+	};
+	let cache: Map<string, Declaration[]> | undefined;
+	/**
+	 * Every declaration of every component stylesheet, keyed by what it
+	 * styles: a non-state class of its subject, the pseudo-element and the
+	 * property. At-rule context is ignored: a rule under a matching @media
+	 * ties with one outside it.
+	 */
+	const declarationsByTarget = (): Map<string, Declaration[]> => {
+		if (cache) return cache;
+		cache = new Map();
+		for (const file of sheets) {
+			const css = sass.compile(path.resolve(process.cwd(), file), {
+				style: "expanded",
+				loadPaths: [path.resolve(process.cwd(), "src")],
+			}).css;
+			for (const rule of classicyCssRules(css))
+				for (const selector of splitClassicySelectorList(rule.selector)) {
+					const { classes, pseudoElement } = classicySelectorSubject(selector);
+					const specificity = classicySelectorSpecificity(selector);
+					for (const [property, value] of rule.declarations)
+						for (const cls of classes.filter((c) => !STATES.has(c))) {
+							const key = `${cls}|${pseudoElement}|${property}`;
+							const list = cache.get(key) ?? [];
+							list.push({ file, selector, property, value, specificity });
+							cache.set(key, list);
+						}
+				}
+		}
+		return cache;
+	};
+
+	const tieKey = (a: string, b: string) => [a, b].sort().join("  |  ");
+
+	/**
+	 * Cross-file pairs that tie in specificity and set one property to
+	 * different values, yet never decide an element's style, with why.
+	 */
+	const FRAME =
+		"ClassicyWindowFrame is the presentational frame for outside a running desktop (its TSDoc: inside an app use ClassicyWindow); a frame is never inside a window, so these never match one title bar";
+	const STRIP_IN_TOOLBAR =
+		"Control Strip modules are drawn only by ClassicyControlStrip, never in a ClassicyButtonToolbar";
+	const HELP_IN_TOOLBAR =
+		"a help button in a small or medium toolbar is icon-only, so square, and the toolbar's three-class square rule sets its width and padding over both";
+	const TIES_THAT_NEVER_MEET: Record<string, string> = {
+		[tieKey(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowControlBox",
+			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowControlBox",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText",
+			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindowFrame .classicyWindowTitleBar",
+			".classicyWindowUtility .classicyWindowTitleBar",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindowFrame > .classicyWindowTitleBar",
+			".classicyWindowUtility .classicyWindowTitleBar",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowControlBox",
+			".classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowControlBox",
+			":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowControlBox",
+		)]: FRAME,
+		[tieKey(
+			".classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText",
+			":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleText",
+		)]: FRAME,
+		[tieKey(
+			".classicyButtonToolbarSizeMedium .classicyBevelButton.classicyBevelButtonSquare",
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+		)]: STRIP_IN_TOOLBAR,
+		[tieKey(
+			".classicyButtonToolbarSizeSmall .classicyBevelButton.classicyBevelButtonSquare",
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+		)]: STRIP_IN_TOOLBAR,
+		[tieKey(
+			".classicyBevelButton.classicyHelpButton",
+			".classicyButtonToolbarSizeMedium .classicyBevelButton",
+		)]: HELP_IN_TOOLBAR,
+		[tieKey(
+			".classicyBevelButton.classicyHelpButton",
+			".classicyButtonToolbarSizeSmall .classicyBevelButton",
+		)]: HELP_IN_TOOLBAR,
+		// KNOWN ORDER DEPENDENCY, not a tie that never meets. A help button in
+		// a large (default) ClassicyButtonToolbar is icon-only, so square, and
+		// no toolbar rule sizes it: its width is whichever of these two `width`
+		// rules comes later. In dist/classicy.css the help button's sheet comes
+		// first (ClassicyHelpButton.tsx imports it before ClassicyBevelButton),
+		// so the square width wins. No story renders the case; reported in
+		// story 0082-lgo (a) rather than changed here.
+		[tieKey(
+			".classicyBevelButton.classicyBevelButtonSquare",
+			".classicyBevelButton.classicyHelpButton",
+		)]: "latent: a help button in a large toolbar (see above)",
+	};
+
+	it(
+		"every cross-file pair that styles the same target differently differs in specificity",
+		() => {
+			const ties = new Set<string>();
+			for (const list of declarationsByTarget().values())
+				for (const a of list)
+					for (const b of list)
+						if (
+							a.file < b.file &&
+							a.value !== b.value &&
+							compareClassicySpecificity(a.specificity, b.specificity) === 0
+						)
+							ties.add(tieKey(a.selector, b.selector));
+			expect(
+				[...ties].filter((t) => !(t in TIES_THAT_NEVER_MEET)).sort(),
+			).toEqual([]);
+			// Every listed tie still exists: a stale entry would hide a new one.
+			expect(
+				Object.keys(TIES_THAT_NEVER_MEET).filter((t) => !ties.has(t)),
+			).toEqual([]);
+		},
+		SCAN_TIMEOUT_MS,
+	);
+
+	const W = "src/SystemFolder/SystemResources/";
+	// The known cross-file overrides, each winning by specificity:
+	// [override, its sheet, overridden rule, its sheet, property].
+	const KNOWN_OVERRIDES: [string, string, string, string, string][] = [
+		[
+			".classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar",
+			`${W}Alert/ClassicyAlert.scss`,
+			".classicyWindowRed .classicyWindowTitleBar",
+			`${W}Window/ClassicyWindow.scss`,
+			"background-color",
+		],
+		[
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+			`${W}ControlStrip/ClassicyControlStrip.scss`,
+			".classicyBevelButton.classicyBevelButtonSquare",
+			`${W}BevelButton/ClassicyBevelButton.scss`,
+			"width",
+		],
+		[
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+			`${W}ControlStrip/ClassicyControlStrip.scss`,
+			".classicyBevelButton",
+			`${W}BevelButton/ClassicyBevelButton.scss`,
+			"padding",
+		],
+		[
+			".classicyButtonToolbarSizeMedium .classicyBevelButton.classicyBevelButtonSquare",
+			`${W}ButtonToolbar/ClassicyButtonToolbar.scss`,
+			".classicyBevelButton.classicyBevelButtonSquare",
+			`${W}BevelButton/ClassicyBevelButton.scss`,
+			"width",
+		],
+		[
+			".classicyBevelButton.classicyHelpButton",
+			`${W}HelpButton/ClassicyHelpButton.scss`,
+			".classicyBevelButton",
+			`${W}BevelButton/ClassicyBevelButton.scss`,
+			"min-width",
+		],
+		[
+			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents",
+			`${W}Window/ClassicyWindowMenuBar.scss`,
+			".classicyWindow .classicyWindowContents",
+			`${W}Window/ClassicyWindow.scss`,
+			"height",
+		],
+		[
+			".classicyWindowPlacardBar .classicyPlacardHolder",
+			`${W}Window/ClassicyWindow.scss`,
+			".classicyPlacardHolder",
+			`${W}Placard/ClassicyPlacard.scss`,
+			"display",
+		],
+		[
+			".classicyDesktopMenu > .classicyMenuItemBalloonAnchor",
+			`${W}Desktop/MenuBar/ClassicyDesktopMenuBar.scss`,
+			".classicyMenuItemBalloonAnchor",
+			`${W}Menu/ClassicyMenu.scss`,
+			"width",
+		],
+		[
+			".classicyFileBrowserViewTableContainer.classicyTableContainer",
+			`${W}File/ClassicyFileBrowserViewTable.scss`,
+			".classicyTableContainer",
+			`${W}Table/ClassicyTable.scss`,
+			"overflow",
+		],
+		[
+			".classicyAppearanceManagerColorsGrid .classicyColorPickerSwatchWrapper",
+			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss",
+			".classicyColorPickerSwatchWrapper",
+			`${W}ColorPicker/ClassicyColorPicker.scss`,
+			"gap",
+		],
+		[
+			".appleGuideWindow .classicyAssistantHeader",
+			"src/SystemFolder/Extensions/AppleGuide/AppleGuide.scss",
+			".classicyAssistantHeader",
+			`${W}Assistant/ClassicyAssistant.scss`,
+			"height",
+		],
+	];
+
+	it.each(KNOWN_OVERRIDES)(
+		"%s (%s) outranks %s (%s) on %s",
+		(winner, winnerFile, loser, loserFile, property) => {
+			const find = (file: string, selector: string) =>
+				[...declarationsByTarget().values()]
+					.flat()
+					.find(
+						(d) =>
+							d.file === file &&
+							d.selector === selector &&
+							d.property === property,
+					);
+			const won = find(winnerFile, winner);
+			const lost = find(loserFile, loser);
+			expect(won, `${winner} declares ${property}`).toBeDefined();
+			expect(lost, `${loser} declares ${property}`).toBeDefined();
+			expect(
+				compareClassicySpecificity(
+					won?.specificity ?? [0, 0, 0],
+					lost?.specificity ?? [0, 0, 0],
+				),
+			).toBeGreaterThan(0);
+		},
+		SCAN_TIMEOUT_MS,
+	);
 });
