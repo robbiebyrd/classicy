@@ -45,6 +45,7 @@ describe("classicyClassSets on a fixture tree", () => {
 	};
 	write(
 		"Button/ClassicyButton.tsx",
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text; the `${…}` is the JSX under test, not a placeholder
 		'const SIZES = { s: "classicyButtonSizeS" };\nexport const ClassicyButton = ({ big, mode, size, className }) => <button className={classNames("classicyButton", big ? "classicyButtonBig" : "", SIZES[size], `classicyButtonMode${mode}`, className)} />;',
 	);
 	write(
@@ -53,6 +54,7 @@ describe("classicyClassSets on a fixture tree", () => {
 	);
 	write(
 		"Strip/ClassicyStrip.tsx",
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source text; the `${…}` is the JSX under test, not a placeholder
 		'export const ClassicyStrip = () => <ClassicyButton className={`classicyStripModule ${x}`} />;\nconst Elsewhere = () => <i className="classicyButton classicyElsewhere" />;',
 	);
 	write(
