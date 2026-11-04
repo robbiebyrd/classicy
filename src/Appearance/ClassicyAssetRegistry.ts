@@ -561,7 +561,11 @@ const writeClassicyFontFaces = (packageId: string): void => {
 	if (!style) {
 		style = document.createElement("style");
 		style.id = id;
-		const base = document.getElementById("classicy-styles");
+		// After the library stylesheet; on a dev server, which has none, after
+		// the layer order statement, which must stay the head's first sheet.
+		const base =
+			document.getElementById("classicy-styles") ??
+			document.getElementById("classicy-layer-order");
 		if (base) base.after(style);
 		else document.head.prepend(style);
 	}

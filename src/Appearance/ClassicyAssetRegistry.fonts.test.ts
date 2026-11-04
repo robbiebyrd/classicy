@@ -50,7 +50,30 @@ describe("registerClassicyFonts", () => {
 		expect(styles.nextElementSibling?.id).toBe("classicy-fonts-platinum");
 	});
 
-	it("places the element at the head's start when #classicy-styles is absent", () => {
+	it("places the element after #classicy-layer-order when #classicy-styles is absent (dev)", () => {
+		const order = document.createElement("style");
+		order.id = "classicy-layer-order";
+		document.head.append(order, document.createElement("meta"));
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "geneva.woff2" },
+		]);
+		expect(document.head.firstElementChild).toBe(order);
+		expect(order.nextElementSibling?.id).toBe("classicy-fonts-platinum");
+	});
+
+	it("still places the element after #classicy-styles when both are present", () => {
+		const order = document.createElement("style");
+		order.id = "classicy-layer-order";
+		const styles = document.createElement("style");
+		styles.id = "classicy-styles";
+		document.head.append(order, styles);
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "geneva.woff2" },
+		]);
+		expect(styles.nextElementSibling?.id).toBe("classicy-fonts-platinum");
+	});
+
+	it("places the element at the head's start when neither is present", () => {
 		document.head.append(document.createElement("meta"));
 		registerClassicyFonts("platinum", [
 			{ family: "Geneva", src: "geneva.woff2" },
