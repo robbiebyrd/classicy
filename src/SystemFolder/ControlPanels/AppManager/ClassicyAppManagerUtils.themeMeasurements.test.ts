@@ -59,14 +59,17 @@ afterEach(() => {
 describe("sanitizeStateForPersistence — theme measurements (H-R17)", () => {
 	it("persists a default-only theme without its knob families", async () => {
 		const { store } = await freshStore();
-		const out = store.sanitizeStateForPersistence(
-			store.useAppManager.getState(),
-		);
-		const a = out.System.Manager.Appearance;
+		// A custom theme equal to its built-in: an unchanged built-in active
+		// theme is saved as `{ id, package }` and the built-ins not at all.
+		const state = structuredClone(store.useAppManager.getState());
+		const custom = structuredClone(state.System.Manager.Appearance.activeTheme);
+		custom.id = "custom";
+		state.System.Manager.Appearance.customThemes = [custom];
+		state.System.Manager.Appearance.activeTheme = structuredClone(custom);
+		const a =
+			store.sanitizeStateForPersistence(state).System.Manager.Appearance;
 		expect(Object.keys(a.activeTheme.measurements)).toEqual(CORE);
-		for (const theme of a.availableThemes ?? []) {
-			expect(Object.keys(theme.measurements), theme.id).toEqual(CORE);
-		}
+		expect(Object.keys(a.customThemes?.[0].measurements ?? {})).toEqual(CORE);
 		// The live state keeps its families; only the saved copy drops them.
 		expect(
 			store.useAppManager.getState().System.Manager.Appearance.activeTheme

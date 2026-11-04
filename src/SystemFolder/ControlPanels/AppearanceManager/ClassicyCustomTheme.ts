@@ -13,10 +13,9 @@ import type {
  * Custom (user-editable) themes.
  *
  * Built-in themes (`Appearance.availableThemes`) are never mutated. User
- * themes live in `Appearance.customThemes`, a separate list, because persisted
- * arrays REPLACE their defaults on load (`deepMergeReplacingArrays`): storing a
- * custom theme inside `availableThemes` would freeze the built-in list at
- * whatever shipped when the user first edited a color.
+ * themes live in `Appearance.customThemes`, a separate list: built-ins are not
+ * persisted at all (they come from the code on every load,
+ * ClassicyBuiltInThemes.internal.ts), while custom themes are user data.
  *
  * The first edit made while a built-in theme is active forks it into its
  * package's "Custom" slot (`classicyCustomThemeSlotId`), overwriting any

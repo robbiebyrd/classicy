@@ -40,9 +40,11 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   runs at store creation, before a host can register its package, so
  *   package knob families (`controlStrip`, `pager`, …) are left to
  *   `getThemeVars`, which fills them from the package registered by the
- *   time it reads the theme. Built-ins matter: `availableThemes` is
- *   persisted and replaces the defaults wholesale, so without this the
- *   first theme switch after an upgrade would clone a metric-less theme.
+ *   time it reads the theme. Built-ins matter: a host's `defaultState` may
+ *   carry an `availableThemes` list, which replaces the defaults wholesale,
+ *   so without this a theme switch could clone a metric-less theme. (Saved
+ *   state no longer holds that list: the load path drops it, since built-ins
+ *   come from the code; ClassicyBuiltInThemes.internal.ts.)
  * - 2.2: theme `sound.name` renamed to `sound.pack` on the active, built-in
  *   and custom themes (`migrateThemeSoundPack`).
  * - 2.3: Appearance.packageId and theme.package default to "platinum" on the

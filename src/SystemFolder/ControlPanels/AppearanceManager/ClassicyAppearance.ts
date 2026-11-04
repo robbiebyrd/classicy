@@ -26,7 +26,11 @@ export interface ClassicyStoreSystemAppearanceManager
 	 * renders as Platinum (`resolveClassicyAppearancePackage`).
 	 */
 	packageId: string;
-	/** Built-in themes. Never mutated by edits — see `customThemes`. */
+	/**
+	 * Built-in themes. Never mutated by edits — see `customThemes` — and never
+	 * persisted: they come from the code on every load (the defaults' list, or
+	 * a host's `ClassicyDesktopLoadThemes` for the session).
+	 */
 	availableThemes?: ClassicyTheme[];
 	/**
 	 * User-editable themes, kept apart from `availableThemes` so a persisted

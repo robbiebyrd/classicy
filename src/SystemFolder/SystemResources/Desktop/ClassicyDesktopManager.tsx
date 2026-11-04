@@ -1,6 +1,5 @@
 import type { MouseEvent } from "react";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
-import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
@@ -9,6 +8,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
+import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
 	assignImportedClassicyThemeIdentity,
 	classicyCustomThemeSlotId,
@@ -29,15 +29,10 @@ import {
 	CLASSICY_THEME_FONT_SIZE_MIN,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import {
-	classicyThemeMeasurementDefaults,
-	withDefaultThemeMetrics,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import {
 	isValidThemeMetricFamily,
 	setThemeMetric,
 	setThemeMetricFamily,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	hasActiveTheme,
 	hasAlertSound,
@@ -224,32 +219,6 @@ export const defaultClassicyControlStripState =
 const controlStripState = (ds: ClassicyStore): ClassicyStoreControlStrip => {
 	ds.System.Manager.Desktop.controlStrip ??= defaultClassicyControlStripState();
 	return ds.System.Manager.Desktop.controlStrip;
-};
-
-/**
- * One of a package's own themes (its defaults or a preset) as the theme a
- * switch or ChangeTheme activates: a copy, completed as built-in and loaded
- * themes are. The registry keeps a package as passed, so a JS-authored one
- * may lack metric groups or name a bundled wallpaper by filename; `package`
- * is the package's own id (its registration guarantees its themes name no
- * other).
- */
-const activatableClassicyPackageTheme = (
-	pkg: ClassicyAppearancePackage,
-	packageTheme: ClassicyTheme,
-): ClassicyTheme => {
-	const theme = withDefaultThemeMetrics(
-		cloneClassicyTheme(packageTheme),
-		classicyThemeMeasurementDefaults(pkg.id),
-	);
-	return {
-		...theme,
-		package: pkg.id,
-		desktop: {
-			...theme.desktop,
-			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-		},
-	};
 };
 
 export const classicyDesktopEventHandler = (

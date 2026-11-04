@@ -10,6 +10,13 @@ import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPac
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
 import {
+	type ClassicyThemeReference,
+	classicyBuiltInThemeReference,
+	isClassicyThemeReference,
+	knownClassicyThemePackage,
+	resolveClassicyThemeReference,
+} from "../AppearanceManager/ClassicyBuiltInThemes.internal";
+import {
 	classicyThemeMeasurementDefaults,
 	withoutDefaultThemeMeasurements,
 } from "../AppearanceManager/ClassicyThemeMetrics";
@@ -27,6 +34,57 @@ import { validateAppStateForAction } from "./ClassicyAppManifest";
 import { migrateClassicyState } from "./ClassicyStateMigrations";
 
 let hydratedFromStorage = false;
+
+/**
+ * The persisted reference to a built-in active theme whose package was not
+ * registered when the store loaded (H-R17): the active theme holds the
+ * default theme's data under that id until the package registers and
+ * `resolvePendingActiveThemeReference` resolves it, and is saved as the
+ * reference meanwhile, never as that stand-in.
+ */
+let pendingActiveThemeReference: ClassicyThemeReference | null = null;
+
+/** The pending reference, while the active theme is still the one it names. */
+const pendingReferenceFor = (
+	active: ClassicyTheme | undefined,
+): ClassicyThemeReference | null =>
+	pendingActiveThemeReference &&
+	active?.id === pendingActiveThemeReference.id &&
+	(active.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) ===
+		pendingActiveThemeReference.package
+		? pendingActiveThemeReference
+		: null;
+
+/**
+ * `state` with the active theme a persisted `reference` names resolved
+ * against the code (`resolveClassicyThemeReference`); a reference whose
+ * package is not registered yet is kept pending.
+ */
+function withResolvedActiveTheme(
+	state: ClassicyStore,
+	reference: ClassicyThemeReference | undefined,
+): ClassicyStore {
+	if (!reference) return state;
+	const pkg = knownClassicyThemePackage(reference.package);
+	if (!pkg) {
+		pendingActiveThemeReference = reference;
+		return state;
+	}
+	const appearance = state.System.Manager.Appearance;
+	return {
+		...state,
+		System: {
+			...state.System,
+			Manager: {
+				...state.System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme: resolveClassicyThemeReference(pkg, reference),
+				},
+			},
+		},
+	};
+}
 
 /**
  * Re-resolve theme wallpapers coming out of localStorage.
@@ -136,6 +194,23 @@ function getInitialState(): ClassicyStore {
 					return DefaultAppManagerState;
 				}
 				hydratedFromStorage = true;
+				// Built-ins come from the code, never from saved state: drop
+				// the list a build before this rule stored (the defaults'
+				// current list applies), and note a built-in active theme saved
+				// as a reference, so it is resolved against the code below.
+				const savedAppearance = parsed.System.Manager.Appearance;
+				delete savedAppearance.availableThemes;
+				const saved = savedAppearance.activeTheme;
+				const reference: ClassicyThemeReference | undefined =
+					isClassicyThemeReference(saved)
+						? {
+								id: saved.id,
+								package:
+									typeof saved.package === "string"
+										? saved.package
+										: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+							}
+						: undefined;
 				// Merge persisted state on top of current defaults so any new fields
 				// added since the state was saved get their default values instead of
 				// being undefined (e.g. new typography.monoSize / digitalSize keys).
@@ -143,13 +218,16 @@ function getInitialState(): ClassicyStore {
 				// 0.x `windows` array survives the merge and is converted here.
 				// (mergeClassicyState already migrates its result; the explicit,
 				// idempotent pass keeps this load path correct on its own.)
-				return healThemeWallpapers(
-					migrateClassicyState(
-						mergeClassicyState(
-							withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
-							parsed as DeepPartial<ClassicyStore>,
+				return withResolvedActiveTheme(
+					healThemeWallpapers(
+						migrateClassicyState(
+							mergeClassicyState(
+								withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
+								parsed as DeepPartial<ClassicyStore>,
+							),
 						),
 					),
+					reference,
 				);
 			}
 		} catch (error) {
@@ -168,6 +246,29 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
 	create<ClassicyStore>()(() => ({
 		...getInitialState(),
 	}));
+
+/**
+ * Resolve a pending reference (`pendingActiveThemeReference`) once its
+ * package registers: the active theme becomes that package's built-in, or
+ * its defaults if the built-in is gone. Dropped once the user has chosen
+ * another theme.
+ */
+const resolvePendingActiveThemeReference = (): void => {
+	if (!pendingActiveThemeReference) return;
+	const { activeTheme } = useAppManager.getState().System.Manager.Appearance;
+	const reference = pendingReferenceFor(activeTheme);
+	const pkg = reference && knownClassicyThemePackage(reference.package);
+	if (reference && !pkg) return;
+	pendingActiveThemeReference = null;
+	if (!reference || !pkg) return;
+	const resolved = resolveClassicyThemeReference(pkg, reference);
+	useAppManager.setState((currentState) =>
+		produce(currentState, (draft) => {
+			draft.System.Manager.Appearance.activeTheme = castDraft(resolved);
+		}),
+	);
+};
+subscribeClassicyAppearancePackages(resolvePendingActiveThemeReference);
 
 // The asset registry follows the active Appearance Package: the store's
 // packageId resolved against the package registry, so assets and the desktop
@@ -230,15 +331,22 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 export function sanitizeStateForPersistence(
 	state: ClassicyStore,
 ): ClassicyStore {
-	// Themes keep only the package-family values a user changed (H-R17):
-	// the rest equal the package defaults, which getThemeVars fills when it
-	// reads the theme. That keeps saved state near its pre-knob size, and
-	// lets a later change to a package's defaults reach existing users.
+	// Built-in themes are not persisted: they come from the code on load
+	// (ClassicyBuiltInThemes.internal.ts), so `availableThemes` is dropped and
+	// a built-in active theme is saved as its reference, `{ id, package }`.
+	// Every other theme is saved whole, keeping only the package-family values
+	// a user changed (H-R17): the rest equal the package defaults, which
+	// getThemeVars fills when it reads the theme. That keeps saved state near
+	// its pre-knob size, and lets a later change to a package's defaults reach
+	// existing users.
 	const appearance = state.System?.Manager?.Appearance;
 	const list = (themes: ClassicyTheme[] | undefined) =>
 		Array.isArray(themes) ? themes.map(persistableClassicyTheme) : themes;
-	const activeTheme = persistableClassicyTheme(appearance?.activeTheme);
-	const availableThemes = list(appearance?.availableThemes);
+	const activeTheme = appearance
+		? ((classicyBuiltInThemeReference(appearance) ??
+				pendingReferenceFor(appearance.activeTheme) ??
+				persistableClassicyTheme(appearance.activeTheme)) as ClassicyTheme)
+		: undefined;
 	const customThemes = list(appearance?.customThemes);
 	const changed = (
 		next: ClassicyTheme[] | undefined,
@@ -247,12 +355,10 @@ export function sanitizeStateForPersistence(
 	return produce(state, (draft) => {
 		const draftAppearance = draft.System?.Manager?.Appearance;
 		if (draftAppearance && appearance) {
-			if (activeTheme !== appearance.activeTheme) {
+			if (activeTheme && activeTheme !== appearance.activeTheme) {
 				draftAppearance.activeTheme = castDraft(activeTheme);
 			}
-			if (changed(availableThemes, appearance.availableThemes)) {
-				draftAppearance.availableThemes = castDraft(availableThemes);
-			}
+			delete draftAppearance.availableThemes;
 			if (changed(customThemes, appearance.customThemes)) {
 				draftAppearance.customThemes = castDraft(customThemes);
 			}
