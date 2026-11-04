@@ -14,11 +14,6 @@ import {
 	registerClassicyControlStripModule,
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
-// Side effect: registers Movie Player's manifest and reducer, as a host's
-// `import "classicy"` does, so its documents open and its description is
-// the balloon fallback. Storybook's graph does not otherwise import it
-// (story 0097-p8k tracks the general fix).
-import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyApp } from "./ClassicyApp";
 

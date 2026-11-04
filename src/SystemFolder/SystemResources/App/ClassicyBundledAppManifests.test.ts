@@ -2,27 +2,13 @@
 // it is the balloon-help copy ClassicyApp falls back to for the app's desktop
 // icon, and it feeds every other manifest-driven surface (HyperCard
 // discovery, dev-mode state validation). A new bundled app belongs in this
-// list, with its registration imported below.
+// list, with its registration module in ClassicyBundledApps.internal.ts.
 import { describe, expect, it } from "vitest";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 
-// Side-effect imports: each module's registerApp call runs at import time.
-import "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
-import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
-import "@/SystemFolder/Finder/FinderContext";
-import "@/SystemFolder/HyperCard/Editor/HyperCardEditorContext";
-import "@/SystemFolder/HyperCard/HyperCardContext";
-import "@/SystemFolder/PDFViewer/PDFViewerContext";
-import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
-import "@/SystemFolder/QuickTime/PictureViewer/PictureViewerContext";
-import "@/SystemFolder/WebViewer/WebViewerContext";
-import "@/SystemFolder/SimpleText/SimpleTextManifest";
-import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManagerManifest";
-import "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
-import "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerManifest";
-import "@/SystemFolder/ControlPanels/DriveSetup/ClassicyDriveSetupManifest";
-import "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
-import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
+// Side effect: the shared list of every bundled app's registration module,
+// the one Storybook's preview imports.
+import "@/SystemFolder/ClassicyBundledApps.internal";
 
 const BUNDLED_APP_IDS = [
 	"AppleGuide.app",
