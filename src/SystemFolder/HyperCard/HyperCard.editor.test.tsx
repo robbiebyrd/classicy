@@ -561,7 +561,7 @@ describe("HyperCard editor integration", () => {
 		expect(capturedOpenDialogProps?.open).toBe(false);
 	});
 
-	it("cancelling the Open dialog closes it without dispatching OpenFile", () => {
+	it("canceling the Open dialog closes it without dispatching OpenFile", () => {
 		mockState = stateWith();
 		render(<HyperCard />);
 		act(() => {

@@ -32,7 +32,7 @@ const LivePopUpSlider = (args: ComponentProps<typeof ClassicyPopUpSlider>) => {
 
 /**
  * A stand-in for the pop-up frame: the slider paints no background, so on its
- * own it sits on the face colour and white top/left highlight that a pop-up
+ * own it sits on the face color and white top/left highlight that a pop-up
  * bevel button's frame provides.
  */
 const PopUpFrame = ({ children }: { children: ReactNode }) => (

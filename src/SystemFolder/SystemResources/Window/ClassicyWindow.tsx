@@ -330,7 +330,7 @@ interface ClassicyWindowProps {
 	/**
 	 * Opening position `[x, y]`, in pixels or as `"left" | "center" | "right"`
 	 * and `"top" | "center" | "bottom"`. A window at a symbolic position
-	 * re-centres as its content resizes after mount, until the user moves or
+	 * re-centers as its content resizes after mount, until the user moves or
 	 * resizes it; a numeric one never moves on its own. Either is clamped to the
 	 * viewport, and a persisted position wins once the window has one. Defaults
 	 * to `[110, 110]`.
@@ -399,7 +399,7 @@ interface ClassicyWindowProps {
 	/** The window's contents. */
 	children?: ReactNode;
 	/**
-	 * Dialog flavour. `"error"` on a `modal` window makes a fixed alert: it
+	 * Dialog flavor. `"error"` on a `modal` window makes a fixed alert: it
 	 * cannot be dragged, beeps when it opens, and stacks in the red error band
 	 * above other modals. Has no visual effect on non-modal windows. Defaults
 	 * to `"default"`.
@@ -1459,7 +1459,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// #278: other windows that opted out of collapsing (no collapse
 				// box to undo it) and modal dialogs are left as they are. The
 				// clicked window itself is exempt — its own collapse box is what
-				// was clicked, so its behaviour is unchanged.
+				// was clicked, so its behavior is unchanged.
 				const isClicked = appKey === appId && w.id === id;
 				if (!isClicked && (w.collapsable === false || w.modal)) return;
 				desktopEventDispatch({

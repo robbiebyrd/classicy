@@ -58,7 +58,7 @@ type ClassicyRadioInputValueProps = {
 	checked?: boolean;
 	/** Draws the mixed-state dash (a selection spanning several values). */
 	mixed?: boolean;
-	/** Rings the button in the theme accent colour while on or pressed. */
+	/** Rings the button in the theme accent color while on or pressed. */
 	isDefault?: boolean;
 	/** Dims this button and its label and ignores clicks. */
 	disabled?: boolean;

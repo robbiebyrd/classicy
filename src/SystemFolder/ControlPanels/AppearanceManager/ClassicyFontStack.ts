@@ -29,7 +29,7 @@ export type ClassicyFontStackEntry = {
 };
 
 /**
- * Split a `font-family` value into its families, honouring quotes so a comma
+ * Split a `font-family` value into its families, honoring quotes so a comma
  * inside a quoted name never splits it. Empty entries are dropped.
  */
 export const parseFontStack = (stack: string): ClassicyFontStackEntry[] => {

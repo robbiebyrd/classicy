@@ -65,7 +65,7 @@ const shortcutParts = (shortcut: string): ReactNode[] => {
  * A keyboard shortcut or key, drawn the Platinum way — use it instead of a raw
  * `<kbd>`, which it renders. Pass `shortcut` in any spelling
  * `parseKeyboardShortcut` understands ("Cmd+Shift+S", "Command-O", "⌘N") and
- * it is normalised to the canonical glyph order ⌃⌥⇧⌘ + key, so the same
+ * it is normalized to the canonical glyph order ⌃⌥⇧⌘ + key, so the same
  * string always reads the same; or pass `children` for a bare key ("Esc").
  *
  * `inline` (default) is the menu-item glyph run — `ClassicyMenu` renders each

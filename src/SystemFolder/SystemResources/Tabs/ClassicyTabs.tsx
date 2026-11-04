@@ -206,7 +206,7 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 		const observer = new ResizeObserver(measureOverflow);
 		observer.observe(el);
 		// The tablist is the thing that actually changes width when tabs are
-		// added, removed, or relabelled; the viewport alone would miss that.
+		// added, removed, or relabeled; the viewport alone would miss that.
 		const list = el.firstElementChild;
 		if (list) observer.observe(list);
 		return () => {

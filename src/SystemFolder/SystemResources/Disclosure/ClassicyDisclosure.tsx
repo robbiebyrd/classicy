@@ -27,7 +27,7 @@ type ClassicyDisclosureProps = {
 	 * Defaults to `right`, the HIG's closed state.
 	 */
 	direction?: ClassicyDisclosureTriangleDirections;
-	/** Header text beside the triangle — HIGOS8 p.115 asks for a labelled triangle. Defaults to `""` (no text). */
+	/** Header text beside the triangle — HIGOS8 p.115 asks for a labeled triangle. Defaults to `""` (no text). */
 	label?: string;
 	/** Header text size. Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
@@ -45,7 +45,7 @@ type ClassicyDisclosureProps = {
 };
 
 /**
- * A collapsible section headed by a labelled disclosure triangle (HIGOS8 Ch.2
+ * A collapsible section headed by a labeled disclosure triangle (HIGOS8 Ch.2
  * "Disclosure Triangles", p.37) — the Classicy replacement for
  * `<details>`/`<summary>`, and the HIG's "expand/contract" pattern for showing
  * optional detail in a dialog. It always starts closed and manages its own

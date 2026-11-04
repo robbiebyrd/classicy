@@ -49,7 +49,7 @@
   // The explicit width gives aspect-ratio a definite basis: without one the box
   // sizes to its content first — including the asymmetric horizontal padding —
   // so the "square" would grow with the label. Dropping the padding keeps an
-  // icon centred in the box. Sized to match .classicyButtonShapeSquare so
+  // icon centered in the box. Sized to match .classicyButtonShapeSquare so
   // square bevel buttons line up with square ClassicyButtons in a palette.
   &.classicyBevelButtonSquare {
     width: var(--button-square-width);

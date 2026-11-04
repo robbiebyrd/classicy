@@ -38,7 +38,7 @@ const InWindow = ({ children }: { children: ReactNode }) => (
 
 /**
  * An uncontrolled swatch seeded with `defaultValue`. Click it to open the Color
- * Picker dialog; OK applies the new colour, Cancel discards it.
+ * Picker dialog; OK applies the new color, Cancel discards it.
  */
 export const Default: Story = {
 	render: () => (
@@ -53,7 +53,7 @@ export const Default: Story = {
 };
 
 /**
- * Controlled use: the story owns `value` and shows the confirmed colour as hex
+ * Controlled use: the story owns `value` and shows the confirmed color as hex
  * beside the swatch, updated from `onChangeFunc` after OK.
  */
 export const Controlled: Story = {
@@ -75,7 +75,7 @@ export const Controlled: Story = {
 	},
 };
 
-/** `crayons` replaces the Crayons panel's palette with your own named colours. */
+/** `crayons` replaces the Crayons panel's palette with your own named colors. */
 export const CustomCrayons: Story = {
 	render: () => (
 		<InWindow>

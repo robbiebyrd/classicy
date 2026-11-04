@@ -87,7 +87,7 @@ describe("ClassicyLittleArrows", () => {
 		expect(onStep).toHaveBeenNthCalledWith(2, -1, 0);
 	});
 
-	it("honours custom aria labels", () => {
+	it("honors custom aria labels", () => {
 		render(
 			<ClassicyLittleArrows
 				onStep={vi.fn()}
@@ -127,7 +127,7 @@ describe("ClassicyLittleArrows", () => {
 			expect(onStep.mock.calls.every(([dir]) => dir === 1)).toBe(true);
 		});
 
-		it("reports the held time and honours a custom repeat interval", () => {
+		it("reports the held time and honors a custom repeat interval", () => {
 			const onStep = vi.fn();
 			render(<ClassicyLittleArrows onStep={onStep} repeatIntervalMs={100} />);
 			fireEvent.mouseDown(upBtn());

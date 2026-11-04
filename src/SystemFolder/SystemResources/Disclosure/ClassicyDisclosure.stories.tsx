@@ -17,7 +17,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * A labelled section, closed at first. Click the header (or focus it and press
+ * A labeled section, closed at first. Click the header (or focus it and press
  * Enter/Space, or ⌘→ / ⌘←) to reveal and hide the content.
  */
 export const Default: Story = {

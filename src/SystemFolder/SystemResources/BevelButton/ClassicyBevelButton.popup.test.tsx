@@ -442,7 +442,7 @@ describe("ClassicyBevelButton pop-up placement", () => {
 		spy.mockRestore();
 	});
 
-	it("popupAlign centres a surface on the button", () => {
+	it("popupAlign centers a surface on the button", () => {
 		const spy = mockButtonRect();
 		// The panel measures itself: 20 x 10.
 		const panelRect = vi

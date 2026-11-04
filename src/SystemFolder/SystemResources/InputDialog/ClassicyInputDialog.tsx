@@ -76,7 +76,7 @@ const defaultValidate = (value: string): boolean => value.trim().length > 0;
  * only an icon, text and buttons (p.60), a dialog may host editable controls;
  * use this instead of `window.prompt()`.
  *
- * Behaviour (HIGOS8 Ch.3 "Keyboard Navigation and Focus", p.66):
+ * Behavior (HIGOS8 Ch.3 "Keyboard Navigation and Focus", p.66):
  *   - the field is focused with its contents selected on open, so the user
  *     can type a replacement immediately, and Tab is trapped in the dialog;
  *   - Return / Enter triggers the default button (single-line field, so Return

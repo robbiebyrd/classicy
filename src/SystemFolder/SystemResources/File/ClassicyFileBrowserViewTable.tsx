@@ -278,7 +278,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// path so newly-disclosed folders pick up their sizes too.
 			useEffect(() => {
 				if (!computeFolderSizes) return;
-				let cancelled = false;
+				let canceled = false;
 				const pending: string[] = [];
 				const collect = (rows: FileRow[]) => {
 					rows.forEach((row) => {
@@ -296,7 +296,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 
 				pending.forEach((rowPath) => {
 					fs.size(rowPath).then((resolvedSize) => {
-						if (cancelled) return;
+						if (canceled) return;
 						setSizes((prev) => {
 							if (prev.has(rowPath)) return prev;
 							const next = new Map(prev);
@@ -307,7 +307,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				});
 
 				return () => {
-					cancelled = true;
+					canceled = true;
 				};
 			}, [data, fs, sizes, computeFolderSizes]);
 

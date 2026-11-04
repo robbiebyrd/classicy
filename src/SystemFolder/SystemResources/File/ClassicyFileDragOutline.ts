@@ -14,7 +14,7 @@ export type ClassicyFileDragOutlinePart = {
 /** Alpha above which an icon pixel counts as part of its shape. */
 const OPAQUE_ALPHA = 127;
 
-// Neighbours in walking order: straight steps before diagonal ones, so the
+// Neighbors in walking order: straight steps before diagonal ones, so the
 // walk follows the edge rather than cutting its corners.
 const STEPS: [number, number][] = [
 	[1, 0],
@@ -29,7 +29,7 @@ const STEPS: [number, number][] = [
 
 /**
  * Trace a filled mask's edge as a dotted line. The edge is every filled pixel
- * with an unfilled (or out-of-bounds) 4-neighbour; it is walked pixel by pixel
+ * with an unfilled (or out-of-bounds) 4-neighbor; it is walked pixel by pixel
  * and every other pixel kept, so dots are evenly spaced along straight and
  * slanted edges alike (a parity rule like `(x + y) % 2` would draw a 45° edge
  * solid or not at all). `mask` is row-major, 1 = filled; so is the result.

@@ -52,7 +52,7 @@ describe("ClassicyMenuBarExtension — item", () => {
 		expect(item?.style.order).toBe("10");
 	});
 
-	it("exposes the item as a labelled button", () => {
+	it("exposes the item as a labeled button", () => {
 		render(
 			<ClassicyMenuBarExtension id="user" icon="/user.png" title="Account" />,
 		);

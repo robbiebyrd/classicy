@@ -59,14 +59,14 @@ function resolveCssVar(name: string): string {
 }
 
 /**
- * Bottom-centred caption text over the picture. Cue markup (`<i>`,
+ * Bottom-centered caption text over the picture. Cue markup (`<i>`,
  * `<c.class>`, …) is stripped to plain text, and nothing renders when there
  * is no active cue. `captionStyle` overrides the theme's caption look.
  */
 export const QuickTimeCaptionsOverlay: FunctionalComponent<{
 	/** The active cue's text, or `null` for none. */
 	text: string | null;
-	/** Optional font/colour/size override; theme styling when omitted. */
+	/** Optional font/color/size override; theme styling when omitted. */
 	captionStyle?: QuickTimeCaptionStyle;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;

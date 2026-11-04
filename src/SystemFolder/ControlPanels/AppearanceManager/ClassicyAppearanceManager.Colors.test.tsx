@@ -161,7 +161,7 @@ describe("useColorsTab", () => {
 		expect(screen.getByText(/Editing the “Custom” theme/)).toBeInTheDocument();
 	});
 
-	it("re-renders swatches when the active theme's colour changes", () => {
+	it("re-renders swatches when the active theme's color changes", () => {
 		const { rerender } = render(<Host />);
 		const edited = structuredClone(theme);
 		edited.color.system[2] = 0x010203;

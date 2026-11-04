@@ -52,7 +52,7 @@ interface ClassicyInputProps {
 	 * for any host styling that targets it; removed in the next major version.
 	 */
 	isDefault?: boolean;
-	/** Field fill colour (any CSS colour). Defaults to the theme's white. */
+	/** Field fill color (any CSS color). Defaults to the theme's white. */
 	backgroundColor?: string;
 	/** Forwarded to the native `<input>`. */
 	ref?: ForwardedRef<HTMLInputElement>;

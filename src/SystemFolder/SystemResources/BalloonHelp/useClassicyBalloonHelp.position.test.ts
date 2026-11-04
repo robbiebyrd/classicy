@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 // The hook module pulls in the app manager store; this is a pure geometry test
-// and has no use for it, and letting it initialise logs a localStorage failure.
+// and has no use for it, and letting it initialize logs a localStorage failure.
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => ({ useAppManager: () => false }),
@@ -108,7 +108,7 @@ describe("resolveBalloonPosition", () => {
 		).toBe("bottom-left");
 	});
 
-	it("falls back to centre when neither side has room", () => {
+	it("falls back to center when neither side has room", () => {
 		// A balloon wider than the space on either side of the anchor, but which
 		// still fits the viewport if it straddles it.
 		const narrow = { width: 700, height: 63.4 };
@@ -126,7 +126,7 @@ describe("resolveBalloonPosition", () => {
 	it("picks the least-bad side when the balloon cannot fit at all", () => {
 		// A viewport smaller than the balloon has no good answer, so the one that
 		// overhangs least wins and the balloon stays mostly visible instead of
-		// being parked entirely outside. Here that is centre, which straddles the
+		// being parked entirely outside. Here that is center, which straddles the
 		// viewport and spills 400px against left's 668 and right's 648; the two
 		// vertical sides overhang equally, so the caller's preference stands.
 		expect(

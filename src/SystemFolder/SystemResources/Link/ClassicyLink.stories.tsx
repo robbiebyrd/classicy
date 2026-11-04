@@ -19,7 +19,7 @@ type Story = StoryObj<typeof meta>;
 /**
  * The default `disposition="classicy"`: a plain click opens the page in the
  * desktop's WebViewer window. On this bare canvas there is no desktop to act
- * on the dispatch — see `OnTheDesktop` for the live behaviour.
+ * on the dispatch — see `OnTheDesktop` for the live behavior.
  */
 export const InDesktopViewer: Story = {
 	args: {
@@ -59,7 +59,7 @@ export const InternalAction: Story = {
 	},
 };
 
-/** A disabled link: greyed, out of the tab order, and clicks do nothing. */
+/** A disabled link: grayed, out of the tab order, and clicks do nothing. */
 export const Disabled: Story = {
 	args: {
 		href: "https://classicy.ing",

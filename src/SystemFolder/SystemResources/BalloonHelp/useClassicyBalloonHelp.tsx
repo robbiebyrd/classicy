@@ -79,8 +79,8 @@ const horizontalSpan = (
 		const end = anchor.left + controlSize;
 		return { start: end - width, end };
 	}
-	const centre = anchor.left + anchor.width / 2;
-	return { start: centre - width / 2, end: centre + width / 2 };
+	const center = anchor.left + anchor.width / 2;
+	return { start: center - width / 2, end: center + width / 2 };
 };
 
 const fits = (span: Span, limit: number): boolean =>
@@ -113,7 +113,7 @@ const pick = <T,>(
  * per-icon default could have covered this.
  *
  * Each axis is resolved independently, preferring the caller's side, then its
- * opposite, then centre. Exported for tests: jsdom reports every rect as zero,
+ * opposite, then center. Exported for tests: jsdom reports every rect as zero,
  * so the decision has to be checked as a function of measurements rather than
  * through a rendered balloon.
  */

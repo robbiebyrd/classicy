@@ -30,7 +30,7 @@ export const WithLabel: Story = {
 	args: { value: 33, label: "Copying files…" },
 };
 
-/** `labelAlign="center"` centres the label over the bar. */
+/** `labelAlign="center"` centers the label over the bar. */
 export const CenteredLabel: Story = {
 	args: { value: 33, label: "Copying files…", labelAlign: "center" },
 };

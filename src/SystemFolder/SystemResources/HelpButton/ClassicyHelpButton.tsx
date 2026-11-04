@@ -39,7 +39,7 @@ type ClassicyHelpButtonProps = {
  * the upper right corner instead.
  *
  * It is a small-bevel `ClassicyBevelButton` in `push` mode, so it shares that
- * button's click sounds, analytics and keyboard behaviour; the glyph is
+ * button's click sounds, analytics and keyboard behavior; the glyph is
  * the registered `helpButton` system art. In an alert, give a button `role: "help"` and `ClassicyAlert` renders this
  * component, far left.
  */

@@ -19,7 +19,7 @@ describe("classicyBevelPopupPlacement (HIGOS8 p.32)", () => {
 		).toEqual({ left: 132, top: 100 });
 	});
 
-	it("centres on the button when aligned to the centre, rounding right", () => {
+	it("centers on the button when aligned to the center, rounding right", () => {
 		const slider = { width: 21, height: 77 };
 		expect(
 			classicyBevelPopupPlacement(button, slider, viewport, "below", "center"),

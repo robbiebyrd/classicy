@@ -58,7 +58,7 @@ export const Square: Story = {
 };
 
 /**
- * Short-labelled buttons still honor the HIG minimum width (58px), so an
+ * Short-labeled buttons still honor the HIG minimum width (58px), so an
  * "OK"/"Cancel" pair lines up at a consistent size. In a real dialog, wrap the
  * pair in `ClassicyFormButtonRow` for the HIG spacing.
  */

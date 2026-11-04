@@ -179,12 +179,12 @@ describe("ClassicyBevelButton", () => {
 
 	it("passes a caller's aria-haspopup through when it has no pop-up", () => {
 		render(
-			<ClassicyBevelButton aria-label="Pick a colour" aria-haspopup="dialog">
-				Colour
+			<ClassicyBevelButton aria-label="Pick a color" aria-haspopup="dialog">
+				Color
 			</ClassicyBevelButton>,
 		);
 		expect(
-			screen.getByRole("button", { name: "Pick a colour" }),
+			screen.getByRole("button", { name: "Pick a color" }),
 		).toHaveAttribute("aria-haspopup", "dialog");
 	});
 

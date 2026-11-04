@@ -32,7 +32,7 @@ interface ClassicyDatePickerProps {
 	/**
 	 * Base id. The month, day and year fields get `${id}_month`, `${id}_day`
 	 * and `${id}_year`, and the label `${id}_label`. The label points at the
-	 * month field, and the fields form a group labelled by it.
+	 * month field, and the fields form a group labeled by it.
 	 */
 	id: string;
 	/** Called with the new (range-clamped) `Date` after every edit or step. */

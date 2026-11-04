@@ -19,7 +19,7 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *
  * Runs on state loaded from localStorage and on every `mergeClassicyState`
  * result, so persisted 0.x state and hand-built consumer state are both
- * normalised. Migrations detect the old shape rather than reading a version
+ * normalized. Migrations detect the old shape rather than reading a version
  * number, which makes the pass idempotent: running it on current state
  * changes nothing and returns the same object.
  *

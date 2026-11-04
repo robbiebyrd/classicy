@@ -1,14 +1,14 @@
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
 /**
- * Every colour a theme exposes as a CSS variable, addressed by a flat,
+ * Every color a theme exposes as a CSS variable, addressed by a flat,
  * typed target. This table is the single source the `ClassicyDesktopChangeColor`
  * reducer validates against and the Appearance Manager's Colors tab renders
- * from, so a new theme colour is added in exactly one place.
+ * from, so a new theme color is added in exactly one place.
  *
  * Scalar keys are camelCase spellings of their CSS variable
  * (`--color-window-border-outset` → `windowBorderOutset`,
- * `--desktop-background-color` → `desktopBackground`). The two 7-colour
+ * `--desktop-background-color` → `desktopBackground`). The two 7-color
  * palettes are addressed as `{ colorKey: "system" | "theme", index: 0..6 }`,
  * where index 0 is `--color-system-01` / `--color-theme-01`.
  */
@@ -46,7 +46,7 @@ export type ClassicyThemeColorKey =
 	| ClassicyThemeColorScalarKey
 	| ClassicyThemeColorPaletteKey;
 
-/** Addresses exactly one theme colour. `index` is required for the palettes
+/** Addresses exactly one theme color. `index` is required for the palettes
  * and must be absent for scalar keys. */
 export type ClassicyThemeColorTarget =
 	| { colorKey: ClassicyThemeColorScalarKey; index?: undefined }
@@ -83,7 +83,7 @@ export const CLASSICY_THEME_COLOR_GROUPS: readonly {
 
 export type ClassicyThemeColorTargetInfo = {
 	target: ClassicyThemeColorTarget;
-	/** The CSS custom property `getThemeVars` emits for this colour. */
+	/** The CSS custom property `getThemeVars` emits for this color. */
 	cssVar: string;
 	/** Short label for the Colors tab (its group supplies the context). */
 	label: string;
@@ -112,7 +112,7 @@ const palette = (
 		group: colorKey,
 	}));
 
-/** All 28 editable theme colours, in Colors-tab order. */
+/** All 28 editable theme colors, in Colors-tab order. */
 export const CLASSICY_THEME_COLOR_TARGETS: readonly ClassicyThemeColorTargetInfo[] =
 	[
 		scalar("black", "--color-black", "Black", "base"),
@@ -162,7 +162,7 @@ const isScalarKey = (v: unknown): v is ClassicyThemeColorScalarKey =>
 const isPaletteKey = (v: unknown): v is ClassicyThemeColorPaletteKey =>
 	(CLASSICY_THEME_COLOR_PALETTE_KEYS as readonly unknown[]).includes(v);
 
-/** Validates an untyped `{ colorKey, index }` pair as a colour target. */
+/** Validates an untyped `{ colorKey, index }` pair as a color target. */
 export const isThemeColorTarget = (
 	value: Readonly<Record<string, unknown>>,
 ): value is ClassicyThemeColorTarget => {
@@ -178,7 +178,7 @@ export const isThemeColorTarget = (
 	return false;
 };
 
-/** Reads the colour a target addresses. */
+/** Reads the color a target addresses. */
 export const getThemeColor = (
 	theme: ClassicyTheme,
 	target: ClassicyThemeColorTarget,

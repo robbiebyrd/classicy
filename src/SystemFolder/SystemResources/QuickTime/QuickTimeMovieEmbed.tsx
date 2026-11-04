@@ -75,7 +75,7 @@ type QuickTimeVideoEmbedProps = {
 	captionsEnabled?: boolean;
 	/** Fired when the CC button toggles captions. */
 	onCaptionsEnabledChange?: (enabled: boolean) => void;
-	/** Caption font, colours, opacity and size; theme defaults when omitted. */
+	/** Caption font, colors, opacity and size; theme defaults when omitted. */
 	captionStyle?: QuickTimeCaptionStyle;
 	/** Receives the underlying media element on mount (and `null` on unmount). */
 	onMediaElement?: (el: HTMLVideoElement | null) => void;

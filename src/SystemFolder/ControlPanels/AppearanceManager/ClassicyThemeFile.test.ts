@@ -129,7 +129,7 @@ describe("export → import round trip", () => {
 		).toBe(ClassicyDefaultWallpaper);
 	});
 
-	it("keeps a colour-only theme colour-only", () => {
+	it("keeps a color-only theme color-only", () => {
 		expect(
 			parseOk(exportClassicyTheme(theme("crimson"))).desktop.backgroundImage,
 		).toBe("");
@@ -198,7 +198,7 @@ describe("parseClassicyThemeFile — errors", () => {
 		);
 	});
 
-	it("summarises schema issues with their paths", () => {
+	it("summarizes schema issues with their paths", () => {
 		const t = theme("azul") as unknown as {
 			color: { select: number; system: number[] };
 			sound: { pack: string };

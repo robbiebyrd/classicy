@@ -185,7 +185,7 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			popupDirection="horizontal"
 			popupPlacement="below"
 			// Figure 6-15's menus start at the module's edge; Figure 2-16's
-			// slider is centred on it.
+			// slider is centered on it.
 			popupAlign={menuItems ? "start" : "center"}
 			popupAnchorInset={modulePopupInset}
 			menuItems={menuItems}

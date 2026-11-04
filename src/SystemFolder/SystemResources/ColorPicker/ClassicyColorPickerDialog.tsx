@@ -40,13 +40,13 @@ interface ClassicyColorPickerDialogProps {
 	 *  change elsewhere while the dialog stays open), stealing focus either
 	 *  way. */
 	appId?: string;
-	/** Shows the dialog. Each time it opens, the pending colour resets to `initialColor`. */
+	/** Shows the dialog. Each time it opens, the pending color resets to `initialColor`. */
 	open: boolean;
-	/** Colour the dialog opens with, as `0xRRGGBB`. Defaults to `0x000000`. */
+	/** Color the dialog opens with, as `0xRRGGBB`. Defaults to `0x000000`. */
 	initialColor?: number;
 	/** Palette for the Crayons panel. Defaults to `MAC_OS_8_CRAYONS`. */
 	crayons?: ClassicyCrayon[];
-	/** Called with the pending colour when OK is clicked. The caller closes the dialog. */
+	/** Called with the pending color when OK is clicked. The caller closes the dialog. */
 	onSelectFunc?: (color: number) => void;
 	/** Called by Cancel or the close box. The caller closes the dialog. */
 	onCancelFunc?: () => void;
@@ -59,7 +59,7 @@ interface ClassicyColorPickerDialogProps {
 /**
  * The Mac OS 8 Color Picker dialog on its own: a modal, fixed-size
  * `ClassicyWindow` with a mode list (Crayons, RGB, HSV, HLS, CMYK — Up/Down
- * switch modes), the active panel, a preview of the pending colour and
+ * switch modes), the active panel, a preview of the pending color and
  * Cancel / OK buttons. The dialog is controlled by `open`; it never closes
  * itself, so close it from `onSelectFunc` and `onCancelFunc`.
  * `ClassicyColorPicker` wraps it in a swatch button — use the dialog directly

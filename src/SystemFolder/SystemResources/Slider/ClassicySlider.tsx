@@ -106,7 +106,7 @@ interface ClassicySliderProps {
 	step?: number;
 	/** Disables the slider and dims its label and ticks. Defaults to `false`. */
 	disabled?: boolean;
-	/** Draws the thumb in the theme accent colour. Defaults to `false`. */
+	/** Draws the thumb in the theme accent color. Defaults to `false`. */
 	highlighted?: boolean;
 	/** Text for the readout beside the track (e.g. `"40 %"`). Defaults to `value`. */
 	valueLabel?: string;
@@ -172,7 +172,7 @@ interface ClassicySliderProps {
  * The Platinum slider (HIGOS8 Ch.2 "Sliders and Tick Marks", p.34) — the
  * `<input type="range">` equivalent, and it renders a real one. Horizontal
  * or vertical, with a directional or nondirectional indicator, optional
- * labelled tick marks, an optional ghost indicator that trails the pointer
+ * labeled tick marks, an optional ghost indicator that trails the pointer
  * while dragging, and a value readout beside the track. Use it to set a
  * value; never as a stand-in for a scroll bar.
  *

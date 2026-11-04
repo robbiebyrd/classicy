@@ -102,7 +102,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// (compressed + base64url-encoded bytes) takes precedence over `url` when
 	// both are set, matching resolveFileSystemEntrySource's precedence.
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		// `destroy()` lives on the loading task (not the resolved
 		// PDFDocumentProxy), and is safe to call whether the load is still
 		// in flight or has already settled — it aborts network requests and
@@ -119,7 +119,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 			try {
 				// Decompressing `data` and loading pdfjs are both async steps
 				// before pdf.js's own document load even starts; run them
-				// concurrently since they're independent. `cancelled` is checked
+				// concurrently since they're independent. `canceled` is checked
 				// right after both settle, before creating the loading task, so
 				// a fast unmount/re-run during either never creates an orphaned
 				// task with nothing to destroy it.
@@ -129,16 +129,16 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 						: Promise.resolve({ url }),
 					loadPdfjs(),
 				]);
-				if (cancelled) return;
+				if (canceled) return;
 				loadingTask = pdfjs.getDocument(source);
 				const loadedDoc = await loadingTask.promise;
-				if (!cancelled) setDoc(loadedDoc);
+				if (!canceled) setDoc(loadedDoc);
 			} catch {
-				if (!cancelled) setError(true);
+				if (!canceled) setError(true);
 			}
 		})();
 		return () => {
-			cancelled = true;
+			canceled = true;
 			loadingTask?.destroy();
 		};
 	}, [url, data]);
@@ -146,7 +146,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// Render the current page whenever the document, page, or zoom changes
 	useEffect(() => {
 		if (!doc || !canvasRef.current) return;
-		let cancelled = false;
+		let canceled = false;
 		let renderTask: RenderTask | null = null;
 		// Reset any stale per-page error from a previous page/zoom before
 		// attempting this render — e.g. clicking Next away from a page that
@@ -155,7 +155,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		setPageError(false);
 		Promise.all([doc.getPage(currentPage), loadPdfjs()])
 			.then(([page, pdfjs]) => {
-				if (cancelled || !canvasRef.current) return;
+				if (canceled || !canvasRef.current) return;
 				const viewport = page.getViewport({ scale });
 				const context = canvasRef.current.getContext("2d");
 				if (!context) return;
@@ -188,14 +188,14 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// loaded fine), so it sets `pageError`, not `error`.
 				renderTask.promise.catch((reason: unknown) => {
 					if (reason instanceof pdfjs.RenderingCancelledException) return;
-					if (!cancelled) setPageError(true);
+					if (!canceled) setPageError(true);
 				});
 			})
 			.catch(() => {
-				if (!cancelled) setPageError(true);
+				if (!canceled) setPageError(true);
 			});
 		return () => {
-			cancelled = true;
+			canceled = true;
 			renderTask?.cancel();
 		};
 	}, [doc, currentPage, scale]);

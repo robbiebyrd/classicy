@@ -35,13 +35,13 @@ type ClassicyLinkProps = PropsWithChildren<{
 	/** Extra fields spread into the `event` action: `{ type: event, ...eventData }`. */
 	eventData?: Record<string, unknown>;
 	/**
-	 * Called on click before the built-in behaviour; call `e.preventDefault()`
-	 * in it to cancel that behaviour. Not called for keyboard activation of an
+	 * Called on click before the built-in behavior; call `e.preventDefault()`
+	 * in it to cancel that behavior. Not called for keyboard activation of an
 	 * `event`-only link.
 	 */
 	onClickFunc?: MouseEventHandler<HTMLAnchorElement>;
 	/**
-	 * Greys the link, removes it from the tab order and swallows clicks
+	 * Grays the link, removes it from the tab order and swallows clicks
 	 * (`aria-disabled`). Defaults to `false`.
 	 */
 	disabled?: boolean;
@@ -56,7 +56,7 @@ type ClassicyLinkProps = PropsWithChildren<{
  * renders (other anchor attributes pass through). A plain click on an `href`
  * link dispatches `ClassicyDesktopOpenUrl`, so by default the page opens in
  * the desktop's own WebViewer window; `disposition` sends it to the browser
- * instead. Modifier and middle clicks keep the browser's native behaviour
+ * instead. Modifier and middle clicks keep the browser's native behavior
  * (open in a new tab, …). Invalid or non-http URLs raise the desktop error
  * dialog.
  *

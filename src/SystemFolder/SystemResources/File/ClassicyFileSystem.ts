@@ -395,7 +395,7 @@ export class ClassicyFileSystem {
 	}
 
 	/**
-	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * Persist to localStorage and deliver onSnapshot immediately, canceling any
 	 * pending debounce. Adapter delivery is fire-and-forget — a slow or broken
 	 * backend must never stall the filesystem. Arrow property so pagehide can
 	 * call it detached.

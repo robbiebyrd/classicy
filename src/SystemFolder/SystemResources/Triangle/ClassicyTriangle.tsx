@@ -38,7 +38,7 @@ type ClassicyTriangleProps = {
 /**
  * The Mac OS 8 disclosure triangle (HIGOS8 Ch.2 "Disclosure Triangles",
  * p.37): points right when closed and turns down when open to reveal more
- * detail. This is the bare marker — for a labelled collapsible section (the
+ * detail. This is the bare marker — for a labeled collapsible section (the
  * `<details>`/`<summary>` replacement) use `ClassicyDisclosure`, and for
  * hierarchical lists `ClassicyTree`, which both draw it.
  *

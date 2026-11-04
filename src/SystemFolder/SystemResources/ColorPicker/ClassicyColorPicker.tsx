@@ -20,9 +20,9 @@ interface ClassicyColorPickerProps {
 	 * `ClassicyApp` (via `ClassicyAppIdContext`).
 	 */
 	appId?: string;
-	/** Controlled colour as a 24-bit `0xRRGGBB` integer. Omit for uncontrolled use. */
+	/** Controlled color as a 24-bit `0xRRGGBB` integer. Omit for uncontrolled use. */
 	value?: number;
-	/** Initial colour when uncontrolled, as `0xRRGGBB`. Defaults to `0x000000` (black). */
+	/** Initial color when uncontrolled, as `0xRRGGBB`. Defaults to `0x000000` (black). */
 	defaultValue?: number;
 	/** Palette for the dialog's Crayons panel. Defaults to the Mac OS 8 crayon box. */
 	crayons?: ClassicyCrayon[];
@@ -34,7 +34,7 @@ interface ClassicyColorPickerProps {
 	labelSize?: ClassicyControlLabelSize;
 	/** Disables the swatch (and dims the label). Defaults to `false`. */
 	disabled?: boolean;
-	/** Called with the chosen colour (`0xRRGGBB`) when the dialog's OK is clicked. */
+	/** Called with the chosen color (`0xRRGGBB`) when the dialog's OK is clicked. */
 	onChangeFunc?: (color: number) => void;
 	/** Extra class names, merged onto the swatch wrapper (the dialog is a separate window) after the component's own. */
 	className?: string;
@@ -44,11 +44,11 @@ interface ClassicyColorPickerProps {
 
 /**
  * The `<input type="color">` equivalent: a swatch button showing the current
- * colour that opens `ClassicyColorPickerDialog`, the Mac OS 8 Color Picker
- * (Crayons, RGB, HSV, HLS and CMYK panels). The colour only changes when the
+ * color that opens `ClassicyColorPickerDialog`, the Mac OS 8 Color Picker
+ * (Crayons, RGB, HSV, HLS and CMYK panels). The color only changes when the
  * user clicks OK; Cancel or the close box leaves it as it was.
  *
- * Colours are 24-bit integers (`0xRRGGBB`). Pass `value` + `onChangeFunc` to
+ * Colors are 24-bit integers (`0xRRGGBB`). Pass `value` + `onChangeFunc` to
  * control it, or `defaultValue` alone to let the swatch keep its own. The
  * dialog is a modal `ClassicyWindow`, so render the picker inside a
  * `ClassicyApp` (or pass `appId`).

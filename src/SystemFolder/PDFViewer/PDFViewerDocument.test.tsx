@@ -240,7 +240,7 @@ describe("PDFViewerDocument", () => {
 	it("cancels the in-flight render task when the page changes again before it settles", async () => {
 		const cancel = vi.fn();
 		// Render never resolves/rejects for this test; we only care that the
-		// task returned by page.render() gets cancelled by the next effect run.
+		// task returned by page.render() gets canceled by the next effect run.
 		mockPage.render.mockReturnValueOnce({
 			promise: new Promise(() => {}),
 			cancel,
@@ -254,7 +254,7 @@ describe("PDFViewerDocument", () => {
 		expect(cancel).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not leave an unhandled rejection when a cancelled render task's promise rejects, and does not show an error", async () => {
+	it("does not leave an unhandled rejection when a canceled render task's promise rejects, and does not show an error", async () => {
 		// Unlike the never-settling promise above, pdf.js actually rejects
 		// `renderTask.promise` with a RenderingCancelledException once
 		// `cancel()` runs. Wire `cancel` to reject the same promise the
@@ -611,7 +611,7 @@ describe("PDFViewerDocument", () => {
 		const { unmount } = render(<PDFViewerDocument url="" data={compressed} />);
 		// Unmount synchronously, right after render — before the in-flight
 		// decompression (a genuinely async operation) has any chance to
-		// settle. This is the exact race the effect's `cancelled` check
+		// settle. This is the exact race the effect's `canceled` check
 		// before creating the pdf.js loading task exists to guard against.
 		unmount();
 		await new Promise((resolve) => setTimeout(resolve, 0));

@@ -20,7 +20,7 @@
   position: absolute;
   z-index: 20;
   max-height: calc(100% - var(--window-max-height-reserve));
-  // Width of the grey frame ring between the window border and the contents
+  // Width of the gray frame ring between the window border and the contents
   // box: the theme derivation --window-frame-inset (padding / 1.25). Anything
   // that has to line up with the contents' edges (the resizer, below) reads
   // it rather than restating the expression.
@@ -34,7 +34,7 @@
   // The grow box is the scroll bars' corner, and only its top and left edges are
   // drawn: those two continue the horizontal and vertical scroll bars' outer
   // lines. It is NOT enclosed by the contents frame — in Mac OS 8 the grip's
-  // grey runs straight out over the contents border and the frame ring to the
+  // gray runs straight out over the contents border and the frame ring to the
   // window's inner bevel, which is why the scroll bar's black line stops where
   // the grip begins rather than wrapping under it.
   //
@@ -67,7 +67,7 @@
     cursor:
       var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
       nwse-resize;
-    // Flat frame grey, no edges of its own: past the gutter this box exists only
+    // Flat frame gray, no edges of its own: past the gutter this box exists only
     // to cover the contents box's border and bevel, which would otherwise draw a
     // black line and a white line along the grip's bottom and right and box it
     // in. Nothing is enclosed on those two sides.
@@ -107,7 +107,7 @@
       border-top: var(--window-border-size) solid var(--color-black);
       border-left: var(--window-border-size) solid var(--color-black);
       // No inset highlight: a white bevel here reads as a 1px white seam between
-      // the grow box and the scroll bars. The grip's grey must meet the bars'
+      // the grow box and the scroll bars. The grip's gray must meet the bars'
       // black borders directly (matches Mac OS 8's grow box).
 
       // The edges are on the grip's content side, so they follow its corner
@@ -551,7 +551,7 @@
   &::before {
     border-top: var(--window-border-size) solid var(--color-system-05);
     border-left: var(--window-border-size) solid var(--color-system-05);
-    // Flat. The old outer shadow painted frame grey up and to the left to mask
+    // Flat. The old outer shadow painted frame gray up and to the left to mask
     // the gap the misaligned grip left behind; there is no gap to mask now,
     // and an outer shadow would cover the inactive scroll bars' edges.
     box-shadow: none;

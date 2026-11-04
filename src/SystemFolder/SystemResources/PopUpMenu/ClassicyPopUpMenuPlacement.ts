@@ -85,10 +85,10 @@ export const classicyPopUpMenuPlacement = (
 			Math.min(contentHeight, maxHeightCap, viewportAvail),
 		);
 
-		// Put the selected row's centre on the button's centre…
-		const anchorCentre = anchor.top + (anchor.bottom - anchor.top) / 2;
-		const selectionCentre = selected.offsetTop + selected.height / 2;
-		let top = anchorCentre - selectionCentre;
+		// Put the selected row's center on the button's center…
+		const anchorCenter = anchor.top + (anchor.bottom - anchor.top) / 2;
+		const selectionCenter = selected.offsetTop + selected.height / 2;
+		let top = anchorCenter - selectionCenter;
 
 		// …then slide the whole menu back on screen if that pushed it off an edge.
 		if (top + maxHeight > viewportHeight - margin) {
@@ -101,7 +101,7 @@ export const classicyPopUpMenuPlacement = (
 		let scrollTop = 0;
 		if (contentHeight > maxHeight) {
 			scrollTop = Math.min(
-				Math.max(top + selectionCentre - anchorCentre, 0),
+				Math.max(top + selectionCenter - anchorCenter, 0),
 				contentHeight - maxHeight,
 			);
 		}

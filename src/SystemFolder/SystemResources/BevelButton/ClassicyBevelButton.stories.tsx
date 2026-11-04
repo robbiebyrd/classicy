@@ -164,7 +164,7 @@ export const PopupHorizontal: Story = {
 
 /**
  * HIGOS8 Figure 2-16: a pop-up bevel button can show a control other than a
- * menu — here a `ClassicyPopUpSlider` passed as `popupContent`, centred on the
+ * menu — here a `ClassicyPopUpSlider` passed as `popupContent`, centered on the
  * button with `popupAlign="center"`.
  */
 export const PopupSlider: Story = {

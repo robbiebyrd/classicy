@@ -121,7 +121,7 @@ export type ClassicyFileDragOptions = {
 		point: [number, number],
 		outlineTopLeft: [number, number],
 	) => void;
-	/** Release without the pointer ever travelling far enough to drag. */
+	/** Release without the pointer ever traveling far enough to drag. */
 	onClick?: () => void;
 	/**
 	 * The press became a drag: called once, when the pointer first travels
@@ -145,7 +145,7 @@ export type ClassicyFileDragOptions = {
  * Track a press as a possible drag. Returns a function that abandons it (a
  * drag in progress then ends as cancelled, and nothing is dropped): a source
  * component calls it when it unmounts, so the drag never outlives it. The outline is only created once
- * the pointer has travelled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
+ * the pointer has traveled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
  * stays a click; Escape cancels a drag in progress without dropping.
  */
 export function startClassicyFileDrag(
@@ -208,11 +208,11 @@ export function startClassicyFileDrag(
 
 	function onMove(e: MouseEvent) {
 		if (!ghost) {
-			const travelled = Math.max(
+			const traveled = Math.max(
 				Math.abs(e.clientX - start.clientX),
 				Math.abs(e.clientY - start.clientY),
 			);
-			if (travelled < CLASSICY_FILE_DRAG_THRESHOLD) return;
+			if (traveled < CLASSICY_FILE_DRAG_THRESHOLD) return;
 			createGhost();
 			options.onStart?.();
 		}

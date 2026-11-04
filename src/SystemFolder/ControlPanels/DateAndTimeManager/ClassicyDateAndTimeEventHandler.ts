@@ -14,7 +14,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  * as a UTC ISO string, and update boundaryLocked.
  *
  * Shared by ClassicyManagerDateTimeSet and ClassicyManagerDateTimeSync so both
- * honour host-configured bounds identically.
+ * honor host-configured bounds identically.
  */
 function applyDateTimeWithBounds(ds: ClassicyStore, date: Date): void {
 	const { minDateTime, maxDateTime } = ds.System.Manager.DateAndTime;

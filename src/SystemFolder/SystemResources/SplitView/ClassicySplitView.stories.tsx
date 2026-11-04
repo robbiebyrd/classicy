@@ -70,7 +70,7 @@ export const TwoPanesVertical: Story = {
 
 /**
  * Three panes, the maximum per component, with `defaultSizes` as
- * percentages. Each divider only trades space between its two neighbours.
+ * percentages. Each divider only trades space between its two neighbors.
  */
 export const ThreePanesWithDefaultSizes: Story = {
 	args: {

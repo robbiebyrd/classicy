@@ -424,7 +424,7 @@ describe("ClassicyScreenSaver idle monitor", () => {
 		expect(defaultAllowed).toBe(false);
 	});
 
-	it("wakes on mouse movement while active without cancelling the event", () => {
+	it("wakes on mouse movement while active without canceling the event", () => {
 		setData({ active: true });
 		render(<ClassicyScreenSaver />);
 		fireEvent.mouseMove(document.body);

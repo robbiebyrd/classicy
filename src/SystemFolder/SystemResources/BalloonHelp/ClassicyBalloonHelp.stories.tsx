@@ -87,7 +87,7 @@ const HookTarget = () => {
 };
 
 /**
- * `useClassicyBalloonHelp(ref, config)` attaches the same behaviour to an
+ * `useClassicyBalloonHelp(ref, config)` attaches the same behavior to an
  * element you already own — here an absolutely positioned badge that the
  * component's inline-block wrapper would disturb. Spread `handlers` onto the
  * element and render `balloon` inside it.

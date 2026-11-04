@@ -18,7 +18,7 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
  * outside the build: an imported theme file, or a `ClassicyDesktopImportTheme`
  * payload.
  *
- * Unknown keys are tolerated and STRIPPED (zod's default object behaviour),
+ * Unknown keys are tolerated and STRIPPED (zod's default object behavior),
  * so a file written by a newer build that adds an optional field still loads
  * here, but nothing undeclared ever reaches the store. Types are strict. The
  * one open map is `measurements`: a family the schema does not name is an
@@ -31,12 +31,12 @@ import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/
  * `url("…")`, must be a bundled wallpaper or a plain http(s) URL.
  */
 
-/** A 24-bit RGB colour, as themes store them (`0xRRGGBB`). */
+/** A 24-bit RGB color, as themes store them (`0xRRGGBB`). */
 const color = z
 	.number()
 	.int("must be a whole number")
-	.min(0, "must be a colour from 0x000000 to 0xFFFFFF")
-	.max(0xffffff, "must be a colour from 0x000000 to 0xFFFFFF");
+	.min(0, "must be a color from 0x000000 to 0xFFFFFF")
+	.max(0xffffff, "must be a color from 0x000000 to 0xFFFFFF");
 
 const palette = z.tuple([color, color, color, color, color, color, color]);
 

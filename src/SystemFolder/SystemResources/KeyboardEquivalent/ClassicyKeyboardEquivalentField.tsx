@@ -48,7 +48,7 @@ export type ClassicyKeyboardEquivalentFieldProps = Omit<
  * `onChange`, and the field shows whatever `value` it is given back.
  *
  * Pass the owning app's id as `appId`: the dialog is a window of that app, and
- * only an open app's windows are positioned (and centred) by the store.
+ * only an open app's windows are positioned (and centered) by the store.
  *
  * The field is controlled — it shows `value` spelled out (`⌃ + ⌘ + S`) and
  * reports the new equivalent in menu-item form (`"⌃⌘S"`), ready for a

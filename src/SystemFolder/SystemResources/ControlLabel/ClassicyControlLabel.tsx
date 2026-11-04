@@ -52,7 +52,7 @@ interface ClassicyControlLabelProps {
 	label?: string;
 	/** Text size: `small`, `medium` or `large` (double size). Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
-	/** Draws the text in the disabled grey (HIGOS8 p.42). Defaults to `false`. */
+	/** Draws the text in the disabled gray (HIGOS8 p.42). Defaults to `false`. */
 	disabled?: boolean;
 	/** Optional icon drawn beside the text (its alt text is the label). */
 	icon?: string;
@@ -85,10 +85,10 @@ interface ClassicyControlLabelProps {
 /**
  * Static text naming a control (HIGOS8 Ch.2 "Static Text Fields", p.42) — use
  * it instead of a raw `<label>`. It renders a real `<label>` (pointed at a
- * control with `labelFor`) in the theme's UI font, greyed when `disabled`,
+ * control with `labelFor`) in the theme's UI font, grayed when `disabled`,
  * optionally with an icon. Classicy's own controls (`ClassicyCheckbox`,
  * `ClassicyRadioInput`, `ClassicyInput`, …) already render one from their
- * `label`/`labelTitle` props; reach for it directly when labelling your own
+ * `label`/`labelTitle` props; reach for it directly when labeling your own
  * control.
  *
  * Gotchas: an empty `label` renders nothing (not even `children`); with

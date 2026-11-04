@@ -1,6 +1,6 @@
 /**
  * A small expression evaluator for HyperCard action value strings. This is NOT
- * HyperTalk — it is a compact, HyperTalk-flavoured expression language used only
+ * HyperTalk — it is a compact, HyperTalk-flavored expression language used only
  * for the value/condition strings inside declarative actions:
  *
  *   "score + 1"            arithmetic

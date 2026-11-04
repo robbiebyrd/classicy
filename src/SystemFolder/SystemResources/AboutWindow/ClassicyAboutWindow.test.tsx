@@ -86,7 +86,7 @@ describe("ClassicyAboutWindow modal unmount lifecycle", () => {
 });
 
 // HIGOS8 Ch.3 (p.23/p.57): the About box's OK is the default button and a key
-// dismisses the box (Return via the default; Escape as the sole acknowledgement).
+// dismisses the box (Return via the default; Escape as the sole acknowledgment).
 describe("ClassicyAboutWindow default button + keyboard dismissal", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();

@@ -475,7 +475,7 @@ describe("ClassicyPopUpMenu", () => {
 			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
 			await user.click(screen.getByRole("combobox"));
 			const listbox = screen.getByRole("listbox");
-			// Button centre 110, selected row centre 10 -> top 100 puts the current
+			// Button center 110, selected row center 10 -> top 100 puts the current
 			// choice directly over the button (classic Platinum aligned pop-up).
 			expect(listbox.style.top).toBe("100px");
 			expect(listbox.style.bottom).toBe("");

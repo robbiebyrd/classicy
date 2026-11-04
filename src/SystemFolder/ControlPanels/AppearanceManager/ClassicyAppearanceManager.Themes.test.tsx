@@ -323,7 +323,7 @@ describe("useThemesTab — Save Theme… / Load Theme…", () => {
 		expect(fileInput().value).toBe("");
 	});
 
-	it("ignores a cancelled pick", () => {
+	it("ignores a canceled pick", () => {
 		const loadThemeFile = vi.fn();
 		render(<Host loadThemeFile={loadThemeFile} />);
 		fireEvent.change(fileInput(), { target: { files: [] } });

@@ -13,7 +13,7 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 
-/** Which colour band a meter value falls in, as `<meter>` defines them. */
+/** Which color band a meter value falls in, as `<meter>` defines them. */
 export type ClassicyMeterZone = "optimal" | "suboptimal" | "bad";
 
 /** The native `<meter>` range and zone thresholds. */
@@ -45,7 +45,7 @@ const regionOf = (value: number, low?: number, high?: number): number => {
 
 /**
  * The zone `value` falls in: optimal in `optimum`'s region, suboptimal one
- * region away, bad two away. Exported so consumers can match the gauge colour.
+ * region away, bad two away. Exported so consumers can match the gauge color.
  */
 export const meterZone = (
 	value: number,

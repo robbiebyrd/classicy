@@ -65,7 +65,7 @@ describe("ClassicyKbd", () => {
 		expect(caps.map((c) => c.textContent)).toEqual(["⌃", "⌥", "F1"]);
 	});
 
-	// The glyphs stay text (only wrapped in spans), so a control labelled by a
+	// The glyphs stay text (only wrapped in spans), so a control labeled by a
 	// shortcut keeps the same accessible name.
 	it("keeps the shortcut's accessible name in both variants", () => {
 		render(

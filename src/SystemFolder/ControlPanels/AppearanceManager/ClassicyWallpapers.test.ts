@@ -21,7 +21,7 @@ describe("resolveWallpaper", () => {
 		);
 	});
 
-	it("passes an empty value through so colour-only themes stay colour-only", () => {
+	it("passes an empty value through so color-only themes stay color-only", () => {
 		expect(resolveWallpaper("")).toBe("");
 	});
 

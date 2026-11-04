@@ -75,8 +75,8 @@ describe("classicyPopUpMenuPlacement", () => {
 });
 
 describe("classicyPopUpMenuPlacement — aligned (selected item over the button)", () => {
-	it("opens the selected item centred on the button", () => {
-		// Button centre 110; selected row centre 50 -> menu top 60 lines them up.
+	it("opens the selected item centered on the button", () => {
+		// Button center 110; selected row center 50 -> menu top 60 lines them up.
 		const placement = classicyPopUpMenuPlacement(anchor(100), 200, 800, {
 			offsetTop: 40,
 			height: 20,
@@ -100,7 +100,7 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 	});
 
 	it("scrolls a long list so the selection still lands on the button", () => {
-		// Button centre 410; selection centre 510; capped menu pinned to the top
+		// Button center 410; selection center 510; capped menu pinned to the top
 		// (top=4) then scrolled 104px so 510 appears at 410.
 		const placement = classicyPopUpMenuPlacement(anchor(400), 900, 800, {
 			offsetTop: 500,
@@ -108,7 +108,7 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 		});
 		expect(placement.top).toBe(POPUP_MENU_VIEWPORT_MARGIN);
 		expect(placement.scrollTop).toBe(104);
-		// The selection lands exactly on the button centre.
+		// The selection lands exactly on the button center.
 		expect((placement.top ?? 0) + 510 - placement.scrollTop).toBe(410);
 	});
 
@@ -119,7 +119,7 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 			offsetTop: 0,
 			height: 20,
 		});
-		expect(placement.top).toBe(100); // button centre 110 - selection centre 10
+		expect(placement.top).toBe(100); // button center 110 - selection center 10
 		expect(placement.scrollTop).toBe(0);
 		expect((placement.top ?? 0) + placement.maxHeight).toBeLessThanOrEqual(800);
 	});

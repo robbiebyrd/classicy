@@ -11,7 +11,7 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * The default `inline` variant inside running text: "Cmd+Shift+S" is
- * normalised to the glyph run ⇧⌘S.
+ * normalized to the glyph run ⇧⌘S.
  */
 export const Inline: Story = {
 	args: {

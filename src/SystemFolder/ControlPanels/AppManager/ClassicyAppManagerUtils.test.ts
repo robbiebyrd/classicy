@@ -208,7 +208,7 @@ describe("persistence lifecycle", () => {
 
 // ─── getInitialState (via dynamic import after pre-seeding localStorage) ──────
 
-describe("getInitialState — localStorage behaviour (via module re-import)", () => {
+describe("getInitialState — localStorage behavior (via module re-import)", () => {
 	afterEach(async () => {
 		// Tear down persistence from the freshly loaded module before resetting
 		vi.resetModules();
@@ -225,7 +225,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		stopAppManagerPersistence();
 
 		// The DefaultAppManagerState is from ClassicyAppManager; the store was
-		// initialised from it, so Finder.app (seeded in default state) must exist.
+		// initialized from it, so Finder.app (seeded in default state) must exist.
 		const state = useAppManager.getState();
 		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 	});
@@ -1059,7 +1059,7 @@ describe("migrateClassicyState", () => {
 });
 
 describe("mergeClassicyState with window overrides", () => {
-	it("normalises a 0.x windows array in the overrides", async () => {
+	it("normalizes a 0.x windows array in the overrides", async () => {
 		const { DefaultAppManagerState, mergeClassicyState } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
 		);

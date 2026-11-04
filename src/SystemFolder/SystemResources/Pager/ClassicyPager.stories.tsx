@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { ClassicyPager } from "./ClassicyPager";
 
 // The Storybook frame is painted system-03, so the disabled arrows' punch-out
-// must use that colour too — exactly what ClassicyAssistant's footer does.
+// must use that color too — exactly what ClassicyAssistant's footer does.
 const footerBand = {
 	display: "inline-block",
 	padding: 4,
@@ -66,7 +66,7 @@ export const SinglePage: Story = {
 
 /**
  * On its default band, `--color-system-01`, no override is needed: the
- * hollow arrows punch out in the pager's built-in fallback colour.
+ * hollow arrows punch out in the pager's built-in fallback color.
  */
 export const DefaultBand: Story = {
 	args: { page: 0, pageCount: 3 },

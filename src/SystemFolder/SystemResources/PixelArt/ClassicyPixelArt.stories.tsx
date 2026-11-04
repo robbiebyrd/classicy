@@ -23,7 +23,7 @@ const Magnify = ({ by, children }: { by: number; children: ReactNode }) => (
 	<div style={{ zoom: by, lineHeight: 0 }}>{children}</div>
 );
 
-const Labelled = ({
+const Labeled = ({
 	label,
 	children,
 }: {
@@ -78,11 +78,11 @@ export const ControlStripGlyphs: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-end" }}>
 			{controlStripArt.map(([label, art]) => (
-				<Labelled key={label} label={label}>
+				<Labeled key={label} label={label}>
 					<Magnify by={4}>
 						<ClassicyPixelArt art={art} />
 					</Magnify>
-				</Labelled>
+				</Labeled>
 			))}
 		</div>
 	),
@@ -95,16 +95,16 @@ export const ControlStripGlyphs: RenderStory = {
 export const PopUpSliderArt: RenderStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-			<Labelled label="Track">
+			<Labeled label="Track">
 				<Magnify by={3}>
 					<ClassicyPixelArt art="popUpSliderTrack" />
 				</Magnify>
-			</Labelled>
-			<Labelled label="Thumb">
+			</Labeled>
+			<Labeled label="Thumb">
 				<Magnify by={3}>
 					<ClassicyPixelArt art="popUpSliderThumb" />
 				</Magnify>
-			</Labelled>
+			</Labeled>
 		</div>
 	),
 };

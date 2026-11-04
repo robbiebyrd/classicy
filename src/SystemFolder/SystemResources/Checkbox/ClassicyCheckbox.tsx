@@ -32,7 +32,7 @@ export type ClassicyCheckboxProps = {
 	 */
 	mixed?: boolean;
 	/**
-	 * Rings the box in the theme accent colour while it is on or pressed, as
+	 * Rings the box in the theme accent color while it is on or pressed, as
 	 * `isDefault` does for a radio button. It does not change the on-state
 	 * mark (see `mark`).
 	 */

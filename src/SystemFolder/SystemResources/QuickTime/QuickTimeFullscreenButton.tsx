@@ -3,7 +3,7 @@ import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 /**
- * The controller bar's fullscreen button (an icon button labelled "Enter
+ * The controller bar's fullscreen button (an icon button labeled "Enter
  * fullscreen"). `QuickTimeVideoEmbed` shows it for `type="video"` only.
  */
 export const QuickTimeFullscreenButton: FunctionalComponent<{

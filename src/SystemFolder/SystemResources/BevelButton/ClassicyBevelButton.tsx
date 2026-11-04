@@ -137,7 +137,7 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	popupPlacement?: ClassicyBevelPopupSide;
 	/**
-	 * Line the surface up with the button's edge (`start`) or centre it on the
+	 * Line the surface up with the button's edge (`start`) or center it on the
 	 * button (`center`, as Figure 2-16's slider sits on its module). Defaults
 	 * to `start`.
 	 */
@@ -236,7 +236,7 @@ const bevelButtonStates = (
  * With the `click` trigger (default in `popup` mode) a quick click leaves the
  * menu open and a press held past `popupHoldDelayMs` is a press-drag-release
  * menu; with `hold` (default in other modes) a click keeps the button's own
- * behaviour and only a long press shows the surface. Enter/Space toggles a
+ * behavior and only a long press shows the surface. Enter/Space toggles a
  * click-trigger surface and Down Arrow opens either kind with the first item
  * focused; Escape, an outside press, scrolling or resizing closes it.
  *

@@ -77,7 +77,7 @@ export interface ClassicyAssistantProps {
 	 * changes pages on its own: it renders this value (clamped to the page
 	 * range) and reports every navigation through `onPageChange`, so the owner
 	 * decides whether the move happens. Omit it to keep the uncontrolled
-	 * behaviour, where the assistant tracks the page itself from `initialPage`.
+	 * behavior, where the assistant tracks the page itself from `initialPage`.
 	 */
 	page?: number;
 	/**

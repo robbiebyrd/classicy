@@ -570,7 +570,7 @@ describe("hasThemeColorChange", () => {
 		...fields,
 	});
 
-	it("accepts a scalar key with an in-range integer colour", () => {
+	it("accepts a scalar key with an in-range integer color", () => {
 		expect(hasThemeColorChange(msg({ colorKey: "outline", color: 0 }))).toBe(
 			true,
 		);
@@ -590,7 +590,7 @@ describe("hasThemeColorChange", () => {
 		).toBe(true);
 	});
 
-	it("rejects bad keys, indices and colours", () => {
+	it("rejects bad keys, indices and colors", () => {
 		for (const fields of [
 			{ colorKey: "nope", color: 0 },
 			{ colorKey: "system", color: 0 },

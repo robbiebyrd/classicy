@@ -36,8 +36,8 @@ type ClassicyPagerProps = {
  * keyboard-operable; the pager itself plays no sounds. `ClassicyAssistant`
  * uses it for its footer navigation.
  *
- * Disabled arrows are drawn hollow by punching their centre out in the colour
- * of the band behind the pager. That colour defaults to `--color-system-01`;
+ * Disabled arrows are drawn hollow by punching their center out in the color
+ * of the band behind the pager. That color defaults to `--color-system-01`;
  * on any other background set `--classicy-pager-band` on an ancestor.
  *
  * ```tsx

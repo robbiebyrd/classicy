@@ -63,7 +63,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 
 	const volume = playerState.volume ?? 100;
 
-	// Per-sound enable/disable (audit ch. 6 §35). Playback honours each sound's
+	// Per-sound enable/disable (audit ch. 6 §35). Playback honors each sound's
 	// own entry in `disabled` (see playerCanPlayInterrupt), so toggling a sound
 	// here takes effect immediately per the HIGOS8 Ch.6 "Settings" rule that
 	// control-panel changes apply at once. The checkbox is checked when the

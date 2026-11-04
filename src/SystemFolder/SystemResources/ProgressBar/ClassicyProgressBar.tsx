@@ -79,7 +79,7 @@ const ChasingArrows: FunctionalComponent = () => (
  * The HIG says to switch from indeterminate to determinate once the scope of
  * a task is known — `autoSwitch` does that as soon as a `value` arrives, so
  * the same element can carry a task from start to finish. The bar has a
- * fixed height and takes its colour from the theme accent. For a measurement
+ * fixed height and takes its color from the theme accent. For a measurement
  * within a range (disk use, battery) use `ClassicyMeter` instead.
  */
 export const ClassicyProgressBar: FunctionalComponent<

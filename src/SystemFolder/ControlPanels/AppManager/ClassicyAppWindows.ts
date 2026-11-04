@@ -162,7 +162,7 @@ function isWindowLike(value: unknown): value is ClassicyStoreSystemAppWindow {
  *   stored under its own id; otherwise a copy without the invalid entries.
  * - Anything else (`undefined`, `null`, a string, a number…) becomes `{}`.
  *
- * Idempotent: normalising its own output returns that output unchanged.
+ * Idempotent: normalizing its own output returns that output unchanged.
  */
 export function normalizeClassicyAppWindows(
 	value: unknown,

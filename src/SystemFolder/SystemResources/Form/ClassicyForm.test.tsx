@@ -39,8 +39,8 @@ describe("ClassicyForm", () => {
 			</ClassicyForm>,
 		);
 		const form = container.querySelector("form") as HTMLFormElement;
-		const cancelled = !fireEvent.submit(form);
-		expect(cancelled).toBe(true);
+		const canceled = !fireEvent.submit(form);
+		expect(canceled).toBe(true);
 	});
 
 	it("a submit button click submits the form", () => {

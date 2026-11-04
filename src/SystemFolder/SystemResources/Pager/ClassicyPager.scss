@@ -8,7 +8,7 @@
   align-items: center;
   border: var(--pager-border-width) solid var(--color-system-03);
   // The disabled arrows' punch-out is painted in whatever band the pager sits
-  // on (see --classicy-pager-band below), or the hollow centre reads as a
+  // on (see --classicy-pager-band below), or the hollow center reads as a
   // lighter blob rather than a hole.
   //
   // The default deliberately lives in the var() fallback at the point of USE,

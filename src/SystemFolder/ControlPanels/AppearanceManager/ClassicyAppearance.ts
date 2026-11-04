@@ -31,7 +31,7 @@ export interface ClassicyStoreSystemAppearanceManager
 	/**
 	 * User-editable themes, kept apart from `availableThemes` so a persisted
 	 * list never shadows the built-ins shipped by a newer build. The first
-	 * colour/font/desktop edit made on a built-in forks it here as "Custom"
+	 * color/font/desktop edit made on a built-in forks it here as "Custom"
 	 * (id `"custom"`); see `ClassicyCustomTheme.ts`. Absent in state persisted
 	 * before custom themes existed.
 	 */

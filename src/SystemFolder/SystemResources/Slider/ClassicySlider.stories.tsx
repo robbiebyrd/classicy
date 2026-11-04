@@ -56,7 +56,7 @@ export const WithValueLabel: Story = {
 	},
 };
 
-/** `highlighted` draws the thumb in the theme accent colour. */
+/** `highlighted` draws the thumb in the theme accent color. */
 export const Highlighted: Story = {
 	args: { id: "slider-hl", labelTitle: "Bass", value: 75, highlighted: true },
 };
@@ -82,7 +82,7 @@ export const Vertical: Story = {
 };
 
 /**
- * A nondirectional (unpointed) knob with a single centre tick — the HIG choice
+ * A nondirectional (unpointed) knob with a single center tick — the HIG choice
  * when direction carries no meaning, as in a balance control.
  */
 export const NondirectionalKnob: Story = {

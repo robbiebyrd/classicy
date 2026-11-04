@@ -128,7 +128,7 @@ const evaluate = (input: string): number => {
 describe("window resizer / scroll bar alignment", () => {
 	const gutter = measurements.scrollbarSize;
 	// How far the contents box's *inner* edge sits from the window's padding
-	// box: the grey frame ring, plus the contents box's own border.
+	// box: the gray frame ring, plus the contents box's own border.
 	const innerCornerInset =
 		px(window_.padding) + px(`var(--window-border-size)`);
 
@@ -191,7 +191,7 @@ describe("window resizer / scroll bar alignment", () => {
 
 	it("draws no highlight bevel that would seam against the scroll bars", () => {
 		// A white inset highlight here reads as a 1px white seam between the grow
-		// box's grey and the scroll bars' black borders; the grip's grey must meet
+		// box's gray and the scroll bars' black borders; the grip's gray must meet
 		// those borders directly. The dimmed variant likewise carries no shadow.
 		expect(grip["box-shadow"]).toBeUndefined();
 		expect(

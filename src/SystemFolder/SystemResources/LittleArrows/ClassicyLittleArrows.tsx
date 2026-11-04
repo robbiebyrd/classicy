@@ -55,7 +55,7 @@ interface ClassicyLittleArrowsProps {
  * (`heldMs` 0) and every `repeatIntervalMs` while held, and the caller
  * applies, clamps and (if it wants acceleration) scales the step. Each arrow
  * is a real `<button>`; Enter/Space step once, with the OS key repeat giving
- * the held behaviour. For a number field with arrows — the
+ * the held behavior. For a number field with arrows — the
  * `<input type="number">` replacement — use `ClassicySpinner`.
  *
  * ```tsx

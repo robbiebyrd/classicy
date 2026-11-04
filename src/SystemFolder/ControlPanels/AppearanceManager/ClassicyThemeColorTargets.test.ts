@@ -11,10 +11,10 @@ import {
 
 const freshTheme = (): ClassicyTheme => structuredClone(getTheme("default"));
 
-describe("theme colour targets: hostile keys (CodeQL prototype pollution)", () => {
+describe("theme color targets: hostile keys (CodeQL prototype pollution)", () => {
 	const hostile = ["__proto__", "constructor", "prototype", "toString"];
 
-	it("rejects prototype-ish colour keys outright", () => {
+	it("rejects prototype-ish color keys outright", () => {
 		for (const colorKey of hostile) {
 			expect(isThemeColorTarget({ colorKey })).toBe(false);
 			expect(isThemeColorTarget({ colorKey, index: 0 })).toBe(false);

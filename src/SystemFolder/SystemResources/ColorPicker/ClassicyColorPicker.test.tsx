@@ -141,12 +141,12 @@ describe("ClassicyColorPicker", () => {
 	});
 
 	it("renders a label when labelTitle is provided", () => {
-		render(<ClassicyColorPicker id="test" labelTitle="Accent colour:" />);
-		expect(screen.getByText("Accent colour:")).toBeInTheDocument();
+		render(<ClassicyColorPicker id="test" labelTitle="Accent color:" />);
+		expect(screen.getByText("Accent color:")).toBeInTheDocument();
 	});
 });
 
-// ── Sub-component behavioural tests ───────────────────────────────────────────
+// ── Sub-component behavioral tests ───────────────────────────────────────────
 
 describe("ClassicyColorPickerCrayon — crayon click", () => {
 	it("calls onChangeFunc with the crayon's integer color when clicked", () => {

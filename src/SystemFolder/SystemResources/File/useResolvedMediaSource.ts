@@ -23,10 +23,10 @@ export function useResolvedMediaSource(
 			setResolved(undefined);
 			return;
 		}
-		let cancelled = false;
+		let canceled = false;
 		let objectUrl: string | undefined;
 		decompressFromBase64(data).then((bytes) => {
-			if (cancelled) return;
+			if (canceled) return;
 			const buffer = bytes.buffer.slice(
 				bytes.byteOffset,
 				bytes.byteOffset + bytes.byteLength,
@@ -38,7 +38,7 @@ export function useResolvedMediaSource(
 			setResolved(objectUrl);
 		});
 		return () => {
-			cancelled = true;
+			canceled = true;
 			if (objectUrl) URL.revokeObjectURL(objectUrl);
 		};
 	}, [url, data, mimeType]);

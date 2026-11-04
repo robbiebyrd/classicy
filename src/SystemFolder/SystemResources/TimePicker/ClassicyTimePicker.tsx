@@ -43,7 +43,7 @@ interface ClassicyTimePickerProps {
 	 * Base id. The hour, minute and second fields get `${id}_hour`,
 	 * `${id}_minutes` and `${id}_seconds`, the am/pm pop-up `${id}_ampm`, and
 	 * the label `${id}_label`. The label points at the hour field, and the
-	 * fields form a group labelled by it.
+	 * fields form a group labeled by it.
 	 */
 	id: string;
 	/** Called with the new (range-clamped) `Date` after every edit, step or am/pm change. */

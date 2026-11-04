@@ -88,7 +88,7 @@ describe("ClassicyThemeSchema — rejects", () => {
 		["fractional", 12.5],
 		["a string", "#ffffff"],
 		["NaN", Number.NaN],
-	])("a %s colour", (_label, value) => {
+	])("a %s color", (_label, value) => {
 		rejects(withEdit((t) => Object.assign(t.color, { select: value })));
 		rejects(
 			withEdit((t) => {
@@ -219,7 +219,7 @@ describe("ClassicyThemeSchema — rejects", () => {
 
 describe("isSafeClassicyThemeBackgroundImage", () => {
 	it.each([
-		["empty (colour-only)", ""],
+		["empty (color-only)", ""],
 		["a bundled filename", "azul_dark.png"],
 		["a resolved bundled wallpaper", ClassicyDefaultWallpaper],
 		["an https URL", "https://example.com/wallpaper.png"],

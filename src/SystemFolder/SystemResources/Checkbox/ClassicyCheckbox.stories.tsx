@@ -40,7 +40,7 @@ export const Disabled: Story = {
 };
 
 /**
- * `isDefault` rings the box in the theme accent colour while it is on or
+ * `isDefault` rings the box in the theme accent color while it is on or
  * pressed — the same emphasis a default radio button gets.
  */
 export const Default: Story = {
