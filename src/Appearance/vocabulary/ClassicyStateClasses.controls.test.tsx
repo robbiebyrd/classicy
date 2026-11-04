@@ -287,6 +287,12 @@ describe("shared bare state classes on controls, lists and menus", () => {
 		const row = screen.getByText("apple.pdf").closest("tr");
 		expect(row).toHaveClass("classicyFileBrowserViewTableRow", "selected");
 		expect(row).not.toHaveClass("classicyFileBrowserViewTableRowSelected");
+		// ClassicyTable adds `selected` itself; the row class must not repeat it.
+		expect(
+			(row?.getAttribute("class") ?? "")
+				.split(/\s+/)
+				.filter((c) => c === "selected"),
+		).toHaveLength(1);
 	});
 
 	it("ClassicyColorPickerRGB sliders: classicyColorPickerSliderRed/Green/Blue", () => {
