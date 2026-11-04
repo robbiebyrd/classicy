@@ -318,6 +318,8 @@ describe("cross-file overrides do not depend on import order", () => {
 		"Control Strip modules are drawn only by ClassicyControlStrip, never in a ClassicyButtonToolbar";
 	const HELP_IN_TOOLBAR =
 		"a help button in a small or medium toolbar is icon-only, so square, and the toolbar's three-class square rule sets its width and padding over both";
+	const HELP_SQUARE =
+		"a help button is square only in a toolbar (it never passes `square`, so isSquare needs the toolbar context), and every toolbar size's three-class square rule sets its width over both";
 	const TIES_THAT_NEVER_MEET: Record<string, string> = {
 		[tieKey(
 			".classicyWindow .classicyWindowTitleBar .classicyWindowControlBox",
@@ -363,17 +365,14 @@ describe("cross-file overrides do not depend on import order", () => {
 			".classicyBevelButton.classicyHelpButton",
 			".classicyButtonToolbarSizeSmall .classicyBevelButton",
 		)]: HELP_IN_TOOLBAR,
-		// KNOWN ORDER DEPENDENCY, not a tie that never meets. A help button in
-		// a large (default) ClassicyButtonToolbar is icon-only, so square, and
-		// no toolbar rule sizes it: its width is whichever of these two `width`
-		// rules comes later. In dist/classicy.css the help button's sheet comes
-		// first (ClassicyHelpButton.tsx imports it before ClassicyBevelButton),
-		// so the square width wins. No story renders the case; reported in
-		// story 0082-lgo (a) rather than changed here.
 		[tieKey(
 			".classicyBevelButton.classicyBevelButtonSquare",
 			".classicyBevelButton.classicyHelpButton",
-		)]: "latent, follow-up story: a help button in a large toolbar (see above)",
+		)]: HELP_SQUARE,
+		[tieKey(
+			".classicyButtonToolbar .classicyBevelButton.classicyBevelButtonSquare",
+			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+		)]: STRIP_IN_TOOLBAR,
 		[tieKey(
 			".classicyWindow .classicyWindowTitleBarModal",
 			".classicyWindowFrame > .classicyWindowTitleBar",
@@ -465,6 +464,13 @@ describe("cross-file overrides do not depend on import order", () => {
 			".classicyBevelButton",
 			`${W}BevelButton/ClassicyBevelButton.scss`,
 			"min-width",
+		],
+		[
+			".classicyButtonToolbar .classicyBevelButton.classicyBevelButtonSquare",
+			`${W}ButtonToolbar/ClassicyButtonToolbar.scss`,
+			".classicyBevelButton.classicyHelpButton",
+			`${W}HelpButton/ClassicyHelpButton.scss`,
+			"width",
 		],
 		[
 			".classicyWindow.classicyWindowWithMenuBar .classicyWindowContents:not(.classicyWindowContentsWithHeader)",

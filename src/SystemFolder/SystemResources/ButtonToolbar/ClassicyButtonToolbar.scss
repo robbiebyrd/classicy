@@ -18,6 +18,16 @@
 // buttons. Bevel width is NOT scaled here — that stays the per-button
 // `bevelWidth` prop, since CSS can't tell an explicit `medium` from the
 // default.
+//
+// A large toolbar restates the base square width at the size variants'
+// specificity, so every square control in a toolbar takes the toolbar's square
+// box, a help button (icon-only, so square) included, whichever of
+// ClassicyHelpButton.scss and ClassicyBevelButton.scss loads first. The
+// variants below come later and set their own.
+.classicyButtonToolbar .classicyBevelButton.classicyBevelButtonSquare {
+  width: var(--button-square-width);
+}
+
 .classicyButtonToolbarSizeMedium {
   .classicyBevelButton {
     gap: var(--control-padding-narrow);

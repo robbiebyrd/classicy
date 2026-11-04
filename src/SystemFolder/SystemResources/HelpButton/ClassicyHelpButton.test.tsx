@@ -2,8 +2,10 @@ import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { ClassicyButtonToolbar } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 
 vi.mock(
@@ -123,5 +125,51 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 		expect(glyph.width).toBe("var(--help-button-glyph-size)");
 		expect(glyph.height).toBe("var(--help-button-glyph-size)");
 		expect(glyph["image-rendering"]).toBe("pixelated");
+	});
+});
+
+// In a toolbar a help button is icon-only, so square, and takes the toolbar's
+// square box like the controls beside it (the medium and small sizes always
+// did; a large toolbar used to leave it to stylesheet order, which drew the
+// base square width). Outside a toolbar it keeps the HIG's 20 px.
+describe("ClassicyHelpButton width in a toolbar", () => {
+	const SHEETS = [
+		"src/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton.scss",
+		"src/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton.scss",
+		"src/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar.scss",
+	];
+	const orders = SHEETS.flatMap((a) =>
+		SHEETS.filter((b) => b !== a).map((b) => [
+			a,
+			b,
+			...SHEETS.filter((c) => c !== a && c !== b),
+		]),
+	);
+
+	it.each([
+		["large", "var(--button-square-width)"],
+		["medium", "var(--button-toolbar-square-button-width)"],
+		["small", "var(--control-square-size)"],
+	] as const)("is the %s toolbar's square width in any stylesheet order", (size, expected) => {
+		render(
+			<ClassicyButtonToolbar size={size}>
+				<ClassicyHelpButton />
+			</ClassicyButtonToolbar>,
+		);
+		const button = screen.getByRole("button", { name: "Help" });
+		expect(button).toHaveClass("classicyBevelButtonSquare");
+		for (const order of orders)
+			expect(classicyCascadeWinner(button, order, "width")?.value).toBe(
+				expected,
+			);
+	});
+
+	it("keeps the HIG width outside a toolbar in any stylesheet order", () => {
+		render(<ClassicyHelpButton />);
+		const button = screen.getByRole("button", { name: "Help" });
+		for (const order of orders)
+			expect(classicyCascadeWinner(button, order, "width")?.value).toBe(
+				"var(--help-button-width)",
+			);
 	});
 });
