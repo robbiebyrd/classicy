@@ -4046,19 +4046,26 @@ variables (`* #{1 - $cp-crayon-tip}`, which compiles to `* 0.69`, or
 `* (2)`). A `@mixin` or `@function` parameter, defaults included, is
 unresolved over its body, even where a file constant has its name, since the
 caller may pass a number or a theme read; so is a variable declared in the
-body as arithmetic over one (`$g: $f * 2;`). A parameter scaling a theme read
-(`calc(var(--x) * #{$f})`) or scaled by a number (`$size * 2`) is a site; a
-sign flip on a lone parameter (`$size * -1`) and a ratio of two (`$a / $b`)
-are not. Factors with a unit (`$deg * 1deg`), ratios of two variables, a
-number scaling a number and a variable scaling by a constant from another
-module (`m.$f`) are not sites. Not seen at all (none is live):
-`math.div(var(--x), 2)`. The pixel scanner, likewise, counts a unit written
-after an interpolation (`#{$n}px`), unless the interpolation is part of a
-name (`.gap-#{$n}px`, `&-#{$n}px`: a selector, not a length), and exempts
-only an `@media`/`@container` prelude itself, interpolations included
-(`@media #{$mq} and (min-width: 600px)`), up to its `{`, never a rule written
-after it on the same line; a pixel length built by string concatenation
-(`$n + px`) is not seen (none is live).
+body as arithmetic over one (`$g: $f * 2;`), and so is an earlier parameter
+read in a later one's default (`$b: $a * 2`). A parameter scaling a theme
+read (`calc(var(--x) * #{$f})`) or scaled by a number (`$size * 2`) is a
+site, and arithmetic over one in an interpolation is one site with its chain
+(`var(--x) * #{$f * 2}`); a ratio of two parameters (`$a / $b`) is not, and a
+sign flip never makes a site (`$size * -1`, `$a * $b * -1`). Factors with a
+unit (`$deg * 1deg`), ratios of two variables, a number scaling a number and
+a variable scaling by a constant from another module (`m.$f`) are not sites.
+Not seen at all (none is live): `math.div(var(--x), 2)`. The pixel scanner,
+likewise, counts a unit written after an interpolation (`#{$n}px`,
+`1#{$n}px`, `.#{$n}px`), unless it is in a selector, which it knows by
+context: the statement holding it ends at a block's `{` before any `;` or
+`}`, and is not an at-rule (`.gap-#{$n}px { … }` is a name, not a length;
+`@include m(#{$n}px) { … }` still counts). It exempts only an
+`@media`/`@container` prelude itself, interpolations included (`@media
+#{$mq} and (min-width: 600px)`), up to its `{`, never a rule written after it
+on the same line; an `@media` nested after other text on its line
+(`.a { @media (…) { … } }`) is not seen as a prelude, so its lengths are
+reported (a false positive; none is live). A pixel length built by string
+concatenation (`$n + px`) is not seen (none is live).
 Flagged although not a product (none is live): a slash that CSS reads as a
 separator after a theme read, such as `font: var(--size)/1.2 …`,
 `grid-row: var(--a) / 3`, `aspect-ratio: var(--w) / 2` or the alpha in

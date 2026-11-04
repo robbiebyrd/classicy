@@ -19,7 +19,7 @@
 //   node bin/check-pixel-literals.ts --list-multipliers print every multiplier site
 //
 // A unit written after a Sass interpolation (`#{$n}px`) is a literal too,
-// unless the interpolation is part of a name (`.gap-#{$n}px`, a selector).
+// unless it is in a selector (`.gap-#{$n}px { … }`), where it is a name.
 // Exempt: `0px`, `calc(infinity * 1px)`, `@media`/`@container` preludes (up
 // to their `{`, over any interpolation they hold, so a rule written on the
 // same line is still read), comments, url() payloads, and the screen savers
@@ -62,11 +62,6 @@ const ZERO = /^-?(?:0+(?:\.0+)?|\.0+)(?:e[+-]?\d+)?px$/i;
 // A unit written right after a Sass interpolation (`#{$n}px` compiles to a
 // pixel length); the match is the interpolation's closing brace and the unit.
 const INTERPOLATED_UNIT = /\}px(?![\w-])/gi;
-// What, right before an interpolation's `#{`, makes it part of a name, as
-// for a plain literal: an identifier character, `&`, a dot or a
-// hyphen-joined name (`.gap-#{$n}px`, `&-#{$n}px`, `.#{$n}px` are
-// selectors). A minus after anything else is a sign (`0 -#{$n}px`).
-const NAME_BEFORE = /(?:[\w&.]|[\w&-]-)$/;
 const INFINITY = /\binfinity\s*\*\s*1px/gi;
 // An `@media`/`@container` prelude, from its at-keyword up to (not
 // including) the `{` or `;` that ends it, across lines if it wraps, and over
@@ -106,6 +101,49 @@ const fallbackTracker = (text: string) => {
 	};
 };
 
+/**
+ * The indexes of the `{`, `}` and `;` that delimit a source's statements:
+ * outside quoted strings and interpolations, in order.
+ */
+const statementBoundaries = (text: string): number[] => {
+	const boundaries: number[] = [];
+	for (let i = 0, depth = 0; i < text.length; i++) {
+		const c = text[i];
+		if (c === '"' || c === "'") {
+			i = quotedEnd(text, i) - 1;
+		} else if (c === "#" && text[i + 1] === "{") {
+			depth++;
+			i++;
+		} else if (depth > 0) {
+			if (c === "{") depth++;
+			else if (c === "}") depth--;
+		} else if (c === "{" || c === "}" || c === ";") {
+			boundaries.push(i);
+		}
+	}
+	return boundaries;
+};
+
+/**
+ * Whether `text[start, end)` sits in a selector: its statement is ended by
+ * a block's `{` (not a `;` or `}`) and is not an at-rule, whose arguments
+ * are values even before a block (`@include m(#{$n}px) { … }`).
+ */
+const isInSelector = (
+	text: string,
+	boundaries: readonly number[],
+	start: number,
+	end: number,
+): boolean => {
+	const next = boundaries.find((at) => at >= end);
+	if (next === undefined || text[next] !== "{") return false;
+	const previous = boundaries.findLast((at) => at < start) ?? -1;
+	return !text
+		.slice(previous + 1, start)
+		.trimStart()
+		.startsWith("@");
+};
+
 /** The index of the `#{` opening the interpolation that closes at `close`. */
 const interpolationStart = (text: string, close: number): number => {
 	for (let depth = 0, i = close; i >= 0; i--) {
@@ -131,17 +169,18 @@ export const scanPixelLiteralsInSource = (
 		)
 		.replace(INFINITY, blank);
 	// Every literal as [index, text]: the plain ones, and a unit after an
-	// interpolation, reported from its `#{` (`#{$n}px`) unless the
-	// interpolation is part of a name.
+	// interpolation, reported from its `#{` (`#{$n}px`) unless it is in a
+	// selector (`.gap-#{$n}px { … }`), a name rather than a length.
 	const literals: [number, string][] = [];
 	for (const match of text.matchAll(PIXEL_LITERAL)) {
 		if (!ZERO.test(match[0])) literals.push([match.index, match[0]]);
 	}
+	const boundaries = statementBoundaries(text);
 	for (const match of text.matchAll(INTERPOLATED_UNIT)) {
 		const start = interpolationStart(text, match.index);
 		const end = match.index + match[0].length;
 		if (start === -1) continue;
-		if (NAME_BEFORE.test(text.slice(Math.max(0, start - 2), start))) continue;
+		if (isInSelector(text, boundaries, start, end)) continue;
 		literals.push([start, text.slice(start, end)]);
 	}
 	literals.sort(([a], [b]) => a - b);
@@ -187,6 +226,11 @@ export const scanPixelLiterals = (
 // and breaks, one parenthesis level at a time: a call, group or Sass
 // interpolation is one term, and its inside is scanned in turn.
 type MultiplierTerm = {
+	/**
+	 * The sites inside a `parameter` call, group or interpolation, which
+	 * count only when the chain holding it is not a site itself.
+	 */
+	innerSites?: [number, string][];
 	/**
 	 * `number`: a unitless number; `operand`: something that scales;
 	 * `parameter`: a `@mixin`/`@function` parameter, or arithmetic over one,
@@ -537,15 +581,24 @@ const sassBindingsOf = (text: string): SassLookup => {
 		const body = /^\s*\{/.exec(text.slice(close + 1));
 		if (body === null) continue;
 		const open = close + body[0].length;
-		const names = topLevelItems(text.slice(paren + 1, close)).flatMap(
-			(item) => /^\$([\w-]+)/.exec(item)?.[1] ?? [],
-		);
+		// Each parameter is in scope from the end of its own item, so a later
+		// default reads it (`$b: $a * 2`) and its own reads what is outside.
+		const parameters: { name: string; from: number }[] = [];
+		for (let i = paren + 1, item = i, depth = 0; i <= close; i++) {
+			if (text[i] === "(") depth++;
+			else if (text[i] === ")" && i < close) depth--;
+			else if (i === close || (text[i] === "," && depth === 0)) {
+				const name = /^\s*\$([\w-]+)/.exec(text.slice(item, i))?.[1];
+				if (name !== undefined) parameters.push({ name, from: i });
+				item = i + 1;
+			}
+		}
 		sources.push({
 			at: match.index,
 			bind: () =>
-				names.map((name) => ({
+				parameters.map(({ name, from }) => ({
 					name,
-					start: open,
+					start: from,
 					end: closeOf(open),
 					values: undefined,
 					raw: "",
@@ -610,6 +663,28 @@ const scanMultiplierLevel = (
 			term: { kind, text: text.slice(start, end), values },
 			start,
 		});
+	// A call, group or interpolation that is not plain arithmetic, its
+	// inside scanned in turn. Arithmetic over a parameter (`#{$f * 2}`) is
+	// one site with the chain it sits in, as arithmetic over a constant is,
+	// so its inner sites are held back until that chain is judged.
+	const nested = (
+		expression: string,
+		start: number,
+		end: number,
+		innerFrom: number,
+		innerTo: number,
+	) => {
+		const kind = unresolvedKind(expression, start);
+		term(kind, start, end);
+		if (kind !== "parameter") {
+			scanMultiplierLevel(text, innerFrom, innerTo, sites, lookup);
+			return;
+		}
+		const innerSites: [number, string][] = [];
+		scanMultiplierLevel(text, innerFrom, innerTo, innerSites, lookup);
+		const last = tokens[tokens.length - 1];
+		if (last.type === "term") last.term.innerSites = innerSites;
+	};
 	let i = from;
 	while (i < to) {
 		const c = text[i];
@@ -627,9 +702,12 @@ const scanMultiplierLevel = (
 			const close = Math.min(to - 1, closingBracket(text, i + 1));
 			const inner = text.slice(i + 2, close);
 			const values = evaluateArithmetic(inner, lookup, i);
-			if (values !== undefined) term("number", i, close + 1, values);
-			else term(unresolvedKind(inner, i), i, close + 1);
-			scanMultiplierLevel(text, i + 2, close, sites, lookup);
+			if (values !== undefined) {
+				term("number", i, close + 1, values);
+				scanMultiplierLevel(text, i + 2, close, sites, lookup);
+			} else {
+				nested(inner, i, close + 1, i + 2, close);
+			}
 			i = close + 1;
 		} else if (c === "$" && SASS_VARIABLE.test(rest)) {
 			const name = SASS_VARIABLE.exec(rest)?.[0] ?? c;
@@ -662,9 +740,12 @@ const scanMultiplierLevel = (
 				// A group or call that is plain arithmetic (`(2)`,
 				// `math.div(1, 2)`) is the number it compiles to.
 				const values = evaluateArithmetic(whole, lookup, i);
-				if (values !== undefined) term("number", i, close + 1, values);
-				else term(unresolvedKind(whole, i), i, close + 1);
-				scanMultiplierLevel(text, open + 1, close, sites, lookup);
+				if (values !== undefined) {
+					term("number", i, close + 1, values);
+					scanMultiplierLevel(text, open + 1, close, sites, lookup);
+				} else {
+					nested(whole, i, close + 1, open + 1, close);
+				}
 				i = close + 1;
 			} else {
 				term("other", i, open);
@@ -696,37 +777,41 @@ const scanMultiplierLevel = (
 		}
 	}
 	for (const { links, at } of chains) {
-		const count = (kind: MultiplierTerm["kind"]) =>
-			links.filter((link) => link.term.kind === kind).length;
-		const numbers = count("number");
-		const operands = count("operand");
-		const parameters = count("parameter");
-		// A parameter may be either role: beside something that scales, it
-		// may be the factor, so the chain is a site; beside a number, it may
-		// be what scales, as an operand would. Parameters alone are a ratio
-		// of variables, as two operands are.
-		if (parameters > 0 && operands > 0) {
+		if (isMultiplierSite(links)) {
 			sites.push([at, shownChain(links)]);
-			continue;
+		} else {
+			for (const { term } of links) sites.push(...(term.innerSites ?? []));
 		}
-		if (numbers === 0 || operands + parameters === 0) continue;
-		// The chain's factor: its numbers multiplied, or divided after a `/`,
-		// once per combination of the values its loop variables take. The
-		// chain is a site unless every factor is +1 or -1 and it holds at most
-		// one parameter (a second may be a factor too).
-		let products: number[] = [1];
-		for (const { op, term } of links) {
-			if (term.kind !== "number") continue;
-			products = uniqueValues(
-				products.flatMap((p) =>
-					term.values.map((value) => (op === "/" ? p / value : p * value)),
-				),
-			);
-		}
-		const isSignFlip = products.every((p) => Math.abs(Math.abs(p) - 1) < 1e-9);
-		if (isSignFlip && parameters < 2) continue;
-		sites.push([at, shownChain(links)]);
 	}
+};
+
+/**
+ * Whether a chain is a multiplier site. A parameter may be either role:
+ * beside something that scales, it may be the factor, so the chain is a
+ * site; beside a number, it may be what scales, as an operand would.
+ * Parameters alone are a ratio of variables, as two operands are, and a
+ * sign flip never makes a site.
+ */
+const isMultiplierSite = (links: MultiplierChain["links"]): boolean => {
+	const count = (kind: MultiplierTerm["kind"]) =>
+		links.filter((link) => link.term.kind === kind).length;
+	const operands = count("operand");
+	const parameters = count("parameter");
+	if (parameters > 0 && operands > 0) return true;
+	if (count("number") === 0 || operands + parameters === 0) return false;
+	// The chain's factor: its numbers multiplied, or divided after a `/`,
+	// once per combination of the values its loop variables take. The chain
+	// is a site unless every factor is +1 or -1.
+	let products: number[] = [1];
+	for (const { op, term } of links) {
+		if (term.kind !== "number") continue;
+		products = uniqueValues(
+			products.flatMap((p) =>
+				term.values.map((value) => (op === "/" ? p / value : p * value)),
+			),
+		);
+	}
+	return !products.every((p) => Math.abs(Math.abs(p) - 1) < 1e-9);
 };
 
 /** A chain as reported: its terms and operators, whitespace collapsed. */
@@ -754,12 +839,16 @@ const shownChain = (links: MultiplierChain["links"]): string =>
  * (`#{1 - $tip}`, `(2)`). A `@mixin` or `@function` parameter, defaults
  * included, is unresolved over its body, even where a file constant has its
  * name, since it may hold a number or a theme read; so is a body variable
- * built from one (`$g: $f * 2;`). Scaling a theme read (`var(--x) * #{$f}`)
- * or scaled by a number (`$size * 2`), it makes a site; a sign flip on a lone
- * parameter (`$size * -1`) and a ratio of two (`$a / $b`) are not sites.
- * Factors with a unit (`$deg * 1deg`), ratios of two variables and a number
- * scaling a number are not sites either. A chain is one site, reported whole (`var(--r) / 3 * 2`) at its first operator's line.
- * Comments and url() payloads are skipped, as for literals.
+ * built from one (`$g: $f * 2;`), and a later parameter's default reads an
+ * earlier one the same way (`$b: $a * 2`). Scaling a theme read
+ * (`var(--x) * #{$f}`) or scaled by a number (`$size * 2`), it makes a
+ * site; a ratio of two (`$a / $b`) is not one, and a sign flip never makes
+ * one (`$size * -1`, `$a * $b * -1`). Arithmetic over one in an
+ * interpolation (`#{$f * 2}`) is one site with the chain it sits in. Factors
+ * with a unit (`$deg * 1deg`), ratios of two variables and a number scaling
+ * a number are not sites either. A chain is one site, reported whole
+ * (`var(--r) / 3 * 2`) at its first operator's line. Comments and url()
+ * payloads are skipped, as for literals.
  */
 export const scanMultipliersInSource = (
 	source: string,

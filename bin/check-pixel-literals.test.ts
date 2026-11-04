@@ -207,6 +207,31 @@ describe("scanPixelLiteralsInSource", () => {
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["2 #{$n}px", "2 #{$n}px", "3 #{$n}px", "3 #{$n}px"]));
 
+	// Whether an interpolation is a name or a value is decided by what follows
+	// it, not by what precedes it: a digit or a dot before `#{` in a value
+	// still builds a pixel length (`1#{$n}px` is `15px`).
+	it.each([
+		["a digit", ".a { width: 1#{$n}px; }"],
+		["a dot", ".a { width: .#{$n}px; }"],
+		["a digit and a dot", ".a { width: 1.#{$n}px; }"],
+		["an interpolation and a dot", ".a { width: #{$a}.#{$b}px }"],
+	])("still counts an interpolated unit in a value after %s", (_, rule) =>
+		expect(
+			scanPixelLiteralsInSource(`$n: 5;\n${rule}`, "f.scss").map(
+				(found) => `${found.line} ${found.kind}`,
+			),
+		).toEqual(["2 bare"]));
+
+	// An at-rule's arguments are values even when a block follows them
+	// (`@include m(#{$n}px) { … }`, a content block).
+	it("still counts an interpolated unit in an at-rule's arguments before its block", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"$n: 5;\n.a { @include m(#{$n}px) { top: var(--x); } }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 #{$n}px"]));
+
 	it("counts Sass declarations, interpolation and package constants", () =>
 		expect(
 			scanPixelLiteralsInSource(
@@ -400,8 +425,9 @@ describe("scanMultipliersInSource", () => {
 
 	// A parameter may hold a theme read too, so scaled by a number it is a
 	// site, even where a file constant of its name would make the chain a
-	// number scaling a number; a sign flip, a lone parameter and a ratio of
-	// two parameters are not sites. A body variable built from a parameter
+	// number scaling a number; a lone parameter and a ratio of two
+	// parameters are not sites, and a sign flip never makes one
+	// (`$a * $b * -1` is still a ratio). A body variable built from a parameter
 	// (itself a site, `$f * 2`) is a parameter; one holding a theme read is
 	// an operand, as before.
 	it("treats a parameter scaled by a number as a site, but not a sign flip or a ratio", () =>
@@ -413,11 +439,34 @@ describe("scanMultipliersInSource", () => {
 		).toEqual([
 			"3 #{$f} * 3",
 			"4 $size * 2",
-			"7 $a * $b * -1",
 			"8 $f * 2",
 			"10 var(--x) * #{$g}",
 			"10 $v * $size",
 			"10 $v * 2",
+		]));
+
+	// A default may read an earlier parameter (Sass binds them in order), so
+	// there the parameter shadows a file constant too.
+	it("reads an earlier parameter in a later parameter's default", () =>
+		expect(
+			scanMultipliersInSource(
+				"$a: 1;\n@mixin m($a, $b: $a * 2, $c: var(--x) * $a) {\n  top: $b $c;\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 $a * 2", "2 var(--x) * $a"]));
+
+	// Arithmetic over a parameter inside an interpolation is one site with
+	// the chain it sits in, as it is over a constant; alone, it is its own.
+	it("counts an interpolation over a parameter once", () =>
+		expect(
+			scanMultipliersInSource(
+				"$c: 3;\n@mixin m($f) {\n  width: calc(var(--x) * #{$f * 2});\n  height: #{$f * 2};\n  left: calc(var(--x) * #{$c * 2});\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual([
+			"3 var(--x) * #{$f * 2}",
+			"4 $f * 2",
+			"5 var(--x) * #{$c * 2}",
 		]));
 
 	// H-R29a: a loop variable over numbers (`@each` over a map's values or a
