@@ -20,6 +20,7 @@ import {
 	peekLayerParts,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCRect } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export const HYPERCARD_PART_DRAG_MIME = "application/x-hypercard-part-type";
 
@@ -126,6 +127,10 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 		}
 		setDrag(undefined);
 	};
+	// The pointer stream lost mid-drag (the window blurs, a pointercancel,
+	// the page is hidden): the part stays where it was dragged, committed as
+	// a release there would commit it (and undoable like one).
+	useClassicyPointerStreamLost(drag !== undefined, onPointerUp);
 
 	const surfacePoint = (
 		e: { clientX: number; clientY: number },
