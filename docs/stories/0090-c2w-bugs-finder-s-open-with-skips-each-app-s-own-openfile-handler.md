@@ -3,11 +3,12 @@ id: 0090-c2w
 title: Finder's open-with skips each app's own OpenFile handler
 purpose: Make a file opened from Finder reach the target app's own OpenFile reducer case, the same way a dispatched action does.
 type: bugs
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-30T16:52:53.909Z"
-updated: "2026-11-03T23:46:53.619Z"
+updated: "2026-11-04T00:32:04.218Z"
+started: "2026-11-04T00:29:55.967Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -58,3 +59,5 @@ Have Finder route the OpenFile action through the desktop reducer's prefix routi
 ## Work Log
 
 ### 2026-11-03T23:46:53.619Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).
+
+### 2026-11-04T00:32:04.217Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).

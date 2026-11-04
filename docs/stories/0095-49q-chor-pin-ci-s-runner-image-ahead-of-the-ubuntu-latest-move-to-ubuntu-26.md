@@ -7,7 +7,7 @@ status: in_progress
 priority: "3"
 effort: XS
 created: "2026-10-30T19:15:34.073Z"
-updated: "2026-11-03T23:46:41.123Z"
+updated: "2026-11-04T00:31:56.650Z"
 started: "2026-11-03T23:45:02.183Z"
 tags: []
 milestone: ""
@@ -62,3 +62,5 @@ Record the choice in the workflow comments.
 ## Work Log
 
 ### 2026-11-03T23:46:41.123Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.
+
+### 2026-11-04T00:31:56.650Z - Implemented on fu/ci (521d01a3a, b613a1a53, 90912b4ff): runners pinned to ubuntu-26.04, the image ubuntu-latest has resolved to since 2026-10-27 (all green; pinning 24.04 would regress ffmpeg 8.0.1 to 6.1.1); the example-app build step is added and fails on a deliberate type error. The CI checks can only be verified on the PR after landing.

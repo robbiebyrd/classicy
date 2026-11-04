@@ -7,7 +7,7 @@ status: in_progress
 priority: "3"
 effort: XS
 created: "2026-10-29T21:26:50.186Z"
-updated: "2026-11-03T23:46:43.460Z"
+updated: "2026-11-04T00:31:59.223Z"
 started: "2026-11-03T23:45:10.507Z"
 tags: []
 milestone: ""
@@ -57,3 +57,5 @@ Push a branch where the example's import path is broken on purpose and see CI fa
 ### 2026-10-29T21:26:50.186Z - Created from B 5.1's review (minor 3); deliberately not done inside 5.1 because it changes CI.
 
 ### 2026-11-03T23:46:43.460Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.
+
+### 2026-11-04T00:31:59.223Z - Implemented on fu/ci (521d01a3a, b613a1a53, 90912b4ff): runners pinned to ubuntu-26.04, the image ubuntu-latest has resolved to since 2026-10-27 (all green; pinning 24.04 would regress ffmpeg 8.0.1 to 6.1.1); the example-app build step is added and fails on a deliberate type error. The CI checks can only be verified on the PR after landing.

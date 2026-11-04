@@ -3,11 +3,12 @@ id: 0098-drm
 title: On a fresh boot the live file-system tree is the shared default tree object, so edits change the defaults
 purpose: Keep the default file-system tree immutable, so one session's edits never leak into other storage keys or Drive Setup.
 type: bugs
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-30T21:44:07.146Z"
-updated: "2026-11-03T23:46:51.032Z"
+updated: "2026-11-04T00:32:01.802Z"
+started: "2026-11-04T00:29:47.040Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -61,3 +62,5 @@ Deep-copy the default tree (`structuredClone`) when it seeds the live tree, in b
 ## Work Log
 
 ### 2026-11-03T23:46:51.032Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).
+
+### 2026-11-04T00:32:01.802Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).

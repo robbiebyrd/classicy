@@ -3,11 +3,12 @@ id: 0097-p8k
 title: Storybook never loads Movie Player's reducer, so its actions do nothing in stories
 purpose: Make Movie Player behave in Storybook as it does in a host app.
 type: bugs
-status: pending
+status: in_progress
 priority: "3"
 effort: S
 created: "2026-10-30T21:33:37.126Z"
-updated: "2026-11-03T23:46:56.203Z"
+updated: "2026-11-04T00:32:06.761Z"
+started: "2026-11-04T00:30:04.997Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -59,3 +60,5 @@ Register the missing reducers the way a host does: through the package's side-ef
 ## Work Log
 
 ### 2026-11-03T23:46:56.202Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).
+
+### 2026-11-04T00:32:06.761Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).

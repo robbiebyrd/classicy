@@ -7,7 +7,7 @@ status: in_progress
 priority: "1"
 effort: M
 created: "2026-10-30T19:15:24.764Z"
-updated: "2026-11-03T23:46:38.652Z"
+updated: "2026-11-04T00:31:54.166Z"
 started: "2026-11-03T23:44:53.999Z"
 tags: []
 milestone: ""
@@ -67,3 +67,5 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 ## Work Log
 
 ### 2026-11-03T23:46:38.652Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.
+
+### 2026-11-04T00:31:54.165Z - Implemented (e3bb63e35 on fu/0092): 33 alerts fixed by in-range lockfile updates and 3 by raised overrides (js-yaml, shell-quote (the critical one), sharp), documented in docs/DEPENDENCY-OVERRIDES.md; pnpm audit drops from 58 findings to 6; dist byte-identical; full gate green. Open, awaiting the owner's dismissal decision: deepmerge #341 (no patch, its caller never loaded) and minimatch #343 (new; patched only in 11.x). Lands after Part K; the Dependabot check after PR 333 merges.

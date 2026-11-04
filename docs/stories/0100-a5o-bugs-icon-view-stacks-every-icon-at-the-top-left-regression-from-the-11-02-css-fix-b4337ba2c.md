@@ -3,11 +3,12 @@ id: 0100-a5o
 title: Icon view stacks every icon at the top left (regression from the 11/02 CSS fix b4337ba2c)
 purpose: Restore the file browser's icon view without undoing what the 11/02 CSS fix solved for the list view.
 type: bugs
-status: pending
+status: in_progress
 priority: "1"
 effort: S
 created: "2026-11-04T00:27:39.118Z"
-updated: "2026-11-04T00:27:39.118Z"
+updated: "2026-11-04T00:32:11.879Z"
+started: "2026-11-04T00:30:23.465Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -64,3 +65,5 @@ Add a test, a real-browser check or a parity story for each view, so neither reg
 - `src/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable.scss` - Scope the fill width by view.
 
 ## Work Log
+
+### 2026-11-04T00:32:11.879Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).
