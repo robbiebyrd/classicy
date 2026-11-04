@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as sass from "sass";
 import ts from "typescript";
@@ -25,34 +25,119 @@ const NOT_CLASSES: Record<string, string> = {
 };
 
 /**
+ * The string literals of a union type, read from the source: the type alias
+ * `name` in `file`, or `Owner.prop` for a property of the type `Owner`
+ * declares. A member naming another alias is followed, in the same file or
+ * through an `@/…` import.
+ */
+function stringUnion(file: string, name: string): string[] {
+	const parse = (rel: string) => {
+		const full = [".tsx", ".ts"]
+			.map((ext) => resolve(process.cwd(), "src", `${rel}${ext}`))
+			.find((f) => existsSync(f));
+		if (!full) throw new Error(`no module src/${rel}`);
+		return ts.createSourceFile(
+			full,
+			readFileSync(full, "utf8"),
+			ts.ScriptTarget.Latest,
+			true,
+		);
+	};
+	const declaration = (source: ts.SourceFile, alias: string) => {
+		const found = source.statements.find(
+			(st): st is ts.TypeAliasDeclaration | ts.InterfaceDeclaration =>
+				(ts.isTypeAliasDeclaration(st) || ts.isInterfaceDeclaration(st)) &&
+				st.name.text === alias,
+		);
+		if (found) return { source, node: found as ts.Node };
+		for (const st of source.statements) {
+			if (!ts.isImportDeclaration(st)) continue;
+			const bindings = st.importClause?.namedBindings;
+			const specifier = (st.moduleSpecifier as ts.StringLiteral).text;
+			if (
+				bindings &&
+				ts.isNamedImports(bindings) &&
+				bindings.elements.some((e) => e.name.text === alias) &&
+				specifier.startsWith("@/")
+			)
+				return declaration(parse(specifier.slice(2)), alias);
+		}
+		throw new Error(`no type ${alias} in ${source.fileName}`);
+	};
+	const literals = (source: ts.SourceFile, node: ts.TypeNode): string[] => {
+		if (ts.isUnionTypeNode(node))
+			return node.types.flatMap((t) => literals(source, t));
+		if (ts.isParenthesizedTypeNode(node)) return literals(source, node.type);
+		if (ts.isLiteralTypeNode(node) && ts.isStringLiteral(node.literal))
+			return [node.literal.text];
+		if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+			const found = declaration(source, node.typeName.text);
+			if (ts.isTypeAliasDeclaration(found.node))
+				return literals(found.source, found.node.type);
+		}
+		throw new Error(`not a string-literal union: ${node.getText(source)}`);
+	};
+	const [alias, prop] = name.split(".");
+	const { source, node } = declaration(parse(file), alias);
+	if (!prop) {
+		if (!ts.isTypeAliasDeclaration(node))
+			throw new Error(`${alias} is not a type alias`);
+		return literals(source, node.type);
+	}
+	let property: ts.PropertySignature | undefined;
+	const visit = (n: ts.Node) => {
+		if (ts.isPropertySignature(n) && n.name.getText(source) === prop)
+			property ??= n;
+		ts.forEachChild(n, visit);
+	};
+	visit(node);
+	if (!property?.type) throw new Error(`no property ${name}`);
+	return literals(source, property.type);
+}
+
+/** `small` → `Small`, as the class names spell a union's members. */
+const capitalized = (values: string[]): string[] =>
+	values.map((v) => `${v.charAt(0).toUpperCase()}${v.slice(1)}`).sort();
+
+/** The palette tokens ClassicyPixelArt.scss declares classes for. */
+const pixelArtTokens = (): string[] =>
+	[
+		...readFileSync(
+			resolve(
+				process.cwd(),
+				"src/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt.scss",
+			),
+			"utf8",
+		).matchAll(/^\.classicyPixel(\w)\s*\{/gm),
+	]
+		.map((m) => m[1])
+		.sort();
+
+const BEVEL = "SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+const POPUP = "SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+
+/**
  * Class prefixes completed by a template interpolation, with every suffix the
- * code can produce. `""` means the token is a whole class and the
- * interpolation appends a space-separated one.
+ * code can produce, derived from what the code interpolates (a union type,
+ * the palette) so a new member is checked without editing this list. `""`
+ * means the token is a whole class and the interpolation appends a
+ * space-separated one.
  */
 const TEMPLATE_FAMILIES: Record<string, string[]> = {
-	// popupArrow: "small" | "large" (ClassicyBevelButton.tsx)
-	classicyBevelButtonArrow: ["Large", "Small"],
-	// ClassicyBevelButtonMode, capitalized
-	classicyBevelButtonMode: ["Popup", "Push", "Radio", "Toggle"],
-	// The ClassicyPixelArt palette tokens (ClassicyPixelArt.scss)
-	classicyPixel: [
-		"1",
-		"2",
-		"3",
-		"4",
-		"5",
-		"6",
-		"7",
-		"K",
-		"W",
-		"b",
-		"c",
-		"d",
-		"m",
-		"n",
-	],
-	// ClassicyPopUpMenuSize, capitalized
-	classicyPopUpMenuSize: ["Large", "Medium", "Mini", "Small"],
+	// `classicyBevelButtonArrow${popupArrow === "large" ? "Large" : "Small"}`
+	classicyBevelButtonArrow: capitalized(
+		stringUnion(BEVEL, "ClassicyBevelButtonProps.popupArrow"),
+	),
+	// `classicyBevelButtonMode${capitalized mode}`
+	classicyBevelButtonMode: capitalized(
+		stringUnion(BEVEL, "ClassicyBevelButtonMode"),
+	),
+	// `classicyPixel${token}`, one class per palette token
+	classicyPixel: pixelArtTokens(),
+	// `classicyPopUpMenuSize${capitalized size}`
+	classicyPopUpMenuSize: capitalized(
+		stringUnion(POPUP, "ClassicyPopUpMenuSize"),
+	),
 	// `classicyScreenSaverOverlay${transparent ? " …Transparent" : ""}`
 	classicyScreenSaverOverlay: [""],
 };
@@ -214,6 +299,22 @@ describe("ClassicyVocabulary", () => {
 		},
 		SCAN_TIMEOUT_MS,
 	);
+
+	it("TEMPLATE_FAMILIES are read from the unions and palette they interpolate", () => {
+		// Not their full lists (a new member must not need an edit here): that
+		// each is read, a local member and an imported alias's alike.
+		expect(TEMPLATE_FAMILIES.classicyBevelButtonArrow).toContain("Large");
+		expect(TEMPLATE_FAMILIES.classicyBevelButtonMode).toContain("Popup");
+		expect(TEMPLATE_FAMILIES.classicyPixel).toContain("K");
+		// "mini" is ClassicyPopUpMenuSize's own; "small" comes through the
+		// imported ClassicyControlLabelSize.
+		expect(TEMPLATE_FAMILIES.classicyPopUpMenuSize).toEqual(
+			expect.arrayContaining(["Mini", "Small"]),
+		);
+		expect(() => stringUnion(BEVEL, "ClassicyBevelButtonNope")).toThrow(
+			"no type ClassicyBevelButtonNope",
+		);
+	});
 
 	it("classicy-state() returns the class selector and rejects an unknown state at compile time", () => {
 		const compile = (state: string) =>
