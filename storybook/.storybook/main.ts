@@ -20,7 +20,7 @@ const config: StorybookConfig = {
 		return mergeConfig(config, {
 			// Serve Storybook under a sub-path when STORYBOOK_BASE is set (used by
 			// the PR-preview workflow, e.g. "/classicy/pr-preview/pr-12/"). Left
-			// unset for the normal/main build so its behaviour is unchanged. Vite
+			// unset for the normal/main build so its behavior is unchanged. Vite
 			// rewrites glob-imported asset URLs (ClassicyIcons) against this base,
 			// so component icons resolve correctly under the preview sub-path.
 			base: process.env.STORYBOOK_BASE || config.base,
