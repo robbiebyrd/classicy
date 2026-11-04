@@ -205,7 +205,11 @@ the real Platinum proportions, e.g.:
 
 Each is a hidden design constant. (**Done (part G):** the real proportions
 are 35 named derivations emitted by `getThemeVars`, `CLASSICY_THEME_DERIVATIONS`;
-86 one-off multipliers are left for part H, listed in `docs/AGENT-REFERENCE.md` §8.)
+86 one-off multipliers are left for part H. **Done 2026-11-04 (part H, plan
+0011-v9t):** 84 more named derivations, 119 in all; the multiplier gate in
+`bin/check-pixel-literals.ts` keeps only 40 sites over 9 files in
+`bin/multiplier-allowlist.json`, each with a reason, listed in
+`docs/AGENT-REFERENCE.md` §8, "Multipliers in SCSS".)
 Title-bar height is defined **twice and
 inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `--hig-titlebar-height` = 19px (`:600`).
@@ -224,12 +228,15 @@ fallbacks are left in `src/**/*.scss` (the screen savers' ported art
 excepted). `bin/check-pixel-literals.ts`, chained into `pnpm lint` and run
 by a test, fails on any new one, and its ratchet,
 `bin/pixel-literal-allowlist.json`, is empty. The pixel-matched surfaces read
-20 Platinum knob families (93 keys, `measurements.<family>` in
-`platinum.json`, emitted as `--<family>-<key>`); everything else reads a core
-token or a named derivation. The same scanner gates multipliers: 84 more
-named derivations (119 in all), and `bin/multiplier-allowlist.json` keeps only
-the 37 geometry sites with a reason each. Platinum renders pixel-identical
-(342 stories and the example-app shots at AE 0).
+20 Platinum knob families (95 keys, `measurements.<family>` in
+`platinum.json`, emitted as `--<family>-<key>`); every other pixel size reads
+a core token or a named derivation (the few `rem` sizes in the startup screen
+and the desktop stay as they are). The same scanner gates multipliers: 84
+more named derivations (119 in all), and `bin/multiplier-allowlist.json`
+keeps only the 40 kept sites (geometry and the button spacing scale) with a
+reason each. Platinum renders pixel-identical (344 stories and the
+example-app shots at AE 0), with one named visual change: the Appearance
+Manager's Options tab shows Platinum's six knob groups (H-R4).
 
 #### 2.6 `!important` and cascade order
 

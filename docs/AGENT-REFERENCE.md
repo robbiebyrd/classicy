@@ -209,7 +209,7 @@ Package `exports` map:
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8), `classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
 | `classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `classicy` registers the Platinum package, so you never need this specifier |
-| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
+| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -1623,10 +1623,24 @@ authors:
   new. A component rendered outside `ClassicyDesktop` needs the full
   `getThemeVars(theme)` spread on its wrapper (§1), or those declarations
   are invalid at computed-value time and compute as `unset`.
+- **Breaking for SCSS hosts that `@use` Platinum's mixins**
+  (`classicy/appearance/platinum/scss/*`). No mixin name or parameter
+  changed, but two now read knob variables only `getThemeVars` emits:
+  `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
+  `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
+  `platinum-scrollbars` reads `--scrollbar-thumb-grip-width` and `-height`.
+  Inside a desktop the Platinum floor emits them for every package's themes;
+  a host that includes the mixins anywhere else spreads `getThemeVars(theme)`
+  there too. The inset shadows of the `platinum-window-*` and
+  `platinum-depressable-*` mixins and of the scroll-bar track now read the
+  derivation `--control-frame-width` (border × 2) where they computed
+  `--window-border-size * 2` or `* -2`, so a host that overrides only
+  `--window-border-size` on a subtree no longer moves them: it overrides
+  `--control-frame-width` as well.
 - **New: package knob families** (§8, "Package knob families"). Platinum's
-  `defaults.measurements` gains 20 families (93 keys), emitted as
+  `defaults.measurements` gains 20 families (95 keys), emitted as
   `--<family>-<key>`. A package can resize pixel-matched surfaces by
-  overriding the values (82 of them are structural: base stylesheets read
+  overriding the values (84 of them are structural: base stylesheets read
   them). Theme files may carry them; an exported theme carries all of them.
 - **Visual change: the Appearance Manager's Options tab** now shows six
   groups under Platinum (Control strip, Menu frame, Pager, Balloon help, Pop
@@ -1644,7 +1658,13 @@ authors:
 - **Persisted state is smaller.** A stored theme keeps only the package-family
   values a user changed (`sanitizeStateForPersistence`, H-R17); `getThemeVars`
   fills the rest from the theme's package when it reads it, so a later change
-  to a package's knob defaults reaches existing users.
+  to a package's knob defaults reaches existing users. The same strip is
+  applied to the active theme before saved state, or a host's
+  `defaultState`, is merged over the defaults, by
+  `withoutDefaultActiveThemeMeasurements(state)`
+  (`ClassicyAppManagerUtils.tsx`). It reaches the public barrel but is
+  `@internal`, for `ClassicyAppManagerProvider` alone: hosts never call it,
+  and it may change without notice.
 - **New: `popupAnchorInset` may be a function.** `ClassicyBevelButton`'s
   `popupAnchorInset` also accepts `(button) => Partial<ClassicyBevelPopupRect>`,
   called each time the surface opens, so the inset can be read from theme
@@ -3216,7 +3236,7 @@ and is kept. Types are strict:
 | package family and key names (`measurements.controlStrip.cellHeight`) | lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`, `/^[a-z][A-Za-z0-9]*$/`) |
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
-| `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it is interpolated unquoted into `url(…)` (`isSafeClassicyThemeBackgroundImage`) |
+| `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it lands in the double-quoted `url("…")` that `getThemeVars` writes, and none of those characters may break out of it (`isSafeClassicyThemeBackgroundImage`) |
 | `sound.pack` | a registered sound pack id (e.g. `"platinum"`); see §10 |
 
 ```ts
@@ -3278,7 +3298,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 |---|---|---|
 | Themes | `useThemesTab({ packageId, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" (Platinum's icon only for `platinum`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
-| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>` or the knob's default when the theme lacks it; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
+| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the Platinum floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
@@ -3353,7 +3373,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 20 families of its own (93 keys)
+**Package knob families.** Platinum adds 20 families of its own (95 keys)
 to the core five, in `src/Appearance/Platinum/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when `getAllThemes` loads them, H-R8). Each key is
@@ -3373,11 +3393,15 @@ Color Picker and the dialogs) read these instead of `Npx` literals.
   (`classicy.base`) or component code reads is part of the component's
   interface, not of Platinum's look: every package's themes must emit it.
   The Platinum floor (below) guarantees that, so a package changes such
-  geometry by overriding the knob's value, never the base CSS. 82 of the 93
+  geometry by overriding the knob's value, never the base CSS. 84 of the 95
   are structural ("Structural: yes"). The other 11 are read only by
   Platinum's own partials (`_ControlStrip.scss`, `_mixins.scss`,
   `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`), so another package may ignore them.
+  `_QuickTimeMovieEmbed.scss`), so a package with stylesheets of its own
+  may ignore them, unless it `@use`s Platinum's published mixins
+  (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
+  and `--scrollbar-thumb-grip-*` knobs): it then needs them, which the
+  Platinum floor provides for every package's themes.
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -3475,11 +3499,13 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `picker.unitWidth` | `--picker-unit-width` | 14 | — | yes | ClassicyColorPicker.scss |
 | `dialog.alertMinWidth` | `--dialog-alert-min-width` | 280 | — | yes | ClassicyAlert.scss |
 | `dialog.alertMaxWidth` | `--dialog-alert-max-width` | 460 | — | yes | ClassicyAlert.scss |
+| `dialog.alertLabelOffset` | `--dialog-alert-label-offset` | 1 | — | yes | ClassicyAlert.scss |
 | `dialog.inputMinWidth` | `--dialog-input-min-width` | 300 | — | yes | ClassicyInputDialog.scss |
 | `dialog.inputMaxWidth` | `--dialog-input-max-width` | 460 | — | yes | ClassicyInputDialog.scss |
 | `dialog.keyboardEquivalentMinWidth` | `--dialog-keyboard-equivalent-min-width` | 300 | — | yes | ClassicyKeyboardEquivalent.scss |
 | `dialog.keyboardEquivalentMaxWidth` | `--dialog-keyboard-equivalent-max-width` | 420 | — | yes | ClassicyKeyboardEquivalent.scss |
 | `dialog.fileDialogMinHeight` | `--dialog-file-dialog-min-height` | 220 | — | yes | ClassicyFileOpenDialog.scss |
+| `dialog.fileInputHiddenSize` | `--dialog-file-input-hidden-size` | 1 | — | yes | ClassicyFileInput.scss |
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
@@ -3750,7 +3776,7 @@ which H-R5 names apart: a key cap's corner and a frame's drop shadow); and
 `--control-bevel-md`, `--button-default-ring` and the named
 `--focus-ring-inset` (`b × 3`).
 
-Two pairs were checked against H-R6 and kept apart (H-R28d):
+Three pairs were checked against H-R6 and kept apart, the first two under H-R28d and the third as a 6.2a acceptance:
 
 - `--assistant-header-gap` and `--menu-item-icon-gap` (`c × 0.5`): both
   are an icon-to-title gap, but in different components. The menu gap is
@@ -3970,14 +3996,23 @@ are multiplied (divided after a `/`), and the chain is a site unless the
 product is +1 or -1 (H-R28a): `* -1` alone is a sign flip and needs no name
 (H-R7), but `var(--x) * -1 / 2` and `2 * 3 * var(--x)` are sites. A chain is
 one site, reported whole at its first operator's line (`var(--r) / 3 * 2`).
-A file's own top-level number constant (`$cp-crayon-tip: 0.31;`), bare
-(`* $n`) or interpolated (`* #{$n}`), and an interpolation that is plain
-arithmetic over numbers and those constants (`* #{1 - $cp-crayon-tip}`,
-which compiles to `* 0.69`) count as numbers, since that is what they compile
-to. Factors with a unit (`$deg * 1deg`), ratios of two variables, a number
-scaling a number and a variable scaling by any other Sass factor (a mixin
-argument such as `* #{$mult}`, a loop variable) are not sites. Not seen at all (none
-is live): `math.div(var(--x), 2)` and a parenthesized factor (`* (2)`).
+A Sass variable that holds a number counts as that number, bare (`* $n`) or
+interpolated (`* #{$n}`), since that is what it compiles to: a constant
+(`$cp-crayon-tip: 0.31;`, `$f: math.div(1, 2);`, `$g: $f * 2;`), declared at
+the top level or inside a block and read within its scope (an inner
+declaration shadows an outer one, as in Sass), and a loop variable over
+numbers (`@each` over a list or a map's values, `@for` over a range), which
+makes a site when any pass's factor is not +1 or -1. So does an
+interpolation, group or call that is plain arithmetic over numbers and those
+variables (`* #{1 - $cp-crayon-tip}`, which compiles to `* 0.69`, or
+`* (2)`). Factors with a unit (`$deg * 1deg`), ratios of two variables, a
+number scaling a number and a variable scaling by any other Sass factor (a
+mixin argument, a constant from another module such as `m.$f`) are not
+sites. Not seen at all (none is live): `math.div(var(--x), 2)`. The pixel
+scanner, likewise, counts a unit written after an interpolation
+(`#{$n}px`) and exempts only an `@media`/`@container` prelude itself, up to
+its `{`, never a rule written after it on the same line; a pixel length built
+by string concatenation (`$n + px`) is not seen (none is live).
 Flagged although not a product (none is live): a slash that CSS reads as a
 separator after a theme read, such as `font: var(--size)/1.2 …`,
 `grid-row: var(--a) / 3`, `aspect-ratio: var(--w) / 2` or the alpha in
@@ -3996,8 +4031,8 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 37 sites over 8 files, the sites kept on purpose
-(Part G) and the H-R7 and H-R21 geometry:
+the list ends at these 40 sites over 9 files, the sites kept on purpose
+(Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -4026,6 +4061,12 @@ the list ends at these 37 sites over 8 files, the sites kept on purpose
   top 31% of the 36 × 96 crayon drawing. It scales the component's own
   variables, not a theme metric (crayon-art geometry, H-R7). The scanner
   sees it since H 7.1 reads the file's number constants.
+- `ClassicyButton.scss`, the three `* #{$mult}` in the spacing loop: the
+  `Sm`/`Md`/`Lg`/`Xl` padding and margin classes scale `--control-padding`
+  and `--window-padding-size` by the Sass map `$classicy-button-spacing`
+  (0.5, 1, 1.5, 2). The scale is named in Sass, and it still follows the
+  Metrics tab, since it multiplies the live metrics (H 6.2a). The scanner
+  sees it since the final review's fixes read loop variables (H-R29a).
 
 H 6.2b's 24 pending sites: 23 were named and one, `ClassicySlider.scss:6`,
 is kept (the thumb-on-track centering above). The 23 became 14 new

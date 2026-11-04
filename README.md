@@ -247,6 +247,13 @@ the theme (`--<family>-<key>`) instead of `Npx` literals.
   `getThemeVars(theme)` on its wrapper.
 - **Breaking for packages:** a measurement whose variable starts with
   `--color-`, or names one of the 119 named derivations, is skipped.
+- **Breaking for host CSS:** 84 more sizes are named derivations that
+  `getThemeVars` sets, so overriding an input variable such as
+  `--window-padding-size` no longer moves them: change the theme, or
+  override the derived variable.
+- **Breaking for SCSS hosts:** Platinum's published `platinum-menu-frame`
+  and `platinum-scrollbars` mixins read knob variables that only
+  `getThemeVars` emits.
 - **The Options tab** shows six groups of Platinum knobs.
 - `withDefaultThemeMetrics(theme, defaults?)` takes the defaults to fill
   from; pass `classicyThemeMeasurementDefaults(theme.package)` to complete a
