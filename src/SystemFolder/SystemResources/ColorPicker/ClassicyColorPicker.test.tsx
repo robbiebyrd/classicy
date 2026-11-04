@@ -1,5 +1,10 @@
 import { produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
 	registerClassicyAppearancePackage,
@@ -405,5 +410,65 @@ describe("ClassicyColorWheel — hit test", () => {
 		expect(onChangeFunc).toHaveBeenLastCalledWith(0, 100);
 		fireEvent.pointerDown(canvas, { clientX: 50, clientY: 75, pointerId: 1 });
 		expect(onChangeFunc).toHaveBeenLastCalledWith(90, 50);
+	});
+});
+
+describe("ClassicyColorWheel — a lost pointer stream", () => {
+	const renderWheel = () => {
+		const onChangeFunc = vi.fn();
+		const view = render(
+			<ClassicyColorWheel
+				hue={0}
+				saturation={0}
+				brightness={100}
+				mode="hsv"
+				size={200}
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+		vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+			left: 0,
+			top: 0,
+			width: 100,
+			height: 100,
+			right: 100,
+			bottom: 100,
+			x: 0,
+			y: 0,
+			toJSON: () => ({}),
+		} as DOMRect);
+		return { ...view, canvas, onChangeFunc };
+	};
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag at the color it reached on a %s", (loss) => {
+		const { canvas, onChangeFunc } = renderWheel();
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		fireEvent.pointerMove(canvas, { clientX: 50, clientY: 75 });
+		expect(onChangeFunc).toHaveBeenLastCalledWith(90, 50);
+		losePointerStream(loss);
+		// The pointer coming back with no button held picks nothing.
+		fireEvent.pointerMove(canvas, { clientX: 100, clientY: 50 });
+		expect(onChangeFunc).toHaveBeenCalledTimes(2);
+		vi.restoreAllMocks();
+	});
+
+	it("watches the pointer stream only while a drag lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { canvas, unmount } = renderWheel();
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		expect(live.size).toBe(3);
+		fireEvent.pointerUp(canvas);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		losePointerStream("blur");
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		unmount();
+		expect(live.size).toBe(0);
+		vi.restoreAllMocks();
 	});
 });

@@ -7,6 +7,7 @@ import {
 	useRef,
 } from "react";
 import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { hlsToRgb, hsvToRgb } from "./ClassicyColorPickerUtils";
 
 interface ClassicyColorWheelProps {
@@ -34,6 +35,8 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const dragging = useRef(false);
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopWatchingPointerStreamRef.current?.(), []);
 	// The crosshair color is read from the package's stylesheet, so a package
 	// switch must redraw the wheel even though no prop changed.
 	const packageId = useActiveClassicyAppearancePackage().id;
@@ -126,6 +129,9 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 
 	const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
 		dragging.current = true;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(onPointerUp);
 		// Optional-called: jsdom has no pointer capture.
 		(e.target as HTMLCanvasElement).setPointerCapture?.(e.pointerId);
 		const hs = hitTest(e);
@@ -138,8 +144,13 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		if (hs) onChangeFunc(hs.h, hs.s);
 	};
 
+	// Also the end of a drag whose pointer stream is lost (the window blurs,
+	// a pointercancel, the page is hidden): the color stays where the drag
+	// left it, and moving the pointer back with no button held picks nothing.
 	const onPointerUp = () => {
 		dragging.current = false;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	};
 
 	return (
