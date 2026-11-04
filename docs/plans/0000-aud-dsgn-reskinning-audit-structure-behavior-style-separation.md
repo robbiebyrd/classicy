@@ -219,6 +219,18 @@ inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `PopUpSlider` 7. Core controls (Button, Menu, Tabs, Slider, Checkbox, Radio,
 Window) have 0–2 each.
 
+**Done 2026-11-04 (part H, plan 0011-v9t).** 0 bare literals and 0 pixel
+fallbacks are left in `src/**/*.scss` (the screen savers' ported art
+excepted). `bin/check-pixel-literals.ts`, chained into `pnpm lint` and run
+by a test, fails on any new one, and its ratchet,
+`bin/pixel-literal-allowlist.json`, is empty. The pixel-matched surfaces read
+20 Platinum knob families (93 keys, `measurements.<family>` in
+`platinum.json`, emitted as `--<family>-<key>`); everything else reads a core
+token or a named derivation. The same scanner gates multipliers: 84 more
+named derivations (119 in all), and `bin/multiplier-allowlist.json` keeps only
+the 37 geometry sites with a reason each. Platinum renders pixel-identical
+(342 stories and the example-app shots at AE 0).
+
 #### 2.6 `!important` and cascade order
 
 158 total; `ClassicyWindow.scss` alone has **62**. Root cause: every window
@@ -814,6 +826,9 @@ Phase 0 (`.playwright-mcp/parity`, `compare.js`).
 3. Pixel-literal purge: 331 → 0. Pixel-matched surfaces (Control Strip,
    menu frame, Pager, Balloon Help) get package-JSON metrics; everything else
    reads theme variables or derivations.
+   Done 2026-11-04 (part H, plan 0011-v9t): 0 literals and 0 pixel fallbacks,
+   gated by `bin/check-pixel-literals.ts` in `pnpm lint`; 20 knob families in
+   `platinum.json` (six of them in the Options tab); see §2.5.
 4. JS geometry (§3.1): the four `menuBarHeight = 30` copies, the `+5`
    fudge, the zoom margin and the collapsed-height assumption read CSS
    variables (the `useClassicyBalloonHelp` pattern) or measured rects (§3.1).
