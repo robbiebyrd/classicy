@@ -229,49 +229,6 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   }
 }
 
-@mixin platinum-scrollbars-inactive() {
-  // Firefox / standards fallback for the inactive (blurred window) state:
-  // flatten the thumb into the track using neutral system grays.
-  // Guarded for the same reason as in platinum-scrollbars() above.
-  @supports not selector(::-webkit-scrollbar) {
-    & {
-      scrollbar-color: var(--color-system-04) var(--color-system-02);
-    }
-  }
-
-  // Collapse every arrow button (whichever end the arrangement placed it) so an
-  // inactive window shows bare, flat scroll gutters with no arrows or thumb.
-  &::-webkit-scrollbar-button {
-    background: var(--color-system-02);
-    border: none;
-    box-shadow: none;
-    width: 0;
-    height: 0;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--color-system-02);
-    border: var(--window-border-size) solid var(--color-system-06);
-  }
-
-  &::-webkit-scrollbar-track:vertical {
-    box-shadow: none;
-  }
-
-  &::-webkit-scrollbar-track:horizontal {
-    box-shadow: none;
-  }
-
-  &::-webkit-scrollbar-corner {
-    border: none;
-    box-shadow: none;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    display: none;
-  }
-}
-
 @mixin platinum-scrollbars-themed() {
   &::-webkit-scrollbar-thumb {
     min-width: var(--window-control-size);

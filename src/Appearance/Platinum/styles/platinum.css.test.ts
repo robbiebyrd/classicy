@@ -461,21 +461,12 @@ describe("platinum.scss (compiled)", () => {
 		).toBeDefined();
 	});
 
-	// The desktop's `& *` scroll-bar rules gain one class from the scope, every
-	// other partial two: the inactive window's own scroll-bar rules tied the
-	// desktop's in base (and lost on order), so they must tie here too.
-	it("keeps the inactive window's scroll bars tied with the desktop's, and before them", () => {
-		const inactive = rule(
-			`${P} :where(.classicyWindow.inactive)::-webkit-scrollbar-track`,
-		);
-		expect(inactive.props.border).toBe(
-			"var(--window-border-size) solid var(--color-system-06)",
-		);
-		expect(flat).not.toContain(`${P} :where(.classicyWindow).inactive`);
-		expect(
-			rule(`${P}::-webkit-scrollbar-track, ${P} *::-webkit-scrollbar-track`).at,
-		).toBeGreaterThan(inactive.at);
-	});
+	// The inactive window's scroll-bar rules targeted the window root, which
+	// never scrolls (its contents do), and tied the desktop's `& *` rules and
+	// lost on order anyway: dead, so removed (0082-lgo d). Nothing styles the
+	// root's own scroll bars.
+	it("styles no scroll bar of the window root itself", () =>
+		expect(flat).not.toMatch(/classicyWindow[^,{]*::-webkit-scrollbar/));
 
 	it("keeps the disabled pop-up fill over the undepressable face (P14)", () =>
 		expect(
@@ -987,7 +978,6 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-scrollbar-button-pressed",
 			"mixin platinum-scrollbars",
 			"mixin platinum-scrollbars-split-arrows",
-			"mixin platinum-scrollbars-inactive",
 			"mixin platinum-scrollbars-themed",
 		]);
 		expect(declared("_assets.scss")).toEqual([
@@ -1538,41 +1528,6 @@ describe("the moved Platinum mixin files", () => {
 			.x::-webkit-scrollbar-button:start:horizontal:decrement:active {
 			  background: linear-gradient(90deg, transparent 75%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 2) no-repeat, linear-gradient(90deg, transparent 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) * 1.5) no-repeat, linear-gradient(90deg, transparent 25%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) var(--window-scrollbar-arrow-size) no-repeat, linear-gradient(var(--color-black) 50%, var(--color-black) 0) 50%/var(--window-scrollbar-arrow-size) calc(var(--window-scrollbar-arrow-size) / 2) no-repeat, var(--color-system-06);
 			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-07), inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-07);
-			}"
-		`));
-
-	it("platinum-scrollbars-inactive compiles to its pinned output", () =>
-		expect(
-			scrollbarMixin("platinum-scrollbars-inactive"),
-		).toMatchInlineSnapshot(`
-			"@supports not selector(::-webkit-scrollbar) {
-			  .x {
-			    scrollbar-color: var(--color-system-04) var(--color-system-02);
-			  }
-			}
-			.x::-webkit-scrollbar-button {
-			  background: var(--color-system-02);
-			  border: none;
-			  box-shadow: none;
-			  width: 0;
-			  height: 0;
-			}
-			.x::-webkit-scrollbar-track {
-			  background: var(--color-system-02);
-			  border: var(--window-border-size) solid var(--color-system-06);
-			}
-			.x::-webkit-scrollbar-track:vertical {
-			  box-shadow: none;
-			}
-			.x::-webkit-scrollbar-track:horizontal {
-			  box-shadow: none;
-			}
-			.x::-webkit-scrollbar-corner {
-			  border: none;
-			  box-shadow: none;
-			}
-			.x::-webkit-scrollbar-thumb {
-			  display: none;
 			}"
 		`));
 

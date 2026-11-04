@@ -537,10 +537,9 @@
   &::before {
     border-top: var(--window-border-size) solid var(--color-system-05);
     border-left: var(--window-border-size) solid var(--color-system-05);
-    // Flat, like ::-webkit-scrollbar-corner under scrollbars-inactive(). The old
-    // outer shadow painted frame grey up and to the left to mask the gap the
-    // misaligned grip left behind; there is no gap to mask now, and an outer
-    // shadow would cover the inactive scroll bars' edges.
+    // Flat. The old outer shadow painted frame grey up and to the left to mask
+    // the gap the misaligned grip left behind; there is no gap to mask now,
+    // and an outer shadow would cover the inactive scroll bars' edges.
     box-shadow: none;
 
     // A moved grip's moved edges (see .classicyWindowResizer::before) dim too.

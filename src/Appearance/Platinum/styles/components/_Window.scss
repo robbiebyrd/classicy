@@ -5,7 +5,6 @@
 // same element) is moved here too, after what it overrides, because from the
 // package layer the moved look would beat it whatever its specificity.
 @use "../mixins";
-@use "../scrollbars";
 
 @mixin window {
   .classicyWindow {
@@ -110,15 +109,6 @@
       background-repeat: repeat;
       background-size: var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height);
     }
-  }
-
-  // The base rule was `:where(.classicyWindow).inactive`, one class, which
-  // tied the desktop's `.classicyDesktop *` scroll-bar rules and lost on
-  // order. The package scope adds two classes here but one to the desktop's
-  // `& *`, so the state class goes inside :where() (same elements) to keep
-  // that tie; platinum.scss includes this partial before the desktop's.
-  :where(.classicyWindow.inactive) {
-    @include scrollbars.platinum-scrollbars-inactive();
   }
 
   // The focused title bar's stripes: the center band at the art's own size,
