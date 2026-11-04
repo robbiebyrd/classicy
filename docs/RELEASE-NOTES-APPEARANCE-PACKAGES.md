@@ -761,9 +761,17 @@ Everything is exported from `classicy`. The links go to the full reference.
 - Gestures that have both a pointer and a keyboard path carry
   `detail.input` (`"pointer" | "keyboard"`). Finder's outline drags emit
   `dragStart` with `{ kind: "file" }` and `dragEnd` with
-  `{ kind: "file", dropped, canceled }`. `startClassicyFileDrag` takes
+  `{ kind: "file", dropped, canceled, lost }`. `startClassicyFileDrag` takes
   `onStart`/`onEnd` callbacks, and `onEnd` receives a `ClassicyFileDragEnd`,
-  `{ dropped, canceled }`.
+  `{ dropped, canceled, lost }`.
+- Every `dragEnd` (window, Control Strip, icon, desktop icon, slider and
+  file drags) carries `lost: boolean` (`ClassicyAppearanceDragEnd`): `true`
+  when the gesture ended because the pointer stream was lost (a window
+  `blur`, a `pointercancel`, a hidden page), `false` for a release, so a
+  package can skip a drop sound or animation for a lost gesture. A lost file
+  drag is `canceled: true, lost: true`; Escape is `canceled: true,
+  lost: false`. `emit`'s type, `ClassicyAppearanceEmit`, requires `lost` on
+  a `dragEnd` detail.
 - Handlers play sounds with `playClassicyAppearanceSound(sound, { interrupt? })`.
 - [Package hooks](AGENT-REFERENCE.md#package-hooks).
 
@@ -955,7 +963,8 @@ warnings about derived folder names.
   pointer: a file drag ends canceled, as Escape does, and a held bevel-button
   menu closes choosing nothing; window moves and resizes, split views,
   table column resizes, the Control Strip, sliders and icon drags end where
-  they are, committed as a release there would be. For `ClassicySlider` that means `onCommitFunc` now
+  they are, committed as a release there would be, and the ones that emit a
+  `dragEnd` say `lost: true`. For `ClassicySlider` that means `onCommitFunc` now
   fires once on a `pointercancel` (it used not to), the ghost is hidden on a
   document-level `pointercancel` too, and the input no longer carries its
   own `onPointerCancel` handler (the document listener ends the press).

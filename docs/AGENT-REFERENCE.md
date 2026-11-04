@@ -2002,9 +2002,10 @@ the callback moves them. Drop targets are any element marked
 (`CLASSICY_DROP_FOLDER_ATTRIBUTE`/`…DESKTOP…`); windows, the menu bar, the
 Control Strip and dialogs block drops. The drag engine is
 `startClassicyFileDrag` (`ClassicyFileDrag.ts`); its optional `onStart()` (at
-the 4 px threshold) and `onEnd({ dropped, canceled })` (exactly once per
-start; Escape and a lost pointer stream, a window `blur`, a `pointercancel`
-or the page turning hidden, end it canceled) callbacks are how the views emit
+the 4 px threshold) and `onEnd({ dropped, canceled, lost })` (exactly once
+per start; Escape and a lost pointer stream, a window `blur`, a
+`pointercancel` or the page turning hidden, end it canceled, and only the
+lost stream sets `lost`) callbacks are how the views emit
 the appearance `dragStart`/`dragEnd` events (§8, "Package hooks"). The desktop's files and
 folders live in the invisible `Desktop Folder` on the startup disk; Finder
 mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
@@ -2808,7 +2809,8 @@ those changes.
   `attrs` are decorate's, then the emitted one's.
 - `emit(event, detail?)` runs `hooks.on[component][event]` synchronously
   with `{ component, event, element, state, detail }` (the latest state and
-  `ref.current`).
+  `ref.current`). Its type (`ClassicyAppearanceEmit`) requires a `dragEnd`
+  detail carrying `lost` (below); every other event's detail is optional.
 - With no package hooks the result is a pure function of `state`
   (`classicyStateClasses(state)`, no `style`, `attrs` `{}`), so a component
   renders exactly as before.
@@ -2894,6 +2896,19 @@ user gesture with a keyboard path emits from it. Rules:
   behind it reports the latest press. Handlers that only a pointer can reach
   (Placard's mouse down and up, MenuItem's hover) pass `"pointer"` outright.
 
+**`detail.lost`.** Every `dragEnd` carries `lost: boolean`
+(`ClassicyAppearanceDragEnd`) beside its own fields: `true` when the gesture
+ended because the pointer stream was lost (a window `blur`, a
+`pointercancel`, the page turning hidden), `false` for a release. A lost
+window move or resize, Control Strip drag, icon drag or slider press still
+ends where it is, as a release there would, and still emits its one
+`dragEnd`; `lost` lets a package tell the two apart, say to skip a drop
+sound or animation for a gesture the user never let go of. A file drag's
+`lost` is `true` only for a lost stream, so `canceled: true, lost: false` is
+Escape or the source unmounting. Platinum ignores it: its window `dragEnd`
+sound plays either way. A handler reads it as
+`(ctx.detail as ClassicyAppearanceDragEnd).lost`.
+
 **Events per component.** The decoration lands on the root listed. "States"
 are exactly the state classes the component already emitted; states shown on
 inner elements (rows, tab buttons, items) stay there.
@@ -2908,21 +2923,21 @@ inner elements (rows, tab buttons, items) stay there.
 | ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
 | Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
 | ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
-| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart/dragEnd `{ value }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`) |
+| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart `{ value }` and dragEnd `{ value, lost }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`) |
 | Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press/release `{ input }` (mouse, Return/Space), click `{ menu, input }`, open `{ input }`, close `{ input }` |
 | Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
 | Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
 | Tree | `ul.classicyTree` | none (row states stay on rows) | expand/collapse `{ nodeId, open, input }`, select `{ nodeId, input }` |
-| Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below), pointer only |
+| Table | `div.classicyTableContainer` | none (`selected` stays on rows and headers) | select `{ rowId, selected, input }` (⌘A emits nothing); change `{ columnId, desc }` from a sortable header (pointer only: headers are not focusable); dragStart/dragEnd with the detail a cell reports through its context's `emitDrag` (the file browser's list view: a Finder outline drag, below, whose `dragEnd` carries `lost`), pointer only |
 | Link | `a.classicyLink` | disabled | click `{ input }` (never while disabled) |
 | FileInput | `div.classicyFileInputHolder` | none (`error` stays on `.classicyFileInputMessage`) | change `{ fileName }` for an accepted addition (the button or `addFiles`): the first file only of a batch, nothing on a refusal or removal, no `input` |
-| Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change/dragEnd `{ kind: "move" \| "resize" }` (pointer only) |
+| Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
-| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
-| Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
-| ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` |
+| DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
+| ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
 
 Every wired component also emits `mount` and `unmount` (no `input`).
@@ -2956,9 +2971,10 @@ Window:
   mousedown, preceded by `zoom { zoomed: false, cause: "resize" }`. There is
   exactly one `dragEnd` per gesture, released on the window or anywhere on the
   document, or ended by the pointer stream being lost (a window `blur`, a
-  `pointercancel`, the page turning hidden). A lost gesture ends where it is,
-  as a release there would: the window keeps the position and size it was
-  dragged to, and the store's `dragging`/`moving`/`resizing` flags clear.
+  `pointercancel`, the page turning hidden; its `dragEnd` says
+  `lost: true`). A lost gesture ends where it is, as a release there would:
+  the window keeps the position and size it was dragged to, and the store's
+  `dragging`/`moving`/`resizing` flags clear.
 - `close` means the window's own close box, or a modal's Escape. Closes
   dispatched straight to the store emit no `close`: `useClassicyWindowClose`,
   SimpleText, HyperCard, and any `ClassicyWindowClose` dispatch.
@@ -3002,9 +3018,9 @@ DesktopIcon and Icon:
 - Icon `select { selected }` is emitted only by a click toggle. Selection
   set programmatically (after a positional or file drag) emits nothing; the
   `selected` state class is authoritative.
-- `dragStart`/`dragEnd` with no detail bracket every pointer press that can
-  move the icon itself, a plain click included, mirroring the `dragging`
-  state (as on the Slider). Finder outline drags (file-backed desktop icons,
+- `dragStart` (no detail) and `dragEnd { lost }` bracket every pointer
+  press that can move the icon itself, a plain click included, mirroring
+  the `dragging` state (as on the Slider). Finder outline drags (file-backed desktop icons,
   `ClassicyIcon` with `onFileDrag`) emit `{ kind: "file" }` events instead, as
   described next, and the `dragging` class stays off for them: the outline
   moves, not the icon.
@@ -3017,30 +3033,32 @@ emitter:
 - `dragStart { kind: "file" }`, once, when the pointer has traveled
   `CLASSICY_FILE_DRAG_THRESHOLD` (4 px) and the outline appears. A press that
   never travels that far is a click and emits no drag event.
-- `dragEnd { kind: "file", dropped, canceled }`, exactly once per
+- `dragEnd { kind: "file", dropped, canceled, lost }`, exactly once per
   `dragStart`, after the outline is removed and before the move is made:
-  `{ dropped: true, canceled: false }` for a release over a drop target
-  (the move may still be refused: a locked item, the same folder),
-  `{ dropped: false, canceled: false }` for a release over nothing (or over
-  a window that refuses drops), `{ dropped: false, canceled: true }` for
-  Escape, for the pointer stream being lost (a window `blur`, a
-  `pointercancel`, the page turning hidden), or for the source unmounting
-  mid-drag (a Finder window closing, a folder view switching): the outline
-  and the drop-target highlight are removed, nothing is dropped, and the
-  `dragEnd` arrives before the source's `unmount`. A lost stream also
-  abandons a press that has not dragged yet, with no event.
+  `{ dropped: true, canceled: false, lost: false }` for a release over a
+  drop target (the move may still be refused: a locked item, the same
+  folder), `{ dropped: false, canceled: false, lost: false }` for a release
+  over nothing (or over a window that refuses drops),
+  `{ dropped: false, canceled: true, lost: true }` for the pointer stream
+  being lost (a window `blur`, a `pointercancel`, the page turning hidden),
+  and `{ dropped: false, canceled: true, lost: false }` for Escape or for
+  the source unmounting mid-drag (a Finder window closing, a folder view
+  switching). A canceled drag's outline and drop-target highlight are
+  removed, nothing is dropped, and the `dragEnd` arrives before the
+  source's `unmount`. A lost stream also abandons a press that has not
+  dragged yet, with no event.
 - The detail is exactly those fields. It never carries the dragged items'
   paths or names, how many there are, the drop target or the pointer, so a
   package learns no more of the user's data than from a window or icon
   drag. Pointer only, so no `input`.
 
 `startClassicyFileDrag` reports the same moments to any caller through
-optional `onStart()` and `onEnd({ dropped, canceled })` callbacks; a drag
-the caller abandons (the function it returns) after `onStart` ends as
-canceled, which is how each source ends its drag when it unmounts (it
-keeps that function and calls it from a layout-effect cleanup). An `onEnd`
-that throws is logged (`classicyLog`, subsystem `ClassicyFileDrag`) and the
-drop still happens.
+optional `onStart()` and `onEnd({ dropped, canceled, lost })` callbacks
+(a `ClassicyFileDragEnd`); a drag the caller abandons (the function it
+returns) after `onStart` ends as canceled, not lost, which is how each
+source ends its drag when it unmounts (it keeps that function and calls it
+from a layout-effect cleanup). An `onEnd` that throws is logged
+(`classicyLog`, subsystem `ClassicyFileDrag`) and the drop still happens.
 
 **Platinum's hooks.** `platinumAppearanceHooks`
 (`src/Appearance/Platinum/hooks.ts`, exported) holds Platinum's feedback
