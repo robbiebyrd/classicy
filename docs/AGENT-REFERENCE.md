@@ -1690,7 +1690,7 @@ authors:
   `--window-border-size` on a subtree no longer moves them: it overrides
   `--control-frame-width` as well.
 - **New: package knob families** (§8, "Package knob families"). Platinum's
-  `defaults.measurements` gains 20 families (95 keys), emitted as
+  `defaults.measurements` gains 21 families (95 keys), emitted as
   `--<family>-<key>`. A package can resize pixel-matched surfaces by
   overriding the values (84 of them are structural: base stylesheets read
   them). Theme files may carry them; an exported theme carries all of them.
@@ -3445,21 +3445,22 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 20 families of its own (95 keys)
+**Package knob families.** Platinum adds 21 families of its own (95 keys)
 to the core five, in `src/Appearance/Platinum/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when `getAllThemes` loads them, H-R8). Each key is
 emitted as `--<family>-<key>` like a core input. Pixel-matched surfaces
 (the Control Strip, the menu frame, the Pager, Balloon Help, the pop-up
 slider, the scroll-bar thumb grip, HyperCard, Finder, Apple Guide, the
-Color Picker and the dialogs) read these instead of `Npx` literals.
+Color Picker, the dialogs and the file input) read these instead of `Npx`
+literals.
 
 - **Options tab (H-R4).** Platinum declares `knobs` metadata
   (`{ label, min, max, default }`, `default` equal to the
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 14 families are emitted and editable in
+  groups under Platinum. The other 15 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -3577,7 +3578,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `dialog.keyboardEquivalentMinWidth` | `--dialog-keyboard-equivalent-min-width` | 300 | — | yes | ClassicyKeyboardEquivalent.scss |
 | `dialog.keyboardEquivalentMaxWidth` | `--dialog-keyboard-equivalent-max-width` | 420 | — | yes | ClassicyKeyboardEquivalent.scss |
 | `dialog.fileDialogMinHeight` | `--dialog-file-dialog-min-height` | 220 | — | yes | ClassicyFileOpenDialog.scss |
-| `dialog.fileInputHiddenSize` | `--dialog-file-input-hidden-size` | 1 | — | yes | ClassicyFileInput.scss |
+| `formControl.fileInputHiddenSize` | `--form-control-file-input-hidden-size` | 1 | — | yes | ClassicyFileInput.scss |
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
@@ -3590,11 +3591,12 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 
-`dialog.fileInputHiddenSize` sizes `ClassicyFileInput`'s visually hidden
-native input, a general form control rather than a dialog part. It lives in
-`dialog` because no existing family has its role and the core `control`
-family is a persisted contract (H-R29b); it keeps the input from collapsing
-to 0×0, which some screen readers skip, when Border is 0.
+`formControl.fileInputHiddenSize` is the `formControl` family's first knob.
+The family holds the sizes of form-control parts outside dialogs, which no
+dialog or core family fits (the core `control` family is a persisted
+contract). It sizes `ClassicyFileInput`'s visually hidden native input, off
+the border metric (H-R29b), so the input never collapses to 0×0, which some
+screen readers skip, when Border is 0.
 
 `--progress-bar-stripe-period` is not a knob: it is the derivation
 `progressBar.stripeWidth × 2` (H-R27b), so the band and its period never

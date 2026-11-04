@@ -763,7 +763,7 @@ Everything is exported from `classicy`. The links go to the full reference.
 
 ### Metrics, knobs and derivations
 
-- Platinum's `defaults.measurements` gains 20 knob families (95 keys), such
+- Platinum's `defaults.measurements` gains 21 knob families (95 keys), such
   as `controlStrip`, `menuFrame`, `pager`, `balloonHelp`, `popUpSlider` and
   `scrollbar`. Each is emitted as `--<family>-<key>`. Theme files may carry
   them, and an exported theme carries all of them.
