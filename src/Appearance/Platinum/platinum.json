@@ -176,7 +176,9 @@
 				"inputMaxWidth": 460,
 				"keyboardEquivalentMinWidth": 300,
 				"keyboardEquivalentMaxWidth": 420,
-				"fileDialogMinHeight": 220,
+				"fileDialogMinHeight": 220
+			},
+			"formControl": {
 				"fileInputHiddenSize": 1
 			},
 			"controlPanel": {

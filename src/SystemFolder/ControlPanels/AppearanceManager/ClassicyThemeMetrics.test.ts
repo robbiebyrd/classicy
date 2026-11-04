@@ -143,7 +143,8 @@ describe("classicyMeasurementVars", () => {
 // (H 2.1, with H-B1's pager.fontSize and H-R11's utilityTitleBar; H 6.1's
 // stripMenu holds the Control Strip module menu's overlap, read by the
 // strip's script, and dropped crashScreen, whose sheet renders outside the
-// theme, H-R27).
+// theme, H-R27; formControl holds the hidden file input's size, for
+// form-control parts outside dialogs).
 const PLATINUM_KNOB_FAMILIES = [
 	"controlStrip",
 	"menuFrame",
@@ -156,6 +157,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"appleGuide",
 	"picker",
 	"dialog",
+	"formControl",
 	"controlPanel",
 	"progressBar",
 	"utilityTitleBar",

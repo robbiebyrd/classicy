@@ -42,7 +42,9 @@ import {
 // them a knob) and H-R28b --window-title-cap-offset, and H 6.2b appended 14
 // more for the multipliers in H 6.1's files; H-R29b added
 // dialog.alertLabelOffset and dialog.fileInputHiddenSize, 1px each, in the
-// knob region (every other key and value unchanged each time).
+// knob region, and the latter moved to the new formControl family as
+// formControl.fileInputHiddenSize, --form-control-file-input-hidden-size, in
+// the same place (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -59,7 +61,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // progressBar.stripePeriod a derivation and dropped the unreachable
 // crashScreen.artWidth, H-R27; H 6.2a's component knobs became derivations
 // under H-R25; the final review's H-R29b gave the alert label nudge and the
-// file input's hidden size dialog knobs of their own, off the border metric).
+// file input's hidden size dialog knobs of their own, off the border metric;
+// the hidden size then moved to the formControl family, for form-control
+// parts outside dialogs, which made 21 families with the same 95 keys).
 const PLATINUM_KNOB_COUNT = 95;
 
 describe("getAllThemes", () => {
@@ -221,6 +225,8 @@ describe("getThemeVars", () => {
 		expect(vars["--scrollbar-arrow-glyph-width"]).toBeUndefined();
 		expect(vars["--hyper-card-handle-size"]).toBe("6px");
 		expect(vars["--dialog-alert-min-width"]).toBe("280px");
+		expect(vars["--form-control-file-input-hidden-size"]).toBe("1px");
+		expect(vars["--dialog-file-input-hidden-size"]).toBeUndefined();
 		// H-B1 and H-R11.
 		expect(vars["--pager-font-size"]).toBe("12px");
 		expect(vars["--utility-title-bar-texture-width"]).toBe("4px");
@@ -557,7 +563,7 @@ describe("classicyMeasurementVars", () => {
 	it("the walker reproduces every input variable byte-identically", () => {
 		// The 20 inputs getThemeVars emitted one by one before the walker:
 		// window 6, control 3, button 3, groupBox 5, layout 3. They come
-		// first; Platinum's knob variables (20 families, H 2.1) follow.
+		// first; Platinum's knob variables (21 families, H 2.1) follow.
 		const vars = classicyMeasurementVars(getTheme("default").measurements);
 		expect(Object.keys(vars)).toHaveLength(20 + PLATINUM_KNOB_COUNT);
 		expect(Object.fromEntries(Object.entries(vars).slice(0, 20))).toEqual({
