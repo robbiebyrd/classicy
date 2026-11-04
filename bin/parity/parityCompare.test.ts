@@ -85,6 +85,29 @@ describe("compareAeDirs", () => {
 			{ name: "x--b", missing: "before" },
 		]);
 	});
+
+	it("compares the mid-time shots too, each against its own @mid name", () => {
+		const files = { "x--a.png": png(1, 1), "x--a@mid.png": png(1, 1) };
+		const before = set("b3", files);
+		const after = set("a3", { ...files, "y--a@mid.png": png(1, 1) });
+		calls.length = 0;
+		expect(
+			compareAeDirs(before, after, undefined, ["compare"], fakeCompare),
+		).toEqual([
+			{ name: "x--a", ae: 7 },
+			{ name: "x--a@mid", ae: 7 },
+			{ name: "y--a@mid", missing: "before" },
+		]);
+		expect(calls.map((c) => c.slice(3, 5))).toEqual([
+			[join(before, "x--a.png"), join(after, "x--a.png")],
+			[join(before, "x--a@mid.png"), join(after, "x--a@mid.png")],
+		]);
+		expect(
+			compareAeDirs(before, after, /@mid$/, ["compare"], fakeCompare).map(
+				(r) => r.name,
+			),
+		).toEqual(["x--a@mid", "y--a@mid"]);
+	});
 });
 
 describe("parseAeOutput", () => {

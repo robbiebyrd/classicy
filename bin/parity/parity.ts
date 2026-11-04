@@ -6,18 +6,19 @@
 // 1 when something differs or failed, 2 on a usage or environment error.
 // Build script, not library code: it reports through stdout/stderr and exit
 // codes. Erasable TypeScript syntax only, so Node runs it directly.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { type ParityOptions, parseParityArgs } from "./parityArgs.ts";
 import { compareAeDirs, summarizeAe } from "./parityCompare.ts";
 import { compareDumpDirs } from "./parityDumpCompare.ts";
-import { resolveStoryIds } from "./parityStories.ts";
+import { parseStoryList, resolveStoryIds } from "./parityStories.ts";
 
 export const PARITY_USAGE = `usage: node bin/parity/parity.ts <command> [options]
 
 Commands
   stories   list the server's story ids (index.json, docs left out)  [--out file]
   shoot     one 1024x768 PNG per story into --out
+            [--mid] [--mid-only] [--at 50%|400ms] [--mid-stories file] [--mid-clock ms]
   app       the 4 example-app shots into --out (example dev server)
   probe     flag stories that render an error, an empty root or a crash screen
   dump      computed-style dump (JSON) per story into --out
@@ -37,6 +38,14 @@ Options
   --kind <k>         compare: ae (PNG, default), computed (dump) or forced
   --summary <file>   compare/probe: write the full report there
   --browser <b>      forced: chromium (default) or firefox
+  --mid              shoot: also shoot animated stories mid-animation, <id>@mid.png
+                     (stories with animations at ready time, plus --mid-stories)
+  --mid-only         shoot: the mid-time shots only, no t=0 set
+  --at <t>           shoot: where to pause, a share of each iteration (default
+                     50%) or a time after ready (400ms, 1.5s); implies --mid
+  --mid-stories <f>  shoot: ids that always get a mid shot; implies --mid
+  --mid-clock <ms>   shoot: how far the JS clock moves for the mid shot
+                     (default: the --at time, or 2000 for a percentage)
   --repo <dir>       checkout the server serves, normalized out of dump URLs
                      (default: the current directory)
 
@@ -73,9 +82,16 @@ async function run(o: ParityOptions, io: ParityIo): Promise<number> {
 				out,
 				ids,
 				workers: o.workers,
+				mid: o.mid,
+				midStories: o.mid?.stories
+					? parseStoryList(readFileSync(o.mid.stories, "utf8"))
+					: [],
 			});
 			io.log(
 				`stories ${ids.length} shot ${r.shot} errors ${r.errors.length} unstable ${r.unstable.length}` +
+					(o.mid
+						? ` mid ${r.mid.length} (at ${o.mid.atSpec}, clock +${o.mid.clockMs}ms)`
+						: "") +
 					(r.errors.length ? `\nerrors: ${r.errors.join(" ")}` : "") +
 					(r.unstable.length
 						? `\nunstable (last frame kept): ${r.unstable.join(" ")}`

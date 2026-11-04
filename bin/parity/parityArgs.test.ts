@@ -101,4 +101,54 @@ describe("parseParityArgs", () => {
 		expect(parseParityArgs([], {}).command).toBe("help");
 		expect(parseParityArgs(["--help"], {}).command).toBe("help");
 	});
+
+	describe("mid-time shots", () => {
+		it("are off unless asked for", () =>
+			expect(parseParityArgs(["shoot", "--out", "x"], {}).mid).toBeUndefined());
+
+		it("--mid turns them on at 50% with the default JS clock, beside the t=0 set", () =>
+			expect(parseParityArgs(["shoot", "--out", "x", "--mid"], {}).mid).toEqual(
+				{
+					at: { unit: "%", value: 50 },
+					atSpec: "50%",
+					clockMs: 2000,
+					only: false,
+					stories: undefined,
+				},
+			));
+
+		it("--at, --mid-only, --mid-stories and --mid-clock each imply --mid", () => {
+			const at = parseParityArgs(["shoot", "--out", "x", "--at", "400ms"], {});
+			expect(at.mid?.at).toEqual({ unit: "ms", value: 400 });
+			expect(at.mid?.clockMs).toBe(400);
+			expect(
+				parseParityArgs(["shoot", "--out", "x", "--mid-only"], {}).mid?.only,
+			).toBe(true);
+			expect(
+				parseParityArgs(["shoot", "--out", "x", "--mid-stories", "l.txt"], {})
+					.mid?.stories,
+			).toBe("l.txt");
+			expect(
+				parseParityArgs(["shoot", "--out", "x", "--mid-clock", "0"], {}).mid
+					?.clockMs,
+			).toBe(0);
+		});
+
+		it("rejects a bad --at or --mid-clock", () => {
+			expect(() =>
+				parseParityArgs(["shoot", "--out", "x", "--at", "400"], {}),
+			).toThrow(/--at/);
+			expect(() =>
+				parseParityArgs(["shoot", "--out", "x", "--mid-clock", "-1"], {}),
+			).toThrow(/--mid-clock/);
+			expect(() =>
+				parseParityArgs(["shoot", "--out", "x", "--mid-clock", "1.5"], {}),
+			).toThrow(/--mid-clock/);
+		});
+
+		it("belong to shoot only", () =>
+			expect(() =>
+				parseParityArgs(["dump", "--out", "x", "--mid"], {}),
+			).toThrow(/shoot/));
+	});
 });

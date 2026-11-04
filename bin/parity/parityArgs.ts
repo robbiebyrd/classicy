@@ -2,6 +2,12 @@
 // argv and the environment, so the defaults are testable.
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
+import {
+	midClockMs,
+	PARITY_MID_DEFAULT_AT,
+	type ParityMidAt,
+	parseMidAt,
+} from "./parityMidTime.ts";
 
 export const PARITY_COMMANDS = [
 	"help",
@@ -18,6 +24,19 @@ export type ParityCommand = (typeof PARITY_COMMANDS)[number];
 /** What `compare` compares: screenshots by AE, computed dumps or forced dumps. */
 export type ParityCompareKind = "ae" | "computed" | "forced";
 export type ParityBrowserKind = "chromium" | "firefox";
+
+/** shoot's mid-time shots (`<id>@mid.png`), on when any mid flag is given. */
+export type ParityMidOptions = {
+	at: ParityMidAt;
+	/** `--at` as typed, for the report. */
+	atSpec: string;
+	/** How far the JS clock (the fixed Date) moves before the shot. */
+	clockMs: number;
+	/** Skip the t=0 shots. */
+	only: boolean;
+	/** Story ids that always get a mid shot, beside the auto-detected ones. */
+	stories?: string;
+};
 
 export type ParityOptions = {
 	command: ParityCommand;
@@ -38,6 +57,7 @@ export type ParityOptions = {
 	browser: ParityBrowserKind;
 	/** The checkout the server serves; its path is normalized out of dumps. */
 	repo: string;
+	mid?: ParityMidOptions;
 };
 
 const WRITERS: readonly ParityCommand[] = ["shoot", "app", "dump", "forced"];
@@ -83,6 +103,11 @@ export function parseParityArgs(
 			kind: { type: "string" },
 			browser: { type: "string" },
 			repo: { type: "string" },
+			mid: { type: "boolean" },
+			"mid-only": { type: "boolean" },
+			at: { type: "string" },
+			"mid-stories": { type: "string" },
+			"mid-clock": { type: "string" },
 			help: { type: "boolean", short: "h" },
 		},
 	});
@@ -101,6 +126,34 @@ export function parseParityArgs(
 		throw new Error(
 			`--workers must be a positive integer (got ${values.workers})`,
 		);
+
+	const midAsked =
+		values.mid ||
+		values["mid-only"] ||
+		values.at !== undefined ||
+		values["mid-stories"] !== undefined ||
+		values["mid-clock"] !== undefined;
+	if (midAsked && command !== "shoot")
+		throw new Error(
+			"--mid, --mid-only, --at, --mid-stories and --mid-clock belong to shoot",
+		);
+	let mid: ParityMidOptions | undefined;
+	if (midAsked) {
+		const atSpec = values.at ?? PARITY_MID_DEFAULT_AT;
+		const at = parseMidAt(atSpec);
+		const clock = values["mid-clock"];
+		if (clock !== undefined && !/^\d+$/.test(clock))
+			throw new Error(
+				`--mid-clock must be a whole number of ms, 0 or more (got ${clock})`,
+			);
+		mid = {
+			at,
+			atSpec,
+			clockMs: midClockMs(at, clock === undefined ? undefined : Number(clock)),
+			only: values["mid-only"] === true,
+			stories: values["mid-stories"],
+		};
+	}
 
 	const app = command === "app";
 	const port =
@@ -127,5 +180,6 @@ export function parseParityArgs(
 			"chromium",
 		),
 		repo: resolve(values.repo ?? process.cwd()),
+		mid,
 	};
 }
