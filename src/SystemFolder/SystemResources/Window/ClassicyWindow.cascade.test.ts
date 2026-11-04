@@ -59,7 +59,6 @@ describe("ClassicyWindow.scss cascade", () => {
 			":where(.classicyWindow).dragging",
 			".classicyWindowResizing",
 			".classicyWindowRed",
-			".classicyWindowInvisible",
 		])
 			expect(at(s)).toBeGreaterThan(base);
 	});

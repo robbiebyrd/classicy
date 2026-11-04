@@ -150,6 +150,21 @@ describe("shared bare state classes on windows, icons, the Control Strip and the
 		expect(root).not.toHaveClass("classicyWindowZoomed");
 	});
 
+	it("a closed ClassicyWindow renders no root, so nothing hides one", () => {
+		seedStore({ [APP]: app(true) });
+		const { container } = render(
+			<ClassicyWindow id="w" appId={APP} title="W">
+				<p>body</p>
+			</ClassicyWindow>,
+		);
+		expect(container.querySelector(".classicyWindow")).not.toBeNull();
+		fireEvent.click(
+			container.querySelector(".classicyWindowCloseBox") as HTMLElement,
+		);
+		expect(container.querySelector(".classicyWindow")).toBeNull();
+		expect(container.innerHTML).not.toContain("classicyWindowInvisible");
+	});
+
 	it("DesktopIcon selected+launched → selected open", () => {
 		seedStore({ [APP]: app(true) });
 		selectIcon(true);
@@ -375,10 +390,11 @@ describe("compiled SCSS of the touched surfaces", () => {
 		expect(css).toContain(
 			":where(.classicyWindowContents, .classicyWindowContentsModal).collapsed {",
 		);
-		// The ActiveApp, Resizing and Invisible hooks are kept.
+		// The ActiveApp and Resizing hooks are kept. Invisible was unreachable
+		// (a closed window renders no root to carry it) and is gone.
 		expect(css).toContain(".classicyWindowActiveApp {");
 		expect(css).toContain(".classicyWindowResizing {");
-		expect(css).toContain(".classicyWindowInvisible {");
+		expect(css).not.toContain("classicyWindowInvisible");
 	});
 
 	it("the Platinum mixins no longer ship the global .hidden utility", () => {

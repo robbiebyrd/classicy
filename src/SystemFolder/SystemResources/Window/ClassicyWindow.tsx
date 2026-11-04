@@ -1871,7 +1871,6 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						? "classicyWindowFloating"
 						: "classicyWindowBackgrounded"
 					: "",
-				!ws.closed ? "" : "classicyWindowInvisible",
 				ws.resizing ? "classicyWindowResizing" : "",
 				modal ? "classicyWindowModal" : "",
 				// Non-error modals (File Open/Save and other dialogs) stack in the
