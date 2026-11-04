@@ -101,7 +101,20 @@
   }
 }
 
+// The browser root (both views) and the icon view's holder inside it.
 .classicyFileBrowserFill {
   position: absolute;
   height: 100%;
+}
+
+// 0100-a5o: every fill but the list view's root spans its container. The
+// icon view's root and holder hold only absolutely positioned icons, so
+// without a width they shrink to nothing, and the icon layout, which
+// measures the holder, stacks every icon at the top left. The list view's
+// root keeps no width (b4337ba2c): it takes its table's width, so when the
+// table is wider than the window, scrolling right still shows the list's
+// background, click target and drop target under the last row. At the
+// window's width the window's white contents box showed through there.
+.classicyFileBrowserFill:not(:has(> .classicyFileBrowserViewTableContainer)) {
+  width: 100%;
 }
