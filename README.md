@@ -201,6 +201,27 @@ The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
   (`menu.minWidth` → `--menu-min-width`) is skipped with a warning and left
   out of the Options tab.
 
+**Changed: pixel sizes are theme knobs.** Platinum looks the same; the
+Control Strip, menu frame, Pager, Balloon Help, pop-up slider, dialogs and
+the other pixel-matched surfaces now read `measurements.<family>` knobs from
+the theme (`--<family>-<key>`) instead of `Npx` literals.
+
+- **Breaking: `POPUP_MENU_MAX_HEIGHT` is removed.** The pop-up menu's cap
+  is the theme variable `--menu-pop-up-max-height` (300 under Platinum);
+  `classicyPopUpMenuPlacement` takes it as an optional last argument.
+- **Breaking: no pixel fallbacks.** Stylesheets read `var(--x)` with no
+  `Npx` fallback, so a component outside `ClassicyDesktop` needs the full
+  `getThemeVars(theme)` on its wrapper.
+- **Breaking for packages:** a measurement whose variable starts with
+  `--color-`, or names one of the 119 named derivations, is skipped.
+- **The Options tab** shows six groups of Platinum knobs.
+- `withDefaultThemeMetrics(theme, defaults?)` takes the defaults to fill
+  from; pass `classicyThemeMeasurementDefaults(theme.package)` to complete a
+  package's families.
+
+Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
+pixel-literal purge (Part H)", and §8, "Package knob families".
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:
