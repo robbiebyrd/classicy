@@ -15,7 +15,6 @@ import {
 import {
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
-	withoutDefaultThemeMeasurements,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
@@ -27,10 +26,10 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  * `availableThemes`) are code: persisted state keeps only the custom themes
  * and the user's choice, so a preset fixed, added or removed by a later
  * release reaches existing users. `sanitizeStateForPersistence` drops
- * `availableThemes` and stores an unchanged built-in active theme as a
- * reference, its `{ id, package }`; the load path resolves a reference against
- * the code (`resolveClassicyThemeReference`), or, when its package is not
- * registered yet (H-R17), the first registration of that package does.
+ * `availableThemes` and stores a built-in active theme as a reference, its
+ * `{ id, package }`; the load path replaces an active theme naming a built-in
+ * by the current preset (`refreshedClassicyActiveTheme`), or, when its
+ * package is not registered yet (H-R17), that package's registration does.
  */
 
 /** A built-in active theme as persisted: which theme, not its data. */
@@ -92,29 +91,41 @@ export const isClassicyThemeReference = (theme: unknown): boolean =>
 	typeof (theme as { id?: unknown }).id === "string" &&
 	Object.keys(theme).every((key) => key === "id" || key === "package");
 
-/** JSON with every object's keys sorted: an order-blind comparison key. */
-const canonicalJson = (value: unknown): string =>
-	JSON.stringify(value, (_key, v: unknown) =>
-		v && typeof v === "object" && !Array.isArray(v)
-			? Object.fromEntries(
-					Object.keys(v)
-						.sort()
-						.map((k) => [k, (v as Record<string, unknown>)[k]]),
-				)
-			: v,
-	);
+/**
+ * The built-in of its own package that `appearance.activeTheme` names, with
+ * that package, when the theme is not a custom theme, the package can be read
+ * now and has a built-in (defaults or preset) with its id.
+ */
+const activeBuiltIn = (
+	appearance: Pick<
+		ClassicyStoreSystemAppearanceManager,
+		"activeTheme" | "customThemes"
+	>,
+):
+	| { pkg: ClassicyAppearancePackage; builtIn: ClassicyTheme | undefined }
+	| undefined => {
+	const active = appearance.activeTheme;
+	if (!active || typeof active !== "object") return undefined;
+	if (appearance.customThemes?.some((t) => t.id === active.id))
+		return undefined;
+	const pkg = knownClassicyThemePackage(themePackageId(active));
+	if (!pkg) return undefined;
+	return {
+		pkg,
+		builtIn: listClassicyPackageBuiltInThemes(pkg).find(
+			(t) => t.id === active.id,
+		),
+	};
+};
 
 /**
  * The reference `activeTheme` is persisted as, or `undefined` to persist it
- * whole. A reference when the active theme is one of its own package's
- * built-ins (its defaults or presets; that package registered, or Platinum)
- * **unchanged**: equal to what activating that built-in gives now, package
- * knob values equal to the package's defaults aside (H-R17). Anything else is
- * kept whole: a custom theme, a host-loaded theme (`availableThemes`, which
- * is not a built-in of the code), a theme of a package not registered yet, and
- * a built-in id holding data the current preset lacks — state saved before
- * custom themes existed edited the active theme in place, so such a theme may
- * be the user's own.
+ * whole: a reference when it is not a custom theme and its id names one of
+ * its own package's built-ins (its defaults or presets; that package
+ * registered, or Platinum). Its data is never consulted, since the load path
+ * replaces such a theme by the preset anyway. Kept whole: a custom theme, a
+ * host-loaded theme (`availableThemes`, not a built-in of the code), and a
+ * theme of a package not registered yet.
  */
 export const classicyBuiltInThemeReference = (
 	appearance: Pick<
@@ -122,43 +133,48 @@ export const classicyBuiltInThemeReference = (
 		"activeTheme" | "customThemes"
 	>,
 ): ClassicyThemeReference | undefined => {
-	const active = appearance.activeTheme;
-	if (!active || typeof active !== "object") return undefined;
-	if (appearance.customThemes?.some((t) => t.id === active.id))
-		return undefined;
-	const pkg = knownClassicyThemePackage(themePackageId(active));
-	if (!pkg) return undefined;
-	const builtIn = listClassicyPackageBuiltInThemes(pkg).find(
-		(t) => t.id === active.id,
-	);
-	if (!builtIn) return undefined;
-	const defaults = classicyThemeMeasurementDefaults(pkg.id);
-	const persisted = (theme: ClassicyTheme) =>
-		canonicalJson(withoutDefaultThemeMeasurements(theme, defaults));
-	return persisted(activatableClassicyPackageTheme(pkg, builtIn)) ===
-		persisted(active)
-		? { id: active.id, package: pkg.id }
+	const found = activeBuiltIn(appearance);
+	return found?.builtIn
+		? { id: found.builtIn.id, package: found.pkg.id }
 		: undefined;
 };
 
 /**
- * The theme a persisted `reference` names, as the code has it now: that
- * built-in of `pkg` (the reference's package, registered by now) activated
- * as ChangeTheme activates it, or, when the package no longer has it, the
- * package's defaults, as a package switch falls back, with a warning.
+ * The active theme as the code has it now, or `undefined` when it stays as
+ * it is. A theme whose id names a built-in of its own package is replaced by
+ * that built-in, activated as ChangeTheme activates it
+ * (`activatableClassicyPackageTheme`), whatever data it held: a built-in is
+ * never edited (edits fork a Custom theme), so data that differs is a stale
+ * preset or an in-place edit made before custom themes existed, and both give
+ * way. A custom theme, or a theme whose package cannot be read yet, stays.
+ * An id its package lacks: a `reference` (known to have been a built-in)
+ * falls back, as a package switch does, to the package's defaults with a
+ * warning; a whole theme stays (a host-loaded theme its host loads again).
  */
-export const resolveClassicyThemeReference = (
-	pkg: ClassicyAppearancePackage,
-	reference: ClassicyThemeReference,
-): ClassicyTheme => {
-	const builtIn = listClassicyPackageBuiltInThemes(pkg).find(
-		(t) => t.id === reference.id,
-	);
-	if (builtIn) return activatableClassicyPackageTheme(pkg, builtIn);
-	classicyLog(
-		"warn",
-		"ClassicyAppearance",
-		`Theme "${reference.id}" is no longer a built-in theme of "${pkg.id}"; using "${pkg.defaults.id}".`,
-	);
-	return activatableClassicyPackageTheme(pkg, pkg.defaults);
+export const refreshedClassicyActiveTheme = (
+	appearance: Pick<
+		ClassicyStoreSystemAppearanceManager,
+		"activeTheme" | "customThemes"
+	>,
+	{ reference }: { reference: boolean },
+): ClassicyTheme | undefined => {
+	const found = activeBuiltIn(appearance);
+	if (!found) return undefined;
+	const { pkg, builtIn } = found;
+	let next: ClassicyTheme;
+	if (builtIn) {
+		next = activatableClassicyPackageTheme(pkg, builtIn);
+	} else if (reference) {
+		classicyLog(
+			"warn",
+			"ClassicyAppearance",
+			`Theme "${appearance.activeTheme.id}" is no longer a built-in theme of "${pkg.id}"; using "${pkg.defaults.id}".`,
+		);
+		next = activatableClassicyPackageTheme(pkg, pkg.defaults);
+	} else {
+		return undefined;
+	}
+	return JSON.stringify(next) === JSON.stringify(appearance.activeTheme)
+		? undefined
+		: next;
 };

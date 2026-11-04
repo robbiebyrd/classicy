@@ -301,16 +301,25 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 		expect("moving" in win).toBe(false);
 	});
 
-	/** Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`. */
-	async function hydrateBackground(backgroundImage: string): Promise<string> {
+	/**
+	 * Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`.
+	 * The active theme is a custom one by default (also listed in
+	 * `customThemes`): a built-in id is replaced by its preset on load.
+	 */
+	async function hydrateBackground(
+		backgroundImage: string,
+		themeId = "custom",
+	): Promise<string> {
 		const stored = makeValidStoredState();
+		const theme = { id: themeId, desktop: { backgroundImage } };
 		(
 			stored.System as Record<string, unknown> & {
 				Manager: { Appearance: Record<string, unknown> };
 			}
 		).Manager.Appearance = {
-			activeTheme: { id: "default", desktop: { backgroundImage } },
+			activeTheme: theme,
 			availableThemes: [],
+			customThemes: themeId === "custom" ? [structuredClone(theme)] : [],
 		};
 		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
 
@@ -348,10 +357,25 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 		warnSpy.mockRestore();
 	});
 
-	it("keeps a background URL the user set themselves", async () => {
+	it("keeps a background URL the user set themselves on a custom theme", async () => {
 		expect(
 			await hydrateBackground("https://example.com/my-wallpaper.png"),
 		).toBe("https://example.com/my-wallpaper.png");
+	});
+
+	// State saved before custom themes (v0.83) edited a built-in in place.
+	// Built-ins come from the code on load, so such an edit gives way to the
+	// preset's own wallpaper.
+	it("replaces a background set on a built-in theme with the preset's", async () => {
+		const { getTheme } = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
+		);
+		expect(
+			await hydrateBackground(
+				"https://example.com/my-wallpaper.png",
+				"default",
+			),
+		).toBe(getTheme("default").desktop.backgroundImage);
 	});
 
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {

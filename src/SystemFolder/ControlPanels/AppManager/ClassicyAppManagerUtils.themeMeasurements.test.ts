@@ -80,12 +80,20 @@ describe("sanitizeStateForPersistence — theme measurements (H-R17)", () => {
 	it("persists an edited knob leaf and a package's extra key, and nothing else of the family", async () => {
 		const { store } = await freshStore();
 		const state = structuredClone(store.useAppManager.getState());
-		const m = state.System.Manager.Appearance.activeTheme.measurements;
+		// Both themes are custom: a built-in active theme is saved as a
+		// reference, so only a custom one carries its knob values.
+		const active = state.System.Manager.Appearance.activeTheme;
+		active.id = "custom-edited";
+		const m = active.measurements;
 		m.controlStrip = { ...m.controlStrip, cellHeight: 30, tabWidth: 12 };
-		const custom = structuredClone(state.System.Manager.Appearance.activeTheme);
+		const custom = structuredClone(active);
 		custom.id = "custom";
+		custom.measurements.controlStrip = active.measurements.controlStrip;
 		custom.measurements.pager = { ...custom.measurements.pager, fontSize: 13 };
-		state.System.Manager.Appearance.customThemes = [custom];
+		state.System.Manager.Appearance.customThemes = [
+			custom,
+			structuredClone(active),
+		];
 		const out =
 			store.sanitizeStateForPersistence(state).System.Manager.Appearance;
 		expect(out.activeTheme.measurements.controlStrip).toEqual({

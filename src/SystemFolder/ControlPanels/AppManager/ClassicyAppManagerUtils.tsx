@@ -14,7 +14,7 @@ import {
 	classicyBuiltInThemeReference,
 	isClassicyThemeReference,
 	knownClassicyThemePackage,
-	resolveClassicyThemeReference,
+	refreshedClassicyActiveTheme,
 } from "../AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
 	classicyThemeMeasurementDefaults,
@@ -39,8 +39,8 @@ let hydratedFromStorage = false;
  * The persisted reference to a built-in active theme whose package was not
  * registered when the store loaded (H-R17): the active theme holds the
  * default theme's data under that id until the package registers and
- * `resolvePendingActiveThemeReference` resolves it, and is saved as the
- * reference meanwhile, never as that stand-in.
+ * `refreshActiveBuiltInTheme` resolves it, and is saved as the reference
+ * meanwhile, never as that stand-in.
  */
 let pendingActiveThemeReference: ClassicyThemeReference | null = null;
 
@@ -56,31 +56,32 @@ const pendingReferenceFor = (
 		: null;
 
 /**
- * `state` with the active theme a persisted `reference` names resolved
- * against the code (`resolveClassicyThemeReference`); a reference whose
- * package is not registered yet is kept pending.
+ * `state` with its active theme refreshed from the code
+ * (`refreshedClassicyActiveTheme`); `reference` is the persisted reference it
+ * was loaded from, if any. A reference whose package is not registered yet is
+ * kept pending; a whole theme of such a package waits for its registration
+ * too (`refreshActiveBuiltInTheme`).
  */
-function withResolvedActiveTheme(
+function withRefreshedActiveTheme(
 	state: ClassicyStore,
 	reference: ClassicyThemeReference | undefined,
 ): ClassicyStore {
-	if (!reference) return state;
-	const pkg = knownClassicyThemePackage(reference.package);
-	if (!pkg) {
+	if (reference && !knownClassicyThemePackage(reference.package)) {
 		pendingActiveThemeReference = reference;
 		return state;
 	}
 	const appearance = state.System.Manager.Appearance;
+	const activeTheme = refreshedClassicyActiveTheme(appearance, {
+		reference: !!reference,
+	});
+	if (!activeTheme) return state;
 	return {
 		...state,
 		System: {
 			...state.System,
 			Manager: {
 				...state.System.Manager,
-				Appearance: {
-					...appearance,
-					activeTheme: resolveClassicyThemeReference(pkg, reference),
-				},
+				Appearance: { ...appearance, activeTheme },
 			},
 		},
 	};
@@ -218,7 +219,7 @@ function getInitialState(): ClassicyStore {
 				// 0.x `windows` array survives the merge and is converted here.
 				// (mergeClassicyState already migrates its result; the explicit,
 				// idempotent pass keeps this load path correct on its own.)
-				return withResolvedActiveTheme(
+				return withRefreshedActiveTheme(
 					healThemeWallpapers(
 						migrateClassicyState(
 							mergeClassicyState(
@@ -248,27 +249,30 @@ export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
 	}));
 
 /**
- * Resolve a pending reference (`pendingActiveThemeReference`) once its
- * package registers: the active theme becomes that package's built-in, or
- * its defaults if the built-in is gone. Dropped once the user has chosen
- * another theme.
+ * Refresh the active theme from the code whenever a package registers (or
+ * re-registers, or leaves): a built-in of a package registered after the
+ * store loaded is replaced by its preset, and a pending reference
+ * (`pendingActiveThemeReference`) is resolved, falling back to that package's
+ * defaults if its preset is gone. A pending reference is dropped once the
+ * user has chosen another theme. Writes the store only when the theme
+ * changes.
  */
-const resolvePendingActiveThemeReference = (): void => {
-	if (!pendingActiveThemeReference) return;
-	const { activeTheme } = useAppManager.getState().System.Manager.Appearance;
-	const reference = pendingReferenceFor(activeTheme);
-	const pkg = reference && knownClassicyThemePackage(reference.package);
-	if (reference && !pkg) return;
+const refreshActiveBuiltInTheme = (): void => {
+	const appearance = useAppManager.getState().System.Manager.Appearance;
+	const reference = pendingReferenceFor(appearance.activeTheme);
+	if (reference && !knownClassicyThemePackage(reference.package)) return;
 	pendingActiveThemeReference = null;
-	if (!reference || !pkg) return;
-	const resolved = resolveClassicyThemeReference(pkg, reference);
+	const activeTheme = refreshedClassicyActiveTheme(appearance, {
+		reference: !!reference,
+	});
+	if (!activeTheme) return;
 	useAppManager.setState((currentState) =>
 		produce(currentState, (draft) => {
-			draft.System.Manager.Appearance.activeTheme = castDraft(resolved);
+			draft.System.Manager.Appearance.activeTheme = castDraft(activeTheme);
 		}),
 	);
 };
-subscribeClassicyAppearancePackages(resolvePendingActiveThemeReference);
+subscribeClassicyAppearancePackages(refreshActiveBuiltInTheme);
 
 // The asset registry follows the active Appearance Package: the store's
 // packageId resolved against the package registry, so assets and the desktop

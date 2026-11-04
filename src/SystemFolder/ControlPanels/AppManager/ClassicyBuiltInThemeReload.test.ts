@@ -165,22 +165,43 @@ describe("hydrate takes built-ins from the code", () => {
 		expect(a.activeTheme).toEqual(legacy.System.Manager.Appearance.activeTheme);
 	});
 
-	it("keeps a whole built-in active theme that differs from its preset (edits made before custom themes)", async () => {
+	it("replaces a stale whole built-in active theme by its preset, edits made before custom themes included", async () => {
 		const legacy = await legacySaved((a) => {
 			const azul = strip(
 				(a.availableThemes as ClassicyTheme[]).find((t) => t.id === "azul")!,
 			);
-			azul.desktop.backgroundImage = "https://example.com/mine.png";
+			azul.color.black = 0xabcdef; // a preset fixed since
+			azul.desktop.backgroundImage = "https://example.com/mine.png"; // a v0.82 edit
 			a.activeTheme = azul;
 		});
 		const b = await boot(legacy);
 		const active = b.state().System.Manager.Appearance.activeTheme;
-		expect(active.id).toBe("azul");
+		expect(strip(active)).toEqual(strip(b.appearance.getTheme("azul")));
+		expect(saved(b).System.Manager.Appearance.activeTheme).toEqual({
+			id: "azul",
+			package: "platinum",
+		});
+	});
+
+	it("leaves a custom active theme carrying the same edits alone", async () => {
+		const legacy = await legacySaved((a) => {
+			const custom = {
+				...strip(
+					(a.availableThemes as ClassicyTheme[]).find((t) => t.id === "azul")!,
+				),
+				id: "custom",
+				name: "Custom",
+			};
+			custom.color.black = 0xabcdef;
+			custom.desktop.backgroundImage = "https://example.com/mine.png";
+			a.customThemes = [custom];
+			a.activeTheme = strip(custom);
+		});
+		const b = await boot(legacy);
+		const active = b.state().System.Manager.Appearance.activeTheme;
+		expect(active.color.black).toBe(0xabcdef);
 		expect(active.desktop.backgroundImage).toBe("https://example.com/mine.png");
-		// Saved whole again, so the edit survives every later load too.
-		expect(
-			saved(b).System.Manager.Appearance.activeTheme.desktop.backgroundImage,
-		).toBe("https://example.com/mine.png");
+		expect(saved(b).System.Manager.Appearance.activeTheme.id).toBe("custom");
 	});
 
 	it("saves a whole built-in active theme equal to its preset as a reference", async () => {
@@ -294,18 +315,30 @@ describe("a reference to a package registered later", () => {
 		});
 	});
 
-	it("saves an unchanged whole built-in as a reference once the package registers", async () => {
+	it("replaces a stale whole built-in by its preset once the package registers", async () => {
 		const first = await boot();
-		const night = pack(first.appearance.getTheme("default"), [{ id: "night" }]);
-		const legacy = await savedOnLatePack(strip(night.presets![0]));
+		const base = first.appearance.getTheme("default");
+		const night = pack(base, [
+			{ id: "night", color: { ...base.color, black: 0x222222 } },
+		]);
+		const stale = strip(night.presets![0]);
+		stale.color.black = 0xabcdef;
+		const legacy = await savedOnLatePack(stale);
 		const b = await boot(legacy);
-		// Unregistered: its built-ins cannot be told apart yet, so it stays whole.
+		// Unregistered: its built-ins cannot be read yet, so it stays whole.
+		expect(b.state().System.Manager.Appearance.activeTheme.color.black).toBe(
+			0xabcdef,
+		);
 		expect(saved(b).System.Manager.Appearance.activeTheme.color).toBeDefined();
 		b.registry.registerClassicyAppearancePackage(night);
+		expect(b.state().System.Manager.Appearance.activeTheme.color.black).toBe(
+			0x222222,
+		);
 		expect(saved(b).System.Manager.Appearance.activeTheme).toEqual({
 			id: "night",
 			package: "late-pack",
 		});
+		expect(b.warnings()).toEqual([]);
 	});
 
 	it("falls back to the package's defaults when the referenced preset is gone", async () => {
