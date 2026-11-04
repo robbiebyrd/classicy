@@ -83,7 +83,7 @@ export const useSoundTab = ({
 								max={100}
 								valueLabel={`${alertVolume}%`}
 								onChangeFunc={(e) => changeAlertVolume(Number(e.target.value))}
-								onCommitFunc={previewAlertVolume}
+								onCommitFunc={(value) => previewAlertVolume(value)}
 							/>
 						</div>
 					</div>
