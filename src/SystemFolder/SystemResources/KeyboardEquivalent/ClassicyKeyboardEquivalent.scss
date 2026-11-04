@@ -6,7 +6,9 @@
   display: block;
   box-sizing: border-box;
   min-height: var(--edit-field-height);
-  line-height: calc(var(--edit-field-height) - var(--window-border-size) * 2);
+  line-height: calc(
+    var(--edit-field-height) - var(--window-border-size) - var(--window-border-size)
+  );
   padding: 0 var(--window-padding-size);
   border: var(--window-border-size) solid var(--color-system-04);
   font-family: var(--ui-font), sans-serif;
@@ -45,7 +47,7 @@
   }
 
   .classicyKeyboardEquivalentDisplay {
-    margin: 0 calc(var(--layout-group-gap) * 2);
+    margin: 0 var(--keyboard-equivalent-display-inset);
   }
 
   // The explanation is set in the small system font, like an alert's message.

@@ -4,8 +4,15 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import {
+	CLASSICY_THEME_DERIVATIONS,
+	type ClassicyThemeDerivationInputs,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
+import {
+	CLASSICY_THEME_METRIC_TARGETS,
+	type ClassicyThemeMetricKey,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -23,6 +30,9 @@ type Inputs = {
 	control: number;
 	padding: number;
 	border: number;
+	utilityTitleBar: number;
+	itemGap: number;
+	groupGap: number;
 	ui: number;
 	icon: number;
 	iconFont: number;
@@ -117,7 +127,33 @@ const ROWS: readonly [string, readonly Metric[], (i: Inputs) => number][] = [
 	// H-R28b: the title-bar cap offset, formerly read from --control-padding.
 	// (The site negates it: calc((var(--window-padding-size) * -1) / 2).)
 	["--window-title-cap-offset", ["padding"], (i) => i.padding / 2],
+	// H 6.2b: the sites in H 6.1's files.
+	[
+		"--window-utility-control-box-size",
+		["utilityTitleBar", "border"],
+		// width/height clamp a negative calc() to 0.
+		(i) => Math.max(0, i.utilityTitleBar - i.border * 4),
+	],
+	["--appearance-manager-swatch-label-gap", ["itemGap"], (i) => i.itemGap / 2],
+	["--drive-setup-list-min-height", ["control"], (i) => i.control * 8],
+	["--startup-screen-panel-gap", ["padding"], (i) => i.padding * 3],
+	["--startup-screen-panel-padding-block", ["padding"], (i) => i.padding * 6],
+	["--startup-screen-panel-padding-inline", ["padding"], (i) => i.padding * 8],
+	["--startup-screen-extensions-inset", ["padding"], (i) => i.padding * 2],
+	["--control-group-legend-overhang", ["ui"], (i) => (i.ui * 0.75 * 1.4) / 2],
+	["--keyboard-equivalent-display-inset", ["groupGap"], (i) => i.groupGap * 2],
+	["--slider-vertical-min-height", ["control"], (i) => i.control * 8],
+	["--slider-tick-length", ["padding"], (i) => i.padding * 0.75],
+	["--slider-tick-labels-height", ["ui"], (i) => i.ui * 1.2],
+	["--table-sort-arrow-height", ["ui"], (i) => i.ui * 0.5],
+	["--window-frame-body-padding", ["padding"], (i) => i.padding * 2],
 ];
+
+// The rows H 6.2b added: every one is exact at three decimals for whole-pixel
+// inputs, so px3 rounds nothing away from the calc() it replaced.
+const H62B_ROWS = ROWS.slice(
+	ROWS.findIndex(([v]) => v === "--window-utility-control-box-size"),
+);
 
 // How a user edits each metric, and the non-default value it is set to.
 const EDITS: Record<Metric, { action: ActionMessage; value: number }> = {
@@ -144,6 +180,30 @@ const EDITS: Record<Metric, { action: ActionMessage; value: number }> = {
 			value: 2,
 		},
 		value: 2,
+	},
+	utilityTitleBar: {
+		action: {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "windowUtilityTitleBarHeight",
+			value: 14,
+		},
+		value: 14,
+	},
+	itemGap: {
+		action: {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "layoutItemGap",
+			value: 6,
+		},
+		value: 6,
+	},
+	groupGap: {
+		action: {
+			type: "ClassicyDesktopChangeMetric",
+			metricKey: "layoutGroupGap",
+			value: 20,
+		},
+		value: 20,
 	},
 	ui: {
 		action: {
@@ -175,6 +235,9 @@ const inputsOf = (t: ClassicyTheme): Inputs => ({
 	control: t.measurements.window.controlSize,
 	padding: t.measurements.window.paddingSize,
 	border: t.measurements.window.borderSize,
+	utilityTitleBar: t.measurements.window.utilityTitleBarHeight,
+	itemGap: t.measurements.layout.itemGap,
+	groupGap: t.measurements.layout.groupGap,
 	ui: t.typography.uiSize,
 	icon: t.desktop.iconSize,
 	iconFont: t.desktop.iconFontSize,
@@ -198,7 +261,7 @@ describe("H-R25: the named multipliers follow the metrics a user edits", () => {
 	it("lists every H 6.2 name, each a named derivation", () => {
 		const derived = new Set(CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar));
 		for (const [cssVar] of ROWS) expect(derived.has(cssVar), cssVar).toBe(true);
-		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(63);
+		expect(new Set(ROWS.map(([cssVar]) => cssVar)).size).toBe(77);
 	});
 
 	it.each(
@@ -216,6 +279,82 @@ describe("H-R25: the named multipliers follow the metrics a user edits", () => {
 		for (const [cssVar, , calc] of rows) {
 			expect(after[cssVar], cssVar).toBe(asVar(cssVar, calc(inputs)));
 			expect(after[cssVar], `${cssVar} moved`).not.toBe(before[cssVar]);
+		}
+	});
+});
+
+// The Metrics-tab key of each window and layout input; the font and desktop
+// sizes have no Metrics-tab target and sweep 1–512 like the others' ceiling.
+const METRIC_KEYS: Partial<Record<Metric, ClassicyThemeMetricKey>> = {
+	control: "windowControlSize",
+	padding: "windowPaddingSize",
+	border: "windowBorderSize",
+	utilityTitleBar: "windowUtilityTitleBarHeight",
+	itemGap: "layoutItemGap",
+	groupGap: "layoutGroupGap",
+};
+const rangeOf = (metric: Metric): readonly [number, number] => {
+	const key = METRIC_KEYS[metric];
+	const info = CLASSICY_THEME_METRIC_TARGETS.find(
+		(t) => t.target.metricKey === key,
+	);
+	return info ? [info.min, info.max] : [1, 512];
+};
+// The default theme's inputs with one metric set to `v`, as the Inputs the
+// rows read and as the derivation inputs getThemeVars passes.
+const withInput = (
+	t: ClassicyTheme,
+	metric: Metric,
+	v: number,
+): [Inputs, ClassicyThemeDerivationInputs] => {
+	const m = t.measurements;
+	const i: Inputs = { ...inputsOf(t), [metric]: v };
+	return [
+		i,
+		{
+			measurements: {
+				...m,
+				window: {
+					...m.window,
+					controlSize: i.control,
+					paddingSize: i.padding,
+					borderSize: i.border,
+					utilityTitleBarHeight: i.utilityTitleBar,
+				},
+				layout: { ...m.layout, itemGap: i.itemGap, groupGap: i.groupGap },
+			},
+			typography: { uiSize: i.ui },
+			desktop: { iconSize: i.icon, iconFontSize: i.iconFont },
+		},
+	];
+};
+
+describe("H 6.2: each named multiplier equals its calc() at every whole-pixel value", () => {
+	it.each(
+		ROWS.map(([cssVar, metrics, calc]) => ({ cssVar, metrics, calc })),
+	)("$cssVar", ({ cssVar, metrics, calc }) => {
+		const derivation = CLASSICY_THEME_DERIVATIONS.find(
+			(d) => d.cssVar === cssVar,
+		);
+		expect(derivation, cssVar).toBeDefined();
+		const theme = getTheme("default");
+		const exact = H62B_ROWS.some(([v]) => v === cssVar);
+		for (const metric of metrics) {
+			const [min, max] = rangeOf(metric);
+			for (let v = min; v <= max; v++) {
+				const [rowInputs, inputs] = withInput(theme, metric, v);
+				const want = calc(rowInputs);
+				const got = derivation?.compute(inputs) ?? Number.NaN;
+				expect(asVar(cssVar, got), `${cssVar} at ${metric} ${v}`).toBe(
+					asVar(cssVar, want),
+				);
+				// H 6.2b's sites: px3 drops nothing the calc() kept.
+				if (exact)
+					expect(
+						Math.abs(Number.parseFloat(asVar(cssVar, got)) - want),
+						`${cssVar} at ${metric} ${v} rounds`,
+					).toBeLessThan(1e-9);
+			}
 		}
 	});
 });

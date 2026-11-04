@@ -28,6 +28,6 @@
 }
 
 .classicyWindowFrameBody {
-  padding: calc(var(--window-padding-size) * 2);
+  padding: var(--window-frame-body-padding);
   background: var(--color-system-03);
 }

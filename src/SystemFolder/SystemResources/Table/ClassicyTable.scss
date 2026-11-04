@@ -83,7 +83,7 @@
 
 .classicyTableSortArrow {
   margin: 0 var(--window-padding-size);
-  height: calc(var(--ui-font-size) * 0.5);
+  height: var(--table-sort-arrow-height);
 }
 
 .classicyTableSortArrowAscending {

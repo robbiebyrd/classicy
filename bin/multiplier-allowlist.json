@@ -11,24 +11,6 @@
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
 		}
 	],
-	"src/Appearance/Platinum/styles/components/_Window.scss": [
-		{
-			"count": 4,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
-	"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
-	"src/SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [
 		{
 			"count": 12,
@@ -37,18 +19,6 @@
 		{
 			"count": 4,
 			"reason": "Edge midpoints: a side handle sits at 50% minus half its own size (--hyper-card-handle-size / 2), centered on the edge it marks; geometry, not a role (H-R21)."
-		}
-	],
-	"src/SystemFolder/SystemResources/Boot/ClassicyStartupScreen.scss": [
-		{
-			"count": 5,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
-	"src/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
 		}
 	],
 	"src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss": [
@@ -63,44 +33,20 @@
 			"reason": "The icon box is twice --desktop-icon-size, which the size prop sets per icon; the root's --desktop-icon-cell would not follow it (Part G, kept on purpose)."
 		}
 	],
-	"src/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalent.scss": [
-		{
-			"count": 2,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
-	"src/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
 	"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss": [
 		{
-			"count": 7,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
+			"count": 1,
+			"reason": "Thumb-on-track centering: the thumb's margin-top is half the difference of the track and thumb heights (($track-h - $thumb-h) / 2), so the thumb's center sits on the track's center line; geometry, not a role (H-R21)."
 		},
 		{
 			"count": 4,
 			"reason": "Thumb-centering halves: the tick rail, tick labels and ghost thumb are inset by half the thumb's own size (#{$thumb-w} / 2, #{$thumb-h} / 2), so a value lands under the thumb's center; geometry, not a role (H-R21)."
 		}
 	],
-	"src/SystemFolder/SystemResources/Table/ClassicyTable.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
-		}
-	],
 	"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss": [
 		{
 			"count": 1,
 			"reason": "The utility window's local arrow unit, a quarter of its own local --window-scrollbar-size, as the theme's --window-scrollbar-arrow-size is of the root's (Part G, kept on purpose)."
-		}
-	],
-	"src/SystemFolder/SystemResources/Window/ClassicyWindowFrame.scss": [
-		{
-			"count": 1,
-			"reason": "Pending H 6.2b: an H 6.1 file, whose sites are named on top of 6.1's pixel-literal purge (H-R9 split)."
 		}
 	]
 }
