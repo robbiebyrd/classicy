@@ -16,6 +16,7 @@ import {
 import {
 	type ClassicyActionTrust,
 	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	activateApp,
@@ -200,12 +201,15 @@ export type ActionMessage = Record<string, unknown> & {
 
 /**
  * A plugin reducer. The kernel always passes `trust`, the trust it reduced
- * `action` under (`dispatchToPlugin` passes `"trusted"`). A handler that
- * reduces a further action on the action's behalf, from inside the reducer,
- * MUST forward it (`classicyDesktopStateEventReducer(ds, next, trust)`,
+ * `action` under, normalized to `"trusted"` or `"untrusted"`
+ * (`dispatchToPlugin` passes `"trusted"`). A handler that reduces a further
+ * action on the action's behalf, from inside the reducer, MUST forward it
+ * (`classicyDesktopStateEventReducer(ds, next, trust)`,
  * `routeClassicyAppOpenFile(…, trust)`), so the trust floor and the untrusted
- * allowlist apply to that action too. A handler that never does may declare
- * only `(ds, action)`.
+ * allowlist apply to that action too. Forward the value received, or wrap it
+ * in `classicyActionTrustOf` when the handler may be called directly without
+ * one: the reducer's own `"trusted"` default would upgrade a missing trust.
+ * A handler that never forwards may declare only `(ds, action)`.
  */
 export type AppEventHandler = (
 	ds: ClassicyStore,
@@ -530,13 +534,16 @@ export const classicyDesktopStateEventReducer = (
 		// plugin — sees it, if its type falls under a guarded route. This must
 		// run before the prefix routing below, since plugin handlers are also a
 		// route into the reducer and are not otherwise distinguishable here.
-		if (checkClassicyActionTrust(trust, action.type)) {
+		// One definite level for the check and for every handler: a value
+		// other than "trusted" or "untrusted" reaches no handler as itself.
+		const level = classicyActionTrustOf(trust);
+		if (checkClassicyActionTrust(level, action.type)) {
 			const builtIn = findBuiltInRoute(action.type);
 			const plugin = builtIn ? undefined : findPluginEventHandler(action.type);
 			if (builtIn) {
 				ds = builtIn[1](ds, action);
 			} else if (plugin) {
-				ds = plugin.handler(ds, action, trust);
+				ds = plugin.handler(ds, action, level);
 			} else if (action.type.startsWith("ClassicyApp")) {
 				ds = classicyAppEventHandler(ds, action);
 			} else {

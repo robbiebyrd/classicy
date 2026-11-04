@@ -106,9 +106,9 @@ sounds, theming, and persistence of its window position across reloads.
   the active Appearance Package says otherwise, and it is load-bearing: Finder
   builds the generic action type `` `ClassicyApp${app.name}OpenFile` `` from the
   stored name, verbatim (an OpenFile your manifest declares is used instead),
-  and `ClassicyApp` builds `` `ClassicyApp${name}CloseFile` `` from the prop. A name with a space produces an action type with a space in
-  it, which will not match your registered prefix. **Prefer a single word for
-  `name`.**
+  and `ClassicyApp` builds `` `ClassicyApp${name}CloseFile` `` from the prop.
+  A name with a space produces an action type with a space in it, which will
+  not match your registered prefix. **Prefer a single word for `name`.**
 - **A package may display another name.** An Appearance Package can show your
   app under another name or icon, by its id (`apps["MyApp.app"]`;
   AGENT-REFERENCE §8, "App display overrides"). Your action types, Finder's

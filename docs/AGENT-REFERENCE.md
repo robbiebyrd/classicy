@@ -397,8 +397,9 @@ Helper functions (exported, callable inside custom handlers): `openApp`,
 `dispatchToPlugin(ds, prefix, action)` (cross-app orchestration without a
 direct import; it carries no trust and always reduces as **trusted**, so never
 use it for work done on behalf of an untrusted action: reduce that through
-`classicyDesktopStateEventReducer(ds, next, trust)` instead). Payload type-guard predicates (`hasApp`, `hasWindow`,
-`hasPath`, `hasUrl`, …) are exported from the action-predicates module.
+`classicyDesktopStateEventReducer(ds, next, trust)` instead). Payload
+type-guard predicates (`hasApp`, `hasWindow`, `hasPath`, `hasUrl`, …) are
+exported from the action-predicates module.
 
 ---
 
@@ -514,10 +515,14 @@ Rules (enforced/warned by the kernel):
   document, a URL shortcut's `ClassicyDesktopOpenUrl`) clears the same trust
   check a dispatch of that type would (§6).
 - **Handlers get the trust.** The kernel always passes a plugin handler the
-  trust it reduced the action under, as the third `AppEventHandler` argument
-  (`dispatchToPlugin` passes `"trusted"`). A handler that reduces a further
-  action on the action's behalf must forward it; one that never does may
-  declare only `(ds, action)`.
+  trust it reduced the action under, as the third `AppEventHandler` argument,
+  normalized to `"trusted"` or `"untrusted"` (a garbage value arrives as
+  `"untrusted"`; `dispatchToPlugin` passes `"trusted"`). A handler that
+  reduces a further action on the action's behalf must forward it: pass the
+  value it received, or `classicyActionTrustOf(trust)` when the handler may
+  be called directly without one, since the reducer's own `"trusted"` default
+  would upgrade a missing trust. A handler that never forwards may declare
+  only `(ds, action)`.
 
 Open-with exports (`ClassicyAppOpenFileRouting.ts`, `ClassicyAppManager.ts`):
 
@@ -1754,8 +1759,9 @@ warning on refusal) and `classicyActionTrustOf(value)` (fails closed: only the
 literal `"trusted"` is trusted).
 
 **Work done on an action's behalf keeps its trust.** Plugin handlers receive
-the kernel's trust as their third argument; anything a handler reduces for
-the action, from inside the reducer, must go through the same check
+the kernel's trust, normalized, as their third argument; anything a handler
+reduces for the action, from inside the reducer, must go through the same
+check, forwarding the trust it received or `classicyActionTrustOf(trust)`
 (`classicyDesktopStateEventReducer(ds, next, trust)`,
 `routeClassicyAppOpenFile(…, trust)`, or `checkClassicyActionTrust` before a
 direct handler call). `dispatchToPlugin` carries no trust and is always

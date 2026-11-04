@@ -649,13 +649,17 @@ no effect. Registering the same type twice is a no-op, matching
 `registerAppEventHandler`.
 
 Plugin handlers receive the kernel's trust as the third `AppEventHandler`
-argument (always passed; a handler may still declare only `(ds, action)`).
-Any reduction a handler performs on the action's behalf must forward it
+argument (always passed, normalized by `classicyActionTrustOf` so a garbage
+value arrives as `"untrusted"`; a handler may still declare only `(ds,
+action)`). Any reduction a handler performs on the action's behalf must
+forward it, passing the value it received or `classicyActionTrustOf(trust)`
 (`classicyDesktopStateEventReducer(ds, next, trust)`,
 `routeClassicyAppOpenFile(…, trust)`, or `checkClassicyActionTrust(trust,
-type)` before calling a handler directly); `routeClassicyAppOpenFile` and
-Finder's handler take `trust` as a required argument, and a missing one counts
-as untrusted (`classicyActionTrustOf`). `dispatchToPlugin` carries no trust
+type)` before calling a handler directly), since the reducer's own `"trusted"`
+default would upgrade a missing one. `routeClassicyAppOpenFile` and Finder's
+handler take `trust` as a required argument, and a missing one counts as
+untrusted: the router normalizes it with `classicyActionTrustOf`, and Finder's
+handler refuses through `checkClassicyActionTrust`, which fails closed. `dispatchToPlugin` carries no trust
 and is always trusted. A host that allowlists `ClassicyAppFinderOpenFile` must
 also allowlist each target app's OpenFile type (and
 `ClassicyAppMoviePlayerOpenDocument` for legacy QuickTime documents); a URL
