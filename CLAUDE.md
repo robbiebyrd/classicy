@@ -491,6 +491,10 @@ re-render) on any change made through any instance — no store event needed.
 subscribing. `fsVersion` (`ClassicyDesktopFileSystemVersionBump`) is now only a
 reload *epoch*: an instance constructed under a different epoch re-reads
 localStorage into the shared record (adapter reconcile replace, Drive Setup).
+A storage key's first instance (or an epoch reload with nothing stored) seeds
+the live tree from a deep copy of the defaults (`copyClassicyFileSystemSeed`),
+so `DefaultFSContent`, a host's `defaultFileSystem` and seed-migration entries
+are never edited in place (0098).
 Tests reset the trees in `src/__tests__/setup.ts`.
 
 Derived overlays (Applications, Extensions, Control Strip Modules) mark their
