@@ -555,6 +555,48 @@ describe("ClassicySplitView when the pointer stream is lost", () => {
 		expect(onResizeCommit).not.toHaveBeenCalled();
 	});
 
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("does nothing on a %s after unmounting mid-drag", (loss) => {
+		const consoleError = vi.spyOn(console, "error");
+		const { divider, onResize, onResizeCommit, unmount } = renderSplit();
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 250 });
+		onResize.mockClear();
+		unmount();
+		losePointerStream(loss);
+		fireEvent.mouseMove(document, { clientX: 300 });
+		fireEvent.mouseUp(document);
+		expect(onResize).not.toHaveBeenCalled();
+		expect(onResizeCommit).not.toHaveBeenCalled();
+		expect(document.body.style.cursor).toBe("");
+		expect(consoleError).not.toHaveBeenCalled();
+	});
+
+	it("leaves the body cursor alone when it unmounts after a drag ended", () => {
+		const { divider, unmount } = renderSplit();
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 250 });
+		fireEvent.mouseUp(document);
+		// Another gesture owns the cursor now.
+		document.body.style.cursor = "wait";
+		unmount();
+		expect(document.body.style.cursor).toBe("wait");
+	});
+
+	it("removes a drag's document listeners when it unmounts mid-drag", () => {
+		const live = trackPointerStreamListeners();
+		const removed = vi.spyOn(document, "removeEventListener");
+		const { divider, unmount } = renderSplit();
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		expect(live.size).toBe(3);
+		unmount();
+		expect(live.size).toBe(0);
+		const types = removed.mock.calls.map(([type]) => type);
+		expect(types).toContain("mousemove");
+		expect(types).toContain("mouseup");
+	});
+
 	it("watches the pointer stream only while a drag lasts", () => {
 		const live = trackPointerStreamListeners();
 		const { divider } = renderSplit();

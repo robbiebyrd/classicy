@@ -8,7 +8,7 @@ import type {
 	MouseEvent as ReactMouseEvent,
 	ReactNode,
 } from "react";
-import { Children, Fragment, useRef, useState } from "react";
+import { Children, Fragment, useEffect, useRef, useState } from "react";
 import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
@@ -200,6 +200,10 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 		return horizontal ? rect.width : rect.height;
 	};
 
+	// Ends a live divider drag's listeners when the split view unmounts.
+	const dragCleanupRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => dragCleanupRef.current?.(), []);
+
 	const applySizes = (next: number[]) => {
 		setSizes(next);
 		onResize?.(next);
@@ -254,10 +258,14 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			// pointercancel, the page is hidden): either way the divider stays
 			// where it was dragged and the sizes on screen are committed, as a
 			// window's move or resize ends where it is.
-			const upHandler = () => {
+			const detach = () => {
 				stopWatchingPointerStream();
 				document.removeEventListener("mousemove", moveHandler);
 				document.removeEventListener("mouseup", upHandler);
+				dragCleanupRef.current = null;
+			};
+			const upHandler = () => {
+				detach();
 				setDragDirection(null);
 				setCursor();
 				if (latestSizes) onResizeCommit?.(latestSizes);
@@ -265,6 +273,12 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			document.addEventListener("mousemove", moveHandler);
 			document.addEventListener("mouseup", upHandler);
 			const stopWatchingPointerStream = onClassicyPointerStreamLost(upHandler);
+			// Unmounted mid-drag: the listeners go, and the body cursor is
+			// put back; nothing is committed (the split view is gone).
+			dragCleanupRef.current = () => {
+				detach();
+				setCursor();
+			};
 		};
 
 	// ARIA window-splitter keyboard support: the arrow keys along the split
