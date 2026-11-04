@@ -39,6 +39,7 @@ import {
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import type { ClassicyControlStripEdge } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 export type ClassicyControlStripProps = {
@@ -341,6 +342,25 @@ export const ClassicyControlStrip: FunctionalComponent<
 		step: number;
 		moved: boolean;
 	} | null>(null);
+	// A tab press or a Control-press on the collapse box watches the pointer
+	// stream while it lasts: lost (the window blurs, a pointercancel, the
+	// page is hidden), the gesture ends where it is, as its release would end
+	// it (the width and position on screen are stored, like a window's move
+	// or resize), except that a tab press that never moved is not taken for
+	// a click.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	const stopWatchingPointerStream = useCallback(() => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
+	}, []);
+	const watchPointerStream = (onLost: () => void) => {
+		stopWatchingPointerStream();
+		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(onLost);
+	};
+	useEffect(() => stopWatchingPointerStream, [stopWatchingPointerStream]);
+	// The gestures' ends, kept current by the effects that own them below.
+	const endTabDragRef = useRef<(released: boolean) => void>(() => {});
+	const endMoveRef = useRef<() => void>(() => {});
 
 	const updateScrollState = useCallback(() => {
 		const el = viewportRef.current;
@@ -399,6 +419,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			step: moduleStepOf(viewportRef.current),
 			moved: false,
 		};
+		watchPointerStream(() => endTabDragRef.current(false));
 	};
 
 	useEffect(() => {
@@ -424,19 +445,30 @@ export const ClassicyControlStrip: FunctionalComponent<
 				),
 			);
 		};
-		const onUp = () => {
+		// `released`: by a mouseup, not by the pointer stream being lost.
+		const endTabDrag = (released: boolean) => {
+			stopWatchingPointerStream();
 			const drag = dragRef.current;
 			dragRef.current = null;
-			if (drag && !drag.moved) setCollapsed(!collapsed);
+			if (released && drag && !drag.moved) setCollapsed(!collapsed);
 			if (drag?.moved) emit("dragEnd", { kind: "resize" });
 		};
+		endTabDragRef.current = endTabDrag;
+		const onUp = () => endTabDrag(true);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
 		return () => {
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [collapsed, growDirection, setCollapsed, setWidth, emit]);
+	}, [
+		collapsed,
+		growDirection,
+		setCollapsed,
+		setWidth,
+		emit,
+		stopWatchingPointerStream,
+	]);
 
 	// Control-drag on the collapse box: past the click slop the strip follows
 	// the pointer up and down and docks to the pointer's half of the desktop;
@@ -465,6 +497,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			setMovePreview(move.position);
 		};
 		const onUp = () => {
+			stopWatchingPointerStream();
 			const move = moveRef.current;
 			moveRef.current = null;
 			if (!move) return;
@@ -482,13 +515,14 @@ export const ClassicyControlStrip: FunctionalComponent<
 			});
 			setMovePreview(null);
 		};
+		endMoveRef.current = onUp;
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
 		return () => {
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [dispatch, emit]);
+	}, [dispatch, emit, stopWatchingPointerStream]);
 
 	const onCollapseBoxMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		// Every press decides afresh whether the click that ends it collapses.
@@ -506,6 +540,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			moved: false,
 			position: null,
 		};
+		watchPointerStream(() => endMoveRef.current());
 	};
 
 	// A Control-click raises a contextual menu on macOS; on the collapse box it

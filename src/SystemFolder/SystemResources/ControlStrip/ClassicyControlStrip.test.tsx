@@ -3,6 +3,11 @@ import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import {
 	act,
 	fireEvent,
 	renderWithProviders,
@@ -1243,5 +1248,108 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(
 			strip().style.getPropertyValue("--classicy-control-strip-top-inset"),
 		).toBe("20px");
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a Control-drag where it is, storing that position, on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		losePointerStream(loss);
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+		expect(strip()).not.toHaveClass("dragging");
+
+		// The pointer coming back carries it no further, and the release
+		// that finally comes stores nothing more.
+		fireEvent.mouseMove(document, { clientX: 100, clientY: 100 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+		expect(strip()).toHaveClass("classicyControlStripRight");
+	});
+
+	it("stores nothing when the stream is lost before a Control-press moved", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		losePointerStream("blur");
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		expect(storedStrip()?.edge).toBeUndefined();
+		expect(strip()).not.toHaveClass("classicyControlStripRight");
+	});
+});
+
+describe("Control Strip tab when the pointer stream is lost", () => {
+	beforeEach(() => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(30);
+	});
+
+	const viewport = () =>
+		document.querySelector(".classicyControlStripModules") as HTMLElement;
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a tab drag at the width it was dragged to on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 160 });
+		losePointerStream(loss);
+		expect(storedStrip()?.width).toBe(60);
+
+		// The pointer coming back does not size it, and the release that
+		// finally comes is not a click on the tab.
+		fireEvent.mouseMove(document, { clientX: 900 });
+		fireEvent.mouseUp(document);
+		expect(viewport().style.width).toBe("60px");
+		expect(storedStrip()?.collapsed).toBeUndefined();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("does not take a tab press for a click on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		losePointerStream(loss);
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.collapsed).toBeUndefined();
+		expect(
+			screen.getByRole("button", { name: "File Sharing" }),
+		).toBeInTheDocument();
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		register(...testModules());
+		const { unmount } = renderStrip();
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+
+		const collapseBox = screen.getByRole("button", {
+			name: "Collapse Control Strip",
+		});
+		fireEvent.mouseDown(collapseBox, { button: 0, ctrlKey: true });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+		// A plain press on the collapse box is a click, not a gesture.
+		fireEvent.mouseDown(collapseBox, { button: 0 });
+		expect(live.size).toBe(0);
+
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });
