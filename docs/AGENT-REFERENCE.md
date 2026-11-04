@@ -1634,7 +1634,7 @@ authors:
   there too. The inset shadows of the `platinum-window-*` and
   `platinum-depressable-*` mixins and of the scroll-bar track now read the
   derivation `--control-frame-width` (border × 2) where they computed
-  `--window-border-size * 2` or `* -2`, so a host that overrides only
+  `--window-border-size * -2`, so a host that overrides only
   `--window-border-size` on a subtree no longer moves them: it overrides
   `--control-frame-width` as well.
 - **New: package knob families** (§8, "Package knob families"). Platinum's
@@ -3518,6 +3518,12 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 
+`dialog.fileInputHiddenSize` sizes `ClassicyFileInput`'s visually hidden
+native input, a general form control rather than a dialog part. It lives in
+`dialog` because no existing family has its role and the core `control`
+family is a persisted contract (H-R29b); it keeps the input from collapsing
+to 0×0, which some screen readers skip, when Border is 0.
+
 `--progress-bar-stripe-period` is not a knob: it is the derivation
 `progressBar.stripeWidth × 2` (H-R27b), so the band and its period never
 disagree. Two names went away during Part H: `crashScreen.artWidth` (the Sad
@@ -3776,7 +3782,8 @@ which H-R5 names apart: a key cap's corner and a frame's drop shadow); and
 `--control-bevel-md`, `--button-default-ring` and the named
 `--focus-ring-inset` (`b × 3`).
 
-Three pairs were checked against H-R6 and kept apart, the first two under H-R28d and the third as a 6.2a acceptance:
+Three pairs were checked against H-R6 and kept apart, the first two under
+H-R28d and the third as a 6.2a acceptance:
 
 - `--assistant-header-gap` and `--menu-item-icon-gap` (`c × 0.5`): both
   are an icon-to-title gap, but in different components. The menu gap is
