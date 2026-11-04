@@ -5,6 +5,7 @@ import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
+	KEY_PRESS_LOSSES,
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
 } from "@/__tests__/losePointerStream";
@@ -224,6 +225,31 @@ describe("Platinum control sounds through the appearance hooks", () => {
 			"ClassicyButtonClickDown",
 			"ClassicyButtonClickDown",
 			"ClassicyInputRadioClickDown",
+		]);
+	});
+
+	// A keyboard press whose keyup never comes (the window loses focus, or
+	// focus leaves the control) ends in a canceled release: it clicks down,
+	// never up, and neither does its keyup if that comes back late.
+	it.each(
+		KEY_PRESS_LOSSES,
+	)("a keyboard press lost on a %s clicks down but never up", (loss) => {
+		render(<ClassicyButton>OK</ClassicyButton>);
+		const button = screen.getByRole("button", { name: "OK" });
+		button.focus();
+		for (const key of ["Enter", " "]) {
+			fireEvent.keyDown(button, { key });
+			losePointerStream(loss);
+			fireEvent.keyUp(button, { key });
+		}
+		fireEvent.keyDown(button, { key: " " });
+		act(() => button.blur());
+		button.focus();
+		fireEvent.keyUp(button, { key: " " });
+		expect(played()).toEqual([
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
 		]);
 	});
 

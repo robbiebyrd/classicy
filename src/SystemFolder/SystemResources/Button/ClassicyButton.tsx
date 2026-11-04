@@ -15,7 +15,10 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	useClassicyKeyPress,
+	useClassicyPointerPress,
+} from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 type ClassicyButtonProps = PropsWithChildren<{
 	/**
@@ -156,6 +159,10 @@ export const ClassicyButton = forwardRef<
 		// elsewhere (`canceled`), or, when its pointer stream is lost (the
 		// window blurs, a pointercancel, the page is hidden), lost.
 		const { watchPress, releasedOver } = useClassicyPointerPress();
+		// So does a keyboard press: at its keyup, or canceled, when the window
+		// loses focus (lost) or focus leaves the button before it. A canceled
+		// press's late keyup is prevented, so the browser clicks nothing for it.
+		const { watchKeyPress, releaseKey } = useClassicyKeyPress(buttonRef);
 
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 			appearance.emit("click", withClassicyAppearanceInput());
@@ -171,12 +178,21 @@ export const ClassicyButton = forwardRef<
 				appearance.emit("press", withClassicyAppearanceInput());
 				if (keyTimer.current) clearTimeout(keyTimer.current);
 				keyTimer.current = setTimeout(() => setKeyActive(false), KEY_ACTIVE_MS);
+				watchKeyPress(e.key, (lost) => {
+					if (keyTimer.current) clearTimeout(keyTimer.current);
+					setKeyActive(false);
+					appearance.emit("release", {
+						input: "keyboard",
+						lost,
+						canceled: true,
+					});
+				});
 			}
 			onKeyDown?.(e);
 		};
 
 		const handleKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
-			if (!disabled && isActivationKey(e.key)) {
+			if (isActivationKey(e.key) && releaseKey(e) && !disabled) {
 				appearance.emit(
 					"release",
 					withClassicyAppearanceInput({ lost: false, canceled: false }),

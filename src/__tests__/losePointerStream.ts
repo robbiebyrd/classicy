@@ -10,6 +10,12 @@ export const POINTER_STREAM_LOSSES = [
 
 export type PointerStreamLoss = (typeof POINTER_STREAM_LOSSES)[number];
 
+/**
+ * The ways a keyboard press is lost: the window losing focus or the page
+ * being hidden (a `pointercancel` has nothing to do with keys).
+ */
+export const KEY_PRESS_LOSSES = ["blur", "hidden"] as const;
+
 // Test helper: loses the pointer stream a gesture follows, the way a browser
 // does. `blur` is the window losing focus (Alt-Tab, a system dialog),
 // `pointercancel` the browser taking the pointer over (a touch scroll, an OS

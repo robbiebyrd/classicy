@@ -12,7 +12,31 @@
  * ends where it is, as a release there would.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+
+/**
+ * Calls `onLost` whenever the window's focus is lost: the window blurs, or
+ * the page becomes hidden. Returns the function that stops watching. Both
+ * can fire for a single loss (hiding a tab also blurs the window), so
+ * `onLost` must be idempotent, or stop watching when it runs. A keyboard
+ * press ends on these alone; a pointer gesture adds `pointercancel`
+ * (`onClassicyPointerStreamLost`).
+ */
+export function onClassicyWindowFocusLost(onLost: () => void): () => void {
+	if (typeof window === "undefined" || typeof document === "undefined") {
+		return () => {};
+	}
+	const lost = () => onLost();
+	const onVisibilityChange = () => {
+		if (document.visibilityState === "hidden") onLost();
+	};
+	window.addEventListener("blur", lost);
+	document.addEventListener("visibilitychange", onVisibilityChange);
+	return () => {
+		window.removeEventListener("blur", lost);
+		document.removeEventListener("visibilitychange", onVisibilityChange);
+	};
+}
 
 /**
  * Calls `onLost` whenever the pointer stream is lost: the window blurs, the
@@ -28,16 +52,11 @@ export function onClassicyPointerStreamLost(onLost: () => void): () => void {
 		return () => {};
 	}
 	const lost = () => onLost();
-	const onVisibilityChange = () => {
-		if (document.visibilityState === "hidden") onLost();
-	};
-	window.addEventListener("blur", lost);
+	const stopWatchingFocus = onClassicyWindowFocusLost(onLost);
 	document.addEventListener("pointercancel", lost, true);
-	document.addEventListener("visibilitychange", onVisibilityChange);
 	return () => {
-		window.removeEventListener("blur", lost);
+		stopWatchingFocus();
 		document.removeEventListener("pointercancel", lost, true);
-		document.removeEventListener("visibilitychange", onVisibilityChange);
 	};
 }
 
@@ -124,5 +143,98 @@ export function useClassicyPointerPress(): {
 	return useMemo(
 		() => ({ watchPress, releasedOver }),
 		[watchPress, releasedOver],
+	);
+}
+
+/**
+ * Watches a control's keyboard presses (Return or Space held on it) until
+ * each ends, so a package `press` from the keyboard meets exactly one end
+ * too. The control calls `watchKeyPress(key, onCancel)` at the key's
+ * keydown and `releaseKey(event)` at every keyup. A press normally ends at
+ * its keyup, where `releaseKey` returns true and the control reports its
+ * release as it always has (a keyup with no press behind it returns true as
+ * well). A press whose keyup has not come ends early instead, in
+ * `onCancel(lost)`, once:
+ *
+ * - `lost` true: the window lost focus or the page was hidden (the
+ *   control's own blur counts when it stays the document's active element,
+ *   which is how a browser blurs it as the window loses focus). The keyup
+ *   goes to another window, or comes back late.
+ * - `lost` false: focus moved off the control (a script focused something
+ *   else, or blurred it). Nothing is lost, as with a mouse press let go
+ *   elsewhere: the keyup will come, but to another element.
+ *
+ * Either way the press is canceled: its key's keyup, if it still reaches
+ * the control (the key held through a return, or focus coming back), is
+ * prevented, so the browser does not turn it into a click, and `releaseKey`
+ * returns false so the control reports nothing. Every key held is its own
+ * press. Unmounting stops watching, reporting nothing.
+ */
+export function useClassicyKeyPress(
+	elementRef: RefObject<HTMLElement | null>,
+): {
+	watchKeyPress: (key: string, onCancel: (lost: boolean) => void) => void;
+	releaseKey: (event: { key: string; preventDefault: () => void }) => boolean;
+} {
+	// The presses under way, by key, and the keys whose press ended early.
+	const pressesRef = useRef(new Map<string, (lost: boolean) => void>());
+	const canceledRef = useRef(new Set<string>());
+	const stopRef = useRef<(() => void) | null>(null);
+	const stop = useCallback(() => {
+		stopRef.current?.();
+		stopRef.current = null;
+	}, []);
+	useEffect(
+		() => () => {
+			stop();
+			pressesRef.current.clear();
+		},
+		[stop],
+	);
+	const cancelPresses = useCallback(
+		(lost: boolean) => {
+			stop();
+			const presses = [...pressesRef.current];
+			pressesRef.current.clear();
+			for (const [key, onCancel] of presses) {
+				canceledRef.current.add(key);
+				onCancel(lost);
+			}
+		},
+		[stop],
+	);
+	const watchKeyPress = useCallback(
+		(key: string, onCancel: (lost: boolean) => void) => {
+			canceledRef.current.delete(key);
+			pressesRef.current.set(key, onCancel);
+			if (stopRef.current) return;
+			const element = elementRef.current;
+			const onBlur = () => cancelPresses(document.activeElement === element);
+			const stopWatchingFocus = onClassicyWindowFocusLost(() =>
+				cancelPresses(true),
+			);
+			element?.addEventListener("blur", onBlur);
+			stopRef.current = () => {
+				stopWatchingFocus();
+				element?.removeEventListener("blur", onBlur);
+			};
+		},
+		[elementRef, cancelPresses],
+	);
+	const releaseKey = useCallback(
+		(event: { key: string; preventDefault: () => void }) => {
+			if (canceledRef.current.delete(event.key)) {
+				event.preventDefault();
+				return false;
+			}
+			pressesRef.current.delete(event.key);
+			if (pressesRef.current.size === 0) stop();
+			return true;
+		},
+		[stop],
+	);
+	return useMemo(
+		() => ({ watchKeyPress, releaseKey }),
+		[watchKeyPress, releaseKey],
 	);
 }

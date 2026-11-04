@@ -14,7 +14,10 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
-import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	useClassicyKeyPress,
+	useClassicyPointerPress,
+} from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export type ClassicyPlacardMenuItem = {
 	/** Value passed to `onSelect` when the item is chosen. */
@@ -126,14 +129,26 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 
 	// Return and Space press and release the placard like the mouse does (the
-	// browser turns them into the click).
+	// browser turns them into the click). A key press ends in one `release`
+	// too: at its keyup, or canceled, when the window loses focus (lost) or
+	// focus leaves the placard first; a canceled press's late keyup is
+	// prevented, so the browser clicks nothing for it.
+	const { watchKeyPress, releaseKey } = useClassicyKeyPress(placardRef);
 	const isActivationKey = (key: string) => key === "Enter" || key === " ";
 	const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-		if (!e.repeat && isActivationKey(e.key))
+		if (!e.repeat && isActivationKey(e.key)) {
 			appearance.emit("press", withClassicyAppearanceInput());
+			watchKeyPress(e.key, (lost) =>
+				appearance.emit("release", {
+					input: "keyboard",
+					lost,
+					canceled: true,
+				}),
+			);
+		}
 	};
 	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
-		if (isActivationKey(e.key))
+		if (isActivationKey(e.key) && releaseKey(e))
 			appearance.emit(
 				"release",
 				withClassicyAppearanceInput({ lost: false, canceled: false }),

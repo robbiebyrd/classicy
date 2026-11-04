@@ -1,13 +1,16 @@
 import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	KEY_PRESS_LOSSES,
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
 import {
 	onClassicyPointerStreamLost,
+	onClassicyWindowFocusLost,
+	useClassicyKeyPress,
 	useClassicyPointerPress,
 	useClassicyPointerStreamLost,
 } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
@@ -246,5 +249,189 @@ describe("useClassicyPointerPress", () => {
 		fireEvent.mouseUp(document.body);
 		expect(onLost).toHaveBeenCalledOnce();
 		expect(onRelease).not.toHaveBeenCalled();
+	});
+});
+
+describe("onClassicyWindowFocusLost", () => {
+	it.each(KEY_PRESS_LOSSES)("reports a %s", (loss) => {
+		const onLost = vi.fn();
+		const stop = onClassicyWindowFocusLost(onLost);
+		losePointerStream(loss);
+		expect(onLost).toHaveBeenCalledExactlyOnceWith();
+		stop();
+	});
+
+	it("ignores a pointercancel, which has nothing to do with focus", () => {
+		const onLost = vi.fn();
+		const stop = onClassicyWindowFocusLost(onLost);
+		losePointerStream("pointercancel");
+		expect(onLost).not.toHaveBeenCalled();
+		stop();
+	});
+
+	it("removes both listeners when stopped", () => {
+		const live = trackPointerStreamListeners();
+		const onLost = vi.fn();
+		const stop = onClassicyWindowFocusLost(onLost);
+		expect(live.size).toBe(2);
+		stop();
+		expect(live.size).toBe(0);
+		for (const loss of KEY_PRESS_LOSSES) losePointerStream(loss);
+		expect(onLost).not.toHaveBeenCalled();
+	});
+});
+
+describe("useClassicyKeyPress", () => {
+	// A control whose keyboard press is watched from its keydown, and whose
+	// keyup reports a release only when `releaseKey` says the press has not
+	// already ended.
+	const KeyPressable = ({
+		onCancel,
+		onRelease,
+	}: {
+		onCancel: (key: string, lost: boolean) => void;
+		onRelease: (key: string) => void;
+	}) => {
+		const ref = useRef<HTMLButtonElement>(null);
+		const { watchKeyPress, releaseKey } = useClassicyKeyPress(ref);
+		return (
+			<>
+				<button
+					ref={ref}
+					type="button"
+					onKeyDown={(e) => {
+						if (!e.repeat)
+							watchKeyPress(e.key, (lost) => onCancel(e.key, lost));
+					}}
+					onKeyUp={(e) => {
+						if (releaseKey(e)) onRelease(e.key);
+					}}
+				>
+					Press
+				</button>
+				<button type="button">Other</button>
+			</>
+		);
+	};
+	const setup = () => {
+		const live = trackPointerStreamListeners();
+		const onCancel = vi.fn();
+		const onRelease = vi.fn();
+		const view = render(
+			<KeyPressable onCancel={onCancel} onRelease={onRelease} />,
+		);
+		const button = view.getByRole("button", { name: "Press" });
+		const other = view.getByRole("button", { name: "Other" });
+		button.focus();
+		return { ...view, live, onCancel, onRelease, button, other };
+	};
+
+	it("leaves a keyup that ends its press to the control, and stops watching", () => {
+		const { live, onCancel, onRelease, button } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		expect(live.size).toBe(2);
+		// Not prevented: the browser still activates the button.
+		expect(fireEvent.keyUp(button, { key: " " })).toBe(true);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(" ");
+		expect(live.size).toBe(0);
+		losePointerStream("blur");
+		expect(onCancel).not.toHaveBeenCalled();
+	});
+
+	it("leaves a keyup with no press behind it to the control", () => {
+		const { onRelease, button } = setup();
+		expect(fireEvent.keyUp(button, { key: "Enter" })).toBe(true);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith("Enter");
+	});
+
+	it.each(
+		KEY_PRESS_LOSSES,
+	)("ends a press lost on a %s once, and swallows its late keyup", (loss) => {
+		const { live, onCancel, onRelease, button } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		losePointerStream(loss);
+		expect(onCancel).toHaveBeenCalledExactlyOnceWith(" ", true);
+		expect(live.size).toBe(0);
+		losePointerStream(loss);
+		// Prevented, so the browser does not activate the button either.
+		expect(fireEvent.keyUp(button, { key: " " })).toBe(false);
+		expect(onRelease).not.toHaveBeenCalled();
+		expect(onCancel).toHaveBeenCalledOnce();
+		// Only that keyup: the next press is an ordinary one.
+		fireEvent.keyDown(button, { key: " " });
+		expect(fireEvent.keyUp(button, { key: " " })).toBe(true);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(" ");
+	});
+
+	it("treats the next press of a key as its own when the lost press's keyup never came back", () => {
+		const { onCancel, onRelease, button } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		losePointerStream("blur");
+		// The key was let go in another window; the next press is new.
+		fireEvent.keyDown(button, { key: " " });
+		expect(fireEvent.keyUp(button, { key: " " })).toBe(true);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(" ");
+		expect(onCancel).toHaveBeenCalledOnce();
+	});
+
+	it("keeps a press through a pointercancel", () => {
+		const { onCancel, onRelease, button } = setup();
+		fireEvent.keyDown(button, { key: "Enter" });
+		losePointerStream("pointercancel");
+		expect(onCancel).not.toHaveBeenCalled();
+		fireEvent.keyUp(button, { key: "Enter" });
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith("Enter");
+	});
+
+	it("cancels a press, not lost, when focus moves off the control", () => {
+		const { live, onCancel, onRelease, button, other } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		act(() => other.focus());
+		expect(onCancel).toHaveBeenCalledExactlyOnceWith(" ", false);
+		expect(live.size).toBe(0);
+		// Focus coming back before the key is let go does not revive it.
+		act(() => button.focus());
+		expect(fireEvent.keyUp(button, { key: " " })).toBe(false);
+		expect(onRelease).not.toHaveBeenCalled();
+		// Blurred outright, too.
+		fireEvent.keyDown(button, { key: "Enter" });
+		act(() => button.blur());
+		expect(onCancel).toHaveBeenLastCalledWith("Enter", false);
+		expect(onCancel).toHaveBeenCalledTimes(2);
+	});
+
+	it("counts the control's blur as lost when it stays the active element (the window lost focus)", () => {
+		const { onCancel, button } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		// A browser blurs the focused element, which stays document's active
+		// element, when the window loses focus; the window's blur follows.
+		act(() => {
+			button.dispatchEvent(new FocusEvent("blur"));
+		});
+		losePointerStream("blur");
+		expect(onCancel).toHaveBeenCalledExactlyOnceWith(" ", true);
+	});
+
+	it("ends every key held, each once", () => {
+		const { onCancel, onRelease, button } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		fireEvent.keyDown(button, { key: "Enter" });
+		fireEvent.keyUp(button, { key: "Enter" });
+		fireEvent.keyDown(button, { key: "Enter" });
+		losePointerStream("hidden");
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith("Enter");
+		expect(onCancel.mock.calls).toEqual([
+			[" ", true],
+			["Enter", true],
+		]);
+	});
+
+	it("stops watching when the control unmounts", () => {
+		const { live, onCancel, button, unmount } = setup();
+		fireEvent.keyDown(button, { key: " " });
+		unmount();
+		expect(live.size).toBe(0);
+		losePointerStream("blur");
+		expect(onCancel).not.toHaveBeenCalled();
 	});
 });

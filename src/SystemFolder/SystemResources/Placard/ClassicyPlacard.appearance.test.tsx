@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	KEY_PRESS_LOSSES,
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyPlacard } from "@/SystemFolder/SystemResources/Placard/ClassicyPlacard";
 
@@ -274,5 +275,75 @@ describe("ClassicyPlacard when a press is let go off the placard", () => {
 				detail: { input: "pointer", lost: false, canceled: false },
 			},
 		]);
+	});
+});
+
+describe("ClassicyPlacard when a keyboard press never gets its keyup", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	const cases = KEY_PRESS_LOSSES.flatMap((loss) =>
+		[" ", "Enter"].map((key) => [loss, key] as const),
+	);
+
+	it.each(
+		cases,
+	)("ends the press in one lost release on a %s, and ignores the late keyup (%j)", (loss, key) => {
+		const onClick = vi.fn();
+		const { container } = render(
+			<ClassicyPlacard onClick={onClick}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		el.focus();
+		fireEvent.keyDown(el, { key });
+		losePointerStream(loss);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "keyboard" } },
+			{
+				event: "release",
+				detail: { input: "keyboard", lost: true, canceled: true },
+			},
+		]);
+		expect(el).not.toHaveClass("pressed");
+		losePointerStream(loss);
+		// Prevented, so the browser does not click the placard for it.
+		expect(fireEvent.keyUp(el, { key })).toBe(false);
+		expect(emitted()).toHaveLength(2);
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("cancels a press, not lost, when focus moves off the placard", () => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		el.focus();
+		fireEvent.keyDown(el, { key: " " });
+		act(() => el.blur());
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "keyboard" } },
+			{
+				event: "release",
+				detail: { input: "keyboard", lost: false, canceled: true },
+			},
+		]);
+		el.focus();
+		expect(fireEvent.keyUp(el, { key: " " })).toBe(false);
+		expect(emitted()).toHaveLength(2);
+	});
+
+	it("watches window focus only while a keyboard press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { container, unmount } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		el.focus();
+		fireEvent.keyDown(el, { key: " " });
+		expect(live.size).toBe(2);
+		expect(fireEvent.keyUp(el, { key: " " })).toBe(true);
+		expect(live.size).toBe(0);
+		fireEvent.keyDown(el, { key: "Enter" });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });
