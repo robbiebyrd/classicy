@@ -1,7 +1,7 @@
 @use 'sass:list';
 
-// The Platinum menu frame, dividers and submenu triangle are in the Platinum
-// package (Appearance/Platinum/styles/components/_Menu.scss).
+// The Platinum menu frame, the dividers' colors and the submenu triangle are
+// in the Platinum package (Appearance/Platinum/styles/components/_Menu.scss).
 
 .classicyMenuWrapper {
   font-family: var(--ui-font), sans-serif;
@@ -93,6 +93,23 @@
   padding: var(--window-border-size);
   list-style: none;
   color: var(--color-black);
+}
+
+// A divider in any menu (HIGOS8 Figure 6-15) runs the menu's full inner
+// width: stretched across the column and pulled out over the menu's padding,
+// which would otherwise inset it from the frame's highlight and edge. Two
+// classes, over the separator's own width and margin (ClassicySeparator.scss).
+// Its colors are the package's.
+.classicyMenu,
+.classicySubMenu,
+.classicyContextMenu,
+.classicyContextSubMenu {
+  .classicySeparatorHorizontal {
+    align-self: stretch;
+    width: auto;
+    margin-left: calc(var(--window-border-size) * -1);
+    margin-right: calc(var(--window-border-size) * -1);
+  }
 }
 
 .classicyMenuItem {

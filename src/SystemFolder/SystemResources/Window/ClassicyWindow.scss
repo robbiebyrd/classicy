@@ -384,7 +384,7 @@
     padding-bottom: 0;
 
     // Shrink the close/zoom/collapse boxes to fit the shorter bar while
-    // keeping the Platinum bevel (from the Platinum package).
+    // keeping the package's bevel.
     .classicyWindowControlBox {
       width: calc(
         var(--window-utility-title-bar-height) - var(--window-border-size) -
@@ -395,8 +395,22 @@
           var(--window-border-size)
       );
 
-      // The close and collapse boxes' own utility size is in the Platinum
-      // package: it overrides the package's control-box size.
+      // The close and collapse boxes themselves, over the document boxes'
+      // size (ClassicyWindowTitleBar.scss); the collapse glyph layer moves up
+      // by the smaller offset.
+      & .classicyWindowCloseBox {
+        width: var(--window-utility-control-box-size);
+        height: var(--window-utility-control-box-size);
+      }
+
+      & .classicyWindowCollapseBox {
+        width: var(--window-utility-control-box-size);
+        height: var(--window-utility-control-box-size);
+
+        &:after {
+          top: calc(var(--window-padding-size) * -1 - var(--window-border-size));
+        }
+      }
     }
 
     .classicyWindowTitleText {

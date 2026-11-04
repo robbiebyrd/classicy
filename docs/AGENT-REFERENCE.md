@@ -2296,6 +2296,26 @@ adds the layer and the scope; Platinum's mixins are there to reuse:
 Compile it to a string (`?inline` in Vite) and pass it as `css`; Classicy
 never wraps it.
 
+**What the base sheets already carry.** Structure is in `classicy.base`, so a
+package draws only the look and never re-declares a component's geometry. In
+particular (Part B ruling R10, story 0088-sz9):
+
+- the window control boxes (`.classicyWindowCloseBox`, `…ZoomBox`,
+  `…CollapseBox`) are `--window-control-size` square
+  (`--window-utility-control-box-size` for a windoid's close and collapse
+  boxes), with two layers to paint in: `::before` fills the box, and
+  `::after`, in flow after it, is pulled back up over it from the box's
+  outer border edge. Platinum paints its dither on `::before` and its glyph
+  art on `::after`; set `background-*` on them, not their size;
+- a menu divider (`.classicySeparatorHorizontal` in any menu) stretches
+  across the menu and is pulled out over the menu's padding to its full
+  inner width; a package sets only its border colors.
+
+Platinum's `platinum-window-control-box`, `platinum-window-control-box-depressable`
+and `platinum-menu-divider` mixins therefore carry no sizes: included on an
+element of your own, they draw the look, and the element's size is yours to
+set.
+
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
@@ -2998,12 +3018,12 @@ Storybook shows the hook surface: every wired component's
 registers on mount and unregisters on unmount, so no other story (the
 Appearance Manager's Packages tab included) lists it. Platinum's CSS is off
 there, every decorated root is outlined, and every event is logged in the
-Actions panel. Under the probe the window control boxes, menu dividers and
-the depressable `::after` geometry collapse, because that structure still
-lives in Platinum's look mixins (Part B ruling R10; follow-up story
-0088-sz9), and package-owned art and glyphs (the stripes, glyphs and arrows,
-the tab outline, the placard ▾, the menu check) are absent by design: they
-are Platinum's look, not the component's (ruling E23).
+Actions panel. Under the probe the structure holds (the window control
+boxes keep their size and their `::before`/`::after` layers, the menu
+dividers their full width; story 0088-sz9), and package-owned art and glyphs
+(the stripes, glyphs and arrows, the tab outline, the placard ▾, the menu
+check) are absent by design: they are Platinum's look, not the component's
+(ruling E23).
 
 ### Layout declarations
 
@@ -3727,7 +3747,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--text-editor-auto-min-height` | `controlSize × 3` | 36 | ClassicyTextEditor.scss |
 | `--time-picker-period-min-width` | `uiSize × 4` | 56 | ClassicyTimePicker.scss |
 | `--window-title-cap-offset` | `paddingSize / 2` | 3 | ClassicyWindowTitleBar.scss |
-| `--window-utility-control-box-size` | `max(0, utilityTitleBarHeight - borderSize × 4)` | 6 | Platinum `_Window.scss` |
+| `--window-utility-control-box-size` | `max(0, utilityTitleBarHeight - borderSize × 4)` | 6 | ClassicyWindow.scss |
 | `--appearance-manager-swatch-label-gap` | `layout.itemGap / 2` | 2 | ClassicyAppearanceManager.Colors.scss |
 | `--drive-setup-list-min-height` | `controlSize × 8` | 96 | DriveSetupList.scss |
 | `--startup-screen-panel-gap` | `paddingSize × 3` | 18 | ClassicyStartupScreen.scss |

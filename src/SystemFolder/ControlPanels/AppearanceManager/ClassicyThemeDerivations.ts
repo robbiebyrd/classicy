@@ -710,7 +710,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--window-utility-control-box-size",
 		formula: "max(0, window.utilityTitleBarHeight - window.borderSize * 4)",
-		doc: "Side of a utility window's (windoid's) close and collapse boxes: its title bar less two borders above and two below (the Platinum package's _Window.scss). Never negative, as the width and height it replaced clamped a negative calc() to 0.",
+		doc: "Side of a utility window's (windoid's) close and collapse boxes: its title bar less two borders above and two below (ClassicyWindow.scss). Never negative, as the width and height it replaced clamped a negative calc() to 0.",
 		compute: (i) =>
 			Math.max(0, i.measurements.window.utilityTitleBarHeight - border(i) * 4),
 	},

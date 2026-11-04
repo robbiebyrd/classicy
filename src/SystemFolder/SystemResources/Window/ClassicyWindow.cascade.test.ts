@@ -135,7 +135,9 @@ describe("ClassicyWindow.scss cascade", () => {
 			);
 	});
 
-	it("platinum-window-control-box sizes are not !important", () => {
+	// The control-box size is structure, in the title bar's base rules (story
+	// 0088-sz9); Platinum's control-box mixin draws only the look.
+	it("the control-box size is base structure, not a !important package size", () => {
 		const mixin = sass.compileString(
 			'@use "mixins";\n.box { @include mixins.platinum-window-control-box; }',
 			{
@@ -145,7 +147,10 @@ describe("ClassicyWindow.scss cascade", () => {
 				],
 			},
 		).css;
-		expect(mixin).toContain("width: var(--window-control-size)");
+		expect(mixin).not.toMatch(/(^|\s)(width|height):/);
 		expect(mixin).not.toContain("!important");
+		expect(css).toContain(
+			".classicyWindow .classicyWindowTitleBar .classicyWindowCollapseBox {\n  width: var(--window-control-size);\n  height: var(--window-control-size);\n}",
+		);
 	});
 });

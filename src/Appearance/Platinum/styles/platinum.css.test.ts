@@ -436,8 +436,9 @@ describe("platinum.scss (compiled)", () => {
 			).props["background-size"],
 		).toBe("auto 99.8%");
 		// The control boxes' glyph images sit top left, over the mixin's
-		// centering, and the utility boxes keep their smaller size and glyph
-		// offset.
+		// centering. The boxes' sizes and glyph offsets, the windoid's smaller
+		// ones included, are structure in the base sheets (story 0088-sz9), so
+		// the package sizes no box.
 		const bar = `${P} .classicyWindow .classicyWindowTitleBar`;
 		const glyphs = rule(
 			group(
@@ -451,14 +452,16 @@ describe("platinum.scss (compiled)", () => {
 			expect(own.props["background-position"]).toBe("top left");
 			expect(own.at).toBeGreaterThan(glyphs.at);
 		}
-		const utilityBox = `${P} .classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox`;
-		// The windoid's box side is a derivation of its title-bar height (H 6.2b).
-		expect(rule(`${utilityBox} .classicyWindowCloseBox`).props.width).toBe(
-			"var(--window-utility-control-box-size)",
+		const boxRules = [
+			...flat.matchAll(/\n([^\n{}@][^\n{}]*) \{\n([^}]*)\}/g),
+		].filter(([, selectors]) =>
+			/classicyWindow(Close|Zoom|Collapse)Box/.test(selectors),
 		);
-		expect(
-			rule(`${utilityBox} .classicyWindowCollapseBox:after`).props.top,
-		).toBeDefined();
+		expect(boxRules.length).toBeGreaterThan(0);
+		for (const [, selectors, body] of boxRules)
+			expect(body, selectors).not.toMatch(
+				/(^|\n)(width|height|top|position|display|content):/,
+			);
 	});
 
 	// The inactive window's scroll-bar rules targeted the window root, which
@@ -1062,10 +1065,6 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-menu-divider compiles to its pinned output", () =>
 		expect(mixin("platinum-menu-divider")).toMatchInlineSnapshot(`
 			".x {
-			  align-self: stretch;
-			  width: auto;
-			  margin-left: calc(var(--window-border-size) * -1);
-			  margin-right: calc(var(--window-border-size) * -1);
 			  border-top-color: var(--color-system-05);
 			  border-bottom-color: var(--color-white);
 			}"
@@ -1149,20 +1148,14 @@ describe("the moved Platinum mixin files", () => {
 	it("platinum-window-control-box compiles to its pinned output", () =>
 		expect(mixin("platinum-window-control-box")).toMatchInlineSnapshot(`
 			".x {
-			  width: var(--window-control-size);
-			  height: var(--window-control-size);
 			  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
 			}
 			.x:before {
-			  display: block;
-			  width: 100%;
-			  height: 100%;
 			  background-image: var(--classicy-art-window-dither);
 			  background-repeat: no-repeat;
 			  background-size: cover;
 			  mix-blend-mode: luminosity;
 			  opacity: 0.25;
-			  content: " ";
 			}"
 		`));
 
@@ -1171,20 +1164,14 @@ describe("the moved Platinum mixin files", () => {
 			mixin("platinum-window-control-box-depressable"),
 		).toMatchInlineSnapshot(`
 			".x {
-			  width: var(--window-control-size);
-			  height: var(--window-control-size);
 			  background: linear-gradient(135deg, var(--color-system-05), var(--color-white) 80%);
 			}
 			.x:before {
-			  display: block;
-			  width: 100%;
-			  height: 100%;
 			  background-image: var(--classicy-art-window-dither);
 			  background-repeat: no-repeat;
 			  background-size: cover;
 			  mix-blend-mode: luminosity;
 			  opacity: 0.25;
-			  content: " ";
 			}
 			.x {
 			  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-03), inset calc((var(--window-border-size)) * -1) calc((var(--window-border-size)) * -1) 0 0 var(--color-system-05);
@@ -1195,15 +1182,9 @@ describe("the moved Platinum mixin files", () => {
 			  background: linear-gradient(135deg, var(--color-system-06), var(--color-system-05));
 			}
 			.x:after {
-			  position: relative;
-			  top: calc(var(--window-control-size) * -1 - var(--window-border-size));
-			  display: block;
-			  width: 100%;
-			  height: 100%;
 			  background-position: center center;
 			  background-repeat: no-repeat;
 			  background-size: contain;
-			  content: " ";
 			}"
 		`));
 
