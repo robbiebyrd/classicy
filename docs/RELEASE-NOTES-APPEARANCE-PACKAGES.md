@@ -775,8 +775,13 @@ Everything is exported from `classicy`. The links go to the full reference.
   BevelButton, Placard or RadioInput ends in exactly one: `canceled: false`
   over the control, `canceled: true` when let go elsewhere (dragged off, a
   held bevel menu let go over an item), and `lost: true, canceled: true`
-  when lost (Platinum plays no button-up click for a canceled one); other
-  releases say `lost: false, canceled: false`. `emit`'s type,
+  when lost (Platinum plays no button-up click for a canceled one). A
+  Return or Space press on Button or Placard does too: its keyup's release
+  is `lost: false, canceled: false`, but if the window loses focus or the
+  page is hidden first it ends `lost: true, canceled: true`, and if focus
+  leaves the control first, `lost: false, canceled: true`; its late keyup
+  then reports nothing and does not click the control. MenuItem releases
+  say `lost: false, canceled: false`. `emit`'s type,
   `ClassicyAppearanceEmit`, requires `lost` on a `dragEnd` or `release`
   detail, and `canceled` on a `release`. `ClassicySplitView`'s `onResizeCommit` and `ClassicySlider`'s
   `onCommitFunc` take the same `{ lost }` (`ClassicyGestureEnd`) as a
@@ -974,7 +979,10 @@ warnings about derived folder names.
   table column resizes, the Control Strip, sliders and icon drags end where
   they are, committed as a release there would be, and the ones that emit a
   `dragEnd` say `lost: true`, as do `onResizeCommit` and `onCommitFunc`, and a
-  lost press's `release`. For `ClassicySlider` that means `onCommitFunc` now
+  lost press's `release`, a held Return or Space key's included (its late
+  keyup no longer clicks the control). A press-and-hold bevel button let
+  go anywhere, or lost, before its hold delay no longer opens its menu
+  afterwards. For `ClassicySlider` that means `onCommitFunc` now
   fires once on a `pointercancel` (it used not to), the ghost is hidden on a
   document-level `pointercancel` too, and the input no longer carries its
   own `onPointerCancel` handler (the document listener ends the press).
