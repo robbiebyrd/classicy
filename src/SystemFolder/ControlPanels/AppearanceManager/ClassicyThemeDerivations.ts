@@ -707,6 +707,91 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 		doc: "How far the end box before each title-bar stripe band is pulled back into the title bar's padding (ClassicyWindowTitleBar.scss). Its own role, not --control-padding (H-R28b).",
 		compute: (i) => padding(i) / 2,
 	},
+	{
+		cssVar: "--window-utility-control-box-size",
+		formula: "max(0, window.utilityTitleBarHeight - window.borderSize * 4)",
+		doc: "Side of a utility window's (windoid's) close and collapse boxes: its title bar less two borders above and two below (the Platinum package's _Window.scss). Never negative, as the width and height it replaced clamped a negative calc() to 0.",
+		compute: (i) =>
+			Math.max(0, i.measurements.window.utilityTitleBarHeight - border(i) * 4),
+	},
+	{
+		cssVar: "--appearance-manager-swatch-label-gap",
+		formula: "layout.itemGap / 2",
+		doc: "Gap between a color swatch and the short label centered over it in the Appearance Manager's Colors tab (ClassicyAppearanceManager.Colors.scss). Not --layout-item-gap-half's row-padding role (H 6.2a acceptance).",
+		compute: (i) => i.measurements.layout.itemGap / 2,
+	},
+	{
+		cssVar: "--drive-setup-list-min-height",
+		formula: "window.controlSize * 8",
+		doc: "Minimum height of Drive Setup's volume list, so an empty list still shows a few rows (DriveSetupList.scss).",
+		compute: (i) => control(i) * 8,
+	},
+	{
+		cssVar: "--startup-screen-panel-gap",
+		formula: "window.paddingSize * 3",
+		doc: "Gap between the startup screen's logo box and its progress bar (ClassicyStartupScreen.scss).",
+		compute: (i) => padding(i) * 3,
+	},
+	{
+		cssVar: "--startup-screen-panel-padding-block",
+		formula: "window.paddingSize * 6",
+		doc: "Top and bottom padding of the startup screen's panel (ClassicyStartupScreen.scss).",
+		compute: (i) => padding(i) * 6,
+	},
+	{
+		cssVar: "--startup-screen-panel-padding-inline",
+		formula: "window.paddingSize * 8",
+		doc: "Left and right padding of the startup screen's panel (ClassicyStartupScreen.scss).",
+		compute: (i) => padding(i) * 8,
+	},
+	{
+		cssVar: "--startup-screen-extensions-inset",
+		formula: "window.paddingSize * 2",
+		doc: "How far the startup extension icon parade sits in from the screen's sides and bottom edge (ClassicyStartupScreen.scss).",
+		compute: (i) => padding(i) * 2,
+	},
+	{
+		cssVar: "--control-group-legend-overhang",
+		formula: "typography.uiSize * 0.75 * 1.4 / 2",
+		doc: "Half a group box legend's line box (caption size, line-height 1.4): the part of a title that overhangs above the frame. A labeled group reserves it above its border; a stack subtracts it so the HIG frame-to-frame distance holds (ClassicyControlGroup.scss).",
+		compute: (i) => (ui(i) * 0.75 * 1.4) / 2,
+	},
+	{
+		cssVar: "--keyboard-equivalent-display-inset",
+		formula: "layout.groupGap * 2",
+		doc: "Inline margin of the combination box in the keyboard-equivalent dialog, which centers it under the prompt (ClassicyKeyboardEquivalent.scss).",
+		compute: (i) => i.measurements.layout.groupGap * 2,
+	},
+	{
+		cssVar: "--slider-vertical-min-height",
+		formula: "window.controlSize * 8",
+		doc: "Minimum length of a vertical slider's track (ClassicySlider.scss).",
+		compute: (i) => control(i) * 8,
+	},
+	{
+		cssVar: "--slider-tick-length",
+		formula: "window.paddingSize * 0.75",
+		doc: "Length of a slider's tick mark; the tick rail is this plus the border the ticks hang from (ClassicySlider.scss).",
+		compute: (i) => padding(i) * 0.75,
+	},
+	{
+		cssVar: "--slider-tick-labels-height",
+		formula: "typography.uiSize * 1.2",
+		doc: "Height of a slider's tick-label row, one UI-font line (ClassicySlider.scss).",
+		compute: (i) => ui(i) * 1.2,
+	},
+	{
+		cssVar: "--table-sort-arrow-height",
+		formula: "typography.uiSize * 0.5",
+		doc: "Height of a table column header's sort arrow, half the UI font (ClassicyTable.scss).",
+		compute: (i) => ui(i) * 0.5,
+	},
+	{
+		cssVar: "--window-frame-body-padding",
+		formula: "window.paddingSize * 2",
+		doc: "Padding of a window frame's body around its content (ClassicyWindowFrame.scss).",
+		compute: (i) => padding(i) * 2,
+	},
 ];
 
 /**

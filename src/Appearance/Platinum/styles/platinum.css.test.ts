@@ -452,8 +452,9 @@ describe("platinum.scss (compiled)", () => {
 			expect(own.at).toBeGreaterThan(glyphs.at);
 		}
 		const utilityBox = `${P} .classicyWindowUtility .classicyWindowTitleBar .classicyWindowControlBox`;
-		expect(rule(`${utilityBox} .classicyWindowCloseBox`).props.width).toMatch(
-			/utility-title-bar-height/,
+		// The windoid's box side is a derivation of its title-bar height (H 6.2b).
+		expect(rule(`${utilityBox} .classicyWindowCloseBox`).props.width).toBe(
+			"var(--window-utility-control-box-size)",
 		);
 		expect(
 			rule(`${utilityBox} .classicyWindowCollapseBox:after`).props.top,

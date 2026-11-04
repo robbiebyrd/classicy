@@ -33,7 +33,7 @@
 }
 
 .classicyPopUpMenuSizeLarge {
-  font-size: calc(var(--ui-font-size) * 2);
+  font-size: var(--ui-font-size-xlarge);
 }
 
 // ----- The control (Mac-style pop-up button) -------------------------------

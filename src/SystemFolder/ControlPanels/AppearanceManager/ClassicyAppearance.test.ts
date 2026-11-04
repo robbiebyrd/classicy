@@ -39,8 +39,9 @@ import {
 // and --progress-bar-stripe-period, 20px, which replaced the 40px stripePeriod
 // knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a); H
 // 6.2a appended 62 derivations for the named multipliers (H-R25: none of
-// them a knob) and H-R28b --window-title-cap-offset (every other key and
-// value unchanged each time).
+// them a knob) and H-R28b --window-title-cap-offset, and H 6.2b appended 14
+// more for the multipliers in H 6.1's files (every other key and value
+// unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -363,9 +364,24 @@ describe("getThemeVars", () => {
 			"--time-picker-period-min-width": "56px",
 			// H-R28b: the title-bar cap offset, its own role.
 			"--window-title-cap-offset": "3px",
+			// H 6.2b: the multipliers in H 6.1's files.
+			"--window-utility-control-box-size": "6px",
+			"--appearance-manager-swatch-label-gap": "2px",
+			"--drive-setup-list-min-height": "96px",
+			"--startup-screen-panel-gap": "18px",
+			"--startup-screen-panel-padding-block": "36px",
+			"--startup-screen-panel-padding-inline": "48px",
+			"--startup-screen-extensions-inset": "12px",
+			"--control-group-legend-overhang": "7.35px",
+			"--keyboard-equivalent-display-inset": "32px",
+			"--slider-vertical-min-height": "96px",
+			"--slider-tick-length": "4.5px",
+			"--slider-tick-labels-height": "16.8px",
+			"--table-sort-arrow-height": "7px",
+			"--window-frame-body-padding": "12px",
 		};
 		for (const [k, v] of Object.entries(expected)) expect(vars[k], k).toBe(v);
-		expect(Object.keys(expected)).toHaveLength(105);
+		expect(Object.keys(expected)).toHaveLength(119);
 	});
 
 	it("derives from the inputs, not constants", () => {

@@ -3000,6 +3000,20 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--text-editor-auto-min-height` | `controlSize × 3` | 36 | ClassicyTextEditor.scss |
 | `--time-picker-period-min-width` | `uiSize × 4` | 56 | ClassicyTimePicker.scss |
 | `--window-title-cap-offset` | `paddingSize / 2` | 3 | ClassicyWindowTitleBar.scss |
+| `--window-utility-control-box-size` | `max(0, utilityTitleBarHeight - borderSize × 4)` | 6 | Platinum `_Window.scss` |
+| `--appearance-manager-swatch-label-gap` | `layout.itemGap / 2` | 2 | ClassicyAppearanceManager.Colors.scss |
+| `--drive-setup-list-min-height` | `controlSize × 8` | 96 | DriveSetupList.scss |
+| `--startup-screen-panel-gap` | `paddingSize × 3` | 18 | ClassicyStartupScreen.scss |
+| `--startup-screen-panel-padding-block` | `paddingSize × 6` | 36 | ClassicyStartupScreen.scss |
+| `--startup-screen-panel-padding-inline` | `paddingSize × 8` | 48 | ClassicyStartupScreen.scss |
+| `--startup-screen-extensions-inset` | `paddingSize × 2` | 12 | ClassicyStartupScreen.scss |
+| `--control-group-legend-overhang` | `uiSize × 0.75 × 1.4 / 2` | 7.35 | ClassicyControlGroup.scss |
+| `--keyboard-equivalent-display-inset` | `layout.groupGap × 2` | 32 | ClassicyKeyboardEquivalent.scss |
+| `--slider-vertical-min-height` | `controlSize × 8` | 96 | ClassicySlider.scss |
+| `--slider-tick-length` | `paddingSize × 0.75` | 4.5 | ClassicySlider.scss |
+| `--slider-tick-labels-height` | `uiSize × 1.2` | 16.8 | ClassicySlider.scss |
+| `--table-sort-arrow-height` | `uiSize × 0.5` | 7 | ClassicyTable.scss |
+| `--window-frame-body-padding` | `paddingSize × 2` | 12 | ClassicyWindowFrame.scss |
 
 The table's types and one helper are public:
 
@@ -3013,9 +3027,9 @@ The table's types and one helper are public:
   rounded or unrounded as above. `getThemeVars` spreads it last.
 
 Equal formulas are separate names on purpose: each name is one role (H-R6),
-and a package may want two roles apart. These 18 groups share a formula
+and a package may want two roles apart. These 21 groups share a formula
 (`c` = `controlSize`, `p` = `paddingSize`, `b` = `borderSize`, `u` =
-`uiSize`):
+`uiSize`, `g` = `layout.itemGap`):
 
 | Formula | Names |
 |---|---|
@@ -3027,16 +3041,19 @@ and a package may want two roles apart. These 18 groups share a formula
 | `c × 3` | `--tab-height-large`, `--button-toolbar-square-button-width`, `--tab-scroll-button-min-width`, `--text-editor-auto-min-height` |
 | `c × 4` | `--button-square-width`, `--tab-min-width` |
 | `c × 5` | `--window-modal-title-reserve`, `--quick-time-volume-bar-length` |
+| `c × 8` | `--drive-setup-list-min-height`, `--slider-vertical-min-height` |
 | `c / 3` | `--radio-mark-width`, `--tab-scroll-arrow-size` |
 | `c / 4` (or `c × 0.25`) | `--radio-mixed-mark-height`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top` |
 | `c × 0.75` | `--quick-time-progress-track-height`, `--tab-small-icon-size` |
 | `p × 0.5` (or `p / 2`) | `--control-padding`, `--window-title-cap-offset` |
-| `p × 0.75` | `--quick-time-volume-track-inset`, `--tab-large-padding-top` |
-| `p × 2` | `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-small-padding-inline` |
+| `p × 0.75` | `--quick-time-volume-track-inset`, `--tab-large-padding-top`, `--slider-tick-length` |
+| `p × 2` | `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-small-padding-inline`, `--startup-screen-extensions-inset`, `--window-frame-body-padding` |
+| `p × 3` | `--tab-padding-inline`, `--startup-screen-panel-gap` |
 | `p × 4` | `--menu-sub-menu-offset-block`, `--tab-large-padding-inline` |
 | `b × 2` | `--control-corner-radius`, `--window-shadow-offset` |
 | `b × 4` | `--quick-time-undocked-video-inset`, `--text-editor-height-inset` |
 | `u × 0.85` | `--balloon-help-font-size`, `--quick-time-time-font-size` |
+| `g / 2` | `--layout-item-gap-half`, `--appearance-manager-swatch-label-gap` |
 
 The earlier derived variables, outside this table, have equal pairs of their
 own: `--control-frame-width` and `--control-bevel-sm` (`b × 2`, the
@@ -3060,6 +3077,16 @@ Two pairs were checked against H-R6 and kept apart (H-R28d):
   (`c × 2`, small). No existing name has the medium step's formula, so there
   is nothing to merge; only the toolbar has a medium square size (push and
   bevel buttons have none), so the name stays toolbar-scoped.
+- `--appearance-manager-swatch-label-gap` and `--layout-item-gap-half`
+  (`g / 2`): H-R19's role is a compact list row's vertical padding; the
+  Colors tab's is the gap between a swatch and the label centered over it
+  (H 6.2a acceptance).
+
+H 6.2b's other equal formulas are separate roles in separate components:
+the Drive Setup list's minimum height and a vertical slider's minimum length
+(`c × 8`); the startup panel's gap and a tab's inline padding (`p × 3`); the
+startup extension parade's inset and the window frame body's padding among
+the `p × 2` names; and a slider's tick length among the `p × 0.75` names.
 
 The contract's `--menu-item-height` is not emitted, because no stylesheet
 reads a menu row height.
@@ -3071,7 +3098,7 @@ sets itself could never take effect. Those variables are reserved
 
 - the palette, font and desktop variables (`CLASSICY_THEME_NON_MEASUREMENT_VARS`, 44 names);
 - the derived metrics above (`CLASSICY_THEME_DERIVED_VARS`, 15 names);
-- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 105 names);
+- the named derivations (`CLASSICY_THEME_DERIVATIONS`, 119 names);
 - every `--classicy-*` name. That prefix is Classicy's own: the desktop root
   sets `--classicy-layout-*` after the theme's variables, and
   `--classicy-art-*` and `--classicy-cursor-*` are read with fallbacks a
@@ -3100,14 +3127,16 @@ variable itself:
 
 | Input variable | Derived variables to override |
 |---|---|
-| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large`, `--assistant-header-gap`, `--assistant-accessory-icon-medium`, `--assistant-accessory-icon-large`, `--button-toolbar-square-button-width`, `--disclosure-triangle-offset`, `--picker-swatch-size`, `--quick-time-controls-end-reserve`, `--quick-time-volume-bar-length`, `--quick-time-volume-bar-offset`, `--quick-time-thumb-rise`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top`, `--quick-time-progress-track-height`, `--radio-offset-top`, `--tab-scroll-button-min-width`, `--tab-small-row-indent`, `--tab-small-icon-size`, `--text-editor-auto-min-height` |
-| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top`, `--window-title-cap-offset`, `--menu-sub-menu-offset-block`, `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-padding-inline`, `--tab-small-padding-inline`, `--tab-large-padding-inline` (and the four window contents chrome heights and `--window-max-height-reserve`) |
-| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius`, `--quick-time-undocked-video-inset`, `--text-editor-height-inset` (and `--window-zoom-margin`, `--window-resize-inset`) |
+| `--window-control-size` | `--window-collapsed-height`, `--window-utility-collapsed-height`, `--window-title-stripe-height`, `--menu-bar-height`, `--menu-min-width`, `--menu-item-icon-size`, `--menu-item-icon-gap`, `--popup-height`, `--popup-mini-size`, `--popup-arrow-width`, `--control-glyph-size`, `--control-square-size`, `--button-square-width`, `--tab-height`, `--tab-min-width`, `--tab-min-width-large`, `--slider-thumb-width`, `--slider-thumb-height`, `--control-row-height`, `--progress-height`, `--window-max-height-reserve`, `--window-contents-chrome-height`, `--window-contents-header-chrome-height`, `--window-modal-contents-chrome-height`, `--window-utility-contents-chrome-height`, `--window-placard-end-reserve`, `--window-modal-title-reserve`, `--window-menu-bar-height`, `--control-label-spacing`, `--radio-mark-width`, `--radio-mixed-mark-top`, `--radio-mixed-mark-height`, `--radio-mixed-mark-border`, `--quick-time-control-icon-size`, `--tab-scroll-arrow-size`, `--tab-scroll-arrow-size-large`, `--tab-min-width-medium`, `--tab-height-large`, `--assistant-header-gap`, `--assistant-accessory-icon-medium`, `--assistant-accessory-icon-large`, `--button-toolbar-square-button-width`, `--disclosure-triangle-offset`, `--picker-swatch-size`, `--quick-time-controls-end-reserve`, `--quick-time-volume-bar-length`, `--quick-time-volume-bar-offset`, `--quick-time-thumb-rise`, `--quick-time-thumb-shift-inline`, `--quick-time-volume-track-top`, `--quick-time-progress-track-top`, `--quick-time-progress-track-height`, `--radio-offset-top`, `--tab-scroll-button-min-width`, `--tab-small-row-indent`, `--tab-small-icon-size`, `--text-editor-auto-min-height`, `--drive-setup-list-min-height`, `--slider-vertical-min-height` |
+| `--window-padding-size` | `--control-padding`, `--control-padding-tight`, `--control-padding-narrow`, `--control-padding-loose`, `--control-padding-wide`, `--window-frame-inset`, `--window-frame-inset-whole`, `--window-zoom-margin`, `--window-resize-inset`, `--layout-focus-gap`, `--quick-time-volume-track-inset`, `--menu-item-padding-inline`, `--tab-large-padding-top`, `--window-title-cap-offset`, `--menu-sub-menu-offset-block`, `--menu-sub-menu-offset-inline`, `--picker-layout-gap`, `--tab-gap`, `--tab-padding-inline`, `--tab-small-padding-inline`, `--tab-large-padding-inline`, `--startup-screen-panel-gap`, `--startup-screen-panel-padding-block`, `--startup-screen-panel-padding-inline`, `--startup-screen-extensions-inset`, `--slider-tick-length`, `--window-frame-body-padding` (and the four window contents chrome heights and `--window-max-height-reserve`) |
+| `--window-border-size` | `--control-frame-width`, `--control-bevel-sm`, `--control-bevel-md`, `--control-bevel-lg`, `--button-default-ring`, `--edit-field-height`, `--help-button-height`, `--focus-ring-width`, `--focus-ring-inset`, `--control-corner-radius`, `--window-shadow-offset`, `--slider-thumb-corner-radius`, `--quick-time-undocked-video-inset`, `--text-editor-height-inset` (and `--window-zoom-margin`, `--window-resize-inset`, `--window-utility-control-box-size`) |
 | `--window-scrollbar-size` | `--window-scrollbar-arrow-size` |
+| `--window-utility-title-bar-height` | `--window-utility-control-box-size` |
 | `--control-height` | `--button-height`, `--edit-field-height`, `--help-button-width`, `--help-button-height` |
-| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size`, `--ui-font-size-xlarge`, `--checkbox-x-mark-font-size`, `--checkbox-x-mark-line-height`, `--balloon-help-font-size`, `--quick-time-time-font-size`, `--finder-about-font-size`, `--finder-about-title-font-size`, `--finder-about-heading-font-size`, `--finder-about-copyright-font-size`, `--time-picker-period-min-width` |
+| `--ui-font-size` | `--ui-font-size-small`, `--ui-font-size-caption`, `--ui-font-size-compact`, `--ui-font-size-mini`, `--ui-font-size-large`, `--window-header-font-size`, `--ui-font-size-xlarge`, `--checkbox-x-mark-font-size`, `--checkbox-x-mark-line-height`, `--balloon-help-font-size`, `--quick-time-time-font-size`, `--finder-about-font-size`, `--finder-about-title-font-size`, `--finder-about-heading-font-size`, `--finder-about-copyright-font-size`, `--time-picker-period-min-width`, `--control-group-legend-overhang`, `--slider-tick-labels-height`, `--table-sort-arrow-height` |
 | `--desktop-icon-size` / `--desktop-icon-font-size` | `--desktop-icon-padding`, `--desktop-icon-cell`, `--file-browser-list-icon-spacing` / `--desktop-icon-label-pad`, `--desktop-icon-label-gap` |
-| `--layout-item-gap` | `--layout-item-gap-half` |
+| `--layout-item-gap` | `--layout-item-gap-half`, `--appearance-manager-swatch-label-gap` |
+| `--layout-group-gap` | `--keyboard-equivalent-display-inset` |
 | `--progress-bar-stripe-width` | `--progress-bar-stripe-period` |
 
 JS geometry reads the variables the window inherits from its desktop root
@@ -3232,7 +3261,9 @@ file's total: a new site fails `pnpm lint` (and the vitest gate) with
 group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
---list-multipliers` prints every site. Kept on purpose:
+--list-multipliers` prints every site. Every other multiplier is named, so
+the list ends at these 36 sites over 7 files, the sites kept on purpose
+(Part G) and the H-R7 and H-R21 geometry:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
   `--desktop-icon-size` per icon, and the root's `--desktop-icon-cell` would
@@ -3252,15 +3283,16 @@ every group needs its reason; `node bin/check-pixel-literals.ts
   centered on its edge (H-R21).
 - `ClassicySlider.scss`, the four `#{$thumb-w} / 2` and `#{$thumb-h} / 2`:
   the tick rail, tick labels and ghost thumb are inset by half the thumb's
-  own size, so a value lands under the thumb's center (H-R21).
+  own size, so a value lands under the thumb's center (H-R21); and
+  `($track-h - $thumb-h) / 2`, the thumb's margin-top, which centers the
+  thumb on the track's center line (H-R21).
 
-Until H 6.2b, the gate also holds 24 sites in the H 6.1 files, which 6.2b
-names on top of 6.1's pixel-literal purge: `_Window.scss` (4),
-`ClassicyAppearanceManager.Colors.scss` (1), `DriveSetupList.scss` (1),
-`ClassicyStartupScreen.scss` (5), `ClassicyControlGroup.scss` (1),
-`ClassicyKeyboardEquivalent.scss` (2), `ClassicyPopUpMenu.scss` (1),
-`ClassicySlider.scss` (7), `ClassicyTable.scss` (1) and
-`ClassicyWindowFrame.scss` (1).
+H 6.2b named the 24 sites in the H 6.1 files: 14 new derivations (in the
+table above, from `--window-utility-control-box-size` on); the PopUpMenu's
+Large size reads `--ui-font-size-xlarge`, the role 6.2a named; and the
+keyboard-equivalent box's line height, the field less its border above and
+below, is the difference `var(--edit-field-height) - var(--window-border-size)
+- var(--window-border-size)`.
 
 **Multipliers of editable metrics stay derivations (H-R25).** A multiplier
 of a metric a user can edit (the Metrics tab's 20 targets, the Fonts tab's UI
@@ -3271,7 +3303,11 @@ part. A knob may replace only a multiple of a value no user edits (a package
 constant, a knob family). `ClassicyThemeDerivations.metricScaling.test.ts`
 edits each metric through its action (`ClassicyDesktopChangeMetric`,
 `ClassicyDesktopChangeFontSize`, `ClassicyDesktopChangeAppearanceOption`) and
-checks that every variable H 6.2 named follows it, as its `calc()` did.
+checks that every variable H 6.2 named follows it, as its `calc()` did. It
+also sweeps every whole-pixel value of each metric a name reads (the Metrics
+tab's 0 or 1 to 512; 1 to 512 for the font and icon sizes) and checks the
+emitted value against the `calc()` it replaced; H 6.2b's names must lose
+nothing to the three-decimal rounding.
 
 There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 

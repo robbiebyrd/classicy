@@ -171,7 +171,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
   direction: rtl; // min at the bottom, max at the top
   width: $thumb-h;
   height: 100%;
-  min-height: calc(var(--window-control-size) * 8);
+  min-height: var(--slider-vertical-min-height);
   flex: 0 0 auto;
 }
 
@@ -189,7 +189,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
   // inverted so 0% sits at the bottom (matching direction: rtl).
   .classicySliderTicks {
     padding: calc(#{$thumb-h} / 2) 0;
-    width: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+    width: calc(var(--slider-tick-length) + var(--window-border-size));
     height: auto;
   }
 
@@ -197,7 +197,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
     top: auto;
     left: var(--window-border-size);
     bottom: var(--classicy-tick-left);
-    width: calc(var(--window-padding-size) * 0.75);
+    width: var(--slider-tick-length);
     height: var(--window-border-size);
     transform: translateY(50%);
   }
@@ -231,7 +231,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
 // point.
 .classicySliderTicks {
   padding: 0 calc(#{$thumb-w} / 2);
-  height: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+  height: calc(var(--slider-tick-length) + var(--window-border-size));
 }
 
 .classicySliderTicksTrack {
@@ -244,7 +244,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
   left: var(--classicy-tick-left);
   top: var(--window-border-size);
   width: var(--window-border-size);
-  height: calc(var(--window-padding-size) * 0.75);
+  height: var(--slider-tick-length);
   background: var(--color-black);
   transform: translateX(-50%);
 }
@@ -259,7 +259,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
 .classicySliderTickLabels {
   position: relative;
   padding: 0 calc(#{$thumb-w} / 2);
-  height: calc(var(--ui-font-size) * 1.2);
+  height: var(--slider-tick-labels-height);
 }
 
 .classicySliderTickLabel {

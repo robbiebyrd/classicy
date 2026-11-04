@@ -3,7 +3,7 @@
 // Half the legend's line box: the part of a title that overhangs above the
 // frame. A labeled group reserves it above its border; a stack subtracts it
 // so the HIG frame-to-frame distance holds.
-$legend-overhang: calc(var(--ui-font-size) * 0.75 * 1.4 / 2);
+$legend-overhang: var(--control-group-legend-overhang);
 
 .classicyControlGroupFieldset {
   position: relative;

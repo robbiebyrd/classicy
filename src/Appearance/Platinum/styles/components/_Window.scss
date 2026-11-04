@@ -79,21 +79,13 @@
     .classicyWindowTitleBar {
       .classicyWindowControlBox {
         & .classicyWindowCloseBox {
-          width: calc(
-            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-          );
-          height: calc(
-            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-          );
+          width: var(--window-utility-control-box-size);
+          height: var(--window-utility-control-box-size);
         }
 
         & .classicyWindowCollapseBox {
-          width: calc(
-            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-          );
-          height: calc(
-            var(--window-utility-title-bar-height) - var(--window-border-size) * 4
-          );
+          width: var(--window-utility-control-box-size);
+          height: var(--window-utility-control-box-size);
 
           &:after {
             top: calc(var(--window-padding-size) * -1 - var(--window-border-size));

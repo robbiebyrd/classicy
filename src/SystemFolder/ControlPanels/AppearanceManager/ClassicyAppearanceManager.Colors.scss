@@ -32,6 +32,6 @@
   // Center each short label over its swatch.
   .classicyColorPickerSwatchWrapper {
     align-items: center;
-    gap: calc(var(--layout-item-gap) / 2);
+    gap: var(--appearance-manager-swatch-label-gap);
   }
 }
