@@ -23,7 +23,10 @@ import {
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
-import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import {
+	classicyFileDragAppearanceCallbacks,
+	useClassicyFileDragEndOnUnmount,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
 
 interface ClassicyIconProps {
@@ -177,6 +180,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	);
 	// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 	const dragEmittedRef = useRef(false);
+	// A file drag in progress ends (cancelled) before the icon unmounts.
+	const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
 	const id = `${appId}.shortcut`;
 
@@ -225,7 +230,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
-			startClassicyFileDrag({
+			const abandon = startClassicyFileDrag({
 				start: { clientX: e.clientX, clientY: e.clientY },
 				parts: [
 					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
@@ -246,6 +251,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					setFocus(true);
 				},
 			});
+			endFileDragOnUnmount(abandon);
 			return;
 		}
 		if (positionLocked) return;

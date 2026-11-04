@@ -2,6 +2,7 @@ import { produce } from "immer";
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
+import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -178,7 +179,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 					}),
 				);
 			});
-			const { container } = render(
+			const view = render(
 				<ClassicyDesktopIcon
 					appId={ITEM}
 					appName="Plan.txt"
@@ -187,29 +188,19 @@ describe("ClassicyDesktopIcon appearance", () => {
 					filePath={PLAN}
 				/>,
 			);
-			return root(container);
+			return Object.assign(root(view.container), { unmount: view.unmount });
 		};
 		const desktop = () => {
 			const el = document.createElement("div");
 			el.setAttribute("data-classicy-drop-desktop", "");
 			return el;
 		};
-		// jsdom has no elementsFromPoint: the hit-test sees `hits`.
-		const withHits = (hits: Element[], run: () => void) => {
-			const original = document.elementsFromPoint;
-			document.elementsFromPoint = () => hits;
-			try {
-				run();
-			} finally {
-				document.elementsFromPoint = original;
-			}
-		};
 		const drags = () =>
 			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd");
 
 		it("emits one dragStart at the threshold and one dragEnd on a drop", () => {
 			const el = renderFileIcon();
-			withHits([desktop()], () => {
+			withElementsFromPoint([desktop()], () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
 				fireEvent.mouseMove(document, { clientX: 13, clientY: 10 });
 				expect(drags()).toEqual([]);
@@ -230,7 +221,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 
 		it("emits one dragEnd, not dropped, on a release over nothing", () => {
 			const el = renderFileIcon();
-			withHits([], () => {
+			withElementsFromPoint([], () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
 				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
 				fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
@@ -246,7 +237,7 @@ describe("ClassicyDesktopIcon appearance", () => {
 
 		it("emits one dragEnd, cancelled, on Escape", () => {
 			const el = renderFileIcon();
-			withHits([desktop()], () => {
+			withElementsFromPoint([desktop()], () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
 				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
 				fireEvent.keyDown(document, { key: "Escape" });
@@ -261,9 +252,34 @@ describe("ClassicyDesktopIcon appearance", () => {
 			]);
 		});
 
+		it("ends the drag, cancelled, before unmount when the icon unmounts mid-drag", () => {
+			const el = renderFileIcon();
+			const before = useAppManager.getState().System.Manager.Desktop.icons;
+			withElementsFromPoint([desktop()], () => {
+				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
+				fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+				el.unmount();
+				expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+				fireEvent.mouseMove(document, { clientX: 50, clientY: 40 });
+				fireEvent.mouseUp(document, { clientX: 50, clientY: 40 });
+			});
+			// The unmounted icon's drop never ran: nothing moved.
+			expect(useAppManager.getState().System.Manager.Desktop.icons).toBe(
+				before,
+			);
+			expect(emitted().filter((e) => e.event !== "select")).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, cancelled: true },
+				},
+				{ event: "unmount", detail: undefined },
+			]);
+		});
+
 		it("emits no drag for a click", () => {
 			const el = renderFileIcon();
-			withHits([desktop()], () => {
+			withElementsFromPoint([desktop()], () => {
 				fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
 				fireEvent.mouseMove(document, { clientX: 12, clientY: 11 });
 				fireEvent.mouseUp(document, { clientX: 12, clientY: 11 });

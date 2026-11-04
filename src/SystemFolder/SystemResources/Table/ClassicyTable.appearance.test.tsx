@@ -138,8 +138,8 @@ describe("ClassicyTable appearance", () => {
 					render: (row, cell) => (
 						<button
 							type="button"
-							onMouseDown={() => cell.emitDrag("dragStart", { row: row.id })}
-							onMouseUp={() => cell.emitDrag("dragEnd", { row: row.id })}
+							onMouseDown={() => cell.emitDrag?.("dragStart", { row: row.id })}
+							onMouseUp={() => cell.emitDrag?.("dragEnd", { row: row.id })}
 						>
 							{row.name}
 						</button>

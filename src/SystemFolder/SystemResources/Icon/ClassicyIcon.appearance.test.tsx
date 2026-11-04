@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
@@ -113,7 +114,7 @@ describe("ClassicyIcon appearance", () => {
 
 	describe("file drags (onFileDrag)", () => {
 		const renderFileIcon = (onFileDrag = vi.fn(() => true)) => {
-			const { container } = render(
+			const { container, unmount } = render(
 				<ClassicyIcon
 					appId="Test.app"
 					name="Read Me"
@@ -122,17 +123,7 @@ describe("ClassicyIcon appearance", () => {
 					onFileDrag={onFileDrag}
 				/>,
 			);
-			return { el: root(container), onFileDrag };
-		};
-		// jsdom has no elementsFromPoint: the hit-test sees `hits`.
-		const withHits = (hits: Element[], run: () => void) => {
-			const original = document.elementsFromPoint;
-			document.elementsFromPoint = () => hits;
-			try {
-				run();
-			} finally {
-				document.elementsFromPoint = original;
-			}
+			return { el: root(container), onFileDrag, unmount };
 		};
 		const press = (el: Element) =>
 			fireEvent.mouseDown(el, { button: 0, clientX: 10, clientY: 10 });
@@ -145,7 +136,7 @@ describe("ClassicyIcon appearance", () => {
 			const folder = document.createElement("div");
 			folder.setAttribute("data-classicy-drop-folder", "Macintosh HD:Archive");
 			const { el, onFileDrag } = renderFileIcon();
-			withHits([folder], () => {
+			withElementsFromPoint([folder], () => {
 				press(el);
 				moveTo(12, 10);
 				expect(emitted().filter((e) => e.event === "dragStart")).toEqual([]);
@@ -168,7 +159,7 @@ describe("ClassicyIcon appearance", () => {
 
 		it("emits one dragEnd, not dropped, on a release over nothing", () => {
 			const { el } = renderFileIcon();
-			withHits([], () => {
+			withElementsFromPoint([], () => {
 				press(el);
 				moveTo(40, 30);
 				releaseAt(40, 30);
@@ -184,7 +175,7 @@ describe("ClassicyIcon appearance", () => {
 
 		it("emits one dragEnd, cancelled, on Escape", () => {
 			const { el, onFileDrag } = renderFileIcon();
-			withHits([], () => {
+			withElementsFromPoint([], () => {
 				press(el);
 				moveTo(40, 30);
 				fireEvent.keyDown(document, { key: "Escape" });
@@ -200,9 +191,31 @@ describe("ClassicyIcon appearance", () => {
 			]);
 		});
 
+		it("ends the drag, cancelled, before unmount when the icon unmounts mid-drag", () => {
+			const { el, onFileDrag, unmount } = renderFileIcon();
+			withElementsFromPoint([], () => {
+				press(el);
+				moveTo(40, 30);
+				unmount();
+				expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+				moveTo(50, 40);
+				releaseAt(50, 40);
+			});
+			expect(onFileDrag).not.toHaveBeenCalled();
+			expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+			expect(emitted()).toEqual([
+				{ event: "dragStart", detail: { kind: "file" } },
+				{
+					event: "dragEnd",
+					detail: { kind: "file", dropped: false, cancelled: true },
+				},
+				{ event: "unmount", detail: undefined },
+			]);
+		});
+
 		it("emits no drag for a press that never crosses the threshold", () => {
 			const { el } = renderFileIcon();
-			withHits([], () => {
+			withElementsFromPoint([], () => {
 				press(el);
 				moveTo(12, 11);
 				releaseAt(12, 11);

@@ -28,7 +28,10 @@ import {
 	CLASSICY_FILE_PATH_ATTRIBUTE,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
-import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import {
+	classicyFileDragAppearanceCallbacks,
+	useClassicyFileDragEndOnUnmount,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
 	ClassicyFileSystemEntryFileType,
@@ -134,6 +137,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				[onSelectionChange],
 			);
 
+			// A row drag in progress ends (cancelled) before the list unmounts.
+			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 			const startRowDrag = useCallback(
 				(
 					e: MouseEvent<HTMLDivElement>,
@@ -156,7 +161,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							),
 						)
 						.filter((el): el is Element => el !== undefined);
-					startClassicyFileDrag({
+					const abandon = startClassicyFileDrag({
 						start: { clientX: e.clientX, clientY: e.clientY },
 						parts: cells.map((cell) => ({
 							image: cell.querySelector("img"),
@@ -165,7 +170,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							),
 						})),
 						source: e.currentTarget,
-						...classicyFileDragAppearanceCallbacks(emitDrag),
+						...(emitDrag && classicyFileDragAppearanceCallbacks(emitDrag)),
 						onDrop: (target, _point, outlineTopLeft) => {
 							if (!target) return;
 							if (
@@ -177,8 +182,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 							onMoveItems(paths, target.destination, outlineTopLeft);
 						},
 					});
+					endFileDragOnUnmount(abandon);
 				},
-				[onMoveItems, path],
+				[onMoveItems, path, endFileDragOnUnmount],
 			);
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.

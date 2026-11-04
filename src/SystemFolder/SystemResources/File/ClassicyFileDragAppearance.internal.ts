@@ -1,3 +1,4 @@
+import { useCallback, useLayoutEffect, useRef } from "react";
 import type { ClassicyAppearanceEvent } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyFileDragOptions } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 
@@ -34,4 +35,30 @@ export function classicyFileDragAppearanceCallbacks(
 		onEnd: ({ dropped, cancelled }) =>
 			emit("dragEnd", { kind: "file", dropped, cancelled }),
 	};
+}
+
+/**
+ * Ends a source's file drag when the source unmounts. Pass it the function
+ * `startClassicyFileDrag` returns; on unmount it is called, so a drag in
+ * progress ends as cancelled: the outline is removed, nothing is dropped
+ * (the unmounted source's `onDrop` never runs), and `onEnd` reports
+ * `{ dropped: false, cancelled: true }`. It runs in a layout-effect cleanup,
+ * ahead of `useClassicyAppearance`'s passive `unmount` emit, so a package
+ * sees `dragStart, dragEnd, unmount`. Calling it after the drag already
+ * ended is a no-op.
+ */
+export function useClassicyFileDragEndOnUnmount(): (
+	abandon: () => void,
+) => void {
+	const abandonRef = useRef<(() => void) | null>(null);
+	useLayoutEffect(
+		() => () => {
+			abandonRef.current?.();
+			abandonRef.current = null;
+		},
+		[],
+	);
+	return useCallback((abandon: () => void) => {
+		abandonRef.current = abandon;
+	}, []);
 }

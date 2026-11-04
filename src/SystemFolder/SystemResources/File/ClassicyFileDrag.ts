@@ -22,6 +22,7 @@ import {
 	type ClassicyFileDragOutlinePart,
 	drawClassicyDragOutline,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** The attribute a file item (an icon, a list row's name) carries its path in. */
 export const CLASSICY_FILE_PATH_ATTRIBUTE = "data-classicy-file-path";
@@ -131,7 +132,9 @@ export type ClassicyFileDragOptions = {
 	/**
 	 * The drag that `onStart` reported is over: called exactly once per
 	 * `onStart`, and never without one, after the outline is removed and before
-	 * `onDrop`. See `ClassicyFileDragEnd` for how it ended.
+	 * `onDrop`. See `ClassicyFileDragEnd` for how it ended. If it throws, the
+	 * error is logged (`classicyLog`, subsystem "ClassicyFileDrag") and the
+	 * drop still happens.
 	 */
 	onEnd?: (end: ClassicyFileDragEnd) => void;
 	/** Injectable for tests. */
@@ -140,7 +143,8 @@ export type ClassicyFileDragOptions = {
 
 /**
  * Track a press as a possible drag. Returns a function that abandons it (a
- * drag in progress then ends as cancelled). The outline is only created once
+ * drag in progress then ends as cancelled, and nothing is dropped): a source
+ * component calls it when it unmounts, so the drag never outlives it. The outline is only created once
  * the pointer has travelled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
  * stays a click; Escape cancels a drag in progress without dropping.
  */
@@ -189,6 +193,16 @@ export function startClassicyFileDrag(
 		document.body.classList.remove(DRAGGING_BODY_CLASS);
 	};
 
+	// A caller's onEnd that throws must not lose the drop that follows it
+	// (package hooks are isolated the same way, inside `emit`).
+	const reportEnd = (end: ClassicyFileDragEnd) => {
+		try {
+			options.onEnd?.(end);
+		} catch (error) {
+			classicyLog("error", "ClassicyFileDrag", "onEnd threw; ignored.", error);
+		}
+	};
+
 	const targetAt = (x: number, y: number) =>
 		findClassicyFileDropTarget(x, y, { exclude: source, elementsFromPoint });
 
@@ -218,7 +232,7 @@ export function startClassicyFileDrag(
 		}
 		// Hit-tested once the outline and highlight are gone.
 		const target = targetAt(e.clientX, e.clientY);
-		options.onEnd?.({ dropped: target !== null, cancelled: false });
+		reportEnd({ dropped: target !== null, cancelled: false });
 		options.onDrop(
 			target,
 			[e.clientX, e.clientY],
@@ -232,7 +246,7 @@ export function startClassicyFileDrag(
 	const cancel = () => {
 		const dragged = ghost !== null;
 		cleanup();
-		if (dragged) options.onEnd?.({ dropped: false, cancelled: true });
+		if (dragged) reportEnd({ dropped: false, cancelled: true });
 	};
 
 	function onKey(e: KeyboardEvent) {

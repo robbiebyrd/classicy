@@ -23,7 +23,10 @@ import {
 	type ClassicyFileDropDestination,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
-import { classicyFileDragAppearanceCallbacks } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import {
+	classicyFileDragAppearanceCallbacks,
+	useClassicyFileDragEndOnUnmount,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -257,6 +260,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const selectReportedRef = useRef(false);
 			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
 			const dragEmittedRef = useRef(false);
+			// A file drag in progress ends (cancelled) before the icon unmounts.
+			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
 			// Stock copy, the app's description and the title are resolved here,
 			// not stored on the icon record, so revised text ships with the
@@ -488,7 +493,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: [];
 				});
 				const start: [number, number] = [e.clientX, e.clientY];
-				startClassicyFileDrag({
+				const abandon = startClassicyFileDrag({
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
@@ -522,6 +527,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						onMoveFilePaths?.(paths, target.destination);
 					},
 				});
+				endFileDragOnUnmount(abandon);
 			};
 
 			const isAlias = isAliasKind(kind);

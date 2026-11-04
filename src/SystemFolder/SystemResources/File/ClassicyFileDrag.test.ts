@@ -7,6 +7,10 @@ import {
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import { traceClassicyDragOutline } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import {
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** Render a mask as rows of "#"/"." for readable assertions. */
 const draw = (mask: Uint8Array, width: number) =>
@@ -211,8 +215,18 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		document.body.innerHTML = `<div id="browser" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"></div>`;
 		const browser = document.getElementById("browser") as Element;
 		const calls: string[] = [];
-		const onStart = vi.fn(() => calls.push("start"));
-		const onEnd = vi.fn(() => calls.push("end"));
+		// Whether the outline was on screen while each callback ran.
+		const ghostAt: Record<string, boolean> = {};
+		const ghostUp = () =>
+			document.querySelector(".classicyFileDragGhost") !== null;
+		const onStart = vi.fn(() => {
+			ghostAt.start = ghostUp();
+			calls.push("start");
+		});
+		const onEnd = vi.fn(() => {
+			ghostAt.end = ghostUp();
+			calls.push("end");
+		});
 		const onDrop = vi.fn(() => calls.push("drop"));
 		const onClick = vi.fn();
 		const abandon = startClassicyFileDrag({
@@ -224,7 +238,7 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 			onEnd,
 			elementsFromPoint: () => (overTarget ? [browser] : []),
 		});
-		return { onStart, onEnd, onDrop, onClick, abandon, calls };
+		return { onStart, onEnd, onDrop, onClick, abandon, calls, ghostAt };
 	};
 
 	it("reports nothing for a press that never crosses the threshold", () => {
@@ -251,9 +265,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 	});
 
 	it("ends once on a drop, before the drop is handed over", () => {
-		const { onStart, onEnd, onDrop, calls } = setup();
+		const { onStart, onEnd, onDrop, calls, ghostAt } = setup();
 		fire("mousemove", 40, 30);
 		fire("mouseup", 40, 30);
+		// The outline is up while onStart runs and gone while onEnd runs.
+		expect(ghostAt).toEqual({ start: true, end: false });
 		// A stray second release ends nothing.
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
@@ -277,10 +293,11 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 	});
 
 	it("ends once, cancelled, on Escape, and the release after it ends nothing", () => {
-		const { onStart, onEnd, onDrop } = setup();
+		const { onStart, onEnd, onDrop, ghostAt } = setup();
 		fire("mousemove", 40, 30);
 		pressEscape();
 		pressEscape();
+		expect(ghostAt).toEqual({ start: true, end: false });
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
 		expect(onEnd).toHaveBeenCalledOnce();
@@ -298,9 +315,10 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 	});
 
 	it("ends once, cancelled, when a started drag is abandoned", () => {
-		const { onStart, onEnd, onDrop, abandon } = setup();
+		const { onStart, onEnd, onDrop, abandon, ghostAt } = setup();
 		fire("mousemove", 40, 30);
 		abandon();
+		expect(ghostAt).toEqual({ start: true, end: false });
 		abandon();
 		fire("mouseup", 40, 30);
 		expect(onStart).toHaveBeenCalledOnce();
@@ -318,5 +336,37 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 		expect(onStart).not.toHaveBeenCalled();
 		expect(onEnd).not.toHaveBeenCalled();
 		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("still drops when the caller's onEnd throws, and logs the error", () => {
+		document.body.innerHTML = `<div id="browser" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"></div>`;
+		const browser = document.getElementById("browser") as Element;
+		const errors: unknown[] = [];
+		registerClassicyLogSink({
+			id: "file-drag-test",
+			onError: (entry) => errors.push([entry.subsystem, entry.message]),
+		});
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+		try {
+			const onDrop = vi.fn();
+			startClassicyFileDrag({
+				start: { clientX: 10, clientY: 10 },
+				parts: [],
+				onDrop,
+				onEnd: () => {
+					throw new Error("boom");
+				},
+				elementsFromPoint: () => [browser],
+			});
+			fire("mousemove", 40, 30);
+			fire("mouseup", 40, 30);
+			expect(onDrop).toHaveBeenCalledOnce();
+			expect(errors).toEqual([["ClassicyFileDrag", "onEnd threw; ignored."]]);
+		} finally {
+			unregisterClassicyLogSink("file-drag-test");
+			consoleError.mockRestore();
+		}
 	});
 });

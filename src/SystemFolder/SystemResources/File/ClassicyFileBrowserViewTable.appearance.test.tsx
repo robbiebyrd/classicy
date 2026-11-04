@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
+import { withElementsFromPoint } from "@/__tests__/withElementsFromPoint";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -17,13 +18,15 @@ afterEach(() => {
 	probe.uninstall();
 });
 
-/** The drag events Table emitted. */
-const drags = () =>
+/** The drag events Table emitted (and its unmount, with `andUnmount`). */
+const drags = (andUnmount = false) =>
 	probe.events
 		.filter(
 			(e) =>
 				e.component === "Table" &&
-				(e.event === "dragStart" || e.event === "dragEnd"),
+				(e.event === "dragStart" ||
+					e.event === "dragEnd" ||
+					(andUnmount && e.event === "unmount")),
 		)
 		.map(({ event, detail }) => ({ event, detail }));
 
@@ -40,7 +43,7 @@ const renderList = () => {
 		},
 	});
 	const onMoveItems = vi.fn();
-	const { container } = render(
+	const { container, unmount } = render(
 		<ClassicyFileBrowserViewTable
 			fs={fs}
 			path="Documents"
@@ -51,18 +54,7 @@ const renderList = () => {
 	const row = container.querySelector(
 		'[data-classicy-file-path="Documents:Plan.txt"]',
 	) as HTMLElement;
-	return { row, onMoveItems };
-};
-
-// jsdom has no elementsFromPoint: the hit-test sees `hits`.
-const withHits = (hits: Element[], run: () => void) => {
-	const original = document.elementsFromPoint;
-	document.elementsFromPoint = () => hits;
-	try {
-		run();
-	} finally {
-		document.elementsFromPoint = original;
-	}
+	return { row, onMoveItems, unmount };
 };
 
 const folder = () => {
@@ -75,7 +67,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 	it("emits one dragStart at the threshold and one dragEnd on a drop", () => {
 		const { row, onMoveItems } = renderList();
 		expect(row).not.toBeNull();
-		withHits([folder()], () => {
+		withElementsFromPoint([folder()], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
 			fireEvent.mouseMove(document, { clientX: 12, clientY: 12 });
 			expect(drags()).toEqual([]);
@@ -96,7 +88,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 
 	it("emits one dragEnd, not dropped, on a release over nothing", () => {
 		const { row } = renderList();
-		withHits([], () => {
+		withElementsFromPoint([], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
 			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
 			fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
@@ -112,7 +104,7 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 
 	it("emits one dragEnd, cancelled, on Escape", () => {
 		const { row, onMoveItems } = renderList();
-		withHits([folder()], () => {
+		withElementsFromPoint([folder()], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
 			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
 			fireEvent.keyDown(document, { key: "Escape" });
@@ -130,10 +122,43 @@ describe("ClassicyFileBrowserViewTable appearance drags", () => {
 
 	it("emits no drag for a click", () => {
 		const { row } = renderList();
-		withHits([folder()], () => {
+		withElementsFromPoint([folder()], () => {
 			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
 			fireEvent.mouseUp(document, { clientX: 11, clientY: 10 });
 		});
 		expect(drags()).toEqual([]);
+	});
+
+	it("emits no drag for a right-press, however far it travels", () => {
+		const { row, onMoveItems } = renderList();
+		withElementsFromPoint([folder()], () => {
+			fireEvent.mouseDown(row, { button: 2, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+			fireEvent.mouseUp(document, { clientX: 40, clientY: 30 });
+		});
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(drags()).toEqual([]);
+	});
+
+	it("ends the drag, cancelled, before unmount when the list unmounts mid-drag", () => {
+		const { row, onMoveItems, unmount } = renderList();
+		withElementsFromPoint([folder()], () => {
+			fireEvent.mouseDown(row, { button: 0, clientX: 10, clientY: 10 });
+			fireEvent.mouseMove(document, { clientX: 40, clientY: 30 });
+			unmount();
+			expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+			fireEvent.mouseMove(document, { clientX: 50, clientY: 40 });
+			fireEvent.mouseUp(document, { clientX: 50, clientY: 40 });
+		});
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(drags(true)).toEqual([
+			{ event: "dragStart", detail: { kind: "file" } },
+			{
+				event: "dragEnd",
+				detail: { kind: "file", dropped: false, cancelled: true },
+			},
+			{ event: "unmount", detail: undefined },
+		]);
 	});
 });
