@@ -98,9 +98,11 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   }
 }
 
+// The readout's size is its labelSize class's (classicyControlLabelSize*,
+// sizeClassMap in ClassicySlider.tsx), as the label's is; a font-size here
+// would tie with those classes and win or lose by stylesheet order.
 .classicySliderValue {
   font-family: var(--ui-font);
-  font-size: var(--ui-font-size-small);
   text-align: center;
 }
 

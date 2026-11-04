@@ -403,13 +403,6 @@ describe("cross-file overrides do not depend on import order", () => {
 			".classicyWindow:has(> .classicyWindowMenuBar) .classicyWindowContents",
 		)]:
 			"latent, follow-up story: header plus window menu bar contents height (see above)",
-		// The slider's value label also carries its labelSize class
-		// (sizeClassMap in ClassicySlider.tsx; font-size); ClassicySlider.scss
-		// comes later, so the value is always the small size.
-		[tieKey(".classicyControlLabelSizeMedium", ".classicySliderValue")]:
-			"latent, follow-up story: the slider value label's size (see above)",
-		[tieKey(".classicyControlLabelSizeLarge", ".classicySliderValue")]:
-			"latent, follow-up story: the slider value label's size (see above)",
 	};
 
 	// Which classes can sit on one element, read from the components' JSX

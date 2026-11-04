@@ -928,6 +928,9 @@ warnings about derived folder names.
   values like 500 or -1 used to go through.
 - **A pop-up slider dragged away and back to its starting value** now
   reports the return (`onChange` fires).
+- **A slider's value readout follows `labelSize`**, as its label does. It was
+  always drawn at the small size, so with the default (`"medium"`) it grows
+  from `--ui-font-size-small` to `--ui-font-size`.
 - **Screen saver and reduced motion.** Turning reduced motion off resumes only
   the animations it paused. Where `:has()` is unsupported, a fallback rule
   still hides the pointer over the saver.
