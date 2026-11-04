@@ -41,7 +41,15 @@
 		"preview:dist": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
 		"prepare": "husky",
 		"storybook": "pnpm --filter classicy-storybook dev",
-		"build:storybook": "pnpm --filter classicy-storybook build"
+		"build:storybook": "pnpm --filter classicy-storybook build",
+		"parity": "node bin/parity/parity.ts",
+		"parity:stories": "node bin/parity/parity.ts stories",
+		"parity:shoot": "node bin/parity/parity.ts shoot",
+		"parity:app": "node bin/parity/parity.ts app",
+		"parity:probe": "node bin/parity/parity.ts probe",
+		"parity:dump": "node bin/parity/parity.ts dump",
+		"parity:forced": "node bin/parity/parity.ts forced",
+		"parity:compare": "node bin/parity/parity.ts compare"
 	},
 	"lint-staged": {
 		"**/*.{js,jsx,ts,tsx,json,css,scss}": "biome check --write --no-errors-on-unmatched"
@@ -141,6 +149,7 @@
 		"lint-staged": "^17.0.7",
 		"nodemon": "^3.1.14",
 		"pdfjs-dist": "^6.1.200",
+		"playwright": "1.57.0",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
 		"react-player": "^3.4.0",

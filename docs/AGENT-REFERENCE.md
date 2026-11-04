@@ -3848,3 +3848,49 @@ untrusted disposition strings.
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
 13. **Never build an action type, path or lookup from a display name.** The `ClassicyApp` `name` prop is the internal name: action types (`ClassicyApp${name}OpenFile`/`CloseFile`), records and analytics use it, and an Appearance Package may show another (§8, "App display overrides"). UI text that names an app reads `useClassicyAppIdentity(id, { name, icon })` (`resolveClassicyAppIdentity` outside React); nothing display-derived is written to the store, localStorage or the file-system journal.
+
+---
+
+## 15. Visual Parity Checks (repository tooling)
+
+For work on Classicy itself (a refactor, an Appearance Package) rather than a
+consumer app: `bin/parity/` shoots every Storybook story and four example-app
+screens, then compares a before set with an after set pixel for pixel. These
+tools live in the repository only, not in the npm package. Full guide:
+[`bin/parity/README.md`](../bin/parity/README.md).
+
+**Servers on chosen ports** (record the PIDs and stop them by PID):
+
+```bash
+(cd storybook && exec pnpm exec storybook dev -p 6091 --no-open) &   # stories
+(cd example && exec node node_modules/vite/bin/vite.js --port 5391 --strictPort --host 127.0.0.1) &   # app shots
+```
+
+**Baseline, after set, compare** (data under the gitignored `.playwright-mcp/parity/`):
+
+```bash
+pnpm parity:shoot --port 6091 --out .playwright-mcp/parity/x/before   # on the base commit
+pnpm parity:app   --port 5391 --out .playwright-mcp/parity/x/before
+# ... make the change ...
+pnpm parity:shoot --port 6091 --out .playwright-mcp/parity/x/after
+pnpm parity:app   --port 5391 --out .playwright-mcp/parity/x/after
+pnpm parity:compare .playwright-mcp/parity/x/before .playwright-mcp/parity/x/after \
+  --summary .playwright-mcp/parity/x/ae.txt
+```
+
+`--filter <regex>` limits any command to matching story ids. `pnpm parity:dump`
+and `pnpm parity:forced` take computed-style and forced-state dumps, compared
+with `--kind computed` or `--kind forced`.
+
+- **AE 0** (ImageMagick `compare -metric AE`, no fuzz) means the two PNGs are
+  pixel-identical; any other number is the count of differing pixels, and
+  `compare` prints each such shot by name and exits 1. A size change is an
+  error, never AE 0.
+- **Chromium flags** `--disable-gpu --disable-lcd-text --disable-partial-raster`
+  are always set: without them about 7% of fresh contexts render rows 1 px
+  differently at half-pixel offsets (GPU compositing, subpixel text and tiled
+  raster depend on timing). Shots also pin the clock, use a fresh context per
+  story, pause animations, and repeat until two frames are identical.
+- **Requirements:** Playwright 1.57.0 is a pinned root devDependency (its
+  Chromium build must match between a baseline and its after set); ImageMagick
+  must be on `PATH`, and the compare stops with an install hint when it is not.
