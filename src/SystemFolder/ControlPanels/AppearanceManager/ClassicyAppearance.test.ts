@@ -40,8 +40,9 @@ import {
 // knob, H-R27b) at the end, and dropped crashScreen.artWidth (H-R27a); H
 // 6.2a appended 62 derivations for the named multipliers (H-R25: none of
 // them a knob) and H-R28b --window-title-cap-offset, and H 6.2b appended 14
-// more for the multipliers in H 6.1's files (every other key and value
-// unchanged each time).
+// more for the multipliers in H 6.1's files; H-R29b added
+// dialog.alertLabelOffset and dialog.fileInputHiddenSize, 1px each, in the
+// knob region (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -57,8 +58,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // H-R22; H 6.1 added progressBar.stripeWidth and stripMenu.overlap, made
 // progressBar.stripePeriod a derivation and dropped the unreachable
 // crashScreen.artWidth, H-R27; H 6.2a's component knobs became derivations
-// under H-R25).
-const PLATINUM_KNOB_COUNT = 93;
+// under H-R25; the final review's H-R29b gave the alert label nudge and the
+// file input's hidden size dialog knobs of their own, off the border metric).
+const PLATINUM_KNOB_COUNT = 95;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

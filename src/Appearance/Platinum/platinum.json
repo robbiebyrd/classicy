@@ -171,11 +171,13 @@
 			"dialog": {
 				"alertMinWidth": 280,
 				"alertMaxWidth": 460,
+				"alertLabelOffset": 1,
 				"inputMinWidth": 300,
 				"inputMaxWidth": 460,
 				"keyboardEquivalentMinWidth": 300,
 				"keyboardEquivalentMaxWidth": 420,
-				"fileDialogMinHeight": 220
+				"fileDialogMinHeight": 220,
+				"fileInputHiddenSize": 1
 			},
 			"controlPanel": {
 				"listMaxHeight": 180,
