@@ -59,7 +59,10 @@ describe("ClassicyRadioInput appearance", () => {
 		fireEvent.mouseUp(b);
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { itemId: "b" } },
-			{ event: "release", detail: { itemId: "b", lost: false } },
+			{
+				event: "release",
+				detail: { itemId: "b", lost: false, canceled: false },
+			},
 		]);
 		fireEvent.click(b);
 		// press/release come from the mouse only, so they carry no input.
@@ -92,7 +95,10 @@ describe("ClassicyRadioInput appearance", () => {
 		fireEvent.mouseUp(label);
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { itemId: "b" } },
-			{ event: "release", detail: { itemId: "b", lost: false } },
+			{
+				event: "release",
+				detail: { itemId: "b", lost: false, canceled: false },
+			},
 		]);
 	});
 
@@ -125,7 +131,7 @@ describe("ClassicyRadioInput when a press loses its pointer stream", () => {
 			{ event: "press", detail: { itemId: "b" } },
 			{
 				event: "release",
-				detail: { itemId: "b", input: "pointer", lost: true },
+				detail: { itemId: "b", input: "pointer", lost: true, canceled: true },
 			},
 		]);
 		// A second loss, or the release that finally comes elsewhere, ends
@@ -146,7 +152,11 @@ describe("ClassicyRadioInput when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(document.body);
 		losePointerStream("pointercancel");
-		expect(emitted().filter((e) => e.event === "release")).toHaveLength(1);
+		const releases = emitted().filter((e) => e.event === "release");
+		expect(releases.map((e) => e.detail)).toEqual([
+			{ itemId: "b", lost: false, canceled: false },
+			{ itemId: "b", input: "pointer", lost: false, canceled: true },
+		]);
 	});
 
 	it("watches the pointer stream only while a press lasts", () => {
@@ -185,8 +195,105 @@ describe("ClassicyRadioInput when a press loses its pointer stream", () => {
 			{ event: "press", detail: { itemId: "b" } },
 			{
 				event: "release",
-				detail: { itemId: "b", input: "pointer", lost: true },
+				detail: { itemId: "b", input: "pointer", lost: true, canceled: true },
 			},
+		]);
+	});
+});
+
+describe("ClassicyRadioInput when a press is let go off its item", () => {
+	const releases = () =>
+		emitted()
+			.filter((e) => e.event === "release")
+			.map((e) => e.detail);
+
+	it("ends the press in one canceled release, from the input or the label", () => {
+		const { container } = render(
+			<ClassicyRadioInput name="r" inputs={INPUTS} />,
+		);
+		fireEvent.mouseDown(container.querySelector("#b") as HTMLElement);
+		fireEvent.mouseUp(document.body);
+		fireEvent.mouseDown(
+			container.querySelector('label[for="b"]') as HTMLElement,
+		);
+		fireEvent.mouseUp(document.body);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { itemId: "b" } },
+			{
+				event: "release",
+				detail: { itemId: "b", input: "pointer", lost: false, canceled: true },
+			},
+			{ event: "press", detail: { itemId: "b" } },
+			{
+				event: "release",
+				detail: { itemId: "b", input: "pointer", lost: false, canceled: true },
+			},
+		]);
+		losePointerStream("blur");
+		expect(emitted()).toHaveLength(4);
+	});
+
+	it("counts the item's input and label as over it, in either order", () => {
+		const { container } = render(
+			<ClassicyRadioInput name="r" inputs={INPUTS} />,
+		);
+		const input = container.querySelector("#b") as HTMLElement;
+		const label = container.querySelector('label[for="b"]') as HTMLElement;
+		fireEvent.mouseDown(input);
+		fireEvent.mouseUp(label);
+		fireEvent.mouseDown(label);
+		fireEvent.mouseUp(input);
+		expect(emitted().map((e) => e.event)).toEqual([
+			"press",
+			"release",
+			"press",
+			"release",
+		]);
+		expect(releases()).toEqual([
+			{ itemId: "b", lost: false, canceled: false },
+			{ itemId: "b", lost: false, canceled: false },
+		]);
+	});
+
+	it("cancels a press let go over another item, which reports its own release", () => {
+		const { container } = render(
+			<ClassicyRadioInput name="r" inputs={INPUTS} />,
+		);
+		fireEvent.mouseDown(container.querySelector("#a") as HTMLElement);
+		fireEvent.mouseUp(container.querySelector('label[for="b"]') as HTMLElement);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { itemId: "a" } },
+			{
+				event: "release",
+				detail: { itemId: "a", input: "pointer", lost: false, canceled: true },
+			},
+			{
+				event: "release",
+				detail: { itemId: "b", lost: false, canceled: false },
+			},
+		]);
+	});
+
+	it("sends exactly one release per press, even when the label stops the mouseup", () => {
+		const { container } = render(
+			<ClassicyRadioInput name="r" inputs={INPUTS} />,
+		);
+		const input = container.querySelector("#b") as HTMLElement;
+		const label = container.querySelector('label[for="b"]') as HTMLElement;
+		label.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(input);
+		fireEvent.mouseUp(label);
+		fireEvent.mouseDown(input);
+		fireEvent.mouseUp(input);
+		expect(emitted().map((e) => e.event)).toEqual([
+			"press",
+			"release",
+			"press",
+			"release",
+		]);
+		expect(releases()).toEqual([
+			{ itemId: "b", lost: false, canceled: false },
+			{ itemId: "b", lost: false, canceled: false },
 		]);
 	});
 });

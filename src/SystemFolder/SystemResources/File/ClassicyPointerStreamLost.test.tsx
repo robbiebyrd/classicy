@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	losePointerStream,
@@ -109,27 +110,56 @@ describe("useClassicyPointerStreamLost", () => {
 });
 
 describe("useClassicyPointerPress", () => {
-	// A control whose press is watched from its mousedown.
-	const Pressable = ({ onLost }: { onLost: () => void }) => {
-		const watchPress = useClassicyPointerPress();
+	// A control whose press is watched from its mousedown. Its own mouseup
+	// reports a release only when the press did not already report it there
+	// (`releasedOver`): a release with no press of its own behind it.
+	const Pressable = ({
+		onLost,
+		onRelease,
+		onStray = () => {},
+	}: {
+		onLost: () => void;
+		onRelease: (canceled: boolean) => void;
+		onStray?: () => void;
+	}) => {
+		const { watchPress, releasedOver } = useClassicyPointerPress();
+		const ref = useRef<HTMLButtonElement>(null);
 		return (
-			<button type="button" onMouseDown={() => watchPress(onLost)}>
-				Press
+			<button
+				ref={ref}
+				type="button"
+				onMouseDown={() =>
+					watchPress({
+						isOver: (target) =>
+							target instanceof Node && !!ref.current?.contains(target),
+						onRelease,
+						onLost,
+					})
+				}
+				onMouseUp={(e) => {
+					if (!releasedOver(e.nativeEvent)) onStray();
+				}}
+			>
+				Press <span>inside</span>
 			</button>
 		);
 	};
 	const setup = () => {
 		const live = trackPointerStreamListeners();
 		const onLost = vi.fn();
-		const view = render(<Pressable onLost={onLost} />);
+		const onRelease = vi.fn();
+		const onStray = vi.fn();
+		const view = render(
+			<Pressable onLost={onLost} onRelease={onRelease} onStray={onStray} />,
+		);
 		const button = view.getByRole("button");
-		return { ...view, live, onLost, button };
+		return { ...view, live, onLost, onRelease, onStray, button };
 	};
 
 	it.each(
 		POINTER_STREAM_LOSSES,
 	)("reports a press lost on a %s once, then stops watching", (loss) => {
-		const { live, onLost, button } = setup();
+		const { live, onLost, onRelease, button } = setup();
 		expect(live.size).toBe(0);
 		fireEvent.mouseDown(button);
 		expect(live.size).toBe(3);
@@ -139,19 +169,63 @@ describe("useClassicyPointerPress", () => {
 		// A second loss, or the release that finally comes, reports nothing.
 		losePointerStream(loss);
 		fireEvent.mouseUp(document.body);
+		fireEvent.mouseUp(button);
 		expect(onLost).toHaveBeenCalledOnce();
+		expect(onRelease).not.toHaveBeenCalled();
 	});
 
-	it("ends a press quietly on a release anywhere, even one a target stops", () => {
-		const { live, onLost, button } = setup();
+	it("reports a release over the control once, not canceled, and its own mouseup hears it was reported", () => {
+		const { live, onLost, onRelease, onStray, button, getByText } = setup();
 		fireEvent.mouseDown(button);
 		fireEvent.mouseUp(button);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(false);
+		expect(onStray).not.toHaveBeenCalled();
 		expect(live.size).toBe(0);
+		// Over a child of the control counts as over it.
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(getByText("inside"));
+		expect(onRelease).toHaveBeenNthCalledWith(2, false);
+		expect(onRelease).toHaveBeenCalledTimes(2);
+		expect(onStray).not.toHaveBeenCalled();
+		losePointerStream("blur");
+		expect(onLost).not.toHaveBeenCalled();
+	});
+
+	it("reports a release elsewhere once, canceled", () => {
+		const { live, onLost, onRelease, onStray, button } = setup();
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(document.body);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(true);
+		expect(live.size).toBe(0);
+		// The mouseup that follows on the control is a release of its own.
+		fireEvent.mouseUp(button);
+		expect(onStray).toHaveBeenCalledOnce();
+		expect(onRelease).toHaveBeenCalledOnce();
+		losePointerStream("blur");
+		expect(onLost).not.toHaveBeenCalled();
+	});
+
+	it("leaves a mouseup with no press behind it to the control", () => {
+		const { onRelease, onStray, button } = setup();
+		fireEvent.mouseUp(button);
+		expect(onStray).toHaveBeenCalledOnce();
+		expect(onRelease).not.toHaveBeenCalled();
+	});
+
+	it("hears a release a target stops, over the control or elsewhere", () => {
+		const { live, onLost, onRelease, onStray, button, getByText } = setup();
+		const inside = getByText("inside");
+		inside.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(inside);
+		expect(onRelease).toHaveBeenCalledExactlyOnceWith(false);
+		expect(onStray).not.toHaveBeenCalled();
 		document.body.insertAdjacentHTML("beforeend", `<div id="stopper"></div>`);
 		const stopper = document.getElementById("stopper") as HTMLElement;
 		stopper.addEventListener("mouseup", (e) => e.stopPropagation());
 		fireEvent.mouseDown(button);
 		fireEvent.mouseUp(stopper);
+		expect(onRelease).toHaveBeenNthCalledWith(2, true);
 		expect(live.size).toBe(0);
 		losePointerStream("blur");
 		expect(onLost).not.toHaveBeenCalled();
@@ -159,7 +233,7 @@ describe("useClassicyPointerPress", () => {
 	});
 
 	it("watches one press at a time, and stops when the control unmounts", () => {
-		const { live, onLost, button, unmount } = setup();
+		const { live, onLost, onRelease, button, unmount } = setup();
 		fireEvent.mouseDown(button);
 		fireEvent.mouseDown(button);
 		expect(live.size).toBe(3);
@@ -169,6 +243,8 @@ describe("useClassicyPointerPress", () => {
 		unmount();
 		expect(live.size).toBe(0);
 		losePointerStream("blur");
+		fireEvent.mouseUp(document.body);
 		expect(onLost).toHaveBeenCalledOnce();
+		expect(onRelease).not.toHaveBeenCalled();
 	});
 });

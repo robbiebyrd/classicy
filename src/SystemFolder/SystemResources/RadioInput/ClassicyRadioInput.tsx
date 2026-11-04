@@ -9,6 +9,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	type MouseEvent,
 	useEffect,
 	useRef,
 	useState,
@@ -124,15 +125,45 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// The group carries no state class of its own: `checked` and `disabled`
 	// live on each item's wrapper.
 	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
-	// A press on an item (its button or its label) ends in a `release` over
-	// it, or, when its pointer stream is lost (the window blurs, a
-	// pointercancel, the page is hidden), in one that says so.
-	const watchPress = useClassicyPointerPress();
-	const pressItem = (itemId: string) => {
+	// A press on an item (its button or its label) ends in exactly one
+	// `release`: over the item (its button or its label), let go elsewhere
+	// (`canceled`, another item included), or, when its pointer stream is
+	// lost (the window blurs, a pointercancel, the page is hidden), lost.
+	const { watchPress, releasedOver } = useClassicyPointerPress();
+	const pressItem = (itemId: string, pressed: HTMLElement) => {
 		appearance.emit("press", { itemId });
-		watchPress(() =>
-			appearance.emit("release", { itemId, input: "pointer", lost: true }),
-		);
+		// The item's radio button and every label for it; a label's control is
+		// its radio button.
+		const input =
+			pressed instanceof HTMLLabelElement ? pressed.control : pressed;
+		const parts: Element[] =
+			input instanceof HTMLInputElement
+				? [input, ...(input.labels ?? [])]
+				: [pressed];
+		watchPress({
+			isOver: (target) =>
+				target instanceof Node && parts.some((part) => part.contains(target)),
+			onRelease: (canceled) =>
+				appearance.emit(
+					"release",
+					canceled
+						? { itemId, input: "pointer", lost: false, canceled }
+						: { itemId, lost: false, canceled },
+				),
+			onLost: () =>
+				appearance.emit("release", {
+					itemId,
+					input: "pointer",
+					lost: true,
+					canceled: true,
+				}),
+		});
+	};
+	// A release over an item with no press of its own behind it (pressed
+	// elsewhere); a press's own release was reported by `watchPress`.
+	const releaseItem = (itemId: string, e: MouseEvent) => {
+		if (releasedOver(e.nativeEvent)) return;
+		appearance.emit("release", { itemId, lost: false, canceled: false });
 	};
 
 	const { track } = useClassicyAnalytics();
@@ -204,18 +235,18 @@ export const ClassicyRadioInput: FunctionalComponent<
 								checked={check === item.id}
 								tabIndex={0}
 								onChange={() => !itemDisabled && handleOnChange(item.id)}
-								onMouseDown={() => {
+								onMouseDown={(e) => {
 									if (itemDisabled) return;
-									pressItem(item.id);
+									pressItem(item.id, e.currentTarget);
 									track("click", {
 										type: "ClassicyRadioInput",
 										itemId: item.id,
 										...analyticsArgs,
 									});
 								}}
-								onMouseUp={() => {
+								onMouseUp={(e) => {
 									if (itemDisabled) return;
-									appearance.emit("release", { itemId: item.id, lost: false });
+									releaseItem(item.id, e);
 								}}
 							/>
 						</div>
@@ -223,18 +254,18 @@ export const ClassicyRadioInput: FunctionalComponent<
 							labelFor={item.id}
 							disabled={itemDisabled}
 							label={item.label}
-							onMouseDown={() => {
+							onMouseDown={(e) => {
 								if (itemDisabled) return;
-								pressItem(item.id);
+								pressItem(item.id, e.currentTarget as HTMLElement);
 								track("click", {
 									type: "ClassicyRadioInput",
 									itemId: item.id,
 									...analyticsArgs,
 								});
 							}}
-							onMouseUp={() => {
+							onMouseUp={(e) => {
 								if (itemDisabled) return;
-								appearance.emit("release", { itemId: item.id, lost: false });
+								releaseItem(item.id, e);
 							}}
 						/>
 					</div>

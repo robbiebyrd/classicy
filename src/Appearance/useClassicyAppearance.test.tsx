@@ -146,7 +146,7 @@ describe("useClassicyAppearance", () => {
 		);
 		act(() => result.current.emit("press"));
 		expect(result.current.className).toBe("pressed probe-Button flash");
-		act(() => result.current.emit("release", { lost: false }));
+		act(() => result.current.emit("release", { lost: false, canceled: false }));
 		expect(result.current.className).toBe("pressed probe-Button");
 	});
 
@@ -164,7 +164,7 @@ describe("useClassicyAppearance", () => {
 			useClassicyAppearance("Button", PRESSED),
 		);
 		act(() => result.current.emit("press"));
-		act(() => result.current.emit("release", { lost: false }));
+		act(() => result.current.emit("release", { lost: false, canceled: false }));
 		expect(sideEffect).toHaveBeenCalledOnce();
 		expect(result.current.className).toBe("pressed probe-Button flash");
 	});
@@ -254,7 +254,7 @@ describe("useClassicyAppearance", () => {
 		]);
 	});
 
-	it("requires lost on a release detail too", () => {
+	it("requires lost and canceled on a release detail", () => {
 		const details: unknown[] = [];
 		install({ on: { release: (ctx) => void details.push(ctx.detail) } });
 		const { result } = renderHook(() =>
@@ -262,18 +262,25 @@ describe("useClassicyAppearance", () => {
 		);
 		const { emit } = result.current;
 		act(() => {
-			emit("release", { input: "pointer", lost: true });
+			emit("release", { input: "pointer", lost: true, canceled: true });
 			// @ts-expect-error: a release must carry lost
 			emit("release");
 			// @ts-expect-error: a release must carry lost
-			emit("release", { input: "pointer" });
-			// press stays free-form
+			emit("release", { input: "pointer", canceled: false });
+			// @ts-expect-error: a release must carry canceled
+			emit("release", { input: "pointer", lost: false });
+			// @ts-expect-error: canceled is a boolean
+			emit("release", { lost: false, canceled: "no" });
+			// a dragEnd needs no canceled; press stays free-form
+			emit("dragEnd", { lost: false });
 			emit("press");
 		});
 		expect(details).toEqual([
-			{ input: "pointer", lost: true },
+			{ input: "pointer", lost: true, canceled: true },
 			undefined,
-			{ input: "pointer" },
+			{ input: "pointer", canceled: false },
+			{ input: "pointer", lost: false },
+			{ lost: false, canceled: "no" },
 		]);
 	});
 
@@ -310,7 +317,7 @@ describe("useClassicyAppearance", () => {
 			type: "ClassicySoundPlay",
 			sound: "ClassicyButtonClickDown",
 		});
-		act(() => result.current.emit("release", { lost: false }));
+		act(() => result.current.emit("release", { lost: false, canceled: false }));
 		expect(soundSpy).toHaveBeenLastCalledWith({
 			type: "ClassicySoundPlayInterrupt",
 			sound: "ClassicyButtonClickUp",
@@ -436,7 +443,7 @@ describe("useClassicyAppearance robustness", () => {
 		act(() => result.current.emit("press"));
 		const ownLogic = vi.fn();
 		act(() => {
-			result.current.emit("release", { lost: false });
+			result.current.emit("release", { lost: false, canceled: false });
 			ownLogic();
 		});
 		expect(ownLogic).toHaveBeenCalledOnce();

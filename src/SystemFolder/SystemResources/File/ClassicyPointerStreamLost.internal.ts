@@ -12,7 +12,7 @@
  * ends where it is, as a release there would.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 /**
  * Calls `onLost` whenever the pointer stream is lost: the window blurs, the
@@ -59,30 +59,70 @@ export function useClassicyPointerStreamLost(
 	}, [active]);
 }
 
+/** What `useClassicyPointerPress` watches a press with. */
+export type ClassicyPointerPressWatch = {
+	/**
+	 * Whether a mouseup on `target` is a release over the control: the
+	 * element (or elements) whose own mouseup handler would hear it.
+	 */
+	isOver: (target: EventTarget | null) => boolean;
+	/**
+	 * The press ended at a mouseup: over the control (`canceled` false) or
+	 * anywhere else (`canceled` true: dragged off, let go over a menu item).
+	 */
+	onRelease: (canceled: boolean) => void;
+	/** The pointer stream was lost before any mouseup. */
+	onLost: () => void;
+};
+
 /**
  * Watches a press on a control (its mousedown) until the press ends, so a
- * package `press` always meets its end: the next mouseup anywhere ends it
- * quietly (heard in the capture phase, so a target that stops it cannot
- * hide it; the control's own mouseup reports a release over it as before),
- * and the pointer stream being lost ends it by calling `onLost`, once.
- * Returns the function that starts watching a press; a new press replaces
- * the one before, and unmounting stops watching.
+ * package `press` meets exactly one end: the next mouseup anywhere calls
+ * `onRelease` (heard in the capture phase, so a target that stops it cannot
+ * hide it, and before any of that mouseup's own handlers run), and the
+ * pointer stream being lost calls `onLost`; whichever comes first, once.
+ * `watchPress` starts watching a press; a new press replaces the one before,
+ * and unmounting stops watching. `releasedOver(event)` is true when `event`
+ * already reported a press's release over the control, so the control's own
+ * mouseup handler reports only a release with no press of its own behind it
+ * (one pressed elsewhere and let go here).
  */
-export function useClassicyPointerPress(): (onLost: () => void) => void {
+export function useClassicyPointerPress(): {
+	watchPress: (watch: ClassicyPointerPressWatch) => void;
+	releasedOver: (event: Event) => boolean;
+} {
 	const stopRef = useRef<(() => void) | null>(null);
+	const releasedOverRef = useRef<Event | null>(null);
 	useEffect(() => () => stopRef.current?.(), []);
-	return useCallback((onLost: () => void) => {
-		stopRef.current?.();
-		const stop = () => {
-			stopWatchingPointerStream();
-			document.removeEventListener("mouseup", stop, true);
-			if (stopRef.current === stop) stopRef.current = null;
-		};
-		const stopWatchingPointerStream = onClassicyPointerStreamLost(() => {
-			stop();
-			onLost();
-		});
-		document.addEventListener("mouseup", stop, true);
-		stopRef.current = stop;
-	}, []);
+	const watchPress = useCallback(
+		({ isOver, onRelease, onLost }: ClassicyPointerPressWatch) => {
+			stopRef.current?.();
+			const stop = () => {
+				stopWatchingPointerStream();
+				document.removeEventListener("mouseup", onUp, true);
+				if (stopRef.current === stop) stopRef.current = null;
+			};
+			const onUp = (e: MouseEvent) => {
+				stop();
+				const canceled = !isOver(e.target);
+				if (!canceled) releasedOverRef.current = e;
+				onRelease(canceled);
+			};
+			const stopWatchingPointerStream = onClassicyPointerStreamLost(() => {
+				stop();
+				onLost();
+			});
+			document.addEventListener("mouseup", onUp, true);
+			stopRef.current = stop;
+		},
+		[],
+	);
+	const releasedOver = useCallback(
+		(event: Event) => releasedOverRef.current === event,
+		[],
+	);
+	return useMemo(
+		() => ({ watchPress, releasedOver }),
+		[watchPress, releasedOver],
+	);
 }

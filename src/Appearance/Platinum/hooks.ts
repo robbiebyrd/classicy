@@ -37,16 +37,19 @@ const pointerOnly =
 	};
 
 /**
- * `handler` for a release the user made: a press whose pointer stream was
- * lost (`detail.lost`) ends in a `release` too, but a button-up click there
- * would sound for a press never let go of, so it stays silent, as it was
- * before that release was emitted.
+ * `handler` for a release the user let go of over the control: a press let
+ * go elsewhere (`detail.canceled`) or whose pointer stream was lost
+ * (`detail.lost`) ends in a `release` too, but a button-up click there would
+ * sound for a press not let go of over the control, so it stays silent, as
+ * it was before that release was emitted.
  */
-const unlessLost =
+const unlessCanceled =
 	(handler: ClassicyAppearanceHandler): ClassicyAppearanceHandler =>
 	(ctx) => {
-		if ((ctx.detail as { lost?: unknown } | undefined)?.lost !== true)
-			return handler(ctx);
+		const detail = ctx.detail as
+			| { canceled?: unknown; lost?: unknown }
+			| undefined;
+		if (detail?.canceled !== true && detail?.lost !== true) return handler(ctx);
 	};
 
 /** `detail.kind` of a Window drag or change event ("move" or "resize"). */
@@ -76,20 +79,20 @@ export const platinumAppearanceHooks: DeepReadonly<ClassicyAppearanceHooks> =
 		on: {
 			Button: {
 				press: sound("ClassicyButtonClickDown"),
-				release: unlessLost(sound("ClassicyButtonClickUp")),
+				release: unlessCanceled(sound("ClassicyButtonClickUp")),
 			},
 			BevelButton: {
 				press: sound("ClassicyButtonClickDown"),
-				release: unlessLost(sound("ClassicyButtonClickUp")),
+				release: unlessCanceled(sound("ClassicyButtonClickUp")),
 				open: sound("ClassicyMenuOpen"),
 			},
 			Placard: {
 				press: pointerOnly(sound("ClassicyButtonClickDown")),
-				release: unlessLost(pointerOnly(sound("ClassicyButtonClickUp"))),
+				release: unlessCanceled(pointerOnly(sound("ClassicyButtonClickUp"))),
 			},
 			RadioInput: {
 				press: sound("ClassicyInputRadioClickDown"),
-				release: unlessLost(sound("ClassicyInputRadioClickUp")),
+				release: unlessCanceled(sound("ClassicyInputRadioClickUp")),
 			},
 			Tabs: {
 				press: pointerOnly(sound("ClassicyTabClickDown")),

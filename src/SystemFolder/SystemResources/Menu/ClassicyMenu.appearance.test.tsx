@@ -99,7 +99,12 @@ describe("ClassicyMenu appearance", () => {
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 			{
 				event: "release",
-				detail: { itemId: "save", input: "pointer", lost: false },
+				detail: {
+					itemId: "save",
+					input: "pointer",
+					lost: false,
+					canceled: false,
+				},
 			},
 		]);
 		// The action runs on the next animation frame.
@@ -112,7 +117,12 @@ describe("ClassicyMenu appearance", () => {
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
 			{
 				event: "release",
-				detail: { itemId: "save", input: "pointer", lost: false },
+				detail: {
+					itemId: "save",
+					input: "pointer",
+					lost: false,
+					canceled: false,
+				},
 			},
 		]);
 		expect(onClickFunc).toHaveBeenCalledTimes(1);
@@ -200,7 +210,12 @@ describe("ClassicyMenu appearance", () => {
 			{ event: "press", detail: { itemId: "child", input: "pointer" } },
 			{
 				event: "release",
-				detail: { itemId: "child", input: "pointer", lost: false },
+				detail: {
+					itemId: "child",
+					input: "pointer",
+					lost: false,
+					canceled: false,
+				},
 			},
 		]);
 		expect(parentAction).not.toHaveBeenCalled();

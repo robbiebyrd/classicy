@@ -3,11 +3,18 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
 } from "@/__tests__/losePointerStream";
-import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@/__tests__/test-utils";
 import { getActiveClassicyAppearancePackageId } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
@@ -217,6 +224,78 @@ describe("Platinum control sounds through the appearance hooks", () => {
 			"ClassicyButtonClickDown",
 			"ClassicyButtonClickDown",
 			"ClassicyInputRadioClickDown",
+		]);
+	});
+
+	// A press let go off its control now ends in a canceled release; it used
+	// to end in nothing, and still sounds like it. A release over a control
+	// pressed elsewhere still clicks up there, as before.
+	it("a press let go off its control clicks down but never up", () => {
+		render(
+			<>
+				<ClassicyButton>OK</ClassicyButton>
+				<ClassicyBevelButton mode="toggle">Tool</ClassicyBevelButton>
+				<ClassicyPlacard onClick={() => {}}>Plac</ClassicyPlacard>
+				<ClassicyRadioInput
+					name="r"
+					inputs={[
+						{ id: "a", label: "A" },
+						{ id: "b", label: "B" },
+					]}
+				/>
+			</>,
+		);
+		const targets = [
+			screen.getByRole("button", { name: "OK" }),
+			screen.getByRole("button", { name: "Tool" }),
+			screen.getByRole("button", { name: "Plac" }),
+			screen.getByRole("radio", { name: "A" }),
+		];
+		for (const el of targets) {
+			fireEvent.mouseDown(el, { button: 0 });
+			fireEvent.mouseUp(document.body, { button: 0 });
+		}
+		expect(played()).toEqual([
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
+			"ClassicyInputRadioClickDown",
+		]);
+		soundSpy.mockReset();
+		// Pressed on one control and let go over another: the second clicks up.
+		fireEvent.mouseDown(targets[0], { button: 0 });
+		fireEvent.mouseUp(targets[2], { button: 0 });
+		fireEvent.mouseDown(targets[3], { button: 0 });
+		fireEvent.mouseUp(screen.getByText("B"), { button: 0 });
+		expect(played()).toEqual([
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickUp",
+			"ClassicyInputRadioClickDown",
+			"ClassicyInputRadioClickUp",
+		]);
+	});
+
+	it("a held bevel menu let go over an item sounds as it did", async () => {
+		const onClick = vi.fn();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				menuItems={[{ id: "alpha", title: "Alpha", onClickFunc: onClick }]}
+				popupHoldDelayMs={0}
+			>
+				Pick
+			</ClassicyBevelButton>,
+		);
+		fireEvent.mouseDown(screen.getByRole("button", { name: "Pick" }), {
+			button: 0,
+		});
+		fireEvent.mouseUp(screen.getByText("Alpha"), { button: 0 });
+		dispatchAnimationEnd(document.getElementById("alpha"));
+		await waitFor(() => expect(onClick).toHaveBeenCalledOnce());
+		expect(played()).toEqual([
+			"ClassicyButtonClickDown",
+			"ClassicyMenuOpen",
+			"ClassicyMenuItemClick",
 		]);
 	});
 

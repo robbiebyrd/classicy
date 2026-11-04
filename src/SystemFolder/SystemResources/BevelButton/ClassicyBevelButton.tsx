@@ -321,6 +321,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// Ends the mouse press under way, which lasts from its mousedown to the
 	// next mouseup anywhere; null when there is none.
 	const endPressRef = useRef<(() => void) | null>(null);
+	// The mouseup that reported a press's release over the button, so the
+	// button's own mouseup handler does not report it again.
+	const releasedOverRef = useRef<Event | null>(null);
 	const appearance = useClassicyAppearance(
 		"BevelButton",
 		bevelButtonStates(
@@ -431,9 +434,8 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// pending hold never opens the surface, and a menu the press is tracking
 	// closes with nothing chosen. A sticky menu, left open by a click that
 	// already ended, is not a press and stays. The press's `press` ends in a
-	// `release` that says it was lost, the only one it gets: a release over
-	// the button reports `lost: false`, while one elsewhere (a held menu let
-	// go over an item) reports nothing, as before.
+	// `release` that says it was lost (and so canceled), the only one it
+	// gets, before the menu's `close`.
 	const losePress = () => {
 		const pressLasting = endPressRef.current !== null;
 		endPressRef.current?.();
@@ -443,7 +445,11 @@ export const ClassicyBevelButton: FunctionalComponent<
 		suppressClickRef.current = false;
 		if (releaseListenerRef.current) closePopup();
 		if (pressLasting)
-			appearance.emit("release", { input: "pointer", lost: true });
+			appearance.emit("release", {
+				input: "pointer",
+				lost: true,
+				canceled: true,
+			});
 	};
 
 	const showArrow =
@@ -479,15 +485,32 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// surface is watched too. A press with no surface to track (none, or one
 	// that closed it) stops watching the pointer stream at that mouseup; one
 	// that may open the surface leaves that to the surface's own release.
+	// That mouseup ends the press in its one `release`: over the button, or
+	// let go elsewhere (`canceled`: dragged off, a held menu let go over an
+	// item or outside). It comes before any of the mouseup's own handlers,
+	// so before a held menu chooses the item and before its `close`, as a
+	// lost release does.
 	const beginPress = () => {
 		endPressRef.current?.();
 		stopWatchingPointerStream();
 		stopWatchingPointerStreamRef.current =
 			onClassicyPointerStreamLost(losePress);
-		const onUp = () => {
+		const onUp = (e: globalThis.MouseEvent) => {
 			endPressRef.current?.();
 			if (!releaseListenerRef.current && holdTimerRef.current === null)
 				stopWatchingPointerStream();
+			const over =
+				e.target instanceof Node && !!buttonRef.current?.contains(e.target);
+			if (over) {
+				releasedOverRef.current = e;
+				appearance.emit("release", { lost: false, canceled: false });
+			} else {
+				appearance.emit("release", {
+					input: "pointer",
+					lost: false,
+					canceled: true,
+				});
+			}
 		};
 		document.addEventListener("mouseup", onUp, true);
 		endPressRef.current = () => {
@@ -580,12 +603,15 @@ export const ClassicyBevelButton: FunctionalComponent<
 					onPopupMouseDown(e);
 					beginPress();
 				}}
-				onMouseUp={() => {
+				onMouseUp={(e) => {
 					if (disabled) return;
 					stopWatchingPointerStream();
 					clearHoldTimer();
 					setPressed(false);
-					appearance.emit("release", { lost: false });
+					// A release here with no press of its own behind it (pressed
+					// elsewhere); the press's own release was reported by beginPress.
+					if (releasedOverRef.current === e.nativeEvent) return;
+					appearance.emit("release", { lost: false, canceled: false });
 				}}
 				// If the pointer leaves while held, a push button reverts to off. A
 				// pending hold keeps running: dragging off toward the menu is part of

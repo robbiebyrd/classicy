@@ -45,7 +45,10 @@ describe("ClassicyButton appearance", () => {
 		fireEvent.click(el, { detail: 1 });
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "pointer" } },
-			{ event: "release", detail: { input: "pointer", lost: false } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: false },
+			},
 			{ event: "click", detail: { input: "pointer" } },
 		]);
 	});
@@ -60,7 +63,10 @@ describe("ClassicyButton appearance", () => {
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "keyboard" } },
 			{ event: "click", detail: { input: "keyboard" } },
-			{ event: "release", detail: { input: "keyboard", lost: false } },
+			{
+				event: "release",
+				detail: { input: "keyboard", lost: false, canceled: false },
+			},
 		]);
 	});
 
@@ -88,7 +94,10 @@ describe("ClassicyButton when a press loses its pointer stream", () => {
 		losePointerStream(loss);
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "pointer" } },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 		]);
 		// A second loss, or the release that finally comes elsewhere, ends
 		// nothing more.
@@ -106,7 +115,11 @@ describe("ClassicyButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(document.body);
 		losePointerStream("pointercancel");
-		expect(emitted().filter((e) => e.event === "release")).toHaveLength(1);
+		const releases = emitted().filter((e) => e.event === "release");
+		expect(releases.map((e) => e.detail)).toEqual([
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
 	});
 
 	it("watches the pointer stream only while a press lasts", () => {
@@ -127,5 +140,78 @@ describe("ClassicyButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+describe("ClassicyButton when a press is let go off the button", () => {
+	it("ends the press in one canceled release", () => {
+		const { container } = render(<ClassicyButton>OK</ClassicyButton>);
+		const el = root(container);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "pointer" } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+		]);
+		// A loss after it ends nothing more.
+		losePointerStream("blur");
+		expect(emitted()).toHaveLength(2);
+	});
+
+	it("sends exactly one release per press, over the button or off it", () => {
+		const { container } = render(
+			<ClassicyButton>
+				OK <span>label</span>
+			</ClassicyButton>,
+		);
+		const el = root(container);
+		const label = el.querySelector("span") as HTMLElement;
+		// Over the button, over a child of it, and over a child that stops
+		// the mouseup before the button hears it.
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(el);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(label);
+		label.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(label);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		const events = emitted().filter(
+			(e) => e.event === "press" || e.event === "release",
+		);
+		expect(events.map((e) => e.event)).toEqual([
+			"press",
+			"release",
+			"press",
+			"release",
+			"press",
+			"release",
+			"press",
+			"release",
+		]);
+		expect(
+			events.filter((e) => e.event === "release").map((e) => e.detail),
+		).toEqual([
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
+	});
+
+	it("still reports a release over it for a press made elsewhere", () => {
+		const { container } = render(<ClassicyButton>OK</ClassicyButton>);
+		const el = root(container);
+		fireEvent.mouseUp(el);
+		expect(emitted()).toEqual([
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: false },
+			},
+		]);
 	});
 });

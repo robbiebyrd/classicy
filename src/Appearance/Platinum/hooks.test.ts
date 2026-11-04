@@ -147,7 +147,7 @@ describe("platinumAppearanceHooks", () => {
 	// A press whose pointer stream was lost ends in a release that says so.
 	// It used to emit nothing, so it stays silent: no button-up click for a
 	// press the user never let go of (and may be away from, Alt-Tabbed).
-	it("keeps a lost release silent, and every other release as it was", () => {
+	it("keeps a canceled or lost release silent, and every other release as it was", () => {
 		const rows: Row[] = [
 			["Button", "release", "ClassicyButtonClickUp"],
 			["BevelButton", "release", "ClassicyButtonClickUp"],
@@ -156,19 +156,30 @@ describe("platinumAppearanceHooks", () => {
 		];
 		for (const [c, e, sound] of rows) {
 			for (const input of ["pointer", "keyboard", undefined]) {
-				const kept = run(c, e, { input, lost: false });
+				const kept = run(c, e, { input, lost: false, canceled: false });
 				const expected =
 					c === "Placard" && input === "keyboard"
 						? []
 						: [{ type: "ClassicySoundPlay", sound }];
 				expect(kept.calls, `${c}.${e} ${input}`).toEqual(expected);
 			}
-			const lost = run(c, e, { input: "pointer", lost: true });
-			expect(lost.result, `${c}.${e} lost`).toBeUndefined();
-			expect(lost.calls, `${c}.${e} lost`).toEqual([]);
+			// Let go off the control, lost, or (a detail without canceled from
+			// an older emitter) lost alone: no button-up click.
+			for (const detail of [
+				{ input: "pointer", lost: false, canceled: true },
+				{ input: "pointer", lost: true, canceled: true },
+				{ input: "pointer", lost: true },
+			]) {
+				const silent = run(c, e, detail);
+				const label = `${c}.${e} ${JSON.stringify(detail)}`;
+				expect(silent.result, label).toBeUndefined();
+				expect(silent.calls, label).toEqual([]);
+			}
 		}
-		// A menu item's release, which ends its flash, is never a lost press.
-		expect(run("MenuItem", "release", { lost: false }).result).toEqual({});
+		// A menu item's release, which ends its flash, is never canceled.
+		expect(
+			run("MenuItem", "release", { lost: false, canceled: false }).result,
+		).toEqual({});
 	});
 
 	it("maps window events to sprites", () => {

@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
-import { fireEvent, render } from "@/__tests__/test-utils";
+import { fireEvent, render, screen, waitFor } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 
@@ -56,7 +57,7 @@ describe("ClassicyBevelButton appearance", () => {
 		// press/release come from the mouse only, so they carry no input.
 		expect(emitted()).toEqual([
 			{ event: "press", detail: undefined },
-			{ event: "release", detail: { lost: false } },
+			{ event: "release", detail: { lost: false, canceled: false } },
 			{ event: "click", detail: { input: "pointer" } },
 		]);
 	});
@@ -131,7 +132,10 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		expect(el).not.toHaveClass("pressed");
 		expect(emitted()).toEqual([
 			{ event: "press", detail: undefined },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 		]);
 		// A second loss, or the release that finally comes elsewhere, ends
 		// nothing more.
@@ -151,7 +155,11 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(document.body);
 		losePointerStream("pointercancel");
-		expect(emitted().filter((e) => e.event === "release")).toHaveLength(1);
+		const releases = emitted().filter((e) => e.event === "release");
+		expect(releases.map((e) => e.detail)).toEqual([
+			{ lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
 	});
 
 	it("watches the pointer stream only while a press lasts", () => {
@@ -197,7 +205,10 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		expect(emitted()).toEqual([
 			{ event: "press", detail: undefined },
 			{ event: "open", detail: { trigger: "click", input: "pointer" } },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 			{ event: "close", detail: { input: "pointer" } },
 		]);
 	});
@@ -217,7 +228,10 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		await new Promise((resolve) => setTimeout(resolve, 40));
 		expect(emitted()).toEqual([
 			{ event: "press", detail: undefined },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 		]);
 	});
 
@@ -239,7 +253,7 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 			container.ownerDocument.querySelector('[role="menu"]'),
 		).not.toBeNull();
 		expect(emitted().filter((e) => e.event === "release")).toEqual([
-			{ event: "release", detail: { lost: false } },
+			{ event: "release", detail: { lost: false, canceled: false } },
 		]);
 	});
 
@@ -260,12 +274,15 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el, { button: 0 });
 		losePointerStream("pointercancel");
 		expect(emitted().filter((e) => e.event === "release")).toEqual([
-			{ event: "release", detail: { lost: false } },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{ event: "release", detail: { lost: false, canceled: false } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 		]);
 	});
 
-	it("sends no release when a pending hold, already let go elsewhere, is lost", async () => {
+	it("ends a pending hold let go elsewhere in a canceled release, owing nothing on a loss", async () => {
 		const { container } = render(
 			<ClassicyBevelButton
 				mode="push"
@@ -278,10 +295,16 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(root(container), { button: 0 });
 		fireEvent.mouseUp(document.body);
 		// The press has ended, though its hold is still pending; the loss
-		// cancels the hold and owes no release.
+		// cancels the hold and owes no second release.
 		losePointerStream("blur");
 		await new Promise((resolve) => setTimeout(resolve, 40));
-		expect(emitted()).toEqual([{ event: "press", detail: undefined }]);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+		]);
 	});
 
 	it("ends a press released over an element that stops the mouseup", () => {
@@ -294,7 +317,13 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(root(container));
 		fireEvent.mouseUp(stopper);
 		losePointerStream("blur");
-		expect(emitted()).toEqual([{ event: "press", detail: undefined }]);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+		]);
 		stopper.remove();
 	});
 
@@ -338,5 +367,129 @@ describe("ClassicyBevelButton when a press loses its pointer stream", () => {
 		expect(live.size).toBe(3);
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+describe("ClassicyBevelButton when a press is let go off the button", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	const releases = () =>
+		emitted()
+			.filter((e) => e.event === "release")
+			.map((e) => e.detail);
+
+	it("ends the press in one canceled release", () => {
+		const { container } = render(
+			<ClassicyBevelButton mode="toggle">B</ClassicyBevelButton>,
+		);
+		fireEvent.mouseDown(root(container));
+		fireEvent.mouseUp(document.body);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+		]);
+		losePointerStream("blur");
+		expect(emitted()).toHaveLength(2);
+	});
+
+	it("sends exactly one release per press, even when its label stops the mouseup", () => {
+		const { container } = render(
+			<ClassicyBevelButton mode="toggle">B</ClassicyBevelButton>,
+		);
+		const el = root(container);
+		const label = el.querySelector(".classicyBevelButtonLabel") as HTMLElement;
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(el);
+		label.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(label);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		expect(
+			emitted()
+				.filter((e) => e.event === "press" || e.event === "release")
+				.map((e) => e.event),
+		).toEqual(["press", "release", "press", "release", "press", "release"]);
+		expect(releases()).toEqual([
+			{ lost: false, canceled: false },
+			{ lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
+	});
+
+	it("still reports a release over it for a press made elsewhere", () => {
+		const { container } = render(
+			<ClassicyBevelButton mode="toggle">B</ClassicyBevelButton>,
+		);
+		fireEvent.mouseUp(root(container));
+		expect(emitted()).toEqual([
+			{ event: "release", detail: { lost: false, canceled: false } },
+		]);
+	});
+
+	// The order is the lost press's: the button's release first, at the
+	// mouseup, then (once the item's flash ends) the menu's close, then the
+	// item's action.
+	it("cancels a held menu press let go over an item, before the menu closes and the item runs", async () => {
+		let atPick: string[] = [];
+		const onPick = vi.fn(() => {
+			atPick = emitted().map((e) => e.event);
+		});
+		const { container } = render(
+			<ClassicyBevelButton
+				mode="popup"
+				menuItems={[{ id: "a", title: "A", onClickFunc: onPick }]}
+				popupHoldDelayMs={0}
+			>
+				B
+			</ClassicyBevelButton>,
+		);
+		fireEvent.mouseDown(root(container), { button: 0 });
+		fireEvent.mouseUp(screen.getByText("A"));
+		expect(emitted().map((e) => e.event)).toEqual(["press", "open", "release"]);
+		dispatchAnimationEnd(document.getElementById("a"));
+		await waitFor(() => expect(onPick).toHaveBeenCalledOnce());
+		expect(atPick).toEqual(["press", "open", "release", "close"]);
+		await waitFor(() =>
+			expect(container.ownerDocument.querySelector('[role="menu"]')).toBeNull(),
+		);
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{ event: "open", detail: { trigger: "click", input: "pointer" } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+			{ event: "close", detail: { input: "pointer" } },
+		]);
+	});
+
+	it("cancels a held menu press let go outside, closing the menu after it", () => {
+		const onPick = vi.fn();
+		const { container } = render(
+			<ClassicyBevelButton
+				mode="popup"
+				menuItems={[{ id: "a", title: "A", onClickFunc: onPick }]}
+				popupHoldDelayMs={0}
+			>
+				B
+			</ClassicyBevelButton>,
+		);
+		fireEvent.mouseDown(root(container), { button: 0 });
+		fireEvent.mouseUp(document.body);
+		expect(container.ownerDocument.querySelector('[role="menu"]')).toBeNull();
+		expect(onPick).not.toHaveBeenCalled();
+		expect(emitted()).toEqual([
+			{ event: "press", detail: undefined },
+			{ event: "open", detail: { trigger: "click", input: "pointer" } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+			{ event: "close", detail: { input: "pointer" } },
+		]);
 	});
 });

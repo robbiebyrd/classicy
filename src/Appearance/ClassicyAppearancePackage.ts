@@ -100,7 +100,7 @@ export type ClassicyAppearanceInput = "pointer" | "keyboard";
  * a gesture's end take it as their trailing argument
  * (`ClassicySplitView`'s `onResizeCommit`, `ClassicySlider`'s
  * `onCommitFunc`), and it is what a package `dragEnd` or `release` detail
- * carries (`ClassicyAppearanceDragEnd`).
+ * carries (`ClassicyAppearanceDragEnd`, `ClassicyAppearanceRelease`).
  */
 export type ClassicyGestureEnd = { lost: boolean };
 
@@ -112,9 +112,23 @@ export type ClassicyGestureEnd = { lost: boolean };
 export type ClassicyAppearanceDragEnd = ClassicyGestureEnd;
 
 /**
- * A component's `emit` (`useClassicyAppearance`): a `dragEnd` or `release`
- * must carry `lost` (`ClassicyAppearanceDragEnd`) with its own fields; any
- * other event takes the component's own detail, or none.
+ * What every `release` detail carries beside the component's own fields:
+ * `lost` (`ClassicyGestureEnd`) and `canceled`, true when the press did not
+ * end with a release over the control (let go elsewhere: dragged off, a held
+ * menu let go over an item or outside; or lost, so a lost release is always
+ * canceled too, as a lost file drag is). Every `press` meets exactly one
+ * `release`, so a package uses `canceled` to, say, play a button-up click
+ * only for a press the user let go of over the control.
+ */
+export type ClassicyAppearanceRelease = ClassicyGestureEnd & {
+	canceled: boolean;
+};
+
+/**
+ * A component's `emit` (`useClassicyAppearance`): a `dragEnd` must carry
+ * `lost` (`ClassicyAppearanceDragEnd`), and a `release` `lost` and
+ * `canceled` (`ClassicyAppearanceRelease`), with their own fields; any other
+ * event takes the component's own detail, or none.
  */
 export type ClassicyAppearanceEmit = <E extends ClassicyAppearanceEvent>(
 	event: E,
@@ -123,14 +137,16 @@ export type ClassicyAppearanceEmit = <E extends ClassicyAppearanceEvent>(
 
 /**
  * The detail `ClassicyAppearanceEmit` takes for `event`, as a rest tuple: a
- * required one carrying `lost` for `dragEnd` and `release`, an optional one
- * of any shape otherwise. Named so a narrower emitter (`ClassicyTable`'s
- * `emitDrag`) stays assignable from `emit`.
+ * required one carrying `lost` for `dragEnd`, `lost` and `canceled` for
+ * `release`, an optional one of any shape otherwise. Named so a narrower
+ * emitter (`ClassicyTable`'s `emitDrag`) stays assignable from `emit`.
  */
 export type ClassicyAppearanceEmitDetail<E extends ClassicyAppearanceEvent> =
-	E extends "dragEnd" | "release"
-		? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
-		: [detail?: unknown];
+	E extends "release"
+		? [detail: ClassicyAppearanceRelease & Record<string, unknown>]
+		: E extends "dragEnd"
+			? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
+			: [detail?: unknown];
 
 /** What a package hook adds to a component's root element. */
 export type ClassicyAppearanceDecoration = {

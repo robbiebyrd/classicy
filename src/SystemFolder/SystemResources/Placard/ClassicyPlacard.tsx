@@ -134,13 +134,16 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
 		if (isActivationKey(e.key))
-			appearance.emit("release", withClassicyAppearanceInput({ lost: false }));
+			appearance.emit(
+				"release",
+				withClassicyAppearanceInput({ lost: false, canceled: false }),
+			);
 	};
 
-	// A mouse press ends in a `release` over the placard, or, when its
-	// pointer stream is lost (the window blurs, a pointercancel, the page is
-	// hidden), in one that says so.
-	const watchPress = useClassicyPointerPress();
+	// A mouse press ends in exactly one `release`: over the placard, let go
+	// elsewhere (`canceled`), or, when its pointer stream is lost (the window
+	// blurs, a pointercancel, the page is hidden), lost.
+	const { watchPress, releasedOver } = useClassicyPointerPress();
 
 	const handleSelect = (item: ClassicyPlacardMenuItem) => {
 		if (item.disabled) return;
@@ -187,14 +190,38 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					onMouseDown={() => {
 						setPressed(true);
 						appearance.emit("press", { input: "pointer" });
-						watchPress(() => {
-							setPressed(false);
-							appearance.emit("release", { input: "pointer", lost: true });
+						watchPress({
+							isOver: (target) =>
+								target instanceof Node &&
+								!!placardRef.current?.contains(target),
+							onRelease: (canceled) => {
+								setPressed(false);
+								appearance.emit("release", {
+									input: "pointer",
+									lost: false,
+									canceled,
+								});
+							},
+							onLost: () => {
+								setPressed(false);
+								appearance.emit("release", {
+									input: "pointer",
+									lost: true,
+									canceled: true,
+								});
+							},
 						});
 					}}
-					onMouseUp={() => {
+					// A release here with no press of its own behind it (pressed
+					// elsewhere); the press's own release was reported above.
+					onMouseUp={(e) => {
 						setPressed(false);
-						appearance.emit("release", { input: "pointer", lost: false });
+						if (releasedOver(e.nativeEvent)) return;
+						appearance.emit("release", {
+							input: "pointer",
+							lost: false,
+							canceled: false,
+						});
 					}}
 					onMouseLeave={() => setPressed(false)}
 				>

@@ -51,7 +51,10 @@ describe("ClassicyPlacard appearance", () => {
 		fireEvent.mouseUp(el);
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "pointer" } },
-			{ event: "release", detail: { input: "pointer", lost: false } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: false },
+			},
 		]);
 		fireEvent.click(el, { detail: 1 });
 		expect(emitted().slice(2)).toEqual([
@@ -109,9 +112,15 @@ describe("ClassicyPlacard appearance", () => {
 		const keyboard = { input: "keyboard" };
 		expect(emitted()).toEqual([
 			{ event: "press", detail: keyboard },
-			{ event: "release", detail: { ...keyboard, lost: false } },
+			{
+				event: "release",
+				detail: { ...keyboard, lost: false, canceled: false },
+			},
 			{ event: "press", detail: keyboard },
-			{ event: "release", detail: { ...keyboard, lost: false } },
+			{
+				event: "release",
+				detail: { ...keyboard, lost: false, canceled: false },
+			},
 		]);
 	});
 
@@ -147,7 +156,10 @@ describe("ClassicyPlacard when a press loses its pointer stream", () => {
 		expect(el).not.toHaveClass("pressed");
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "pointer" } },
-			{ event: "release", detail: { input: "pointer", lost: true } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: true, canceled: true },
+			},
 		]);
 		// A second loss, or the release that finally comes elsewhere, ends
 		// nothing more.
@@ -167,7 +179,11 @@ describe("ClassicyPlacard when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		fireEvent.mouseUp(document.body);
 		losePointerStream("pointercancel");
-		expect(emitted().filter((e) => e.event === "release")).toHaveLength(1);
+		const releases = emitted().filter((e) => e.event === "release");
+		expect(releases.map((e) => e.detail)).toEqual([
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
 	});
 
 	it("watches the pointer stream only while a press lasts", () => {
@@ -190,5 +206,73 @@ describe("ClassicyPlacard when a press loses its pointer stream", () => {
 		fireEvent.mouseDown(el);
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+describe("ClassicyPlacard when a press is let go off the placard", () => {
+	it("ends the press in one canceled release, unpressed", () => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		expect(el).not.toHaveClass("pressed");
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "pointer" } },
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: true },
+			},
+		]);
+		losePointerStream("blur");
+		expect(emitted()).toHaveLength(2);
+	});
+
+	it("sends exactly one release per press, over the placard or off it", () => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		const content = el.querySelector(".classicyPlacardContent") as HTMLElement;
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(el);
+		content.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(content);
+		expect(el).not.toHaveClass("pressed");
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		const events = emitted().filter(
+			(e) => e.event === "press" || e.event === "release",
+		);
+		expect(events.map((e) => e.event)).toEqual([
+			"press",
+			"release",
+			"press",
+			"release",
+			"press",
+			"release",
+		]);
+		expect(
+			events.filter((e) => e.event === "release").map((e) => e.detail),
+		).toEqual([
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: false },
+			{ input: "pointer", lost: false, canceled: true },
+		]);
+	});
+
+	it("still reports a release over it for a press made elsewhere", () => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		fireEvent.mouseUp(root(container));
+		expect(emitted()).toEqual([
+			{
+				event: "release",
+				detail: { input: "pointer", lost: false, canceled: false },
+			},
+		]);
 	});
 });

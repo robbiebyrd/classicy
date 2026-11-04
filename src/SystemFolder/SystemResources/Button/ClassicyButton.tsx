@@ -152,10 +152,10 @@ export const ClassicyButton = forwardRef<
 			buttonRef,
 		);
 
-		// A mouse press ends in a `release` over the button, or, when its
-		// pointer stream is lost (the window blurs, a pointercancel, the page
-		// is hidden), in one that says so.
-		const watchPress = useClassicyPointerPress();
+		// A mouse press ends in exactly one `release`: over the button, let go
+		// elsewhere (`canceled`), or, when its pointer stream is lost (the
+		// window blurs, a pointercancel, the page is hidden), lost.
+		const { watchPress, releasedOver } = useClassicyPointerPress();
 
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 			appearance.emit("click", withClassicyAppearanceInput());
@@ -179,7 +179,7 @@ export const ClassicyButton = forwardRef<
 			if (!disabled && isActivationKey(e.key)) {
 				appearance.emit(
 					"release",
-					withClassicyAppearanceInput({ lost: false }),
+					withClassicyAppearanceInput({ lost: false, canceled: false }),
 				);
 			}
 			onKeyUp?.(e);
@@ -207,14 +207,31 @@ export const ClassicyButton = forwardRef<
 				onClick={onHandleFunc}
 				onMouseDown={() => {
 					appearance.emit("press", withClassicyAppearanceInput());
-					watchPress(() =>
-						appearance.emit("release", { input: "pointer", lost: true }),
-					);
+					watchPress({
+						isOver: (target) =>
+							target instanceof Node && !!buttonRef.current?.contains(target),
+						onRelease: (canceled) =>
+							appearance.emit(
+								"release",
+								canceled
+									? { input: "pointer", lost: false, canceled }
+									: withClassicyAppearanceInput({ lost: false, canceled }),
+							),
+						onLost: () =>
+							appearance.emit("release", {
+								input: "pointer",
+								lost: true,
+								canceled: true,
+							}),
+					});
 				}}
-				onMouseUp={() => {
+				// A release here with no press of its own behind it (pressed
+				// elsewhere); the press's own release was reported above.
+				onMouseUp={(e) => {
+					if (releasedOver(e.nativeEvent)) return;
 					appearance.emit(
 						"release",
-						withClassicyAppearanceInput({ lost: false }),
+						withClassicyAppearanceInput({ lost: false, canceled: false }),
 					);
 				}}
 				onKeyDown={handleKeyDown}
