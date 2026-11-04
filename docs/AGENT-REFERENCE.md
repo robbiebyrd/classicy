@@ -1005,7 +1005,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"); always set by the table, optional in the type so a hand-built context still type-checks |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
-| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes` |
+| `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes)` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
 (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
@@ -2003,8 +2003,9 @@ the callback moves them. Drop targets are any element marked
 Control Strip and dialogs block drops. The drag engine is
 `startClassicyFileDrag` (`ClassicyFileDrag.ts`); its optional `onStart()` (at
 the 4 px threshold) and `onEnd({ dropped, canceled })` (exactly once per
-start) callbacks are how the views emit the appearance `dragStart`/`dragEnd`
-events (§8, "Package hooks"). The desktop's files and
+start; Escape and a lost pointer stream, a window `blur`, a `pointercancel`
+or the page turning hidden, end it canceled) callbacks are how the views emit
+the appearance `dragStart`/`dragEnd` events (§8, "Package hooks"). The desktop's files and
 folders live in the invisible `Desktop Folder` on the startup disk; Finder
 mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
 
@@ -2907,7 +2908,7 @@ inner elements (rows, tab buttons, items) stay there.
 | ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
 | Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
 | ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
-| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart/dragEnd `{ value }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input) |
+| Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart/dragEnd `{ value }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`) |
 | Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press/release `{ input }` (mouse, Return/Space), click `{ menu, input }`, open `{ input }`, close `{ input }` |
 | Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
 | Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
@@ -2921,7 +2922,7 @@ inner elements (rows, tab buttons, items) stay there.
 | MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
 | DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): no detail for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
-| ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only |
+| ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart/dragEnd `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box), pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` |
 | Assistant | `div.classicyAssistant` | none | change `{ page, input }` (pager arrows, ←/→; not for a refused or no-op move) |
 
 Every wired component also emits `mount` and `unmount` (no `input`).
@@ -2954,7 +2955,10 @@ Window:
 - A move's `dragStart` arrives at the drag threshold. A resize's arrives on
   mousedown, preceded by `zoom { zoomed: false, cause: "resize" }`. There is
   exactly one `dragEnd` per gesture, released on the window or anywhere on the
-  document.
+  document, or ended by the pointer stream being lost (a window `blur`, a
+  `pointercancel`, the page turning hidden). A lost gesture ends where it is,
+  as a release there would: the window keeps the position and size it was
+  dragged to, and the store's `dragging`/`moving`/`resizing` flags clear.
 - `close` means the window's own close box, or a modal's Escape. Closes
   dispatched straight to the store emit no `close`: `useClassicyWindowClose`,
   SimpleText, HyperCard, and any `ClassicyWindowClose` dispatch.
@@ -3019,12 +3023,12 @@ emitter:
   (the move may still be refused: a locked item, the same folder),
   `{ dropped: false, canceled: false }` for a release over nothing (or over
   a window that refuses drops), `{ dropped: false, canceled: true }` for
-  Escape, or for the source unmounting mid-drag (a Finder window closing, a
-  folder view switching): the outline is removed, nothing is dropped, and
-  the `dragEnd` arrives before the source's `unmount`.
-- Not yet ended by a window `blur` or a `pointercancel`: a drag interrupted
-  that way keeps its outline until the next release, which ends it as a
-  release (window drags share the gap).
+  Escape, for the pointer stream being lost (a window `blur`, a
+  `pointercancel`, the page turning hidden), or for the source unmounting
+  mid-drag (a Finder window closing, a folder view switching): the outline
+  and the drop-target highlight are removed, nothing is dropped, and the
+  `dragEnd` arrives before the source's `unmount`. A lost stream also
+  abandons a press that has not dragged yet, with no event.
 - The detail is exactly those fields. It never carries the dragged items'
   paths or names, how many there are, the drop target or the pointer, so a
   package learns no more of the user's data than from a window or icon

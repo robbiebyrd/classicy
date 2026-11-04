@@ -950,6 +950,12 @@ warnings about derived folder names.
   still hides the pointer over the saver.
 - **File drags.** A drag whose source unmounts mid-drag ends as canceled,
   removes its outline and never drops.
+- **Drags no longer stick when the pointer is lost.** A window `blur`, a
+  `pointercancel` or a hidden page ends the gestures that follow the
+  pointer: a file drag ends canceled, as Escape does, and a held bevel-button
+  menu closes choosing nothing; window moves and resizes, split views, the
+  Control Strip, sliders and icon drags end where they are, committed as a
+  release there would be.
 - **Menu titles in balloon help.** A top-level menu title wrapped in balloon
   help is as wide as its title, not the whole bar.
 - **Finder list rows** carry the `selected` class once, not twice.

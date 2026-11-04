@@ -363,8 +363,9 @@ resizable container splitting two or three content areas along one axis:
 - Max **3 panes** per component (extras dropped with a dev warning) — nest a
   split view inside a pane to combine directions.
 - Sizes are uncontrolled after mount. `onResize` fires per drag step;
-  `onResizeCommit` fires once per gesture (mouse release / arrow-key
-  release) — persist there and feed the saved sizes back as `defaultSizes`.
+  `onResizeCommit` fires once per gesture (mouse release, a lost pointer
+  stream, or arrow-key release) — persist there and feed the saved sizes
+  back as `defaultSizes`.
 - The divider follows the ARIA window-splitter pattern (`role="separator"`,
   focusable, arrow keys nudge by 1%) and uses the same document-level drag
   listener idiom as `ClassicyWindow`. Pure resize math is exported as
@@ -527,7 +528,14 @@ Finder items (icon and list views) and the desktop's file icons drag as Mac OS
 8 does: a 1-px dotted outline of the icon's opaque shape ∪ its label box
 (`drawClassicyDragOutline`, canvas contour walk) follows the pointer in a
 body-level ghost (`startClassicyFileDrag`, `ClassicyFileDrag.ts`; 4 px threshold,
-Escape cancels). Targets are hit-tested with `elementsFromPoint` against
+Escape cancels, and so does losing the pointer stream: a window `blur`, a
+`pointercancel` or the page turning hidden, watched by
+`onClassicyPointerStreamLost` (`ClassicyPointerStreamLost.internal.ts`), which
+the other pointer-following gestures use too, all but a table's column resize
+(run by `@tanstack/react-table`); a window move or resize, a split view's
+divider, the Control Strip's tab and Control-drag, sliders and icon drags end
+where they are instead, as a release there would). Targets are hit-tested
+with `elementsFromPoint` against
 `data-classicy-drop-folder="<path>"` (folder/drive icons, list rows' name cells,
 each file browser's root) and `data-classicy-drop-desktop` (the desktop root);
 `.classicyWindow`, the menu bar, Control Strip and dialogs block. Folder targets
