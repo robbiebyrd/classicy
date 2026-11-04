@@ -531,10 +531,11 @@ body-level ghost (`startClassicyFileDrag`, `ClassicyFileDrag.ts`; 4 px threshold
 Escape cancels, and so does losing the pointer stream: a window `blur`, a
 `pointercancel` or the page turning hidden, watched by
 `onClassicyPointerStreamLost` (`ClassicyPointerStreamLost.internal.ts`), which
-the other pointer-following gestures use too, all but a table's column resize
-(run by `@tanstack/react-table`); a window move or resize, a split view's
-divider, the Control Strip's tab and Control-drag, sliders and icon drags end
-where they are instead, as a release there would). Targets are hit-tested
+the other pointer-following gestures use too; a window move or resize, a
+split view's divider, a table's column resize (ended through
+`@tanstack/react-table`'s own release, a position-less document `mouseup` or
+`touchend`), the Control Strip's tab and Control-drag, sliders and icon drags
+end where they are instead, as a release there would). Targets are hit-tested
 with `elementsFromPoint` against
 `data-classicy-drop-folder="<path>"` (folder/drive icons, list rows' name cells,
 each file browser's root) and `data-classicy-drop-desktop` (the desktop root);

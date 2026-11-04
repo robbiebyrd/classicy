@@ -953,9 +953,9 @@ warnings about derived folder names.
 - **Drags no longer stick when the pointer is lost.** A window `blur`, a
   `pointercancel` or a hidden page ends the gestures that follow the
   pointer: a file drag ends canceled, as Escape does, and a held bevel-button
-  menu closes choosing nothing; window moves and resizes, split views, the
-  Control Strip, sliders and icon drags end where they are, committed as a
-  release there would be. For `ClassicySlider` that means `onCommitFunc` now
+  menu closes choosing nothing; window moves and resizes, split views,
+  table column resizes, the Control Strip, sliders and icon drags end where
+  they are, committed as a release there would be. For `ClassicySlider` that means `onCommitFunc` now
   fires once on a `pointercancel` (it used not to), the ghost is hidden on a
   document-level `pointercancel` too, and the input no longer carries its
   own `onPointerCancel` handler (the document listener ends the press).
