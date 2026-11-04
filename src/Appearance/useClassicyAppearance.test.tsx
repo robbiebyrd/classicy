@@ -146,7 +146,7 @@ describe("useClassicyAppearance", () => {
 		);
 		act(() => result.current.emit("press"));
 		expect(result.current.className).toBe("pressed probe-Button flash");
-		act(() => result.current.emit("release"));
+		act(() => result.current.emit("release", { lost: false }));
 		expect(result.current.className).toBe("pressed probe-Button");
 	});
 
@@ -164,7 +164,7 @@ describe("useClassicyAppearance", () => {
 			useClassicyAppearance("Button", PRESSED),
 		);
 		act(() => result.current.emit("press"));
-		act(() => result.current.emit("release"));
+		act(() => result.current.emit("release", { lost: false }));
 		expect(sideEffect).toHaveBeenCalledOnce();
 		expect(result.current.className).toBe("pressed probe-Button flash");
 	});
@@ -254,6 +254,29 @@ describe("useClassicyAppearance", () => {
 		]);
 	});
 
+	it("requires lost on a release detail too", () => {
+		const details: unknown[] = [];
+		install({ on: { release: (ctx) => void details.push(ctx.detail) } });
+		const { result } = renderHook(() =>
+			useClassicyAppearance("Button", PRESSED),
+		);
+		const { emit } = result.current;
+		act(() => {
+			emit("release", { input: "pointer", lost: true });
+			// @ts-expect-error: a release must carry lost
+			emit("release");
+			// @ts-expect-error: a release must carry lost
+			emit("release", { input: "pointer" });
+			// press stays free-form
+			emit("press");
+		});
+		expect(details).toEqual([
+			{ input: "pointer", lost: true },
+			undefined,
+			{ input: "pointer" },
+		]);
+	});
+
 	it("clears the emitted decoration when the package changes", () => {
 		install({ on: { press: () => ({ className: "flash" }) } });
 		const { result } = renderHook(() =>
@@ -287,7 +310,7 @@ describe("useClassicyAppearance", () => {
 			type: "ClassicySoundPlay",
 			sound: "ClassicyButtonClickDown",
 		});
-		act(() => result.current.emit("release"));
+		act(() => result.current.emit("release", { lost: false }));
 		expect(soundSpy).toHaveBeenLastCalledWith({
 			type: "ClassicySoundPlayInterrupt",
 			sound: "ClassicyButtonClickUp",
@@ -413,7 +436,7 @@ describe("useClassicyAppearance robustness", () => {
 		act(() => result.current.emit("press"));
 		const ownLogic = vi.fn();
 		act(() => {
-			result.current.emit("release");
+			result.current.emit("release", { lost: false });
 			ownLogic();
 		});
 		expect(ownLogic).toHaveBeenCalledOnce();

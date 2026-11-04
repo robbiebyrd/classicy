@@ -14,6 +14,7 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export type ClassicyPlacardMenuItem = {
 	/** Value passed to `onSelect` when the item is chosen. */
@@ -133,8 +134,13 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
 		if (isActivationKey(e.key))
-			appearance.emit("release", withClassicyAppearanceInput());
+			appearance.emit("release", withClassicyAppearanceInput({ lost: false }));
 	};
+
+	// A mouse press ends in a `release` over the placard, or, when its
+	// pointer stream is lost (the window blurs, a pointercancel, the page is
+	// hidden), in one that says so.
+	const watchPress = useClassicyPointerPress();
 
 	const handleSelect = (item: ClassicyPlacardMenuItem) => {
 		if (item.disabled) return;
@@ -181,10 +187,14 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					onMouseDown={() => {
 						setPressed(true);
 						appearance.emit("press", { input: "pointer" });
+						watchPress(() => {
+							setPressed(false);
+							appearance.emit("release", { input: "pointer", lost: true });
+						});
 					}}
 					onMouseUp={() => {
 						setPressed(false);
-						appearance.emit("release", { input: "pointer" });
+						appearance.emit("release", { input: "pointer", lost: false });
 					}}
 					onMouseLeave={() => setPressed(false)}
 				>

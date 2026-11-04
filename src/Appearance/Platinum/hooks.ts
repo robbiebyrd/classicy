@@ -36,6 +36,19 @@ const pointerOnly =
 		if (!isKeyboard(ctx)) return handler(ctx);
 	};
 
+/**
+ * `handler` for a release the user made: a press whose pointer stream was
+ * lost (`detail.lost`) ends in a `release` too, but a button-up click there
+ * would sound for a press never let go of, so it stays silent, as it was
+ * before that release was emitted.
+ */
+const unlessLost =
+	(handler: ClassicyAppearanceHandler): ClassicyAppearanceHandler =>
+	(ctx) => {
+		if ((ctx.detail as { lost?: unknown } | undefined)?.lost !== true)
+			return handler(ctx);
+	};
+
 /** `detail.kind` of a Window drag or change event ("move" or "resize"). */
 const dragKind = (ctx: ClassicyAppearanceContext): unknown =>
 	(ctx.detail as { kind?: unknown } | undefined)?.kind;
@@ -63,20 +76,20 @@ export const platinumAppearanceHooks: DeepReadonly<ClassicyAppearanceHooks> =
 		on: {
 			Button: {
 				press: sound("ClassicyButtonClickDown"),
-				release: sound("ClassicyButtonClickUp"),
+				release: unlessLost(sound("ClassicyButtonClickUp")),
 			},
 			BevelButton: {
 				press: sound("ClassicyButtonClickDown"),
-				release: sound("ClassicyButtonClickUp"),
+				release: unlessLost(sound("ClassicyButtonClickUp")),
 				open: sound("ClassicyMenuOpen"),
 			},
 			Placard: {
 				press: pointerOnly(sound("ClassicyButtonClickDown")),
-				release: pointerOnly(sound("ClassicyButtonClickUp")),
+				release: unlessLost(pointerOnly(sound("ClassicyButtonClickUp"))),
 			},
 			RadioInput: {
 				press: sound("ClassicyInputRadioClickDown"),
-				release: sound("ClassicyInputRadioClickUp"),
+				release: unlessLost(sound("ClassicyInputRadioClickUp")),
 			},
 			Tabs: {
 				press: pointerOnly(sound("ClassicyTabClickDown")),

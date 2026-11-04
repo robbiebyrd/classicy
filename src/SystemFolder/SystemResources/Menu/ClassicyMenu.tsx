@@ -354,9 +354,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			clearTimeout(flashTimerRef.current);
 			flashTimerRef.current = undefined;
 		}
+		// A click or Return already ended the press: never a lost one.
 		appearance.emit(
 			"release",
-			withClassicyAppearanceInput({ itemId: menuItem.id }),
+			withClassicyAppearanceInput({ itemId: menuItem.id, lost: false }),
 		);
 		setIsFlashing(false);
 		closeAll();

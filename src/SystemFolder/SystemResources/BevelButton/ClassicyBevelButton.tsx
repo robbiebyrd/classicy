@@ -314,9 +314,13 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const releaseListenerRef = useRef<
 		((e: globalThis.MouseEvent) => void) | null
 	>(null);
-	// A press that may open the surface watches the pointer stream until it
-	// is released (see losePress).
+	// A press watches the pointer stream until it is released (see
+	// losePress); one that may open the surface, until the surface is done
+	// with it.
 	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	// Ends the mouse press under way, which lasts from its mousedown to the
+	// next mouseup anywhere; null when there is none.
+	const endPressRef = useRef<(() => void) | null>(null);
 	const appearance = useClassicyAppearance(
 		"BevelButton",
 		bevelButtonStates(
@@ -416,6 +420,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			clearHoldTimer();
 			detachReleaseListener();
 			stopWatchingPointerStream();
+			endPressRef.current?.();
 		},
 		[clearHoldTimer, detachReleaseListener, stopWatchingPointerStream],
 	);
@@ -425,13 +430,20 @@ export const ClassicyBevelButton: FunctionalComponent<
 	// release at the pointer's return spot would choose whatever is there. A
 	// pending hold never opens the surface, and a menu the press is tracking
 	// closes with nothing chosen. A sticky menu, left open by a click that
-	// already ended, is not a press and stays.
+	// already ended, is not a press and stays. The press's `press` ends in a
+	// `release` that says it was lost, the only one it gets: a release over
+	// the button reports `lost: false`, while one elsewhere (a held menu let
+	// go over an item) reports nothing, as before.
 	const losePress = () => {
+		const pressLasting = endPressRef.current !== null;
+		endPressRef.current?.();
 		stopWatchingPointerStream();
 		clearHoldTimer();
 		setPressed(false);
 		suppressClickRef.current = false;
 		if (releaseListenerRef.current) closePopup();
+		if (pressLasting)
+			appearance.emit("release", { input: "pointer", lost: true });
 	};
 
 	const showArrow =
@@ -461,10 +473,27 @@ export const ClassicyBevelButton: FunctionalComponent<
 		if (onClickFunc) onClickFunc(e);
 	};
 
-	const watchPointerStream = () => {
+	// Follows a press to the next mouseup anywhere (in the capture phase, so
+	// a target that stops it cannot hide it), watching the pointer stream
+	// meanwhile. Run after onPopupMouseDown, so a press that closes a sticky
+	// surface is watched too. A press with no surface to track (none, or one
+	// that closed it) stops watching the pointer stream at that mouseup; one
+	// that may open the surface leaves that to the surface's own release.
+	const beginPress = () => {
+		endPressRef.current?.();
 		stopWatchingPointerStream();
 		stopWatchingPointerStreamRef.current =
 			onClassicyPointerStreamLost(losePress);
+		const onUp = () => {
+			endPressRef.current?.();
+			if (!releaseListenerRef.current && holdTimerRef.current === null)
+				stopWatchingPointerStream();
+		};
+		document.addEventListener("mouseup", onUp, true);
+		endPressRef.current = () => {
+			document.removeEventListener("mouseup", onUp, true);
+			endPressRef.current = null;
+		};
 	};
 
 	const onPopupMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
@@ -478,12 +507,10 @@ export const ClassicyBevelButton: FunctionalComponent<
 				closePopup();
 				return;
 			}
-			watchPointerStream();
 			openPopup(false);
 			listenForRelease(pressedAt);
 			return;
 		}
-		watchPointerStream();
 		holdTimerRef.current = setTimeout(() => {
 			holdTimerRef.current = null;
 			suppressClickRef.current = true;
@@ -551,13 +578,14 @@ export const ClassicyBevelButton: FunctionalComponent<
 					setPressed(true);
 					appearance.emit("press");
 					onPopupMouseDown(e);
+					beginPress();
 				}}
 				onMouseUp={() => {
 					if (disabled) return;
 					stopWatchingPointerStream();
 					clearHoldTimer();
 					setPressed(false);
-					appearance.emit("release");
+					appearance.emit("release", { lost: false });
 				}}
 				// If the pointer leaves while held, a push button reverts to off. A
 				// pending hold keeps running: dragging off toward the menu is part of

@@ -97,7 +97,10 @@ describe("ClassicyMenu appearance", () => {
 		dispatchAnimationEnd(item("save"));
 		expect(emitted("MenuItem")).toEqual([
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
-			{ event: "release", detail: { itemId: "save", input: "pointer" } },
+			{
+				event: "release",
+				detail: { itemId: "save", input: "pointer", lost: false },
+			},
 		]);
 		// The action runs on the next animation frame.
 		expect(onClickFunc).not.toHaveBeenCalled();
@@ -107,7 +110,10 @@ describe("ClassicyMenu appearance", () => {
 		advance(FLASH_FALLBACK_PASSED_MS);
 		expect(emitted("MenuItem")).toEqual([
 			{ event: "press", detail: { itemId: "save", input: "pointer" } },
-			{ event: "release", detail: { itemId: "save", input: "pointer" } },
+			{
+				event: "release",
+				detail: { itemId: "save", input: "pointer", lost: false },
+			},
 		]);
 		expect(onClickFunc).toHaveBeenCalledTimes(1);
 	});
@@ -192,7 +198,10 @@ describe("ClassicyMenu appearance", () => {
 			),
 		).toEqual([
 			{ event: "press", detail: { itemId: "child", input: "pointer" } },
-			{ event: "release", detail: { itemId: "child", input: "pointer" } },
+			{
+				event: "release",
+				detail: { itemId: "child", input: "pointer", lost: false },
+			},
 		]);
 		expect(parentAction).not.toHaveBeenCalled();
 	});

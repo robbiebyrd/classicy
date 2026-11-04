@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { getActiveClassicyAppearancePackageId } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -182,6 +186,38 @@ describe("Platinum control sounds through the appearance hooks", () => {
 				"ClassicyButtonClickUp",
 			]);
 		}
+	});
+
+	// A press whose pointer stream is lost now ends in a release that says
+	// so; it used to end in nothing, and still sounds like it.
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("a press lost on a %s clicks down but never up", (loss) => {
+		render(
+			<>
+				<ClassicyButton>OK</ClassicyButton>
+				<ClassicyBevelButton mode="toggle">Tool</ClassicyBevelButton>
+				<ClassicyPlacard onClick={() => {}}>Plac</ClassicyPlacard>
+				<ClassicyRadioInput name="r" inputs={[{ id: "a", label: "A" }]} />
+			</>,
+		);
+		const targets = [
+			screen.getByRole("button", { name: "OK" }),
+			screen.getByRole("button", { name: "Tool" }),
+			screen.getByRole("button", { name: "Plac" }),
+			screen.getByRole("radio"),
+		];
+		for (const el of targets) {
+			fireEvent.mouseDown(el, { button: 0 });
+			losePointerStream(loss);
+			fireEvent.mouseUp(document.body);
+		}
+		expect(played()).toEqual([
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
+			"ClassicyButtonClickDown",
+			"ClassicyInputRadioClickDown",
+		]);
 	});
 
 	it("the component source no longer dispatches the sprite", () => {

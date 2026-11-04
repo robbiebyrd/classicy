@@ -17,6 +17,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 type ClassicyRadioInputProps = {
 	/** Shared native `name` for every button in the group. */
@@ -123,6 +124,16 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// The group carries no state class of its own: `checked` and `disabled`
 	// live on each item's wrapper.
 	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
+	// A press on an item (its button or its label) ends in a `release` over
+	// it, or, when its pointer stream is lost (the window blurs, a
+	// pointercancel, the page is hidden), in one that says so.
+	const watchPress = useClassicyPointerPress();
+	const pressItem = (itemId: string) => {
+		appearance.emit("press", { itemId });
+		watchPress(() =>
+			appearance.emit("release", { itemId, input: "pointer", lost: true }),
+		);
+	};
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { name, label, disabled, inputs };
@@ -195,7 +206,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 								onChange={() => !itemDisabled && handleOnChange(item.id)}
 								onMouseDown={() => {
 									if (itemDisabled) return;
-									appearance.emit("press", { itemId: item.id });
+									pressItem(item.id);
 									track("click", {
 										type: "ClassicyRadioInput",
 										itemId: item.id,
@@ -204,7 +215,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 								}}
 								onMouseUp={() => {
 									if (itemDisabled) return;
-									appearance.emit("release", { itemId: item.id });
+									appearance.emit("release", { itemId: item.id, lost: false });
 								}}
 							/>
 						</div>
@@ -214,7 +225,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							label={item.label}
 							onMouseDown={() => {
 								if (itemDisabled) return;
-								appearance.emit("press", { itemId: item.id });
+								pressItem(item.id);
 								track("click", {
 									type: "ClassicyRadioInput",
 									itemId: item.id,
@@ -223,7 +234,7 @@ export const ClassicyRadioInput: FunctionalComponent<
 							}}
 							onMouseUp={() => {
 								if (itemDisabled) return;
-								appearance.emit("release", { itemId: item.id });
+								appearance.emit("release", { itemId: item.id, lost: false });
 							}}
 						/>
 					</div>

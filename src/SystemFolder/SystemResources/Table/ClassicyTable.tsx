@@ -22,7 +22,7 @@ import {
 	useState,
 } from "react";
 import type {
-	ClassicyAppearanceDragEnd,
+	ClassicyAppearanceEmitDetail,
 	ClassicyAppearanceEvent,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
@@ -60,9 +60,7 @@ export type ClassicyTableCellContext = {
 		E extends Extract<ClassicyAppearanceEvent, "dragStart" | "dragEnd">,
 	>(
 		event: E,
-		...detail: E extends "dragEnd"
-			? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
-			: [detail?: unknown]
+		...detail: ClassicyAppearanceEmitDetail<E>
 	) => void;
 };
 

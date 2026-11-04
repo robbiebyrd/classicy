@@ -124,8 +124,9 @@ type EmittedDecoration = {
  *   React has detached refs by then, so an `unmount` handler sees
  *   `element: null`. In development StrictMode React runs that effect twice,
  *   so a handler sees mount, unmount, mount.
- * - A `dragEnd` detail must carry `lost` (`ClassicyAppearanceDragEnd`):
- *   true when the gesture ended because the pointer stream was lost.
+ * - A `dragEnd` or `release` detail must carry `lost`
+ *   (`ClassicyAppearanceDragEnd`): true when the gesture or press ended
+ *   because the pointer stream was lost.
  *
  * With no package hooks the result is a pure function of `state`:
  * `className` is `classicyStateClasses(state)`, `style` is undefined and

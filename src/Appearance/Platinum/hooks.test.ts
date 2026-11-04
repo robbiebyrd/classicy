@@ -144,6 +144,33 @@ describe("platinumAppearanceHooks", () => {
 		]);
 	});
 
+	// A press whose pointer stream was lost ends in a release that says so.
+	// It used to emit nothing, so it stays silent: no button-up click for a
+	// press the user never let go of (and may be away from, Alt-Tabbed).
+	it("keeps a lost release silent, and every other release as it was", () => {
+		const rows: Row[] = [
+			["Button", "release", "ClassicyButtonClickUp"],
+			["BevelButton", "release", "ClassicyButtonClickUp"],
+			["Placard", "release", "ClassicyButtonClickUp"],
+			["RadioInput", "release", "ClassicyInputRadioClickUp"],
+		];
+		for (const [c, e, sound] of rows) {
+			for (const input of ["pointer", "keyboard", undefined]) {
+				const kept = run(c, e, { input, lost: false });
+				const expected =
+					c === "Placard" && input === "keyboard"
+						? []
+						: [{ type: "ClassicySoundPlay", sound }];
+				expect(kept.calls, `${c}.${e} ${input}`).toEqual(expected);
+			}
+			const lost = run(c, e, { input: "pointer", lost: true });
+			expect(lost.result, `${c}.${e} lost`).toBeUndefined();
+			expect(lost.calls, `${c}.${e} lost`).toEqual([]);
+		}
+		// A menu item's release, which ends its flash, is never a lost press.
+		expect(run("MenuItem", "release", { lost: false }).result).toEqual({});
+	});
+
 	it("maps window events to sprites", () => {
 		const rows: [ClassicyAppearanceEvent, unknown, string][] = [
 			["focus", undefined, "ClassicyWindowFocus"],

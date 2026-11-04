@@ -99,29 +99,38 @@ export type ClassicyAppearanceInput = "pointer" | "keyboard";
  * a file drag, Escape or its source unmounting too). Host callbacks fired at
  * a gesture's end take it as their trailing argument
  * (`ClassicySplitView`'s `onResizeCommit`, `ClassicySlider`'s
- * `onCommitFunc`), and it is what a package `dragEnd` detail carries
- * (`ClassicyAppearanceDragEnd`).
+ * `onCommitFunc`), and it is what a package `dragEnd` or `release` detail
+ * carries (`ClassicyAppearanceDragEnd`).
  */
 export type ClassicyGestureEnd = { lost: boolean };
 
 /**
- * What every `dragEnd` detail carries beside the component's own fields
- * (`ClassicyGestureEnd`): `detail.lost`. A package uses it to,
+ * What every `dragEnd` and `release` detail carries beside the component's
+ * own fields (`ClassicyGestureEnd`): `detail.lost`. A package uses it to,
  * say, skip a drop sound for a gesture the user never let go of.
  */
 export type ClassicyAppearanceDragEnd = ClassicyGestureEnd;
 
 /**
- * A component's `emit` (`useClassicyAppearance`): a `dragEnd` must carry
- * `lost` (`ClassicyAppearanceDragEnd`) with its own fields; any other event
- * takes the component's own detail, or none.
+ * A component's `emit` (`useClassicyAppearance`): a `dragEnd` or `release`
+ * must carry `lost` (`ClassicyAppearanceDragEnd`) with its own fields; any
+ * other event takes the component's own detail, or none.
  */
 export type ClassicyAppearanceEmit = <E extends ClassicyAppearanceEvent>(
 	event: E,
-	...detail: E extends "dragEnd"
-		? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
-		: [detail?: unknown]
+	...detail: ClassicyAppearanceEmitDetail<E>
 ) => void;
+
+/**
+ * The detail `ClassicyAppearanceEmit` takes for `event`, as a rest tuple: a
+ * required one carrying `lost` for `dragEnd` and `release`, an optional one
+ * of any shape otherwise. Named so a narrower emitter (`ClassicyTable`'s
+ * `emitDrag`) stays assignable from `emit`.
+ */
+export type ClassicyAppearanceEmitDetail<E extends ClassicyAppearanceEvent> =
+	E extends "dragEnd" | "release"
+		? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
+		: [detail?: unknown];
 
 /** What a package hook adds to a component's root element. */
 export type ClassicyAppearanceDecoration = {

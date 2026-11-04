@@ -1,4 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import { ClassicyPlacard } from "@/SystemFolder/SystemResources/Placard/ClassicyPlacard";
@@ -46,7 +51,7 @@ describe("ClassicyPlacard appearance", () => {
 		fireEvent.mouseUp(el);
 		expect(emitted()).toEqual([
 			{ event: "press", detail: { input: "pointer" } },
-			{ event: "release", detail: { input: "pointer" } },
+			{ event: "release", detail: { input: "pointer", lost: false } },
 		]);
 		fireEvent.click(el, { detail: 1 });
 		expect(emitted().slice(2)).toEqual([
@@ -104,9 +109,9 @@ describe("ClassicyPlacard appearance", () => {
 		const keyboard = { input: "keyboard" };
 		expect(emitted()).toEqual([
 			{ event: "press", detail: keyboard },
-			{ event: "release", detail: keyboard },
+			{ event: "release", detail: { ...keyboard, lost: false } },
 			{ event: "press", detail: keyboard },
-			{ event: "release", detail: keyboard },
+			{ event: "release", detail: { ...keyboard, lost: false } },
 		]);
 	});
 
@@ -123,5 +128,67 @@ describe("ClassicyPlacard appearance", () => {
 		expect(el.getAttribute("class")).toBe(
 			"classicyPlacard disabled classicyPlacardHasMenu",
 		);
+	});
+});
+
+describe("ClassicyPlacard when a press loses its pointer stream", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends the press in one release that says it was lost, on a %s", (loss) => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		fireEvent.mouseDown(el);
+		expect(el).toHaveClass("pressed");
+		losePointerStream(loss);
+		expect(el).not.toHaveClass("pressed");
+		expect(emitted()).toEqual([
+			{ event: "press", detail: { input: "pointer" } },
+			{ event: "release", detail: { input: "pointer", lost: true } },
+		]);
+		// A second loss, or the release that finally comes elsewhere, ends
+		// nothing more.
+		losePointerStream(loss);
+		fireEvent.mouseUp(document.body);
+		expect(emitted()).toHaveLength(2);
+	});
+
+	it("sends no lost release for a press already released, here or elsewhere", () => {
+		const { container } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(el);
+		losePointerStream("blur");
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		losePointerStream("pointercancel");
+		expect(emitted().filter((e) => e.event === "release")).toHaveLength(1);
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { container, unmount } = render(
+			<ClassicyPlacard onClick={() => {}}>p</ClassicyPlacard>,
+		);
+		const el = root(container);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(el);
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(el);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(el);
+		fireEvent.mouseUp(document.body);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(el);
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(el);
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });

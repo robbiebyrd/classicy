@@ -15,6 +15,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 type ClassicyButtonProps = PropsWithChildren<{
 	/**
@@ -151,6 +152,11 @@ export const ClassicyButton = forwardRef<
 			buttonRef,
 		);
 
+		// A mouse press ends in a `release` over the button, or, when its
+		// pointer stream is lost (the window blurs, a pointercancel, the page
+		// is hidden), in one that says so.
+		const watchPress = useClassicyPointerPress();
+
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 			appearance.emit("click", withClassicyAppearanceInput());
 			track("click", { ...analyticsArgs });
@@ -171,7 +177,10 @@ export const ClassicyButton = forwardRef<
 
 		const handleKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && isActivationKey(e.key)) {
-				appearance.emit("release", withClassicyAppearanceInput());
+				appearance.emit(
+					"release",
+					withClassicyAppearanceInput({ lost: false }),
+				);
 			}
 			onKeyUp?.(e);
 		};
@@ -198,9 +207,15 @@ export const ClassicyButton = forwardRef<
 				onClick={onHandleFunc}
 				onMouseDown={() => {
 					appearance.emit("press", withClassicyAppearanceInput());
+					watchPress(() =>
+						appearance.emit("release", { input: "pointer", lost: true }),
+					);
 				}}
 				onMouseUp={() => {
-					appearance.emit("release", withClassicyAppearanceInput());
+					appearance.emit(
+						"release",
+						withClassicyAppearanceInput({ lost: false }),
+					);
 				}}
 				onKeyDown={handleKeyDown}
 				onKeyUp={handleKeyUp}
