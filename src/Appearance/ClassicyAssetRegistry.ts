@@ -8,6 +8,7 @@ import {
 	type ClassicyAssetSource,
 	isClassicyAssetSource,
 } from "./ClassicyAssetSource";
+import { classicyFontFaceRule } from "./ClassicyFontFaceCss.internal";
 import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource.internal";
 
 const PLATINUM = "platinum";
@@ -522,36 +523,9 @@ export const registerClassicyWallpapers = (
 		Object.fromEntries(list.map((w) => [w.name, w.src])),
 	);
 
-const FONT_FORMATS: Record<string, string> = {
-	woff2: "woff2",
-	woff: "woff",
-	ttf: "truetype",
-	truetype: "truetype",
-	otf: "opentype",
-	opentype: "opentype",
-};
-
 // biome-ignore lint/suspicious/noControlCharactersInRegex: refusing control characters is the point
 const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
 const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
-
-/** ` format("…")` from a data: mime or the file extension; empty if unknown. */
-const fontFormat = (src: ClassicyAssetSource): string => {
-	const ext = src.startsWith("data:")
-		? /^data:(?:font\/|application\/font-)([a-z0-9]+)/i.exec(src)?.[1]
-		: /\.([a-z0-9]+)(?:[?#]|$)/i.exec(src)?.[1];
-	const key = ext?.toLowerCase();
-	return key && Object.hasOwn(FONT_FORMATS, key)
-		? ` format("${FONT_FORMATS[key]}")`
-		: "";
-};
-
-const fontFaceRule = (face: StoredFontFace): string => {
-	const sources = face.sources
-		.map((src) => `url("${src}")${fontFormat(src)}`)
-		.join(",");
-	return `@font-face{font-family:"${face.family}";src:${sources};font-weight:${face.weight};font-style:${face.style};font-display:swap}`;
-};
 
 /** Rewrites `<style id="classicy-fonts-<packageId>">` from that package's faces. */
 const writeClassicyFontFaces = (packageId: string): void => {
@@ -570,7 +544,7 @@ const writeClassicyFontFaces = (packageId: string): void => {
 		else document.head.prepend(style);
 	}
 	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
-		.map(fontFaceRule)
+		.map(classicyFontFaceRule)
 		.join("\n");
 };
 

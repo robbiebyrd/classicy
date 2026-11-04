@@ -6,11 +6,17 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
+import {
+	CLASSICY_PLATINUM_FONT_STYLESHEET,
+	classicyEmittedFontFiles,
+	classicyFontStylesheet,
+} from "./bin/classicyFontStylesheet";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
+import { PLATINUM_FONT_FACES } from "./src/Appearance/Platinum/assets/platinumFonts.internal";
 
 // Package assets under src/Appearance (the Platinum fonts and system art) must
 // ship as files in dist/assets, not as base64 inside the bundle. Lib mode
@@ -70,6 +76,14 @@ function noInlineAppearanceAssetsPlugin(): Plugin {
 // final transformed code, so it is byte for byte what the bundle injects
 // (check-dist-imports.mjs invariant 7 compares the two).
 //
+// The Platinum fonts are files in dist/assets that registerClassicyFonts
+// writes `@font-face` rules for, at runtime, into
+// `<style id="classicy-fonts-platinum">`, which a strict CSP blocks as well.
+// dist/classicy-platinum.fonts.css carries the same rules (the runtime's face
+// list and rule writer, bin/classicyFontStylesheet.ts), each url() naming the
+// font's emitted file relative to dist/, for those hosts to link after
+// classicy-platinum.css (invariant 12).
+//
 // dist/fonts.js is a deprecated no-op: the Platinum fonts are files registered
 // at runtime (registerClassicyFonts), but `import "classicy/fonts"` must keep
 // resolving for existing consumers. UMD allows only one entry, so fonts.js is
@@ -123,6 +137,22 @@ function injectCssPlugin(): Plugin {
 				source:
 					'// No-op side-effect module: importing "classicy" registers the Platinum appearance package.\nexport {};\n',
 			});
+			const fontFiles = classicyEmittedFontFiles(
+				Object.values(bundle).flatMap((output) =>
+					output.type === "asset" ? [output] : [],
+				),
+			);
+			try {
+				this.emitFile({
+					type: "asset",
+					fileName: CLASSICY_PLATINUM_FONT_STYLESHEET,
+					source: classicyFontStylesheet(PLATINUM_FONT_FACES, (face) =>
+						fontFiles.get(face.file),
+					),
+				});
+			} catch (error) {
+				this.error(error instanceof Error ? error.message : String(error));
+			}
 			for (const { fileName, css: packageCss } of classicyPackageStylesheets(
 				Array.from(this.getModuleIds(), (id) => ({
 					id,

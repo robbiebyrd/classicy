@@ -3,6 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
+import {
+	CLASSICY_PLATINUM_FONT_STYLESHEET,
+	classicyFontStylesheet,
+} from "./classicyFontStylesheet";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 // Invariant 7 end to end: the real bin/check-dist-imports.mjs, run in
@@ -282,6 +287,57 @@ describe("check-dist-imports.mjs invariant 11: plain .css under src (named files
 			new RegExp(
 				`^${FILE.replace(/\./g, "\\.")}: a plain \\.css file with rules`,
 			),
+		);
+	});
+});
+
+// Invariant 12: the static font stylesheet strict-CSP hosts link declares the
+// runtime's faces, each pointing at a file next to it in assets/.
+describe("check-dist-imports.mjs invariant 12: the Platinum font stylesheet (named files)", () => {
+	const FILE = join("dist", CLASSICY_PLATINUM_FONT_STYLESHEET);
+	const css = classicyFontStylesheet(
+		PLATINUM_FONT_FACES,
+		(face) => `assets/${face.file}.woff2`,
+	);
+	const fonts = (skip?: string) =>
+		Object.fromEntries(
+			PLATINUM_FONT_FACES.filter((face) => face.file !== skip).map((face) => [
+				join("dist", "assets", `${face.file}.woff2`),
+				"wOF2",
+			]),
+		);
+
+	it("passes the generated stylesheet with every font beside it", () =>
+		expect(check({}, { [FILE]: css, ...fonts() })).toEqual({
+			status: 0,
+			stderr: "",
+		}));
+
+	it("fails when a face's font file is missing", () => {
+		const { status, stderr } = check(
+			{},
+			{ [FILE]: css, ...fonts("Monaco-normal-normal") },
+		);
+		expect(status).toBe(1);
+		expect(stderr.trim()).toBe(
+			`${FILE}: url("assets/Monaco-normal-normal.woff2") does not resolve to a file in dist/assets.`,
+		);
+	});
+
+	it("fails when a face is missing", () => {
+		const { status, stderr } = check(
+			{},
+			{
+				[FILE]: css
+					.split("\n")
+					.filter((rule) => !rule.includes('"Monaco"'))
+					.join("\n"),
+				...fonts(),
+			},
+		);
+		expect(status).toBe(1);
+		expect(stderr.trim()).toBe(
+			`${FILE}: no @font-face for "Monaco" normal normal, which the runtime registers.`,
 		);
 	});
 });

@@ -43,6 +43,15 @@ describe("package.json: the Appearance Packages surface", () => {
 		);
 	});
 
+	// Strict-CSP hosts link classicy.css, classicy-platinum.css and
+	// classicy-platinum.fonts.css as `classicy/dist/<name>`: the `./dist/*`
+	// subpath and `files: ["dist"]` serve all three, with no export of their own.
+	it("serves the three strict-CSP stylesheets through ./dist/*", () => {
+		expect(pkg.exports["./dist/*"]).toBe("./dist/*");
+		expect(pkg.files).toContain("dist");
+		expect(pkg.sideEffects).toContain("**/*.css");
+	});
+
 	it("marks the Platinum entry as a side effect", () => {
 		expect(pkg.sideEffects).toContain("./src/Appearance/Platinum/index.ts");
 		expect(pkg.sideEffects).toContain("./dist/appearance-platinum.js");

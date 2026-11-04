@@ -10,6 +10,7 @@ import {
 	PLATINUM_SYSTEM_ART,
 } from "@/Appearance/Platinum/assets/art/platinumArt";
 import { PLATINUM_PIXEL_ART } from "@/Appearance/Platinum/assets/pixelart/platinumPixelArt";
+import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
@@ -79,35 +80,18 @@ const fontModules = import.meta.glob("./fonts/*.woff2", {
 	import: "default",
 }) as Record<string, string>;
 
-const font = (
-	family: string,
-	file: string,
-	weight?: string,
-	style?: string,
-): ClassicyFontFace => ({
-	family,
-	src: fontModules[`./fonts/${file}.woff2`] ?? "",
-	weight,
-	style,
-});
-
 /**
  * Platinum's thirteen bundled faces, woff2 only (baseline in every supported
- * browser). Registration order is the Fonts tab's order: Charcoal, ChicagoFLF,
- * Geneva, AppleGaramond, Monaco, then VCR OSD Mono ("Digital").
+ * browser), from the list dist/classicy-platinum.fonts.css is built from.
  */
-registerClassicyFonts(PLATINUM, [
-	font("Charcoal", "Charcoal-normal-normal"),
-	font("ChicagoFLF", "ChicagoFLF-normal-normal"),
-	font("Geneva", "Geneva-normal-normal"),
-	font("Geneva", "Geneva-bold-normal", "bold"),
-	font("Geneva", "Geneva-normal-italic", "normal", "italic"),
-	font("AppleGaramond", "AppleGaramond-normal-normal"),
-	font("AppleGaramond", "AppleGaramond-bold-normal", "bold"),
-	font("AppleGaramond", "AppleGaramond-bold-italic", "bold", "italic"),
-	font("AppleGaramond", "AppleGaramond-normal-italic", "normal", "italic"),
-	font("AppleGaramond", "AppleGaramond-300-normal", "300"),
-	font("AppleGaramond", "AppleGaramond-300-italic", "300", "italic"),
-	font("Monaco", "Monaco-normal-normal"),
-	font("VCR OSD Mono", "VCROSDMono-normal-normal"),
-]);
+registerClassicyFonts(
+	PLATINUM,
+	PLATINUM_FONT_FACES.map(
+		({ family, file, weight, style }): ClassicyFontFace => ({
+			family,
+			src: fontModules[`./fonts/${file}.woff2`] ?? "",
+			weight,
+			style,
+		}),
+	),
+);

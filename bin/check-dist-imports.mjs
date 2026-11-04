@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Eleven invariants on the *published* bundle (and, for the last, on the
+// Twelve invariants on the *published* bundle (and, for the last, on the
 // sources it is built from). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
@@ -110,10 +110,23 @@
 //    10's failure, at its source). Empty and comment-only files pass
 //    (src/index.css is empty). Checked on every src/**/*.css (named .css
 //    files under src/ in named mode).
+//
+// 12. THE PLATINUM FONTS SHIP AS A STYLESHEET TOO. The runtime writes them into
+//    `<style id="classicy-fonts-platinum">` (registerClassicyFonts), which a
+//    strict CSP blocks like the injected look; those hosts link
+//    dist/classicy-platinum.fonts.css after classicy.css and
+//    classicy-platinum.css. It must exist and hold only unlayered @font-face
+//    rules, exactly one per face the runtime registers
+//    (PLATINUM_FONT_FACES), each the rule the runtime writes
+//    (classicyFontFaceRule), and every url() must name a file in the
+//    assets/ folder beside it (bin/classicyFontStylesheet.ts). Checked when
+//    the file is named, in named mode.
 
+import { statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { argv, exit } from "node:process";
+import { PLATINUM_FONT_FACES } from "../src/Appearance/Platinum/assets/platinumFonts.internal.ts";
 import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
@@ -129,6 +142,10 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
+import {
+	CLASSICY_PLATINUM_FONT_STYLESHEET,
+	findClassicyFontStylesheetProblems,
+} from "./classicyFontStylesheet.ts";
 import {
 	findClassicyPackageCssProblems,
 	requiredClassicyPackageBundles,
@@ -593,6 +610,36 @@ if (!argv.slice(2).length) {
 	if (problems.length) failed = true;
 	else if (files.length)
 		console.log(`src/: ${files.length} plain .css file(s), none with CSS`);
+}
+
+// Invariant 12: the Platinum font stylesheet. With named files, only if named.
+{
+	const named = argv.slice(2);
+	const files = named.length
+		? named.filter((f) => basename(f) === CLASSICY_PLATINUM_FONT_STYLESHEET)
+		: [join(DIST, CLASSICY_PLATINUM_FONT_STYLESHEET)];
+	for (const file of files) {
+		const css = await readFile(file, "utf8").catch(() => null);
+		const isFile = (url) => {
+			try {
+				return statSync(join(dirname(file), url)).isFile();
+			} catch {
+				return false;
+			}
+		};
+		const problems = findClassicyFontStylesheetProblems(
+			file,
+			css,
+			PLATINUM_FONT_FACES,
+			isFile,
+		);
+		for (const problem of problems) console.error(problem);
+		if (problems.length) failed = true;
+		else
+			console.log(
+				`${file}: the ${PLATINUM_FONT_FACES.length} @font-face rules the runtime writes, unlayered, every url() a file in assets/`,
+			);
+	}
 }
 
 if (failed) exit(1);
