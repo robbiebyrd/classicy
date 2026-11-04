@@ -89,7 +89,10 @@ interface ClassicySliderProps {
 	id: string;
 	/** Visible label text. Omit for no label (then pass `ariaLabel`). */
 	labelTitle?: string;
-	/** Size of the label and of the value readout. Defaults to `"medium"`. */
+	/**
+	 * Size of the label. Defaults to `"medium"`. The value readout stays the
+	 * small size whatever this says.
+	 */
 	labelSize?: ClassicyControlLabelSize;
 	/** Where the label sits relative to the slider. Defaults to `"above"`. */
 	labelPosition?: ClassicyLabelPosition;

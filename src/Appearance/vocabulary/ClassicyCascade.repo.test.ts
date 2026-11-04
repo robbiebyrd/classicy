@@ -507,6 +507,22 @@ describe("cross-file overrides do not depend on import order", () => {
 			`${W}Menu/ClassicyMenu.scss`,
 			"margin",
 		],
+		// The slider's value readout also carries its labelSize class; it is
+		// meant to stay the small size whatever labelSize says (bf10949e5).
+		[
+			".classicySliderTrackGroup > .classicySliderValue",
+			`${W}Slider/ClassicySlider.scss`,
+			".classicyControlLabelSizeMedium",
+			`${W}ControlLabel/ClassicyControlLabel.scss`,
+			"font-size",
+		],
+		[
+			".classicySliderTrackGroup > .classicySliderValue",
+			`${W}Slider/ClassicySlider.scss`,
+			".classicyControlLabelSizeLarge",
+			`${W}ControlLabel/ClassicyControlLabel.scss`,
+			"font-size",
+		],
 		[
 			".classicyWindowPlacardBar .classicyPlacardHolder",
 			`${W}Window/ClassicyWindow.scss`,

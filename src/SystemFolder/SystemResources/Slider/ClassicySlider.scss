@@ -98,12 +98,17 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   }
 }
 
-// The readout's size is its labelSize class's (classicyControlLabelSize*,
-// sizeClassMap in ClassicySlider.tsx), as the label's is; a font-size here
-// would tie with those classes and win or lose by stylesheet order.
 .classicySliderValue {
   font-family: var(--ui-font);
   text-align: center;
+}
+
+// The readout is drawn at the small size whatever labelSize says (bf10949e5),
+// though it also carries its labelSize class (classicyControlLabelSize*,
+// sizeClassMap in ClassicySlider.tsx). Named under its track group so it
+// outranks those one-class rules whichever stylesheet loads first.
+.classicySliderTrackGroup > .classicySliderValue {
+  font-size: var(--ui-font-size-small);
 }
 
 // ─── Indicator direction ───────────────────────────────────────────────────────
