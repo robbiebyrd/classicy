@@ -2074,6 +2074,9 @@ dispatch({ type: 'ClassicyDesktopLoadThemes', availableThemes: [...getAllThemes(
 dispatch({ type: 'ClassicyDesktopChangeTheme', activeTheme: 'myTheme' })  // no-op if id unknown
 ```
 
+The loaded list is not persisted (built-ins come from the code; below), so
+dispatch `ClassicyDesktopLoadThemes` on every boot.
+
 ### Custom themes and color edits
 
 Built-in themes (`Appearance.availableThemes` and every package's `presets`)
@@ -2140,10 +2143,33 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
   entry, which the Appearance Manager never offers. `ClassicyDesktopLoadThemes`
   leaves `customThemes` alone.
 
-`customThemes` is persisted separately from `availableThemes` because persisted
-arrays replace their defaults on load — a custom entry inside
-`availableThemes` would freeze the built-in list. State saved before custom
-themes existed loads with `customThemes: []`. Read helpers:
+**Built-in themes are never persisted; they come from the code on every
+load** (`ClassicyBuiltInThemes.internal.ts`), so a preset fixed, added or
+removed by a later release reaches existing users. Only `customThemes` and the
+user's choice (`packageId`, the active theme) are saved:
+
+- `sanitizeStateForPersistence` drops `availableThemes`, and the load path
+  drops one saved by an older build, so the defaults' current list
+  (`getAllThemes()`) applies. A host's `ClassicyDesktopLoadThemes` list is
+  session state: dispatch it on every boot, as packages are registered.
+- An unchanged built-in active theme (one of its package's `defaults` or
+  `presets`, that package registered or Platinum, equal to what activating it
+  gives now, package knob defaults aside) is saved as a reference,
+  `{ id, package }`. Every other active theme is saved whole: a custom theme,
+  a host-loaded theme, a theme of a package not registered at save time, and
+  a built-in id whose data differs from the preset (state saved before
+  custom themes existed edited the active theme in place, so it may be the
+  user's own; it is never overwritten).
+- On load a reference is resolved against the code: the built-in, completed
+  as `ClassicyDesktopChangeTheme` completes it, or, when the package no
+  longer has it, the package's `defaults`, as a package switch falls back,
+  with one `classicyLog` warning. A reference to a package not registered yet
+  holds the default theme's data under that id until the package registers,
+  is resolved then, and is saved as the reference meanwhile.
+- Custom themes are never touched. State saved before custom themes existed
+  loads with `customThemes: []`.
+
+Read helpers:
 `listClassicyThemes(appearance)` (built-ins then customs),
 `listClassicyPackageBuiltInThemes(pkg)` (a package's own themes: its
 `defaults` first unless a preset has their id, then its `presets`),
