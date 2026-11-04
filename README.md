@@ -142,7 +142,7 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   color) and paints the dither on a `::before` child, which sets
   `position: relative` and `isolation: isolate` on the element it is
   included in.
-  `platinum-encode-color` is removed.
+  The `encode-color` SCSS function is removed.
 - **Platinum's art is registered system art** (`--classicy-art-<key>`,
   published by `ClassicyDesktop`): the `assets.$…` art variables are gone,
   and a standalone component needs `useClassicyAssetVars()` on its wrapper

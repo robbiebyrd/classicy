@@ -209,7 +209,7 @@ Package `exports` map:
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8), `classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
 | `classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `classicy` registers the Platinum package, so you never need this specifier |
-| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (the `$` art variables). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
+| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -4286,9 +4286,11 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the missing ids) and plays those sprites from the Platinum pack; a sprite
   missing from both is not played.
 - **Single source of truth**: the active theme's `sound.pack` decides which
-  pack plays. A host switches packs by activating, or importing, a theme that
-  carries `sound.pack` (`ClassicyDesktopImportTheme`) until a dedicated
-  appearance-option action ships. `ClassicySoundLoad` is the provider's
+  pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
+  { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
+  must be shared or the active package's, and the first edit of a built-in
+  theme forks it into Custom), or by activating or importing a theme that
+  carries `sound.pack` (`ClassicyDesktopImportTheme`). `ClassicySoundLoad` is the provider's
   internal action: dispatching it directly works only until the provider's next
   sync, which reverts the player to the active theme's pack.
 - **Boot and switching**: `ClassicySoundManagerProvider` reads
