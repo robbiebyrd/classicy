@@ -1,6 +1,11 @@
 import { act, fireEvent } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { render, screen } from "@/__tests__/test-utils";
 import { ClassicyLittleArrows } from "@/SystemFolder/SystemResources/LittleArrows/ClassicyLittleArrows";
 
@@ -156,6 +161,40 @@ describe("ClassicyLittleArrows", () => {
 				vi.advanceTimersByTime(600);
 			});
 			expect(onStep.mock.calls.length).toBe(count);
+		});
+
+		it.each(POINTER_STREAM_LOSSES)("stops repeating on a %s", (loss) => {
+			const onStep = vi.fn();
+			render(<ClassicyLittleArrows onStep={onStep} />);
+			fireEvent.mouseDown(upBtn());
+			act(() => {
+				vi.advanceTimersByTime(300);
+			});
+			losePointerStream(loss);
+			const count = onStep.mock.calls.length;
+			act(() => {
+				vi.advanceTimersByTime(600);
+			});
+			expect(onStep.mock.calls.length).toBe(count);
+		});
+
+		it("watches the pointer stream only while an arrow is held", () => {
+			const live = trackPointerStreamListeners();
+			const { unmount } = render(<ClassicyLittleArrows onStep={vi.fn()} />);
+			expect(live.size).toBe(0);
+			fireEvent.mouseDown(upBtn());
+			expect(live.size).toBe(3);
+			fireEvent.mouseUp(upBtn());
+			expect(live.size).toBe(0);
+			fireEvent.mouseDown(downBtn());
+			fireEvent.mouseLeave(downBtn());
+			expect(live.size).toBe(0);
+			fireEvent.mouseDown(upBtn());
+			losePointerStream("blur");
+			expect(live.size).toBe(0);
+			fireEvent.mouseDown(upBtn());
+			unmount();
+			expect(live.size).toBe(0);
 		});
 	});
 });

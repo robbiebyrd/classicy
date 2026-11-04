@@ -10,6 +10,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
 // want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
@@ -82,8 +83,14 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	const onStepRef = useRef(onStep);
 	onStepRef.current = onStep;
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	// While an arrow is held, the pointer stream is watched: lost (the window
+	// blurs, a pointercancel, the page is hidden), the repeat stops, since
+	// the release that would stop it may never reach the button.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
 
 	const stop = () => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 		if (intervalRef.current !== null) {
 			clearInterval(intervalRef.current);
 			intervalRef.current = null;
@@ -93,6 +100,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	// Cleanup on unmount.
 	useEffect(() => {
 		return () => {
+			stopWatchingPointerStreamRef.current?.();
 			if (intervalRef.current !== null) clearInterval(intervalRef.current);
 		};
 	}, []);
@@ -131,6 +139,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 		intervalRef.current = setInterval(() => {
 			onStepRef.current(direction, Date.now() - pressedAt);
 		}, repeatIntervalMs);
+		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(stop);
 	};
 
 	// Keyboard operability (HIGOS8 Ch.2 "Little Arrows"/"Clock Controls", p.35-36):
