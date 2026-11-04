@@ -770,11 +770,15 @@ Everything is exported from `classicy`. The links go to the full reference.
   `blur`, a `pointercancel`, a hidden page), `false` for a release, so a
   package can skip a drop sound or animation for a lost gesture. A lost file
   drag is `canceled: true, lost: true`; Escape is `canceled: true,
-  lost: false`. A lost mouse press on Button, BevelButton, Placard or
-  RadioInput ends in a `release` with `lost: true` (Platinum plays no
-  button-up click for it); other releases say `lost: false`. `emit`'s type,
+  lost: false`. Every `release` also carries `canceled`
+  (`ClassicyAppearanceRelease`), and every mouse press on Button,
+  BevelButton, Placard or RadioInput ends in exactly one: `canceled: false`
+  over the control, `canceled: true` when let go elsewhere (dragged off, a
+  held bevel menu let go over an item), and `lost: true, canceled: true`
+  when lost (Platinum plays no button-up click for a canceled one); other
+  releases say `lost: false, canceled: false`. `emit`'s type,
   `ClassicyAppearanceEmit`, requires `lost` on a `dragEnd` or `release`
-  detail. `ClassicySplitView`'s `onResizeCommit` and `ClassicySlider`'s
+  detail, and `canceled` on a `release`. `ClassicySplitView`'s `onResizeCommit` and `ClassicySlider`'s
   `onCommitFunc` take the same `{ lost }` (`ClassicyGestureEnd`) as a
   trailing argument; one-argument handlers keep working.
 - Handlers play sounds with `playClassicyAppearanceSound(sound, { interrupt? })`.

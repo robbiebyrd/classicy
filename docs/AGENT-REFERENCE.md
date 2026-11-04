@@ -2810,8 +2810,8 @@ those changes.
 - `emit(event, detail?)` runs `hooks.on[component][event]` synchronously
   with `{ component, event, element, state, detail }` (the latest state and
   `ref.current`). Its type (`ClassicyAppearanceEmit`) requires a `dragEnd`
-  or `release` detail carrying `lost` (below); every other event's detail
-  is optional.
+  detail carrying `lost`, and a `release` detail carrying `lost` and
+  `canceled` (below); every other event's detail is optional.
 - With no package hooks the result is a pure function of `state`
   (`classicyStateClasses(state)`, no `style`, `attrs` `{}`), so a component
   renders exactly as before.
@@ -2907,14 +2907,25 @@ ends where it is, as a release there would, and still emits its one
 `dragEnd`; `lost` lets a package tell the two apart, say to skip a drop
 sound or animation for a gesture the user never let go of. A file drag's
 `lost` is `true` only for a lost stream, so `canceled: true, lost: false` is
-Escape or the source unmounting. A mouse `press` on Button, BevelButton,
-Placard or RadioInput whose stream is lost ends in one `release`
-`{ input: "pointer", lost: true }` (RadioInput adds `itemId`); one released
-over the control reports `lost: false`, and one released elsewhere still
-emits no `release`. Platinum's window `dragEnd` sound plays either way, but
-a lost `release` is silent (no button-up click for a press never let go
-of, as before it was emitted). A handler reads it as
-`(ctx.detail as ClassicyAppearanceDragEnd).lost`. Host callbacks fired at
+Escape or the source unmounting. Every `release` also carries
+`canceled: boolean` (`ClassicyAppearanceRelease`), and every mouse `press`
+on Button, BevelButton, Placard or RadioInput ends in exactly one
+`release`, reported at the next mouseup anywhere (in the capture phase, so
+an element that stops it cannot swallow it): released over the control,
+`lost: false, canceled: false`; let go elsewhere (dragged off, a held bevel
+menu let go over an item or outside, another radio item), `{ input:
+"pointer", lost: false, canceled: true }`; lost, `{ input: "pointer",
+lost: true, canceled: true }`, since a lost press is canceled as a lost file
+drag is (RadioInput adds `itemId` to each). A mouseup over a control
+pressed elsewhere still reports a `release` there, `canceled: false`.
+Keyboard and MenuItem releases say `lost: false, canceled: false`. A held
+bevel menu's canceled or lost `release` comes first, at the mouseup or the
+loss; then the menu's `close`, then (let go over an item, once its flash
+ends) the item's action. Platinum's window `dragEnd` sound plays either
+way, but a canceled `release`, lost or not, is silent (no button-up click
+for a press not let go of over the control, as before it was emitted). A
+handler reads them as `(ctx.detail as ClassicyAppearanceRelease).canceled`
+and `(ctx.detail as ClassicyAppearanceDragEnd).lost`. Host callbacks fired at
 a gesture's end take the same shape as a trailing argument:
 `ClassicySplitView`'s `onResizeCommit(sizes, { lost })` and
 `ClassicySlider`'s `onCommitFunc(value, { lost })` (`false` on a key
@@ -2926,16 +2937,16 @@ inner elements (rows, tab buttons, items) stay there.
 
 | Component | Decoration root | States | Events (detail) |
 |---|---|---|---|
-| Button | `button.classicyButton` | default, pressed | press `{ input }`, release `{ input, lost }` (mouse, Return/Space; a lost mouse press, `lost: true`), click `{ input }` |
-| BevelButton | `button.classicyBevelButton` | disabled, mixed, pressed, checked, open | press, release `{ lost }` (mouse only; a lost press, held menu included, `{ input: "pointer", lost: true }`), click `{ input }`, open `{ trigger: "click" \| "hold", input }`, close `{ input }` |
+| Button | `button.classicyButton` | default, pressed | press `{ input }`, release `{ input, lost, canceled }` (mouse, Return/Space; one per mouse press: let go off the button, `canceled: true`; lost, `lost: true, canceled: true`), click `{ input }` |
+| BevelButton | `button.classicyBevelButton` | disabled, mixed, pressed, checked, open | press, release `{ lost, canceled }` (mouse only, one per press; let go off the button, a held menu let go over an item included, `{ input: "pointer", lost: false, canceled: true }`; lost, `{ input: "pointer", lost: true, canceled: true }`), click `{ input }`, open `{ trigger: "click" \| "hold", input }`, close `{ input }` |
 | Checkbox | `input.classicyCheckbox` | default, mixed, checked, disabled | change `{ checked, input }` |
-| RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press `{ itemId }` and release `{ itemId, lost }` (mouse only, on the input or label; a lost press adds `input: "pointer"`), change `{ itemId, input }` (click, arrow keys) |
+| RadioInput | `div.classicyRadioInputGroup` | none (item states stay on `.classicyRadioInputWrapper`) | press `{ itemId }` and release `{ itemId, lost, canceled }` (mouse only, on the input or label, one per press; a press let go off its item, `canceled: true`, or lost, `lost: true, canceled: true`, adds `input: "pointer"`), change `{ itemId, input }` (click, arrow keys) |
 | PopUpMenu | `div.classicyPopUpMenu` | disabled, open | open `{ input }`, change `{ value, input }`, close `{ input }` |
 | ComboBox | `div.classicyComboBox` | disabled | open `{ input }` (typing, an arrow key, the arrow button), change `{ value, input }` (a pick from the list), close `{ input }` |
 | Input | `input.classicyInput` | none (`isDefault` keeps `classicyInputDefault`) | focus `{ input }`, blur `{ input }`, change `{ value }` (text entry: no `input`) |
 | ListBox | `div.classicyListBox` | disabled | select `{ value, selected, input }` (click, Space, arrows, Home/End, type-select; `selected: false` for a Ctrl/⌘-click deselect), focus/blur `{ input }` when focus enters or leaves the list |
 | Slider | `input.classicySlider` | disabled (`highlighted` keeps its modifier class) | change `{ value, input }` (drag, click, arrow keys); dragStart `{ value }` and dragEnd `{ value, lost }` bracket every pointer press, a plain track click included (pointer only; one dragEnd per dragStart, even when released outside the input or when the pointer stream is lost: a window `blur`, a `pointercancel`, the page hidden, which also commits the value through `onCommitFunc`, with `lost: true`) |
-| Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press `{ input }` and release `{ input, lost }` (mouse, Return/Space; a lost mouse press, `lost: true`), click `{ menu, input }`, open `{ input }`, close `{ input }` |
+| Placard | `.classicyPlacard` (`button` when interactive, else `div`) | disabled, pressed (also while its menu is open) | press `{ input }` and release `{ input, lost, canceled }` (mouse, Return/Space; one per mouse press: let go off the placard, `canceled: true`; lost, `lost: true, canceled: true`), click `{ menu, input }`, open `{ input }`, close `{ input }` |
 | Tabs | `div.classicyTabContainer` | none (`selected` stays on `.classicyTabButton`) | press `{ tabId, input }` (mousedown, or the tab an arrow/Home/End key lands on), select `{ tabId, input }` (mouseup, or that key); change `{ scroll: -1 \| 1 }` from the scroll arrows (pointer only: they are not focusable) |
 | Disclosure | `div.classicyDisclosure` | none (`open` stays on `.classicyDisclosureInner`) | expand `{ input }`, collapse `{ input }` (click, Enter, Space, ⌘/Ctrl+→/←) |
 | Tree | `ul.classicyTree` | none (row states stay on rows) | expand/collapse `{ nodeId, open, input }`, select `{ nodeId, input }` |
@@ -2945,7 +2956,7 @@ inner elements (rows, tab buttons, items) stay there.
 | Window | `div.classicyWindow` | collapsed, active, inactive, dragging (active: a modal or the front window; dragging: the store's `moving`) | focus `{ input }` (became focused); collapse/expand `{ input }`, or `{ all: true, input }` once for an Option-click collapse-all; zoom `{ zoomed, input, cause }`; close `{ input }`; dragStart/change `{ kind: "move" \| "resize" }` and dragEnd `{ kind, lost }` (pointer only) |
 | Alert | `div.classicyAlert` (the body inside the alert's window) | none | open (once per mount); close `{ buttonId, input }` (the button that dismissed it: click, Return, Escape, ⌘.) |
 | Menu | the menu's root `<ul>` (its classes come from `navClass`; a submenu is its own Menu) | none | open/close `{ itemId, input }` when its open submenu changes |
-| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
+| MenuItem | `li.classicyMenuItem` | disabled, open | press `{ itemId, input }` (a leaf chosen: click or Return), release `{ itemId, input, lost: false, canceled: false }` (that leaf's flash ends), open `{ itemId, input }` (a submenu opened by click or Return), focus `{ itemId, input }`, blur `{ itemId, input }` |
 | DesktopIcon | `div.classicyDesktopIcon` | selected, open, dragging | select `{ input }` (a press or click on the icon; the desktop's arrow keys and type-ahead), open `{ input }` (double-click, Enter/Space), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | Icon | `div.classicyIcon` | dragging, selected | select `{ selected }` (a click toggle), open `{ input }` (double-click, Enter/Space; only with an open action), dragStart/dragEnd (pointer only): dragStart with no detail and dragEnd `{ lost }` for a positional drag, `{ kind: "file", … }` for a Finder outline drag (below) |
 | ControlStrip | `div.classicyControlStrip` | collapsed, dragging | collapse/expand `{ input }` (tab or collapse box, click or keys, a drag on a collapsed tab); dragStart `{ kind: "resize" }` (tab drag) or `{ kind: "move" }` (Control-drag of the collapse box) and dragEnd `{ kind, lost }`, pointer only; a drag whose pointer stream is lost ends where it is, storing that width or position, with its `dragEnd` (`lost: true`) |
@@ -3458,7 +3469,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
-| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10) |
+| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
 the shared notice string (Colors passes "a color", Metrics "a metric",
