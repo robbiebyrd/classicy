@@ -55,6 +55,7 @@ import {
 	classicyWindowPageTitle,
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowRect,
@@ -719,17 +720,37 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const docMoveHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(
 		() => {},
 	);
-	const docUpHandlerRef = useRef<(e: globalThis.MouseEvent) => void>(() => {});
+	const docUpHandlerRef = useRef<() => void>(() => {});
+	// While a press lasts (a title-bar or frame press that may become a move,
+	// or a resize), the pointer stream is watched: lost (the window blurs, a
+	// pointercancel, the page is hidden), the gesture ends where it is,
+	// through docUpHandlerRef, as a release there would end it. The window
+	// keeps the geometry it was dragged to rather than jumping back, and the
+	// store's dragging/moving/resizing flags are cleared, so it never follows
+	// the pointer back with no button held.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	const stopWatchingPointerStream = () => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
+	};
+	const watchPointerStream = () => {
+		stopWatchingPointerStream();
+		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(() =>
+			docUpHandlerRef.current(),
+		);
+	};
 
 	useEffect(() => {
 		const moveHandler = (e: globalThis.MouseEvent) =>
 			docMoveHandlerRef.current(e);
-		const upHandler = (e: globalThis.MouseEvent) => docUpHandlerRef.current(e);
+		const upHandler = () => docUpHandlerRef.current();
 		document.addEventListener("mousemove", moveHandler);
 		document.addEventListener("mouseup", upHandler);
 		return () => {
 			document.removeEventListener("mousemove", moveHandler);
 			document.removeEventListener("mouseup", upHandler);
+			stopWatchingPointerStreamRef.current?.();
+			stopWatchingPointerStreamRef.current = null;
 		};
 	}, []);
 
@@ -1122,7 +1143,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		}
 	};
 
-	docUpHandlerRef.current = (_e: globalThis.MouseEvent) => {
+	// Every release (the document hears those on the window too, after
+	// stopChangeWindow), or the pointer stream lost.
+	docUpHandlerRef.current = () => {
+		stopWatchingPointerStream();
 		pendingDragRef.current = false;
 		if (!isDraggingRef.current && !isResizingRef.current) return;
 		const wasResizing = isResizingRef.current;
@@ -1202,6 +1226,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			windowRef.current,
 		);
 		isResizingRef.current = true;
+		watchPointerStream();
 		desktopEventDispatch({
 			type: "ClassicyWindowPosition",
 			app: {
@@ -1241,6 +1266,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		clickPositionRef.current = [offsetX, offsetY];
 		dragStartPointRef.current = [e.clientX, e.clientY];
 		pendingDragRef.current = true;
+		watchPointerStream();
 	};
 
 	// #270: a title-bar click on the ALREADY-focused window is no focus
