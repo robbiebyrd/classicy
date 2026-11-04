@@ -105,8 +105,8 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 		if (!el) return;
 		const drop =
 			clientY - el.getBoundingClientRect().top - THUMB_HEIGHT / 2 - trackTop;
-		const travelled = TRAVEL - clamp(drop, 0, TRAVEL);
-		const next = snap(min + (travelled / TRAVEL) * range);
+		const traveled = TRAVEL - clamp(drop, 0, TRAVEL);
+		const next = snap(min + (traveled / TRAVEL) * range);
 		if (next === dragValueRef.current) return;
 		dragValueRef.current = next;
 		onChange(next);

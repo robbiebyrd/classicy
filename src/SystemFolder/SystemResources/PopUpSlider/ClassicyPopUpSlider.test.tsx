@@ -20,7 +20,7 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 
 	// H-R23: the thumb's travel is measured from the track's top, so the
 	// stylesheet places the thumb at the popUpSlider.trackTop knob and the
-	// value only adds the distance travelled down from the upper cap.
+	// value only adds the distance traveled down from the upper cap.
 	it("is a vertical slider whose thumb travels between the track's caps", () => {
 		const { rerender } = render(
 			<ClassicyPopUpSlider ariaLabel="Volume" value={100} onChange={vi.fn()} />,
@@ -69,7 +69,7 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
 			top: 0,
 		} as DOMRect);
-		// The thumb's centre on y = 8 puts its top on the upper cap: the maximum.
+		// The thumb's center on y = 8 puts its top on the upper cap: the maximum.
 		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
 		expect(slider).toHaveAttribute("aria-valuenow", "100");
 		fireEvent.mouseMove(document, { clientY: 65 });
@@ -97,7 +97,7 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 			top: 0,
 		} as DOMRect);
 		reads.mockClear();
-		// The thumb's centre on y = 15 puts its top on the moved upper cap.
+		// The thumb's center on y = 15 puts its top on the moved upper cap.
 		fireEvent.mouseDown(slider, { button: 0, clientY: 15 });
 		expect(slider).toHaveAttribute("aria-valuenow", "100");
 		expect(trackTopReads()).toBe(1);
@@ -132,7 +132,7 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
 			top: 0,
 		} as DOMRect);
-		// The default track top is 3 px and the thumb's centre sits 5 px below
+		// The default track top is 3 px and the thumb's center sits 5 px below
 		// its top, so value v puts the pointer at 8 + 57 * (1 - v / 100).
 		const at = (v: number) => 8 + 57 * (1 - v / 100);
 		fireEvent.mouseDown(slider, { button: 0, clientY: at(50) });
