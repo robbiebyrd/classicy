@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Nine invariants on the *published* bundle. The first two have shipped
+// Eleven invariants on the *published* bundle (and, for the last, on the
+// sources it is built from). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
 // surfaced as production outages.
@@ -95,10 +96,28 @@
 //    minifies CSS with esbuild, whose default charset writes non-ASCII raw;
 //    `esbuild.charset: "ascii"` in vite.config.ts keeps every glyph an
 //    escape. Checked on every dist/*.css (named .css files in named mode).
+//
+// 10. THE LIBRARY STYLESHEET IS NOTHING BUT `@layer classicy.base` BLOCKS.
+//    After the `@charset` and the layer order statement, every top-level item
+//    of dist/classicy.css and of the injected text must be a classicy.base
+//    block. An unlayered rule between them beats every layer -- the package's
+//    look and the host's classicy.user included -- whatever its specificity.
+//    Checked in both entry bundles' injected text and dist/classicy.css
+//    (those of them named, in named mode).
+//
+// 11. NO PLAIN .css FILE UNDER src/ HOLDS ANY CSS. classicyCssLayerPlugin
+//    wraps only .scss, so a .css file's rules would ship unlayered (invariant
+//    10's failure, at its source). Empty and comment-only files pass
+//    (src/index.css is empty). Checked on every src/**/*.css (named .css
+//    files under src/ in named mode).
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
+import {
+	findClassicyPlainCssFiles,
+	findClassicyUnlayeredCss,
+} from "./classicyBaseCss.ts";
 import {
 	CLASSICY_ART_SOURCE_DIR,
 	compareClassicyArtNames,
@@ -522,6 +541,58 @@ if (!argv.slice(2).length) {
 		console.log(
 			`stylesheet charset: ${clean} .css file(s), each ASCII only or opening with @charset "UTF-8"`,
 		);
+}
+
+// Invariant 10: the library stylesheet holds only classicy.base blocks.
+{
+	const named = argv.slice(2);
+	const sheets = [];
+	for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
+		const file = join(DIST, entry);
+		if (named.length && !named.includes(file)) continue;
+		const source = await readFile(file, "utf8").catch(() => null);
+		const at =
+			source === null
+				? -1
+				: source.lastIndexOf(`document.getElementById(${STYLE_ID})`);
+		if (at === -1) continue; // reported by invariant 3
+		sheets.push({
+			file: `${file} (injected stylesheet)`,
+			css: injectedText(source, at),
+		});
+	}
+	if (!named.length || named.includes(cssFile)) {
+		const css = await readFile(cssFile, "utf8").catch(() => null);
+		if (css !== null) sheets.push({ file: cssFile, css });
+	}
+	const problems = sheets.flatMap(({ file, css }) =>
+		findClassicyUnlayeredCss(file, css, LAYER_ORDER),
+	);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else if (sheets.length)
+		console.log(
+			`library stylesheet: ${sheets.length} stylesheet(s), every rule inside @layer classicy.base`,
+		);
+}
+
+// Invariant 11: no plain .css file under src/ holds CSS.
+{
+	const named = argv.slice(2);
+	const paths = named.length
+		? named.filter((f) => /^src[\\/].*\.css$/.test(f))
+		: (await readdir("src", { recursive: true }).catch(() => []))
+				.filter((f) => f.endsWith(".css"))
+				.sort()
+				.map((f) => join("src", f));
+	const files = await Promise.all(
+		paths.map(async (path) => ({ path, text: await readFile(path, "utf8") })),
+	);
+	const problems = findClassicyPlainCssFiles(files);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else if (files.length)
+		console.log(`src/: ${files.length} plain .css file(s), none with CSS`);
 }
 
 if (failed) exit(1);

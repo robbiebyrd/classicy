@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
@@ -39,8 +39,10 @@ const check = (
 		);
 		return file;
 	});
-	for (const [file, text] of Object.entries(files))
+	for (const [file, text] of Object.entries(files)) {
+		mkdirSync(dirname(join(dir, file)), { recursive: true });
 		writeFileSync(join(dir, file), text);
+	}
 	const result = spawnSync(
 		process.execPath,
 		[SCRIPT, ...names, ...Object.keys(files)],
@@ -224,6 +226,62 @@ describe("check-dist-imports.mjs invariant 9: stylesheet charset (named files)",
 		expect(status).toBe(1);
 		expect(stderr.trim()).toMatch(
 			new RegExp(`^${FILE.replace(".", "\\.")}: non-ASCII byte at offset 20`),
+		);
+	});
+});
+
+// Invariant 10: the library stylesheet is only classicy.base blocks, so no
+// unlayered rule outranks the package and host layers.
+describe("check-dist-imports.mjs invariant 10: dist/classicy.css layers (named files)", () => {
+	const FILE = join("dist", "classicy.css");
+	const BASE = "@layer classicy.base{.a{color:red}}";
+
+	it("passes the order statement then classicy.base blocks", () =>
+		expect(
+			check(
+				{},
+				{
+					[FILE]: `${CLASSICY_LAYER_ORDER}\n${BASE}@layer classicy.base{.b{}}`,
+				},
+			),
+		).toEqual({ status: 0, stderr: "" }));
+
+	it.each([
+		["between two blocks", `${BASE}.leak{color:red}${BASE}`],
+		["after the last block", `${BASE}.leak{color:red}`],
+	])("fails an unlayered rule %s", (_name, body) => {
+		const { status, stderr } = check(
+			{},
+			{ [FILE]: `${CLASSICY_LAYER_ORDER}\n${body}` },
+		);
+		expect(status).toBe(1);
+		expect(stderr.trim()).toBe(
+			`${FILE}: unlayered CSS outside the @layer classicy.base blocks: ".leak{color:red}" -> every component stylesheet must be an .scss file under src/, which classicyCssLayerPlugin compiles into @layer classicy.base.`,
+		);
+	});
+});
+
+// Invariant 11: a plain .css file under src/ would ship unlayered.
+describe("check-dist-imports.mjs invariant 11: plain .css under src (named files)", () => {
+	it("passes an empty or comment-only file", () =>
+		expect(
+			check(
+				{},
+				{
+					[join("src", "index.css")]: "",
+					[join("src", "a", "note.css")]: "/* placeholder */\n",
+				},
+			),
+		).toEqual({ status: 0, stderr: "" }));
+
+	it("fails a file with a rule", () => {
+		const FILE = join("src", "a", "leak.css");
+		const { status, stderr } = check({}, { [FILE]: ".leak{color:red}" });
+		expect(status).toBe(1);
+		expect(stderr.trim()).toMatch(
+			new RegExp(
+				`^${FILE.replace(/\./g, "\\.")}: a plain \\.css file with rules`,
+			),
 		);
 	});
 });
