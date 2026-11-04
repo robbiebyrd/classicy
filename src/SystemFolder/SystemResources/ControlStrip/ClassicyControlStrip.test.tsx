@@ -1344,6 +1344,9 @@ describe("Control Strip tab when the pointer stream is lost", () => {
 		expect(live.size).toBe(3);
 		fireEvent.mouseUp(document);
 		expect(live.size).toBe(0);
+		fireEvent.mouseDown(collapseBox, { button: 0, ctrlKey: true });
+		losePointerStream("pointercancel");
+		expect(live.size).toBe(0);
 		// A plain press on the collapse box is a click, not a gesture.
 		fireEvent.mouseDown(collapseBox, { button: 0 });
 		expect(live.size).toBe(0);
