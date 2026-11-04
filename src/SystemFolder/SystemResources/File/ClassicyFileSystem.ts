@@ -151,6 +151,31 @@ const omitDerivedEntries = (key: string, value: unknown): unknown =>
 		? undefined
 		: value;
 
+/**
+ * A deep copy of a default tree, to seed a live tree from (story 0098). The
+ * live tree is edited in place, so seeding it with the defaults themselves
+ * would write a session's edits into `DefaultFSContent` or a host's
+ * `defaultFileSystem`, which every other storage key, a later boot with no
+ * storage, and Drive Setup's Initialize read. A tree `structuredClone`
+ * refuses (one holding a function, say) is copied as JSON instead, the form
+ * it is persisted in anyway.
+ */
+const classicyFileSystemSeed = (
+	defaultFS: ClassicyFileSystemEntry,
+): ClassicyFileSystemEntry => {
+	try {
+		return structuredClone(defaultFS);
+	} catch (error) {
+		classicyLog(
+			"warn",
+			"ClassicyFileSystem",
+			"default tree cannot be structured-cloned; seeding from its JSON form",
+			error,
+		);
+		return JSON.parse(JSON.stringify(defaultFS));
+	}
+};
+
 export class ClassicyFileSystem {
 	storageKey: string;
 	separator: string;
@@ -169,7 +194,8 @@ export class ClassicyFileSystem {
 
 	/**
 	 * The first instance for a storage key reads the tree from localStorage (or
-	 * seeds it from `defaultFS`); later ones attach to that same live tree and
+	 * seeds it from a deep copy of `defaultFS`, which is never changed); later
+	 * ones attach to that same live tree and
 	 * ignore `defaultFS`. `epoch` forces a fresh read when it differs from the
 	 * one the tree was read under — `useClassicyFileSystem` passes the store's
 	 * `fsVersion`, bumped after the tree is replaced behind the instances' backs
@@ -212,39 +238,41 @@ export class ClassicyFileSystem {
 
 		// A reload replaces the tree in place, so instances already holding this
 		// record see the reloaded tree too.
-		this.shared = existing ?? { tree: defaultFS, version: 0 };
+		const tree = this.readStoredTree() ?? classicyFileSystemSeed(defaultFS);
+		this.shared = existing ?? { tree, version: 0 };
 		this.shared.epoch = epoch;
 		sharedTrees.set(storageKey, this.shared);
-		this.fs = defaultFS;
-
-		const retrieved =
-			typeof window !== "undefined"
-				? localStorage.getItem(this.storageKey)
-				: null;
-		if (typeof window !== "undefined" && retrieved) {
-			try {
-				const parsed = JSON.parse(retrieved);
-				if (isValidFileSystemEntry(parsed)) {
-					this.fs = parsed;
-				} else {
-					classicyLog(
-						"warn",
-						"ClassicyFileSystem",
-						"localStorage data failed validation, using defaults",
-					);
-				}
-			} catch (e) {
-				classicyLog(
-					"error",
-					"ClassicyFileSystem",
-					"Failed to parse localStorage data, using defaults:",
-					e,
-				);
-			}
-		}
+		this.fs = tree;
 
 		applyClassicyFileSystemSeedMigrations(this.fs, seedMigrations, separator);
 		this.persist();
+	}
+
+	/**
+	 * The tree stored under this storage key, or undefined when there is none
+	 * (or no window) or it cannot be used, in which case the defaults seed it.
+	 */
+	private readStoredTree(): ClassicyFileSystemEntry | undefined {
+		if (typeof window === "undefined") return undefined;
+		const retrieved = localStorage.getItem(this.storageKey);
+		if (!retrieved) return undefined;
+		try {
+			const parsed = JSON.parse(retrieved);
+			if (isValidFileSystemEntry(parsed)) return parsed;
+			classicyLog(
+				"warn",
+				"ClassicyFileSystem",
+				"localStorage data failed validation, using defaults",
+			);
+		} catch (e) {
+			classicyLog(
+				"error",
+				"ClassicyFileSystem",
+				"Failed to parse localStorage data, using defaults:",
+				e,
+			);
+		}
+		return undefined;
 	}
 
 	load(data: string) {

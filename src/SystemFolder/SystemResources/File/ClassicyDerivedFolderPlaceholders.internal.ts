@@ -14,8 +14,8 @@ import {
 /**
  * The stand-in Platinum seeds in Applications for SimpleText and Calculator,
  * every key and value of it. DefaultFSContent holds copies, never this object,
- * so an edit to a live stand-in (a fresh boot's tree is DefaultFSContent
- * itself) can never change what "as seeded" means.
+ * and a live tree is seeded from a deep copy of the defaults (story 0098), so
+ * an edit to a live stand-in can never change what "as seeded" means.
  */
 export const CLASSICY_SEEDED_PLACEHOLDER: Readonly<ClassicyFileSystemEntry> =
 	Object.freeze({

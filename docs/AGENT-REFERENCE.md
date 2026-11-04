@@ -1795,6 +1795,8 @@ entry's `_url`/`_data` into a src usable by `<img>`/`<video>` (decompresses
 `compressToBase64` / `decompressFromBase64` produce/consume the `_data`
 format. Seed-tree helpers for the provider's `defaultFileSystem` prop:
 `DefaultFSContent` (the stock tree) and `mergeClassicyFileSystemEntries`.
+A live tree is seeded from a deep copy of its default tree, so neither
+`DefaultFSContent` nor a host's `defaultFileSystem` is ever changed by edits.
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,

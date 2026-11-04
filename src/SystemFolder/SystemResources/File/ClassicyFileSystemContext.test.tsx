@@ -582,9 +582,10 @@ describe("useClassicyFileSystem keeps user files in the derived folders", () => 
 	const stored = () =>
 		JSON.parse(localStorage.getItem(STORAGE_KEY) as string)["Macintosh HD"];
 
-	// The default tree as this file loaded it. A fresh boot's live tree is
-	// DefaultFSContent itself, so an edit made on one leaks into every later
-	// test; the tests that edit start from this stored copy instead.
+	// The default tree as this file loaded it. The tests that edit boot from
+	// this stored copy, as a returning visitor does. (Before story 0098 a fresh
+	// boot's live tree was DefaultFSContent itself, so this also kept an edit
+	// from leaking into every later test.)
 	const PRISTINE_TREE = structuredClone(DefaultFSContent);
 	const bootFromStoredDefaults = () =>
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(PRISTINE_TREE));
