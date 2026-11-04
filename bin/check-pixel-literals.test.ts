@@ -177,6 +177,36 @@ describe("scanPixelLiteralsInSource", () => {
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["1 3px", "2 2px", "5 1px"]));
 
+	// A prelude may hold an interpolation (`@media #{$mq} and (…)`); its
+	// lengths are still the prelude's, so they stay exempt.
+	it("exempts an @media prelude that holds an interpolation", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"$mq: screen;\n@media #{$mq} and (min-width: 600px) { .a { width: 3px; } }\n@container #{$name} (width > 400px) and\n  (max-width: #{$w}px) {\n  b { top: 2px; }\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 3px", "5 2px"]));
+
+	// A unit after an interpolation that is part of a name (`.gap-#{$n}px`,
+	// `&-#{$n}px`, `.#{$n}px`) is a selector, not a length.
+	it("does not count an interpolated unit in a selector", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"$n: 4;\n.gap-#{$n}px { gap: var(--x); }\n.b { &-#{$n}px { top: var(--y); } }\n.#{$n}px, .x#{$n}px { left: var(--z); }",
+				"f.scss",
+			),
+		).toEqual([]));
+
+	// The counterpart: in a declaration's value, `#{$n}px` is still a length,
+	// signed or not, on the same line as an interpolated selector or not.
+	it("still counts an interpolated unit in a declaration beside an interpolated selector", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"$n: 4;\n.gap-#{$n}px { width: #{$n}px; margin: 0 -#{$n}px; }\n.b { padding:#{$n}px calc(#{$n}px + var(--x)); }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["2 #{$n}px", "2 #{$n}px", "3 #{$n}px", "3 #{$n}px"]));
+
 	it("counts Sass declarations, interpolation and package constants", () =>
 		expect(
 			scanPixelLiteralsInSource(
@@ -355,6 +385,40 @@ describe("scanMultipliersInSource", () => {
 				"f.scss",
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["4 var(--x) * #{$f}", "8 var(--x) * $k"]));
+
+	// A mixin's or function's parameters, defaults included, shadow a
+	// file constant of the same name over the body and hold whatever the
+	// caller passes, so they are unresolved operands (H-R28a); past the body
+	// the constant is in scope again.
+	it("treats @mixin and @function parameters as unresolved over their body", () =>
+		expect(
+			scanMultipliersInSource(
+				"$f: 1;\n$g: 1;\n$h: 1;\n@mixin m($f) {\n  width: calc(var(--x) * #{$f});\n}\n@mixin n($a, $g: 1, $k: math.div(1, 2)) {\n  top: calc(var(--x) * $g);\n}\n@function fn(\n  $h...\n) {\n  @return calc(var(--x) * $h);\n}\n.a { @include m(2); left: calc(var(--x) * $f); right: calc(var(--x) * #{$h}); }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["5 var(--x) * #{$f}", "8 var(--x) * $g", "13 var(--x) * $h"]));
+
+	// A parameter may hold a theme read too, so scaled by a number it is a
+	// site, even where a file constant of its name would make the chain a
+	// number scaling a number; a sign flip, a lone parameter and a ratio of
+	// two parameters are not sites. A body variable built from a parameter
+	// (itself a site, `$f * 2`) is a parameter; one holding a theme read is
+	// an operand, as before.
+	it("treats a parameter scaled by a number as a site, but not a sign flip or a ratio", () =>
+		expect(
+			scanMultipliersInSource(
+				"$f: 1;\n@mixin m($f, $size, $a, $b) {\n  top: calc(#{$f} * 3);\n  left: calc($size * 2);\n  right: calc($size * -1);\n  width: calc($a / $b);\n  height: calc($a * $b * -1);\n  $g: $f * 2;\n  $v: var(--y);\n  margin: calc(var(--x) * #{$g}) calc($v * $size) calc($v * 2);\n  padding: $size;\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual([
+			"3 #{$f} * 3",
+			"4 $size * 2",
+			"7 $a * $b * -1",
+			"8 $f * 2",
+			"10 var(--x) * #{$g}",
+			"10 $v * $size",
+			"10 $v * 2",
+		]));
 
 	// H-R29a: a loop variable over numbers (`@each` over a map's values or a
 	// list, `@for` over a range) is a factor; a site counts once, unless

@@ -4003,7 +4003,7 @@ read on the same line, Sass declarations (`$x: 22px`) and interpolations, a
 package's own `--<pkg>-*: Npx` constants, and a `var(--x, Npx)` fallback
 (after its own `var(`'s comma, tracked with a parenthesis stack, so the
 `1px` in `classicy-px-rect(var(--color-white), 1px, …)` is bare). It exempts
-only `0px`, `calc(infinity * 1px)`, `@media`/`@container` prelude lines,
+only `0px`, `calc(infinity * 1px)`, `@media`/`@container` preludes,
 comments (`/* */` across lines, and `//` except the `://` of a URL),
 `url(…)` payloads (nested parentheses and quotes included) and the screen
 savers' ported art under `Extensions/ScreenSaver/savers/`. The ratchet,
@@ -4043,14 +4043,22 @@ numbers (`@each` over a list or a map's values, `@for` over a range), which
 makes a site when any pass's factor is not +1 or -1. So does an
 interpolation, group or call that is plain arithmetic over numbers and those
 variables (`* #{1 - $cp-crayon-tip}`, which compiles to `* 0.69`, or
-`* (2)`). Factors with a unit (`$deg * 1deg`), ratios of two variables, a
-number scaling a number and a variable scaling by any other Sass factor (a
-mixin argument, a constant from another module such as `m.$f`) are not
-sites. Not seen at all (none is live): `math.div(var(--x), 2)`. The pixel
-scanner, likewise, counts a unit written after an interpolation
-(`#{$n}px`) and exempts only an `@media`/`@container` prelude itself, up to
-its `{`, never a rule written after it on the same line; a pixel length built
-by string concatenation (`$n + px`) is not seen (none is live).
+`* (2)`). A `@mixin` or `@function` parameter, defaults included, is
+unresolved over its body, even where a file constant has its name, since the
+caller may pass a number or a theme read; so is a variable declared in the
+body as arithmetic over one (`$g: $f * 2;`). A parameter scaling a theme read
+(`calc(var(--x) * #{$f})`) or scaled by a number (`$size * 2`) is a site; a
+sign flip on a lone parameter (`$size * -1`) and a ratio of two (`$a / $b`)
+are not. Factors with a unit (`$deg * 1deg`), ratios of two variables, a
+number scaling a number and a variable scaling by a constant from another
+module (`m.$f`) are not sites. Not seen at all (none is live):
+`math.div(var(--x), 2)`. The pixel scanner, likewise, counts a unit written
+after an interpolation (`#{$n}px`), unless the interpolation is part of a
+name (`.gap-#{$n}px`, `&-#{$n}px`: a selector, not a length), and exempts
+only an `@media`/`@container` prelude itself, interpolations included
+(`@media #{$mq} and (min-width: 600px)`), up to its `{`, never a rule written
+after it on the same line; a pixel length built by string concatenation
+(`$n + px`) is not seen (none is live).
 Flagged although not a product (none is live): a slash that CSS reads as a
 separator after a theme read, such as `font: var(--size)/1.2 …`,
 `grid-row: var(--a) / 3`, `aspect-ratio: var(--w) / 2` or the alpha in
