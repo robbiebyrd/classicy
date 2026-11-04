@@ -1,8 +1,9 @@
 name: CI
 
-# Lint, type check and test every pull request (any base branch) and every push
-# to main, so Biome errors and broken tests are caught before merge rather than
-# at release time (#276). push.yml ("Release Package") still runs its own
+# Lint, type check, test and build the example app for every pull request (any
+# base branch) and every push to main, so Biome errors, broken tests and a
+# broken consumer build are caught before merge rather than at release time
+# (#276). push.yml ("Release Package") still runs its own
 # `pnpm test` before publishing; that is deliberate release safety, not a
 # duplicate to remove.
 #
@@ -67,3 +68,13 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+      # The example app consumes the library through the workspace
+      # (`classicy: workspace:*` resolves to the built dist/), so the library is
+      # built first, in this job, as push.yml and pages.yml do (build:source
+      # skips the ffmpeg-only build:audio; the sprites are committed). The
+      # example's own `build` script is `tsc -b && vite build`, so a broken
+      # consumer import (such as the Platinum SCSS export path) or a
+      # consumer-facing type error fails the pull request (0085-c3x).
+      - name: Build library and example app
+        run: pnpm build:source && pnpm --filter classicy-example build
