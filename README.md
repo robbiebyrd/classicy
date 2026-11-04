@@ -43,7 +43,8 @@ Any CommonJS dependency classicy pulls in may then need to go in
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
 `dist/assets/` next to your bundle.
 `import "classicy/fonts"` is now a deprecated no-op (the Platinum package
-registers its fonts), and `classicy/dist/fonts.css` is gone.
+registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
+links `classicy/dist/classicy-platinum.fonts.css` in its place (below).
 
 **Breaking change: system art and cursors are no longer icons.** The
 `ClassicyIcons` constant is now only the Platinum icon tree as shipped: it does
@@ -64,6 +65,20 @@ Register the replacement instead:
 | `classicy.logo` | `registerClassicySystemArt("platinum", { aboutLogo })` |
 | `system.macosSvg` | `registerClassicySystemArt("platinum", { startupLogo })` |
 | `ui.cursors.watch`, `.hand`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | `registerClassicyCursors("platinum", { watch, hand, resizeLr, resizeUd, resizeU, resizeD, resizeL, resizeR })` |
+
+Seven icon paths are gone from `ClassicyIcons` and the Platinum icon tree.
+Nothing in Classicy drew any of them; register your own image under a path to
+keep it (`registerClassicyIcons({ system: { bomb } })`; the 2.1.7 images are in
+that release's `assets/img/`):
+
+| Removed icon path | Replacement |
+|---|---|
+| `system.bomb` | None |
+| `system.files._229`, `system.files._232Messages` | None (their files never existed: both were `""` in 2.1.x) |
+| `ui.halftoneSmall` | None (Classicy's halftone is the system art `halftone`, a different image) |
+| `ui.menuDropdownArrows` | System art `popupArrows` (the same arrows, in `currentColor`) |
+| `ui.stripe` | None (a diagonal hatch; the title-bar stripes, system art `windowStripes`, are a different pattern) |
+| `ui.tab` | Nearest: system art `tabOutline` (the same shape as an open outline, not filled) |
 
 `docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
 
@@ -114,14 +129,19 @@ and piece of art) is the Platinum Appearance Package's own stylesheet, in
 `.classicyDesktop[data-classicy-appearance="platinum"]`. Importing `classicy`
 registers it, and everything inside `ClassicyDesktop` looks as before.
 
-- **Components outside a desktop are unstyled.** Wrap a standalone component
+- **Components outside a desktop get structure only, no look.** Wrap a standalone component
   in an element carrying `class="classicyDesktop"` and
   `data-classicy-appearance="platinum"`, with the theme and asset variables
   on it (`getThemeVars(getTheme("default"))` and `useClassicyAssetVars()`);
   give it `id="classicyDesktop"` so portals (menus, balloons) render inside it
   rather than falling back, unstyled, to `document.body`.
-- **Strict-CSP hosts link a second file**: `classicy/dist/classicy.css`, then
-  `classicy/dist/classicy-platinum.css`, first in `<head>`.
+- **Strict-CSP hosts link three files**, first in `<head>` and in this order:
+  `classicy/dist/classicy.css` (structure), `classicy/dist/classicy-platinum.css`
+  (the look) and `classicy/dist/classicy-platinum.fonts.css` (the Platinum
+  fonts). A policy that blocks inline `<style>` blocks all three runtime
+  injections; the fonts file holds the same `@font-face` rules the package
+  writes, each pointing at its `.woff2` in `dist/assets/` (serve that folder
+  beside it, and allow it in `font-src`).
 - **The theme partials moved.** `classicy/scss/appearance`,
   `classicy/scss/scrollbars` and `classicy/scss/assets` (2.1.x; pre-release
   builds called them `classicy/scss-platinum/*`) are now

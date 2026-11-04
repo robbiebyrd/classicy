@@ -60,19 +60,30 @@ Start with [Install and build](#install-and-build).
 - **`classicy/fonts` is a no-op, and `classicy/dist/fonts.css` is gone.** The
   Platinum package registers its thirteen `.woff2` faces at runtime, as
   `<style id="classicy-fonts-platinum">`. *Migrate:* delete the import, or
-  keep it (it still resolves, and does nothing). Remove any `<link>` to
-  `fonts.css`.
-- **Strict-CSP hosts link a second stylesheet.** `dist/classicy.css` no longer
-  carries the look. A host that cannot allow inline `<style>` links both
-  files, first in `<head>`:
+  keep it (it still resolves, and does nothing). Replace any `<link>` to
+  `fonts.css` with `classicy-platinum.fonts.css` if your CSP blocks inline
+  styles (next item); otherwise remove it.
+- **Strict-CSP hosts link three stylesheets.** A policy that blocks inline
+  `<style>` blocks everything Classicy injects at runtime: the structure, the
+  Platinum look and the Platinum fonts. `dist/classicy.css` no longer carries
+  the look, and no linked file carried the fonts until now. A host that
+  cannot allow inline `<style>` links all three, first in `<head>`, in this
+  order:
 
   ```html
   <link rel="stylesheet" href="/node_modules/classicy/dist/classicy.css">
   <link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.css">
+  <link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.fonts.css">
   ```
 
   Without the second file the desktop has structure but no look: no bevels,
-  no art and no menu-item flash.
+  no art and no menu-item flash. Without the third, text falls back to the
+  browser's fonts. `classicy-platinum.fonts.css` holds the same `@font-face`
+  rules the runtime writes (Charcoal, ChicagoFLF, Geneva, AppleGaramond,
+  Monaco and VCR OSD Mono, thirteen faces), unlayered, each pointing at its
+  file in `dist/assets/`. Serve that folder beside the stylesheet, and allow
+  it in `font-src`. All three are served by the existing `classicy/dist/*`
+  export.
 - **Browser floor: Chrome/Edge 120, Safari 16.2, Firefox 113.** Theme tints
   are `color-mix()` and icons use unprefixed `mask-image` with mask
   compositing. In an older engine those declarations are dropped: error title
@@ -110,9 +121,13 @@ Start with [Install and build](#install-and-build).
 
 ### Components outside a desktop
 
-- **A component rendered outside `ClassicyDesktop` is unstyled.** The
-  package's rules match only inside an element with `class="classicyDesktop"`
-  and `data-classicy-appearance="<id>"`. Classicy's stylesheets also read
+- **A component rendered outside `ClassicyDesktop` gets base structure only,
+  with no look.** The package's rules match only inside an element with
+  `class="classicyDesktop"` and `data-classicy-appearance="<id>"`. Base
+  structure still applies everywhere, and some of it shows: a
+  `ClassicyButton` with `buttonShape="square"` keeps the base rounded
+  corners, because the `border-radius: 0` that squares it is now package
+  CSS. Classicy's stylesheets also read
   their sizes as `var(--x)` with no pixel fallback, and the art as
   `var(--classicy-art-<key>)`, so both the theme variables and the asset
   variables must be on that element. The open-icon halftone has no built-in
@@ -136,7 +151,7 @@ Start with [Install and build](#install-and-build).
   ```
 
   Portals fall back to `document.body` when no `#classicyDesktop` exists, and
-  are unstyled there.
+  get base structure only there.
 
 ### Class names, attributes and the DOM
 
@@ -147,7 +162,16 @@ Start with [Install and build](#install-and-build).
   - `classicyTabButtonActive` is now `.classicyTabButton.selected`;
   - `classicyDesktopIconActiveAndOpen` is now `.classicyDesktopIcon.selected.open`.
 
-  `classicyDesktopMenuAppleMenu` is renamed `classicyDesktopMenuApple`.
+  Some classes with no state in them were renamed too:
+  - `classicyDesktopMenuAppleMenu` is now `classicyDesktopMenuApple`;
+  - Drive Setup's `driveSetupList*` classes gained the prefix, as
+    `classicyDriveSetupList*`;
+  - the color picker's `classicyColorPickerSlider--<color>` modifiers are now
+    `classicyColorPickerSlider<Color>`, such as
+    `classicyColorPickerSliderRed`;
+  - `block`, which an expanded window's contents carried, is gone with no
+    replacement.
+
   *Who:* host CSS, end-to-end selectors and tests that name Classicy classes.
   *Migrate:* use the full old-to-new table in
   [§5, "Migrating to the shared vocabulary"](AGENT-REFERENCE.md#migrating-to-the-shared-vocabulary-breaking-change).
@@ -266,7 +290,7 @@ Start with [Install and build](#install-and-build).
   name such as `"--color-black"`, and it paints the dots on a `::before`
   child. The element it is included in gets `position: relative` and
   `isolation: isolate`. `encode-color` is removed, since no color is baked
-  into a data URI any more.
+  into a data URI anymore.
 - **The `assets.$…` art variables are gone.** Read registered art as
   `var(--classicy-art-<key>)`. `classicy/appearance/platinum/scss/assets` now
   exports only `platinum-root-properties`.
@@ -324,12 +348,70 @@ Start with [Install and build](#install-and-build).
   `controlStripScrollLeft`, `controlStripScrollLeftDisabled`,
   `controlStripScrollRight`, `controlStripScrollRightDisabled`,
   `controlStripModuleArrow`, `popUpSliderTrack` and `popUpSliderThumb`.
+  Each is now a system-art key of the same name, except the old
+  `controlStripCollapseGlyph`, whose key is `controlStripCollapse`.
   *Migrate:*
-  - Read them with `useClassicyPixelArtRows(key)`. The key for the old
-    `controlStripCollapseGlyph` is `controlStripCollapse`.
+  - Outside React, decode the registered rows:
+    `decodeClassicyPixelArtRows(resolveClassicyAsset("systemArt", key, "platinum"))`
+    returns the same `ClassicyPixelArtRows` (`readonly string[]`) the
+    constant held. Leave out `"platinum"` to read the active package's art,
+    which falls back to Platinum's.
+  - In a component, read them with `useClassicyPixelArtRows(key)`, which
+    follows the active package and later registrations.
   - Draw them with `<ClassicyPixelArt art={key} />`.
   - Replace them with
     `registerClassicySystemArt(packageId, { [key]: encodeClassicyPixelArtRows(rows) })`.
+- **Seven icon paths are gone** from `ClassicyIcons` and the Platinum icon
+  tree. `ClassicyIcons.system.bomb` is a type error and `undefined` at
+  runtime, and `useClassicyAsset("icons", "system.bomb")` returns
+  `undefined`. Nothing in Classicy drew any of them. *Who:* hosts that read
+  one of these paths. *Migrate:*
+
+  | Removed icon path | Replacement |
+  |---|---|
+  | `system.bomb` | None |
+  | `system.files._229`, `system.files._232Messages` | None. Their image files never existed, so both were `""` in 2.1.x |
+  | `ui.halftoneSmall` | None. The halftone Classicy draws is the system art `halftone`, a different image: an SVG dot cell that Platinum uses as a mask |
+  | `ui.menuDropdownArrows` | The system art `popupArrows`: the same double arrow, filled with `currentColor` instead of `#221f20` |
+  | `ui.stripe` | None. It is a diagonal hatch. The title-bar stripes are the system art `windowStripes`, a different, horizontal pattern |
+  | `ui.tab` | Nearest: the system art `tabOutline`, the same tab shape drawn as an open outline in `currentColor` rather than filled |
+
+  Read system art with `useClassicyAsset("systemArt", key)` or
+  `resolveClassicyAsset("systemArt", key)`, or in CSS inside a desktop as
+  `var(--classicy-art-<key>)` (`--classicy-art-popup-arrows`,
+  `--classicy-art-tab-outline`). To keep an old path working, register your
+  own image under it, for example
+  `registerClassicyIcons({ system: { bomb } })`. The 2.1.7 images are in that
+  release's source, under `assets/img/`.
+- **`useClassicyCursor` takes a cursor role, and ten cursor names are gone.**
+  `setCursor(name)` took any key of `ClassicyIcons.ui.cursors` (18 names). It
+  now takes a `ClassicyCursorRole` (13 roles), read from the cursor registry
+  at call time. These ten names are no longer accepted: `add`, `eyedropper`,
+  `handCounting`, `highlight`, `menu`, `plus`, `rom`, `shortcut`, `spin` and
+  `precision`. In TypeScript, `setCursor("eyedropper")` is a type error. In
+  JavaScript it resets the page's cursor to the default instead.
+  `registerClassicyCursors` takes only the 13 roles, so the ten cannot be
+  registered back as roles. *Who:* hosts that call `setCursor` with one of
+  the ten. *Migrate:*
+  - The ten images still ship, in the Platinum icon tree at
+    `ui.cursors.<name>`. Set the page's cursor yourself, and clear it when
+    the operation ends:
+
+    ```ts
+    const src = resolveClassicyAsset("icons", "ui.cursors.eyedropper")
+    document.body.style.cursor = src ? `url("${src}"), auto` : ""
+    // when the operation ends
+    document.body.style.cursor = ""
+    ```
+
+  - For a cursor over one element, write a CSS `cursor` rule with that image
+    or your own, such as `cursor: url("/cursors/eyedropper.png"), auto`.
+  - The other eight names (`hand`, `watch`, `resizeLr`, `resizeUd`,
+    `resizeU`, `resizeD`, `resizeL` and `resizeR`) are roles, and `setCursor`
+    still takes them. The roles add `arrow`, `ibeam`, `crosshair`,
+    `resizeNwse` and `resizeNesw`. Platinum registers an image for `arrow`
+    and the eight, not for the other four, so `setCursor("ibeam")` restores
+    the default until a package registers one.
 - **`ClassicyDefaultParadeIcons` is now a function,
   `getClassicyDefaultParadeIcons()`**, so the startup parade reads icons at
   call time. *Migrate:* call it.
@@ -407,8 +489,16 @@ Start with [Install and build](#install-and-build).
   - The theme schema defaults it to `"platinum"`, so older files load as
     Platinum.
 
-  *Who:* TypeScript hosts that build `ClassicyTheme` literals. *Migrate:*
-  add `package: "platinum"`, or spread `getTheme(id)`.
+  *Who:* TypeScript hosts that build literals of these types:
+  - `ClassicyTheme`;
+  - `ClassicyThemeWithPartialMetrics`, the input of
+    `withDefaultThemeMetrics`, which requires `package` too;
+  - `ClassicyStoreSystemAppearanceManager`, which gains a required
+    `packageId` (typed state literals, such as a `defaultState` seed).
+
+  *Migrate:* add `package: "platinum"` to a theme, or spread `getTheme(id)`.
+  Add `packageId: "platinum"` (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) to
+  an Appearance Manager state literal.
 - **Theme files and imports need an installed package.**
   Loading a file, or dispatching `ClassicyDesktopImportTheme`, for a package
   that is not registered (Platinum always counts as installed) is refused
@@ -461,9 +551,11 @@ Start with [Install and build](#install-and-build).
     on the first mouse move.
 - **Clean Up counts columns by the grid step** (the icon cell plus padding).
   A desktop with more icons than fit now wraps them to the first column
-  instead of running them off-screen. Clean Up also starts from the active
-  package's `desktop.iconGridOrigin`; for Platinum that is the top right, as
-  before.
+  instead of running them off-screen. With the default theme (48 px icons)
+  in a 1024 × 768 window, Clean Up now fills 8 columns of 7 icons, all on
+  screen. 2.1.x laid icons out in 16 columns there, and only 9 of them were
+  on screen. Clean Up also starts from the active package's
+  `desktop.iconGridOrigin`; for Platinum that is the top right, as before.
 - **App records follow the code.**
   - `apps[id].name` and `icon` are refreshed from `ClassicyApp`'s props on
     every mount. A host `defaultState` seed still wins for a first session.
@@ -501,6 +593,19 @@ Start with [Install and build](#install-and-build).
     [`registerApp`](AGENT-REFERENCE.md#app-manifest-registration--registerapp).
 - **Movie Player, Picture Viewer and PDF Viewer come forward** when asked to
   open a file, a file already open included.
+- **Two Appearance Manager tab hooks take new required props.**
+  `useThemesTab` requires `packageId` and `packageName`, the active
+  package's, which the tab names in its label. `useSoundTab` requires
+  `soundPacks`, `soundPack` and `changeSoundPack`, for its new Sound Pack
+  pop-up. *Who:* hosts that assemble their own Appearance Manager from these
+  hooks. *Migrate:*
+  - For `useThemesTab`, take `packageId` and `packageName` from
+    `useActiveClassicyAppearancePackage()` (its `id` and `name`).
+  - For `useSoundTab`, pass `soundPacks` as `{ id, name }` entries from
+    `useClassicySoundPacks()`. The Appearance Manager lists the packs whose
+    `packageId` is unset or the active package's. Pass `soundPack` as the
+    active theme's `sound.pack`, and have `changeSoundPack` dispatch
+    `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`.
 - **Screen Saver options forms changed.** The schema-derived form is now
   `ClassicySchemaForm`.
   - A field without `.describe()` shows its humanized key ("Speed seconds"),
@@ -512,7 +617,8 @@ Start with [Install and build](#install-and-build).
   to keep exact labels, and declare `.min()` for a field that may be
   negative.
 - **`startClassicyFileDrag`'s returned function now ends a started drag as
-  cancelled**, rather than only detaching it.
+  canceled**, rather than only detaching it. `onEnd` reports it with
+  `canceled: true`.
 
 ## New APIs
 
@@ -545,6 +651,18 @@ Everything is exported from `classicy`. The links go to the full reference.
   `renamed` packages are templates for a new package.
 - `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks` and
   `platinumSoundPack` expose Platinum's own parts for reuse.
+- Types: `ClassicyAppearancePackage` (the package object),
+  `ClassicyAppearanceHooks` (its `hooks`) and `ClassicyAppearanceLayout` (its
+  `layout`).
+- `getActiveClassicyAppearancePackageId()` reads the active package's id at
+  call time, outside React and without the store.
+- Theme lists per package: `listClassicyPackageBuiltInThemes(pkg)` gives a
+  package's defaults and presets, and
+  `listClassicyPackageThemes(appearance, pkg)` gives the list the Appearance
+  Manager shows (built-ins, host-loaded themes, then that package's custom
+  themes).
+- `withDefaultThemePackage(theme)` fills a missing `package` with
+  `"platinum"`.
 
 ### Vocabulary
 
@@ -580,7 +698,8 @@ Everything is exported from `classicy`. The links go to the full reference.
 - `useClassicyAssetVars()` returns `--classicy-cursor-<role>` and
   `--classicy-art-<key>`, which `ClassicyDesktop` publishes on its root.
   `ClassicyCursorRole` has 13 roles, and `ClassicySystemArtKey` is a union of
-  39 keys.
+  39 keys. `classicyAssetVarName(kind, key)` gives a cursor's or an art
+  key's variable name.
 - Pixel art: `encodeClassicyPixelArtRows`, `decodeClassicyPixelArtRows`,
   `useClassicyPixelArtRows` and `<ClassicyPixelArt art={key} />`.
 - [§5, "Asset registries"](AGENT-REFERENCE.md#5-asset-registries) and
@@ -593,6 +712,9 @@ Everything is exported from `classicy`. The links go to the full reference.
   `useClassicySoundPacks` and `ClassicySoundPackSchema`.
 - `CLASSICY_SOUND_SPRITE_IDS` lists the 41 sprite ids a pack should define.
   A sprite missing from the active pack plays from Platinum's.
+  `classicySoundPackMissingSprites(pack)` lists the ones a pack lacks.
+- The type `ClassicySoundPack`, and `CLASSICY_DEFAULT_SOUND_PACK_ID`
+  (`"platinum"`).
 - `pnpm build:audio` writes pack JSON with `id`, `name` and relative `src`.
 - [§10](AGENT-REFERENCE.md#10-sound).
 
@@ -606,8 +728,10 @@ Everything is exported from `classicy`. The links go to the full reference.
   (`CLASSICY_APPEARANCE_EVENTS`).
 - Gestures that have both a pointer and a keyboard path carry
   `detail.input` (`"pointer" | "keyboard"`). Finder's outline drags emit
-  `dragStart`/`dragEnd` with `{ kind: "file" }`. `startClassicyFileDrag`
-  takes `onStart`/`onEnd` callbacks (`ClassicyFileDragEnd`).
+  `dragStart` with `{ kind: "file" }` and `dragEnd` with
+  `{ kind: "file", dropped, canceled }`. `startClassicyFileDrag` takes
+  `onStart`/`onEnd` callbacks, and `onEnd` receives a `ClassicyFileDragEnd`,
+  `{ dropped, canceled }`.
 - Handlers play sounds with `playClassicyAppearanceSound(sound, { interrupt? })`.
 - [Package hooks](AGENT-REFERENCE.md#package-hooks).
 
@@ -622,6 +746,9 @@ Everything is exported from `classicy`. The links go to the full reference.
 - Readers: `useClassicyAppearanceLayout()`, the store-free
   `getClassicyAppearanceLayout(packageId?)`, `classicyLayoutVars` and
   `classicyLayoutThemeVars`.
+- `ClassicyAppearanceLayoutSchema` validates a `layout`, and
+  `CLASSICY_DEFAULT_APPEARANCE_LAYOUT` is the default (Platinum's: grow box
+  bottom right, screen menu bar, icon grid from the top right).
 - The desktop root carries `data-classicy-grow-box`, `data-classicy-menu-bar`
   and `--classicy-layout-*`.
 - `computeClassicyWindowResize` does resize math for any corner.
@@ -728,6 +855,8 @@ Everything is exported from `classicy`. The links go to the full reference.
 - The Themes list follows the active package. Load Theme… switches to the
   file's package first.
 - Tab hooks: `usePackagesTab`, `useOptionsTab`, `useMetricsTab`.
+  `useThemesTab` and `useSoundTab` take new required props (see
+  [State, actions and behavior](#state-actions-and-behavior)).
 - [Appearance Manager tabs](AGENT-REFERENCE.md#appearance-manager-tabs).
 
 ### Forms, routing and other additions
@@ -742,6 +871,18 @@ Everything is exported from `classicy`. The links go to the full reference.
 - `useClassicyMenuCloseOnOutsideMouseDown`, plus the shortcut helpers
   `CLASSICY_MODIFIER_GLYPHS`, `CLASSICY_MODIFIER_ORDER` and
   `keyboardShortcutModifiers`.
+
+### Test-only exports
+
+These four are exported for test suites, to reset module state between
+tests. They are not for application code. The first three clear a registry,
+Platinum's own registrations included. The fourth re-arms the once-only
+warnings about derived folder names.
+
+- `resetClassicyAppearancePackagesForTests`;
+- `resetClassicyAssets`;
+- `resetClassicySoundPacks`;
+- `resetClassicyDerivedAppEntryNameWarnings`.
 
 ## Fixes
 
@@ -768,7 +909,7 @@ Everything is exported from `classicy`. The links go to the full reference.
 - **Screen saver and reduced motion.** Turning reduced motion off resumes only
   the animations it paused. Where `:has()` is unsupported, a fallback rule
   still hides the pointer over the saver.
-- **File drags.** A drag whose source unmounts mid-drag ends as cancelled,
+- **File drags.** A drag whose source unmounts mid-drag ends as canceled,
   removes its outline and never drops.
 - **Menu titles in balloon help.** A top-level menu title wrapped in balloon
   help is as wide as its title, not the whole bar.
@@ -824,8 +965,10 @@ None of this changes the published package's behavior.
   - Tests that forbid `!important` and require every class in source to be
     declared in the vocabulary.
   - `verify:dist`, which checks the injected stylesheet, the layer order,
-    the shipped art and font set, ASCII-only CSS, unlayered CSS and the
-    published type declarations.
+    the shipped art and font set, ASCII-only CSS, unlayered CSS, the
+    published type declarations, and that `classicy-platinum.fonts.css`
+    declares exactly the faces the runtime registers, each pointing at a
+    file in `dist/assets/`.
 - **Visual parity tooling.** `bin/parity/` (`pnpm parity:stories`,
   `parity:shoot`, `parity:app`, `parity:probe`, `parity:dump`,
   `parity:forced`, `parity:compare`) shoots Storybook and the example app

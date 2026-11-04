@@ -47,20 +47,38 @@ Platinum appearance package registers at runtime, so there is nothing to import:
 // import 'classicy/fonts'
 ```
 
-Under a Content-Security-Policy that forbids inline `<style>`, link the two
-stylesheets yourself instead: `classicy/dist/classicy.css` (structure), then
-`classicy/dist/classicy-platinum.css` (the Platinum look, which the Platinum
-appearance package otherwise injects as `<style id="classicy-appearance-platinum">`;
-see "Cascade layers" below). Importing them as well is harmless. Link
-`classicy.css` **first in `<head>`**, before any other stylesheet, and
-`classicy-platinum.css` right after it: each opens with the layer order
+Under a Content-Security-Policy that forbids inline `<style>` (a `style-src`
+without `'unsafe-inline'`), link the three stylesheets yourself instead:
+
+1. `classicy/dist/classicy.css`: structure, which the bundle otherwise
+   injects as `<style id="classicy-styles">`;
+2. `classicy/dist/classicy-platinum.css`: the Platinum look, which the
+   Platinum appearance package otherwise injects as
+   `<style id="classicy-appearance-platinum">` (see "Cascade layers" below);
+3. `classicy/dist/classicy-platinum.fonts.css`: the Platinum fonts, which the
+   package otherwise writes as `<style id="classicy-fonts-platinum">`.
+
+Importing them as well is harmless. Link `classicy.css` **first in
+`<head>`**, before any other stylesheet, and the other two right after it:
+`classicy.css` and `classicy-platinum.css` each open with the layer order
 statement (below), which only fixes the order if no earlier sheet has named a
 layer.
 
 ```html
 <link rel="stylesheet" href="/node_modules/classicy/dist/classicy.css">
 <link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.css">
+<link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.fonts.css">
 ```
+
+The fonts file holds the `@font-face` rules the runtime writes, generated at
+build time from the same face list and rule writer: the thirteen faces of
+Charcoal, ChicagoFLF, Geneva, AppleGaramond, Monaco and VCR OSD Mono, with
+the same weights, styles and `font-display: swap`. They are unlayered
+(`@font-face` ignores layers) and ASCII only. Each `url("assets/<file>.woff2")`
+resolves against the stylesheet, so serve `dist/assets/` beside it and allow
+that origin in `font-src`. `verify:dist` fails the build if the file declares
+any other faces than the runtime registers, or names a file that is not in
+`dist/assets/`.
 
 **Vite consumers (breaking change).** The package's fonts and art are files in
 `dist/assets/`, referenced as `new URL("assets/…", import.meta.url)`. Vite's dev
@@ -119,7 +137,7 @@ Classicy's own rules (`classicy.base`) whatever the specificity:
 }
 ```
 
-**Components outside a desktop are unstyled.** A `ClassicyButton` (or any
+**Components outside a desktop get structure only.** A `ClassicyButton` (or any
 component) rendered on its own page, outside `ClassicyDesktop`, gets structure
 but no look. Wrap such components in an element that names the package, and
 spread the theme and asset variables the desktop root would publish:
@@ -205,6 +223,7 @@ Package `exports` map:
 | `classicy` | ES/UMD bundle + types |
 | `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
 | `classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
+| `classicy/dist/classicy-platinum.fonts.css` | The Platinum fonts' `@font-face` rules, which the package writes at runtime; link it after `classicy-platinum.css`, only under a strict CSP |
 | `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
 | `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8), `classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
@@ -1343,6 +1362,26 @@ button, for one, still draws the `ui.cursors.hand` icon. The screen saver's
 built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
 with `registerClassicyScreenSaverLogo`.
 
+- **Seven icon paths are gone.** They are no longer in `ClassicyIcons` or the
+  Platinum icon tree, so `ClassicyIcons.system.bomb` is a type error and
+  `undefined`, and `resolveClassicyAsset('icons', 'system.bomb')` returns
+  `undefined`. Nothing in Classicy drew any of them. To keep one, register
+  your own image under the path (`registerClassicyIcons({ system: { bomb } })`;
+  the 2.1.7 images are in that release's source, under `assets/img/`):
+
+| Removed icon path | Replacement |
+|---|---|
+| `system.bomb` | None |
+| `system.files._229`, `system.files._232Messages` | None. Their image files never existed, so both were `""` in 2.1.x |
+| `ui.halftoneSmall` | None. Classicy's halftone is system art `halftone`, a different image (an SVG dot cell Platinum uses as a mask) |
+| `ui.menuDropdownArrows` | System art `popupArrows`: the same double arrow, filled with `currentColor` instead of `#221f20` |
+| `ui.stripe` | None. It is a diagonal hatch; the title-bar stripes are system art `windowStripes`, a different, horizontal pattern |
+| `ui.tab` | Nearest: system art `tabOutline`, the same tab shape drawn as an open outline in `currentColor` rather than filled |
+
+Read system art with `useClassicyAsset('systemArt', key)`,
+`resolveClassicyAsset('systemArt', key)`, or `var(--classicy-art-<key>)` in
+CSS inside a desktop ("System art", below).
+
 ### Migrating to the shared vocabulary (breaking change)
 
 The vocabulary and cascade work (§4.0.1) renamed Classicy's state classes and
@@ -1521,15 +1560,17 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
   | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |
-  | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime |
+  | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `dist/classicy-platinum.fonts.css` (§1) |
 - **Components outside a desktop lose their look.** The package's rules only
   match inside an element carrying `class="classicyDesktop"` and
   `data-classicy-appearance="platinum"`; wrap standalone components in one,
   with the theme and asset variables spread on it (§1, "Cascade layers"). A
   portal that falls back to `document.body` (no `#classicyDesktop` mounted) is
   unstyled the same way.
-- **Strict-CSP hosts link a second file.** `dist/classicy.css` no longer
-  carries the look; link `dist/classicy-platinum.css` right after it (§1).
+- **Strict-CSP hosts link three files.** `dist/classicy.css` no longer
+  carries the look, and `dist/fonts.css` is gone: link
+  `dist/classicy-platinum.css` right after `classicy.css`, then
+  `dist/classicy-platinum.fonts.css` for the fonts (§1).
 - **Platinum's art is registered system art.** The window, menu, pop-up,
   slider and tab art is read as `var(--classicy-art-<key>)`, which only
   `ClassicyDesktop` (and Storybook's frame) define. A standalone component
@@ -4548,7 +4589,7 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, then `classicy-platinum.fonts.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look, and leaving out the fonts file gives the browser's fonts. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
 13. **Never build an action type, path or lookup from a display name.** The `ClassicyApp` `name` prop is the internal name: action types (`ClassicyApp${name}OpenFile`/`CloseFile`), records and analytics use it, and an Appearance Package may show another (§8, "App display overrides"). UI text that names an app reads `useClassicyAppIdentity(id, { name, icon })` (`resolveClassicyAppIdentity` outside React); nothing display-derived is written to the store, localStorage or the file-system journal.
