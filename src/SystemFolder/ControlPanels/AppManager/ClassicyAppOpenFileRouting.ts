@@ -1,15 +1,18 @@
 /**
  * Open-with routing: hand a file to the app that opens it, from inside the
  * reducer (Finder resolves a file's default app in its own reducer case, where
- * a nested dispatch is not possible). The open is reduced the way the kernel
- * reduces a dispatched action, so an app's own OpenFile case runs when its
- * manifest declares one, and the trust floor and the untrusted allowlist apply
- * exactly as for a dispatch. Otherwise the kernel's generic OpenFile handler
- * queues the path, as before.
+ * a nested dispatch is not possible). The open is reduced by the kernel, under
+ * the caller's trust: an app's own OpenFile case runs when its manifest
+ * declares one, and the trust floor and the untrusted allowlist apply as they
+ * do at the kernel's entry. Otherwise the kernel's generic OpenFile handler
+ * queues the path, as before. Unlike a store dispatch, the dev-mode manifest
+ * check (`validateAppStateForAction`) does not run for the routed open; it
+ * runs once, for the action that reached Finder.
  */
 import {
 	type ClassicyActionTrust,
-	isActionTrustPermitted,
+	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ClassicyStore,
@@ -18,7 +21,6 @@ import {
 	findAppEventHandlerPrefix,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
  * The generic OpenFile type for an app, built from its internal record name
@@ -58,33 +60,28 @@ export function resolveClassicyAppOpenFileType(
 
 /**
  * Open `path` in `app`, reducing the open on `ds` in place of a dispatch.
- * `trust` is the trust the calling action was reduced under: an untrusted open
- * reaches the app only when its OpenFile type is permitted, as a dispatched
- * one would.
+ * `trust` is required, and is the trust the calling action was reduced under
+ * (a plugin handler's third argument): an untrusted open reaches the app only
+ * when its OpenFile type is permitted, and is otherwise refused with the
+ * kernel's warning. A missing trust from an untyped caller counts as
+ * untrusted.
  */
 export function routeClassicyAppOpenFile(
 	ds: ClassicyStore,
 	app: { id: string; name: string },
 	path: string,
-	trust: ClassicyActionTrust = "trusted",
+	trust: ClassicyActionTrust,
 ): ClassicyStore {
+	const level = classicyActionTrustOf(trust);
 	const own = resolveClassicyAppOpenFileType(app.id);
 	if (own) {
 		return classicyDesktopStateEventReducer(
 			ds,
 			{ type: own, app: { id: app.id }, path },
-			trust,
+			level,
 		);
 	}
 	const type = classicyGenericOpenFileType(app.name);
-	if (!isActionTrustPermitted(trust, type)) {
-		classicyLog(
-			"warn",
-			"ClassicyDesktopStateEventReducer",
-			"Rejected untrusted action",
-			{ type },
-		);
-		return ds;
-	}
+	if (!checkClassicyActionTrust(level, type)) return ds;
 	return classicyAppEventHandler(ds, { type, app: { id: app.id }, path });
 }

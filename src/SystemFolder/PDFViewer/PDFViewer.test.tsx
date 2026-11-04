@@ -56,9 +56,9 @@ vi.mock(
 				def.id === "PDFViewer.app" && handler
 					? {
 							...def,
-							handler: (ds, action) => {
+							handler: (ds, action, trust) => {
 								pdfReducerTypes.push(action.type);
-								return handler(ds, action);
+								return handler(ds, action, trust);
 							},
 						}
 					: def,

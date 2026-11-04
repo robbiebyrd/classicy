@@ -395,7 +395,9 @@ Helper functions (exported, callable inside custom handlers): `openApp`,
 `closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
 `loadApp`, `getDefaultAppForFileType`, `pickSuccessorApp`,
 `dispatchToPlugin(ds, prefix, action)` (cross-app orchestration without a
-direct import). Payload type-guard predicates (`hasApp`, `hasWindow`,
+direct import; it carries no trust and always reduces as **trusted**, so never
+use it for work done on behalf of an untrusted action: reduce that through
+`classicyDesktopStateEventReducer(ds, next, trust)` instead). Payload type-guard predicates (`hasApp`, `hasWindow`,
 `hasPath`, `hasUrl`, …) are exported from the action-predicates module.
 
 ---
@@ -501,12 +503,30 @@ Rules (enforced/warned by the kernel):
 - **Opening files from Finder.** Declare `<prefix>OpenFile` (e.g.
   `ClassicyAppTVOpenFile`) in `actions` and Finder's open-with reaches your
   reducer's own case with `{ app: { id }, path }`
-  (`routeClassicyAppOpenFile`, `ClassicyAppOpenFileRouting.ts`), reduced as a
-  dispatch would be, under the trust Finder's own action arrived with. Without
-  that declaration (or when the kernel would route the type to another app's
-  shorter prefix) the generic handler queues the path on `data.openFiles` and
-  opens the app, as before. `AppEventHandler` takes an optional third `trust`
-  argument for a handler that reduces a further action from inside the reducer.
+  (`routeClassicyAppOpenFile`, `ClassicyAppOpenFileRouting.ts`), reduced by the
+  kernel under the trust Finder's own action arrived with. (The dev-mode state
+  check above runs for the action that reached Finder, not for the routed
+  open.) Without that declaration, or when the kernel would route the type
+  elsewhere (another app's earlier, shorter prefix, or a built-in route such
+  as `ClassicyDesktop*`), the generic handler queues the path on
+  `data.openFiles` and opens the app, as before. Every hand-off Finder makes
+  for an open (the routed open, its own generic open, the legacy QuickTime
+  document, a URL shortcut's `ClassicyDesktopOpenUrl`) clears the same trust
+  check a dispatch of that type would (§6).
+- **Handlers get the trust.** The kernel always passes a plugin handler the
+  trust it reduced the action under, as the third `AppEventHandler` argument
+  (`dispatchToPlugin` passes `"trusted"`). A handler that reduces a further
+  action on the action's behalf must forward it; one that never does may
+  declare only `(ds, action)`.
+
+Open-with exports (`ClassicyAppOpenFileRouting.ts`, `ClassicyAppManager.ts`):
+
+| Function | Signature | Use |
+|---|---|---|
+| `routeClassicyAppOpenFile` | `(ds, { id, name }, path, trust) => ClassicyStore` | open `path` in an app from inside a reducer; `trust` is required, and a missing one (untyped caller) counts as untrusted |
+| `resolveClassicyAppOpenFileType` | `(appId) => string \| undefined` | the declared `<prefix>OpenFile` the kernel routes to `appId`'s own prefix, or `undefined` for the generic path |
+| `classicyGenericOpenFileType` | `(name) => string` | `` `ClassicyApp${name}OpenFile` ``, verbatim from the internal record name (K-D9) |
+| `findAppEventHandlerPrefix` | `(actionType) => string \| undefined` | the plugin prefix the kernel routes a type to; `undefined` when none matches or a built-in route takes it |
 
 Read-side helpers:
 
@@ -1727,7 +1747,24 @@ dispatch(action, 'untrusted')                       // the kernel re-checks anyw
 Prefer `scriptable: true` on a `registerApp` action entry — it allowlists the
 type AND validates script args against the action's zod `params` before
 dispatch. Also exported: `isActionTrustGuarded`, `isActionTrustPermitted`,
-`isUntrustedActionAllowlisted`, `getClassicyUntrustedActionAllowlist`.
+`isUntrustedActionAllowlisted`, `getClassicyUntrustedActionAllowlist`,
+`checkClassicyActionTrust(trust, type)` (`isActionTrustPermitted` plus the
+kernel's `[ClassicyDesktopStateEventReducer] Rejected untrusted action`
+warning on refusal) and `classicyActionTrustOf(value)` (fails closed: only the
+literal `"trusted"` is trusted).
+
+**Work done on an action's behalf keeps its trust.** Plugin handlers receive
+the kernel's trust as their third argument; anything a handler reduces for
+the action, from inside the reducer, must go through the same check
+(`classicyDesktopStateEventReducer(ds, next, trust)`,
+`routeClassicyAppOpenFile(…, trust)`, or `checkClassicyActionTrust` before a
+direct handler call). `dispatchToPlugin` carries no trust and is always
+trusted. Finder's open-with follows this rule, so a host that allowlists
+`ClassicyAppFinderOpenFile` for untrusted use must **also** allowlist each
+target app's OpenFile type (its declared `<prefix>OpenFile`, or the generic
+`ClassicyApp${name}OpenFile`) and, for legacy QuickTime documents,
+`ClassicyAppMoviePlayerOpenDocument`. A URL shortcut never opens under
+untrusted trust: `ClassicyDesktopOpenUrl` is on the guarded floor.
 
 ---
 

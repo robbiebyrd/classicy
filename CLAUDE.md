@@ -126,6 +126,13 @@ commentary:
 - Read side: `getAppManifest`, `listAppManifests`, `listScriptableActions`,
   `describeAppAction`/`describeAppState` (balloon-ready `{title, content}`),
   and `parseAppData` (typed guard replacing hand-rolled `isXData` functions).
+- Declaring `<prefix>OpenFile` in `actions` makes Finder's open-with reduce
+  the app's own case with `{ app: { id }, path }` (`routeClassicyAppOpenFile`,
+  `ClassicyAppOpenFileRouting.ts`), under the trust Finder's action arrived
+  with. Without the declaration, or when the kernel would route the type
+  elsewhere (another app's earlier, shorter prefix, or a built-in route), the
+  generic `ClassicyApp${name}OpenFile` queue (`data.openFiles`) is used. Apps
+  on `registerAppEventHandler` alone stay generic.
 
 `registerAppEventHandler` and `registerClassicyUntrustedActionAllowlist` are
 deprecated in favor of `registerApp` but keep working unchanged.
@@ -640,6 +647,19 @@ floor: `isUntrustedActionAllowed` ANDs allowlist membership with
 `!isActionTrustGuarded(...)`, so allowlisting e.g. `ClassicyDesktopSetTheme` has
 no effect. Registering the same type twice is a no-op, matching
 `registerAppEventHandler`.
+
+Plugin handlers receive the kernel's trust as the third `AppEventHandler`
+argument (always passed; a handler may still declare only `(ds, action)`).
+Any reduction a handler performs on the action's behalf must forward it
+(`classicyDesktopStateEventReducer(ds, next, trust)`,
+`routeClassicyAppOpenFile(…, trust)`, or `checkClassicyActionTrust(trust,
+type)` before calling a handler directly); `routeClassicyAppOpenFile` and
+Finder's handler take `trust` as a required argument, and a missing one counts
+as untrusted (`classicyActionTrustOf`). `dispatchToPlugin` carries no trust
+and is always trusted. A host that allowlists `ClassicyAppFinderOpenFile` must
+also allowlist each target app's OpenFile type (and
+`ClassicyAppMoviePlayerOpenDocument` for legacy QuickTime documents); a URL
+shortcut never opens untrusted, since `ClassicyDesktopOpenUrl` is on the floor.
 
 ### Theming
 

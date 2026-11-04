@@ -15,7 +15,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
 	type ClassicyActionTrust,
-	isActionTrustPermitted,
+	checkClassicyActionTrust,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	activateApp,
@@ -199,16 +199,18 @@ export type ActionMessage = Record<string, unknown> & {
 };
 
 /**
- * A plugin reducer. `trust` is the trust the kernel reduced `action` under
- * (absent when a caller such as `dispatchToPlugin` hands it over directly,
- * which is trusted): a handler that reduces a further action from inside the
- * reducer, as Finder's open-with does, passes it on so the trust floor and
- * the untrusted allowlist apply to that action too.
+ * A plugin reducer. The kernel always passes `trust`, the trust it reduced
+ * `action` under (`dispatchToPlugin` passes `"trusted"`). A handler that
+ * reduces a further action on the action's behalf, from inside the reducer,
+ * MUST forward it (`classicyDesktopStateEventReducer(ds, next, trust)`,
+ * `routeClassicyAppOpenFile(…, trust)`), so the trust floor and the untrusted
+ * allowlist apply to that action too. A handler that never does may declare
+ * only `(ds, action)`.
  */
 export type AppEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
-	trust?: ClassicyActionTrust,
+	trust: ClassicyActionTrust,
 ) => ClassicyStore;
 
 const pluginEventHandlers: Array<{
@@ -240,15 +242,16 @@ export function registerAppEventHandler(
 }
 
 /**
- * The registered prefix the kernel routes `actionType` to — the first
+ * The registered plugin prefix the kernel routes `actionType` to — the first
  * registration it starts with, the same lookup `classicyDesktopStateEventReducer`
- * makes — or undefined when it would reach no plugin handler. Built-in routes
- * (`ClassicyWindow*`, `ClassicyDesktop*`, …) are checked by the kernel before
- * plugins and are not reported here.
+ * makes — or undefined when no plugin handler would receive it: none matches,
+ * or a built-in route (`ClassicyWindow*`, `ClassicyDesktop*`, …), which the
+ * kernel checks first, takes the type.
  */
 export function findAppEventHandlerPrefix(
 	actionType: string,
 ): string | undefined {
+	if (findBuiltInRoute(actionType)) return undefined;
 	return findPluginEventHandler(actionType)?.prefix;
 }
 
@@ -269,7 +272,7 @@ export function dispatchToPlugin(
 ): ClassicyStore {
 	const plugin = pluginEventHandlers.find((entry) => entry.prefix === prefix);
 	if (plugin) {
-		return plugin.handler(ds, action);
+		return plugin.handler(ds, action, "trusted");
 	}
 	// Without this the caller's action vanishes silently — the symptom is "the
 	// feature did nothing at all", with nothing to grep for. Almost always means
@@ -487,6 +490,29 @@ export const classicyShortcutEventHandler = (
 	return ds;
 };
 
+/**
+ * The kernel's built-in routes, by action-type prefix, in the order it checks
+ * them (`ClassicyDesktopIcon` before `ClassicyDesktop`). They are consulted
+ * before any plugin prefix.
+ */
+const BUILT_IN_ROUTES: ReadonlyArray<
+	readonly [
+		prefix: string,
+		handler: (ds: ClassicyStore, action: ActionMessage) => ClassicyStore,
+	]
+> = [
+	["ClassicyWindow", classicyWindowEventHandler],
+	["ClassicyDesktopIcon", classicyDesktopIconEventHandler],
+	["ClassicyDesktop", classicyDesktopEventHandler],
+	["ClassicyBootParadeIcon", classicyBootEventHandler],
+	["ClassicyManagerDateTime", classicyDateTimeManagerEventHandler],
+	["ClassicyShortcut", classicyShortcutEventHandler],
+];
+
+function findBuiltInRoute(actionType: string) {
+	return BUILT_IN_ROUTES.find(([prefix]) => actionType.startsWith(prefix));
+}
+
 export const classicyDesktopStateEventReducer = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -504,28 +530,12 @@ export const classicyDesktopStateEventReducer = (
 		// plugin — sees it, if its type falls under a guarded route. This must
 		// run before the prefix routing below, since plugin handlers are also a
 		// route into the reducer and are not otherwise distinguishable here.
-		if (!isActionTrustPermitted(trust, action.type)) {
-			classicyLog(
-				"warn",
-				"ClassicyDesktopStateEventReducer",
-				"Rejected untrusted action",
-				{ type: action.type },
-			);
-		} else if (action.type.startsWith("ClassicyWindow")) {
-			ds = classicyWindowEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
-			ds = classicyDesktopIconEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyDesktop")) {
-			ds = classicyDesktopEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyBootParadeIcon")) {
-			ds = classicyBootEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyManagerDateTime")) {
-			ds = classicyDateTimeManagerEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyShortcut")) {
-			ds = classicyShortcutEventHandler(ds, action);
-		} else {
-			const plugin = findPluginEventHandler(action.type);
-			if (plugin) {
+		if (checkClassicyActionTrust(trust, action.type)) {
+			const builtIn = findBuiltInRoute(action.type);
+			const plugin = builtIn ? undefined : findPluginEventHandler(action.type);
+			if (builtIn) {
+				ds = builtIn[1](ds, action);
+			} else if (plugin) {
 				ds = plugin.handler(ds, action, trust);
 			} else if (action.type.startsWith("ClassicyApp")) {
 				ds = classicyAppEventHandler(ds, action);

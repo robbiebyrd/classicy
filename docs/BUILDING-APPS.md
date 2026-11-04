@@ -105,8 +105,8 @@ sounds, theming, and persistence of its window position across reloads.
 - **The name is the internal name.** It is the app's own name, shown unless
   the active Appearance Package says otherwise, and it is load-bearing: Finder
   builds the generic action type `` `ClassicyApp${app.name}OpenFile` `` from the
-  stored name, verbatim (an OpenFile your manifest declares is used instead), and `ClassicyApp` builds `` `ClassicyApp${name}CloseFile` ``
-  from the prop. A name with a space produces an action type with a space in
+  stored name, verbatim (an OpenFile your manifest declares is used instead),
+  and `ClassicyApp` builds `` `ClassicyApp${name}CloseFile` `` from the prop. A name with a space produces an action type with a space in
   it, which will not match your registered prefix. **Prefer a single word for
   `name`.**
 - **A package may display another name.** An Appearance Package can show your
@@ -970,7 +970,8 @@ Declare the types you handle:
 
 When the user opens a matching file, Finder hands it to your app. If your
 manifest declares `<prefix>OpenFile` in `actions` (§7), your reducer's own case
-receives `{ type, app: { id }, path }`, exactly as if it had been dispatched.
+receives `{ type, app: { id }, path }`, reduced by the kernel under the trust
+Finder's own action arrived with.
 Otherwise Finder builds `` `ClassicyApp${name}OpenFile` `` and the generic
 handler appends the path to `apps[id].data.openFiles` and opens the app. `name`
 here is always the internal name (the record's), never a package's display

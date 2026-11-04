@@ -1,7 +1,6 @@
 import { produce } from "immer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
-import { registerClassicyUntrustedActionAllowlist } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -231,6 +230,19 @@ registerApp({
 	},
 });
 
+// A plugin prefix inside a built-in route: the kernel sends every
+// `ClassicyDesktop…` type to the desktop handler before any plugin, so the
+// declared OpenFile would be dropped.
+registerApp({
+	id: "DesktopFoo.app",
+	description: "Registers a prefix the kernel's desktop route takes first.",
+	prefix: "ClassicyDesktopFoo",
+	handler: (ds) => ds,
+	actions: {
+		ClassicyDesktopFooOpenFile: { description: "Never reached." },
+	},
+});
+
 describe("Finder opens a file in a host app", () => {
 	const path = "Macintosh HD:Documents:Notes.txt";
 	const text = ClassicyFileSystemEntryFileType.TextFile;
@@ -271,49 +283,13 @@ describe("Finder opens a file in a host app", () => {
 		expect(openFileTypes()).toEqual(["ClassicyAppShadowedOpenFile"]);
 		expect(apps(result)["Shadowed.app"].data?.openFiles).toEqual([path]);
 	});
-});
 
-describe("Finder's open-with under untrusted dispatch", () => {
-	// Finder's OpenFile is not scriptable by default; a host has to allowlist
-	// it before an untrusted dispatch reaches Finder at all.
-	registerClassicyUntrustedActionAllowlist("ClassicyAppFinderOpenFile");
-	const path = "Macintosh HD:Documents:Notes.txt";
-	const text = ClassicyFileSystemEntryFileType.TextFile;
+	it("keeps the generic OpenFile when a built-in route would take the declared type", () => {
+		const ds = storeWith("DesktopFoo.app", "DesktopFoo", text);
 
-	it("rejects an app's own OpenFile that is not allowlisted", () => {
-		const ds = storeWith(HOST_ID, "Note Pad", text);
+		const result = finderOpen(ds, text, path);
 
-		const result = finderOpen(ds, text, path, "untrusted");
-
-		expect(apps(result)[HOST_ID].data).toEqual({});
-		expect(apps(result)[HOST_ID].open).toBe(false);
-	});
-
-	it("rejects a generic OpenFile that is not allowlisted", () => {
-		const ds = storeWith("TV.app", "TV", text);
-
-		const result = finderOpen(ds, text, path, "untrusted");
-
-		expect(apps(result)["TV.app"].data).toEqual({});
-		expect(apps(result)["TV.app"].open).toBe(false);
-		expect(openFileTypes()).toEqual([]);
-	});
-
-	it("routes an allowlisted OpenFile to the app's own case", () => {
-		registerClassicyUntrustedActionAllowlist("ClassicyAppNotePadOpenFile");
-		const ds = storeWith(HOST_ID, "Note Pad", text);
-
-		const result = finderOpen(ds, text, path, "untrusted");
-
-		expect(apps(result)[HOST_ID].data).toEqual({ lastOpened: path });
-	});
-
-	it("routes an allowlisted generic OpenFile", () => {
-		registerClassicyUntrustedActionAllowlist("ClassicyAppTVOpenFile");
-		const ds = storeWith("TV.app", "TV", text);
-
-		const result = finderOpen(ds, text, path, "untrusted");
-
-		expect(apps(result)["TV.app"].data?.openFiles).toEqual([path]);
+		expect(openFileTypes()).toEqual(["ClassicyAppDesktopFooOpenFile"]);
+		expect(apps(result)["DesktopFoo.app"].data?.openFiles).toEqual([path]);
 	});
 });

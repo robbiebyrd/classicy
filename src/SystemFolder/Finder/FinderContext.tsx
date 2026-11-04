@@ -4,7 +4,10 @@ import {
 	hasPath,
 	hasPaths,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
-import type { ClassicyActionTrust } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
+import {
+	type ClassicyActionTrust,
+	checkClassicyActionTrust,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	focusWindow,
 	openApp,
@@ -21,7 +24,10 @@ import {
 	parseAppData,
 	registerApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
-import { routeClassicyAppOpenFile } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
+import {
+	classicyGenericOpenFileType,
+	routeClassicyAppOpenFile,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
 import {
 	getAppWindow,
 	removeAppWindow,
@@ -153,10 +159,30 @@ const readPathMoves = (
 			)
 		: [];
 
+/**
+ * Queue `path` on Finder's own record through the generic OpenFile handler,
+ * by its record name, checked like any generic open: the type is not
+ * necessarily the `ClassicyAppFinderOpenFile` that reached Finder.
+ */
+const openInFinder = (
+	ds: ClassicyStore,
+	name: string,
+	path: string,
+	trust: ClassicyActionTrust,
+): ClassicyStore => {
+	const type = classicyGenericOpenFileType(name);
+	if (!checkClassicyActionTrust(trust, type)) return ds;
+	return classicyAppEventHandler(ds, {
+		type,
+		app: { id: "Finder.app" },
+		path,
+	});
+};
+
 export const classicyFinderEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
-	trust: ClassicyActionTrust = "trusted",
+	trust: ClassicyActionTrust,
 ) => {
 	const appId = "Finder.app";
 	if (!ds.System.Manager.Applications.apps[appId]) return ds;
@@ -371,6 +397,17 @@ export const classicyFinderEventHandler = (
 					typeof (document as { url: unknown }).url === "string" &&
 					isValidHttpUrl((document as { url: string }).url)
 				) {
+					// The document hand-off must clear the gate a dispatch of it
+					// would, or the app is not opened either. (ClassicyAppOpen is
+					// always allowlisted.)
+					if (
+						!checkClassicyActionTrust(
+							trust,
+							"ClassicyAppMoviePlayerOpenDocument",
+						)
+					) {
+						return ds;
+					}
 					ds = classicyAppEventHandler(ds, {
 						type: "ClassicyAppOpen",
 						app: MoviePlayerAppInfo,
@@ -413,6 +450,11 @@ export const classicyFinderEventHandler = (
 					};
 					return ds;
 				}
+				// ClassicyDesktop* is the guarded floor: an untrusted open never
+				// reaches it, in any disposition.
+				if (!checkClassicyActionTrust(trust, "ClassicyDesktopOpenUrl")) {
+					return ds;
+				}
 				const name = hasPath(action)
 					? (action.path.split(":").pop() ?? action.path)
 					: file._url;
@@ -431,27 +473,19 @@ export const classicyFinderEventHandler = (
 					? ds.System.Manager.Applications.apps[targetAppId]
 					: undefined;
 				if (targetApp && targetApp.id !== appId) {
-					// Reduced as a dispatch would be: the app's own OpenFile case
+					// Reduced by the kernel: the app's own OpenFile case
 					// when its manifest declares one, else the generic handler;
 					// under the trust this open arrived with.
 					ds = routeClassicyAppOpenFile(ds, targetApp, action.path, trust);
 				} else if (targetApp) {
 					// Finder's own OpenFile case is this dispatcher (it takes a
 					// `file`), so a file Finder opens itself is queued generically.
-					ds = classicyAppEventHandler(ds, {
-						type: `ClassicyApp${targetApp.name}OpenFile`,
-						app: { id: targetAppId },
-						path: action.path,
-					});
+					ds = openInFinder(ds, targetApp.name, action.path, trust);
 				} else {
 					// Fall back to Finder if it can handle the requested type
 					const finder = ds.System.Manager.Applications.apps[appId];
 					if (finder?.handlesFileTypes?.includes(fileType)) {
-						ds = classicyAppEventHandler(ds, {
-							type: `ClassicyApp${finder.name}OpenFile`,
-							app: { id: appId },
-							path: action.path,
-						});
+						ds = openInFinder(ds, finder.name, action.path, trust);
 					} else {
 						ds.System.Manager.Desktop.errorDialog = {
 							message: "Finder cannot open the file type you requested.",
