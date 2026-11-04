@@ -27,7 +27,7 @@ import {
 	classicyFileDragAppearanceCallbacks,
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
-import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */

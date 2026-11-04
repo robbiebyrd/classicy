@@ -8,7 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
-import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
 import {
 	type ClassicyIconBalloonHelp,

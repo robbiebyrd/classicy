@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 describe("withoutZIndex", () => {
 	it("drops zIndex and keeps every other key", () => {
@@ -16,5 +18,14 @@ describe("withoutZIndex", () => {
 
 	it("passes undefined through", () => {
 		expect(withoutZIndex(undefined)).toBeUndefined();
+	});
+
+	// Kept internal (0082-lgo k): a helper for the components whose state
+	// classes own stacking, not API. It never shipped in a release, and the
+	// barrel skips `.internal.ts` modules.
+	it("is not exported from the package root", () => {
+		expect(
+			readFileSync(resolve(process.cwd(), "src/index.ts"), "utf8"),
+		).not.toContain("withoutZIndex");
 	});
 });

@@ -10,7 +10,7 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
