@@ -312,7 +312,7 @@ docker compose up -d
 
 The proxy runs on `http://localhost:8765` by default. Enable it in the Browser app under **File → Settings → Enable TimeMachine Proxy**.
 
-## Acknowledgements
+## Acknowledgments
 
 - New Dawn by [`Nathanael Gentry`](https://github.com/npjg)
 - Scrollbars of the Classic Mac OS by [`Jessica Stokes (@ticky)`](https://github.com/ticky)

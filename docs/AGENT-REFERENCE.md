@@ -2932,7 +2932,7 @@ Finder outline drags (`startClassicyFileDrag`): a file-backed desktop icon
 list view (Table, through the cell's `emitDrag`) emit them through their own
 emitter:
 
-- `dragStart { kind: "file" }`, once, when the pointer has travelled
+- `dragStart { kind: "file" }`, once, when the pointer has traveled
   `CLASSICY_FILE_DRAG_THRESHOLD` (4 px) and the outline appears. A press that
   never travels that far is a click and emits no drag event.
 - `dragEnd { kind: "file", dropped, cancelled }`, exactly once per

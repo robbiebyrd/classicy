@@ -58,14 +58,14 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 | Checkboxes (p.27) | on/off/mixed; checkmark (or localizable X); avoid negative labels; click label toggles | `Checkbox/` | see Findings |
 | Bevel Buttons (p.29) | Bevels 2/3/4px (small/med/large); 7 states; can act as push/radio/checkbox/pop-up | `BevelButton/` | see Findings |
 | Sliders & Tick Marks (p.34) | Horizontal/vertical; directional or nondirectional indicator; ghost indicator; labeled ticks; live drag; not a scroll bar substitute | `Slider/` | see Findings |
-| Little Arrows (p.35) | Two opposed arrows; labelled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `LittleArrows/ClassicyLittleArrows` | see Findings |
+| Little Arrows (p.35) | Two opposed arrows; labeled; click = ±1 unit; press-hold auto-repeats; highlight while pressed | `LittleArrows/ClassicyLittleArrows` | see Findings |
 | Clock Controls (p.36) | Edit-text + little arrows; ↑/↓ keys inc/dec focused field; can be inactive (display-only) | `DatePicker/`, `TimePicker/` | see Findings |
 | Disclosure Triangles (p.37) | Right = closed, down = open; ⌘→ opens / ⌘← closes in list views; rotate reveals detail | `Disclosure/`, `Triangle/` | see Findings |
 | List Boxes & Frames (p.39) | 2px frame; white bg; arrow-key nav; type-selection | `ListBox/` | see Findings |
 | Scroll Bars (p.40) | Position (not settings); solid-black active arrows; indicator uses accent color | `Window/` scrollbars | see Findings |
 | Edit Text Fields (p.41) | 2px frame; enabled/disabled; focus ring; password support | `Input/`, `TextEditor/`, `RichTextEditor/` | see Findings |
 | Static Text Fields (p.42) | Active vs disabled appearance | `ControlLabel/`, `Output/` | see Findings |
-| Tab Controls (p.42) | One row along top; 12/10pt labels; tucked 1px (panel) or inset 2px (modal dialog); global vs per-pane controls clearly labelled | `Tabs/` | see Findings |
+| Tab Controls (p.42) | One row along top; 12/10pt labels; tucked 1px (panel) or inset 2px (modal dialog); global vs per-pane controls clearly labeled | `Tabs/` | see Findings |
 | Placards (p.46) | normal/pressed/disabled; info panel, bottom-left near h-scrollbar | `Placard/` | see Findings |
 | Image Wells (p.47) | 2px recessed frame; white fill; enabled/selected; drag-drop target; not a button | `ImageWell/` | see Findings |
 | Group Boxes (p.47) | Primary = 2px etched; secondary = 1px; titles: none/text/pop-up/checkbox | `ControlGroup/`, `Form/` | see Findings |
@@ -144,7 +144,7 @@ Normative checklist (HIGOS8 Ch.2) and component mapping:
 
 **Verified already-compliant:** Push Buttons (58×20 min, default ring, 3 states,
 Return/Esc/⌘. delegated to the dialog layer), Bevel Buttons (2/3/4px bevels, all
-seven states), Sliders (ghost indicator, labelled ticks, live drag), Pop-up
+seven states), Sliders (ghost indicator, labeled ticks, live drag), Pop-up
 (current selection + double triangle + checkmark), Clock Controls, Disclosure
 Triangles (right=closed/down=open, ⌘←/⌘→), Placard, Image Well, Group Boxes
 (primary 2px etched / secondary 1px, all four title styles), Separator (2px
@@ -259,7 +259,7 @@ Normative checklist (HIGOS8 Ch.4 + HIGOS7 menu detail):
   bar dropdowns, contextual menus, their submenus and pop-up bevel menus now
   share Figure 6-15's frame, matched pixel for pixel: 1 px black border; white
   highlight on the inside top and left and a system-04 edge on the bottom and
-  right, meeting at face-coloured corners; and a 1 px system-07 shadow that
+  right, meeting at face-colored corners; and a 1 px system-07 shadow that
   starts 2 px in from the corner. Dividers are a system-05 line over a white
   one across the full inner width. _HIGOS8 Ch.6 Figure 6-15._
 - **4.6** (`ClassicyEditCommands.ts`, `ClassicyAppMenuHooks.tsx`): Edit → Undo
@@ -358,7 +358,7 @@ Normative checklist (HIGOS8 Ch.6):
   settings saved automatically on quit unless complicated/technical (then explicit
   Save/Revert + confirm-on-quit).
 - **Multi-pane** (p.110): tabs / push buttons / scrolling icon list / pop-up menu.
-- **Expand/contract** (p.115): labelled disclosure triangle (expands downward) or
+- **Expand/contract** (p.115): labeled disclosure triangle (expands downward) or
   Show/Hide push button.
 - **Assistance** (p.125): Help (?) button, help balloons, scriptable.
 
@@ -372,7 +372,7 @@ Normative checklist (HIGOS8 Ch.6):
 | 6.2 | HIGH | Screen Saver panel lacked an Edit menu despite having edit-text fields (timeout spinner, options form) | `ScreenSaverManager` | 🔧 Fixed |
 | 6.3 | MEDIUM | Screen Saver File menu lacked `Close Window` + the required divider before `Quit` | `ScreenSaverManager` | 🔧 Fixed |
 | 6.4 | MEDIUM | Drive Setup File menu lacked `Close Window` (the `windowClose` handler was built but unused) | `DriveSetup` | 🔧 Fixed |
-| 6.5 | MEDIUM | Sound panel shipped per-sound disable checkboxes bound to the global `"*"` flag — inert, labelled "not currently connected" | `SoundManager` | 🔧 Fixed |
+| 6.5 | MEDIUM | Sound panel shipped per-sound disable checkboxes bound to the global `"*"` flag — inert, labeled "not currently connected" | `SoundManager` | 🔧 Fixed |
 | 6.6 | LOW | Drive Setup `Quit` lacked the `⌥Q` equivalent used by peer panels | `DriveSetup` | 🔧 Fixed |
 | 6.7 | LOW | Drive Setup window was `collapsable` while every other panel is not | `DriveSetup` | 🔧 Fixed |
 | — | — | ⌥W/⌥Q (vs ⌘W/⌘Q) on Close/Quit | all panels | ✅ Intentional web adaptation (see top) |
@@ -390,7 +390,7 @@ Normative checklist (HIGOS8 Ch.6):
   _HIGOS8 Ch.6 "Standard Menus" (p.118)._
 - **6.5** (`SoundManager.tsx`): each per-sound checkbox now binds
   `checked={!disabled.includes("*") && !disabled.includes(item.id)}`. Playback
-  already honoured per-sound entries (`playerCanPlayInterrupt`), so the control
+  already honored per-sound entries (`playerCanPlayInterrupt`), so the control
   is now genuinely functional and applies immediately; the "not currently
   connected" notice and stale TODO were removed. _HIGOS8 Ch.6 "Settings" (p.122)._
 
@@ -473,4 +473,4 @@ layouts built from existing tabs, push buttons, list boxes and pop-up menus.
 
 The Help button's glyph matches the HIG pixel for pixel, but its frame uses
 the library-wide bevel button style: a black outline on a lighter face, where
-the HIG figure has a dark-grey frame on `#ccc`.
+the HIG figure has a dark-gray frame on `#ccc`.

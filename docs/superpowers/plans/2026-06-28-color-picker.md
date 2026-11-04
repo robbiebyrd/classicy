@@ -1178,7 +1178,7 @@ git commit -m "feat: add ClassicyColorPickerHLS HLS wheel tab"
     onCancelFunc?: () => void
   ```
 
-State note: `pendingColor` is initialised from `initialColor` via `useState`. A `useEffect` on `open` resets it to `initialColor` whenever the dialog is re-opened. The component renders `null` when `open` is `false`, but the hook state persists so the reset effect fires correctly on the next open.
+State note: `pendingColor` is initialized from `initialColor` via `useState`. A `useEffect` on `open` resets it to `initialColor` whenever the dialog is re-opened. The component renders `null` when `open` is `false`, but the hook state persists so the reset effect fires correctly on the next open.
 
 - [ ] **Step 1: Create the component**
 
@@ -1393,8 +1393,8 @@ describe("ClassicyColorPicker", () => {
   });
 
   it("renders a label when labelTitle is provided", () => {
-    render(<ClassicyColorPicker id="test" labelTitle="Accent colour:" />);
-    expect(screen.getByText("Accent colour:")).toBeInTheDocument();
+    render(<ClassicyColorPicker id="test" labelTitle="Accent color:" />);
+    expect(screen.getByText("Accent color:")).toBeInTheDocument();
   });
 });
 ```
@@ -1507,7 +1507,7 @@ Expected: all 7 tests PASS.
 > Add the following extra tests to the same file to cover spec items 6–8 (crayon click, RGB/CMYK boundary values). These test the sub-components directly without mocking them.
 
 ```tsx
-// Append to ClassicyColorPicker.test.tsx — sub-component behavioural tests
+// Append to ClassicyColorPicker.test.tsx — sub-component behavioral tests
 
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
 import { ClassicyColorPickerRGB } from "./ClassicyColorPickerRGB";

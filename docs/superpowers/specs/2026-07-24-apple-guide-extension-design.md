@@ -40,7 +40,7 @@ confirms:
 | Arrow hue | `#B3B3D7` — the standard Platinum scroll-arrow lavender |
 | Title text | **none** — the title bar carries only the active stripe pattern |
 | Title-bar widgets | close box (left); zoom + collapse (right) |
-| Header band | bold serif "About Help" on the standard grey |
+| Header band | bold serif "About Help" on the standard gray |
 | Content band | white, serif body copy, bulleted list, `- End -` |
 | Footer band | three-cell pager: `◁` / recessed "1" / `▷`, **both arrows disabled** |
 

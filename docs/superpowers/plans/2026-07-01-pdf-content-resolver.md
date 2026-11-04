@@ -412,7 +412,7 @@ Append these tests inside the existing `describe("PDFViewerDocument", ...)` bloc
 		// Unmount synchronously, right after render — before the in-flight
 		// decompression (a genuinely async operation: Blob/CompressionStream
 		// APIs never resolve synchronously) has any chance to settle. This is
-		// the exact race the effect's `cancelled` check before creating the
+		// the exact race the effect's `canceled` check before creating the
 		// pdf.js loading task exists to guard against.
 		unmount();
 		await new Promise((resolve) => setTimeout(resolve, 0));
@@ -457,7 +457,7 @@ Replace this entire block (the loading effect):
 ```tsx
 	// Load the document whenever the URL changes
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		setDoc(null);
 		setError(false);
 		setPageError(false);
@@ -472,13 +472,13 @@ Replace this entire block (the loading effect):
 		const loadingTask = getDocument({ url });
 		loadingTask.promise
 			.then((loadedDoc) => {
-				if (!cancelled) setDoc(loadedDoc);
+				if (!canceled) setDoc(loadedDoc);
 			})
 			.catch(() => {
-				if (!cancelled) setError(true);
+				if (!canceled) setError(true);
 			});
 		return () => {
-			cancelled = true;
+			canceled = true;
 			loadingTask.destroy();
 		};
 	}, [url]);
@@ -491,7 +491,7 @@ with:
 	// (compressed + base64url-encoded bytes) takes precedence over `url` when
 	// both are set, matching resolveFileSystemEntrySource's precedence.
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		let loadingTask: ReturnType<typeof getDocument> | null = null;
 		setDoc(null);
 		setError(false);
@@ -499,7 +499,7 @@ with:
 		setCurrentPage(1);
 		// Decompressing `data` is an extra async step before pdf.js's own
 		// load even starts, so the whole thing runs inside one async IIFE.
-		// `cancelled` is checked right after that await, before creating the
+		// `canceled` is checked right after that await, before creating the
 		// loading task, so a fast unmount/re-run during decompression never
 		// creates an orphaned task with nothing to destroy it.
 		(async () => {
@@ -507,7 +507,7 @@ with:
 				const source = data
 					? { data: await decompressFromBase64(data) }
 					: { url };
-				if (cancelled) return;
+				if (canceled) return;
 				// `destroy()` lives on the loading task (not the resolved
 				// PDFDocumentProxy), and is safe to call whether the load is
 				// still in flight or has already settled — it aborts network
@@ -518,13 +518,13 @@ with:
 				// created, exactly once.
 				loadingTask = getDocument(source);
 				const loadedDoc = await loadingTask.promise;
-				if (!cancelled) setDoc(loadedDoc);
+				if (!canceled) setDoc(loadedDoc);
 			} catch {
-				if (!cancelled) setError(true);
+				if (!canceled) setError(true);
 			}
 		})();
 		return () => {
-			cancelled = true;
+			canceled = true;
 			loadingTask?.destroy();
 		};
 	}, [url, data]);

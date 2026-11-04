@@ -903,7 +903,7 @@ Add the flush machinery (after `applyDerivedTree`):
 	}
 
 	/**
-	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * Persist to localStorage and deliver onSnapshot immediately, canceling any
 	 * pending debounce. Arrow property so pagehide can call it detached.
 	 */
 	flushNow = () => {
