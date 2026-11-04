@@ -26,6 +26,7 @@ import type {
 	ClassicyBevelPopupSide,
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /** HIG bevel widths: small = 2px, medium = 3px, large = 4px. */
@@ -313,6 +314,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const releaseListenerRef = useRef<
 		((e: globalThis.MouseEvent) => void) | null
 	>(null);
+	// A press that may open the surface watches the pointer stream until it
+	// is released (see losePress).
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
 	const appearance = useClassicyAppearance(
 		"BevelButton",
 		bevelButtonStates(
@@ -338,6 +342,11 @@ export const ClassicyBevelButton: FunctionalComponent<
 			clearTimeout(holdTimerRef.current);
 			holdTimerRef.current = null;
 		}
+	}, []);
+
+	const stopWatchingPointerStream = useCallback(() => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	}, []);
 
 	const detachReleaseListener = useCallback(() => {
@@ -367,19 +376,21 @@ export const ClassicyBevelButton: FunctionalComponent<
 	};
 
 	const closePopup = useCallback(() => {
+		stopWatchingPointerStream();
 		detachReleaseListener();
 		setPopupAnchor(null);
 		setFocusFirstItem(false);
 		// Hand focus back if it was inside the surface (keyboard use, Escape).
 		const surface = document.getElementById(popupId);
 		if (surface?.contains(document.activeElement)) buttonRef.current?.focus();
-	}, [detachReleaseListener, popupId]);
+	}, [detachReleaseListener, stopWatchingPointerStream, popupId]);
 
 	// Standard (non-sticky) menu semantics for a press that was held: releasing
 	// over an item chooses it, releasing anywhere else closes the menu.
 	const listenForRelease = (pressedAt: number) => {
 		detachReleaseListener();
 		const onRelease = (e: globalThis.MouseEvent) => {
+			stopWatchingPointerStream();
 			detachReleaseListener();
 			const target = e.target instanceof Element ? e.target : null;
 			// mouseup reaches the document before the click it produces. Only a
@@ -404,9 +415,24 @@ export const ClassicyBevelButton: FunctionalComponent<
 		() => () => {
 			clearHoldTimer();
 			detachReleaseListener();
+			stopWatchingPointerStream();
 		},
-		[clearHoldTimer, detachReleaseListener],
+		[clearHoldTimer, detachReleaseListener, stopWatchingPointerStream],
 	);
+
+	// The pointer stream lost mid-press (the window blurs, a pointercancel,
+	// the page is hidden): the press is canceled, as a file drag is, since a
+	// release at the pointer's return spot would choose whatever is there. A
+	// pending hold never opens the surface, and a menu the press is tracking
+	// closes with nothing chosen. A sticky menu, left open by a click that
+	// already ended, is not a press and stays.
+	const losePress = () => {
+		stopWatchingPointerStream();
+		clearHoldTimer();
+		setPressed(false);
+		suppressClickRef.current = false;
+		if (releaseListenerRef.current) closePopup();
+	};
 
 	const showArrow =
 		(mode === "popup" || hasSurface) && popupArrow !== undefined;
@@ -435,6 +461,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 		if (onClickFunc) onClickFunc(e);
 	};
 
+	const watchPointerStream = () => {
+		stopWatchingPointerStream();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(losePress);
+	};
+
 	const onPopupMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		if (!hasSurface || e.button !== 0) return;
 		suppressClickRef.current = false;
@@ -446,10 +478,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 				closePopup();
 				return;
 			}
+			watchPointerStream();
 			openPopup(false);
 			listenForRelease(pressedAt);
 			return;
 		}
+		watchPointerStream();
 		holdTimerRef.current = setTimeout(() => {
 			holdTimerRef.current = null;
 			suppressClickRef.current = true;
@@ -520,6 +554,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 				}}
 				onMouseUp={() => {
 					if (disabled) return;
+					stopWatchingPointerStream();
 					clearHoldTimer();
 					setPressed(false);
 					appearance.emit("release");

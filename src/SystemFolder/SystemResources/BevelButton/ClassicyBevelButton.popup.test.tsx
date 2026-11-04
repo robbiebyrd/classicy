@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import {
 	fireEvent,
 	render,
@@ -473,5 +478,120 @@ describe("ClassicyBevelButton pop-up placement", () => {
 		expect(panel.style.left).toBe("60px"); // 50 + (40 - 20) / 2
 		panelRect.mockRestore();
 		spy.mockRestore();
+	});
+});
+
+describe("ClassicyBevelButton when a press loses its pointer stream", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("closes a menu a held press is tracking, choosing nothing, on a %s", (loss) => {
+		const onPick = vi.fn();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(onPick)}
+				popupHoldDelayMs={0}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		fireEvent.mouseDown(button, { button: 0 });
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		losePointerStream(loss);
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(button).not.toHaveClass("pressed");
+		fireEvent.mouseUp(document.body);
+		expect(onPick).not.toHaveBeenCalled();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("never opens the options of a press-and-hold lost before the delay, on a %s", async (loss) => {
+		const onClick = vi.fn();
+		render(
+			<ClassicyBevelButton
+				mode="push"
+				aria-label="Lasso"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={20}
+				onClickFunc={onClick}
+			/>,
+		);
+		const tool = screen.getByRole("button", { name: "Lasso" });
+		fireEvent.mouseDown(tool, { button: 0 });
+		losePointerStream(loss);
+		expect(tool).not.toHaveClass("pressed");
+		await new Promise((resolve) => setTimeout(resolve, 40));
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+	});
+
+	it("leaves a sticky menu open: a click that ended is no gesture", () => {
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		quickClick(screen.getByRole("button", { name: "Marquee" }));
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		losePointerStream("blur");
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
+	it("watches the pointer stream only while a press lasts", async () => {
+		const live = trackPointerStreamListeners();
+		const { unmount } = render(
+			<>
+				<ClassicyBevelButton
+					mode="popup"
+					aria-label="Marquee"
+					menuItems={lassoItems(vi.fn())}
+					popupHoldDelayMs={10_000}
+				/>
+				<ClassicyBevelButton
+					mode="push"
+					aria-label="Lasso"
+					menuItems={lassoItems(vi.fn())}
+					popupHoldDelayMs={20}
+				/>
+			</>,
+		);
+		const marquee = screen.getByRole("button", { name: "Marquee" });
+		const lasso = screen.getByRole("button", { name: "Lasso" });
+		expect(live.size).toBe(0);
+		// A click-trigger press, released: the menu stays open, unwatched.
+		fireEvent.mouseDown(marquee, { button: 0 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(marquee, { button: 0 });
+		expect(live.size).toBe(0);
+		fireEvent.keyDown(document, { key: "Escape" });
+		// A hold-trigger press released before the delay.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(lasso, { button: 0 });
+		expect(live.size).toBe(0);
+		// A hold that opens its options, released elsewhere.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		await screen.findByRole("menu");
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document.body);
+		expect(live.size).toBe(0);
+		// A hold released over an item, which then flashes before it runs.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		await screen.findByRole("menu");
+		fireEvent.mouseUp(screen.getByText("No Shrink"));
+		expect(live.size).toBe(0);
+		completeMenuItemFlash("no-shrink");
+		// Lost, then unmounted mid-press.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(lasso, { button: 0 });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });
