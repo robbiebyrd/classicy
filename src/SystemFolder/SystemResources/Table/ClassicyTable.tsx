@@ -26,6 +26,7 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -277,6 +278,43 @@ export function ClassicyTable<T>({
 		onSortingChange: setSorting,
 		columnResizeMode: "onChange",
 	});
+
+	// A column resize runs inside TanStack, on its own document listeners,
+	// with no cancel API: a lost pointer stream (blur, pointercancel, a hidden
+	// page) would leave the column following the pointer with no button held.
+	// It is ended through TanStack's own release path instead, a `mouseup` or
+	// `touchend` on the document, which detaches its listeners and resets
+	// `columnSizingInfo`. The release carries no position, so TanStack skips
+	// its final offset update and the column keeps the width the last move
+	// gave it (onChange mode has already applied it): it ends where it is, as
+	// a window resize or a split view divider does.
+	const resizeInputRef = useRef<"mouse" | "touch" | undefined>(undefined);
+	const endColumnResize = useCallback(() => {
+		const input = resizeInputRef.current;
+		// One loss can fire more than one event (hiding a tab also blurs).
+		if (!input) return;
+		resizeInputRef.current = undefined;
+		const release = new Event(input === "touch" ? "touchend" : "mouseup");
+		if (input === "touch") {
+			Object.defineProperty(release, "touches", { value: [] });
+		}
+		document.dispatchEvent(release);
+	}, []);
+	const resizingColumn = table.getState().columnSizingInfo.isResizingColumn;
+	useEffect(() => {
+		if (!resizingColumn) return;
+		const stopWatchingPointerStream =
+			onClassicyPointerStreamLost(endColumnResize);
+		return () => {
+			stopWatchingPointerStream();
+			// Still resizing here means the table is unmounting mid-resize:
+			// end TanStack's gesture too, so its listeners do not outlive it.
+			// After a release, the render that ran this already reads false.
+			if (table.getState().columnSizingInfo.isResizingColumn) {
+				endColumnResize();
+			}
+		};
+	}, [resizingColumn, table, endColumnResize]);
 
 	// Wrapped in useCallback (rather than left as a plain function) so
 	// `selectAll` below gets a stable dependency — otherwise the effect that
@@ -550,8 +588,14 @@ export function ClassicyTable<T>({
 											{header.column.getCanResize() && (
 												// biome-ignore lint/a11y/noStaticElementInteractions: resize handle requires mouse events only; no keyboard equivalent
 												<div
-													onMouseDown={header.getResizeHandler()}
-													onTouchStart={header.getResizeHandler()}
+													onMouseDown={(e) => {
+														resizeInputRef.current = "mouse";
+														header.getResizeHandler()(e);
+													}}
+													onTouchStart={(e) => {
+														resizeInputRef.current = "touch";
+														header.getResizeHandler()(e);
+													}}
 													className={classNames(
 														"resizer",
 														header.column.getIsResizing() ? "isResizing" : "",
