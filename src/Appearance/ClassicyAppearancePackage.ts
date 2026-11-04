@@ -93,14 +93,23 @@ export type ClassicyAppearanceEvent =
 export type ClassicyAppearanceInput = "pointer" | "keyboard";
 
 /**
- * What every `dragEnd` detail carries beside the component's own fields:
- * `detail.lost` is true when the gesture ended because the pointer stream
- * was lost (the window blurred, a `pointercancel`, the page turned hidden),
- * false when it ended any other way (a release; for a file drag, Escape or
- * its source unmounting too). A package uses it to, say, skip a drop sound
- * for a gesture the user never let go of.
+ * How a gesture ended: `lost` is true when it ended because the pointer
+ * stream was lost (the window blurred, a `pointercancel`, the page turned
+ * hidden), false when it ended any other way (a release, a key release; for
+ * a file drag, Escape or its source unmounting too). Host callbacks fired at
+ * a gesture's end take it as their trailing argument
+ * (`ClassicySplitView`'s `onResizeCommit`, `ClassicySlider`'s
+ * `onCommitFunc`), and it is what a package `dragEnd` detail carries
+ * (`ClassicyAppearanceDragEnd`).
  */
-export type ClassicyAppearanceDragEnd = { lost: boolean };
+export type ClassicyGestureEnd = { lost: boolean };
+
+/**
+ * What every `dragEnd` detail carries beside the component's own fields
+ * (`ClassicyGestureEnd`): `detail.lost`. A package uses it to,
+ * say, skip a drop sound for a gesture the user never let go of.
+ */
+export type ClassicyAppearanceDragEnd = ClassicyGestureEnd;
 
 /**
  * A component's `emit` (`useClassicyAppearance`): a `dragEnd` must carry

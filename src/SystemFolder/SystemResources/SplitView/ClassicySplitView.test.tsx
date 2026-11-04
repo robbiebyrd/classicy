@@ -1,4 +1,5 @@
 import { fireEvent } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	losePointerStream,
@@ -6,6 +7,7 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import { render } from "@/__tests__/test-utils";
+import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	ClassicySplitView,
@@ -303,7 +305,48 @@ describe("ClassicySplitView", () => {
 		fireEvent.mouseUp(document);
 		expect(onResize).toHaveBeenCalledTimes(2);
 		expect(onResizeCommit).toHaveBeenCalledTimes(1);
-		expect(onResizeCommit).toHaveBeenCalledWith([62.5, 37.5]);
+		expect(onResizeCommit).toHaveBeenCalledWith([62.5, 37.5], { lost: false });
+	});
+
+	it("still takes a commit handler that reads only the sizes", () => {
+		// Type-level: the trailing `{ lost }` is optional to read, so an
+		// existing one-argument handler compiles unchanged...
+		const saved: number[][] = [];
+		const saveSizes = (sizes: number[]) => {
+			saved.push(sizes);
+		};
+		const accepted: ComponentProps<typeof ClassicySplitView>["onResizeCommit"] =
+			saveSizes;
+		// ...while a handler that reads it must take it as `{ lost: boolean }`.
+		const reads: ComponentProps<typeof ClassicySplitView>["onResizeCommit"] = (
+			_sizes: number[],
+			info: ClassicyGestureEnd,
+		) => {
+			expect(info.lost).toBeTypeOf("boolean");
+		};
+		expect(reads).toBeTypeOf("function");
+		// @ts-expect-error: the trailing info's `lost` is a boolean
+		const wrong: ComponentProps<typeof ClassicySplitView>["onResizeCommit"] = (
+			_sizes: number[],
+			_info: { lost: string },
+		) => {};
+		expect(accepted).toBe(saveSizes);
+		expect(wrong).toBeTypeOf("function");
+
+		const { container } = render(
+			<ClassicySplitView onResizeCommit={saveSizes}>
+				<div>One</div>
+				<div>Two</div>
+			</ClassicySplitView>,
+		);
+		mockRootRect(container, 400);
+		const divider = container.querySelector(
+			".classicySplitViewDivider",
+		) as HTMLElement;
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 250 });
+		fireEvent.mouseUp(document);
+		expect(saved).toEqual([[62.5, 37.5]]);
 	});
 
 	it("does not commit when the divider is pressed and released without moving", () => {
@@ -340,7 +383,8 @@ describe("ClassicySplitView", () => {
 		expect(onResizeCommit).not.toHaveBeenCalled();
 		fireEvent.keyUp(divider, { key: "ArrowRight" });
 		expect(onResizeCommit).toHaveBeenCalledTimes(1);
-		expect(onResizeCommit).toHaveBeenCalledWith([52, 48]);
+		// A key release is never a lost pointer stream.
+		expect(onResizeCommit).toHaveBeenCalledWith([52, 48], { lost: false });
 	});
 
 	it("does not commit on releasing a cross-axis key", () => {
@@ -532,8 +576,9 @@ describe("ClassicySplitView when the pointer stream is lost", () => {
 		losePointerStream(loss);
 		// Committed as a release there would commit it, so a host that
 		// persists on commit holds what the user sees.
+		// The trailing info says the gesture was lost, not released.
 		expect(onResizeCommit).toHaveBeenCalledOnce();
-		expect(onResizeCommit).toHaveBeenCalledWith([62.5, 37.5]);
+		expect(onResizeCommit).toHaveBeenCalledWith([62.5, 37.5], { lost: true });
 		expect(paneGrows(container)).toEqual(["62.5", "37.5"]);
 		// The drag cursor is put back.
 		expect(root).not.toHaveAttribute("data-drag-direction");

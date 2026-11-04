@@ -161,7 +161,7 @@ describe("ClassicySlider appearance", () => {
 			{ event: "dragEnd", detail: { value: 40, lost: true } },
 		]);
 		expect(ghostEl).toHaveClass("classicySliderGhostHidden");
-		expect(onCommit.mock.calls).toEqual([[40]]);
+		expect(onCommit.mock.calls).toEqual([[40, { lost: true }]]);
 
 		// A second loss, or a release on the document, ends nothing more.
 		losePointerStream(loss);
@@ -180,12 +180,15 @@ describe("ClassicySlider appearance", () => {
 		fireEvent.change(el, { target: { value: "40" } });
 		losePointerStream("blur");
 		fireEvent.pointerUp(el);
-		expect(onCommit.mock.calls).toEqual([[40]]);
+		expect(onCommit.mock.calls).toEqual([[40, { lost: true }]]);
 		// The next press commits on its release as usual.
 		fireEvent.pointerDown(el);
 		fireEvent.change(el, { target: { value: "50" } });
 		fireEvent.pointerUp(el);
-		expect(onCommit.mock.calls).toEqual([[40], [50]]);
+		expect(onCommit.mock.calls).toEqual([
+			[40, { lost: true }],
+			[50, { lost: false }],
+		]);
 	});
 
 	it("commits the next press after a loss whose release never arrived", () => {
@@ -200,7 +203,10 @@ describe("ClassicySlider appearance", () => {
 		fireEvent.pointerDown(el);
 		fireEvent.change(el, { target: { value: "60" } });
 		fireEvent.pointerUp(el);
-		expect(onCommit.mock.calls).toEqual([[40], [60]]);
+		expect(onCommit.mock.calls).toEqual([
+			[40, { lost: true }],
+			[60, { lost: false }],
+		]);
 	});
 
 	it("commits nothing for a loss with no press under way", () => {

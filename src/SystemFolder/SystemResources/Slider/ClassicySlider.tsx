@@ -9,6 +9,7 @@ import type {
 	SyntheticEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
@@ -136,11 +137,14 @@ interface ClassicySliderProps {
 	/**
 	 * Fired once when the user finishes adjusting the slider — on pointer release
 	 * or key release — rather than on every intermediate value like `onChangeFunc`.
-	 * Receives the committed numeric value. Use this to defer expensive work
-	 * (persistence, network writes, store dispatches) to the end of a drag while
-	 * keeping `onChangeFunc` for live, per-tick updates.
+	 * Receives the committed numeric value, then `{ lost }`: true when a press
+	 * ended by its pointer stream being lost (the window blurred, a
+	 * pointercancel, the page hidden), false for a pointer or key release.
+	 * Use this to defer expensive work (persistence, network writes, store
+	 * dispatches) to the end of a drag while keeping `onChangeFunc` for live,
+	 * per-tick updates.
 	 */
-	onCommitFunc?: (value: number) => void;
+	onCommitFunc?: (value: number, info: ClassicyGestureEnd) => void;
 	/**
 	 * Draws tick marks under the track. `"center"` renders a single tick at the
 	 * midpoint. A number renders a tick every `tickInterval` value-units
@@ -244,7 +248,8 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// fires continuously during a drag; onCommitFunc fires only at the end, so
 	// consumers can keep live UI responsive while deferring expensive side effects.
 	const handleCommit = (e: SyntheticEvent<HTMLInputElement>) => {
-		if (onCommitFunc) onCommitFunc(Number(e.currentTarget.value));
+		if (onCommitFunc)
+			onCommitFunc(Number(e.currentTarget.value), { lost: false });
 	};
 
 	const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -294,7 +299,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		finishPointerDrag(true);
 		if (pressed && onCommitFunc) {
 			committedByLossRef.current = true;
-			onCommitFunc(Number(inputRef.current?.value));
+			onCommitFunc(Number(inputRef.current?.value), { lost: true });
 		}
 	};
 	const loseDragRef = useRef(loseDrag);

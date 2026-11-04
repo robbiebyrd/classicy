@@ -9,6 +9,7 @@ import type {
 	ReactNode,
 } from "react";
 import { Children, Fragment, useEffect, useRef, useState } from "react";
+import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
@@ -108,13 +109,15 @@ interface ClassicySplitViewProps {
 	 * Fired once per resize gesture — on mouse release after a drag (or when
 	 * the drag's pointer stream is lost: the window blurs, a pointercancel,
 	 * the page is hidden; the divider stays where it was dragged), or on
-	 * arrow-key release — with the final percentage sizes. Use this to
-	 * persist the user's chosen split (e.g. dispatching into app state from
-	 * a wrapping ClassicyWindow/ClassicyApp) without a store write per
-	 * intermediate step; pass the saved sizes back as `defaultSizes` on the
-	 * next mount to restore them.
+	 * arrow-key release — with the final percentage sizes, then
+	 * `{ lost }`: true when the drag ended by its pointer stream being lost,
+	 * false for a release or a key release. Use this to persist the user's
+	 * chosen split (e.g. dispatching into app state from a wrapping
+	 * ClassicyWindow/ClassicyApp) without a store write per intermediate
+	 * step; pass the saved sizes back as `defaultSizes` on the next mount to
+	 * restore them.
 	 */
-	onResizeCommit?: (sizes: number[]) => void;
+	onResizeCommit?: (sizes: number[], info: ClassicyGestureEnd) => void;
 	/** Extra class names to merge onto the root element. */
 	className?: string;
 	/** Inline style, merged onto the root element after the component's own. */
@@ -264,15 +267,18 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 				document.removeEventListener("mouseup", upHandler);
 				dragCleanupRef.current = null;
 			};
-			const upHandler = () => {
+			const endDrag = (lost: boolean) => {
 				detach();
 				setDragDirection(null);
 				setCursor();
-				if (latestSizes) onResizeCommit?.(latestSizes);
+				if (latestSizes) onResizeCommit?.(latestSizes, { lost });
 			};
+			const upHandler = () => endDrag(false);
 			document.addEventListener("mousemove", moveHandler);
 			document.addEventListener("mouseup", upHandler);
-			const stopWatchingPointerStream = onClassicyPointerStreamLost(upHandler);
+			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
+				endDrag(true),
+			);
 			// Unmounted mid-drag: the listeners go, and the body cursor is
 			// put back; nothing is committed (the split view is gone).
 			dragCleanupRef.current = () => {
@@ -306,7 +312,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			? ["ArrowLeft", "ArrowRight"]
 			: ["ArrowUp", "ArrowDown"];
 		if (!axisKeys.includes(e.key)) return;
-		onResizeCommit?.(effectiveSizes);
+		onResizeCommit?.(effectiveSizes, { lost: false });
 	};
 
 	return (
