@@ -6,7 +6,6 @@ import {
 	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
