@@ -19,6 +19,11 @@ import {
 	isValidThemeColor,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
+	type ClassicyThemeFontSizeKey,
+	isClassicyThemeFontSizeKey,
+	isValidClassicyThemeFontSize,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
 	type ClassicyThemeMetricChange,
 	type ClassicyThemeMetricFamilyChange,
 	isThemeMetricFamilyTarget,
@@ -222,11 +227,19 @@ export function hasFont(m: Msg): m is Msg & { fontType: string; font: string } {
 	return typeof m.fontType === "string" && typeof m.font === "string";
 }
 
-/** Action has `fontType: string` and `fontSize: number` */
+/**
+ * Action is a valid font-size edit: `fontType` names one of the typography
+ * sizes (`CLASSICY_THEME_FONT_SIZE_KEYS`) and `fontSize` is a finite number
+ * within the font-size bounds the theme schema uses
+ * (`CLASSICY_THEME_FONT_SIZE_MIN`–`MAX`).
+ */
 export function hasFontSize(
 	m: Msg,
-): m is Msg & { fontType: string; fontSize: number } {
-	return typeof m.fontType === "string" && typeof m.fontSize === "number";
+): m is Msg & { fontType: ClassicyThemeFontSizeKey; fontSize: number } {
+	return (
+		isClassicyThemeFontSizeKey(m.fontType) &&
+		isValidClassicyThemeFontSize(m.fontSize)
+	);
 }
 
 /**

@@ -1910,6 +1910,17 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
 - **Edits while a custom theme is active** modify it in place (the active copy
   and its `customThemes` entry stay in sync).
 - An edit that changes nothing (same value, unknown font slot) does not fork.
+- **Font sizes are bounded once**, in `ClassicyThemeFontSizes.ts`:
+  `CLASSICY_THEME_FONT_SIZE_MIN`–`MAX` (8–72 px, inclusive; fractions
+  allowed). `ClassicyDesktopChangeFontSize` takes a `fontType` from
+  `CLASSICY_THEME_FONT_SIZE_KEYS` (`uiSize`, `bodySize`, `headerSize`,
+  `monoSize`, `digitalSize`) and a `fontSize` within the bounds; anything else
+  (negative, zero, NaN, an infinity, a string, a size past 72) is refused with
+  a `classicyLog` warning and changes nothing. `ClassicyThemeSchema` holds the
+  five typography sizes and `desktop.iconFontSize` to the same bounds, so
+  theme files, `ClassicyDesktopImportTheme` and `ChangeAppearanceOption`
+  (`typography.uiSize`, `desktop.iconFontSize`, …) agree, and the Fonts tab's
+  size fields use them and dispatch a typed size clamped to them.
 - `ClassicyDesktopChangeTheme` looks the id up in the active package's
   `availableThemes` entries (the registered package for `packageId`, else
   the default), then that package's own themes (its `defaults`, unless a

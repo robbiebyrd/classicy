@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	CLASSICY_MEASUREMENT_NAME,
@@ -38,6 +42,18 @@ const palette = z.tuple([color, color, color, color, color, color, color]);
 
 const size = (max: number) =>
 	z.number().positive().max(max, `must be at most ${max}`);
+
+/** A font size in px, within the shared bounds (`ClassicyThemeFontSizes`). */
+const fontSize = z
+	.number()
+	.min(
+		CLASSICY_THEME_FONT_SIZE_MIN,
+		`must be at least ${CLASSICY_THEME_FONT_SIZE_MIN}`,
+	)
+	.max(
+		CLASSICY_THEME_FONT_SIZE_MAX,
+		`must be at most ${CLASSICY_THEME_FONT_SIZE_MAX}`,
+	);
 
 const measurement = z.number().nonnegative().max(512, "must be at most 512");
 
@@ -137,15 +153,15 @@ export const ClassicyThemeSchema = z.object({
 	}),
 	typography: z.object({
 		ui: fontStack,
-		uiSize: size(512),
+		uiSize: fontSize,
 		header: fontStack,
-		headerSize: size(512),
+		headerSize: fontSize,
 		body: fontStack,
-		bodySize: size(512),
+		bodySize: fontSize,
 		mono: fontStack,
-		monoSize: size(512),
+		monoSize: fontSize,
 		digital: fontStack,
-		digitalSize: size(512),
+		digitalSize: fontSize,
 	}),
 	measurements: z
 		.object({
@@ -217,7 +233,7 @@ export const ClassicyThemeSchema = z.object({
 		}),
 	desktop: z.object({
 		iconSize: size(512),
-		iconFontSize: size(512),
+		iconFontSize: fontSize,
 		backgroundImage,
 		backgroundColor: color,
 		backgroundSize: z.union([z.number().nonnegative().max(10000), cssKeyword]),

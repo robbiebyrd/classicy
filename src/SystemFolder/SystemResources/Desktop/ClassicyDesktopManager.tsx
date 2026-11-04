@@ -24,6 +24,11 @@ import {
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import { readClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
+	CLASSICY_THEME_FONT_SIZE_KEYS,
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -609,18 +614,21 @@ export const classicyDesktopEventHandler = (
 			});
 			break;
 		}
+		// The key and size are checked before the edit, so a refused change
+		// never forks a built-in theme.
 		case "ClassicyDesktopChangeFontSize": {
-			if (!hasFontSize(action)) break;
+			if (!hasFontSize(action)) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeFontSize rejected: fontType must be one of ${CLASSICY_THEME_FONT_SIZE_KEYS.join(", ")} and fontSize a number from ${CLASSICY_THEME_FONT_SIZE_MIN} to ${CLASSICY_THEME_FONT_SIZE_MAX}`,
+					{ fontType: action.fontType, fontSize: action.fontSize },
+				);
+				break;
+			}
+			const { fontType, fontSize } = action;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
-				switch (action.fontType) {
-					case "uiSize":
-					case "bodySize":
-					case "headerSize":
-					case "monoSize":
-					case "digitalSize":
-						theme.typography[action.fontType] = action.fontSize;
-						break;
-				}
+				theme.typography[fontType] = fontSize;
 			});
 			break;
 		}

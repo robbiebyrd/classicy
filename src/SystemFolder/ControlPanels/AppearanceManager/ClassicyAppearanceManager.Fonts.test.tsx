@@ -1,6 +1,12 @@
 import { act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	fireEvent,
+	render,
+	renderHook,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import { registerClassicyFonts } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -8,6 +14,10 @@ import {
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useFontsTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Fonts";
+import {
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 
 const defaultTypography = getTheme("default").typography;
 
@@ -141,5 +151,39 @@ describe("useFontsTab", () => {
 			expect(option).toBeInTheDocument();
 			await user.keyboard("{Escape}");
 		}
+	});
+});
+
+// Story 0099-rlc: the size fields use the shared font-size bounds, and a typed
+// size is reported clamped to them, as the field shows it.
+describe("useFontsTab — font sizes", () => {
+	const SIZE_KEYS = [
+		"uiSize",
+		"bodySize",
+		"headerSize",
+		"monoSize",
+		"digitalSize",
+	] as const;
+	const sizeField = (key: (typeof SIZE_KEYS)[number]) =>
+		document.getElementById(key) as HTMLInputElement;
+
+	it.each(SIZE_KEYS)("reports a typed %s as typed when in range", (key) => {
+		const changeFontSize = vi.fn();
+		render(<Host changeFontSize={changeFontSize} />);
+		fireEvent.change(sizeField(key), { target: { value: "18" } });
+		expect(changeFontSize).toHaveBeenCalledExactlyOnceWith(key, 18);
+	});
+
+	it.each([
+		["500", CLASSICY_THEME_FONT_SIZE_MAX],
+		["73", CLASSICY_THEME_FONT_SIZE_MAX],
+		["7", CLASSICY_THEME_FONT_SIZE_MIN],
+		["-1", CLASSICY_THEME_FONT_SIZE_MIN],
+	])("reports a typed %s clamped to %s", (typed, expected) => {
+		const changeFontSize = vi.fn();
+		render(<Host changeFontSize={changeFontSize} />);
+		fireEvent.change(sizeField("uiSize"), { target: { value: typed } });
+		expect(changeFontSize).toHaveBeenCalledExactlyOnceWith("uiSize", expected);
+		expect(sizeField("uiSize").value).toBe(String(expected));
 	});
 });

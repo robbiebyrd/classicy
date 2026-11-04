@@ -21,6 +21,7 @@ import {
 	hasErrorDialogMessage,
 	hasFinderFile,
 	hasFont,
+	hasFontSize,
 	hasIconAddFields,
 	hasIconId,
 	hasIconIds,
@@ -504,6 +505,44 @@ describe("hasFont", () => {
 	it("returns false when font is missing", () => {
 		const m: Msg = { type: "X", fontType: "body" };
 		expect(hasFont(m)).toBe(false);
+	});
+});
+
+// ─── hasFontSize ──────────────────────────────────────────────────────────────
+
+describe("hasFontSize", () => {
+	it.each([
+		"uiSize",
+		"bodySize",
+		"headerSize",
+		"monoSize",
+		"digitalSize",
+	])("returns true for %s with a size within 8–72", (fontType) => {
+		for (const fontSize of [8, 14, 72])
+			expect(hasFontSize({ type: "X", fontType, fontSize })).toBe(true);
+	});
+
+	it.each([
+		-1,
+		0,
+		7,
+		73,
+		1e6,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		"14",
+		undefined,
+	])("returns false for fontSize %s", (fontSize) => {
+		expect(hasFontSize({ type: "X", fontType: "uiSize", fontSize })).toBe(
+			false,
+		);
+	});
+
+	it("returns false for a fontType that is not a size key", () => {
+		expect(hasFontSize({ type: "X", fontType: "ui", fontSize: 14 })).toBe(
+			false,
+		);
+		expect(hasFontSize({ type: "X", fontSize: 14 })).toBe(false);
 	});
 });
 
