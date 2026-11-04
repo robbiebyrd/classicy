@@ -995,8 +995,9 @@ None of this changes the published package's behavior.
   `parity:shoot`, `parity:app`, `parity:probe`, `parity:dump`,
   `parity:forced`, `parity:compare`) shoots Storybook and the example app
   with Playwright and compares the shots with ImageMagick. It also reports
-  size differences, which `compare -metric AE` alone misses. It adds the
-  dev dependency `playwright@1.57.0`. See
+  size differences, which `compare -metric AE` alone misses, and with
+  `shoot --mid` shoots animated stories mid-animation too (`<id>@mid.png`).
+  It adds the dev dependency `playwright@1.57.0`. See
   [§15](AGENT-REFERENCE.md#15-visual-parity-checks-repository-tooling).
 - **Repository helper.** `bin/git-clear-stale-lock.sh` safely clears an
   empty, abandoned `index.lock`.

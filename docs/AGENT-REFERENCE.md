@@ -4660,6 +4660,13 @@ with `--kind computed` or `--kind forced`.
   differently at half-pixel offsets (GPU compositing, subpixel text and tiled
   raster depend on timing). Shots also pin the clock, use a fresh context per
   story, pause animations, and repeat until two frames are identical.
+- **Mid-time shots:** animations are paused at t=0, so `shoot --mid` also
+  shoots each story that has animations once ready (or is listed in
+  `--mid-stories <file>`) as `<id>@mid.png`, every animation paused at
+  `--at` (default `50%` of each iteration; or a time, `400ms`) and the fixed
+  Date moved on by `--mid-clock`; `compare` compares those shots by name too.
+  CSS animations and transitions only: `requestAnimationFrame` and canvas
+  drawing are not frozen.
 - **Requirements:** Playwright 1.57.0 is a pinned root devDependency (its
   Chromium build must match between a baseline and its after set); ImageMagick
   must be on `PATH`, and the compare stops with an install hint when it is not.

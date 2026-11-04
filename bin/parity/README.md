@@ -33,12 +33,12 @@ node bin/parity/parity.ts help                  # the full option list
 | Command | What it does | Package script |
 |---|---|---|
 | `stories` | List the server's story ids (`index.json`, `type: "story"`, sorted) to stdout or `--out <file>` | `pnpm parity:stories` |
-| `shoot` | One 1024x768 PNG per story, `<out>/<id>.png`, plus the `stories.txt` it shot | `pnpm parity:shoot` |
+| `shoot` | One 1024x768 PNG per story, `<out>/<id>.png`, plus the `stories.txt` it shot; with `--mid`, also `<out>/<id>@mid.png` for the animated stories (below) | `pnpm parity:shoot` |
 | `app` | The four example-app shots: `app-about`, `app-finder-preferences`, `app-hypercard`, `app-drive-setup` | `pnpm parity:app` |
 | `probe` | Flag stories that end in Storybook's error display, an empty root or a crash screen | `pnpm parity:probe` |
 | `dump` | Full computed style (pseudo-elements included) of every element, `<out>/<id>.json` | `pnpm parity:dump` |
 | `forced` | Computed style in forced states (pressed, hover, focus, dragging, inactive, ...), `<out>/<story>__<state>.json`; `--browser firefox` for the `::-moz-range-*` and `scrollbar-width` reads | `pnpm parity:forced` |
-| `compare` | `<beforeDir> <afterDir>`, by `--kind ae` (PNGs, default), `computed` or `forced` | `pnpm parity:compare` |
+| `compare` | `<beforeDir> <afterDir>`, by `--kind ae` (PNGs, default, `@mid` shots included), `computed` or `forced` | `pnpm parity:compare` |
 
 Shared options: `--port`, `--base-url`, `--filter <regex>` (story ids, shot
 names, state names or file names), `--stories <file>` (a fixed id list instead
@@ -136,7 +136,8 @@ Every shot is taken the same way, so the only differences are the code's:
 - A readiness wait: no Storybook preparing overlay, a rendered
   `#storybook-root`, fonts loaded, the element count stable for 500 ms.
 - CSS transitions finished and other animations paused at t=0, then 500 ms,
-  then again; shots use Playwright's `animations: "disabled"`.
+  then again; shots use Playwright's `animations: "disabled"`. (The `@mid`
+  shots pause them part-way instead: see "Mid-time shots".)
 - Shots repeated until two consecutive frames are byte-identical (at most
   eight; a story that never settles is listed as unstable, the app shot
   fails).
@@ -144,6 +145,74 @@ Every shot is taken the same way, so the only differences are the code's:
 A single small AE that disappears when that story is shot again
 (`--filter '^<id>$'`) is raster noise; a repeatable one is real. Run captures
 one at a time: parallel runs on a loaded machine raise the noise rate.
+
+## Mid-time shots
+
+The t=0 set parks every animation on its first frame, so a change that only
+shows mid-animation (a keyframe, an easing, the menu-item flash, a screen
+saver's path, a window's zoom) shoots AE 0. `shoot --mid` adds a second shot of
+each animated story, paused part-way through:
+
+```bash
+pnpm parity:shoot --port 6091 --out $P/before --mid           # t=0 set + @mid set
+pnpm parity:shoot --port 6091 --out $P/mid --mid-only --at 400ms
+pnpm parity:compare $P/before $P/after                        # compares both sets
+pnpm parity:compare $P/before $P/after --filter '@mid$'       # the @mid set only
+```
+
+- **Selection.** A story gets a mid shot when `document.getAnimations()` is
+  not empty once it is ready (CSS animations and transitions, `::before` and
+  `::after` included, fill-forwards animations that have already ended too),
+  or when its id is in the `--mid-stories <file>` list (one id per line, like
+  `--stories`). The ids shot go to `<out>/mid-stories.txt`. Under Platinum
+  about a hundred stories qualify, most of them for the menu-bar clock's
+  blinking separator.
+- **Files.** `<id>@mid.png`, beside `<id>.png`; no story id holds `@`. Each
+  mid shot is taken in a fresh context of its own, so the t=0 shots are the
+  same bytes with or without `--mid`. `compare` matches names, so a set shot
+  without `--mid` against one shot with it reports every `@mid` shot as
+  `MISSING-IN-BEFORE`: shoot both sides the same way.
+- **The time, `--at`.** A percentage (default `50%`) is taken of each
+  animation's own iteration, so a 150 ms flash and a 26 s fish both land
+  mid-cycle and a looping animation never lands on an iteration boundary
+  (where it meets its t=0 frame); a fractional iteration count takes the share
+  of its shorter active interval. A positive delay is skipped, so a late
+  starter is still caught; a negative delay is a phase offset and is kept, so
+  staggered elements stay staggered. A time (`400ms`, `1.5s`) is used as is
+  for every animation: the frame that long after the story became ready,
+  delays included, so a short animation may already be on its last frame.
+  50% is the point farthest from both ends; it misses an animation whose
+  middle looks like its start (the Fish saver's fish are off-screen at both
+  0% and 50%), so pass another `--at` for those.
+- **How it freezes.** Every animation is paused with the Web Animations API
+  (`a.pause(); a.currentTime = T`) from `effect.getComputedTiming()`, twice a
+  frame apart; a capture-phase `animationstart`/`transitionrun` listener
+  freezes animations that start later, and again 500 ms on. The shot skips
+  Playwright's `animations: "disabled"`, which would finish or cancel the
+  paused animations, and is repeated until two frames match, as for t=0. Two
+  matching frames are not enough here (a stepped blink holds still for a
+  second while it runs), so the shot is also retaken, up to three rounds,
+  unless every animation is still paused at its time afterwards and none was
+  caught starting during it; a story that never gets there is listed as
+  unstable.
+- **The JS clock.** Stories run under Playwright's fixed Date
+  (`page.clock.setFixedTime`): timers keep running but `Date.now()` stands
+  still, so Classicy's Date-driven state (the startup progress and extension
+  parade, the virtual clock, the screen saver's idle timer) is frozen at t=0.
+  For the mid shot the fixed Date moves on by `--mid-clock <ms>` (default: the
+  `--at` time, or 2000 ms for a percentage, half the 4 s startup) and the
+  timers pick it up on their next tick. Such state has no CSS animation, so
+  its stories are selected only through `--mid-stories` (the startup screen
+  stories, say).
+
+Limits: the Web Animations API covers CSS animations and transitions and
+`element.animate()`. It does not reach anything drawn per frame from
+`requestAnimationFrame` or `performance.now()` (the fixed clock fakes only
+`Date`), nor canvas or video content; Classicy's screen savers are CSS, so
+none of them is affected. Nor does it list animations on user-agent shadow
+pseudo-elements such as `::-webkit-progress-value`: the indeterminate progress
+bar's barber pole is one, and in Chromium 143 it does not move on screen
+either, so it has no mid shot.
 
 ## Computed-style and forced-state dumps
 
@@ -192,6 +261,7 @@ PARITY_PLAYWRIGHT=/path/to/node_modules/playwright \
 | `parityBrowser.ts` | Playwright loading, the Chromium flags, readiness wait, settle, stable shot |
 | `parityStories.ts` | Story ids from `index.json` or a list file |
 | `parityShoot.ts`, `parityProbe.ts`, `parityApp.ts` | The shots and the render probe |
+| `parityMidTime.ts` | The mid-time shot's `--at` parsing, pause time, selection, file name and page script |
 | `parityDump.ts`, `parityForced.ts`, `parityForcedMatrix.ts` | The dumps |
 | `parityCompare.ts`, `parityDumpCompare.ts` | The compares |
 
