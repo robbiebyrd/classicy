@@ -152,6 +152,31 @@ describe("scanPixelLiteralsInSource", () => {
 			).map((found) => `${found.line} ${found.text} ${found.kind}`),
 		).toEqual(["3 4px fallback", "4 2px bare"]));
 
+	// H-R29a: a unit written right after a Sass interpolation compiles to a
+	// pixel length (`#{$n}px` is `12px`).
+	it("counts a px unit written after a Sass interpolation", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"$n: 12;\na { width: #{$n}px; height: #{$n + 2}PX; margin: var(--m, #{$n}px); }\nb { top: #{map.get($m, #{$k})}px; left: #{$n}pxx; }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text} ${found.kind}`),
+		).toEqual([
+			"2 #{$n}px bare",
+			"2 #{$n + 2}PX bare",
+			"2 #{$n}px fallback",
+			"3 #{map.get($m, #{$k})}px bare",
+		]));
+
+	// H-R29a: only an at-rule's prelude is exempt, up to its `{`, not the
+	// declarations written after it on the same line; a prelude may span lines.
+	it("counts declarations on an @media or @container prelude's own line", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				"@media (min-width: 600px) { .a { width: 3px; } }\n@container (width > 400px) { b { top: 2px; } }\n@media (min-width: 600px) and\n  (max-width: 900px) {\n  c { left: 1px; }\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["1 3px", "2 2px", "5 1px"]));
+
 	it("counts Sass declarations, interpolation and package constants", () =>
 		expect(
 			scanPixelLiteralsInSource(
@@ -310,6 +335,45 @@ describe("scanMultipliersInSource", () => {
 			"6 var(--x) * #{$n}",
 			"7 var(--x) * $n",
 		]));
+
+	// H-R29a: a constant built from arithmetic (`math.div` included) is the
+	// number it compiles to, as is one built from another constant.
+	it("evaluates constants built from arithmetic", () =>
+		expect(
+			scanMultipliersInSource(
+				"$f: 2 * 2;\n$g: math.div(1, 2);\n$h: $f - 1;\n$one: math.div(4, 4);\na {\n  top: calc(var(--x) * #{$f});\n  left: calc(var(--x) * $g);\n  right: calc(var(--x) * #{$h});\n  bottom: calc(var(--x) * $one);\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["6 var(--x) * #{$f}", "7 var(--x) * $g", "8 var(--x) * #{$h}"]));
+
+	// H-R29a: a constant declared inside a block is a number within that
+	// block only, and shadows an outer one there.
+	it("resolves constants declared inside a block, within their block", () =>
+		expect(
+			scanMultipliersInSource(
+				"$k: 2;\na {\n  $f: 3;\n  top: calc(var(--x) * #{$f});\n  $k: 1;\n  left: calc(var(--x) * $k);\n}\nb { right: calc(var(--x) * #{$f}); bottom: calc(var(--x) * $k); }\nc { $f: var(--y); width: calc(var(--x) * #{$f}); }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["4 var(--x) * #{$f}", "8 var(--x) * $k"]));
+
+	// H-R29a: a loop variable over numbers (`@each` over a map's values or a
+	// list, `@for` over a range) is a factor; a site counts once, unless
+	// every value it takes is +1 or -1.
+	it("reads @each and @for loop variables over numbers as factors", () =>
+		expect(
+			scanMultipliersInSource(
+				"$s: (Sm: 0.5, Md: 1);\n@each $k, $m in $s {\n  .p#{$k} { margin: calc(var(--x) * #{$m}); }\n}\n$ones: (A: 1, B: -1);\n@each $k, $m in $ones { .q#{$k} { margin: calc(var(--x) * #{$m}); } }\n@each $n in 2, 3 { .r { top: calc(var(--x) * $n); } }\n@for $i from 1 through 3 { .s { left: calc(var(--x) * #{$i}); } }\n@for $i from 1 to 2 { .t { left: calc(var(--x) * #{$i}); } }",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual(["3 var(--x) * #{$m}", "7 var(--x) * $n", "8 var(--x) * #{$i}"]));
+
+	it("reads a parenthesized number as a factor", () =>
+		expect(
+			scanMultipliersInSource(
+				"a { top: calc(var(--x) * (2)); left: calc(var(--x) * (4 - 3)); }",
+				"f.scss",
+			).map((found) => found.text),
+		).toEqual(["var(--x) * (2)"]));
 
 	it("reads an explicit plus sign on a factor", () =>
 		expect(

@@ -21,6 +21,12 @@
 			"reason": "Edge midpoints: a side handle sits at 50% minus half its own size (--hyper-card-handle-size / 2), centered on the edge it marks; geometry, not a role (H-R21)."
 		}
 	],
+	"src/SystemFolder/SystemResources/Button/ClassicyButton.scss": [
+		{
+			"count": 3,
+			"reason": "The button spacing scale: the Sm/Md/Lg/Xl padding and margin classes scale --control-padding and --window-padding-size by the named Sass map $classicy-button-spacing (0.5, 1, 1.5, 2), so the scale is named in Sass and still follows the Metrics tab (H 6.2a, H-R29a)."
+		}
+	],
 	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
 		{
 			"count": 1,

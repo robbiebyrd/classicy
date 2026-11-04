@@ -18,8 +18,10 @@
 //   node bin/check-pixel-literals.ts --write-allowlist  reseed the pixel list from src
 //   node bin/check-pixel-literals.ts --list-multipliers print every multiplier site
 //
-// Exempt: `0px`, `calc(infinity * 1px)`, `@media`/`@container` prelude lines,
-// comments, url() payloads, and the screen savers (ported After Dark art).
+// A unit written after a Sass interpolation (`#{$n}px`) is a literal too.
+// Exempt: `0px`, `calc(infinity * 1px)`, `@media`/`@container` preludes (up
+// to their `{`, so a rule written on the same line is still read), comments,
+// url() payloads, and the screen savers (ported After Dark art).
 // An Appearance Package's own `--<pkg>-*: Npx` constants are NOT exempt.
 //
 // Build script, not library code: it reports through stdout/stderr and exit
@@ -55,8 +57,13 @@ export type ClassicyPixelLiteral = {
 const PIXEL_LITERAL =
 	/(?:(?<![\w.-])|(?<=\dpx))-?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?px/gi;
 const ZERO = /^-?(?:0+(?:\.0+)?|\.0+)(?:e[+-]?\d+)?px$/i;
+// A unit written right after a Sass interpolation (`#{$n}px` compiles to a
+// pixel length); the match is the interpolation's closing brace and the unit.
+const INTERPOLATED_UNIT = /\}px(?![\w-])/gi;
 const INFINITY = /\binfinity\s*\*\s*1px/gi;
-const PRELUDE = /^@(media|container)\b/;
+// An `@media`/`@container` prelude, from its at-keyword up to (not
+// including) the `{` or `;` that ends it, across lines if it wraps.
+const PRELUDE = /^([ \t]*)@(?:media|container)\b[^{;]*/gm;
 const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
 
 // Spaces for every character but a newline, so line numbers survive.
@@ -91,32 +98,55 @@ const fallbackTracker = (text: string) => {
 	};
 };
 
+/** The index of the `#{` opening the interpolation that closes at `close`. */
+const interpolationStart = (text: string, close: number): number => {
+	for (let depth = 0, i = close; i >= 0; i--) {
+		if (text[i] === "}") depth++;
+		else if (text[i] === "{" && --depth === 0) {
+			return text[i - 1] === "#" ? i - 1 : -1;
+		}
+	}
+	return -1;
+};
+
 /** The pixel literals in one SCSS source; `file` is relative to the root. */
 export const scanPixelLiteralsInSource = (
 	source: string,
 	file: string,
 ): ClassicyPixelLiteral[] => {
-	// Prelude lines (their parentheses included) and `infinity * 1px` are
-	// blanked like comments, so lines and columns still point into the file.
+	// Preludes (their parentheses included, the rule after them not) and
+	// `infinity * 1px` are blanked like comments, so lines and columns still
+	// point into the file.
 	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source))
-		.split("\n")
-		.map((line) => (PRELUDE.test(line.trim()) ? blank(line) : line))
-		.join("\n")
+		.replace(PRELUDE, (prelude, indent: string) =>
+			indent.concat(blank(prelude.slice(indent.length))),
+		)
 		.replace(INFINITY, blank);
+	// Every literal as [index, text]: the plain ones, and a unit after an
+	// interpolation, reported from its `#{` (`#{$n}px`).
+	const literals: [number, string][] = [];
+	for (const match of text.matchAll(PIXEL_LITERAL)) {
+		if (!ZERO.test(match[0])) literals.push([match.index, match[0]]);
+	}
+	for (const match of text.matchAll(INTERPOLATED_UNIT)) {
+		const start = interpolationStart(text, match.index);
+		const end = match.index + match[0].length;
+		if (start !== -1) literals.push([start, text.slice(start, end)]);
+	}
+	literals.sort(([a], [b]) => a - b);
 	const isFallbackAt = fallbackTracker(text);
 	const found: ClassicyPixelLiteral[] = [];
 	let line = 1;
 	let counted = 0;
-	for (const match of text.matchAll(PIXEL_LITERAL)) {
-		for (; counted < match.index; counted++) {
+	for (const [index, literal] of literals) {
+		for (; counted < index; counted++) {
 			if (text[counted] === "\n") line++;
 		}
-		if (ZERO.test(match[0])) continue;
 		found.push({
 			file,
 			line,
-			text: match[0],
-			kind: isFallbackAt(match.index) ? "fallback" : "bare",
+			text: literal.replace(/\s+/g, " "),
+			kind: isFallbackAt(index) ? "fallback" : "bare",
 		});
 	}
 	return found;
@@ -149,7 +179,8 @@ type MultiplierTerm = {
 	/** `number`: a unitless number; `operand`: something that scales. */
 	kind: "number" | "operand" | "other";
 	text: string;
-	value: number;
+	/** A number's values: one, or one per pass of a loop variable it reads. */
+	values: readonly number[];
 };
 /** Terms joined by operators; `at` is the first operator's index. */
 type MultiplierChain = {
@@ -169,74 +200,287 @@ const SASS_VARIABLE = /^\$[\w-]+/;
 // What scales: a call, group or interpolation holding a theme read (`var(`)
 // or a Sass variable (which may hold one), or a bare Sass variable.
 const SCALES = /var\(|\$/;
-// A file's own number constant, declared at the top level
-// (`$cp-crayon-tip: 0.31;`, `!default` allowed).
-const NUMBER_CONSTANT =
-	/^\$([\w-]+)\s*:\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*(?:!default\s*)?;/gm;
-/** The top-level `$name: <number>;` constants of a (comment-blanked) source. */
-const numberConstantsOf = (text: string): ReadonlyMap<string, number> =>
-	new Map(
-		[...text.matchAll(NUMBER_CONSTANT)].map(([, name, value]) => [
-			name,
-			Number(value),
-		]),
-	);
+/**
+ * A Sass variable's binding: what `$name` holds from `start` (its
+ * declaration, or its loop's `{`) to `end` (the end of the block it is
+ * declared in, or of its loop). `values` are the unitless numbers it may
+ * compile to (one for a constant, one per pass for a loop variable), or
+ * `undefined` when it holds anything else; `raw` is its declared text.
+ */
+type SassBinding = {
+	name: string;
+	start: number;
+	end: number;
+	values: readonly number[] | undefined;
+	raw: string;
+};
+/** The binding of `name` in scope at `at`, if any. */
+type SassLookup = (name: string, at: number) => SassBinding | undefined;
+
+// A variable declaration at a statement's start, top level or inside a
+// block (`$tip: 0.31;`, `$f: math.div(1, 2) !default;`).
+const DECLARATION =
+	/(?:^|(?<=[;{}]))[ \t]*\$([\w-]+)[ \t]*:\s*((?:#\{[^}]*\}|[^;{}])*?)\s*((?:!(?:default|global)\s*)*);/gm;
+// `@each $a, $b in <collection> {` and `@for $i from A through|to B {`.
+const EACH_LOOP = /@each\s+(\$[\w-]+(?:\s*,\s*\$[\w-]+)*)\s+in\s+([^{;]+)\{/g;
+const FOR_LOOP =
+	/@for\s+\$([\w-]+)\s+from\s+([^{;]+?)\s+(through|to)\s+([^{;]+?)\s*\{/g;
+// More passes than this and a loop variable is left unresolved.
+const MAX_VALUES = 1024;
+
+const uniqueValues = (values: number[]): number[] => [...new Set(values)];
+
+/** `text` split at its top-level commas, each part trimmed. */
+const topLevelItems = (text: string): string[] => {
+	const items: string[] = [];
+	let depth = 0;
+	let from = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === "(") depth++;
+		else if (text[i] === ")") depth--;
+		else if (text[i] === "," && depth === 0) {
+			items.push(text.slice(from, i).trim());
+			from = i + 1;
+		}
+	}
+	items.push(text.slice(from).trim());
+	return items.filter((item) => item !== "");
+};
 
 /**
- * The value of `expression`, plain arithmetic (`+ - * /`, parentheses) over
- * unitless numbers and the file's number constants, or `undefined` when it
- * is anything else (a theme read, a unit, a variable that is not a
- * constant). It reads what a Sass interpolation such as `#{1 - $tip}`
- * compiles to.
+ * The values of `expression`: plain arithmetic (`+ - * /`, parentheses,
+ * `math.div(a, b)`) over unitless numbers and the variables in scope at `at`
+ * that hold numbers, one value per combination of the values those variables
+ * take, or `undefined` when it is anything else (a theme read, a unit, a
+ * variable that holds no number). It reads what a Sass interpolation such as
+ * `#{1 - $tip}` compiles to.
  */
 const evaluateArithmetic = (
 	expression: string,
-	constants: ReadonlyMap<string, number>,
-): number | undefined => {
-	const tokens: string[] = [];
-	for (const [token] of expression.matchAll(
-		/\$[\w-]+|(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?|[-+*/()]|\S/gi,
-	)) {
-		if (token.startsWith("$")) {
-			const value = constants.get(token.slice(1));
-			if (value === undefined) return undefined;
-			tokens.push(String(value));
-		} else tokens.push(token);
-	}
-	let at = 0;
-	const primary = (): number => {
-		const token = tokens[at++];
-		if (token === "(") {
-			const value = sum();
-			return tokens[at++] === ")" ? value : Number.NaN;
-		}
-		if (token === "-") return -primary();
-		if (token === "+") return primary();
-		return token !== undefined && NUMBER.test(token)
-			? Number(token)
-			: Number.NaN;
-	};
-	const product = (): number => {
-		let value = primary();
-		while (tokens[at] === "*" || tokens[at] === "/") {
-			const op = tokens[at++];
-			const next = primary();
-			value = op === "*" ? value * next : value / next;
-		}
-		return value;
-	};
-	const sum = (): number => {
-		let value = product();
-		while (tokens[at] === "+" || tokens[at] === "-") {
-			const op = tokens[at++];
-			const next = product();
-			value = op === "+" ? value + next : value - next;
-		}
-		return value;
-	};
+	lookup: SassLookup,
+	at: number,
+): number[] | undefined => {
+	const tokens = [
+		...expression.matchAll(
+			/\$[\w-]+|math\.div|(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?|[-+*/(),]|\S/gi,
+		),
+	].map(([token]) => token);
 	if (tokens.length === 0) return undefined;
-	const value = sum();
-	return at === tokens.length && Number.isFinite(value) ? value : undefined;
+	const variables = new Map<string, readonly number[]>();
+	for (const token of tokens) {
+		if (!token.startsWith("$") || variables.has(token)) continue;
+		const values = lookup(token.slice(1), at)?.values;
+		if (values === undefined) return undefined;
+		variables.set(token, values);
+	}
+	const evaluate = (assigned: ReadonlyMap<string, number>): number => {
+		let i = 0;
+		const primary = (): number => {
+			const token = tokens[i++];
+			if (token === "(") {
+				const value = sum();
+				return tokens[i++] === ")" ? value : Number.NaN;
+			}
+			if (token === "math.div") {
+				if (tokens[i++] !== "(") return Number.NaN;
+				const dividend = sum();
+				if (tokens[i++] !== ",") return Number.NaN;
+				const divisor = sum();
+				return tokens[i++] === ")" ? dividend / divisor : Number.NaN;
+			}
+			if (token === "-") return -primary();
+			if (token === "+") return primary();
+			if (token?.startsWith("$")) return assigned.get(token) ?? Number.NaN;
+			return token !== undefined && NUMBER.test(token)
+				? Number(token)
+				: Number.NaN;
+		};
+		const product = (): number => {
+			let value = primary();
+			while (tokens[i] === "*" || tokens[i] === "/") {
+				const op = tokens[i++];
+				const next = primary();
+				value = op === "*" ? value * next : value / next;
+			}
+			return value;
+		};
+		const sum = (): number => {
+			let value = product();
+			while (tokens[i] === "+" || tokens[i] === "-") {
+				const op = tokens[i++];
+				const next = product();
+				value = op === "+" ? value + next : value - next;
+			}
+			return value;
+		};
+		const value = sum();
+		return i === tokens.length ? value : Number.NaN;
+	};
+	// One pass per combination of the variables' values.
+	let combinations: Map<string, number>[] = [new Map()];
+	for (const [name, values] of variables) {
+		combinations = combinations.flatMap((assigned) =>
+			values.map((value) => new Map(assigned).set(name, value)),
+		);
+		if (combinations.length > MAX_VALUES) return undefined;
+	}
+	const values = combinations.map(evaluate);
+	return values.every(Number.isFinite) ? uniqueValues(values) : undefined;
+};
+
+/** The `[open, close]` index pairs of a source's blocks (not interpolations). */
+const blocksOf = (text: string): [number, number][] => {
+	const blocks: [number, number][] = [];
+	const open: { at: number; interpolation: boolean }[] = [];
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === "{") {
+			open.push({ at: i, interpolation: text[i - 1] === "#" });
+		} else if (text[i] === "}") {
+			const block = open.pop();
+			if (block !== undefined && !block.interpolation) {
+				blocks.push([block.at, i]);
+			}
+		}
+	}
+	for (const block of open) {
+		if (!block.interpolation) blocks.push([block.at, text.length]);
+	}
+	return blocks;
+};
+
+/**
+ * The Sass variable bindings of a (comment-blanked) source, as a lookup by
+ * name and position: every declaration, top level or inside a block, in
+ * scope to the end of its block (`!global` to the file's end), and the
+ * variables of `@each` loops over a list or a map's values and of `@for`
+ * loops, in scope over their loop. Later declarations shadow earlier ones
+ * where both are in scope, as in Sass. Each binding's values are evaluated
+ * against the bindings before it.
+ */
+const sassBindingsOf = (text: string): SassLookup => {
+	const blocks = blocksOf(text);
+	const blockEnd = (at: number): number => {
+		let innermost = -1;
+		let end = text.length;
+		for (const [open, close] of blocks) {
+			if (open < at && at < close && open > innermost) {
+				innermost = open;
+				end = close;
+			}
+		}
+		return end;
+	};
+	const closeOf = (open: number): number =>
+		blocks.find(([at]) => at === open)?.[1] ?? text.length;
+	const bindings: SassBinding[] = [];
+	const lookup: SassLookup = (name, at) => {
+		for (let i = bindings.length - 1; i >= 0; i--) {
+			const binding = bindings[i];
+			if (binding.name === name && binding.start <= at && at < binding.end) {
+				return binding;
+			}
+		}
+		return undefined;
+	};
+	// The binding sources, in source order, so each is evaluated against the
+	// bindings declared before it.
+	const sources: { at: number; bind: () => SassBinding[] }[] = [];
+	for (const match of text.matchAll(DECLARATION)) {
+		const [, name, raw, flags] = match;
+		const at = match.index;
+		sources.push({
+			at,
+			bind: () => [
+				{
+					name,
+					start: at,
+					end: flags.includes("!global") ? text.length : blockEnd(at),
+					values: evaluateArithmetic(raw, lookup, at),
+					raw,
+				},
+			],
+		});
+	}
+	for (const match of text.matchAll(EACH_LOOP)) {
+		const names = match[1].split(",").map((name) => name.trim().slice(1));
+		const open = match.index + match[0].length - 1;
+		sources.push({
+			at: match.index,
+			bind: () => {
+				let collection = match[2].trim();
+				if (/^\$[\w-]+$/.test(collection)) {
+					collection = lookup(collection.slice(1), match.index)?.raw ?? "";
+				}
+				if (/^\(.*\)$/s.test(collection)) {
+					collection = collection.slice(1, -1);
+				}
+				const items = topLevelItems(collection);
+				const isMap =
+					items.length > 0 && items.every((item) => /^[^():]+:/.test(item));
+				const valuesOf = (expressions: string[]) => {
+					const all = expressions.map((expression) =>
+						evaluateArithmetic(expression, lookup, match.index),
+					);
+					return all.every((values) => values !== undefined)
+						? uniqueValues(all.flat())
+						: undefined;
+				};
+				// A map's values bind its second variable; a list binds a lone
+				// variable; anything else (keys, destructured lists) holds no
+				// number.
+				const valued = isMap
+					? names.length === 2
+						? {
+								index: 1,
+								values: valuesOf(
+									items.map((item) => item.slice(item.indexOf(":") + 1)),
+								),
+							}
+						: undefined
+					: names.length === 1
+						? { index: 0, values: valuesOf(items) }
+						: undefined;
+				return names.map((name, index) => ({
+					name,
+					start: open,
+					end: closeOf(open),
+					values: valued?.index === index ? valued.values : undefined,
+					raw: "",
+				}));
+			},
+		});
+	}
+	for (const match of text.matchAll(FOR_LOOP)) {
+		const [, name, from, kind, to] = match;
+		const open = match.index + match[0].length - 1;
+		sources.push({
+			at: match.index,
+			bind: () => {
+				const first = evaluateArithmetic(from, lookup, match.index);
+				const last = evaluateArithmetic(to, lookup, match.index);
+				let values: number[] | undefined;
+				if (first?.length === 1 && last?.length === 1) {
+					const [a] = first;
+					const b =
+						kind === "through" ? last[0] : last[0] - Math.sign(last[0] - a);
+					if (
+						Number.isInteger(a) &&
+						Number.isInteger(b) &&
+						Math.abs(b - a) < MAX_VALUES
+					) {
+						const step = b >= a ? 1 : -1;
+						values = [];
+						for (let v = a; step > 0 ? v <= b : v >= b; v += step)
+							values.push(v);
+					}
+				}
+				return [{ name, start: open, end: closeOf(open), values, raw: "" }];
+			},
+		});
+	}
+	sources.sort((a, b) => a.at - b.at);
+	for (const source of sources) bindings.push(...source.bind());
+	return lookup;
 };
 
 /** The index of the bracket closing the one at `open`, or the text's end. */
@@ -269,18 +513,18 @@ const scanMultiplierLevel = (
 	from: number,
 	to: number,
 	sites: [number, string][],
-	constants: ReadonlyMap<string, number>,
+	lookup: SassLookup,
 ): void => {
 	const tokens: MultiplierToken[] = [];
 	const term = (
 		kind: MultiplierTerm["kind"],
 		start: number,
 		end: number,
-		value = Number.NaN,
+		values: readonly number[] = [],
 	) =>
 		tokens.push({
 			type: "term",
-			term: { kind, text: text.slice(start, end), value },
+			term: { kind, text: text.slice(start, end), values },
 			start,
 		});
 	let i = from;
@@ -299,15 +543,15 @@ const scanMultiplierLevel = (
 		} else if (c === "#" && text[i + 1] === "{") {
 			const close = Math.min(to - 1, closingBracket(text, i + 1));
 			const inner = text.slice(i + 2, close);
-			const value = evaluateArithmetic(inner, constants);
-			if (value !== undefined) term("number", i, close + 1, value);
+			const values = evaluateArithmetic(inner, lookup, i);
+			if (values !== undefined) term("number", i, close + 1, values);
 			else term(SCALES.test(inner) ? "operand" : "other", i, close + 1);
-			scanMultiplierLevel(text, i + 2, close, sites, constants);
+			scanMultiplierLevel(text, i + 2, close, sites, lookup);
 			i = close + 1;
 		} else if (c === "$" && SASS_VARIABLE.test(rest)) {
 			const name = SASS_VARIABLE.exec(rest)?.[0] ?? c;
-			const value = constants.get(name.slice(1));
-			if (value !== undefined) term("number", i, i + name.length, value);
+			const values = lookup(name.slice(1), i)?.values;
+			if (values !== undefined) term("number", i, i + name.length, values);
 			else term("operand", i, i + name.length);
 			i += name.length;
 		} else if (
@@ -320,7 +564,7 @@ const scanMultiplierLevel = (
 				term("other", i, i + number.length + unit[0].length);
 				i += number.length + unit[0].length;
 			} else {
-				term("number", i, i + number.length, Number(number));
+				term("number", i, i + number.length, [Number(number)]);
 				i += number.length;
 			}
 		} else if (c === "(" || IDENTIFIER.test(rest)) {
@@ -329,8 +573,12 @@ const scanMultiplierLevel = (
 			if (text[open] === "(") {
 				const close = Math.min(to - 1, closingBracket(text, open));
 				const whole = text.slice(i, close + 1);
-				term(SCALES.test(whole) ? "operand" : "other", i, close + 1);
-				scanMultiplierLevel(text, open + 1, close, sites, constants);
+				// A group or call that is plain arithmetic (`(2)`,
+				// `math.div(1, 2)`) is the number it compiles to.
+				const values = evaluateArithmetic(whole, lookup, i);
+				if (values !== undefined) term("number", i, close + 1, values);
+				else term(SCALES.test(whole) ? "operand" : "other", i, close + 1);
+				scanMultiplierLevel(text, open + 1, close, sites, lookup);
 				i = close + 1;
 			} else {
 				term("other", i, open);
@@ -365,17 +613,19 @@ const scanMultiplierLevel = (
 		const terms = links.map((link) => link.term);
 		if (!terms.some((t) => t.kind === "number")) continue;
 		if (!terms.some((t) => t.kind === "operand")) continue;
-		// The chain's factor: its numbers multiplied, or divided after a `/`.
-		const product = links.reduce(
-			(p, { op, term }) =>
-				term.kind !== "number"
-					? p
-					: op === "/"
-						? p / term.value
-						: p * term.value,
-			1,
-		);
-		if (Math.abs(Math.abs(product) - 1) < 1e-9) continue;
+		// The chain's factor: its numbers multiplied, or divided after a `/`,
+		// once per combination of the values its loop variables take. The
+		// chain is a site unless every factor is +1 or -1.
+		let products: number[] = [1];
+		for (const { op, term } of links) {
+			if (term.kind !== "number") continue;
+			products = uniqueValues(
+				products.flatMap((p) =>
+					term.values.map((value) => (op === "/" ? p / value : p * value)),
+				),
+			);
+		}
+		if (products.every((p) => Math.abs(Math.abs(p) - 1) < 1e-9)) continue;
 		const shown = links
 			.map(({ op, term }) => {
 				const part = term.text.replace(/\s+/g, " ");
@@ -392,13 +642,17 @@ const scanMultiplierLevel = (
  * or Sass interpolation holding one or a Sass variable, or a bare Sass
  * variable) and at least one unitless number, unless the numbers multiply to
  * +1 or -1: a sign flip (`* -1`, `-1 *`, `/ -1`) is not a multiplier (H-R7),
- * but `* -1 / 2` is (H-R28a). A file's own top-level number constant
- * (`$tip: 0.31;`), bare or interpolated, and an interpolation that is plain
- * arithmetic over numbers and those constants (`#{1 - $tip}`) are numbers,
- * since that is what they compile to. Factors with a unit (`$deg * 1deg`),
- * ratios of two variables and a number scaling a number are not sites. A
- * chain is one site, reported whole (`var(--r) / 3 * 2`) at its first
- * operator's line. Comments and url() payloads are skipped, as for literals.
+ * but `* -1 / 2` is (H-R28a). A Sass variable that holds a number is a
+ * number, bare or interpolated, since that is what it compiles to: a
+ * constant (`$tip: 0.31;`, `$f: math.div(1, 2);`, `$g: $f * 2;`) declared at
+ * the top level or inside a block, within its scope, and a loop variable
+ * over numbers (`@each` over a list or a map's values, `@for`), which is a
+ * site when any pass's factor is not +1 or -1. So are an interpolation, group
+ * or call that is plain arithmetic over numbers and those variables
+ * (`#{1 - $tip}`, `(2)`). Factors with a unit (`$deg * 1deg`), ratios of two
+ * variables and a number scaling a number are not sites. A chain is one
+ * site, reported whole (`var(--r) / 3 * 2`) at its first operator's line.
+ * Comments and url() payloads are skipped, as for literals.
  */
 export const scanMultipliersInSource = (
 	source: string,
@@ -406,7 +660,7 @@ export const scanMultipliersInSource = (
 ): ClassicyPixelLiteral[] => {
 	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source));
 	const sites: [number, string][] = [];
-	scanMultiplierLevel(text, 0, text.length, sites, numberConstantsOf(text));
+	scanMultiplierLevel(text, 0, text.length, sites, sassBindingsOf(text));
 	sites.sort(([a], [b]) => a - b);
 	let line = 1;
 	let counted = 0;
