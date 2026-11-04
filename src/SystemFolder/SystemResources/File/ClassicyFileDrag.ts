@@ -22,6 +22,7 @@ import {
 	type ClassicyFileDragOutlinePart,
 	drawClassicyDragOutline,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /** The attribute a file item (an icon, a list row's name) carries its path in. */
@@ -94,8 +95,10 @@ export type ClassicyFileDragEnd = {
 	 */
 	dropped: boolean;
 	/**
-	 * Ended without a release: Escape, or the function `startClassicyFileDrag`
-	 * returns. A release over nothing is neither dropped nor canceled.
+	 * Ended without a release: Escape, the pointer stream lost (the window
+	 * blurred, a `pointercancel`, the page hidden), or the function
+	 * `startClassicyFileDrag` returns. A release over nothing is neither
+	 * dropped nor canceled.
 	 */
 	canceled: boolean;
 };
@@ -146,7 +149,11 @@ export type ClassicyFileDragOptions = {
  * drag in progress then ends as canceled, and nothing is dropped): a source
  * component calls it when it unmounts, so the drag never outlives it. The outline is only created once
  * the pointer has traveled `CLASSICY_FILE_DRAG_THRESHOLD` px, so a plain click
- * stays a click; Escape cancels a drag in progress without dropping.
+ * stays a click; Escape cancels a drag in progress without dropping. Losing
+ * the pointer stream (the window blurs, a `pointercancel`, the page is
+ * hidden) cancels it the same way, and abandons a press that has not dragged
+ * yet: the release that would end it may never arrive, and one that does
+ * comes from wherever the pointer is on return.
  */
 export function startClassicyFileDrag(
 	options: ClassicyFileDragOptions,
@@ -183,7 +190,11 @@ export function startClassicyFileDrag(
 		document.body.classList.add(DRAGGING_BODY_CLASS);
 	};
 
+	// Set once the listeners are added, below.
+	let stopWatchingPointerStream = () => {};
+
 	const cleanup = () => {
+		stopWatchingPointerStream();
 		document.removeEventListener("mousemove", onMove, true);
 		document.removeEventListener("mouseup", onUp, true);
 		document.removeEventListener("keydown", onKey, true);
@@ -240,8 +251,8 @@ export function startClassicyFileDrag(
 		);
 	}
 
-	// Escape, or the caller abandoning the press: a drag in progress ends
-	// canceled. Once: cleanup removes the listeners and the outline, so
+	// Escape, a lost pointer stream, or the caller abandoning the press: a
+	// drag in progress ends canceled. Once: cleanup removes the listeners and the outline, so
 	// nothing can end it again.
 	const cancel = () => {
 		const dragged = ghost !== null;
@@ -259,5 +270,6 @@ export function startClassicyFileDrag(
 	document.addEventListener("mousemove", onMove, true);
 	document.addEventListener("mouseup", onUp, true);
 	document.addEventListener("keydown", onKey, true);
+	stopWatchingPointerStream = onClassicyPointerStreamLost(cancel);
 	return cancel;
 }

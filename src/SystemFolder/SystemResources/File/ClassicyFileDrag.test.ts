@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	CLASSICY_FILE_DRAG_THRESHOLD,
@@ -368,5 +373,101 @@ describe("startClassicyFileDrag start and end callbacks", () => {
 			unregisterClassicyLogSink("file-drag-test");
 			consoleError.mockRestore();
 		}
+	});
+});
+
+describe("startClassicyFileDrag when the pointer stream is lost", () => {
+	afterEach(() => {
+		document.body.innerHTML = "";
+		document.body.className = "";
+		vi.restoreAllMocks();
+	});
+
+	const fire = (type: string, x: number, y: number) =>
+		document.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }),
+		);
+
+	const setup = () => {
+		document.body.innerHTML = `<div id="browser" ${CLASSICY_DROP_FOLDER_ATTRIBUTE}="Macintosh HD:Archive"></div>`;
+		const browser = document.getElementById("browser") as Element;
+		const onDrop = vi.fn();
+		const onClick = vi.fn();
+		const onStart = vi.fn();
+		const onEnd = vi.fn();
+		startClassicyFileDrag({
+			start: { clientX: 10, clientY: 10 },
+			parts: [],
+			onDrop,
+			onClick,
+			onStart,
+			onEnd,
+			elementsFromPoint: () => [browser],
+		});
+		return { browser, onDrop, onClick, onStart, onEnd };
+	};
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag in progress as canceled, as Escape does, on a %s", (loss) => {
+		const { browser, onDrop, onEnd } = setup();
+		fire("mousemove", 40, 30);
+		expect(browser).toHaveClass("classicyFileDropTarget");
+		losePointerStream(loss);
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onEnd).toHaveBeenCalledWith({ dropped: false, canceled: true });
+		// The outline, the highlight and the body class are gone.
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+		expect(browser).not.toHaveClass("classicyFileDropTarget");
+		expect(document.body).not.toHaveClass("classicyFileDragging");
+		// The pointer coming back ends nothing more and drops nothing.
+		fire("mousemove", 60, 40);
+		fire("mouseup", 60, 40);
+		losePointerStream(loss);
+		expect(onEnd).toHaveBeenCalledOnce();
+		expect(onDrop).not.toHaveBeenCalled();
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("abandons a press that has not dragged yet on a %s, reporting nothing", (loss) => {
+		const { onDrop, onClick, onStart, onEnd } = setup();
+		losePointerStream(loss);
+		fire("mousemove", 40, 30);
+		fire("mouseup", 40, 30);
+		expect(onStart).not.toHaveBeenCalled();
+		expect(onEnd).not.toHaveBeenCalled();
+		expect(onClick).not.toHaveBeenCalled();
+		expect(onDrop).not.toHaveBeenCalled();
+		expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+	});
+
+	it("stops watching the pointer stream however the drag ends", () => {
+		const live = trackPointerStreamListeners();
+		const { onEnd } = setup();
+		expect(live.size).toBe(3);
+		fire("mousemove", 40, 30);
+		fire("mouseup", 40, 30);
+		expect(live.size).toBe(0);
+		// A loss after the release is not a second end.
+		losePointerStream("blur");
+		expect(onEnd).toHaveBeenCalledOnce();
+
+		setup();
+		document.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
+		// Escape before the threshold is ignored: still watching.
+		expect(live.size).toBe(3);
+		fire("mousemove", 40, 30);
+		document.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+		);
+		expect(live.size).toBe(0);
+
+		setup();
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
 	});
 });

@@ -1,3 +1,4 @@
+import { act } from "@testing-library/react";
 import { vi } from "vitest";
 
 /** The three ways a gesture's pointer stream is lost. */
@@ -14,7 +15,12 @@ export type PointerStreamLoss = (typeof POINTER_STREAM_LOSSES)[number];
 // `pointercancel` the browser taking the pointer over (a touch scroll, an OS
 // gesture), and `hidden` the page being hidden: jsdom's visibilityState is
 // always "visible", so it is stubbed to "hidden" for the event and restored.
+// Run inside `act`, so a component's state updates are flushed after it.
 export function losePointerStream(loss: PointerStreamLoss): void {
+	act(() => dispatchLoss(loss));
+}
+
+function dispatchLoss(loss: PointerStreamLoss): void {
 	if (loss === "blur") {
 		window.dispatchEvent(new Event("blur"));
 		return;
