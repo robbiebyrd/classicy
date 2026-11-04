@@ -169,6 +169,75 @@ const SASS_VARIABLE = /^\$[\w-]+/;
 // What scales: a call, group or interpolation holding a theme read (`var(`)
 // or a Sass variable (which may hold one), or a bare Sass variable.
 const SCALES = /var\(|\$/;
+// A file's own number constant, declared at the top level
+// (`$cp-crayon-tip: 0.31;`, `!default` allowed).
+const NUMBER_CONSTANT =
+	/^\$([\w-]+)\s*:\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*(?:!default\s*)?;/gm;
+/** The top-level `$name: <number>;` constants of a (comment-blanked) source. */
+const numberConstantsOf = (text: string): ReadonlyMap<string, number> =>
+	new Map(
+		[...text.matchAll(NUMBER_CONSTANT)].map(([, name, value]) => [
+			name,
+			Number(value),
+		]),
+	);
+
+/**
+ * The value of `expression`, plain arithmetic (`+ - * /`, parentheses) over
+ * unitless numbers and the file's number constants, or `undefined` when it
+ * is anything else (a theme read, a unit, a variable that is not a
+ * constant). It reads what a Sass interpolation such as `#{1 - $tip}`
+ * compiles to.
+ */
+const evaluateArithmetic = (
+	expression: string,
+	constants: ReadonlyMap<string, number>,
+): number | undefined => {
+	const tokens: string[] = [];
+	for (const [token] of expression.matchAll(
+		/\$[\w-]+|(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?|[-+*/()]|\S/gi,
+	)) {
+		if (token.startsWith("$")) {
+			const value = constants.get(token.slice(1));
+			if (value === undefined) return undefined;
+			tokens.push(String(value));
+		} else tokens.push(token);
+	}
+	let at = 0;
+	const primary = (): number => {
+		const token = tokens[at++];
+		if (token === "(") {
+			const value = sum();
+			return tokens[at++] === ")" ? value : Number.NaN;
+		}
+		if (token === "-") return -primary();
+		if (token === "+") return primary();
+		return token !== undefined && NUMBER.test(token)
+			? Number(token)
+			: Number.NaN;
+	};
+	const product = (): number => {
+		let value = primary();
+		while (tokens[at] === "*" || tokens[at] === "/") {
+			const op = tokens[at++];
+			const next = primary();
+			value = op === "*" ? value * next : value / next;
+		}
+		return value;
+	};
+	const sum = (): number => {
+		let value = product();
+		while (tokens[at] === "+" || tokens[at] === "-") {
+			const op = tokens[at++];
+			const next = product();
+			value = op === "+" ? value + next : value - next;
+		}
+		return value;
+	};
+	if (tokens.length === 0) return undefined;
+	const value = sum();
+	return at === tokens.length && Number.isFinite(value) ? value : undefined;
+};
 
 /** The index of the bracket closing the one at `open`, or the text's end. */
 const closingBracket = (text: string, open: number): number => {
@@ -200,6 +269,7 @@ const scanMultiplierLevel = (
 	from: number,
 	to: number,
 	sites: [number, string][],
+	constants: ReadonlyMap<string, number>,
 ): void => {
 	const tokens: MultiplierToken[] = [];
 	const term = (
@@ -229,12 +299,16 @@ const scanMultiplierLevel = (
 		} else if (c === "#" && text[i + 1] === "{") {
 			const close = Math.min(to - 1, closingBracket(text, i + 1));
 			const inner = text.slice(i + 2, close);
-			term(SCALES.test(inner) ? "operand" : "other", i, close + 1);
-			scanMultiplierLevel(text, i + 2, close, sites);
+			const value = evaluateArithmetic(inner, constants);
+			if (value !== undefined) term("number", i, close + 1, value);
+			else term(SCALES.test(inner) ? "operand" : "other", i, close + 1);
+			scanMultiplierLevel(text, i + 2, close, sites, constants);
 			i = close + 1;
 		} else if (c === "$" && SASS_VARIABLE.test(rest)) {
 			const name = SASS_VARIABLE.exec(rest)?.[0] ?? c;
-			term("operand", i, i + name.length);
+			const value = constants.get(name.slice(1));
+			if (value !== undefined) term("number", i, i + name.length, value);
+			else term("operand", i, i + name.length);
 			i += name.length;
 		} else if (
 			NUMBER.test(rest) &&
@@ -256,7 +330,7 @@ const scanMultiplierLevel = (
 				const close = Math.min(to - 1, closingBracket(text, open));
 				const whole = text.slice(i, close + 1);
 				term(SCALES.test(whole) ? "operand" : "other", i, close + 1);
-				scanMultiplierLevel(text, open + 1, close, sites);
+				scanMultiplierLevel(text, open + 1, close, sites, constants);
 				i = close + 1;
 			} else {
 				term("other", i, open);
@@ -318,10 +392,13 @@ const scanMultiplierLevel = (
  * or Sass interpolation holding one or a Sass variable, or a bare Sass
  * variable) and at least one unitless number, unless the numbers multiply to
  * +1 or -1: a sign flip (`* -1`, `-1 *`, `/ -1`) is not a multiplier (H-R7),
- * but `* -1 / 2` is (H-R28a). Factors with a unit (`$deg * 1deg`), ratios of
- * two variables and a number scaling a number are not sites. A chain is one
- * site, reported whole (`var(--r) / 3 * 2`) at its first operator's line.
- * Comments and url() payloads are skipped, as for literals.
+ * but `* -1 / 2` is (H-R28a). A file's own top-level number constant
+ * (`$tip: 0.31;`), bare or interpolated, and an interpolation that is plain
+ * arithmetic over numbers and those constants (`#{1 - $tip}`) are numbers,
+ * since that is what they compile to. Factors with a unit (`$deg * 1deg`),
+ * ratios of two variables and a number scaling a number are not sites. A
+ * chain is one site, reported whole (`var(--r) / 3 * 2`) at its first
+ * operator's line. Comments and url() payloads are skipped, as for literals.
  */
 export const scanMultipliersInSource = (
 	source: string,
@@ -329,7 +406,7 @@ export const scanMultipliersInSource = (
 ): ClassicyPixelLiteral[] => {
 	const text = blankClassicyScssUrlPayloads(blankClassicyScssComments(source));
 	const sites: [number, string][] = [];
-	scanMultiplierLevel(text, 0, text.length, sites);
+	scanMultiplierLevel(text, 0, text.length, sites, numberConstantsOf(text));
 	sites.sort(([a], [b]) => a - b);
 	let line = 1;
 	let counted = 0;

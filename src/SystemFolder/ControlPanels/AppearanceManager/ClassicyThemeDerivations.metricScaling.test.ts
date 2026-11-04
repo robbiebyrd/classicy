@@ -358,3 +358,30 @@ describe("H 6.2: each named multiplier equals its calc() at every whole-pixel va
 		}
 	});
 });
+
+// H 6.2b review m2: the sweep above varies only the metrics a row lists, so a
+// derivation that also read another metric would still pass it. Each name must
+// hold still while every metric it does not list sweeps its whole range.
+describe("H 6.2: each named multiplier reads only the metrics it lists", () => {
+	const ALL_METRICS = Object.keys(EDITS) as Metric[];
+	it.each(
+		ROWS.map(([cssVar, metrics, calc]) => ({ cssVar, metrics, calc })),
+	)("$cssVar", ({ cssVar, metrics, calc }) => {
+		const derivation = CLASSICY_THEME_DERIVATIONS.find(
+			(d) => d.cssVar === cssVar,
+		);
+		expect(derivation, cssVar).toBeDefined();
+		const theme = getTheme("default");
+		const want = asVar(cssVar, calc(inputsOf(theme)));
+		const moved: string[] = [];
+		for (const metric of ALL_METRICS.filter((m) => !metrics.includes(m))) {
+			const [min, max] = rangeOf(metric);
+			for (let v = min; v <= max; v++) {
+				const [, inputs] = withInput(theme, metric, v);
+				const got = asVar(cssVar, derivation?.compute(inputs) ?? Number.NaN);
+				if (got !== want) moved.push(`${metric} ${v}: ${got}`);
+			}
+		}
+		expect(moved, `${cssVar} follows a metric it does not list`).toEqual([]);
+	});
+});

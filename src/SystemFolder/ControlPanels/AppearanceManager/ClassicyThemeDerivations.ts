@@ -371,7 +371,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--ui-font-size-xlarge",
 		formula: "typography.uiSize * 2",
-		doc: "The Large text size of the text controls: control labels and the text editor (ClassicyControlLabel.scss, ClassicyTextEditor.scss).",
+		doc: "The Large text size of the text controls: control labels, the text editor and the pop-up menu (ClassicyControlLabel.scss, ClassicyTextEditor.scss, ClassicyPopUpMenu.scss).",
 		compute: (i) => ui(i) * 2,
 		unrounded: true,
 	},

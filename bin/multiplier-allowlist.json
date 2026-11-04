@@ -21,6 +21,12 @@
 			"reason": "Edge midpoints: a side handle sits at 50% minus half its own size (--hyper-card-handle-size / 2), centered on the edge it marks; geometry, not a role (H-R21)."
 		}
 	],
+	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
+		{
+			"count": 1,
+			"reason": "Crayon-art geometry: each crayon row slides up by all but its tip, (1 - $cp-crayon-tip) of a crayon's height, where 0.31 is the tip's share of the 36 x 96 crayon SVG; a proportion of the artwork over the component's own --cp-crayon-cols and --cp-crayon-aspect, not a theme metric (H-R7)."
+		}
+	],
 	"src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss": [
 		{
 			"count": 1,

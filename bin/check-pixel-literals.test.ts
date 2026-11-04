@@ -296,6 +296,21 @@ describe("scanMultipliersInSource", () => {
 			).map((found) => `${found.line} ${found.text}`),
 		).toEqual(["2 #{$h} / 2", "2 2 * #{$h}"]));
 
+	// H 6.2b review m7: `* #{1 - $tip}` with `$tip: 0.31` compiles to
+	// `* 0.69`, so a file's own number constants, and plain arithmetic over
+	// them in an interpolation, are factors, not operands.
+	it("evaluates the file's number constants, and arithmetic over them, as factors", () =>
+		expect(
+			scanMultipliersInSource(
+				"$tip: 0.31;\n$n: 3 !default;\n$h: var(--h);\na {\n  margin-top: calc(-1 * var(--w) * #{1 - $tip});\n  top: calc(var(--x) * #{$n});\n  left: calc(var(--x) * $n);\n  right: calc(var(--x) * #{$h});\n  bottom: calc(var(--x) * #{(4 - 2) / 2});\n  width: calc(var(--x) * #{$row});\n  height: #{$n};\n}",
+				"f.scss",
+			).map((found) => `${found.line} ${found.text}`),
+		).toEqual([
+			"5 -1 * var(--w) * #{1 - $tip}",
+			"6 var(--x) * #{$n}",
+			"7 var(--x) * $n",
+		]));
+
 	it("reads an explicit plus sign on a factor", () =>
 		expect(
 			scanMultipliersInSource("a { top: calc(var(--x) * +2); }", "f.scss").map(

@@ -3,7 +3,7 @@ $thumb-w:   var(--slider-thumb-width);   // 1:1 aspect ratio with $thumb-h
 $thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downward triangle (62–100%)
 $track-h:   calc(var(--window-padding-size));
 // Centers the tall thumb vertically on the track
-$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
+$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum: (6 − 21) / 2
 
 // The indicator's look (its pentagon or nondirectional shape, border, grip
 // strikes and face, for every state, and the ghost's) is in the Platinum
