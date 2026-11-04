@@ -22,6 +22,59 @@ export type VocabularyInput = {
 	};
 };
 
+const isStringArray = (value: unknown): value is string[] =>
+	Array.isArray(value) && value.every((v) => typeof v === "string");
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+const ATTRIBUTE_NAMES = [
+	"data-classicy-control",
+	"data-classicy-role",
+	"data-classicy-part",
+] as const;
+
+/**
+ * Why `input` (parsed JSON) is not a VocabularyInput, one message per
+ * misshapen field; empty when it is one. The generator checks this before
+ * anything else, so a hand-edit that breaks the shape fails with a message
+ * rather than a TypeError or a silently wrong output.
+ */
+export function vocabularyShapeErrors(input: unknown): string[] {
+	if (!isObject(input)) return ["the vocabulary must be a JSON object"];
+	const errors: string[] = [];
+	const stringArrays = (field: "components" | "extraClasses") => {
+		const value = input[field];
+		if (value === undefined && field === "extraClasses") return;
+		if (!isObject(value)) {
+			errors.push(`${field} must be an object of string arrays`);
+			return;
+		}
+		for (const [key, list] of Object.entries(value))
+			if (!isStringArray(list))
+				errors.push(`${field}.${key} must be an array of strings`);
+	};
+	stringArrays("components");
+	stringArrays("extraClasses");
+	if (input.roots !== undefined) {
+		if (!isObject(input.roots))
+			errors.push("roots must be an object of strings");
+		else
+			for (const [key, root] of Object.entries(input.roots))
+				if (typeof root !== "string")
+					errors.push(`roots.${key} must be a string`);
+	}
+	if (!isStringArray(input.states))
+		errors.push("states must be an array of strings");
+	if (!isObject(input.attributes))
+		errors.push("attributes must be an object of string arrays");
+	else
+		for (const name of ATTRIBUTE_NAMES)
+			if (!isStringArray(input.attributes[name]))
+				errors.push(`attributes["${name}"] must be an array of strings`);
+	return errors;
+}
+
 const HEADER = "// generated — do not edit (bin/generate-vocabulary.ts)";
 const STATE_PATTERN = /^[a-z][a-z0-9-]*$/;
 
@@ -115,9 +168,15 @@ $classicy-states: (${input.states.join(", ")});
 
 function main(): void {
 	const dir = new URL("../src/Appearance/vocabulary/", import.meta.url);
-	const input: VocabularyInput = JSON.parse(
+	const parsed: unknown = JSON.parse(
 		readFileSync(new URL("ClassicyVocabulary.json", dir), "utf8"),
 	);
+	const shape = vocabularyShapeErrors(parsed);
+	if (shape.length > 0) {
+		process.stderr.write(`${shape.join("\n")}\n`);
+		process.exit(1);
+	}
+	const input = parsed as VocabularyInput;
 	const errors = validateVocabulary(input);
 	if (errors.length > 0) {
 		process.stderr.write(`${errors.join("\n")}\n`);

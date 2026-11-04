@@ -59,8 +59,47 @@ describe("ClassicyWindow.scss cascade", () => {
 			":where(.classicyWindow).dragging",
 			".classicyWindowResizing",
 			".classicyWindowRed",
+			".classicyWindowActiveApp",
+			".classicyWindowFloating",
+			".classicyWindowBackgrounded",
+			".classicyWindowModalFront",
+			".classicyWindowNoScroll",
+			".classicyWindowHeaderDimmed",
+			".classicyWindowContentsDimmed",
+			".classicyWindowContentsNotDimmed",
+			".classicyWindowPlacardBarDimmed",
+			".classicyWindowContentsFramedDimmed",
 		])
 			expect(at(s)).toBeGreaterThan(base);
+	});
+
+	// A window can carry two of these at once, so the one that must win
+	// comes later (they tie at one class).
+	it.each([
+		// a focused app's inactive palette floats over its documents
+		[".classicyWindowFloating", ".classicyWindowActiveApp"],
+		// the focused palette floats over the active band
+		[".classicyWindowFloating", ":where(.classicyWindow).active"],
+		// a focused modal keeps the modal band, an alert the red band
+		[".classicyWindowModalFront", ":where(.classicyWindow).active"],
+		[".classicyWindowRed", ":where(.classicyWindow).active"],
+		// a dimmed part keeps its base look's other declarations
+		[".classicyWindowHeaderDimmed", ".classicyWindowHeader"],
+		// dragging and resizing hide the dimmed header and contents too
+		[":where(.classicyWindow).dragging", ".classicyWindowHeaderDimmed"],
+		[":where(.classicyWindow).dragging", ".classicyWindowContentsDimmed"],
+		[".classicyWindowResizing", ".classicyWindowContentsDimmed"],
+		// a dimmed placard bar keeps its own opacity while dragged
+		[".classicyWindowPlacardBarDimmed", ".classicyWindowResizing"],
+	])("%s follows %s", (later, earlier) =>
+		expect(at(later)).toBeGreaterThan(at(earlier)));
+
+	it("the state rules keep their values", () => {
+		expect(rule(".classicyWindowBackgrounded")["z-index"]).toBe("20");
+		expect(rule(".classicyWindowNoScroll").overflow).toBe("hidden");
+		expect(rule(".classicyWindowHeaderDimmed").opacity).toBe("0.5");
+		expect(rule(".classicyWindowContentsDimmed").opacity).toBe("0.8");
+		expect(rule(".classicyWindowPlacardBarDimmed").opacity).toBe("0.6");
 	});
 
 	it("utility collapsed height follows document collapsed height", () =>

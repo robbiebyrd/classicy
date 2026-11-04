@@ -1,6 +1,6 @@
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render } from "@/__tests__/test-utils";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
 import {
 	type ClassicyStoreSystemApp,
@@ -991,6 +991,97 @@ describe("className and style passthrough", () => {
 			"300px",
 		);
 		expect(el.style.marginTop).toBe("7px");
+	});
+
+	// Collisions: a consumer key the component also sets wins (the contract,
+	// docs/AGENT-REFERENCE.md §4.0.1), positional and custom properties alike.
+	it("a consumer custom property overrides ClassicyListBox's visible-rows count", () => {
+		const { container } = render(
+			<ClassicyListBox
+				id="rows"
+				visibleRows={4}
+				options={[{ value: "a", label: "A" }]}
+				style={{ "--classicy-listbox-visible-rows": "9" } as CSSProperties}
+			/>,
+		);
+		const el = container.querySelector(".classicyListBox") as HTMLElement;
+		expect(el.style.getPropertyValue("--classicy-listbox-visible-rows")).toBe(
+			"9",
+		);
+	});
+
+	it("a consumer custom property overrides ClassicyWindowFrame's width", () => {
+		const { container } = render(
+			<ClassicyWindowFrame
+				width={300}
+				style={{ "--classicy-window-frame-width": "123px" } as CSSProperties}
+			>
+				x
+			</ClassicyWindowFrame>,
+		);
+		const el = container.querySelector(".classicyWindowFrame") as HTMLElement;
+		expect(el.style.getPropertyValue("--classicy-window-frame-width")).toBe(
+			"123px",
+		);
+	});
+
+	it("a consumer custom property overrides ClassicyIcon's size, and left/top its position", () => {
+		const { container } = render(
+			<ClassicyIcon
+				appId={APP}
+				name="Icon"
+				icon="/i.png"
+				size={48}
+				initialPosition={[10, 20]}
+				style={
+					{
+						left: 5,
+						top: 6,
+						"--desktop-icon-size": "64px",
+					} as CSSProperties
+				}
+			/>,
+		);
+		const el = container.querySelector(".classicyIcon") as HTMLElement;
+		expect(el.style.left).toBe("5px");
+		expect(el.style.top).toBe("6px");
+		expect(el.style.getPropertyValue("--desktop-icon-size")).toBe("64px");
+	});
+
+	it("a consumer theme variable overrides ClassicyDesktop's own", () => {
+		const { container } = render(
+			<ClassicyDesktop
+				startupScreen={false}
+				controlStrip={false}
+				style={{ "--color-black": "rgb(1, 2, 3)" } as CSSProperties}
+			/>,
+		);
+		const el = container.querySelector("#classicyDesktop") as HTMLElement;
+		expect(el.style.getPropertyValue("--color-black")).toBe("rgb(1, 2, 3)");
+	});
+
+	it("ClassicyWindow: a consumer height stays off a collapsed root", () => {
+		const { container } = render(
+			<ClassicyWindow
+				id="collapsing"
+				appId={APP}
+				title="W"
+				initialSize={[300, 200]}
+				collapsable
+				style={{ height: 500, marginTop: 7 }}
+			>
+				<p>body</p>
+			</ClassicyWindow>,
+		);
+		const root = container.querySelector(".classicyWindow") as HTMLElement;
+		expect(root.style.height).toBe("200px");
+		fireEvent.click(
+			container.querySelector(".classicyWindowCollapseBox") as HTMLElement,
+		);
+		expect(root).toHaveClass("collapsed");
+		// `.collapsed` sizes the root to its title bar by the cascade alone.
+		expect(root.style.height).toBe("");
+		expect(root.style.marginTop).toBe("7px");
 	});
 });
 

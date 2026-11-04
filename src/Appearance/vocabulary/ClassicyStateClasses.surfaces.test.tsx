@@ -17,6 +17,11 @@ import {
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import {
+	classicyCssRules,
+	classicySelectorSpecificity,
+	compareClassicySpecificity,
+} from "../../../bin/classicyCssCascade";
 // The built-in modules register when their owners' modules load.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
@@ -345,6 +350,79 @@ describe("compiled SCSS of the touched surfaces", () => {
 		expect(well).toContain(":where(.classicyImageWell).selected {");
 		expect(well).toContain(":where(.classicyImageWell).disabled {");
 		expect(well).not.toMatch(/ImageWell(Selected|Disabled)/);
+	});
+
+	// One compiled rule's declarations and position, by its exact selector.
+	const ruleOf = (css: string, selector: string) => {
+		const found = classicyCssRules(css).find((r) => r.selector === selector);
+		if (!found) throw new Error(`no rule for ${selector}`);
+		return {
+			at: found.order,
+			props: Object.fromEntries(found.declarations),
+		};
+	};
+
+	it("Placard: disabled follows pressed, so a disabled pressed placard draws flat", () => {
+		const css = compile(`${R}Placard/ClassicyPlacard.scss`);
+		const pressed = ruleOf(css, ".classicyPlacard.pressed");
+		const disabled = ruleOf(css, ".classicyPlacard.disabled");
+		expect(disabled.at).toBeGreaterThan(pressed.at);
+		expect(disabled.props["box-shadow"]).not.toBe(pressed.props["box-shadow"]);
+		expect(disabled.props["box-shadow"]).toContain("var(--color-system-04)");
+	});
+
+	it("MenuBar: top-level titles and the Apple and switcher menus draw no :after", () => {
+		const css = compile(`${R}Desktop/MenuBar/ClassicyDesktopMenuBar.scss`);
+		const titles = ruleOf(
+			css,
+			".classicyDesktopMenu > li:after,\n.classicyDesktopMenu > .classicyBalloonHelpAnchor > li:after",
+		);
+		expect(titles.props.display).toBe("none");
+		for (const selector of [
+			".classicyDesktopMenuApple:after",
+			".classicyDesktopMenuAppSwitcher:after",
+		])
+			expect(ruleOf(css, selector).props).toMatchObject({
+				display: "none",
+				content: '""',
+			});
+		// The title rule outranks the submenu triangle it hides, whichever
+		// stylesheet loads first (ClassicyMenu.scss).
+		for (const selector of [
+			".classicyDesktopMenu > li:after",
+			".classicyDesktopMenu > .classicyBalloonHelpAnchor > li:after",
+		])
+			expect(
+				compareClassicySpecificity(
+					classicySelectorSpecificity(selector),
+					classicySelectorSpecificity(
+						".classicyMenuItemChildMenuIndicator:after",
+					),
+				),
+			).toBeGreaterThan(0);
+	});
+
+	it("FileInput: the error message keeps the root's weight and its error color", () => {
+		const css = compile(`${R}FileInput/ClassicyFileInput.scss`);
+		const error = ruleOf(css, ":where(.classicyFileInputMessage).error");
+		expect(error.props.color).toBe(
+			"color-mix(in srgb, var(--color-error), black 20%)",
+		);
+		expect(
+			classicySelectorSpecificity(":where(.classicyFileInputMessage).error"),
+		).toEqual([0, 1, 0]);
+	});
+
+	it.each([
+		["Link/ClassicyLink.scss", "classicyLink"],
+		["Output/ClassicyOutput.scss", "classicyOutput"],
+		["ControlLabel/ClassicyControlLabel.scss", "classicyControlLabel"],
+	])("%s: disabled follows the root rule it ties and grays the text", (file, rootClass) => {
+		const css = compile(`${R}${file}`);
+		const base = ruleOf(css, `.${rootClass}`);
+		const disabled = ruleOf(css, `:where(.${rootClass}).disabled`);
+		expect(disabled.at).toBeGreaterThan(base.at);
+		expect(disabled.props.color).toBe("var(--color-system-05)");
 	});
 
 	it("ControlStrip: no aria-expanded or data-state selector", () => {

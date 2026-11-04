@@ -114,4 +114,15 @@ describe("ClassicyWindow consumer style and stacking", () => {
 		expect(root.classList.contains("classicyWindowRed")).toBe(true);
 		expect(root.style.zIndex).toBe("");
 	});
+
+	it("keeps a movable alert in the modal-front band (370) when given a zIndex", () => {
+		render(
+			<ClassicyAlert appId={APP} label="Alert" movable style={{ zIndex: 1 }} />,
+		);
+
+		const root = document.querySelector(".classicyWindow") as HTMLElement;
+		expect(root.classList.contains("classicyWindowModalFront")).toBe(true);
+		expect(root.classList.contains("classicyWindowRed")).toBe(false);
+		expect(root.style.zIndex).toBe("");
+	});
 });
