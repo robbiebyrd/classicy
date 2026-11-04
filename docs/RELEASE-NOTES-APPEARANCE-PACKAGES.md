@@ -567,10 +567,15 @@ Start with [Install and build](#install-and-build).
     package (above).
   - A stored theme keeps only the package knob values a user changed.
   - Built-in themes are no longer stored: `Appearance.availableThemes` is
-    dropped on save (and on load, from older state), and an unchanged
-    built-in active theme is stored as `{ id, package }`. *Migrate:* a host that dispatched
+    dropped on save (and on load, from older state), and a built-in active
+    theme is stored as `{ id, package }`. *Migrate:* a host that dispatched
     `ClassicyDesktopLoadThemes` once and relied on the saved list must
     dispatch it on every boot; the list is session state now.
+    - State saved before v0.83 that edited a built-in theme in place (a
+      wallpaper or font changed before custom themes existed) loses those
+      edits on load: the active theme is replaced by its current preset.
+      *Migrate:* pick a theme and apply the edits again; an edit now forks a
+      Custom theme, which is kept.
   - `Desktop.errorDialog` is no longer persisted (as `systemDialog`
     already was not), so a reload never re-shows an open alert.
   - The transient window flags `resizing`, `dragging` and `moving` are
@@ -917,10 +922,9 @@ warnings about derived folder names.
   theme list, and a built-in active theme, at the version a user first saved,
   so preset fixes never reached existing users and removed presets lingered.
   They now come from the code on every load (for a host package, once it
-  registers); an active preset that is gone falls back to its package's
-  defaults. Custom themes are untouched, and so is an active theme saved
-  before custom themes existed whose data differs from its preset (it may
-  hold the user's edits).
+  registers): an active built-in is replaced by its current preset, and one
+  that is gone falls back to its package's defaults. Custom themes are
+  untouched.
 - **Tab strips in Firefox.** In the shipped `dist/classicy.css`, the
   desktop's Firefox scroll-bar fallback beat the tab scroller's
   `scrollbar-width: none`, so Firefox users of the built library saw a scroll
