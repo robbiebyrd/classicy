@@ -2,10 +2,14 @@ import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/Appea
 
 /**
  * The one definition of a valid theme font size, in px. It bounds every font
- * size a theme carries (the five typography sizes and `desktop.iconFontSize`)
- * wherever one arrives: `ClassicyThemeSchema` (theme files, imports and
+ * size a theme carries (the five typography sizes, `desktop.iconFontSize` and
+ * every measurement whose key names a font size,
+ * `isClassicyFontSizeMeasurementKey`) wherever one arrives:
+ * `ClassicyThemeSchema` (theme files, imports and
  * `ClassicyDesktopChangeAppearanceOption`), the `ClassicyDesktopChangeFontSize`
- * predicate (`hasFontSize`), and the Appearance Manager's Fonts tab.
+ * predicate (`hasFontSize`), the Appearance Manager's Fonts tab, the
+ * `ClassicyDesktopChangeMetric` knob bounds and the Options tab
+ * (`getThemeMetricFamilyBounds`).
  *
  * The range is the one the Fonts tab has always offered, and every Platinum
  * preset sits well inside it (12–22 px). Outside it, the sizes derived from a
@@ -53,3 +57,14 @@ export const clampClassicyThemeFontSize = (
 				Math.max(CLASSICY_THEME_FONT_SIZE_MIN, value),
 			)
 		: undefined;
+
+/**
+ * True for a measurement key that names a font size: `fontSize`, or a name
+ * ending in `FontSize` (`headerFontSize`, `bodyFontSize`). Decided by key name
+ * alone, in any family of any package, so a package's knob font sizes
+ * (`pager.fontSize`, `hyperCard.fontSize`, `appleGuide.bodyFontSize`) are held
+ * to the same bounds as the typography sizes even before (or without) the
+ * package registering.
+ */
+export const isClassicyFontSizeMeasurementKey = (key: unknown): key is string =>
+	typeof key === "string" && (key === "fontSize" || key.endsWith("FontSize"));

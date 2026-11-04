@@ -281,6 +281,54 @@ describe("the metric family form", () => {
 		expect(getThemeMetricFamilyBounds(knob(-20, -5))).toBeUndefined();
 	});
 
+	it("bounds a font-size knob to the knob's range within 8–72", () => {
+		const knob = (min: number, max: number) => ({
+			label: "K",
+			min,
+			max,
+			default: min,
+		});
+		expect(getThemeMetricFamilyBounds(knob(0, 512), "fontSize")).toEqual({
+			min: 8,
+			max: 72,
+		});
+		expect(getThemeMetricFamilyBounds(knob(4, 40), "bodyFontSize")).toEqual({
+			min: 8,
+			max: 40,
+		});
+		expect(getThemeMetricFamilyBounds(knob(10, 100), "headerFontSize")).toEqual(
+			{ min: 10, max: 72 },
+		);
+		expect(
+			getThemeMetricFamilyBounds(knob(80, 100), "fontSize"),
+		).toBeUndefined();
+		expect(getThemeMetricFamilyBounds(knob(0, 6), "fontSize")).toBeUndefined();
+		// Any other key keeps the measurement bounds.
+		expect(getThemeMetricFamilyBounds(knob(0, 512), "cellHeight")).toEqual({
+			min: 0,
+			max: 512,
+		});
+	});
+
+	it("family form holds a font-size knob to 8–72 by key name", () => {
+		const wide: ClassicyAppearanceKnobs = {
+			hyperCard: {
+				fontSize: { label: "Font size", min: 0, max: 512, default: 11 },
+			},
+			appleGuide: {
+				bodyFontSize: { label: "Body", min: 0, max: 512, default: 14 },
+			},
+		};
+		const hyperCard = { family: "hyperCard", key: "fontSize" };
+		const body = { family: "appleGuide", key: "bodyFontSize" };
+		for (const value of [8, 11, 72])
+			expect(isValidThemeMetricFamily(hyperCard, value, wide)).toBe(true);
+		for (const value of [0, 7, 73, 400])
+			expect(isValidThemeMetricFamily(hyperCard, value, wide)).toBe(false);
+		expect(isValidThemeMetricFamily(body, 72, wide)).toBe(true);
+		expect(isValidThemeMetricFamily(body, 400, wide)).toBe(false);
+	});
+
 	it("family form refuses every value of a knob wholly outside 0–512 (J-R18)", () => {
 		const outside: ClassicyAppearanceKnobs = {
 			controlStrip: {

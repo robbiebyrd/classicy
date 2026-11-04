@@ -4,6 +4,7 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import {
 	CLASSICY_THEME_FONT_SIZE_MAX,
 	CLASSICY_THEME_FONT_SIZE_MIN,
+	isClassicyFontSizeMeasurementKey,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
@@ -43,27 +44,39 @@ const palette = z.tuple([color, color, color, color, color, color, color]);
 const size = (max: number) =>
 	z.number().positive().max(max, `must be at most ${max}`);
 
+const FONT_SIZE_MIN_ERROR = `must be at least ${CLASSICY_THEME_FONT_SIZE_MIN}`;
+const FONT_SIZE_MAX_ERROR = `must be at most ${CLASSICY_THEME_FONT_SIZE_MAX}`;
+
 /** A font size in px, within the shared bounds (`ClassicyThemeFontSizes`). */
 const fontSize = z
 	.number()
-	.min(
-		CLASSICY_THEME_FONT_SIZE_MIN,
-		`must be at least ${CLASSICY_THEME_FONT_SIZE_MIN}`,
-	)
-	.max(
-		CLASSICY_THEME_FONT_SIZE_MAX,
-		`must be at most ${CLASSICY_THEME_FONT_SIZE_MAX}`,
-	);
+	.min(CLASSICY_THEME_FONT_SIZE_MIN, FONT_SIZE_MIN_ERROR)
+	.max(CLASSICY_THEME_FONT_SIZE_MAX, FONT_SIZE_MAX_ERROR);
 
 const measurement = z.number().nonnegative().max(512, "must be at most 512");
 
 const NAME_ERROR = "must be a camelCase name starting with a lowercase letter";
 
-/** A package measurement family: camelCase keys, each a measurement. */
-const packageMeasurements = z.record(
-	z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
-	measurement,
-);
+/** A package measurement family: camelCase keys, each a measurement. A key
+ * that names a font size (`fontSize`, `bodyFontSize`, …;
+ * `isClassicyFontSizeMeasurementKey`) is also held to the font-size bounds,
+ * like the typography sizes, whichever package the family belongs to. */
+const packageMeasurements = z
+	.record(z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR), measurement)
+	.check((ctx) => {
+		for (const [key, value] of Object.entries(ctx.value)) {
+			if (!isClassicyFontSizeMeasurementKey(key)) continue;
+			const message =
+				value < CLASSICY_THEME_FONT_SIZE_MIN
+					? FONT_SIZE_MIN_ERROR
+					: value > CLASSICY_THEME_FONT_SIZE_MAX
+						? FONT_SIZE_MAX_ERROR
+						: undefined;
+			if (message) {
+				ctx.issues.push({ code: "custom", input: value, path: [key], message });
+			}
+		}
+	});
 
 const CORE_MEASUREMENT_FAMILIES: readonly string[] = Object.keys(METRICS);
 

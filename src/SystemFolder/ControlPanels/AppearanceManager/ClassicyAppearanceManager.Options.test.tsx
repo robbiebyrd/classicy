@@ -284,6 +284,35 @@ describe("useOptionsTab", () => {
 		);
 	});
 
+	it("keeps a font-size knob's entry within 8–72 even when the knob allows more", () => {
+		const wide: ClassicyAppearanceKnobs = {
+			hyperCard: {
+				fontSize: { label: "Font size", min: 0, max: 512, default: 11 },
+			},
+		};
+		const changeMetric = vi.fn();
+		render(
+			<Host
+				pkg={{ ...testPack, knobs: wide, options: classicyKnobsToSchema(wide) }}
+				theme={themeWith({ hyperCard: { fontSize: 11 } })}
+				changeMetric={changeMetric}
+			/>,
+		);
+		const fontSize = field("hyperCard", "fontSize");
+		fireEvent.change(fontSize, { target: { value: "400" } });
+		expect(fontSize).toHaveValue(72);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "hyperCard", key: "fontSize" },
+			72,
+		);
+		fireEvent.change(fontSize, { target: { value: "0" } });
+		expect(fontSize).toHaveValue(8);
+		expect(changeMetric).toHaveBeenLastCalledWith(
+			{ family: "hyperCard", key: "fontSize" },
+			8,
+		);
+	});
+
 	it("rounds a fractional entry to whole pixels before clamping (J-R17)", () => {
 		const changeMetric = vi.fn();
 		render(<Host changeMetric={changeMetric} />);
@@ -433,6 +462,51 @@ describe("useOptionsTab", () => {
 				screen.getByText("The Huge Pack package has no options."),
 			).toBeInTheDocument();
 			expect(document.querySelector("input")).toBeNull();
+		});
+	});
+
+	describe("a font-size knob declared wholly outside 8–72", () => {
+		const warnings: ClassicyLogEntry[] = [];
+		beforeEach(() => {
+			warnings.length = 0;
+			vi.spyOn(console, "warn").mockImplementation(() => {});
+			registerClassicyLogSink({
+				id: "options-tab-font-test",
+				onLog: (entry) => {
+					if (entry.level === "warn") warnings.push(entry);
+				},
+			});
+		});
+		afterEach(() => {
+			unregisterClassicyLogSink("options-tab-font-test");
+			vi.restoreAllMocks();
+		});
+
+		it("is left out and named in the package's one warning", () => {
+			const k: ClassicyAppearanceKnobs = {
+				controlStrip: { cellHeight: knobs.controlStrip.cellHeight },
+				hyperCard: {
+					fontSize: { label: "Font size", min: 80, max: 100, default: 90 },
+				},
+			};
+			render(
+				<Host
+					pkg={{
+						...testPack,
+						id: "big-type-pack",
+						knobs: k,
+						options: classicyKnobsToSchema(k),
+					}}
+				/>,
+			);
+			expect(field("hyperCard", "fontSize")).toBeNull();
+			expect(field("controlStrip", "cellHeight")).not.toBeNull();
+			const named = warnings.filter((w) =>
+				w.message.includes("hyperCard.fontSize"),
+			);
+			expect(named).toHaveLength(1);
+			expect(named[0].message).toContain("big-type-pack");
+			expect(named[0].message).toContain("8–72");
 		});
 	});
 

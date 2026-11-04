@@ -5,6 +5,11 @@ import {
 	isClassicyPlainObject,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceKeyGuards.internal";
 import {
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+	isClassicyFontSizeMeasurementKey,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
 	CLASSICY_MEASUREMENT_NAME,
 	classicyMeasurementVarName,
 	isReservedClassicyThemeVar,
@@ -352,7 +357,8 @@ export type ClassicyThemeMetricFamilyTarget = { family: string; key: string };
 /** Family-form payload of `ClassicyDesktopChangeMetric` (minus `type`). */
 export type ClassicyThemeMetricFamilyChange =
 	ClassicyThemeMetricFamilyTarget & {
-		/** Whole CSS pixels, within the knob's `min`–`max` (and 0–512). */
+		/** Whole CSS pixels, within the knob's `min`–`max` (and 0–512, or
+		 * 8–72 for a font-size key). */
 		value: number;
 	};
 
@@ -400,22 +406,29 @@ export const getThemeMetricFamilyKnob = (
 
 /**
  * The values a knob accepts: its own inclusive `min`–`max` intersected with
- * the theme schema's 0–512. `undefined` when they do not meet (a
- * knob declared wholly outside 0–512), so the knob is not editable at all:
- * the reducer refuses every value and the Options tab leaves it out. The
- * single source for both.
+ * the theme schema's bounds for its key: 0–512, or the font-size bounds
+ * (8–72, `ClassicyThemeFontSizes`) when `key` names a font size
+ * (`isClassicyFontSizeMeasurementKey`: `fontSize`, `bodyFontSize`, …).
+ * `undefined` when they do not meet (a knob declared wholly outside them), so
+ * the knob is not editable at all: the reducer refuses every value and the
+ * Options tab leaves it out. The single source for both, which pass the key.
  */
 export const getThemeMetricFamilyBounds = (
 	knob: ClassicyAppearanceKnobs[string][string],
+	key?: string,
 ): { min: number; max: number } | undefined => {
-	const min = Math.max(knob.min, 0);
-	const max = Math.min(knob.max, MAX);
+	const [floor, ceiling] = isClassicyFontSizeMeasurementKey(key)
+		? [CLASSICY_THEME_FONT_SIZE_MIN, CLASSICY_THEME_FONT_SIZE_MAX]
+		: [0, MAX];
+	const min = Math.max(knob.min, floor);
+	const max = Math.min(knob.max, ceiling);
 	return min <= max ? { min, max } : undefined;
 };
 
 /**
  * True when `knobs` declares the target and `value` is a finite number within
- * the knob's inclusive bounds and the theme schema's 0–512.
+ * the knob's inclusive bounds and the theme schema's bounds for its key
+ * (`getThemeMetricFamilyBounds`).
  */
 export const isValidThemeMetricFamily = (
 	target: ClassicyThemeMetricFamilyTarget,
@@ -423,7 +436,7 @@ export const isValidThemeMetricFamily = (
 	knobs: ClassicyAppearanceKnobs | undefined,
 ): value is number => {
 	const knob = getThemeMetricFamilyKnob(knobs, target);
-	const bounds = knob && getThemeMetricFamilyBounds(knob);
+	const bounds = knob && getThemeMetricFamilyBounds(knob, target.key);
 	return (
 		bounds !== undefined &&
 		typeof value === "number" &&

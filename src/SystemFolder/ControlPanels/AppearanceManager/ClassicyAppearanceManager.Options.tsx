@@ -8,6 +8,11 @@ import type {
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { appearanceThemeEditNotice } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
 import {
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+	isClassicyFontSizeMeasurementKey,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
 	classicyMeasurementVarName,
 	classicyThemeMeasurementDefaults,
 	isReservedClassicyThemeVar,
@@ -118,7 +123,8 @@ const knobFamilyValues = (
  * `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is
  * not lower camel case, or a pair that makes a variable `getThemeVars`
  * reserves, such as `menu.minWidth` → `--menu-min-width`) or whose declared
- * range does not meet 0–512. The left-out knobs are reported in one warning
+ * range does not meet 0–512 (8–72 for a font-size key such as
+ * `hyperCard.fontSize`). The left-out knobs are reported in one warning
  * per package.
  * A package without editable knobs says so instead.
  */
@@ -143,9 +149,14 @@ export const useOptionsTab = ({
 						);
 						continue;
 					}
-					const bounds = getThemeMetricFamilyBounds(knob);
+					const bounds = getThemeMetricFamilyBounds(knob, key);
 					if (bounds) knobs.push({ key, knob, ...bounds });
-					else skipped.push(`"${family}.${key}" (range outside 0–512)`);
+					else
+						skipped.push(
+							isClassicyFontSizeMeasurementKey(key)
+								? `"${family}.${key}" (range outside ${CLASSICY_THEME_FONT_SIZE_MIN}–${CLASSICY_THEME_FONT_SIZE_MAX}, the font-size bounds)`
+								: `"${family}.${key}" (range outside 0–512)`,
+						);
 				}
 				return knobs.length === 0
 					? []

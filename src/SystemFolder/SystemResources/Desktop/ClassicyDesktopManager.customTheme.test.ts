@@ -780,6 +780,53 @@ describe("ClassicyDesktopChangeMetric family form", () => {
 		expect(warnings).toHaveLength(3);
 	});
 
+	it("holds a font-size knob to 8–72 even when the knob declares more, refusing without forking", () => {
+		const warnings = captureWarnings();
+		registerClassicyAppearancePackage({
+			...knobPackage,
+			knobs: {
+				hyperCard: {
+					fontSize: { label: "Font size", min: 0, max: 512, default: 11 },
+				},
+				appleGuide: {
+					bodyFontSize: { label: "Body", min: 0, max: 512, default: 14 },
+				},
+			},
+		});
+		const ds = makeStore();
+		appearance(ds).packageId = knobPackage.id;
+		const before = JSON.stringify(appearance(ds));
+		for (const payload of [
+			{ family: "hyperCard", key: "fontSize", value: 0 },
+			{ family: "hyperCard", key: "fontSize", value: 7 },
+			{ family: "appleGuide", key: "bodyFontSize", value: 400 },
+			{ family: "appleGuide", key: "bodyFontSize", value: 73 },
+		]) {
+			run(ds, { type: "ClassicyDesktopChangeMetric", ...payload });
+		}
+		expect(JSON.stringify(appearance(ds))).toBe(before);
+		expect(appearance(ds).activeTheme.id).toBe("default");
+		expect(warnings).toHaveLength(4);
+
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "hyperCard",
+			key: "fontSize",
+			value: 8,
+		});
+		run(ds, {
+			type: "ClassicyDesktopChangeMetric",
+			family: "appleGuide",
+			key: "bodyFontSize",
+			value: 72,
+		});
+		const a = appearance(ds);
+		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
+		expect(a.activeTheme.measurements.hyperCard.fontSize).toBe(8);
+		expect(a.activeTheme.measurements.appleGuide.bodyFontSize).toBe(72);
+		expect(warnings).toHaveLength(4);
+	});
+
 	it("survives a tampered non-object family without throwing or forking", () => {
 		const warnings = captureWarnings();
 		const ds = makeKnobStore();

@@ -4,11 +4,13 @@ import {
 	type ClassicyTheme,
 	getTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { parseClassicyThemeFile } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	CLASSICY_THEME_FONT_SIZE_KEYS,
 	CLASSICY_THEME_FONT_SIZE_MAX,
 	CLASSICY_THEME_FONT_SIZE_MIN,
 	clampClassicyThemeFontSize,
+	isClassicyFontSizeMeasurementKey,
 	isClassicyThemeFontSizeKey,
 	isValidClassicyThemeFontSize,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
@@ -135,15 +137,97 @@ describe("the theme schema uses the same bounds", () => {
 	});
 });
 
+describe("isClassicyFontSizeMeasurementKey", () => {
+	it.each([
+		"fontSize",
+		"headerFontSize",
+		"bodyFontSize",
+		"iconFontSize",
+		"titleFontSize",
+	])("matches %s", (key) => {
+		expect(isClassicyFontSizeMeasurementKey(key)).toBe(true);
+	});
+
+	it.each([
+		"size",
+		"cellHeight",
+		"fontsize",
+		"fontSizeStep",
+		"fontSizes",
+		"bodySize",
+		"uiSize",
+		"",
+		12,
+		null,
+		undefined,
+	])("does not match %s", (key) => {
+		expect(isClassicyFontSizeMeasurementKey(key)).toBe(false);
+	});
+});
+
+// A package knob whose key names a font size is held to the same 8–72 px as
+// the typography sizes, decided by key name in any family of any package.
+describe("the theme schema bounds font-size measurement keys", () => {
+	const parse = (families: Record<string, Record<string, number>>) => {
+		const theme = structuredClone(getTheme("default"));
+		Object.assign(theme.measurements, families);
+		return ClassicyThemeSchema.safeParse(theme);
+	};
+
+	it.each([
+		["hyperCard", "fontSize", 0, "must be at least 8"],
+		["appleGuide", "bodyFontSize", 400, "must be at most 72"],
+		["pager", "fontSize", 7.99, "must be at least 8"],
+		["appleGuide", "headerFontSize", 72.01, "must be at most 72"],
+		["someVendorPkg", "titleFontSize", 100, "must be at most 72"],
+	])("refuses %s.%s = %s", (family, key, value, message) => {
+		const parsed = parse({ [family]: { [key]: value } });
+		expect(parsed.success).toBe(false);
+		expect(parsed.error?.issues).toContainEqual(
+			expect.objectContaining({
+				path: ["measurements", family, key],
+				message,
+			}),
+		);
+	});
+
+	it.each([
+		["hyperCard", "fontSize", 8],
+		["appleGuide", "bodyFontSize", 72],
+		["appleGuide", "headerFontSize", 13.5],
+		["someVendorPkg", "titleFontSize", 8],
+	])("accepts %s.%s = %s", (family, key, value) => {
+		const parsed = parse({ [family]: { [key]: value } });
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements[family][key]).toBe(value);
+	});
+
+	it("leaves a key that is not a font size to the measurement bounds", () => {
+		expect(parse({ pager: { cellHeight: 400 } }).success).toBe(true);
+		expect(parse({ pager: { cellHeight: 0 } }).success).toBe(true);
+		expect(parse({ pager: { cellHeight: 513 } }).success).toBe(false);
+	});
+
+	it("refuses a theme file carrying one, naming the knob", () => {
+		const theme = structuredClone(getTheme("default"));
+		Object.assign(theme.measurements, { hyperCard: { fontSize: 0 } });
+		const result = parseClassicyThemeFile(
+			JSON.stringify({ format: "classicy-theme", version: 1, theme }),
+		);
+		expect(result.ok).toBe(false);
+		if (!result.ok)
+			expect(result.error).toContain(
+				"measurements.hyperCard.fontSize: must be at least 8",
+			);
+	});
+});
+
 // Part H's knob families carry font sizes of their own (pager.fontSize,
-// hyperCard.fontSize, appleGuide.headerFontSize and bodyFontSize). They are
-// package measurements, not typography sizes, so the schema holds them to the
-// measurement bounds and the Options tab to their knob's range; both must sit
-// inside the shared font-size bounds, so no knob offers a size the Fonts tab
-// would refuse.
+// hyperCard.fontSize, appleGuide.headerFontSize and bodyFontSize). Their keys
+// name a font size, so the schema, the reducer and the Options tab hold them
+// to the shared font-size bounds; Platinum's own defaults and knob ranges must
+// sit inside them, or its built-in themes would not export.
 describe("Platinum's knob-family font sizes", () => {
-	const isFontSizeKey = (key: string) =>
-		key === "fontSize" || key.endsWith("FontSize");
 	const measurements = platinum.defaults.measurements as Record<
 		string,
 		Record<string, number>
@@ -155,7 +239,7 @@ describe("Platinum's knob-family font sizes", () => {
 	const fontSizeLeaves = Object.entries(measurements).flatMap(
 		([family, keys]) =>
 			Object.entries(keys)
-				.filter(([key]) => isFontSizeKey(key))
+				.filter(([key]) => isClassicyFontSizeMeasurementKey(key))
 				.map(([key, value]) => ({ family, key, value })),
 	);
 
