@@ -121,7 +121,11 @@ interface ClassicyMenuProps {
 	name: string;
 	/** The items to render. An empty array renders nothing. */
 	menuItems: ClassicyMenuItem[];
-	/** Class names for the root `<ul>` (e.g. `classicyDesktopMenu`, `classicyContextMenu`). */
+	/**
+	 * Class names for the menu list itself, the root `<ul>` the menu frame and
+	 * items hang from (e.g. `classicyDesktopMenu`, `classicyContextMenu`). Use
+	 * this, not `className`, to style or position the list.
+	 */
 	navClass?: string;
 	/** Class names for every nested submenu `<ul>`. */
 	subNavClass?: string;
@@ -132,9 +136,13 @@ interface ClassicyMenuProps {
 	 * `subNavClass`. Kept so existing callers still type-check.
 	 */
 	isSubmenu?: boolean;
-	/** Extra class names, merged onto the `.classicyMenuWrapper` after the component's own. */
+	/**
+	 * Extra class names for the outermost element, the `.classicyMenuWrapper`
+	 * around the list (the passthrough rule: `className` lands on the root),
+	 * after the component's own. The list `<ul>` takes `navClass` instead.
+	 */
 	className?: string;
-	/** Inline style, merged onto the `.classicyMenuWrapper` after the component's own. */
+	/** Inline style for the `.classicyMenuWrapper`, merged after the component's own; the list takes none. */
 	style?: CSSProperties;
 }
 

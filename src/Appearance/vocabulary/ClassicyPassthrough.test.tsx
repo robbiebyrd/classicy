@@ -993,6 +993,28 @@ describe("className and style passthrough", () => {
 		expect(el.style.marginTop).toBe("7px");
 	});
 
+	it("ClassicyMenu: className and style on the wrapper, navClass on the list", () => {
+		const { container } = render(
+			<ClassicyMenu
+				name="m"
+				navClass="listClass"
+				menuItems={[{ id: "a", title: "A" }]}
+				className={HOST}
+				style={STYLE}
+			/>,
+		);
+		const wrapper = container.querySelector(
+			".classicyMenuWrapper",
+		) as HTMLElement;
+		const list = wrapper.querySelector(":scope > ul") as HTMLElement;
+		expect(wrapper).toHaveClass(HOST);
+		expect(wrapper).not.toHaveClass("listClass");
+		expect(wrapper.style.marginTop).toBe("7px");
+		expect(list).toHaveClass("listClass");
+		expect(list).not.toHaveClass(HOST);
+		expect(list.style.marginTop).toBe("");
+	});
+
 	// Collisions: a consumer key the component also sets wins (the contract,
 	// docs/AGENT-REFERENCE.md §4.0.1), positional and custom properties alike.
 	it("a consumer custom property overrides ClassicyListBox's visible-rows count", () => {

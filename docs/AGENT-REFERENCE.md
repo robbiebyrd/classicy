@@ -772,6 +772,12 @@ and icon states own:
   control; the label wrapper), `ClassicyMenu` (the list `<ul>`;
   `.classicyMenuWrapper`) and `ClassicyAlert` (`div.classicyAlert`; its
   window). The table in §8 names every decoration root.
+- `ClassicyMenu` has two class props. `className` and `style` follow the
+  rule above and land on its outermost element, the `.classicyMenuWrapper`
+  `<div>`; `navClass` names the list itself, the root `<ul>` that the menu
+  frame is drawn on and the items hang from (`classicyDesktopMenu`,
+  `classicyContextMenu`). Style or position the list through `navClass`
+  (or `.yourWrapper > ul`), not `className`.
 - With a label wrapper (`ClassicyMeter`, `ClassicyOutput`,
   `ClassicyProgressBar`, `ClassicyRadioInput`, `ClassicySlider`,
   `ClassicyListBox`), the props land on the wrapper when a label is shown and
