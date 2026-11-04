@@ -10,6 +10,7 @@ import {
 } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 // Geometry from HIGOS8 Figure 2-16, fixed by the track and thumb drawings
@@ -130,7 +131,11 @@ export const ClassicyPopUpSlider: FunctionalComponent<
 		const onUp = () => dragCleanupRef.current?.();
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
+		// Lost (the window blurs, a pointercancel, the page is hidden), the
+		// drag ends at the value it reached, as a release would end it.
+		const stopWatchingPointerStream = onClassicyPointerStreamLost(onUp);
 		dragCleanupRef.current = () => {
+			stopWatchingPointerStream();
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 			dragCleanupRef.current = null;

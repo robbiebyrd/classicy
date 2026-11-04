@@ -3,6 +3,11 @@ import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { type CSSProperties, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 
 const thumbOf = (slider: HTMLElement) =>
@@ -77,6 +82,40 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		fireEvent.mouseUp(document);
 		fireEvent.mouseMove(document, { clientY: 8 });
 		expect(slider).toHaveAttribute("aria-valuenow", "0"); // drag ended
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag at the value it reached on a %s", (loss) => {
+		render(<Controlled />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
+			top: 0,
+		} as DOMRect);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		fireEvent.mouseMove(document, { clientY: 65 });
+		expect(slider).toHaveAttribute("aria-valuenow", "0");
+		losePointerStream(loss);
+		// The pointer coming back with no button held moves nothing.
+		fireEvent.mouseMove(document, { clientY: 8 });
+		expect(slider).toHaveAttribute("aria-valuenow", "0");
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { unmount } = render(<Controlled />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		losePointerStream("blur");
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 
 	// H-R23: a package that moves the track moves the thumb's travel with
