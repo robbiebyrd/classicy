@@ -186,6 +186,10 @@ describe("vocabularyShapeErrors", () => {
 
 // The CLI, end to end: a copy of the script in a scratch tree laid out like
 // the repo (it reads ../src/Appearance/vocabulary/ next to itself).
+// Each case spawns Node once or twice (0.2 s alone); sized for a loaded
+// machine, as story 0082-lgo (l) found vitest's 5 s default is not.
+const CLI_TIMEOUT_MS = 60_000;
+
 describe("node bin/generate-vocabulary.ts", () => {
 	const root = mkdtempSync(join(tmpdir(), "classicy-vocabulary-"));
 	afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -212,49 +216,65 @@ describe("node bin/generate-vocabulary.ts", () => {
 		return { vocabulary, cli };
 	};
 
-	it("writes both outputs, then --check passes", () => {
-		const { vocabulary, cli } = tree(sameInput);
-		expect(cli().status).toBe(0);
-		const { ts, scss } = generateVocabulary(sameInput);
-		expect(
-			readFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "utf8"),
-		).toBe(ts);
-		expect(readFileSync(join(vocabulary, "_vocabulary.scss"), "utf8")).toBe(
-			scss,
-		);
-		expect(cli("--check")).toMatchObject({ status: 0, stderr: "" });
-	});
+	it(
+		"writes both outputs, then --check passes",
+		() => {
+			const { vocabulary, cli } = tree(sameInput);
+			expect(cli().status).toBe(0);
+			const { ts, scss } = generateVocabulary(sameInput);
+			expect(
+				readFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "utf8"),
+			).toBe(ts);
+			expect(readFileSync(join(vocabulary, "_vocabulary.scss"), "utf8")).toBe(
+				scss,
+			);
+			expect(cli("--check")).toMatchObject({ status: 0, stderr: "" });
+		},
+		CLI_TIMEOUT_MS,
+	);
 
-	it("--check fails on a stale or missing output and writes nothing", () => {
-		const { vocabulary, cli } = tree(sameInput);
-		expect(cli().status).toBe(0);
-		writeFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "// stale\n");
-		rmSync(join(vocabulary, "_vocabulary.scss"));
-		const result = cli("--check");
-		expect(result.status).toBe(1);
-		expect(result.stderr).toMatch(
-			/^stale generated vocabulary: .*ClassicyVocabulary\.ts, .*_vocabulary\.scss\nrun: node bin\/generate-vocabulary\.ts\n$/,
-		);
-		expect(
-			readFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "utf8"),
-		).toBe("// stale\n");
-	});
+	it(
+		"--check fails on a stale or missing output and writes nothing",
+		() => {
+			const { vocabulary, cli } = tree(sameInput);
+			expect(cli().status).toBe(0);
+			writeFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "// stale\n");
+			rmSync(join(vocabulary, "_vocabulary.scss"));
+			const result = cli("--check");
+			expect(result.status).toBe(1);
+			expect(result.stderr).toMatch(
+				/^stale generated vocabulary: .*ClassicyVocabulary\.ts, .*_vocabulary\.scss\nrun: node bin\/generate-vocabulary\.ts\n$/,
+			);
+			expect(
+				readFileSync(join(vocabulary, "ClassicyVocabulary.ts"), "utf8"),
+			).toBe("// stale\n");
+		},
+		CLI_TIMEOUT_MS,
+	);
 
-	it("fails on a malformed vocabulary before generating", () => {
-		const { cli } = tree({ components: { Button: "Pressed" }, states: [] });
-		const result = cli("--check");
-		expect(result.status).toBe(1);
-		expect(result.stderr).toBe(
-			"components.Button must be an array of strings\nattributes must be an object of string arrays\n",
-		);
-	});
+	it(
+		"fails on a malformed vocabulary before generating",
+		() => {
+			const { cli } = tree({ components: { Button: "Pressed" }, states: [] });
+			const result = cli("--check");
+			expect(result.status).toBe(1);
+			expect(result.stderr).toBe(
+				"components.Button must be an array of strings\nattributes must be an object of string arrays\n",
+			);
+		},
+		CLI_TIMEOUT_MS,
+	);
 
-	it("fails on a state collision", () => {
-		const { cli } = tree({ ...sameInput, states: ["classicybutton"] });
-		const result = cli();
-		expect(result.status).toBe(1);
-		expect(result.stderr).toMatch(
-			/state "classicybutton" collides with root class classicyButton/,
-		);
-	});
+	it(
+		"fails on a state collision",
+		() => {
+			const { cli } = tree({ ...sameInput, states: ["classicybutton"] });
+			const result = cli();
+			expect(result.status).toBe(1);
+			expect(result.stderr).toMatch(
+				/state "classicybutton" collides with root class classicyButton/,
+			);
+		},
+		CLI_TIMEOUT_MS,
+	);
 });

@@ -1517,7 +1517,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `appearance.px-rect(…)` | `layout.classicy-px-rect(…)` (`@use 'classicy/scss/layout'`) |
   | `appearance.no-select` | `layout.classicy-no-select` |
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-themed` |
-  | `scrollbars.scrollbars-inactive` | Nothing: removed. Classicy included it on the inactive window's root, which never scrolls (its contents do), so it never drew; copy its rules into your own stylesheet if you used it on a scroller |
+  | `scrollbars.scrollbars-inactive` | Nothing: removed. Classicy included it on the inactive window's root, which never scrolls (its contents do), so it never drew; if you used it on a scroller of your own, copy its rules from the 2.1.7 source, `src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss` (no Classicy release after 2.1.7 ships them) |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
   | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |

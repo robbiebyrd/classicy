@@ -133,8 +133,12 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
  * An animation that is already paused (by the stylesheet's rule, or by the
  * saver itself) is left alone: pausing it from script would detach it from
  * `animation-play-state`, and resuming it would replay an animation the saver
- * stopped on purpose. Web Animations API animations (`element.animate()`)
- * fire no `animationstart` and are not caught once the saver has mounted.
+ * stopped on purpose. The other way round is not tracked: an animation this
+ * hook paused and the saver then also paused while reduced motion was on is
+ * resumed when it is turned off (a script `pause()` detaches it from
+ * `animation-play-state`, so the two pauses look alike). Web Animations API
+ * animations (`element.animate()`) fire no `animationstart` and are not
+ * caught once the saver has mounted.
  */
 const usePauseForReducedMotion = (
 	overlayRef: RefObject<HTMLDivElement | null>,
@@ -150,9 +154,16 @@ const usePauseForReducedMotion = (
 			return;
 		const query = window.matchMedia(REDUCED_MOTION_QUERY);
 		// The running animations this hook paused, the only ones it resumes.
+		// Pruned of animations whose element has left the document on every
+		// add, so a saver that spawns and removes elements keeps it bounded.
 		const paused = new Set<Animation>();
 		const pause = (animation: Animation) => {
 			if (animation.playState === "paused") return;
+			for (const held of paused)
+				if (
+					(held.effect as KeyframeEffect | null)?.target?.isConnected === false
+				)
+					paused.delete(held);
 			animation.pause();
 			paused.add(animation);
 		};

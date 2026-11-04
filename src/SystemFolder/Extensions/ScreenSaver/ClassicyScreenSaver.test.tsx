@@ -197,6 +197,55 @@ describe("ClassicyScreenSaver overlay", () => {
 			expect(theirs.play).not.toHaveBeenCalled();
 		});
 
+		it("forgets a paused animation once its element leaves the document", () => {
+			const target = { isConnected: true };
+			const gone = {
+				playState: "running",
+				effect: { target },
+				pause: vi.fn(),
+				play: vi.fn(),
+			};
+			gone.pause.mockImplementation(() => {
+				gone.playState = "paused";
+			});
+			const later = {
+				playState: "running",
+				effect: { target: { isConnected: true } },
+				pause: vi.fn(),
+				play: vi.fn(),
+			};
+			let onChange: ((e: { matches: boolean }) => void) | undefined;
+			vi.stubGlobal(
+				"matchMedia",
+				vi.fn((query: string) => ({
+					matches: query === "(prefers-reduced-motion: reduce)",
+					addEventListener: (_: string, listener: typeof onChange) => {
+						onChange = listener;
+					},
+					removeEventListener: vi.fn(),
+				})),
+			);
+			Object.defineProperty(HTMLElement.prototype, "getAnimations", {
+				configurable: true,
+				value: () => [gone],
+			});
+			setData({ active: true, selectedSaver: "test-inline-animation" });
+			render(<ClassicyScreenSaver />);
+			expect(gone.pause).toHaveBeenCalled();
+			// The element is removed; a later animation starts and is paused.
+			target.isConnected = false;
+			const spawned = document.querySelector(".testInlineSaver") as HTMLElement;
+			Object.defineProperty(spawned, "getAnimations", {
+				configurable: true,
+				value: () => [later],
+			});
+			spawned.dispatchEvent(new Event("animationstart", { bubbles: true }));
+			expect(later.pause).toHaveBeenCalled();
+			act(() => onChange?.({ matches: false }));
+			expect(later.play).toHaveBeenCalledTimes(1);
+			expect(gone.play).not.toHaveBeenCalled();
+		});
+
 		it("keeps running without a reduced-motion preference", () => {
 			const { animation } = stubMotion(false);
 			setData({ active: true, selectedSaver: "test-inline-animation" });

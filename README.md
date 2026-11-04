@@ -127,9 +127,12 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   The mixins are renamed to kebab-case with a `platinum-` prefix
   (`appearance.platinumWindowControlBoxBorder` →
   `mixins.platinum-window-control-box-border`; `scrollbars.scrollbars` →
-  `scrollbars.platinum-scrollbars`), and `px-rect`/`no-select` moved to the
-  vocabulary as `classicy-px-rect`/`classicy-no-select`
-  (`classicy/scss/layout`). `classicy/scss/themes.json` is gone: call
+  `scrollbars.platinum-scrollbars`), except `scrollbars.scrollbars-inactive`,
+  which is removed (it never drew in Classicy's own windows; copy its rules
+  from the 2.1.7 source if you used it), and `px-rect`/`no-select` moved to
+  the vocabulary as `classicy-px-rect`/`classicy-no-select`
+  (`classicy/scss/layout`). The full rename table is in
+  `docs/AGENT-REFERENCE.md`, "Migrating to Appearance Packages". `classicy/scss/themes.json` is gone: call
   `getAllThemes()`. `classicy/appearance/platinum` is kept for compatibility
   and registers nothing (importing `classicy` registers Platinum).
 - **`platinum-halftone` takes a token name.** The mixin now takes a color
