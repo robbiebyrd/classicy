@@ -1,0 +1,170 @@
+import { describe, expect, it } from "vitest";
+import {
+	freezeAnimationsAt,
+	isMidShotName,
+	midAnimationTime,
+	midClockMs,
+	midFreezeScript,
+	midShotName,
+	PARITY_MID_CLOCK_MS,
+	parseMidAt,
+	selectsMidShot,
+} from "./parityMidTime.ts";
+
+const timing = (t: Partial<Parameters<typeof midAnimationTime>[0]> = {}) => ({
+	delay: 0,
+	duration: 1000,
+	activeDuration: Number.POSITIVE_INFINITY,
+	...t,
+});
+
+describe("parseMidAt", () => {
+	it("reads a percentage of an iteration", () => {
+		expect(parseMidAt("50%")).toEqual({ unit: "%", value: 50 });
+		expect(parseMidAt("12.5%")).toEqual({ unit: "%", value: 12.5 });
+		expect(parseMidAt("0%")).toEqual({ unit: "%", value: 0 });
+		expect(parseMidAt("100%")).toEqual({ unit: "%", value: 100 });
+	});
+
+	it("reads milliseconds and seconds", () => {
+		expect(parseMidAt("400ms")).toEqual({ unit: "ms", value: 400 });
+		expect(parseMidAt("0ms")).toEqual({ unit: "ms", value: 0 });
+		expect(parseMidAt("1.5s")).toEqual({ unit: "ms", value: 1500 });
+	});
+
+	it("rejects a bare number, a percentage over 100 and garbage", () => {
+		for (const bad of ["400", "101%", "-5%", "-1ms", "half", "", "50 %"])
+			expect(() => parseMidAt(bad), bad).toThrow(/--at/);
+	});
+});
+
+describe("midAnimationTime", () => {
+	const half = { unit: "%", value: 50 } as const;
+
+	it("takes the fraction of one iteration, whatever the iteration count", () => {
+		expect(midAnimationTime(timing(), half)).toBe(500);
+		expect(midAnimationTime(timing({ activeDuration: 3000 }), half)).toBe(500);
+		expect(
+			midAnimationTime(timing({ duration: 200 }), { unit: "%", value: 25 }),
+		).toBe(50);
+	});
+
+	it("takes the fraction of the active interval when it is shorter than an iteration", () =>
+		expect(midAnimationTime(timing({ activeDuration: 400 }), half)).toBe(200));
+
+	it("skips a positive delay, so the shot lands inside the first iteration", () =>
+		expect(midAnimationTime(timing({ delay: 2000 }), half)).toBe(2500));
+
+	it("keeps a negative delay as a phase offset (staggered elements stay staggered)", () =>
+		expect(midAnimationTime(timing({ delay: -300 }), half)).toBe(500));
+
+	it("parks a zero-length or non-numeric duration at its start", () => {
+		expect(midAnimationTime(timing({ duration: 0 }), half)).toBe(0);
+		expect(midAnimationTime(timing({ duration: "auto" }), half)).toBe(0);
+		expect(midAnimationTime(timing({ duration: 0, delay: 70 }), half)).toBe(70);
+		expect(midAnimationTime(timing({ activeDuration: 0 }), half)).toBe(0);
+	});
+
+	it("uses a fixed time as is: the frame that many ms after the start", () => {
+		const at = { unit: "ms", value: 400 } as const;
+		expect(midAnimationTime(timing({ delay: 2000 }), at)).toBe(400);
+		expect(midAnimationTime(timing({ duration: 50 }), at)).toBe(400);
+	});
+});
+
+describe("midClockMs", () => {
+	it("moves the JS clock by the fixed time, or by the default for a percentage", () => {
+		expect(midClockMs({ unit: "ms", value: 400 })).toBe(400);
+		expect(midClockMs({ unit: "%", value: 50 })).toBe(PARITY_MID_CLOCK_MS);
+	});
+
+	it("lets an explicit --mid-clock win", () =>
+		expect(midClockMs({ unit: "ms", value: 400 }, 0)).toBe(0));
+});
+
+describe("mid shot names", () => {
+	it("suffixes the story id with @mid, which no story id contains", () => {
+		expect(midShotName("controls-button--default")).toBe(
+			"controls-button--default@mid",
+		);
+		expect(isMidShotName("controls-button--default@mid")).toBe(true);
+		expect(isMidShotName("controls-button--default")).toBe(false);
+		expect(isMidShotName("x@middle")).toBe(false);
+	});
+});
+
+describe("selectsMidShot", () => {
+	const forced = new Set(["listed--story"]);
+	it("selects a story with animations at ready time, or one on the list", () => {
+		expect(selectsMidShot("a--b", 2, forced)).toBe(true);
+		expect(selectsMidShot("a--b", 0, forced)).toBe(false);
+		expect(selectsMidShot("listed--story", 0, forced)).toBe(true);
+		expect(selectsMidShot("a--b", 0)).toBe(false);
+	});
+});
+
+type FakeAnimation = {
+	paused: boolean;
+	currentTime: number | null;
+	effect: { getComputedTiming: () => ReturnType<typeof timing> } | null;
+	pause: () => void;
+};
+
+const fake = (t: ReturnType<typeof timing> | null): FakeAnimation => ({
+	paused: false,
+	currentTime: 123,
+	effect: t ? { getComputedTiming: () => t } : null,
+	pause() {
+		this.paused = true;
+	},
+});
+
+describe("freezeAnimationsAt", () => {
+	it("pauses every animation at its own time and counts them", () => {
+		const a = fake(timing());
+		const b = fake(timing({ duration: 200, delay: 100 }));
+		expect(freezeAnimationsAt([a, b], { unit: "%", value: 50 })).toBe(2);
+		expect([a.paused, a.currentTime]).toEqual([true, 500]);
+		expect([b.paused, b.currentTime]).toEqual([true, 200]);
+	});
+
+	it("is idempotent, so new animations can be caught by freezing all again", () => {
+		const a = fake(timing());
+		freezeAnimationsAt([a], { unit: "%", value: 50 });
+		freezeAnimationsAt([a], { unit: "%", value: 50 });
+		expect(a.currentTime).toBe(500);
+	});
+
+	it("skips an animation that throws, and one without an effect", () => {
+		const boom = {
+			...fake(timing()),
+			pause() {
+				throw new Error("detached");
+			},
+		};
+		const bare = fake(null);
+		expect(freezeAnimationsAt([boom, bare], { unit: "ms", value: 9 })).toBe(0);
+		expect(bare.paused).toBe(false);
+	});
+});
+
+describe("midFreezeScript", () => {
+	it("defines a self-contained freeze that runs without this module", () => {
+		const listeners: string[] = [];
+		const a = fake(timing({ duration: 800 }));
+		const win: Record<string, unknown> = {};
+		const doc = {
+			getAnimations: () => [a],
+			addEventListener: (type: string) => listeners.push(type),
+		};
+		new Function("window", "document", midFreezeScript())(win, doc);
+		const mid = win.__parityMid as {
+			freeze: (at: unknown) => number;
+			watch: (at: unknown) => void;
+		};
+		expect(mid.freeze({ unit: "%", value: 50 })).toBe(1);
+		expect(a.currentTime).toBe(400);
+		mid.watch({ unit: "%", value: 50 });
+		expect(listeners.sort()).toEqual(["animationstart", "transitionrun"]);
+	});
+});
