@@ -3,11 +3,12 @@ id: 0088-sz9
 title: Move structural declarations out of Platinum look mixins into base SCSS (Part B R10 follow-up)
 purpose: 'Keep a component''s structure when no appearance package styles it: control boxes, menu dividers and depressable ::after geometry must not collapse with Platinum CSS off.'
 type: impr
-status: pending
+status: in_progress
 priority: "3"
 effort: M
 created: "2026-10-30T03:00:59.046Z"
-updated: "2026-10-30T03:00:59.046Z"
+updated: "2026-11-04T00:13:01.936Z"
+started: "2026-11-04T00:12:59.482Z"
 tags:
   - follow-up
 milestone: ""
@@ -76,3 +77,7 @@ Every Storybook story compares AE 0 against a fresh baseline. Drop the R10 cavea
 - `docs/AGENT-REFERENCE.md` - package-authoring note
 
 ## Work Log
+
+### 2026-11-03T23:47:01.060Z - Scheduled by the owner (2026-11-03). Wave 3: starts as soon as H 6.2b finishes, because it edits the Platinum styles 6.2b is rewriting; it lands after Part H.
+
+### 2026-11-04T00:13:01.936Z - Wave 3 started in its own worktree from land/part-h 2b481f62b (Part H through 6.2b); it lands after Part H.

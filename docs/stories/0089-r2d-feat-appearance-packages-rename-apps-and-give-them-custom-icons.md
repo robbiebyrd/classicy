@@ -3,12 +3,13 @@ id: 0089-r2d
 title: Appearance packages rename apps and give them custom icons
 purpose: Let an appearance package give any app, by id, its own display name and icon, shown everywhere the app is displayed, without changing the app's internal identity.
 type: feat
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-30T14:45:18.135Z"
-updated: "2026-11-03T23:34:45.305Z"
+updated: "2026-11-04T00:28:36.772Z"
 started: "2026-10-30T15:15:36.055Z"
+completed: "2026-11-04T00:28:34.725Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -27,9 +28,9 @@ links:
     - ["0002-ldj", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
 ---
 
 # Appearance packages rename apps and give them custom icons
@@ -52,9 +53,9 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 
 ## Acceptance Criteria
 
-- [ ] A package declares per-app overrides by app id (name and/or icon); with a package that renames QuickTime Player, every displayed occurrence of the name and icon changes, live on a package switch, and switching back restores the originals.
-- [ ] Internal ids, action types, routing and persisted state are unchanged by an override; Platinum (no overrides) stays pixel-identical.
-- [ ] A host app registered by the host can be renamed and re-iconed the same way; the feature is documented in AGENT-REFERENCE and CLAUDE.md.
+- [x] A package declares per-app overrides by app id (name and/or icon); with a package that renames QuickTime Player, every displayed occurrence of the name and icon changes, live on a package switch, and switching back restores the originals.
+- [x] Internal ids, action types, routing and persisted state are unchanged by an override; Platinum (no overrides) stays pixel-identical.
+- [x] A host app registered by the host can be renamed and re-iconed the same way; the feature is documented in AGENT-REFERENCE and CLAUDE.md.
 
 ## Files
 
@@ -111,3 +112,7 @@ Per the plan, after Part E lands; pixel parity for Platinum (no package override
 ### 2026-11-03T22:13:11.114Z - Final review. Contract and docs: Ready to land (9/9 plan and 3/3 story criteria met; 9 doc minors). Correctness: Needs fixes. An end-to-end probe renamed and re-iconed 16 apps across every surface, and switching back restored state byte for byte, but (I1) a refused move or trash alert persists a display name via Desktop.errorDialog, and (I2) package icons go into an unquoted CSS url(), so a data: SVG with quotes breaks the icon mask in real browsers. Ruling K-R13; the fix round, including the doc minors, is running.
 
 ### 2026-11-03T23:34:45.305Z - Final-review fixes (K-R13, 4371c9727..d51898359, pushed): errorDialog no longer persists; 15 unquoted url() sites quoted, with a repo test, verified in headless Chromium (mask-image was none and now holds the data: URL) and 80/80 parity; code-point display-name checks; separator plumbing; frozen validated apps copy; all doc minors. 421 files / 5080 tests; build:storybook ok. Correctness re-review running; landing follows.
+
+### 2026-11-03T23:39:50.862Z - Final correctness re-review: Ready to land (I1/I2 fixed and verified end to end; the name check accepts every legitimate script tried). Minors r1-r3 go into a last commit; landing (rebase onto feat/AppearancePackages as land/part-k, full gate, parity) is running.
+
+### 2026-11-04T00:28:36.772Z - Part K LANDED: feat/AppearancePackages fast-forwarded to land/part-k 8f491708d and pushed (37 commits rebased linearly onto 670daf925; the owner's 11/02 README and Drive Setup Quit button kept). Gate: 421 files / 5080 tests, verify:dist, build:storybook. Parity 76/80 AE 0; the 4 differences are the owner's version bump (app-about), the owner's Quit button (app-drive-setup), and two icon-view stories broken by the owner's 11/02 CSS fix b4337ba2c, filed as 0100-a5o (P1). The contract review verified all three criteria and all nine plan criteria. Plan 0013-l9f closed.

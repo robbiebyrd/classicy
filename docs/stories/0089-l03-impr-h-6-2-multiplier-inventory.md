@@ -7,7 +7,7 @@ status: in_progress
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-11-03T22:47:16.507Z"
+updated: "2026-11-04T00:25:42.764Z"
 started: "2026-11-03T22:47:14.319Z"
 tags: []
 milestone: ""
@@ -89,3 +89,7 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ### 2026-11-03T21:30:53.318Z - 6.2a review fixes (fa2e74728, cdd929f44): the scanner counts Sass #{$x} operands and multiplies factor chains (* -1 / 2 is now caught); the 4 Slider thumb halves are allowlisted under H-R21 (the live total is 176, since ±1 products are not sites); the title-bar cap offset gets --window-title-cap-offset; a knob/derivation collision test is added; no duplicate role is merged, with reasons recorded. Parity AE 0, computed styles and forced states identical. Accepted; integrating with 6.1 onto land/part-h.
 
 ### 2026-11-03T22:47:16.507Z - 6.2a integrated with 6.1 onto land/part-h (d7e159c5e): 105 derivations, 93 knobs, 59 allowlisted sites over 16 files, no H-R6 conflicts. H 6.2b (the 24 remaining sites, all derivations under H-R25) started on land/part-h.
+
+### 2026-11-04T00:13:13.674Z - H 6.2b implemented (2b481f62b on land/part-h, pushed as feat/appearance-part-h-v2): 22 sites now read 14 new derivations (119 in all), PopUpMenu reuses --ui-font-size-xlarge, and Slider:6 is kept as H-R21 geometry. The allowlist ends at the kept-on-purpose set (36 sites over 7 files). The scaling test has 77 rows plus a whole-pixel sweep. Parity AE 0 on 342 + 4 shots; computed styles and forced states identical; 4980 tests. In review.
+
+### 2026-11-04T00:25:42.763Z - H 6.2b review: Approved (values exact for every whole-pixel input 0-512; allowlist exactly the kept set of 36 sites; story VERIFY passes). Minors folded into H 7.1; a negative UI font size accepted by hasFontSize filed as 0099-rlc.

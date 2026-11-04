@@ -3,11 +3,12 @@ id: 0082-lgo
 title: 'Part A follow-ups: cascade guards, parked window class, test breadth'
 purpose: Collect the non-blocking items from Part A's final whole-branch review so they are tracked.
 type: chor
-status: pending
+status: in_progress
 priority: "4"
 effort: M
 created: "2026-10-29T09:19:21.134Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-11-04T00:13:11.433Z"
+started: "2026-11-04T00:13:08.988Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -15,10 +16,10 @@ planned_start: ""
 planned_end: ""
 order: 0
 links:
-  stories:
-    - ["0083-v8n", "blocks"]
   repo:
     local: ~/classicy
+  stories:
+    - ["0083-v8n", "blocks"]
   plans:
     - ["0003-7x7", "included"]
     - ["0002-ldj", "included"]
@@ -82,3 +83,7 @@ Do criterion (k), then run `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm tes
 ### 2026-10-29T18:23:10.159Z - Item (l) done on feat/AppearancePackages in bd555eb15: the class-coverage scan and its negative twin share one cached parse of src (scanSourceTree behind scanClassicyTokens) and carry an explicit 60 s timeout (SCAN_TIMEOUT_MS). Gate on the integration branch: pnpm lint clean, tsc clean, pnpm test 315 files / 3716 tests. The part branches (G, I, J, and B's remaining tasks) pick it up when they rebase; until then their implementers rerun the scan alone on a timeout.
 
 ### 2026-10-29T20:22:00.352Z - Moved one open [MANUAL] acceptance criterion to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-11-03T23:47:03.406Z - Scheduled by the owner (2026-11-03). Wave 3: starts as soon as H 6.2b finishes, because it edits the Platinum styles 6.2b is rewriting; it lands after Part H.
+
+### 2026-11-04T00:13:11.433Z - Wave 3 started in its own worktree from land/part-h 2b481f62b (Part H through 6.2b); it lands after Part H.

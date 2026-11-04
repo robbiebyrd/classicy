@@ -3,11 +3,12 @@ id: 0095-49q
 title: Pin CI's runner image ahead of the ubuntu-latest move to Ubuntu 26
 purpose: Keep CI reproducible when GitHub moves ubuntu-latest to Ubuntu 26.
 type: chor
-status: pending
+status: in_progress
 priority: "3"
 effort: XS
 created: "2026-10-30T19:15:34.073Z"
-updated: "2026-10-30T19:15:34.073Z"
+updated: "2026-11-03T23:46:41.123Z"
+started: "2026-11-03T23:45:02.183Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -59,3 +60,5 @@ Record the choice in the workflow comments.
 - `.github/workflows/pr-preview.yml` - runs-on
 
 ## Work Log
+
+### 2026-11-03T23:46:41.123Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.

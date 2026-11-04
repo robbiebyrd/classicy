@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-30T21:44:07.146Z"
-updated: "2026-10-30T21:44:07.146Z"
+updated: "2026-11-03T23:46:51.032Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -59,3 +59,5 @@ Deep-copy the default tree (`structuredClone`) when it seeds the live tree, in b
 - `src/SystemFolder/SystemResources/File/ClassicyFileSystem.ts` - Seed the live tree from a deep copy of the defaults.
 
 ## Work Log
+
+### 2026-11-03T23:46:51.032Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).

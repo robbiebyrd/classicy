@@ -7,7 +7,7 @@ status: pending
 priority: "3"
 effort: S
 created: "2026-10-30T21:33:37.126Z"
-updated: "2026-10-30T21:33:37.126Z"
+updated: "2026-11-03T23:46:56.203Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -57,3 +57,5 @@ Register the missing reducers the way a host does: through the package's side-ef
 - `storybook/.storybook/preview.tsx` - Load the bundled app reducers the way a host does.
 
 ## Work Log
+
+### 2026-11-03T23:46:56.202Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).

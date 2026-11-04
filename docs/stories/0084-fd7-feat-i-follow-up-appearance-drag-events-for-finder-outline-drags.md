@@ -7,7 +7,7 @@ status: pending
 priority: "3"
 effort: S
 created: "2026-10-29T21:26:50.186Z"
-updated: "2026-10-29T21:26:50.186Z"
+updated: "2026-11-03T23:46:58.680Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -67,3 +67,5 @@ Unit tests for the callbacks (threshold, Escape, drop, outside release: exactly 
 ## Work Log
 
 ### 2026-10-29T21:26:50.186Z - Created from the Part I 2.3 fix round (41793c78b), which deferred file-drag events because they need a ClassicyFileDrag API change.
+
+### 2026-11-03T23:46:58.680Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).

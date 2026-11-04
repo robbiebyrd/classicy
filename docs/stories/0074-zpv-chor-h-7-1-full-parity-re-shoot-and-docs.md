@@ -3,11 +3,18 @@ id: 0074-zpv
 title: 'H 7.1: Full parity re-shoot and docs'
 purpose: Prove Part H changed no Platinum pixel, document the knob families and the pixel-literal gate, and run the final verification that closes the plan.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:40.133Z"
-updated: "2026-10-29T20:22:00.352Z"
+updated: "2026-11-04T00:25:52.809Z"
+started: "2026-11-04T00:25:50.504Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -83,3 +90,5 @@ AGENT-REFERENCE §8 gains a 'Package knob families' table (family → keys → C
 
 ## Work Log
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
+
+### 2026-11-04T00:25:52.809Z - H 7.1 started on land/part-h at 2b481f62b: the full 342 + 4 re-shoot with computed styles and forced states, docs, and every 'For H 7.1' carry-forward item.

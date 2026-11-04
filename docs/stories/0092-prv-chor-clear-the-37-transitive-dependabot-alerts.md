@@ -3,11 +3,12 @@ id: 0092-prv
 title: Clear the 37 transitive Dependabot alerts
 purpose: Close the open Dependabot alerts, whether or not Dependabot opens the PR itself.
 type: chor
-status: pending
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-10-30T19:15:24.764Z"
-updated: "2026-10-30T19:15:24.764Z"
+updated: "2026-11-03T23:46:38.652Z"
+started: "2026-11-03T23:44:53.999Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -64,3 +65,5 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 - `.github/dependabot.yml` - config
 
 ## Work Log
+
+### 2026-11-03T23:46:38.652Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.

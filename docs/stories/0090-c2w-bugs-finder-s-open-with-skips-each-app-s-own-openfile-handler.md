@@ -7,7 +7,7 @@ status: pending
 priority: "2"
 effort: S
 created: "2026-10-30T16:52:53.909Z"
-updated: "2026-10-30T16:52:53.909Z"
+updated: "2026-11-03T23:46:53.619Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -56,3 +56,5 @@ Have Finder route the OpenFile action through the desktop reducer's prefix routi
 - `src/SystemFolder/Finder/FinderContext.tsx` - route OpenFile through the kernel
 
 ## Work Log
+
+### 2026-11-03T23:46:53.619Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).

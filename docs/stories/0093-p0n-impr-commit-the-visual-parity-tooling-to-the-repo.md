@@ -3,11 +3,12 @@ id: 0093-p0n
 title: Commit the visual parity tooling to the repo
 purpose: Make pixel-parity checking reproducible for future Appearance Packages and refactors.
 type: impr
-status: pending
+status: in_progress
 priority: "3"
 effort: M
 created: "2026-10-30T19:15:27.837Z"
-updated: "2026-10-30T19:15:27.837Z"
+updated: "2026-11-03T23:46:45.827Z"
+started: "2026-11-03T23:45:19.259Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -55,3 +56,5 @@ Document how to take a baseline, shoot an after set and compare, including the C
 - `bin/` - parity scripts
 
 ## Work Log
+
+### 2026-11-03T23:46:45.827Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.
