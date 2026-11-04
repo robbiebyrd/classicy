@@ -4,9 +4,10 @@ import {
 	POINTER_STREAM_LOSSES,
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
-import { render } from "@/__tests__/test-utils";
+import { fireEvent, render } from "@/__tests__/test-utils";
 import {
 	onClassicyPointerStreamLost,
+	useClassicyPointerPress,
 	useClassicyPointerStreamLost,
 } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
@@ -104,5 +105,70 @@ describe("useClassicyPointerStreamLost", () => {
 		expect(first).not.toHaveBeenCalled();
 		expect(second).toHaveBeenCalledOnce();
 		unmount();
+	});
+});
+
+describe("useClassicyPointerPress", () => {
+	// A control whose press is watched from its mousedown.
+	const Pressable = ({ onLost }: { onLost: () => void }) => {
+		const watchPress = useClassicyPointerPress();
+		return (
+			<button type="button" onMouseDown={() => watchPress(onLost)}>
+				Press
+			</button>
+		);
+	};
+	const setup = () => {
+		const live = trackPointerStreamListeners();
+		const onLost = vi.fn();
+		const view = render(<Pressable onLost={onLost} />);
+		const button = view.getByRole("button");
+		return { ...view, live, onLost, button };
+	};
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("reports a press lost on a %s once, then stops watching", (loss) => {
+		const { live, onLost, button } = setup();
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(button);
+		expect(live.size).toBe(3);
+		losePointerStream(loss);
+		expect(onLost).toHaveBeenCalledOnce();
+		expect(live.size).toBe(0);
+		// A second loss, or the release that finally comes, reports nothing.
+		losePointerStream(loss);
+		fireEvent.mouseUp(document.body);
+		expect(onLost).toHaveBeenCalledOnce();
+	});
+
+	it("ends a press quietly on a release anywhere, even one a target stops", () => {
+		const { live, onLost, button } = setup();
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(button);
+		expect(live.size).toBe(0);
+		document.body.insertAdjacentHTML("beforeend", `<div id="stopper"></div>`);
+		const stopper = document.getElementById("stopper") as HTMLElement;
+		stopper.addEventListener("mouseup", (e) => e.stopPropagation());
+		fireEvent.mouseDown(button);
+		fireEvent.mouseUp(stopper);
+		expect(live.size).toBe(0);
+		losePointerStream("blur");
+		expect(onLost).not.toHaveBeenCalled();
+		stopper.remove();
+	});
+
+	it("watches one press at a time, and stops when the control unmounts", () => {
+		const { live, onLost, button, unmount } = setup();
+		fireEvent.mouseDown(button);
+		fireEvent.mouseDown(button);
+		expect(live.size).toBe(3);
+		losePointerStream("pointercancel");
+		expect(onLost).toHaveBeenCalledOnce();
+		fireEvent.mouseDown(button);
+		unmount();
+		expect(live.size).toBe(0);
+		losePointerStream("blur");
+		expect(onLost).toHaveBeenCalledOnce();
 	});
 });

@@ -12,7 +12,7 @@
  * ends where it is, as a release there would.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Calls `onLost` whenever the pointer stream is lost: the window blurs, the
@@ -57,4 +57,32 @@ export function useClassicyPointerStreamLost(
 		if (!active) return;
 		return onClassicyPointerStreamLost(() => onLostRef.current());
 	}, [active]);
+}
+
+/**
+ * Watches a press on a control (its mousedown) until the press ends, so a
+ * package `press` always meets its end: the next mouseup anywhere ends it
+ * quietly (heard in the capture phase, so a target that stops it cannot
+ * hide it; the control's own mouseup reports a release over it as before),
+ * and the pointer stream being lost ends it by calling `onLost`, once.
+ * Returns the function that starts watching a press; a new press replaces
+ * the one before, and unmounting stops watching.
+ */
+export function useClassicyPointerPress(): (onLost: () => void) => void {
+	const stopRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopRef.current?.(), []);
+	return useCallback((onLost: () => void) => {
+		stopRef.current?.();
+		const stop = () => {
+			stopWatchingPointerStream();
+			document.removeEventListener("mouseup", stop, true);
+			if (stopRef.current === stop) stopRef.current = null;
+		};
+		const stopWatchingPointerStream = onClassicyPointerStreamLost(() => {
+			stop();
+			onLost();
+		});
+		document.addEventListener("mouseup", stop, true);
+		stopRef.current = stop;
+	}, []);
 }
