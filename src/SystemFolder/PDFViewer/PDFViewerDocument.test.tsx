@@ -1,6 +1,11 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import {
 	fireEvent,
 	render,
 	screen,
@@ -502,6 +507,54 @@ describe("PDFViewerDocument", () => {
 			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 0, clientY: 0 });
 			expect(wrapper.scrollLeft).toBe(20);
 			expect(wrapper.scrollTop).toBe(30);
+		});
+
+		it.each(
+			POINTER_STREAM_LOSSES,
+		)("ends a pan where it is on a %s", async (loss) => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, {
+				pointerId: 1,
+				clientX: 100,
+				clientY: 100,
+			});
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 80,
+				clientY: 70,
+			});
+			losePointerStream(loss);
+			// The pointer coming back with no button held pans nothing.
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 0,
+				clientY: 0,
+			});
+			expect(wrapper.scrollLeft).toBe(20);
+			expect(wrapper.scrollTop).toBe(30);
+		});
+
+		it("watches the pointer stream only while a pan lasts", async () => {
+			const { container, unmount } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const live = trackPointerStreamListeners();
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			expect(live.size).toBe(3);
+			fireEvent.pointerUp(wrapper, { pointerId: 1 });
+			expect(live.size).toBe(0);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			losePointerStream("blur");
+			expect(live.size).toBe(0);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			unmount();
+			expect(live.size).toBe(0);
 		});
 
 		it("does not pan while the Zoom tool is active", async () => {

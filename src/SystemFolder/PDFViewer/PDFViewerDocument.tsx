@@ -18,6 +18,7 @@ import {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
@@ -72,6 +73,10 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		scrollLeft: number;
 		scrollTop: number;
 	} | null>(null);
+	// A pan watches the pointer stream while it lasts: lost (the window
+	// blurs, a pointercancel, the page is hidden), it ends where it is.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopWatchingPointerStreamRef.current?.(), []);
 	// Set by a Zoom-tool click, consumed by the render effect. The scroll
 	// adjustment that keeps the clicked point under the cursor can only be
 	// applied *after* the canvas has been resized to the new scale —
@@ -236,6 +241,9 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 			scrollLeft: wrapper.scrollLeft,
 			scrollTop: wrapper.scrollTop,
 		};
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(endPanDrag);
 		// Keeps the drag alive when the pointer leaves the wrapper mid-drag.
 		// Throws in environments without an active-pointer registry (jsdom);
 		// the drag still works there, just without capture.
@@ -257,6 +265,8 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 
 	const endPanDrag = () => {
 		panDragRef.current = null;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	};
 
 	const handleWrapperClick = (e: MouseEvent<HTMLDivElement>) => {
