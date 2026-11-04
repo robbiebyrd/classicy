@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
-import { ClassicyTable } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import {
+	ClassicyTable,
+	type ClassicyTableCellContext,
+} from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 
 let probe: ReturnType<typeof installClassicyAppearanceProbe>;
 
@@ -139,7 +142,9 @@ describe("ClassicyTable appearance", () => {
 						<button
 							type="button"
 							onMouseDown={() => cell.emitDrag?.("dragStart", { row: row.id })}
-							onMouseUp={() => cell.emitDrag?.("dragEnd", { row: row.id })}
+							onMouseUp={() =>
+								cell.emitDrag?.("dragEnd", { row: row.id, lost: false })
+							}
 						>
 							{row.name}
 						</button>
@@ -154,8 +159,21 @@ describe("ClassicyTable appearance", () => {
 			emitted().filter((e) => e.event === "dragStart" || e.event === "dragEnd"),
 		).toEqual([
 			{ event: "dragStart", detail: { row: "2" } },
-			{ event: "dragEnd", detail: { row: "2" } },
+			{ event: "dragEnd", detail: { row: "2", lost: false } },
 		]);
 		expect(root(container)).toHaveClass("probe-Table");
+	});
+
+	it("types a cell's dragEnd to say whether the pointer stream was lost", () => {
+		const emitDrag: NonNullable<
+			ClassicyTableCellContext["emitDrag"]
+		> = () => {};
+		emitDrag("dragStart");
+		emitDrag("dragEnd", { lost: true });
+		// @ts-expect-error: a dragEnd must carry lost
+		emitDrag("dragEnd", { row: "2" });
+		// @ts-expect-error: a dragEnd must carry lost
+		emitDrag("dragEnd");
+		expect(true).toBe(true);
 	});
 });

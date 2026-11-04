@@ -21,7 +21,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { ClassicyAppearanceEvent } from "@/Appearance/ClassicyAppearancePackage";
+import type {
+	ClassicyAppearanceDragEnd,
+	ClassicyAppearanceEvent,
+} from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -48,13 +51,18 @@ export type ClassicyTableCellContext = {
 	 * as Finder items) to the active Appearance Package: the table emits
 	 * `dragStart` or `dragEnd` with `detail` from its own root. Pair every
 	 * `dragStart` with exactly one `dragEnd`, and keep user data (paths,
-	 * names) out of `detail`. Always set by `ClassicyTable`; optional so a
-	 * context built by hand (a column's `render` under test) need not supply
-	 * it.
+	 * names) out of `detail`. A `dragEnd` must say whether the pointer stream
+	 * was lost (`ClassicyAppearanceDragEnd`), as every package `dragEnd` does.
+	 * Always set by `ClassicyTable`; optional so a context built by hand (a
+	 * column's `render` under test) need not supply it.
 	 */
-	emitDrag?: (
-		event: Extract<ClassicyAppearanceEvent, "dragStart" | "dragEnd">,
-		detail?: unknown,
+	emitDrag?: <
+		E extends Extract<ClassicyAppearanceEvent, "dragStart" | "dragEnd">,
+	>(
+		event: E,
+		...detail: E extends "dragEnd"
+			? [detail: ClassicyAppearanceDragEnd & Record<string, unknown>]
+			: [detail?: unknown]
 	) => void;
 };
 
