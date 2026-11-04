@@ -8,6 +8,8 @@
  */
 
 import {
+	type HCAction,
+	type HCPluginAction,
 	type HCStack,
 	type HyperCardPartProps,
 	registerHyperCardCommand,
@@ -66,6 +68,11 @@ const DemoMap: FC<HyperCardPartProps> = ({
 };
 
 registerHyperCardPart("demoMap", DemoMap);
+
+// Plugin commands are deliberately outside the HCAction union (it would lose
+// its narrowing); stacks are JSON, so a typed stack marks them explicitly.
+const pluginAction = (action: HCPluginAction): HCAction =>
+	action as unknown as HCAction;
 
 // --- 2. A synchronous command (runs in the reducer, instant) ----------------
 // `{ "do": "appendBang", "field": "x" }` — appends "!" to a field.
@@ -134,14 +141,18 @@ const pluginStack: HCStack = {
 					type: "button",
 					name: "Fetch quote (blocking)",
 					rect: [272, 46, 172, 28],
-					script: { onMouseUp: [{ do: "fetchQuote", field: "quote" }] },
+					script: {
+						onMouseUp: [pluginAction({ do: "fetchQuote", field: "quote" })],
+					},
 				},
 				{
 					id: "bang",
 					type: "button",
 					name: "Append !",
 					rect: [272, 82, 172, 28],
-					script: { onMouseUp: [{ do: "appendBang", field: "quote" }] },
+					script: {
+						onMouseUp: [pluginAction({ do: "appendBang", field: "quote" })],
+					},
 				},
 				{
 					id: "quote",
