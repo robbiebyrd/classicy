@@ -274,6 +274,10 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// Unmounted mid-press: stop watching (no dragEnd; the slider is gone).
 	useEffect(() => () => stopWatchingRef.current?.(), []);
 
+	// Set when a loss committed the press, so that press's own release, if
+	// it still reaches the input, does not commit a second time. The next
+	// press clears it.
+	const committedByLossRef = useRef(false);
 	// The pointer stream lost mid-press (the window blurs, a pointercancel,
 	// the page is hidden): the browser ends its own thumb drag where the
 	// thumb is, so the press ends there too, committing the value on screen
@@ -284,13 +288,17 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		const pressed = pointerDragRef.current;
 		setDragging(false);
 		finishPointerDrag();
-		if (pressed && onCommitFunc) onCommitFunc(Number(inputRef.current?.value));
+		if (pressed && onCommitFunc) {
+			committedByLossRef.current = true;
+			onCommitFunc(Number(inputRef.current?.value));
+		}
 	};
 	const loseDragRef = useRef(loseDrag);
 	loseDragRef.current = loseDrag;
 
 	const handlePointerDown = (e: ReactPointerEvent<HTMLInputElement>) => {
 		if (disabled) return;
+		committedByLossRef.current = false;
 		if (ghost) {
 			setLiveValue(Number(e.currentTarget.value));
 			setDragging(true);
@@ -315,7 +323,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const endDrag = (e: SyntheticEvent<HTMLInputElement>) => {
 		if (dragging) setDragging(false);
 		finishPointerDrag();
-		if (onCommitFunc) handleCommit(e);
+		if (onCommitFunc && !committedByLossRef.current) handleCommit(e);
 	};
 
 	const sizeClassMap: Record<ClassicyControlLabelSize, string> = {

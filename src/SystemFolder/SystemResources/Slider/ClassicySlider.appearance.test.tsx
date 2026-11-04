@@ -170,6 +170,39 @@ describe("ClassicySlider appearance", () => {
 		expect(onCommit).toHaveBeenCalledOnce();
 	});
 
+	it("commits once when the press's own release still arrives after a loss", () => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		losePointerStream("blur");
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([[40]]);
+		// The next press commits on its release as usual.
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "50" } });
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([[40], [50]]);
+	});
+
+	it("commits the next press after a loss whose release never arrived", () => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		losePointerStream("hidden");
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "60" } });
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([[40], [60]]);
+	});
+
 	it("commits nothing for a loss with no press under way", () => {
 		const onCommit = vi.fn();
 		render(<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />);
