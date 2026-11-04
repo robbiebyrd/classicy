@@ -11,6 +11,7 @@ import type {
 import { Children, Fragment, useRef, useState } from "react";
 import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 /**
  * Axis along which the panes are arranged. `"horizontal"` (default) lays the
@@ -104,7 +105,9 @@ interface ClassicySplitViewProps {
 	/** Fired with the new percentage sizes on every divider drag step. */
 	onResize?: (sizes: number[]) => void;
 	/**
-	 * Fired once per resize gesture — on mouse release after a drag, or on
+	 * Fired once per resize gesture — on mouse release after a drag (or when
+	 * the drag's pointer stream is lost: the window blurs, a pointercancel,
+	 * the page is hidden; the divider stays where it was dragged), or on
 	 * arrow-key release — with the final percentage sizes. Use this to
 	 * persist the user's chosen split (e.g. dispatching into app state from
 	 * a wrapping ClassicyWindow/ClassicyApp) without a store write per
@@ -247,7 +250,12 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 				);
 				applySizes(latestSizes);
 			};
+			// A release, or the pointer stream lost (the window blurs, a
+			// pointercancel, the page is hidden): either way the divider stays
+			// where it was dragged and the sizes on screen are committed, as a
+			// window's move or resize ends where it is.
 			const upHandler = () => {
+				stopWatchingPointerStream();
 				document.removeEventListener("mousemove", moveHandler);
 				document.removeEventListener("mouseup", upHandler);
 				setDragDirection(null);
@@ -256,6 +264,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			};
 			document.addEventListener("mousemove", moveHandler);
 			document.addEventListener("mouseup", upHandler);
+			const stopWatchingPointerStream = onClassicyPointerStreamLost(upHandler);
 		};
 
 	// ARIA window-splitter keyboard support: the arrow keys along the split

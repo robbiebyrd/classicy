@@ -1,5 +1,10 @@
 import { fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { render } from "@/__tests__/test-utils";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import {
@@ -492,5 +497,75 @@ describe("ClassicySplitView drag cursors", () => {
 		fireEvent.mouseUp(document);
 		expect(root).not.toHaveAttribute("data-drag-direction");
 		expect(document.body.style.cursor).toBe("");
+	});
+});
+
+describe("ClassicySplitView when the pointer stream is lost", () => {
+	afterEach(() => {
+		document.body.style.cursor = "";
+	});
+
+	const renderSplit = () => {
+		const onResize = vi.fn();
+		const onResizeCommit = vi.fn();
+		const view = render(
+			<ClassicySplitView onResize={onResize} onResizeCommit={onResizeCommit}>
+				<div>One</div>
+				<div>Two</div>
+			</ClassicySplitView>,
+		);
+		const root = mockRootRect(view.container, 400);
+		const divider = view.container.querySelector(
+			".classicySplitViewDivider",
+		) as HTMLElement;
+		return { ...view, root, divider, onResize, onResizeCommit };
+	};
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag where it is, committing the sizes on screen, on a %s", (loss) => {
+		const { container, root, divider, onResizeCommit } = renderSplit();
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 250 });
+		expect(root).toHaveAttribute("data-drag-direction", "r");
+
+		losePointerStream(loss);
+		// Committed as a release there would commit it, so a host that
+		// persists on commit holds what the user sees.
+		expect(onResizeCommit).toHaveBeenCalledOnce();
+		expect(onResizeCommit).toHaveBeenCalledWith([62.5, 37.5]);
+		expect(paneGrows(container)).toEqual(["62.5", "37.5"]);
+		// The drag cursor is put back.
+		expect(root).not.toHaveAttribute("data-drag-direction");
+		expect(document.body.style.cursor).toBe("");
+
+		// The pointer coming back does not move the divider, and the
+		// release that finally comes commits nothing more.
+		fireEvent.mouseMove(document, { clientX: 350 });
+		fireEvent.mouseUp(document);
+		expect(paneGrows(container)).toEqual(["62.5", "37.5"]);
+		expect(onResizeCommit).toHaveBeenCalledOnce();
+	});
+
+	it("commits nothing when the stream is lost before the divider moved", () => {
+		const { divider, onResizeCommit } = renderSplit();
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		losePointerStream("blur");
+		fireEvent.mouseMove(document, { clientX: 300 });
+		expect(onResizeCommit).not.toHaveBeenCalled();
+	});
+
+	it("watches the pointer stream only while a drag lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { divider } = renderSplit();
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseMove(document, { clientX: 250 });
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(divider, { clientX: 200 });
+		losePointerStream("pointercancel");
+		expect(live.size).toBe(0);
 	});
 });
