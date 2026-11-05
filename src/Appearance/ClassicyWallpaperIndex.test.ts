@@ -84,13 +84,19 @@ describe("ClassicyWallpaperIndex", () => {
 			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b2c3d.png")).toBe(
 				AZUL,
 			);
-			expect(
-				resolveClassicyWallpaper("/assets/azul_dark-0a1b_2c-3d9.png"),
-			).toBe(AZUL);
+			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b_2c-.png")).toBe(
+				AZUL,
+			);
 		});
 
-		it("strips only a bundler hash: 8 or more of [A-Za-z0-9_-]", () => {
+		it("strips only a bundler hash: exactly 8 of [A-Za-z0-9_-], not all lowercase letters", () => {
 			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b2c3.png")).toBe(
+				"",
+			);
+			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b2c3d4.png")).toBe(
+				"",
+			);
+			expect(resolveClassicyWallpaper("/assets/azul_dark-abcdefgh.png")).toBe(
 				"",
 			);
 			registerClassicyWallpapers("platinum", [
@@ -102,6 +108,27 @@ describe("ClassicyWallpaperIndex", () => {
 			expect(resolveClassicyWallpaper("/assets/my-wall.png")).toBe(
 				"/x/my-wall.png",
 			);
+		});
+
+		it("never takes a hyphenated name for a hashed one", () => {
+			registerClassicyWallpapers("platinum", [
+				{ name: "Sunny", file: "sunny.png", src: "/x/sunny.png" },
+				{ name: "Bondi", file: "bondi.png", src: "/x/bondi.png" },
+				{ name: "Default", file: "default.png", src: "/x/default.png" },
+			]);
+			for (const value of [
+				"/img/sunny-afternoon.png",
+				"/img/sunny-evenings.png",
+				"/img/bondi-iMac-blue.png",
+				"/img/default-wallpaper.png",
+				"sunny-afternoon.png",
+			]) {
+				expect(resolveClassicyWallpaper(value), value).toBe("");
+			}
+		});
+
+		it("strips a hash from a path only, never from a bare filename", () => {
+			expect(resolveClassicyWallpaper("azul_dark-0a1b2c3d.png")).toBe("");
 		});
 
 		it("passes an upper-case HTTPS URL through, as the schema accepts it", () => {
@@ -364,6 +391,23 @@ describe("ClassicyWallpaperIndex", () => {
 			expect(portableClassicyWallpaper("/assets/azul_dark-0a1b2c3d.png")).toBe(
 				"azul_dark.png",
 			);
+		});
+
+		it("keeps a hyphenated name, and a bare hashed-looking filename, as they are", () => {
+			registerClassicyWallpapers("platinum", [
+				{ name: "Sunny", file: "sunny.png", src: "/x/sunny.png" },
+				{ name: "Bondi", file: "bondi.png", src: "/x/bondi.png" },
+				{ name: "Default", file: "default.png", src: "/x/default.png" },
+			]);
+			for (const value of [
+				"/img/sunny-afternoon.png",
+				"/img/bondi-iMac-blue.png",
+				"/img/default-wallpaper.png",
+				"/img/sunny-evenings.png",
+				"azul_dark-0a1b2c3d.png",
+			]) {
+				expect(portableClassicyWallpaper(value)).toBe(value);
+			}
 		});
 
 		it("never rewrites a remote URL, whatever its case", () => {

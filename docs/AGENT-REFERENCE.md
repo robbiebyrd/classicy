@@ -1309,8 +1309,10 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   active one, then Platinum; `getThemeVars` passes the theme's own package;
   `data:`, `blob:`, http(s) and `//` URLs, in any case, and registered
   sources pass through; a filename, or a path whose basename is one, also
-  with a bundler hash stripped (`azul_dark-0a1b2c3d.png` → `azul_dark.png`:
-  `-` and 8 or more of `[A-Za-z0-9_-]` before the extension), resolves to its
+  with a bundler hash stripped in a path (`/assets/azul_dark-0a1b2c3d.png` →
+  `azul_dark.png`: `-` and exactly 8 of `[A-Za-z0-9_-]`, not all lowercase
+  letters, before the extension, so `sunny-afternoon.png` and
+  `sunny-evenings.png` keep their names), resolves to its
   source; a name registered without a file resolves by name; anything else
   is `""`, one warning per value), `classicyWallpaperFilename(value)` (the
   filename for a registered filename, its exact source, or a plain base64

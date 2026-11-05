@@ -34,8 +34,13 @@ const LOADABLE = /^(data:|blob:|https?:\/\/|\/\/)/i;
 const PLAIN_BASE64_DATA_URI =
 	/^data:[\w.+/-]+(;[\w.+=-]+)*;base64,[A-Za-z0-9+/]*={0,2}$/i;
 
-/** A bundler's content hash before the extension: `name-<hash>.ext`. */
-const HASHED_BASENAME = /^(.+)-[A-Za-z0-9_-]{8,}(\.[A-Za-z0-9]+)$/;
+/**
+ * A bundler's content hash before the extension, `name-<hash>.ext`: exactly 8
+ * of `[A-Za-z0-9_-]` (Vite's default hash length) that are not all lowercase
+ * letters, so `sunny-evenings.png` keeps its name.
+ */
+const HASHED_BASENAME = /^(.+)-([A-Za-z0-9_-]{8})(\.[A-Za-z0-9]+)$/;
+const LOWERCASE_WORD = /^[a-z]+$/;
 
 type PackageIndex = {
 	entries: ClassicyWallpaperRecord[];
@@ -84,11 +89,17 @@ const cachedDigest = (value: string): string | undefined => {
 	return digest;
 };
 
-/** The last path segment, then, for a bundler-hashed one, it unhashed. */
+/**
+ * The last path segment, then, for a bundler-hashed one in a path (an
+ * emitted asset's URL; a bare filename is a name, never stripped), it
+ * unhashed.
+ */
 const basenames = (value: string): string[] => {
 	const basename = value.split("/").pop() ?? "";
-	const unhashed = basename.replace(HASHED_BASENAME, "$1$2");
-	return unhashed === basename ? [basename] : [basename, unhashed];
+	if (!value.includes("/")) return [basename];
+	const hashed = HASHED_BASENAME.exec(basename);
+	if (!hashed || LOWERCASE_WORD.test(hashed[2])) return [basename];
+	return [basename, `${hashed[1]}${hashed[3]}`];
 };
 
 const buildPackageIndex = (
