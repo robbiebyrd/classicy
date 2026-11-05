@@ -71,7 +71,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 		]) {
 			const side = rule(`${ACTIVE} ${band}`);
 			expect(side.background, band).toBe("var(--classicy-art-window-stripes)");
-			expect(side["background-size"], band).toBe("auto 99.8%");
+			expect(side["background-size"], band).toBe("auto 100%");
 		}
 	});
 
@@ -105,7 +105,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 			".classicyWindowTitleRight",
 		])
 			expect(rule(`${FRAME} ${band}`)["background-size"], band).toBe(
-				"auto 99.8%",
+				"auto 100%",
 			);
 	});
 

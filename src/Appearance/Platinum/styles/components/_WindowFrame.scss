@@ -5,6 +5,6 @@
 
 @mixin windowFrame {
   .classicyWindowFrame {
-    @include mixins.platinum-title-bar-stripes($side-size: auto 99.8%);
+    @include mixins.platinum-title-bar-stripes($side-size: auto 100%);
   }
 }

@@ -93,7 +93,7 @@
   // The focused title bar's stripes: the center band at the art's own size,
   // the bands beside a title a hair under full height.
   :where(.classicyWindow).active {
-    @include mixins.platinum-title-bar-stripes($side-size: auto 99.8%);
+    @include mixins.platinum-title-bar-stripes($side-size: auto 100%);
   }
 
   // The red title bar: the shorthand alone on the side bands resets the

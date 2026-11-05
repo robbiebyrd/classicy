@@ -406,7 +406,7 @@ describe("platinum.scss (compiled)", () => {
 		const activeSides = rule(
 			group(active, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
 		);
-		expect(activeSides.props["background-size"]).toBe("auto 99.8%");
+		expect(activeSides.props["background-size"]).toBe("auto 100%");
 		const red = `${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle`;
 		expect(
 			rule(`${red} .classicyWindowTitleCenter`).props["background-size"],
@@ -434,7 +434,7 @@ describe("platinum.scss (compiled)", () => {
 					".classicyWindowTitleRight",
 				),
 			).props["background-size"],
-		).toBe("auto 99.8%");
+		).toBe("auto 100%");
 		// The control boxes' glyph images sit top left, over the mixin's
 		// centering. The boxes' sizes and glyph offsets, the windoid's smaller
 		// ones included, are structure in the base sheets (story 0088-sz9), so
@@ -1305,7 +1305,7 @@ describe("the moved Platinum mixin files", () => {
 
 	it("platinum-title-bar-stripes compiles to its pinned output", () =>
 		expect(
-			mixin("platinum-title-bar-stripes", "($side-size: auto 99.8%)"),
+			mixin("platinum-title-bar-stripes", "($side-size: auto 100%)"),
 		).toMatchInlineSnapshot(`
 			".x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {
 			  background: var(--classicy-art-window-stripes);
@@ -1313,7 +1313,7 @@ describe("the moved Platinum mixin files", () => {
 			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft,
 			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight {
 			  background: var(--classicy-art-window-stripes);
-			  background-size: auto 99.8%;
+			  background-size: auto 100%;
 			}
 			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:before, .x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleLeft:after,
 			.x .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleRight:before,
