@@ -172,6 +172,16 @@ export const withoutDefaultActiveThemeMeasurements = (
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
 
+/**
+ * The default state as a first session starts: its active theme, the core
+ * default theme (a built-in of the default package), is refreshed from the
+ * code like a loaded one. A default package registered before the store
+ * (a deep import, Storybook's preview) gives its own `default` here; one
+ * registered later replaces it then (`refreshActiveBuiltInTheme`).
+ */
+const defaultInitialState = (): ClassicyStore =>
+	withRefreshedActiveTheme(DefaultAppManagerState, undefined);
+
 function getInitialState(): ClassicyStore {
 	if (typeof window !== "undefined") {
 		try {
@@ -192,7 +202,7 @@ function getInitialState(): ClassicyStore {
 						"ClassicyAppManager",
 						"Persisted state schema mismatch; falling back to defaults.",
 					);
-					return DefaultAppManagerState;
+					return defaultInitialState();
 				}
 				hydratedFromStorage = true;
 				// Built-ins come from the code, never from saved state: drop
@@ -240,7 +250,7 @@ function getInitialState(): ClassicyStore {
 			);
 		}
 	}
-	return DefaultAppManagerState;
+	return defaultInitialState();
 }
 
 export const useAppManager: UseBoundStore<StoreApi<ClassicyStore>> =
