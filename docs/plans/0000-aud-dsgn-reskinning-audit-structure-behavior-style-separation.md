@@ -2,11 +2,12 @@
 id: 0000-aud
 title: Re-skinning Audit — Structure / Behavior / Style Separation
 type: dsgn
-status: ready
+status: complete
 priority: "2"
 effort: XL
 created: "2026-10-28T19:37:20.795Z"
-updated: "2026-11-05T01:05:02.814Z"
+updated: "2026-11-05T03:39:43.355Z"
+completed: "2026-11-05T03:39:43.355Z"
 tags: []
 milestone: ""
 due_date: ""
