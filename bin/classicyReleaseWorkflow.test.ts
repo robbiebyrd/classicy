@@ -118,7 +118,7 @@ describe("push.yml release workflow", () => {
 		expect(sync.text).toMatch(/pnpm pkg set version=|npm pkg set version=/);
 		expect(sync.text).toContain("git add");
 		expect(sync.text).toMatch(
-			/git diff --cached --quiet \|\| git commit -m "[^"]*"/,
+			/git diff --cached --quiet \|\| git commit -m "[^"]*\[skip ci\]"/,
 		);
 		// Pushing and tagging belong to the next step: nothing leaves the
 		// runner until both versions agree.

@@ -127,7 +127,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add packages/appearance/platinum/package.json
-          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION"
+          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
 
       # Push the bump (and sync) commit, retrying after a rebase if main moved,
       # and only then tag that commit. A failure before this point leaves no
