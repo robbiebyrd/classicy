@@ -338,3 +338,67 @@ describe("check-dist-imports.mjs invariant 12: the Platinum font stylesheet (nam
 		);
 	});
 });
+
+describe("check-dist-imports.mjs invariant 13: production JSX runtime (named files)", () => {
+	const DEV = 'import{jsxDEV as o}from"react/jsx-dev-runtime";';
+	const run13 = (body: string, head = "") => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		const file = join("dist", "classicy.es.js");
+		writeFileSync(join(dir, file), `${head}const a=1;${body}export{a};`);
+		const r = spawnSync(process.execPath, [SCRIPT, file], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		return { status: r.status, stderr: r.stderr, dir };
+	};
+	// Invariants 3 and 10 also fail on these stand-ins; only 13's lines count.
+	const lines13 = (stderr: string) =>
+		stderr
+			.split("\n")
+			.filter((l) => /JSX|build-machine|build directory/.test(l));
+
+	it("passes a bundle with the production runtime", () => {
+		const r = run13(
+			'o("div",{children:1});',
+			'import{jsx as o}from"react/jsx-runtime";',
+		);
+		expect(lines13(r.stderr)).toEqual([]);
+	});
+
+	it.each([
+		["the dev runtime import", DEV, /react\/jsx-dev-runtime/],
+		["a jsxDEV call", 'x.jsxDEV("a",{});', /calls jsxDEV/],
+		[
+			"a /home/ fileName",
+			'f({fileName:"/home/me/src/A.tsx",lineNumber:1});',
+			/absolute build-machine paths/,
+		],
+		[
+			"a /Users/ fileName",
+			"f({fileName:'/Users/me/src/A.tsx'});",
+			/absolute build-machine paths/,
+		],
+		[
+			"a Windows fileName",
+			'f({fileName:"C:\\\\src\\\\A.tsx"});',
+			/absolute build-machine paths/,
+		],
+	])("fails on %s", (_n, body, message) => {
+		const r = run13(body);
+		expect(r.status).toBe(1);
+		expect(lines13(r.stderr).join("\n")).toMatch(message);
+	});
+
+	it("fails on the build directory", () => {
+		const dir = join(root, `case-${run}`);
+		const r = run13(`f("${dir.replaceAll("\\", "\\\\")}/src/A.tsx");`);
+		expect(r.status).toBe(1);
+		expect(lines13(r.stderr).join("\n")).toMatch(/build directory/);
+	});
+
+	it("ignores a /home/ path that is not a fileName", () => {
+		const r = run13('f("see /home/docs");');
+		expect(lines13(r.stderr)).toEqual([]);
+	});
+});

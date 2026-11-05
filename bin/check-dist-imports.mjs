@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Twelve invariants on the *published* bundle (and, for invariant 11, on
+// Thirteen invariants on the *published* bundle (and, for invariant 11, on
 // the sources it is built from). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
@@ -121,6 +121,14 @@
 //    (classicyFontFaceRule), and every url() must name a file in the
 //    assets/ folder beside it (bin/classicyFontStylesheet.ts). Checked when
 //    the file is named, in named mode.
+//
+// 13. THE ENTRY BUNDLES USE THE PRODUCTION JSX RUNTIME. No import of
+//    react/jsx-dev-runtime, no jsxDEV() call, and no absolute build-machine
+//    path (the working directory, or /home/, /Users/ or C:\\ in a fileName
+//    option). A dev transform ships 1,000+ calls carrying the builder's source
+//    paths, so the bundle grows and two builds of one source differ by
+//    directory (0120-ak4: vite read NODE_ENV=development from the shell).
+//    Checked in both entry bundles (those of them named, in named mode).
 
 import { statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
@@ -137,6 +145,7 @@ import {
 	isClassicyArtName,
 } from "./classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "./classicyDistCharset.ts";
+import { findClassicyDevJsxProblems } from "./classicyDistJsx.ts";
 import {
 	findClassicyBuildScriptDeclarations,
 	findClassicyJsonDeclarations,
@@ -640,6 +649,17 @@ if (!argv.slice(2).length) {
 				`${file}: the ${PLATINUM_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
 			);
 	}
+}
+
+// Invariant 13: the production JSX runtime, with no build-machine paths.
+for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
+	const file = join(DIST, entry);
+	if (argv.slice(2).length && !argv.slice(2).includes(file)) continue;
+	const source = await readFile(file, "utf8");
+	const problems = findClassicyDevJsxProblems(file, source, process.cwd());
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else console.log(`${file}: production JSX runtime, no build-machine paths`);
 }
 
 if (failed) exit(1);
