@@ -15,6 +15,8 @@ import {
 	waitFor,
 } from "@/__tests__/test-utils";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+// The renaming tests switch back to Platinum, which must be registered.
+import "@/Appearance/Platinum";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
