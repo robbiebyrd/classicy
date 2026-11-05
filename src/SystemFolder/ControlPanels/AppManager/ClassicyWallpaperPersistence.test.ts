@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/Appearance/Platinum";
-import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
+import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { platinumWallpaperUrl } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	type ClassicyTheme,
