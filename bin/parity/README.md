@@ -22,8 +22,8 @@ node bin/parity/parity.ts help                  # the full option list
   `~/.cache/ms-playwright`, run `pnpm exec playwright install chromium`. Keep
   the pin: a different Chromium rasterizes differently, so a baseline and its
   after set must come from the same version. `$PARITY_PLAYWRIGHT` points the
-  tools at another Playwright package directory (used for Firefox, below).
-- **ImageMagick**, for `compare --kind ae`: `compare` (ImageMagick 6, or 7
+  tools at another Playwright package directory.
+- **ImageMagick**, for `compare`: `compare` (ImageMagick 6, or 7
   with its legacy names) or `magick compare`. Install it with
   `apt-get install imagemagick` or `brew install imagemagick`; the tool stops
   with that hint when neither is on `PATH`.
@@ -35,16 +35,12 @@ node bin/parity/parity.ts help                  # the full option list
 | `stories` | List the server's story ids (`index.json`, `type: "story"`, sorted) to stdout or `--out <file>` | `pnpm parity:stories` |
 | `shoot` | One 1024x768 PNG per story, `<out>/<id>.png`, plus the `stories.txt` it shot; with `--mid`, also `<out>/<id>@mid.png` for the animated stories (below) | `pnpm parity:shoot` |
 | `app` | The four example-app shots: `app-about`, `app-finder-preferences`, `app-hypercard`, `app-drive-setup` | `pnpm parity:app` |
-| `probe` | Flag stories that end in Storybook's error display, an empty root or a crash screen | `pnpm parity:probe` |
-| `dump` | Full computed style (pseudo-elements included) of every element, `<out>/<id>.json` | `pnpm parity:dump` |
-| `forced` | Computed style in forced states (pressed, hover, focus, dragging, inactive, ...), `<out>/<story>__<state>.json`; `--browser firefox` for the `::-moz-range-*` and `scrollbar-width` reads | `pnpm parity:forced` |
-| `compare` | `<beforeDir> <afterDir>`, by `--kind ae` (PNGs, default, `@mid` shots included), `computed` or `forced` | `pnpm parity:compare` |
+| `compare` | `<beforeDir> <afterDir>`, by AE (PNGs, `@mid` shots included; `--kind ae` is the only kind) | `pnpm parity:compare` |
 
 Shared options: `--port`, `--base-url`, `--filter <regex>` (story ids, shot
-names, state names or file names), `--stories <file>` (a fixed id list instead
-of the server's index), `--workers <n>` (default 4), `--summary <file>`
-(compare and probe write their full report there), `--repo <dir>` (the
-checkout the server serves; default the current directory).
+names or file names), `--stories <file>` (a fixed id list instead of the
+server's index), `--workers <n>` (default 4), `--summary <file>` (compare
+writes its full report there).
 
 Exit codes: 0 when the run is clean, 1 when anything differs or a shot failed,
 2 on a usage or environment error (no server, no Playwright, no ImageMagick).
@@ -86,7 +82,6 @@ P=.playwright-mcp/parity/my-change
 
 # 1. Baseline, on the commit before the change.
 pnpm parity:shoot --port 6091 --out $P/before
-pnpm parity:probe --port 6091 --summary $P/probe.txt   # a broken story shoots AE 0 too
 pnpm parity:app   --port 5391 --out $P/before
 
 # 2. Prove the setup is deterministic: shoot again and compare. Expect AE 0.
@@ -214,44 +209,6 @@ pseudo-elements such as `::-webkit-progress-value`: the indeterminate progress
 bar's barber pole is one, and in Chromium 143 it does not move on screen
 either, so it has no mid shot.
 
-## Computed-style and forced-state dumps
-
-Pixels can hide a change that has not shown yet (a hover color, a pressed
-bevel). The dumps catch those:
-
-```bash
-pnpm parity:dump   --port 6091 --out $P/computed-before
-pnpm parity:forced --port 6091 --out $P/forced-before
-# ... change, then the same into *-after, and:
-pnpm parity:compare $P/computed-before $P/computed-after --kind computed --summary $P/computed.txt
-pnpm parity:compare $P/forced-before   $P/forced-after   --kind forced
-```
-
-The compare normalizes the dev server's origin and the checkout path out of
-URLs (each dump records them in `__origin`), so a different port or worktree is
-not a difference. Known noise it already handles:
-
-- `margin-*` on `DIV.classicyDesktopIconImage` is layout-dependent and flips
-  between runs; it is skipped.
-- `__html` (the root's markup length) moves with any markup change; it is
-  reported as a histogram of deltas, not as a difference.
-- `__matchedPseudo` in forced dumps (the matched rules of the slider and
-  scrollbar pseudo-elements, which Chromium's `getComputedStyle` cannot read)
-  changes with any stylesheet text change; it is ignored.
-
-The forced matrix (`parityForcedMatrix.ts`) names its stories; a story that was
-renamed or removed fails its entries with a `FAIL` line.
-
-**Firefox.** Firefox has no CDP, so no forced pseudo-classes, but it can read
-`::-moz-range-*` and `scrollbar-width`. Playwright 1.57 wants `firefox-1497`
-(`pnpm exec playwright install firefox`); to use another installed Playwright
-and its Firefox instead:
-
-```bash
-PARITY_PLAYWRIGHT=/path/to/node_modules/playwright \
-  pnpm parity:forced --port 6091 --browser firefox --out $P/forced-firefox-before
-```
-
 ## Files
 
 | File | Role |
@@ -260,14 +217,11 @@ PARITY_PLAYWRIGHT=/path/to/node_modules/playwright \
 | `parityArgs.ts` | Option parsing and defaults |
 | `parityBrowser.ts` | Playwright loading, the Chromium flags, readiness wait, settle, stable shot |
 | `parityStories.ts` | Story ids from `index.json` or a list file |
-| `parityShoot.ts`, `parityProbe.ts`, `parityApp.ts` | The shots and the render probe |
+| `parityShoot.ts`, `parityApp.ts` | The shots |
 | `parityMidTime.ts` | The mid-time shot's `--at` parsing, pause time, selection, file name and page script |
-| `parityDump.ts`, `parityForced.ts`, `parityForcedMatrix.ts` | The dumps |
-| `parityCompare.ts`, `parityDumpCompare.ts` | The compares |
+| `parityCompare.ts` | The AE compare |
 
-The tools replace the uncommitted scripts under `.playwright-mcp/parity/`
-(`post-b/scripts/capture.cjs`, `dumpstory.cjs`, `forced.cjs`,
-`forced-firefox.cjs`, `compare-ae.sh`, `compare-computed.py`,
-`compare-forced-strict.py`, and `part-H/scripts/shoot-app.cjs` and
-`probe-render.cjs`). Shots from the old and new tools of the same tree compare
-at AE 0, so the old baselines stay usable.
+The computed-style dump, forced-state dump and render probe that once sat
+beside these (`probe`, `dump`, `forced`, `compare --kind computed|forced`) were
+removed after the Appearance Packages extraction; a compare of anything but
+screenshots is no longer offered.

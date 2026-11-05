@@ -244,7 +244,7 @@ export async function shootApp({
 	filter?: RegExp;
 }): Promise<{ shot: string[]; failed: string[] }> {
 	mkdirSync(out, { recursive: true });
-	const browser = await launchParityBrowser("chromium");
+	const browser = await launchParityBrowser();
 	const result = { shot: [] as string[], failed: [] as string[] };
 	try {
 		for (const name of PARITY_APP_SHOTS) {

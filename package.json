@@ -49,9 +49,6 @@
 		"parity:stories": "node bin/parity/parity.ts stories",
 		"parity:shoot": "node bin/parity/parity.ts shoot",
 		"parity:app": "node bin/parity/parity.ts app",
-		"parity:probe": "node bin/parity/parity.ts probe",
-		"parity:dump": "node bin/parity/parity.ts dump",
-		"parity:forced": "node bin/parity/parity.ts forced",
 		"parity:compare": "node bin/parity/parity.ts compare"
 	},
 	"lint-staged": {

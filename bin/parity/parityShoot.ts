@@ -120,7 +120,7 @@ export async function shootStories({
 	mkdirSync(out, { recursive: true });
 	writeFileSync(join(out, "stories.txt"), `${ids.join("\n")}\n`);
 	const forced = new Set(midStories);
-	const browser = await launchParityBrowser("chromium");
+	const browser = await launchParityBrowser();
 	const result: ParityShootResult = {
 		shot: 0,
 		errors: [],

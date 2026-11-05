@@ -10,7 +10,6 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { type ParityOptions, parseParityArgs } from "./parityArgs.ts";
 import { compareAeDirs, summarizeAe } from "./parityCompare.ts";
-import { compareDumpDirs } from "./parityDumpCompare.ts";
 import { parseStoryList, resolveStoryIds } from "./parityStories.ts";
 
 export const PARITY_USAGE = `usage: node bin/parity/parity.ts <command> [options]
@@ -20,10 +19,7 @@ Commands
   shoot     one 1024x768 PNG per story into --out
             [--mid] [--mid-only] [--at 50%|400ms] [--mid-stories file] [--mid-clock ms]
   app       the 4 example-app shots into --out (example dev server)
-  probe     flag stories that render an error, an empty root or a crash screen
-  dump      computed-style dump (JSON) per story into --out
-  forced    forced-state dumps into --out  [--browser chromium|firefox]
-  compare   <beforeDir> <afterDir>  [--kind ae|computed|forced] [--summary file]
+  compare   <beforeDir> <afterDir>  [--summary file]  (AE, pixel counts)
   help      this text
 
 Options
@@ -32,12 +28,11 @@ Options
                      app default $EXAMPLE_PORT, else 5173
   --base-url <url>   server origin instead of http://localhost:<port>
                      (app: http://127.0.0.1:<port>)
-  --filter <regex>   only story ids / shot names / states / files that match
+  --filter <regex>   only story ids / shot names / files that match
   --stories <file>   story ids, one per line, instead of the server's index.json
   --workers <n>      parallel pages (default 4)
-  --kind <k>         compare: ae (PNG, default), computed (dump) or forced
-  --summary <file>   compare/probe: write the full report there
-  --browser <b>      forced: chromium (default) or firefox
+  --kind <k>         compare: ae (the only kind)
+  --summary <file>   compare: write the full report there
   --mid              shoot: also shoot animated stories mid-animation, <id>@mid.png
                      (stories with animations at ready time, plus --mid-stories)
   --mid-only         shoot: the mid-time shots only, no t=0 set
@@ -46,8 +41,6 @@ Options
   --mid-stories <f>  shoot: ids that always get a mid shot; implies --mid
   --mid-clock <ms>   shoot: how far the JS clock moves for the mid shot
                      (default: the --at time, or 2000 for a percentage)
-  --repo <dir>       checkout the server serves, normalized out of dump URLs
-                     (default: the current directory)
 
 Exit codes: 0 clean, 1 differences or failures, 2 usage or environment error.
 Environment: PARITY_PLAYWRIGHT overrides the Playwright module.`;
@@ -107,61 +100,11 @@ async function run(o: ParityOptions, io: ParityIo): Promise<number> {
 			);
 			return r.failed.length || r.shot.length === 0 ? 1 : 0;
 		}
-		case "probe": {
-			const { probeStories } = await import("./parityProbe.ts");
-			const ids = await resolveStoryIds(o.baseUrl, o.stories, o.filter);
-			const flagged = await probeStories({
-				baseUrl: o.baseUrl,
-				ids,
-				workers: o.workers,
-			});
-			const lines = [
-				...flagged,
-				`probed ${ids.length}, flagged ${flagged.length}`,
-			];
-			writeReport(o.summary, lines);
-			for (const l of lines) io.log(l);
-			return flagged.length ? 1 : 0;
-		}
-		case "dump": {
-			const { dumpStories } = await import("./parityDump.ts");
-			const ids = await resolveStoryIds(o.baseUrl, o.stories, o.filter);
-			const r = await dumpStories({
-				baseUrl: o.baseUrl,
-				repo: o.repo,
-				out,
-				ids,
-				workers: o.workers,
-			});
-			io.log(
-				`stories ${ids.length} dumped ${r.dumped} errors ${r.errors.length}`,
-			);
-			return r.errors.length || ids.length === 0 ? 1 : 0;
-		}
-		case "forced": {
-			const { dumpForcedStates } = await import("./parityForced.ts");
-			const r = await dumpForcedStates({
-				baseUrl: o.baseUrl,
-				repo: o.repo,
-				out,
-				filter: o.filter,
-				browser: o.browser,
-			});
-			io.log(
-				`states ${r.ok.length + r.failed.length} ok ${r.ok.length} fail ${r.failed.length}`,
-			);
-			return r.failed.length || r.ok.length === 0 ? 1 : 0;
-		}
 		case "compare": {
 			const [before, after] = o.positionals;
-			const report =
-				o.kind === "ae"
-					? summarizeAe(compareAeDirs(before, after, o.filter))
-					: compareDumpDirs(before, after, o.kind, o.filter);
+			const report = summarizeAe(compareAeDirs(before, after, o.filter));
 			writeReport(o.summary, report.lines);
 			for (const l of report.failures) io.log(l);
-			for (const l of report.lines.filter((l) => l.startsWith("__html")))
-				io.log(l);
 			io.log(report.lines[report.lines.length - 1]);
 			return report.ok ? 0 : 1;
 		}

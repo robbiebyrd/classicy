@@ -1092,8 +1092,7 @@ None of this changes the published package's behavior.
     declares exactly the faces the runtime registers, each pointing at a
     file in `dist/assets/`.
 - **Visual parity tooling.** `bin/parity/` (`pnpm parity:stories`,
-  `parity:shoot`, `parity:app`, `parity:probe`, `parity:dump`,
-  `parity:forced`, `parity:compare`) shoots Storybook and the example app
+  `parity:shoot`, `parity:app`, `parity:compare`) shoots Storybook and the example app
   with Playwright and compares the shots with ImageMagick. It also reports
   size differences, which `compare -metric AE` alone misses, and with
   `shoot --mid` shoots animated stories mid-animation too (`<id>@mid.png`).

@@ -3,7 +3,6 @@
 // settle and the "two identical frames" screenshot.
 import { createRequire } from "node:module";
 import type { Browser, BrowserContext, Page } from "playwright";
-import type { ParityBrowserKind } from "./parityArgs.ts";
 
 type Playwright = typeof import("playwright");
 
@@ -45,18 +44,14 @@ export async function loadPlaywright(
 	}
 }
 
-export async function launchParityBrowser(
-	kind: ParityBrowserKind = "chromium",
-): Promise<Browser> {
+export async function launchParityBrowser(): Promise<Browser> {
 	const pw = await loadPlaywright();
 	try {
-		return kind === "firefox"
-			? await pw.firefox.launch()
-			: await pw.chromium.launch({ args: [...PARITY_CHROMIUM_ARGS] });
+		return await pw.chromium.launch({ args: [...PARITY_CHROMIUM_ARGS] });
 	} catch (e) {
 		throw new Error(
-			`Playwright could not launch ${kind}: ${String(e).split("\n")[0]}\n` +
-				`Install its browser with \`pnpm exec playwright install ${kind}\`.`,
+			`Playwright could not launch chromium: ${String(e).split("\n")[0]}\n` +
+				"Install its browser with `pnpm exec playwright install chromium`.",
 		);
 	}
 }

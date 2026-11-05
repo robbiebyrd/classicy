@@ -1,6 +1,5 @@
 // Command-line parsing for bin/parity/parity.ts. Pure: the caller passes the
 // argv and the environment, so the defaults are testable.
-import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import {
 	midClockMs,
@@ -14,16 +13,12 @@ export const PARITY_COMMANDS = [
 	"stories",
 	"shoot",
 	"app",
-	"probe",
-	"dump",
-	"forced",
 	"compare",
 ] as const;
 export type ParityCommand = (typeof PARITY_COMMANDS)[number];
 
-/** What `compare` compares: screenshots by AE, computed dumps or forced dumps. */
-export type ParityCompareKind = "ae" | "computed" | "forced";
-export type ParityBrowserKind = "chromium" | "firefox";
+/** What `compare` compares: screenshots by AE (the only kind). */
+export type ParityCompareKind = "ae";
 
 /** shoot's mid-time shots (`<id>@mid.png`), on when any mid flag is given. */
 export type ParityMidOptions = {
@@ -41,26 +36,23 @@ export type ParityMidOptions = {
 export type ParityOptions = {
 	command: ParityCommand;
 	positionals: string[];
-	/** Output directory (shoot, app, dump, forced) or file (stories). */
+	/** Output directory (shoot, app) or file (stories). */
 	out?: string;
 	/** Server origin, no trailing slash: `--base-url`, else built from the port. */
 	baseUrl: string;
-	/** Applied to story ids (shoot, dump, probe, stories), shot names (app),
-	 * state names (forced) and file names (compare). */
+	/** Applied to story ids (shoot, stories), shot names (app) and file names
+	 * (compare). */
 	filter?: RegExp;
 	/** A story-id list, one per line, instead of the server's index.json. */
 	stories?: string;
 	workers: number;
-	/** compare: also write the full report here. probe: write the report here. */
+	/** compare: also write the full report here. */
 	summary?: string;
 	kind: ParityCompareKind;
-	browser: ParityBrowserKind;
-	/** The checkout the server serves; its path is normalized out of dumps. */
-	repo: string;
 	mid?: ParityMidOptions;
 };
 
-const WRITERS: readonly ParityCommand[] = ["shoot", "app", "dump", "forced"];
+const WRITERS: readonly ParityCommand[] = ["shoot", "app"];
 
 const regex = (flag: string, source: string | undefined) => {
 	if (source === undefined || source === "") return undefined;
@@ -71,17 +63,14 @@ const regex = (flag: string, source: string | undefined) => {
 	}
 };
 
-const oneOf = <T extends string>(
-	flag: string,
-	value: string | undefined,
-	allowed: readonly T[],
-	fallback: T,
-): T => {
-	if (value === undefined) return fallback;
-	if ((allowed as readonly string[]).includes(value)) return value as T;
-	throw new Error(
-		`${flag} must be one of ${allowed.join(", ")} (got ${value})`,
-	);
+/** `--kind`: ae is the only one; computed and forced went with the dump tools. */
+const compareKind = (value: string | undefined): ParityCompareKind => {
+	if (value === undefined || value === "ae") return "ae";
+	if (value === "computed" || value === "forced")
+		throw new Error(
+			`--kind ${value} was removed with the dump tools: ae is the only compare kind`,
+		);
+	throw new Error(`--kind must be ae (got ${value})`);
 };
 
 export function parseParityArgs(
@@ -101,8 +90,6 @@ export function parseParityArgs(
 			workers: { type: "string" },
 			summary: { type: "string" },
 			kind: { type: "string" },
-			browser: { type: "string" },
-			repo: { type: "string" },
 			mid: { type: "boolean" },
 			"mid-only": { type: "boolean" },
 			at: { type: "string" },
@@ -172,14 +159,7 @@ export function parseParityArgs(
 		stories: values.stories,
 		workers,
 		summary: values.summary,
-		kind: oneOf("--kind", values.kind, ["ae", "computed", "forced"], "ae"),
-		browser: oneOf(
-			"--browser",
-			values.browser,
-			["chromium", "firefox"],
-			"chromium",
-		),
-		repo: resolve(values.repo ?? process.cwd()),
+		kind: compareKind(values.kind),
 		mid,
 	};
 }

@@ -1,13 +1,4 @@
-import {
-	mkdirSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PARITY_USAGE, runParity } from "./parity.ts";
 import { PARITY_COMMANDS } from "./parityArgs.ts";
 
@@ -36,59 +27,38 @@ describe("runParity", () => {
 		expect(c.err.join("\n")).toMatch(/shoot needs --out/);
 	});
 
-	describe("compare --kind computed", () => {
-		const root = mkdtempSync(join(tmpdir(), "parity-cli-"));
-		afterAll(() => rmSync(root, { recursive: true, force: true }));
-		const set = (name: string, color: string) => {
-			const dir = join(root, name);
-			mkdirSync(dir, { recursive: true });
-			writeFileSync(
-				join(dir, "x--a.json"),
-				JSON.stringify({ "0:DIV.a": { color }, __html: 1 }),
-			);
-			return dir;
-		};
-
-		it("exits 0 on identical sets and writes the full report to --summary", async () => {
+	it("treats probe, dump and forced as unknown commands (exit 2)", async () => {
+		for (const command of ["probe", "dump", "forced"]) {
 			const c = capture();
-			const summary = join(root, "out", "same.txt");
-			expect(
-				await runParity(
-					[
-						"compare",
-						set("b", "red"),
-						set("a", "red"),
-						"--kind",
-						"computed",
-						"--summary",
-						summary,
-					],
-					{},
-					c.io,
-				),
-			).toBe(0);
-			expect(readFileSync(summary, "utf8")).toContain("SAME x--a");
-			expect(c.out.at(-1)).toBe(
-				"SUMMARY total 1 identical 1 differ 0 missing 0",
-			);
-		});
+			expect(await runParity([command, "--out", "x"], {}, c.io)).toBe(2);
+			expect(c.err.join("\n")).toMatch(/unknown command/);
+		}
+	});
 
-		it("exits 1 and prints the differing dump by name", async () => {
+	it("names none of the removed commands in its usage", () =>
+		expect(PARITY_USAGE).not.toMatch(/\b(probe|dump|forced)\b/));
+
+	it("rejects --kind computed and forced with exit 2", async () => {
+		for (const kind of ["computed", "forced"]) {
+			const c = capture();
+			expect(
+				await runParity(["compare", "a", "b", "--kind", kind], {}, c.io),
+			).toBe(2);
+			expect(c.err.join("\n")).toMatch(/--kind.*removed/);
+		}
+	});
+
+	describe("compare (ae)", () => {
+		it("exits 2 when a directory is missing", async () => {
 			const c = capture();
 			expect(
 				await runParity(
-					[
-						"compare",
-						set("b2", "red"),
-						set("a2", "blue"),
-						"--kind",
-						"computed",
-					],
+					["compare", "/nonexistent-a", "/nonexistent-b"],
 					{},
 					c.io,
 				),
-			).toBe(1);
-			expect(c.out).toContain("DIFF x--a (1)");
+			).toBe(2);
+			expect(c.err.join("\n")).toMatch(/no such directory/);
 		});
 	});
 });

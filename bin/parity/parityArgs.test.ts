@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseParityArgs } from "./parityArgs.ts";
+import { PARITY_COMMANDS, parseParityArgs } from "./parityArgs.ts";
 
 describe("parseParityArgs", () => {
 	it("reads the command, its positionals and the shared options", () => {
@@ -13,7 +13,7 @@ describe("parseParityArgs", () => {
 				"--filter",
 				"^controls-",
 				"--kind",
-				"computed",
+				"ae",
 			],
 			{},
 		);
@@ -22,7 +22,7 @@ describe("parseParityArgs", () => {
 		expect(o.summary).toBe("s.txt");
 		expect(o.filter?.test("controls-button--default")).toBe(true);
 		expect(o.filter?.test("desktop-window--default")).toBe(false);
-		expect(o.kind).toBe("computed");
+		expect(o.kind).toBe("ae");
 	});
 
 	it("defaults Storybook commands to localhost on $SB_PORT, else 6006", () => {
@@ -56,12 +56,10 @@ describe("parseParityArgs", () => {
 			).baseUrl,
 		).toBe("http://h:9/sb"));
 
-	it("defaults workers to 4, kind to ae, browser to chromium and repo to the cwd", () => {
+	it("defaults workers to 4 and kind to ae", () => {
 		const o = parseParityArgs(["shoot", "--out", "x"], {});
 		expect(o.workers).toBe(4);
 		expect(o.kind).toBe("ae");
-		expect(o.browser).toBe("chromium");
-		expect(o.repo).toBe(process.cwd());
 	});
 
 	it("parses --workers and rejects a non-positive count", () => {
@@ -73,7 +71,7 @@ describe("parseParityArgs", () => {
 		).toThrow(/--workers/);
 	});
 
-	it("rejects an unknown option, an invalid regex and a bad --kind or --browser", () => {
+	it("rejects an unknown option, an invalid regex and a bad --kind", () => {
 		expect(() => parseParityArgs(["shoot", "--nope"], {})).toThrow();
 		expect(() =>
 			parseParityArgs(["shoot", "--out", "x", "--filter", "("], {}),
@@ -82,12 +80,36 @@ describe("parseParityArgs", () => {
 			parseParityArgs(["compare", "a", "b", "--kind", "pixels"], {}),
 		).toThrow(/--kind/);
 		expect(() =>
-			parseParityArgs(["forced", "--out", "x", "--browser", "webkit"], {}),
-		).toThrow(/--browser/);
+			parseParityArgs(["shoot", "--browser", "firefox"], {}),
+		).toThrow();
+		expect(() => parseParityArgs(["shoot", "--repo", "x"], {})).toThrow();
+	});
+
+	it("rejects the removed computed and forced compare kinds, saying so", () => {
+		for (const kind of ["computed", "forced"])
+			expect(() =>
+				parseParityArgs(["compare", "a", "b", "--kind", kind], {}),
+			).toThrow(/removed/);
+	});
+
+	it("knows exactly help, stories, shoot, app and compare", () =>
+		expect([...PARITY_COMMANDS]).toEqual([
+			"help",
+			"stories",
+			"shoot",
+			"app",
+			"compare",
+		]));
+
+	it("rejects the removed probe, dump and forced commands as unknown", () => {
+		for (const command of ["probe", "dump", "forced"])
+			expect(() => parseParityArgs([command, "--out", "x"], {})).toThrow(
+				/unknown command/,
+			);
 	});
 
 	it("requires --out for the commands that write a set", () => {
-		for (const command of ["shoot", "app", "dump", "forced"])
+		for (const command of ["shoot", "app"])
 			expect(() => parseParityArgs([command], {})).toThrow(/--out/);
 	});
 
@@ -147,8 +169,8 @@ describe("parseParityArgs", () => {
 		});
 
 		it("belong to shoot only", () =>
-			expect(() =>
-				parseParityArgs(["dump", "--out", "x", "--mid"], {}),
-			).toThrow(/shoot/));
+			expect(() => parseParityArgs(["app", "--out", "x", "--mid"], {})).toThrow(
+				/shoot/,
+			));
 	});
 });

@@ -19,7 +19,7 @@ describe("loadPlaywright", () => {
 		const seen: string[] = [];
 		const importer = async (s: string) => {
 			seen.push(s);
-			return { chromium: {}, firefox: {} };
+			return { chromium: {} };
 		};
 		await loadPlaywright({}, importer);
 		await loadPlaywright({ PARITY_PLAYWRIGHT: "/x/playwright" }, importer);
