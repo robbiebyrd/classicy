@@ -1038,6 +1038,27 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 			expect(fs.existsSync(lock)).toBe(true);
 		});
 
+		// The git dir itself ends in a newline: git's own output keeps it.
+		it("keeps the lock while git runs in a bare repository whose name ends in a newline", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const bare = path.join(dir, "bare.git\n");
+			git(dir, "init", "-q", "--bare", bare);
+			const lock = makeLock(path.join(bare, "index.lock"));
+			const busy = spawn("git", ["hash-object", "--stdin"], {
+				cwd: bare,
+				env: gitEnv(),
+			});
+			children.push(busy);
+			waitForProc(busy);
+			const result = run(bare);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${busy.pid} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
 		// A linked worktree's .git is a gitfile, which git follows to the
 		// worktree's own git dir.
 		it("follows a GIT_DIR that is a linked worktree's gitfile", () => {

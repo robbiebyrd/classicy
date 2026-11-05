@@ -150,11 +150,17 @@ if [ -n "$extra_proc_root" ]; then
 	proc_roots+=("$extra_proc_root")
 fi
 
-# rev-parse takes no lock.
-if ! git_dir=$(git -C "$dir" rev-parse --absolute-git-dir 2>/dev/null); then
+# rev-parse takes no lock. The git dir is the whole of its output but the
+# newline it adds (the path may end in one of its own).
+if ! capture_stdout git -C "$dir" rev-parse --absolute-git-dir; then
+	echo "git-clear-stale-lock: cannot find the git dir of $dir" >&2
+	exit 1
+fi
+if [ "$rc" -ne 0 ]; then
 	echo "git-clear-stale-lock: $dir is not a git repository" >&2
 	exit 1
 fi
+git_dir=$out
 case "$git_dir" in
 /*) ;;
 *)
