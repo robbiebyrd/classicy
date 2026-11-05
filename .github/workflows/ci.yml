@@ -70,7 +70,7 @@ jobs:
         run: pnpm test
 
       # The example app consumes the library through the workspace
-      # (`classicy: workspace:*` resolves to the built dist/), so the library is
+      # (`@classicy/classicy: workspace:*` resolves to the built dist/), so the library is
       # built first, in this job, as push.yml and pages.yml do (build:source
       # skips the ffmpeg-only build:audio; the sprites are committed). The
       # example's own `build` script is `tsc -b && vite build`, so a broken

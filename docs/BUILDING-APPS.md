@@ -1382,7 +1382,7 @@ Consequences for an app author:
 ### Never mock the manifest registry when testing it
 
 ```ts
-// Deliberately NO vi.mock("classicy"): these tests exercise the real registry
+// Deliberately NO vi.mock("@classicy/classicy"): these tests exercise the real registry
 // that each context module writes into at import time.
 import { getAppManifest, listScriptableActions } from '@classicy/classicy'
 import './Applications/MyApp/MyAppContext'    // runs registerApp()
@@ -1398,13 +1398,13 @@ renamed action or a dropped schema cheaply. Add the prefix-overlap guard from
 
 ### Prefer partial mocks
 
-A full-replacement `vi.mock("classicy")` must stub every registration side effect
+A full-replacement `vi.mock("@classicy/classicy")` must stub every registration side effect
 the import graph touches — `registerApp`, `registerClassicyIcons`,
 `getAppManifest`, `describeAppState` — and breaks whenever an import is added.
 Spread the original instead:
 
 ```tsx
-vi.mock("classicy", async (importOriginal) => ({
+vi.mock("@classicy/classicy", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@classicy/classicy")>()),
     useAppManagerDispatch: () => dispatchMock,
     ClassicyWindow: ({ children, id, appMenu, onCloseFunc, title }) => {

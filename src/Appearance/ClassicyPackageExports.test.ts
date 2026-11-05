@@ -243,9 +243,10 @@ describe("the example app", () => {
 
 // No tracked file names the core by its 2.x name (plan 0015-kxa §2.1): not an
 // import, a Sass `@use`, a `pkg:` URL, a subpath in prose, a workspace
-// dependency, an `optimizeDeps` entry, an install line or a resolver alias.
-// Dated records (plans, stories, the superpowers specs) and the lockfile are
-// not scanned.
+// dependency (quoted, or a bare YAML key), an `optimizeDeps` entry, an
+// install line, a resolver alias or a vitest `vi.mock`-family target. Dated
+// records (plans, stories, the superpowers specs) and the lockfile are not
+// scanned.
 describe("the rename to @classicy/classicy", () => {
 	const SKIPPED = [
 		"docs/plans/",
@@ -266,6 +267,8 @@ describe("the rename to @classicy/classicy", () => {
 			String.raw`\b(?:add|install|remove)\s+classicy(?![\w-])`,
 			String.raw`\^classicy(?:\$|\\/)`,
 			String.raw`(?<![\w@/.-])classicy["']?:\s*path\.`,
+			String.raw`\bvi\.(?:mock|doMock|unmock|importActual|importMock)\(\s*["'\x60]classicy["'\x60/]`,
+			String.raw`(?<![\w@/.-])classicy:\s*(?:workspace|link|file):`,
 		].join("|"),
 	);
 	// Release history: 2.x subpaths this release removed, which exist under no
@@ -316,6 +319,12 @@ describe("the rename to @classicy/classicy", () => {
 				`{ find: /^${OLD_NAME}$/, replacement: source },`,
 				`{ find: /^${OLD_NAME}\\/dist\\/classicy\\.css$/, replacement },`,
 				`\t\t\t${OLD_NAME}: path.resolve(__dirname, "./src/index.ts"),`,
+				`vi.mock("${OLD_NAME}", async (importOriginal) => ({`,
+				`// Deliberately NO vi.mock("${OLD_NAME}"): these tests exercise`,
+				`await vi.importActual<typeof import("x")>('${OLD_NAME}/fonts')`,
+				`      ${OLD_NAME}: workspace:*`,
+				`# (\`${OLD_NAME}: workspace:*\` resolves to the built dist/)`,
+				`${OLD_NAME}: link:..`,
 			].filter((line) => leftovers("x.ts", line).length === 0),
 		).toEqual([]));
 
