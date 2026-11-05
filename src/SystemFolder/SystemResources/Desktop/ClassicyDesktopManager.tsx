@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
-	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
 	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
@@ -350,13 +349,9 @@ export const classicyDesktopEventHandler = (
 		}
 		case "ClassicyDesktopChangeAppearancePackage": {
 			if (!hasPackageId(action)) break;
-			// The default package is always installable (R16): unregistered,
-			// its built-in structure applies, as for theme files.
-			const pkg =
-				getClassicyAppearancePackage(action.packageId) ??
-				(action.packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
-					? CLASSICY_FALLBACK_APPEARANCE_PACKAGE
-					: undefined);
+			// Registered packages only, the default one included: the
+			// fallback package's core theme is never activated as theme data.
+			const pkg = getClassicyAppearancePackage(action.packageId);
 			if (!pkg) {
 				classicyLog(
 					"warn",

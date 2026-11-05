@@ -1,10 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
 import "@/Appearance/Platinum";
-import { resetClassicyAppearancePackagesForTests } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	classicyWallpaperFilename,
@@ -440,6 +444,12 @@ describe("theme files written before metric groups existed", () => {
 });
 
 describe("theme files and appearance packages", () => {
+	// A Platinum theme file reads only while Platinum is registered, and each
+	// test below starts from a reset registry.
+	const platinum = getClassicyAppearancePackage("platinum");
+	beforeEach(() => {
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 
 	it("writes the package id", () => {
@@ -453,20 +463,21 @@ describe("theme files and appearance packages", () => {
 		expect(parseOk(JSON.stringify(file)).package).toBe("platinum");
 	});
 
-	// R16: the default package is always installable, registered or not, so a
-	// registry-only check can never pass these.
-	it("reads a platinum theme with no package registered (R16)", () => {
+	// The default package gets no special case (plan 0015-kxa 1.2): it is
+	// installed only while it is registered, like any other package.
+	it("refuses a platinum theme while Platinum is not registered", () => {
+		const file = exportClassicyTheme(theme("azul"));
 		resetClassicyAppearancePackagesForTests();
-		const result = readClassicyTheme({ ...theme("azul"), package: "platinum" });
-		expect(result.ok).toBe(true);
-		expect(parseOk(exportClassicyTheme(theme("azul"))).package).toBe(
-			"platinum",
-		);
-		expect(readClassicyTheme({ ...theme("azul"), package: "beos" })).toEqual({
+		expect(
+			readClassicyTheme({ ...theme("azul"), package: "platinum" }),
+		).toEqual({
 			ok: false,
 			error:
-				'This theme needs the "beos" appearance package, which is not installed.',
+				'This theme needs the "platinum" appearance package, which is not installed.',
 		});
+		expect(parseError(file)).toBe(
+			'This theme needs the "platinum" appearance package, which is not installed.',
+		);
 	});
 
 	it("refuses a theme for an uninstalled package", () => {

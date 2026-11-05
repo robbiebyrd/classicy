@@ -6,7 +6,6 @@ import "@/Appearance/Platinum/assets/sounds/platinum";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
@@ -181,11 +180,13 @@ describe("ClassicyDesktopChangeAppearancePackage", () => {
 		expect(active.package).toBe("platinum");
 	});
 
-	// R16: the default package is always installable; with nothing registered
-	// its built-in structure (CLASSICY_FALLBACK_APPEARANCE_PACKAGE) applies.
-	it("accepts the default package id with nothing registered, activating the fallback package's defaults", () => {
+	// The default package gets no special case (plan 0015-kxa 1.2): with
+	// nothing registered, its id is refused like any unregistered one, and the
+	// fallback package's core theme is never activated as theme data.
+	it("ignores the default package id with a warning while it is not registered", () => {
 		const before = run(makeStore(), changePackage("irix"));
 		resetClassicyAppearancePackagesForTests();
+		vi.spyOn(console, "warn").mockImplementation(() => {});
 		const entries: ClassicyLogEntry[] = [];
 		registerClassicyLogSink({
 			id: SINK_ID,
@@ -195,16 +196,15 @@ describe("ClassicyDesktopChangeAppearancePackage", () => {
 			before,
 			changePackage(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 		);
-		expect(appearance(state).packageId).toBe(
-			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-		);
-		expect(appearance(state).activeTheme).toEqual(
-			CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults,
-		);
-		expect(appearance(state).activeTheme).not.toBe(
-			CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults,
-		);
-		expect(entries.filter((e) => e.level === "warn")).toEqual([]);
+		expect(state).toBe(before);
+		expect(appearance(state).packageId).toBe("irix");
+		expect(entries).toEqual([
+			expect.objectContaining({
+				level: "warn",
+				subsystem: "ClassicyAppearance",
+				message: `Appearance package "${CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID}" is not registered.`,
+			}),
+		]);
 	});
 
 	it("ignores an unregistered id with a warning", () => {

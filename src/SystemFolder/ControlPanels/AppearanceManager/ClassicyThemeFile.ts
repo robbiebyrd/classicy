@@ -33,8 +33,7 @@ import {
  * A theme names its sound pack as `sound: { pack, disabled }`; the pack must be
  * registered (`registerClassicySoundPack`) when the file is loaded. Likewise
  * its Appearance Package (`package`, "platinum" when absent) must be
- * registered (`registerClassicyAppearancePackage`) — except Platinum, which
- * is always available (`CLASSICY_FALLBACK_APPEARANCE_PACKAGE`).
+ * registered (`registerClassicyAppearancePackage`), Platinum included.
  *
  * Loading also accepts a bare theme object (no envelope) — the shape of a
  * preset in `platinum.json` or of `JSON.stringify(activeTheme)` — so themes
@@ -67,12 +66,11 @@ export const portableClassicyThemeBackground = (value: string): string => {
 };
 
 /**
- * True when themes of `packageId` can be shown: the package is registered, or
- * it is the default package, whose structure is built in
- * (`resolveClassicyAppearancePackage` falls back to it).
+ * True when themes of `packageId` can be shown: the package is registered.
+ * The default package gets no special case: the core's fallback package
+ * holds only the core theme, never a package's look.
  */
 const isClassicyAppearancePackageInstalled = (packageId: string): boolean =>
-	packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID ||
 	getClassicyAppearancePackage(packageId) !== undefined;
 
 /** The stored form of a validated `backgroundImage`: a registered wallpaper

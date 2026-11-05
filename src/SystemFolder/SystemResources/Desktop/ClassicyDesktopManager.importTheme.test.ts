@@ -1,5 +1,5 @@
 import { castDraft, produce } from "immer";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
@@ -7,6 +7,7 @@ import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInTheme
 import "@/Appearance/Platinum/assets/platinumAssets";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
@@ -253,6 +254,13 @@ describe("ClassicyDesktopImportTheme", () => {
 describe("ClassicyDesktopImportTheme — appearance packages", () => {
 	const SINK_ID = "import-theme-package-test";
 
+	// Platinum's themes are importable only while Platinum is registered, and
+	// each test below starts from a reset registry.
+	const platinum = getClassicyAppearancePackage("platinum");
+	beforeEach(() => {
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
+
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
 		unregisterClassicyLogSink(SINK_ID);
@@ -289,15 +297,18 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 		]);
 	});
 
-	it("imports a platinum theme with no package registered (R16)", () => {
+	it("refuses a platinum theme while Platinum is not registered", () => {
 		resetClassicyAppearancePackagesForTests();
-		const state = run(
-			makeStore(),
-			importTheme(fileTheme({ package: "platinum" })),
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makeStore();
+		const state = run(before, importTheme(fileTheme({ package: "platinum" })));
+		expect(appearance(state).customThemes).toEqual(
+			appearance(before).customThemes,
 		);
-		expect(appearance(state).customThemes).toHaveLength(1);
-		expect(appearance(state).activeTheme.package).toBe("platinum");
-		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
+		expect(appearance(state).activeTheme).toBe(appearance(before).activeTheme);
+		expect(state.System.Manager.Desktop.errorDialog?.message).toBe(
+			'This theme needs the "platinum" appearance package, which is not installed.',
+		);
 	});
 
 	it("accepts a registered package", () => {
