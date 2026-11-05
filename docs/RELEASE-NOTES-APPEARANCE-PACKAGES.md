@@ -662,8 +662,12 @@ Start with [Install and build](#install-and-build).
   `ClassicyDesktopChangeBackground`, theme files, imports and
   `ClassicyDesktopLoadThemes` all store the filename. Saved state holding a
   wallpaper's inlined `data:` URI or an older build's URL is migrated to the
-  filename on load; a value that matches no wallpaper is kept, and still
-  renders when it is a `data:` or http(s) URL. `ClassicyWallpapers`,
+  filename on load (a 2.x build's inlined wallpaper matches by content, so
+  it still does once the wallpapers ship as files; an older build's hashed
+  asset URL matches by its unhashed name). A value that matches no
+  wallpaper is kept: a `data:` or http(s) URL still renders, while a
+  relative path or an unknown filename renders no image. The Desktop tab's
+  Picture field now accepts only absolute http(s) URLs. `ClassicyWallpapers`,
   `resolveWallpaper`, `ClassicyDefaultWallpaper` and
   `buildClassicyWallpaperIndex` are removed; `classicyWallpaperFilename` moves
   to the wallpaper index. In a theme file, an import or
@@ -753,7 +757,9 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   `file` per wallpaper, and the store-free wallpaper index resolves it:
   `resolveClassicyWallpaper`, `classicyWallpaperFilename`,
   `portableClassicyWallpaper`, `withPortableClassicyWallpaper`,
-  `listClassicyWallpapers` and `defaultClassicyWallpaper`.
+  `listClassicyWallpapers` and `defaultClassicyWallpaper`. A wallpaper's
+  optional `legacyDigests` (`classicyWallpaperDigest`) name the `data:` URIs
+  older builds inlined it as.
 - `isClassicyAssetSource` checks every leaf. An unsafe scheme, or a
   character that could break out of a quoted `url("…")`, is skipped with a
   warning.

@@ -404,7 +404,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (the default `"platinum"` always counts as installed) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
-| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename or its source) is stored by filename (`portableClassicyWallpaper`) |
+| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename or its source) is stored by filename (`portableClassicyWallpaper`). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
@@ -1256,7 +1256,7 @@ import {
     registerClassicyAssets,   // (kind, packageId, tree) — the primitive
     registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
     registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>)
-    registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string }>)
+    registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string; legacyDigests?: string[] }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
     registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
 } from '@classicy/classicy'
@@ -1300,15 +1300,23 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   A wallpaper's `file` (a plain filename; anything else is ignored with a
   warning) is the portable reference a theme's `desktop.backgroundImage`
   holds and persists, resolved at render through the wallpaper index
-  (`ClassicyWallpaperIndex.ts`, store-free): `resolveClassicyWallpaper(value,
-  packageId?)` (the given package, the active one, then Platinum;
-  `getThemeVars` passes the theme's own package; `data:`, `blob:`,
-  http(s) and `//` URLs and registered sources pass through; a filename, or a
-  path whose basename is one, resolves to its source; a name registered without
-  a file resolves by name; anything else is `""`, one warning per value),
-  `classicyWallpaperFilename(value)` (the filename for a registered filename
-  or its exact source, `data:` URI included, else `undefined`; never by
-  basename), `portableClassicyWallpaper(value)` (the stored form) and
+  (`ClassicyWallpaperIndex.ts`, store-free). Its optional `legacyDigests`
+  (`classicyWallpaperDigest(dataUri)`: payload length and FNV-1a 64, the
+  media type ignored) name the `data:` URIs older builds inlined it as;
+  Platinum registers those of every 2.x build
+  (`platinumLegacyWallpapers.ts`). The index:
+  `resolveClassicyWallpaper(value, packageId?)` (the given package, the
+  active one, then Platinum; `getThemeVars` passes the theme's own package;
+  `data:`, `blob:`, http(s) and `//` URLs, in any case, and registered
+  sources pass through; a filename, or a path whose basename is one, also
+  with a bundler hash stripped (`azul_dark-0a1b2c3d.png` → `azul_dark.png`:
+  `-` and 8 or more of `[A-Za-z0-9_-]` before the extension), resolves to its
+  source; a name registered without a file resolves by name; anything else
+  is `""`, one warning per value), `classicyWallpaperFilename(value)` (the
+  filename for a registered filename, its exact source, or a plain base64
+  `data:` URI matching a legacy digest; else `undefined`; never by basename),
+  `portableClassicyWallpaper(value)` (the stored form: that filename, or the
+  basename rule above for a path; else the value) and
   `withPortableClassicyWallpaper(theme)`, `listClassicyWallpapers(packageId?)`
   and `defaultClassicyWallpaper(packageId?)` (the package's `default.png`,
   else its first, else Platinum's; `""` with none). `ClassicyThemeSchema`
@@ -2182,10 +2190,12 @@ user's choice (`packageId`, the active theme) are saved:
   a host-loaded theme, or a theme of a package not registered at save time.
 - Every saved theme holds a registered wallpaper by its filename, never the
   URL a build resolved it to (that URL breaks when the host rebuilds). On
-  load, a `migrateClassicyState` step turns a value matching a registered
-  wallpaper (a 2.x save's inlined `data:` URI, an older build's URL or path)
-  into its filename; one that matches nothing is kept, and still renders when
-  it is a `data:` or http(s) URL.
+  load, a `migrateClassicyState` step stores `portableClassicyWallpaper`:
+  a registered source, a 2.x save's inlined `data:` URI (by legacy digest)
+  and an older build's path or hashed asset URL (by basename, hash
+  stripped) become the filename. A value that matches nothing is kept: a
+  `data:` or http(s) URL still renders; any other value (a relative path, an
+  unknown filename) renders no image.
 - On load, an active theme whose id names a built-in of its own package is
   replaced by the current preset, completed as `ClassicyDesktopChangeTheme`
   completes it, whether it was saved as a reference or whole and whatever
