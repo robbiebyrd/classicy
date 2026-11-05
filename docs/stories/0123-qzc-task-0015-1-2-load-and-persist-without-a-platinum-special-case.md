@@ -7,7 +7,7 @@ status: pending
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:10.591Z"
-updated: "2026-11-05T19:54:10.591Z"
+updated: "2026-11-05T20:15:51.417Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -19,6 +19,7 @@ links:
     local: ~/classicy
   stories:
     - ["0122-ieh", "depends"]
+    - ["0125-gqb", "depends"]
   plans:
     - ["0015-kxa", "included"]
 progress:

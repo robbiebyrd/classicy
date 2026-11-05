@@ -7,7 +7,7 @@ status: pending
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:08.260Z"
-updated: "2026-11-05T19:55:08.260Z"
+updated: "2026-11-05T20:17:11.012Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -18,6 +18,8 @@ links:
   repo:
     local: ~/classicy
   stories:
+    - ["0130-rpe", "depends"]
+    - ["0132-jsg", "depends"]
     - ["0133-uqg", "depends"]
     - ["0134-8cy", "depends"]
   plans:

@@ -7,7 +7,7 @@ status: pending
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:34.533Z"
-updated: "2026-11-05T19:54:34.533Z"
+updated: "2026-11-05T20:16:03.993Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -17,8 +17,6 @@ order: 0
 links:
   repo:
     local: ~/classicy
-  stories:
-    - ["0123-qzc", "depends"]
   plans:
     - ["0015-kxa", "included"]
 progress:

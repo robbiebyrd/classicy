@@ -6,7 +6,7 @@ status: validated
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-05T19:56:37.126Z"
+updated: "2026-11-05T20:17:33.708Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -25,50 +25,86 @@ progress:
     status: pending
   "0.1":
     status: pending
+    stories:
+      - 0121-e89
   "1":
     status: pending
   "1.1":
     status: pending
+    stories:
+      - 0122-ieh
   "1.2":
     status: pending
+    stories:
+      - 0123-qzc
   "1.3":
     status: pending
+    stories:
+      - 0124-ln8
   "1.4":
     status: pending
+    stories:
+      - 0125-gqb
   "1.5":
     status: pending
+    stories:
+      - 0126-orc
   "1.6":
     status: pending
+    stories:
+      - 0127-qvl
   "2":
     status: pending
   "2.1":
     status: pending
+    stories:
+      - 0128-l2h
   "3":
     status: pending
   "3.1":
     status: pending
+    stories:
+      - 0129-00o
   "3.2":
     status: pending
+    stories:
+      - 0130-rpe
   "3.3":
     status: pending
+    stories:
+      - 0131-ku3
   "3.4":
     status: pending
+    stories:
+      - 0132-jsg
   "3.5":
     status: pending
+    stories:
+      - 0133-uqg
   "4":
     status: pending
   "4.1":
     status: pending
+    stories:
+      - 0134-8cy
   "4.2":
     status: pending
+    stories:
+      - 0135-t73
   "4.3":
     status: pending
+    stories:
+      - 0136-tis
   "5":
     status: pending
   "5.1":
     status: pending
+    stories:
+      - 0137-dm7
   "5.2":
     status: pending
+    stories:
+      - 0138-cj4
   "6":
     status: pending
 ---
@@ -122,7 +158,7 @@ progress:
 - Produces: `before/` screenshots (every Storybook story at t=0 and the `--mid` set, plus the four example-app screens) and a sizes table (`dist/classicy.es.js`, `.umd.js`, `dist/` total) that 4.3 compares against.
 
 - [ ] **Step 1: Build Storybook and the example at the tip** — Record the commit sha in `.playwright-mcp/parity/platinum-split/BASE`. — `pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build`
-- [ ] **Step 2: Shoot the baseline** — All stories at t=0 plus the animated set at mid-time (`bin/parity/README.md`). — `pnpm parity:shoot --out .playwright-mcp/parity/platinum-split/before && pnpm parity:shoot --mid --out .playwright-mcp/parity/platinum-split/before-mid && pnpm parity:app --out .playwright-mcp/parity/platinum-split/before-app`
+- [ ] **Step 2: Shoot the baseline** — Follow `bin/parity/README.md` § "Baseline, after set, compare" with `P=.playwright-mcp/parity/platinum-split`: serve the built Storybook and the example app as it shows (record each server's PID; stop only those PIDs afterwards), then `pnpm parity:shoot --port <storybook port> --mid --out $P/before` (t=0 shots plus `@mid` shots of the animated stories, in one folder) and `pnpm parity:app --port <example port> --out $P/before`.
 - [ ] **Step 3: Record sizes** — `du -b dist/classicy.es.js dist/classicy.umd.js` and `du -sb dist` into `.playwright-mcp/parity/platinum-split/sizes-before.txt`; note which inlined `data:` URIs dominate (grep `data:audio`, `data:image` byte counts).
 
 **Validation:** `ls .playwright-mcp/parity/platinum-split/before | wc -l  # equals the story count`
@@ -172,7 +208,7 @@ progress:
 - Modify: `src/Appearance/useClassicyAppearance.ts`
 - Test: `src/SystemFolder/ControlPanels/AppManager/ClassicyLoadBeforePackage.test.ts`
 
-**Depends on:** 1.1
+**Depends on:** 1.1, 1.4
 
 **Interfaces:**
 - Consumes: 1.1's floor; `subscribeClassicyAppearancePackages` (Registry.ts:164-171).
@@ -197,7 +233,7 @@ progress:
 - Modify: `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider.packs.test.tsx`
 - Modify: `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundStateEventReducer.test.ts`
 
-**Depends on:** 1.1
+**Depends on:** none
 
 **Interfaces:**
 - Produces: With no registered pack for `activeTheme.sound.pack` and none for `CLASSICY_DEFAULT_SOUND_PACK_ID`, the provider creates no Howl and every sound dispatch is a no-op (no throw, one `classicyLog("warn","Sound",…)` per missing pack id). `fallbackPlayer` is the default pack's player only when that pack is registered.
@@ -228,7 +264,7 @@ progress:
 - Modify: `src/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations.ts`
 - Delete: `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers.ts`
 
-**Depends on:** 1.2
+**Depends on:** none
 
 **Interfaces:**
 - Consumes: `registerClassicyAssets`, the package registry subscription (for the index's cache).
@@ -259,7 +295,7 @@ progress:
 - Modify: `src/Appearance/Platinum/index.ts`
 - Modify: `src/Appearance/ClassicyAssetRegistry.ts`
 
-**Depends on:** 1.2, 1.3, 1.4
+**Depends on:** 1.1
 
 **Interfaces:**
 - Consumes: 1.1-1.4.
@@ -267,34 +303,37 @@ progress:
 
 - [ ] **Step 1: Write the failing stop-screen tests** — With no package registered, `<ClassicyDesktop>` renders `ClassicyNoAppearancePackage` and nothing else of the desktop (no menu bar, no icons, no windows, no Control Strip; `#classicyDesktop` absent); the text is exactly: heading "No Appearance Package is loaded", body "Classicy needs an Appearance Package to draw its desktop. Load one at your app's entry, for example:", and a code line `import "@classicy/appearance-platinum";`; `classicyLog("error","Appearance","No Appearance Package is registered; import \"@classicy/appearance-platinum\" (or another package) at your app's entry.")` is called once per page, not per render or remount; registering a package while the screen shows replaces it with the desktop (registry subscription); it is not `ClassicyCrashScreen` and renders no Sad Mac.
 - [ ] **Step 2: Write the failing resolution tests** — Only `mirrored` registered: the desktop renders with `data-classicy-appearance="mirrored"` even when the persisted `packageId` is `"platinum"`; a persisted unregistered id with Platinum registered resolves to Platinum and logs once (today's behavior). Review focus: with only `mirrored` registered, icons resolve (the core's `ClassicyIcons` tree), cursors and system art resolve to `undefined` without throwing, and sound is silent.
-- [ ] **Step 3: Implement** — `ClassicyDesktop.tsx:64-65` loses `import "@/Appearance/Platinum"`; the desktop branches to the stop screen when `useClassicyAppearancePackages().length === 0`. The stop screen is structure-only: base-layer SCSS with theme-free system fonts and `--color-*`-free fallbacks are not allowed, so it uses inline structural layout plus a stylesheet that passes the pixel/color gates using only vocabulary helpers; if a color is unavoidable, use the system `Canvas`/`CanvasText` keywords and add the declaration to the color sweep's listed exemptions with a reason. The asset registry's hard `"platinum"` fallback (`ClassicyAssetRegistry.ts:14,116,290,325-330`) becomes `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` (the core's icon tree still registers there).
+- [ ] **Step 3: Implement** — The desktop branches to the stop screen when `useClassicyAppearancePackages().length === 0`. `ClassicyDesktop.tsx:64-65` KEEPS `import "@/Appearance/Platinum"` in this section (1.6 drops it), so these tests reach the no-package state with `resetClassicyAppearancePackagesForTests()`. The stop screen must render with no package loaded, so it cannot rely on any package's look or on theme variables a package supplies. Style it in a base-layer `ClassicyNoAppearancePackage.scss` that passes the pixel-literal and literal-color gates: sizes from core-floor variables (`getThemeVars(CLASSICY_CORE_DEFAULT_THEME)` is applied by the desktop root even without a package) or unitless/relative units, and colors only from `--color-*` tokens of the core default theme. If that proves impossible for a color, use the CSS system colors `Canvas`/`CanvasText` and add that one declaration to the color sweep's listed exemptions with a reason. The asset registry's hard `"platinum"` fallback (`ClassicyAssetRegistry.ts:14,116,290,325-330`) becomes `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` (the core's icon tree still registers there).
 - [ ] **Step 4: Give packages an icon** — Add `icon` to the type and schema; Platinum sets it to its `platinum.png` (moved from `AppearanceManager/resources/platinum.png` into `src/Appearance/Platinum/assets/art/`, and `verify:dist`'s art set updated); `ClassicyAppearanceManager.Themes.tsx:8,61-68` reads `pkg.icon` and shows a generic package glyph (an existing icon-tree entry; name it) when absent.
-- [ ] **Step 5: Make desktop tests load Platinum explicitly** — Every test or story that mounts `ClassicyDesktop` and expects the Platinum look or sounds imports `@/__tests__/withPlatinum` (stories: `storybook/.storybook/preview.tsx` already imports Platinum). `src/__tests__/setup.ts` stays Platinum-free. Run the whole suite and fix each failure by adding the import, never by registering Platinum globally.
-- [ ] **Step 6: Run the full test suite** — `pnpm test --maxWorkers=3`
+- [ ] **Step 5: Add `withPlatinum.ts`** — `src/__tests__/withPlatinum.ts` is a side-effect module that imports Platinum; 1.6 puts it to use.
+- [ ] **Step 6: Run the touched suites** — `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance src/SystemFolder/ControlPanels/AppearanceManager`
 - [ ] **Step 7: Commit** — Conventional commit(s) ending with the session trailers; confirm the branch and `git diff --cached` first. — `git commit -m "feat(desktop): stop and say so when no Appearance Package is loaded"`
 
-**Validation:** `pnpm test --maxWorkers=3`
+**Validation:** `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance`
 
-### 1.6: Platinum out of the core's public API and module graph
+### 1.6: The desktop stops importing Platinum, and Platinum leaves the core's public API and module graph
 
 **Files:**
 - Create: `src/Appearance/ClassicyCoreImportGraph.test.ts`
+- Modify: `src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.tsx`
+- Modify: every test or story that mounts `ClassicyDesktop` and expects Platinum (adds `import "@/__tests__/withPlatinum"`)
 - Modify: `.ts-barrel.json`
 - Modify: `src/index.ts`
 - Modify: `src/Appearance/Platinum/ClassicyPlatinum.test.ts`
 - Modify: `storybook/.storybook/preview.tsx`
 - Modify: `storybook/.storybook/RenamedPackage.ts`
 
-**Depends on:** 1.5
+**Depends on:** 1.2, 1.3, 1.5
 
 **Interfaces:**
 - Produces: The core barrel exports nothing from `src/Appearance/Platinum/`; `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack` are exported only by Platinum's own index (the future `@classicy/appearance-platinum`). The wallpaper helpers exported by the core are 1.4's index functions.
 
-- [ ] **Step 1: Write the failing import-graph test** — `ClassicyCoreImportGraph.test.ts`: walk the static import graph from `src/index.ts` (reuse the walker in `platinumAssets.importGraph.test.ts`) and assert no reachable file is under `src/Appearance/Platinum/`; assert `@/index` has no `platinumSoundPack`/`PLATINUM_APPEARANCE_PACKAGE_ID` export.
-- [ ] **Step 2: Exclude Platinum from barrelsby** — Add `"Appearance/Platinum"` to `.ts-barrel.json` `exclude`; regenerate; `src/index.ts:17` disappears. Update `ClassicyPlatinum.test.ts:236-248` to assert the opposite.
-- [ ] **Step 3: Storybook reads presets from the registry** — `preview.tsx:6,15-18` builds its theme toolbar from `listClassicyAppearancePackages()` presets after importing Platinum (by path for now); `RenamedPackage.ts:15,21` imports `PLATINUM_APPEARANCE_PACKAGE_ID` from Platinum's index.
-- [ ] **Step 4: Run the gate** — This is the end of Phase 1: Platinum still lives in `src/`, but nothing in the core reaches it. — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build`
-- [ ] **Step 5: Commit** — Conventional commit(s) ending with the session trailers; confirm the branch and `git diff --cached` first. — `git commit -m "refactor(appearance): the core neither exports nor imports Platinum"`
+- [ ] **Step 1: Drop the desktop's Platinum import** — `ClassicyDesktop.tsx:64-65` loses `import "@/Appearance/Platinum"`. Every test or story that mounts `ClassicyDesktop` and expects the Platinum look or sounds imports `@/__tests__/withPlatinum` (stories: `storybook/.storybook/preview.tsx` already imports Platinum). `src/__tests__/setup.ts` stays Platinum-free. Run the whole suite and fix each failure by adding the import, never by registering Platinum globally. — `pnpm test --maxWorkers=3`
+- [ ] **Step 2: Write the failing import-graph test** — `ClassicyCoreImportGraph.test.ts`: walk the static import graph from `src/index.ts` (reuse the walker in `platinumAssets.importGraph.test.ts`) and assert no reachable file is under `src/Appearance/Platinum/`; assert `@/index` has no `platinumSoundPack`/`PLATINUM_APPEARANCE_PACKAGE_ID` export.
+- [ ] **Step 3: Exclude Platinum from barrelsby** — Add `"Appearance/Platinum"` to `.ts-barrel.json` `exclude`; regenerate; `src/index.ts:17` disappears. Update `ClassicyPlatinum.test.ts:236-248` to assert the opposite.
+- [ ] **Step 4: Storybook reads presets from the registry** — `preview.tsx:6,15-18` builds its theme toolbar from `listClassicyAppearancePackages()` presets after importing Platinum (by path for now); `RenamedPackage.ts:15,21` imports `PLATINUM_APPEARANCE_PACKAGE_ID` from Platinum's index.
+- [ ] **Step 5: Run the gate** — This is the end of Phase 1: Platinum still lives in `src/`, but nothing in the core reaches it. — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build`
+- [ ] **Step 6: Commit** — Conventional commit(s) ending with the session trailers; confirm the branch and `git diff --cached` first. — `git commit -m "refactor(appearance): the core neither exports nor imports Platinum"`
 
 **Validation:** `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build`
 
@@ -323,7 +362,7 @@ progress:
 - Modify: `docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`
 - Modify: `pnpm-lock.yaml`
 
-**Depends on:** 1.6
+**Depends on:** none
 
 **Interfaces:**
 - Produces: Root `package.json` `name: "@classicy/classicy"`, `publishConfig: { access: "public" }`; every import and Sass `pkg:` specifier uses `@classicy/classicy` and `@classicy/classicy/…`; `example/` depends on `"@classicy/classicy": "workspace:*"` (scripts `use:local`/`use:published` renamed to match).
@@ -352,7 +391,7 @@ progress:
 - Modify: `src/index.ts (only if a symbol Platinum needs is not yet exported)`
 - Delete: `src/Appearance/Platinum/ (moved with git mv to packages/appearance/platinum/src/)`
 
-**Depends on:** 2.1
+**Depends on:** 1.6, 2.1
 
 **Interfaces:**
 - Consumes: Any core symbol Platinum imports that the barrel does not export today (check `ClassicyPixelArtSource`, `ClassicyAppearancePackageSchema`, `ClassicyFontFaceCss.internal.ts` helpers) is exported from the core in this section, and listed in the report.
@@ -412,7 +451,7 @@ progress:
 - Modify: `package.json`
 - Modify: `docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`
 
-**Depends on:** 3.2
+**Depends on:** 3.1
 
 **Interfaces:**
 - Produces: Platinum's sound sprites, wallpapers and Platinum-only system-art/cursor files live under `packages/appearance/platinum/assets/` and are imported by Platinum directly. The core's `ClassicyIcons` tree loses the entries for moved files.
@@ -463,7 +502,7 @@ progress:
 - Modify: `docs/plans/hig-audit.md (or docs/hig-audit.md, wherever it lives at execution)`
 - Delete: `resources/ (git mv to packages/appearance/platinum/resources/)`
 
-**Depends on:** 3.4
+**Depends on:** none
 
 **Interfaces:**
 - Produces: `packages/appearance/platinum/resources/` (346 MB, 80,038 files), outside every `files` allowlist and `exports` entry.
@@ -486,7 +525,7 @@ progress:
 - Modify: `bin/ (a release helper, if needed)`
 - Test: `bin/classicyReleaseWorkflow.test.ts`
 
-**Depends on:** 3.4
+**Depends on:** none
 
 **Interfaces:**
 - Produces: `push.yml`: `paths` gains `packages/**` (keeping `!**/*.stories.tsx`); after the version bump, a step sets the Platinum package's `version` to the root's and commits it `[skip ci]` like the codename step; publish runs `pnpm publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks` with `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` (replacing `JS-DevTools/npm-publish`, because pnpm rewrites `workspace:^` to `^<version>`); the wait loop checks both names read from their `package.json` files; the dispatches run only after both are live.
@@ -510,7 +549,7 @@ progress:
 - Modify: `packages/appearance/platinum/README.md`
 - Modify: `docs/plans/0002-ldj-dsgn-appearance-packages-program.md (body edit only)`
 
-**Depends on:** 3.5, 4.1
+**Depends on:** 3.2, 3.4, 3.5, 4.1
 
 **Interfaces:**
 - Produces: Docs true to the new layout; release-note breaking-change entries (each with its migration step) for: the rename; the explicit Platinum import; the stop screen; removed exports (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack`, `classicy/appearance/platinum`, `classicy/appearance/platinum/scss/*`, the old wallpaper helpers) with their replacements; removed icon paths (from 3.3); the moved strict-CSP stylesheets (`@classicy/classicy/dist/classicy.css`, `@classicy/appearance-platinum/classicy-platinum.css`, `…/classicy-platinum.fonts.css`, in that order); the second `optimizeDeps.exclude`; persisted wallpapers stored by filename. The release note's new entries need the owner's approval like the rest of it.
@@ -534,7 +573,7 @@ progress:
 **Interfaces:**
 - Consumes: 0.1's baseline and sizes.
 
-- [ ] **Step 1: Parity** — Rebuild and compare every story (t=0 and `--mid`) and the four example screens against 0.1: AE 0 everywhere. Any difference is a bug in this plan's work. — `pnpm build:storybook && pnpm parity:shoot --out .playwright-mcp/parity/platinum-split/after && pnpm parity:compare .playwright-mcp/parity/platinum-split/before .playwright-mcp/parity/platinum-split/after`
+- [ ] **Step 1: Parity** — Rebuild and compare every story (t=0 and `--mid`) and the four example screens against 0.1: AE 0 everywhere. Any difference is a bug in this plan's work. Same recipe as 0.1 (`bin/parity/README.md` § "Baseline, after set, compare"), shooting into `$P/after`, then `pnpm parity:compare $P/before $P/after` (the `@mid` shots are compared too).
 - [ ] **Step 2: Sizes** — Report both packages' bundle and `dist/` sizes against 0.1, and grep the core bundles for `data:audio`, wallpaper `data:image`, `woff2` and `@layer classicy.package`: none.
 - [ ] **Step 3: A real host, both ways (review focus: strict CSP and bundler)** — Create a minimal Vite + React app in the scratchpad, install the two `pnpm pack` tarballs, `optimizeDeps.exclude` both: (a) with only `@classicy/classicy` imported, `vite build` succeeds and the page shows the stop screen; (b) adding `import "@classicy/appearance-platinum"` shows the desktop, plays the boot chime (Playwright: a `Howl` load succeeds, no 404 for a sprite, font or wallpaper URL); (c) a strict-CSP variant that disallows inline `<style>` and links the three stylesheets renders the same desktop.
 - [ ] **Step 4: Full gate** — `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build`
@@ -549,7 +588,7 @@ progress:
 **Files:**
 - Modify: `robbiebyrd/classicy-web: package.json, the lockfile, every `from "classicy` import, the app entry, its classicy auto-bump workflow (deploy-pages)`
 
-**Depends on:** 4.3
+**Depends on:** 3.4
 
 **Interfaces:**
 - Consumes: The two `pnpm pack` tarballs from 4.3.
@@ -565,7 +604,7 @@ progress:
 **Files:**
 - Modify: `Keeping-History/rt911: package.json, the lockfile, every `from "classicy` import, the app entry, its classicy auto-bump workflow (classicy-published)`
 
-**Depends on:** 4.3
+**Depends on:** 3.4
 
 **Interfaces:**
 - Consumes: The two `pnpm pack` tarballs from 4.3.
@@ -622,6 +661,31 @@ progress:
 
 **Placeholder scan:** No TBDs. Two choices are deliberately left to the implementer with a rule: the exact structural-knob list (derived from and pinned to AGENT-REFERENCE's table by a test in 1.1) and the stop screen's markup (copy fixed in 1.5). The bump-to-3.0.0 mechanism in 4.1 has a stated fallback (a `workflow_dispatch` version input) if the action cannot do it from a merge commit.
 **Residual risk:** Phase 1.5's test churn (every desktop-mounting test without an explicit Platinum import) is the largest diff; 3.2's specifier rewrite is mechanical but wide. The workspace cycle (core dev-depends on Platinum, Platinum peer-depends on the core) must be proven in a clean CI checkout in 3.4/4.1.
+
+## Execution: concurrency and order
+
+The dependency graph above is drawn for speed: a section waits only for sections whose code or interfaces it uses. The critical path is **1.1 → 1.2 → 1.6 → 3.1 → 3.3 → 3.4 → 4.2 → 4.3** (with 1.4 feeding 1.2); everything else runs beside it. Run at most five implementers at once (each with its own worktree and a `--maxWorkers=2` gate); fill free slots in the order given.
+
+| Wave | Starts when | Sections (critical path first) |
+|---|---|---|
+| A | now | 1.1, 1.4, 0.1, 2.1, 1.3, then 3.5, 4.1 (and the independent bug 0120-ak4) |
+| B | 1.1 and 1.4 land (1.5 needs only 1.1) | 1.2, 1.5 |
+| C | 1.2, 1.3, 1.5 land | 1.6 |
+| D | 1.6 and 2.1 land | 3.1 |
+| E | 3.1 lands | 3.3, 3.2 (parallel) |
+| F | 3.3 lands | 3.4 |
+| G | 3.4 lands (and 3.2, 3.5, 4.1 for 4.2) | 4.2, 5.1, 5.2 (5.1/5.2 may branch and rewrite imports as soon as 2.1 lands, and verify against tarballs after 3.4) |
+| H | 4.2 lands | 4.3, then the owner's Phase 6 |
+
+**Landing rules for parallel work.**
+- Nothing lands before 0.1's baseline exists: other sections may start, but merge only after it is captured.
+- Sections land one at a time, in critical-path order when two are ready together. Each rebases onto the tip and passes the full gate before the fast-forward.
+- Expected overlaps, resolved at rebase:
+  - 1.1 and 1.4 (`ClassicyAppearance.ts`, `ClassicyBuiltInThemes.internal.ts`);
+  - 2.1 and any section that edits CLAUDE.md, AGENT-REFERENCE or `ClassicyPackageExports.test.ts`;
+  - 3.2 and 3.3 (root tests that import Platinum);
+  - 1.3/1.4 and 1.6 (`vi.mock` lines, desktop tests).
+- A lockfile conflict is resolved by regenerating with `--config.minimum-release-age=10080` and checking the `libc:` count.
 
 ## Next Steps
 

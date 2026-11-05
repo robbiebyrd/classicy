@@ -7,7 +7,7 @@ status: pending
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:37.968Z"
-updated: "2026-11-05T19:54:37.968Z"
+updated: "2026-11-05T20:18:37.140Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -18,9 +18,7 @@ links:
   repo:
     local: ~/classicy
   stories:
-    - ["0123-qzc", "depends"]
-    - ["0124-ln8", "depends"]
-    - ["0125-gqb", "depends"]
+    - ["0122-ieh", "depends"]
   plans:
     - ["0015-kxa", "included"]
 progress:
@@ -60,19 +58,19 @@ Only `mirrored` registered: the desktop renders with `data-classicy-appearance="
 
 ### 3: Implement
 
-`ClassicyDesktop.tsx:64-65` loses `import "@/Appearance/Platinum"`; the desktop branches to the stop screen when `useClassicyAppearancePackages().length === 0`. The stop screen must render with no package loaded, so it cannot rely on any package's look or on theme variables a package supplies. Style it in a base-layer `ClassicyNoAppearancePackage.scss` that passes the pixel-literal and literal-color gates: sizes from core-floor variables (`getThemeVars(CLASSICY_CORE_DEFAULT_THEME)` is applied by the desktop root even without a package) or unitless/relative units, and colors only from `--color-*` tokens of the core default theme. If that proves impossible for a color, use the CSS system colors `Canvas`/`CanvasText` and add that one declaration to the color sweep's listed exemptions with a reason. The asset registry's hard `"platinum"` fallback (`ClassicyAssetRegistry.ts:14,116,290,325-330`) becomes `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` (the core's icon tree still registers there).
+The desktop branches to the stop screen when `useClassicyAppearancePackages().length === 0`. `ClassicyDesktop.tsx:64-65` KEEPS `import "@/Appearance/Platinum"` in this section (story 0127-qvl, plan §1.6, drops it), so these tests reach the no-package state with `resetClassicyAppearancePackagesForTests()`. The stop screen must render with no package loaded, so it cannot rely on any package's look or on theme variables a package supplies. Style it in a base-layer `ClassicyNoAppearancePackage.scss` that passes the pixel-literal and literal-color gates: sizes from core-floor variables (`getThemeVars(CLASSICY_CORE_DEFAULT_THEME)` is applied by the desktop root even without a package) or unitless/relative units, and colors only from `--color-*` tokens of the core default theme. If that proves impossible for a color, use the CSS system colors `Canvas`/`CanvasText` and add that one declaration to the color sweep's listed exemptions with a reason. The asset registry's hard `"platinum"` fallback (`ClassicyAssetRegistry.ts:14,116,290,325-330`) becomes `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` (the core's icon tree still registers there).
 
 ### 4: Give packages an icon
 
 Add `icon` to the type and schema; Platinum sets it to its `platinum.png` (moved from `AppearanceManager/resources/platinum.png` into `src/Appearance/Platinum/assets/art/`, and `verify:dist`'s art set updated); `ClassicyAppearanceManager.Themes.tsx:8,61-68` reads `pkg.icon` and shows a generic package glyph (an existing icon-tree entry; name it) when absent.
 
-### 5: Make desktop tests load Platinum explicitly
+### 5: Add withPlatinum.ts
 
-Every test or story that mounts `ClassicyDesktop` and expects the Platinum look or sounds imports `@/__tests__/withPlatinum` (stories: `storybook/.storybook/preview.tsx` already imports Platinum). `src/__tests__/setup.ts` stays Platinum-free. Run the whole suite and fix each failure by adding the import, never by registering Platinum globally.
+`src/__tests__/withPlatinum.ts` is a side-effect module that imports Platinum; story 0127-qvl (plan §1.6) puts it to use.
 
-### 6: Run the full test suite
+### 6: Run the touched suites
 
-Run the full test suite Command: `pnpm test --maxWorkers=3`
+Command: `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance src/SystemFolder/ControlPanels/AppearanceManager`
 
 ### 7: Commit
 
@@ -80,7 +78,7 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm test --maxWorkers=3` passes.
+- [ ] VERIFY: `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance` passes.
 - [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
