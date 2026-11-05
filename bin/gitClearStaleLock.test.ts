@@ -772,6 +772,7 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 							`"${find}" "$@"`,
 							`echo "find: '/proc/1/fd': Permission denied" >&2`,
 							`echo "find: '/proc/2/fd/3': No such file or directory" >&2`,
+							`echo "find: '/proc/3/attr': No such process" >&2`,
 							"exit 1",
 						].join("\n"),
 					}),
@@ -799,6 +800,56 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 				expect(fs.existsSync(lock)).toBe(true);
 			},
 		);
+
+		// Its files vanish (ENOENT, or ESRCH while it is reaped) before its
+		// directory does.
+		it("skips a process whose name vanishes while it exits", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: repo });
+			fs.rmSync(path.join(procs, FAKE_PID, "comm"));
+			fs.symlinkSync("gone", path.join(procs, FAKE_PID, "comm"));
+			const result = runWithProcs(procs, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		it("refuses when a running process's name fails to read otherwise", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: repo });
+			fs.rmSync(path.join(procs, FAKE_PID, "comm"));
+			// A directory opens, then fails to read (EISDIR).
+			fs.mkdirSync(path.join(procs, FAKE_PID, "comm"));
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("skips a git process that is being reaped", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: repo });
+			const readlink = realBinary("readlink");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_PROCS: procs,
+					PATH: makeFakeBin({
+						readlink: `case "$3" in "$FAKE_PROCS"/*) echo "readlink: $3: No such process" >&2; exit 1 ;; esac\nexec "${readlink}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
 
 		it("reads a name without a trailing newline", () => {
 			const repo = makeRepo();

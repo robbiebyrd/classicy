@@ -66,12 +66,12 @@ capture() {
 	done
 }
 
-# Whether $out is just the error an exited process, or another user's,
-# gives: ENOENT or EACCES.
+# Whether $out is just the error an exited process (ENOENT, or ESRCH while
+# it is being reaped), or another user's (EACCES), gives.
 gone_or_foreign() {
 	case "$out" in
 	*$'\n'*) return 1 ;;
-	*": No such file or directory" | *": Permission denied") return 0 ;;
+	*": No such file or directory" | *": No such process" | *": Permission denied") return 0 ;;
 	esac
 	return 1
 }
@@ -216,7 +216,8 @@ fi
 # compared with the lock's path (find's -lname and -path are globs, so the
 # paths' glob characters are escaped); other users' processes are unreadable
 # and skipped, and they and processes that exit mid-scan make find exit 1
-# with "Permission denied" and "No such file or directory": any other error
+# with "Permission denied", "No such file or directory" and "No such
+# process": any other error
 # (too many open files, out of memory) fails the guard.
 # find walks each process table itself, pruning all but <pid>/fd, so its
 # arguments do not grow with the process count. Its last start point, the
@@ -247,7 +248,7 @@ for root in "${proc_roots[@]}"; do
 		'') ;;
 		scanned) scanned=1 ;;
 		"held "*) [ -n "$holder" ] || holder=${line#held } ;;
-		*": Permission denied" | *": No such file or directory") ;;
+		*": Permission denied" | *": No such file or directory" | *": No such process") ;;
 		*) unexpected=1 ;;
 		esac
 	done <<<"$scan"
@@ -267,11 +268,12 @@ done
 # reaches a command line. A process that has exited, or another user's
 # (cwd and environ unreadable), is skipped quietly; an unreadable environ
 # leaves the working directory to name the repository. Any other failure
-# fails the guard: a comm (world-readable) that cannot be opened while its
-# process is still there, an error reading cwd or environ, a command
-# substitution that could not start, or git failing for any reason but the
-# directory being in no repository. That verdict is impossible inside this
-# checkout's work tree or git dir, so there it fails the guard too.
+# fails the guard: a comm (world-readable) that cannot be read while its
+# process is still there for any reason but its exit, an error reading cwd
+# or environ, a command substitution that could not start, or git failing
+# for any reason but the directory being in no repository. That verdict is
+# impossible inside this checkout's work tree or git dir, so there it fails
+# the guard too.
 read_environ() {
 	tr '\0' '\n' <"$1"
 }
@@ -286,8 +288,18 @@ for root in "${proc_roots[@]}"; do
 		comm=""
 		if ! { IFS= read -r comm <"$proc/comm"; } 2>/dev/null && [ -z "$comm" ]; then
 			# read fails on a last line without a newline too; that sets comm.
-			[ -e "$proc" ] && scan_failed
-			continue
+			# A process that is still there may be exiting: read it again for
+			# the reason, which may only be that it has gone.
+			[ -e "$proc" ] || continue
+			capture cat -- "$proc/comm" || scan_failed
+			if [ "$rc" -ne 0 ]; then
+				case "$out" in
+				*$'\n'*) scan_failed ;;
+				*": No such file or directory" | *": No such process") continue ;;
+				*) scan_failed ;;
+				esac
+			fi
+			comm=$out
 		fi
 		[ "$comm" = git ] || continue
 		pid=${proc##*/}
