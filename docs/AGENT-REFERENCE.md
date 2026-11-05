@@ -2154,8 +2154,8 @@ user's choice (`packageId`, the active theme) are saved:
 
 - `sanitizeStateForPersistence` drops `availableThemes`, and the load path
   drops one saved by an older build, so the registered packages' current
-  list (`getAllThemes()`, which `ClassicyDesktop` loads when it mounts)
-  applies. A host's `ClassicyDesktopLoadThemes` list is
+  list (`getAllThemes()`, which `ClassicyDesktop` loads when it mounts, or
+  when the first package registers) applies. A host's `ClassicyDesktopLoadThemes` list is
   session state: dispatch it on every boot, as packages are registered.
 - A built-in active theme (its id names one of its package's `defaults` or
   `presets`, that package registered) is saved as a reference,

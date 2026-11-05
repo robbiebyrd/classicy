@@ -47,7 +47,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	useActiveClassicyAppearancePackage,
+	useClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackage";
 import {
 	classicyAppIdentityFrom,
 	useClassicyAppIdentityOverrides,
@@ -177,6 +180,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const availableThemes = useAppManager(
 		(s) => s.System.Manager.Appearance.availableThemes,
 	);
+	const appearancePackages = useClassicyAppearancePackages();
 	const activeTheme = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
@@ -314,9 +318,16 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		}
 	}, [desktopEventDispatch]);
 
-	// Load themes on mount if not already loaded
+	// Load the registered packages' built-in themes on mount if not already
+	// loaded. Not while no package is registered: getAllThemes() is then the
+	// core default theme alone, which as a loaded theme would shadow the
+	// default package's own "default"; the first registration loads them.
 	useEffect(() => {
-		if (availableThemes && availableThemes.length <= 0) {
+		if (
+			appearancePackages.length > 0 &&
+			availableThemes &&
+			availableThemes.length <= 0
+		) {
 			startTransition(() => {
 				desktopEventDispatch({
 					type: "ClassicyDesktopLoadThemes",
@@ -324,7 +335,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				});
 			});
 		}
-	}, [desktopEventDispatch, availableThemes]);
+	}, [desktopEventDispatch, availableThemes, appearancePackages]);
 
 	// Cancel any pending RAF on unmount to prevent state updates after teardown
 	useEffect(() => {
