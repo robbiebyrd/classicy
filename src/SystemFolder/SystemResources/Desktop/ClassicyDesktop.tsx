@@ -324,7 +324,6 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				});
 			});
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [desktopEventDispatch, availableThemes]);
 
 	// Cancel any pending RAF on unmount to prevent state updates after teardown

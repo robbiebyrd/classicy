@@ -186,8 +186,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: placeholder is intentionally excluded — it does not change after mount
 	useEffect(() => {
-		setSelectedItem(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined)); // eslint-disable-line react-hooks/set-state-in-effect
-	}, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+		setSelectedItem(selected ?? (placeholder ? PLACEHOLDER_VALUE : undefined));
+	}, [selected]);
 
 	const [open, setOpen] = useState(false);
 	const [highlight, setHighlight] = useState<number>(-1);

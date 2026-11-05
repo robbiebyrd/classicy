@@ -33,7 +33,6 @@ node = "{{ env['NODE_VERSION'] | default(value='24') }}"
 
 # Install some npm packages globally if needed
 "npm:typescript" = "latest"
-"npm:eslint" = "latest"
 "npm:nodemon" = "latest"
 "npm:concurrently" = "latest"
 "npm:audiosprite" = "latest"

@@ -1,5 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- Utilities and constants file, not components */
-
 import { Howl } from "howler";
 import { createContext, type Dispatch } from "react";
 import "@/Appearance/Platinum/assets/sounds/platinum";

@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- Re-exporting utilities for backwards compatibility */
 import { useCallback, useContext } from "react";
 import {
 	ClassicySoundDispatchContext,

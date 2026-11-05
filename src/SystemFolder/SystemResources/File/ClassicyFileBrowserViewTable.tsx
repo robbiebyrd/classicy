@@ -194,7 +194,6 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// invalidate the columns useMemo constantly — see 99fc5dd2. Guard it
 			// to a stable Date keyed only on the caller-supplied instant.
 			const nowMs = now?.getTime();
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 			const effectiveNow = useMemo(
 				() => (nowMs === undefined ? new Date() : new Date(nowMs)),
 				[nowMs],
