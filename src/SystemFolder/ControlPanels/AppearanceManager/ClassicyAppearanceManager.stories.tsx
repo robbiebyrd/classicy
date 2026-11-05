@@ -1,3 +1,6 @@
+// Registers Test Pack. The module imports Platinum first, so Platinum
+// registers before it and stays first in the Packages list.
+import { TEST_PACK_ID } from "@sb/TestPackPackage";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
 	type ChangeEvent,
@@ -9,28 +12,18 @@ import {
 	useState,
 } from "react";
 import {
-	type ClassicyAppearanceKnobs,
-	type ClassicyAppearancePackage,
 	useActiveClassicyAppearancePackage,
 	useClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackage";
-import {
-	getClassicyAppearancePackage,
-	registerClassicyAppearancePackage,
-} from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	defaultClassicyWallpaper,
 	resolveClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
-// Registers Platinum, whose look Test Pack (below) borrows.
+// Registers Platinum, whose look Test Pack borrows.
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
-import {
-	type ClassicyTheme,
-	type ClassicyThemeTypography,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { useColorsTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
 import { useDesktopTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
@@ -72,74 +65,8 @@ const APP_NAME = "Appearance Manager";
 // so opening AppearanceManager.app would open the real panel beside the tab.
 const TAB_STORY_APP_ID = "AppearanceManagerTabStory.app";
 
-// ---------------------------------------------------------------------------
-// Test Pack: a second Appearance Package, registered at module scope (as in
-// the Packages and Options tab tests), so the Packages list shows two rows
-// and the Options tab shows a package's own knobs, apart from Platinum's six
-// families (Platinum declares knobs too since H 2.1). It borrows
-// Platinum's look — Platinum's stylesheet re-scoped to its own id — so a
-// switch to it changes what the panel offers, not how the desktop looks.
-// The registration lasts for the iframe's lifetime, so shoot these stories
-// in a fresh page.
-// ---------------------------------------------------------------------------
-
-const TEST_PACK_ID = "test-pack";
-
-const testPackKnobs: ClassicyAppearanceKnobs = {
-	controlStrip: {
-		cellHeight: { label: "Cell height", min: 1, max: 512, default: 22 },
-		tabWidth: { label: "Tab width", min: 4, max: 40, default: 12 },
-	},
-	menuBar: {
-		barHeight: { label: "Menu bar height", min: 10, max: 60, default: 20 },
-	},
-};
-
-const testPackTheme = (
-	base: ClassicyTheme,
-	id: string,
-	name: string,
-): ClassicyTheme => ({
-	...base,
-	id,
-	name,
-	package: TEST_PACK_ID,
-	measurements: {
-		...base.measurements,
-		controlStrip: { cellHeight: 22, tabWidth: 12 },
-		menuBar: { barHeight: 20 },
-	},
-});
-
-const platinum = getClassicyAppearancePackage(PLATINUM_APPEARANCE_PACKAGE_ID);
-const testPackDefaults = testPackTheme(
-	getTheme("default"),
-	TEST_PACK_ID,
-	"Test Pack",
-);
-
-const testPack: ClassicyAppearancePackage = {
-	id: TEST_PACK_ID,
-	name: "Test Pack",
-	css: (platinum?.css ?? "").replace(
-		/(\[data-classicy-appearance=)("?)platinum\2\]/g,
-		`$1$2${TEST_PACK_ID}$2]`,
-	),
-	defaults: testPackDefaults,
-	presets: [
-		testPackDefaults,
-		testPackTheme(getTheme("azul"), `${TEST_PACK_ID}-azul`, "Test Pack Azul"),
-	],
-	layout: {
-		window: { growBoxCorner: "bottom-right" },
-		menuBar: { placement: "screen" },
-		desktop: { iconGridOrigin: "top-right" },
-	},
-	knobs: testPackKnobs,
-	options: classicyKnobsToSchema(testPackKnobs),
-};
-
-registerClassicyAppearancePackage(testPack);
+// Test Pack, the second Appearance Package these stories switch to, is
+// registered by @sb/TestPackPackage (imported above).
 
 // ---------------------------------------------------------------------------
 // One window per tab: the tab's content in a stand-alone window, so each tab
