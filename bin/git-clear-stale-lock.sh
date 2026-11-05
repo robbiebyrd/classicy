@@ -24,9 +24,12 @@
 #      once it has written the lock, git may close the descriptor and still
 #      own the lock, as `git commit` does while the editor is open;
 #   6. it is still the same, still empty file just before removal.
-# Any failed guard leaves the lock in place and exits 2. A guard whose scan
-# fails for any reason but an unreadable (another user's) or exited process,
-# such as running out of file descriptors, fails too.
+# Any failed guard leaves the lock in place and exits 2. So does a guard
+# whose scan fails (running out of file descriptors, say), unless the
+# failure only shows a process that has exited or is another user's
+# (ENOENT, ESRCH, EACCES) or, in guard 5, a git process in no repository:
+# git's "not a git repository" for a directory outside this checkout, a
+# GIT_DIR that does not exist, or a GIT_DIR file that is no gitfile.
 #
 # Exit status: 0 removed (or would remove, or there was no lock), 1 usage or
 # environment error, 2 refused.
@@ -46,24 +49,27 @@ set -u
 export LC_ALL=C
 
 # capture COMMAND...: runs COMMAND in a command substitution, its output and
-# errors in $out, its status in $rc. bash substitutes nothing, with status
-# 0, for a command substitution it cannot start (no pipe or process to
-# spare), so a status line is appended: without one, capture returns 1.
+# errors in $out (less one trailing newline), its status in $rc. bash
+# substitutes nothing, with status 0, for a command substitution it cannot
+# start (no pipe or process to spare), so a status line is appended: without
+# one, capture returns 1. capture_stdout leaves the errors out.
 capture() {
-	local result
-	result=$("$@" 2>&1; printf '\n%s' "$?")
-	case "$result" in
+	capture_result "$("$@" 2>&1; printf '\n%s' "$?")"
+}
+capture_stdout() {
+	capture_result "$("$@" 2>/dev/null; printf '\n%s' "$?")"
+}
+capture_result() {
+	case "$1" in
 	*$'\n'*) ;;
 	*) return 1 ;;
 	esac
-	rc=${result##*$'\n'}
+	rc=${1##*$'\n'}
 	case "$rc" in
 	'' | *[!0-9]*) return 1 ;;
 	esac
-	out=${result%$'\n'*}
-	while [ "${out%$'\n'}" != "$out" ]; do
-		out=${out%$'\n'}
-	done
+	out=${1%$'\n'*}
+	out=${out%$'\n'}
 }
 
 # Whether $out is just the error an exited process (ENOENT, or ESRCH while
@@ -217,8 +223,8 @@ fi
 # paths' glob characters are escaped); other users' processes are unreadable
 # and skipped, and they and processes that exit mid-scan make find exit 1
 # with "Permission denied", "No such file or directory" and "No such
-# process": any other error
-# (too many open files, out of memory) fails the guard.
+# process": any other error (too many open files, out of memory) fails the
+# guard.
 # find walks each process table itself, pruning all but <pid>/fd, so its
 # arguments do not grow with the process count. Its last start point, the
 # table again as <root>/., prints the sentinel that shows the scan ran to the
@@ -262,27 +268,41 @@ for root in "${proc_roots[@]}"; do
 done
 
 # 5. No git process in the same repository. A process's repository is the git
-# dir its working directory (or its GIT_DIR) resolves to; a process in
-# another worktree of the same repository has a different git dir and index.
-# Names are read with the shell's own read, so the process count never
-# reaches a command line. A process that has exited, or another user's
-# (cwd and environ unreadable), is skipped quietly; an unreadable environ
-# leaves the working directory to name the repository. Any other failure
-# fails the guard: a comm (world-readable) that cannot be read while its
-# process is still there for any reason but its exit, an error reading cwd
-# or environ, a command substitution that could not start, or git failing
-# for any reason but the directory being in no repository. That verdict is
-# impossible inside this checkout's work tree or git dir, so there it fails
-# the guard too.
-read_environ() {
-	tr '\0' '\n' <"$1"
+# dir git resolves for its working directory and GIT_DIR (following a
+# gitfile, as a linked worktree's .git is); a process in another worktree of
+# the same repository has a different git dir and index. Names are read with
+# the shell's own read, so the process count never reaches a command line. A
+# process that has exited, or another user's (cwd and environ unreadable), is
+# skipped quietly; an unreadable environ leaves the working directory to name
+# the repository. Any other failure fails the guard: a comm (world-readable)
+# that cannot be read while its process is still there for any reason but
+# its exit, an error reading cwd or environ, a command substitution that
+# could not start, or git failing for any reason but the process being in no
+# repository (see the header). git's "not a git repository" is impossible
+# inside this checkout's work tree or git dir, so there it fails the guard
+# too.
+
+# The value of GIT_DIR in the environ file $1, newlines and all, then a
+# newline (which capture drops); nothing if it is unset.
+environ_git_dir() {
+	set -o pipefail
+	sed -z -n '/^GIT_DIR=/{s///p;q}' -- "$1" | tr -d '\0' && echo
 }
-resolve_dir() {
-	cd -- "$1" && pwd -P
+
+# git_dir_of DIR [GIT_DIR]: the git dir git uses working in DIR, with GIT_DIR
+# if one is given, without the script's own GIT_* settings.
+git_dir_of() {
+	unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR
+	if [ $# -gt 1 ]; then
+		export GIT_DIR=$2
+	fi
+	git -C "$1" rev-parse --absolute-git-dir
 }
+
 scan_failed() {
 	refuse "could not scan for git processes"
 }
+
 for root in "${proc_roots[@]}"; do
 	for proc in "$root"/[0-9]*; do
 		comm=""
@@ -309,60 +329,66 @@ for root in "${proc_roots[@]}"; do
 			scan_failed
 		fi
 		cwd=$out
-		capture read_environ "$proc/environ" || scan_failed
+		capture environ_git_dir "$proc/environ" || scan_failed
 		if [ "$rc" -ne 0 ]; then
 			gone_or_foreign || scan_failed
 			out=""
 		fi
-		env_git_dir=""
-		case $'\n'"$out" in
-		*$'\n'GIT_DIR=*)
-			env_git_dir=$'\n'"$out"
-			env_git_dir=${env_git_dir#*$'\n'GIT_DIR=}
-			env_git_dir=${env_git_dir%%$'\n'*}
-			;;
-		esac
-		proc_git_dir=""
-		if [ -n "$env_git_dir" ]; then
-			case "$env_git_dir" in
-			/*) ;;
-			*) env_git_dir="$cwd/$env_git_dir" ;;
-			esac
-			capture resolve_dir "$env_git_dir" || scan_failed
-			if [ "$rc" -eq 0 ]; then
-				proc_git_dir=$out
-			else
-				# A GIT_DIR that is gone, unreadable or a file names no repository.
-				case "$out" in
-				*$'\n'*) scan_failed ;;
-				*": Not a directory") ;;
-				*) gone_or_foreign || scan_failed ;;
-				esac
-			fi
+		env_git_dir=$out
+		# What git is asked about: an absolute GIT_DIR needs no working
+		# directory (which may be gone), a relative one is the process's.
+		if [ -z "$env_git_dir" ]; then
+			git_args=("$cwd")
+			named=$cwd
 		else
-			capture git -C "$cwd" rev-parse --absolute-git-dir || scan_failed
-			if [ "$rc" -eq 0 ]; then
-				# The last line: any warning comes before it.
-				proc_git_dir=${out##*$'\n'}
-			else
-				case "$out" in
-				"fatal: not a git repository"*)
-					case "$cwd/" in
+			case "$env_git_dir" in
+			/*)
+				git_args=(/ "$env_git_dir")
+				named=$env_git_dir
+				;;
+			*)
+				git_args=("$cwd" "$env_git_dir")
+				named=$cwd/$env_git_dir
+				;;
+			esac
+		fi
+		proc_git_dir=""
+		# The git dir is the whole of git's output; its errors are fetched
+		# only when it fails, by asking again.
+		capture_stdout git_dir_of "${git_args[@]}" || scan_failed
+		if [ "$rc" -eq 0 ]; then
+			proc_git_dir=$out
+		else
+			# A success this time matches none of these, and fails the guard.
+			capture git_dir_of "${git_args[@]}" || scan_failed
+			case "$out" in
+			"fatal: not a git repository"*)
+				if [ -n "$env_git_dir" ] && [ ! -e "$named" ]; then
+					: # a GIT_DIR that does not exist
+				else
+					case "$named/" in
 					"$git_dir"/*) scan_failed ;;
 					esac
 					if [ -n "$top" ]; then
-						case "$cwd/" in
+						case "$named/" in
 						"$top"/*) scan_failed ;;
 						esac
 					fi
-					;;
-				"fatal: cannot change to '"*)
-					out=${out#fatal: }
-					gone_or_foreign || scan_failed
-					;;
-				*) scan_failed ;;
+				fi
+				;;
+			"fatal: invalid gitfile format: "*)
+				# A GIT_DIR file that is no gitfile: no git runs with it.
+				case "$out" in
+				*$'\n'*) scan_failed ;;
 				esac
-			fi
+				[ -n "$env_git_dir" ] || scan_failed
+				;;
+			"fatal: cannot change to '"*)
+				out=${out#fatal: }
+				gone_or_foreign || scan_failed
+				;;
+			*) scan_failed ;;
+			esac
 		fi
 		if [ -n "$proc_git_dir" ] && [ "$proc_git_dir" = "$git_dir" ]; then
 			refuse "git process $pid is running in this repository ($({ tr '\0' ' ' <"$proc/cmdline"; } 2>/dev/null | cut -c1-120 | sed 's/ $//'))"

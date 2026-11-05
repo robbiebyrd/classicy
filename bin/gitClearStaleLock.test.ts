@@ -995,6 +995,244 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 			expect(fs.existsSync(lock)).toBe(false);
 		});
 
+		it("keeps the lock while git runs in a repository whose path holds a newline", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const repo = path.join(dir, "nl\nrepo");
+			fs.mkdirSync(repo);
+			git(repo, "init", "-q");
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const busy = spawn("git", ["hash-object", "--stdin"], {
+				cwd: repo,
+				env: gitEnv(),
+			});
+			children.push(busy);
+			waitForProc(busy);
+			const result = run(repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${busy.pid} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// Only the newline readlink adds is dropped, not the path's own.
+		it("keeps the lock while git runs in a repository whose path ends in a newline", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const repo = path.join(dir, "repo\n");
+			fs.mkdirSync(repo);
+			git(repo, "init", "-q");
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const busy = spawn("git", ["hash-object", "--stdin"], {
+				cwd: repo,
+				env: gitEnv(),
+			});
+			children.push(busy);
+			waitForProc(busy);
+			const result = run(repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${busy.pid} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// A linked worktree's .git is a gitfile, which git follows to the
+		// worktree's own git dir.
+		it("follows a GIT_DIR that is a linked worktree's gitfile", () => {
+			const repo = makeRepo();
+			const worktree = path.join(path.dirname(repo), "wt");
+			git(repo, "worktree", "add", "-q", "-b", "wt", worktree);
+			const worktreeLock = makeLock(
+				path.join(repo, ".git", "worktrees", "wt", "index.lock"),
+			);
+			const mainLock = makeLock(path.join(repo, ".git", "index.lock"));
+			const busy = spawn("git", ["hash-object", "--stdin"], {
+				cwd: os.tmpdir(),
+				env: { ...gitEnv(), GIT_DIR: path.join(worktree, ".git") },
+			});
+			children.push(busy);
+			waitForProc(busy);
+			const kept = run(worktree);
+			expect(kept.status).toBe(2);
+			expect(kept.stderr).toMatch(
+				new RegExp(`git process ${busy.pid} is running in this repository`),
+			);
+			expect(fs.existsSync(worktreeLock)).toBe(true);
+			// The main checkout's git dir is another one.
+			const cleared = run(repo);
+			expect(cleared.stderr).toBe("");
+			expect(cleared.status).toBe(0);
+			expect(fs.existsSync(mainLock)).toBe(false);
+		});
+
+		// An absolute GIT_DIR names the repository whatever the working
+		// directory, even one that has been deleted.
+		it("follows an absolute GIT_DIR from a deleted working directory", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: path.join(procs, "gone (deleted)"),
+				environ: [`GIT_DIR=${path.join(repo, ".git")}`],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${FAKE_PID} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("follows a GIT_DIR whose path holds a newline", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const repo = path.join(dir, "nl\nrepo");
+			fs.mkdirSync(repo);
+			git(repo, "init", "-q");
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: os.tmpdir(),
+				environ: ["PATH=/usr/bin", `GIT_DIR=${path.join(repo, ".git")}`],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${FAKE_PID} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("ignores git's warnings when it names a repository", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: repo, environ: ["PATH=/usr/bin"] });
+			const realGit = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					PATH: makeFakeBin({
+						git: `"${realGit}" "$@"\nrc=$?\necho "warning: something" >&2\nexit $rc`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${FAKE_PID} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("skips a git process whose GIT_DIR inside this checkout does not exist", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: os.tmpdir(),
+				environ: [`GIT_DIR=${path.join(fs.realpathSync(repo), "missing")}`],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		// Without a GIT_DIR, git reads a gitfile only where one is the .git of
+		// the directory; "invalid gitfile format" there is not trusted.
+		it("refuses when git calls a working directory's gitfile invalid", () => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: other, environ: ["PATH=/usr/bin"] });
+			const realGit = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_OTHER: fs.realpathSync(other),
+					PATH: makeFakeBin({
+						git: `[ "$2" = "$FAKE_OTHER" ] && { echo "fatal: invalid gitfile format: $2/.git" >&2; exit 128; }\nexec "${realGit}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// What names a process's repository is its environment, not the
+		// script's: a GIT_DIR the script inherits must not leak into it.
+		it("resolves a process's repository without the script's own GIT_DIR", () => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: other, environ: ["PATH=/usr/bin"] });
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					GIT_DIR: path.join(repo, ".git"),
+				},
+				repo,
+			);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		it("refuses when git puts a GIT_DIR in this checkout in no repository", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			const gitDir = fs.realpathSync(path.join(repo, ".git"));
+			makeFakeProc(procs, { cwd: os.tmpdir(), environ: [`GIT_DIR=${gitDir}`] });
+			const realGit = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_GIT_DIR: gitDir,
+					PATH: makeFakeBin({
+						git: `[ "\${GIT_DIR:-}" = "$FAKE_GIT_DIR" ] && { echo "fatal: not a git repository: '$GIT_DIR'" >&2; exit 128; }\nexec "${realGit}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// git is asked again for the reason it failed; an answer that changed
+		// in between cannot be trusted either way.
+		it("refuses when git fails and then succeeds for the same process", () => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: other, environ: ["PATH=/usr/bin"] });
+			const realGit = realBinary("git");
+			const state = path.join(procs, "git-calls");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_OTHER: fs.realpathSync(other),
+					FAKE_STATE: state,
+					PATH: makeFakeBin({
+						git: `if [ "$2" = "$FAKE_OTHER" ] && [ ! -e "$FAKE_STATE" ]; then : >"$FAKE_STATE"; exit 128; fi\nexec "${realGit}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
 		it("skips a git process outside any repository", () => {
 			const repo = makeRepo();
 			const lock = makeLock(path.join(repo, ".git", "index.lock"));
@@ -1030,7 +1268,7 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 		it.each([
 			["is missing", (dir: string) => path.join(dir, "missing")],
 			[
-				"is a file",
+				"is a file but not a gitfile",
 				(dir: string) => {
 					fs.writeFileSync(path.join(dir, "file"), "");
 					return path.join(dir, "file");
