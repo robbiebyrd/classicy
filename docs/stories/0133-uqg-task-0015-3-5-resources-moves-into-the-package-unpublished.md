@@ -3,11 +3,11 @@ id: 0133-uqg
 title: '0015 §3.5: resources/ moves into the package, unpublished'
 purpose: Execute plan 0015-kxa section 3.5.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:02.125Z"
-updated: "2026-11-05T20:16:57.518Z"
+updated: "2026-11-05T20:26:41.988Z"
 tags: []
 milestone: ""
 due_date: ""

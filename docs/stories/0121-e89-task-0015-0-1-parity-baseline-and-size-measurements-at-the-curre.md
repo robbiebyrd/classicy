@@ -3,11 +3,12 @@ id: 0121-e89
 title: '0015 §0.1: Parity baseline and size measurements at the current tip'
 purpose: Execute plan 0015-kxa section 0.1.
 type: task
-status: pending
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:04.309Z"
-updated: "2026-11-05T20:18:34.689Z"
+updated: "2026-11-05T20:25:39.318Z"
+started: "2026-11-05T20:25:39.318Z"
 tags: []
 milestone: ""
 due_date: ""

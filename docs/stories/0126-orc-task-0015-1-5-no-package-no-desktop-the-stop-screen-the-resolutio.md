@@ -3,11 +3,11 @@ id: 0126-orc
 title: '0015 §1.5: No package, no desktop: the stop screen, the resolution chain and the package icon'
 purpose: Execute plan 0015-kxa section 1.5.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:37.968Z"
-updated: "2026-11-05T20:18:37.140Z"
+updated: "2026-11-05T20:26:15.648Z"
 tags: []
 milestone: ""
 due_date: ""

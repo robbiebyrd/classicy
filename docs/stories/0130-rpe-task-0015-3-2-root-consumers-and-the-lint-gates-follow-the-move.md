@@ -3,11 +3,11 @@ id: 0130-rpe
 title: '0015 §3.2: Root consumers and the lint gates follow the move'
 purpose: Execute plan 0015-kxa section 3.2.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:52.288Z"
-updated: "2026-11-05T20:16:37.823Z"
+updated: "2026-11-05T20:26:28.685Z"
 tags: []
 milestone: ""
 due_date: ""

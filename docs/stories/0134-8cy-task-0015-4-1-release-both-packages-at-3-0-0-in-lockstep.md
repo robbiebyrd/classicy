@@ -3,11 +3,11 @@ id: 0134-8cy
 title: '0015 §4.1: Release both packages at 3.0.0 in lockstep'
 purpose: Execute plan 0015-kxa section 4.1.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:05.295Z"
-updated: "2026-11-05T20:17:03.968Z"
+updated: "2026-11-05T20:26:46.239Z"
 tags: []
 milestone: ""
 due_date: ""

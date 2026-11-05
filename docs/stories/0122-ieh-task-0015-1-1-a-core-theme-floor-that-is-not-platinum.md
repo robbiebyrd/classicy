@@ -3,11 +3,12 @@ id: 0122-ieh
 title: '0015 §1.1: A core theme floor that is not Platinum'
 purpose: Execute plan 0015-kxa section 1.1.
 type: task
-status: pending
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:07.578Z"
-updated: "2026-11-05T20:15:44.998Z"
+updated: "2026-11-05T20:25:46.050Z"
+started: "2026-11-05T20:25:46.050Z"
 tags: []
 milestone: ""
 due_date: ""

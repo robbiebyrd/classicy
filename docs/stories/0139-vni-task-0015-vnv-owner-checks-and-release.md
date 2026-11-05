@@ -3,11 +3,11 @@ id: 0139-vni
 title: '0015 V&V: owner actions and checks for the 3.0.0 release'
 purpose: Hold the owner-only actions and human checks for plan 0015-kxa, so implementation stories close on automated evidence.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: S
 created: "2026-11-05T19:55:21.066Z"
-updated: "2026-11-05T20:17:38.107Z"
+updated: "2026-11-05T20:27:08.275Z"
 tags: []
 milestone: ""
 due_date: ""

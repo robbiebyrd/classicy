@@ -3,11 +3,11 @@ id: 0136-tis
 title: '0015 §4.3: Final verification: parity, sizes, and a real host'
 purpose: Execute plan 0015-kxa section 4.3.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:11.304Z"
-updated: "2026-11-05T20:18:41.885Z"
+updated: "2026-11-05T20:26:55.366Z"
 tags: []
 milestone: ""
 due_date: ""

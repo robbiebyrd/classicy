@@ -3,11 +3,11 @@ id: 0137-dm7
 title: '0015 §5.1: Prepare robbiebyrd/classicy-web for 3.0.0'
 purpose: Execute plan 0015-kxa section 5.1.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:14.701Z"
-updated: "2026-11-05T20:17:24.686Z"
+updated: "2026-11-05T20:26:59.527Z"
 tags: []
 milestone: ""
 due_date: ""

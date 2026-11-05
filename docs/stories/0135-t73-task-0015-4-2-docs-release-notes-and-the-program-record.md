@@ -3,11 +3,11 @@ id: 0135-t73
 title: '0015 §4.2: Docs, release notes and the program record'
 purpose: Execute plan 0015-kxa section 4.2.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:08.260Z"
-updated: "2026-11-05T20:17:11.012Z"
+updated: "2026-11-05T20:26:51.012Z"
 tags: []
 milestone: ""
 due_date: ""

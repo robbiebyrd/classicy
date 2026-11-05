@@ -3,11 +3,11 @@ id: 0138-cj4
 title: '0015 §5.2: Prepare Keeping-History/rt911 for 3.0.0'
 purpose: Execute plan 0015-kxa section 5.2.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:18.059Z"
-updated: "2026-11-05T20:17:31.176Z"
+updated: "2026-11-05T20:27:04.109Z"
 tags: []
 milestone: ""
 due_date: ""

@@ -3,11 +3,11 @@ id: 0120-ak4
 title: The library bundle ships React's JSX dev runtime and 1,117 absolute build-machine paths
 purpose: 'Publish a production JSX build: smaller, no dev-only checks, and no leaked build paths.'
 type: bugs
-status: pending
+status: ready
 priority: "2"
 effort: S
 created: "2026-11-05T19:53:37.405Z"
-updated: "2026-11-05T19:53:37.405Z"
+updated: "2026-11-05T20:27:12.954Z"
 tags: []
 milestone: ""
 due_date: ""

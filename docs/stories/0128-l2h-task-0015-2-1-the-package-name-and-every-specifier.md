@@ -3,11 +3,12 @@ id: 0128-l2h
 title: '0015 §2.1: The package name and every specifier'
 purpose: Execute plan 0015-kxa section 2.1.
 type: task
-status: pending
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:45.536Z"
-updated: "2026-11-05T20:16:24.603Z"
+updated: "2026-11-05T20:25:59.630Z"
+started: "2026-11-05T20:25:59.629Z"
 tags: []
 milestone: ""
 due_date: ""

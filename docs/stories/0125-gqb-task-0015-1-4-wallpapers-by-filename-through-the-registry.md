@@ -3,11 +3,12 @@ id: 0125-gqb
 title: '0015 §1.4: Wallpapers by filename, through the registry'
 purpose: Execute plan 0015-kxa section 1.4.
 type: task
-status: pending
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:34.533Z"
-updated: "2026-11-05T20:16:03.993Z"
+updated: "2026-11-05T20:25:52.696Z"
+started: "2026-11-05T20:25:52.696Z"
 tags: []
 milestone: ""
 due_date: ""

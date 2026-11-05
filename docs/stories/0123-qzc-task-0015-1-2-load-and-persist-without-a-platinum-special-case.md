@@ -3,11 +3,11 @@ id: 0123-qzc
 title: '0015 §1.2: Load and persist without a Platinum special case'
 purpose: Execute plan 0015-kxa section 1.2.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:10.591Z"
-updated: "2026-11-05T20:15:51.417Z"
+updated: "2026-11-05T20:26:11.023Z"
 tags: []
 milestone: ""
 due_date: ""

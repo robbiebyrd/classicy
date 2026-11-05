@@ -3,11 +3,11 @@ id: 0131-ku3
 title: '0015 §3.3: Platinum''s files leave assets/'
 purpose: Execute plan 0015-kxa section 3.3.
 type: task
-status: pending
+status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:55.758Z"
-updated: "2026-11-05T20:16:44.666Z"
+updated: "2026-11-05T20:26:32.795Z"
 tags: []
 milestone: ""
 due_date: ""
