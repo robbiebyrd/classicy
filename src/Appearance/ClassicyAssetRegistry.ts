@@ -10,6 +10,11 @@ import {
 } from "./ClassicyAssetSource";
 import { classicyFontFaceRule } from "./ClassicyFontFaceCss.internal";
 import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource.internal";
+import {
+	type ClassicyWallpaperRecord,
+	connectClassicyWallpaperSource,
+	isPlainClassicyWallpaperFile,
+} from "./ClassicyWallpaperSource.internal";
 
 const PLATINUM = "platinum";
 const SUBSYSTEM = "ClassicyAssetRegistry";
@@ -100,6 +105,8 @@ type StoredFontFace = {
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
 /** Every registered face per package, with its full fallback source list. */
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
+/** Each package's wallpaper files by wallpaper name (`registerClassicyWallpapers`). */
+const wallpaperFiles = new Map<string, Map<string, string>>();
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -266,6 +273,7 @@ export const registerClassicyAssets = (
 export const resetClassicyAssets = (): void => {
 	trees.clear();
 	fontFaces.clear();
+	wallpaperFiles.clear();
 	notify();
 };
 
@@ -513,15 +521,62 @@ export const registerClassicySystemArt = (
 	registerClassicyAssets("systemArt", packageId, entries as ClassicyAssetTree);
 };
 
+/**
+ * Register a package's wallpapers. The asset tree is keyed by `name` (the
+ * Desktop tab's labels). `file` is the portable reference themes hold and
+ * persist (`"azul_dark.png"`), resolved back to `src` through the wallpaper
+ * index (`resolveClassicyWallpaper`); an entry without one resolves by its
+ * name only. Re-registering a name replaces its source, and its file when
+ * one is given. A file that is not a plain filename is ignored with a warning.
+ */
 export const registerClassicyWallpapers = (
 	packageId: string,
-	list: Array<{ name: string; src: ClassicyAssetSource }>,
-): void =>
+	list: Array<{ name: string; src: ClassicyAssetSource; file?: string }>,
+): void => {
+	let files = wallpaperFiles.get(packageId);
+	for (const { name, src, file } of list) {
+		if (file === undefined || !isClassicyAssetSource(src)) continue;
+		// The theme schema accepts a registered filename as a safe
+		// `backgroundImage`, so a file is never a path, URL or quote.
+		if (!isPlainClassicyWallpaperFile(file) || FORBIDDEN_KEYS.has(name)) {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored wallpaper file "${file}" of "${name}" for package "${packageId}": not a plain filename`,
+			);
+			continue;
+		}
+		if (!files) {
+			files = new Map();
+			wallpaperFiles.set(packageId, files);
+		}
+		files.set(name, file);
+	}
 	registerClassicyAssets(
 		"wallpapers",
 		packageId,
 		Object.fromEntries(list.map((w) => [w.name, w.src])),
 	);
+};
+
+// The wallpaper index (ClassicyWallpaperIndex.ts) reads each package's
+// wallpapers, with their files, through this link; rebuilt lazily whenever
+// `version` moves.
+connectClassicyWallpaperSource({
+	version: () => version,
+	packageIds: () => [...(trees.get("wallpapers")?.keys() ?? [])],
+	entries: (packageId) => {
+		const tree = trees.get("wallpapers")?.get(packageId) ?? {};
+		const files = wallpaperFiles.get(packageId);
+		const out: ClassicyWallpaperRecord[] = [];
+		for (const [name, src] of Object.entries(tree)) {
+			if (typeof src !== "string") continue;
+			const file = files?.get(name);
+			out.push(file === undefined ? { name, src } : { name, src, file });
+		}
+		return out;
+	},
+});
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: refusing control characters is the point
 const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
