@@ -40,20 +40,27 @@ allow the patched versions.
 | --- | --- | --- | --- |
 | `brace-expansion@<1.1.18` → `^1.1.18` | The August 2026 pass (78fcbfc66) | minimatch 3, pulled in only by ESLint | ESLint was removed, so no brace-expansion 1.x is left in the lockfile and the override matched nothing. |
 
-## Override set by story 0118-qm6
+## Overrides set by story 0118-qm6
 
 | Override | Alert | Parent and pin | Why it is safe |
 | --- | --- | --- | --- |
-| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `glob` 13, `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | The one override that crosses a major: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer except glob calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. glob 13's default entry bundles its own minimatch 10 and never loads this one; its unbundled `glob/raw` entry does not work with 11 (patterns with magic match nothing), but nothing in the tree imports it. All of it runs only at build or watch time; minimatch is not in `dist/`. |
+| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | The one override that crosses a major: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. All of them run only at build or watch time; minimatch is not in `dist/`. |
+| `glob@>=13.0.0 <14.0.3` → `^14.0.3` | GHSA-g3hv-75wg-m249 (bundled copy); GHSA-3g3m-2fjr-6pw4 (an aborted async walk keeps reading directories) | `rimraf` (via `vite-plugin-image-tools`) asks for `^13.0.3`; `@joshwooding/vite-plugin-react-docgen-typescript` (via `@storybook/react-vite`) asks for `^13.0.1` | glob's default entry, `index.min.js`, bundles its own minimatch, so the minimatch override alone leaves 13's vulnerable copy in place. 14.0.3 is the first release that bundles a fixed minimatch 11; 14.0.0 to 14.0.2 bundle 11.0.0, which predates the fix. Both parents call only `glob`/`globSync` and read back an array of strings (`absolute`, `cwd`, `ignore` without a leading `/`, `nodir`, `withFileTypes: false`, `signal`), none of which 14 changes. Storybook's default `react-docgen` never loads the docgen plugin, and nothing here runs rimraf with globs. |
 
-The override starts at 7.0.0, the advisory's lower bound, so minimatch 3.1.5
-(eslint 9, `@eslint/config-array`, `@eslint/eslintrc`) is left alone: 3.x is
-outside the advisory's range, has none of the vulnerable code, and cannot move
-to 11, because eslint calls the CommonJS default-export function that 11 no
-longer provides. Once glob 13 leaves the tree, the glob caveat goes with it;
-glob 14 depends on minimatch 11 itself. The lockfile now holds minimatch 3.1.5
-and 11.0.3 only, and brace-expansion 2.1.7, which only minimatch 9 used, is
-gone.
+The minimatch override starts at 7.0.0, the advisory's lower bound, so
+minimatch 3.1.5 (eslint 9, `@eslint/config-array`, `@eslint/eslintrc`) is left
+alone: 3.x is outside the advisory's range, has none of the vulnerable code,
+and cannot move to 11, because eslint calls the CommonJS default-export
+function that 11 no longer provides. The lockfile now holds minimatch 3.1.5 and
+11.0.3, glob 14.0.3 and path-scurry 3.0.0; brace-expansion 2.1.7, which only
+minimatch 9 used, is gone.
+
+One vulnerable copy is out of reach of any override: `storybook` 10.6.2 bundles
+glob and minimatch 10 into `dist/_node-chunks/`, and so do 10.6.5 and 10.6.6,
+the latest release. It matches only the `stories` globs in
+`storybook/.storybook/main.ts`, at dev and build time. Dependabot cannot see a
+bundled copy, so check a later Storybook release before treating the advisory
+as gone.
 
 ## Keeping the lockfile's `libc` fields
 
