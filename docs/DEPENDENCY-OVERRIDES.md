@@ -27,13 +27,18 @@ brace-expansion 1.1.21, 2.1.7 and 5.0.12, source-map-js 1.2.2, browserslist
 reports).
 
 Story 0117-qjd later removed ESLint, and with it brace-expansion 1.1.21 and
-minimatch 3.1.5, which only ESLint pulled in. The `brace-expansion@<1.1.18`
-override now matches nothing in the lockfile.
+minimatch 3.1.5, which only ESLint pulled in.
 
 The rest of the overrides came from the August 2026 pass (78fcbfc66). Some of
 their floors (undici, fast-uri, brace-expansion, svgo) are now below the latest
 advisories, but the lockfile resolves above them because the parents' ranges
 allow the patched versions.
+
+## Overrides removed by story 0117-qjd
+
+| Override | Added | Parent and pin | Why it was removed |
+| --- | --- | --- | --- |
+| `brace-expansion@<1.1.18` → `^1.1.18` | The August 2026 pass (78fcbfc66) | minimatch 3, pulled in only by ESLint | ESLint was removed, so no brace-expansion 1.x is left in the lockfile and the override matched nothing. |
 
 ## Keeping the lockfile's `libc` fields
 
