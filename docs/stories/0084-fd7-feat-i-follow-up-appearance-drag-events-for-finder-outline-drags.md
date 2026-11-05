@@ -3,12 +3,13 @@ id: 0084-fd7
 title: 'I follow-up: appearance drag events for Finder outline drags'
 purpose: Make Finder and desktop file drags (ClassicyFileDrag) emit the same dragStart/dragEnd appearance events as window and icon drags, so a package can style or sound them.
 type: feat
-status: in_progress
+status: complete
 priority: "3"
 effort: S
 created: "2026-10-29T21:26:50.186Z"
-updated: "2026-11-04T00:32:09.357Z"
+updated: "2026-11-05T00:48:49.859Z"
 started: "2026-11-04T00:30:14.364Z"
+completed: "2026-11-05T00:48:49.859Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -24,13 +25,13 @@ links:
     - ["0006-dy6", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # I follow-up: appearance drag events for Finder outline drags
@@ -61,9 +62,9 @@ Unit tests for the callbacks (threshold, Escape, drop, outside release: exactly 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/File
-- [ ] A Finder or desktop file drag emits one dragStart once the drag threshold is crossed and exactly one dragEnd on drop, Escape or release elsewhere.
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
+- [x] VERIFY: pnpm exec vitest run src/SystemFolder/SystemResources/File
+- [x] A Finder or desktop file drag emits one dragStart once the drag threshold is crossed and exactly one dragEnd on drop, Escape or release elsewhere.
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test
 
 ## Work Log
 
@@ -72,3 +73,9 @@ Unit tests for the callbacks (threshold, Escape, drop, outside release: exactly 
 ### 2026-11-03T23:46:58.680Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).
 
 ### 2026-11-04T00:32:09.357Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).
+
+### 2026-11-05T00:48:24.881Z - Implemented (320534048 on fu/0084): one dragStart and exactly one dragEnd; no input field (pointer-only rule); detail is {kind:'file'}. Review: Needs fixes (a source unmounting mid-drag reported dragEnd after unmount and left the outline on screen; three surviving mutants; minors).
+
+### 2026-11-05T00:48:27.244Z - Review fixes (824203d70 on fu/0084): useClassicyFileDragEndOnUnmount ends a drag as canceled before its source unmounts; timing mutants killed; a throwing onEnd is isolated; emitDrag is optional; shared withElementsFromPoint test helper. 11 mutants killed; 5106 tests (File suite 454). Accepted.
+
+### 2026-11-05T00:48:46.394Z - Landed (wave2b) on feat/AppearancePackages as af200b305 and 8a6f63291, right after wave2a 065c27e61 (confirmed from git ancestry; the pending-tracker notes recorded the wave2b gate as running). Every later full gate on the branch includes it (e.g. 443 files / 5722 tests on the Part H rebase). The drag-end field was later renamed cancelled -> canceled (52b917046) and gained lost (29d3a253d). Complete.

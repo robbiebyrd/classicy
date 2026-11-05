@@ -7,7 +7,7 @@ status: in_progress
 priority: "1"
 effort: M
 created: "2026-10-30T19:15:24.764Z"
-updated: "2026-11-04T00:31:54.166Z"
+updated: "2026-11-05T00:46:36.446Z"
 started: "2026-11-03T23:44:53.999Z"
 tags: []
 milestone: ""
@@ -26,9 +26,9 @@ progress:
   "1":
     status: pending
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
 ---
 
 # Clear the 37 transitive Dependabot alerts
@@ -56,7 +56,7 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 ## Acceptance Criteria
 
 - [ ] No open Dependabot alert remains, except ones dismissed with a stated reason.
-- [ ] VERIFY: pnpm install --frozen-lockfile && pnpm test --maxWorkers=3
+- [x] VERIFY: pnpm install --frozen-lockfile && pnpm test --maxWorkers=3
 
 ## Files
 
@@ -69,3 +69,7 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 ### 2026-11-03T23:46:38.652Z - Scheduled by the owner (2026-11-03: 'Schedule them all for work as soon as possible'). Wave 1: started in its own worktree from feat/AppearancePackages 670daf925.
 
 ### 2026-11-04T00:31:54.165Z - Implemented (e3bb63e35 on fu/0092): 33 alerts fixed by in-range lockfile updates and 3 by raised overrides (js-yaml, shell-quote (the critical one), sharp), documented in docs/DEPENDENCY-OVERRIDES.md; pnpm audit drops from 58 findings to 6; dist byte-identical; full gate green. Open, awaiting the owner's dismissal decision: deepmerge #341 (no patch, its caller never loaded) and minimatch #343 (new; patched only in 11.x). Lands after Part K; the Dependabot check after PR 333 merges.
+
+### 2026-11-05T00:46:34.063Z - Landed in wave 1 as 96a666faa (wave tip 9b9f8d028, gate 430 files / 5140 tests; pnpm install --frozen-lockfile passes). Owner approved the dismissals 2026-11-04: Dependabot #341 (deepmerge) and #343 (minimatch) dismissed as tolerable_risk with comments (#343 now reads as withdrawn on GitHub). The other open alerts are fixed on feat/AppearancePackages (lockfile compared) and close when PR 333 merges.
+
+### 2026-11-05T00:46:36.446Z - Held open 2026-11-05: criterion 1 is not met yet. gh shows 37 open alerts on the default branch and PR 333 still OPEN. Remaining: step 1 (after PR 333 merges, confirm the alerts close and the next security run opens an npm-security PR), then tick criterion 1 and complete.

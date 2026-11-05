@@ -3,12 +3,13 @@ id: 0074-zpv
 title: 'H 7.1: Full parity re-shoot and docs'
 purpose: Prove Part H changed no Platinum pixel, document the knob families and the pixel-literal gate, and run the final verification that closes the plan.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-28T20:39:40.133Z"
-updated: "2026-11-04T00:25:52.809Z"
+updated: "2026-11-05T00:50:13.066Z"
 started: "2026-11-04T00:25:50.504Z"
+completed: "2026-11-05T00:50:13.066Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -32,15 +33,15 @@ links:
     - ["0011-v9t", "included", ["7.1", "8"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
   "5":
-    status: pending
+    status: complete
 ---
 
 # H 7.1: Full parity re-shoot and docs
@@ -77,9 +78,9 @@ AGENT-REFERENCE §8 gains a 'Package knob families' table (family → keys → C
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
-- [ ] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0, no output
-- [ ] VERIFY: grep -rnoE '(?<![\w.-])[1-9][0-9]*(\.[0-9]+)?px' src --include=*.scss | grep -v savers | grep -v '@media' | wc -l  # expect 0
+- [x] VERIFY: pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test && pnpm build:source
+- [x] VERIFY: node bin/check-pixel-literals.ts; echo exit=$?  # expect exit=0, no output
+- [x] VERIFY: grep -rnoE '(?<![\w.-])[1-9][0-9]*(\.[0-9]+)?px' src --include=*.scss | grep -v savers | grep -v '@media' | wc -l  # expect 0
 
 ## Files
 
@@ -92,3 +93,9 @@ AGENT-REFERENCE §8 gains a 'Package knob families' table (family → keys → C
 ### 2026-10-29T20:22:00.352Z - Moved 2 open [MANUAL] acceptance criteria to the program V&V ticket 0083-v8n (human verification and validation), where it is tracked and ticked. This story now closes on its automated criteria; 0083-v8n links back with `depends`.
 
 ### 2026-11-04T00:25:52.809Z - H 7.1 started on land/part-h at 2b481f62b: the full 342 + 4 re-shoot with computed styles and forced states, docs, and every 'For H 7.1' carry-forward item.
+
+### 2026-11-05T00:49:45.838Z - Done (a8e02a085, a5ee41fe9 on land/part-h, pushed as feat/appearance-part-h-v2): full parity at AE 0 with the size check, computed styles and forced states identical; only the ruled differences (H-R4 Options tab, H-R23 PopUpSlider dumps); the scanner sees number constants inside #{} (crayon site allowlisted; 37 sites over 8 files); a cross-metric sweep; knob-family docs and a host upgrade list. Plan 0000-aud body edited (§2.5 and Phase 6 item 3 marked done).
+
+### 2026-11-05T00:49:48.132Z - Rebased onto 536a958c9 as land/part-h-v3 (9b1842dc7, pushed as feat/appearance-part-h-v3): full gate green (443 files / 5722 tests); parity vs a fresh before-tip baseline 348/348 AE 0, only ruled diffs H-R4/H-R23; the fallout commit pins knob font sizes inside 0099's 8-72. Final whole-branch reviews (correctness + contract) -> H-R29 fix round ff36fe59a..83b2c8775 (knobs 93 -> 95; multiplier allowlist 40 sites / 9 files; gate 445 files / 5739 tests); fix re-review Approved.
+
+### 2026-11-05T00:50:09.319Z - Landed 93aa968fe (feat/AppearancePackages fast-forwarded 536a958c9..93aa968fe and pushed). Its two [MANUAL] criteria live on V&V 0083-v8n: (b) docs verified by the controller 2026-11-04 and ticked there; (a) the example-app control-strip cell height and the looks-unchanged check stays with the owner. Complete.

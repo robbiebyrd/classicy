@@ -6,7 +6,13 @@ status: ready
 priority: "2"
 effort: XL
 created: "2026-10-28T19:37:20.795Z"
-updated: "2026-10-28T19:40:02.175Z"
+updated: "2026-11-05T01:05:02.814Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
 links:
   repo:
     local: ~/classicy
@@ -205,11 +211,7 @@ the real Platinum proportions, e.g.:
 
 Each is a hidden design constant. (**Done (part G):** the real proportions
 are 35 named derivations emitted by `getThemeVars`, `CLASSICY_THEME_DERIVATIONS`;
-86 one-off multipliers are left for part H. **Done 2026-11-04 (part H, plan
-0011-v9t):** 84 more named derivations, 119 in all; the multiplier gate in
-`bin/check-pixel-literals.ts` keeps only 40 sites over 9 files in
-`bin/multiplier-allowlist.json`, each with a reason, listed in
-`docs/AGENT-REFERENCE.md` §8, "Multipliers in SCSS".)
+86 one-off multipliers are left for part H, listed in `docs/AGENT-REFERENCE.md` §8.)
 Title-bar height is defined **twice and
 inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `--hig-titlebar-height` = 19px (`:600`).
@@ -222,21 +224,6 @@ inconsistently**: `control * 1.5` = 18px (`ClassicyWindow.scss:244`) vs
 `ColorPicker` 16, `AppleGuide` 12, `BalloonHelp` 9, `scrollbars.scss` 8,
 `PopUpSlider` 7. Core controls (Button, Menu, Tabs, Slider, Checkbox, Radio,
 Window) have 0–2 each.
-
-**Done 2026-11-04 (part H, plan 0011-v9t).** 0 bare literals and 0 pixel
-fallbacks are left in `src/**/*.scss` (the screen savers' ported art
-excepted). `bin/check-pixel-literals.ts`, chained into `pnpm lint` and run
-by a test, fails on any new one, and its ratchet,
-`bin/pixel-literal-allowlist.json`, is empty. The pixel-matched surfaces read
-20 Platinum knob families (95 keys, `measurements.<family>` in
-`platinum.json`, emitted as `--<family>-<key>`); every other pixel size reads
-a core token or a named derivation (the few `rem` sizes in the startup screen
-and the desktop stay as they are). The same scanner gates multipliers: 84
-more named derivations (119 in all), and `bin/multiplier-allowlist.json`
-keeps only the 40 kept sites (geometry and the button spacing scale) with a
-reason each. Platinum renders pixel-identical (344 stories and the
-example-app shots at AE 0), with one named visual change: the Appearance
-Manager's Options tab shows Platinum's six knob groups (H-R4).
 
 #### 2.6 `!important` and cascade order
 
@@ -833,9 +820,6 @@ Phase 0 (`.playwright-mcp/parity`, `compare.js`).
 3. Pixel-literal purge: 331 → 0. Pixel-matched surfaces (Control Strip,
    menu frame, Pager, Balloon Help) get package-JSON metrics; everything else
    reads theme variables or derivations.
-   Done 2026-11-04 (part H, plan 0011-v9t): 0 literals and 0 pixel fallbacks,
-   gated by `bin/check-pixel-literals.ts` in `pnpm lint`; 20 knob families in
-   `platinum.json` (six of them in the Options tab); see §2.5.
 4. JS geometry (§3.1): the four `menuBarHeight = 30` copies, the `+5`
    fudge, the zoom margin and the collapsed-height assumption read CSS
    variables (the `useClassicyBalloonHelp` pattern) or measured rects (§3.1).
@@ -871,6 +855,11 @@ write through `ClassicyDesktopChangeAppearanceOption { path, value }`.
 
 - Reloading built-in presets on hydrate (persisted `availableThemes` freezes
   them; named in the metrics spec as a separate design).
+
+  **Done (follow-up preset-reload, landed 793f3af80..e598f0df3, 2026-11-04).**
+  Built-in themes are no longer persisted; a saved built-in active theme is
+  stored as `{ id, package }` and replaced by its current preset on every load
+  or package registration.
 
 ### 10. Questions and answers (record)
 

@@ -3,12 +3,13 @@ id: 0100-a5o
 title: Icon view stacks every icon at the top left (regression from the 11/02 CSS fix b4337ba2c)
 purpose: Restore the file browser's icon view without undoing what the 11/02 CSS fix solved for the list view.
 type: bugs
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-04T00:27:39.118Z"
-updated: "2026-11-04T00:32:11.879Z"
+updated: "2026-11-05T00:48:23.208Z"
 started: "2026-11-04T00:30:23.465Z"
+completed: "2026-11-05T00:48:23.208Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -26,11 +27,11 @@ links:
     - ["0002-ldj", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
 ---
 
 # Icon view stacks every icon at the top left (regression from the 11/02 CSS fix b4337ba2c)
@@ -57,8 +58,8 @@ Add a test, a real-browser check or a parity story for each view, so neither reg
 
 ## Acceptance Criteria
 
-- [ ] `desktop-filebrowser--icon-view` and `--icon-view-kept-arranged` match the baseline (AE 0), and the list-view problem the 11/02 fix solved stays solved, demonstrated before and after.
-- [ ] VERIFY: pnpm test --maxWorkers=3
+- [x] `desktop-filebrowser--icon-view` and `--icon-view-kept-arranged` match the baseline (AE 0), and the list-view problem the 11/02 fix solved stays solved, demonstrated before and after.
+- [x] VERIFY: pnpm test --maxWorkers=3
 
 ## Files
 
@@ -67,3 +68,9 @@ Add a test, a real-browser check or a parity story for each view, so neither reg
 ## Work Log
 
 ### 2026-11-04T00:32:11.879Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).
+
+### 2026-11-05T00:48:04.030Z - Landed as 40f0f5cd8 (in wave 1's range, before 9b9f8d028): one scoped rule .classicyFileBrowserFill:not(:has(> .classicyFileBrowserViewTableContainer)) { width: 100% }. The icon views are restored (AE 0) and the 11/02 list fix is kept (wide tables scroll right), demonstrated before and after in the report. Applies cleanly to main.
+
+### 2026-11-05T00:48:06.249Z - Hotfix: owner approved 2026-11-04 PR #336 to main (fix/icon-view-width: 7ab54deee = 40f0f5cd8, plus e69dda118 = a31e7ecd3, the example HCPluginAction type fix). The regression shipped in 2.1.6 and 2.1.7. Gate green (288 files / 3317 tests, both builds). Note: main's CI doesn't build example/, so the example type error went unnoticed there.
+
+### 2026-11-05T00:48:20.141Z - PR #336 merged by the owner (03ad6099a); hotfix released in 2.1.8 ('Fortissimo'). Complete.

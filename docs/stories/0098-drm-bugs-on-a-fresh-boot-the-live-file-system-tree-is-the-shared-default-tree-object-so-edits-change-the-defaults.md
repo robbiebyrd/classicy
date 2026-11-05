@@ -3,12 +3,13 @@ id: 0098-drm
 title: On a fresh boot the live file-system tree is the shared default tree object, so edits change the defaults
 purpose: Keep the default file-system tree immutable, so one session's edits never leak into other storage keys or Drive Setup.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-10-30T21:44:07.146Z"
-updated: "2026-11-04T00:32:01.802Z"
+updated: "2026-11-05T00:47:23.074Z"
 started: "2026-11-04T00:29:47.040Z"
+completed: "2026-11-05T00:47:23.074Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -27,9 +28,9 @@ links:
     - ["0013-l9f", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
 ---
 
 # On a fresh boot the live file-system tree is the shared default tree object, so edits change the defaults
@@ -52,8 +53,8 @@ Deep-copy the default tree (`structuredClone`) when it seeds the live tree, in b
 
 ## Acceptance Criteria
 
-- [ ] Edits in one session never change `DefaultFSContent` or a host's `defaultFileSystem` object, and every new file system seeds from untouched defaults.
-- [ ] VERIFY: pnpm test --maxWorkers=3
+- [x] Edits in one session never change `DefaultFSContent` or a host's `defaultFileSystem` object, and every new file system seeds from untouched defaults.
+- [x] VERIFY: pnpm test --maxWorkers=3
 
 ## Files
 
@@ -64,3 +65,7 @@ Deep-copy the default tree (`structuredClone`) when it seeds the live tree, in b
 ### 2026-11-03T23:46:51.032Z - Scheduled by the owner (2026-11-03). Wave 2: starts as soon as Part K lands, because it edits code Part K is landing now (the file system, Finder, Storybook, file drags).
 
 ### 2026-11-04T00:32:01.802Z - Wave 2 started in its own worktree from feat/AppearancePackages a02e805cb (Part K landed).
+
+### 2026-11-05T00:47:08.232Z - Implemented (e8e8e8588, 2802a9135 on fu/0098): the live tree starts from a structuredClone of the defaults, with a JSON fallback that logs a warning; the seed-migration add step copies the host's entry; the dev freeze was dropped (the suite was green with it on, so nothing writes to the defaults); 8 mutants killed; 5090 tests. Accepted.
+
+### 2026-11-05T00:47:19.907Z - Landed in wave2a as d29c33f7f, 8b6070928 and 5bd6fce2b (the CLAUDE.md line under 'File System: Shared Live Tree'); wave tip 065c27e61. Gate: 434 files / 5371 tests, both builds. Complete.

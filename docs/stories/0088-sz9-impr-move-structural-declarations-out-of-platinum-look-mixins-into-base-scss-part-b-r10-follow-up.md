@@ -3,12 +3,13 @@ id: 0088-sz9
 title: Move structural declarations out of Platinum look mixins into base SCSS (Part B R10 follow-up)
 purpose: 'Keep a component''s structure when no appearance package styles it: control boxes, menu dividers and depressable ::after geometry must not collapse with Platinum CSS off.'
 type: impr
-status: in_progress
+status: complete
 priority: "3"
 effort: M
 created: "2026-10-30T03:00:59.046Z"
-updated: "2026-11-04T00:13:01.936Z"
+updated: "2026-11-05T00:51:28.615Z"
 started: "2026-11-04T00:12:59.482Z"
+completed: "2026-11-05T00:51:28.615Z"
 tags:
   - follow-up
 milestone: ""
@@ -29,13 +30,13 @@ links:
     - ["0002-ldj", "included"]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # Move structural declarations out of Platinum look mixins into base SCSS (Part B R10 follow-up)
@@ -66,9 +67,9 @@ Every Storybook story compares AE 0 against a fresh baseline. Drop the R10 cavea
 
 ## Acceptance Criteria
 
-- [ ] A no-package render keeps control-box, menu-divider and depressable `::after` geometry (unit test).
-- [ ] No structural declaration named in Part B ruling R10 remains inside a Platinum look mixin.
-- [ ] Every pre-existing story compares AE 0, and the probe note no longer carries the R10 caveat.
+- [x] A no-package render keeps control-box, menu-divider and depressable `::after` geometry (unit test).
+- [x] No structural declaration named in Part B ruling R10 remains inside a Platinum look mixin.
+- [x] Every pre-existing story compares AE 0, and the probe note no longer carries the R10 caveat.
 
 ## Files
 
@@ -81,3 +82,7 @@ Every Storybook story compares AE 0 against a fresh baseline. Drop the R10 cavea
 ### 2026-11-03T23:47:01.060Z - Scheduled by the owner (2026-11-03). Wave 3: starts as soon as H 6.2b finishes, because it edits the Platinum styles 6.2b is rewriting; it lands after Part H.
 
 ### 2026-11-04T00:13:01.936Z - Wave 3 started in its own worktree from land/part-h 2b481f62b (Part H through 6.2b); it lands after Part H.
+
+### 2026-11-05T00:51:06.533Z - Implemented (8fe6fb022 on fu/0088, from land/part-h 2b481f62b): control-box, windoid-box and menu-divider structure moved into base; with no package the boxes are 12x12 (were 13x0); ClassicyStructureWithoutPackage.test.tsx 7/7 (6/7 failed on the base). Parity: every non-probe shot pixel-identical, computed styles and forced states identical; the 23 probe shots differ only because the probe note reflows (identical with the new note on the old SCSS). 5 mutants killed. Accepted. Release note: hosts using the Platinum control-box or menu-divider mixins on their own elements must now set the sizes. The scroll-bar gutter stays in the package on purpose (Chromium's ::-webkit-scrollbar behavior).
+
+### 2026-11-05T00:51:25.341Z - Landed as f2a30c37b with 0082-lgo (93aa968fe..ab8b7d0d0, pushed). Gate on 0afb185bc: 449 files / 5851 tests; parity 324/348 AE 0, the 24 being the ruled probe-note reflow. Complete.

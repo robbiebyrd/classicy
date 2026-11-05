@@ -3,12 +3,13 @@ id: 0089-l03
 title: 'H 6.2: Multiplier inventory'
 purpose: Work Part G's 86-site one-off multiplier inventory down to the sites kept on purpose, so no unnamed calc(var(--x) * N) proportion survives in the stylesheets.
 type: impr
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-10-30T12:16:47.737Z"
-updated: "2026-11-04T00:25:42.764Z"
+updated: "2026-11-05T00:49:43.453Z"
 started: "2026-11-03T22:47:14.319Z"
+completed: "2026-11-05T00:49:43.453Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -29,13 +30,13 @@ links:
     - ["0011-v9t", "included", ["6.2"]]
 progress:
   "1":
-    status: pending
+    status: complete
   "2":
-    status: pending
+    status: complete
   "3":
-    status: pending
+    status: complete
   "4":
-    status: pending
+    status: complete
 ---
 
 # H 6.2: Multiplier inventory
@@ -66,8 +67,8 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: node bin/check-pixel-literals.ts  # exit 0, with the multiplier ratchet active
-- [ ] bin/multiplier-allowlist.json lists only G's kept-on-purpose sites and H-R7's stated-reason exceptions, each with a reason; every other former site reads a named derivation or a knob, and parity is AE 0 on every touched story.
+- [x] VERIFY: node bin/check-pixel-literals.ts  # exit 0, with the multiplier ratchet active
+- [x] bin/multiplier-allowlist.json lists only G's kept-on-purpose sites and H-R7's stated-reason exceptions, each with a reason; every other former site reads a named derivation or a knob, and parity is AE 0 on every touched story.
 
 ## Files
 
@@ -93,3 +94,7 @@ AGENT-REFERENCE §8 replaces the inventory with the kept-on-purpose list and doc
 ### 2026-11-04T00:13:13.674Z - H 6.2b implemented (2b481f62b on land/part-h, pushed as feat/appearance-part-h-v2): 22 sites now read 14 new derivations (119 in all), PopUpMenu reuses --ui-font-size-xlarge, and Slider:6 is kept as H-R21 geometry. The allowlist ends at the kept-on-purpose set (36 sites over 7 files). The scaling test has 77 rows plus a whole-pixel sweep. Parity AE 0 on 342 + 4 shots; computed styles and forced states identical; 4980 tests. In review.
 
 ### 2026-11-04T00:25:42.763Z - H 6.2b review: Approved (values exact for every whole-pixel input 0-512; allowlist exactly the kept set of 36 sites; story VERIFY passes). Minors folded into H 7.1; a negative UI font size accepted by hasFontSize filed as 0099-rlc.
+
+### 2026-11-05T00:49:23.165Z - Rebased onto feat/AppearancePackages 536a958c9 as land/part-h-v3 (9b1842dc7, pushed as feat/appearance-part-h-v3). Full gate green (443 files / 5722 tests); parity vs a fresh before-tip baseline 348/348 AE 0, only the ruled diffs H-R4/H-R23. The fallout commit pins knob font sizes inside 0099's 8-72. Final reviews: correctness Ready to land (7 minors); contract Needs fixes (I1 missing 0002-ldj amendment, fixed in ec253dd48; M1-M9). Fix round under H-R29: ff36fe59a..83b2c8775 (H-R29 a-e); knobs 93 -> 95; multiplier allowlist 40 sites / 9 files; gate 445 files / 5739 tests; fix re-review Approved.
+
+### 2026-11-05T00:49:39.939Z - Landed 93aa968fe: feat/AppearancePackages fast-forwarded 536a958c9..93aa968fe and pushed (Part H 0-7.1, the H-R29 final-review fixes and the 0002-ldj amendment ec253dd48). check-pixel-literals exits 0 with the multiplier ratchet active; bin/multiplier-allowlist.json holds only the 40 kept-on-purpose sites over 9 files, each with a reason. Complete.
