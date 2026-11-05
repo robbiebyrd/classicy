@@ -315,7 +315,11 @@ Start with [Install and build](#install-and-build).
 
   *Migrate:* include these mixins only where `getThemeVars(theme)` is
   spread. A subtree that overrides only `--window-border-size` must override
-  `--control-frame-width` too.
+  `--control-frame-width` too. Those seven knobs are look-only, Platinum's
+  own: the core floor (`CLASSICY_CORE_MEASUREMENT_DEFAULTS`) holds only the
+  84 structural knobs, so a package of your own that includes the mixins
+  declares the `menuFrame` and `scrollbar` grip knobs in its
+  `defaults.measurements`.
 
 ### Icons, system art and cursors
 
@@ -823,7 +827,16 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   `scrollbar`. Each is emitted as `--<family>-<key>`. Theme files may carry
   them, and an exported theme carries all of them.
   - A stored theme keeps only the values a user changed. `getThemeVars`
-    fills the rest from the theme's package.
+    fills the rest from the theme's package, over the core floor.
+  - The core floor, `CLASSICY_CORE_MEASUREMENT_DEFAULTS`
+    (`ClassicyCoreTheme.ts`), holds the core five and the 84 structural
+    knobs (the ones base stylesheets and components read) at Platinum's
+    values. Every package's themes are completed from it, so a package needs
+    to declare only the knobs it changes. The 11 look-only knobs are
+    Platinum's alone. `CLASSICY_CORE_DEFAULT_THEME` is the theme
+    `getTheme`/`getAllThemes` serve while no package is registered, and the
+    store's initial active theme until Platinum (or the default package)
+    registers. `getAllThemes()` lists the registered packages' built-ins.
 - `ClassicyDesktopChangeMetric` gains a family form,
   `{ family, key, value }`, for package knobs. Supporting helpers:
   `isThemeMetricFamilyTarget`, `getThemeMetricFamily`,
@@ -838,7 +851,8 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   `CLASSICY_THEME_DERIVED_VARS`, `classicyThemeDerivations`,
   `isReservedClassicyThemeVar` and `classicyMeasurementVars`.
 - `readClassicyThemeVar(name, fallback?, el?)` reads a size in JavaScript,
-  and `classicyDefaultThemeVarPx` gives Platinum's value.
+  and `classicyDefaultThemeVarPx` gives the core default theme's value
+  (Platinum's).
 - Defaults:
   - `classicyThemeMeasurementDefaults(packageId)`.
   - `withDefaultThemeMetrics(theme, defaults?)` now takes the defaults to

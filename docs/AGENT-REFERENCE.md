@@ -1681,9 +1681,11 @@ authors:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
   `platinum-scrollbars` reads `--scrollbar-thumb-grip-width` and `-height`.
-  Inside a desktop the Platinum floor emits them for every package's themes;
-  a host that includes the mixins anywhere else spreads `getThemeVars(theme)`
-  there too. The inset shadows of the `platinum-window-*` and
+  They are look-only knobs, Platinum's own: inside a desktop Platinum's
+  themes emit them, and a package that `@use`s the mixins declares them in
+  its own `defaults.measurements` (the core floor holds only the structural
+  knobs); a host that includes the mixins anywhere else spreads
+  `getThemeVars(theme)` there too. The inset shadows of the `platinum-window-*` and
   `platinum-depressable-*` mixins and of the scroll-bar track now read the
   derivation `--control-frame-width` (border × 2) where they computed
   `--window-border-size * -2`, so a host that overrides only
@@ -2151,11 +2153,12 @@ removed by a later release reaches existing users. Only `customThemes` and the
 user's choice (`packageId`, the active theme) are saved:
 
 - `sanitizeStateForPersistence` drops `availableThemes`, and the load path
-  drops one saved by an older build, so the defaults' current list
-  (`getAllThemes()`) applies. A host's `ClassicyDesktopLoadThemes` list is
+  drops one saved by an older build, so the registered packages' current
+  list (`getAllThemes()`, which `ClassicyDesktop` loads when it mounts)
+  applies. A host's `ClassicyDesktopLoadThemes` list is
   session state: dispatch it on every boot, as packages are registered.
 - A built-in active theme (its id names one of its package's `defaults` or
-  `presets`, that package registered or Platinum) is saved as a reference,
+  `presets`, that package registered) is saved as a reference,
   `{ id, package }`. Every other active theme is saved whole: a custom theme,
   a host-loaded theme, or a theme of a package not registered at save time.
 - On load, an active theme whose id names a built-in of its own package is
@@ -2167,9 +2170,10 @@ user's choice (`packageId`, the active theme) are saved:
   the package no longer has falls back to the package's `defaults`, as a
   package switch does, with one `classicyLog` warning; a whole theme whose id
   names no built-in (a host-loaded theme) is kept. For a package not
-  registered yet this happens when it registers: a reference holds the
-  default theme's data under its id until then, and is saved as the
-  reference meanwhile.
+  registered yet this happens when it registers, Platinum included (the
+  store loads before Platinum registers): a reference holds the default
+  theme's data under its id until then, and is saved as the reference
+  meanwhile.
 - Custom themes are never touched. State saved before custom themes existed
   loads with `customThemes: []`.
 
@@ -2291,8 +2295,13 @@ none), the packs the Sound tab offers. Helpers in
 `ClassicyDesktop*` action, both are unreachable to untrusted (HyperCard)
 dispatches.
 
-`getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
-returns the CSS custom-property map. Platinum's SCSS is importable via
+`getAllThemes()` lists the registered packages' built-in themes (each
+package's `defaults` and `presets`, in registration order), and
+`getTheme(id, overrides?)` returns the one with that id (the first one for
+an unknown id), a deep-merged clone when given `overrides`; with no package
+registered both serve the core's own `CLASSICY_CORE_DEFAULT_THEME` (no
+wallpaper, the core floor's measurements). `getThemeVars(theme)` returns the
+CSS custom-property map. Platinum's SCSS is importable via
 `@classicy/classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
 `platinum-*` mixins), the state vocabulary via `@classicy/classicy/scss/vocabulary`
 (§4.0.1), and the layout helpers and package wrapper via
@@ -3473,7 +3482,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 |---|---|---|
 | Themes | `useThemesTab({ packageId, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" (Platinum's icon only for `platinum`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
-| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the Platinum floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
+| Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
@@ -3551,7 +3560,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 **Package knob families.** Platinum adds 21 families of its own (95 keys)
 to the core five, in `src/Appearance/Platinum/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
-filled from `defaults` when `getAllThemes` loads them, H-R8). Each key is
+filled from `defaults` when Platinum registers them, H-R8). Each key is
 emitted as `--<family>-<key>` like a core input. Pixel-matched surfaces
 (the Control Strip, the menu frame, the Pager, Balloon Help, the pop-up
 slider, the scroll-bar thumb grip, HyperCard, Finder, Apple Guide, the
@@ -3568,16 +3577,22 @@ literals.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
   interface, not of Platinum's look: every package's themes must emit it.
-  The Platinum floor (below) guarantees that, so a package changes such
-  geometry by overriding the knob's value, never the base CSS. 84 of the 95
-  are structural ("Structural: yes"). The other 11 are read only by
-  Platinum's own partials (`_ControlStrip.scss`, `_mixins.scss`,
-  `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`), so a package with stylesheets of its own
-  may ignore them, unless it `@use`s Platinum's published mixins
+  The core floor guarantees that: `CLASSICY_CORE_MEASUREMENT_DEFAULTS`
+  (`src/Appearance/ClassicyCoreTheme.ts`, the core's own data at Platinum's
+  values) holds the core five and every structural knob, and
+  `classicyThemeMeasurementDefaults` completes every theme from it before
+  the package's own values, so a package changes such geometry by
+  overriding the knob's value, never the base CSS. 84 of the 95 are
+  structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
+  table, so the floor and the column cannot drift). The other 11 are
+  look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
+  `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
+  `_QuickTimeMovieEmbed.scss`), they are not in the floor and come only from
+  Platinum's `platinum.json`. A package with stylesheets of its own may
+  ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
-  and `--scrollbar-thumb-grip-*` knobs): it then needs them, which the
-  Platinum floor provides for every package's themes.
+  and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
+  `defaults.measurements`.
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -3747,9 +3762,9 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   theme from `classicyThemeMeasurementDefaults(theme.package)` before it
   walks it, so a theme that reaches it unmigrated (a preview, a story, a
   test) never emits `undefined` or `NaNpx`. The Options tab shows a knob's
-  default when the theme lacks the key. Theme export, `getAllThemes`,
-  `ClassicyDesktopLoadThemes` and package activation fill from the theme's
-  own package as well.
+  default when the theme lacks the key. Theme export, Platinum's
+  registration of its presets, `ClassicyDesktopLoadThemes` and package
+  activation fill from the theme's own package as well.
 - **Persistence.** `sanitizeStateForPersistence` stores each theme without
   the package-family values equal to its package's defaults
   (`withoutDefaultThemeMeasurements(theme, defaults)`), and drops a family
@@ -4116,7 +4131,7 @@ the variable instead of hard-coding the number:
   `#classicyDesktop`, else `<html>`. A finite value of 0 or more is returned:
   `0px` is a real value (window placement's `--menu-bar-height`).
 - **Fallback.** Anything else, or no DOM, returns `fallback`. It defaults to
-  `classicyDefaultThemeVarPx(name)`, the default (Platinum) theme's value,
+  `classicyDefaultThemeVarPx(name)`, the core default theme's value (Platinum's),
   computed once. That throws, after logging, for a name `getThemeVars` does
   not emit, so pass an explicit fallback for a package-only variable.
 - **Cost.** Each call forces a style read. Read once per gesture, theme or
