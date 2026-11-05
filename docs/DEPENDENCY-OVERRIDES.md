@@ -40,6 +40,21 @@ allow the patched versions.
 | --- | --- | --- | --- |
 | `brace-expansion@<1.1.18` → `^1.1.18` | The August 2026 pass (78fcbfc66) | minimatch 3, pulled in only by ESLint | ESLint was removed, so no brace-expansion 1.x is left in the lockfile and the override matched nothing. |
 
+## Override set by story 0118-qm6
+
+| Override | Alert | Parent and pin | Why it is safe |
+| --- | --- | --- | --- |
+| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `glob` 13, `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | The one override that crosses a major: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer except glob calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. glob 13's default entry bundles its own minimatch 10 and never loads this one; its unbundled `glob/raw` entry does not work with 11 (patterns with magic match nothing), but nothing in the tree imports it. All of it runs only at build or watch time; minimatch is not in `dist/`. |
+
+The override starts at 7.0.0, the advisory's lower bound, so minimatch 3.1.5
+(eslint 9, `@eslint/config-array`, `@eslint/eslintrc`) is left alone: 3.x is
+outside the advisory's range, has none of the vulnerable code, and cannot move
+to 11, because eslint calls the CommonJS default-export function that 11 no
+longer provides. Once glob 13 leaves the tree, the glob caveat goes with it;
+glob 14 depends on minimatch 11 itself. The lockfile now holds minimatch 3.1.5
+and 11.0.3 only, and brace-expansion 2.1.7, which only minimatch 9 used, is
+gone.
+
 ## Keeping the lockfile's `libc` fields
 
 pnpm 10 writes the `libc: [glibc]` and `libc: [musl]` fields only when it fetches
