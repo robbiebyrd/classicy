@@ -42,6 +42,17 @@ const registerMirror = () =>
 		layout: MIRROR,
 	});
 
+// A Platinum stand-in with the default layout, so an unregistered stored id
+// resolves to the registered default rather than to the first registered.
+const registerPlatinum = () =>
+	registerClassicyAppearancePackage({
+		id: "platinum",
+		name: "Platinum",
+		css: "",
+		defaults: getTheme("default"),
+		layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+	});
+
 const setPackageId = (packageId: string) =>
 	useAppManager.setState((state) =>
 		produce(state, (draft) => {
@@ -108,6 +119,7 @@ describe("getClassicyAppearanceLayout", () => {
 	});
 
 	it("reads the active package from the store when no id is given", () => {
+		registerPlatinum();
 		registerMirror();
 		expect(getClassicyAppearanceLayout()).toBe(
 			CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
@@ -118,7 +130,15 @@ describe("getClassicyAppearanceLayout", () => {
 });
 
 describe("the active package (R18)", () => {
+	it("is the first registered package while neither the stored id nor the default is registered", () => {
+		registerMirror();
+		expect(getClassicyAppearanceLayout()).toEqual(MIRROR);
+		const { result } = renderHook(() => useClassicyAppearanceLayout());
+		expect(result.current).toEqual(MIRROR);
+	});
+
 	it("comes from Appearance.packageId, never activeTheme.package", () => {
+		registerPlatinum();
 		registerMirror();
 		useAppManager.setState((state) =>
 			produce(state, (draft) => {
@@ -136,6 +156,8 @@ describe("the active package (R18)", () => {
 describe("useClassicyAppearanceLayout", () => {
 	it("re-renders when the active package id or its registration changes", () => {
 		const { result } = renderHook(() => useClassicyAppearanceLayout());
+		expect(result.current).toBe(CLASSICY_DEFAULT_APPEARANCE_LAYOUT);
+		act(() => registerPlatinum());
 		expect(result.current).toBe(CLASSICY_DEFAULT_APPEARANCE_LAYOUT);
 		act(() => registerMirror());
 		expect(result.current).toBe(CLASSICY_DEFAULT_APPEARANCE_LAYOUT);
@@ -160,6 +182,7 @@ describe("useClassicyAppearanceLayout", () => {
 	});
 
 	it("follows ClassicyDesktopChangeAppearancePackage", () => {
+		registerPlatinum();
 		registerMirror();
 		const { result } = renderHook(() => useClassicyAppearanceLayout());
 		expect(result.current.menuBar.placement).toBe("screen");

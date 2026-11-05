@@ -267,10 +267,10 @@ const packageDefaultsCache = new WeakMap<
  * The measurements a theme of `packageId` is completed with: the core floor
  * (`CLASSICY_CORE_MEASUREMENT_DEFAULTS`: the core five and every structural
  * knob), with the registered package's own `defaults.measurements` merged in
- * key by key, the package's values winning
- * (`getRegisteredClassicyAppearancePackageOrDefault`: an unknown or missing
- * id falls back to the registered default package, and with none registered
- * the result is the core floor alone).
+ * key by key, the package's values winning (an unknown or missing id falls
+ * back to the registered default package, never to another registered one,
+ * unlike `getRegisteredClassicyAppearancePackageOrDefault`; with neither the
+ * result is the core floor alone).
  *
  * Key by key, not family by family: a package that declares part of a
  * family (`controlStrip { cellHeight, tabWidth }`) keeps the floor's keys it

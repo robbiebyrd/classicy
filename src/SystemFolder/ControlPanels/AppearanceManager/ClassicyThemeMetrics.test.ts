@@ -257,6 +257,21 @@ describe("classicyThemeMeasurementDefaults", () => {
 		);
 	});
 
+	it("never completes a theme from another package: the first registered only decides what draws", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(partialPack());
+		// "platinum" and an unknown id draw as the partial pack now, but
+		// their theme data completes from the core floor, not from it.
+		for (const id of ["platinum", "nope", undefined]) {
+			expect(classicyThemeMeasurementDefaults(id), String(id)).toBe(
+				CLASSICY_CORE_MEASUREMENT_DEFAULTS,
+			);
+		}
+		expect(
+			classicyThemeMeasurementDefaults(PARTIAL_PACK_ID).controlStrip.cellHeight,
+		).toBe(30);
+	});
+
 	it("carries the core five and every Platinum family", () =>
 		expect(
 			Object.keys(classicyThemeMeasurementDefaults("platinum")).sort(),

@@ -17,8 +17,8 @@ export { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "./ClassicyAppearanceDefaults
 /**
  * The layout of `packageId`'s package, or of the active package when no id
  * is given (the store's `packageId`, read at call time); an unregistered id
- * falls back to the default package's layout, then to
- * `CLASSICY_DEFAULT_APPEARANCE_LAYOUT` (the rule of
+ * falls back to the default package's layout, then to the first registered
+ * package's, then to `CLASSICY_DEFAULT_APPEARANCE_LAYOUT` (the rule of
  * `getRegisteredClassicyAppearancePackageOrDefault`, which
  * `resolveClassicyAppearancePackage` shares). Store-free, for reducers and
  * effects (a reducer passes the id from its draft); components use

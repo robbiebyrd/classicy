@@ -17,6 +17,7 @@ import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/Appearance
 // and a theme's `sound.pack` must name a registered pack. The package lists
 // them; it never registers them a second time.
 import "./assets/platinumAssets";
+import { platinumArt } from "./assets/art/platinumArt";
 import { platinumSoundPack } from "./assets/sounds/platinum";
 import { platinumAppearanceHooks } from "./hooks";
 import platinumJson from "./platinum.json";
@@ -59,6 +60,7 @@ const platinumDefaults =
 registerClassicyAppearancePackage({
 	id: PLATINUM_APPEARANCE_PACKAGE_ID,
 	name: platinumJson.name,
+	icon: platinumArt("platinum.png"),
 	defaults: platinumDefaults,
 	presets: platinumPresets,
 	css: platinumCss,

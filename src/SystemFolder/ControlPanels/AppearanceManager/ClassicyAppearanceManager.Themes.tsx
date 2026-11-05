@@ -1,15 +1,18 @@
 import { type ChangeEvent, useCallback, useMemo, useRef } from "react";
-import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import platinumPackageIcon from "./resources/platinum.png";
 
 interface ThemesTabProps {
-	/** The active Appearance Package's id (picks the label's icon). */
-	packageId: string;
+	/**
+	 * The active Appearance Package's icon (`ClassicyAppearancePackage.icon`),
+	 * shown in the label; a generic package glyph when it has none.
+	 */
+	packageIcon?: ClassicyAssetSource;
 	/** The active Appearance Package's name, shown in the label. */
 	packageName: string;
 	themesList: { value: string; label: string }[] | undefined;
@@ -26,7 +29,7 @@ interface ThemesTabProps {
 }
 
 export const useThemesTab = ({
-	packageId,
+	packageIcon,
 	packageName,
 	themesList,
 	switchTheme,
@@ -42,6 +45,9 @@ export const useThemesTab = ({
 	// and nothing to show, so ClassicyFileInput's running file list would only
 	// get in the way.
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	// The generic package glyph: the core icon tree's extension icon, for a
+	// package that brings no icon of its own.
+	const genericPackageIcon = useClassicyAsset("icons", "system.extension");
 	const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 	const onFilePicked = useCallback(
 		(e: ChangeEvent<HTMLInputElement>) => {
@@ -58,15 +64,9 @@ export const useThemesTab = ({
 			title: "Themes",
 			children: (
 				<>
-					{/* Packages carry no icon yet (J-R12): Platinum's artwork is
-					    shown for Platinum only. */}
 					<ClassicyControlLabel
 						label={`The current Appearance Package is ${packageName}`}
-						icon={
-							packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
-								? platinumPackageIcon
-								: undefined
-						}
+						icon={packageIcon ?? genericPackageIcon}
 					/>
 					<br />
 					{themesList && (
@@ -114,7 +114,8 @@ export const useThemesTab = ({
 			),
 		}),
 		[
-			packageId,
+			packageIcon,
+			genericPackageIcon,
 			packageName,
 			themesList,
 			switchTheme,

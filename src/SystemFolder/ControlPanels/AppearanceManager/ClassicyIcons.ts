@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	type ClassicyAssetTree,
 	registerClassicyAssets,
@@ -23,8 +24,6 @@ const ui = (filename: string): string => {
 	return uiModules[key] ?? "";
 };
 
-const PLATINUM = "platinum";
-
 // Alias kept for consumers that typed their icon namespaces with it.
 export type ClassicyIconMap = ClassicyAssetTree;
 
@@ -32,9 +31,10 @@ export type ClassicyIconMap = ClassicyAssetTree;
  * Register custom icon namespaces at runtime.
  *
  * Call this once before rendering, typically in your app entry point.
- * Registration deep-merges into the package's icon tree (default: Platinum),
- * so `registerClassicyIcons({ system: { alias } })` replaces only that one
- * entry. The function returns its argument with full TypeScript types so you
+ * Registration deep-merges into the package's icon tree (default: the
+ * default package's, `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, which every
+ * lookup falls back to), so `registerClassicyIcons({ system: { alias } })`
+ * replaces only that one entry. The function returns its argument with full TypeScript types so you
  * can keep a typed local reference for autocomplete:
  *
  * ```ts
@@ -46,7 +46,7 @@ export type ClassicyIconMap = ClassicyAssetTree;
  */
 export function registerClassicyIcons<T extends ClassicyAssetTree>(
 	icons: T,
-	packageId: string = PLATINUM,
+	packageId: string = CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 ): T {
 	registerClassicyAssets("icons", packageId, icons);
 	return icons;
@@ -538,4 +538,10 @@ export const ClassicyIcons = {
 	},
 };
 
-registerClassicyAssets("icons", PLATINUM, ClassicyIcons);
+// The core's icon tree, under the default package's id: every package's icon
+// lookups fall back to it (ClassicyAssetRegistry).
+registerClassicyAssets(
+	"icons",
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+	ClassicyIcons,
+);

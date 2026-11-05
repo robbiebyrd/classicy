@@ -6,6 +6,7 @@ import {
 	screen,
 	userEvent,
 } from "@/__tests__/test-utils";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useThemesTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
 import {
@@ -13,8 +14,8 @@ import {
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 
-const baseProps = {
-	packageId: "platinum",
+const baseProps: Parameters<typeof useThemesTab>[0] = {
+	packageIcon: "/platinum-icon.png",
 	packageName: "Platinum",
 	themesList: [{ value: "default", label: "Platinum" }],
 	switchTheme: vi.fn(),
@@ -90,14 +91,23 @@ describe("useThemesTab — Appearance Package", () => {
 		).toBeInTheDocument();
 	});
 
-	it("shows the Platinum icon only for the platinum package", () => {
-		const { container, rerender } = render(<Host />);
-		expect(container.querySelector("img")).not.toBeNull();
-		rerender(<Host packageId="test-pack" packageName="Test Pack" />);
+	it("shows the package's own icon", () => {
+		const { container } = render(<Host packageIcon="/irix.png" />);
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/irix.png",
+		);
+	});
+
+	it("shows the generic package glyph for a package with no icon", () => {
+		const glyph = resolveClassicyAsset("icons", "system.extension");
+		expect(glyph).toBeTruthy();
+		const { container } = render(
+			<Host packageIcon={undefined} packageName="Test Pack" />,
+		);
 		expect(
 			screen.getByText("The current Appearance Package is Test Pack"),
 		).toBeInTheDocument();
-		expect(container.querySelector("img")).toBeNull();
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(glyph);
 	});
 });
 

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
 	getClassicyAssetPackageSource,
 	onClassicyAssetPackageSourceConnect,
@@ -17,7 +18,9 @@ import {
 	isPlainClassicyWallpaperFile,
 } from "./ClassicyWallpaperSource.internal";
 
-const PLATINUM = "platinum";
+// Every lookup falls back to the default package's tree, where the core's
+// own icon tree (ClassicyIcons.ts) registers.
+const DEFAULT_PACKAGE = CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
 const SUBSYSTEM = "ClassicyAssetRegistry";
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -118,12 +121,14 @@ let lastActiveId: string | undefined;
 
 /**
  * The active Appearance Package's id: the store's `packageId` resolved
- * against the registered packages (an unregistered id is Platinum), read at
- * call time. Platinum until the app manager connects its store (during module
- * evaluation of the default state, which resolves its own icons through here).
+ * against the registered packages (`resolveClassicyAppearancePackage`), read
+ * at call time. The default package's id
+ * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) until the app manager connects
+ * its store (during module evaluation of the default state, which resolves
+ * its own icons through here).
  */
 export const getActiveClassicyAppearancePackageId = (): string =>
-	getClassicyAssetPackageSource()?.getId() ?? PLATINUM;
+	getClassicyAssetPackageSource()?.getId() ?? DEFAULT_PACKAGE;
 
 const onPackageSourceChange = (): void => {
 	const id = getActiveClassicyAppearancePackageId();
@@ -293,7 +298,7 @@ const walk = (
 	return typeof node === "string" ? node : undefined;
 };
 
-/** Dotted-path lookup: the given (or active) package, then platinum. */
+/** Dotted-path lookup: the given (or active) package, then the default package. */
 export const resolveClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
@@ -301,7 +306,10 @@ export const resolveClassicyAsset = (
 ): ClassicyAssetSource | undefined => {
 	const byPackage = trees.get(kind);
 	const id = packageId ?? getActiveClassicyAppearancePackageId();
-	return walk(byPackage?.get(id), path) ?? walk(byPackage?.get(PLATINUM), path);
+	return (
+		walk(byPackage?.get(id), path) ??
+		walk(byPackage?.get(DEFAULT_PACKAGE), path)
+	);
 };
 
 export const subscribeClassicyAssets = (listener: () => void): (() => void) => {
@@ -335,8 +343,8 @@ const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 	const cached = treeCache.get(key);
 	if (cached && cached.version === version) return cached.value;
 	const byPackage = trees.get(kind);
-	const value = copyTree(byPackage?.get(PLATINUM) ?? {});
-	if (activeId !== PLATINUM) {
+	const value = copyTree(byPackage?.get(DEFAULT_PACKAGE) ?? {});
+	if (activeId !== DEFAULT_PACKAGE) {
 		const active = byPackage?.get(activeId);
 		if (active) mergeInto(value, active, "");
 	}
@@ -344,7 +352,7 @@ const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 	return value;
 };
 
-/** Merged COPY (platinum under the active package); stable until a registration. */
+/** Merged COPY (the default package under the active one); stable until a registration. */
 export const useClassicyAssetTree = (
 	kind: ClassicyAssetKind,
 ): ClassicyAssetTree => {

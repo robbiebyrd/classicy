@@ -76,6 +76,19 @@ describe("the Platinum appearance package", () => {
 		});
 	});
 
+	it("carries its icon, the platinum.png in its own art", async () => {
+		await import("@/Appearance/Platinum");
+		const { platinumArt } = await import(
+			"@/Appearance/Platinum/assets/art/platinumArt"
+		);
+		const icon = getClassicyAppearancePackage("platinum")?.icon;
+		expect(icon).toBeTruthy();
+		expect(icon).toBe(platinumArt("platinum.png"));
+		expect(
+			readFileSync("src/Appearance/Platinum/assets/art/platinum.png").length,
+		).toBeGreaterThan(0);
+	});
+
 	it("registers its own themes, which getAllThemes() serves", async () => {
 		await import("@/Appearance/Platinum");
 		const pkg = getClassicyAppearancePackage("platinum");

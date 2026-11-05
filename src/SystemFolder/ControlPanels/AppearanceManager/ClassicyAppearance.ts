@@ -22,7 +22,8 @@ export interface ClassicyStoreSystemAppearanceManager
 	/**
 	 * The active Appearance Package id, persisted, default "platinum". Set by
 	 * `ClassicyDesktopChangeAppearancePackage`; an id that is not registered
-	 * renders as Platinum (`resolveClassicyAppearancePackage`).
+	 * renders as the default package, else the first registered one
+	 * (`resolveClassicyAppearancePackage`).
 	 */
 	packageId: string;
 	/**

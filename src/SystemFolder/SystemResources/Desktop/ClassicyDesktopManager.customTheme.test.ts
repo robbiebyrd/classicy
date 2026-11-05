@@ -7,6 +7,7 @@ import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInTheme
 import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
@@ -57,6 +58,10 @@ const builtIn = (ds: ClassicyStore, id: string) => {
 	if (!t) throw new Error(`no built-in ${id}`);
 	return t;
 };
+
+// Platinum, as platinumBuiltInThemes registered it on import; the afterEach
+// resets the registry, so a test that needs it registers it again.
+const platinumPackage = getClassicyAppearancePackage("platinum");
 
 describe("ClassicyDesktopChangeColor — every color target", () => {
 	it.each(
@@ -903,6 +908,10 @@ describe("themes across Appearance Packages", () => {
 	});
 
 	it("ChangeTheme does not reach the presets of an inactive package", () => {
+		// With Platinum registered, the stored "platinum" is the active
+		// package, not the first registered one.
+		expect(platinumPackage).toBeDefined();
+		if (platinumPackage) registerClassicyAppearancePackage(platinumPackage);
 		registerClassicyAppearancePackage(themePackage);
 		const ds = makeStore();
 		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "tp-two" });

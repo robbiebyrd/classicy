@@ -60,14 +60,20 @@ describe("getRegisteredClassicyAppearancePackageOrDefault", () => {
 		);
 	});
 
-	it("returns undefined when neither package is registered", () => {
+	it("falls back to the first registered package when neither is registered", () => {
 		registerClassicyAppearancePackage(irix);
-		expect(
-			getRegisteredClassicyAppearancePackageOrDefault("beos"),
-		).toBeUndefined();
-		resetClassicyAppearancePackagesForTests();
+		expect(getRegisteredClassicyAppearancePackageOrDefault("beos")).toBe(irix);
+		expect(getRegisteredClassicyAppearancePackageOrDefault(undefined)).toBe(
+			irix,
+		);
+	});
+
+	it("returns undefined only when no package is registered", () => {
 		expect(
 			getRegisteredClassicyAppearancePackageOrDefault("platinum"),
+		).toBeUndefined();
+		expect(
+			getRegisteredClassicyAppearancePackageOrDefault(undefined),
 		).toBeUndefined();
 	});
 

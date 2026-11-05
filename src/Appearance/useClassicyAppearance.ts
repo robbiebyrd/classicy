@@ -47,8 +47,8 @@ const SUBSYSTEM = "ClassicyAppearance";
 
 // Stable: the registry stores package objects as registered. Resolved by the
 // one rule every reader uses (resolveClassicyAppearancePackage, the
-// reducers): the registered id, else the registered default, else the
-// fallback.
+// reducers): the registered id, else the registered default, else the first
+// registered, else the fallback.
 const getActivePackage = (): ClassicyAppearancePackage =>
 	getRegisteredClassicyAppearancePackageOrDefault(
 		getActiveClassicyAppearancePackageId(),

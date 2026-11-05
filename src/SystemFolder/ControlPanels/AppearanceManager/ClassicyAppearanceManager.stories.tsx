@@ -258,7 +258,7 @@ const ThemesTabStory = () => {
 		[dispatch, activePackage.id],
 	);
 	const tab = useThemesTab({
-		packageId: activePackage.id,
+		packageIcon: activePackage.icon,
 		packageName: activePackage.name,
 		themesList,
 		switchTheme: (e: ChangeEvent<HTMLSelectElement>) =>

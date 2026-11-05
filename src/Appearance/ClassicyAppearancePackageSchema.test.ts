@@ -210,6 +210,42 @@ describe("classicyKnobsToSchema", () => {
 	});
 });
 
+describe("ClassicyAppearancePackageSchema icon", () => {
+	const valid = platinumShaped();
+	const parse = (icon: unknown) =>
+		ClassicyAppearancePackageSchema.safeParse({ ...valid, icon });
+
+	it("is optional", () => {
+		expect(ClassicyAppearancePackageSchema.safeParse(valid).success).toBe(true);
+	});
+
+	it("accepts an asset source and keeps it in the parsed output", () => {
+		for (const icon of [
+			"/assets/platinum.png",
+			"https://example.com/irix.png",
+			"data:image/png;base64,AA==",
+		]) {
+			const result = parse(icon);
+			expect(result.success, icon).toBe(true);
+			expect(result.data?.icon).toBe(icon);
+		}
+	});
+
+	it("refuses anything that is not an asset source", () => {
+		for (const icon of ["", "javascript:alert(1)", 'a".png', 42, {}]) {
+			const result = parse(icon);
+			expect(result.success, String(icon)).toBe(false);
+			expect(result.error?.issues.map((i) => i.path)).toContainEqual(["icon"]);
+		}
+	});
+
+	it("describes the field", () => {
+		expect(ClassicyAppearancePackageSchema.shape.icon.description).toMatch(
+			/icon/,
+		);
+	});
+});
+
 describe("ClassicyAppearancePackageSchema apps", () => {
 	const valid = platinumShaped();
 

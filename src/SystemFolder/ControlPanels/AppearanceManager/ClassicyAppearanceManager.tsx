@@ -486,7 +486,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	];
 
 	const themesTab = useThemesTab({
-		packageId: activePackage.id,
+		packageIcon: activePackage.icon,
 		packageName: activePackage.name,
 		themesList,
 		switchTheme,

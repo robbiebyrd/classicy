@@ -210,6 +210,15 @@ export const ClassicyAppearancePackageSchema = z
 	.object({
 		id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
 		name: z.string().trim().min(1).max(64),
+		icon: z
+			.string()
+			.refine(isClassicyAssetSource, {
+				error: "must be an asset source (a URL or a data: URI)",
+			})
+			.optional()
+			.describe(
+				"The package's icon, shown beside its name (the Appearance Manager's Themes tab); a generic package glyph is shown without one.",
+			),
 		defaults: ClassicyPackageThemeSchema,
 		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),

@@ -30,9 +30,10 @@ const SUBSYSTEM = "ClassicyAppearance";
  * The core's structure without a look: the id of the default package
  * (`"platinum"`), the core default theme (`CLASSICY_CORE_DEFAULT_THEME`: no
  * wallpaper, the core floor's measurements) as its defaults and only preset,
- * the default layout, and no CSS or hooks. Returned only while no package is
- * registered at all (lone-component tests, a host that never loads
- * Platinum). Frozen shallowly: `defaults` is the shared, frozen core theme.
+ * the default layout, and no CSS, hooks or icon. Returned only while no
+ * package is registered at all, for lone components rendered outside a
+ * desktop (`ClassicyDesktop` itself draws `ClassicyNoAppearancePackage`
+ * then). Frozen shallowly: `defaults` is the shared, frozen core theme.
  */
 export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
 	Object.freeze({
@@ -135,8 +136,9 @@ export const getClassicyAppearancePackage = (
 
 /**
  * The registered package for `id`, else the registered default package
- * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`), else `undefined`. Store-free,
- * so reducers resolve the active package by the same rule the hooks and the
+ * (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`), else the first registered
+ * package, else `undefined` (no package is registered). Store-free, so
+ * reducers resolve the active package by the same rule the hooks and the
  * root attribute use: `resolveClassicyAppearancePackage` is this, then
  * `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`.
  */
@@ -144,14 +146,22 @@ export const getRegisteredClassicyAppearancePackageOrDefault = (
 	id: string | undefined,
 ): ClassicyAppearancePackage | undefined =>
 	(id === undefined ? undefined : registry.get(id)) ??
-	registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID);
+	registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID) ??
+	snapshot[0];
 
 // `classicyThemeMeasurementDefaults` fills a theme's missing measurements
 // from its package's defaults; the registry hands it the lookup (see
 // ClassicyThemeMeasurementSource.internal.ts for why it is not imported).
+// The theme's package, else the registered default, but never the first
+// registered package: that one only decides what draws, while these values
+// are theme data, which persistence strips against them, so a theme of a
+// package that has not registered yet must not take another package's.
 setClassicyPackageMeasurementsLookup(
 	(id) =>
-		getRegisteredClassicyAppearancePackageOrDefault(id)?.defaults.measurements,
+		(
+			(id === undefined ? undefined : registry.get(id)) ??
+			registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)
+		)?.defaults.measurements,
 );
 
 /** Registered packages, in registration order. */

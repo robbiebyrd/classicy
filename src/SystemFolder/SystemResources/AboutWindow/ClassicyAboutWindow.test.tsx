@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+// Platinum registered: "under Platinum" means the default package is the
+// one that draws, not merely the first registered (0015 §1.5).
+import "@/__tests__/withPlatinum";
 import {
 	registerTestRenamePackage,
 	TEST_RENAME_PACKAGE_ID,

@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+// Platinum registered: "under Platinum" means the default package is the
+// one that draws, not merely the first registered (0015 §1.5).
+import "@/__tests__/withPlatinum";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,

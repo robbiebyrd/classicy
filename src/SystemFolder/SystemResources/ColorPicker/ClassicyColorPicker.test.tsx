@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+// Platinum registered, so the default package draws until packageId names
+// another; otherwise the first registered package would draw already
+// (0015 §1.5) and a switch to it would change nothing.
+import "@/__tests__/withPlatinum";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,

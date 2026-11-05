@@ -121,6 +121,17 @@ describe("ClassicyAppearancePackage registry", () => {
 		expect(document.getElementById("classicy-appearance-Not Kebab")).toBeNull();
 	});
 
+	it("rejects a package whose icon is not an asset source", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		registerClassicyAppearancePackage(
+			makePackage("irix", { icon: "javascript:alert(1)" }),
+		);
+		expect(getClassicyAppearancePackage("irix")).toBeUndefined();
+		const pkg = makePackage("irix", { icon: "/irix.png" });
+		registerClassicyAppearancePackage(pkg);
+		expect(getClassicyAppearancePackage("irix")?.icon).toBe("/irix.png");
+	});
+
 	it("rejects a package whose defaults belong to another package", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		const entries: ClassicyLogEntry[] = [];
@@ -269,7 +280,9 @@ describe("resolveClassicyAppearancePackage", () => {
 		const ids = ["platinum", "irix", "unregistered", "constructor"];
 		const expected = {
 			none: [FALLBACK, FALLBACK, FALLBACK, FALLBACK],
-			irixOnly: [FALLBACK, irix, FALLBACK, FALLBACK],
+			// No default registered: every id but irix's own takes the first
+			// registered package (0015 §1.5), never the fallback.
+			irixOnly: [irix, irix, irix, irix],
 			platinumOnly: [platinum, platinum, platinum, platinum],
 			both: [platinum, irix, platinum, platinum],
 		};
@@ -294,6 +307,35 @@ describe("resolveClassicyAppearancePackage", () => {
 				);
 			});
 		}
+	});
+
+	it("takes the first registered package when neither the id nor the default is registered", () => {
+		const irix = makePackage("irix");
+		const beos = makePackage("beos");
+		registerClassicyAppearancePackage(irix);
+		registerClassicyAppearancePackage(beos);
+		expect(resolveClassicyAppearancePackage("platinum")).toBe(irix);
+		expect(resolveClassicyAppearancePackage("nextstep")).toBe(irix);
+		expect(resolveClassicyAppearancePackage(undefined)).toBe(irix);
+		expect(resolveClassicyAppearancePackage("beos")).toBe(beos);
+		// The default wins over the first registered once it registers.
+		const platinum = makePackage("platinum");
+		registerClassicyAppearancePackage(platinum);
+		expect(resolveClassicyAppearancePackage("nextstep")).toBe(platinum);
+	});
+
+	it("never returns the fallback while any package is registered", () => {
+		registerClassicyAppearancePackage(makePackage("irix"));
+		for (const id of ["platinum", "irix", "unregistered", undefined])
+			expect(resolveClassicyAppearancePackage(id)).not.toBe(FALLBACK);
+	});
+
+	it("useActiveClassicyAppearancePackage takes the first registered package for an unregistered stored id", () => {
+		const mirror = makePackage("mirror");
+		registerClassicyAppearancePackage(mirror);
+		setPackageId("platinum");
+		const { result } = renderHook(() => useActiveClassicyAppearancePackage());
+		expect(result.current).toBe(mirror);
 	});
 
 	it("reads the store's packageId at call time when no id is given", () => {

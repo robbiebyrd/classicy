@@ -210,6 +210,11 @@ export type ClassicyAppearancePackage = {
 	id: string;
 	name: string;
 	/**
+	 * The package's icon, shown beside its name (the Appearance Manager's
+	 * Themes tab). Without one, a generic package glyph is shown.
+	 */
+	icon?: ClassicyAssetSource;
+	/**
 	 * Compiled CSS, already one `@layer classicy.package { … }` block scoped
 	 * under `.classicyDesktop[data-classicy-appearance=<id>]`.
 	 */
@@ -255,7 +260,9 @@ const resolve = (packageId: string | undefined): ClassicyAppearancePackage =>
 
 /**
  * The package that applies to `packageId`: that package when registered, else
- * Platinum, else `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`. With no argument it
+ * the default package (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) when
+ * registered, else the first registered package, else (no package registered
+ * at all) `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`. With no argument it
  * reads the store's active package id at call time, for reducers, effects and
  * other non-hook callers; components use `useActiveClassicyAppearancePackage`.
  */
@@ -264,9 +271,11 @@ export const resolveClassicyAppearancePackage = (
 ): ClassicyAppearancePackage => resolve(packageId);
 
 /**
- * The active package: the store's `packageId` when that package is
- * registered, else Platinum, else `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`.
- * Re-renders when the store's id or the registry changes.
+ * The active package: the store's `packageId` resolved as
+ * `resolveClassicyAppearancePackage` resolves it (that package, else the
+ * registered default, else the first registered, else
+ * `CLASSICY_FALLBACK_APPEARANCE_PACKAGE`). Re-renders when the store's id or
+ * the registry changes.
  */
 export const useActiveClassicyAppearancePackage =
 	(): ClassicyAppearancePackage => {

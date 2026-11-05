@@ -32,7 +32,8 @@ export const CLASSICY_NO_APP_IDENTITY_OVERRIDES: ClassicyAppIdentityOverrides =
 
 /**
  * The active (or given) package's `apps`, else the frozen empty map. An
- * unregistered id falls back to the default package, by the rule of
+ * unregistered id falls back to the default package, then to the first
+ * registered one, by the rule of
  * `getRegisteredClassicyAppearancePackageOrDefault`. Store-free.
  */
 export const getClassicyAppIdentityOverrides = (

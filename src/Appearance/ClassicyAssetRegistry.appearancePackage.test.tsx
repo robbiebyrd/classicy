@@ -71,6 +71,7 @@ afterEach(() => {
 
 describe("the asset registry follows the active Appearance Package", () => {
 	it("reads the store's resolved package id at call time", () => {
+		registerClassicyAppearancePackage(stub("platinum"));
 		registerClassicyAppearancePackage(stub("irix"));
 		expect(getActiveClassicyAppearancePackageId()).toBe("platinum");
 		expect(resolveClassicyAsset("icons", "app")).toBe("/platinum.png");
@@ -85,7 +86,18 @@ describe("the asset registry follows the active Appearance Package", () => {
 		expect(resolveClassicyAsset("icons", "app")).toBe("/platinum.png");
 	});
 
+	it("an unregistered default id resolves as the only registered package, then the default tree", () => {
+		registerClassicyAppearancePackage(stub("irix"));
+		registerClassicyAssets("icons", "platinum", { core: "/core.png" });
+		// The stored id is the default ("platinum"), which is not registered.
+		expect(getActiveClassicyAppearancePackageId()).toBe("irix");
+		expect(resolveClassicyAsset("icons", "app")).toBe("/irix.png");
+		// What irix lacks comes from the default package's tree.
+		expect(resolveClassicyAsset("icons", "core")).toBe("/core.png");
+	});
+
 	it("switching packageId re-renders a useClassicyAsset consumer", () => {
+		registerClassicyAppearancePackage(stub("platinum"));
 		registerClassicyAppearancePackage(stub("irix"));
 		const seen = captureHook(() => useClassicyAsset("icons", "app"));
 		expect(seen.at(-1)).toBe("/platinum.png");
@@ -116,6 +128,7 @@ describe("the asset registry follows the active Appearance Package", () => {
 	});
 
 	it("useClassicyAssetTree and useClassicyAssetVars follow a switch", () => {
+		registerClassicyAppearancePackage(stub("platinum"));
 		registerClassicyAppearancePackage(stub("irix"));
 		registerClassicySystemArt("platinum", { sadMac: "/sad-platinum.png" });
 		registerClassicySystemArt("irix", { sadMac: "/sad-irix.png" });
