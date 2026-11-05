@@ -178,6 +178,14 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		).toEqual([]);
 	});
 
+	it("ships nothing from packages/ or resources/", ({ skip }) => {
+		expect(
+			files(skip).filter(
+				(file) => file.startsWith("packages/") || file.startsWith("resources/"),
+			),
+		).toEqual([]);
+	});
+
 	it("ships every SCSS file the scss exports serve", ({ skip }) => {
 		expect(exportedScss).toEqual(
 			expect.arrayContaining([
@@ -187,6 +195,23 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		);
 		const shipped = new Set(files(skip));
 		expect(exportedScss.filter((file) => !shipped.has(file))).toEqual([]);
+	});
+});
+
+describe("resources/ lives in the Platinum package folder", () => {
+	it("is gone from the root", () => {
+		expect(existsSync(path.resolve(root, "resources"))).toBe(false);
+	});
+
+	it("holds the HIGOS8 guidelines under the package", () => {
+		expect(
+			existsSync(
+				path.resolve(
+					root,
+					"packages/appearance/platinum/resources/Apple_HIGOS8_1997_Guidelines.pdf",
+				),
+			),
+		).toBe(true);
 	});
 });
 

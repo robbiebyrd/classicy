@@ -33,7 +33,7 @@
 		"verify:dist": "node bin/check-dist-imports.mjs",
 		"build:audio": "./bin/make_audio_sprites.sh",
 		"build:watch": "concurrently --kill-others \"pnpm build:watchaudio\" \"pnpm build:watchsource\"",
-		"build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
+		"build:watchaudio": "nodemon --watch \"assets/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
 		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"src/index.ts\" --ignore \"src/index\\ *.ts\" ",
 		"test": "vitest run",
 		"test:watch": "vitest",

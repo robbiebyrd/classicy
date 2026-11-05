@@ -13,7 +13,7 @@ each, and the fixes applied.
 
 | Short name | Document | Role |
 | --- | --- | --- |
-| **HIGOS8** | _Mac OS 8 Human Interface Guidelines_, Apple Computer, 1997 (`resources/Apple_HIGOS8_Guidelines.pdf`, 142 pp.) | **Authoritative.** Supersedes HIGOS7 wherever they conflict. |
+| **HIGOS8** | _Mac OS 8 Human Interface Guidelines_, Apple Computer, 1997 (`packages/appearance/platinum/resources/Apple_HIGOS8_1997_Guidelines.pdf`, 142 pp.) | **Authoritative.** Supersedes HIGOS7 wherever they conflict. |
 | **HIGOS7** | _Macintosh Human Interface Guidelines_, Apple Computer, 1995 (410 pp.) | Baseline. Fills in detail HIGOS8 omits (menu naming, Edit-menu items, ellipsis, scroll bars, text-entry behavior). |
 
 ### Citation scheme
