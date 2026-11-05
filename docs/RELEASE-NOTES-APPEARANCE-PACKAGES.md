@@ -743,7 +743,8 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   `listClassicySoundPacks`, `subscribeClassicySoundPacks`,
   `useClassicySoundPacks` and `ClassicySoundPackSchema`.
 - `CLASSICY_SOUND_SPRITE_IDS` lists the 41 sprite ids a pack should define.
-  A sprite missing from the active pack plays from Platinum's.
+  A sprite missing from the active pack plays from Platinum's, when
+  Platinum's pack is registered; otherwise it plays nothing.
   `classicySoundPackMissingSprites(pack)` lists the ones a pack lacks.
 - The type `ClassicySoundPack`, and `CLASSICY_DEFAULT_SOUND_PACK_ID`
   (`"platinum"`).

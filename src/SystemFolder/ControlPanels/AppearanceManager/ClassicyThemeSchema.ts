@@ -6,7 +6,6 @@ import {
 	CLASSICY_THEME_FONT_SIZE_MIN,
 	isClassicyFontSizeMeasurementKey,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
-import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	CLASSICY_MEASUREMENT_NAME,
 	CLASSICY_DEFAULT_THEME_METRICS as METRICS,
@@ -131,7 +130,8 @@ const backgroundImage = z.string().refine(isSafeClassicyThemeBackgroundImage, {
 	error: "must be a bundled wallpaper name or an http(s) URL",
 });
 
-// Evaluated per parse, so a pack registered after module load validates.
+// Evaluated per parse, so a pack registered after module load validates. The
+// schema registers none itself: Platinum's comes with the Platinum package.
 const soundPack = z
 	.string()
 	.max(64)

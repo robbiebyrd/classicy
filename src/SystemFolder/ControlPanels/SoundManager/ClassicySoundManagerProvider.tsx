@@ -1,10 +1,6 @@
 // Side-effect import: registers the Sound Control Strip module, which needs
 // this provider's context.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
-// Side-effect import: registers the Platinum sound pack, which lives with the
-// Platinum package's assets. The provider loads it for any sprite the active
-// pack lacks, so it must be registered whichever module loads first.
-import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	type FC as FunctionalComponent,
 	type ReactNode,
@@ -12,9 +8,9 @@ import {
 	useReducer,
 } from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
 import {
 	CLASSICY_DEFAULT_SOUND_PACK_ID,
-	getClassicySoundPack,
 	useClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
@@ -56,13 +52,14 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 	);
 
 	// Load the theme's pack when it changes, or when it is registered after
-	// mount (`packs` is the registry snapshot). Falls back to Platinum while the
-	// pack is unknown.
+	// mount (`packs` is the registry snapshot). Falls back to the default pack
+	// while the theme's is unknown, and stays silent while neither is
+	// registered (the core ships no pack; Platinum's comes with its package).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `packs` is the registry snapshot; it re-runs the load when a pack registers after mount.
 	useEffect(() => {
 		const pack =
-			getClassicySoundPack(packId) ??
-			getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+			findClassicySoundPack(packId) ??
+			findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
 		if (!pack || pack.id === sound.packId) return;
 		soundDispatch({
 			type: "ClassicySoundLoad",

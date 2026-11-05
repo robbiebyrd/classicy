@@ -1,7 +1,7 @@
 import { Howl } from "howler";
 import { createContext, type Dispatch } from "react";
-import "@/Appearance/Platinum/assets/sounds/platinum";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
 import {
 	CLASSICY_DEFAULT_SOUND_PACK_ID,
 	type ClassicySoundPack,
@@ -42,8 +42,9 @@ export type ClassicySoundState = {
 	/** Sprite ids the active pack defines. */
 	sprites: ReadonlySet<string>;
 	/**
-	 * The Platinum player, used for sprites the active pack lacks. Null when
-	 * Platinum is the active pack (or is not registered).
+	 * The default pack's (Platinum's) player, used for sprites the active pack
+	 * lacks. Null when the default pack is the active one or is not registered;
+	 * those sprites are then silent.
 	 */
 	fallbackPlayer: Howl | null;
 	disabled: string[];
@@ -157,9 +158,10 @@ export const initialPlayer: ClassicySoundState = {
 	alertVolume: 100,
 };
 
-const createPlatinumPlayer = (): Howl | null => {
-	const platinum = getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
-	return platinum ? createSoundPlayer({ soundData: platinum }) : null;
+/** The default pack's player, or null while that pack is not registered. */
+const createDefaultPackPlayer = (): Howl | null => {
+	const fallback = getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+	return fallback ? createSoundPlayer({ soundData: fallback }) : null;
 };
 
 /**
@@ -172,15 +174,16 @@ const stopAll = (ss: ClassicySoundState) => {
 	ss.fallbackPlayer?.stop();
 };
 
-/** The player that owns `sound`: the active pack's, else the Platinum fallback. */
+/** The player that owns `sound`: the active pack's, else the default pack's. */
 const playerFor = (ss: ClassicySoundState, sound: string): Howl | null =>
 	ss.sprites.has(sound) ? ss.soundPlayer : ss.fallbackPlayer;
 
 /**
  * Initial sound state for a provider mount: `base` (muted when asked) with the
- * player already loaded from `packId`, or Platinum when that pack is not
+ * player already loaded from `packId`, or the default pack when that one is not
  * registered (yet). Seeding at init means children's mount effects, such as the
- * boot chime, find a player. Returns `base` when no pack is registered at all.
+ * boot chime, find a player. Returns `base`, with no player, when neither is
+ * registered; each missing id is logged once.
  */
 export const seedSoundState = (
 	base: ClassicySoundState,
@@ -189,8 +192,8 @@ export const seedSoundState = (
 ): ClassicySoundState => {
 	const start = muted ? { ...base, disabled: ["*"] } : base;
 	const pack =
-		getClassicySoundPack(packId) ??
-		getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+		findClassicySoundPack(packId) ??
+		findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
 	return pack
 		? ClassicySoundStateEventReducer(start, {
 				type: ClassicySoundActionTypes.ClassicySoundLoad,
@@ -317,17 +320,24 @@ export const ClassicySoundStateEventReducer = (
 				next = { ...ss, disabled };
 				break;
 			}
+			const isDefault = pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID;
 			const missing = classicySoundPackMissingSprites(pack);
 			if (missing.length > 0) {
+				// Only the default pack can stand in for the sprites; without it
+				// (or when it is the pack missing them) they play nothing.
+				const fallsBack =
+					!isDefault &&
+					getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID) !== undefined;
 				classicyLog(
 					"warn",
 					"ClassicySoundManager",
-					"Sound pack is missing sprites; falling back to platinum",
+					fallsBack
+						? `Sound pack is missing sprites; falling back to ${CLASSICY_DEFAULT_SOUND_PACK_ID}`
+						: "Sound pack is missing sprites; they play nothing",
 					{ id: pack.id, missing },
 				);
 			}
 			ss.soundPlayer?.unload();
-			const isDefault = pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID;
 			if (isDefault) ss.fallbackPlayer?.unload();
 			next = {
 				...ss,
@@ -336,7 +346,7 @@ export const ClassicySoundStateEventReducer = (
 				sprites: new Set(Object.keys(pack.sprite)),
 				fallbackPlayer: isDefault
 					? null
-					: (ss.fallbackPlayer ?? createPlatinumPlayer()),
+					: (ss.fallbackPlayer ?? createDefaultPackPlayer()),
 				disabled,
 			};
 			break;

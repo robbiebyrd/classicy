@@ -7,7 +7,7 @@ import { type SoundData, SoundDataSchema } from "./ClassicySoundSchema";
  * A sound pack: one Howler audio sprite sheet (`src` + `sprite`) under a
  * kebab-case id. A theme selects a pack with `sound.pack`. A pack should
  * define every id in `CLASSICY_SOUND_SPRITE_IDS`; a sprite it lacks plays
- * from the Platinum pack instead.
+ * from the Platinum pack instead, when that pack is registered.
  */
 export type ClassicySoundPack = SoundData & {
 	id: string;

@@ -4429,8 +4429,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   Classicy dispatches (it equals the Platinum sprite sheet's key set). A pack
   should define all of them. When a pack is loaded and lacks some, the manager
   logs a `warn` (`Sound pack is missing sprites; falling back to platinum`, with
-  the missing ids) and plays those sprites from the Platinum pack; a sprite
-  missing from both is not played.
+  the missing ids) and plays those sprites from the Platinum pack when it is
+  registered (the warning reads `…; they play nothing` when it is not); a
+  sprite missing from both is not played.
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
@@ -4442,7 +4443,10 @@ registerClassicySoundPack({            // module scope, like the other registrie
 - **Boot and switching**: `ClassicySoundManagerProvider` reads
   `System.Manager.Appearance.activeTheme.sound.pack` from the persisted store
   and boots with that pack's player already built (Platinum if the pack is not
-  registered yet). It reloads when the id changes, and when a pack registers
+  registered yet). The sound modules register no pack themselves: with neither
+  pack registered the provider builds no Howl, every sound dispatch is a silent
+  no-op, and each missing pack id is logged once (`classicyLog("warn",
+  "Sound", …)`). It reloads when the id changes, and when a pack registers
   after mount under the id the theme already names, with no page reload.
   Editing any other part of the theme never reloads it. The system volume
   (`ClassicyVolumeSet`) and the mute (`"*"` in `disabled`) carry over each

@@ -32,8 +32,6 @@ vi.mock("howler", () => ({
 	},
 }));
 
-vi.mock("@/Appearance/Platinum/assets/sounds/platinum", () => ({}));
-
 // Feed a fixed selection through the Zustand hook the provider reads. The
 // Appearance slice is hoisted so individual tests can vary it.
 const { mockAppearance } = vi.hoisted(() => ({

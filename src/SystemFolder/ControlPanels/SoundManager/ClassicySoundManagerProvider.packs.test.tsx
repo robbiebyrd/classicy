@@ -1,15 +1,26 @@
 import { act, useEffect } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type MockInstance,
+	vi,
+} from "vitest";
 import { render } from "@/__tests__/test-utils";
 import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
+import { resetClassicySoundPackWarnings } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
 import {
+	listClassicySoundPacks,
 	registerClassicySoundPack,
 	resetClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const { created, instances, mockAppearance } = vi.hoisted(() => ({
 	created: [] as string[][],
@@ -41,8 +52,6 @@ vi.mock("howler", () => ({
 	},
 }));
 
-vi.mock("@/Appearance/Platinum/assets/sounds/platinum", () => ({}));
-
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
 	() => {
@@ -56,6 +65,10 @@ vi.mock(
 		return { useAppManager };
 	},
 );
+
+// Read before any test registers a pack: mounting the provider's module graph
+// must not register one (Platinum's pack comes from the Platinum package only).
+const packsAtImport = listClassicySoundPacks().map((p) => p.id);
 
 const pack = (id: string, src: string) => ({
 	id,
@@ -164,5 +177,79 @@ describe("ClassicySoundManagerProvider sound packs", () => {
 		mockAppearance.activeTheme.color = { a: 2 };
 		rerender(tree());
 		expect(created.length).toBe(count);
+	});
+});
+
+describe("ClassicySoundManagerProvider with no sound pack registered", () => {
+	let log: MockInstance<typeof ClassicyLog.classicyLog>;
+	const missingPackWarnings = () =>
+		log.mock.calls.filter((c) => c[0] === "warn" && c[1] === "Sound");
+
+	beforeEach(() => {
+		created.length = 0;
+		instances.length = 0;
+		resetClassicySoundPacks();
+		resetClassicySoundPackWarnings();
+		log = vi.spyOn(ClassicyLog, "classicyLog");
+		mockAppearance.activeTheme = {
+			color: { a: 1 },
+			sound: { pack: "remote", disabled: [] },
+		};
+	});
+
+	afterEach(() => log.mockRestore());
+
+	it("importing the provider registers no sound pack", () => {
+		expect(packsAtImport).toEqual([]);
+	});
+
+	it("mounts, constructs no Howl and plays nothing", () => {
+		expect(() => render(tree(true))).not.toThrow();
+		expect(created).toEqual([]);
+		expect(latest.soundPlayer).toBeNull();
+		expect(latest.fallbackPlayer).toBeNull();
+		expect(latest.packId).toBeNull();
+	});
+
+	it("every sound dispatch is a no-op that does not throw", () => {
+		render(tree());
+		for (const type of [
+			"ClassicySoundPlay",
+			"ClassicySoundPlayInterrupt",
+			"ClassicySoundPlayError",
+			"ClassicyAlertSound",
+			"ClassicySoundStop",
+		]) {
+			expect(() =>
+				act(() => dispatchRef({ type, sound: "ClassicyBeep" })),
+			).not.toThrow();
+		}
+		expect(created).toEqual([]);
+	});
+
+	it("warns once per missing pack id, across renders and dispatches", () => {
+		const { rerender } = render(tree(true));
+		rerender(tree(true));
+		act(() =>
+			dispatchRef({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }),
+		);
+		const ids = missingPackWarnings().map((c) => (c[3] as { id: string }).id);
+		expect(ids.sort()).toEqual(["platinum", "remote"]);
+	});
+
+	it("warns once when the theme names the missing default pack itself", () => {
+		mockAppearance.activeTheme.sound.pack = "platinum";
+		render(tree());
+		expect(missingPackWarnings()).toHaveLength(1);
+		expect(missingPackWarnings()[0][3]).toEqual({ id: "platinum" });
+	});
+
+	it("loads the Platinum pack when it registers after mount", () => {
+		mockAppearance.activeTheme.sound.pack = "platinum";
+		render(tree());
+		expect(created).toEqual([]);
+		act(() => registerClassicySoundPack(pack("platinum", PLATINUM_SRC)));
+		expect(created).toEqual([[PLATINUM_SRC]]);
+		expect(latest.packId).toBe("platinum");
 	});
 });

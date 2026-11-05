@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
+// The schema does not register Platinum's sound pack; the bundled themes name
+// it, so this file registers it explicitly.
+import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
@@ -15,7 +19,10 @@ import {
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import { registerClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import {
+	registerClassicySoundPack,
+	resetClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 const base = (): ClassicyTheme => structuredClone(getTheme("default"));
 
@@ -340,6 +347,12 @@ describe("ClassicyThemeSchema — appearance package", () => {
 			const fresh = await import(
 				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
 			);
+			// The fresh module graph has its own, empty, sound pack registry.
+			(
+				await import(
+					"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks"
+				)
+			).registerClassicySoundPack(platinumSoundPack);
 			const parsed = fresh.ClassicyThemeSchema.safeParse(
 				withEdit((t) => {
 					delete (t as Record<string, unknown>).package;
@@ -383,6 +396,46 @@ describe("ClassicyThemeSchema — appearance package", () => {
 				Object.assign(t.measurements, { controlStrip: { cellHeight: "22" } });
 			}),
 		);
+	});
+});
+
+describe("ClassicyThemeSchema — sound packs", () => {
+	afterEach(() => {
+		resetClassicySoundPacks();
+		registerClassicySoundPack(platinumSoundPack);
+	});
+
+	it("sound.pack validates against whatever is registered, Platinum included", () => {
+		resetClassicySoundPacks();
+		registerClassicySoundPack({
+			id: "only",
+			name: "Only",
+			src: ["https://x/o.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const withPack = (pack: string) =>
+			ClassicyThemeSchema.safeParse(
+				withEdit((t) => Object.assign(t.sound, { pack })),
+			);
+		expect(withPack("only").success).toBe(true);
+		const platinum = withPack("platinum");
+		expect(platinum.success).toBe(false);
+		expect(platinum.error?.issues[0].path).toEqual(["sound", "pack"]);
+	});
+
+	it("the schema's module graph loads no Platinum module", () => {
+		const graph = runtimeImportGraph(
+			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema.ts",
+		);
+		// ClassicyThemeMetrics' read of platinum.json is data, not a module,
+		// and is 1.1's to replace with the core floor.
+		expect(
+			graph.filter(
+				(file) =>
+					file.startsWith("src/Appearance/Platinum/") &&
+					file !== "src/Appearance/Platinum/platinum.json",
+			),
+		).toEqual([]);
 	});
 });
 
