@@ -73,6 +73,7 @@ export const CLASSICY_COMPONENT = {
 	Menu: "classicyMenu",
 	MenuItem: "classicyMenuItem",
 	Meter: "classicyMeter",
+	NoAppearancePackage: "classicyNoAppearancePackage",
 	Output: "classicyOutput",
 	Pager: "classicyPager",
 	PictureViewer: "classicyPictureViewer",

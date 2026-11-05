@@ -2,6 +2,7 @@ import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
@@ -23,6 +24,10 @@ vi.mock("howler", () => ({
 		playing = vi.fn().mockReturnValue(false);
 	},
 }));
+
+// ClassicyDesktop imports Platinum, so it is registered here; put back after
+// each reset (with no package registered the desktop draws no desktop).
+const platinum = getClassicyAppearancePackage("platinum");
 
 const irix: ClassicyAppearancePackage = {
 	id: "irix",
@@ -67,11 +72,13 @@ describe("ClassicyDesktop data-classicy-appearance", () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		resetClassicyAppearancePackagesForTests();
+		if (platinum) registerClassicyAppearancePackage(platinum);
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
+		if (platinum) registerClassicyAppearancePackage(platinum);
 		useAppManager.setState(DefaultAppManagerState, true);
 	});
 

@@ -1,0 +1,46 @@
+// No package, no desktop: what ClassicyDesktop draws while no Appearance
+// Package is registered. No package's look reaches it, so it reads only the
+// core default theme's variables, which its root carries itself
+// (ClassicyNoAppearancePackage.tsx), and sizes everything else in ems.
+.classicyNoAppearancePackage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 1em;
+  color: var(--color-black);
+  background-color: var(--color-system-03);
+  font-family: var(--body-font);
+  font-size: var(--body-font-size);
+}
+
+.classicyNoAppearancePackageMessage {
+  box-sizing: border-box;
+  max-width: 36em;
+  padding: 1em 1.5em;
+  background-color: var(--color-white);
+  border: var(--window-border-size) solid var(--color-black);
+}
+
+.classicyNoAppearancePackageHeading {
+  margin: 0 0 0.5em;
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size-large);
+  font-weight: normal;
+}
+
+.classicyNoAppearancePackageBody {
+  margin: 0 0 0.75em;
+}
+
+.classicyNoAppearancePackageCode {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  overflow-x: auto;
+  background-color: var(--color-system-01);
+  font-family: var(--mono-font), monospace;
+  font-size: var(--mono-font-size);
+}

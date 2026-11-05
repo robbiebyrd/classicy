@@ -356,6 +356,7 @@
 			"Suboptimal",
 			"Value"
 		],
+		"NoAppearancePackage": ["Body", "Code", "Heading", "Message"],
 		"Output": ["Inset", "Mono", "Plain"],
 		"Pager": ["Arrow", "ArrowNext", "ArrowPrev", "Page"],
 		"PictureViewer": ["Image"],

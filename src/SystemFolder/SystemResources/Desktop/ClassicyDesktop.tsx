@@ -81,6 +81,7 @@ import {
 	nearestIconInDirection,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import { ClassicyNoAppearancePackage } from "@/SystemFolder/SystemResources/Desktop/ClassicyNoAppearancePackage";
 import { ClassicyOpenUrlController } from "@/SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 import {
 	ClassicyEmptyTrashAlert,
@@ -105,9 +106,13 @@ import {
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "../../../index.css";
+
+// Stored package ids already reported as unregistered, once per page each.
+const reportedUnregisteredPackageIds = new Set<string>();
 
 interface ClassicyDesktopProps {
 	/** Your apps (`ClassicyApp`) and anything else to mount on the desktop. */
@@ -638,8 +643,29 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	);
 	const assetVars = useClassicyAssetVars();
 	// The resolved id, not the stored one: an id whose package is not (yet)
-	// registered renders as Platinum, so the CSS scope and the JS agree.
+	// registered renders as the default package, else the first registered
+	// one, so the CSS scope and the JS agree.
 	const appearancePackageId = useActiveClassicyAppearancePackage().id;
+	const storedPackageId = useAppManager(
+		(s) => s.System.Manager.Appearance.packageId,
+	);
+	// Say once per page which package a stored id that is not registered is
+	// drawn as. Here, not in the resolver, which reducers and lookups call
+	// before a host has registered its packages; the desktop mounts after.
+	useEffect(() => {
+		if (
+			storedPackageId === undefined ||
+			storedPackageId === appearancePackageId ||
+			reportedUnregisteredPackageIds.has(storedPackageId)
+		)
+			return;
+		reportedUnregisteredPackageIds.add(storedPackageId);
+		classicyLog(
+			"warn",
+			"ClassicyAppearance",
+			`Appearance Package "${storedPackageId}" is not registered; drawing "${appearancePackageId}" instead.`,
+		);
+	}, [storedPackageId, appearancePackageId]);
 	// The active package's arrangement (resolved from Appearance.packageId,
 	// never activeTheme.package), as root attributes and variables beside the
 	// theme's; getThemeVars only sees the theme. classicyLayoutThemeVars
@@ -855,6 +881,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
  * active theme as CSS variables on its root `#classicyDesktop` element, where
  * windows, menus and balloons portal.
  *
+ * With no Appearance Package registered it draws none of that: it shows
+ * `ClassicyNoAppearancePackage` (a plain message naming the missing package,
+ * which takes `className` and `style`) until a package registers, and mounts
+ * none of its children.
+ *
  * ```tsx
  * <ClassicyAppManagerProvider>
  *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
@@ -874,22 +905,28 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	controlStrip,
 	className,
 	style,
-}) => (
-	<ClassicyCrashScreen>
-		<ClassicyContextualMenuProvider>
-			<ClassicyDesktopInner
-				startupScreen={startupScreen}
-				startupDuration={startupDuration}
-				preBootScreen={preBootScreen}
-				startupLogo={startupLogo}
-				startupWordmark={startupWordmark}
-				bootScreen={bootScreen}
-				controlStrip={controlStrip}
-				className={className}
-				style={style}
-			>
-				{children}
-			</ClassicyDesktopInner>
-		</ClassicyContextualMenuProvider>
-	</ClassicyCrashScreen>
-);
+}) => {
+	// No package, no desktop: nothing below can draw without one.
+	const packages = useClassicyAppearancePackages();
+	if (packages.length === 0)
+		return <ClassicyNoAppearancePackage className={className} style={style} />;
+	return (
+		<ClassicyCrashScreen>
+			<ClassicyContextualMenuProvider>
+				<ClassicyDesktopInner
+					startupScreen={startupScreen}
+					startupDuration={startupDuration}
+					preBootScreen={preBootScreen}
+					startupLogo={startupLogo}
+					startupWordmark={startupWordmark}
+					bootScreen={bootScreen}
+					controlStrip={controlStrip}
+					className={className}
+					style={style}
+				>
+					{children}
+				</ClassicyDesktopInner>
+			</ClassicyContextualMenuProvider>
+		</ClassicyCrashScreen>
+	);
+};
