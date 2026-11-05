@@ -3,12 +3,13 @@ id: 0083-v8n
 title: 'V&V: Human verification and validation for the Appearance Packages program'
 purpose: Collect every manual, human-performed acceptance check from the Appearance Packages stories in one ticket, so the implementation stories can close on automated evidence alone.
 type: task
-status: in_progress
+status: complete
 priority: "2"
 effort: XL
 created: "2026-10-29T20:12:05.516Z"
-updated: "2026-11-05T00:54:37.325Z"
+updated: "2026-11-05T16:00:18.715Z"
 started: "2026-11-05T00:52:38.241Z"
+completed: "2026-11-05T16:00:18.715Z"
 tags:
   - vnv
   - manual
@@ -141,9 +142,9 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 
 - [x] [MANUAL] **0082-lgo (Part A follow-ups)**: (h) The parity procedure adds one mid-time check for animated stories, since animations are currently frozen at t=0.
 - [x] [MANUAL] **0039-63e (B 4.3)**: Every story in .playwright-mcp/parity/part-b/stories.txt compares with AE 0 before vs after.
-- [ ] [MANUAL] **0040-gok (B 5.1)**: In the running example the desktop root carries data-classicy-appearance="platinum", #classicy-appearance-platinum sits right after #classicy-styles, and switching Default → Azul → Default logs no console errors.
+- [x] [MANUAL] **0040-gok (B 5.1)**: In the running example the desktop root carries data-classicy-appearance="platinum", #classicy-appearance-platinum sits right after #classicy-styles, and switching Default → Azul → Default logs no console errors.
 - [x] [MANUAL] **0041-dyu (B 6)**: Every story in stories.txt compares AE 0 before vs after; no background dev server is left running.
-- [ ] [MANUAL] **0030-2t0 (D 4.1)**: In the example app the boot chime plays once, Default → Azul → Default keeps button clicks sounding with no console warning, persisted state carries `"pack":"platinum"`, and a volume of 40 survives a theme switch.
+- [x] [MANUAL] **0030-2t0 (D 4.1)**: In the example app the boot chime plays once, Default → Azul → Default keeps button clicks sounding with no console warning, persisted state carries `"pack":"platinum"`, and a volume of 40 survives a theme switch.
 - [x] [MANUAL] **0051-532 (E 0)**: `stories.txt` lists every story under the twenty title prefixes named in Step 1 and `before/` holds one 1024×768 PNG per id.
 - [x] [MANUAL] **0051-532 (E 0)**: `caps.txt` records the two pseudo-element heights measured on `desktop-window--default`.
 - [x] [MANUAL] **0053-e1n (E 2.1)**: `compare -metric AE` is `0` for every `desktop-window--*`, `dialogs-alert--*` and `desktop-windowframe--*` story against `before/`.
@@ -161,7 +162,7 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [x] [MANUAL] **0012-3av (G 1.2)**: Icon, DesktopIcon and ControlGroup stories compare AE 0; only error-styled alert stories differ, and only inside the title bar.
 - [x] [MANUAL] **0014-2b5 (G 2.2)**: Window, Menu, MenuBar, PopUpMenu, Tabs, Button and Placard stories compare AE 0 against the G 0 baseline.
 - [x] [MANUAL] **0017-ih7 (G 4)**: Every parity story compares AE 0 except the named error-alert title bars, whose diff is confined to the title bar (compare loop over .playwright-mcp/parity/part-G).
-- [ ] [MANUAL] **0017-ih7 (G 4)**: In the example app `--menu-bar-height` resolves to `30px`, a zoomed window lands at [8, 38], and the Apple menu is 180 px wide, with no console errors.
+- [x] [MANUAL] **0017-ih7 (G 4)**: In the example app `--menu-bar-height` resolves to `30px`, a zoomed window lands at [8, 38], and the Apple menu is 180 px wide, with no console errors.
 - [x] [MANUAL] **0067-opx (H 0)**: Every before-screenshot shows the surface fully rendered (no blank frames, no loading state).
 - [~] [MANUAL] **0068-02e (H 1.1)**: The seeded allowlist lists only SCSS files under `src/` (none under `savers/`), and the ControlStrip entry is 88.
 - [x] [MANUAL] **0069-fiu (H 2.1)**: `platinum.json` carries all 21 knob families on `defaults.measurements` and on every preset, and the Platinum `options` schema lists each family with `.describe()` labels.
@@ -169,24 +170,24 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 - [x] [MANUAL] **0071-h9m (H 4.1)**: `desktop-menu--*`, `controls-pager--*`, `controls-balloonhelp--*`, `controls-popupslider--*` and `desktop-window--*` stories compare AE 0 before vs after.
 - [x] [MANUAL] **0072-fjm (H 5.1)**: `extensions-appleguide--*`, `controls-colorpicker--*` and the four example-app screens compare AE 0 before vs after.
 - [x] [MANUAL] **0073-wte (H 6.1)**: Only the two `--classicy-control-strip-*, 0px` instance fallbacks remain in `src/**/*.scss`; `ClassicyControlLabel.scss:77` keeps its `@media` breakpoint with the explanatory comment.
-- [ ] [MANUAL] **0074-zpv (H 7.1)**: Every Phase 0 story and app screen compares AE 0 before vs after; the example app's `--control-strip-cell-height` reads `22px` and the Control Strip, menus, balloons and pager look unchanged.
+- [x] [MANUAL] **0074-zpv (H 7.1)**: Every Phase 0 story and app screen compares AE 0 before vs after; the example app's `--control-strip-cell-height` reads `22px` and the Control Strip, menus, balloons and pager look unchanged.
 - [x] [MANUAL] **0074-zpv (H 7.1)**: AGENT-REFERENCE §8 has the knob-families table and gate paragraph; CLAUDE.md has the Theming sentence; plan 0000-aud (the audit) §2.5 and §9 Phase 6 item 3 carry 'Done' lines.
 - [x] [MANUAL] **0042-pbp (I 0)**: Each before PNG is a 1024×768 capture taken after networkidle + 500 ms.
 - [x] [MANUAL] **0044-uvc (I 2.1)**: controls-button*, controls-bevelbutton*, controls-checkbox*, controls-radioinput*, controls-popupmenu*, controls-combobox*, controls-input* and controls-listbox* stories compare AE 0 before vs after.
 - [x] [MANUAL] **0045-1c6 (I 2.2)**: controls-slider*, controls-placard*, controls-tabs*, controls-disclosure*, controls-tree*, controls-table*, controls-link* and controls-fileinput* stories compare AE 0 before vs after.
 - [x] [MANUAL] **0046-ukg (I 2.3)**: desktop-window*, desktop-desktop*, desktop-desktopicon*, desktop-menu*, desktop-menubar*, desktop-controlstrip*, dialogs-alert*, dialogs-assistant* and controls-icon* stories compare AE 0 before vs after.
-- [ ] [MANUAL] **0047-mst (I 3.1)**: In the example app the click sprites play on push buttons, bevel buttons and radio items with no sound-bridge warning in the console.
+- [x] [MANUAL] **0047-mst (I 3.1)**: In the example app the click sprites play on push buttons, bevel buttons and radio items with no sound-bridge warning in the console.
 - [x] [MANUAL] **0048-fpx (I 3.2)**: desktop-window*, desktop-menu*, desktop-menubar*, dialogs-alert* and controls-contextualmenu* stories compare AE 0 before vs after.
-- [ ] [MANUAL] **0049-cdo (I 4.1)**: controls-button--appearance-hooks renders unstyled with a magenta outline; pressing turns it green and logs Button.press / Button.release / Button.click in the Actions panel.
+- [x] [MANUAL] **0049-cdo (I 4.1)**: controls-button--appearance-hooks renders unstyled with a magenta outline; pressing turns it green and logs Button.press / Button.release / Button.click in the Actions panel.
 - [x] [MANUAL] **0050-ryq (I 5)**: Every pre-existing story compares AE 0 before vs after; no background dev server is left running.
 - [x] [MANUAL] **0075-uev (J 0)**: The Screen Saver panel screenshot shows the Flying Toasters options form fully rendered.
 - [x] [MANUAL] **0076-4sb (J 1.1)**: `extensions-screensaver--*` stories and `app-screensaver-panel` compare AE 0 before vs after.
-- [ ] [MANUAL] **0078-nc6 (J 3.1)**: In the example app the Packages tab lists Platinum checked with seven swatches, and the Options tab shows the Platinum knob groups from the `options` schema; the tab strip scrolls when eight tabs exceed 480 px.
-- [ ] [MANUAL] **0079-vn4 (J 4.1)**: In the example app, changing Buttons → Gap to 20 on the Metrics tab widens dialog button spacing and switches the theme pop-up to Custom.
-- [ ] [MANUAL] **0080-xy4 (J 5.1)**: In the example app the Sound tab lists Platinum as the sound pack and Load Theme… with a file whose `package` is `irix` shows the stop alert without changing the theme.
+- [x] [MANUAL] **0078-nc6 (J 3.1)**: In the example app the Packages tab lists Platinum checked with seven swatches, and the Options tab shows the Platinum knob groups from the `options` schema; the tab strip scrolls when eight tabs exceed 480 px.
+- [x] [MANUAL] **0079-vn4 (J 4.1)**: In the example app, changing Buttons → Gap to 20 on the Metrics tab widens dialog button spacing and switches the theme pop-up to Custom.
+- [x] [MANUAL] **0080-xy4 (J 5.1)**: In the example app the Sound tab lists Platinum as the sound pack and Load Theme… with a file whose `package` is `irix` shows the stop alert without changing the theme.
 - [x] [MANUAL] **0081-ww6 (J 6.1)**: Every J 0 screenshot except `app-appearance-*` compares AE 0 before vs after; all nine `system-appearancemanager--*` stories render without console errors.
 - [x] [MANUAL] **0081-ww6 (J 6.1)**: AGENT-REFERENCE lists the new action, the metric family form, `ClassicySchemaForm` and the eight tabs; CLAUDE.md has the schema-form paragraph; plan 0000-aud (the audit) §9 Phase 8 carries a 'Done' line.
-- [ ] [MANUAL] Part I 3.2: in the example app with sound unmuted, hover through a menu and into a submenu. Each item plays one hover sound, exactly as before 3.2 (the extra hover dispatches that used to bubble to parent items, always refused by the sound manager, are gone).
+- [x] [MANUAL] Part I 3.2: in the example app with sound unmuted, hover through a menu and into a submenu. Each item plays one hover sound, exactly as before 3.2 (the extra hover dispatches that used to bubble to parent items, always refused by the sound manager, are gone).
 - [x] [MANUAL] **0063-n9x (F 4.1)**: `compare -metric AE` is `0` for every `desktop-window--*` story, and a 40 px grip drag in `desktop-window--default` keeps `left/top` and grows width/height by the same amount as at the pre-4.1 base (the controller measured +43 at both), ±1.
 - [x] [MANUAL] **0054-b5i (E 2.2)**: `compare -metric AE` is `0` for every re-shot story (the zoom-box named change (b) was retired at Part E's landing: the zoom glyph keeps its original art).
 - [x] [MANUAL] **0058-83a (E 6.1)**: Parity: AE `0` for every story in `stories.txt` except named change (a), the WindowFrame title-bar band, confined to that band (owner ruling E20 replaced change (c) with exact stripe parity; change (b) was retired).
@@ -198,3 +199,5 @@ Run the 7 manual checks from 0075-uev, 0076-4sb, 0078-nc6, 0079-vn4, 0080-xy4, 0
 ### 2026-11-05T00:52:43.138Z - 0082-lgo (h) ticked: the parity-midtime follow-up landed (b945f78fd..793f3af80): parity:shoot --mid auto-selects the animated stories (97/344) and freezes them at 50%; determinism 97/97 AE 0 twice; regression proof t=0 344/344 AE 0 vs @mid 91 differ.
 
 ### 2026-11-05T00:54:17.003Z - Still open: the ten owner checks, run by the owner from https://claude.ai/artifact/RnmPHj3GCdFzRzmAaS2uqj: 0040-gok, 0030-2t0, 0047-mst, Part I 3.2 hover sounds, 0017-ih7 (b) example-app geometry, 0074-zpv (a) control-strip cell height / looks unchanged, 0078-nc6, 0079-vn4, 0080-xy4, 0049-cdo. The story stays in progress until they are ticked; plan 0002-ldj waits on it.
+
+### 2026-11-05T16:00:06.568Z - Owner approved the V&V checklist 2026-11-05 (https://claude.ai/artifact/RnmPHj3GCdFzRzmAaS2uqj): all ten owner checks pass (0040-gok, 0030-2t0, 0017-ih7 (b), 0074-zpv (a), 0047-mst, 0049-cdo, 0078-nc6, 0079-vn4, 0080-xy4, Part I 3.2 hover sounds), ticked at tip 5f1d54943. No failures, so no bug stories. Story complete; plan 0002-ldj can close.
