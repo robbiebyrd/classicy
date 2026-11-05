@@ -35,9 +35,19 @@ afterEach(() => {
 		child.stdin?.end();
 		if (child.exitCode === null) child.kill();
 	}
-	for (const dir of tempDirs.splice(0))
-		fs.rmSync(dir, { recursive: true, force: true });
+	for (const dir of tempDirs.splice(0)) removeTree(dir);
 });
+
+// Removes a test's directory even when the test left part of it unreadable,
+// so no run strands a /tmp/classicy-* directory.
+function removeTree(dir: string) {
+	try {
+		fs.rmSync(dir, { recursive: true, force: true });
+	} catch {
+		spawnSync("chmod", ["-R", "u+rwx", dir]);
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+}
 
 const makeRepo = () => {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
@@ -134,8 +144,16 @@ const getHugeProcRoot = () => {
 	return root;
 };
 afterAll(() => {
-	if (hugeProcRoot) fs.rmSync(hugeProcRoot, { recursive: true, force: true });
+	if (hugeProcRoot) removeTree(hugeProcRoot);
 });
+
+// Runs the script with at most `limit` open file descriptors.
+const runUnderFdLimit = (limit: number, cwd: string, ...args: string[]) =>
+	spawnSync(
+		"bash",
+		["-c", `ulimit -n ${limit} && exec bash "$0" "$@"`, SCRIPT, ...args],
+		{ cwd, env: gitEnv(), encoding: "utf8" },
+	);
 
 // A process that holds `file` open for the test's length.
 const holdOpen = (file: string) => {
@@ -579,6 +597,7 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 				() => `"${realFind()}" "$@"\necho surprise`,
 			],
 			["is killed", () => "kill -KILL $$"],
+			["exits 1 and prints nothing", () => "exit 1"],
 		];
 		it.each(cases)("refuses when find %s", (_label, body) => {
 			const repo = makeRepo();
@@ -614,7 +633,6 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 			const procs = makeProcRoot();
 			makeFakeProc(procs, { comm: "sleep", cwd: os.tmpdir() });
 			fs.chmodSync(path.join(procs, FAKE_PID, "fd"), 0o000);
-			fs.mkdirSync(path.join(procs, "4242"));
 			const result = runWithProcs(procs, repo);
 			fs.chmodSync(path.join(procs, FAKE_PID, "fd"), 0o700);
 			expect(result.stderr).toBe("");
@@ -673,6 +691,355 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 			expect(result.stderr).toMatch(
 				new RegExp(`held open by pid ${FAKE_PID}$`, "m"),
 			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+	});
+
+	// With too few file descriptors, every open, pipe and command substitution
+	// can fail, and bash substitutes nothing for one it cannot start, with
+	// status 0. Nothing the scans then miss may let the lock go.
+	describe("with too few file descriptors", () => {
+		const limits = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+		it.each(limits)("keeps a held lock at ulimit -n %i", (limit) => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			holdOpen(lock);
+			const result = runUnderFdLimit(limit, repo, "--dry-run");
+			expect(result.stdout).not.toMatch(/remove/);
+			expect([1, 2]).toContain(result.status);
+			if (limit >= 6) expect(result.status).toBe(2);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it.each(
+			limits,
+		)("keeps the lock while git runs in the repository at ulimit -n %i", (limit) => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const busy = spawn("git", ["hash-object", "--stdin"], {
+				cwd: repo,
+				env: gitEnv(),
+			});
+			children.push(busy);
+			waitForProc(busy);
+			const result = runUnderFdLimit(limit, repo, "--dry-run");
+			expect(result.stdout).not.toMatch(/remove/);
+			expect([1, 2]).toContain(result.status);
+			if (limit >= 6) expect(result.status).toBe(2);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("still removes an unheld lock with a normal limit", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const result = runUnderFdLimit(1024, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+	});
+
+	describe("a scan error that is not an unreadable or exited process", () => {
+		const scanFailed = (lock: string, what: string) =>
+			`git-clear-stale-lock: keeping ${fs.realpathSync(lock)}: could not scan for ${what}\n`;
+
+		it("refuses when find reports any other error", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const find = realBinary("find");
+			const result = runWithEnv(
+				{
+					PATH: makeFakeBin({
+						find: `"${find}" "$@"\necho "find: '/proc/1/fd': Too many open files" >&2\nexit 1`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "processes holding it open"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("accepts find's errors for unreadable and exited processes", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const find = realBinary("find");
+			const result = runWithEnv(
+				{
+					PATH: makeFakeBin({
+						find: [
+							`"${find}" "$@"`,
+							`echo "find: '/proc/1/fd': Permission denied" >&2`,
+							`echo "find: '/proc/2/fd/3': No such file or directory" >&2`,
+							"exit 1",
+						].join("\n"),
+					}),
+				},
+				repo,
+			);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		// comm is world-readable, so a process whose comm cannot be opened
+		// while it is still there is one the scan failed to read.
+		it.skipIf(process.getuid?.() === 0)(
+			"refuses when a running process's name cannot be read",
+			() => {
+				const repo = makeRepo();
+				const lock = makeLock(path.join(repo, ".git", "index.lock"));
+				const procs = makeProcRoot();
+				makeFakeProc(procs, { cwd: repo });
+				fs.chmodSync(path.join(procs, FAKE_PID, "comm"), 0o000);
+				const result = runWithProcs(procs, repo);
+				expect(result.status).toBe(2);
+				expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+				expect(fs.existsSync(lock)).toBe(true);
+			},
+		);
+
+		it("reads a name without a trailing newline", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: repo });
+			fs.writeFileSync(path.join(procs, FAKE_PID, "comm"), "git");
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(
+				new RegExp(`git process ${FAKE_PID} is running in this repository`),
+			);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("refuses when a git process's working directory fails to read otherwise", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {});
+			// Not a link: readlink fails with EINVAL.
+			fs.mkdirSync(path.join(procs, FAKE_PID, "cwd"));
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("refuses when a git process's environment fails to read otherwise", () => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: other });
+			// A directory opens, then fails to read (EISDIR).
+			fs.mkdirSync(path.join(procs, FAKE_PID, "environ"));
+			const result = runWithProcs(procs, repo);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("refuses when git fails to name a process's repository otherwise", () => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: other, environ: ["PATH=/usr/bin"] });
+			const git = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_OTHER: other,
+					PATH: makeFakeBin({
+						git: `[ "$2" = "$FAKE_OTHER" ] && { echo "fatal: Too many open files" >&2; exit 128; }\nexec "${git}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// git may say "not a git repository" when it cannot open the files that
+		// say otherwise; inside this checkout that cannot be true.
+		it.each([
+			["work tree", (repo: string) => fs.realpathSync(repo)],
+		])("refuses when git puts a process in this checkout's %s in no repository", (_label, cwdOf) => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			const cwd = cwdOf(repo);
+			makeFakeProc(procs, { cwd, environ: ["PATH=/usr/bin"] });
+			const git = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_CWD: cwd,
+					PATH: makeFakeBin({
+						git: `[ "$2" = "$FAKE_CWD" ] && { echo "fatal: not a git repository (or any of the parent directories): .git" >&2; exit 128; }\nexec "${git}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		// A bare repository has no work tree; its git dir is checked alone.
+		it("refuses when git puts a process in a bare repository in no repository", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const bare = path.join(dir, "bare.git");
+			git(dir, "init", "-q", "--bare", bare);
+			const lock = makeLock(path.join(bare, "index.lock"));
+			const procs = makeProcRoot();
+			const cwd = fs.realpathSync(bare);
+			makeFakeProc(procs, { cwd, environ: ["PATH=/usr/bin"] });
+			const realGit = realBinary("git");
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					FAKE_CWD: cwd,
+					PATH: makeFakeBin({
+						git: `[ "$2" = "$FAKE_CWD" ] && { echo "fatal: not a git repository (or any of the parent directories): .git" >&2; exit 128; }\nexec "${realGit}" "$@"`,
+					}),
+				},
+				bare,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toBe(scanFailed(lock, "git processes"));
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("fails when git cannot name the work tree", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const git = realBinary("git");
+			const result = runWithEnv(
+				{
+					PATH: makeFakeBin({
+						git: `[ "$4" = --show-toplevel ] && { echo "fatal: Too many open files" >&2; exit 128; }\nexec "${git}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(1);
+			expect(result.stderr).toMatch(/cannot find the work tree/);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("clears a bare repository's lock", () => {
+			const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-lock-"));
+			tempDirs.push(dir);
+			const bare = path.join(dir, "bare.git");
+			git(dir, "init", "-q", "--bare", bare);
+			const lock = makeLock(path.join(bare, "index.lock"));
+			const result = run(bare);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		it("skips a git process outside any repository", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const outside = makeProcRoot();
+			const procs = makeProcRoot();
+			makeFakeProc(procs, { cwd: outside, environ: ["PATH=/usr/bin"] });
+			const result = runWithEnv(
+				{
+					CLASSICY_EXTRA_PROC_ROOT: procs,
+					GIT_CEILING_DIRECTORIES: path.dirname(outside),
+				},
+				repo,
+			);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		it("skips a git process whose working directory was deleted", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: path.join(procs, "gone (deleted)"),
+				environ: ["PATH=/usr/bin"],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		it.each([
+			["is missing", (dir: string) => path.join(dir, "missing")],
+			[
+				"is a file",
+				(dir: string) => {
+					fs.writeFileSync(path.join(dir, "file"), "");
+					return path.join(dir, "file");
+				},
+			],
+		])("skips a git process whose GIT_DIR %s", (_label, makeGitDir) => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: os.tmpdir(),
+				environ: [`GIT_DIR=${makeGitDir(procs)}`],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		});
+
+		// What a command substitution that could not start leaves: nothing.
+		it.each([
+			"%s",
+			"%i",
+			"%a",
+			"%Y",
+		])("refuses when stat -c %s prints nothing", (format) => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const stat = realBinary("stat");
+			const result = runWithEnv(
+				{
+					PATH: makeFakeBin({
+						stat: `[ "$2" = "${format}" ] && exit 0\nexec "${stat}" "$@"`,
+					}),
+				},
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(/cannot stat it/);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("refuses when date prints nothing", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const result = runWithEnv(
+				{ PATH: makeFakeBin({ date: "exit 0" }) },
+				repo,
+			);
+			expect(result.status).toBe(2);
+			expect(result.stderr).toMatch(/cannot read the clock/);
+			expect(fs.existsSync(lock)).toBe(true);
+		});
+
+		it("fails when git names no git dir", () => {
+			const repo = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const result = runWithEnv({ PATH: makeFakeBin({ git: "exit 0" }) }, repo);
+			expect(result.status).toBe(1);
+			expect(result.stdout).toBe("");
 			expect(fs.existsSync(lock)).toBe(true);
 		});
 	});
