@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@/Appearance/Platinum";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
+import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
 import { platinumWallpaperUrl } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	type ClassicyTheme,
@@ -8,6 +9,7 @@ import {
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_CUSTOM_THEME_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import { exportClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
@@ -124,8 +126,16 @@ describe("migrateClassicyState — wallpapers by filename", () => {
 		).toBe(`url("${OTHER_DATA}")`);
 	});
 
+	it("turns an older build's hashed asset URL into its filename", () => {
+		expect(
+			backgrounds(
+				migrateClassicyState(stateWith("/assets/azul_dark-0a1b2c3d.png")),
+			).active,
+		).toBe("azul_dark.png");
+	});
+
 	it("keeps an old build's URL that matches no wallpaper", () => {
-		const old = "/assets/azul_dark-0a1b2c3d.png";
+		const old = "/assets/retired-0a1b2c3d.png";
 		expect(backgrounds(migrateClassicyState(stateWith(old))).active).toBe(old);
 	});
 
@@ -322,5 +332,56 @@ describe("a package that registers before its wallpapers", () => {
 		expect(getThemeVars(defaults)["--desktop-background-image"]).toBe(
 			'url("/late/wall.png")',
 		);
+	});
+});
+
+// After plan 3.3 Platinum's wallpapers are files: no source is a data: URI,
+// so a 2.1.x save's inlined wallpaper matches by its legacy digest only.
+describe("a 2.1.8 save once Platinum's wallpapers are files", () => {
+	beforeEach(() => {
+		registerClassicyWallpapers("platinum", [
+			{
+				name: "Azul Dark",
+				file: "azul_dark.png",
+				src: platinumWallpaperUrl("azul_dark.png"),
+			},
+		]);
+	});
+
+	it("migrates 2.1.8's inlined Azul Dark to its filename on every theme", () => {
+		expect(platinumWallpaperUrl("azul_dark.png")).not.toMatch(/^data:/);
+		expect(
+			backgrounds(migrateClassicyState(stateWith(AZUL_DARK_2_1_8))),
+		).toEqual({
+			active: "azul_dark.png",
+			custom: ["azul_dark.png", "azul_dark.png"],
+			host: "azul_dark.png",
+		});
+	});
+
+	it("saves it by filename, and Save Theme… writes the filename", () => {
+		const theme = customWith(AZUL_DARK_2_1_8);
+		expect(
+			JSON.parse(exportClassicyTheme(theme)).theme.desktop.backgroundImage,
+		).toBe("azul_dark.png");
+	});
+
+	it("renders the migrated theme with today's wallpaper", () => {
+		const migrated = migrateClassicyState(stateWith(AZUL_DARK_2_1_8));
+		expect(
+			getThemeVars(migrated.System.Manager.Appearance.activeTheme)[
+				"--desktop-background-image"
+			],
+		).toBe(`url("${platinumWallpaperUrl("azul_dark.png")}")`);
+	});
+
+	it("keeps an unknown data: URI, which still renders", () => {
+		const migrated = migrateClassicyState(stateWith(OTHER_DATA));
+		expect(backgrounds(migrated).active).toBe(OTHER_DATA);
+		expect(
+			getThemeVars(migrated.System.Manager.Appearance.activeTheme)[
+				"--desktop-background-image"
+			],
+		).toBe(`url("${OTHER_DATA}")`);
 	});
 });

@@ -22,19 +22,74 @@ import {
 
 const PLATINUM = "platinum";
 
-/** Values that are already loadable: `data:`/`blob:` URIs, remote URLs. */
-const LOADABLE = /^(data:|blob:|https?:\/\/|\/\/)/;
+/** Values that are already loadable: `data:`/`blob:` URIs, remote URLs (any
+ * case, as the theme schema accepts them). */
+const LOADABLE = /^(data:|blob:|https?:\/\/|\/\/)/i;
+
+/**
+ * A base64 `data:` URI, every character of it inert inside a quoted CSS
+ * `url("…")`. Only such a URI is matched by digest: a digest is no proof of
+ * content, so a value holding a quote or parenthesis never maps to a filename.
+ */
+const PLAIN_BASE64_DATA_URI =
+	/^data:[\w.+/-]+(;[\w.+=-]+)*;base64,[A-Za-z0-9+/]*={0,2}$/i;
+
+/** A bundler's content hash before the extension: `name-<hash>.ext`. */
+const HASHED_BASENAME = /^(.+)-[A-Za-z0-9_-]{8,}(\.[A-Za-z0-9]+)$/;
 
 type PackageIndex = {
 	entries: ClassicyWallpaperRecord[];
 	byFile: Map<string, string>;
 	fileBySrc: Map<string, string>;
+	fileByDigest: Map<string, string>;
 	sources: Set<string>;
 	byName: Map<string, string>;
 };
 
 let cache: { version: number; packages: Map<string, PackageIndex> } | undefined;
 const warned = new Set<string>();
+/** Digests already computed, by value (themes are re-persisted often). */
+const digests = new Map<string, string | undefined>();
+const MAX_CACHED_DIGESTS = 64;
+
+const FNV_OFFSET = 0xcbf29ce484222325n;
+const FNV_PRIME = 0x100000001b3n;
+
+/**
+ * The content key of a `data:` URI: `<payload length>:<FNV-1a 64 of the
+ * payload, 16 hex digits>`, the payload being everything after the first
+ * comma (so the media type a build wrote does not matter). `undefined` for
+ * anything but a `data:` URI. Cheap and synchronous, not cryptographic: a
+ * package's `legacyDigests` name the `data:` URIs older builds inlined its
+ * wallpapers as, so a theme saved by one maps to the filename after the
+ * wallpaper's source changes (for Platinum, once its wallpapers are files).
+ */
+export const classicyWallpaperDigest = (value: string): string | undefined => {
+	if (!/^data:/i.test(value)) return undefined;
+	const comma = value.indexOf(",");
+	if (comma < 0) return undefined;
+	let hash = FNV_OFFSET;
+	for (let i = comma + 1; i < value.length; i++) {
+		hash ^= BigInt(value.charCodeAt(i));
+		hash = BigInt.asUintN(64, hash * FNV_PRIME);
+	}
+	return `${value.length - comma - 1}:${hash.toString(16).padStart(16, "0")}`;
+};
+
+const cachedDigest = (value: string): string | undefined => {
+	if (digests.has(value)) return digests.get(value);
+	const digest = classicyWallpaperDigest(value);
+	if (digests.size >= MAX_CACHED_DIGESTS) digests.clear();
+	digests.set(value, digest);
+	return digest;
+};
+
+/** The last path segment, then, for a bundler-hashed one, it unhashed. */
+const basenames = (value: string): string[] => {
+	const basename = value.split("/").pop() ?? "";
+	const unhashed = basename.replace(HASHED_BASENAME, "$1$2");
+	return unhashed === basename ? [basename] : [basename, unhashed];
+};
 
 const buildPackageIndex = (
 	entries: ClassicyWallpaperRecord[],
@@ -43,15 +98,19 @@ const buildPackageIndex = (
 		entries,
 		byFile: new Map(),
 		fileBySrc: new Map(),
+		fileByDigest: new Map(),
 		sources: new Set(),
 		byName: new Map(),
 	};
-	for (const { name, src, file } of entries) {
+	for (const { name, src, file, legacyDigests } of entries) {
 		index.sources.add(src);
 		index.byName.set(name, src);
 		if (file === undefined) continue;
 		if (!index.byFile.has(file)) index.byFile.set(file, src);
 		if (!index.fileBySrc.has(src)) index.fileBySrc.set(src, file);
+		for (const digest of legacyDigests ?? []) {
+			if (!index.fileByDigest.has(digest)) index.fileByDigest.set(digest, file);
+		}
 	}
 	return index;
 };
@@ -103,13 +162,12 @@ export const resolveClassicyWallpaper = (
 ): string => {
 	if (!value) return "";
 	if (LOADABLE.test(value)) return value;
-	const basename = value.split("/").pop() ?? "";
+	const names = basenames(value);
 	for (const index of lookupChain(packageId)) {
 		if (index.sources.has(value)) return value;
-		const resolved =
-			index.byFile.get(value) ??
-			index.byFile.get(basename) ??
-			index.byName.get(value);
+		let resolved = index.byFile.get(value);
+		for (const name of names) resolved ??= index.byFile.get(name);
+		resolved ??= index.byName.get(value);
 		if (resolved !== undefined) return resolved;
 	}
 	if (!warned.has(value)) {
@@ -126,12 +184,13 @@ export const resolveClassicyWallpaper = (
 
 /**
  * The registered filename for a `backgroundImage` value — a registered
- * filename itself, or the exact source (URL or `data:` URI) a package
- * registered for it — or `undefined` (an http(s) URL a user chose, an unknown
- * value, a wallpaper registered without a file). Exact matches only, never
- * by basename. Searches the active package, Platinum, then every other
- * package. The inverse of `resolveClassicyWallpaper`, used to store and
- * persist a portable reference.
+ * filename itself, the exact source (URL or `data:` URI) a package
+ * registered for it, or a base64 `data:` URI whose `classicyWallpaperDigest`
+ * is one of its `legacyDigests` (what an older build inlined) — or
+ * `undefined` (an http(s) URL a user chose, an unknown value, a wallpaper
+ * registered without a file). Never by basename. Searches the active
+ * package, Platinum, then every other package. The inverse of
+ * `resolveClassicyWallpaper`, used to store and persist a portable reference.
  */
 export const classicyWallpaperFilename = (
 	value: string,
@@ -152,23 +211,35 @@ export const classicyWallpaperFilename = (
 		const file = index.fileBySrc.get(value);
 		if (file !== undefined) return file;
 	}
+	if (!PLAIN_BASE64_DATA_URI.test(value)) return undefined;
+	const digest = cachedDigest(value);
+	if (digest === undefined) return undefined;
+	for (const id of order) {
+		const file = all.get(id)?.fileByDigest.get(digest);
+		if (file !== undefined) return file;
+	}
 	return undefined;
 };
 
 /**
  * The form a theme stores a `backgroundImage` in: a registered wallpaper's
  * filename for the filename itself, the source a package registered for it,
- * or a path whose basename is one (an older build's
- * `/assets/img/wallpapers/…`); any other value as it is (`""`, a URL the user
- * chose, a `data:` URI or old-build URL no registered wallpaper matches).
- * Idempotent.
+ * a `data:` URI an older build inlined it as (`classicyWallpaperFilename`),
+ * or a path whose basename is one, bundler hash stripped (an older build's
+ * `/assets/img/wallpapers/azul_dark.png` or `/assets/azul_dark-0a1b2c3d.png`);
+ * any other value as it is (`""`, a URL the user chose, a `data:` URI or
+ * path no registered wallpaper matches). Idempotent.
  */
 export const portableClassicyWallpaper = (value: string): string => {
 	if (typeof value !== "string" || !value) return value;
 	const file = classicyWallpaperFilename(value);
 	if (file !== undefined) return file;
 	if (LOADABLE.test(value) || !value.includes("/")) return value;
-	return classicyWallpaperFilename(value.split("/").pop() ?? "") ?? value;
+	for (const name of basenames(value)) {
+		const found = classicyWallpaperFilename(name);
+		if (found !== undefined) return found;
+	}
+	return value;
 };
 
 /**

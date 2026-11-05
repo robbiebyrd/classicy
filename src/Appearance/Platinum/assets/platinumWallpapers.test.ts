@@ -7,6 +7,7 @@ import {
 	listClassicyWallpapers,
 	resolveClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
+import { PLATINUM_LEGACY_WALLPAPER_DIGESTS } from "@/Appearance/Platinum/assets/platinumLegacyWallpapers";
 import {
 	PLATINUM_WALLPAPERS,
 	platinumWallpaperUrl,
@@ -33,6 +34,7 @@ describe("Platinum's wallpapers", () => {
 				name: label,
 				file,
 				src: platinumWallpaperUrl(file),
+				legacyDigests: PLATINUM_LEGACY_WALLPAPER_DIGESTS[file],
 			})),
 		);
 		expect(resolveClassicyAsset("wallpapers", "Azul Dark")).toBe(

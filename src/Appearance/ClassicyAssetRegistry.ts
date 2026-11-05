@@ -13,6 +13,7 @@ import { parseClassicyPixelArtSource } from "./ClassicyPixelArtSource.internal";
 import {
 	type ClassicyWallpaperRecord,
 	connectClassicyWallpaperSource,
+	isClassicyWallpaperDigest,
 	isPlainClassicyWallpaperFile,
 } from "./ClassicyWallpaperSource.internal";
 
@@ -107,6 +108,8 @@ const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
 /** Each package's wallpaper files by wallpaper name (`registerClassicyWallpapers`). */
 const wallpaperFiles = new Map<string, Map<string, string>>();
+/** Each package's legacy `data:` URI digests by wallpaper name. */
+const wallpaperLegacyDigests = new Map<string, Map<string, string[]>>();
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -274,6 +277,7 @@ export const resetClassicyAssets = (): void => {
 	trees.clear();
 	fontFaces.clear();
 	wallpaperFiles.clear();
+	wallpaperLegacyDigests.clear();
 	notify();
 };
 
@@ -526,15 +530,24 @@ export const registerClassicySystemArt = (
  * Desktop tab's labels). `file` is the portable reference themes hold and
  * persist (`"azul_dark.png"`), resolved back to `src` through the wallpaper
  * index (`resolveClassicyWallpaper`); an entry without one resolves by its
- * name only. Re-registering a name replaces its source, and its file when
- * one is given. A file that is not a plain filename is ignored with a warning.
+ * name only. `legacyDigests` (`classicyWallpaperDigest`s, for a wallpaper
+ * with a file) name the `data:` URIs older builds inlined it as, so a theme
+ * saved by one still maps to the filename after the source changes.
+ * Re-registering a name replaces its source, and its file and digests when
+ * given. A file that is not a plain filename, or a digest of the wrong shape,
+ * is ignored with a warning.
  */
 export const registerClassicyWallpapers = (
 	packageId: string,
-	list: Array<{ name: string; src: ClassicyAssetSource; file?: string }>,
+	list: Array<{
+		name: string;
+		src: ClassicyAssetSource;
+		file?: string;
+		legacyDigests?: readonly string[];
+	}>,
 ): void => {
 	let files = wallpaperFiles.get(packageId);
-	for (const { name, src, file } of list) {
+	for (const { name, src, file, legacyDigests } of list) {
 		if (file === undefined || !isClassicyAssetSource(src)) continue;
 		// The theme schema accepts a registered filename as a safe
 		// `backgroundImage`, so a file is never a path, URL or quote.
@@ -551,6 +564,22 @@ export const registerClassicyWallpapers = (
 			wallpaperFiles.set(packageId, files);
 		}
 		files.set(name, file);
+		if (legacyDigests === undefined) continue;
+		const digests = legacyDigests.filter((digest) => {
+			if (isClassicyWallpaperDigest(digest)) return true;
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored legacy digest "${String(digest)}" of wallpaper "${name}" for package "${packageId}": not a wallpaper digest (<length>:<16 hex digits>)`,
+			);
+			return false;
+		});
+		let byName = wallpaperLegacyDigests.get(packageId);
+		if (!byName) {
+			byName = new Map();
+			wallpaperLegacyDigests.set(packageId, byName);
+		}
+		byName.set(name, digests);
 	}
 	registerClassicyAssets(
 		"wallpapers",
@@ -568,11 +597,21 @@ connectClassicyWallpaperSource({
 	entries: (packageId) => {
 		const tree = trees.get("wallpapers")?.get(packageId) ?? {};
 		const files = wallpaperFiles.get(packageId);
+		const legacy = wallpaperLegacyDigests.get(packageId);
 		const out: ClassicyWallpaperRecord[] = [];
 		for (const [name, src] of Object.entries(tree)) {
 			if (typeof src !== "string") continue;
 			const file = files?.get(name);
-			out.push(file === undefined ? { name, src } : { name, src, file });
+			if (file === undefined) {
+				out.push({ name, src });
+				continue;
+			}
+			const legacyDigests = legacy?.get(name);
+			out.push(
+				legacyDigests?.length
+					? { name, src, file, legacyDigests: [...legacyDigests] }
+					: { name, src, file },
+			);
 		}
 		return out;
 	},

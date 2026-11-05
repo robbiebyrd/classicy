@@ -21,7 +21,16 @@ export type ClassicyWallpaperRecord = {
 	name: string;
 	src: string;
 	file?: string;
+	/** `classicyWallpaperDigest`s of `data:` URIs older builds inlined it as. */
+	legacyDigests?: string[];
 };
+
+/** The shape of a `classicyWallpaperDigest`: payload length, FNV-1a 64 hex. */
+const WALLPAPER_DIGEST = /^\d{1,9}:[0-9a-f]{16}$/;
+
+/** True for a string shaped like a `classicyWallpaperDigest`. */
+export const isClassicyWallpaperDigest = (value: unknown): value is string =>
+	typeof value === "string" && WALLPAPER_DIGEST.test(value);
 
 /** What the wallpaper index reads from the asset registry. */
 export type ClassicyWallpaperSource = {

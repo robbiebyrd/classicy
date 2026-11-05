@@ -6,6 +6,7 @@ import {
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 import {
+	classicyWallpaperDigest,
 	classicyWallpaperFilename,
 	defaultClassicyWallpaper,
 	listClassicyWallpapers,
@@ -79,6 +80,39 @@ describe("ClassicyWallpaperIndex", () => {
 			expect(entries).toEqual([]);
 		});
 
+		it("resolves an older build's hashed asset URL by its unhashed basename", () => {
+			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b2c3d.png")).toBe(
+				AZUL,
+			);
+			expect(
+				resolveClassicyWallpaper("/assets/azul_dark-0a1b_2c-3d9.png"),
+			).toBe(AZUL);
+		});
+
+		it("strips only a bundler hash: 8 or more of [A-Za-z0-9_-]", () => {
+			expect(resolveClassicyWallpaper("/assets/azul_dark-0a1b2c3.png")).toBe(
+				"",
+			);
+			registerClassicyWallpapers("platinum", [
+				{ name: "My Wall", file: "my-wall.png", src: "/x/my-wall.png" },
+			]);
+			expect(resolveClassicyWallpaper("/assets/my-wall-Abc12345.png")).toBe(
+				"/x/my-wall.png",
+			);
+			expect(resolveClassicyWallpaper("/assets/my-wall.png")).toBe(
+				"/x/my-wall.png",
+			);
+		});
+
+		it("passes an upper-case HTTPS URL through, as the schema accepts it", () => {
+			expect(resolveClassicyWallpaper("HTTPS://example.com/x.png")).toBe(
+				"HTTPS://example.com/x.png",
+			);
+			expect(resolveClassicyWallpaper("Data:image/png;base64,T1RIRVI=")).toBe(
+				"Data:image/png;base64,T1RIRVI=",
+			);
+		});
+
 		it("blanks an unknown filename and warns once per value", () => {
 			expect(resolveClassicyWallpaper("nope.png")).toBe("");
 			expect(resolveClassicyWallpaper("nope.png")).toBe("");
@@ -141,6 +175,112 @@ describe("ClassicyWallpaperIndex", () => {
 				{ name: "Azul Dark", src: AZUL },
 			]);
 			expect(classicyWallpaperFilename(AZUL)).toBeUndefined();
+		});
+	});
+
+	describe("classicyWallpaperDigest", () => {
+		it("is the payload's length and FNV-1a 64 digest", () => {
+			// FNV-1a 64 test vectors: "" → cbf29ce484222325, "a" → af63dc4c8601ec8c.
+			expect(classicyWallpaperDigest("data:image/png;base64,")).toBe(
+				"0:cbf29ce484222325",
+			);
+			expect(classicyWallpaperDigest("data:image/png;base64,a")).toBe(
+				"1:af63dc4c8601ec8c",
+			);
+		});
+
+		it("ignores the media type, which a build may spell differently", () => {
+			expect(classicyWallpaperDigest("data:image/jpeg;base64,a")).toBe(
+				classicyWallpaperDigest("data:image/png;base64,a"),
+			);
+		});
+
+		it("is undefined for anything but a data: URI", () => {
+			expect(classicyWallpaperDigest("https://x.test/a.png")).toBeUndefined();
+			expect(classicyWallpaperDigest("azul_dark.png")).toBeUndefined();
+			expect(classicyWallpaperDigest("data:no-comma")).toBeUndefined();
+		});
+	});
+
+	describe("legacy data: URIs (an older build inlined the wallpaper)", () => {
+		const OLD = "data:image/png;base64,T0xEQVpVTA==";
+
+		beforeEach(() => {
+			registerClassicyWallpapers("platinum", [
+				{
+					name: "Azul Dark",
+					file: "azul_dark.png",
+					src: AZUL,
+					legacyDigests: [classicyWallpaperDigest(OLD) ?? ""],
+				},
+			]);
+		});
+
+		it("maps a registered legacy digest to its filename, though today's source is a URL", () => {
+			expect(classicyWallpaperFilename(OLD)).toBe("azul_dark.png");
+			expect(portableClassicyWallpaper(OLD)).toBe("azul_dark.png");
+		});
+
+		it("still passes the legacy data: URI itself through when rendering", () => {
+			expect(resolveClassicyWallpaper(OLD)).toBe(OLD);
+		});
+
+		it("keeps an unknown data: URI", () => {
+			const other = "data:image/png;base64,T1RIRVI=";
+			expect(classicyWallpaperFilename(other)).toBeUndefined();
+			expect(portableClassicyWallpaper(other)).toBe(other);
+		});
+
+		it("never maps a data: URI that could leave a quoted url() by digest", () => {
+			// A digest is no proof of content: only a plain base64 URI matches.
+			const unsafe = 'data:image/png;base64,QQ==");x:url(y';
+			registerClassicyWallpapers("platinum", [
+				{
+					name: "Unsafe",
+					file: "unsafe.png",
+					src: "/x/unsafe.png",
+					legacyDigests: [classicyWallpaperDigest(unsafe) ?? ""],
+				},
+			]);
+			expect(classicyWallpaperFilename(unsafe)).toBeUndefined();
+		});
+
+		it("knows legacy digests of every package", () => {
+			const pkgOld = "data:image/png;base64,UEtHT0xE";
+			registerClassicyWallpapers("other", [
+				{
+					name: "Own",
+					file: "own.png",
+					src: "/o/own.png",
+					legacyDigests: [classicyWallpaperDigest(pkgOld) ?? ""],
+				},
+			]);
+			expect(classicyWallpaperFilename(pkgOld)).toBe("own.png");
+		});
+
+		it("ignores a legacy digest that is not one, with a warning", () => {
+			const registry: ClassicyLogEntry[] = [];
+			registerClassicyLogSink({
+				id: "wallpaper-index-test-digest",
+				onLog: (entry) => {
+					if (entry.subsystem === "ClassicyAssetRegistry") registry.push(entry);
+				},
+			});
+			try {
+				registerClassicyWallpapers("platinum", [
+					{
+						name: "Bondi",
+						file: "bondi.png",
+						src: "/x/bondi.png",
+						legacyDigests: ["nope", classicyWallpaperDigest(OLD) ?? ""],
+					},
+				]);
+			} finally {
+				unregisterClassicyLogSink("wallpaper-index-test-digest");
+			}
+			expect(registry.map((e) => e.message)).toEqual([
+				expect.stringContaining('Ignored legacy digest "nope"'),
+			]);
 		});
 	});
 
@@ -218,6 +358,25 @@ describe("ClassicyWallpaperIndex", () => {
 			expect(
 				portableClassicyWallpaper("/assets/img/wallpapers/azul_dark.png"),
 			).toBe("azul_dark.png");
+		});
+
+		it("stores an older build's hashed asset URL by its filename", () => {
+			expect(portableClassicyWallpaper("/assets/azul_dark-0a1b2c3d.png")).toBe(
+				"azul_dark.png",
+			);
+		});
+
+		it("never rewrites a remote URL, whatever its case", () => {
+			registerClassicyWallpapers("platinum", [
+				{ name: "Bondi", file: "bondi.png", src: "/x/bondi.png" },
+			]);
+			for (const value of [
+				"HTTPS://example.com/walls/bondi.png",
+				"Http://example.com/walls/bondi.png",
+				"https://example.com/walls/bondi.png",
+			]) {
+				expect(portableClassicyWallpaper(value)).toBe(value);
+			}
 		});
 
 		it("keeps any other value as it is", () => {

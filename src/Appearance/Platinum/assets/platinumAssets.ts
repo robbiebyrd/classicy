@@ -11,6 +11,7 @@ import {
 } from "@/Appearance/Platinum/assets/art/platinumArt";
 import { PLATINUM_PIXEL_ART } from "@/Appearance/Platinum/assets/pixelart/platinumPixelArt";
 import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
+import { PLATINUM_LEGACY_WALLPAPER_DIGESTS } from "@/Appearance/Platinum/assets/platinumLegacyWallpapers";
 import {
 	PLATINUM_WALLPAPERS,
 	platinumWallpaperUrl,
@@ -75,7 +76,9 @@ registerClassicyCursors(PLATINUM, {
 
 /**
  * Platinum's wallpapers by label, each with the filename themes name it by,
- * so a theme's `"azul_dark.png"` resolves through the registry.
+ * so a theme's `"azul_dark.png"` resolves through the registry, and the
+ * digests of the `data:` URIs 2.x builds inlined it as, so a 2.x save maps
+ * to the filename too.
  */
 registerClassicyWallpapers(
 	PLATINUM,
@@ -83,6 +86,7 @@ registerClassicyWallpapers(
 		name: label,
 		file,
 		src: platinumWallpaperUrl(file),
+		legacyDigests: PLATINUM_LEGACY_WALLPAPER_DIGESTS[file],
 	})),
 );
 
