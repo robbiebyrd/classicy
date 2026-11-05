@@ -198,6 +198,7 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopWindowManagerContext";
+export * from "./SystemFolder/SystemResources/Desktop/ClassicyNoAppearancePackage";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
