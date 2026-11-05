@@ -344,6 +344,70 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 		expect(fs.existsSync(lock)).toBe(true);
 	});
 
+	// Another user's process reads mode 000 (unless this runs as root).
+	it.skipIf(process.getuid?.() === 0)(
+		"keeps quiet about a git process whose environment cannot be read",
+		() => {
+			const repo = makeRepo();
+			const other = makeRepo();
+			const lock = makeLock(path.join(repo, ".git", "index.lock"));
+			const procs = makeProcRoot();
+			makeFakeProc(procs, {
+				cwd: other,
+				environ: "unreadable",
+				cmdline: ["git", "status"],
+			});
+			const result = runWithProcs(procs, repo);
+			expect(result.stderr).toBe("");
+			expect(result.status).toBe(0);
+			expect(fs.existsSync(lock)).toBe(false);
+		},
+	);
+
+	it("keeps quiet about a git process that exits before its environment is read", () => {
+		const repo = makeRepo();
+		const other = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, { cwd: other, cmdline: ["git", "status"] });
+		const result = runWithProcs(procs, repo);
+		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
+		expect(fs.existsSync(lock)).toBe(false);
+	});
+
+	// Without its environment, a process's repository is the one its working
+	// directory is in, so it still holds the lock here.
+	it("keeps the lock for a git process in this repository whose environment and command line cannot be read", () => {
+		const repo = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, {
+			cwd: repo,
+			environ: process.getuid?.() === 0 ? undefined : "unreadable",
+		});
+		const result = runWithProcs(procs, repo);
+		expect(result.status).toBe(2);
+		expect(result.stderr).toBe(
+			`git-clear-stale-lock: keeping ${fs.realpathSync(lock)}: git process ${FAKE_PID} is running in this repository ()\n`,
+		);
+		expect(fs.existsSync(lock)).toBe(true);
+	});
+
+	// As before: with neither its working directory nor its environment, a
+	// process's repository is unknown, and it is skipped like any other
+	// user's process.
+	it("skips a git process whose working directory and environment cannot be read", () => {
+		const repo = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, {});
+		const result = runWithProcs(procs, repo);
+		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
+		expect(fs.existsSync(lock)).toBe(false);
+	});
+
 	it("fails outside a repository", () => {
 		const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-norepo-"));
 		tempDirs.push(dir);

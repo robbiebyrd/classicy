@@ -135,12 +135,16 @@ fi
 # 5. No git process in the same repository. A process's repository is the git
 # dir its working directory (or its GIT_DIR) resolves to; a process in
 # another worktree of the same repository has a different git dir and index.
+# A /proc read that fails (another user's process, or one that has exited)
+# is quiet: an input redirect fails before a 2>/dev/null after it applies, so
+# each such read is grouped and the group's stderr discarded. An unreadable
+# environ leaves the working directory to name the repository.
 for comm_file in $(grep -lx git "${comm_files[@]}" 2>/dev/null); do
 	proc=${comm_file%/comm}
 	pid=${proc##*/}
 	cwd=$(readlink -- "$proc/cwd" 2>/dev/null) || continue
 	proc_git_dir=""
-	env_git_dir=$(tr '\0' '\n' <"$proc/environ" 2>/dev/null | sed -n 's/^GIT_DIR=//p' | head -n 1)
+	env_git_dir=$({ tr '\0' '\n' <"$proc/environ"; } 2>/dev/null | sed -n 's/^GIT_DIR=//p' | head -n 1)
 	if [ -n "$env_git_dir" ]; then
 		case "$env_git_dir" in
 		/*) ;;
@@ -151,7 +155,7 @@ for comm_file in $(grep -lx git "${comm_files[@]}" 2>/dev/null); do
 		proc_git_dir=$(git -C "$cwd" rev-parse --absolute-git-dir 2>/dev/null)
 	fi
 	if [ -n "$proc_git_dir" ] && [ "$proc_git_dir" = "$git_dir" ]; then
-		refuse "git process $pid is running in this repository ($(tr '\0' ' ' <"$proc/cmdline" 2>/dev/null | cut -c1-120 | sed 's/ $//'))"
+		refuse "git process $pid is running in this repository ($({ tr '\0' ' ' <"$proc/cmdline"; } 2>/dev/null | cut -c1-120 | sed 's/ $//'))"
 	fi
 done
 
