@@ -6,7 +6,7 @@ status: ready
 priority: "1"
 effort: XL
 created: "2026-11-05T19:38:13.103Z"
-updated: "2026-11-05T20:25:27.616Z"
+updated: "2026-11-05T21:40:59.978Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -280,7 +280,7 @@ No load or persist helper may return the fallback package for a real package id,
 
 ### Sound (my call)
 
-- `ClassicySoundManagerProvider` loads the pack named by `activeTheme.sound.pack` from the registry, as it does today. With no matching pack it plays nothing, instead of falling back to Platinum's.
+- `ClassicySoundManagerProvider` loads the pack named by `activeTheme.sound.pack` from the registry, as it does today. With no registered pack of that id it falls back to the default package's pack (`CLASSICY_DEFAULT_SOUND_PACK_ID`) when that pack is registered, and plays nothing when it is not (controller ruling 2026-11-05 at 1.3, matching plan 0015-kxa §1.3: a missing third-party pack should not silence a desktop whose default pack is loaded).
 - The `sound.pack` refine in `ClassicyThemeSchema.ts` accepts any registered pack and must not import Platinum's.
 - The fallback for "a sprite id missing from the active pack" becomes "the default package's pack, if registered, else silent".
 

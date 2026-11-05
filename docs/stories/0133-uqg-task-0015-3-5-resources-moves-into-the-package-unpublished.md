@@ -3,11 +3,13 @@ id: 0133-uqg
 title: '0015 §3.5: resources/ moves into the package, unpublished'
 purpose: Execute plan 0015-kxa section 3.5.
 type: task
-status: ready
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:02.125Z"
-updated: "2026-11-05T20:26:41.988Z"
+updated: "2026-11-05T21:56:20.694Z"
+started: "2026-11-05T21:00:06.374Z"
+completed: "2026-11-05T21:56:20.694Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -64,8 +66,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm --filter @classicy/appearance-platinum exec vitest run` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm --filter @classicy/appearance-platinum exec vitest run` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -75,3 +77,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `resources/` - delete (git mv to packages/appearance/platinum/resources/)
 
 ## Work Log
+
+### 2026-11-05T21:56:18.245Z - Landed 2026-11-05 as a0929e04e..20cb5775e on feat/AppearancePackages (pushed), rebased onto the docs/plans/hig-audit.md move (01d344e5e, owner decision): resources/ → packages/appearance/platinum/resources/ (80,038 files, all R100, no package.json yet); biome.json globs, the HIGOS8 citation (now packages/appearance/platinum/resources/Apple_HIGOS8_1997_Guidelines.pdf in docs/plans/hig-audit.md), and build:watchaudio's dead resources/sounds/** → assets/sounds/** updated; pack tests assert the root ships nothing under packages/ or resources/. Controller review: renames-only verified, reference diff checked. Landing gate: 458 files / 6271 tests, builds, exit 0.

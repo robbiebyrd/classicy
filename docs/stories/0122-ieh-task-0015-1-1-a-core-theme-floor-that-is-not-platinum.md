@@ -3,12 +3,13 @@ id: 0122-ieh
 title: '0015 §1.1: A core theme floor that is not Platinum'
 purpose: Execute plan 0015-kxa section 1.1.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:07.578Z"
-updated: "2026-11-05T20:25:46.050Z"
+updated: "2026-11-05T22:40:13.043Z"
 started: "2026-11-05T20:25:46.050Z"
+completed: "2026-11-05T22:40:13.043Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -77,8 +78,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run src/Appearance/ClassicyCoreTheme.test.ts && pnpm exec tsc --noEmit -p .` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run src/Appearance/ClassicyCoreTheme.test.ts && pnpm exec tsc --noEmit -p .` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -97,3 +98,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `CLAUDE.md` - modify
 
 ## Work Log
+
+### 2026-11-05T22:38:59.226Z - 1.1: CLASSICY_CORE_MEASUREMENT_DEFAULTS (core five + 84 structural knobs, pinned to AGENT-REFERENCE's table) and CLASSICY_CORE_DEFAULT_THEME; no platinum.json read in the core; getAllThemes/getTheme read registered packages; Platinum builds its own presets; J1 (knownClassicyThemePackage registered-only) and J2 (availableThemes [] by default) accepted. Review fixes: F1 first-session theme when Platinum registers before the store (defaultInitialState via withRefreshedActiveTheme), F2 the desktop loads built-in themes only once a package is registered. Rebased onto 1.3 with 9 test-import conflicts resolved by keeping both imports and 2 doc conflicts by 1.1's text with the rename reapplied. Landed 2026-11-05 on feat/AppearancePackages at 66481727b (pushed) as part of stack A (3.5 landed first; then 4.1, 1.3, 0120, 1.1 in one fast-forward). Stack landing gate at the top: 462 files / 6325 tests, lint, tsc, storybook:typecheck, vocabulary --check, color sweep, build:source + verify:dist (jsxDEV=0), build:storybook, example build, exit 0.

@@ -3,12 +3,13 @@ id: 0128-l2h
 title: '0015 §2.1: The package name and every specifier'
 purpose: Execute plan 0015-kxa section 2.1.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:45.536Z"
-updated: "2026-11-05T20:25:59.630Z"
+updated: "2026-11-05T21:32:51.358Z"
 started: "2026-11-05T20:25:59.629Z"
+completed: "2026-11-05T21:32:51.358Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -91,3 +92,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `pnpm-lock.yaml` - modify
 
 ## Work Log
+
+### 2026-11-05T21:32:48.824Z - Landed 2026-11-05 as 5b55b1ef0..aca0ba39e on feat/AppearancePackages (pushed): root package.json name @classicy/classicy with publishConfig.access public; example/ dependency, 8 imports, Browser.scss and vite aliases; vitest alias; doc specifiers and install lines (README, AGENT-REFERENCE, BUILDING-APPS, CLAUDE.md, release notes, Welcome.mdx); lockfile one line (importer key), libc 63. Tests pin the name, publishConfig, exports keys, UMD name "classicy" and the classicy.${format}.js file names, plus a tracked-file scan for leftover specifiers (vi.mock targets and unquoted YAML keys added after review). Review: one important (three vi.mock("classicy") in BUILDING-APPS) and one minor (ci.yml comment), both fixed in aca0ba39e. Landing gate: 458 files / 6267 tests, build:source + verify:dist, build:storybook, example build, exit 0.

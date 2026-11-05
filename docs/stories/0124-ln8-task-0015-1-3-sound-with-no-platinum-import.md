@@ -3,12 +3,13 @@ id: 0124-ln8
 title: '0015 §1.3: Sound with no Platinum import'
 purpose: Execute plan 0015-kxa section 1.3.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:13.695Z"
-updated: "2026-11-05T20:26:06.423Z"
+updated: "2026-11-05T22:39:51.695Z"
 started: "2026-11-05T20:26:06.423Z"
+completed: "2026-11-05T22:39:51.695Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run src/SystemFolder/ControlPanels/SoundManager` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -78,3 +79,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundStateEventReducer.test.ts` - modify
 
 ## Work Log
+
+### 2026-11-05T22:38:47.181Z - 1.3: the core imports no Platinum sound pack; with no pack the provider builds no Howl and every dispatch is a no-op, one warn per missing pack id; fallbackPlayer = the default pack's player only when registered (controller ruling: an unregistered theme pack falls back to the default pack if registered, else silent; design 0014-ahm updated). Review: no findings ≥70. Landed 2026-11-05 on feat/AppearancePackages at 66481727b (pushed) as part of stack A (3.5 landed first; then 4.1, 1.3, 0120, 1.1 in one fast-forward). Stack landing gate at the top: 462 files / 6325 tests, lint, tsc, storybook:typecheck, vocabulary --check, color sweep, build:source + verify:dist (jsxDEV=0), build:storybook, example build, exit 0.

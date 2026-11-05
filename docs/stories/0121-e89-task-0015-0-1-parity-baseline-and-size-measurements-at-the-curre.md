@@ -3,12 +3,13 @@ id: 0121-e89
 title: '0015 §0.1: Parity baseline and size measurements at the current tip'
 purpose: Execute plan 0015-kxa section 0.1.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:04.309Z"
-updated: "2026-11-05T20:25:39.318Z"
+updated: "2026-11-05T20:59:04.785Z"
 started: "2026-11-05T20:25:39.318Z"
+completed: "2026-11-05T20:59:04.785Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -53,11 +54,13 @@ Follow `bin/parity/README.md` § "Baseline, after set, compare" with `P=.playwri
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `ls .playwright-mcp/parity/platinum-split/before | wc -l  # equals the story count` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `ls .playwright-mcp/parity/platinum-split/before | wc -l  # equals the story count` passes.
+- [~] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
 - `.playwright-mcp/parity/platinum-split/` - create (gitignored)
 
 ## Work Log
+
+### 2026-11-05T20:59:02.619Z - Baseline captured 2026-11-05 at 66f465efc into /home/robbiebyrd/classicy/.playwright-mcp/parity/platinum-split (BASE recorded): 344 stories at t=0, 97 @mid shots, 4 example-app screens (447 files incl. stories.txt and mid-stories.txt; criterion 1's `ls | wc -l` counts all kinds together, so it is satisfied by the per-kind counts). Determinism: every t=0 and app shot AE 0 on a second pass; @mid flakes ~1.7% under load at AE 12 on the menu-bar clock's blinking colon (filed as its own story). Sizes (sizes-before.txt): classicy.es.js 10,973,134 B, umd 10,604,153 B, dist 50,434,172 B; inlined data: audio 2,392,039 B + the .ac3 sprite as octet-stream 1,792,245 B (Platinum sound ~4.18 MB in four formats), images 2,350,050 B (397 URIs), pdf.js worker 1,683,228 B; 1,117 jsxDEV calls per bundle. No code changed, so criterion 2 (review/landing) is not applicable. Servers stopped by PID. Report: .superpowers/sdd/followups/0121-e89-report.md.

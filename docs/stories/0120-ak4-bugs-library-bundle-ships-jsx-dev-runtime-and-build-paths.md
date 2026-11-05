@@ -3,11 +3,13 @@ id: 0120-ak4
 title: The library bundle ships React's JSX dev runtime and 1,117 absolute build-machine paths
 purpose: 'Publish a production JSX build: smaller, no dev-only checks, and no leaked build paths.'
 type: bugs
-status: ready
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-05T19:53:37.405Z"
-updated: "2026-11-05T20:27:12.954Z"
+updated: "2026-11-05T22:40:03.533Z"
+started: "2026-11-05T21:09:21.870Z"
+completed: "2026-11-05T22:40:03.533Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -55,9 +57,9 @@ Run the full gate; take Storybook parity against the current baseline (AE 0, sin
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `grep -c jsxDEV dist/classicy.es.js` is 0, no bundle imports `react/jsx-dev-runtime`, and the new verify:dist invariant passes.
-- [ ] VERIFY: Two builds of the same commit from different directories produce byte-identical `dist/`.
-- [ ] VERIFY: Full gate green, and parity AE 0 for every story.
+- [x] VERIFY: `grep -c jsxDEV dist/classicy.es.js` is 0, no bundle imports `react/jsx-dev-runtime`, and the new verify:dist invariant passes.
+- [x] VERIFY: Two builds of the same commit from different directories produce byte-identical `dist/`.
+- [x] VERIFY: Full gate green, and parity AE 0 for every story.
 
 ## Files
 
@@ -65,3 +67,5 @@ Run the full gate; take Storybook parity against the current baseline (AE 0, sin
 - `bin/check-dist-imports.mjs` - the new invariant
 
 ## Work Log
+
+### 2026-11-05T22:38:53.085Z - 0120: cause was the shell's NODE_ENV=development (Vite derives isProduction after loading the config); vite.config.ts now sets NODE_ENV=production for `vite build`; verify:dist invariant 13 forbids react/jsx-dev-runtime, jsxDEV and build-machine paths. Published 2.1.8 unaffected (CI has NODE_ENV unset). Reproducible: identical dist from two directories. Controller review of the diff. Landed 2026-11-05 on feat/AppearancePackages at 66481727b (pushed) as part of stack A (3.5 landed first; then 4.1, 1.3, 0120, 1.1 in one fast-forward). Stack landing gate at the top: 462 files / 6325 tests, lint, tsc, storybook:typecheck, vocabulary --check, color sweep, build:source + verify:dist (jsxDEV=0), build:storybook, example build, exit 0.

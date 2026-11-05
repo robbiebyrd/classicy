@@ -3,11 +3,13 @@ id: 0134-8cy
 title: '0015 §4.1: Release both packages at 3.0.0 in lockstep'
 purpose: Execute plan 0015-kxa section 4.1.
 type: task
-status: ready
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:05.295Z"
-updated: "2026-11-05T20:26:46.239Z"
+updated: "2026-11-05T22:39:42.078Z"
+started: "2026-11-05T21:02:58.220Z"
+completed: "2026-11-05T22:39:42.078Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -64,8 +66,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -75,3 +77,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `bin/classicyReleaseWorkflow.test.ts` - test
 
 ## Work Log
+
+### 2026-11-05T22:38:41.279Z - 4.1: push.yml releases both packages in lockstep (bump action pinned to 63bc5b97, major-wording 'BREAKING CHANGE', skip-tag/skip-push then sync → push+tag → codename → release → pnpm -r publish → wait for both → dispatches; cancel-in-progress false; packages/** in paths; core-only fallback until the Platinum package exists). Review + re-review: no findings ≥70 after the fix round. Controller fix 3e20e702f: the workflow test's negative assertion rewritten as classicy(?:@) so the 2.1 rename scan stops flagging it. Owner checklist: PR 333's merge must carry 'BREAKING CHANGE', or run workflow_dispatch version-type=major. Follow-up 0141-6kd (rebuild after rebase, codename before the tag). Landed 2026-11-05 on feat/AppearancePackages at 66481727b (pushed) as part of stack A (3.5 landed first; then 4.1, 1.3, 0120, 1.1 in one fast-forward). Stack landing gate at the top: 462 files / 6325 tests, lint, tsc, storybook:typecheck, vocabulary --check, color sweep, build:source + verify:dist (jsxDEV=0), build:storybook, example build, exit 0.

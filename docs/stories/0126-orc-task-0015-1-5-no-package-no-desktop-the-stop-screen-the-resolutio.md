@@ -3,11 +3,12 @@ id: 0126-orc
 title: '0015 §1.5: No package, no desktop: the stop screen, the resolution chain and the package icon'
 purpose: Execute plan 0015-kxa section 1.5.
 type: task
-status: ready
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:37.968Z"
-updated: "2026-11-05T20:26:15.648Z"
+updated: "2026-11-05T22:40:14.885Z"
+started: "2026-11-05T22:40:14.885Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -96,3 +97,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `src/Appearance/ClassicyAssetRegistry.ts` - modify
 
 ## Work Log
+
+### 2026-11-05T22:32:56.746Z - Started early (2026-11-05, for speed) in worktree fu-0126 on top of 1.1's branch (fu/0122 at 66481727b, in its landing gate as part of stack A); the status moves to in_progress once 0122-ieh lands. If 1.1's landing changes, this branch is rebased.
