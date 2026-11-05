@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
@@ -113,10 +113,14 @@ describe("theme variable coverage (H 6.1)", () => {
 				.map((literal) => `${literal.file}:${literal.line} ${literal.text}`),
 		).toEqual([]));
 
-	it("the pixel allowlist is empty", () =>
+	it("no bare pixel literal is left in src, and there is no allowlist", () => {
 		expect(
-			JSON.parse(
-				readFileSync(join(ROOT, "bin/pixel-literal-allowlist.json"), "utf8"),
-			),
-		).toEqual({}));
+			[...scanPixelLiterals(ROOT).values()]
+				.flat()
+				.map((literal) => `${literal.file}:${literal.line} ${literal.text}`),
+		).toEqual([]);
+		expect(existsSync(join(ROOT, "bin/pixel-literal-allowlist.json"))).toBe(
+			false,
+		);
+	});
 });

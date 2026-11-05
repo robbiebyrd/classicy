@@ -1,9 +1,6 @@
 // The pixel-literal gate (Part H 1.1): Classicy's SCSS reads its sizes from
-// theme variables, so every `Npx` literal left in src is debt, held by a
-// ratchet. bin/pixel-literal-allowlist.json lists, per file, how many literals
-// it may still hold; a file must hold exactly that many (fewer means the list
-// must be tightened, more means a new literal), and an unlisted file none.
-// The list only shrinks, and ends empty.
+// theme variables, so a bare `Npx` literal in src fails the gate. There is no
+// allowlist: every file holds none.
 //
 // The multiplier gate (Part H 6.2, H-R6) is its sibling: a theme variable
 // scaled by a bare number (`calc(var(--x) * 3)`, `var(--h) / -2`) is a
@@ -15,7 +12,6 @@
 // needs its reason.
 //
 //   node bin/check-pixel-literals.ts                    check both; exit 1 on any message
-//   node bin/check-pixel-literals.ts --write-allowlist  reseed the pixel list from src
 //   node bin/check-pixel-literals.ts --list-multipliers print every multiplier site
 //
 // A unit written after a Sass interpolation (`#{$n}px`) is a literal too,
@@ -28,7 +24,7 @@
 //
 // Build script, not library code: it reports through stdout/stderr and exit
 // codes. Erasable TypeScript syntax only, so Node runs it directly.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -955,52 +951,24 @@ export const checkMultiplierAllowlist = (
 };
 
 /**
- * The ratchet: one message per breach, empty when `found` matches the
- * allowlist exactly. An entry must be a positive whole count: a `0` entry
- * (delete it instead) or any other value is reported as invalid. A file
- * below its listed count asks for the list to be tightened; a file above it
- * (or unlisted with any literal) lists each of its literals as
- * `<file>:<line> <text>`.
+ * The pixel gate: one `<file>:<line> <text>` message per literal, files in
+ * order, empty when `found` holds none.
  */
-export const checkPixelLiteralAllowlist = (
+export const checkPixelLiterals = (
 	found: Map<string, ClassicyPixelLiteral[]>,
-	allowlist: Readonly<Record<string, unknown>>,
-): string[] => {
-	const files = [
-		...new Set([...found.keys(), ...Object.keys(allowlist)]),
-	].sort();
-	return files.flatMap((file) => {
-		const literals = found.get(file) ?? [];
-		const listed = Object.hasOwn(allowlist, file) ? allowlist[file] : 0;
-		if (listed === 0 && Object.hasOwn(allowlist, file)) {
-			return [
-				`invalid allowlist entry for ${file}: 0 (a file with no literals left must be removed from the list)`,
-			];
-		}
-		if (typeof listed !== "number" || !Number.isInteger(listed) || listed < 0) {
-			return [
-				`invalid allowlist entry for ${file}: ${JSON.stringify(listed)} (a count must be a positive whole number)`,
-			];
-		}
-		if (literals.length < listed) {
-			return [
-				`tighten the allowlist for ${file}: ${literals.length} < ${listed}`,
-			];
-		}
-		if (literals.length > listed) {
-			return literals.map(
+): string[] =>
+	[...found.keys()]
+		.sort()
+		.flatMap((file) =>
+			(found.get(file) ?? []).map(
 				(literal) => `${file}:${literal.line} ${literal.text}`,
-			);
-		}
-		return [];
-	});
-};
+			),
+		);
 
 function main(): void {
 	// The repo root, from this file's own location (bin/..), so the check
 	// does not depend on the working directory.
 	const root = fileURLToPath(new URL("..", import.meta.url));
-	const allowlistPath = join(root, "bin", "pixel-literal-allowlist.json");
 	if (process.argv.includes("--list-multipliers")) {
 		for (const sites of scanMultipliers(root).values()) {
 			for (const site of sites) {
@@ -1009,29 +977,11 @@ function main(): void {
 		}
 		return;
 	}
-	const found = scanPixelLiterals(root);
-	if (process.argv.includes("--write-allowlist")) {
-		const literals = [...found.values()].flat();
-		const fallbacks = literals.filter((literal) => literal.kind === "fallback");
-		const counts = Object.fromEntries(
-			[...found.entries()]
-				.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-				.map(([file, inFile]) => [file, inFile.length]),
-		);
-		writeFileSync(allowlistPath, `${JSON.stringify(counts, null, "\t")}\n`);
-		process.stdout.write(
-			`wrote ${relative(root, allowlistPath)}: ${literals.length - fallbacks.length} bare + ${fallbacks.length} fallback over ${found.size} files\n`,
-		);
-		return;
-	}
-	const allowlist: Record<string, unknown> = JSON.parse(
-		readFileSync(allowlistPath, "utf8"),
-	);
-	const messages = checkPixelLiteralAllowlist(found, allowlist);
+	const messages = checkPixelLiterals(scanPixelLiterals(root));
 	for (const message of messages) process.stdout.write(`${message}\n`);
 	if (messages.length > 0) {
 		process.stderr.write(
-			"pixel literals out of step with bin/pixel-literal-allowlist.json: read a theme variable instead of a new literal, and lower a file's count when you remove one\n",
+			"bare pixel literals in src: read a theme variable instead of a literal\n",
 		);
 	}
 	const multiplierMessages = checkMultiplierAllowlist(

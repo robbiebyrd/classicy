@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
 	type ClassicyPixelLiteral,
 	checkMultiplierAllowlist,
-	checkPixelLiteralAllowlist,
+	checkPixelLiterals,
 	scanMultipliers,
 	scanMultipliersInSource,
 	scanPixelLiterals,
@@ -267,47 +267,24 @@ describe("scanPixelLiteralsInSource", () => {
 		).toEqual(["1 22px bare", "2 2px bare", "2 1.5px bare"]));
 });
 
-describe("checkPixelLiteralAllowlist", () => {
-	it("ratchet: fewer than listed is a failure", () =>
-		expect(
-			checkPixelLiteralAllowlist(new Map([["a.scss", [lit]]]), {
-				"a.scss": 2,
-			}),
-		).toEqual(["tighten the allowlist for a.scss: 1 < 2"]));
-
-	it("ratchet: unlisted file with literals fails with file:line text", () =>
-		expect(
-			checkPixelLiteralAllowlist(new Map([["a.scss", [lit]]]), {}),
-		).toEqual(["a.scss:1 3px"]));
-
-	it("ratchet: an exact count passes", () =>
-		expect(
-			checkPixelLiteralAllowlist(new Map([["a.scss", [lit]]]), {
-				"a.scss": 1,
-			}),
-		).toEqual([]));
-
-	// Minor 5: an entry is a positive whole count; a file at 0 is deleted.
-	it("ratchet: rejects a 0 entry and a count that is not a whole number", () =>
-		expect(
-			checkPixelLiteralAllowlist(new Map([["a.scss", [lit]]]), {
-				"a.scss": 1,
-				"gone.scss": 0,
-				"b.scss": 1.5,
-				"c.scss": "2",
-				"d.scss": -1,
-			}),
-		).toEqual([
-			"invalid allowlist entry for b.scss: 1.5 (a count must be a positive whole number)",
-			'invalid allowlist entry for c.scss: "2" (a count must be a positive whole number)',
-			"invalid allowlist entry for d.scss: -1 (a count must be a positive whole number)",
-			"invalid allowlist entry for gone.scss: 0 (a file with no literals left must be removed from the list)",
+describe("checkPixelLiterals", () => {
+	it("any literal fails, as file:line text", () =>
+		expect(checkPixelLiterals(new Map([["a.scss", [lit]]]))).toEqual([
+			"a.scss:1 3px",
 		]));
 
-	it("ratchet: a listed file that is gone must be removed", () =>
-		expect(checkPixelLiteralAllowlist(new Map(), { "gone.scss": 3 })).toEqual([
-			"tighten the allowlist for gone.scss: 0 < 3",
-		]));
+	it("lists every literal of every file, files sorted", () =>
+		expect(
+			checkPixelLiterals(
+				new Map([
+					["b.scss", [lit]],
+					["a.scss", [lit, { ...lit, line: 4, text: "2px" }]],
+				]),
+			),
+		).toEqual(["a.scss:1 3px", "a.scss:4 2px", "b.scss:1 3px"]));
+
+	it("no literals passes, with no allowlist to read", () =>
+		expect(checkPixelLiterals(new Map())).toEqual([]));
 });
 
 describe("scanPixelLiterals", () => {
@@ -319,13 +296,15 @@ describe("scanPixelLiterals", () => {
 		).toBe(false));
 
 	// H-R1: the gate runs as a test over src as well as from `pnpm lint`.
-	it("the repository's SCSS matches bin/pixel-literal-allowlist.json", () =>
-		expect(
-			checkPixelLiteralAllowlist(
-				scanPixelLiterals(process.cwd()),
-				JSON.parse(readFileSync("bin/pixel-literal-allowlist.json", "utf8")),
-			),
-		).toEqual([]));
+	it("the repository's SCSS holds no pixel literal", () =>
+		expect(checkPixelLiterals(scanPixelLiterals(process.cwd()))).toEqual([]));
+
+	it("the gate never reads pixel-literal-allowlist.json", () => {
+		const source = readFileSync("bin/check-pixel-literals.ts", "utf8");
+		expect(source).not.toContain("pixel-literal-allowlist");
+		expect(source).not.toContain("--write-allowlist");
+		expect(existsSync("bin/pixel-literal-allowlist.json")).toBe(false);
+	});
 });
 
 // H 6.2 (H-R6): a theme variable scaled by an unnamed number is a proportion

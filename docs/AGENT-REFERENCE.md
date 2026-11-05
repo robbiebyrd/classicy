@@ -4205,9 +4205,8 @@ package's own `--<pkg>-*: Npx` constants, and a `var(--x, Npx)` fallback
 only `0px`, `calc(infinity * 1px)`, `@media`/`@container` preludes,
 comments (`/* */` across lines, and `//` except the `://` of a URL),
 `url(…)` payloads (nested parentheses and quotes included) and the screen
-savers' ported art under `Extensions/ScreenSaver/savers/`. The ratchet,
-`bin/pixel-literal-allowlist.json`, is now empty (`{}`): an unlisted file
-with any literal fails, and the list may only shrink, so it stays empty.
+savers' ported art under `Extensions/ScreenSaver/savers/`. There is no
+allowlist: any literal in any file fails the gate.
 A theme variable's pixel fallback is dead, since `getThemeVars` always sets
 the variable, so none is left either:
 `ClassicyAppearance.varCoverage.test.ts` fails on a `var(--x, Npx)`, and on a
@@ -4278,7 +4277,7 @@ var(--window-border-size)`.
 
 `bin/multiplier-allowlist.json` holds the sites that stay, per file, as
 groups of `{ count, reason }`, each reason one line saying why the sites are
-geometry rather than a role. The same ratchet as the pixel list applies to a
+geometry rather than a role. The same ratchet applies to a
 file's total: a new site fails `pnpm lint` (and the vitest gate) with
 `<file>:<line> <site>`, and a removed one asks for the count to be lowered
 (`tighten the multiplier allowlist for …`). The count is per file, not per
@@ -4785,9 +4784,7 @@ pnpm parity:compare .playwright-mcp/parity/x/before .playwright-mcp/parity/x/aft
   --summary .playwright-mcp/parity/x/ae.txt
 ```
 
-`--filter <regex>` limits any command to matching story ids. `pnpm parity:dump`
-and `pnpm parity:forced` take computed-style and forced-state dumps, compared
-with `--kind computed` or `--kind forced`.
+`--filter <regex>` limits any command to matching story ids.
 
 - **AE 0** (ImageMagick `compare -metric AE`, no fuzz) means the two PNGs are
   pixel-identical; any other number is the count of differing pixels, and
