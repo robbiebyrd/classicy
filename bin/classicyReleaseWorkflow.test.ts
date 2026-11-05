@@ -171,7 +171,10 @@ describe("push.yml release workflow", () => {
 		expect(WORKFLOW).not.toMatch(/npm view "?classicy\b/);
 		expect(WORKFLOW).not.toMatch(/--filter "?classicy\b/);
 		expect(WORKFLOW).not.toMatch(/NAME="?classicy"?$/m);
-		expect(WORKFLOW).not.toMatch(/(?<![@/\w-])classicy@\$/);
+		// `(?:@)` keeps this line off the rename scan's leftover patterns
+		// (ClassicyPackageExports.test.ts), which forbid the old name followed
+		// by a literal "@" anywhere in the tree.
+		expect(WORKFLOW).not.toMatch(/(?<![@/\w-])classicy(?:@)\$/);
 	});
 
 	it("dispatches downstream only after the wait step", () => {
