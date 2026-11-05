@@ -3,6 +3,9 @@ import path from "node:path";
 import { act, renderHook } from "@testing-library/react";
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	type ClassicyAppearanceLayout,

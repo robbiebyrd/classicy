@@ -1,5 +1,8 @@
 import { castDraft, produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,

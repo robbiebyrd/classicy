@@ -1,5 +1,8 @@
 import { produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,

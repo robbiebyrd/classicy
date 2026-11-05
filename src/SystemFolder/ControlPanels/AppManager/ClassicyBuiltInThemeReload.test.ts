@@ -31,6 +31,9 @@ const boot = async (saved?: unknown) => {
 		id: "built-in-theme-reload",
 		onLog: (entry: ClassicyLogEntry) => entries.push(entry),
 	});
+	// The fresh graph's sound registry is empty; the Platinum themes the
+	// packages below build on name Platinum's pack.
+	await import("@/Appearance/Platinum/assets/sounds/platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
 	return {

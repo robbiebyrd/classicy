@@ -16,6 +16,9 @@ import {
 	type ClassicyComponentName,
 	classicyStateClasses,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+// Registers Platinum's sound pack: the package's defaults are a Platinum
+// theme, and a theme's `sound.pack` must name a registered pack.
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 

@@ -15,6 +15,9 @@ const CORE = ["window", "control", "button", "groupBox", "layout"];
 /** A fresh module graph: the store reads localStorage as it evaluates. */
 const freshStore = async () => {
 	vi.resetModules();
+	// The fresh graph's sound registry is empty; the Platinum themes the
+	// packages below build on name Platinum's pack.
+	await import("@/Appearance/Platinum/assets/sounds/platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
 	return {

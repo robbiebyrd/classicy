@@ -2,6 +2,9 @@ import {
 	type ClassicyAppearanceLayout,
 	registerClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
+// Registers Platinum's sound pack: the package's defaults are a Platinum
+// theme, and a theme's `sound.pack` must name a registered pack.
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 
 /** The test package's id. */

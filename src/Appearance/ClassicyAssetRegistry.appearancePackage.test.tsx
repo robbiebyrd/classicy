@@ -2,6 +2,9 @@ import { act, render } from "@testing-library/react";
 import { produce } from "immer";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "@/Appearance/Platinum/assets/sounds/platinum";
 import {
 	type ClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
