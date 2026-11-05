@@ -3804,14 +3804,17 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
 
 - `classicyThemeMeasurementDefaults(packageId)` returns what a theme of that
   package is completed with: the core five
-  (`CLASSICY_DEFAULT_THEME_METRICS`), then Platinum's families as the floor,
-  then the registered package's own `defaults.measurements`, merged key by
-  key with the package's values winning
-  (`getRegisteredClassicyAppearancePackageOrDefault`, store-free). A package
-  that declares part of a family (Storybook's Test Pack declares
-  `controlStrip { cellHeight, tabWidth }`) keeps the 13 Platinum strip keys
-  it leaves out. An unknown or missing id gets Platinum's. The result is
-  frozen and cached per package registration.
+  (`CLASSICY_DEFAULT_THEME_METRICS`) and the structural knobs (the core
+  floor, `CLASSICY_CORE_MEASUREMENT_DEFAULTS`), then the registered
+  package's own `defaults.measurements`, merged key by key with the
+  package's values winning. A package that declares part of a family keeps
+  the floor's structural keys it leaves out, but never a look-only knob: a
+  package that draws with Platinum's stylesheet declares those itself
+  (Storybook's Test Pack declares `controlStrip { cellHeight, tabWidth,
+  bevelWidth }`; `storybook/.storybook/StorybookPackageKnobs.test.ts` checks
+  every Storybook package). An unknown or missing id gets the registered
+  default package's (never another registered package's), else the floor
+  alone. The result is frozen and cached per package registration.
 - `withDefaultThemeMetrics(theme, defaults = CLASSICY_DEFAULT_THEME_METRICS)`
   fills every family and key `defaults` names. It is copy-on-write (the
   same theme back when nothing is missing), keeps families and keys
