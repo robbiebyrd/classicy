@@ -3,11 +3,12 @@ id: 0118-qm6
 title: 'Override minimatch 9.x and 10.x to 11 to close Dependabot #344'
 purpose: Fix the minimatch globParts amplification advisory instead of carrying a dismissal, now that it no longer covers minimatch 3.
 type: chor
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-11-05T16:41:17.674Z"
-updated: "2026-11-05T16:41:17.674Z"
+updated: "2026-11-05T18:27:00.095Z"
+started: "2026-11-05T18:27:00.095Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -67,3 +68,5 @@ After the change reaches main, confirm #344's advisory no longer matches the loc
 - `docs/DEPENDENCY-OVERRIDES.md` - reason for the override
 
 ## Work Log
+
+### 2026-11-05T18:26:26.226Z - Scheduled 2026-11-05 (owner: start both now), worktree fu-0118 from 713e98242, in parallel with 0117-qjd; lands after 0117, so the override is re-verified against 0117's lockfile at landing.
