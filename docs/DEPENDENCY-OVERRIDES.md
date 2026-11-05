@@ -4,7 +4,14 @@
 vulnerabilities where the package that pulls them in pins a vulnerable version.
 Each override is keyed to the vulnerable range of one major, so it stops
 matching once the parent moves past that range, and its target is a caret
-range in the same major, so later patches still resolve.
+range in the same major, so later patches still resolve, unless the fix exists
+only in a later major: then the selector spans every affected major and the
+target is the first fixed release of the new one (story 0118-qm6).
+
+pnpm applies a `pkg@range` selector only to a dependency whose requested range
+is a subset of it, so a future parent asking for, say, `>=9` or
+`^10.2.0 || ^11.0.0` would not be redirected; recheck
+`pnpm why -r minimatch glob` after dependency upgrades.
 
 Where the parent's own range already allows the patched version, the fix is a
 lockfile update (`pnpm update -r --no-save --depth Infinity <pkg>`), not an
@@ -44,23 +51,25 @@ allow the patched versions.
 
 | Override | Alert | Parent and pin | Why it is safe |
 | --- | --- | --- | --- |
-| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | The one override that crosses a major: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. All of them run only at build or watch time; minimatch is not in `dist/`. |
+| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | It crosses a major, like the glob row below: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. All of them run only at build or watch time; minimatch is not in `dist/`. |
 | `glob@>=13.0.0 <14.0.3` → `^14.0.3` | GHSA-g3hv-75wg-m249 (bundled copy); GHSA-3g3m-2fjr-6pw4 (an aborted async walk keeps reading directories) | `rimraf` (via `vite-plugin-image-tools`) asks for `^13.0.3`; `@joshwooding/vite-plugin-react-docgen-typescript` (via `@storybook/react-vite`) asks for `^13.0.1` | glob's default entry, `index.min.js`, bundles its own minimatch, so the minimatch override alone leaves 13's vulnerable copy in place. 14.0.3 is the first release that bundles a fixed minimatch 11; 14.0.0 to 14.0.2 bundle 11.0.0, which predates the fix. Both parents call only `glob`/`globSync` and read back an array of strings (`absolute`, `cwd`, `ignore` without a leading `/`, `nodir`, `withFileTypes: false`, `signal`), none of which 14 changes. Storybook's default `react-docgen` never loads the docgen plugin, and nothing here runs rimraf with globs. |
 
-The minimatch override starts at 7.0.0, the advisory's lower bound, so
-minimatch 3.1.5 (eslint 9, `@eslint/config-array`, `@eslint/eslintrc`) is left
-alone: 3.x is outside the advisory's range, has none of the vulnerable code,
-and cannot move to 11, because eslint calls the CommonJS default-export
-function that 11 no longer provides. The lockfile now holds minimatch 3.1.5 and
-11.0.3, glob 14.0.3 and path-scurry 3.0.0; brace-expansion 2.1.7, which only
-minimatch 9 used, is gone.
+The minimatch selector starts at 7.0.0, the advisory's lower bound, so it
+leaves 3.x alone: 3.x is outside the advisory's range, has none of the
+vulnerable code, and cannot move to 11, because its callers (eslint 9 and its
+config packages) call the CommonJS default-export function that 11 no longer
+provides. The overrides resolve minimatch 9.x and 10.x to 11.0.3, and glob 13 to
+14.0.3 with path-scurry 3.0.0; brace-expansion 2.1.7, which only minimatch 9
+used, leaves the lockfile.
 
 One vulnerable copy is out of reach of any override: `storybook` 10.6.2 bundles
-glob and minimatch 10 into `dist/_node-chunks/`, and so do 10.6.5 and 10.6.6,
-the latest release. It matches only the `stories` globs in
-`storybook/.storybook/main.ts`, at dev and build time. Dependabot cannot see a
-bundled copy, so check a later Storybook release before treating the advisory
-as gone.
+glob 10.5.0 (it asks for `^10.5.0`) with minimatch 9.0.5 and brace-expansion 2
+into `dist/_node-chunks/`, and so do 10.6.5 and 10.6.6, the latest release.
+That minimatch is inside GHSA-g3hv-75wg-m249's range, and that glob inside
+GHSA-3g3m-2fjr-6pw4's (`>=9.0.0 <=14.0.1`). It matches only the `stories` globs
+in `storybook/.storybook/main.ts`, at dev and build time. Dependabot cannot see
+a bundled copy, so check a later Storybook release before treating either
+advisory as gone.
 
 ## Keeping the lockfile's `libc` fields
 
