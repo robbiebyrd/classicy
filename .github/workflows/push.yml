@@ -7,7 +7,10 @@ on:
     paths:
       - 'src/**'
       - 'assets/**'
-      - '!src/**/*.stories.tsx'
+      # The Platinum package lives under packages/, so a change only there
+      # still releases (plan 0014-ahm).
+      - 'packages/**'
+      - '!**/*.stories.tsx'
       # Build config changes the published artifact just as much as source
       # does. Both 0.70.1 and 0.70.2 were vite.config.ts-only fixes for
       # consumer-breaking bugs and neither triggered a release -- they had to
@@ -20,6 +23,17 @@ on:
       # would make every release retrigger the release. Verified against the
       # 0.70.0/0.70.1 bump commits.
   workflow_dispatch:
+    inputs:
+      version-type:
+        description: 'Override the version bump (major, minor, patch, ...). Empty: read it from the commit messages.'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - major
+          - minor
+          - patch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -77,11 +91,32 @@ jobs:
           target-branch: main
           tag-prefix:  'v'
           default: patch
+          # Pinned to the action's defaults (v12.0.2, 63bc5b9) so the 3.0.0
+          # keyword is explicit: "BREAKING CHANGE" or "major" anywhere in any
+          # commit of the push, or a `type!:` subject, makes it a major bump.
+          major-wording: 'BREAKING CHANGE,major'
+          # Manual runs: a non-empty input replaces the commit-message logic.
+          version-type: ${{ inputs.version-type }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Use newTag output'
         run: echo "New version tag is ${{ steps.bump_version.outputs.newTag }}"
+
+      # The Platinum package ships at the root's version (lockstep). The bump
+      # action only edits the root package.json, so copy the number across and
+      # commit it [skip ci] like the codename. Skipped until the package exists.
+      - name: Sync the Platinum package version
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p 'require("./package.json").version')"
+          npm pkg set version="$VERSION" --prefix packages/appearance/platinum
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add packages/appearance/platinum/package.json
+          git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
+          git push
 
       - name: Select release codename
         if: steps.bump_version.outputs.newTag != ''
@@ -128,11 +163,21 @@ jobs:
             --title "${{ steps.codename.outputs.name }}" \
             --generate-notes
 
+      # pnpm, not the JS-DevTools action: only pnpm rewrites the Platinum
+      # package's `workspace:^` peer range to a real `^<version>`. The token
+      # reaches pnpm through the .npmrc setup-node writes (registry-url).
       - name: Publish to npm
-        if: steps.bump_version.outputs.newTag != ''
-        uses: JS-DevTools/npm-publish@v4
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks
+
+      # Until the Platinum package exists, only the root publishes.
+      - name: Publish to npm (core only)
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') == ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --no-git-checks
 
       # The registry lists a new version several minutes after the publish
       # call returns (2.0.0 and 2.0.1 each took 8–10 minutes), and npm-publish
@@ -147,18 +192,28 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${TAG#v}"
-          NAME="$(node -p 'require("./package.json").name')"
-          for attempt in $(seq 1 60); do
-            LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
-            if [ "$LATEST" = "$VERSION" ]; then
-              echo "$NAME@$VERSION is live on npm (attempt $attempt)."
-              exit 0
+          PACKAGES=("$(node -p 'require("./package.json").name')")
+          if [ -f packages/appearance/platinum/package.json ]; then
+            PACKAGES+=("$(node -p 'require("./packages/appearance/platinum/package.json").name')")
+          fi
+          # Both packages must be listed before anything downstream runs.
+          for NAME in "${PACKAGES[@]}"; do
+            LIVE=""
+            for attempt in $(seq 1 60); do
+              LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
+              if [ "$LATEST" = "$VERSION" ]; then
+                echo "$NAME@$VERSION is live on npm (attempt $attempt)."
+                LIVE=1
+                break
+              fi
+              echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
+              sleep 30
+            done
+            if [ -z "$LIVE" ]; then
+              echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
+              exit 1
             fi
-            echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
-            sleep 30
           done
-          echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
-          exit 1
 
       - name: Trigger classicy-web deploy
         if: steps.bump_version.outputs.newTag != ''
