@@ -2,10 +2,10 @@
 // as, by `classicyWallpaperDigest` (payload length, FNV-1a 64). A 2.x save
 // holds such a URI; the digests let the wallpaper index map it to the
 // filename once the wallpapers ship as files, whose URLs match nothing a 2.x
-// build wrote. Derived from the published classicy@2.1.8 tarball (each of its
-// 46 inlined wallpapers is the file's own bytes, base64) plus default.jpg,
-// which 2.1.8 did not ship; platinumLegacyWallpapers.test.ts regenerates the
-// table from the files and pins it.
+// build wrote. Derived from the tarball of 2.1.8, the last release published
+// under the old package name (each of its 46 inlined wallpapers is the file's
+// own bytes, base64), plus default.jpg, which 2.1.8 did not ship;
+// platinumLegacyWallpapers.test.ts pins the 2.1.8 digests.
 
 /** Legacy `data:` URI digests per Platinum wallpaper file. */
 export const PLATINUM_LEGACY_WALLPAPER_DIGESTS: Readonly<

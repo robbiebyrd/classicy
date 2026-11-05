@@ -1,7 +1,8 @@
 // Test fixture (not shipped: src/Appearance/.npmignore drops __tests__/).
 
 /**
- * The data: URI the published classicy@2.1.8 bundle (dist/classicy.es.js and
+ * The data: URI the published 2.1.8 bundle, the last under the old package
+ * name (dist/classicy.es.js and
  * dist/classicy.umd.js alike; tarball sha256
  * fb7ded2e70b267f145c40468bc53294749e730bf05fbaa0fc10458f7a6a9a94b) inlined
  * for Platinum's azul_dark.png, copied verbatim: what a 2.1.x save holds as
