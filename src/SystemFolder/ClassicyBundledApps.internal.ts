@@ -1,7 +1,7 @@
 // Side effects only: registers every bundled app's manifest, and with it the
 // reducer routed by the manifest's prefix, by importing the module whose
 // top-level `registerApp` call does it. A host gets these registrations from
-// `import "classicy"`, whose barrel re-exports every one of these modules;
+// `import "@classicy/classicy"`, whose barrel re-exports every one of these modules;
 // Storybook's preview, whose graph does not reach them all, imports this list
 // so a story dispatching an app's action reaches the same reducers. It stays
 // out of the barrel (`.internal`) so the library's evaluation order is

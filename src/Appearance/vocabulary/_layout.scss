@@ -1,5 +1,5 @@
 // Layout helpers shared by Classicy's stylesheets and Appearance Packages
-// (`@use "classicy/scss/layout"` in a host). Emits no CSS of its own.
+// (`@use "@classicy/classicy/scss/layout"` in a host). Emits no CSS of its own.
 
 // A 1 px-exact rectangle of `$color` at (`$x`, `$y`) sized `$w` × `$h`, as one
 // background layer. Stacks of these draw bevels whose 1 px corner notches a

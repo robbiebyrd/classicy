@@ -1,6 +1,6 @@
 # Classicy — Public API Reference for AI Agents
 
-This document describes the public interface of the `classicy` npm package for
+This document describes the public interface of the `@classicy/classicy` npm package for
 coding agents working in **consumer** applications (apps that install and use
 Classicy). It covers every UI component, the app registration interface, event
 and icon registration, and the other extension seams the package exposes.
@@ -10,7 +10,7 @@ Classicy is a React/TypeScript UI framework that replicates the Mac OS 8
 Platinum-styled controls, plus built-in apps (Finder, SimpleText, HyperCard,
 PDF Viewer, Movie Player, Picture Viewer, Web Viewer).
 
-- Package: `classicy` (ES + UMD builds, TypeScript types included)
+- Package: `@classicy/classicy` (ES + UMD builds, TypeScript types included)
 - License: Unlicense
 - Peer dependencies you must install: `react` (18 or 19), `react-dom`,
   `zustand@^5`, `immer@^11`, `@tanstack/react-table@^8`, `react-player@^3`
@@ -26,7 +26,7 @@ reference only names.
 ## 1. Installation & Setup
 
 ```bash
-npm install classicy react react-dom zustand immer @tanstack/react-table react-player
+npm install @classicy/classicy react react-dom zustand immer @tanstack/react-table react-player
 ```
 
 Browser support: Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme color
@@ -44,18 +44,18 @@ Platinum appearance package registers at runtime, so there is nothing to import:
 
 ```ts
 // no longer needed: the Platinum package registers its fonts; the import is a deprecated no-op
-// import 'classicy/fonts'
+// import '@classicy/classicy/fonts'
 ```
 
 Under a Content-Security-Policy that forbids inline `<style>` (a `style-src`
 without `'unsafe-inline'`), link the three stylesheets yourself instead:
 
-1. `classicy/dist/classicy.css`: structure, which the bundle otherwise
+1. `@classicy/classicy/dist/classicy.css`: structure, which the bundle otherwise
    injects as `<style id="classicy-styles">`;
-2. `classicy/dist/classicy-platinum.css`: the Platinum look, which the
+2. `@classicy/classicy/dist/classicy-platinum.css`: the Platinum look, which the
    Platinum appearance package otherwise injects as
    `<style id="classicy-appearance-platinum">` (see "Cascade layers" below);
-3. `classicy/dist/classicy-platinum.fonts.css`: the Platinum fonts, which the
+3. `@classicy/classicy/dist/classicy-platinum.fonts.css`: the Platinum fonts, which the
    package otherwise writes as `<style id="classicy-fonts-platinum">`.
 
 Importing them as well is harmless. Link `classicy.css` **first in
@@ -65,9 +65,9 @@ statement (below), which only fixes the order if no earlier sheet has named a
 layer.
 
 ```html
-<link rel="stylesheet" href="/node_modules/classicy/dist/classicy.css">
-<link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.css">
-<link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.fonts.css">
+<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.css">
+<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.fonts.css">
 ```
 
 The fonts file holds the `@font-face` rules the runtime writes, generated at
@@ -89,7 +89,7 @@ classicy out of the pre-bundle:
 ```ts
 // vite.config.ts
 export default defineConfig({
-    optimizeDeps: { exclude: ['classicy'] },
+    optimizeDeps: { exclude: ['@classicy/classicy'] },
 })
 ```
 
@@ -98,7 +98,7 @@ listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
 a plugin), copy `dist/assets/` next to your bundle.
-Also new in this release: `import 'classicy/fonts'` is a deprecated no-op (the
+Also new in this release: `import '@classicy/classicy/fonts'` is a deprecated no-op (the
 Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
 exists.
 
@@ -119,7 +119,7 @@ host overrides; a later layer beats an earlier one whatever the specificity.
 sizing, state rules). Every bevel, border, gradient and piece of art is the
 active **Appearance Package**'s (§8, "Appearance Packages"). Registering a
 package (`registerClassicyAppearancePackage`; Platinum registers itself when
-`classicy` is imported) writes its compiled CSS into
+`@classicy/classicy` is imported) writes its compiled CSS into
 `<style id="classicy-appearance-<id>">`: directly after `#classicy-styles`
 when that element is already there, else at the end of `<head>` (the shipped
 bundle registers Platinum before its own stylesheet injector runs, so in
@@ -220,15 +220,15 @@ Package `exports` map:
 
 | Specifier | Resolves to |
 |---|---|
-| `classicy` | ES/UMD bundle + types |
-| `classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
-| `classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
-| `classicy/dist/classicy-platinum.fonts.css` | The Platinum fonts' `@font-face` rules, which the package writes at runtime; link it after `classicy-platinum.css`, only under a strict CSP |
-| `classicy/fonts` | Deprecated no-op kept so existing `import 'classicy/fonts'` lines keep resolving |
-| `classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
-| `classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `classicy/scss/package` (`classicy-package($id)`, §8), `classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
-| `classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `classicy` registers the Platinum package, so you never need this specifier |
-| `classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
+| `@classicy/classicy` | ES/UMD bundle + types |
+| `@classicy/classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
+| `@classicy/classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
+| `@classicy/classicy/dist/classicy-platinum.fonts.css` | The Platinum fonts' `@font-face` rules, which the package writes at runtime; link it after `classicy-platinum.css`, only under a strict CSP |
+| `@classicy/classicy/fonts` | Deprecated no-op kept so existing `import '@classicy/classicy/fonts'` lines keep resolving |
+| `@classicy/classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
+| `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
+| `@classicy/classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `@classicy/classicy` registers the Platinum package, so you never need this specifier |
+| `@classicy/classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -240,7 +240,7 @@ import {
     ClassicyWindow,
     ClassicyButton,
     registerClassicyIcons,
-} from 'classicy'
+} from '@classicy/classicy'
 import myIcon from './my-icon.png'
 
 // Register custom icons ONCE, at module scope, before rendering.
@@ -293,7 +293,7 @@ dispatching `{ type: string, ...payload }` actions.
 ### Reading state
 
 ```tsx
-import { useAppManager } from 'classicy'
+import { useAppManager } from '@classicy/classicy'
 
 // ALWAYS use a selector — subscribing to the whole store causes excess re-renders.
 const app = useAppManager((s) => s.System.Manager.Applications.apps['MyApp.app'])
@@ -324,7 +324,7 @@ Note: the app slice is `System.Manager.Applications` (not `.App`). Each app is
 `windows` is a `Record<windowId, ClassicyStoreSystemAppWindow>` (exported alias
 `ClassicyStoreSystemAppWindows`; each entry's `id` equals its key). Read and
 write it through the helpers in `ClassicyAppWindows.ts`, all exported from
-`classicy`. Read helpers accept `undefined` for a missing app:
+`@classicy/classicy`. Read helpers accept `undefined` for a missing app:
 
 ```ts
 getAppWindow(app, id): ClassicyStoreSystemAppWindow | undefined
@@ -357,7 +357,7 @@ directly with `useAppManager.setState` must use the record.
 ### Dispatching
 
 ```tsx
-import { useAppManagerDispatch } from 'classicy'
+import { useAppManagerDispatch } from '@classicy/classicy'
 
 const dispatch = useAppManagerDispatch()
 dispatch({ type: 'ClassicyAppOpen', app: { id: 'MyApp.app', name: 'My App', icon } })
@@ -480,7 +480,7 @@ If your app needs custom state or actions, register a manifest **at module
 load** (side-effect import, before rendering):
 
 ```ts
-import { registerApp } from 'classicy'
+import { registerApp } from '@classicy/classicy'
 import { z } from 'zod'
 
 export const TVDataSchema = z.looseObject({
@@ -702,7 +702,7 @@ From TypeScript, build a state string with `classicyStateClasses`, keyed by
 vocabulary order, so the same input always yields the same string:
 
 ```ts
-import { CLASSICY_STATE, classicyStateClasses } from 'classicy'
+import { CLASSICY_STATE, classicyStateClasses } from '@classicy/classicy'
 
 CLASSICY_STATE.pressed                                  // "pressed"
 classicyStateClasses({ pressed: true, active: true })   // "active pressed"
@@ -712,13 +712,13 @@ classicyStateClasses({ pressed: true, active: true })   // "active pressed"
 to its root class (`CLASSICY_COMPONENT.Button === "classicyButton"`,
 `CLASSICY_COMPONENT.Tabs === "classicyTabContainer"`).
 
-From SCSS, `@use "classicy/scss/vocabulary"` (the `./scss/*` export points at
+From SCSS, `@use "@classicy/classicy/scss/vocabulary"` (the `./scss/*` export points at
 `src/Appearance/vocabulary/`) and write state selectors through
 `classicy-state()`, which returns `.<state>` and fails the Sass compile for any
 name not in `$classicy-states`:
 
 ```scss
-@use "classicy/scss/vocabulary" as v;
+@use "@classicy/classicy/scss/vocabulary" as v;
 
 .classicyButton#{v.classicy-state(pressed)} { … }   // .classicyButton.pressed
 .classicyButton#{v.classicy-state(bogus)} { … }     // compile error: "classicy-state: unknown state bogus"
@@ -1192,7 +1192,7 @@ Each media app exports an `*AppInfo` constant (`{ id, name, icon }` — ready
 for `ClassicyAppOpen`) and open/close actions. One dispatch opens a document:
 
 ```ts
-import { MoviePlayerAppInfo } from 'classicy'
+import { MoviePlayerAppInfo } from '@classicy/classicy'
 dispatch({
     type: 'ClassicyAppMoviePlayerOpenDocument',
     document: { url: 'https://example.com/clip.mp4', name: 'Clip', type: 'video' },
@@ -1259,7 +1259,7 @@ import {
     registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
     registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
-} from 'classicy'
+} from '@classicy/classicy'
 
 // ClassicyFontFace = { family: string; src: ClassicyAssetSource | ClassicyAssetSource[];
 //   weight?: string ("normal"); style?: string ("normal") }   (an array = fallback sources in order)
@@ -1303,7 +1303,7 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 Read an asset when you render or when you act, never once at import time.
 
 ```tsx
-import { useClassicyAsset, useClassicyAssetTree, resolveClassicyAsset } from 'classicy'
+import { useClassicyAsset, useClassicyAssetTree, resolveClassicyAsset } from '@classicy/classicy'
 
 // In a component: re-renders when that path is (re)registered, even after mount.
 const alias = useClassicyAsset('systemArt', 'aliasBadge') ?? ''
@@ -1485,10 +1485,10 @@ A host rule on them never matched anything, so there is nothing to migrate.
   `.checked` for `disabled-on`), and `.open` while its menu or panel shows;
   Placard `pressed`/`disabled` → `.pressed`/`.disabled`; ImageWell
   `selected`/`disabled` → `.selected`/`.disabled`.
-- **`classicy/scss/*` is the vocabulary.** It now resolves to
-  `src/Appearance/vocabulary/` (`@use "classicy/scss/vocabulary"`). The old
+- **`@classicy/classicy/scss/*` is the vocabulary.** It now resolves to
+  `src/Appearance/vocabulary/` (`@use "@classicy/classicy/scss/vocabulary"`). The old
   theme partials (`appearance`, the mixins) are now Platinum's, at
-  `classicy/appearance/platinum/scss/*`, under new names: see "Migrating to
+  `@classicy/classicy/appearance/platinum/scss/*`, under new names: see "Migrating to
   Appearance Packages" below.
 - **`.hidden` and `classicyWindowZoomed` are gone.** Classicy no longer ships
   a global `.hidden { visibility: hidden }` utility; a host that relied on it
@@ -1524,11 +1524,11 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
 - **The theme partials moved and were renamed.** Through 2.1.x, Platinum's
   SCSS was `classicy/scss/appearance`, `classicy/scss/scrollbars` and
   `classicy/scss/assets` (with the theme list at `classicy/scss/themes.json`
-  and the fonts at `classicy/scss/fonts`); `classicy/scss/*` is now the
-  vocabulary. Platinum's SCSS is at `classicy/appearance/platinum/scss/*`
+  and the fonts at `classicy/scss/fonts`); `@classicy/classicy/scss/*` is now the
+  vocabulary. Platinum's SCSS is at `@classicy/classicy/appearance/platinum/scss/*`
   (`mixins`, `scrollbars`, `assets`), and the mixins are renamed to
   kebab-case with a `platinum-` prefix. The helpers that are not Platinum's
-  moved to the vocabulary, `classicy/scss/layout`. (Pre-release builds
+  moved to the vocabulary, `@classicy/classicy/scss/layout`. (Pre-release builds
   exposed the same partials as `classicy/scss-platinum/*`; that bridge is
   gone too, and the table applies to it unchanged.)
 
@@ -1537,7 +1537,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   @use 'classicy/scss/appearance';
   .bar { @include appearance.platinumWindowControlBoxBorder; }
   // after
-  @use 'classicy/appearance/platinum/scss/mixins';
+  @use '@classicy/classicy/appearance/platinum/scss/mixins';
   .bar { @include mixins.platinum-window-control-box-border; }
   ```
 
@@ -1553,12 +1553,12 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `appearance.platinumDepressableDefault`, `platinumDepressableBoxShadowActive` | `mixins.platinum-depressable-default`, `platinum-depressable-box-shadow-active` |
   | `appearance.theme-halftone($color, $size)` | `mixins.platinum-halftone($token, $size)`: `$token` is a color custom-property name (`"--color-black"`), not a color, and the dots are painted on the element's `::before` (the element gets `position: relative`) |
   | `appearance.encode-color($string)` | Nothing: removed, since `platinum-halftone` no longer bakes a color into its data URI |
-  | `appearance.px-rect(…)` | `layout.classicy-px-rect(…)` (`@use 'classicy/scss/layout'`) |
+  | `appearance.px-rect(…)` | `layout.classicy-px-rect(…)` (`@use '@classicy/classicy/scss/layout'`) |
   | `appearance.no-select` | `layout.classicy-no-select` |
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-themed` |
   | `scrollbars.scrollbars-inactive` | Nothing: removed. Classicy included it on the inactive window's root, which never scrolls (its contents do), so it never drew; if you used it on a scroller of your own, copy its rules from the 2.1.7 source, `src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss` (no Classicy release after 2.1.7 ships them) |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
-  | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
+  | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `@classicy/classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |
   | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `dist/classicy-platinum.fonts.css` (§1) |
 - **Components outside a desktop lose their look.** The package's rules only
@@ -1676,7 +1676,7 @@ authors:
   `getThemeVars(theme)` spread on its wrapper (§1), or those declarations
   are invalid at computed-value time and compute as `unset`.
 - **Breaking for SCSS hosts that `@use` Platinum's mixins**
-  (`classicy/appearance/platinum/scss/*`). No mixin name or parameter
+  (`@classicy/classicy/appearance/platinum/scss/*`). No mixin name or parameter
   changed, but two now read knob variables only `getThemeVars` emits:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
@@ -1876,7 +1876,7 @@ handler runs:
 APIs:
 
 ```ts
-import { isUntrustedActionAllowed, registerClassicyUntrustedActionAllowlist } from 'classicy'
+import { isUntrustedActionAllowed, registerClassicyUntrustedActionAllowlist } from '@classicy/classicy'
 
 registerClassicyUntrustedActionAllowlist('ClassicyAppMyCustomEffect')
 
@@ -2013,7 +2013,7 @@ mirrors it as desktop icons (`kind` `file`/`directory`, `filePath` set).
 ### Mirroring to a backend
 
 ```ts
-import { registerClassicyFileSystemAdapter } from 'classicy'
+import { registerClassicyFileSystemAdapter } from '@classicy/classicy'
 
 registerClassicyFileSystemAdapter({
     id: 'my-backend',
@@ -2069,7 +2069,7 @@ type ClassicyTheme = {
 There is **no `registerTheme` function**. The registration seam is the store:
 
 ```ts
-import { getAllThemes, getTheme, getThemeVars } from 'classicy'
+import { getAllThemes, getTheme, getThemeVars } from '@classicy/classicy'
 
 // Add/replace themes (replaces the whole list — include the stock ones to keep them):
 dispatch({ type: 'ClassicyDesktopLoadThemes', availableThemes: [...getAllThemes(), myTheme] })
@@ -2293,10 +2293,10 @@ dispatches.
 
 `getTheme(id, overrides?)` returns a deep-merged clone; `getThemeVars(theme)`
 returns the CSS custom-property map. Platinum's SCSS is importable via
-`classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
-`platinum-*` mixins), the state vocabulary via `classicy/scss/vocabulary`
+`@classicy/classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
+`platinum-*` mixins), the state vocabulary via `@classicy/classicy/scss/vocabulary`
 (§4.0.1), and the layout helpers and package wrapper via
-`classicy/scss/layout` and `classicy/scss/package`.
+`@classicy/classicy/scss/layout` and `@classicy/classicy/scss/package`.
 
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
 and the integer colors themes use. `ClassicyWallpapers` is the stock
@@ -2310,12 +2310,12 @@ filename or a resolved URL / inlined `data:` URI, else `undefined`).
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
 sound packs and hooks that go with it. Classicy ships one, Platinum
-(`src/Appearance/Platinum/`), registered when `classicy` is imported; themes
+(`src/Appearance/Platinum/`), registered when `@classicy/classicy` is imported; themes
 are presets of a package, and every theme names its package in
 `theme.package`.
 
 ```ts
-import { registerClassicyAppearancePackage, classicyKnobsToSchema, getTheme } from 'classicy'
+import { registerClassicyAppearancePackage, classicyKnobsToSchema, getTheme } from '@classicy/classicy'
 import irixCss from './irix.scss?inline'   // one @layer classicy.package block (below)
 
 registerClassicyAppearancePackage({
@@ -2369,8 +2369,8 @@ it by re-registering its id. Read the registry with `getClassicyAppearancePackag
 adds the layer and the scope; Platinum's mixins are there to reuse:
 
 ```scss
-@use "classicy/scss/package";
-@use "classicy/appearance/platinum/scss/mixins";
+@use "@classicy/classicy/scss/package";
+@use "@classicy/classicy/appearance/platinum/scss/mixins";
 
 @include package.classicy-package("irix") {
   .classicyButton { @include mixins.platinum-window-depressable; }
@@ -2468,7 +2468,7 @@ icon or balloon copy, keyed by the app's id. It is display only: the app keeps
 its own identity everywhere else.
 
 ```ts
-import { registerClassicyAppearancePackage } from 'classicy'
+import { registerClassicyAppearancePackage } from '@classicy/classicy'
 import mediaPlayerIcon from './media-player.svg'
 
 registerClassicyAppearancePackage({
@@ -2769,7 +2769,7 @@ feedback sounds and the menu flash live in the package, never in component
 code.
 
 ```ts
-import { playClassicyAppearanceSound, registerClassicyAppearancePackage } from 'classicy'
+import { playClassicyAppearanceSound, registerClassicyAppearancePackage } from '@classicy/classicy'
 
 registerClassicyAppearancePackage({
     // … id, name, css, defaults, layout (above)
@@ -3135,7 +3135,7 @@ Behavior that follows from the move:
   only `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` applies (no package registered:
   a lone-component test that never imports `@/Appearance/Platinum`, or a host
   that never loads Platinum), or under a package whose hooks map nothing,
-  plays no feedback sounds. Importing `classicy` or rendering
+  plays no feedback sounds. Importing `@classicy/classicy` or rendering
   `ClassicyDesktop` registers Platinum.
 - **A menu with no package flash does not flash.** Under a package whose
   MenuItem `press` returns no decoration (or with no package hooks), a chosen
@@ -3412,7 +3412,7 @@ import {
     readClassicyLoadedThemes, // (unknown[]) => { themes, dropped: { index, id, issue }[] }; ClassicyDesktopLoadThemes' check
     classicyThemeFileName,    // ({ name }) => "french-blue.classicy-theme.json"
     assignImportedClassicyThemeIdentity, // (theme, existingThemes, reservedIds?) => theme with unique id/name
-} from 'classicy'
+} from '@classicy/classicy'
 
 const result = parseClassicyThemeFile(await file.text())
 if (result.ok) dispatch({ type: 'ClassicyDesktopImportTheme', theme: result.theme })
@@ -4064,7 +4064,7 @@ Clean Up does not follow any of them: it reads the theme.
 
 **Color helpers.** Stylesheets never hold a literal color. They use a
 `--color-*` token, or a variant of one from
-`src/Appearance/vocabulary/_color.scss` (`@use "classicy/scss/color" as c;`
+`src/Appearance/vocabulary/_color.scss` (`@use "@classicy/classicy/scss/color" as c;`
 in host SCSS). Each helper takes the token's custom-property **name** as a
 string, and a Sass percentage. It expands to `color-mix`, so the variant
 follows the active theme:
@@ -4306,7 +4306,7 @@ There are no `--hig-*` variables (removed 2026-10-27, no aliases).
 ## 9. Analytics
 
 ```ts
-import { useClassicyAnalytics, classicyWindowPagePath } from 'classicy'
+import { useClassicyAnalytics, classicyWindowPagePath } from '@classicy/classicy'
 
 const { track, page } = useClassicyAnalytics()  // referentially stable; silent no-ops without GA config
 track('button_pressed', { which: 'ok' })         // event name gets the "classicy_" prefix
@@ -4342,7 +4342,7 @@ are Howler sprite keys from the active sound pack (the bundled Platinum pack
 by default).
 
 ```ts
-import { useSoundDispatch, useClassicyAlertSound } from 'classicy'
+import { useSoundDispatch, useClassicyAlertSound } from '@classicy/classicy'
 
 const player = useSoundDispatch()
 player({ type: 'ClassicySoundPlay', sound: 'ClassicyWindowOpen' })
@@ -4387,7 +4387,7 @@ replacements: `ClassicySounds` is now `registerClassicySoundPack` /
 `ClassicyThemeSound.name` is `ClassicyThemeSound.pack`.
 
 ```ts
-import { registerClassicySoundPack, CLASSICY_SOUND_SPRITE_IDS } from 'classicy'
+import { registerClassicySoundPack, CLASSICY_SOUND_SPRITE_IDS } from '@classicy/classicy'
 
 registerClassicySoundPack({            // module scope, like the other registries
     id: 'my-pack',                     // /^[a-z0-9][a-z0-9-]{0,63}$/
@@ -4509,7 +4509,7 @@ Register your own at module scope (re-registering an id replaces it, so
 built-ins can be swapped out):
 
 ```tsx
-import { registerClassicyScreenSaver } from 'classicy'
+import { registerClassicyScreenSaver } from '@classicy/classicy'
 import { z } from 'zod'
 
 registerClassicyScreenSaver({
@@ -4575,7 +4575,7 @@ the startup screen shows). Add your own at module scope; the pop-up is live,
 and re-registering an id replaces that image in place:
 
 ```tsx
-import { registerClassicyScreenSaverLogo } from 'classicy'
+import { registerClassicyScreenSaverLogo } from '@classicy/classicy'
 import logo from './acme-logo.png'
 
 registerClassicyScreenSaverLogo({
@@ -4600,7 +4600,7 @@ can tap. Register a sink at app entry (capability-based — implement any
 subset; re-registering an id replaces it):
 
 ```ts
-import { registerClassicyLogSink } from 'classicy'
+import { registerClassicyLogSink } from '@classicy/classicy'
 
 registerClassicyLogSink({
     id: 'my-telemetry',
@@ -4641,7 +4641,7 @@ The desktop runs a virtual clock (pausable, offsettable, boundable —
 persisted in `System.Manager.DateAndTime`). Read and control it with:
 
 ```ts
-import { useClassicyDateTime } from 'classicy'
+import { useClassicyDateTime } from '@classicy/classicy'
 
 const { localDate, localHMS, tzOffset, paused, boundaryLocked,
         setDateTime, setTzOffset, pause, resume } = useClassicyDateTime({ tick: true })
@@ -4694,7 +4694,7 @@ untrusted disposition strings.
 7. **`defaultState` only applies on first boot** (nothing hydrated). During development, clear `localStorage["classicyDesktopState"]` to see provider default changes.
 8. **Window ids are data**: they feed analytics paths and persistence. Keep them stable and free of user content, or set `analyticsPath` explicitly.
 9. **Colors are integers** (`0xRRGGBB`), not hex strings, throughout themes and color pickers.
-10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, then `classicy-platinum.fonts.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look, and leaving out the fonts file gives the browser's fonts. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
+10. **Styles come with the import** — the bundle injects `classicy.css` into `<head>`; the fonts are files in `dist/assets/` registered by the Platinum package (`@classicy/classicy/fonts` is a deprecated no-op). The Platinum package injects its look the same way. Only if a CSP blocks inline `<style>`, link `classicy.css`, then `classicy-platinum.css`, then `classicy-platinum.fonts.css`, first in `<head>` (§1); linking `classicy.css` alone gives a desktop with structure but no look, and leaving out the fonts file gives the browser's fonts. Structure lives in `@layer classicy.base` and the look in `@layer classicy.package`, both declared first, so any unlayered host rule *and any host layer* (Tailwind's preflight in `@layer base`, for example) on the same element and property beats either. Override in `@layer classicy.user` or with plain unlayered rules; put resets that must yield to Classicy in `classicy.base.host` (§1, Cascade layers).
 11. Deprecated (still working, avoid in new code): `noDesktopIcon`, `inApplicationsFolder`, `registerAppEventHandler`, `registerClassicyUntrustedActionAllowlist` for app-owned actions, `isXData`-style hand-rolled guards (use `parseAppData`).
 12. **Never mount the built-in apps yourself** (`Finder`, `SimpleText`, `HyperCard`, the viewers, `ClassicyControlPanels`, `AppleGuide`) — `ClassicyDesktop` renders them all automatically; mounting them as children double-mounts them. Use the provider's `disable*` props to remove the optional ones.
 13. **Never build an action type, path or lookup from a display name.** The `ClassicyApp` `name` prop is the internal name: action types (`ClassicyApp${name}OpenFile`/`CloseFile`), records and analytics use it, and an Appearance Package may show another (§8, "App display overrides"). UI text that names an app reads `useClassicyAppIdentity(id, { name, icon })` (`resolveClassicyAppIdentity` outside React); nothing display-derived is written to the store, localStorage or the file-system journal.

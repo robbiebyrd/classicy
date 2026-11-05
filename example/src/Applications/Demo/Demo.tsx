@@ -18,7 +18,7 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 	useAppManagerDispatch,
-} from "classicy";
+} from "@classicy/classicy";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppIcons } from "../../app";
 

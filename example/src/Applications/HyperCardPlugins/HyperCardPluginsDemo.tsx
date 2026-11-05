@@ -16,7 +16,7 @@ import {
 	registerHyperCardEffectHandler,
 	registerHyperCardPart,
 	registerHyperCardStack,
-} from "classicy";
+} from "@classicy/classicy";
 import type { FC } from "react";
 
 // --- 1. A custom display part (honors `options` + `locked`) ----------------

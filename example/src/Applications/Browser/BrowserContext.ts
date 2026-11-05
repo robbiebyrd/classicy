@@ -1,5 +1,5 @@
-import type { ActionMessage, ClassicyStore } from "classicy";
-import { registerAppEventHandler } from "classicy";
+import type { ActionMessage, ClassicyStore } from "@classicy/classicy";
+import { registerAppEventHandler } from "@classicy/classicy";
 import { normalizeUrl } from "./browserUtils";
 
 export interface BrowserFavorite {

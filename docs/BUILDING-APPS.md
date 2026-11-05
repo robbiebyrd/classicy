@@ -72,7 +72,7 @@ Applications folder.
 Four things: an id, a name, an icon, and a window.
 
 ```tsx
-import { ClassicyApp, ClassicyWindow, ClassicyButton } from 'classicy'
+import { ClassicyApp, ClassicyWindow, ClassicyButton } from '@classicy/classicy'
 import appIcon from './my-app.png'
 
 export default function MyApp() {
@@ -456,7 +456,7 @@ it yourself — they accept a missing app, so a selector can pass
 `apps[appId]` straight in:
 
 ```tsx
-import { getAppWindow, listAppWindows } from "classicy"
+import { getAppWindow, listAppWindows } from "@classicy/classicy"
 
 // one window's flag — a primitive, so the component re-renders only when it changes
 const inspectorOpen = useAppManager((s) =>
@@ -493,7 +493,7 @@ dispatch({ type: "ClassicyAppMyAppSetMode", mode: "grid" })
 
 `useAppManagerDispatch()` returns a module-level function, so it is referentially
 stable and safe in dependency arrays. Outside React, import `dispatch` directly
-from `classicy`.
+from `@classicy/classicy`.
 
 Dispatch takes an optional second argument, the trust level
 (`"trusted"` by default). See
@@ -564,7 +564,7 @@ An app with no reducer still registers a manifest. The description is the balloo
 help for its desktop icon, and there is no other place to put it:
 
 ```ts
-import { registerApp } from 'classicy'
+import { registerApp } from '@classicy/classicy'
 
 registerApp({
     id: "MarketWatch.app",
@@ -684,7 +684,7 @@ A reducer takes the store and an action and returns the store. It runs inside
 Immer, so mutate the draft in place.
 
 ```ts
-import type { ActionMessage, ClassicyStore } from 'classicy'
+import type { ActionMessage, ClassicyStore } from '@classicy/classicy'
 
 export const classicyMyAppEventHandler = (ds: ClassicyStore, action: ActionMessage) => {
     const apps = ds.System.Manager.Applications.apps
@@ -913,7 +913,7 @@ Props: `id`, `order` (default `0`), `icon`, `title`, `menuItems`, `onClick`,
 Register icons **once, at module scope**, before anything renders.
 
 ```tsx
-import { registerClassicyIcons, useClassicyAsset } from 'classicy'
+import { registerClassicyIcons, useClassicyAsset } from '@classicy/classicy'
 import appIconPng from './my-app.png'
 
 // Registration deep-merges, so this keeps the bundled app icons (and other
@@ -1193,7 +1193,7 @@ honors the Sound control panel's volume, the global mute, and the per-sound
 disable list.
 
 ```tsx
-import { ClassicySoundActionTypes, useSoundDispatch } from 'classicy'
+import { ClassicySoundActionTypes, useSoundDispatch } from '@classicy/classicy'
 
 const player = useSoundDispatch()
 player({ type: ClassicySoundActionTypes.ClassicySoundPlay, sound: "ClassicyBeep" })
@@ -1288,7 +1288,7 @@ import {
     registerClassicyControlStripModule,
     useAppManager,
     useAppManagerDispatch,
-} from 'classicy'
+} from '@classicy/classicy'
 
 registerClassicyControlStripModule({
     id: 'com.example.vpn',
@@ -1384,7 +1384,7 @@ Consequences for an app author:
 ```ts
 // Deliberately NO vi.mock("classicy"): these tests exercise the real registry
 // that each context module writes into at import time.
-import { getAppManifest, listScriptableActions } from 'classicy'
+import { getAppManifest, listScriptableActions } from '@classicy/classicy'
 import './Applications/MyApp/MyAppContext'    // runs registerApp()
 
 it("registers a description", () => {
@@ -1405,7 +1405,7 @@ Spread the original instead:
 
 ```tsx
 vi.mock("classicy", async (importOriginal) => ({
-    ...(await importOriginal<typeof import("classicy")>()),
+    ...(await importOriginal<typeof import("@classicy/classicy")>()),
     useAppManagerDispatch: () => dispatchMock,
     ClassicyWindow: ({ children, id, appMenu, onCloseFunc, title }) => {
         if (appMenu) menus.current = appMenu       // capture the menu for assertions

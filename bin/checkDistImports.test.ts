@@ -158,7 +158,7 @@ describe("check-dist-imports.mjs invariant 7: dist/classicy-platinum.css (named 
 	});
 });
 
-// R4: `classicy/appearance/platinum` resolves to an emitted no-op shim (the
+// R4: `@classicy/classicy/appearance/platinum` resolves to an emitted no-op shim (the
 // main bundle already registers Platinum), checked like dist/fonts.js. Each
 // shim's .d.ts is checked with it: the exports map's `types` condition points
 // at it, so without it a TypeScript consumer's side-effect import stops

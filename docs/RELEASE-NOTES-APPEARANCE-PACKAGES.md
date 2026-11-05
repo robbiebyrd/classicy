@@ -11,7 +11,7 @@ change needs. Longer material is linked from
 Classicy's look is now an **Appearance Package**. Classicy's own stylesheet
 holds structure only (layout, sizing, state rules). The Platinum look, meaning
 every bevel, border, gradient, piece of art, feedback sound, cursor and font,
-is the Platinum package, which registers itself when you import `classicy`.
+is the Platinum package, which registers itself when you import `@classicy/classicy`.
 A second package can replace all of it at runtime:
 
 - its stylesheet, scoped under the desktop root;
@@ -48,7 +48,7 @@ Start with [Install and build](#install-and-build).
   ```ts
   // vite.config.ts
   export default defineConfig({
-    optimizeDeps: { exclude: ["classicy"] },
+    optimizeDeps: { exclude: ["@classicy/classicy"] },
   })
   ```
 
@@ -57,7 +57,7 @@ Start with [Install and build](#install-and-build).
   `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup
   with a URL plugin) need no setting. With any other bundler (plain esbuild,
   Rollup without such a plugin), copy `dist/assets/` next to your bundle.
-- **`classicy/fonts` is a no-op, and `classicy/dist/fonts.css` is gone.** The
+- **`@classicy/classicy/fonts` is a no-op, and `classicy/dist/fonts.css` is gone.** The
   Platinum package registers its thirteen `.woff2` faces at runtime, as
   `<style id="classicy-fonts-platinum">`. *Migrate:* delete the import, or
   keep it (it still resolves, and does nothing). Replace any `<link>` to
@@ -71,9 +71,9 @@ Start with [Install and build](#install-and-build).
   order:
 
   ```html
-  <link rel="stylesheet" href="/node_modules/classicy/dist/classicy.css">
-  <link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.css">
-  <link rel="stylesheet" href="/node_modules/classicy/dist/classicy-platinum.fonts.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.fonts.css">
   ```
 
   Without the second file the desktop has structure but no look: no bevels,
@@ -82,7 +82,7 @@ Start with [Install and build](#install-and-build).
   rules the runtime writes (Charcoal, ChicagoFLF, Geneva, AppleGaramond,
   Monaco and VCR OSD Mono, thirteen faces), unlayered, each pointing at its
   file in `dist/assets/`. Serve that folder beside the stylesheet, and allow
-  it in `font-src`. All three are served by the existing `classicy/dist/*`
+  it in `font-src`. All three are served by the existing `@classicy/classicy/dist/*`
   export.
 - **Browser floor: Chrome/Edge 120, Safari 16.2, Firefox 113.** Theme tints
   are `color-mix()` and icons use unprefixed `mask-image` with mask
@@ -257,10 +257,10 @@ Start with [Install and build](#install-and-build).
 
 ### SCSS
 
-- **`classicy/scss/*` is the vocabulary, and Platinum's partials moved.**
-  `classicy/scss/*` now resolves to `vocabulary`, `layout`, `package` and
+- **`@classicy/classicy/scss/*` is the vocabulary, and Platinum's partials moved.**
+  `@classicy/classicy/scss/*` now resolves to `vocabulary`, `layout`, `package` and
   `color`. Platinum's partials are at
-  `classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
+  `@classicy/classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
   with every mixin renamed to kebab-case with a `platinum-` prefix:
 
   ```scss
@@ -268,22 +268,22 @@ Start with [Install and build](#install-and-build).
   @use "classicy/scss/appearance";
   .bar { @include appearance.platinumWindowControlBoxBorder; }
   // after
-  @use "classicy/appearance/platinum/scss/mixins";
+  @use "@classicy/classicy/appearance/platinum/scss/mixins";
   .bar { @include mixins.platinum-window-control-box-border; }
   ```
 
   The full rename table is in
   [§5, "Migrating to Appearance Packages"](AGENT-REFERENCE.md#migrating-to-appearance-packages-breaking-change).
   Exceptions and removals:
-  - `px-rect` and `no-select` moved to `classicy/scss/layout` as
+  - `px-rect` and `no-select` moved to `@classicy/classicy/scss/layout` as
     `classicy-px-rect` and `classicy-no-select`.
   - `scrollbars-inactive` is removed. It never drew in Classicy's own
     windows. If you used it on a scroller of your own, copy its rules from
     the 2.1.7 source.
   - `classicy/scss/themes.json` is gone: call `getAllThemes()`.
   - `classicy/scss/fonts` is gone: the package registers its fonts.
-  - `classicy/appearance/platinum` (the JavaScript specifier) registers
-    nothing. Importing `classicy` registers Platinum.
+  - `@classicy/classicy/appearance/platinum` (the JavaScript specifier) registers
+    nothing. Importing `@classicy/classicy` registers Platinum.
 - **`platinum-halftone` takes a color token name.** It was
   `appearance.theme-halftone($color, $size)`. It is now
   `platinum-halftone($token, $size)`, where `$token` is a custom-property
@@ -292,7 +292,7 @@ Start with [Install and build](#install-and-build).
   `isolation: isolate`. `encode-color` is removed, since no color is baked
   into a data URI anymore.
 - **The `assets.$…` art variables are gone.** Read registered art as
-  `var(--classicy-art-<key>)`. `classicy/appearance/platinum/scss/assets` now
+  `var(--classicy-art-<key>)`. `@classicy/classicy/appearance/platinum/scss/assets` now
   exports only `platinum-root-properties`.
 - **The control-box and menu-divider mixins draw only the look.**
   - `platinum-window-control-box`, `platinum-window-control-box-depressable`
@@ -654,7 +654,7 @@ Start with [Install and build](#install-and-build).
 
 ## New APIs
 
-Everything is exported from `classicy`. The links go to the full reference.
+Everything is exported from `@classicy/classicy`. The links go to the full reference.
 
 ### Appearance Packages
 
@@ -677,7 +677,7 @@ Everything is exported from `classicy`. The links go to the full reference.
   `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` is used while no package is
   registered.
 - A package's CSS is one `@layer classicy.package { … }` block, written with
-  the `classicy-package($id)` mixin from `classicy/scss/package` and injected
+  the `classicy-package($id)` mixin from `@classicy/classicy/scss/package` and injected
   as `<style id="classicy-appearance-<id>">`
   (`injectClassicyAppearanceStyles`). The Storybook-only `mirrored` and
   `renamed` packages are templates for a new package.
@@ -700,7 +700,7 @@ Everything is exported from `classicy`. The links go to the full reference.
 
 - `CLASSICY_STATE`, `classicyStateClasses`, `CLASSICY_COMPONENT` and
   `CLASSICY_PART_ATTRIBUTE` are generated from one JSON source. In SCSS,
-  `classicy/scss/vocabulary` gives `$classicy-states` and `classicy-state()`,
+  `@classicy/classicy/scss/vocabulary` gives `$classicy-states` and `classicy-state()`,
   which fails at compile time on an unknown name.
 - Part attributes:
   - `data-classicy-control` (`close`, `zoom`, `collapse`) on window control
@@ -855,10 +855,10 @@ Everything is exported from `classicy`. The links go to the full reference.
 
 ### SCSS helpers
 
-- `classicy/scss/color`: `classicy-tint`, `classicy-shade` and
+- `@classicy/classicy/scss/color`: `classicy-tint`, `classicy-shade` and
   `classicy-alpha("--color-x", pct)`, which expand to `color-mix()`.
-- `classicy/scss/layout`: `classicy-px-rect` and `classicy-no-select`.
-- `classicy/scss/package`: `classicy-package($id)`.
+- `@classicy/classicy/scss/layout`: `classicy-px-rect` and `classicy-no-select`.
+- `@classicy/classicy/scss/package`: `classicy-package($id)`.
 
 ### App display overrides
 

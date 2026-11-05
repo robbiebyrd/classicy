@@ -2,10 +2,10 @@
 // (reskinning audit §8.7, decision D10). `getThemeVars` emits one custom
 // property per color token; these helpers derive tints, shades and
 // translucent forms from it with `color-mix`, so the variant follows the
-// active theme. Emits no CSS of its own (`@use "classicy/scss/color"` in a
+// active theme. Emits no CSS of its own (`@use "@classicy/classicy/scss/color"` in a
 // host).
 //
-//   @use "classicy/scss/color" as c;
+//   @use "@classicy/classicy/scss/color" as c;
 //   background: c.classicy-tint("--color-error", 80%);
 //   // → color-mix(in srgb, var(--color-error), white 80%)
 //

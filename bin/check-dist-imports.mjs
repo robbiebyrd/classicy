@@ -24,7 +24,7 @@
 //    console error and no failing test anywhere.
 //
 // 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and carry no inlined
-//    fonts. `import "classicy"` is supposed to be enough for a styled desktop;
+//    fonts. `import "@classicy/classicy"` is supposed to be enough for a styled desktop;
 //    if injectCssPlugin stopped matching the CSS asset (it is found by name),
 //    the bundles would silently ship unstyled. The Platinum fonts are files
 //    under src/Appearance, registered at runtime by registerClassicyFonts; if
@@ -32,9 +32,9 @@
 //    base64 them into the bundle again (every consumer pays for every font).
 //
 // 4. dist/fonts.js AND dist/appearance-platinum.js MUST STAY SELF-CONTAINED
-//    NO-OPS. `import "classicy/fonts"` is the deprecated opt-in from before the
+//    NO-OPS. `import "@classicy/classicy/fonts"` is the deprecated opt-in from before the
 //    fonts became files; existing consumers still import it, so it has to keep
-//    resolving. `import "classicy/appearance/platinum"` is the Platinum
+//    resolving. `import "@classicy/classicy/appearance/platinum"` is the Platinum
 //    package's documented side-effect entry, a no-op because the main bundle
 //    already registers Platinum (and a second copy of the registries would
 //    split the state). Each ships with a .d.ts (the `types` condition of its

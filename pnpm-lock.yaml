@@ -190,7 +190,7 @@ importers:
 
   example:
     dependencies:
-      classicy:
+      '@classicy/classicy':
         specifier: workspace:*
         version: link:..
       dompurify:

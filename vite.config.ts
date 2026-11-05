@@ -48,7 +48,7 @@ function noInlineAppearanceAssetsPlugin(): Plugin {
 	};
 }
 
-// `import "classicy"` should be enough to get a styled desktop (#303): no CSS
+// `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
 // primary stylesheet into each entry bundle (ES and UMD) as a string and
 // appends a few lines that, when the module first runs in a browser, insert
@@ -85,13 +85,13 @@ function noInlineAppearanceAssetsPlugin(): Plugin {
 // classicy-platinum.css (invariant 12).
 //
 // dist/fonts.js is a deprecated no-op: the Platinum fonts are files registered
-// at runtime (registerClassicyFonts), but `import "classicy/fonts"` must keep
+// at runtime (registerClassicyFonts), but `import "@classicy/classicy/fonts"` must keep
 // resolving for existing consumers. UMD allows only one entry, so fonts.js is
 // not a Rollup input but an emitted asset: a self-contained script with no
 // imports or exports, valid as an ES module, as CommonJS and as a classic
 // <script>. dist/fonts.d.ts lets TypeScript resolve the import.
-// dist/appearance-platinum.js (+ .d.ts), the `classicy/appearance/platinum`
-// export, is the same kind of no-op: importing `classicy` already registers
+// dist/appearance-platinum.js (+ .d.ts), the `@classicy/classicy/appearance/platinum`
+// export, is the same kind of no-op: importing `@classicy/classicy` already registers
 // the Platinum package, and the package source (TypeScript with `?inline`
 // SCSS) is not loadable by consumers.
 function injectCssPlugin(): Plugin {
@@ -117,7 +117,7 @@ function injectCssPlugin(): Plugin {
 				type: "asset",
 				fileName: "fonts.js",
 				source:
-					'// Deprecated no-op: Classicy\'s fonts are registered by the Platinum appearance package (registerClassicyFonts). Kept so `import "classicy/fonts"` keeps resolving.\n',
+					'// Deprecated no-op: Classicy\'s fonts are registered by the Platinum appearance package (registerClassicyFonts). Kept so `import "@classicy/classicy/fonts"` keeps resolving.\n',
 			});
 			this.emitFile({
 				type: "asset",
@@ -129,13 +129,13 @@ function injectCssPlugin(): Plugin {
 				type: "asset",
 				fileName: "appearance-platinum.js",
 				source:
-					'// No-op: importing "classicy" registers the Platinum appearance package. Kept so `import "classicy/appearance/platinum"` resolves.\n',
+					'// No-op: importing "@classicy/classicy" registers the Platinum appearance package. Kept so `import "@classicy/classicy/appearance/platinum"` resolves.\n',
 			});
 			this.emitFile({
 				type: "asset",
 				fileName: "appearance-platinum.d.ts",
 				source:
-					'// No-op side-effect module: importing "classicy" registers the Platinum appearance package.\nexport {};\n',
+					'// No-op side-effect module: importing "@classicy/classicy" registers the Platinum appearance package.\nexport {};\n',
 			});
 			const fontFiles = classicyEmittedFontFiles(
 				Object.values(bundle).flatMap((output) =>
@@ -311,7 +311,7 @@ export default defineConfig({
 			output: {
 				// Package assets (src/Appearance/**) go under dist/assets; every
 				// other emitted file, the stylesheet included, keeps its root-level
-				// name (injectCssPlugin and `classicy/dist/classicy.css` depend on it).
+				// name (injectCssPlugin and `@classicy/classicy/dist/classicy.css` depend on it).
 				assetFileNames: (asset) =>
 					asset.originalFileNames.some((name) =>
 						name.includes("src/Appearance/"),

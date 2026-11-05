@@ -3,7 +3,7 @@ import {
 	ClassicyWindow,
 	quitAppHelper,
 	useAppManagerDispatch,
-} from "classicy";
+} from "@classicy/classicy";
 import { useCallback, useMemo } from "react";
 import "./BlueBox.scss";
 import infiniteMacIcon from "./infinite-mac.png";

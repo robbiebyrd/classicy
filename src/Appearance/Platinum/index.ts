@@ -1,5 +1,5 @@
 // The Platinum Appearance Package (Mac OS 8). Importing this module registers
-// it; ClassicyDesktop imports it, so `import "classicy"` is enough.
+// it; ClassicyDesktop imports it, so `import "@classicy/classicy"` is enough.
 //
 // Hand-written, not a barrelsby barrel (it carries no barrelsby header, so
 // `generate-barrels` never purges it). barrelsby treats it as this folder's

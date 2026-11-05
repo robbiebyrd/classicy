@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as sass from "sass";
@@ -6,16 +6,51 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 // The published surface of the Appearance Packages program: package.json
 // `exports`, `files` and `sideEffects`, and the example app that consumes the
-// SCSS through them (plan 0005-1b3 §5.1, rulings R4, R11, R13).
+// SCSS through them (plan 0005-1b3 §5.1, rulings R4, R11, R13), and the npm
+// name the core publishes under (plan 0015-kxa §2.1).
 
 const root = process.cwd();
+// The name the core published under through 2.x (plan 0015-kxa §2.1).
+const OLD_NAME = "classicy";
 const read = (file: string) => readFileSync(path.resolve(root, file), "utf8");
 const pkg = JSON.parse(read("package.json")) as {
+	name: string;
+	publishConfig?: { access?: string };
 	exports: Record<string, string | Record<string, string>>;
 	files: string[];
 	sideEffects: string[];
 	scripts: Record<string, string>;
 };
+
+// The core publishes as @classicy/classicy from 3.0.0 on (plan 0014-ahm). Only
+// the npm name changes: the exports keys, the dist file names and the UMD
+// global keep theirs (anti-goal "The rename leaks past npm"; the
+// classicyDesktopState key is pinned by ClassicyAppManagerUtils.test.ts).
+describe("package.json: the npm name", () => {
+	it("publishes as @classicy/classicy, publicly", () => {
+		expect(pkg.name).toBe("@classicy/classicy");
+		expect(pkg.publishConfig?.access).toBe("public");
+	});
+
+	it("keeps every exports key", () =>
+		expect(Object.keys(pkg.exports)).toEqual([
+			".",
+			"./dist/classicy.css",
+			"./fonts",
+			"./dist/*",
+			"./scss/*",
+			"./appearance/platinum",
+			"./appearance/platinum/scss/*",
+		]));
+
+	it("keeps the UMD global and the dist file names", () => {
+		const viteConfig = read("vite.config.ts");
+		expect(viteConfig).toMatch(/\bname: "classicy",/);
+		expect(viteConfig).toMatch(
+			/fileName: \(format\) => `classicy\.\$\{format\}\.js`,/,
+		);
+	});
+});
 
 describe("package.json: the Appearance Packages surface", () => {
 	it("exports the vocabulary, the Platinum entry and its scss", () => {
@@ -44,7 +79,7 @@ describe("package.json: the Appearance Packages surface", () => {
 	});
 
 	// Strict-CSP hosts link classicy.css, classicy-platinum.css and
-	// classicy-platinum.fonts.css as `classicy/dist/<name>`: the `./dist/*`
+	// classicy-platinum.fonts.css as `@classicy/classicy/dist/<name>`: the `./dist/*`
 	// subpath and `files: ["dist"]` serve all three, with no export of their own.
 	it("serves the three strict-CSP stylesheets through ./dist/*", () => {
 		expect(pkg.exports["./dist/*"]).toBe("./dist/*");
@@ -156,30 +191,35 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 });
 
 describe("the SCSS exports, resolved as a host's Sass resolves them", () => {
-	// The example app's node_modules/classicy is the workspace symlink, so
-	// Node's resolution goes through this package.json's `exports`.
+	// The example app's node_modules/@classicy/classicy is the workspace
+	// symlink, so Node's resolution goes through this package.json's `exports`.
 	const importer = new sass.NodePackageImporter(path.resolve(root, "example"));
 	const compile = (scss: string) =>
 		sass.compileString(scss, { importers: [importer] }).css;
 
-	it("serves the Platinum mixins at classicy/appearance/platinum/scss/mixins", () =>
+	it("serves the Platinum mixins at @classicy/classicy/appearance/platinum/scss/mixins", () =>
 		expect(
 			compile(
-				'@use "pkg:classicy/appearance/platinum/scss/mixins";\n.a { @include mixins.platinum-window-control-box-border; }',
+				'@use "pkg:@classicy/classicy/appearance/platinum/scss/mixins";\n.a { @include mixins.platinum-window-control-box-border; }',
 			),
 		).toMatch(/^\.a \{[\s\S]*border/));
 
-	it("serves the vocabulary at classicy/scss/*", () =>
+	it("serves the vocabulary at @classicy/classicy/scss/*", () =>
 		expect(
 			compile(
-				'@use "pkg:classicy/scss/layout";\n.a { @include layout.classicy-no-select; }',
+				'@use "pkg:@classicy/classicy/scss/layout";\n.a { @include layout.classicy-no-select; }',
 			),
 		).toContain("user-select: none"));
 
-	it("no longer serves classicy/scss-platinum/*", () =>
+	it("no longer serves @classicy/classicy/scss-platinum/*", () =>
 		expect(() =>
-			compile('@use "pkg:classicy/scss-platinum/appearance";'),
+			compile('@use "pkg:@classicy/classicy/scss-platinum/appearance";'),
 		).toThrow(/Can't find stylesheet/));
+
+	it("no longer serves the vocabulary under the old name", () =>
+		expect(() => compile(`@use "pkg:${OLD_NAME}/scss/layout";`)).toThrow(
+			/Can't find stylesheet/,
+		));
 });
 
 describe("the example app", () => {
@@ -190,7 +230,7 @@ describe("the example app", () => {
 		expect(browser).not.toContain("scss/appearance");
 		expect(browser).not.toContain("scss-platinum");
 		expect(browser).toContain(
-			"@use 'classicy/appearance/platinum/scss/mixins';",
+			"@use '@classicy/classicy/appearance/platinum/scss/mixins';",
 		);
 		expect(browser).toContain(
 			"@include mixins.platinum-window-control-box-border;",
@@ -198,5 +238,122 @@ describe("the example app", () => {
 	});
 
 	it("drops BlueBox's unused Platinum @use", () =>
-		expect(blueBox).not.toMatch(/@use\s+['"]classicy\//));
+		expect(blueBox).not.toMatch(/@use\s+['"](?:@classicy\/)?classicy\//));
+});
+
+// No tracked file names the core by its 2.x name (plan 0015-kxa §2.1): not an
+// import, a Sass `@use`, a `pkg:` URL, a subpath in prose, a workspace
+// dependency, an `optimizeDeps` entry, an install line or a resolver alias.
+// Dated records (plans, stories, the superpowers specs) and the lockfile are
+// not scanned.
+describe("the rename to @classicy/classicy", () => {
+	const SKIPPED = [
+		"docs/plans/",
+		"docs/stories/",
+		"docs/superpowers/",
+		"pnpm-lock.yaml",
+	];
+	const TEXT = /\.(?:[cm]?[jt]sx?|json|mdx?|s?css|ya?ml|html|sh|toml)$/;
+	// Each alternative is the old name in one specifier position; none of them
+	// matches its own spelling here, so this file is scanned like any other.
+	const LEFTOVER = new RegExp(
+		[
+			String.raw`(?:from|import|@use|@forward|require\(|import\()\s*["'\x60](?:pkg:)?classicy["'\x60/]`,
+			String.raw`(?<=["'\x60\s(:]|node_modules\/)classicy\/[\w*]`,
+			String.raw`"classicy":\s*"workspace`,
+			String.raw`\[\s*["']classicy["']\s*\]`,
+			String.raw`(?<![\w@/.-])classicy(?:@)`,
+			String.raw`\b(?:add|install|remove)\s+classicy(?![\w-])`,
+			String.raw`\^classicy(?:\$|\\/)`,
+			String.raw`(?<![\w@/.-])classicy["']?:\s*path\.`,
+		].join("|"),
+	);
+	// Release history: 2.x subpaths this release removed, which exist under no
+	// other name, so the docs that tell a 2.1.x host what changed keep them.
+	const HISTORICAL_DOCS = [
+		"README.md",
+		"CLAUDE.md",
+		"docs/AGENT-REFERENCE.md",
+		"docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md",
+	];
+	const HISTORICAL_PATHS = [
+		"scss/appearance",
+		"scss/scrollbars",
+		"scss/assets",
+		"scss/themes.json",
+		"scss/fonts",
+		"scss-platinum/*",
+		"dist/fonts.css",
+	].map((subpath) => `${OLD_NAME}/${subpath}`);
+
+	/** `file:line: text` for every line of `text` naming the old package. */
+	const leftovers = (file: string, text: string) =>
+		text.split("\n").flatMap((line, index) => {
+			const scanned = HISTORICAL_DOCS.includes(file)
+				? HISTORICAL_PATHS.reduce(
+						(rest, historical) => rest.split(historical).join(" "),
+						line,
+					)
+				: line;
+			return LEFTOVER.test(scanned)
+				? [`${file}:${index + 1}: ${line.trim()}`]
+				: [];
+		});
+
+	it("finds the old name in each specifier position", () =>
+		expect(
+			[
+				`import { ClassicyApp } from "${OLD_NAME}";`,
+				`import "${OLD_NAME}/fonts";`,
+				`@use '${OLD_NAME}/appearance/platinum/scss/mixins';`,
+				`@use "pkg:${OLD_NAME}/scss/layout";`,
+				`the \`${OLD_NAME}/dist/*\` export`,
+				`href="/node_modules/${OLD_NAME}/dist/classicy.css"`,
+				`"${OLD_NAME}": "workspace:*",`,
+				`optimizeDeps: { exclude: ["${OLD_NAME}"] },`,
+				`pnpm add ${OLD_NAME}@latest`,
+				`npm install ${OLD_NAME} react react-dom`,
+				`{ find: /^${OLD_NAME}$/, replacement: source },`,
+				`{ find: /^${OLD_NAME}\\/dist\\/classicy\\.css$/, replacement },`,
+				`\t\t\t${OLD_NAME}: path.resolve(__dirname, "./src/index.ts"),`,
+			].filter((line) => leftovers("x.ts", line).length === 0),
+		).toEqual([]));
+
+	it("leaves the names that only contain it alone", () =>
+		expect(
+			leftovers(
+				"x.ts",
+				[
+					`import { ClassicyApp } from "@classicy/classicy";`,
+					`@use "pkg:@classicy/classicy/scss/layout";`,
+					"https://github.com/robbiebyrd/classicy/blob/main/README.md",
+					"dist/classicy.es.js and dist/classicy-platinum.css",
+					'disposition: "classicy"',
+					"pnpm --filter classicy-example build",
+				].join("\n"),
+			),
+		).toEqual([]));
+
+	it("keeps 2.x history only in the docs that describe it", () => {
+		const line = `@use "${OLD_NAME}/scss/appearance";`;
+		expect(leftovers("docs/AGENT-REFERENCE.md", line)).toEqual([]);
+		expect(leftovers("example/src/app.scss", line)).toHaveLength(1);
+	});
+
+	it("leaves no tracked file on the old name", () => {
+		const files = execFileSync("git", ["ls-files", "-z"], {
+			cwd: root,
+			encoding: "utf8",
+			maxBuffer: 64 * 1024 * 1024,
+		})
+			.split("\0")
+			.filter(
+				(file) =>
+					TEXT.test(file) &&
+					!SKIPPED.some((skipped) => file.startsWith(skipped)) &&
+					existsSync(path.resolve(root, file)),
+			);
+		expect(files.length).toBeGreaterThan(100);
+		expect(files.flatMap((file) => leftovers(file, read(file)))).toEqual([]);
+	});
 });

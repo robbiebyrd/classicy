@@ -8,11 +8,11 @@ import { classicyCssLayerPlugin } from "../bin/classicyCssLayerPlugin";
 // Repo root (this config lives in example/).
 const root = path.resolve(__dirname, "..");
 
-// Dev-server only: resolve the `classicy` library from its live source
+// Dev-server only: resolve the `@classicy/classicy` library from its live source
 // (src/*.tsx + co-located *.scss) instead of the built dist bundle. This gives
 // the example instant Vite HMR on library edits — no `pnpm build` (tsc -b +
 // vite build, ~50s) between a change and seeing it. `vite build` is unaffected
-// and still bundles the packaged `classicy` from node_modules, so production
+// and still bundles the packaged `@classicy/classicy` from node_modules, so production
 // builds keep exercising the real published artifact.
 const liveSourceAliases = [
 	// Every component does `import "./X.scss"`, so the full stylesheet arrives
@@ -20,12 +20,15 @@ const liveSourceAliases = [
 	// (the published bundle injects its stylesheet itself, so the app no
 	// longer has one) is redirected to an empty stub to avoid a stale copy.
 	{
-		find: /^classicy\/dist\/classicy\.css$/,
+		find: /^@classicy\/classicy\/dist\/classicy\.css$/,
 		replacement: path.resolve(__dirname, "live-source.css"),
 	},
-	// Exact match only — `classicy/scss/*` must keep resolving via the package
+	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
-	{ find: /^classicy$/, replacement: path.resolve(root, "src/index.ts") },
+	{
+		find: /^@classicy\/classicy$/,
+		replacement: path.resolve(root, "src/index.ts"),
+	},
 	// Internal path aliases the library source relies on (mirror ../vite.config.ts).
 	{ find: "@snd", replacement: path.resolve(root, "assets/sounds") },
 	{ find: "@img", replacement: path.resolve(root, "assets/img") },

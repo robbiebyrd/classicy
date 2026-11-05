@@ -3,7 +3,7 @@
 // package's look applies only while it is the active one and always beats
 // Classicy's structure (`classicy.base`), whatever the specificity.
 //
-//   @use "classicy/scss/package";
+//   @use "@classicy/classicy/scss/package";
 //   @include package.classicy-package("irix") { .classicyButton { … } }
 @mixin classicy-package($id) {
   @layer classicy.package {

@@ -2,7 +2,7 @@
 	"main": "./dist/classicy.umd.js",
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
-	"name": "classicy",
+	"name": "@classicy/classicy",
 	"version": "2.1.8",
 	"release": "Fortissimo",
 	"repository": {
@@ -22,6 +22,9 @@
 	],
 	"author": "Robbie Byrd <me@robbiebyrd.com>",
 	"license": "Unlicense",
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"generate-barrels": "node bin/generate-vocabulary.ts && barrelsby -c .ts-barrel.json",
 		"dev": "pnpm build:source",

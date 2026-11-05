@@ -5,7 +5,7 @@ import {
 	ClassicyAppManagerProvider,
 	ClassicyDesktop,
 	registerClassicyIcons,
-} from "classicy";
+} from "@classicy/classicy";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
 // Side-effect import: registers example HyperCard plugins (custom part, commands,

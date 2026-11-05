@@ -12,7 +12,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 	useClassicyAsset,
-} from "classicy";
+} from "@classicy/classicy";
 import DOMPurify from "dompurify";
 import {
 	type FC as FunctionalComponent,

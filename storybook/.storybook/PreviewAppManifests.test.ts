@@ -1,6 +1,6 @@
 // Storybook's preview must register exactly the app manifests (and so the
 // reducers, routed by each manifest's prefixes) that a host gets from
-// `import "classicy"`, so a story dispatching an app's action reaches its
+// `import "@classicy/classicy"`, so a story dispatching an app's action reaches its
 // reducer with no extra import (story 0097-p8k). Each side is loaded into a
 // fresh module registry, so the two never see each other's registrations.
 import { describe, expect, it, vi } from "vitest";

@@ -1,4 +1,4 @@
-import { ClassicyApp, useClassicyAsset } from "classicy";
+import { ClassicyApp, useClassicyAsset } from "@classicy/classicy";
 
 /**
  * Minimal background extension: no desktop icon, no App Switcher entry, no
