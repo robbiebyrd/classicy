@@ -2,6 +2,8 @@
 
 Date: 2026-11-05. Status: design, awaiting the owner's approval. Lands on PR 333 (`feat/AppearancePackages`) before it merges.
 
+> **The tracked copy is design plan 0014-ahm** (`docs/plans/0014-ahm-dsgn-platinum-appearance-package-and-classicy-scope.md`). Changes go there; this file is its source as of 2026-11-05.
+
 ## Intent
 
 Platinum stays Classicy's default look, but it stops being bundled into the core library. It moves into its own workspace package at `packages/appearance/platinum`, published to npm as `@classicy/appearance-platinum`. A host that ships another Appearance Package (a future Windows 3.11 or IRIX look) then downloads none of Platinum's stylesheet, art, fonts, sounds or wallpapers.
