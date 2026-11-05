@@ -233,7 +233,20 @@ const isExternal = (id: string) =>
 	!isAssetQuery(id) &&
 	externalPackages.some((pkg) => id === pkg || id.startsWith(`${pkg}/`));
 
-export default defineConfig({
+export default defineConfig(({ command }) => {
+	// A shipped bundle is a production build whatever the shell exports.
+	// Vite derives `isProduction` (what @vitejs/plugin-react reads to pick the
+	// dev JSX transform) from process.env.NODE_ENV *after* it loads this file,
+	// and only defaults it when unset -- so a shell with NODE_ENV=development
+	// made `vite build` emit react/jsx-dev-runtime and 1,100+ jsxDEV() calls,
+	// each with the builder's absolute source path (verify:dist invariant 13).
+	// `serve` (and Storybook / vitest, which have their own configs) keep the
+	// dev transform.
+	if (command === "build") process.env.NODE_ENV = "production";
+	return config;
+});
+
+const config = defineConfig({
 	// Shipped bundles are for browser/consumer-app consumption, never Node --
 	// hardcode NODE_ENV so `process.env.NODE_ENV` doesn't survive into the
 	// UMD build, where `process` is undefined and dispatch throws a
