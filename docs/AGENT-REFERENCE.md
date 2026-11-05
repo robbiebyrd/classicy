@@ -402,9 +402,9 @@ Common built-in actions:
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme color (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
-| `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a wallpaper filename is resolved. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
+| `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (the default `"platinum"` always counts as installed) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
-| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper |
+| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename or its source) is stored by filename (`portableClassicyWallpaper`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
@@ -1231,7 +1231,7 @@ Five kinds (`ClassicyAssetKind`):
 |---|---|---|
 | `icons` | the nested icon tree (`ClassicyIcons`: `classicy`, `applications`, `controlPanels`, `system`, `ui`, and your own namespaces) | `registerClassicyIcons` |
 | `cursors` | one cursor image per `ClassicyCursorRole` | `registerClassicyCursors` |
-| `wallpapers` | desktop wallpapers by display name | `registerClassicyWallpapers` |
+| `wallpapers` | desktop wallpapers by display name, each with the filename themes name it by | `registerClassicyWallpapers` |
 | `fonts` | font faces, `fonts.<family>.<weight>-<style>` | `registerClassicyFonts` |
 | `systemArt` | named pieces of system artwork (`ClassicySystemArtKey`) | `registerClassicySystemArt` |
 
@@ -1256,7 +1256,7 @@ import {
     registerClassicyAssets,   // (kind, packageId, tree) — the primitive
     registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
     registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>)
-    registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource }>)
+    registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
     registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
 } from '@classicy/classicy'
@@ -1268,7 +1268,7 @@ import {
 export const AppIcons = registerClassicyIcons({ myApp: { app: tvIcon } })  // returns its argument, typed
 registerClassicySystemArt('platinum', { aliasBadge: myAliasArrow })       // replaces ONE key, nothing else
 registerClassicyCursors('platinum', { hand: myHand })
-registerClassicyWallpapers('platinum', [{ name: 'Bubbles', src: bubblesPng }])
+registerClassicyWallpapers('platinum', [{ name: 'Bubbles', file: 'bubbles.png', src: bubblesPng }])
 registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
 
@@ -1297,6 +1297,25 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   warning. Platinum's thirteen faces are `.woff2` files in `dist/assets/`.
 - **Wallpapers** register as `wallpapers.<name>`; the Appearance Manager's
   Desktop tab lists the merged tree. **Fonts** feed its Fonts tab the same way.
+  A wallpaper's `file` (a plain filename; anything else is ignored with a
+  warning) is the portable reference a theme's `desktop.backgroundImage`
+  holds and persists, resolved at render through the wallpaper index
+  (`ClassicyWallpaperIndex.ts`, store-free): `resolveClassicyWallpaper(value,
+  packageId?)` (the given package, the active one, then Platinum;
+  `getThemeVars` passes the theme's own package; `data:`, `blob:`,
+  http(s) and `//` URLs and registered sources pass through; a filename, or a
+  path whose basename is one, resolves to its source; a name registered without
+  a file resolves by name; anything else is `""`, one warning per value),
+  `classicyWallpaperFilename(value)` (the filename for a registered filename
+  or its exact source, `data:` URI included, else `undefined`; never by
+  basename), `portableClassicyWallpaper(value)` (the stored form) and
+  `withPortableClassicyWallpaper(theme)`, `listClassicyWallpapers(packageId?)`
+  and `defaultClassicyWallpaper(packageId?)` (the package's `default.png`,
+  else its first, else Platinum's; `""` with none). `ClassicyThemeSchema`
+  (files, imports, `ClassicyDesktopLoadThemes`) accepts a wallpaper filename
+  only once a package has registered it; a package's own `defaults` and
+  `presets` (`ClassicyPackageThemeSchema`) may name any plain filename, so its
+  wallpapers may register after it.
 
 ### Reading (the rule)
 
@@ -2142,7 +2161,7 @@ are never mutated. Every theme edit — `ClassicyDesktopChangeColor`,
   slot. It activates a copy, so switching to a built-in and back to the
   Custom theme restores the edits; a package's own theme is completed the
   way a package switch completes its defaults (missing metric groups filled
-  in, a bundled wallpaper filename resolved to its asset URL). It never
+  in, a registered wallpaper held by its filename). It never
   changes `packageId`: it can activate another package's `availableThemes`
   entry, which the Appearance Manager never offers. `ClassicyDesktopLoadThemes`
   leaves `customThemes` alone.
@@ -2161,6 +2180,12 @@ user's choice (`packageId`, the active theme) are saved:
   `presets`, that package registered) is saved as a reference,
   `{ id, package }`. Every other active theme is saved whole: a custom theme,
   a host-loaded theme, or a theme of a package not registered at save time.
+- Every saved theme holds a registered wallpaper by its filename, never the
+  URL a build resolved it to (that URL breaks when the host rebuilds). On
+  load, a `migrateClassicyState` step turns a value matching a registered
+  wallpaper (a 2.x save's inlined `data:` URI, an older build's URL or path)
+  into its filename; one that matches nothing is kept, and still renders when
+  it is a `data:` or http(s) URL.
 - On load, an active theme whose id names a built-in of its own package is
   replaced by the current preset, completed as `ClassicyDesktopChangeTheme`
   completes it, whether it was saved as a reference or whole and whatever
@@ -2308,11 +2333,11 @@ CSS custom-property map. Platinum's SCSS is importable via
 `@classicy/classicy/scss/layout` and `@classicy/classicy/scss/package`.
 
 Theme-authoring helpers: `hexToInt` / `intToHex` convert between hex strings
-and the integer colors themes use. `ClassicyWallpapers` is the stock
-wallpaper catalog and `resolveWallpaper(name)` maps a wallpaper name (as used
-in `desktop.backgroundImage` / `ClassicyDesktopChangeBackground`) to its URL;
-`classicyWallpaperFilename(value)` is its inverse (bundled filename for a
-filename or a resolved URL / inlined `data:` URI, else `undefined`).
+and the integer colors themes use. Wallpapers go through the asset registry
+(§5): `resolveClassicyWallpaper(value)` maps a `desktop.backgroundImage` (a
+wallpaper's filename, as themes hold it) to its URL and
+`classicyWallpaperFilename(value)` is its inverse; Platinum's 47 wallpapers are
+registered by `src/Appearance/Platinum/assets/platinumWallpapers.ts`.
 
 ### Appearance Packages
 
@@ -3384,11 +3409,12 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
   package, which is not installed.` The default package
   (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`) always counts as
   installed, registered or not, because the desktop falls back to it.
-- `desktop.backgroundImage` is written as the bundled wallpaper's **filename**
-  (`"azul_dark.png"`) — the URL a build resolves it to (dev path, inlined
-  `data:` URI) is build-specific — and resolved back on load. A plain http(s)
-  URL is kept; anything else (custom `data:`/`blob:` URL, relative path) is
-  written as `""` (no image).
+- `desktop.backgroundImage` is written as the registered wallpaper's
+  **filename** (`"azul_dark.png"`) — the URL a build resolves it to (dev path,
+  inlined `data:` URI) is build-specific — and kept as the filename on load,
+  as every theme holds it (`getThemeVars` resolves it). A plain http(s) URL is
+  kept; anything else (custom `data:`/`blob:` URL, relative path) is written
+  as `""` (no image).
 
 `ClassicyThemeSchema` (zod) mirrors `ClassicyTheme` (checked both ways at
 compile time). Unknown keys are **stripped**, not rejected (a newer file with
@@ -3409,7 +3435,7 @@ and is kept. Types are strict:
 | package family and key names (`measurements.controlStrip.cellHeight`) | lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`, `/^[a-z][A-Za-z0-9]*$/`) |
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
-| `desktop.backgroundImage` | `""`, a bundled wallpaper (filename or resolved URL), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it lands in the double-quoted `url("…")` that `getThemeVars` writes, and none of those characters may break out of it (`isSafeClassicyThemeBackgroundImage`) |
+| `desktop.backgroundImage` | `""`, a registered wallpaper (filename or its registered source), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it lands in the double-quoted `url("…")` that `getThemeVars` writes, and none of those characters may break out of it (`isSafeClassicyThemeBackgroundImage`) |
 | `sound.pack` | a registered sound pack id (e.g. `"platinum"`); see §10 |
 
 ```ts
@@ -3432,7 +3458,7 @@ else showError(result.error)  // e.g. "This theme has invalid settings: color.sy
 `hasImportableTheme` validates it against the schema (invalid → ignored),
 then the reducer refuses a theme for an uninstalled package (above) with a
 `ClassicyAppearance` warning and `Desktop.errorDialog`
-`{ title: "Appearance", message }`, else strips undeclared keys, resolves the wallpaper, assigns a
+`{ title: "Appearance", message }`, else strips undeclared keys, holds a registered wallpaper by its filename, assigns a
 fresh identity, **appends** it to `customThemes` and activates a copy (the
 same copy-on-activate as `ChangeTheme`; the sound manager reloads itself when
 the active theme's `sound.pack` changes).
@@ -3457,7 +3483,7 @@ Like every `ClassicyDesktop*` action it is unreachable to untrusted
 
 Themes a host hands to `ClassicyDesktopLoadThemes` pass the same schema,
 one entry at a time (`readClassicyLoadedThemes`): each is completed from its
-package's metric defaults, parsed, and its wallpaper filename resolved. An
+package's metric defaults, parsed, and a registered wallpaper held by its filename. An
 entry that fails is dropped with a `ClassicyDesktopManager` warning naming
 its id (or index) and first issue, and the rest load; a list with no valid
 entry leaves `availableThemes` unchanged (an empty list still empties it).

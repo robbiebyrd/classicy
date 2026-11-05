@@ -517,11 +517,11 @@ Start with [Install and build](#install-and-build).
 - **`ClassicyDesktopLoadThemes` validates each theme.** Every entry is
   checked against `ClassicyThemeSchema`, as theme files and imports are. An
   entry with a font size outside 8–72, a bad color, a `backgroundImage` that
-  is not a bundled wallpaper or plain http(s) URL, or that is not an object
+  is not a registered wallpaper or plain http(s) URL, or that is not an object
   at all, is dropped with a warning naming its id and first issue; the rest
   load. A list with no valid entry leaves the theme list unchanged.
-  Undeclared keys are stripped and a wallpaper filename is resolved to its
-  asset URL. A theme for an unregistered package is still kept.
+  Undeclared keys are stripped and a registered wallpaper is held by its
+  filename. A theme for an unregistered package is still kept.
 
   *Who:* hosts that load hand-built themes. *Migrate:* fix the theme the
   warning names; `ClassicyThemeSchema.safeParse(theme)` reports every issue.
@@ -655,6 +655,27 @@ Start with [Install and build](#install-and-build).
 - **`startClassicyFileDrag`'s returned function now ends a started drag as
   canceled**, rather than only detaching it. `onEnd` reports it with
   `canceled: true`.
+- **Themes hold wallpapers by filename.** A theme's
+  `desktop.backgroundImage` now holds a registered wallpaper as its filename
+  (`"azul_dark.png"`), in the store and in saved state, and `getThemeVars`
+  resolves it through the asset registry at render. The built-in themes,
+  `ClassicyDesktopChangeBackground`, theme files, imports and
+  `ClassicyDesktopLoadThemes` all store the filename. Saved state holding a
+  wallpaper's inlined `data:` URI or an older build's URL is migrated to the
+  filename on load; a value that matches no wallpaper is kept, and still
+  renders when it is a `data:` or http(s) URL. `ClassicyWallpapers`,
+  `resolveWallpaper`, `ClassicyDefaultWallpaper` and
+  `buildClassicyWallpaperIndex` are removed; `classicyWallpaperFilename` moves
+  to the wallpaper index. In a theme file, an import or
+  `ClassicyDesktopLoadThemes`, a wallpaper filename validates
+  (`ClassicyThemeSchema`) only once a package has registered it; a package's
+  own themes may name any plain filename.
+
+  *Who:* code that reads `backgroundImage` as a URL, or imports the removed
+  helpers. *Migrate:* `resolveClassicyWallpaper(value)` for a URL,
+  `defaultClassicyWallpaper()` for the default, `listClassicyWallpapers()` for
+  the catalog; give each registered wallpaper a `file`
+  (`registerClassicyWallpapers`) for themes to name it by.
 
 ## New APIs
 
@@ -728,6 +749,11 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
 - Reads: `resolveClassicyAsset`, `useClassicyAsset`, `useClassicyAssetTree`
   and `subscribeClassicyAssets`. A read looks in the active package, then in
   Platinum.
+- Wallpapers by filename: `registerClassicyWallpapers` takes an optional
+  `file` per wallpaper, and the store-free wallpaper index resolves it:
+  `resolveClassicyWallpaper`, `classicyWallpaperFilename`,
+  `portableClassicyWallpaper`, `withPortableClassicyWallpaper`,
+  `listClassicyWallpapers` and `defaultClassicyWallpaper`.
 - `isClassicyAssetSource` checks every leaf. An unsafe scheme, or a
   character that could break out of a quoted `url("…")`, is skipped with a
   warning.
