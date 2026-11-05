@@ -403,7 +403,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
-| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (the default `"platinum"` always counts as installed) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
+| `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
 | `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename or its source) is stored by filename (`portableClassicyWallpaper`). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
@@ -2210,7 +2210,10 @@ user's choice (`packageId`, the active theme) are saved:
   registered yet this happens when it registers, Platinum included (the
   store loads before Platinum registers): a reference holds the default
   theme's data under its id until then, and is saved as the reference
-  meanwhile.
+  meanwhile. The same registration stores by its filename the wallpaper of
+  every theme of that package (active, host-loaded or custom) that a `data:`
+  URI or an older build's URL saved before the wallpaper index had it; a
+  theme of another package is left until its own package registers.
 - Custom themes are never touched. State saved before custom themes existed
   loads with `customThemes: []`.
 
@@ -2496,8 +2499,9 @@ has not registered yet; the attribute follows when it does.
 **Switching.** `dispatch({ type: 'ClassicyDesktopChangeAppearancePackage',
 packageId: 'irix' })` sets `packageId` and activates a copy of the package's
 `defaults`, unless the active theme already belongs to it (`theme.package`).
-An unregistered id is a logged no-op, and like every `ClassicyDesktop*` action
-it is unreachable to untrusted (HyperCard) dispatches.
+An unregistered id, the default `"platinum"` included, is a logged no-op, and
+like every `ClassicyDesktop*` action it is unreachable to untrusted (HyperCard)
+dispatches.
 
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),
@@ -2505,7 +2509,7 @@ Platinum's: persisted state is migrated on load (`migrateClassicyState`),
 Loading a theme file or dispatching `ClassicyDesktopImportTheme` for a package
 that is not registered is refused (`This theme needs the "<id>" appearance
 package, which is not installed.`, shown as `Desktop.errorDialog`); the
-default package always counts as installed.
+default package gets no exception, and counts only once it registers.
 
 #### App display overrides
 
@@ -3419,8 +3423,8 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
   absent, so older files load as Platinum). Loading refuses a theme whose
   package is not registered with `This theme needs the "<id>" appearance
   package, which is not installed.` The default package
-  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`) always counts as
-  installed, registered or not, because the desktop falls back to it.
+  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`) gets no exception:
+  it counts as installed only once it registers.
 - `desktop.backgroundImage` is written as the registered wallpaper's
   **filename** (`"azul_dark.png"`) — the URL a build resolves it to (dev path,
   inlined `data:` URI) is build-specific — and kept as the filename on load,
@@ -3808,8 +3812,9 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   (`withoutDefaultThemeMeasurements(theme, defaults)`), and drops a family
   that this empties. So persisted state keeps only what a user changed, and
   a later change to a package's knob defaults reaches existing users. A
-  theme whose package is not registered when state is saved is stored
-  whole, so an edit that happens to equal Platinum's value is never lost.
+  theme whose package is not registered when state is saved (Platinum's
+  included, before Platinum registers) is stored whole, so an edit that
+  happens to equal another package's value is never lost.
 
 **Derived metrics** are computed by `getThemeVars` from those inputs, so a
 theme that changes an input gets them for free (never stored in JSON):

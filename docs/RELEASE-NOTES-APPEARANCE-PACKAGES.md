@@ -527,8 +527,10 @@ Start with [Install and build](#install-and-build).
   warning names; `ClassicyThemeSchema.safeParse(theme)` reports every issue.
 - **Theme files and imports need an installed package.**
   Loading a file, or dispatching `ClassicyDesktopImportTheme`, for a package
-  that is not registered (Platinum always counts as installed) is refused
-  through `Desktop.errorDialog`. A file that still uses `sound.name` is
+  that is not registered is refused through `Desktop.errorDialog`. Platinum
+  is no exception: before it registers, its themes are refused too, and
+  `ClassicyDesktopChangeAppearancePackage { packageId: "platinum" }` is a
+  logged no-op. A file that still uses `sound.name` is
   refused too (see [Sound](#sound)). Details:
   [Theme files](AGENT-REFERENCE.md#theme-files-save--load).
 - **One Custom theme slot per package.** The first edit of a built-in forks
