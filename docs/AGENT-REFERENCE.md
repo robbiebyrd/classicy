@@ -807,7 +807,9 @@ and icon states own:
 - Components whose root changes with their phase apply them to whichever
   root is showing: `ClassicyBootSequence` (the power-on overlay, then the
   default startup screen; a custom `bootScreen` gets neither),
-  `PDFViewerDocument` (the loading and error messages, then the viewer) and
+  `PDFViewerDocument` (the loading and error messages, then the viewer),
+  `ClassicyDesktop` (`ClassicyNoAppearancePackage` while no Appearance
+  Package is registered, then `#classicyDesktop`) and
   `ClassicyCrashScreen` (only the Sad Mac screen — the boundary has no element
   until a descendant throws). The built-in screen savers take them through
   `ClassicyScreenSaverProps`; the screen-saver overlay passes none, so they
@@ -1341,13 +1343,14 @@ const icon = useClassicyAsset('icons', 'applications.myApp.app') ?? ''
 // Outside React (event handlers, reducers, utilities): read at call time.
 const url = resolveClassicyAsset('cursors', 'hand')   // string | undefined
 
-// A whole merged kind (a stable COPY, platinum under the active package):
+// A whole merged kind (a stable COPY, the default package's under the active one):
 const wallpapers = useClassicyAssetTree('wallpapers')
 ```
 
 - `resolveClassicyAsset(kind, dottedPath, packageId?)` returns the leaf from the
-  given (or active) package, then `"platinum"`, else `undefined`. Components
-  use `?? ""`.
+  given (or active) package, then the default package's
+  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`, where the core's
+  icon tree registers), else `undefined`. Components use `?? ""`.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;
@@ -2390,6 +2393,7 @@ registerClassicyAppearancePackage({
 | Field | Meaning |
 |---|---|
 | `id`, `name` | Kebab-case id (`"platinum"`); display name, 1–64 chars |
+| `icon` | Optional asset source (§5) shown beside the package's name in the Appearance Manager's Themes tab; a package without one shows the generic package glyph (the icon tree's `system.extension`). Platinum's is `platinum.png` in its art |
 | `css` | The compiled stylesheet: exactly one `@layer classicy.package { … }` block, every rule scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` |
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
@@ -2409,8 +2413,8 @@ place. `unregisterClassicyAppearancePackage(id)` removes a package and its
 stylesheet (it returns whether one was removed); a store whose
 `packageId` still names it resolves as for any unregistered id until it
 switches. The default package, `"platinum"`, is refused (a `ClassicyAppearance`
-warning, and `false`), since every unregistered id resolves to it; replace
-it by re-registering its id. Read the registry with `getClassicyAppearancePackage(id)`,
+warning, and `false`), since every unregistered id resolves to it while it is
+registered; replace it by re-registering its id. Read the registry with `getClassicyAppearancePackage(id)`,
 `listClassicyAppearancePackages()` (registration order),
 `subscribeClassicyAppearancePackages(listener)`, or the hook
 `useClassicyAppearancePackages()`.
@@ -2479,10 +2483,14 @@ back to `transparent`).
 **The active package.** `System.Manager.Appearance.packageId` (persisted,
 default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`; state saved
 before packages existed loads as Platinum) names it. It resolves to that
-package when registered, else Platinum, else
-`CLASSICY_FALLBACK_APPEARANCE_PACKAGE` (Platinum's defaults, presets and
-layout with no CSS or hooks, used only while no package is registered at
-all). Components read it with `useActiveClassicyAppearancePackage()`;
+package when registered, else the default package (Platinum) when
+registered, else the first registered package, else
+`CLASSICY_FALLBACK_APPEARANCE_PACKAGE` (the core default theme and the
+default layout with no CSS or hooks, used only while no package is
+registered at all, for lone components: `ClassicyDesktop` then draws
+`ClassicyNoAppearancePackage` instead, below). When the stored id is not
+registered, the desktop logs one `ClassicyAppearance` warning per id per
+page naming the package it draws instead. Components read it with `useActiveClassicyAppearancePackage()`;
 reducers, effects and other non-hook code with
 `resolveClassicyAppearancePackage(packageId?)` (the store's id at call time
 when omitted). Code that must not import the store (the desktop reducer)
@@ -2496,6 +2504,19 @@ Manager agree on the active package; `theme.package` is provenance only (which
 package's Custom slot a fork lands in, which themes a package lists). The desktop root carries the **resolved** id as
 `data-classicy-appearance`, so CSS and JS agree while a persisted id's package
 has not registered yet; the attribute follows when it does.
+
+**No package, no desktop.** While no package is registered, `ClassicyDesktop`
+renders `ClassicyNoAppearancePackage` in place of the desktop and stops: no
+`#classicyDesktop`, menu bar, icons, windows or Control Strip, and none of its
+children are mounted. The screen says "No Appearance Package is loaded",
+that Classicy needs one to draw its desktop, and shows
+`import "@classicy/appearance-platinum";` as the import to add at the app's
+entry. It is not the Sad Mac, since nothing crashed. The first time it mounts
+it logs one `classicyLog("error", "Appearance", …)` per page. Its base styles
+read only the core default theme's variables, which it sets on its own root
+(no package look applies); it takes `className` and `style` (passed through
+from the desktop's own). The desktop replaces it as soon as a package
+registers.
 
 **Switching.** `dispatch({ type: 'ClassicyDesktopChangeAppearancePackage',
 packageId: 'irix' })` sets `packageId` and activates a copy of the package's

@@ -695,8 +695,10 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   `subscribeClassicyAppearancePackages`, `useClassicyAppearancePackages`,
   `useActiveClassicyAppearancePackage`, `resolveClassicyAppearancePackage`,
   `getRegisteredClassicyAppearancePackageOrDefault`.
-  - Fields: `id`, `name`, `css`, `defaults`, `presets`, `knobs`, `options`,
-    `layout`, `assets`, `sounds`, `apps` and `hooks`.
+  - Fields: `id`, `name`, `icon`, `css`, `defaults`, `presets`, `knobs`,
+    `options`, `layout`, `assets`, `sounds`, `apps` and `hooks`. `icon` (an
+    asset source) is shown in the Appearance Manager's Themes tab; without
+    one, a generic package glyph is.
   - `ClassicyAppearancePackageSchema` validates the package, and
     `classicyKnobsToSchema` builds `options` from `knobs`.
   - [§8, "Appearance Packages"](AGENT-REFERENCE.md#appearance-packages).
@@ -704,9 +706,16 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   (default `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`), switched
   by the new action
   `ClassicyDesktopChangeAppearancePackage { packageId }`. The desktop root
-  carries `data-classicy-appearance` with the resolved id.
-  `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` is used while no package is
-  registered.
+  carries `data-classicy-appearance` with the resolved id: the stored id's
+  package, else the registered default, else the first registered package.
+  `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` is used, by lone components only,
+  while no package is registered.
+- **No package, no desktop.** With no Appearance Package registered,
+  `ClassicyDesktop` draws `ClassicyNoAppearancePackage` instead of the
+  desktop (a plain message showing `import "@classicy/appearance-platinum";`,
+  not the Sad Mac), mounts none of its children, and logs one
+  `classicyLog("error", "Appearance", …)` per page. The desktop appears when
+  a package registers.
 - A package's CSS is one `@layer classicy.package { … }` block, written with
   the `classicy-package($id)` mixin from `@classicy/classicy/scss/package` and injected
   as `<style id="classicy-appearance-<id>">`
