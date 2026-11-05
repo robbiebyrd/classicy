@@ -51,16 +51,16 @@ allow the patched versions.
 
 | Override | Alert | Parent and pin | Why it is safe |
 | --- | --- | --- | --- |
-| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `nodemon` and `@typescript-eslint/typescript-estree` ask for `^10.2.x` | It crosses a major, like the glob row below: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. All of them run only at build or watch time; minimatch is not in `dist/`. |
+| `minimatch@>=7.0.0 <11.0.1` → `^11.0.1` | GHSA-g3hv-75wg-m249 (Dependabot #344, `globParts` amplification) | `@vue/language-core` (via `vite-plugin-dts`) asks for `^9.0.3`; `@microsoft/api-extractor` pins `10.2.3`; `nodemon` asks for `^10.2.x` | It crosses a major, like the glob row below: the fix exists only in 11, with no 9.x or 10.x backport. Every consumer calls only the named `minimatch(path, pattern, options)` function, with no options or only `dot`, `nocase` and `windowsPathsNoEscape`, all of which 11 keeps. All of them run only at build or watch time; minimatch is not in `dist/`. |
 | `glob@>=13.0.0 <14.0.3` → `^14.0.3` | GHSA-g3hv-75wg-m249 (bundled copy); GHSA-3g3m-2fjr-6pw4 (an aborted async walk keeps reading directories) | `rimraf` (via `vite-plugin-image-tools`) asks for `^13.0.3`; `@joshwooding/vite-plugin-react-docgen-typescript` (via `@storybook/react-vite`) asks for `^13.0.1` | glob's default entry, `index.min.js`, bundles its own minimatch, so the minimatch override alone leaves 13's vulnerable copy in place. 14.0.3 is the first release that bundles a fixed minimatch 11; 14.0.0 to 14.0.2 bundle 11.0.0, which predates the fix. Both parents call only `glob`/`globSync` and read back an array of strings (`absolute`, `cwd`, `ignore` without a leading `/`, `nodir`, `withFileTypes: false`, `signal`), none of which 14 changes. Storybook's default `react-docgen` never loads the docgen plugin, and nothing here runs rimraf with globs. |
 
 The minimatch selector starts at 7.0.0, the advisory's lower bound, so it
 leaves 3.x alone: 3.x is outside the advisory's range, has none of the
-vulnerable code, and cannot move to 11, because its callers (eslint 9 and its
-config packages) call the CommonJS default-export function that 11 no longer
-provides. The overrides resolve minimatch 9.x and 10.x to 11.0.3, and glob 13 to
-14.0.3 with path-scurry 3.0.0; brace-expansion 2.1.7, which only minimatch 9
-used, leaves the lockfile.
+vulnerable code, and would break on 11, which drops the CommonJS default
+export that 3.x callers use. No 3.x copy is left today: story 0117-qjd removed
+ESLint, its only consumer. The overrides resolve minimatch 9.x and 10.x to
+11.0.3, and glob 13 to 14.0.3 with path-scurry 3.0.0; brace-expansion 2.1.7,
+which only minimatch 9 used, leaves the lockfile.
 
 One vulnerable copy is out of reach of any override: `storybook` 10.6.2 bundles
 glob 10.5.0 (it asks for `^10.5.0`) with minimatch 9.0.5 and brace-expansion 2
