@@ -1,6 +1,7 @@
 import { type ChangeEvent, useMemo } from "react";
 import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
 import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
+import { isSafeClassicyThemeBackgroundImage } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
@@ -22,6 +23,15 @@ export const classicyBackgroundSizeOption = (
 	size: number | string | undefined,
 ): ClassicyBackgroundSizeOption =>
 	size === "cover" || size === "contain" ? size : "auto";
+
+/**
+ * True for what the Picture field may set as the desktop picture: an absolute
+ * http(s) URL the theme schema accepts. A relative path is refused: it means
+ * nothing on another host, and a theme renders only registered wallpapers
+ * and URLs.
+ */
+export const isClassicyBackgroundPictureUrl = (url: string): boolean =>
+	/^https?:\/\//i.test(url) && isSafeClassicyThemeBackgroundImage(url);
 
 interface DesktopTabProps {
 	/** Current background image URL (resolved), or a stand-in for none. */

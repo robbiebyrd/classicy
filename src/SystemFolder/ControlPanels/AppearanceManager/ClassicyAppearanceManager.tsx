@@ -58,10 +58,12 @@ import {
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import { isValidHttpUrl } from "@/SystemFolder/SystemResources/Utils/urlValidation";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { useColorsTab } from "./ClassicyAppearanceManager.Colors";
-import { useDesktopTab } from "./ClassicyAppearanceManager.Desktop";
+import {
+	isClassicyBackgroundPictureUrl,
+	useDesktopTab,
+} from "./ClassicyAppearanceManager.Desktop";
 import { useFontsTab } from "./ClassicyAppearanceManager.Fonts";
 import { useMetricsTab } from "./ClassicyAppearanceManager.Metrics";
 import { useOptionsTab } from "./ClassicyAppearanceManager.Options";
@@ -74,10 +76,6 @@ const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
 const WINDOW_ID = "AppearanceManager_1";
 const THEME_FILE_ALERT_ID = "AppearanceManager_theme_file_alert";
-
-function isValidUrlWithRegex(url: string): boolean {
-	return isValidHttpUrl(url);
-}
 
 export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const appIcon =
@@ -277,7 +275,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const setBackgroundURL = useCallback(
 		(e: ChangeEvent<HTMLInputElement>) => {
-			if (isValidUrlWithRegex(e.target.value)) {
+			if (isClassicyBackgroundPictureUrl(e.target.value)) {
 				startTransition(() => {
 					desktopEventDispatch({
 						type: "ClassicyDesktopChangeBackground",

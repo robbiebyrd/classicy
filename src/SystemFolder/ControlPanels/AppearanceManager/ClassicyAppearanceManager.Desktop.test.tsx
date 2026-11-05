@@ -11,6 +11,7 @@ import {
 } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	classicyBackgroundSizeOption,
+	isClassicyBackgroundPictureUrl,
 	useDesktopTab,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
 
@@ -134,6 +135,28 @@ describe("useDesktopTab — Patterns", () => {
 const alignMenu = () => screen.getAllByRole("combobox")[1];
 const repeatMenu = () => screen.getAllByRole("combobox")[2];
 const sizeMenu = () => screen.getAllByRole("combobox")[3];
+
+describe("isClassicyBackgroundPictureUrl — the Picture field", () => {
+	it.each([
+		"https://example.com/my-picture.png",
+		"http://example.com/a/b.png?size=2",
+		"HTTPS://example.com/caps.png",
+	])("accepts the absolute http(s) URL %j", (url) => {
+		expect(isClassicyBackgroundPictureUrl(url)).toBe(true);
+	});
+
+	it.each([
+		["a relative path", "/photos/default.png"],
+		["a bare filename", "default.png"],
+		["a protocol-relative URL", "//example.com/a.png"],
+		["a data: URI", "data:image/png;base64,iVBORw0KGgo="],
+		["javascript:", "javascript:alert(1)"],
+		["a url() breakout", "https://x.test/a.png) ; background:red"],
+		["empty", ""],
+	])("rejects %s", (_label, url) => {
+		expect(isClassicyBackgroundPictureUrl(url)).toBe(false);
+	});
+});
 
 describe("classicyBackgroundSizeOption", () => {
 	it.each([
