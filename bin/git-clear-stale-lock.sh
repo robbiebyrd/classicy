@@ -31,6 +31,10 @@
 #
 # Linux only: guards 4 and 5 read /proc. Elsewhere it refuses (exit 1); check
 # the guards by hand there (lsof shows holders).
+#
+# For tests, CLASSICY_EXTRA_PROC_ROOT names a directory laid out like /proc
+# whose processes guards 4 and 5 scan as well as /proc's, never instead: it
+# can only add refusals.
 
 set -u
 
@@ -77,6 +81,17 @@ if ! git_dir=$(git -C "$dir" rev-parse --absolute-git-dir 2>/dev/null); then
 fi
 lock="$git_dir/index.lock"
 
+proc_roots=(/proc)
+if [ -n "${CLASSICY_EXTRA_PROC_ROOT:-}" ]; then
+	proc_roots+=("$CLASSICY_EXTRA_PROC_ROOT")
+fi
+fd_dirs=()
+comm_files=()
+for root in "${proc_roots[@]}"; do
+	fd_dirs+=("$root"/[0-9]*/fd)
+	comm_files+=("$root"/[0-9]*/comm)
+done
+
 refuse() {
 	echo "git-clear-stale-lock: keeping $lock: $1" >&2
 	exit 2
@@ -111,18 +126,18 @@ fi
 # compared with the lock's path (find's -lname is a glob, so the path's glob
 # characters are escaped); other users' processes are unreadable and skipped.
 pattern=$(printf '%s' "$lock" | sed 's/[][*?\\]/\\&/g')
-holder=$(find /proc/[0-9]*/fd -maxdepth 1 -type l -lname "$pattern" 2>/dev/null | head -n 1)
+holder=$(find "${fd_dirs[@]}" -maxdepth 1 -type l -lname "$pattern" 2>/dev/null | head -n 1)
 if [ -n "$holder" ]; then
-	pid=${holder#/proc/}
-	refuse "held open by pid ${pid%%/*}"
+	pid=${holder%/fd/*}
+	refuse "held open by pid ${pid##*/}"
 fi
 
 # 5. No git process in the same repository. A process's repository is the git
 # dir its working directory (or its GIT_DIR) resolves to; a process in
 # another worktree of the same repository has a different git dir and index.
-for comm_file in $(grep -lx git /proc/[0-9]*/comm 2>/dev/null); do
+for comm_file in $(grep -lx git "${comm_files[@]}" 2>/dev/null); do
 	proc=${comm_file%/comm}
-	pid=${proc#/proc/}
+	pid=${proc##*/}
 	cwd=$(readlink -- "$proc/cwd" 2>/dev/null) || continue
 	proc_git_dir=""
 	env_git_dir=$(tr '\0' '\n' <"$proc/environ" 2>/dev/null | sed -n 's/^GIT_DIR=//p' | head -n 1)

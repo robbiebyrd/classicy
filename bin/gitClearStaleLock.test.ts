@@ -77,6 +77,65 @@ const run = (cwd: string, ...args: string[]) =>
 		encoding: "utf8",
 	});
 
+// Runs the script with a fake process table beside the real /proc.
+const runWithProcs = (procRoot: string, cwd: string, ...args: string[]) =>
+	spawnSync("bash", [SCRIPT, ...args], {
+		cwd,
+		env: { ...gitEnv(), CLASSICY_EXTRA_PROC_ROOT: procRoot },
+		encoding: "utf8",
+	});
+
+// Above Linux's largest pid_max (2^22), so no real process shares it.
+const FAKE_PID = "9999999";
+
+type FakeProc = {
+	comm?: string;
+	// The working directory the cwd link points at; omitted, there is no link
+	// (the process exited, or belongs to another user).
+	cwd?: string;
+	// NUL-separated variables; "unreadable" writes it mode 000, as another
+	// user's process reads; omitted, there is no file, as an exited one reads.
+	environ?: string[] | "unreadable";
+	cmdline?: string[];
+	// Paths the process holds open, one fd link each.
+	fds?: string[];
+};
+
+// A process directory in a fake process table, with the files the script
+// reads, so a test can give it a process /proc could not show it on demand.
+const makeFakeProc = (
+	root: string,
+	{ comm = "git", cwd, environ, cmdline, fds }: FakeProc,
+) => {
+	const dir = path.join(root, FAKE_PID);
+	fs.mkdirSync(path.join(dir, "fd"), { recursive: true });
+	fs.writeFileSync(path.join(dir, "comm"), `${comm}\n`);
+	if (cwd !== undefined) fs.symlinkSync(cwd, path.join(dir, "cwd"));
+	if (environ === "unreadable") {
+		fs.writeFileSync(path.join(dir, "environ"), "PATH=/usr/bin\0");
+		fs.chmodSync(path.join(dir, "environ"), 0o000);
+	} else if (environ !== undefined) {
+		fs.writeFileSync(
+			path.join(dir, "environ"),
+			environ.map((entry) => `${entry}\0`).join(""),
+		);
+	}
+	if (cmdline !== undefined)
+		fs.writeFileSync(
+			path.join(dir, "cmdline"),
+			cmdline.map((arg) => `${arg}\0`).join(""),
+		);
+	fds?.forEach((target, index) => {
+		fs.symlinkSync(target, path.join(dir, "fd", String(index + 3)));
+	});
+};
+
+const makeProcRoot = () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "classicy-proc-"));
+	tempDirs.push(dir);
+	return dir;
+};
+
 // Wait until /proc shows the child running, so the script can see it.
 const waitForProc = (child: ChildProcess) => {
 	const deadline = Date.now() + 5000;
@@ -231,6 +290,58 @@ describe.runIf(process.platform === "linux")("git-clear-stale-lock.sh", () => {
 		expect(result.status).toBe(2);
 		expect(result.stderr).toMatch(/not a regular file/);
 		expect(fs.lstatSync(lock).isSymbolicLink()).toBe(true);
+	});
+
+	it("sees a git process in the extra process table", () => {
+		const repo = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, {
+			cwd: repo,
+			environ: ["PATH=/usr/bin"],
+			cmdline: ["git", "status"],
+		});
+		const result = runWithProcs(procs, repo);
+		expect(result.status).toBe(2);
+		expect(result.stderr).toBe(
+			`git-clear-stale-lock: keeping ${fs.realpathSync(lock)}: git process ${FAKE_PID} is running in this repository (git status)\n`,
+		);
+		expect(fs.existsSync(lock)).toBe(true);
+	});
+
+	it("follows a git process's GIT_DIR into this repository", () => {
+		const repo = makeRepo();
+		const other = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, {
+			cwd: other,
+			environ: ["PATH=/usr/bin", `GIT_DIR=${path.join(repo, ".git")}`],
+			cmdline: ["git", "commit"],
+		});
+		const result = runWithProcs(procs, repo);
+		expect(result.status).toBe(2);
+		expect(result.stderr).toMatch(
+			new RegExp(`git process ${FAKE_PID} is running in this repository`),
+		);
+		expect(fs.existsSync(lock)).toBe(true);
+	});
+
+	it("sees a holder in the extra process table", () => {
+		const repo = makeRepo();
+		const lock = makeLock(path.join(repo, ".git", "index.lock"));
+		const procs = makeProcRoot();
+		makeFakeProc(procs, {
+			comm: "sleep",
+			cwd: os.tmpdir(),
+			fds: [fs.realpathSync(lock)],
+		});
+		const result = runWithProcs(procs, repo);
+		expect(result.status).toBe(2);
+		expect(result.stderr).toMatch(
+			new RegExp(`held open by pid ${FAKE_PID}$`, "m"),
+		);
+		expect(fs.existsSync(lock)).toBe(true);
 	});
 
 	it("fails outside a repository", () => {
