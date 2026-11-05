@@ -4,11 +4,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInThemes";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	type ClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -27,7 +29,6 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	getThemeMetric,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -1015,7 +1016,7 @@ describe("ChangeTheme in a package whose ids collide with Platinum's", () => {
 		expect(a.customThemes?.map((t) => t.id)).toEqual(["custom-irix"]);
 	});
 
-	it("J-R21: ChangeTheme resolves a preset's bundled wallpaper filename to its asset URL", () => {
+	it("J-R21: ChangeTheme keeps a preset's wallpaper filename, which renders its asset URL", () => {
 		const filenamePreset = irixTheme("dusk", "Dusk");
 		filenamePreset.desktop.backgroundImage = "azul_dark.png";
 		registerClassicyAppearancePackage({
@@ -1029,9 +1030,12 @@ describe("ChangeTheme in a package whose ids collide with Platinum's", () => {
 		const ds = makeStore();
 		switchTo(ds, "irix");
 		run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: "dusk" });
-		const image = appearance(ds).activeTheme.desktop.backgroundImage;
-		expect(image).not.toBe("azul_dark.png");
-		expect(image).toBe(resolveWallpaper("azul_dark.png"));
+		const active = appearance(ds).activeTheme;
+		expect(active.desktop.backgroundImage).toBe("azul_dark.png");
+		expect(resolveClassicyWallpaper("azul_dark.png")).not.toBe("azul_dark.png");
+		expect(getThemeVars(active)["--desktop-background-image"]).toBe(
+			`url("${resolveClassicyWallpaper("azul_dark.png")}")`,
+		);
 		// The registered preset is left as passed.
 		expect(filenamePreset.desktop.backgroundImage).toBe("azul_dark.png");
 	});

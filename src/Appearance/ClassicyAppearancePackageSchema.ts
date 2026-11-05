@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
-import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
+import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type {
 	ClassicyAppearanceKnobs,
@@ -210,8 +210,8 @@ export const ClassicyAppearancePackageSchema = z
 	.object({
 		id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
 		name: z.string().trim().min(1).max(64),
-		defaults: ClassicyThemeSchema,
-		presets: z.array(ClassicyThemeSchema).max(256).optional(),
+		defaults: ClassicyPackageThemeSchema,
+		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),

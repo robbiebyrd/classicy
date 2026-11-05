@@ -20,6 +20,10 @@ import {
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	defaultClassicyWallpaper,
+	resolveClassicyWallpaper,
+} from "@/Appearance/ClassicyWallpaperIndex";
 // Registers Platinum, whose look Test Pack (below) borrows.
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import {
@@ -51,7 +55,6 @@ import type {
 	ClassicyThemeMetricChange,
 	ClassicyThemeMetricFamilyTarget,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
-import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -349,7 +352,9 @@ const DesktopTabStory = () => {
 	const { desktop } = useAppearance().activeTheme;
 	const dispatch = useAppManagerDispatch();
 	const tab = useDesktopTab({
-		bg: desktop.backgroundImage || ClassicyDefaultWallpaper,
+		bg:
+			resolveClassicyWallpaper(desktop.backgroundImage) ||
+			defaultClassicyWallpaper(),
 		bgPosition: desktop.backgroundPosition,
 		bgRepeat: desktop.backgroundRepeat,
 		bgSize: desktop.backgroundSize,

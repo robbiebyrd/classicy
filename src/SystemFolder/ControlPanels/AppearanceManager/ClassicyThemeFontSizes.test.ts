@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+// Platinum's wallpapers: the schema accepts a filename once it is registered.
+import "@/Appearance/Platinum/assets/platinumAssets";
 import platinum from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,

@@ -4,6 +4,10 @@ import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyApp
 // reducer imports this module, and a path from it to the store would evaluate
 // the store before its default state.
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	classicyWallpaperFilename,
+	portableClassicyWallpaper,
+} from "@/Appearance/ClassicyWallpaperIndex";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
@@ -18,10 +22,6 @@ import {
 	ClassicyThemeSchema,
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
-import {
-	classicyWallpaperFilename,
-	resolveWallpaper,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 /**
  * Saving a theme to a `.classicy-theme.json` file and loading one back.
@@ -40,9 +40,10 @@ import {
  * preset in `platinum.json` or of `JSON.stringify(activeTheme)` — so themes
  * written by hand or copied out of the store load without wrapping.
  *
- * Wallpapers are written as their bundled filename (`"azul_dark.png"`): the
- * URL a build resolves a wallpaper to (a dev-server path, an inlined `data:`
- * URI) only works in that build. Loading resolves the filename back.
+ * Wallpapers are written as their registered filename (`"azul_dark.png"`):
+ * the URL a build resolves a wallpaper to (a dev-server path, an inlined
+ * `data:` URI) only works in that build. Loading keeps the filename, as every
+ * theme does; `getThemeVars` resolves it through the asset registry.
  */
 
 export type ClassicyThemeParseResult =
@@ -54,7 +55,7 @@ const MAX_THEME_FILE_LENGTH = 256 * 1024;
 const MAX_REPORTED_ISSUES = 3;
 
 /**
- * The portable form of a `backgroundImage`: a bundled wallpaper's filename,
+ * The portable form of a `backgroundImage`: a registered wallpaper's filename,
  * an http(s) URL kept as-is, or "" (no image) for anything else — a custom
  * `data:`/`blob:` URL, or a relative path that only means something on the
  * host it was set on.
@@ -74,12 +75,10 @@ const isClassicyAppearancePackageInstalled = (packageId: string): boolean =>
 	packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID ||
 	getClassicyAppearancePackage(packageId) !== undefined;
 
-/** The loadable form of a validated `backgroundImage`: bundled wallpapers
- * resolve to this build's URL; http(s) URLs pass through. */
-const loadableClassicyThemeBackground = (value: string): string => {
-	const filename = classicyWallpaperFilename(value);
-	return filename ? resolveWallpaper(filename) : value;
-};
+/** The stored form of a validated `backgroundImage`: a registered wallpaper
+ * (its filename or this build's URL for it) as its filename; http(s) URLs
+ * as they are. */
+const loadableClassicyThemeBackground = portableClassicyWallpaper;
 
 /**
  * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
@@ -131,7 +130,7 @@ const describeIssues = (issues: z.core.$ZodIssue[]): string => {
 
 /**
  * Validates an untrusted theme object and makes it loadable: unknown keys
- * stripped, the wallpaper resolved for this build. Used for both file imports
+ * stripped, a registered wallpaper held by its filename. Used for both file imports
  * and `ClassicyDesktopImportTheme` payloads. A theme for an Appearance Package
  * that is not installed is refused. Identity (id/name) is left alone — see
  * `assignImportedClassicyThemeIdentity`.
@@ -171,7 +170,7 @@ export type ClassicyDroppedTheme = {
 /**
  * Validates the themes a host hands to `ClassicyDesktopLoadThemes`, each
  * against `ClassicyThemeSchema` exactly as an import is (unknown keys
- * stripped, `package` defaulted, the wallpaper resolved for this build). A
+ * stripped, `package` defaulted, a registered wallpaper held by its filename). A
  * theme written before the metric groups existed is completed from its
  * package's defaults first, as before. Unlike an import, a theme for an
  * Appearance Package that is not registered (yet) is kept: a host may load

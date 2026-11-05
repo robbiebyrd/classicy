@@ -5,6 +5,10 @@ import {
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	defaultClassicyWallpaper,
+	resolveClassicyWallpaper,
+} from "@/Appearance/ClassicyWallpaperIndex";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -65,7 +69,6 @@ import { usePackagesTab } from "./ClassicyAppearanceManager.Packages";
 import { useSoundTab } from "./ClassicyAppearanceManager.Sound";
 import { useThemesTab } from "./ClassicyAppearanceManager.Themes";
 import { withPrimaryFontFamily } from "./ClassicyFontStack";
-import { ClassicyDefaultWallpaper } from "./ClassicyWallpapers";
 
 const APP_ID = APPEARANCE_MANAGER_APP_ID;
 const APP_NAME = "Appearance Manager";
@@ -102,14 +105,16 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	);
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
-	// Theme backgrounds are resolved to loadable URLs before they reach the
-	// store, so the current one drives the picker directly; only a
-	// color-only theme needs a stand-in to select. Derived from the store on
-	// every render (never seeded into local state) so a theme switch or a
-	// background change from elsewhere is reflected immediately.
+	// Themes hold a registered wallpaper by filename; the preview and the
+	// picker want the URL it resolves to. Only a color-only theme needs a
+	// stand-in to select. Derived from the store on every render (never
+	// seeded into local state) so a theme switch or a background change from
+	// elsewhere is reflected immediately.
 	const bg =
-		appearanceState.activeTheme.desktop.backgroundImage ||
-		ClassicyDefaultWallpaper;
+		resolveClassicyWallpaper(
+			appearanceState.activeTheme.desktop.backgroundImage,
+			appearanceState.activeTheme.package,
+		) || defaultClassicyWallpaper();
 
 	const packages = useClassicyAppearancePackages();
 	const activePackage = useActiveClassicyAppearancePackage();

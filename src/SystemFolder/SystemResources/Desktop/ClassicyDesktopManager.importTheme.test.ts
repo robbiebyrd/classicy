@@ -4,21 +4,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInThemes";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { listClassicyPackageThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -91,16 +93,28 @@ describe("ClassicyDesktopImportTheme", () => {
 		const state = run(makeStore(), importTheme(parsed.theme));
 		expect(appearance(state).activeTheme.name).toBe("Azul 2");
 		expect(appearance(state).activeTheme.desktop.backgroundImage).toBe(
-			resolveWallpaper("azul_dark.png"),
+			"azul_dark.png",
 		);
 	});
 
-	it("resolves a wallpaper filename in the payload for this build", () => {
+	it("keeps a wallpaper filename in the payload, which renders this build's URL", () => {
 		const theme = fileTheme();
 		theme.desktop.backgroundImage = "waves_bondi.png";
 		const state = run(makeStore(), importTheme(theme));
+		const active = appearance(state).activeTheme;
+		expect(active.desktop.backgroundImage).toBe("waves_bondi.png");
+		expect(getThemeVars(active)["--desktop-background-image"]).toBe(
+			`url("${resolveClassicyWallpaper("waves_bondi.png")}")`,
+		);
+		expect(resolveClassicyWallpaper("waves_bondi.png")).not.toBe("");
+	});
+
+	it("stores this build's wallpaper URL in the payload as its filename", () => {
+		const theme = fileTheme();
+		theme.desktop.backgroundImage = resolveClassicyWallpaper("waves_bondi.png");
+		const state = run(makeStore(), importTheme(theme));
 		expect(appearance(state).activeTheme.desktop.backgroundImage).toBe(
-			resolveWallpaper("waves_bondi.png"),
+			"waves_bondi.png",
 		);
 	});
 

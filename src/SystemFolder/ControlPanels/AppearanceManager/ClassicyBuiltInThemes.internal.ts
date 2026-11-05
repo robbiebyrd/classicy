@@ -1,6 +1,7 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import type {
 	ClassicyStoreSystemAppearanceManager,
 	ClassicyTheme,
@@ -13,7 +14,6 @@ import {
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -53,9 +53,9 @@ export const knownClassicyThemePackage = (
  * One of a package's own themes (its defaults or a preset) as the theme a
  * switch or ChangeTheme activates: a copy, completed as built-in and loaded
  * themes are. The registry keeps a package as passed, so a JS-authored one
- * may lack metric groups or name a bundled wallpaper by filename; `package`
- * is the package's own id (its registration guarantees its themes name no
- * other).
+ * may lack metric groups, or hold a registered wallpaper's URL where themes
+ * keep its filename; `package` is the package's own id (its registration
+ * guarantees its themes name no other).
  */
 export const activatableClassicyPackageTheme = (
 	pkg: ClassicyAppearancePackage,
@@ -70,7 +70,7 @@ export const activatableClassicyPackageTheme = (
 		package: pkg.id,
 		desktop: {
 			...theme.desktop,
-			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+			backgroundImage: portableClassicyWallpaper(theme.desktop.backgroundImage),
 		},
 	};
 };

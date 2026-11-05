@@ -11,8 +11,11 @@ import {
 } from "@/Appearance/Platinum/assets/art/platinumArt";
 import { PLATINUM_PIXEL_ART } from "@/Appearance/Platinum/assets/pixelart/platinumPixelArt";
 import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperUrl,
+} from "@/Appearance/Platinum/assets/platinumWallpapers";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { ClassicyWallpapers } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 const PLATINUM = "platinum";
 
@@ -70,9 +73,17 @@ registerClassicyCursors(PLATINUM, {
 	resizeR: ClassicyIcons.ui.cursors.resizeR,
 });
 
+/**
+ * Platinum's wallpapers by label, each with the filename themes name it by,
+ * so a theme's `"azul_dark.png"` resolves through the registry.
+ */
 registerClassicyWallpapers(
 	PLATINUM,
-	ClassicyWallpapers.map((w) => ({ name: w.label, src: w.value })),
+	PLATINUM_WALLPAPERS.map(({ label, file }) => ({
+		name: label,
+		file,
+		src: platinumWallpaperUrl(file),
+	})),
 );
 
 const fontModules = import.meta.glob("./fonts/*.woff2", {

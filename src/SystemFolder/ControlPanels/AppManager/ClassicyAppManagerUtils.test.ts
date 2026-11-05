@@ -324,6 +324,9 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
 
 		vi.resetModules();
+		// Platinum first, as a host imports it: its wallpapers are registered
+		// when the store loads.
+		await import("@/Appearance/Platinum");
 		const { useAppManager, stopAppManagerPersistence } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 		);
@@ -337,23 +340,23 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 	// older build — when themes carried a literal path no consuming app serves —
 	// would outlive the fix and keep 404ing without healing on hydration.
 	//
-	// These inputs are deliberately chosen so that input !== resolved output in
-	// BOTH environments. Under vitest a bundled asset resolves to its own source
-	// path, so asserting against a stored "/assets/img/wallpapers/*.png" would
-	// hold whether or not healing ran — the same dev/production aliasing that hid
-	// the original bug.
-	it("re-resolves a stale wallpaper path persisted by an older build", async () => {
-		const { resolveWallpaper } = await import(
-			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers"
-		);
+	// The path is deliberately not the one a bundled asset has under vitest
+	// ("/assets/img/wallpapers/*.png"), so only the basename can match it.
+	it("stores a stale wallpaper path persisted by an older build as its filename", async () => {
 		expect(await hydrateBackground("/legacy/wallpapers/default.png")).toBe(
-			resolveWallpaper("default.png"),
+			"default.png",
 		);
 	});
 
-	it("blanks a persisted wallpaper that no longer ships, rather than 404ing", async () => {
+	it("renders no image for a persisted wallpaper that no longer ships, rather than 404ing", async () => {
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-		expect(await hydrateBackground("retired_wallpaper.png")).toBe("");
+		expect(await hydrateBackground("retired_wallpaper.png")).toBe(
+			"retired_wallpaper.png",
+		);
+		const { resolveClassicyWallpaper } = await import(
+			"@/Appearance/ClassicyWallpaperIndex"
+		);
+		expect(resolveClassicyWallpaper("retired_wallpaper.png")).toBe("");
 		warnSpy.mockRestore();
 	});
 

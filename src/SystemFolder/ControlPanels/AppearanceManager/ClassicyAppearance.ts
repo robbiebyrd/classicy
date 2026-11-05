@@ -2,6 +2,7 @@ import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyApp
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { listClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	intToPct,
@@ -261,7 +262,9 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-outline": intToHex(theme.color.outline),
 		"--color-select": intToHex(theme.color.select),
 		"--color-highlight": intToHex(theme.color.highlight),
-		"--desktop-background-image": `url("${theme.desktop.backgroundImage}")`,
+		// Themes hold a registered wallpaper by filename; resolved here, at
+		// render, through the asset registry (the theme's own package first).
+		"--desktop-background-image": `url("${resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package)}")`,
 		"--desktop-background-color": intToHex(theme.desktop.backgroundColor),
 		"--desktop-background-repeat": theme.desktop.backgroundRepeat,
 		"--desktop-background-position": theme.desktop.backgroundPosition,

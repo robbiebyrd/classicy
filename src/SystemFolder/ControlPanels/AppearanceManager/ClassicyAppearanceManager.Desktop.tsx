@@ -1,5 +1,6 @@
 import { type ChangeEvent, useMemo } from "react";
 import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
@@ -51,13 +52,21 @@ export const useDesktopTab = ({
 }: DesktopTabProps): TabIndividual => {
 	const sizeOption = classicyBackgroundSizeOption(bgSize);
 	const wallpapers = useClassicyAssetTree("wallpapers");
+	// Option values are what ClassicyDesktopChangeBackground stores: a
+	// registered wallpaper's filename (its source, for one registered without
+	// a file), so the resolved `bg` is matched by its filename.
 	const wallpaperOptions = useMemo(
 		() =>
 			Object.entries(wallpapers)
 				.filter(([, value]) => typeof value === "string")
-				.map(([label, value]) => ({ label, value: value as string })),
+				.map(([label, value]) => ({
+					label,
+					value:
+						classicyWallpaperFilename(value as string) ?? (value as string),
+				})),
 		[wallpapers],
 	);
+	const selected = classicyWallpaperFilename(bg) ?? bg;
 	return useMemo(
 		() => ({
 			title: "Desktop",
@@ -76,10 +85,9 @@ export const useDesktopTab = ({
 								id={"bg"}
 								options={wallpaperOptions}
 								onChangeFunc={changeBackground}
-								// Option values are the full resolved wallpaper URLs, so
-								// the stored URL matches one directly. A user-supplied
-								// picture matches none and shows the placeholder.
-								selected={bg}
+								// A user-supplied picture matches no option and shows
+								// the placeholder.
+								selected={selected}
 								placeholder={"Custom"}
 							/>
 							<br />
@@ -145,6 +153,7 @@ export const useDesktopTab = ({
 		}),
 		[
 			bg,
+			selected,
 			bgPosition,
 			bgRepeat,
 			sizeOption,

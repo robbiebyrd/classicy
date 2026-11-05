@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+import "@/Appearance/Platinum/assets/platinumAssets";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
@@ -11,13 +12,13 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -158,9 +159,10 @@ describe("ClassicyDesktopChangeAppearancePackage", () => {
 			CLASSICY_DEFAULT_THEME_METRICS.control,
 		);
 		expect(() => getThemeVars(active)).not.toThrow();
-		expect(resolveWallpaper("azul_dark.png")).not.toBe("azul_dark.png");
-		expect(active.desktop.backgroundImage).toBe(
-			resolveWallpaper("azul_dark.png"),
+		expect(resolveClassicyWallpaper("azul_dark.png")).not.toBe("azul_dark.png");
+		expect(active.desktop.backgroundImage).toBe("azul_dark.png");
+		expect(getThemeVars(active)["--desktop-background-image"]).toBe(
+			`url("${resolveClassicyWallpaper("azul_dark.png")}")`,
 		);
 		expect(sparse.defaults.desktop.backgroundImage).toBe("azul_dark.png");
 	});

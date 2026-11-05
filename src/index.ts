@@ -13,6 +13,7 @@ export * from "./Appearance/ClassicyAssetRegistry";
 export * from "./Appearance/ClassicyAssetSource";
 export * from "./Appearance/ClassicyCoreTheme";
 export * from "./Appearance/ClassicyPixelArtSource";
+export * from "./Appearance/ClassicyWallpaperIndex";
 export * from "./Appearance/useClassicyAppearance";
 export * from "./Appearance/useClassicyAppearanceLayout";
 export * from "./Appearance/Platinum/index";
@@ -53,7 +54,6 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetri
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
-export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManager";
 export * from "./SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 export * from "./SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";

@@ -11,7 +11,6 @@ import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearan
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 // Both register at module load: the Platinum assets (system art, cursors,
 // wallpapers, fonts) and the Platinum sound pack. The sound pack must be
 // registered before the registration below, since the package is validated
@@ -37,21 +36,13 @@ export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
 const platinumMeasurements = platinumJson.defaults.measurements;
 
 /**
- * A platinum.json theme as Platinum registers it: its wallpaper resolved for
- * this build (the JSON names a file), its measurements completed from
- * Platinum's defaults, and its package named.
+ * A platinum.json theme as Platinum registers it: its wallpaper named by
+ * filename, as the JSON names it and every theme holds it (`getThemeVars`
+ * resolves it through the asset registry at render), its measurements
+ * completed from Platinum's defaults, and its package named.
  */
 const platinumTheme = (theme: ClassicyTheme): ClassicyTheme => ({
-	...withDefaultThemeMetrics(
-		{
-			...theme,
-			desktop: {
-				...theme.desktop,
-				backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-			},
-		},
-		platinumMeasurements,
-	),
+	...withDefaultThemeMetrics(theme, platinumMeasurements),
 	package: theme.package ?? PLATINUM_APPEARANCE_PACKAGE_ID,
 });
 
@@ -60,7 +51,7 @@ const platinumPresets = (
 ).map(platinumTheme);
 
 // The defaults are the preset with their id, the same object, so a switch to
-// Platinum and ChangeTheme activate one theme whose wallpaper loads.
+// Platinum and ChangeTheme activate one and the same theme.
 const platinumDefaults =
 	platinumPresets.find((theme) => theme.id === platinumJson.defaults.id) ??
 	platinumTheme(platinumJson.defaults as unknown as ClassicyTheme);

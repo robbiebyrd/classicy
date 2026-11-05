@@ -6,6 +6,7 @@ import {
 	getRegisteredClassicyAppearancePackageOrDefault,
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { applyClassicyAppearanceOption } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceOptions";
 import { activatableClassicyPackageTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal";
 import {
@@ -526,7 +527,11 @@ export const classicyDesktopEventHandler = (
 		case "ClassicyDesktopChangeBackground": {
 			if (!hasBackgroundImage(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
-				theme.desktop.backgroundImage = action.backgroundImage;
+				// A registered wallpaper is stored by filename, whichever form
+				// the action names it in (getThemeVars resolves it at render).
+				theme.desktop.backgroundImage = portableClassicyWallpaper(
+					action.backgroundImage,
+				);
 				theme.desktop.backgroundSize = "auto";
 			});
 			break;

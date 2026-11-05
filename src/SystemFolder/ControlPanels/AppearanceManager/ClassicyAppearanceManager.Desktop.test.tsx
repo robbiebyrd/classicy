@@ -4,19 +4,20 @@ import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
+import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperUrl,
+} from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	classicyBackgroundSizeOption,
 	useDesktopTab,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
-import {
-	ClassicyDefaultWallpaper,
-	ClassicyWallpapers,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 type SelectHandler = (e: ChangeEvent<HTMLSelectElement>) => void;
 
 const baseProps = {
-	bg: ClassicyDefaultWallpaper,
+	bg: defaultClassicyWallpaper(),
 	changeBackground: vi.fn() as SelectHandler,
 	setBackgroundURL: vi.fn() as (e: ChangeEvent<HTMLInputElement>) => void,
 	alignBackground: vi.fn() as SelectHandler,
@@ -34,10 +35,11 @@ const Host = (props: HostProps) => {
 // The Patterns menu is the first pop-up on the tab.
 const patternsMenu = () => screen.getAllByRole("combobox")[0];
 
+/** A Platinum wallpaper by label: its filename and this build's URL for it. */
 const wallpaper = (label: string) => {
-	const found = ClassicyWallpapers.find((w) => w.label === label);
+	const found = PLATINUM_WALLPAPERS.find((w) => w.label === label);
 	if (!found) throw new Error(`no wallpaper labeled ${label}`);
-	return found;
+	return { file: found.file, value: platinumWallpaperUrl(found.file) };
 };
 
 describe("useDesktopTab — Patterns", () => {
@@ -52,7 +54,7 @@ describe("useDesktopTab — Patterns", () => {
 	});
 
 	it("shows 'Default' for the default wallpaper", () => {
-		render(<Host bg={ClassicyDefaultWallpaper} />);
+		render(<Host bg={defaultClassicyWallpaper()} />);
 		expect(patternsMenu()).toHaveTextContent("Default");
 	});
 
@@ -68,7 +70,7 @@ describe("useDesktopTab — Patterns", () => {
 		render(<Host />);
 		await user.click(patternsMenu());
 		expect(screen.getAllByRole("option")).toHaveLength(
-			ClassicyWallpapers.length,
+			PLATINUM_WALLPAPERS.length,
 		);
 		expect(
 			screen.getByRole("option", { name: "Default Photo" }),
@@ -93,16 +95,14 @@ describe("useDesktopTab — Patterns", () => {
 		expect(patternsMenu()).toHaveTextContent("Custom");
 	});
 
-	it("passes the chosen wallpaper's full URL to the change callback", async () => {
+	it("passes the chosen wallpaper's filename to the change callback", async () => {
 		const changeBackground = vi.fn();
 		const user = userEvent.setup();
 		render(<Host changeBackground={changeBackground} />);
 		await user.click(patternsMenu());
 		await user.click(screen.getByRole("option", { name: "Sunny" }));
 		expect(changeBackground).toHaveBeenCalledOnce();
-		expect(changeBackground.mock.calls[0][0].target.value).toBe(
-			wallpaper("Sunny").value,
-		);
+		expect(changeBackground.mock.calls[0][0].target.value).toBe("sunny.png");
 	});
 
 	it("previews the stored picture", () => {
@@ -113,7 +113,7 @@ describe("useDesktopTab — Patterns", () => {
 		);
 	});
 
-	it("lists registered wallpapers", async () => {
+	it("passes the source of a wallpaper registered without a file", async () => {
 		// Registered before render; runs after the bundled-count test, since
 		// registrations outlive a test.
 		registerClassicyWallpapers("platinum", [

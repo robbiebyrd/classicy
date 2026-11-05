@@ -5,6 +5,7 @@ import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
 import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
 import "@/Appearance/Platinum";
+import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
@@ -17,10 +18,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
+	ClassicyPackageThemeSchema,
 	ClassicyThemeSchema,
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
-import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	registerClassicySoundPack,
 	resetClassicySoundPacks,
@@ -226,11 +227,45 @@ describe("ClassicyThemeSchema — rejects", () => {
 	});
 });
 
+describe("ClassicyPackageThemeSchema — a package's own themes", () => {
+	const withBackground = (backgroundImage: string) =>
+		withEdit((t) => Object.assign(t.desktop, { backgroundImage }));
+
+	it("accepts a plain wallpaper filename no package has registered yet", () => {
+		const theme = withBackground("not_registered_yet.png");
+		expect(ClassicyPackageThemeSchema.safeParse(theme).success).toBe(true);
+		// Untrusted themes keep the strict rule.
+		expect(ClassicyThemeSchema.safeParse(theme).success).toBe(false);
+	});
+
+	it("accepts what the strict schema accepts", () => {
+		for (const value of ["", "azul_dark.png", "https://example.com/a.png"]) {
+			expect(
+				ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+				value,
+			).toBe(true);
+		}
+	});
+
+	it.each([
+		["a path", "/assets/other.png"],
+		["a url() breakout", 'x");background:url(y'],
+		["a parenthesis", "a).png"],
+		["whitespace", "a b.png"],
+		["javascript:", "javascript:alert(1)"],
+		["an unknown data: URI", "data:image/png;base64,iVBORw0KGgo="],
+	])("still rejects %s", (_label, value) => {
+		expect(
+			ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+		).toBe(false);
+	});
+});
+
 describe("isSafeClassicyThemeBackgroundImage", () => {
 	it.each([
 		["empty (color-only)", ""],
-		["a bundled filename", "azul_dark.png"],
-		["a resolved bundled wallpaper", ClassicyDefaultWallpaper],
+		["a registered filename", "azul_dark.png"],
+		["a resolved registered wallpaper", defaultClassicyWallpaper()],
 		["an https URL", "https://example.com/wallpaper.png"],
 		["an http URL", "http://example.com/a/b.png?size=2"],
 	])("accepts %s", (_label, value) => {
@@ -346,6 +381,8 @@ describe("ClassicyThemeSchema — appearance package", () => {
 			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID: "default-under-test",
 		}));
 		try {
+			// The fresh module graph's registry needs Platinum's wallpapers too.
+			await import("@/Appearance/Platinum/assets/platinumAssets");
 			const fresh = await import(
 				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
 			);

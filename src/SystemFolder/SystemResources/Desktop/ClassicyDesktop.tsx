@@ -57,6 +57,7 @@ import {
 } from "@/Appearance/ClassicyAppIdentity";
 import {
 	useClassicyAsset,
+	useClassicyAssetTree,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -626,7 +627,15 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		desktopEventDispatch,
 	]);
 
-	const currentTheme = useMemo(() => getThemeVars(activeTheme), [activeTheme]);
+	// The theme names its wallpaper by filename, resolved through the asset
+	// registry: re-read when wallpapers register or the active package changes
+	// (the tree's identity changes with both).
+	const wallpapers = useClassicyAssetTree("wallpapers");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: wallpapers is the registry's change signal for getThemeVars' wallpaper lookup
+	const currentTheme = useMemo(
+		() => getThemeVars(activeTheme),
+		[activeTheme, wallpapers],
+	);
 	const assetVars = useClassicyAssetVars();
 	// The resolved id, not the stored one: an id whose package is not (yet)
 	// registered renders as Platinum, so the CSS scope and the JS agree.

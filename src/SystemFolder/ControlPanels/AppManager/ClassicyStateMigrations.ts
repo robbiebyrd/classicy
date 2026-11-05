@@ -1,4 +1,5 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { withPortableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	withDefaultThemePackage,
@@ -58,6 +59,13 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   theme carries — by key name, since no package is registered yet (H-R17).
  *   Saved before the bounds applied, such a size would break the derived
  *   sizes and fail the theme's own export.
+ * - 3.0: a theme `desktop.backgroundImage` holding a registered wallpaper's
+ *   source (an inlined `data:` URI, an older build's URL or path) becomes its
+ *   filename on the active, built-in and custom themes
+ *   (`withPortableClassicyWallpaper`), the form themes now keep and persist.
+ *   A value no registered wallpaper matches is left alone and still renders
+ *   (`resolveClassicyWallpaper` passes `data:` and remote URLs through); it is
+ *   only matched once its package has registered.
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
@@ -65,10 +73,14 @@ import { normalizeClassicyAppWindows } from "@/SystemFolder/ControlPanels/AppMan
  *   stale `dragging` never makes a window follow the pointer.
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
-	return migrateThemeFontSizes(
-		migrateAppearancePackage(
-			migrateThemeSoundPack(
-				migrateThemeMetrics(stripWindowGestureFlags(migrateAppWindows(state))),
+	return migrateThemeWallpapers(
+		migrateThemeFontSizes(
+			migrateAppearancePackage(
+				migrateThemeSoundPack(
+					migrateThemeMetrics(
+						stripWindowGestureFlags(migrateAppWindows(state)),
+					),
+				),
 			),
 		),
 	);
@@ -325,6 +337,61 @@ function migrateThemeFontSizes(state: ClassicyStore): ClassicyStore {
 	const customThemes = migrateThemeList(
 		appearance.customThemes,
 		withClassicyThemeFontSizesClampedList,
+	);
+	if (
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+function withPortableClassicyWallpaperList(
+	themes: ClassicyTheme[],
+): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		const portable = withPortableClassicyWallpaper(theme);
+		if (portable === theme) return;
+		next ??= [...themes];
+		next[i] = portable;
+	});
+	return next ?? themes;
+}
+
+function migrateThemeWallpapers(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? withPortableClassicyWallpaper(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		withPortableClassicyWallpaperList,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		withPortableClassicyWallpaperList,
 	);
 	if (
 		activeTheme === appearance.activeTheme &&

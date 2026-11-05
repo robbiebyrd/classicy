@@ -7,6 +7,7 @@ import {
 	subscribeClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
+import { withPortableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
 import {
@@ -20,7 +21,6 @@ import {
 	classicyThemeMeasurementDefaults,
 	withoutDefaultThemeMeasurements,
 } from "../AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "../AppearanceManager/ClassicyWallpapers";
 import type { ClassicyActionTrust } from "./ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -87,39 +87,6 @@ function withRefreshedActiveTheme(
 	};
 }
 
-/**
- * Re-resolve theme wallpapers coming out of localStorage.
- *
- * Persisted state is merged *over* the defaults, so a background saved by an
- * older build — when themes carried a literal `/assets/img/wallpapers/*.png`
- * path that no consuming app serves — would otherwise outlive the fix and keep
- * 404ing forever. `resolveWallpaper` is idempotent and passes user-set `data:`
- * and remote URLs through, so a background the user actually chose survives.
- * Custom themes are healed too: a fork copies its built-in's wallpaper path.
- */
-function healThemeWallpapers(state: ClassicyStore): ClassicyStore {
-	const appearance = state.System?.Manager?.Appearance;
-	if (!appearance) {
-		return state;
-	}
-	if (appearance.activeTheme?.desktop) {
-		appearance.activeTheme.desktop.backgroundImage = resolveWallpaper(
-			appearance.activeTheme.desktop.backgroundImage,
-		);
-	}
-	for (const theme of [
-		...(appearance.availableThemes ?? []),
-		...(appearance.customThemes ?? []),
-	]) {
-		if (theme?.desktop) {
-			theme.desktop.backgroundImage = resolveWallpaper(
-				theme.desktop.backgroundImage,
-			);
-		}
-	}
-	return state;
-}
-
 /** True when `theme`'s own package defaults can be read now: it names
  * Platinum (or no package), or a package that is registered. */
 const hasKnownClassicyThemePackage = (theme: ClassicyTheme): boolean =>
@@ -128,18 +95,23 @@ const hasKnownClassicyThemePackage = (theme: ClassicyTheme): boolean =>
 	getClassicyAppearancePackage(theme.package) !== undefined;
 
 /**
- * `theme` as it is persisted: without the package-family leaves equal to its
- * package's defaults (H-R17). A theme whose package is not registered yet is
- * kept whole: its defaults would resolve to Platinum's, and an edit that
- * happens to equal Platinum's value would be lost.
+ * `theme` as it is persisted: a registered wallpaper by its filename
+ * (`withPortableClassicyWallpaper`; a URL that only works in this build never
+ * reaches storage), and without the package-family leaves equal to its
+ * package's defaults (H-R17). A theme whose package is not registered yet
+ * keeps every knob: its defaults would resolve to Platinum's, and an edit
+ * that happens to equal Platinum's value would be lost.
  */
-const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme =>
-	theme && typeof theme === "object" && hasKnownClassicyThemePackage(theme)
+const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme => {
+	if (!theme || typeof theme !== "object") return theme;
+	const portable = withPortableClassicyWallpaper(theme);
+	return hasKnownClassicyThemePackage(portable)
 		? withoutDefaultThemeMeasurements(
-				theme,
-				classicyThemeMeasurementDefaults(theme.package),
+				portable,
+				classicyThemeMeasurementDefaults(portable.package),
 			)
-		: theme;
+		: portable;
+};
 
 /**
  * `state` with its active theme's default knob families dropped, as
@@ -229,13 +201,13 @@ function getInitialState(): ClassicyStore {
 				// 0.x `windows` array survives the merge and is converted here.
 				// (mergeClassicyState already migrates its result; the explicit,
 				// idempotent pass keeps this load path correct on its own.)
+				// (The migration also stores a registered wallpaper by its
+				// filename; getThemeVars resolves it at render.)
 				return withRefreshedActiveTheme(
-					healThemeWallpapers(
-						migrateClassicyState(
-							mergeClassicyState(
-								withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
-								parsed as DeepPartial<ClassicyStore>,
-							),
+					migrateClassicyState(
+						mergeClassicyState(
+							withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
+							parsed as DeepPartial<ClassicyStore>,
 						),
 					),
 					reference,

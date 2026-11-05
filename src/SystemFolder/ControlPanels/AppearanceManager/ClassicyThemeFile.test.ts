@@ -5,6 +5,12 @@ import "@/Appearance/Platinum/assets/sounds/platinum";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
 import "@/Appearance/Platinum";
 import { resetClassicyAppearancePackagesForTests } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	classicyWallpaperFilename,
+	defaultClassicyWallpaper,
+	resolveClassicyWallpaper,
+} from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -22,12 +28,6 @@ import {
 	portableClassicyThemeBackground,
 	readClassicyTheme,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import {
-	buildClassicyWallpaperIndex,
-	ClassicyDefaultWallpaper,
-	classicyWallpaperFilename,
-	resolveWallpaper,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 const theme = (id: string): ClassicyTheme => structuredClone(getTheme(id));
 
@@ -52,12 +52,16 @@ describe("exportClassicyTheme", () => {
 		expect(file.theme.name).toBe("Azul");
 	});
 
-	it("writes a bundled wallpaper as its filename, not this build's URL", () => {
+	it("writes a registered wallpaper as its filename, not this build's URL", () => {
 		const azul = theme("azul");
-		expect(azul.desktop.backgroundImage).toBe(
-			resolveWallpaper("azul_dark.png"),
-		);
+		azul.desktop.backgroundImage = resolveClassicyWallpaper("azul_dark.png");
+		expect(azul.desktop.backgroundImage).not.toBe("azul_dark.png");
 		const file = JSON.parse(exportClassicyTheme(azul));
+		expect(file.theme.desktop.backgroundImage).toBe("azul_dark.png");
+	});
+
+	it("writes a filename-held wallpaper as it is", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("azul")));
 		expect(file.theme.desktop.backgroundImage).toBe("azul_dark.png");
 	});
 
@@ -128,10 +132,18 @@ describe("export → import round trip", () => {
 		}
 	});
 
-	it("resolves the wallpaper back to this build's URL (wallpaper theme)", () => {
+	it("loads the wallpaper back by its filename (wallpaper theme)", () => {
 		expect(
 			parseOk(exportClassicyTheme(theme("default"))).desktop.backgroundImage,
-		).toBe(ClassicyDefaultWallpaper);
+		).toBe("default.png");
+	});
+
+	it("loads a theme holding this build's wallpaper URL with the filename", () => {
+		const t = theme("default");
+		t.desktop.backgroundImage = defaultClassicyWallpaper();
+		expect(parseOk(JSON.stringify(t)).desktop.backgroundImage).toBe(
+			"default.png",
+		);
 	});
 
 	it("keeps a color-only theme color-only", () => {
@@ -151,7 +163,7 @@ describe("parseClassicyThemeFile — accepted input", () => {
 		const t = theme("bondi");
 		t.desktop.backgroundImage = "waves_bondi.png";
 		expect(parseOk(JSON.stringify(t)).desktop.backgroundImage).toBe(
-			resolveWallpaper("waves_bondi.png"),
+			"waves_bondi.png",
 		);
 	});
 });
@@ -243,30 +255,33 @@ describe("parseClassicyThemeFile — errors", () => {
 	});
 });
 
-describe("classicyWallpaperFilename / buildClassicyWallpaperIndex", () => {
-	it("maps a resolved bundled wallpaper URL back to its filename", () => {
-		expect(classicyWallpaperFilename(ClassicyDefaultWallpaper)).toBe(
+describe("portableClassicyThemeBackground and the wallpaper index", () => {
+	it("maps a resolved registered wallpaper URL back to its filename", () => {
+		expect(classicyWallpaperFilename(defaultClassicyWallpaper())).toBe(
 			"default.png",
 		);
 		expect(classicyWallpaperFilename("azul_dark.png")).toBe("azul_dark.png");
 		expect(classicyWallpaperFilename("https://x.test/a.png")).toBeUndefined();
 	});
 
-	it("maps data: URIs from a library build back to their filename", () => {
-		const index = buildClassicyWallpaperIndex({
-			"../../../../assets/img/wallpapers/azul_dark.png":
-				"data:image/png;base64,QVpVTA==",
-			"../../../../assets/img/wallpapers/poppy.png":
-				"data:image/png;base64,UE9QUFk=",
-		});
-		expect(index.get("data:image/png;base64,QVpVTA==")).toBe("azul_dark.png");
-		expect(index.get("data:image/png;base64,UE9QUFk=")).toBe("poppy.png");
-		expect(index.get("poppy.png")).toBe("poppy.png");
-		expect(index.get("data:image/png;base64,AAAA")).toBeUndefined();
+	it("maps a wallpaper's data: URI from a library build back to its filename", () => {
+		registerClassicyWallpapers("theme-file-test", [
+			{
+				name: "Inline",
+				file: "inline_paper.png",
+				src: "data:image/png;base64,SU5MSU5F",
+			},
+		]);
+		expect(
+			portableClassicyThemeBackground("data:image/png;base64,SU5MSU5F"),
+		).toBe("inline_paper.png");
+		expect(portableClassicyThemeBackground("data:image/png;base64,AAAA")).toBe(
+			"",
+		);
 	});
 
 	it("portable references come from the same index", () => {
-		expect(portableClassicyThemeBackground(ClassicyDefaultWallpaper)).toBe(
+		expect(portableClassicyThemeBackground(defaultClassicyWallpaper())).toBe(
 			"default.png",
 		);
 		expect(portableClassicyThemeBackground("")).toBe("");

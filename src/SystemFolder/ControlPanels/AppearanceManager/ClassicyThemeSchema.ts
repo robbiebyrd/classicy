@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
+import { isPlainClassicyWallpaperFile } from "@/Appearance/ClassicyWallpaperSource.internal";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_THEME_FONT_SIZE_MAX,
@@ -10,7 +12,6 @@ import {
 	CLASSICY_MEASUREMENT_NAME,
 	CLASSICY_DEFAULT_THEME_METRICS as METRICS,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 /**
@@ -104,11 +105,12 @@ const UNSAFE_URL_CHARS = /[\s"'`()\\;<>{}]/;
 /**
  * True for a `desktop.backgroundImage` value that is safe to interpolate into
  * the double-quoted `url("…")` that `getThemeVars` writes: empty (color-only),
- * a bundled wallpaper (its filename or the URL the bundler resolved it to), or
- * an absolute http(s) URL with no characters that could break out of the
- * quoted string or the `url()` — whitespace, quotes, parentheses, backslashes,
- * semicolons, angle brackets or braces. `javascript:`, `data:` (other than a
- * bundled wallpaper's own) and relative paths are rejected.
+ * a registered wallpaper (its filename or the source its package registered,
+ * `classicyWallpaperFilename`), or an absolute http(s) URL with no characters
+ * that could break out of the quoted string or the `url()` — whitespace,
+ * quotes, parentheses, backslashes, semicolons, angle brackets or braces.
+ * `javascript:`, `data:` (other than a
+ * registered wallpaper's own) and relative paths are rejected.
  */
 export const isSafeClassicyThemeBackgroundImage = (value: string): boolean => {
 	if (value === "") return true;
@@ -269,6 +271,29 @@ type AssertTrue<T extends true> = T;
 export type ClassicyThemeSchemaMatchesType = AssertTrue<
 	ClassicyTheme extends z.output<typeof ClassicyThemeSchema> ? true : false
 >;
+
+/**
+ * `ClassicyThemeSchema` for an Appearance Package's own themes (its `defaults`
+ * and `presets`, `ClassicyAppearancePackageSchema`): a `backgroundImage` may
+ * also be a plain wallpaper filename no package has registered yet. A
+ * package's themes are code that names its wallpapers by filename, and its
+ * wallpapers may register after it; a filename is only ever resolved through
+ * the registry (`resolveClassicyWallpaper`, unknown → no image), never written
+ * into CSS as it is. Untrusted themes (files, imports, host-loaded themes)
+ * keep the strict schema.
+ */
+export const ClassicyPackageThemeSchema = ClassicyThemeSchema.extend({
+	desktop: ClassicyThemeSchema.shape.desktop.extend({
+		backgroundImage: z
+			.string()
+			.refine(
+				(value) =>
+					isSafeClassicyThemeBackgroundImage(value) ||
+					isPlainClassicyWallpaperFile(value),
+				{ error: "must be a wallpaper filename or an http(s) URL" },
+			),
+	}),
+});
 
 /** `format` tag of a theme file. */
 export const CLASSICY_THEME_FILE_FORMAT = "classicy-theme";

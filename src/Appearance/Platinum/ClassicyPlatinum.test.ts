@@ -4,6 +4,7 @@ import type { ClassicyAppearanceKnobs } from "@/Appearance/ClassicyAppearancePac
 import { CLASSICY_FALLBACK_APPEARANCE_PACKAGE } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { ClassicyAppearancePackageSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	getAllThemes,
@@ -11,10 +12,6 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { isThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
-import {
-	classicyWallpaperFilename,
-	resolveWallpaper,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const PRESET_IDS = [
@@ -92,7 +89,7 @@ describe("the Platinum appearance package", () => {
 		expect(pkg?.layout).toEqual(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout);
 	});
 
-	it("completes each preset: wallpaper resolved, every knob family filled", async () => {
+	it("completes each preset: wallpaper by filename, every knob family filled", async () => {
 		await import("@/Appearance/Platinum");
 		const pkg = getClassicyAppearancePackage("platinum");
 		const m = platinumJson.defaults.measurements;
@@ -103,8 +100,9 @@ describe("the Platinum appearance package", () => {
 			expect(theme.measurements.controlStrip).toEqual(m.controlStrip);
 			expect(Object.keys(theme.measurements)).toEqual(Object.keys(m));
 			const raw = platinumJson.presets.find((t) => t.id === theme.id);
+			// The JSON's filename, kept: getThemeVars resolves it at render.
 			expect(theme.desktop.backgroundImage).toBe(
-				resolveWallpaper(raw?.desktop.backgroundImage ?? ""),
+				raw?.desktop.backgroundImage ?? "",
 			);
 		}
 	});
@@ -248,14 +246,13 @@ describe("the Platinum appearance package", () => {
 		expect(knobs.pager.cellHeight.label).toBe("Row height");
 	});
 
-	it("getAllThemes() comes from the package presets with resolved wallpapers", () => {
+	it("getAllThemes() comes from the package presets, wallpapers by filename", async () => {
+		await import("@/Appearance/Platinum");
 		const all = getAllThemes();
 		expect(all.map((t) => t.id)).toEqual(PRESET_IDS);
 		const azul = all.find((t) => t.id === "azul");
-		expect(azul?.desktop.backgroundImage).not.toBe("azul_dark.png");
-		expect(classicyWallpaperFilename(azul?.desktop.backgroundImage ?? "")).toBe(
-			"azul_dark.png",
-		);
+		expect(azul?.desktop.backgroundImage).toBe("azul_dark.png");
+		expect(resolveClassicyWallpaper("azul_dark.png")).not.toBe("");
 	});
 
 	it("the top barrel re-exports the Platinum entry", () =>

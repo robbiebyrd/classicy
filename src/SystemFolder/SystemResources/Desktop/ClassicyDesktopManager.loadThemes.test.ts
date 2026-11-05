@@ -4,13 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
 import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInThemes";
+import "@/Appearance/Platinum/assets/platinumAssets";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getAllThemes,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { readClassicyLoadedThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
@@ -111,15 +113,17 @@ describe("ClassicyDesktopLoadThemes validates each theme", () => {
 		expect(Object.hasOwn(loaded, "extra")).toBe(false);
 	});
 
-	it("resolves a bundled wallpaper's filename to this build's URL", () => {
+	it("keeps a registered wallpaper's filename, which renders this build's URL", () => {
 		const t = edited("azul", "by-name", (x) => {
 			x.desktop.backgroundImage = "azul_dark.png";
 		});
 		const state = load(makeStore(), [t]);
-		expect(
-			appearance(state).availableThemes?.[0]?.desktop.backgroundImage,
-		).toBe(resolveWallpaper("azul_dark.png"));
-		expect(resolveWallpaper("azul_dark.png")).not.toBe("azul_dark.png");
+		const loaded = appearance(state).availableThemes?.[0];
+		expect(loaded?.desktop.backgroundImage).toBe("azul_dark.png");
+		expect(resolveClassicyWallpaper("azul_dark.png")).not.toBe("azul_dark.png");
+		expect(loaded && getThemeVars(loaded)["--desktop-background-image"]).toBe(
+			`url("${resolveClassicyWallpaper("azul_dark.png")}")`,
+		);
 	});
 
 	it("keeps an http(s) background as it is", () => {
