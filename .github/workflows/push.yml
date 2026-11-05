@@ -37,7 +37,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a release in flight: a cancel between the two publishes would
+  # ship the core without Platinum. A newer run queues behind it instead.
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -84,19 +86,28 @@ jobs:
         id: build-package
         run: pnpm build
 
-      - name: Bump version and push tag
+      # Pinned to a full commit SHA (master at v12.0.2), never `@master`: this
+      # step runs with contents: write. The action only bumps and commits here
+      # (skip-tag, skip-push): the tag and the push follow the Platinum version
+      # sync, so the tag points at a commit where both versions agree.
+      #
+      # It substring-matches EVERY commit message in the push (and `type!:`
+      # subjects), so the keyword is "BREAKING CHANGE" only; the bare word
+      # "major" would cut 4.0.0 on a message like "fix: major layout bug". A
+      # squash merge whose message lacks the keyword would cut 2.1.9. The safe
+      # path for 3.0.0 is a manual workflow_dispatch with version-type=major.
+      - name: Bump version
         id: bump_version
-        uses: phips28/gh-action-bump-version@master
+        uses: phips28/gh-action-bump-version@63bc5b97aade4390bf3f33416b8adb891a0f28d7 # v12.0.2
         with:
           target-branch: main
           tag-prefix:  'v'
           default: patch
-          # Pinned to the action's defaults (v12.0.2, 63bc5b9) so the 3.0.0
-          # keyword is explicit: "BREAKING CHANGE" or "major" anywhere in any
-          # commit of the push, or a `type!:` subject, makes it a major bump.
-          major-wording: 'BREAKING CHANGE,major'
+          major-wording: 'BREAKING CHANGE'
           # Manual runs: a non-empty input replaces the commit-message logic.
           version-type: ${{ inputs.version-type }}
+          skip-tag: 'true'
+          skip-push: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -104,8 +115,9 @@ jobs:
         run: echo "New version tag is ${{ steps.bump_version.outputs.newTag }}"
 
       # The Platinum package ships at the root's version (lockstep). The bump
-      # action only edits the root package.json, so copy the number across and
-      # commit it [skip ci] like the codename. Skipped until the package exists.
+      # action only edits the root package.json, so copy the number across in
+      # a local commit. Nothing is pushed or tagged yet. Skipped until the
+      # package exists.
       - name: Sync the Platinum package version
         if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
         run: |
@@ -115,8 +127,29 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add packages/appearance/platinum/package.json
-          git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
-          git push
+          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION"
+
+      # Push the bump (and sync) commit, retrying after a rebase if main moved,
+      # and only then tag that commit. A failure before this point leaves no
+      # tag, so a re-run bumps from the same version.
+      - name: Push the release commit and tag
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          TAG: ${{ steps.bump_version.outputs.newTag }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::Could not push the release commit to main after 3 attempts; nothing was tagged."
+              exit 1
+            fi
+            git pull --rebase origin main
+          done
+          git tag "$TAG"
+          git push origin "$TAG"
 
       - name: Select release codename
         if: steps.bump_version.outputs.newTag != ''
@@ -163,14 +196,16 @@ jobs:
             --title "${{ steps.codename.outputs.name }}" \
             --generate-notes
 
-      # pnpm, not the JS-DevTools action: only pnpm rewrites the Platinum
-      # package's `workspace:^` peer range to a real `^<version>`. The token
-      # reaches pnpm through the .npmrc setup-node writes (registry-url).
+      # pnpm, not the old npm-publish action: only pnpm rewrites the Platinum
+      # package's `workspace:^` peer range to a real `^<version>`. `-r` publishes
+      # in topological order and skips versions already on the registry, so a
+      # re-run after a partial publish is safe. The token reaches pnpm through
+      # the .npmrc setup-node writes (registry-url).
       - name: Publish to npm
         if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks
+        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks
 
       # Until the Platinum package exists, only the root publishes.
       - name: Publish to npm (core only)

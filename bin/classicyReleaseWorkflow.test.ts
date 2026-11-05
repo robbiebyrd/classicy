@@ -1,6 +1,15 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import {
+	chmodSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
 
 // push.yml releases two packages in lockstep (plan 0015-kxa 4.1). `yaml` is
 // not a direct dependency, so the workflow is read as text: the file is split
@@ -31,7 +40,23 @@ const step = (needle: RegExp): Step => {
 	return found;
 };
 
+const ifOf = (s: Step): string => /^ {8}if: (.*)$/m.exec(s.text)?.[1] ?? "";
+
+/** A step's `run: |` script, dedented. */
+const scriptOf = (s: Step): string => {
+	const at = s.text.indexOf("        run: |\n");
+	if (at < 0) throw new Error(`${s.name} has no run block`);
+	return s.text
+		.slice(at + "        run: |\n".length)
+		.split("\n")
+		.map((l) => l.replace(/^ {10}/, ""))
+		.join("\n");
+};
+
 const PLATINUM_PKG = "packages/appearance/platinum/package.json";
+const HAS_PLATINUM = `hashFiles('${PLATINUM_PKG}') != ''`;
+const NO_PLATINUM = `hashFiles('${PLATINUM_PKG}') == ''`;
+const NEW_TAG = "steps.bump_version.outputs.newTag != ''";
 
 describe("push.yml release workflow", () => {
 	it("triggers on packages/** and still excludes stories", () => {
@@ -40,46 +65,106 @@ describe("push.yml release workflow", () => {
 		expect(header).toMatch(/^ {6}- '!\*\*\/\*\.stories\.tsx'$/m);
 	});
 
-	it("syncs the Platinum package version after the bump, committing [skip ci]", () => {
+	it("runs the steps in order: bump, sync, tag, codename, release, publish, wait, dispatches", () => {
+		const order = [
+			/^Bump version/,
+			/Sync the Platinum/,
+			/^Push the release commit and tag/,
+			/^Select release codename/,
+			/^Update release codename/,
+			/^Create GitHub Release/,
+			/^Publish to npm$/,
+			/^Wait for the release/,
+			/^Trigger classicy-web/,
+			/^Mint rt911/,
+			/^Trigger rt911/,
+		].map((re) => step(re).index);
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+		expect(new Set(order).size).toBe(order.length);
+	});
+
+	it("pins the bump action to a full commit SHA, never a branch", () => {
 		const bump = step(/^Bump version/);
-		const sync = step(/Platinum.*version/i);
-		expect(sync.index).toBeGreaterThan(bump.index);
+		expect(bump.text).toMatch(
+			/uses: phips28\/gh-action-bump-version@[0-9a-f]{40}\b/,
+		);
+		expect(WORKFLOW).not.toMatch(/gh-action-bump-version@master/);
+	});
+
+	it("bumps without tagging or pushing, so the tag can follow the sync", () => {
+		const bump = step(/^Bump version/);
+		expect(bump.text).toMatch(/skip-tag: 'true'/);
+		expect(bump.text).toMatch(/skip-push: 'true'/);
+	});
+
+	it("matches only BREAKING CHANGE (never the bare word 'major') and takes version-type", () => {
+		const bump = step(/^Bump version/);
+		const wording = /major-wording: '([^']*)'/.exec(bump.text)?.[1] ?? "";
+		expect(wording).toBe("BREAKING CHANGE");
+		expect(wording.split(",")).not.toContain("major");
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub expression, not a JS template
+		expect(bump.text).toContain("version-type: ${{ inputs.version-type }}");
+		expect(WORKFLOW).toMatch(/inputs:\s*\n\s+version-type:/);
+	});
+
+	it("does not cancel a release in flight", () => {
+		expect(WORKFLOW).toMatch(/cancel-in-progress: false/);
+		expect(WORKFLOW).not.toMatch(/cancel-in-progress: true/);
+	});
+
+	it("syncs the Platinum version into a commit before the tag, tolerant of no change", () => {
+		const sync = step(/Sync the Platinum/);
 		expect(sync.text).toContain(PLATINUM_PKG);
 		expect(sync.text).toMatch(/pnpm pkg set version=|npm pkg set version=/);
 		expect(sync.text).toContain("git add");
-		expect(sync.text).toMatch(/git commit -m "[^"]*\[skip ci\]"/);
-		expect(sync.text).toContain("git push");
-		expect(sync.text).toContain("steps.bump_version.outputs.newTag != ''");
+		expect(sync.text).toMatch(
+			/git diff --cached --quiet \|\| git commit -m "[^"]*"/,
+		);
+		// Pushing and tagging belong to the next step: nothing leaves the
+		// runner until both versions agree.
+		expect(sync.text).not.toContain("git push");
+		expect(sync.text).not.toContain("git tag");
+		expect(ifOf(sync)).toContain(NEW_TAG);
+		expect(ifOf(sync)).toContain(HAS_PLATINUM);
 	});
 
-	it("publishes both packages with pnpm, not JS-DevTools", () => {
-		expect(WORKFLOW).not.toContain("JS-DevTools/npm-publish");
-		const publish = step(/^Publish/);
+	it("pushes the commit with a rebase-and-retry, then tags that commit", () => {
+		const tag = scriptOf(step(/^Push the release commit and tag/));
+		const push = tag.indexOf("git push origin HEAD:main");
+		const rebase = tag.indexOf("git pull --rebase");
+		const mkTag = tag.indexOf('git tag "$TAG"');
+		const pushTag = tag.indexOf('git push origin "$TAG"');
+		expect(push).toBeGreaterThanOrEqual(0);
+		expect(rebase).toBeGreaterThan(push);
+		// The tag is made only after the commit is on the remote.
+		expect(mkTag).toBeGreaterThan(rebase);
+		expect(pushTag).toBeGreaterThan(mkTag);
+		expect(tag).toContain("set -euo pipefail");
+		expect(ifOf(step(/^Push the release commit and tag/))).toBe(NEW_TAG);
+	});
+
+	it("publishes both packages recursively with pnpm, not JS-DevTools", () => {
+		expect(WORKFLOW).not.toContain("JS-DevTools");
+		const publish = step(/^Publish to npm$/);
 		expect(publish.text).toContain(
-			"pnpm publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks",
+			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks",
 		);
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub expression, not a JS template
 		expect(publish.text).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
 		expect(step(/^Setup Node/).text).toMatch(/registry-url:/);
 	});
 
-	it("waits for both packages, by the names in their package.json files", () => {
-		const wait = step(/^Wait for the release/);
-		expect(wait.text).toContain('require("./package.json").name');
-		expect(wait.text).toContain(PLATINUM_PKG);
-		expect(wait.text).toMatch(/for NAME in /);
-		expect(wait.text).toContain('npm view "$NAME" dist-tags.latest');
-	});
-
-	it("dispatches downstream only after the wait step", () => {
-		const wait = step(/^Wait for the release/);
-		for (const s of steps.filter((x) =>
-			/Trigger .* (deploy|bump)/.test(x.name),
-		)) {
-			expect(s.index).toBeGreaterThan(wait.index);
-		}
-		expect(steps.some((s) => /Trigger classicy-web/.test(s.name))).toBe(true);
-		expect(steps.some((s) => /Trigger rt911/.test(s.name))).toBe(true);
+	it("keeps the sync, publish and core-only guards mutually consistent", () => {
+		const publish = ifOf(step(/^Publish to npm$/));
+		const core = ifOf(step(/core only/));
+		expect(publish).toContain(NEW_TAG);
+		expect(publish).toContain(HAS_PLATINUM);
+		expect(publish).not.toContain(NO_PLATINUM);
+		expect(core).toContain(NEW_TAG);
+		expect(core).toContain(NO_PLATINUM);
+		expect(core).not.toContain(HAS_PLATINUM);
+		// Same condition as the sync: Platinum is synced exactly when published.
+		expect(ifOf(step(/Sync the Platinum/))).toContain(HAS_PLATINUM);
 	});
 
 	it("never hard-codes the unscoped `classicy` as an npm package name", () => {
@@ -89,24 +174,106 @@ describe("push.yml release workflow", () => {
 		expect(WORKFLOW).not.toMatch(/(?<![@/\w-])classicy@\$/);
 	});
 
-	it("pins the major bump wording and offers an explicit version-type", () => {
-		const bump = step(/^Bump version/);
-		expect(bump.text).toMatch(/major-wording: 'BREAKING CHANGE,major'/);
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub expression, not a JS template
-		expect(bump.text).toContain("version-type: ${{ inputs.version-type }}");
-		expect(WORKFLOW).toMatch(/inputs:\s*\n\s+version-type:/);
+	it("dispatches downstream only after the wait step", () => {
+		const wait = step(/^Wait for the release/);
+		const dispatches = steps.filter((x) =>
+			/Trigger .* (deploy|bump)/.test(x.name),
+		);
+		expect(dispatches.length).toBe(2);
+		for (const s of dispatches) {
+			expect(s.index).toBeGreaterThan(wait.index);
+		}
+	});
+});
+
+describe("push.yml wait loop, run against a fake npm", () => {
+	const root = mkdtempSync(join(tmpdir(), "classicy-wait-"));
+	afterAll(() => rmSync(root, { recursive: true, force: true }));
+	const script = scriptOf(step(/^Wait for the release/));
+
+	/**
+	 * Runs the real script. The fake `npm view <name>` fails (a 404) until it
+	 * has been asked `lagFor[name]` times, then prints `3.0.0`; `sleep` is a
+	 * no-op.
+	 */
+	const run = (opts: {
+		platinum: boolean;
+		lagFor: Record<string, number>;
+	}): { status: number | null; calls: string[]; out: string } => {
+		const dir = mkdtempSync(join(root, "case-"));
+		const bin = join(dir, "bin");
+		mkdirSync(bin);
+		writeFileSync(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "@fake/core" }),
+		);
+		if (opts.platinum) {
+			mkdirSync(join(dir, "packages/appearance/platinum"), { recursive: true });
+			writeFileSync(
+				join(dir, PLATINUM_PKG),
+				JSON.stringify({ name: "@fake/platinum" }),
+			);
+		}
+		writeFileSync(
+			join(bin, "npm"),
+			`#!/bin/bash
+name="$2"
+echo "$name" >> "${dir}/calls"
+n=$(grep -cx -- "$name" "${dir}/calls")
+lag=$(cat "${dir}/lag-$(printf %s "$name" | tr -c "a-z0-9" _)" 2>/dev/null || echo 0)
+if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
+`,
+		);
+		for (const [name, lag] of Object.entries(opts.lagFor)) {
+			writeFileSync(
+				join(dir, `lag-${name.replace(/[^a-z0-9]/g, "_")}`),
+				String(lag),
+			);
+		}
+		writeFileSync(join(bin, "sleep"), "#!/bin/bash\nexit 0\n");
+		chmodSync(join(bin, "npm"), 0o755);
+		chmodSync(join(bin, "sleep"), 0o755);
+		const r = spawnSync("bash", ["-c", script], {
+			cwd: dir,
+			env: {
+				...process.env,
+				PATH: `${bin}:${process.env.PATH}`,
+				TAG: "v3.0.0",
+			},
+			encoding: "utf8",
+		});
+		let calls: string[] = [];
+		try {
+			calls = readFileSync(join(dir, "calls"), "utf8").trim().split("\n");
+		} catch {
+			// no calls made
+		}
+		return { status: r.status, calls, out: r.stdout + r.stderr };
+	};
+
+	it("waits through a 404 for each package, then succeeds", () => {
+		const r = run({
+			platinum: true,
+			lagFor: { "@fake/core": 1, "@fake/platinum": 2 },
+		});
+		expect(r.status).toBe(0);
+		expect(r.calls.filter((c) => c === "@fake/core")).toHaveLength(2);
+		expect(r.calls.filter((c) => c === "@fake/platinum")).toHaveLength(3);
 	});
 
-	it("keeps today's single-package release working until the package exists", () => {
-		for (const re of [/Platinum.*version/i, /^Publish to npm$/]) {
-			expect(step(re).text).toContain(`hashFiles('${PLATINUM_PKG}')`);
-		}
-		// The wait loop guards inside its script instead.
-		expect(step(/^Wait for the release/).text).toContain(
-			"[ -f packages/appearance/platinum/package.json ]",
-		);
-		expect(step(/core only/).text).toContain(
-			`hashFiles('${PLATINUM_PKG}') == ''`,
-		);
+	it("fails when only the core lists, so nothing is dispatched", () => {
+		const r = run({
+			platinum: true,
+			lagFor: { "@fake/core": 0, "@fake/platinum": 1000 },
+		});
+		expect(r.status).toBe(1);
+		expect(r.out).toContain("@fake/platinum@3.0.0 was not listed");
+		expect(r.calls.filter((c) => c === "@fake/platinum")).toHaveLength(60);
+	});
+
+	it("checks only the core before the Platinum package exists", () => {
+		const r = run({ platinum: false, lagFor: {} });
+		expect(r.status).toBe(0);
+		expect(new Set(r.calls)).toEqual(new Set(["@fake/core"]));
 	});
 });
