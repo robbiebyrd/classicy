@@ -1,11 +1,8 @@
-import {
-	type ClassicyStoreSystemAppearanceManager,
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import type { ClassicyStoreSystemAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	hasApp,
 	hasAppAndFileType,
@@ -662,10 +659,15 @@ export const DefaultAppManagerState: ClassicyStore = {
 			},
 			Appearance: {
 				packageId: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-				availableThemes: getAllThemes(),
-				// Via getTheme, not themesData: the raw JSON names its wallpaper
-				// rather than carrying a loadable URL.
-				activeTheme: getTheme("default"),
+				// Built-ins come from the registered packages, which register
+				// after this state is built: none are listed here (a list of the
+				// core theme would shadow the default package's own "default"),
+				// and ClassicyDesktop loads getAllThemes() when it mounts.
+				availableThemes: [],
+				// The core's own theme (no wallpaper, the core floor's
+				// measurements), a built-in of the default package: that
+				// package's registration replaces it with its own "default".
+				activeTheme: CLASSICY_CORE_DEFAULT_THEME,
 				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
 				// Alerts play at the full system volume until the user lowers it.

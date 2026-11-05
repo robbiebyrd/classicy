@@ -1,7 +1,3 @@
-import {
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { setClassicyPackageMeasurementsLookup } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
@@ -17,6 +13,7 @@ import {
 	CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX,
 	injectClassicyAppearanceStyles,
 } from "./ClassicyAppearanceStyles";
+import { CLASSICY_CORE_DEFAULT_THEME } from "./ClassicyCoreTheme";
 
 // The registry itself, apart from the store-reading hooks in
 // ClassicyAppearancePackage.ts (which re-exports the contract's names from it;
@@ -26,24 +23,24 @@ import {
 
 const SUBSYSTEM = "ClassicyAppearance";
 
-// Built at module evaluation, and kept here (not beside the store-reading
-// hooks) so reducers can fall back to it: ClassicyAppearance has no runtime
-// edge back to this module, so the themes are always initialized here
-// whichever module a bundle evaluates first (ClassicyAppearancePackage.test.tsx
-// loads each entry point into a fresh module graph).
+// Kept here (not beside the store-reading hooks) so reducers can fall back
+// to it. Its theme is the core's own data (ClassicyCoreTheme.ts), so it reads
+// no package and no module that reads this registry.
 /**
- * Platinum's structure without its look: the Platinum defaults, presets and
- * layout, and no CSS or hooks. Returned only while no package is registered
- * at all (lone-component tests, a host that never loads Platinum). Frozen
- * shallowly: `defaults` and `presets` are the shared built-in theme objects.
+ * The core's structure without a look: the id of the default package
+ * (`"platinum"`), the core default theme (`CLASSICY_CORE_DEFAULT_THEME`: no
+ * wallpaper, the core floor's measurements) as its defaults and only preset,
+ * the default layout, and no CSS or hooks. Returned only while no package is
+ * registered at all (lone-component tests, a host that never loads
+ * Platinum). Frozen shallowly: `defaults` is the shared, frozen core theme.
  */
 export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
 	Object.freeze({
 		id: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 		name: "Platinum",
 		css: "",
-		defaults: getTheme("default"),
-		presets: getAllThemes(),
+		defaults: CLASSICY_CORE_DEFAULT_THEME,
+		presets: [CLASSICY_CORE_DEFAULT_THEME],
 		layout: CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
 	});
 

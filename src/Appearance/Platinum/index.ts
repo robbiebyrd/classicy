@@ -9,10 +9,9 @@
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
-import {
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 // Both register at module load: the Platinum assets (system art, cursors,
 // wallpapers, fonts) and the Platinum sound pack. The sound pack must be
 // registered before the registration below, since the package is validated
@@ -31,15 +30,46 @@ export * from "./hooks";
 /** The Platinum package's id. */
 export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
 
-// The themes are platinum.json's, as getAllThemes() serves them (wallpapers
-// resolved for this build, metrics and package filled): the same objects as
-// the store's built-in list and CLASSICY_FALLBACK_APPEARANCE_PACKAGE, so a
-// switch to Platinum activates a theme whose wallpaper loads.
+// The presets carry only the core five; Platinum's knob families are in
+// `defaults.measurements` alone and filled here (H-R8), key by key, as
+// `classicyThemeMeasurementDefaults("platinum")` will once the package is
+// registered (the core floor under these values, which hold every floor key).
+const platinumMeasurements = platinumJson.defaults.measurements;
+
+/**
+ * A platinum.json theme as Platinum registers it: its wallpaper resolved for
+ * this build (the JSON names a file), its measurements completed from
+ * Platinum's defaults, and its package named.
+ */
+const platinumTheme = (theme: ClassicyTheme): ClassicyTheme => ({
+	...withDefaultThemeMetrics(
+		{
+			...theme,
+			desktop: {
+				...theme.desktop,
+				backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
+			},
+		},
+		platinumMeasurements,
+	),
+	package: theme.package ?? PLATINUM_APPEARANCE_PACKAGE_ID,
+});
+
+const platinumPresets = (
+	platinumJson.presets as unknown as ClassicyTheme[]
+).map(platinumTheme);
+
+// The defaults are the preset with their id, the same object, so a switch to
+// Platinum and ChangeTheme activate one theme whose wallpaper loads.
+const platinumDefaults =
+	platinumPresets.find((theme) => theme.id === platinumJson.defaults.id) ??
+	platinumTheme(platinumJson.defaults as unknown as ClassicyTheme);
+
 registerClassicyAppearancePackage({
 	id: PLATINUM_APPEARANCE_PACKAGE_ID,
 	name: platinumJson.name,
-	defaults: getTheme(platinumJson.defaults.id),
-	presets: getAllThemes(),
+	defaults: platinumDefaults,
+	presets: platinumPresets,
 	css: platinumCss,
 	knobs: platinumJson.knobs,
 	options: classicyKnobsToSchema(platinumJson.knobs),

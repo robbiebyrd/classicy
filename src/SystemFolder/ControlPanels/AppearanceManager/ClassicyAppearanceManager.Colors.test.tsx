@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+// getTheme serves the registered packages' themes: Platinum's.
+import "@/Appearance/Platinum";
 import { fireEvent, render, renderHook, screen } from "@/__tests__/test-utils";
 import {
 	type ClassicyTheme,

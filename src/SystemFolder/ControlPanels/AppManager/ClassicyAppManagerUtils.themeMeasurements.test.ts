@@ -20,6 +20,8 @@ const freshStore = async () => {
 	await import("@/Appearance/Platinum/assets/sounds/platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
+	// Platinum registers after the store, as the library barrel loads them.
+	await import("@/Appearance/Platinum");
 	return {
 		store,
 		appearance: await import(APPEARANCE),

@@ -4,6 +4,8 @@ import {
 	classicyKnobsToSchema,
 } from "@/Appearance/ClassicyAppearancePackageSchema";
 import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
+// getAllThemes() serves the registered packages' themes: Platinum's here.
+import "@/Appearance/Platinum";
 import {
 	getAllThemes,
 	getTheme,

@@ -1,9 +1,6 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import {
-	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
-	getClassicyAppearancePackage,
-} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import type {
 	ClassicyStoreSystemAppearanceManager,
 	ClassicyTheme,
@@ -40,19 +37,17 @@ const themePackageId = (theme: Pick<ClassicyTheme, "package">): string =>
 	theme.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
 
 /**
- * The package whose built-ins can be read now: a registered one, or, for the
- * default id, Platinum's structure (`CLASSICY_FALLBACK_APPEARANCE_PACKAGE`)
- * while it is not registered yet, as `ClassicyDesktopChangeAppearancePackage`
- * resolves it. Any other unregistered id: `undefined` (H-R17: the load path
- * runs before a host registers its package).
+ * The package whose built-ins can be read now: a registered one, else
+ * `undefined` (H-R17: the load path runs before a host registers its
+ * package). The default id gets no special case: the store loads before
+ * Platinum registers, and the fallback package holds only the core theme
+ * (`CLASSICY_FALLBACK_APPEARANCE_PACKAGE`), so a saved Platinum preset stays
+ * pending until Platinum's registration resolves it.
  */
 export const knownClassicyThemePackage = (
 	packageId: string,
 ): ClassicyAppearancePackage | undefined =>
-	getClassicyAppearancePackage(packageId) ??
-	(packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
-		? CLASSICY_FALLBACK_APPEARANCE_PACKAGE
-		: undefined);
+	getClassicyAppearancePackage(packageId);
 
 /**
  * One of a package's own themes (its defaults or a preset) as the theme a
@@ -122,7 +117,7 @@ const activeBuiltIn = (
  * The reference `activeTheme` is persisted as, or `undefined` to persist it
  * whole: a reference when it is not a custom theme and its id names one of
  * its own package's built-ins (its defaults or presets; that package
- * registered, or Platinum). Its data is never consulted, since the load path
+ * registered). Its data is never consulted, since the load path
  * replaces such a theme by the preset anyway. Kept whole: a custom theme, a
  * host-loaded theme (`availableThemes`, not a built-in of the code), and a
  * theme of a package not registered yet.

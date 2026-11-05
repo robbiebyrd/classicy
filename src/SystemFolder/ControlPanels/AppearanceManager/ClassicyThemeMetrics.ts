@@ -1,4 +1,4 @@
-import platinumJson from "@/Appearance/Platinum/platinum.json";
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 import type {
 	ClassicyTheme,
 	ClassicyThemeCoreMeasurements,
@@ -20,9 +20,10 @@ import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge
  *
  * Every built-in theme carries this block in `platinum.json`; a theme loaded
  * from an older build or an older theme file is completed with these values
- * by `withDefaultThemeMetrics`. Platinum's further families (`controlStrip`,
- * `pager`, …) live only in `platinum.json`'s `defaults.measurements` and are
- * filled the same way (`classicyThemeMeasurementDefaults`).
+ * by `withDefaultThemeMetrics`. The structural knob families (`controlStrip`,
+ * `pager`, …) live in the core floor (`CLASSICY_CORE_MEASUREMENT_DEFAULTS`)
+ * and a package's own `defaults.measurements`, and are filled the same way
+ * (`classicyThemeMeasurementDefaults`).
  */
 export const CLASSICY_DEFAULT_THEME_METRICS: Readonly<ClassicyThemeCoreMeasurements> =
 	{
@@ -255,15 +256,6 @@ const mergeMeasurementDefaults = (
 	return Object.freeze(merged);
 };
 
-// The floor every theme is filled to: the core five, then Platinum's
-// families (platinum.json, read as data, so it is there however early this
-// module evaluates). Base SCSS reads Platinum's knob variables for every
-// package (H-R13), so every package's defaults start from these.
-const PLATINUM_MEASUREMENT_DEFAULTS = mergeMeasurementDefaults(
-	CLASSICY_DEFAULT_THEME_METRICS,
-	platinumJson.defaults.measurements,
-);
-
 // One merge per package `defaults.measurements` object: getThemeVars asks on
 // every render. A re-registered package brings a new object, so a new entry.
 const packageDefaultsCache = new WeakMap<
@@ -272,28 +264,30 @@ const packageDefaultsCache = new WeakMap<
 >();
 
 /**
- * The measurements a theme of `packageId` is completed with: Platinum's
- * `defaults.measurements` (the core five and every Platinum family), with the
- * registered package's own `defaults.measurements` merged in key by key, the
- * package's values winning (`getRegisteredClassicyAppearancePackageOrDefault`:
- * an unknown or missing id falls back to the registered default package, and
- * with none registered the result is Platinum's).
+ * The measurements a theme of `packageId` is completed with: the core floor
+ * (`CLASSICY_CORE_MEASUREMENT_DEFAULTS`: the core five and every structural
+ * knob), with the registered package's own `defaults.measurements` merged in
+ * key by key, the package's values winning
+ * (`getRegisteredClassicyAppearancePackageOrDefault`: an unknown or missing
+ * id falls back to the registered default package, and with none registered
+ * the result is the core floor alone).
  *
  * Key by key, not family by family: a package that declares part of a
- * family (`controlStrip { cellHeight, tabWidth }`) keeps the Platinum keys it
- * leaves out, since base stylesheets read them. Frozen, and the same object
- * for the same package registration.
+ * family (`controlStrip { cellHeight, tabWidth }`) keeps the floor's keys it
+ * leaves out, since base stylesheets read them. A package's look-only knobs
+ * (Platinum's `menuFrame`, say) come from its own values alone. Frozen, and
+ * the same object for the same package registration.
  */
 export function classicyThemeMeasurementDefaults(
 	packageId: string | undefined,
 ): ClassicyThemeMeasurements {
 	const own = getClassicyPackageMeasurements(packageId);
 	if (!isPlainObject(own)) {
-		return PLATINUM_MEASUREMENT_DEFAULTS as ClassicyThemeMeasurements;
+		return CLASSICY_CORE_MEASUREMENT_DEFAULTS as ClassicyThemeMeasurements;
 	}
 	let merged = packageDefaultsCache.get(own);
 	if (merged === undefined) {
-		merged = mergeMeasurementDefaults(PLATINUM_MEASUREMENT_DEFAULTS, own);
+		merged = mergeMeasurementDefaults(CLASSICY_CORE_MEASUREMENT_DEFAULTS, own);
 		packageDefaultsCache.set(own, merged);
 	}
 	return merged as ClassicyThemeMeasurements;

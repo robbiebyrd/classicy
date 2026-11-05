@@ -1,7 +1,5 @@
-import {
-	getTheme,
-	getThemeVars,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { getThemeVars } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // Render and handler code only. This module evaluates getThemeVars at
@@ -10,10 +8,12 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 let defaultThemeVars: Record<string, string> | undefined;
 
-// The default theme (the Platinum preset) never changes at runtime, so its
-// variables are computed once, on first use, rather than per read.
+// The default theme (the core's own, CLASSICY_CORE_DEFAULT_THEME: the core
+// floor's measurements, whatever package registers) never changes at
+// runtime, so its variables are computed once, on first use, rather than per
+// read.
 const getDefaultThemeVars = (): Record<string, string> => {
-	defaultThemeVars ??= getThemeVars(getTheme("default")) as Record<
+	defaultThemeVars ??= getThemeVars(CLASSICY_CORE_DEFAULT_THEME) as Record<
 		string,
 		string
 	>;

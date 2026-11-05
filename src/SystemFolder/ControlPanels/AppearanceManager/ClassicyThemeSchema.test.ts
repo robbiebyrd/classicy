@@ -3,6 +3,8 @@ import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
 // The schema does not register Platinum's sound pack; the bundled themes name
 // it, so this file registers it explicitly.
 import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
+// getTheme/getAllThemes serve the registered packages' themes: Platinum's.
+import "@/Appearance/Platinum";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,

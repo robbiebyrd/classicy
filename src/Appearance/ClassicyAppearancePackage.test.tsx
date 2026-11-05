@@ -20,11 +20,9 @@ import {
 	useActiveClassicyAppearancePackage,
 	useClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
-import {
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
@@ -310,17 +308,20 @@ describe("resolveClassicyAppearancePackage", () => {
 });
 
 describe("CLASSICY_FALLBACK_APPEARANCE_PACKAGE", () => {
-	it("is Platinum's structure-only render: defaults, presets and layout, no css", () => {
+	it("is the core's structure-only render: the core theme and layout, no css", () => {
 		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE).toMatchObject({
 			id: "platinum",
 			name: "Platinum",
 			css: "",
 			layout: PLATINUM_LAYOUT,
 		});
+		// The core's own data, never Platinum's presets (plan 0014-ahm).
 		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults).toBe(
-			getTheme("default"),
+			CLASSICY_CORE_DEFAULT_THEME,
 		);
-		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toBe(getAllThemes());
+		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toEqual([
+			CLASSICY_CORE_DEFAULT_THEME,
+		]);
 		expect(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.hooks).toBeUndefined();
 	});
 
@@ -425,9 +426,9 @@ describe("module load order", () => {
 			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults.id).toBe(
 				"default",
 			);
-			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toHaveLength(
-				21,
-			);
+			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.presets).toEqual([
+				fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults,
+			]);
 			expect(fresh.CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout).toEqual(
 				PLATINUM_LAYOUT,
 			);

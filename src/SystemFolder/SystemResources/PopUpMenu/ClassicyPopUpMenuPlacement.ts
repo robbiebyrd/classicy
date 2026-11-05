@@ -17,7 +17,7 @@
 // The menu is rendered into a `position: fixed` portal, so it cannot rely on the
 // layout engine to keep itself on screen — the policy clamps both the top and
 // the height to the viewport, and the list scrolls internally past the cap.
-import platinumJson from "@/Appearance/Platinum/platinum.json";
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 
 /** Gutter left between the menu and the viewport edge. */
 export const POPUP_MENU_VIEWPORT_MARGIN = 4;
@@ -62,14 +62,14 @@ export type ClassicyPopUpMenuPlacementResult = {
  * `maxHeightCap` is the design cap on its height: the theme's
  * `--menu-pop-up-max-height`, which the stylesheet also applies to the single
  * measuring pass. Callers read it with `readClassicyThemeVar` once per
- * opening (G14); omitted, it is Platinum's `menu.popUpMaxHeight`.
+ * opening (G14); omitted, it is the core floor's `menu.popUpMaxHeight`.
  */
 export const classicyPopUpMenuPlacement = (
 	anchor: ClassicyPopUpMenuAnchor,
 	contentHeight: number,
 	viewportHeight: number,
 	selected?: ClassicyPopUpMenuSelectedMetrics | null,
-	maxHeightCap: number = platinumJson.defaults.measurements.menu.popUpMaxHeight,
+	maxHeightCap: number = CLASSICY_CORE_MEASUREMENT_DEFAULTS.menu.popUpMaxHeight,
 ): ClassicyPopUpMenuPlacementResult => {
 	const margin = POPUP_MENU_VIEWPORT_MARGIN;
 

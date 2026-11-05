@@ -1,4 +1,4 @@
-import platinumJson from "@/Appearance/Platinum/platinum.json";
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 import type {
 	ClassicyThemeDesktop,
 	ClassicyThemeMeasurements,
@@ -41,12 +41,12 @@ const padding = (i: ClassicyThemeDerivationInputs): number =>
 const border = (i: ClassicyThemeDerivationInputs): number =>
 	i.measurements.window.borderSize;
 const ui = (i: ClassicyThemeDerivationInputs): number => i.typography.uiSize;
-// A package knob, not a core input: `getThemeVars` heals the theme from the
-// package floor before deriving, so Platinum's band is the fallback for a
-// caller that derives from unhealed measurements.
+// A structural knob, not a core input: `getThemeVars` heals the theme from
+// the package floor before deriving, so the core floor's band is the fallback
+// for a caller that derives from unhealed measurements.
 const stripeWidth = (i: ClassicyThemeDerivationInputs): number =>
 	i.measurements.progressBar?.stripeWidth ??
-	platinumJson.defaults.measurements.progressBar.stripeWidth;
+	CLASSICY_CORE_MEASUREMENT_DEFAULTS.progressBar.stripeWidth;
 
 /**
  * The Platinum proportions every stylesheet and the window geometry share,

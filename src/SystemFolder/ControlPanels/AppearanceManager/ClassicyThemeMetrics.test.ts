@@ -2,11 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+// Platinum registered: "platinum" (and an unknown id) completes from its
+// defaults over the core floor.
+import "@/Appearance/Platinum";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	getAllThemes,
@@ -202,8 +208,12 @@ const partialPack = (): ClassicyAppearancePackage => {
 };
 
 describe("classicyThemeMeasurementDefaults", () => {
+	const platinum = getClassicyAppearancePackage("platinum");
+
 	afterEach(() => {
 		unregisterClassicyAppearancePackage(PARTIAL_PACK_ID);
+		if (platinum && !getClassicyAppearancePackage("platinum"))
+			registerClassicyAppearancePackage(platinum);
 	});
 
 	it("classicyThemeMeasurementDefaults carries the Platinum knob families", () => {
@@ -234,13 +244,30 @@ describe("classicyThemeMeasurementDefaults", () => {
 		}
 	});
 
-	it("carries the core five and every Platinum family", () =>
-		expect(Object.keys(classicyThemeMeasurementDefaults("platinum"))).toEqual([
-			...Object.keys(CLASSICY_DEFAULT_THEME_METRICS),
-			...PLATINUM_KNOB_FAMILIES,
-		]));
+	it("is the core floor alone while no package is registered", () => {
+		resetClassicyAppearancePackagesForTests();
+		for (const id of ["platinum", "nope", undefined]) {
+			expect(classicyThemeMeasurementDefaults(id), String(id)).toBe(
+				CLASSICY_CORE_MEASUREMENT_DEFAULTS,
+			);
+		}
+		// Platinum's look-only knobs are its own, never the core's.
+		expect(classicyThemeMeasurementDefaults("platinum")).not.toHaveProperty(
+			"menuFrame",
+		);
+	});
 
-	it("merges a package's partial family key by key over Platinum's", () => {
+	it("carries the core five and every Platinum family", () =>
+		expect(
+			Object.keys(classicyThemeMeasurementDefaults("platinum")).sort(),
+		).toEqual(
+			[
+				...Object.keys(CLASSICY_DEFAULT_THEME_METRICS),
+				...PLATINUM_KNOB_FAMILIES,
+			].sort(),
+		));
+
+	it("merges a package's partial family key by key over the core floor", () => {
 		registerClassicyAppearancePackage(partialPack());
 		const d = classicyThemeMeasurementDefaults(PARTIAL_PACK_ID);
 		// The package's own values win, its own keys and families are kept…
@@ -248,13 +275,15 @@ describe("classicyThemeMeasurementDefaults", () => {
 		expect(d.controlStrip.tabWidth).toBe(12);
 		expect(d.menuBar).toEqual({ barHeight: 20 });
 		expect(d.window.borderSize).toBe(2);
-		// …and every Platinum key it leaves out comes from Platinum.
+		// …and every structural key it leaves out comes from the core floor;
+		// Platinum's look-only bevelWidth is Platinum's alone.
 		for (const key of Object.keys(
-			platinumJson.defaults.measurements.controlStrip,
+			CLASSICY_CORE_MEASUREMENT_DEFAULTS.controlStrip,
 		)) {
 			expect(typeof d.controlStrip[key], key).toBe("number");
 		}
-		expect(Object.keys(d.controlStrip)).toHaveLength(15);
+		expect(d.controlStrip).not.toHaveProperty("bevelWidth");
+		expect(Object.keys(d.controlStrip)).toHaveLength(14);
 		expect(d.pager.arrowWidth).toBe(42);
 	});
 
@@ -394,7 +423,7 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 		expect(again).toBe(filled);
 	});
 
-	it("a Test Pack-shaped theme with a partial controlStrip still gets all 14 strip variables", () => {
+	it("a Test Pack-shaped theme with a partial controlStrip still gets all 13 structural strip variables", () => {
 		registerClassicyAppearancePackage(partialPack());
 		const base = getTheme("default");
 		const vars = getThemeVars({
@@ -409,13 +438,15 @@ describe("withDefaultThemeMetrics with package defaults", () => {
 			name.startsWith("--control-strip-"),
 		);
 		for (const key of Object.keys(
-			platinumJson.defaults.measurements.controlStrip,
+			CLASSICY_CORE_MEASUREMENT_DEFAULTS.controlStrip,
 		)) {
 			expect(vars, key).toHaveProperty(
 				classicyMeasurementVarName("controlStrip", key),
 			);
 		}
-		expect(strip).toHaveLength(15);
+		// The look-only bevel is Platinum's: the package declares none.
+		expect(vars).not.toHaveProperty("--control-strip-bevel-width");
+		expect(strip).toHaveLength(14);
 		expect(vars["--strip-menu-overlap"]).toBe("3px");
 		expect(vars["--control-strip-cell-height"]).toBe("30px");
 		expect(vars["--control-strip-tab-width"]).toBe("12px");

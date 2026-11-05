@@ -11,7 +11,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { isThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
-import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
+import {
+	classicyWallpaperFilename,
+	resolveWallpaper,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const PRESET_IDS = [
@@ -76,13 +79,34 @@ describe("the Platinum appearance package", () => {
 		});
 	});
 
-	it("registers the themes getAllThemes() serves, like the fallback package", async () => {
+	it("registers its own themes, which getAllThemes() serves", async () => {
 		await import("@/Appearance/Platinum");
 		const pkg = getClassicyAppearancePackage("platinum");
-		expect(pkg?.presets).toBe(getAllThemes());
+		expect(pkg?.presets).toEqual(getAllThemes());
+		getAllThemes().forEach((theme, i) => {
+			expect(theme).toBe(pkg?.presets?.[i]);
+		});
+		// The defaults are the `default` preset itself.
 		expect(pkg?.defaults).toBe(getTheme("default"));
-		expect(pkg?.defaults).toBe(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.defaults);
+		expect(pkg?.defaults).toBe(pkg?.presets?.[0]);
 		expect(pkg?.layout).toEqual(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout);
+	});
+
+	it("completes each preset: wallpaper resolved, every knob family filled", async () => {
+		await import("@/Appearance/Platinum");
+		const pkg = getClassicyAppearancePackage("platinum");
+		const m = platinumJson.defaults.measurements;
+		for (const theme of pkg?.presets ?? []) {
+			expect(theme.package).toBe("platinum");
+			// The look-only knobs too: they are Platinum's, not the core floor's.
+			expect(theme.measurements.menuFrame).toEqual(m.menuFrame);
+			expect(theme.measurements.controlStrip).toEqual(m.controlStrip);
+			expect(Object.keys(theme.measurements)).toEqual(Object.keys(m));
+			const raw = platinumJson.presets.find((t) => t.id === theme.id);
+			expect(theme.desktop.backgroundImage).toBe(
+				resolveWallpaper(raw?.desktop.backgroundImage ?? ""),
+			);
+		}
 	});
 
 	it("names its sound pack, registered once by the sounds module", async () => {

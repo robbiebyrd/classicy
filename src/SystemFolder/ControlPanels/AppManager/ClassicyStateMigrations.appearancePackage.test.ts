@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+// A theme list to migrate: Platinum's built-ins (the default state lists
+// none; ClassicyDesktop loads them on mount).
+import "@/Appearance/Platinum";
+import { getAllThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
@@ -16,6 +20,9 @@ const deepFreeze = <T>(value: T): T => {
 /** DefaultAppManagerState as a build before Appearance Packages saved it. */
 const withoutPackages = (): ClassicyStore => {
 	const state = structuredClone(DefaultAppManagerState);
+	state.System.Manager.Appearance.availableThemes = structuredClone(
+		getAllThemes(),
+	);
 	const appearance = state.System.Manager.Appearance as Partial<
 		typeof state.System.Manager.Appearance
 	>;

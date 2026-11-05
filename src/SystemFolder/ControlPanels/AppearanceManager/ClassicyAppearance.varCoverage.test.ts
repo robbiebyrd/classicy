@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+// getTheme/getAllThemes serve the registered packages' themes: Platinum's.
+import "@/Appearance/Platinum";
 import {
 	getTheme,
 	getThemeVars,

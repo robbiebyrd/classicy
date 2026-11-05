@@ -1,8 +1,7 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
-// Data, not the package module: the default app-manager state reads these
-// themes at module evaluation and must never wait on the side-effect import
-// that registers the Platinum package (src/Appearance/Platinum/index.ts).
-import platinumJson from "@/Appearance/Platinum/platinum.json";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { listClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	intToPct,
@@ -14,7 +13,6 @@ import {
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 
@@ -328,37 +326,44 @@ export function withDefaultThemePackageList(
 	return next ?? themes;
 }
 
-/**
- * The built-in themes are the Platinum package's presets (`platinum.json`).
- * They name their wallpapers; the bundler owns the URLs. Resolving once
- * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
- * default app-manager state — gets a background image that actually loads.
- */
-const resolvedThemes = (platinumJson.presets as unknown as ClassicyTheme[]).map(
-	(theme) =>
-		withDefaultThemePackage(
-			withDefaultThemeMetrics(
-				{
-					...theme,
-					desktop: {
-						...theme.desktop,
-						backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-					},
-				},
-				// The presets carry only the core five; Platinum's families are
-				// in `defaults.measurements` alone and filled here (H-R8).
-				classicyThemeMeasurementDefaults(theme.package),
-			),
-		),
-);
+// The packages `getAllThemes` last read, and the themes it built from them:
+// the registry publishes a new list on every change, so the same list means
+// the same themes.
+let themesFrom: readonly ClassicyAppearancePackage[] | undefined;
+let themes: ClassicyTheme[] = [];
 
+/**
+ * The built-in themes of every registered Appearance Package, in registration
+ * order: each package's `defaults` (unless a preset has their id) and its
+ * `presets`, as the package registered them (Platinum resolves its own
+ * wallpapers and completes its own metrics). While no package is registered,
+ * the core's own default theme alone (`CLASSICY_CORE_DEFAULT_THEME`: no
+ * wallpaper, the core floor's measurements). The same array until the
+ * registry changes.
+ */
 export const getAllThemes = (): ClassicyTheme[] => {
-	return resolvedThemes;
+	const packages = listClassicyAppearancePackages();
+	if (packages !== themesFrom) {
+		themesFrom = packages;
+		themes = packages.flatMap(({ defaults, presets = [] }) =>
+			presets.some((t) => t.id === defaults.id)
+				? presets
+				: [defaults, ...presets],
+		);
+		if (themes.length === 0) themes = [CLASSICY_CORE_DEFAULT_THEME];
+	}
+	return themes;
 };
 
+/**
+ * The built-in theme with id `theme` (`getAllThemes`: the first registered
+ * package that has one), else the first built-in theme, deep-merged with
+ * `overrides` into a copy when given. With no package registered every id
+ * names the core default theme.
+ */
 export const getTheme = (theme: string, overrides?: object) => {
-	const namedThemeData =
-		resolvedThemes.find((t) => t.id === theme) || resolvedThemes[0];
+	const all = getAllThemes();
+	const namedThemeData = all.find((t) => t.id === theme) || all[0];
 	const updatedTheme = overrides
 		? mergeDeep(
 				structuredClone(namedThemeData) as Record<string, unknown>,

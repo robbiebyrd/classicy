@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInThemes";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	registerClassicyAppearancePackage,
@@ -23,8 +24,6 @@ import {
 	type ActionMessage,
 	type ClassicyStore,
 	classicyDesktopStateEventReducer,
-	DefaultAppManagerState,
-	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	type ClassicyLogEntry,
@@ -32,8 +31,8 @@ import {
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
-const makeStore = (): ClassicyStore =>
-	mergeClassicyState(DefaultAppManagerState, {});
+// A deep, unaliased copy of the default state with every built-in theme.
+const makeStore = (): ClassicyStore => defaultStateWithPlatinumThemes();
 
 const appearance = (ds: ClassicyStore) => ds.System.Manager.Appearance;
 

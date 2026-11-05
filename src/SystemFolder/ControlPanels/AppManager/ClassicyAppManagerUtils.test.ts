@@ -364,18 +364,24 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 	});
 
 	// State saved before custom themes (v0.83) edited a built-in in place.
-	// Built-ins come from the code on load, so such an edit gives way to the
-	// preset's own wallpaper.
+	// Built-ins come from the code, so such an edit gives way to the preset's
+	// own wallpaper once the preset's package registers (the store loads
+	// first, as the library barrel loads them).
 	it("replaces a background set on a built-in theme with the preset's", async () => {
+		await hydrateBackground("https://example.com/my-wallpaper.png", "default");
+		await import("@/Appearance/Platinum");
 		const { getTheme } = await import(
 			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
 		);
+		const { useAppManager } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const preset = getTheme("default").desktop.backgroundImage;
+		expect(preset).not.toBe("");
 		expect(
-			await hydrateBackground(
-				"https://example.com/my-wallpaper.png",
-				"default",
-			),
-		).toBe(getTheme("default").desktop.backgroundImage);
+			useAppManager.getState().System.Manager.Appearance.activeTheme.desktop
+				.backgroundImage,
+		).toBe(preset);
 	});
 
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {

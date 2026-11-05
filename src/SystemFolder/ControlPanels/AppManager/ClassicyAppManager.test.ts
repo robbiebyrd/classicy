@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
@@ -2043,18 +2044,19 @@ describe("keyboard shortcut registry reducer", () => {
 	});
 });
 
-// Module-evaluation order: the default state reads Platinum's presets as data
-// (platinum.json), so it never waits on the side-effect module that registers
-// the package. This file must not import "@/Appearance/Platinum".
+// Module-evaluation order: the default state is the core's own data
+// (ClassicyCoreTheme.ts), so it never waits on the side-effect module that
+// registers a package. This file must not import "@/Appearance/Platinum".
 describe("DefaultAppManagerState without the Platinum package module", () => {
-	it("offers the 21 Platinum presets", () => {
+	it("starts from the core default theme and lists no built-ins", () => {
 		expect(getClassicyAppearancePackage("platinum")).toBeUndefined();
-		const { availableThemes, activeTheme } =
+		const { availableThemes, activeTheme, packageId } =
 			DefaultAppManagerState.System.Manager.Appearance;
-		expect(availableThemes).toHaveLength(21);
-		expect(availableThemes?.map((t) => t.id)).toEqual(
-			platinumJson.presets.map((t) => t.id),
-		);
-		expect(activeTheme.id).toBe("default");
+		expect(packageId).toBe("platinum");
+		// Built-ins come from the registered packages, which register later.
+		expect(availableThemes).toEqual([]);
+		expect(activeTheme).toBe(CLASSICY_CORE_DEFAULT_THEME);
+		expect(activeTheme.id).toBe(platinumJson.defaults.id);
+		expect(activeTheme.desktop.backgroundImage).toBe("");
 	});
 });

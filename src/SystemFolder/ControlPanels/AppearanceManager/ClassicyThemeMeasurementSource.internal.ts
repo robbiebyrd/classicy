@@ -9,7 +9,8 @@
 // would close that loop, and whichever of the three a bundle reached first,
 // one would read another's constants in their temporal dead zone. The
 // registry sets the lookup instead. Until it has evaluated no package can be
-// registered, so "no lookup" and "no package" mean the same thing: Platinum.
+// registered, so "no lookup" and "no package" mean the same thing: the core
+// floor (ClassicyCoreTheme.ts).
 
 /** A registered package's `defaults.measurements`, by package id (the
  * registered default package for an unknown or missing id). */

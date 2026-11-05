@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
 import "@/Appearance/Platinum/assets/sounds/platinum";
+// A theme list to migrate: Platinum's built-ins (the default state lists
+// none; ClassicyDesktop loads them on mount).
+import "@/Appearance/Platinum";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { getAllThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
@@ -41,7 +45,7 @@ const badState = (): ClassicyStore => {
 				Appearance: {
 					...appearance,
 					activeTheme: withBadSizes(appearance.activeTheme),
-					availableThemes: (appearance.availableThemes ?? []).map(withBadSizes),
+					availableThemes: getAllThemes().map(withBadSizes),
 					customThemes: [
 						{
 							...withBadSizes(appearance.activeTheme),

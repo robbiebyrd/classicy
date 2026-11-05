@@ -86,7 +86,7 @@ const warnedPackages = new Set<string>();
 // The theme's value for each knob. When the theme lacks it (it predates the
 // knob, or persistence dropped a value equal to the package default, H-R17;
 // the reducer creates the key on the first edit), the value getThemeVars
-// draws: the theme's package defaults over the Platinum floor
+// draws: the theme's package defaults over the core floor
 // (`classicyThemeMeasurementDefaults`, H-R29c). Only a knob with no
 // measurement default anywhere shows its own `default`.
 const knobFamilyValues = (

@@ -36,6 +36,9 @@ const boot = async (saved?: unknown) => {
 	await import("@/Appearance/Platinum/assets/sounds/platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
+	// Platinum registers after the store, as the library barrel loads them:
+	// its built-ins come from its registration, not from the store's load.
+	await import("@/Appearance/Platinum");
 	return {
 		store,
 		appearance: await import(APPEARANCE),
@@ -53,13 +56,17 @@ const saved = (b: Booted) =>
 
 /**
  * State as a build before this change persisted it: the default state with
- * every built-in stored whole, edited by `edit`.
+ * every built-in stored whole (the list a mounted desktop had loaded), edited
+ * by `edit`.
  */
 const legacySaved = async (
 	edit: (appearance: ClassicyStore["System"]["Manager"]["Appearance"]) => void,
 ) => {
 	const b = await boot();
 	const state = JSON.parse(JSON.stringify(b.state())) as ClassicyStore;
+	state.System.Manager.Appearance.availableThemes = JSON.parse(
+		JSON.stringify(b.appearance.getAllThemes()),
+	);
 	edit(state.System.Manager.Appearance);
 	return state;
 };
@@ -104,6 +111,10 @@ describe("built-in themes are not persisted", () => {
 	it("persists no availableThemes and a built-in active theme as its id and package", async () => {
 		const b = await boot();
 		b.store.dispatch({
+			type: "ClassicyDesktopLoadThemes",
+			availableThemes: b.appearance.getAllThemes(),
+		});
+		b.store.dispatch({
 			type: "ClassicyDesktopChangeTheme",
 			activeTheme: "azul",
 		});
@@ -144,9 +155,9 @@ describe("hydrate takes built-ins from the code", () => {
 		});
 		const b = await boot(legacy);
 		const a = b.state().System.Manager.Appearance;
-		expect(a.availableThemes?.map(strip)).toEqual(
-			b.appearance.getAllThemes().map(strip),
-		);
+		// None comes back: the default state's list applies, which is empty
+		// until a desktop mounts and loads getAllThemes().
+		expect(a.availableThemes).toEqual([]);
 	});
 
 	it("leaves custom themes alone", async () => {

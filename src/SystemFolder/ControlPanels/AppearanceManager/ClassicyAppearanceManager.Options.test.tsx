@@ -17,6 +17,7 @@ import {
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
@@ -164,7 +165,7 @@ describe("useOptionsTab", () => {
 	});
 
 	// H-R29c: a missing value shows what getThemeVars draws, the theme's
-	// package defaults over the Platinum floor, not the knob's own default.
+	// package defaults over the core floor, not the knob's own default.
 	it("shows the value getThemeVars draws when the theme lacks one, not knob.default", () => {
 		const mismatchKnobs: ClassicyAppearanceKnobs = {
 			controlStrip: {
@@ -728,10 +729,12 @@ describe("Appearance Manager — Packages and Options tabs", {
 		});
 		fireEvent.change(cellHeight, { target: { value: "30" } });
 		// Test Pack declares two strip keys; the switch fills the other
-		// Platinum strip keys (H-R2), and the edit changes only cellHeight.
+		// structural strip keys from the core floor (H-R2; Platinum's
+		// look-only bevelWidth is not one), and the edit changes only
+		// cellHeight.
 		await waitFor(() => {
 			expect(appearance().activeTheme.measurements.controlStrip).toEqual({
-				...platinumJson.defaults.measurements.controlStrip,
+				...CLASSICY_CORE_MEASUREMENT_DEFAULTS.controlStrip,
 				cellHeight: 30,
 				tabWidth: 12,
 			});
