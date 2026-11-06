@@ -47,7 +47,7 @@
 //
 // 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
 //    Platinum .woff2 fonts plus the Platinum art (svg/png): exactly the
-//    names in src/Appearance/Platinum/assets/art (classicyDistAssets.ts), so
+//    names in packages/appearance/platinum/src/assets/art (classicyDistAssets.ts), so
 //    a file that goes missing or lingers fails by name. The ES bundle
 //    resolves them with `new URL("assets/...", import.meta.url)`. They ship
 //    exactly as authored: no .webp, only .woff2/.svg/.png references, and a
@@ -134,7 +134,7 @@ import { statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { argv, exit } from "node:process";
-import { PLATINUM_FONT_FACES } from "../src/Appearance/Platinum/assets/platinumFonts.internal.ts";
+import { PLATINUM_FONT_FACES } from "../packages/appearance/platinum/src/assets/platinumFonts.internal.ts";
 import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
@@ -366,7 +366,8 @@ if (!argv.slice(2).length) {
 			`${es}: ${refs.length} file asset reference(s), all as authored`,
 		);
 	}
-	const svgSource = "src/Appearance/Platinum/assets/art/slider-strikes.svg";
+	const svgSource =
+		"packages/appearance/platinum/src/assets/art/slider-strikes.svg";
 	const [authored, shipped] = await Promise.all([
 		readFile(svgSource).catch(() => null),
 		readFile(join(DIST, "assets", "slider-strikes.svg")).catch(() => null),

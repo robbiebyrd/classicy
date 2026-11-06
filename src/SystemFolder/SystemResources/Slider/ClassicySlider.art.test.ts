@@ -1,6 +1,10 @@
 import { compile } from "sass";
 import { describe, expect, it } from "vitest";
-import { parseCssRules } from "@/__tests__/compiledCss";
+import {
+	PLATINUM_STYLES_DIR,
+	parseCssRules,
+	platinumSassOptions,
+} from "@/__tests__/compiledCss";
 
 /**
  * The Platinum slider thumb (Part E 3.1) draws its outline, its rounded-knob
@@ -15,8 +19,8 @@ import { parseCssRules } from "@/__tests__/compiledCss";
  * `platinum.scss`. Sass prints `a / b` in a background layer as `a/b`.
  */
 
-const css = compile("src/Appearance/Platinum/styles/platinum.scss", {
-	loadPaths: ["src"],
+const css = compile(`${PLATINUM_STYLES_DIR}/platinum.scss`, {
+	...platinumSassOptions(),
 }).css;
 const base = compile(
 	"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss",

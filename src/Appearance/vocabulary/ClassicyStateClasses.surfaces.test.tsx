@@ -320,6 +320,7 @@ const compile = (relative: string) =>
 	sass.compile(resolve(root, relative), {
 		style: "expanded",
 		loadPaths: [resolve(root, "src")],
+		importers: [new sass.NodePackageImporter()],
 	}).css;
 const source = (relative: string) =>
 	readFileSync(resolve(root, relative), "utf8");
@@ -478,13 +479,13 @@ describe("compiled SCSS of the touched surfaces", () => {
 	it("the Platinum mixins no longer ship the global .hidden utility", () => {
 		const css = compile(`${R}Window/ClassicyWindow.scss`);
 		expect(css).not.toMatch(/^\.hidden \{/m);
-		expect(source("src/Appearance/Platinum/styles/_mixins.scss")).not.toMatch(
-			/^\.hidden \{/m,
-		);
+		expect(
+			source("packages/appearance/platinum/src/styles/_mixins.scss"),
+		).not.toMatch(/^\.hidden \{/m);
 		// The whole Platinum package, compiled, has no top-level .hidden either.
-		expect(compile("src/Appearance/Platinum/styles/platinum.scss")).not.toMatch(
-			/^\.hidden \{/m,
-		);
+		expect(
+			compile("packages/appearance/platinum/src/styles/platinum.scss"),
+		).not.toMatch(/^\.hidden \{/m);
 	});
 
 	it.each([

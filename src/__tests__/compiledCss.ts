@@ -9,6 +9,23 @@ import * as sass from "sass";
  * scoped under the desktop root, as well as an unindented base sheet.
  */
 
+/**
+ * Platinum's source, the workspace package @classicy/appearance-platinum
+ * (plan 0015-kxa §3.1), and its stylesheets, relative to the repo root.
+ */
+export const PLATINUM_SRC_DIR = "packages/appearance/platinum/src";
+export const PLATINUM_STYLES_DIR = `${PLATINUM_SRC_DIR}/styles`;
+
+/**
+ * Sass options for compiling Platinum's stylesheets the way the builds do: its
+ * sheets reach the core's vocabulary as `pkg:@classicy/classicy/scss/*`, and
+ * `src` is the core's load path (for test sources that `@use` core modules).
+ */
+export const platinumSassOptions = (): {
+	loadPaths: string[];
+	importers: sass.NodePackageImporter[];
+} => ({ loadPaths: ["src"], importers: [new sass.NodePackageImporter()] });
+
 /** The Platinum package root every package rule is scoped under. */
 export const PLATINUM_ROOT =
 	".classicyDesktop[data-classicy-appearance=platinum]";
@@ -20,7 +37,10 @@ export const PLATINUM_ROOT =
  * which is vitest's root (jsdom leaves `import.meta.url` a non-file URL).
  */
 export const compileScss = (file: string): string =>
-	sass.compile(path.resolve(process.cwd(), file), { style: "expanded" }).css;
+	sass.compile(path.resolve(process.cwd(), file), {
+		style: "expanded",
+		importers: [new sass.NodePackageImporter()],
+	}).css;
 
 /** One compiled rule: its selector list and its declaration block. */
 export type CompiledCssRule = { selectors: string[]; body: string };

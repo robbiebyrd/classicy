@@ -98,7 +98,7 @@ const BASE = [
 ].flatMap((file) => parseCssRules(compileScss(file)));
 
 const PLATINUM = parseCssRules(
-	compileScss("src/Appearance/Platinum/styles/platinum.scss"),
+	compileScss("packages/appearance/platinum/src/styles/platinum.scss"),
 );
 
 type Layer = { rules: CompiledCssRule[] };

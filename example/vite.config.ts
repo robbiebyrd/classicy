@@ -1,5 +1,6 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
+import { NodePackageImporter } from "sass";
 import { defineConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
@@ -24,11 +25,15 @@ const liveSourceAliases = [
 		replacement: path.resolve(__dirname, "live-source.css"),
 	},
 	// The core's source registers no Appearance Package; the app imports
-	// Platinum through this subpath, so point it at Platinum's source (the
-	// built subpath is a no-op, since the built bundle still registers it).
+	// Platinum through this subpath, so point it at Platinum's source, the
+	// workspace package packages/appearance/platinum (the built subpath is a
+	// no-op, since the built bundle still registers it).
 	{
 		find: /^@classicy\/classicy\/appearance\/platinum$/,
-		replacement: path.resolve(root, "src/Appearance/Platinum/index.ts"),
+		replacement: path.resolve(
+			root,
+			"packages/appearance/platinum/src/index.ts",
+		),
 	},
 	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
@@ -79,6 +84,13 @@ export default defineConfig(({ command }) => {
 		},
 		build: {
 			sourcemap: true,
+		},
+		// Platinum's SCSS (live source, and the mixins Browser.scss uses) reaches
+		// the core's vocabulary as `pkg:@classicy/classicy/scss/*`.
+		css: {
+			preprocessorOptions: {
+				scss: { importers: [new NodePackageImporter()] },
+			},
 		},
 		resolve: {
 			dedupe: ["react", "react-dom"],

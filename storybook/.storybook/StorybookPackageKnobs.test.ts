@@ -41,7 +41,7 @@ const EXEMPT_MODULES: Readonly<Record<string, string>> = {
 // package's stylesheet is compiled through the sass API. Test Pack and
 // renamed register Platinum's stylesheet, rescoped. vitest's root is the
 // repo root.
-const PLATINUM_SCSS = "src/Appearance/Platinum/styles/platinum.scss";
+const PLATINUM_SCSS = "packages/appearance/platinum/src/styles/platinum.scss";
 const STYLESHEETS: Readonly<Record<string, string>> = {
 	[PLATINUM_APPEARANCE_PACKAGE_ID]: PLATINUM_SCSS,
 	[MIRRORED_APPEARANCE_PACKAGE_ID]: "storybook/.storybook/mirrored.scss",
@@ -55,6 +55,7 @@ const compile = (file: string): string => {
 	if (css === undefined) {
 		css = sass.compile(path.resolve(process.cwd(), file), {
 			style: "expanded",
+			importers: [new sass.NodePackageImporter()],
 		}).css;
 		compiled.set(file, css);
 	}

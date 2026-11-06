@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
 	cssRuleLookup,
 	PLATINUM_ROOT,
+	PLATINUM_STYLES_DIR,
 	parseCssRules,
+	platinumSassOptions,
 } from "@/__tests__/compiledCss";
 
 /**
@@ -23,8 +25,8 @@ import {
  * (ruling E10); the image geometry and the fills stay in the base sheet.
  */
 
-const css = compile("src/Appearance/Platinum/styles/platinum.scss", {
-	loadPaths: ["src"],
+const css = compile(`${PLATINUM_STYLES_DIR}/platinum.scss`, {
+	...platinumSassOptions(),
 }).css;
 const base = compile(
 	"src/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss",

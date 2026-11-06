@@ -355,8 +355,12 @@ describe("compiled SCSS of the touched components", () => {
 		// plus its partial's rules, compiled unscoped.
 		const css = `${compile(`${R}Button/ClassicyButton.scss`)}\n${
 			sass.compileString(
-				'@use "Appearance/Platinum/styles/components/Button";\n@include Button.button;',
-				{ style: "expanded", loadPaths: [resolve(root, "src")] },
+				'@use "styles/components/Button";\n@include Button.button;',
+				{
+					style: "expanded",
+					loadPaths: [resolve(root, "packages/appearance/platinum/src")],
+					importers: [new sass.NodePackageImporter()],
+				},
 			).css
 		}`;
 		expect(css).toContain(":where(.classicyButton).pressed {");

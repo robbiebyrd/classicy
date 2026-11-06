@@ -8,8 +8,9 @@ import type {
 // of every package, so it never reads an Appearance Package's data to render
 // a structure. Plain data, copied from Platinum's `defaults` (its values, so
 // Platinum renders as it always has) and never read from it: the core holds
-// no import of `@/Appearance/Platinum`. ClassicyCoreTheme.test.ts pins every
-// value to platinum.json and the knob set to AGENT-REFERENCE §8's table.
+// no import of Platinum (`@classicy/appearance-platinum`).
+// ClassicyCoreTheme.test.ts pins every value to platinum.json and the knob
+// set to AGENT-REFERENCE §8's table.
 
 /** `value` frozen, and every object and array inside it. */
 const deepFreeze = <T>(value: T): Readonly<T> => {

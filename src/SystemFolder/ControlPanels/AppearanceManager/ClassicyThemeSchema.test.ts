@@ -485,15 +485,8 @@ describe("ClassicyThemeSchema — sound packs", () => {
 		const graph = runtimeImportGraph(
 			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema.ts",
 		);
-		// ClassicyThemeMetrics' read of platinum.json is data, not a module,
-		// and is 1.1's to replace with the core floor.
-		expect(
-			graph.filter(
-				(file) =>
-					file.startsWith("src/Appearance/Platinum/") &&
-					file !== "src/Appearance/Platinum/platinum.json",
-			),
-		).toEqual([]);
+		// Platinum is its own workspace package (plan 0015-kxa §3.1).
+		expect(graph.filter((file) => file.startsWith("packages/"))).toEqual([]);
 	});
 });
 

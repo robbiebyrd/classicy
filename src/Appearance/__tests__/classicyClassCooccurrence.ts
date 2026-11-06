@@ -152,17 +152,22 @@ const readElements = (src: string, known: string[]): Element[] => {
 
 /**
  * Every class a stylesheet under src names (`src/**\/*.scss`, partials
- * skipped, the Appearance Packages' included), compiled, and every class
- * the vocabulary declares: what a template prefix may expand to.
+ * skipped) or a workspace Appearance Package's does
+ * (`packages/appearance/*\/src/**\/*.scss`, Platinum's), compiled, and every
+ * class the vocabulary declares: what a template prefix may expand to.
  */
 export const classicyStylesheetClasses = (root = process.cwd()): string[] => {
 	const known = new Set<string>();
-	for (const rel of globSync("src/**/*.scss", { cwd: root })) {
+	for (const rel of globSync(
+		["src/**/*.scss", "packages/appearance/*/src/**/*.scss"],
+		{ cwd: root },
+	)) {
 		const file = rel.split(sep).join("/");
 		if (basename(file).startsWith("_")) continue;
 		const css = sass.compile(resolve(root, file), {
 			style: "expanded",
 			loadPaths: [resolve(root, "src")],
+			importers: [new sass.NodePackageImporter()],
 		}).css;
 		for (const m of css.matchAll(/\.(classicy[A-Z][\w-]*)/g)) known.add(m[1]);
 	}

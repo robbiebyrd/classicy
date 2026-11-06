@@ -12,9 +12,15 @@ import { describe, expect, it } from "vitest";
  */
 const compileFile = (file: string) =>
 	sass.compile(path.resolve(process.cwd(), file), { style: "expanded" }).css;
+// Platinum's partials are `styles/…` under its package's src/ (plan 0015-kxa
+// §3.1), and reach the vocabulary as `pkg:@classicy/classicy/scss/*`.
 const compileSource = (source: string) =>
 	sass.compileString(source, {
-		loadPaths: [path.resolve(process.cwd(), "src")],
+		loadPaths: [
+			path.resolve(process.cwd(), "src"),
+			path.resolve(process.cwd(), "packages/appearance/platinum/src"),
+		],
+		importers: [new sass.NodePackageImporter()],
 		style: "expanded",
 	}).css;
 
@@ -32,7 +38,7 @@ const controlGroup = compileFile(
 );
 // The QuickTime controller look is in its Platinum partial.
 const quickTime = compileSource(
-	`@use "Appearance/Platinum/styles/components/QuickTimeMovieEmbed" as q;\n@include q.quickTimeMovieEmbed;`,
+	`@use "styles/components/QuickTimeMovieEmbed" as q;\n@include q.quickTimeMovieEmbed;`,
 );
 const finderAbout = compileFile(
 	"src/SystemFolder/Finder/FinderAboutThisComputer.scss",
@@ -40,12 +46,12 @@ const finderAbout = compileFile(
 const webViewer = compileFile("src/SystemFolder/WebViewer/WebViewer.scss");
 // The scroll-bar look is a mixin file: include it on a stand-in selector.
 const scrollbarsFixture = compileSource(
-	`@use "Appearance/Platinum/styles/scrollbars" as s;\n.x { @include s.platinum-scrollbars; }`,
+	`@use "styles/scrollbars" as s;\n.x { @include s.platinum-scrollbars; }`,
 );
 // The halftone is in the Platinum icon partials: include both at the root.
 const halftone = compileSource(
-	`@use "Appearance/Platinum/styles/components/Icon";
-@use "Appearance/Platinum/styles/components/DesktopIcon";
+	`@use "styles/components/Icon";
+@use "styles/components/DesktopIcon";
 @include Icon.icon;
 @include DesktopIcon.desktopIcon;`,
 );

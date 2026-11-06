@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
 	cssRuleLookup,
 	PLATINUM_ROOT,
+	PLATINUM_STYLES_DIR,
 	parseCssRules,
+	platinumSassOptions,
 } from "@/__tests__/compiledCss";
 
 /**
@@ -26,8 +28,8 @@ import {
  * and are scoped under the Platinum desktop root.
  */
 
-const PLATINUM = "src/Appearance/Platinum/styles";
-const css = compile(`${PLATINUM}/platinum.scss`, { loadPaths: ["src"] }).css;
+const PLATINUM = PLATINUM_STYLES_DIR;
+const css = compile(`${PLATINUM}/platinum.scss`, platinumSassOptions()).css;
 const menuCss = compile(
 	"src/SystemFolder/SystemResources/Menu/ClassicyMenu.scss",
 ).css;

@@ -61,8 +61,11 @@ describe("package.json: the Appearance Packages surface", () => {
 			types: "./dist/appearance-platinum.d.ts",
 			default: "./dist/appearance-platinum.js",
 		});
+		// Platinum's SCSS is in its workspace package (plan 0015-kxa §3.1). The
+		// export serves it in the workspace until §3.4 drops it for the
+		// package's own `./scss/*`; the core's tarball holds no packages/.
 		expect(pkg.exports["./appearance/platinum/scss/*"]).toBe(
-			"./src/Appearance/Platinum/styles/*",
+			"./packages/appearance/platinum/src/styles/*",
 		);
 	});
 
@@ -87,9 +90,13 @@ describe("package.json: the Appearance Packages surface", () => {
 		expect(pkg.sideEffects).toContain("**/*.css");
 	});
 
-	it("marks the Platinum entry as a side effect", () => {
-		expect(pkg.sideEffects).toContain("./src/Appearance/Platinum/index.ts");
+	// Platinum's source modules are the workspace package's side effects
+	// (packages/appearance/platinum/package.json), no longer the core's.
+	it("marks the Platinum shim as a side effect, and no Platinum source", () => {
 		expect(pkg.sideEffects).toContain("./dist/appearance-platinum.js");
+		expect(
+			pkg.sideEffects.filter((entry) => entry.includes("Appearance/Platinum")),
+		).toEqual([]);
 	});
 
 	it("points every source export at a directory that exists", () => {
@@ -102,12 +109,14 @@ describe("package.json: the Appearance Packages surface", () => {
 		}
 	});
 
-	// Only the barrel barrelsby generates is ignored, so editing the
-	// hand-written src/Appearance/Platinum/index.ts rebuilds in watch mode.
+	// Only the barrel barrelsby generates is ignored, so editing a
+	// hand-written index.ts (Platinum's, which the build still bundles)
+	// rebuilds in watch mode.
 	it("rebuilds in watch mode when a hand-written index.ts changes", () => {
 		const watch = pkg.scripts["build:watchsource"];
 		expect(watch).not.toContain('--ignore "**/index.ts"');
 		expect(watch).toContain('--ignore "src/index.ts"');
+		expect(watch).toContain('--watch "packages/appearance/platinum/src/**"');
 	});
 });
 
@@ -147,18 +156,17 @@ const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
 		),
 	);
 
-// Every .scss file under the directories the SCSS exports serve.
-const exportedScss = ["./scss/*", "./appearance/platinum/scss/*"].flatMap(
-	(key) => {
-		const dir = (pkg.exports[key] as string)
-			.replace(/^\.\//, "")
-			.replace(/\*$/, "");
-		return readdirSync(path.resolve(root, dir), { recursive: true })
-			.map(String)
-			.filter((file) => file.endsWith(".scss"))
-			.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
-	},
-);
+// Every .scss file under the directories the SCSS exports the core ships
+// serve (Platinum's, in its workspace package, ships with that package).
+const exportedScss = ["./scss/*"].flatMap((key) => {
+	const dir = (pkg.exports[key] as string)
+		.replace(/^\.\//, "")
+		.replace(/\*$/, "");
+	return readdirSync(path.resolve(root, dir), { recursive: true })
+		.map(String)
+		.filter((file) => file.endsWith(".scss"))
+		.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
+});
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -190,7 +198,7 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		expect(exportedScss).toEqual(
 			expect.arrayContaining([
 				"src/Appearance/vocabulary/_layout.scss",
-				"src/Appearance/Platinum/styles/_mixins.scss",
+				"src/Appearance/vocabulary/_color.scss",
 			]),
 		);
 		const shipped = new Set(files(skip));

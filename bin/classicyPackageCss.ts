@@ -86,7 +86,7 @@ export const isSingleClassicyLayerBlock = (
 const PACKAGE_LAYER = "classicy.package";
 
 const missingPackageStylesheet = (file: string) =>
-	`${file}: carries no non-empty @layer ${PACKAGE_LAYER} stylesheet -> the entry bundle must register Platinum's look (check src/Appearance/Platinum/index.ts and its platinum.scss?inline import).`;
+	`${file}: carries no non-empty @layer ${PACKAGE_LAYER} stylesheet -> the entry bundle must register Platinum's look (check packages/appearance/platinum/src/index.ts and its platinum.scss?inline import).`;
 const PACKAGE_BLOCK = /@layer\s+classicy\.package\s*\{/g;
 const PACKAGE_SCOPE = "data-classicy-appearance";
 // The tail of a `classicy.base` block's opening, raw or minified.
@@ -354,11 +354,13 @@ export const requiredClassicyPackageStylesheets = (
 		: CLASSICY_PACKAGE_STYLESHEETS.map(inDist);
 
 // An Appearance Package's stylesheet module, as the library build loads it:
-// `src/Appearance/<Package>/styles/<name>.scss?inline` (Platinum's index.ts
-// imports `./styles/platinum.scss?inline`). Not under node_modules, and not a
-// Sass partial (`_name.scss`), which is never a stylesheet of its own.
+// `packages/appearance/<id>/src/styles/<name>.scss?inline` for a workspace
+// package (Platinum's index.ts imports `./styles/platinum.scss?inline`), or
+// `src/Appearance/<Package>/styles/<name>.scss?inline` for one in the core.
+// Not under node_modules, and not a Sass partial (`_name.scss`), which is
+// never a stylesheet of its own.
 const PACKAGE_STYLESHEET_MODULE =
-	/\/src\/Appearance\/[^/]+\/styles\/([^/_][^/]*)\.scss\?inline$/;
+	/\/(?:src\/Appearance\/[^/]+|packages\/appearance\/[^/]+\/src)\/styles\/([^/_][^/]*)\.scss\?inline$/;
 // The name must be lowercase kebab-case: it becomes dist/classicy-<name>.css,
 // and check-dist-imports.mjs only recognizes such files (invariant 7).
 const PACKAGE_STYLESHEET_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

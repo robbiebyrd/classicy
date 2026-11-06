@@ -477,7 +477,7 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 	// base sheet's fallbacks: nothing left but the exempt `0px` instance ones.
 	it("draws its Platinum bevels and reads its fallbacks without a pixel literal", () => {
 		for (const file of [
-			"src/Appearance/Platinum/styles/components/_ControlStrip.scss",
+			"packages/appearance/platinum/src/styles/components/_ControlStrip.scss",
 			"src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
 		]) {
 			expect(

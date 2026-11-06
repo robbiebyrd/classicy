@@ -11,13 +11,18 @@ import "./MirroredPackage";
 // the stylesheet is compiled through the sass API instead. vitest's root is
 // the repo root.
 const compile = (file: string) =>
-	sass.compile(path.resolve(process.cwd(), file), { style: "expanded" }).css;
+	sass.compile(path.resolve(process.cwd(), file), {
+		style: "expanded",
+		importers: [new sass.NodePackageImporter()],
+	}).css;
 
 /** Sass drops the quotes around an identifier attribute value. */
 const unquote = (css: string) => css.replace(/=["']([^"'\]]*)["']\]/g, "=$1]");
 
 const mirroredCss = compile("storybook/.storybook/mirrored.scss");
-const platinumCss = compile("src/Appearance/Platinum/styles/platinum.scss");
+const platinumCss = compile(
+	"packages/appearance/platinum/src/styles/platinum.scss",
+);
 
 /** The body of a package's one `@layer classicy.package { … }` block. */
 const layerBody = (css: string) => {

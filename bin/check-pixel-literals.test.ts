@@ -1,5 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
 import {
 	type ClassicyPixelLiteral,
 	checkMultiplierAllowlist,
@@ -305,6 +314,38 @@ describe("scanPixelLiterals", () => {
 		expect(source).not.toContain("--write-allowlist");
 		expect(existsSync("bin/pixel-literal-allowlist.json")).toBe(false);
 	});
+});
+
+// Platinum is a workspace package (plan 0015-kxa §3.1): the gate scans each
+// packages/appearance/<id>/src as well as src, so its SCSS stays covered.
+describe("the scanned roots", () => {
+	const root = mkdtempSync(join(tmpdir(), "classicy-pixel-roots-"));
+	const plant = (file: string, source: string) => {
+		mkdirSync(dirname(join(root, file)), { recursive: true });
+		writeFileSync(join(root, file), source);
+	};
+	plant("src/a.scss", ".a { width: var(--x); }\n");
+	plant(
+		"packages/appearance/x/src/styles/_b.scss",
+		".b { width: 12px; height: calc(var(--y) * 3); }\n",
+	);
+	plant("packages/appearance/x/resources/c.scss", ".c { width: 4px; }\n");
+	plant("packages/other/src/d.scss", ".d { width: 5px; }\n");
+	afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+	it("include each Appearance Package's src/, and nothing else under packages/", () => {
+		expect([...scanPixelLiterals(root).keys()]).toEqual([
+			"packages/appearance/x/src/styles/_b.scss",
+		]);
+		expect([...scanMultipliers(root).keys()]).toEqual([
+			"packages/appearance/x/src/styles/_b.scss",
+		]);
+	});
+
+	it("include the Platinum package in the repository", () =>
+		expect([...scanMultipliers(process.cwd()).keys()]).toContain(
+			"packages/appearance/platinum/src/styles/_scrollbars.scss",
+		));
 });
 
 // H 6.2 (H-R6): a theme variable scaled by an unnamed number is a proportion

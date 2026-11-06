@@ -73,18 +73,20 @@ describe("classicyEmittedFontFiles", () => {
 				{
 					fileName: "assets/Geneva-bold-normal.woff2",
 					originalFileNames: [
-						"src/Appearance/Platinum/assets/fonts/Geneva-bold-normal.woff2",
+						"packages/appearance/platinum/src/assets/fonts/Geneva-bold-normal.woff2",
 					],
 				},
 				{
 					fileName: "assets/Monaco-normal-normal-x.woff2",
 					originalFileNames: [
-						"/repo/src/Appearance/Platinum/assets/fonts/Monaco-normal-normal.woff2",
+						"/repo/packages/appearance/platinum/src/assets/fonts/Monaco-normal-normal.woff2",
 					],
 				},
 				{
 					fileName: "assets/grip.svg",
-					originalFileNames: ["src/Appearance/Platinum/assets/art/grip.svg"],
+					originalFileNames: [
+						"packages/appearance/platinum/src/assets/art/grip.svg",
+					],
 				},
 			]),
 		).toEqual(

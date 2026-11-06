@@ -1,18 +1,26 @@
 // Test helper: the static runtime import graph of a source module, for tests
 // that pin what a module may load. Type-only imports are skipped (the build
-// erases them); `import()` calls count. Same walker as
-// `src/Appearance/Platinum/assets/platinumAssets.importGraph.test.ts`.
+// erases them); `import()` calls count. `@classicy/classicy` is the core's
+// barrel and `@classicy/appearance-platinum` Platinum's package entry, as the
+// build and test configs alias them.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, "src");
+const PLATINUM_SRC = path.join(ROOT, "packages/appearance/platinum/src");
 
 const resolveSpecifier = (from: string, specifier: string): string => {
 	const bare = specifier.split("?")[0];
 	let base: string;
-	if (bare.startsWith("@/")) base = path.join(SRC, bare.slice(2));
+	if (bare === "@classicy/classicy") base = path.join(SRC, "index.ts");
+	else if (bare === "@classicy/appearance-platinum")
+		base = path.join(PLATINUM_SRC, "index.ts");
+	// Interim (plan 0015-kxa §3.2 retires it): Platinum's old in-core path.
+	else if (/^@\/Appearance\/Platinum(?:\/|$)/.test(bare))
+		base = path.join(PLATINUM_SRC, bare.slice("@/Appearance/Platinum".length));
+	else if (bare.startsWith("@/")) base = path.join(SRC, bare.slice(2));
 	else if (bare.startsWith("@snd/"))
 		base = path.join(ROOT, "assets/sounds", bare.slice(5));
 	else if (bare.startsWith("@img/"))

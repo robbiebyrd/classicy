@@ -460,9 +460,11 @@ describe("requiredClassicyPackageStylesheets", () => {
 });
 
 // What injectCssPlugin emits as dist/classicy-<name>.css: the compiled text of
-// each package stylesheet module (`src/Appearance/<Package>/styles/<name>.scss?inline`).
+// each package stylesheet module (`packages/appearance/<id>/src/styles/<name>.scss?inline`,
+// or `src/Appearance/<Package>/styles/<name>.scss?inline` in the core).
 describe("classicyPackageStylesheets", () => {
-	const ID = "/repo/src/Appearance/Platinum/styles/platinum.scss?inline";
+	const ID =
+		"/repo/packages/appearance/platinum/src/styles/platinum.scss?inline";
 	const module = (id: string, css: string) => ({
 		id,
 		code: `export default ${JSON.stringify(css)}`,
@@ -488,8 +490,19 @@ describe("classicyPackageStylesheets", () => {
 	it("ignores every other module", () =>
 		expect(
 			classicyPackageStylesheets([
-				module("/repo/src/Appearance/Platinum/styles/platinum.scss", ""),
-				module("/repo/src/Appearance/Platinum/styles/_mixins.scss?inline", ""),
+				module(
+					"/repo/packages/appearance/platinum/src/styles/platinum.scss",
+					"",
+				),
+				module(
+					"/repo/packages/appearance/platinum/src/styles/_mixins.scss?inline",
+					"",
+				),
+				module("/repo/packages/appearance/platinum/styles/x.scss?inline", ""),
+				module(
+					"/repo/node_modules/x/packages/appearance/a/src/styles/a.scss?inline",
+					"",
+				),
 				module("/repo/src/SystemFolder/Button/ClassicyButton.scss?inline", ""),
 				module(
 					"/repo/node_modules/x/src/Appearance/A/styles/a.scss?inline",

@@ -24,7 +24,7 @@
 //
 // Build script, not library code: it reports through stdout/stderr and exit
 // codes. Erasable TypeScript syntax only, so Node runs it directly.
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -203,14 +203,39 @@ export const scanPixelLiteralsInSource = (
 };
 
 /**
- * Every pixel literal in `<root>/src/**\/*.scss`, keyed by repo-relative path
- * (sorted), skipping the screen savers. Files without a literal are absent.
+ * The directories the gates scan: `<root>/src` and each workspace Appearance
+ * Package's source, `<root>/packages/appearance/<id>/src` (Platinum's, plan
+ * 0015-kxa §3.1).
+ */
+const scssSourceRoots = (root: string): string[] => {
+	const packages = join(root, "packages", "appearance");
+	return [
+		join(root, "src"),
+		...(existsSync(packages)
+			? readdirSync(packages, { withFileTypes: true })
+					.filter((entry) => entry.isDirectory())
+					.map((entry) => join(packages, entry.name, "src"))
+					.filter((dir) => existsSync(dir))
+					.sort()
+			: []),
+	];
+};
+
+/** Every `.scss` file under the scanned roots. */
+const listScannedScssFiles = (root: string): string[] =>
+	scssSourceRoots(root).flatMap((dir) => listClassicyScssFiles(dir));
+
+/**
+ * Every pixel literal in `<root>/src/**\/*.scss` and each
+ * `<root>/packages/appearance/<id>/src/**\/*.scss`, keyed by repo-relative
+ * path (sorted), skipping the screen savers. Files without a literal are
+ * absent.
  */
 export const scanPixelLiterals = (
 	root: string,
 ): Map<string, ClassicyPixelLiteral[]> => {
 	const found = new Map<string, ClassicyPixelLiteral[]>();
-	for (const full of listClassicyScssFiles(join(root, "src"))) {
+	for (const full of listScannedScssFiles(root)) {
 		const file = relative(root, full).split(sep).join("/");
 		if (file.startsWith(SAVERS)) continue;
 		const literals = scanPixelLiteralsInSource(
@@ -878,14 +903,15 @@ export const scanMultipliersInSource = (
 };
 
 /**
- * Every multiplier in `<root>/src/**\/*.scss`, keyed by repo-relative path
- * (sorted), skipping the screen savers. Files without one are absent.
+ * Every multiplier in the scanned roots' `.scss` files (as
+ * `scanPixelLiterals`), keyed by repo-relative path (sorted), skipping the
+ * screen savers. Files without one are absent.
  */
 export const scanMultipliers = (
 	root: string,
 ): Map<string, ClassicyPixelLiteral[]> => {
 	const found = new Map<string, ClassicyPixelLiteral[]>();
-	for (const full of listClassicyScssFiles(join(root, "src"))) {
+	for (const full of listScannedScssFiles(root)) {
 		const file = relative(root, full).split(sep).join("/");
 		if (file.startsWith(SAVERS)) continue;
 		const sites = scanMultipliersInSource(readFileSync(full, "utf8"), file);

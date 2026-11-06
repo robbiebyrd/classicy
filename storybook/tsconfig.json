@@ -25,6 +25,14 @@
 			],
 			"storybook/test": ["./node_modules/storybook/dist/test/index.d.ts"],
 			"@sb/*": ["./.storybook/*"],
+			// Platinum, the workspace package (plan 0015-kxa §3.1), and the core it
+			// imports; interim, its old in-core path (§3.2 retires it).
+			"@classicy/classicy": ["../src/index.ts"],
+			"@classicy/appearance-platinum": [
+				"../packages/appearance/platinum/src/index.ts"
+			],
+			"@/Appearance/Platinum": ["../packages/appearance/platinum/src/index.ts"],
+			"@/Appearance/Platinum/*": ["../packages/appearance/platinum/src/*"],
 			"@/*": ["../src/*"],
 			"@snd/*": ["../assets/sounds/*"],
 			"@img/*": ["../assets/img/*"],

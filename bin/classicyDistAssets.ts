@@ -1,6 +1,6 @@
 // The Platinum art ships as files in dist/assets under its source name
 // (assetFileNames: assets/[name][extname], unhashed), so verify:dist pins the
-// exact set: every .svg/.png in src/Appearance/Platinum/assets/art, and nothing
+// exact set: every .svg/.png in packages/appearance/platinum/src/assets/art, and nothing
 // else. A count floor would let a legitimate deletion fail the build and an
 // addition hide that many missing files.
 //
@@ -13,7 +13,8 @@
  * so a second in-repo package's art fails verify:dist as "extra" until its
  * directory is added here.
  */
-export const CLASSICY_ART_SOURCE_DIR = "src/Appearance/Platinum/assets/art";
+export const CLASSICY_ART_SOURCE_DIR =
+	"packages/appearance/platinum/src/assets/art";
 
 const ART_NAME = /\.(?:svg|png)$/;
 

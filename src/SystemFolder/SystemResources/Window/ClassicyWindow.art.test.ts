@@ -4,7 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
 	cssRuleLookup,
 	PLATINUM_ROOT,
+	PLATINUM_SRC_DIR,
+	PLATINUM_STYLES_DIR,
 	parseCssRules,
+	platinumSassOptions,
 } from "@/__tests__/compiledCss";
 
 /**
@@ -23,8 +26,8 @@ import {
  * and are scoped under the Platinum desktop root.
  */
 
-const PLATINUM = "src/Appearance/Platinum/styles";
-const css = compile(`${PLATINUM}/platinum.scss`, { loadPaths: ["src"] }).css;
+const PLATINUM = PLATINUM_STYLES_DIR;
+const css = compile(`${PLATINUM}/platinum.scss`, platinumSassOptions()).css;
 
 const P = PLATINUM_ROOT;
 const rules = parseCssRules(css);
@@ -225,7 +228,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 	it("draws no title-bar caps", () => {
 		for (const cap of ["left", "right", "left-red", "right-red"])
 			expect(
-				existsSync(`src/Appearance/Platinum/assets/art/title-bar-${cap}.svg`),
+				existsSync(`${PLATINUM_SRC_DIR}/assets/art/title-bar-${cap}.svg`),
 				cap,
 			).toBe(false);
 	});

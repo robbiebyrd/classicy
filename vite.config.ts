@@ -1,5 +1,6 @@
 import path, { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
+import { NodePackageImporter } from "sass";
 import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
@@ -12,42 +13,20 @@ import {
 	classicyFontStylesheet,
 } from "./bin/classicyFontStylesheet";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
+import { noInlineAppearanceAssetsPlugin } from "./bin/classicyNoInlineAssets";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
-import { PLATINUM_FONT_FACES } from "./src/Appearance/Platinum/assets/platinumFonts.internal";
+import { PLATINUM_FONT_FACES } from "./packages/appearance/platinum/src/assets/platinumFonts.internal";
 
-// Package assets under src/Appearance (the Platinum fonts and system art) must
-// ship as files in dist/assets, not as base64 inside the bundle. Lib mode
-// inlines every asset regardless of `assetsInlineLimit` (`shouldInline` returns
-// true for `build.lib`), but a per-import `?no-inline` query short-circuits that
-// check. This resolver appends the query to every asset import that resolves
-// under src/Appearance, so source files keep plain imports. The emitted files
-// are referenced as `new URL("assets/...", import.meta.url)`, relative to the
-// bundle. Imports that already carry a Vite query are left alone.
-function noInlineAppearanceAssetsPlugin(): Plugin {
-	const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
-
-	return {
-		name: "classicy-no-inline-appearance-assets",
-		enforce: "pre",
-		async resolveId(source, importer, options) {
-			if (!importer || source.includes("?")) return null;
-			const resolved = await this.resolve(source, importer, {
-				...options,
-				skipSelf: true,
-			});
-			if (!resolved) return null;
-			const [file] = resolved.id.split("?");
-			if (!ASSET_RE.test(file) || !file.includes("/src/Appearance/")) {
-				return null;
-			}
-			return `${resolved.id}${resolved.id.includes("?") ? "&" : "?"}no-inline`;
-		},
-	};
-}
+// Platinum's source, the workspace package @classicy/appearance-platinum (plan
+// 0015-kxa §3.1). Until the two builds separate (§3.4), the core's bundle still
+// carries it (src/ClassicyLibraryBuild.internal.ts), so its files are package
+// assets here too.
+const platinumSrc = path.resolve(__dirname, "packages/appearance/platinum/src");
+const APPEARANCE_SOURCE = /(?:^|\/)(?:src\/Appearance|packages\/appearance)\//;
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -276,13 +255,30 @@ const config = defineConfig({
 		"**/*.wav",
 		"**/*.caf",
 	],
-	resolve: {
-		alias: {
-			"@": path.resolve(__dirname, "./src/"),
-			"@snd": path.resolve(__dirname, "./assets/sounds"),
-			"@img": path.resolve(__dirname, "./assets/img"),
-			"@vid": path.resolve(__dirname, "./assets/vid"),
+	css: {
+		preprocessorOptions: {
+			// Platinum's SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/*`.
+			scss: { importers: [new NodePackageImporter()] },
 		},
+	},
+	resolve: {
+		alias: [
+			// The build entry's Platinum import, and Platinum's own imports of the
+			// core, which resolve to this build's barrel: one module graph, one
+			// copy of the registries.
+			{
+				find: /^@classicy\/appearance-platinum$/,
+				replacement: path.join(platinumSrc, "index.ts"),
+			},
+			{
+				find: /^@classicy\/classicy$/,
+				replacement: path.resolve(__dirname, "./src/index.ts"),
+			},
+			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
+			{ find: "@snd", replacement: path.resolve(__dirname, "./assets/sounds") },
+			{ find: "@img", replacement: path.resolve(__dirname, "./assets/img") },
+			{ find: "@vid", replacement: path.resolve(__dirname, "./assets/vid") },
+		],
 	},
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
@@ -313,7 +309,8 @@ const config = defineConfig({
 		sourcemap: true,
 		// Lib mode ignores `assetsInlineLimit` (assets always inline), so it is
 		// deliberately not set. noInlineAppearanceAssetsPlugin uses the per-import
-		// `?no-inline` opt-out to emit package assets under src/Appearance as files.
+		// `?no-inline` opt-out to emit package assets (src/Appearance,
+		// packages/appearance) as files.
 		lib: {
 			// The barrel, plus Platinum until it is its own package (see the file).
 			entry: resolve(__dirname, "src/ClassicyLibraryBuild.internal.ts"),
@@ -324,12 +321,12 @@ const config = defineConfig({
 		rollupOptions: {
 			external: isExternal,
 			output: {
-				// Package assets (src/Appearance/**) go under dist/assets; every
+				// Package assets (src/Appearance/**, packages/appearance/**) go under dist/assets; every
 				// other emitted file, the stylesheet included, keeps its root-level
 				// name (injectCssPlugin and `@classicy/classicy/dist/classicy.css` depend on it).
 				assetFileNames: (asset) =>
 					asset.originalFileNames.some((name) =>
-						name.includes("src/Appearance/"),
+						APPEARANCE_SOURCE.test(name.replace(/\\/g, "/")),
 					)
 						? "assets/[name][extname]"
 						: "[name][extname]",

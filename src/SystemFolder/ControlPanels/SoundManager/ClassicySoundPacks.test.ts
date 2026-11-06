@@ -126,7 +126,14 @@ describe("ClassicySoundPacks", () => {
 
 	it("every sound literal dispatched in src is a contract id", () => {
 		const found: string[] = [];
-		for (const file of sourceFiles(path.resolve(__dirname, "../../.."))) {
+		// The core's src and Platinum's, in its workspace package (plan
+		// 0015-kxa §3.1), whose hooks play the control sounds.
+		for (const file of [
+			...sourceFiles(path.resolve(__dirname, "../../..")),
+			...sourceFiles(
+				path.resolve(__dirname, "../../../../packages/appearance/platinum/src"),
+			),
+		]) {
 			const text = readFileSync(file, "utf8");
 			for (const m of text.matchAll(/sound:\s*["']([A-Za-z0-9_]+)["']/g))
 				found.push(m[1]);

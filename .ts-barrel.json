@@ -6,7 +6,6 @@
 	"noHeader": false,
 	"exclude": [
 		"__tests__",
-		"Appearance/Platinum",
 		"\\.test\\.tsx?$",
 		"\\.stories\\.tsx?$",
 		"custom\\.d\\.ts",

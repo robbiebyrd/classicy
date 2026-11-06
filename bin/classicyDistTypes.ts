@@ -27,6 +27,9 @@ export const CLASSICY_DTS_EXCLUDE = [
 	"*.config.ts",
 	// JSON is bundled into the JS; no exported type refers to its declaration.
 	"**/*.json",
+	// Workspace packages (Platinum, plan 0015-kxa §3.1) are not the core's
+	// API; the core's interim bundle carries Platinum's code, not its names.
+	"packages/**",
 ];
 
 const TEST_DECLARATION = /\.(?:test|stories)\.d\.ts(?:\.map)?$/;

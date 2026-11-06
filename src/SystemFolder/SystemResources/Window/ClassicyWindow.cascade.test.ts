@@ -143,8 +143,12 @@ describe("ClassicyWindow.scss cascade", () => {
 			{
 				style: "expanded",
 				loadPaths: [
-					path.resolve(process.cwd(), "src/Appearance/Platinum/styles"),
+					path.resolve(
+						process.cwd(),
+						"packages/appearance/platinum/src/styles",
+					),
 				],
+				importers: [new sass.NodePackageImporter()],
 			},
 		).css;
 		expect(mixin).not.toMatch(/(^|\s)(width|height):/);

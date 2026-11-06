@@ -13,8 +13,11 @@ import {
 // sass API instead, and rescoped with the package's own function. vitest's
 // root is the repo root.
 const platinumCss = sass.compile(
-	path.resolve(process.cwd(), "src/Appearance/Platinum/styles/platinum.scss"),
-	{ style: "expanded" },
+	path.resolve(
+		process.cwd(),
+		"packages/appearance/platinum/src/styles/platinum.scss",
+	),
+	{ style: "expanded", importers: [new sass.NodePackageImporter()] },
 ).css;
 
 const renamed = () =>

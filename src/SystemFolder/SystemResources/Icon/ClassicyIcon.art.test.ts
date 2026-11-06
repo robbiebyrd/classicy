@@ -6,6 +6,7 @@ import {
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
 import "@/Appearance/Platinum/assets/platinumAssets";
+import { PLATINUM_SRC_DIR } from "@/__tests__/compiledCss";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 /**
@@ -18,7 +19,7 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
  * to Part G; their assertions land with whichever of E and G lands second.
  */
 
-const ART = "src/Appearance/Platinum/assets/art";
+const ART = `${PLATINUM_SRC_DIR}/assets/art`;
 
 describe("icon halftone art (Platinum package)", () => {
 	it("registers the halftone and the large halftone as system art", () => {

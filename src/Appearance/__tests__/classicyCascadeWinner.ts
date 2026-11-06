@@ -60,6 +60,7 @@ const compiled = (file: string): string => {
 		css = sass.compile(resolve(process.cwd(), file), {
 			style: "expanded",
 			loadPaths: [resolve(process.cwd(), "src")],
+			importers: [new sass.NodePackageImporter()],
 		}).css;
 		cache.set(file, css);
 	}

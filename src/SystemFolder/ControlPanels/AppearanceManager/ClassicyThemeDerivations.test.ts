@@ -82,6 +82,8 @@ describe("CLASSICY_THEME_DERIVATIONS", () => {
 			}
 		};
 		walk(path.resolve(process.cwd(), "src"));
+		// Platinum's sheets, in its workspace package (plan 0015-kxa §3.1).
+		walk(path.resolve(process.cwd(), "packages/appearance/platinum/src"));
 		const stale: string[] = [];
 		for (const d of CLASSICY_THEME_DERIVATIONS) {
 			for (const name of d.doc.match(/[\w.]+\.(?:scss|tsx|ts)\b/g) ?? []) {

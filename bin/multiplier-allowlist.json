@@ -1,11 +1,11 @@
 {
-	"src/Appearance/Platinum/styles/_scrollbars.scss": [
+	"packages/appearance/platinum/src/styles/_scrollbars.scss": [
 		{
 			"count": 3,
 			"reason": "Platinum's scroll-bar arrow glyph geometry: the half, 1.5x and 2x of the arrow stripe unit (--window-scrollbar-arrow-size) are pixel positions in the glyph art, not theme proportions (Part G, kept on purpose)."
 		}
 	],
-	"src/Appearance/Platinum/styles/components/_ControlStrip.scss": [
+	"packages/appearance/platinum/src/styles/components/_ControlStrip.scss": [
 		{
 			"count": 8,
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."

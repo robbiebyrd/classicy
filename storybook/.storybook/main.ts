@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { StorybookConfig } from "@storybook/react-vite";
+import { NodePackageImporter } from "sass";
 import { mergeConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
@@ -7,6 +8,8 @@ import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
+// Platinum's source, the workspace package @classicy/appearance-platinum.
+const platinumSrc = path.join(repoRoot, "packages/appearance/platinum/src");
 
 const config: StorybookConfig = {
 	framework: "@storybook/react-vite",
@@ -37,15 +40,37 @@ const config: StorybookConfig = {
 				"**/*.wav",
 				"**/*.caf",
 			],
+			// Platinum's SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/*`.
+			css: {
+				preprocessorOptions: {
+					scss: { importers: [new NodePackageImporter()] },
+				},
+			},
 			resolve: {
 				dedupe: ["react", "react-dom"],
-				alias: {
-					"@sb": path.resolve(import.meta.dirname),
-					"@": path.join(repoRoot, "src"),
-					"@snd": path.join(repoRoot, "assets/sounds"),
-					"@img": path.join(repoRoot, "assets/img"),
-					"@vid": path.join(repoRoot, "assets/vid"),
-				},
+				alias: [
+					// Platinum (plan 0015-kxa §3.1) reaches the core as
+					// `@classicy/classicy`: the stories' own core source, so there is one
+					// copy of the registries. Interim, until the stories and the preview
+					// import Platinum by name (§3.2): its old in-core path.
+					{
+						find: /^@classicy\/classicy$/,
+						replacement: path.join(repoRoot, "src/index.ts"),
+					},
+					{
+						find: /^@classicy\/appearance-platinum$/,
+						replacement: path.join(platinumSrc, "index.ts"),
+					},
+					{
+						find: /^@\/Appearance\/Platinum(?=\/|$)/,
+						replacement: platinumSrc,
+					},
+					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
+					{ find: "@", replacement: path.join(repoRoot, "src") },
+					{ find: "@snd", replacement: path.join(repoRoot, "assets/sounds") },
+					{ find: "@img", replacement: path.join(repoRoot, "assets/img") },
+					{ find: "@vid", replacement: path.join(repoRoot, "assets/vid") },
+				],
 			},
 			plugins: [
 				// Storybook compiles the SCSS itself, so the component stylesheets

@@ -32,7 +32,7 @@ export type ClassicyStylesheetFontFace = {
 };
 
 const PLATINUM_FONT_SOURCE =
-	/src\/Appearance\/Platinum\/assets\/fonts\/([^/]+)\.woff2$/;
+	/packages\/appearance\/platinum\/src\/assets\/fonts\/([^/]+)\.woff2$/;
 
 /**
  * Each Platinum font's emitted file name (relative to dist/), keyed by its

@@ -18,7 +18,9 @@ import {
 const base = compileScss(
 	"src/SystemFolder/SystemResources/QuickTime/QuickTimeMovieEmbed.scss",
 );
-const platinum = compileScss("src/Appearance/Platinum/styles/platinum.scss");
+const platinum = compileScss(
+	"packages/appearance/platinum/src/styles/platinum.scss",
+);
 
 const baseRule = cssRuleLookup(parseCssRules(base));
 const packageRule = cssRuleLookup(parseCssRules(platinum), PLATINUM_ROOT);
