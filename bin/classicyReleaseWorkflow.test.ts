@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
 	chmodSync,
 	mkdirSync,
@@ -7,9 +7,11 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // push.yml releases two packages in lockstep (plan 0015-kxa 4.1). `yaml` is
 // not a direct dependency, so the workflow is read as text: the file is split
@@ -72,6 +74,7 @@ describe("push.yml release workflow", () => {
 		const order = [
 			/^Bump version/,
 			/Sync the Platinum/,
+			/^Check trusted publishing/,
 			/^Select release codename/,
 			/^Update release codename/,
 			/^Push the release commit and tag/,
@@ -217,9 +220,50 @@ describe("push.yml release workflow", () => {
 		expect(publish.text).toContain(
 			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks",
 		);
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub expression, not a JS template
-		expect(publish.text).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
 		expect(step(/^Setup Node/).text).toMatch(/registry-url:/);
+	});
+
+	// Story 0156-tx7: releases authenticate with npm trusted publishing. pnpm
+	// 10 publishes through the npm CLI, which exchanges the job's OIDC token
+	// first and falls back to the configured token only when the exchange is
+	// refused, so a stored token could only ever be used by a release whose
+	// trusted publisher is missing: never, since the check below stops it.
+	it("authenticates every publish with OIDC only, never a stored token", () => {
+		expect(WORKFLOW).toMatch(
+			/^ {4}permissions:\n(?: {6}.*\n)*? {6}id-token: write$/m,
+		);
+		expect(WORKFLOW).not.toContain("NPM_TOKEN");
+		for (const s of [
+			step(/^Check trusted publishing/),
+			step(/^Publish to npm$/),
+			step(/core only/),
+		]) {
+			// Empty, not unset: setup-node's .npmrc reads ${NODE_AUTH_TOKEN}.
+			expect(s.text, s.name).toMatch(/^ {10}NODE_AUTH_TOKEN: ''$/m);
+		}
+	});
+
+	it("checks trusted publishing for every package before anything is pushed", () => {
+		const check = step(/^Check trusted publishing/);
+		expect(ifOf(check)).toBe(NEW_TAG);
+		// After the sync, so both packages carry the version they will publish;
+		// before the build, so a refusal costs seconds, not the build.
+		expect(check.index).toBeGreaterThan(step(/Sync the Platinum/).index);
+		expect(check.index).toBeLessThan(step(/^Build Package/).index);
+		expect(check.index).toBeLessThan(
+			step(/^Push the release commit and tag/).index,
+		);
+		const script = scriptOf(check);
+		expect(script).toContain("set -euo pipefail");
+		expect(script).toContain("npm publish --dry-run");
+		// Every npm publish the check runs is a dry run (messages aside).
+		const commands = script
+			.split("\n")
+			.filter((line) => !/^\s*echo /.test(line))
+			.join("\n");
+		expect(commands).toContain("npm publish --dry-run");
+		expect(commands.match(/npm publish(?! --dry-run)/g)).toBeNull();
+		expect(script).not.toMatch(/git (push|tag|commit)/);
 	});
 
 	it("keeps the sync, publish and core-only guards mutually consistent", () => {
@@ -399,3 +443,241 @@ exit 0
 		expect(r.calls.some((c) => /pull|rebase|merge/.test(c))).toBe(false);
 	});
 });
+
+/** A workspace laid out like the repo: the core at the root, Platinum below. */
+const makeWorkspace = (root: string, platinum: boolean): string => {
+	const dir = mkdtempSync(join(root, "case-"));
+	writeFileSync(
+		join(dir, "package.json"),
+		JSON.stringify({ name: "@fake/core", version: "3.0.0" }),
+	);
+	if (platinum) {
+		mkdirSync(join(dir, "packages/appearance/platinum"), { recursive: true });
+		writeFileSync(
+			join(dir, PLATINUM_PKG),
+			JSON.stringify({ name: "@fake/platinum", version: "3.0.0" }),
+		);
+	}
+	return dir;
+};
+
+describe("push.yml trusted-publishing check, run against a fake npm", () => {
+	const root = mkdtempSync(join(tmpdir(), "classicy-trust-"));
+	afterAll(() => rmSync(root, { recursive: true, force: true }));
+	// Read per test, so a missing step fails each test, not the file.
+	const script = () => scriptOf(step(/^Check trusted publishing/));
+
+	/**
+	 * Runs the real script. The fake `npm --version` prints `npmVersion`; the
+	 * fake `npm publish --dry-run` logs what npm 11 logs at verbose level: a
+	 * successful OIDC exchange for the packages in `trusted`, a refused one
+	 * (and the dry run's "requires you to be logged in" warning, exit 0, as
+	 * npm does) for the others.
+	 */
+	const run = (opts: {
+		platinum: boolean;
+		trusted: string[];
+		npmVersion?: string;
+	}): { status: number | null; calls: string[]; out: string } => {
+		const dir = makeWorkspace(root, opts.platinum);
+		const bin = join(dir, "bin");
+		mkdirSync(bin);
+		writeFileSync(join(dir, "trusted"), `${opts.trusted.join("\n")}\n`);
+		writeFileSync(
+			join(bin, "npm"),
+			`#!/bin/bash
+if [ "$1" = --version ]; then echo "${opts.npmVersion ?? "11.19.1"}"; exit 0; fi
+echo "\${PWD#${dir}} $*" >> "${dir}/calls"
+name=$(node -p 'require("./package.json").name')
+if grep -qxF -- "$name" "${dir}/trusted"; then
+  echo "npm verbose oidc Successfully retrieved and set token" >&2
+else
+  echo "npm verbose oidc Failed token exchange request with body message: no trust" >&2
+  echo "npm warn publish This command requires you to be logged in (dry-run)" >&2
+fi
+exit 0
+`,
+		);
+		chmodSync(join(bin, "npm"), 0o755);
+		const r = spawnSync("bash", ["-c", script()], {
+			cwd: dir,
+			env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+			encoding: "utf8",
+		});
+		let calls: string[] = [];
+		try {
+			// trimEnd: the root's call starts with a space (an empty folder).
+			calls = readFileSync(join(dir, "calls"), "utf8").trimEnd().split("\n");
+		} catch {
+			// npm publish was never run
+		}
+		return { status: r.status, calls, out: r.stdout + r.stderr };
+	};
+
+	const both = ["@fake/core", "@fake/platinum"];
+
+	it("passes when both packages exchange their OIDC token, dry-running each in its own folder", () => {
+		const r = run({ platinum: true, trusted: both });
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toHaveLength(2);
+		expect(r.calls[0]).toMatch(/^ publish --dry-run /);
+		expect(r.calls[1]).toMatch(
+			/^\/packages\/appearance\/platinum publish --dry-run /,
+		);
+		for (const c of r.calls) expect(c).toContain("--ignore-scripts");
+	});
+
+	it("fails, naming the package, when one package has no trusted publisher", () => {
+		const r = run({ platinum: true, trusted: ["@fake/core"] });
+		expect(r.status).toBe(1);
+		expect(r.out).toContain("@fake/platinum");
+		expect(r.out).toContain("no trust");
+		expect(r.out).toMatch(/Nothing was pushed/);
+		expect(r.out).not.toMatch(/::error::[^\n]*@fake\/core\b/);
+	});
+
+	it("checks every package before failing, so one run names them all", () => {
+		const r = run({ platinum: true, trusted: [] });
+		expect(r.status).toBe(1);
+		expect(r.calls).toHaveLength(2);
+		expect(r.out).toMatch(/::error::[^\n]*@fake\/core\b/);
+		expect(r.out).toMatch(/::error::[^\n]*@fake\/platinum\b/);
+	});
+
+	it("checks only the core before the Platinum package exists", () => {
+		const r = run({ platinum: false, trusted: ["@fake/core"] });
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toHaveLength(1);
+	});
+
+	// npm 11.5.1 is the first CLI that exchanges the token (docs.npmjs.com,
+	// "Trusted publishing"); pnpm 10 publishes through whatever npm is on PATH.
+	it.each([
+		["10.9.4", 1],
+		["11.4.2", 1],
+		["11.5.0", 1],
+		["11.5.1", 0],
+		["11.10.0", 0],
+		["12.0.0", 0],
+	])("with npm %s exits %i", (npmVersion, status) => {
+		const r = run({ platinum: true, trusted: both, npmVersion });
+		expect(r.status, r.out).toBe(status);
+		if (status !== 0) {
+			expect(r.out).toContain(`npm ${npmVersion}`);
+			expect(r.out).toContain("11.5.1");
+			expect(r.calls).toEqual([]);
+		}
+	});
+});
+
+const npmSupportsOidc = (() => {
+	const v = spawnSync("npm", ["--version"], { encoding: "utf8" }).stdout;
+	const [major, minor, patch] = v.trim().split(".").map(Number);
+	return (
+		major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1)))
+	);
+})();
+
+// The fake npm above only proves the script's logic. This runs the real npm
+// CLI, as the runner does, against a fake GitHub id-token endpoint and a fake
+// registry, so the line the check looks for is the one npm really logs.
+describe.skipIf(!npmSupportsOidc)(
+	"push.yml trusted-publishing check, run against the real npm and a fake registry",
+	() => {
+		const root = mkdtempSync(join(tmpdir(), "classicy-trust-npm-"));
+		// Read per test, so a missing step fails each test, not the file.
+		const script = () => scriptOf(step(/^Check trusted publishing/));
+		const requests: string[] = [];
+		let trusted = new Set<string>();
+		let server: Server;
+		let port = 0;
+
+		// The id token's payload says the repository is private, so npm skips
+		// its provenance lookup and the fake needs no visibility endpoint.
+		const idToken = `e30.${Buffer.from('{"repository_visibility":"private"}').toString("base64url")}.sig`;
+
+		beforeAll(async () => {
+			server = createServer((req, res) => {
+				requests.push(`${req.method} ${req.url}`);
+				const send = (code: number, body: object) => {
+					res.writeHead(code, { "content-type": "application/json" });
+					res.end(JSON.stringify(body));
+				};
+				req.resume();
+				req.on("end", () => {
+					if (req.url?.startsWith("/idtoken"))
+						return send(200, { value: idToken });
+					const m = /^\/-\/npm\/v1\/oidc\/token\/exchange\/package\/(.+)$/.exec(
+						req.url ?? "",
+					);
+					if (m && req.method === "POST") {
+						const name = decodeURIComponent(m[1]);
+						return trusted.has(name)
+							? send(201, { token: "short-lived" })
+							: send(404, { message: `no trusted publisher for ${name}` });
+					}
+					return send(404, { error: "Not found" });
+				});
+			});
+			await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+			port = (server.address() as AddressInfo).port;
+		});
+		afterAll(async () => {
+			await new Promise((done) => server.close(done));
+			rmSync(root, { recursive: true, force: true });
+		});
+
+		const run = async (
+			names: string[],
+		): Promise<{ status: number | null; out: string }> => {
+			trusted = new Set(names);
+			requests.length = 0;
+			const dir = makeWorkspace(root, true);
+			// What setup-node writes for registry-url, pointed at the fake.
+			const npmrc = join(dir, "user.npmrc");
+			writeFileSync(
+				npmrc,
+				`//127.0.0.1:${port}/:_authToken=\${NODE_AUTH_TOKEN}\nregistry=http://127.0.0.1:${port}/\n`,
+			);
+			const env: NodeJS.ProcessEnv = { ...process.env };
+			for (const key of Object.keys(env)) {
+				if (/^(npm_|NPM_|ACTIONS_|GITHUB_|GITLAB|CIRCLE)/i.test(key))
+					delete env[key];
+			}
+			Object.assign(env, {
+				GITHUB_ACTIONS: "true",
+				ACTIONS_ID_TOKEN_REQUEST_URL: `http://127.0.0.1:${port}/idtoken?api-version=2.0`,
+				ACTIONS_ID_TOKEN_REQUEST_TOKEN: "request-token",
+				NPM_CONFIG_USERCONFIG: npmrc,
+				npm_config_cache: join(dir, "npm-cache"),
+				NODE_AUTH_TOKEN: "",
+			});
+			return new Promise((done) => {
+				const child = spawn("bash", ["-c", script()], { cwd: dir, env });
+				let out = "";
+				child.stdout.on("data", (d) => (out += d));
+				child.stderr.on("data", (d) => (out += d));
+				child.on("close", (status) => done({ status, out }));
+			});
+		};
+
+		it("passes when the registry exchanges both packages' tokens", async () => {
+			const r = await run(["@fake/core", "@fake/platinum"]);
+			expect(r.status, r.out).toBe(0);
+			expect(requests).toContain(
+				"POST /-/npm/v1/oidc/token/exchange/package/@fake%2fcore",
+			);
+			expect(requests).toContain(
+				"POST /-/npm/v1/oidc/token/exchange/package/@fake%2fplatinum",
+			);
+			// A dry run uploads nothing.
+			expect(requests.some((r) => r.startsWith("PUT"))).toBe(false);
+		}, 60_000);
+
+		it("fails when the registry refuses one package's exchange", async () => {
+			const r = await run(["@fake/core"]);
+			expect(r.status).toBe(1);
+			expect(r.out).toContain("no trusted publisher for @fake/platinum");
+		}, 60_000);
+	},
+);
