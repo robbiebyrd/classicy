@@ -307,6 +307,7 @@ export const Demo = () => {
 				initialSize={["40%", 500]}
 				initialPosition={[300, 50]}
 				appMenu={appMenu}
+				backgroundColor="var(--color-system-03)"
 			>
 				<ClassicyTabs tabs={tabs} />
 			</ClassicyWindow>
