@@ -128,8 +128,8 @@ Start with [Install and build](#install-and-build).
   | Removed | Replacement |
   |---|---|
   | `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack` from `@classicy/classicy` | The same names from `@classicy/appearance-platinum` |
-  | `@classicy/classicy/appearance/platinum` (the JavaScript specifier, a no-op shim) | `import "@classicy/appearance-platinum"` |
-  | `@classicy/classicy/appearance/platinum/scss/*` | `@classicy/appearance-platinum/scss/*` (see [SCSS](#scss)) |
+  | `@classicy/classicy/appearance/platinum` (the JavaScript specifier, a no-op shim; pre-release builds only) | `import "@classicy/appearance-platinum"` |
+  | `@classicy/classicy/appearance/platinum/scss/*` (pre-release builds only) | `@classicy/appearance-platinum/scss/*` (see [SCSS](#scss)) |
   | `ClassicyWallpapers`, `resolveWallpaper`, `ClassicyDefaultWallpaper`, `buildClassicyWallpaperIndex` | `resolveClassicyWallpaper`, `defaultClassicyWallpaper`, `listClassicyWallpapers` (see [Themes hold wallpapers by filename](#state-actions-and-behavior)) |
   | `ClassicySounds`, `loadSoundTheme` | Sound packs (see [Sound](#sound)) |
   | Icon paths for Platinum's art and cursors | System art and cursor roles (see [Icons, system art and cursors](#icons-system-art-and-cursors)) |
