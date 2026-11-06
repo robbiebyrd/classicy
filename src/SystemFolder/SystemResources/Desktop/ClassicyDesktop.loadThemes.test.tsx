@@ -3,6 +3,8 @@
 // getAllThemes() is the core default theme alone, which as a loaded theme
 // would shadow the default package's own `default`: the desktop waits for a
 // package instead, and loads once one registers.
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -34,7 +36,7 @@ vi.mock("howler", () => ({
 	},
 }));
 
-// ClassicyDesktop imports Platinum, so it is registered here; kept to put
+// Platinum is registered here (withPlatinum); kept to put
 // it back after each case.
 const platinum = getClassicyAppearancePackage("platinum");
 

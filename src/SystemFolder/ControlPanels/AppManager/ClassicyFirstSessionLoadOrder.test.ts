@@ -1,8 +1,8 @@
 // A first session (nothing saved) starts from the core default theme
 // (CLASSICY_CORE_DEFAULT_THEME, no wallpaper) and ends on the default
 // package's own `default` theme, whichever comes first: the store or the
-// package's registration. The library barrel evaluates the store first, so
-// the registration replaces the core theme; a deep-importing host, a story
+// package's registration. A host's entry (and the library build) evaluates
+// the core's store before Platinum, so the registration replaces the core theme; a deep-importing host, a story
 // iframe (preview.tsx imports Platinum before the store) and tests register
 // Platinum first, so the store must resolve it when it is created.
 import { afterEach, describe, expect, it, vi } from "vitest";

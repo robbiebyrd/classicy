@@ -1,3 +1,5 @@
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -25,7 +27,7 @@ vi.mock("howler", () => ({
 	},
 }));
 
-// ClassicyDesktop imports Platinum, so it is registered here; put back after
+// Platinum is registered here (withPlatinum); put back after
 // each reset (with no package registered the desktop draws no desktop).
 const platinum = getClassicyAppearancePackage("platinum");
 

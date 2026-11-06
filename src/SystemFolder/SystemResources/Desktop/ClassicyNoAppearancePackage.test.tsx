@@ -1,7 +1,9 @@
 // No package, no desktop (plan 0014-ahm, 0015 §1.5): with no Appearance
 // Package registered, ClassicyDesktop draws a plain message in place of the
-// desktop and stops. ClassicyDesktop still imports Platinum, so these tests
-// reach the no-package state by resetting the registry.
+// desktop and stops. These tests import Platinum to register it in between,
+// so they reach the no-package state by resetting the registry.
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import { act, render, screen } from "@testing-library/react";
 import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,7 +34,7 @@ vi.mock("howler", () => ({
 	},
 }));
 
-// ClassicyDesktop imports Platinum, so it is registered here; kept to put it
+// Platinum is registered here (withPlatinum); kept to put it
 // back after each case.
 const platinum = getClassicyAppearancePackage("platinum");
 

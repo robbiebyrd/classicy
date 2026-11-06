@@ -1,3 +1,5 @@
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import {
 	act,
 	fireEvent,

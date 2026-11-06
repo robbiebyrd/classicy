@@ -3,6 +3,8 @@
 // registered default package, else the first registered package. The
 // structure-only fallback package is for lone components; a desktop with no
 // package stops (ClassicyNoAppearancePackage.test.tsx).
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import { act, render, renderHook } from "@testing-library/react";
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -56,7 +58,7 @@ vi.mock("howler", () => ({
 	},
 }));
 
-// ClassicyDesktop imports Platinum, so it is registered here.
+// Platinum is registered here (withPlatinum).
 const platinum = getClassicyAppearancePackage("platinum");
 
 // Storybook's "mirrored" package, as far as resolution cares: a package that
@@ -204,8 +206,8 @@ describe("ClassicyDesktop's package resolution", () => {
 });
 
 // Review focus 3 (plan 0015): a host that registers one package, not
-// Platinum. Platinum's assets and sound pack are cleared here, as they will
-// be absent once the core no longer imports Platinum (§1.6).
+// Platinum. Platinum's assets and sound pack are cleared here, as they are
+// absent when a host never imports Platinum (the core does not, §1.6).
 describe("only a non-Platinum package registered", () => {
 	beforeEach(() => {
 		resetClassicyAppearancePackagesForTests();

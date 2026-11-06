@@ -4,7 +4,7 @@
 // kept whole (not stripped, healed or reset) until its package registers,
 // and is refreshed then: a built-in by its current preset, a wallpaper by its
 // filename. Each test boots a fresh module graph from saved state and
-// registers Platinum afterward, as the barrel does.
+// registers Platinum afterward, as a host's entry (and the library build) does.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
