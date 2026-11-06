@@ -2531,18 +2531,24 @@ An unregistered id, the default `"platinum"` included, is a logged no-op, and
 like every `ClassicyDesktop*` action it is unreachable to untrusted (HyperCard)
 dispatches.
 
-**A first session under another package.** A fresh store seeds `packageId:
-"platinum"` and the core's `CLASSICY_CORE_DEFAULT_THEME`, a theme of
-`"platinum"`. When the desktop draws another package (Platinum is not
-registered, so the first registered package draws), the store activates that
-package's `defaults`, completed as a switch completes them, in place of the
-unedited stand-in, at store creation or when the package registers, without
-writing `packageId`; a knob edit then forks into `custom-<id>`. Never
-replaced: a custom, host-loaded or edited theme, or a saved reference the
-user chose, pending its package. The activated defaults are saved as their
-reference, `{ id, package }`, so a reload loads them again. While unchanged
-in the session they stand in too: a package drawn instead later (Platinum
-registering after) replaces them with its own defaults.
+**Another package's defaults give way to the drawn package's.** When the
+active theme is its own package's defaults theme (by id: the registered
+package's `defaults.id`, or, while the default package is not registered,
+`CLASSICY_CORE_DEFAULT_THEME`'s) and the desktop draws another package, the
+store activates the drawn package's `defaults`, completed as a switch
+completes them, without writing `packageId`. It checks at store creation, on
+every registry change and whenever the drawn package changes through the
+store (a `packageId` written by a `defaultState` seed included), in one store
+write, and writes nothing when nothing changes. So a first session (the
+default state seeds `packageId: "platinum"` and the core stand-in) whose only
+package is another draws that package's own defaults, a knob edit forks into
+`custom-<id>`, a Platinum session's saved `{ id: "default", package:
+"platinum" }` reloads under another package on that package's defaults, and a
+save made with only another package reloads with Platinum, once Platinum is
+drawn, on Platinum's. Never replaced: a custom theme, a preset (any other
+theme of a package), or a host-loaded theme of a package not registered. The
+cost: another package's defaults theme chosen explicitly lasts until the
+next load or drawn-package change.
 
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),

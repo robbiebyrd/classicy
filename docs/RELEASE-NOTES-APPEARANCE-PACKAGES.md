@@ -54,6 +54,11 @@ Start with [Install and build](#install-and-build).
   import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
   ```
 
+  Until Platinum ships as `@classicy/appearance-platinum` (on this branch,
+  before the package split lands), the `@classicy/classicy` bundle still
+  carries and registers Platinum, and `@classicy/classicy/appearance/platinum`
+  is a no-op; the names above are already gone from `@classicy/classicy`.
+
 - **Vite's dev server must not pre-bundle classicy.** The fonts and art are
   now files in `dist/assets/`, referenced as
   `new URL("assets/…", import.meta.url)`. Vite's dependency pre-bundle
@@ -707,7 +712,10 @@ Start with [Install and build](#install-and-build).
 
 ## New APIs
 
-Everything is exported from `@classicy/classicy`. The links go to the full reference.
+Everything is exported from `@classicy/classicy`, except Platinum's own names
+(`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
+`platinumSoundPack`), which the Platinum package exports. The links go to the
+full reference.
 
 ### Appearance Packages
 
@@ -902,8 +910,10 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
     Platinum's alone. `CLASSICY_CORE_DEFAULT_THEME` is the theme
     `getTheme`/`getAllThemes` serve while no package is registered, and the
     store's initial active theme until Platinum (or the default package)
-    registers; when another package draws instead, the store activates that
-    package's defaults in its place, leaving `packageId` as it is. `getAllThemes()` lists the registered packages' built-ins.
+    registers. Whenever the desktop draws a package other than the active
+    theme's, and that theme is its package's defaults (the core stand-in
+    included), the store activates the drawn package's defaults, leaving
+    `packageId` as it is. `getAllThemes()` lists the registered packages' built-ins.
 - `ClassicyDesktopChangeMetric` gains a family form,
   `{ family, key, value }`, for package knobs. Supporting helpers:
   `isThemeMetricFamilyTarget`, `getThemeMetricFamily`,
