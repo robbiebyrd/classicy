@@ -6,7 +6,9 @@ import {
 	midClockMs,
 	midFreezeScript,
 	midShotName,
+	midStillCss,
 	PARITY_MID_CLOCK_MS,
+	PARITY_MID_STILL_SELECTORS,
 	parseMidAt,
 	selectsMidShot,
 	unfrozenAnimations,
@@ -209,5 +211,16 @@ describe("midFreezeScript", () => {
 		expect(mid.state(half)).toEqual({ unfrozen: 1, seen: 1 });
 		mid.freeze(half);
 		expect(mid.state(half)).toEqual({ unfrozen: 0, seen: 2 });
+	});
+});
+
+describe("midStillCss", () => {
+	it("switches the clock colon's blink off, with enough weight to win", () => {
+		expect(PARITY_MID_STILL_SELECTORS).toContain(".textBlinker");
+		expect(midStillCss()).toBe(".textBlinker { animation: none !important; }");
+	});
+
+	it("lists every selector, comma separated", () => {
+		expect(midStillCss()).toMatch(/^(\.[\w-]+, )*\.[\w-]+ \{/);
 	});
 });

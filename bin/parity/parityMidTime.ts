@@ -24,6 +24,20 @@ export const PARITY_MID_DEFAULT_AT = "50%";
  * saver's shortest idle timeout (1 min). */
 export const PARITY_MID_CLOCK_MS = 2000;
 
+/** Elements whose animation the mid-time shot switches off instead of
+ * pausing. The menu-bar clock's colon (`blinker 2s steps(1, end)`, keyframe
+ * `50% { opacity: 0 }`) changes at exactly the default `--at 50%`, and even
+ * paused there it came out on either side of the step in about 1 shot in 100
+ * under load (AE 12 in a 3x8 box, 0140-mid); pausing a hair past
+ * the boundary did not remove it. A blink carries no pixels worth comparing mid-cycle, so
+ * the colon is held in its visible state. Selectors are classes of the
+ * bundled components; a host's own blinkers are paused as usual. */
+export const PARITY_MID_STILL_SELECTORS: readonly string[] = [".textBlinker"];
+
+/** The stylesheet that holds PARITY_MID_STILL_SELECTORS still. */
+export const midStillCss = () =>
+	`${PARITY_MID_STILL_SELECTORS.join(", ")} { animation: none !important; }`;
+
 /** The mid-time shot's file stem: `<id>@mid`. Story ids never hold `@`. */
 export const PARITY_MID_SUFFIX = "@mid";
 

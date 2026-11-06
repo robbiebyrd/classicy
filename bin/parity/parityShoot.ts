@@ -26,6 +26,7 @@ import {
 import {
 	midFreezeScript,
 	midShotName,
+	midStillCss,
 	type ParityMidAt,
 	selectsMidShot,
 } from "./parityMidTime.ts";
@@ -78,6 +79,8 @@ const midState = (page: Page, at: ParityMidAt) =>
  * through the shot can still give two matching frames. No
  * `animations: "disabled"`: it would finish or cancel the paused animations. */
 async function shootMid(page: Page, mid: ParityMidOptions) {
+	// Before the freeze script lists animations, so the blinker is not one.
+	await page.addStyleTag({ content: midStillCss() });
 	await page.evaluate(midFreezeScript());
 	await page.clock.setFixedTime(PARITY_STORY_TIME.getTime() + mid.clockMs);
 	await page.evaluate(
