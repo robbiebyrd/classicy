@@ -3,12 +3,13 @@ id: 0135-t73
 title: '0015 §4.2: Docs, release notes and the program record'
 purpose: Execute plan 0015-kxa section 4.2.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:08.260Z"
-updated: "2026-11-06T19:19:08.343Z"
+updated: "2026-11-06T19:54:59.105Z"
 started: "2026-11-06T17:22:47.933Z"
+completed: "2026-11-06T19:54:59.105Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -76,8 +77,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -94,3 +95,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ### 2026-11-06T17:21:49.541Z - 2026-11-06, migration-guide gaps found by rt911's upgrade (0138, the first real host; report .superpowers/sdd/followups/0138-cj4-report.md). 4.2 must cover each in the release notes and README: (1) the rename classicy -> @classicy/classicy is not listed as a breaking change with its migration step (package.json, every import, vi.mock('classicy') strings, typeof import('classicy')); (2) the optimizeDeps.exclude snippet must name both @classicy/classicy and @classicy/appearance-platinum; (3) Platinum SCSS is @classicy/appearance-platinum/scss/* now (the core's ./appearance/platinum/scss/* is gone), mixin names are kebab-case, and hosts on sass-embedded need NodePackageImporter from sass-embedded, not sass; (4) the common 2.x idiom of spreading ClassicyIcons.applications and reading your own key back now fails silently at runtime: read registered icons through useClassicyAsset/resolveClassicyAsset or the value registerClassicyIcons returns; (5) hand-built Classicy markup now needs data-classicy-part/data-classicy-control attributes and bare state classes (else e.g. the zoom box sorts left of the title); (6) Platinum's type declarations (shipped since 3.4) and the named-import example; (7) auto-bumping hosts must move both package names together; (8) installs/CI 404 until 3.0.0 is published, so downstream PRs merge after publish.
 
 ### 2026-11-06T19:19:08.343Z - 2026-11-06, from 4.3 (0136): three more host doc gaps sent to the 4.2 agent: (1) a host must give its mount element (and html, body) a height, or the desktop is a white page with a menu bar; (2) AGENT-REFERENCE.md:29's install line lacks @classicy/appearance-platinum and its unpinned @tanstack/react-table now installs 9.x, breaking the core's ^8.21.3 peer; pin peers whose latest major is out of range; (3) a strict-CSP host that imports the fonts stylesheet through Vite gets the Monaco font inlined as data:, blocked by font-src 'self': document linking the three stylesheets, assetsInlineLimit: 0, or font-src data:.
+
+### 2026-11-06T19:54:48.684Z - Landed at b9f34fd50 (9 commits, rebased onto 0154's tip and the tracker). README, AGENT-REFERENCE §1/§5, BUILDING-APPS, CLAUDE.md, Platinum's README and the release notes describe the two packages; every rt911 gap (8) and 4.3 host gap (3) covered; plan 0002 amendment applied by the controller via plan update. Fable review: fix-first (rename-scan allowance by file not context; 'bundler only' resolution claim), all seven items fixed. Gate 494 files / 7203 tests green before the final docs-only rebase; after it lint, ClassicyPackageExports (42), ClassicyCoreTheme (53), platinumAssetsFolder (5) green. Controller: confirmed the resolution wording, and planted a stale 'from "classicy"' line at the end of AGENT-REFERENCE: the leftover scan reported it (docs/AGENT-REFERENCE.md:5077), file restored from HEAD. Release-note entries await the owner's approval (0139). Deletion incident: this agent's 'rm -rf *' (an empty scratch dir it had just made) was blocked by the owner; an earlier rm -rf of its own scratch folder ran before the rule; IMPLEMENTER-RULES now forbids both.

@@ -2,11 +2,12 @@
 id: 0014-ahm
 title: Platinum as its own package (@classicy/appearance-platinum), and Classicy as @classicy/classicy
 type: dsgn
-status: in_progress
+status: complete
 priority: "1"
 effort: XL
 created: "2026-11-05T19:38:13.103Z"
-updated: "2026-11-06T16:40:08.314Z"
+updated: "2026-11-06T19:55:17.124Z"
+completed: "2026-11-06T19:55:17.124Z"
 tags: []
 milestone: ""
 due_date: ""

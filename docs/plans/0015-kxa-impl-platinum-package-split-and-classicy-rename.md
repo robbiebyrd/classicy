@@ -2,11 +2,12 @@
 id: 0015-kxa
 title: 'Implement: Platinum as @classicy/appearance-platinum, and the core as @classicy/classicy'
 type: impl
-status: in_progress
+status: complete
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-06T19:19:37.171Z"
+updated: "2026-11-06T19:55:13.544Z"
+completed: "2026-11-06T19:55:13.544Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -82,13 +83,13 @@ progress:
     stories:
       - 0133-uqg
   "4":
-    status: in_progress
+    status: complete
   "4.1":
     status: complete
     stories:
       - 0134-8cy
   "4.2":
-    status: in_progress
+    status: complete
     stories:
       - 0135-t73
   "4.3":
