@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:58.963Z"
-updated: "2026-11-06T03:26:31.704Z"
+updated: "2026-11-06T09:39:00.850Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -92,3 +92,9 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-06T03:26:31.704Z - 2026-11-06, from 0127-qvl (1.6) J1: the library build now enters through src/ClassicyLibraryBuild.internal.ts (the barrel, then import of Platinum) so verify:dist's package-block invariant still passes while Platinum lives in src/. Phase 3 must delete that file, point the build back at src/index.ts, and move the Platinum package-block invariant to Platinum's own dist check.
+
+### 2026-11-06T09:26:17.693Z - 2026-11-06, from 0130-rpe's review: until 3.4, the example's production bundle registers Platinum twice (the core dist bundles one copy via src/ClassicyLibraryBuild.internal.ts, the package dist registers again and replaces it); example/dist JS is ~14.8 MB with every data:audio sprite twice. 3.4 removes the bundled copy; verify the example's production bundle holds one copy (size and sprite count) when it lands. Do not deploy the example between 3.2 and 3.4.
+
+### 2026-11-06T09:34:05.084Z - 2026-11-06, from 0131-ku3 J1: the core build uses a narrower no-inline rule (isClassicyCoreBuildPackageAsset) so it keeps inlining Platinum's moved files while it still bundles Platinum; 3.4 deletes that rule and its test together with src/ClassicyLibraryBuild.internal.ts.
+
+### 2026-11-06T09:39:00.850Z - 2026-11-06, from 0131-ku3's review: the package's byte-identity test (PlatinumOneRegistry.test.ts:335-343) covers only the four sprites; 3.4's package verify-dist must check every non-font file in the package dist/assets (art, cursors, wallpapers) is byte-identical to its source, so an image optimizer added to the package's Vite config is caught.

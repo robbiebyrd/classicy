@@ -3,12 +3,13 @@ id: 0131-ku3
 title: '0015 §3.3: Platinum''s files leave assets/'
 purpose: Execute plan 0015-kxa section 3.3.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:55.758Z"
-updated: "2026-11-06T08:27:02.643Z"
+updated: "2026-11-06T09:59:59.613Z"
 started: "2026-11-06T08:27:02.643Z"
+completed: "2026-11-06T09:59:59.613Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -73,8 +74,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -88,3 +89,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md` - modify
 
 ## Work Log
+
+### 2026-11-06T09:59:49.889Z - Landed at 073a6b9fc (26ea9bf8a, 3664e11fe and a CLAUDE.md clarification, rebased on 9c5ca5895). 188 git mv of Platinum's sounds, wallpapers, art and cursors into packages/appearance/platinum/assets; 13 ClassicyIcons entries removed (release-note table). Review: ready to land (nothing >=80); minor items logged on 0132 (package byte-identity for all dist assets; delete isClassicyCoreBuildPackageAsset) and filed as 0150-jga (orphan core ui art and cursors). Landing gate 484 files / 6755 tests, package 20 files / 274 tests + vite build, GATE_EXIT=0. Controller parity (static build + example, listeners PID/cwd-verified) against before/ with 0149's chasing-arrows@mid frame overlaid: 445/445 AE 0.
