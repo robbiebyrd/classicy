@@ -422,6 +422,10 @@ describe("module load order", () => {
 				),
 		],
 		["the library barrel", () => import("@/index")],
+		[
+			"the library build entry",
+			() => import("@/ClassicyLibraryBuild.internal"),
+		],
 		["the Platinum package module", () => import("@/Appearance/Platinum")],
 		["the Platinum hooks", () => import("@/Appearance/Platinum/hooks")],
 		[
