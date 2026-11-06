@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
+import { resetClassicyDefaultStateSeedForTests } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDefaultStateSeed.internal";
 import { resetClassicyFileSystemSharedTrees } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 
 // Node 23+ ships an experimental, file-backed global `localStorage` that throws
@@ -81,6 +82,8 @@ beforeEach(() => {
 	// File systems share one live tree per storage key; with storage wiped,
 	// the next one must read it afresh rather than attach to the last test's.
 	resetClassicyFileSystemSharedTrees();
+	// A provider seeds once per page session; each test is a new one.
+	resetClassicyDefaultStateSeedForTests();
 });
 
 afterEach(() => {

@@ -609,7 +609,16 @@ Start with [Install and build](#install-and-build).
     the theme's data, not its id) are forked into its package's Custom
     theme, so they are saved whole and survive a reload. Before, they sat on
     a built-in, which is saved as its reference, and were lost on the
-    second visit.
+    second visit. A seeded first session therefore shows "Custom" selected
+    in the Themes tab, and a seed's `activeTheme.name` is replaced by
+    "Custom". Because a seeded user's theme is a custom theme, later changes
+    to the package's default colors, fonts or wallpaper no longer reach
+    them; changes to its knob defaults still do, since knob values equal to
+    the defaults are stripped on save. The user's first edit of any built-in
+    theme of that package overwrites the Custom slot that holds the host's
+    look. A seed is also applied at most once per page session, so a
+    provider remount (a route, a `key`, Fast Refresh, a second provider) no
+    longer merges it again.
   - `Desktop.errorDialog` is no longer persisted (as `systemDialog`
     already was not), so a reload never re-shows an open alert.
   - The transient window flags `resizing`, `dragging` and `moving` are

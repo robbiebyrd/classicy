@@ -994,6 +994,79 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 	});
 });
 
+describe("a defaultState seed applies once per page session (review of 0148-wf3)", () => {
+	/** Mounts the provider with `appearance` as its seed; returns `unmount`. */
+	const mount = async (appearance: Record<string, unknown>) => {
+		const { ClassicyAppManagerProvider } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const defaultState = { System: { Manager: { Appearance: appearance } } };
+		return render(
+			<ClassicyAppManagerProvider defaultState={defaultState}>
+				<p>host</p>
+			</ClassicyAppManagerProvider>,
+		).unmount;
+	};
+
+	it.each([
+		["the default package", {}, "custom", "azul"],
+		["a named package", { packageId: FOO }, "custom-foo", "foo-dark"],
+	])("keeps the user's Custom theme and choice across a remount (%s)", async (_name, extra, slot, choice) => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		const seed = { ...extra, activeTheme: SEED_TWEAKS };
+		const unmount = await mount(seed);
+		expect(b.active().id).toBe(slot);
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeColor",
+				colorKey: "outline",
+				color: 0x123456,
+			}),
+		);
+		const edited = strip(
+			b
+				.state()
+				.System.Manager.Appearance.customThemes?.find((t) => t.id === slot),
+		);
+		expect(edited?.color.outline).toBe(0x123456);
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeTheme",
+				activeTheme: choice,
+			}),
+		);
+		unmount();
+		await mount(seed);
+		expect(b.active().id).toBe(choice);
+		expect(
+			strip(
+				b
+					.state()
+					.System.Manager.Appearance.customThemes?.find((t) => t.id === slot),
+			),
+		).toEqual(edited);
+	});
+
+	it("still follows the drawn package after a remount on the untouched fork", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
+		const unmount = await mount(seed);
+		expect(b.active().id).toBe("custom");
+		unmount();
+		await mount(seed);
+		b.registerFoo();
+		expect(b.active().id).toBe("custom-foo");
+		expect(b.active().sound.pack).toBe(FOO_SOUND);
+		expect(b.active().desktop.iconSize).toBe(64);
+		expect(
+			b.state().System.Manager.Appearance.customThemes?.map((t) => t.id),
+		).toEqual(["custom-foo"]);
+	});
+});
+
 describe("a saved defaults reference to a package the host dropped (0147-qyy)", () => {
 	/** What a session with only foo saves: foo's defaults, as a reference. */
 	const fooOnlySave = async () => {

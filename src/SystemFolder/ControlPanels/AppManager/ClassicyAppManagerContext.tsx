@@ -15,6 +15,7 @@ import type {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
+	wasDefaultStateSeedApplied,
 	wasHydratedFromStorage,
 	withClassicyDefaultStateSeed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -84,7 +85,16 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
-		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
+		// Once per page session: a remount (a route, a `key`, Fast Refresh, a
+		// second provider) must not seed again over the user's state.
+		if (
+			seeded.current ||
+			!defaultState ||
+			wasHydratedFromStorage() ||
+			wasDefaultStateSeedApplied()
+		) {
+			return;
+		}
 		seeded.current = true;
 		// Merged deeply over the live state (H-R17), a seed's theme tweaks on
 		// the defaults of the package it names and forked into a custom theme,

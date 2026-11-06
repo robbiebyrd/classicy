@@ -41,6 +41,10 @@ import {
 	mergeClassicyState,
 } from "./ClassicyAppManager";
 import { validateAppStateForAction } from "./ClassicyAppManifest";
+import {
+	markClassicyDefaultStateSeedApplied,
+	wasClassicyDefaultStateSeedApplied,
+} from "./ClassicyDefaultStateSeed.internal";
 import { migrateClassicyState } from "./ClassicyStateMigrations";
 
 let hydratedFromStorage = false;
@@ -300,12 +304,15 @@ const withForkedSeedTheme = (
  * package's defaults when the seed names a `packageId`
  * (`withSeededPackageDefaults`), with theme tweaks forked into a custom theme
  * (`withForkedSeedTheme`), so they persist whole and survive a reload.
+ * Noted as applied (`wasDefaultStateSeedApplied`): the provider seeds at
+ * most once per page session.
  * @internal
  */
 export const withClassicyDefaultStateSeed = (
 	state: ClassicyStore,
 	seed: DeepPartial<ClassicyStore>,
 ): ClassicyStore => {
+	markClassicyDefaultStateSeedApplied();
 	seededThemeFork = null;
 	return withForkedSeedTheme(
 		withoutDefaultActiveThemeMeasurements(
@@ -364,6 +371,12 @@ const seededThemeOnDrawnPackage = (
 
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
+
+/** True once a host's `defaultState` seed has been applied in this page
+ * session (`withClassicyDefaultStateSeed`), so a provider remount never
+ * seeds again over the user's state. */
+export const wasDefaultStateSeedApplied = (): boolean =>
+	wasClassicyDefaultStateSeedApplied();
 
 /**
  * The default state as a first session starts: its active theme, the core

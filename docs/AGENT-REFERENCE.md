@@ -2574,7 +2574,11 @@ after mount included), the seed's `activeTheme` is merged over the drawn
 package's defaults, completed as a switch completes them, and forked into
 its Custom slot, replacing the old fork. A seed that names its theme's
 `package` stays on that package. Any edit, `ChangeTheme` or package switch
-ends this; the user's choice wins.
+ends this; the user's choice wins. Being a custom theme, the fork no longer
+follows later changes to the package's default colors, fonts or wallpaper;
+its knob values equal to the defaults are stripped on save, so knob default
+changes still reach it. A seed is applied at most once per page session
+(`wasDefaultStateSeedApplied`): a provider remount never seeds again.
 
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),
