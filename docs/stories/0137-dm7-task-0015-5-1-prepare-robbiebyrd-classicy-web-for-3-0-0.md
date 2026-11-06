@@ -3,12 +3,13 @@ id: 0137-dm7
 title: '0015 §5.1: Prepare robbiebyrd/classicy-web for 3.0.0'
 purpose: Execute plan 0015-kxa section 5.1.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:14.701Z"
-updated: "2026-11-06T16:19:51.418Z"
+updated: "2026-11-06T16:24:47.151Z"
 started: "2026-11-06T16:19:51.418Z"
+completed: "2026-11-06T16:24:47.151Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm test` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm test` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -77,3 +78,7 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 ### 2026-11-06T14:18:41.513Z - 2026-11-06, owner instruction: do not start this story until the owner has been alerted to begin the verification on 0139-vni (V&V) and has given the go.
 
 ### 2026-11-06T16:19:38.126Z - 2026-11-06 16:18: owner alerted to begin 0139's verification (npm org classicy, NPM_TOKEN able to publish @classicy/*) and asked to start 0137 now, while 3.4 (0132) is still running. Started early: steps 1, 2 and 4 now; step 3 runs against tarballs packed from the current tip and is re-run against 3.4's tarballs when it lands; the PR is not opened until then.
+
+### 2026-11-06T16:24:22.805Z - Done as robbiebyrd/classicy-web PR #10 (branch classicy-3.0.0, commit 072be37), opened unmerged; the owner merges after 3.0.0 is published. The plan's premise did not hold: classicy-web is the Next.js marketing site, does not depend on or import the library (package.json name 'classicy' is the site's own), has no Vite config and no tests. So the only change is the visitor install copy (header.tsx, features.tsx: npm install @classicy/classicy @classicy/appearance-platinum; import @classicy/appearance-platinum at the entry; the classicy/dist/classicy.css import dropped). deploy-pages only rebuilds; no auto-bump exists, so none to fix. Verification: yarn install --frozen-lockfile, yarn lint (0 errors), yarn build OK; built out/ in headless Chromium renders with 0 console errors and 0 responses >=400. Criteria: 'pnpm test' does not apply (yarn repo, no tests; build/lint/browser check stand in); 'landed on feat/AppearancePackages' does not apply (the change lands in classicy-web via PR #10); the controller reviewed the 2-line diff and the PR text. No step-3 re-run is needed after 3.4: the site has no classicy dependency.
+
+### 2026-11-06T16:24:44.891Z - Completed with --force past its 0132 (3.4) dependency: the dependency assumed classicy-web consumes the built packages, which it does not, so nothing in 3.4 can change PR #10.
