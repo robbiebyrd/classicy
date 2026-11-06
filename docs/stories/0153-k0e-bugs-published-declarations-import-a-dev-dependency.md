@@ -3,12 +3,13 @@ id: 0153-k0e
 title: '@classicy/classicy''s published declarations import a type from @mdxeditor/editor, a devDependency'
 purpose: A host type-checks against Classicy's declarations without installing packages Classicy does not declare.
 type: bugs
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T17:39:26.037Z"
-updated: "2026-11-06T17:47:52.573Z"
+updated: "2026-11-06T18:30:30.810Z"
 started: "2026-11-06T17:47:52.573Z"
+completed: "2026-11-06T18:30:30.810Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -48,8 +49,8 @@ For each leaked type: declare the dependency (or an optional peer) if hosts need
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The host check passes without skipLibCheck using only the declared dependencies and peers, and fails if a declaration imports an undeclared package.
-- [ ] VERIFY: Full gate green.
+- [x] VERIFY: The host check passes without skipLibCheck using only the declared dependencies and peers, and fails if a declaration imports an undeclared package.
+- [x] VERIFY: Full gate green.
 
 ## Files
 
@@ -58,3 +59,5 @@ For each leaked type: declare the dependency (or an optional peer) if hosts need
 ## Work Log
 
 ### 2026-11-06T17:47:09.023Z - 2026-11-06, from 0151's Fable review (confidence 82): bin/check-host-types.ts (classicyHostDependencies, :90-103) links @types/<name> from the checkout for every dependency and peer even when that @types package is only a devDependency (@types/howler, @types/he, @types/use-analytics), and sets skipLibCheck: true in every mode (:78), so missing published types become any. With real-host links only and skipLibCheck: false the packed core fails twice under every resolution: ClassicyRichTextEditor.d.ts TS2307 '@mdxeditor/editor' (devDependency) and ClassicySoundManagerUtils.d.ts TS7016 'howler' (no @types/howler for hosts). Fix both (e.g. @types/howler to dependencies; MDXEditorMethods off the public surface or @mdxeditor/editor an optional peer), link @types only when declared, then add a skipLibCheck: false mode (bundler) in the same change. Also fold the duplicated beforeWriteFile bodies (vite.config.ts:219-233 and packages/appearance/platinum/vite.config.ts:85-103) into a factory in bin/classicyDeclarationSpecifiers.ts.
+
+### 2026-11-06T18:30:22.889Z - Landed at fcb254bce (dd129afaf, a8f2b2ec3, fcb254bce on eee3032a9). The host check links only declared deps/peers (@types only when declared), adds bundler-lib-check (skipLibCheck: false), and fails on any undeclared package a packed declaration imports. Three leaks fixed: @mdxeditor/editor off the public surface (new exported ClassicyRichTextEditorMethods, structurally equal to MDXEditorMethods, drift pinned by a tsc-checked type test); @types/howler to dependencies; @types/react an optional peer. beforeWriteFile folded into classicyDeclarationExtensionsWriter. Gate 494 files / 7191 tests; Platinum 23/314 + build + verify:dist. Fable review: no findings, ready to land (packed manifests verified, four host modes pass, fold byte-identical over 330 declarations, lockfile only moves @types/howler, libc: 63).
