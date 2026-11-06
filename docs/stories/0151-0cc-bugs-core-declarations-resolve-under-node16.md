@@ -3,12 +3,13 @@ id: 0151-0cc
 title: '@classicy/classicy''s declarations yield no types under moduleResolution node16/nodenext'
 purpose: Hosts on node16/nodenext module resolution get the core's types in 3.0.0.
 type: bugs
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T16:45:52.021Z"
-updated: "2026-11-06T16:54:26.489Z"
+updated: "2026-11-06T17:47:40.581Z"
 started: "2026-11-06T16:54:21.440Z"
+completed: "2026-11-06T17:47:40.581Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,8 +50,8 @@ Rewrite relative specifiers in the core's emitted declarations to `.js` (e.g. `v
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The host type-check test passes under both `bundler` and `node16`, and fails if the specifier rewrite is removed.
-- [ ] VERIFY: Full gate green and both packages pack with their declarations.
+- [x] VERIFY: The host type-check test passes under both `bundler` and `node16`, and fails if the specifier rewrite is removed.
+- [x] VERIFY: Full gate green and both packages pack with their declarations.
 
 ## Files
 
@@ -59,3 +60,5 @@ Rewrite relative specifiers in the core's emitted declarations to `.js` (e.g. `v
 ## Work Log
 
 ### 2026-11-06T16:54:26.488Z - 2026-11-06 16:53: started at the owner's request in parallel with 3.4, based on fu/0132 at fc49bddc4 (it needs 3.4's separate packs and Platinum's declarations); rebases onto 3.4's final head, and reuses 3.4's bin/classicyDeclarationSpecifiers.ts for the core's half.
+
+### 2026-11-06T17:47:32.794Z - Landed at a74125f67 (4 commits, rebased over tracker-only commits). The core's declarations get .js relative specifiers via 3.4's shared helper (which now skips comments and strings); verify:dist invariant 8 fails on any extensionless relative specifier; bin/check-host-types.ts (pnpm verify:host-types, end of build:source) packs both packages and type-checks a host under bundler, node16 and nodenext. Implementer gate 493 files / 7178 tests + Platinum 23/314; Fable review: ready to land (598 specifiers rewritten and resolving, host check not vacuous, CI-safe ~9 s, no files left behind). Its finding (the check links devDependency @types and uses skipLibCheck, masking @mdxeditor/editor and howler leaks) and the duplicated beforeWriteFile went to 0153 (priority 1).
