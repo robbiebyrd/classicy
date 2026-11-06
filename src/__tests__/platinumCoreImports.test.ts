@@ -22,7 +22,7 @@ const CORE = "@classicy/classicy";
  * `import { x }` or `export { x } from`, and every other form it reaches the
  * core by (`refused`), as `<form>` labels.
  */
-export const platinumCoreReferences = (
+const platinumCoreReferences = (
 	fileName: string,
 	text: string,
 ): { values: string[]; refused: string[] } => {
