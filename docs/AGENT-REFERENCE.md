@@ -2531,6 +2531,19 @@ An unregistered id, the default `"platinum"` included, is a logged no-op, and
 like every `ClassicyDesktop*` action it is unreachable to untrusted (HyperCard)
 dispatches.
 
+**A first session under another package.** A fresh store seeds `packageId:
+"platinum"` and the core's `CLASSICY_CORE_DEFAULT_THEME`, a theme of
+`"platinum"`. When the desktop draws another package (Platinum is not
+registered, so the first registered package draws), the store activates that
+package's `defaults`, completed as a switch completes them, in place of the
+unedited stand-in, at store creation or when the package registers, without
+writing `packageId`; a knob edit then forks into `custom-<id>`. Never
+replaced: a custom, host-loaded or edited theme, or a saved reference the
+user chose, pending its package. The activated defaults are saved as their
+reference, `{ id, package }`, so a reload loads them again. While unchanged
+in the session they stand in too: a package drawn instead later (Platinum
+registering after) replaces them with its own defaults.
+
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),
 `ClassicyDesktopLoadThemes` fills it in, and theme files default it (below).

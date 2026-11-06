@@ -902,7 +902,8 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
     Platinum's alone. `CLASSICY_CORE_DEFAULT_THEME` is the theme
     `getTheme`/`getAllThemes` serve while no package is registered, and the
     store's initial active theme until Platinum (or the default package)
-    registers. `getAllThemes()` lists the registered packages' built-ins.
+    registers; when another package draws instead, the store activates that
+    package's defaults in its place, leaving `packageId` as it is. `getAllThemes()` lists the registered packages' built-ins.
 - `ClassicyDesktopChangeMetric` gains a family form,
   `{ family, key, value }`, for package knobs. Supporting helpers:
   `isThemeMetricFamilyTarget`, `getThemeMetricFamily`,
