@@ -82,8 +82,13 @@
 //    test, every __tests__ helper, every story and every build script in bin/
 //    (dist/types/bin/**), for the root build configs (vite.config.d.ts,
 //    vitest.config.d.ts) and for every imported JSON file (package.json.d.ts,
-//    platinum.json.d.ts, …). Checked by walking dist/types (skipped when the
-//    caller names files).
+//    platinum.json.d.ts, …). And every relative specifier in a declaration
+//    carries its extension (`./ClassicyAppearanceManager.Colors.js`): the
+//    package is `"type": "module"`, so a host on `moduleResolution: node16`
+//    or `nodenext` resolves no other, and until beforeWriteFile on dts gave
+//    them one every core name was missing there (TS2305, 0151-0cc;
+//    bin/check-host-types.ts type-checks a packed host). Checked by walking
+//    dist/types (skipped when the caller names files).
 //
 // 9. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`.
 //    Strict-CSP hosts link dist/classicy.css and dist/classicy-<id>.css
@@ -130,6 +135,7 @@ import {
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
 import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
 import { findClassicyCorePackageFiles } from "./classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "./classicyDistCharset.ts";
 import { findClassicyDevJsxProblems } from "./classicyDistJsx.ts";
@@ -454,14 +460,30 @@ if (!argv.slice(2).length) {
 			`${typesDir}: ${json.length} declaration(s) of imported JSON (${listed(json)}) -> check CLASSICY_DTS_EXCLUDE in bin/classicyDistTypes.ts.`,
 		);
 	}
+	let bare = 0;
+	for (const declaration of (declarations ?? [])
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()) {
+		const file = join(typesDir, declaration);
+		const specifiers = findClassicyExtensionlessSpecifiers(
+			await readFile(file, "utf8"),
+		);
+		if (!specifiers.length) continue;
+		bare++;
+		failed = true;
+		console.error(
+			`${file}: relative specifier(s) without an extension (${listed(specifiers.map((s) => JSON.stringify(s)))}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
+		);
+	}
 	if (
 		declarations !== null &&
 		!shipped.length &&
 		!scripts.length &&
-		!json.length
+		!json.length &&
+		!bare
 	) {
 		console.log(
-			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON`,
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
 		);
 	}
 }

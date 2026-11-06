@@ -315,3 +315,56 @@ describe("check-dist-imports.mjs invariant 13: production JSX runtime (named fil
 		expect(lines13(r.stderr)).toEqual([]);
 	});
 });
+
+// Invariant 8 (0151-0cc): the package is `"type": "module"`, so a host on
+// node16 or nodenext resolves a declaration's relative specifier only with its
+// extension. Run without named files on a dist/ holding only declarations
+// and two empty entry bundles, so the other invariants report what that dist
+// lacks; only the dist/types lines are read.
+describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist)", () => {
+	const types = (declarations: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const bundle of ["classicy.es.js", "classicy.umd.js"])
+			writeFileSync(join(dir, "dist", bundle), "export{};");
+		for (const [file, text] of Object.entries(declarations)) {
+			const path = join(dir, "dist", "types", file);
+			mkdirSync(dirname(path), { recursive: true });
+			writeFileSync(path, text);
+		}
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const typesLines = (text: string) =>
+			text.split("\n").filter((line) => line.startsWith(join("dist", "types")));
+		return { out: typesLines(result.stdout), err: typesLines(result.stderr) };
+	};
+
+	// The count is readdir's, folders included (src/).
+	it("passes relative specifiers with .js, dotted module names included", () =>
+		expect(
+			types({
+				"src/index.d.ts":
+					"export * from './Manager.Colors.js';\n/** import a from './icon.png'; */\n",
+				"src/Manager.Colors.d.ts": "export type A = 1;\n",
+			}),
+		).toEqual({
+			out: [
+				`${join("dist", "types")}: 3 file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
+			],
+			err: [],
+		}));
+
+	it("fails each declaration with an extensionless relative specifier", () =>
+		expect(
+			types({
+				"src/index.d.ts":
+					"export * from './Manager.Colors';\nexport * from './a/b.js';\n",
+				"src/a/b.d.ts": "export type B = import('../Manager.Colors').A;\n",
+			}).err,
+		).toEqual([
+			`${join("dist", "types", "src", "a", "b.d.ts")}: relative specifier(s) without an extension ("../Manager.Colors") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
+			`${join("dist", "types", "src", "index.d.ts")}: relative specifier(s) without an extension ("./Manager.Colors") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
+		]));
+});
