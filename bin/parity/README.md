@@ -49,14 +49,18 @@ Exit codes: 0 when the run is clean, 1 when anything differs or a shot failed,
 
 Use a port nobody else is using; several worktrees can run at once.
 
-**Shoot the static build, always.** `storybook dev` draws the window grow-box
-grip differently (AE 69 in a 10x10 box on every window story), and a baseline
-and its after set must come from the same serving mode. The reason: Storybook's
-`VitePluginImageTools` has no `excludes`, so the build runs svgo over every
-emitted SVG, `resizer.svg` (the grip) included, and svgo rewrites its `<rect>`s
-as `<path>`s that rasterize differently; the dev server serves the file as
-authored. The static build is therefore not the art as authored, but it is the
-reference every baseline so far was shot from, so stay with it.
+**Shoot the static build.** It is the prescribed serving mode, and a baseline
+and its after set must come from the same one. `storybook dev` and the static
+build now draw the same pixels (`desktop-window--default` shot from each is
+AE 0), because both configs hand `VitePluginImageTools` the same `excludes`
+(`CLASSICY_IMAGE_TOOLS_EXCLUDES`, `bin/classicyImageTools.ts`) and package art
+reaches the browser as authored. Before story 0146-doe the static build ran
+svgo over every emitted SVG, `resizer.svg` (the window grow-box grip) included,
+and drew it AE 69 in a 10x10 box differently from dev; a baseline shot before
+that fix (`platinum-split/before`) carries the old grip, so compare only sets
+shot from builds on the same side of it. `pnpm build:storybook` ends with
+`bin/check-storybook-art.mjs`, which fails if any emitted package art differs
+from its source.
 
 ```bash
 # Storybook: the STATIC build of the checkout under test, never `storybook dev`
