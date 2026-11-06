@@ -48,6 +48,7 @@ import { ClassicyStartupScreen } from "@/SystemFolder/SystemResources/Boot/Class
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
+import { ClassicyNoAppearancePackage } from "@/SystemFolder/SystemResources/Desktop/ClassicyNoAppearancePackage";
 import { ClassicyEmptyTrashAlert } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { ClassicyMenuBarExtension } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 import { ClassicyDesktopMenuWidgetSound } from "@/SystemFolder/SystemResources/Desktop/MenuBar/Widgets/Sound/ClassicyDesktopMenuWidgetSound";
@@ -672,6 +673,23 @@ describe("className and style passthrough (remaining exported components)", () =
 			</ClassicyCrashScreen>,
 		);
 		expectPassthrough(container.querySelector(".classicyCrashScreen"));
+	});
+
+	it("ClassicyNoAppearancePackage merges className and style onto the stop screen", () => {
+		// The stop screen logs its one error per page through classicyLog.
+		vi.spyOn(console, "error").mockImplementation(noop);
+		const { container } = render(
+			<ClassicyNoAppearancePackage className={HOST} style={STYLE} />,
+		);
+		const root = container.querySelector(".classicyNoAppearancePackage");
+		expectPassthrough(root);
+		// After its own class, and beside the core theme variables it sets.
+		expect(root?.getAttribute("class")).toBe(
+			`classicyNoAppearancePackage ${HOST}`,
+		);
+		expect((root as HTMLElement).style.getPropertyValue("--color-black")).toBe(
+			"#000000",
+		);
 	});
 
 	it("ClassicyDesktopMenuWidgetSound merges className and style onto its item", () => {
