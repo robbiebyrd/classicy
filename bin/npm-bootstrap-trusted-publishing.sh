@@ -8,8 +8,10 @@
 # exist"). A package push.yml has never published therefore needs one publish
 # by hand first (story 0156-tx7). For each package.json given (default: the
 # core's and Platinum's) this:
-#   1. publishes a placeholder, <name>@0.0.0, unless the name is on npm already;
-#   2. deprecates that placeholder, so nobody installs it by mistake;
+#   1. publishes a placeholder, <name>@0.0.0, under the `bootstrap` dist-tag,
+#      unless the name is on npm already;
+#   2. deprecates that placeholder, naming the first real release, so nobody
+#      installs it by mistake;
 #   3. adds the trusted publisher push.yml publishes through: GitHub Actions,
 #      repository robbiebyrd/classicy, workflow push.yml, no environment,
 #      `npm publish` allowed.
@@ -22,6 +24,13 @@
 # unless a publish uses it within 2 days, so run it with --publish no more than
 # a day before the release that publishes these packages.
 #
+# The `bootstrap` tag keeps the placeholder off `latest` as far as the CLI
+# can: npm sends only the tag it is given. npm's docs do not say whether the
+# registry also points `latest` at a brand-new package's first version, so
+# check with `npm view <name> dist-tags` a few minutes later. Either way, the
+# first release (push.yml publishes with `--tag latest`) makes `latest` that
+# release.
+#
 # Exit status: 0 done (or would be done), 1 usage or npm error.
 
 set -euo pipefail
@@ -29,6 +38,9 @@ set -euo pipefail
 REPOSITORY="robbiebyrd/classicy"
 WORKFLOW="push.yml"
 PLACEHOLDER_VERSION="0.0.0"
+PLACEHOLDER_TAG="bootstrap"
+# The release the placeholder makes way for, named in its deprecation.
+FIRST_RELEASE="3.0.0"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH=0
@@ -98,8 +110,8 @@ for MANIFEST in "${MANIFESTS[@]}"; do
 			);
 		' "$MANIFEST" "$PLACEHOLDER" "$PLACEHOLDER_VERSION"
 		# shellcheck disable=SC2086 # DRY_RUN is one word or none
-		(cd "$PLACEHOLDER" && npm publish --access public $DRY_RUN)
-		DEPRECATION="Placeholder with no code; install a later version."
+		(cd "$PLACEHOLDER" && npm publish --access public --tag "$PLACEHOLDER_TAG" $DRY_RUN)
+		DEPRECATION="Placeholder with no code; install $NAME@$FIRST_RELEASE or later."
 		if [ "$PUBLISH" = 1 ]; then
 			npm deprecate "$NAME@$PLACEHOLDER_VERSION" "$DEPRECATION"
 		else
@@ -115,6 +127,12 @@ for MANIFEST in "${MANIFESTS[@]}"; do
 	npm trust github "$NAME" --repo "$REPOSITORY" --file "$WORKFLOW" --allow-publish $DRY_RUN $CONFIRM
 done
 
+echo
+echo "Placeholders go out under the \`$PLACEHOLDER_TAG\` dist-tag. If the registry also"
+echo "points \`latest\` at a new package's first version (npm's docs do not say), then"
+echo "\`latest\` reads $PLACEHOLDER_VERSION until the $FIRST_RELEASE release, and installs warn"
+echo "with the deprecation, which names $FIRST_RELEASE. Otherwise \`latest\` stays unset until"
+echo "then. Check with \`npm view <name> dist-tags\` a few minutes after publishing."
 echo
 if [ "$PUBLISH" = 1 ]; then
 	echo "Done. These trusted publishers expire unless a publish uses them within 2 days:"

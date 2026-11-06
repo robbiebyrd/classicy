@@ -266,6 +266,31 @@ describe("push.yml release workflow", () => {
 		expect(script).not.toMatch(/git (push|tag|commit)/);
 	});
 
+	// Story 0156-tx7: the first publish of each package is a placeholder under
+	// the `bootstrap` dist-tag, so the release must claim `latest` itself.
+	// pnpm 10's recursive publish passes `--tag latest` unless a tag is
+	// configured, and nothing configures one.
+	it("publishes the release as `latest`: no step or package sets another tag", () => {
+		for (const s of [step(/^Publish to npm$/), step(/core only/)]) {
+			expect(s.text, s.name).not.toMatch(
+				/--tag\b|npm_config_tag|NPM_CONFIG_TAG/i,
+			);
+		}
+		for (const manifest of ["package.json", PLATINUM_PKG]) {
+			const pkg = JSON.parse(
+				readFileSync(resolve(__dirname, "..", manifest), "utf8"),
+			);
+			expect(pkg.publishConfig?.tag, manifest).toBeUndefined();
+		}
+		expect(
+			readFileSync(resolve(__dirname, "../pnpm-workspace.yaml"), "utf8"),
+		).not.toMatch(/^\s*tag:/m);
+		// The wait step then requires `latest` to be the new version.
+		expect(scriptOf(step(/^Wait for the release/))).toContain(
+			"dist-tags.latest",
+		);
+	});
+
 	it("keeps the sync, publish and core-only guards mutually consistent", () => {
 		const publish = ifOf(step(/^Publish to npm$/));
 		const core = ifOf(step(/core only/));

@@ -90,10 +90,10 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		expect(r.status, r.out).toBe(0);
 		expect(r.calls).toEqual([
 			"view @classicy/classicy name",
-			"publish --access public --dry-run",
+			"publish --access public --tag bootstrap --dry-run",
 			`${trustArgs("@classicy/classicy")} --dry-run`,
 			"view @classicy/appearance-platinum name",
-			"publish --access public --dry-run",
+			"publish --access public --tag bootstrap --dry-run",
 			`${trustArgs("@classicy/appearance-platinum")} --dry-run`,
 		]);
 		expect(r.calls.some((c) => c.startsWith("deprecate"))).toBe(false);
@@ -105,18 +105,42 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		expect(r.status, r.out).toBe(0);
 		expect(r.calls).toEqual([
 			"view @classicy/classicy name",
-			"publish --access public",
-			expect.stringMatching(/^deprecate @classicy\/classicy@0\.0\.0 /),
+			"publish --access public --tag bootstrap",
+			expect.stringMatching(
+				/^deprecate @classicy\/classicy@0\.0\.0 .*install @classicy\/classicy@3\.0\.0 or later/,
+			),
 			`${trustArgs("@classicy/classicy")} --yes`,
 			"view @classicy/appearance-platinum name",
-			"publish --access public",
+			"publish --access public --tag bootstrap",
 			expect.stringMatching(
-				/^deprecate @classicy\/appearance-platinum@0\.0\.0 /,
+				/^deprecate @classicy\/appearance-platinum@0\.0\.0 .*install @classicy\/appearance-platinum@3\.0\.0 or later/,
 			),
 			`${trustArgs("@classicy/appearance-platinum")} --yes`,
 		]);
 		// The 2-day window is the owner's to keep: the script says so.
 		expect(r.out).toMatch(/2 days/);
+	});
+
+	// The owner wants `latest` never to point at the placeholder. The CLI sends
+	// only the tag it is given; npm's docs do not say whether the registry also
+	// sets `latest` on a new package's first version, so the script says what
+	// the owner will see either way.
+	it("keeps the placeholder off `latest` and says what `latest` reads until the first release", () => {
+		for (const args of [[], ["--publish"]]) {
+			const r = run(args);
+			expect(r.status, r.out).toBe(0);
+			const publishes = r.calls.filter((c) => c.startsWith("publish"));
+			expect(publishes).toHaveLength(2);
+			for (const c of publishes) {
+				expect(c).toContain("--tag bootstrap");
+				expect(c).not.toMatch(/--tag latest/);
+			}
+			expect(r.calls.some((c) => c.startsWith("dist-tag"))).toBe(false);
+			expect(r.out).toMatch(/`bootstrap` dist-tag/);
+			expect(r.out).toMatch(/`latest` reads 0\.0\.0 until the 3\.0\.0 release/);
+			expect(r.out).toMatch(/`latest` stays unset until/);
+			expect(r.out).toContain("npm view <name> dist-tags");
+		}
 	});
 
 	it("publishes a bare 0.0.0 placeholder carrying the package's repository and license", () => {
