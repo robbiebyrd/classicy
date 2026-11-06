@@ -359,7 +359,6 @@ describe("the rename to @classicy/classicy", () => {
 	// other name, so the docs that tell a 2.1.x host what changed keep them.
 	const HISTORICAL_DOCS = [
 		"README.md",
-		"CLAUDE.md",
 		"docs/AGENT-REFERENCE.md",
 		"docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md",
 	];
@@ -371,34 +370,69 @@ describe("the rename to @classicy/classicy", () => {
 		"scss/fonts",
 		"scss-platinum/*",
 		"dist/fonts.css",
-	]
-		.map((subpath) => `${OLD_NAME}/${subpath}`)
-		// The rename's own migration steps (README, AGENT-REFERENCE, release
-		// notes) quote the old specifiers they tell a host to rewrite.
-		.concat([
-			`from "${OLD_NAME}"`,
-			`from '${OLD_NAME}'`,
-			`pnpm remove ${OLD_NAME}`,
-			`${OLD_NAME}/dist/classicy.css`,
-			`${OLD_NAME}/fonts`,
-			`${OLD_NAME}/scss/*`,
-			`vi.mock("${OLD_NAME}"`,
-			`import("${OLD_NAME}")`,
-		]);
+	].map((subpath) => `${OLD_NAME}/${subpath}`);
+	// The rename's own migration steps quote the old specifiers they tell a
+	// host to rewrite. That is allowed only inside these sections, from the
+	// start line up to (not including) the end line, never anywhere else in
+	// the same file.
+	const RENAME_PHRASES = [
+		`from "${OLD_NAME}"`,
+		`from '${OLD_NAME}'`,
+		`pnpm remove ${OLD_NAME}`,
+		`${OLD_NAME}/dist/classicy.css`,
+		`${OLD_NAME}/fonts`,
+		`${OLD_NAME}/scss/*`,
+		`vi.mock("${OLD_NAME}"`,
+		`import("${OLD_NAME}")`,
+	];
+	const RENAME_SECTIONS = [
+		{
+			file: "README.md",
+			start: /^\*\*Breaking change: the package is renamed\.\*\*/,
+			end: /^$/,
+		},
+		{
+			file: "docs/AGENT-REFERENCE.md",
+			start: /^### Migrating to the scoped packages/,
+			end: /^### /,
+		},
+		{
+			file: "docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md",
+			start: /^- \*\*The package is renamed:/,
+			end: /^- \*\*The core no longer registers Platinum/,
+		},
+	];
+
+	/** The line numbers (0-based) of `file` that lie in a rename section. */
+	const renameLines = (file: string, lines: string[]) => {
+		const inside = new Set<number>();
+		for (const section of RENAME_SECTIONS.filter((s) => s.file === file)) {
+			const first = lines.findIndex((line) => section.start.test(line));
+			if (first < 0) continue;
+			for (let i = first; i < lines.length; i++) {
+				if (i > first && section.end.test(lines[i])) break;
+				inside.add(i);
+			}
+		}
+		return inside;
+	};
+	const blank = (line: string, phrases: string[]) =>
+		phrases.reduce((rest, phrase) => rest.split(phrase).join(" "), line);
 
 	/** `file:line: text` for every line of `text` naming the old package. */
-	const leftovers = (file: string, text: string) =>
-		text.split("\n").flatMap((line, index) => {
-			const scanned = HISTORICAL_DOCS.includes(file)
-				? HISTORICAL_PATHS.reduce(
-						(rest, historical) => rest.split(historical).join(" "),
-						line,
-					)
-				: line;
+	const leftovers = (file: string, text: string) => {
+		const lines = text.split("\n");
+		const rename = renameLines(file, lines);
+		return lines.flatMap((line, index) => {
+			let scanned = line;
+			if (HISTORICAL_DOCS.includes(file))
+				scanned = blank(scanned, HISTORICAL_PATHS);
+			if (rename.has(index)) scanned = blank(scanned, RENAME_PHRASES);
 			return LEFTOVER.test(scanned)
 				? [`${file}:${index + 1}: ${line.trim()}`]
 				: [];
 		});
+	};
 
 	it("finds the old name in each specifier position", () =>
 		expect(
@@ -444,6 +478,43 @@ describe("the rename to @classicy/classicy", () => {
 		const line = `@use "${OLD_NAME}/scss/appearance";`;
 		expect(leftovers("docs/AGENT-REFERENCE.md", line)).toEqual([]);
 		expect(leftovers("example/src/app.scss", line)).toHaveLength(1);
+	});
+
+	it.each(RENAME_SECTIONS)("uses the rename allowance in $file", ({ file }) => {
+		const lines = read(file).split("\n");
+		const used = [...renameLines(file, lines)].filter(
+			(i) => blank(lines[i], RENAME_PHRASES) !== lines[i],
+		);
+		expect(used.length).toBeGreaterThan(0);
+	});
+
+	// Mutants: each stale example, planted outside the rename section of a
+	// shipped doc, must still be reported.
+	const STALE = [
+		`import { ClassicyApp } from "${OLD_NAME}"`,
+		`<link href="/node_modules/${OLD_NAME}/dist/classicy.css">`,
+		`import "${OLD_NAME}/fonts"`,
+		`vi.mock("${OLD_NAME}", () => ({}))`,
+	];
+	it.each(
+		["README.md", "docs/AGENT-REFERENCE.md"].flatMap((file) =>
+			STALE.map((line) => ({ file, line })),
+		),
+	)("rejects $line outside the rename section of $file", ({ file, line }) => {
+		expect(leftovers(file, `${read(file)}\n${line}`)).toHaveLength(1);
+		expect(leftovers(file, `${line}\n${read(file)}`)).toHaveLength(1);
+	});
+
+	it("allows the quoted specifier inside a rename section only", () => {
+		const text = [
+			"## x",
+			"",
+			"### Migrating to the scoped packages",
+			`vi.mock("${OLD_NAME}"`,
+			"### next",
+			`vi.mock("${OLD_NAME}"`,
+		].join("\n");
+		expect(leftovers("docs/AGENT-REFERENCE.md", text)).toHaveLength(1);
 	});
 
 	it("leaves no tracked file on the old name", () => {
