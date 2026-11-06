@@ -3,11 +3,11 @@ id: 0092-prv
 title: Clear the 37 transitive Dependabot alerts
 purpose: Close the open Dependabot alerts, whether or not Dependabot opens the PR itself.
 type: chor
-status: in_progress
+status: blocked
 priority: "1"
 effort: M
 created: "2026-10-30T19:15:24.764Z"
-updated: "2026-11-05T16:31:02.070Z"
+updated: "2026-11-06T15:33:17.472Z"
 started: "2026-11-03T23:44:53.999Z"
 tags: []
 milestone: ""
@@ -75,3 +75,5 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 ### 2026-11-05T00:46:36.446Z - Held open 2026-11-05: criterion 1 is not met yet. gh shows 37 open alerts on the default branch and PR 333 still OPEN. Remaining: step 1 (after PR 333 merges, confirm the alerts close and the next security run opens an npm-security PR), then tick criterion 1 and complete.
 
 ### 2026-11-05T16:31:02.070Z - 2026-11-05: re-checked all open alerts against the branch lockfile. 37 were open on main, 36 already resolved at or above the patched version on feat/AppearancePackages (@vitest/mocker 5.0.5, baseline-browser-mapping 2.11.34, brace-expansion 1.1.21/2.1.7/5.0.12, browserslist 4.29.5, fast-uri 3.1.9, js-yaml 4.3.2, sharp 0.35.5, shell-quote 1.12.0, source-map-js 1.2.2, svgo 3.3.5/4.1.0, undici 7.30.1). The 37th, minimatch #344, is GitHub's reissue of the withdrawn #343 (same GHSA-g3hv-75wg-m249, updated 2026-11-04 16:50): dismissed as tolerable_risk under the owner's 2026-11-04 approval. The reissue narrowed the range to >=7.0.0 <11.0.1, so minimatch 3.x (eslint) is no longer affected; an override of 9.x/10.x to 11 would now close it outright (follow-up option). Criterion 1 stays open only until PR 333 merges and the 36 fixed alerts close on main; then confirm and complete.
+
+### 2026-11-06T15:33:17.472Z - 2026-11-06: set to blocked (owner). Waiting on PR 333 merging to main: Dependabot scans main only, which still shows 36 open alerts. Unblock after the merge, re-check alerts, tick the last criterion and complete.
