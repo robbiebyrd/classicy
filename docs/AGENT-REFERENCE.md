@@ -15,8 +15,9 @@ PDF Viewer, Movie Player, Picture Viewer, Web Viewer).
   Appearance Package; ES + UMD builds, types included). Install both at the
   same version.
 - License: Unlicense
-- Peer dependencies you must install: `react` (18 or 19), `react-dom`,
-  `zustand@^5`, `immer@^11`, `@tanstack/react-table@^8`, `react-player@^3`.
+- Peer dependencies you must install: `react` (18 or 19) and `react-dom`
+  (`@types/react` is an optional peer). `zustand`, `immer`,
+  `@tanstack/react-table` and `react-player` are the core's own dependencies.
   `@classicy/appearance-platinum` peer-depends on `@classicy/classicy`, so
   both resolve to one copy of the registries.
 
@@ -32,11 +33,8 @@ reference only names.
 
 ```bash
 pnpm add @classicy/classicy @classicy/appearance-platinum
-pnpm add react react-dom zustand immer @tanstack/react-table@^8.21.3 react-player
+pnpm add react react-dom # for a new app
 ```
-
-`@tanstack/react-table` is pinned because its unpinned latest is 9.x, outside
-the core's `^8.21.3` peer range; the other peers' latest versions are in range.
 
 The package was published as `classicy` through 2.x; every specifier is
 `@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
@@ -1066,7 +1064,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (already a peer dep); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicySpinner` | see inputs | |

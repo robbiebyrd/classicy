@@ -14,10 +14,7 @@ Platinum look). Install both at the same version, and import Platinum once at
 your app's entry. Both packages are listed under
 [Install and build](#install-and-build).
 
-Two install notes apply to a new host, or to one that reinstalls its peers;
-nothing changes for a working 2.1.x host. Install `@tanstack/react-table` as
-`@tanstack/react-table@^8.21.3`, because its unpinned latest is 9.x, outside
-the core's peer range (the other peers' latest versions are in range). And
+One note applies to a new host; nothing changes for a working 2.1.x host.
 `ClassicyDesktop` is `height: 100%`, so give `html`, `body` and your mount
 element a height (`html, body, #root { height: 100%; margin: 0; }`), or the
 page is white with only a menu bar. 2.x behaved the same; it was not
@@ -200,6 +197,11 @@ Start with [Install and build](#install-and-build).
   are `color-mix()` and icons use unprefixed `mask-image` with mask
   compositing. In an older engine those declarations are dropped: error title
   bars lose their tint, and icon overlays and art go missing.
+- **`@tanstack/react-table`, `immer`, `react-player` and `zustand` are now
+  dependencies, not peers.** They are Classicy's own implementation details,
+  so a host installs only `react`, `react-dom` and the two Classicy packages.
+  An upgrading host has nothing to do: its existing copies are reused when in
+  range.
 
 ### Cascade layers
 

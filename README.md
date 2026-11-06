@@ -18,15 +18,12 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 Classicy is two packages: `@classicy/classicy`, the framework, and
 `@classicy/appearance-platinum`, the Platinum look. Install both, at the same
-version, with the framework's peer dependencies:
+version:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-platinum
-pnpm add react react-dom zustand immer @tanstack/react-table@^8.21.3 react-player
+pnpm add react react-dom # for a new app
 ```
-
-`@tanstack/react-table` is pinned because its unpinned latest is 9.x, outside the
-core's `^8.21.3` peer range.
 
 Import Platinum once, at your app's entry, before you render. The framework
 registers no Appearance Package of its own:
