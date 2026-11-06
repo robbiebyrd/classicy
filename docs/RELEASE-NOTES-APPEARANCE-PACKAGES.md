@@ -54,36 +54,38 @@ Start with [Install and build](#install-and-build).
   import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
   ```
 
-  Until Platinum ships as `@classicy/appearance-platinum` (on this branch,
-  before the package split lands), the `@classicy/classicy` bundle still
-  carries and registers Platinum, and `@classicy/classicy/appearance/platinum`
-  is a no-op; the names above are already gone from `@classicy/classicy`.
+  The `@classicy/classicy` bundle carries none of Platinum (no look, fonts,
+  art, wallpapers or sounds), and `@classicy/classicy/appearance/platinum`
+  is gone with its no-op shim: `@classicy/appearance-platinum` replaces it.
 
-- **Vite's dev server must not pre-bundle classicy.** The fonts and art are
-  now files in `dist/assets/`, referenced as
+- **Vite's dev server must not pre-bundle either package.** Platinum's
+  fonts, art, wallpapers and sound sprites are now files in
+  `@classicy/appearance-platinum`'s `dist/assets/`, referenced as
   `new URL("assets/…", import.meta.url)`. Vite's dependency pre-bundle
-  (`node_modules/.vite/deps/`) breaks those URLs, so fonts and art come back
-  as the SPA fallback page. *Who:* hosts that run Vite's dev server.
-  *Migrate:*
+  (`node_modules/.vite/deps/`) breaks those URLs, so they come back as the
+  SPA fallback page. *Who:* hosts that run Vite's dev server. *Migrate:*
 
   ```ts
   // vite.config.ts
   export default defineConfig({
-    optimizeDeps: { exclude: ["@classicy/classicy"] },
+    optimizeDeps: {
+      exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+    },
   })
   ```
 
-  Any CommonJS dependency classicy pulls in may then need to go in
+  Any CommonJS dependency they pull in may then need to go in
   `optimizeDeps.include`. Bundlers that handle
   `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup
   with a URL plugin) need no setting. With any other bundler (plain esbuild,
-  Rollup without such a plugin), copy `dist/assets/` next to your bundle.
+  Rollup without such a plugin), copy the Platinum package's `dist/assets/`
+  next to your bundle.
 - **`@classicy/classicy/fonts` is a no-op, and `classicy/dist/fonts.css` is gone.** The
   Platinum package registers its thirteen `.woff2` faces at runtime, as
   `<style id="classicy-fonts-platinum">`. *Migrate:* delete the import, or
   keep it (it still resolves, and does nothing). Replace any `<link>` to
-  `fonts.css` with `classicy-platinum.fonts.css` if your CSP blocks inline
-  styles (next item); otherwise remove it.
+  `fonts.css` with `@classicy/appearance-platinum/classicy-platinum.fonts.css`
+  if your CSP blocks inline styles (next item); otherwise remove it.
 - **Strict-CSP hosts link three stylesheets.** A policy that blocks inline
   `<style>` blocks everything Classicy injects at runtime: the structure, the
   Platinum look and the Platinum fonts. `dist/classicy.css` no longer carries
@@ -93,18 +95,22 @@ Start with [Install and build](#install-and-build).
 
   ```html
   <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
-  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.css">
-  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.fonts.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
   ```
+
+  The first is the core's (`@classicy/classicy/dist/classicy.css`); the other
+  two are the Platinum package's (`@classicy/appearance-platinum/classicy-platinum.css`
+  and `@classicy/appearance-platinum/classicy-platinum.fonts.css`, its
+  `exports`). In 2.x pre-releases all three were in `@classicy/classicy/dist/`.
 
   Without the second file the desktop has structure but no look: no bevels,
   no art and no menu-item flash. Without the third, text falls back to the
   browser's fonts. `classicy-platinum.fonts.css` holds the same `@font-face`
   rules the runtime writes (Charcoal, ChicagoFLF, Geneva, AppleGaramond,
   Monaco and VCR OSD Mono, thirteen faces), unlayered, each pointing at its
-  file in `dist/assets/`. Serve that folder beside the stylesheet, and allow
-  it in `font-src`. All three are served by the existing `@classicy/classicy/dist/*`
-  export.
+  file in the Platinum package's `dist/assets/`. Serve that folder beside the
+  stylesheet, and allow it in `font-src`.
 - **Browser floor: Chrome/Edge 120, Safari 16.2, Firefox 113.** Theme tints
   are `color-mix()` and icons use unprefixed `mask-image` with mask
   compositing. In an older engine those declarations are dropped: error title
@@ -281,7 +287,7 @@ Start with [Install and build](#install-and-build).
 - **`@classicy/classicy/scss/*` is the vocabulary, and Platinum's partials moved.**
   `@classicy/classicy/scss/*` now resolves to `vocabulary`, `layout`, `package` and
   `color`. Platinum's partials are at
-  `@classicy/classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
+  `@classicy/appearance-platinum/scss/*` (`mixins`, `scrollbars`, `assets`),
   with every mixin renamed to kebab-case with a `platinum-` prefix:
 
   ```scss
@@ -289,7 +295,7 @@ Start with [Install and build](#install-and-build).
   @use "classicy/scss/appearance";
   .bar { @include appearance.platinumWindowControlBoxBorder; }
   // after
-  @use "@classicy/classicy/appearance/platinum/scss/mixins";
+  @use "@classicy/appearance-platinum/scss/mixins";
   .bar { @include mixins.platinum-window-control-box-border; }
   ```
 
@@ -307,8 +313,8 @@ Start with [Install and build](#install-and-build).
     the 2.1.7 source.
   - `classicy/scss/themes.json` is gone: call `getAllThemes()`.
   - `classicy/scss/fonts` is gone: the package registers its fonts.
-  - `@classicy/classicy/appearance/platinum` (the JavaScript specifier) registers
-    nothing. Import `@classicy/appearance-platinum` (see
+  - `@classicy/classicy/appearance/platinum` (the JavaScript specifier) is
+    gone. Import `@classicy/appearance-platinum` (see
     [Install and build](#install-and-build)).
 - **`platinum-halftone` takes a color token name.** It was
   `appearance.theme-halftone($color, $size)`. It is now
@@ -318,7 +324,7 @@ Start with [Install and build](#install-and-build).
   `isolation: isolate`. `encode-color` is removed, since no color is baked
   into a data URI anymore.
 - **The `assets.$…` art variables are gone.** Read registered art as
-  `var(--classicy-art-<key>)`. `@classicy/classicy/appearance/platinum/scss/assets` now
+  `var(--classicy-art-<key>)`. `@classicy/appearance-platinum/scss/assets` now
   exports only `platinum-root-properties`.
 - **The control-box and menu-divider mixins draw only the look.**
   - `platinum-window-control-box`, `platinum-window-control-box-depressable`

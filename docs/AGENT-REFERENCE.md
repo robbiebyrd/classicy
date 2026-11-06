@@ -39,8 +39,9 @@ go transparent.
 Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
-during SSR). The bundled fonts are files (`dist/assets/*.woff2`) that the
-Platinum appearance package registers at runtime, so there is nothing to import:
+during SSR). The Platinum fonts are files in `@classicy/appearance-platinum`'s
+`dist/assets/*.woff2` that the package registers at runtime, so there is
+nothing to import:
 
 ```ts
 // no longer needed: the Platinum package registers its fonts; the import is a deprecated no-op
@@ -50,13 +51,19 @@ Platinum appearance package registers at runtime, so there is nothing to import:
 Under a Content-Security-Policy that forbids inline `<style>` (a `style-src`
 without `'unsafe-inline'`), link the three stylesheets yourself instead:
 
-1. `@classicy/classicy/dist/classicy.css`: structure, which the bundle otherwise
-   injects as `<style id="classicy-styles">`;
-2. `@classicy/classicy/dist/classicy-platinum.css`: the Platinum look, which the
-   Platinum appearance package otherwise injects as
+1. `@classicy/classicy/dist/classicy.css`: structure, which the core's bundle
+   otherwise injects as `<style id="classicy-styles">`;
+2. `@classicy/appearance-platinum/classicy-platinum.css`: the Platinum look,
+   which the Platinum package otherwise injects as
    `<style id="classicy-appearance-platinum">` (see "Cascade layers" below);
-3. `@classicy/classicy/dist/classicy-platinum.fonts.css`: the Platinum fonts, which the
-   package otherwise writes as `<style id="classicy-fonts-platinum">`.
+3. `@classicy/appearance-platinum/classicy-platinum.fonts.css`: the Platinum
+   fonts, which the package otherwise writes as
+   `<style id="classicy-fonts-platinum">`.
+
+The first is the core's; the other two are the Platinum package's (3.0
+moved them out of `@classicy/classicy/dist/`). Those specifiers are the two
+packages' `exports`; a plain `<link>` names the files where they are, under
+each package's `dist/`.
 
 Importing them as well is harmless. Link `classicy.css` **first in
 `<head>`**, before any other stylesheet, and the other two right after it:
@@ -66,8 +73,8 @@ layer.
 
 ```html
 <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
-<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.css">
-<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy-platinum.fonts.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
 ```
 
 The fonts file holds the `@font-face` rules the runtime writes, generated at
@@ -75,29 +82,32 @@ build time from the same face list and rule writer: the thirteen faces of
 Charcoal, ChicagoFLF, Geneva, AppleGaramond, Monaco and VCR OSD Mono, with
 the same weights, styles and `font-display: swap`. They are unlayered
 (`@font-face` ignores layers) and ASCII only. Each `url("assets/<file>.woff2")`
-resolves against the stylesheet, so serve `dist/assets/` beside it and allow
-that origin in `font-src`. `verify:dist` fails the build if the file declares
-any other faces than the runtime registers, or names a file that is not in
-`dist/assets/`.
+resolves against the stylesheet, so serve the Platinum package's
+`dist/assets/` beside it and allow that origin in `font-src`. Its
+`verify:dist` fails the build if the file declares any other faces than the
+runtime registers, or names a file that is not in `dist/assets/`.
 
-**Vite consumers (breaking change).** The package's fonts and art are files in
-`dist/assets/`, referenced as `new URL("assets/…", import.meta.url)`. Vite's dev
-server pre-bundles dependencies into `node_modules/.vite/deps/`, which rewrites
-those URLs, so fonts and art would come back as the SPA fallback page. Keep
-classicy out of the pre-bundle:
+**Vite consumers (breaking change).** Platinum's fonts, art, wallpapers and
+sound sprites are files in `@classicy/appearance-platinum`'s `dist/assets/`,
+referenced as `new URL("assets/…", import.meta.url)`. Vite's dev server
+pre-bundles dependencies into `node_modules/.vite/deps/`, which rewrites those
+URLs, so they would come back as the SPA fallback page. Keep both packages out
+of the pre-bundle:
 
 ```ts
 // vite.config.ts
 export default defineConfig({
-    optimizeDeps: { exclude: ['@classicy/classicy'] },
+    optimizeDeps: {
+        exclude: ['@classicy/classicy', '@classicy/appearance-platinum'],
+    },
 })
 ```
 
-Excluding classicy means any CommonJS dependency it pulls in may then need to be
+Excluding them means any CommonJS dependency they pull in may then need to be
 listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
-a plugin), copy `dist/assets/` next to your bundle.
+a plugin), copy the Platinum package's `dist/assets/` next to your bundle.
 Also new in this release: `import '@classicy/classicy/fonts'` is a deprecated no-op (the
 Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
 exists.
@@ -224,13 +234,20 @@ Package `exports` map:
 |---|---|
 | `@classicy/classicy` | ES/UMD bundle + types |
 | `@classicy/classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
-| `@classicy/classicy/dist/classicy-platinum.css` | The Platinum package's stylesheet, which the package injects; link it after `classicy.css`, only under a strict CSP |
-| `@classicy/classicy/dist/classicy-platinum.fonts.css` | The Platinum fonts' `@font-face` rules, which the package writes at runtime; link it after `classicy-platinum.css`, only under a strict CSP |
 | `@classicy/classicy/fonts` | Deprecated no-op kept so existing `import '@classicy/classicy/fonts'` lines keep resolving |
-| `@classicy/classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
+| `@classicy/classicy/dist/*` | Anything in dist (the bundles, `classicy.css`, `types/`; no package's files) |
 | `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
-| `@classicy/classicy/appearance/platinum` | Registers nothing: until Platinum ships as its own package, `@classicy/appearance-platinum` (which replaces this specifier), the `@classicy/classicy` bundle still carries and registers it. The core's API exports none of Platinum's names (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack`): they are Platinum's own exports |
-| `@classicy/classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). They `@use` the vocabulary as `pkg:@classicy/classicy/scss/*`, so compile them with Sass's `NodePackageImporter` (in Vite, `css.preprocessorOptions.scss.importers`). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
+
+`@classicy/appearance-platinum`'s `exports` map (3.0; the core's 2.x
+`@classicy/classicy/appearance/platinum` and
+`@classicy/classicy/appearance/platinum/scss/*` subpaths are gone):
+
+| Specifier | Resolves to |
+|---|---|
+| `@classicy/appearance-platinum` | ES/UMD bundle + types (`dist/types/index.d.ts`). Importing it registers Platinum; it also exports `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack` and `platinumJson`, none of which the core exports. It peer-depends on `@classicy/classicy` and imports it, so it registers into the host's one copy of the registries |
+| `@classicy/appearance-platinum/classicy-platinum.css` | The Platinum package's stylesheet (`dist/classicy-platinum.css`), which the package injects; link it after `classicy.css`, only under a strict CSP |
+| `@classicy/appearance-platinum/classicy-platinum.fonts.css` | The Platinum fonts' `@font-face` rules (`dist/classicy-platinum.fonts.css`), which the package writes at runtime; link it after `classicy-platinum.css`, only under a strict CSP. The fonts ship as `dist/assets/*.woff2` |
+| `@classicy/appearance-platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). They `@use` the vocabulary as `pkg:@classicy/classicy/scss/*`, so compile them with Sass's `NodePackageImporter` (in Vite, `css.preprocessorOptions.scss.importers`). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -1569,7 +1586,7 @@ A host rule on them never matched anything, so there is nothing to migrate.
 - **`@classicy/classicy/scss/*` is the vocabulary.** It now resolves to
   `src/Appearance/vocabulary/` (`@use "@classicy/classicy/scss/vocabulary"`). The old
   theme partials (`appearance`, the mixins) are now Platinum's, at
-  `@classicy/classicy/appearance/platinum/scss/*`, under new names: see "Migrating to
+  `@classicy/appearance-platinum/scss/*`, under new names: see "Migrating to
   Appearance Packages" below.
 - **`.hidden` and `classicyWindowZoomed` are gone.** Classicy no longer ships
   a global `.hidden { visibility: hidden }` utility; a host that relied on it
@@ -1606,7 +1623,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   SCSS was `classicy/scss/appearance`, `classicy/scss/scrollbars` and
   `classicy/scss/assets` (with the theme list at `classicy/scss/themes.json`
   and the fonts at `classicy/scss/fonts`); `@classicy/classicy/scss/*` is now the
-  vocabulary. Platinum's SCSS is at `@classicy/classicy/appearance/platinum/scss/*`
+  vocabulary. Platinum's SCSS is at `@classicy/appearance-platinum/scss/*`
   (`mixins`, `scrollbars`, `assets`), and the mixins are renamed to
   kebab-case with a `platinum-` prefix. The helpers that are not Platinum's
   moved to the vocabulary, `@classicy/classicy/scss/layout`. (Pre-release builds
@@ -1618,7 +1635,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   @use 'classicy/scss/appearance';
   .bar { @include appearance.platinumWindowControlBoxBorder; }
   // after
-  @use '@classicy/classicy/appearance/platinum/scss/mixins';
+  @use '@classicy/appearance-platinum/scss/mixins';
   .bar { @include mixins.platinum-window-control-box-border; }
   ```
 
@@ -1639,9 +1656,9 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `scrollbars.scrollbars`, `scrollbars-split-arrows`, `scrollbars-themed` | `scrollbars.platinum-scrollbars`, `platinum-scrollbars-split-arrows`, `platinum-scrollbars-themed` |
   | `scrollbars.scrollbars-inactive` | Nothing: removed. Classicy included it on the inactive window's root, which never scrolls (its contents do), so it never drew; if you used it on a scroller of your own, copy its rules from the 2.1.7 source, `src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss` (no Classicy release after 2.1.7 ships them) |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
-  | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `@classicy/classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
+  | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `@classicy/appearance-platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `packages/appearance/platinum/src/platinum.json`) |
-  | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `dist/classicy-platinum.fonts.css` (§1) |
+  | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `@classicy/appearance-platinum/classicy-platinum.fonts.css` (§1) |
 - **Components outside a desktop lose their look.** The package's rules only
   match inside an element carrying `class="classicyDesktop"` and
   `data-classicy-appearance="platinum"`; wrap standalone components in one,
@@ -1650,8 +1667,9 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   unstyled the same way.
 - **Strict-CSP hosts link three files.** `dist/classicy.css` no longer
   carries the look, and `dist/fonts.css` is gone: link
-  `dist/classicy-platinum.css` right after `classicy.css`, then
-  `dist/classicy-platinum.fonts.css` for the fonts (§1).
+  `@classicy/appearance-platinum/classicy-platinum.css` right after
+  `classicy.css`, then `@classicy/appearance-platinum/classicy-platinum.fonts.css`
+  for the fonts (§1). Both are the Platinum package's, in its own `dist/`.
 - **Platinum's art is registered system art.** The window, menu, pop-up,
   slider and tab art is read as `var(--classicy-art-<key>)`, which only
   `ClassicyDesktop` (and Storybook's frame) define. A standalone component
@@ -1757,7 +1775,7 @@ authors:
   `getThemeVars(theme)` spread on its wrapper (§1), or those declarations
   are invalid at computed-value time and compute as `unset`.
 - **Breaking for SCSS hosts that `@use` Platinum's mixins**
-  (`@classicy/classicy/appearance/platinum/scss/*`). No mixin name or parameter
+  (`@classicy/appearance-platinum/scss/*`). No mixin name or parameter
   changed, but two now read knob variables only `getThemeVars` emits:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
@@ -2401,7 +2419,7 @@ an unknown id), a deep-merged clone when given `overrides`; with no package
 registered both serve the core's own `CLASSICY_CORE_DEFAULT_THEME` (no
 wallpaper, the core floor's measurements). `getThemeVars(theme)` returns the
 CSS custom-property map. Platinum's SCSS is importable via
-`@classicy/classicy/appearance/platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
+`@classicy/appearance-platinum/scss/*` (`mixins`, `scrollbars`, `assets`; the
 `platinum-*` mixins), the state vocabulary via `@classicy/classicy/scss/vocabulary`
 (§4.0.1), and the layout helpers and package wrapper via
 `@classicy/classicy/scss/layout` and `@classicy/classicy/scss/package`.
@@ -2482,7 +2500,7 @@ adds the layer and the scope; Platinum's mixins are there to reuse:
 
 ```scss
 @use "@classicy/classicy/scss/package";
-@use "@classicy/classicy/appearance/platinum/scss/mixins";
+@use "@classicy/appearance-platinum/scss/mixins";
 
 @include package.classicy-package("irix") {
   .classicyButton { @include mixins.platinum-window-depressable; }

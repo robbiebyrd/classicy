@@ -24,27 +24,31 @@ and icon art go missing.
 
 **Upgrading from 2.1.x?** [`docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`](docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md) lists every breaking change below, and the rest of the release, with its migration step.
 
-Importing `@classicy/classicy` injects its stylesheet; its fonts and art are files in
+Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
+wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
-file URLs (fonts and art return the SPA fallback page). Exclude classicy from
+file URLs (they return the SPA fallback page). Exclude both packages from
 the pre-bundle:
 
 ```ts
 // vite.config.ts
 export default defineConfig({
-  optimizeDeps: { exclude: ["@classicy/classicy"] },
+  optimizeDeps: {
+    exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+  },
 })
 ```
 
-Any CommonJS dependency classicy pulls in may then need to go in
+Any CommonJS dependency they pull in may then need to go in
 `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
 (a Vite production build, webpack 5, Rollup with a URL plugin) need no
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
-`dist/assets/` next to your bundle.
+the Platinum package's `dist/assets/` next to your bundle.
 `import "@classicy/classicy/fonts"` is now a deprecated no-op (the Platinum package
 registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
-links `@classicy/classicy/dist/classicy-platinum.fonts.css` in its place (below).
+links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place
+(below).
 
 **Breaking change: system art and cursors are no longer icons.** The
 `ClassicyIcons` constant is now only the Platinum icon tree as shipped: it does
@@ -117,7 +121,7 @@ Update host CSS and tests that select them:
 
 The exported type `ClassicyBevelButtonState` is deleted. `@classicy/classicy/scss/*` now
 resolves to the vocabulary (`@use "@classicy/classicy/scss/vocabulary"`); the old theme
-partials are Platinum's, at `@classicy/classicy/appearance/platinum/scss/*` (see
+partials are Platinum's, at `@classicy/appearance-platinum/scss/*` (see
 Appearance Packages below). The global `.hidden`
 utility and `classicyWindowZoomed` are gone, and a `zIndex` passed in `style`
 to `ClassicyWindow`, `ClassicyIcon` or `ClassicyDesktopIcon` is dropped.
@@ -141,8 +145,9 @@ The full old → new table (every renamed class) is in `docs/AGENT-REFERENCE.md`
 now holds structure only; the Platinum look (every bevel, border, gradient
 and piece of art) is the Platinum Appearance Package's own stylesheet, in
 `@layer classicy.package` and scoped under
-`.classicyDesktop[data-classicy-appearance="platinum"]`. Importing `@classicy/classicy`
-registers it, and everything inside `ClassicyDesktop` looks as before.
+`.classicyDesktop[data-classicy-appearance="platinum"]`. Importing
+`@classicy/appearance-platinum` registers it, and everything inside
+`ClassicyDesktop` looks as before.
 
 - **Components outside a desktop get structure only, no look.** Wrap a standalone component
   in an element carrying `class="classicyDesktop"` and
@@ -151,16 +156,26 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   give it `id="classicyDesktop"` so portals (menus, balloons) render inside it
   rather than falling back, unstyled, to `document.body`.
 - **Strict-CSP hosts link three files**, first in `<head>` and in this order:
-  `@classicy/classicy/dist/classicy.css` (structure), `@classicy/classicy/dist/classicy-platinum.css`
-  (the look) and `@classicy/classicy/dist/classicy-platinum.fonts.css` (the Platinum
-  fonts). A policy that blocks inline `<style>` blocks all three runtime
+  `@classicy/classicy/dist/classicy.css` (structure, the core's), then the
+  Platinum package's `@classicy/appearance-platinum/classicy-platinum.css`
+  (the look) and `@classicy/appearance-platinum/classicy-platinum.fonts.css`
+  (the Platinum fonts). Those are the packages' `exports`; a plain `<link>`
+  names the files themselves:
+
+  ```html
+  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
+  ```
+
+  A policy that blocks inline `<style>` blocks all three runtime
   injections; the fonts file holds the same `@font-face` rules the package
-  writes, each pointing at its `.woff2` in `dist/assets/` (serve that folder
-  beside it, and allow it in `font-src`).
+  writes, each pointing at its `.woff2` in the Platinum package's
+  `dist/assets/` (serve that folder beside it, and allow it in `font-src`).
 - **The theme partials moved.** `classicy/scss/appearance`,
   `classicy/scss/scrollbars` and `classicy/scss/assets` (2.1.x; pre-release
   builds called them `classicy/scss-platinum/*`) are now
-  `@classicy/classicy/appearance/platinum/scss/mixins`, `…/scrollbars` and `…/assets`.
+  `@classicy/appearance-platinum/scss/mixins`, `…/scrollbars` and `…/assets`.
   The mixins are renamed to kebab-case with a `platinum-` prefix
   (`appearance.platinumWindowControlBoxBorder` →
   `mixins.platinum-window-control-box-border`; `scrollbars.scrollbars` →
@@ -170,11 +185,11 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   the vocabulary as `classicy-px-rect`/`classicy-no-select`
   (`@classicy/classicy/scss/layout`). The full rename table is in
   `docs/AGENT-REFERENCE.md`, "Migrating to Appearance Packages". `classicy/scss/themes.json` is gone: call
-  `getAllThemes()`. `@classicy/classicy/appearance/platinum` registers nothing:
-  until Platinum ships as `@classicy/appearance-platinum`, the
-  `@classicy/classicy` bundle still registers it, and its names
-  (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
-  `platinumSoundPack`) are no longer `@classicy/classicy` exports.
+  `getAllThemes()`. `@classicy/classicy/appearance/platinum` is gone:
+  import `@classicy/appearance-platinum`, which registers Platinum and
+  exports its names (`PLATINUM_APPEARANCE_PACKAGE_ID`,
+  `platinumAppearanceHooks`, `platinumSoundPack`), which are no longer
+  `@classicy/classicy` exports.
 - **`platinum-halftone` takes a token name.** The mixin now takes a color
   token NAME (`@include mixins.platinum-halftone("--color-black")`, not a
   color) and paints the dither on a `::before` child, which sets

@@ -21,23 +21,57 @@ pnpm add @classicy/classicy @classicy/appearance-platinum
 
 ## Exports
 
-- `.`: the package entry. Importing it registers Platinum. It also exports
-  `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks` and
-  `platinumSoundPack`.
+- `.`: the package entry (ES and UMD bundles, with types). Importing it
+  registers Platinum. It also exports `PLATINUM_APPEARANCE_PACKAGE_ID`,
+  `platinumAppearanceHooks`, `platinumSoundPack` and `platinumJson`.
 - `./scss/*`: Platinum's SCSS (`mixins`, `scrollbars`, `assets`), for hosts
   and packages that build on its look. It uses the core's vocabulary as
   `pkg:@classicy/classicy/scss/*`, so compile it with Sass's
   `NodePackageImporter`.
+- `./classicy-platinum.css` and `./classicy-platinum.fonts.css`: the look and
+  the fonts as stylesheets, for hosts whose Content-Security-Policy blocks
+  inline `<style>` (below).
+
+Platinum's fonts, art, wallpapers and sound sprites are files in
+`dist/assets/`, loaded as `new URL("assets/…", import.meta.url)`. A Vite host
+keeps both packages out of the dev server's dependency pre-bundle, which
+would break those URLs:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+  },
+})
+```
+
+## Strict CSP
+
+The package injects its look as `<style id="classicy-appearance-platinum">`
+and its fonts as `<style id="classicy-fonts-platinum">`. Under a policy that
+blocks inline `<style>`, link the three stylesheets first in `<head>`, in this
+order: the core's, then this package's two.
+
+```html
+<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
+```
+
+Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
 
 ## Developing
 
 This package lives in the Classicy repository, at
 `packages/appearance/platinum`. Its tests run against the workspace core's
-source:
+source. Its build needs the core's built declarations, so build the core
+first (the root `pnpm build:source` builds both, in order); `build` runs the
+package's dist check, `bin/verify-dist.mjs`, after `vite build`:
 
 ```sh
 pnpm --filter @classicy/appearance-platinum exec vitest run
-pnpm --filter @classicy/appearance-platinum exec vite build
+pnpm --filter @classicy/appearance-platinum build
 ```
 
 The repository's `resources/` folder (the Apple Human Interface Guidelines
