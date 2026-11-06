@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
 	"version": "3.0.0",
-	"release": "Fortissimo",
+	"release": "Moonlight",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
