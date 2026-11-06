@@ -6,10 +6,10 @@ import {
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
-import platinumJson from "../../../assets/sounds/platinum/platinum.json";
 import { platinumSoundPack } from "./platinum";
+import platinumJson from "./platinum/platinum.json";
 
-const PACK_JSON = "../../../assets/sounds/platinum/platinum.json";
+const PACK_JSON = "./platinum/platinum.json";
 
 describe("platinum sound pack", () => {
 	it("registers itself under id platinum on import", () => {
@@ -33,7 +33,7 @@ describe("platinum sound pack", () => {
 		]);
 	});
 
-	it("loads its four sprite files from the package's own assets/sounds/platinum", () => {
+	it("loads its four sprite files from the package's own src/assets/sounds/platinum", () => {
 		// Moved out of the core's assets/sounds (plan 0015-kxa §3.3), beside
 		// the JSON bin/make_audio_sprites.sh writes with them.
 		const pkg = path.resolve(import.meta.dirname, "../../..");
@@ -41,7 +41,7 @@ describe("platinum sound pack", () => {
 			platinumSoundPack.src.map((src) => assetSourceFile(src, pkg)),
 		).toEqual(
 			["ogg", "m4a", "mp3", "ac3"].map((ext) =>
-				path.join(pkg, "assets/sounds/platinum", `platinum.${ext}`),
+				path.join(pkg, "src/assets/sounds/platinum", `platinum.${ext}`),
 			),
 		);
 	});

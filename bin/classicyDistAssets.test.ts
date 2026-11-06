@@ -115,7 +115,7 @@ describe("findClassicyCorePackageFiles", () => {
 	const wallpaper = Uint8Array.from({ length: 4096 }, (_, i) => (i * 13) % 256);
 	const PACKAGE_FILES = [
 		{
-			path: "packages/appearance/platinum/assets/wallpapers/azul.png",
+			path: "packages/appearance/platinum/src/assets/wallpapers/azul.png",
 			bytes: wallpaper,
 		},
 		{
@@ -187,6 +187,6 @@ describe("findClassicyCorePackageFiles", () => {
 				],
 			}),
 		).toEqual([
-			"dist/classicy.umd.js: inlines packages/appearance/platinum/assets/wallpapers/azul.png -> the core bundles no package; check that nothing under src/ imports one.",
+			"dist/classicy.umd.js: inlines packages/appearance/platinum/src/assets/wallpapers/azul.png -> the core bundles no package; check that nothing under src/ imports one.",
 		]));
 });

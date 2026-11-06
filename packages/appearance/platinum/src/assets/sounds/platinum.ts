@@ -4,17 +4,17 @@ import {
 	classicyLog,
 	registerClassicySoundPack,
 } from "@classicy/classicy";
-import platinumJson from "../../../assets/sounds/platinum/platinum.json";
+import platinumJson from "./platinum/platinum.json";
 
 const PLATINUM = "platinum";
 
 // The sprite sheet bin/make_audio_sprites.sh writes beside its JSON, in the
-// package's assets/sounds/platinum (moved out of the core's assets/sounds,
+// package's src/assets/sounds/platinum (moved out of the core's assets/sounds,
 // plan 0015-kxa §3.3). Imported as files, like the art, fonts and wallpapers:
 // Platinum's build emits them in dist/assets. The core's build, which bundles
 // Platinum until §3.4, inlines them as `data:` URIs.
 const spriteModules = import.meta.glob(
-	"../../../assets/sounds/platinum/platinum.{ogg,m4a,mp3,ac3}",
+	"./platinum/platinum.{ogg,m4a,mp3,ac3}",
 	{ eager: true, import: "default" },
 ) as Record<string, string>;
 
@@ -25,7 +25,7 @@ const PLATINUM_FILE_NAMES = [
 	"platinum.ac3",
 ];
 const platinumUrls = PLATINUM_FILE_NAMES.map(
-	(file) => spriteModules[`../../../assets/sounds/platinum/${file}`] ?? "",
+	(file) => spriteModules[`./platinum/${file}`] ?? "",
 );
 
 // A resolved URL may be a `data:` URI, so it cannot be compared with the

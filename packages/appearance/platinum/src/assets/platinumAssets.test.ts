@@ -84,7 +84,7 @@ describe("Platinum system art", () => {
 		expect(UNREGISTERED).toHaveLength(3);
 	});
 
-	it("draws the Apple menu, trash, alias badge and help button from its own assets/art", () => {
+	it("draws the Apple menu, trash, alias badge and help button from its own src/assets/art", () => {
 		// Moved out of the core's assets/ with their icon-tree entries (plan
 		// 0015-kxa §3.3): Platinum was their only reader.
 		for (const [key, file] of [
@@ -95,7 +95,7 @@ describe("Platinum system art", () => {
 			["helpButton", "help-button.png"],
 		] as const) {
 			expect(fileOf(resolveClassicyAsset("systemArt", key)), key).toBe(
-				path.join(PACKAGE, "assets/art", file),
+				path.join(PACKAGE, "src/assets/art", file),
 			);
 		}
 	});
@@ -151,7 +151,7 @@ describe("Platinum cursors", () => {
 		expect(resolveClassicyAsset("cursors", role)).toBeUndefined();
 	});
 
-	it("draws the watch and resize cursors from its own assets/cursors", () => {
+	it("draws the watch and resize cursors from its own src/assets/cursors", () => {
 		for (const [role, name] of [
 			["watch", "watch"],
 			["resizeLr", "resize-lr"],
@@ -162,7 +162,7 @@ describe("Platinum cursors", () => {
 			["resizeR", "resize-r"],
 		] as const)
 			expect(fileOf(resolveClassicyAsset("cursors", role)), role).toBe(
-				path.join(PACKAGE, "assets/cursors", `cursor-${name}.png`),
+				path.join(PACKAGE, "src/assets/cursors", `cursor-${name}.png`),
 			);
 	});
 

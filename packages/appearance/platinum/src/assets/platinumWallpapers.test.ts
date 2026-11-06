@@ -30,12 +30,12 @@ describe("Platinum's wallpapers", () => {
 		expect(new Set(PLATINUM_WALLPAPERS.map((w) => w.file)).size).toBe(47);
 	});
 
-	it("reads every one from the package's own assets/wallpapers", () => {
+	it("reads every one from the package's own src/assets/wallpapers", () => {
 		// Moved out of the core's assets/img/wallpapers (plan 0015-kxa §3.3).
 		const pkg = path.resolve(import.meta.dirname, "../..");
 		for (const { file } of PLATINUM_WALLPAPERS)
 			expect(assetSourceFile(platinumWallpaperUrl(file), pkg), file).toBe(
-				path.join(pkg, "assets/wallpapers", file),
+				path.join(pkg, "src/assets/wallpapers", file),
 			);
 	});
 

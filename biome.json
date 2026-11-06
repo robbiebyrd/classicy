@@ -16,7 +16,7 @@
 			"!!src/index.ts",
 			"!!example/src/Applications/TV/testdata.json",
 			"!!**/*.svg",
-			"!!packages/appearance/platinum/assets/sounds/**/*.json",
+			"!!packages/appearance/platinum/src/assets/sounds/**/*.json",
 			"!!packages/appearance/platinum/resources/app-icons/index.json"
 		]
 	},

@@ -15,9 +15,10 @@
 //    carries a Vite query (the core's invariant 1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
-//    (src/assets/fonts), the art (src/assets/art, assets/art), the cursors
-//    (assets/cursors), the wallpapers (assets/wallpapers, not its photos/
-//    folder) and the four sound sprites (assets/sounds/platinum/platinum.*),
+//    (src/assets/fonts), the art (src/assets/art), the cursors
+//    (src/assets/cursors), the wallpapers (src/assets/wallpapers, not its
+//    photos/ folder) and the four sound sprites
+//    (src/assets/sounds/platinum/platinum.*),
 //    each under its source name and byte-identical to its source, so an
 //    image optimizer or a WebP pass added to vite.config.ts fails here
 //    (0131-ku3's review). dist/ itself holds only the two bundles and their
@@ -156,11 +157,12 @@ const listFiles = async (dir, accept = () => true) =>
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
 	...(await listFiles("src/assets/art", (n) => /\.(?:svg|png)$/.test(n))),
-	...(await listFiles("assets/art")),
-	...(await listFiles("assets/cursors")),
-	...(await listFiles("assets/wallpapers", (n) => /\.(?:png|jpg)$/.test(n))),
+	...(await listFiles("src/assets/cursors")),
+	...(await listFiles("src/assets/wallpapers", (n) =>
+		/\.(?:png|jpg)$/.test(n),
+	)),
 	...["ogg", "m4a", "mp3", "ac3"].map((ext) =>
-		join("assets", "sounds", "platinum", `platinum.${ext}`),
+		join("src", "assets", "sounds", "platinum", `platinum.${ext}`),
 	),
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);

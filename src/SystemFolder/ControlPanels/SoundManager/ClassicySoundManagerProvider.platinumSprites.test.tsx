@@ -1,6 +1,6 @@
 // A desktop mount loads Platinum's sound sprites from the Platinum package
 // (plan 0015-kxa §3.3): the files left the core's assets/sounds for
-// packages/appearance/platinum/assets/sounds/platinum, and pixel parity
+// packages/appearance/platinum/src/assets/sounds/platinum, and pixel parity
 // cannot hear the difference, so this reads the src the Howl is built with.
 // The core registers no Appearance Package: this test loads Platinum.
 import "@/__tests__/withPlatinum";
@@ -31,7 +31,7 @@ vi.mock("howler", () => ({
 
 const SPRITES = path.join(
 	process.cwd(),
-	"packages/appearance/platinum/assets/sounds/platinum",
+	"packages/appearance/platinum/src/assets/sounds/platinum",
 );
 
 describe("a desktop with Platinum loaded", () => {

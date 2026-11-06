@@ -3,8 +3,8 @@ set -euo pipefail
 # Platinum's sound packs live in its package (plan 0015-kxa §3.3); the core
 # ships no sprites. Each <dir>/<name>/sprites/*.<ext> becomes <name>.<format>
 # and <name>.json beside it.
-dir=${1:-./packages/appearance/platinum/assets/sounds}
-outputDir=${2:-./packages/appearance/platinum/assets/sounds}
+dir=${1:-./packages/appearance/platinum/src/assets/sounds}
+outputDir=${2:-./packages/appearance/platinum/src/assets/sounds}
 fileExt=${3:-mp3}
 formats=${4:-ogg,m4a,mp3,ac3}
 loops=${5:-ClassicyWindowMoveMoving,ClassicyWindowMoveIdle,ClassicyWindowResizeIdle,ClassicyWindowResizeResizing}

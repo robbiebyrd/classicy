@@ -4,18 +4,18 @@ import { isClassicyAppearanceSourcePath } from "./classicyNoInlineAssets";
 
 // Every file of an Appearance Package ships as a file in its build's
 // dist/assets: its source assets and the sound sprites, wallpapers, art and
-// cursors in packages/appearance/<id>/assets (plan 0015-kxa §3.3). Since the
+// cursors in packages/appearance/<id>/src/assets (plan 0015-kxa §3.3). Since the
 // core stopped bundling Platinum (§3.4) no build narrows the rule.
 describe("which assets the library builds emit as files", () => {
 	const PACKAGE = [
 		"/r/packages/appearance/platinum/src/assets/art/resizer.svg",
 		"/r/packages/appearance/platinum/src/assets/fonts/Geneva-normal-normal.woff2",
 		"/r/src/Appearance/Other/assets/art/a.png",
-		"/r/packages/appearance/platinum/assets/sounds/platinum/platinum.ogg",
-		"/r/packages/appearance/platinum/assets/wallpapers/azul_dark.png",
-		"/r/packages/appearance/platinum/assets/art/apple.png",
-		"/r/packages/appearance/platinum/assets/cursors/cursor-watch.png",
-		"packages\\appearance\\platinum\\assets\\wallpapers\\default.jpg",
+		"/r/packages/appearance/platinum/src/assets/sounds/platinum/platinum.ogg",
+		"/r/packages/appearance/platinum/src/assets/wallpapers/azul_dark.png",
+		"/r/packages/appearance/platinum/src/assets/art/apple.png",
+		"/r/packages/appearance/platinum/src/assets/cursors/cursor-watch.png",
+		"packages\\appearance\\platinum\\src\\assets\\wallpapers\\default.jpg",
 	];
 	const CORE = ["/r/assets/img/icons/system/macos.svg", "/r/src/index.ts"];
 

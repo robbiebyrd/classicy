@@ -16,8 +16,7 @@ import { PLATINUM_FONT_FACES } from "../src/assets/platinumFonts.internal";
 
 // The package's dist check, bin/verify-dist.mjs (plan 0015-kxa §3.4), run for
 // real on a fixture package folder: the shape of Platinum's (src/assets/fonts,
-// src/assets/art, assets/art, assets/cursors, assets/wallpapers,
-// assets/sounds/platinum) with a few files each, and a dist/ built to pass.
+// art, cursors, wallpapers and sounds/platinum) with a few files each, and a dist/ built to pass.
 // Each case breaks one thing and expects the script to name it.
 
 const SCRIPT = path.resolve(import.meta.dirname, "verify-dist.mjs");
@@ -42,19 +41,19 @@ const SOURCES: Record<string, Buffer> = {
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
 	"src/assets/art/sad-mac.png": bytes(40),
-	"assets/art/apple.png": bytes(41),
-	"assets/cursors/cursor-watch.png": bytes(42),
-	"assets/wallpapers/azul_dark.png": bytes(43),
-	"assets/wallpapers/default.jpg": bytes(44),
-	"assets/wallpapers/photos/beach.jpg": bytes(45),
+	"src/assets/art/apple.png": bytes(41),
+	"src/assets/cursors/cursor-watch.png": bytes(42),
+	"src/assets/wallpapers/azul_dark.png": bytes(43),
+	"src/assets/wallpapers/default.jpg": bytes(44),
+	"src/assets/wallpapers/photos/beach.jpg": bytes(45),
 	...Object.fromEntries(
 		["ogg", "m4a", "mp3", "ac3"].map((ext, i) => [
-			`assets/sounds/platinum/platinum.${ext}`,
+			`src/assets/sounds/platinum/platinum.${ext}`,
 			bytes(50 + i),
 		]),
 	),
-	"assets/sounds/platinum/platinum.json": Buffer.from("{}"),
-	"assets/sounds/platinum/sprites/ClassicyBeep.mp3": bytes(60),
+	"src/assets/sounds/platinum/platinum.json": Buffer.from("{}"),
+	"src/assets/sounds/platinum/sprites/ClassicyBeep.mp3": bytes(60),
 };
 const SHIPPED = Object.keys(SOURCES).filter(
 	(file) =>
@@ -392,10 +391,9 @@ it("reads folders the package has", () => {
 	for (const dir of [
 		"src/assets/fonts",
 		"src/assets/art",
-		"assets/art",
-		"assets/cursors",
-		"assets/wallpapers",
-		"assets/sounds/platinum",
+		"src/assets/cursors",
+		"src/assets/wallpapers",
+		"src/assets/sounds/platinum",
 	])
 		expect(existsSync(path.join(packageDir, dir)), dir).toBe(true);
 });

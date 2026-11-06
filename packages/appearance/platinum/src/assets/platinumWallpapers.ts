@@ -6,14 +6,14 @@
 // through the asset registry (`resolveClassicyWallpaper`), never through this
 // module.
 
-const wallpaperModules = import.meta.glob(
-	"../../assets/wallpapers/*.{png,jpg}",
-	{ eager: true, import: "default" },
-) as Record<string, string>;
+const wallpaperModules = import.meta.glob("./wallpapers/*.{png,jpg}", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
 
 /** This build's URL for a Platinum wallpaper file, or "" when there is none. */
 export const platinumWallpaperUrl = (file: string): string =>
-	wallpaperModules[`../../assets/wallpapers/${file}`] ?? "";
+	wallpaperModules[`./wallpapers/${file}`] ?? "";
 
 /**
  * Platinum's 47 wallpapers: the Desktop tab's label and the filename themes

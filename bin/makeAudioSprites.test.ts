@@ -49,14 +49,14 @@ describe("pnpm build:audio", () => {
 		const { scripts } = JSON.parse(readFileSync("package.json", "utf8"));
 		expect(scripts["build:audio"]).toBe("./bin/make_audio_sprites.sh");
 		expect(scripts["build:watchaudio"]).toContain(
-			'--watch "packages/appearance/platinum/assets/sounds/**"',
+			'--watch "packages/appearance/platinum/src/assets/sounds/**"',
 		);
 		expect(scripts["build:watchaudio"]).not.toMatch(/"assets\/sounds/);
 	});
 
 	it("builds Platinum's pack from the package's sprites, beside them", () => {
 		const calls = runWithStubs();
-		const dir = "./packages/appearance/platinum/assets/sounds";
+		const dir = "./packages/appearance/platinum/src/assets/sounds";
 		expect(calls).toHaveLength(2);
 		expect(calls[0]).toMatch(/^npx -y audiosprite -f howler2 /);
 		expect(calls[0]).toContain(` -o ${dir}/platinum/platinum `);

@@ -6,19 +6,19 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@classicy/classicy";
-import aliasBadge from "../../assets/art/alias.png";
-import appleMenu from "../../assets/art/apple.png";
-import helpButton from "../../assets/art/help-button.png";
-import trashEmpty from "../../assets/art/trash-empty.png";
-import trashFull from "../../assets/art/trash-full.png";
-import resizeD from "../../assets/cursors/cursor-resize-d.png";
-import resizeL from "../../assets/cursors/cursor-resize-l.png";
-import resizeLr from "../../assets/cursors/cursor-resize-lr.png";
-import resizeR from "../../assets/cursors/cursor-resize-r.png";
-import resizeU from "../../assets/cursors/cursor-resize-u.png";
-import resizeUd from "../../assets/cursors/cursor-resize-ud.png";
-import watch from "../../assets/cursors/cursor-watch.png";
+import aliasBadge from "./art/alias.png";
+import appleMenu from "./art/apple.png";
+import helpButton from "./art/help-button.png";
 import { platinumArt as art, PLATINUM_SYSTEM_ART } from "./art/platinumArt";
+import trashEmpty from "./art/trash-empty.png";
+import trashFull from "./art/trash-full.png";
+import resizeD from "./cursors/cursor-resize-d.png";
+import resizeL from "./cursors/cursor-resize-l.png";
+import resizeLr from "./cursors/cursor-resize-lr.png";
+import resizeR from "./cursors/cursor-resize-r.png";
+import resizeU from "./cursors/cursor-resize-u.png";
+import resizeUd from "./cursors/cursor-resize-ud.png";
+import watch from "./cursors/cursor-watch.png";
 import { PLATINUM_PIXEL_ART } from "./pixelart/platinumPixelArt";
 import { PLATINUM_FONT_FACES } from "./platinumFonts.internal";
 import { PLATINUM_LEGACY_WALLPAPER_DIGESTS } from "./platinumLegacyWallpapers";

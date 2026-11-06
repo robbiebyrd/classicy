@@ -11,7 +11,7 @@ name: CI
 # check skipped by a path filter stays "pending" and blocks the merge.
 #
 # No ffmpeg / audio sprite build: the generated sprites
-# (packages/appearance/platinum/assets/sounds/platinum/platinum.*) are
+# (packages/appearance/platinum/src/assets/sounds/platinum/platinum.*) are
 # committed, and the test suite only reads platinum.json and the files' paths.
 # Nothing here invokes ffmpeg.
 

@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as logModule from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 // Platinum's committed sprite sheet JSON, in its package (plan 0015-kxa §3.3).
-import platinumJson from "../../../../packages/appearance/platinum/assets/sounds/platinum/platinum.json";
+import platinumJson from "../../../../packages/appearance/platinum/src/assets/sounds/platinum/platinum.json";
 import {
 	CLASSICY_ALERT_SOUNDS,
 	DEFAULT_ALERT_SOUND,

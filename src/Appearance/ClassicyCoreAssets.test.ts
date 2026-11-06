@@ -7,14 +7,14 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 /**
  * Platinum's files leave the core's assets/ folder (plan 0015-kxa §3.3,
  * design 0014-ahm "Which assets/ files are Platinum's"): a file moves into
- * packages/appearance/platinum/assets/ when Platinum is its only reader, so a
+ * packages/appearance/platinum/src/assets/ when Platinum is its only reader, so a
  * host that loads another Appearance Package ships none of Platinum's sounds,
  * wallpapers, art or cursors. Files the core also reads (`system.macosSvg`,
  * `classicy.logo`, `ui.halftoneLarge`, `ui.cursors.hand`) and files nothing
  * reads stay where they are.
  */
 
-const PLATINUM_ASSETS = "packages/appearance/platinum/assets/";
+const PLATINUM_ASSETS = "packages/appearance/platinum/src/assets/";
 
 /** Each moved file, from its old place in assets/ to its place in the package. */
 const MOVED: ReadonlyArray<readonly [from: string, to: string]> = [

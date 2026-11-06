@@ -157,7 +157,7 @@ describe("the built bundle and the core's registries", () => {
 			expect(
 				readFileSync(path.join(outDir, "assets", `platinum.${ext}`)).equals(
 					readFileSync(
-						path.join(packageDir, `assets/sounds/platinum/platinum.${ext}`),
+						path.join(packageDir, `src/assets/sounds/platinum/platinum.${ext}`),
 					),
 				),
 				ext,

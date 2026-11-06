@@ -16,7 +16,7 @@ import {
 
 // The package's own wallpaper files (moved out of the core's
 // assets/img/wallpapers, plan 0015-kxa §3.3, byte for byte).
-const WALLPAPERS = path.resolve(import.meta.dirname, "../../assets/wallpapers");
+const WALLPAPERS = path.resolve(import.meta.dirname, "wallpapers");
 
 /** The data: URI a 2.x library build inlines for a wallpaper file. */
 const inlined = (file: string) =>

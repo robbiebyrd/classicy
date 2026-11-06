@@ -15,7 +15,7 @@ import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./classicyImageTools";
 // `isPackageAsset` can narrow what counts as a package's asset. Since the core
 // stopped bundling Platinum (plan 0015-kxa §3.4) both builds use the default:
 // every package source file, the sound sprites, wallpapers, art and cursors
-// under packages/appearance/<id>/assets included.
+// under packages/appearance/<id>/src/assets included.
 
 const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
 
