@@ -6,7 +6,7 @@ status: complete
 priority: "2"
 effort: XL
 created: "2026-10-28T18:07:39.758Z"
-updated: "2026-11-05T16:00:23.267Z"
+updated: "2026-11-06T19:21:04.880Z"
 completed: "2026-11-05T16:00:23.266Z"
 tags: []
 milestone: ""
@@ -116,6 +116,8 @@ Store and actions: `System.Manager.Appearance.packageId: string` (default `"plat
 Style injection: `injectClassicyAppearanceStyles(id: string, css: string): void` in `src/Appearance/ClassicyAppearanceStyles.ts` writes `<style id="classicy-appearance-<id>">` after `#classicy-styles`, idempotent, no-op without `document`. Registration calls it. The "every rule is scoped under the root" test exempts keyframe step selectors. Under vitest `*.scss?inline` resolves to `""`, so compiled-CSS assertions call the sass API directly.
 
 Platinum: `src/Appearance/Platinum/index.ts` (side-effect import that registers; builds `options` with `classicyKnobsToSchema`), `src/Appearance/Platinum/platinum.json` (`id`, `name`, `defaults` incl. `defaults.measurements.<family>` knob values, `presets`, `layout`, `knobs`), `src/Appearance/Platinum/styles/platinum.scss` compiled via Vite `?inline` into `css`, wrapped by `@include classicy-package("platinum") { … }` which emits `@layer classicy.package { .classicyDesktop[data-classicy-appearance="platinum"] { … } }`. Platinum mixins keep their bodies but are renamed `platinum-*` and live in `src/Appearance/Platinum/styles/_mixins.scss`, `_scrollbars.scss`, `_assets.scss`; per-component look rules live in `src/Appearance/Platinum/styles/components/_<Component>.scss` (the Control Strip's three local bevel mixins move to `_ControlStrip.scss` there). `ClassicyDesktop` imports `@/Appearance/Platinum` so Platinum is always present (D14).
+
+> Amended 2026-11-06: D14 ("Platinum is always present") is superseded by plan 0014-ahm. The core registers no Appearance Package; Platinum ships as the separate package `@classicy/appearance-platinum`, which a host imports at its entry, and with none registered `ClassicyDesktop` draws only a stop screen.
 
 ### Shared Contract — asset registries (part C owns)
 
