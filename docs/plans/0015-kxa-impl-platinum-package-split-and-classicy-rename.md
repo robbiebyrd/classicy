@@ -6,7 +6,7 @@ status: in_progress
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-05T20:25:32.452Z"
+updated: "2026-11-06T02:35:24.750Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -22,45 +22,45 @@ links:
     - ["0014-ahm", "parent"]
 progress:
   "0":
-    status: pending
+    status: complete
   "0.1":
-    status: pending
+    status: complete
     stories:
       - 0121-e89
   "1":
-    status: pending
+    status: in_progress
   "1.1":
-    status: pending
+    status: complete
     stories:
       - 0122-ieh
   "1.2":
-    status: pending
+    status: complete
     stories:
       - 0123-qzc
   "1.3":
-    status: pending
+    status: complete
     stories:
       - 0124-ln8
   "1.4":
-    status: pending
+    status: complete
     stories:
       - 0125-gqb
   "1.5":
-    status: pending
+    status: complete
     stories:
       - 0126-orc
   "1.6":
-    status: pending
+    status: in_progress
     stories:
       - 0127-qvl
   "2":
-    status: pending
+    status: complete
   "2.1":
-    status: pending
+    status: complete
     stories:
       - 0128-l2h
   "3":
-    status: pending
+    status: in_progress
   "3.1":
     status: pending
     stories:
@@ -78,13 +78,13 @@ progress:
     stories:
       - 0132-jsg
   "3.5":
-    status: pending
+    status: complete
     stories:
       - 0133-uqg
   "4":
-    status: pending
+    status: in_progress
   "4.1":
-    status: pending
+    status: complete
     stories:
       - 0134-8cy
   "4.2":
