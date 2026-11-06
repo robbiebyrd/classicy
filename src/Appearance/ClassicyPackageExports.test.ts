@@ -398,7 +398,8 @@ describe("the rename to @classicy/classicy", () => {
 		},
 		{
 			file: "docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md",
-			start: /^- \*\*The package ?: `classicy` is renamed to `@classicy\/classicy`\./,
+			start:
+				/^- \*\*The package ?: `classicy` is renamed to `@classicy\/classicy`\./,
 			end: /^- \*\*The core no longer registers Platinum/,
 		},
 	];
