@@ -178,57 +178,59 @@ export const refreshedClassicyActiveTheme = (
 		: next;
 };
 
-/** `value` as JSON with every object's keys sorted, so equal data compares
- * equal whatever order its keys were written in. */
-const canonicalJson = (value: unknown): string =>
-	JSON.stringify(value, (_key, inner: unknown) =>
-		inner && typeof inner === "object" && !Array.isArray(inner)
-			? Object.fromEntries(
-					Object.entries(inner).sort(([a], [b]) =>
-						a < b ? -1 : a > b ? 1 : 0,
-					),
-				)
-			: inner,
-	);
-
-const CORE_DEFAULT_THEME_JSON = canonicalJson(CLASSICY_CORE_DEFAULT_THEME);
-
 /**
- * True when `theme` is the core's stand-in, `CLASSICY_CORE_DEFAULT_THEME`,
- * unedited: the theme a first session starts with (the default state's), or
- * the same data saved whole before any package registered. A theme that
- * differs in any value is someone's theme, never a stand-in.
+ * The id of `packageId`'s defaults theme: the registered package's; for the
+ * default package while it is not registered, the core stand-in's
+ * (`CLASSICY_CORE_DEFAULT_THEME`, the default state's theme, which a saved
+ * `{ id: "default", package: "platinum" }` reference also loads as); else
+ * `undefined`.
  */
-export const isClassicyCoreStandInTheme = (theme: unknown): boolean =>
-	theme === CLASSICY_CORE_DEFAULT_THEME ||
-	(!!theme &&
-		typeof theme === "object" &&
-		(theme as { id?: unknown }).id === CLASSICY_CORE_DEFAULT_THEME.id &&
-		canonicalJson(theme) === CORE_DEFAULT_THEME_JSON);
+const packageDefaultsThemeId = (packageId: string): string | undefined =>
+	knownClassicyThemePackage(packageId)?.defaults.id ??
+	(packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
+		? CLASSICY_CORE_DEFAULT_THEME.id
+		: undefined);
 
 /**
  * The defaults of the package the desktop draws (`packageId` resolved as the
  * desktop resolves it: registered id, registered default, first registered),
  * activated as a package switch activates them
- * (`activatableClassicyPackageTheme`), when that package is not the active
- * theme's own; else `undefined` (no package is registered, or it already is
- * the theme's). The caller decides that the active theme only stands in
- * (story 0144-6sc): a first session whose only package is not the default
- * one would otherwise draw that package with the core stand-in, a theme of
- * the default package, whose knob values it lacks. `packageId` is not
- * written: the desktop draws the package by resolution.
+ * (`activatableClassicyPackageTheme`), in place of an active theme that is
+ * its own package's defaults theme when that package is not the drawn one;
+ * else `undefined` (story 0144-6sc). Such a theme is nobody's choice of look:
+ * the default state seeds the core stand-in under `"platinum"`, and every
+ * Platinum session saves its defaults as their reference, so a host whose
+ * package is another would draw it with the stand-in, whose knob values it
+ * lacks. Matched by id, not by data, so a merged or refreshed copy (a
+ * provider's `defaultState` seed, a re-registration) still matches. Never a
+ * custom theme, any other theme of a package (a preset), or, while its
+ * package is not registered, a host-loaded theme (`availableThemes`). The
+ * cost: another package's defaults chosen explicitly last until the next
+ * load or package change. `packageId` is not written: the desktop draws the
+ * package by resolution.
  */
 export const drawnClassicyPackageDefaults = (
 	appearance: Pick<
 		ClassicyStoreSystemAppearanceManager,
-		"activeTheme" | "packageId"
+		"activeTheme" | "packageId" | "customThemes" | "availableThemes"
 	>,
 ): ClassicyTheme | undefined => {
+	const active = appearance.activeTheme;
+	if (!active || typeof active !== "object") return undefined;
 	const drawn = getRegisteredClassicyAppearancePackageOrDefault(
 		appearance.packageId,
 	);
-	if (!drawn || drawn.id === themePackageId(appearance.activeTheme)) {
+	const own = themePackageId(active);
+	if (!drawn || drawn.id === own) return undefined;
+	if (active.id !== packageDefaultsThemeId(own)) return undefined;
+	if (appearance.customThemes?.some((t) => t.id === active.id)) {
 		return undefined;
 	}
+	const hostLoaded =
+		!knownClassicyThemePackage(own) &&
+		appearance.availableThemes?.some(
+			(t) => t.id === active.id && themePackageId(t) === own,
+		);
+	if (hostLoaded) return undefined;
 	return activatableClassicyPackageTheme(drawn, drawn.defaults);
 };

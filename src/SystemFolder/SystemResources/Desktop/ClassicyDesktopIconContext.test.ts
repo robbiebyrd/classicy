@@ -129,6 +129,10 @@ describe("ClassicyDesktopIconCleanup", () => {
 		useAppManager.setState(
 			produce(DefaultAppManagerState, (draft) => {
 				draft.System.Manager.Appearance.packageId = packageId;
+				// A theme of the drawn package: a default-package defaults
+				// theme under another drawn package gives way to that
+				// package's defaults (0144-6sc), dropping the edit below.
+				draft.System.Manager.Appearance.activeTheme.package = packageId;
 				draft.System.Manager.Appearance.activeTheme.desktop.iconSize = 64;
 				draft.System.Manager.Desktop.icons = seeded.map((icon) => ({
 					...icon,
