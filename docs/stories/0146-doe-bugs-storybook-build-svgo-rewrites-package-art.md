@@ -3,12 +3,13 @@ id: 0146-doe
 title: Storybook's build runs svgo over Appearance Package art, so the static Storybook and the parity baseline draw altered art
 purpose: The published Storybook and the parity baseline show package art exactly as authored, as the library does.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-06T03:39:09.727Z"
-updated: "2026-11-06T05:13:16.568Z"
+updated: "2026-11-06T05:44:24.473Z"
 started: "2026-11-06T05:13:16.568Z"
+completed: "2026-11-06T05:44:24.473Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,11 +50,13 @@ Share the exclude pattern between both configs (Phase 3 moves Platinum's art to 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: After `pnpm build:storybook`, package art in `storybook-static` is byte-identical to its sources, and a dev-server shoot and a static shoot of `desktop-window--default` are AE 0 against each other.
-- [ ] VERIFY: The rebaseline differs from the old baseline only in the grip box, and the full gate is green.
+- [x] VERIFY: After `pnpm build:storybook`, package art in `storybook-static` is byte-identical to its sources, and a dev-server shoot and a static shoot of `desktop-window--default` are AE 0 against each other.
+- [x] VERIFY: The rebaseline differs from the old baseline only in the grip box, and the full gate is green.
 
 ## Files
 
 - `storybook/.storybook/main.ts` - exclude package art from svgo, as vite.config.ts does
 
 ## Work Log
+
+### 2026-11-06T05:44:16.360Z - Landed at db76d90eb (452c0cd14 fix: CLASSICY_IMAGE_TOOLS_EXCLUDES shared by vite.config.ts and storybook main.ts, covering src/Appearance and packages/appearance; bin/check-storybook-art.mjs now runs after build:storybook; db76d90eb docs). Gate 472 files / 6591 tests green on e28f94b92 (tip unchanged). New baseline in platinum-split/before-svgo: vs before 445 total, 383 AE 0, 62 AE 69 = the grow-box grip (10x10 at the window's bottom-right) on 31 window stories and their @mid shots; boxes in ae-before-vs-svgo-boxes.txt. dev vs static desktop-window--default AE 0. Swap of before-svgo into before/ is held until 0129, 0143 and 0147 finish their own parity rounds (their branches predate this fix); controller parity at their landing uses before-svgo.
