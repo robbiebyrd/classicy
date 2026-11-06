@@ -9,10 +9,11 @@
 // its comment and url()/data-URI blanking with Part H's pixel-literal gate
 // (classicyScssSource.ts).
 import { readFileSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { relative, sep } from "node:path";
 import {
 	blankClassicyScssComments,
 	blankClassicyScssUrlPayloads,
+	classicyScssSourceRoots,
 	listClassicyScssFiles,
 } from "./classicyScssSource.ts";
 
@@ -110,13 +111,18 @@ const EXEMPT_DECLARATIONS: Readonly<Record<string, readonly RegExp[]>> = {
 // private constant (`--platinum-stripe-dark`) or a component-interface
 // variable it supplies (`--classicy-color-picker-crosshair`; contract
 // 0002-ldj: package CSS may hold constants). Only the declaration is exempt:
-// a property rule (`color: #c00`) in a package partial is still a hit.
-const PACKAGE_FILE = /^src\/Appearance\/([^/]+)\//;
+// a property rule (`color: #c00`) in a package partial is still a hit. A
+// package lives in the core (`src/Appearance/<Package>/`, the vocabulary
+// aside) or in its workspace package's source
+// (`packages/appearance/<id>/src/`, Platinum's, plan 0015-kxa §3.1).
+const PACKAGE_FILE =
+	/^(?:src\/Appearance\/([^/]+)|packages\/appearance\/([^/]+)\/src)\//;
 const CUSTOM_PROPERTY_DECLARATION = /(^|[{;])\s*--[a-z0-9-]+\s*:[^;{}]*/gi;
 
 const isPackageFile = (file: string): boolean => {
-	const folder = file.match(PACKAGE_FILE)?.[1];
-	return folder !== undefined && folder !== "vocabulary";
+	const match = file.match(PACKAGE_FILE);
+	if (!match) return false;
+	return match[2] !== undefined || match[1] !== "vocabulary";
 };
 
 // The line (comments and url() payloads already blanked) with every exempt
@@ -150,16 +156,22 @@ export function classicyLiteralColorHits(
 	return hits;
 }
 
-/** Every literal color in `<root>/src/**\/*.scss`, sorted by path. */
+/**
+ * Every literal color in `<root>/src/**\/*.scss` and each
+ * `<root>/packages/appearance/<id>/src/**\/*.scss`, sorted by path.
+ */
 export function findClassicyLiteralColors(
 	root: string,
 ): ClassicyLiteralColorHit[] {
-	return listClassicyScssFiles(join(root, "src")).flatMap((full) =>
-		classicyLiteralColorHits(
-			relative(root, full).split(sep).join("/"),
-			readFileSync(full, "utf8"),
-		),
-	);
+	return classicyScssSourceRoots(root)
+		.flatMap((dir) => listClassicyScssFiles(dir))
+		.flatMap((full) =>
+			classicyLiteralColorHits(
+				relative(root, full).split(sep).join("/"),
+				readFileSync(full, "utf8"),
+			),
+		)
+		.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 }
 
 function main(): void {

@@ -197,14 +197,15 @@ describe("classicyLiteralColorHits", () => {
 });
 
 describe("G12: package custom properties", () => {
-	// A planted tree, the shape Part E gives Platinum's _assets.scss.
+	// A planted tree, the shape Part E gives Platinum's _assets.scss, in its
+	// workspace package (plan 0015-kxa §3.1).
 	const root = mkdtempSync(join(tmpdir(), "classicy-literal-sweep-"));
 	const plant = (file: string, source: string) => {
 		mkdirSync(dirname(join(root, file)), { recursive: true });
 		writeFileSync(join(root, file), source);
 	};
 	plant(
-		"src/Appearance/Platinum/styles/_assets.scss",
+		"packages/appearance/platinum/src/styles/_assets.scss",
 		[
 			":root {",
 			"  --platinum-stripe-dark: #787878;",
@@ -226,18 +227,24 @@ describe("G12: package custom properties", () => {
 		"src/Appearance/vocabulary/_planted.scss",
 		":root { --vocabulary-x: #787878; }\n",
 	);
+	// A package's property rules are still hits; nothing else under packages/
+	// is scanned.
+	plant("packages/appearance/x/src/a.scss", ".a { color: #fff; }\n");
+	plant("packages/appearance/x/resources/b.scss", ".b { color: #fff; }\n");
+	plant("packages/other/src/c.scss", ".c { color: #fff; }\n");
 	afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 	// Part E's package values for component-interface variables
 	// (--classicy-color-picker-*) are package data too, so every custom
 	// property a package folder declares is exempt; its property rules are
 	// not, nor is the rest of a declaration's line.
-	it("exempts a custom-property declaration under src/Appearance/<Package>/ only", () =>
+	it("exempts a custom-property declaration in an Appearance Package's src only", () =>
 		expect(
 			findClassicyLiteralColors(root).map((hit) => `${hit.file}:${hit.line}`),
 		).toEqual([
-			"src/Appearance/Platinum/styles/_assets.scss:6",
-			"src/Appearance/Platinum/styles/_assets.scss:9",
+			"packages/appearance/platinum/src/styles/_assets.scss:6",
+			"packages/appearance/platinum/src/styles/_assets.scss:9",
+			"packages/appearance/x/src/a.scss:1",
 			"src/Appearance/vocabulary/_planted.scss:1",
 			"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss:1",
 		]));

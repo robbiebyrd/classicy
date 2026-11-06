@@ -8,7 +8,7 @@
 //
 // Build script, not library code. Erasable TypeScript syntax only, so Node
 // runs the importing scripts directly.
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const blank = (text: string): string => text.replace(/[^\n]/g, " ");
@@ -119,6 +119,26 @@ export const blankClassicyScssUrlPayloads = (source: string): string => {
 		i = end;
 	}
 	return out;
+};
+
+/**
+ * The source directories the SCSS gates scan (the pixel-literal gate, the
+ * literal-color sweep): `<root>/src` and each workspace Appearance Package's
+ * source, `<root>/packages/appearance/<id>/src` (Platinum's, plan 0015-kxa
+ * §3.1). Nothing else under packages/ (a package's resources/) is scanned.
+ */
+export const classicyScssSourceRoots = (root: string): string[] => {
+	const packages = join(root, "packages", "appearance");
+	return [
+		join(root, "src"),
+		...(existsSync(packages)
+			? readdirSync(packages, { withFileTypes: true })
+					.filter((entry) => entry.isDirectory())
+					.map((entry) => join(packages, entry.name, "src"))
+					.filter((dir) => existsSync(dir))
+					.sort()
+			: []),
+	];
 };
 
 /** Every `.scss` file under `dir`, recursively, sorted by name per folder. */

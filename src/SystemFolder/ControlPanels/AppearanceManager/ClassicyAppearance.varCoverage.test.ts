@@ -10,6 +10,7 @@ import {
 import { scanPixelLiterals } from "../../../../bin/check-pixel-literals.ts";
 import {
 	blankClassicyScssComments,
+	classicyScssSourceRoots,
 	listClassicyScssFiles,
 } from "../../../../bin/classicyScssSource.ts";
 
@@ -20,15 +21,18 @@ import {
 // component sets from TypeScript, or one of the desktop root's asset and
 // layout variables (`useClassicyAssetVars`, `classicyLayoutVars`).
 const ROOT = resolve(__dirname, "../../../..");
-const SRC = join(ROOT, "src");
 const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
 
 const repoPath = (full: string): string =>
 	relative(ROOT, full).split(sep).join("/");
 
-const scssFiles = listClassicyScssFiles(SRC).filter(
-	(full) => !repoPath(full).startsWith(SAVERS),
-);
+// src and each workspace Appearance Package's src (Platinum's, plan 0015-kxa
+// §3.1), the roots the SCSS gates scan.
+const SOURCE_ROOTS = classicyScssSourceRoots(ROOT);
+
+const scssFiles = SOURCE_ROOTS.flatMap((dir) =>
+	listClassicyScssFiles(dir),
+).filter((full) => !repoPath(full).startsWith(SAVERS));
 
 // Library TypeScript only: a variable set by a test or a story alone is not
 // set for a host.
@@ -75,12 +79,12 @@ const sheets = scssFiles.map((full) =>
 );
 
 describe("theme variable coverage (H 6.1)", () => {
-	it("every var(--…) read in src/**/*.scss is emitted, declared or set from TSX", () => {
+	it("every var(--…) read in src's and the packages' SCSS is emitted, declared or set from TSX", () => {
 		const reads = new Set(sheets.flatMap((sheet) => matchesIn(sheet, READ)));
 		const allowed = new Set([
 			...Object.keys(getThemeVars(getTheme("default"))),
 			...sheets.flatMap((sheet) => matchesIn(sheet, DECLARED)),
-			...listLibraryScripts(SRC).flatMap((full) =>
+			...SOURCE_ROOTS.flatMap(listLibraryScripts).flatMap((full) =>
 				matchesIn(readFileSync(full, "utf8"), SET_FROM_SCRIPT),
 			),
 			...HOST_HOOKS,
@@ -91,6 +95,13 @@ describe("theme variable coverage (H 6.1)", () => {
 				.sort(),
 		).toEqual([]);
 	});
+
+	// Platinum's sheets and scripts, in its workspace package (plan 0015-kxa
+	// §3.1), are read too: `--menu-frame-shadow-width` is read only there.
+	it("scans each workspace Appearance Package's source", () =>
+		expect(
+			new Set(sheets.flatMap((sheet) => matchesIn(sheet, READ))),
+		).toContain("--menu-frame-shadow-width"));
 
 	it("reads a host hook only with a fallback", () => {
 		for (const hook of HOST_HOOKS) {
