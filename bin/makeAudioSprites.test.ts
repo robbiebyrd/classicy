@@ -30,9 +30,12 @@ afterEach(() => {
 	stubs = "";
 });
 
-const runWithStubs = (): string[] => {
+const runWithStubs = (): { calls: string[]; out: string } => {
 	stubs = mkdtempSync(path.join(tmpdir(), "classicy-audio-"));
 	const log = path.join(stubs, "calls.log");
+	// Outputs go to a scratch directory: a finished run stamps its pack, and the
+	// committed stamp must keep describing the committed sprites.
+	const out = path.join(stubs, "out");
 	for (const tool of ["npx", "node"]) {
 		const file = path.join(stubs, tool);
 		writeFileSync(
@@ -47,21 +50,26 @@ const runWithStubs = (): string[] => {
 	const audiosprite = path.join(stubs, "audiosprite");
 	writeFileSync(
 		audiosprite,
-		`#!/bin/sh\n{ printf '%s' audiosprite; for a in "$@"; do printf ' %s' "$a"; done; echo; } >> "${log}"\n`,
+		`#!/bin/sh\n{ printf '%s' audiosprite; for a in "$@"; do printf ' %s' "$a"; done; echo; } >> "${log}"\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && mkdir -p "$(dirname "$2")"; shift; done\n`,
 	);
 	chmodSync(audiosprite, 0o755);
-	execFileSync("bash", ["bin/make_audio_sprites.sh"], {
-		env: {
-			...process.env,
-			PATH: `${stubs}:${process.env.PATH}`,
-			AUDIOSPRITE_BIN: audiosprite,
-			// The committed pack is stamped as up to date; this run is about the
-			// arguments, not the skip.
-			CLASSICY_AUDIO_FORCE: "1",
+	execFileSync(
+		"bash",
+		[
+			"bin/make_audio_sprites.sh",
+			"./packages/appearance/platinum/src/assets/sounds",
+			out,
+		],
+		{
+			env: {
+				...process.env,
+				PATH: `${stubs}:${process.env.PATH}`,
+				AUDIOSPRITE_BIN: audiosprite,
+			},
+			stdio: "pipe",
 		},
-		stdio: "pipe",
-	});
-	return readFileSync(log, "utf8").trim().split("\n");
+	);
+	return { calls: readFileSync(log, "utf8").trim().split("\n"), out };
 };
 
 describe("pnpm build:audio", () => {
@@ -83,15 +91,15 @@ describe("pnpm build:audio", () => {
 	});
 
 	it("builds Platinum's pack from the package's sprites, beside them", () => {
-		const calls = runWithStubs();
+		const { calls, out } = runWithStubs();
 		const dir = "./packages/appearance/platinum/src/assets/sounds";
 		expect(calls).toHaveLength(2);
 		expect(calls[0]).toMatch(/^audiosprite -f howler2 /);
-		expect(calls[0]).toContain(` -o ${dir}/platinum/platinum `);
+		expect(calls[0]).toContain(` -o ${out}/platinum/platinum `);
 		expect(calls[0]).toContain(" -e ogg,m4a,mp3,ac3 ");
 		expect(calls[0].endsWith(` ${dir}/platinum/sprites/*.mp3`)).toBe(true);
 		// The JSON rewrite (id, name, relative src) of the pack it wrote.
-		expect(calls[1].endsWith(` ${dir}/platinum/platinum.json`)).toBe(true);
+		expect(calls[1].endsWith(` ${out}/platinum/platinum.json`)).toBe(true);
 	});
 });
 
