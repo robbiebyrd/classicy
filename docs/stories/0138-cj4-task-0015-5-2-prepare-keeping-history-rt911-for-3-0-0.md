@@ -3,12 +3,13 @@ id: 0138-cj4
 title: '0015 §5.2: Prepare Keeping-History/rt911 for 3.0.0'
 purpose: Execute plan 0015-kxa section 5.2.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:18.059Z"
-updated: "2026-11-06T17:21:51.995Z"
+updated: "2026-11-06T17:45:36.279Z"
 started: "2026-11-06T16:26:09.017Z"
+completed: "2026-11-06T17:45:36.279Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm test` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm test` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -79,3 +80,5 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 ### 2026-11-06T16:26:14.295Z - 2026-11-06 16:25: owner asked to start 0138 the same way as 0137 (early, while 3.4/0132 runs; force-started past the dependency). Unlike classicy-web, rt911 is a real consumer: packages/frontend pins classicy 2.1.3 (several releases behind), 248 files import it (many vi.mock('classicy')), .github/workflows/bump-classicy.yml (repository_dispatch classicy-published) plus a .husky/pre-commit auto-bump; the Go module classicy/streamer is unrelated and keeps its name. Steps 1, 2 and 4 now; step 3 against tarballs packed from the current tip, re-run against 3.4's tarballs when it lands; PR opened only after that.
 
 ### 2026-11-06T17:21:51.994Z - 2026-11-06: implementer done against the pre-3.4 tip (rt911 was on 2.1.7, not 2.1.3; 7 commits on classicy-3.0.0 in the scratchpad clone; typecheck, lint, vitest 315 files / 3526 tests, build, e2e 21 passed / 2 skipped, browser check clean). Migration-guide gaps logged on 0135 (4.2). Controller re-running step 3 against the landed 3.4 tip 58fa3f525 before showing the owner the PR.
+
+### 2026-11-06T17:45:28.480Z - Done as Keeping-History/rt911 PR #635 (branch classicy-3.0.0, 7 commits, 271 files), pushed and opened at the owner's go; unmerged, merges after 3.0.0 is on npm and the lockfile is regenerated. Controller re-ran step 3 against tarballs packed from 58fa3f525 (3.4 landed, builds separated): tsc -b and e2e tsc clean, oxlint 0 errors (45 warnings, same as main), vitest 315 files / 3526 tests, build OK, e2e 21 passed / 2 skipped, browser check clean (12 environmental console errors: CORS to *.911realtime.org, absent local services), screenshot reviewed. Criteria: 'pnpm test' passes (vitest 3526/3526); 'landed on feat/AppearancePackages' does not apply (the change lands in rt911 via PR #635).
