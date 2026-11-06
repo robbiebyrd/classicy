@@ -49,11 +49,15 @@
 //    export) exists, and no declaration is for a test, a test helper, a story,
 //    a build script or an imported JSON file (platinumJson is typed
 //    PlatinumJson, on the core's types; nothing imports platinum.json.d.ts).
+//    Every relative specifier in a declaration carries its extension
+//    (`./hooks.js`): the package is `"type": "module"`, so a host on
+//    `moduleResolution: node16` or `nodenext` resolves no other.
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { exit } from "node:process";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
+import { findClassicyExtensionlessSpecifiers } from "../../../../bin/classicyDeclarationSpecifiers.ts";
 import {
 	compareClassicyAssetNames,
 	findClassicyStrayAssetUrls,
@@ -305,6 +309,16 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		problems.push(
 			`${TYPES}: ${tests.length} declaration(s) of tests, test helpers or stories (${tests.slice(0, 5).join(", ")}) -> check the dts exclude in vite.config.ts.`,
 		);
+	for (const declaration of declarations
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()) {
+		const file = join(TYPES, declaration);
+		const bare = findClassicyExtensionlessSpecifiers((await read(file)) ?? "");
+		if (bare.length)
+			problems.push(
+				`${file}: relative specifier(s) without an extension (${bare.map((s) => JSON.stringify(s)).join(", ")}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
+			);
+	}
 	const json = findClassicyJsonDeclarations(declarations);
 	if (json.length)
 		problems.push(

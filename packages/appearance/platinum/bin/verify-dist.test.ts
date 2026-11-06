@@ -80,7 +80,7 @@ const DIST: Record<string, string | Buffer> = {
 	"appearance-platinum.umd.js.map": "{}",
 	"classicy-platinum.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-platinum.fonts.css": FONTS,
-	"types/index.d.ts": 'export * from "./hooks";\n',
+	"types/index.d.ts": 'export * from "./hooks.js";\n',
 	"types/hooks.d.ts": "export declare const a: number;\n",
 	...Object.fromEntries(
 		SHIPPED.map((file) => [`assets/${path.basename(file)}`, SOURCES[file]]),
@@ -341,6 +341,21 @@ describe("bin/verify-dist.mjs", () => {
 				status: 1,
 				stderr:
 					"dist/types: 1 declaration(s) of imported JSON (platinum.json.d.ts) -> check the dts exclude in vite.config.ts.",
+			}));
+
+		// A node16/nodenext host resolves a relative specifier only with its
+		// extension (the package is "type": "module"), so an extensionless
+		// re-export drops every name behind it (TS2305).
+		it("fails a relative specifier without an extension", () =>
+			expect(
+				verify({
+					"types/index.d.ts":
+						'export * from "./hooks";\nexport * from "./assets/a.js";\n',
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					'dist/types/index.d.ts: relative specifier(s) without an extension ("./hooks") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.',
 			}));
 
 		it("fails a test declaration", () =>
