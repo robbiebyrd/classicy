@@ -4326,10 +4326,11 @@ the variable instead of hard-coding the number:
   Finder's icons but not desktop Clean Up. Resize the desktop grid with the
   theme's `desktop.iconSize`.
 
-**Pixel literal gate.** No bare `Npx` is left in `src/**/*.scss`: every
-size reads a core token, a named derivation or a knob. `node
-bin/check-pixel-literals.ts` (chained into `pnpm lint`, and run over `src`
-by `bin/check-pixel-literals.test.ts`) lists any literal as
+**Pixel literal gate.** No bare `Npx` is left in `src/**/*.scss` or a
+workspace Appearance Package's `packages/appearance/<id>/src/**/*.scss`
+(Platinum's): every size reads a core token, a named derivation or a knob.
+`node bin/check-pixel-literals.ts` (chained into `pnpm lint`, and run over
+those roots by `bin/check-pixel-literals.test.ts`) lists any literal as
 `<file>:<line> <literal>` and exits 1. It counts a literal beside a `var()`
 read on the same line, Sass declarations (`$x: 22px`) and interpolations, a
 package's own `--<pkg>-*: Npx` constants, and a `var(--x, Npx)` fallback
@@ -4356,7 +4357,7 @@ bare number (`calc(var(--x) * 3)`, `var(--h) / -2`) is a proportion with no
 name, so stylesheets read a named derivation (above) or a knob instead. The
 pixel-literal gate's scanner also finds these sites
 (`scanMultipliersInSource`, `kind: "multiplier"`, in
-`bin/check-pixel-literals.ts`), in `src/**/*.scss` outside the screen
+`bin/check-pixel-literals.ts`), in the same `.scss` files outside the screen
 savers and comments. A site is a chain of terms joined by `*` and `/` that
 holds something that scales and at least one unitless number. What scales is
 a `var()` read; a call, parenthesized group or Sass interpolation (`#{…}`)
