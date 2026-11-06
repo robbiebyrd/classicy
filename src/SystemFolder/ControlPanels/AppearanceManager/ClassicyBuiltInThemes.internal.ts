@@ -203,8 +203,11 @@ const packageDefaultsThemeId = (packageId: string): string | undefined =>
  * package is another would draw it with the stand-in, whose knob values it
  * lacks. Matched by id, not by data, so a merged or refreshed copy (a
  * provider's `defaultState` seed, a re-registration) still matches. Never a
- * custom theme, any other theme of a package (a preset), or, while its
- * package is not registered, a host-loaded theme (`availableThemes`). The
+ * custom theme or any other theme of a package (a preset). A host-loaded
+ * theme under the defaults' id is kept while its package is not registered,
+ * but only within the session that loaded it: `availableThemes` is not
+ * persisted, so after a reload, until the host loads its themes again, such
+ * a theme is matched by its id like any other. The
  * cost: another package's defaults chosen explicitly last until the next
  * load or package change. `packageId` is not written: the desktop draws the
  * package by resolution.

@@ -2548,7 +2548,10 @@ save made with only another package reloads with Platinum, once Platinum is
 drawn, on Platinum's. Never replaced: a custom theme, a preset (any other
 theme of a package), or a host-loaded theme of a package not registered. The
 cost: another package's defaults theme chosen explicitly lasts until the
-next load or drawn-package change.
+next load or drawn-package change. A provider `defaultState` that names a
+`packageId` merges its theme tweaks over the defaults of the package that id
+draws (`withSeededPackageDefaults`), so they survive; one whose package is
+not registered keeps them on the current theme.
 
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),
