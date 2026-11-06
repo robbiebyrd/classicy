@@ -422,7 +422,7 @@ Start with [Install and build](#install-and-build).
 - **Thirteen more icon paths are gone: Platinum's files left the core's
   `assets/`.** The files Platinum alone read (its sound sprites, its 47
   wallpapers, and the art and cursors below) moved into the Platinum package,
-  `packages/appearance/platinum/assets/`, so the core ships none of them and
+  `packages/appearance/platinum/src/assets/`, so the core ships none of them and
   its icon tree drops their paths. `ClassicyIcons.system.apple` is a type
   error and `undefined` at runtime, and
   `useClassicyAsset("icons", "system.apple")` returns `undefined`. *Who:*

@@ -1461,7 +1461,7 @@ with `registerClassicyScreenSaverLogo`.
 
 - **Thirteen more icon paths are gone (3.0).** Platinum was the only reader of
   their files, which moved out of the core's `assets/` into the Platinum
-  package (`packages/appearance/platinum/assets/`, plan 0015 §3.3), so the
+  package (`packages/appearance/platinum/src/assets/`, plan 0015 §3.3), so the
   core's icon tree no longer has them. Read the replacement, which Platinum
   registers with the same file:
 
@@ -4639,7 +4639,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 
   A bundled pack does the same at build time with
   `new URL('./x.ogg', import.meta.url)` or asset imports. The Platinum pack
-  imports its four files (`packages/appearance/platinum/assets/sounds/platinum/`),
+  imports its four files (`packages/appearance/platinum/src/assets/sounds/platinum/`),
   which its build emits in `dist/assets/`.
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
@@ -4680,7 +4680,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
   disabled list and defaults to the current one). The provider builds its
   Howls through `ClassicySoundLoad` (which calls `createSoundPlayer`).
 - `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
-  `packages/appearance/platinum/assets/sounds/<name>/sprites/` directory (the
+  `packages/appearance/platinum/src/assets/sounds/<name>/sprites/` directory (the
   default; the core ships no sprites) and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
