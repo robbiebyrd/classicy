@@ -23,6 +23,13 @@ const liveSourceAliases = [
 		find: /^@classicy\/classicy\/dist\/classicy\.css$/,
 		replacement: path.resolve(__dirname, "live-source.css"),
 	},
+	// The core's source registers no Appearance Package; the app imports
+	// Platinum through this subpath, so point it at Platinum's source (the
+	// built subpath is a no-op, since the built bundle still registers it).
+	{
+		find: /^@classicy\/classicy\/appearance\/platinum$/,
+		replacement: path.resolve(root, "src/Appearance/Platinum/index.ts"),
+	},
 	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
 	{
