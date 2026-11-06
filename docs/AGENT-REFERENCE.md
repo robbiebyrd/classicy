@@ -3255,9 +3255,11 @@ how they look) has two halves:
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
 effects; store-free, so a reducer may import it; with no id it reads the
 active package at call time) resolve the active package from
-`System.Manager.Appearance.packageId`, never from `activeTheme.package`: a
-registered package's layout, else Platinum's, else
-`CLASSICY_DEFAULT_APPEARANCE_LAYOUT`.
+`System.Manager.Appearance.packageId`, never from `activeTheme.package`, by
+the chain every reader shares: the stored id's package when registered, else
+the registered default package's (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`),
+else the first registered package's, else, with no package registered,
+`CLASSICY_DEFAULT_APPEARANCE_LAYOUT` (the fallback package's layout).
 
 **On the desktop root.** `ClassicyDesktop` publishes the resolved layout on
 its root element, beside `data-classicy-appearance`, as two attributes and

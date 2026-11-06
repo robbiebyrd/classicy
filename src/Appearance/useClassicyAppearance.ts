@@ -41,7 +41,9 @@ const SUBSYSTEM = "ClassicyAppearance";
 // fires on (re)registration. This module never
 // imports the app manager's store (useClassicyAppearance.storeFree.test.ts),
 // so wiring it into a component adds no store read and no store import; a
-// store that never connects its source resolves to Platinum. The subscriber
+// store that never connects its source resolves as the default package's id
+// (CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID): that package when registered,
+// else the first registered, else the fallback. The subscriber
 // is the one every live package hook shares
 // (ClassicyActiveAppearancePackage.internal.ts).
 
