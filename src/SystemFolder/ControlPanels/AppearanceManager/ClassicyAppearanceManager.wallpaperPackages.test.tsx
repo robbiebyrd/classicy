@@ -1,6 +1,5 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import {
 	act,
 	fireEvent,
@@ -25,6 +24,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import { platinumWallpaperUrl } from "../../../../packages/appearance/platinum/src/assets/platinumWallpapers";
 
 // 0143, end to end: a second package registers its own "default.png" beside
 // Platinum's; with that package's theme active, the Desktop tab's two

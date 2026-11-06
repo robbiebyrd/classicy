@@ -100,7 +100,9 @@ describe("ClassicyAppManagerProvider defaultState", () => {
 		);
 		// The fresh graph's sound registry is empty, and the package's
 		// Platinum theme names Platinum's pack.
-		await import("@classicy/appearance-platinum");
+		await import(
+			"../../../../packages/appearance/platinum/src/assets/sounds/platinum"
+		);
 		const base = appearance.getTheme("default");
 		const { window, control, button, groupBox, layout } = base.measurements;
 		registry.registerClassicyAppearancePackage({

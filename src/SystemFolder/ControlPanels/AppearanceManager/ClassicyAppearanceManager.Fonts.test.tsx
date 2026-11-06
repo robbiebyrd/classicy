@@ -7,7 +7,7 @@ import {
 	screen,
 	userEvent,
 } from "@/__tests__/test-utils";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { registerClassicyFonts } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicyThemeTypography,

@@ -5,7 +5,7 @@ import {
 	registerClassicyCursors,
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import arrowUrl from "../../../../packages/appearance/platinum/src/assets/art/cursor-arrow.svg";
 import { useClassicyCursor } from "./useClassicyCursor";
 

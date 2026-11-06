@@ -1,5 +1,4 @@
 import path from "node:path";
-import { platinumJson } from "@classicy/appearance-platinum";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import { cssDeclarations, parseCssRules } from "@/__tests__/compiledCss";
@@ -7,6 +6,7 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 /**
  * Everything on the window's bottom line — the horizontal scroll bar, the grow

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@classicy/appearance-platinum";
-import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -17,6 +16,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { platinumWallpaperUrl } from "../../../../packages/appearance/platinum/src/assets/platinumWallpapers";
 
 // A library build inlines wallpapers as data: URIs (a 2.1.x save holds one);
 // a later build serves them as files. Simulate the inlined build: Platinum's

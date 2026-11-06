@@ -1,9 +1,9 @@
-import { platinumJson } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
 import {
 	classicyPopUpMenuPlacement,
 	POPUP_MENU_VIEWPORT_MARGIN,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 // With no cap passed, the policy caps at Platinum's menu.popUpMaxHeight.
 const POPUP_MENU_MAX_HEIGHT =

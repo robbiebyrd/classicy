@@ -1,10 +1,7 @@
-import { describe, expect, it } from "vitest";
-// Registers Platinum's sound pack, which the Platinum themes used here name
-// (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
-// LoadThemes completes Platinum themes from Platinum's registered defaults.
-import "@classicy/appearance-platinum";
+// Platinum registered, its sound pack included, which the themes used here
+// name (`sound.pack` must name a registered pack).
 import { platinumJson } from "@classicy/appearance-platinum";
+import { describe, expect, it } from "vitest";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import {
 	type ClassicyTheme,

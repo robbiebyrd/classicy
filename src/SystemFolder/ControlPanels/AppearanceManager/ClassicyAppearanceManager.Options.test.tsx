@@ -1,6 +1,5 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
-import { platinumJson } from "@classicy/appearance-platinum";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	act,
@@ -44,6 +43,7 @@ import {
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 // Ruling 1: a package's options are its knobs, `{ <family>: { <key>: number } }`
 // under `theme.measurements`, built into `options` by classicyKnobsToSchema.

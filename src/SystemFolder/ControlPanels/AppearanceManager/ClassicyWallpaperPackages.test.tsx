@@ -4,7 +4,6 @@ import type { ChangeEvent } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import "@classicy/appearance-platinum";
-import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import {
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
@@ -31,6 +30,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { platinumWallpaperUrl } from "../../../../packages/appearance/platinum/src/assets/platinumWallpapers";
 
 // 0143: a second Appearance Package that registers its own "default.png",
 // beside Platinum's, and a third that registers a wallpaper nobody else has.

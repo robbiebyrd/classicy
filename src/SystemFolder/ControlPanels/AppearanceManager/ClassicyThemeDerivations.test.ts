@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { platinumJson } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
 import type { ClassicyThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
@@ -15,6 +14,7 @@ import {
 	classicyMeasurementVars,
 	isReservedClassicyThemeVar,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 describe("CLASSICY_THEME_DERIVATIONS", () => {
 	it("has 119 unique cssVars, each starting with --", () => {

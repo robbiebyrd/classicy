@@ -8,7 +8,7 @@ import {
 } from "@/__tests__/losePointerStream";
 import { render } from "@/__tests__/test-utils";
 import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import {
 	ClassicySplitView,
 	computeSplitViewSizes,

@@ -1,7 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-// Registers Platinum's sound pack, which the Platinum themes used here name
-// (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
 // A Platinum theme file reads only while Platinum is registered.
 import "@classicy/appearance-platinum";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";

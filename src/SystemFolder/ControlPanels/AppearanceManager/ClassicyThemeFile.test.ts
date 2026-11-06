@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-// Registers Platinum's sound pack, which the Platinum themes used here name
-// (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
 import "@classicy/appearance-platinum";
 import {

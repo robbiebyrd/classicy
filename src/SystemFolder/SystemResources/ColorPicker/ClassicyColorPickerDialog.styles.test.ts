@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { platinumJson } from "@classicy/appearance-platinum";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 /**
  * The window's contents box is a plain block, so the dialog body's `flex: 1`

@@ -1,11 +1,8 @@
 // The schema does not register Platinum's sound pack; the bundled themes name
 // it, so this file registers it explicitly.
-import { platinumSoundPack } from "@classicy/appearance-platinum";
+import { platinumJson, platinumSoundPack } from "@classicy/appearance-platinum";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
-// getTheme/getAllThemes serve the registered packages' themes: Platinum's.
-import "@classicy/appearance-platinum";
-import { platinumJson } from "@classicy/appearance-platinum";
 import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
@@ -401,7 +398,9 @@ describe("ClassicyThemeSchema — appearance package", () => {
 		}));
 		try {
 			// The fresh module graph's registry needs Platinum's wallpapers too.
-			await import("@classicy/appearance-platinum");
+			await import(
+				"../../../../packages/appearance/platinum/src/assets/platinumAssets"
+			);
 			const fresh = await import(
 				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
 			);

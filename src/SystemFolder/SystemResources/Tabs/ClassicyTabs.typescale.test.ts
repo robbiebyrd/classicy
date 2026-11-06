@@ -1,11 +1,11 @@
 import path from "node:path";
-import { platinumJson } from "@classicy/appearance-platinum";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 /**
  * HIG 2.10: tab labels are the 12 pt / 10 pt system font, not the 14 px body

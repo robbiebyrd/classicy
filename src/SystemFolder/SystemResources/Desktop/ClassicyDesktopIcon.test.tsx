@@ -4,7 +4,7 @@ import {
 	registerClassicySystemArt,
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());

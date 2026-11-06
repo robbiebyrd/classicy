@@ -5,7 +5,7 @@ import {
 	resolveClassicyAsset,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { PLATINUM_SRC_DIR } from "@/__tests__/compiledCss";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 

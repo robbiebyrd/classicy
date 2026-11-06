@@ -1,11 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-// Registers Platinum's sound pack, which the Platinum themes used here name
-// (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
 // Platinum registered: "platinum" (and an unknown id) completes from its
 // defaults over the core floor.
-import "@classicy/appearance-platinum";
 import { platinumJson } from "@classicy/appearance-platinum";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getClassicyAppearancePackage,

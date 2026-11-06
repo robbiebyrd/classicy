@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 // Platinum's wallpapers: the schema accepts a filename once it is registered.
-import "@classicy/appearance-platinum";
-import { platinumJson as platinum } from "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -21,6 +20,7 @@ import {
 	withClassicyThemeFontSizesClamped,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
+import platinum from "../../../../packages/appearance/platinum/src/platinum.json";
 
 const platinumThemes = [
 	platinum.defaults,

@@ -1,11 +1,8 @@
-import {
-	PLATINUM_WALLPAPERS,
-	platinumWallpaperUrl,
-} from "@classicy/appearance-platinum";
 import { act } from "@testing-library/react";
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
@@ -13,6 +10,10 @@ import {
 	isClassicyBackgroundPictureUrl,
 	useDesktopTab,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Desktop";
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperUrl,
+} from "../../../../packages/appearance/platinum/src/assets/platinumWallpapers";
 
 type SelectHandler = (e: ChangeEvent<HTMLSelectElement>) => void;
 

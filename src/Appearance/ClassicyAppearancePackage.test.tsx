@@ -3,7 +3,7 @@ import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
-import "@classicy/appearance-platinum";
+import "../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID as LEAF_DEFAULT_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
@@ -466,7 +466,9 @@ describe("module load order", () => {
 			);
 			// The fresh graph's sound registry is empty, and the package's
 			// Platinum theme names Platinum's pack.
-			await import("@classicy/appearance-platinum");
+			await import(
+				"../../packages/appearance/platinum/src/assets/sounds/platinum"
+			);
 			packages.registerClassicyAppearancePackage(makePackage("load-order"));
 			store.useAppManager.setState(
 				produce(state, (draft) => {
@@ -542,7 +544,9 @@ describe("module load order", () => {
 			);
 			// The fresh graph's sound registry is empty, and the package's
 			// Platinum theme names Platinum's pack.
-			await import("@classicy/appearance-platinum");
+			await import(
+				"../../packages/appearance/platinum/src/assets/sounds/platinum"
+			);
 			const mirror = makePackage("load-order", {
 				layout: { ...PLATINUM_LAYOUT, menuBar: { placement: "window" } },
 			});

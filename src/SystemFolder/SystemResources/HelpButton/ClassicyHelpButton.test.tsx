@@ -3,7 +3,7 @@ import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
-import "@classicy/appearance-platinum";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButtonToolbar } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
