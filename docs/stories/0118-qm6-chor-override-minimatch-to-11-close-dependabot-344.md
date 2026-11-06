@@ -7,7 +7,7 @@ status: blocked
 priority: "2"
 effort: S
 created: "2026-11-05T16:41:17.674Z"
-updated: "2026-11-06T15:33:21.834Z"
+updated: "2026-11-06T21:12:50.771Z"
 started: "2026-11-05T18:27:00.095Z"
 tags: []
 milestone: ""
@@ -74,3 +74,5 @@ After the change reaches main, confirm #344's advisory no longer matches the loc
 ### 2026-11-05T19:53:19.768Z - Landed 2026-11-05 as aa2fd5f0d..6761d05aa on feat/AppearancePackages (pushed), rebased onto 0117 by the controller (lockfile regenerated per commit with --config.minimum-release-age=10080, 63 libc fields kept; the 0117/0118 doc sections merged; the minimatch row's ESLint-era consumers dropped). Overrides: `minimatch@>=7.0.0 <11.0.1` → ^11.0.1 and `glob@>=13.0.0 <14.0.3` → ^14.0.3 (glob 13 bundled its own vulnerable minimatch). Lockfile: minimatch 11.0.3 only, glob 14.0.3. Review: no blockers; four doc-wording fixes applied. Landing gate at the tip: 458 files / 6259 tests, build:source + verify:dist, build:storybook, example build, exit 0; dist byte-identical to 0117's tip build once the worktree path is normalized (the only difference is the JSX dev runtime's embedded absolute fileName, a separate defect filed as its own story). Remaining: criterion 3 (Dependabot #344 closes on main) after PR 333 merges. Known residue: Storybook 10.6.x bundles glob 10.5.0 + minimatch 9.0.5 (no override reaches it; dev-only, our own story globs), recorded in docs/DEPENDENCY-OVERRIDES.md.
 
 ### 2026-11-06T15:33:21.834Z - 2026-11-06: set to blocked (owner). Waiting on PR 333 merging to main: Dependabot scans main only, which still shows 36 open alerts. Unblock after the merge, re-check alerts, tick the last criterion and complete.
+
+### 2026-11-06T21:12:50.771Z - 2026-11-06: PR 333 was closed and the branch reopened as PR #337; this story is now blocked on #337 merging to main (Dependabot scans main only).
