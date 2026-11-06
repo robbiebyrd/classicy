@@ -1,6 +1,10 @@
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	getClassicyAppearancePackage,
+	getRegisteredClassicyAppearancePackageOrDefault,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import type {
 	ClassicyStoreSystemAppearanceManager,
@@ -172,4 +176,59 @@ export const refreshedClassicyActiveTheme = (
 	return JSON.stringify(next) === JSON.stringify(appearance.activeTheme)
 		? undefined
 		: next;
+};
+
+/** `value` as JSON with every object's keys sorted, so equal data compares
+ * equal whatever order its keys were written in. */
+const canonicalJson = (value: unknown): string =>
+	JSON.stringify(value, (_key, inner: unknown) =>
+		inner && typeof inner === "object" && !Array.isArray(inner)
+			? Object.fromEntries(
+					Object.entries(inner).sort(([a], [b]) =>
+						a < b ? -1 : a > b ? 1 : 0,
+					),
+				)
+			: inner,
+	);
+
+const CORE_DEFAULT_THEME_JSON = canonicalJson(CLASSICY_CORE_DEFAULT_THEME);
+
+/**
+ * True when `theme` is the core's stand-in, `CLASSICY_CORE_DEFAULT_THEME`,
+ * unedited: the theme a first session starts with (the default state's), or
+ * the same data saved whole before any package registered. A theme that
+ * differs in any value is someone's theme, never a stand-in.
+ */
+export const isClassicyCoreStandInTheme = (theme: unknown): boolean =>
+	theme === CLASSICY_CORE_DEFAULT_THEME ||
+	(!!theme &&
+		typeof theme === "object" &&
+		(theme as { id?: unknown }).id === CLASSICY_CORE_DEFAULT_THEME.id &&
+		canonicalJson(theme) === CORE_DEFAULT_THEME_JSON);
+
+/**
+ * The defaults of the package the desktop draws (`packageId` resolved as the
+ * desktop resolves it: registered id, registered default, first registered),
+ * activated as a package switch activates them
+ * (`activatableClassicyPackageTheme`), when that package is not the active
+ * theme's own; else `undefined` (no package is registered, or it already is
+ * the theme's). The caller decides that the active theme only stands in
+ * (story 0144-6sc): a first session whose only package is not the default
+ * one would otherwise draw that package with the core stand-in, a theme of
+ * the default package, whose knob values it lacks. `packageId` is not
+ * written: the desktop draws the package by resolution.
+ */
+export const drawnClassicyPackageDefaults = (
+	appearance: Pick<
+		ClassicyStoreSystemAppearanceManager,
+		"activeTheme" | "packageId"
+	>,
+): ClassicyTheme | undefined => {
+	const drawn = getRegisteredClassicyAppearancePackageOrDefault(
+		appearance.packageId,
+	);
+	if (!drawn || drawn.id === themePackageId(appearance.activeTheme)) {
+		return undefined;
+	}
+	return activatableClassicyPackageTheme(drawn, drawn.defaults);
 };

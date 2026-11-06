@@ -13,6 +13,8 @@ import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyThemeReference,
 	classicyBuiltInThemeReference,
+	drawnClassicyPackageDefaults,
+	isClassicyCoreStandInTheme,
 	isClassicyThemeReference,
 	knownClassicyThemePackage,
 	refreshedClassicyActiveTheme,
@@ -74,6 +76,79 @@ function withRefreshedActiveTheme(
 	const activeTheme = refreshedClassicyActiveTheme(appearance, {
 		reference: !!reference,
 	});
+	if (!activeTheme) return state;
+	return {
+		...state,
+		System: {
+			...state.System,
+			Manager: {
+				...state.System.Manager,
+				Appearance: { ...appearance, activeTheme },
+			},
+		},
+	};
+}
+
+/**
+ * The drawn package's defaults the store last activated in place of a
+ * stand-in (`drawnPackageStandIn`), while that very object is still the
+ * active theme. It stands in too: the user did not choose it, so a package
+ * that registers later and is drawn instead (the default package, say)
+ * replaces it in turn. Any edit, ChangeTheme or switch makes a new object,
+ * and so a theme of the user's. Session-only: a reload loads it as the
+ * built-in reference it is saved as.
+ */
+let drawnStandInTheme: ClassicyTheme | null = null;
+
+/**
+ * True when the active theme only stands in for the drawn package's own:
+ * the unedited core stand-in (`isClassicyCoreStandInTheme`) or the theme
+ * `drawnPackageStandIn` activated, and not a pending reference (a built-in
+ * the user chose, waiting for its package to register). A custom,
+ * host-loaded or chosen theme never stands in.
+ */
+const activeThemeStandsIn = (
+	appearance: ClassicyStore["System"]["Manager"]["Appearance"],
+): boolean => {
+	const active = appearance.activeTheme;
+	if (pendingReferenceFor(active)) return false;
+	return active === drawnStandInTheme || isClassicyCoreStandInTheme(active);
+};
+
+/**
+ * In place of `theme` (the active theme, as refreshed), the defaults of the
+ * package the desktop draws when that is not `theme`'s own package
+ * (`drawnClassicyPackageDefaults`, story 0144-6sc), remembered as the new
+ * stand-in; else `undefined`. `standsIn` is `activeThemeStandsIn`, read
+ * before the refresh (which may resolve a pending reference).
+ */
+const drawnPackageStandIn = (
+	appearance: ClassicyStore["System"]["Manager"]["Appearance"],
+	theme: ClassicyTheme,
+	standsIn: boolean,
+): ClassicyTheme | undefined => {
+	if (!standsIn) return undefined;
+	const drawn = drawnClassicyPackageDefaults({
+		activeTheme: theme,
+		packageId: appearance.packageId,
+	});
+	if (drawn) drawnStandInTheme = drawn;
+	return drawn;
+};
+
+/**
+ * `state` as the store starts: a stand-in active theme replaced by the
+ * drawn package's defaults (`drawnPackageStandIn`), for a package
+ * registered before the store; one registered later does it then
+ * (`refreshThemesOnRegistration`). `packageId` is not written.
+ */
+function withDrawnPackageStandIn(state: ClassicyStore): ClassicyStore {
+	const appearance = state.System.Manager.Appearance;
+	const activeTheme = drawnPackageStandIn(
+		appearance,
+		appearance.activeTheme,
+		activeThemeStandsIn(appearance),
+	);
 	if (!activeTheme) return state;
 	return {
 		...state,
@@ -167,7 +242,12 @@ export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
 const defaultInitialState = (): ClassicyStore =>
 	withRefreshedActiveTheme(DefaultAppManagerState, undefined);
 
-function getInitialState(): ClassicyStore {
+/** The store's first state: loaded (or the defaults), its stand-in theme
+ * replaced by the drawn package's defaults (`withDrawnPackageStandIn`). */
+const getInitialState = (): ClassicyStore =>
+	withDrawnPackageStandIn(loadInitialState());
+
+function loadInitialState(): ClassicyStore {
 	if (typeof window !== "undefined") {
 		try {
 			const storedState = localStorage.getItem("classicyDesktopState");
@@ -307,7 +387,8 @@ const refreshedActiveBuiltInTheme = (
 /**
  * Refresh the themes from the code whenever a package registers (or
  * re-registers, or leaves), in one store write and only when something
- * changes: the active built-in (`refreshedActiveBuiltInTheme`), and the
+ * changes: the active built-in (`refreshedActiveBuiltInTheme`), a stand-in
+ * active theme by the drawn package's defaults (`drawnPackageStandIn`), and the
  * wallpapers of every theme (active, host-loaded or custom) of a package
  * that just registered. A wallpaper saved before its package registered (a
  * `data:` URI from an inlining build, an older build's URL) could not be
@@ -317,9 +398,11 @@ const refreshedActiveBuiltInTheme = (
 const refreshThemesOnRegistration = (): void => {
 	const registered = takeNewlyRegisteredPackageIds();
 	const appearance = useAppManager.getState().System.Manager.Appearance;
-	const refreshed = refreshedActiveBuiltInTheme(appearance);
+	const standsIn = activeThemeStandsIn(appearance);
+	const refreshed =
+		refreshedActiveBuiltInTheme(appearance) ?? appearance.activeTheme;
 	const activeTheme = withHealedWallpaper(
-		refreshed ?? appearance.activeTheme,
+		drawnPackageStandIn(appearance, refreshed, standsIn) ?? refreshed,
 		registered,
 	);
 	const availableThemes = withHealedWallpapers(
