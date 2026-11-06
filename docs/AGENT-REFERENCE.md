@@ -2214,7 +2214,8 @@ user's choice (`packageId`, the active theme) are saved:
   every theme of that package (active, host-loaded or custom) that a `data:`
   URI or an older build's URL saved before the wallpaper index had it; a
   theme of another package is left until its own package registers.
-- Custom themes are never touched. State saved before custom themes existed
+- Custom themes are never replaced by a preset (only their wallpaper is
+  stored by filename, above). State saved before custom themes existed
   loads with `customThemes: []`.
 
 Read helpers:
