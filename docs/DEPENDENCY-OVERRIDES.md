@@ -71,6 +71,16 @@ in `storybook/.storybook/main.ts`, at dev and build time. Dependabot cannot see
 a bundled copy, so check a later Storybook release before treating either
 advisory as gone.
 
+## Overrides set by story 0160-woz
+
+| Override | Alert | Parent and pin | Why it is safe |
+| --- | --- | --- | --- |
+| `minimist@<0.2.4` → `^0.2.4` | GHSA-xvch-5gv4-984h (critical, prototype pollution, Dependabot #347); GHSA-vh95-rmgr-6w4m (Dependabot #345) | `audiosprite` 0.7.2 pins `optimist` 0.6.1, which pins `0.0.10` | 0.2.4 is the 0.x line's security release, so `optimist` keeps the API it was written for. It is keyed below 0.2.4 only, so the 1.x copies others ask for are untouched. |
+| `underscore@<1.13.8` → `^1.13.8` | GHSA-cf4h-3jhx-xvhq (critical, `_.template` code execution, Dependabot #346); GHSA-qpx9-hpmf-5gmw (recursion in `_.flatten` and `_.isEqual`, fixed only in 1.13.8) | `audiosprite` 0.7.2 pins `1.8.3` | A minor release in the same major. audiosprite calls only `_.extend`, `_.uniq` and `_.flatten` through `require("underscore")._`, all of which 1.13 keeps. With the old and the new versions, `CLASSICY_AUDIO_FORCE=1 pnpm build:audio` writes byte-identical sprites under the same ffmpeg. |
+
+Both run only in `build:audio`; neither published package depends on
+audiosprite.
+
 ## Keeping the lockfile's `libc` fields
 
 pnpm 10 writes the `libc: [glibc]` and `libc: [musl]` fields only when it fetches
