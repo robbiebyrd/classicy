@@ -54,7 +54,7 @@ Start with [Install and build](#install-and-build).
 
 ### Install and build
 
-- **The package is renamed: `classicy` is now `@classicy/classicy`.** The
+- **The package : `classicy` is renamed to `@classicy/classicy`.** The
   unscoped `classicy` stops at 2.x; 3.0.0 and later publish only under the
   scoped names, so do not mix the two in one dependency tree. *Who:* every
   host. *Migrate:* swap the dependency, then rewrite every specifier,
