@@ -286,6 +286,16 @@ describe("check-dist-imports.mjs invariant 11: plain .css under src (named files
 		const prefix = `${FILE}: a plain .css file with rules`;
 		expect(stderr.trim().slice(0, prefix.length)).toBe(prefix);
 	});
+
+	// A workspace Appearance Package's source is scanned too (plan 0015-kxa
+	// §3.1): its .css would ship unlayered just the same.
+	it("fails a file with a rule under a package's src", () => {
+		const FILE = join("packages", "appearance", "x", "src", "leak.css");
+		const { status, stderr } = check({}, { [FILE]: ".leak{color:red}" });
+		expect(status).toBe(1);
+		const prefix = `${FILE}: a plain .css file with rules`;
+		expect(stderr.trim().slice(0, prefix.length)).toBe(prefix);
+	});
 });
 
 // Invariant 12: the static font stylesheet strict-CSP hosts link declares the

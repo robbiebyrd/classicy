@@ -200,18 +200,28 @@ function scanSourceTree(): { tokens: Set<string>; prefixes: Set<string> } {
 		}
 		ts.forEachChild(node, visit);
 	};
-	const src = resolve(process.cwd(), "src");
-	for (const rel of readdirSync(src, { recursive: true }) as string[]) {
-		if (!/\.tsx?$/.test(rel) || SKIPPED.test(rel)) continue;
-		const file = ts.createSourceFile(
-			rel,
-			readFileSync(resolve(src, rel), "utf8"),
-			ts.ScriptTarget.Latest,
-			true,
-			rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-		);
-		visit(file);
-	}
+	// The core's src and each workspace Appearance Package's (Platinum's,
+	// plan 0015-kxa §3.1).
+	const packages = resolve(process.cwd(), "packages/appearance");
+	const roots = [
+		resolve(process.cwd(), "src"),
+		...readdirSync(packages)
+			.sort()
+			.map((id) => resolve(packages, id, "src"))
+			.filter((dir) => existsSync(dir)),
+	];
+	for (const src of roots)
+		for (const rel of readdirSync(src, { recursive: true }) as string[]) {
+			if (!/\.tsx?$/.test(rel) || SKIPPED.test(rel)) continue;
+			const file = ts.createSourceFile(
+				rel,
+				readFileSync(resolve(src, rel), "utf8"),
+				ts.ScriptTarget.Latest,
+				true,
+				rel.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+			);
+			visit(file);
+		}
 	return { tokens, prefixes };
 }
 

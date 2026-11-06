@@ -108,8 +108,9 @@
 // 11. NO PLAIN .css FILE UNDER src/ HOLDS ANY CSS. classicyCssLayerPlugin
 //    wraps only .scss, so a .css file's rules would ship unlayered (invariant
 //    10's failure, at its source). Empty and comment-only files pass
-//    (src/index.css is empty). Checked on every src/**/*.css (named .css
-//    files under src/ in named mode).
+//    (src/index.css is empty). Checked on every src/**/*.css and every
+//    packages/appearance/<id>/src/**/*.css, a workspace Appearance Package's
+//    source (named .css files under either in named mode).
 //
 // 12. THE PLATINUM FONTS SHIP AS A STYLESHEET TOO. The runtime writes them into
 //    `<style id="classicy-fonts-platinum">` (registerClassicyFonts), which a
@@ -603,15 +604,33 @@ if (!argv.slice(2).length) {
 		);
 }
 
-// Invariant 11: no plain .css file under src/ holds CSS.
+// Invariant 11: no plain .css file under src/ (or a package's src/) holds CSS.
 {
 	const named = argv.slice(2);
+	const roots = [
+		"src",
+		...(await readdir(join("packages", "appearance")).catch(() => []))
+			.sort()
+			.map((id) => join("packages", "appearance", id, "src")),
+	];
 	const paths = named.length
-		? named.filter((f) => /^src[\\/].*\.css$/.test(f))
-		: (await readdir("src", { recursive: true }).catch(() => []))
-				.filter((f) => f.endsWith(".css"))
-				.sort()
-				.map((f) => join("src", f));
+		? named.filter((f) =>
+				/^(?:src|packages[\\/]appearance[\\/][^\\/]+[\\/]src)[\\/].*\.css$/.test(
+					f,
+				),
+			)
+		: (
+				await Promise.all(
+					roots.map(async (root) =>
+						(
+							await readdir(root, { recursive: true }).catch(() => [])
+						)
+							.filter((f) => f.endsWith(".css"))
+							.sort()
+							.map((f) => join(root, f)),
+					),
+				)
+			).flat();
 	const files = await Promise.all(
 		paths.map(async (path) => ({ path, text: await readFile(path, "utf8") })),
 	);
@@ -619,7 +638,9 @@ if (!argv.slice(2).length) {
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else if (files.length)
-		console.log(`src/: ${files.length} plain .css file(s), none with CSS`);
+		console.log(
+			`src/ and packages/appearance/*/src/: ${files.length} plain .css file(s), none with CSS`,
+		);
 }
 
 // Invariant 12: the Platinum font stylesheet. With named files, only if named.

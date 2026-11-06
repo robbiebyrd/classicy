@@ -57,8 +57,16 @@ const rule = (css: string, selector: string): Record<string, string> => {
 };
 
 describe("repo-wide cascade hygiene", () => {
-	it("no SCSS under src uses !important", () => {
-		const files = globSync("src/**/*.scss");
+	// The core's src and each workspace Appearance Package's (Platinum's,
+	// plan 0015-kxa §3.1).
+	it("no SCSS under src or a package's src uses !important", () => {
+		const files = globSync([
+			"src/**/*.scss",
+			"packages/appearance/*/src/**/*.scss",
+		]);
+		expect(files).toContain(
+			"packages/appearance/platinum/src/styles/components/_Menu.scss",
+		);
 		const hits = files.flatMap((f) =>
 			readFileSync(f, "utf8")
 				.split("\n")

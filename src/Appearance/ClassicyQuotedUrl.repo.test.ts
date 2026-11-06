@@ -29,11 +29,15 @@ const isLibraryModule = (file: string): boolean =>
 	!/\.(test|stories)\.tsx?$/.test(file) && !file.includes("__tests__");
 
 describe("CSS url() emitters", () => {
+	// The core's src and each workspace Appearance Package's (Platinum's,
+	// plan 0015-kxa §3.1).
 	it("no src module writes an interpolated value into an unquoted url()", () => {
-		const files = globSync("src/**/*.{ts,tsx}", { cwd: REPO_ROOT }).filter(
-			isLibraryModule,
-		);
+		const files = globSync(
+			["src/**/*.{ts,tsx}", "packages/appearance/*/src/**/*.{ts,tsx}"],
+			{ cwd: REPO_ROOT },
+		).filter(isLibraryModule);
 		expect(files.length).toBeGreaterThan(0);
+		expect(files).toContain("packages/appearance/platinum/src/hooks.ts");
 		const hits = files.flatMap((file) =>
 			readFileSync(path.join(REPO_ROOT, file), "utf8")
 				.split("\n")
