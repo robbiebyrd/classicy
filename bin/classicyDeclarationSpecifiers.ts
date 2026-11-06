@@ -3,18 +3,21 @@
 // `nodenext` reads each `.d.ts` as an ES module and resolves a relative
 // specifier only with its extension: `export * from "./hooks"` resolves to
 // nothing there, and every name behind it is missing (TS2305). The sources
-// import without extensions (bundler resolution), so the Platinum build
-// rewrites each relative specifier in its declarations to the `.js` file the
-// module ships as (vite-plugin-dts `beforeWriteFile`), and its verify-dist
-// fails on any left without one.
+// import without extensions (bundler resolution), so both builds, the core's
+// and Platinum's, rewrite each relative specifier in their declarations to
+// the `.js` file the module ships as (vite-plugin-dts `beforeWriteFile`), and
+// both dist checks fail on any left without one.
 //
-// Plain erasable TypeScript: the package's verify-dist imports this file
-// through Node's type stripping.
+// Plain erasable TypeScript: the dist checks import this file through Node's
+// type stripping.
 
 // A relative specifier in an import, an export, a side-effect import or an
-// `import("…")` type: the keyword, the quote, the specifier.
+// `import("…")` type: the keyword, the quote, the specifier (groups 2-4).
+// Group 1 consumes a comment or any other string literal first, so a JSDoc
+// example (`import appIcon from './icon.png'`, the core's ClassicyIcons) is
+// never read as a specifier, and a `/*` inside a string opens no comment.
 const RELATIVE_SPECIFIER =
-	/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])(\.{1,2}\/[^"']*)\2/g;
+	/(\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])(\.{1,2}\/[^"']*)\3/g;
 
 // What counts as already carrying an extension: a file a host can load.
 const HAS_EXTENSION = /\.(?:[cm]?js|json|css)$/;
@@ -42,8 +45,8 @@ export const withClassicyDeclarationExtensions = (
 	fromSource: string,
 	isSource: (path: string) => boolean,
 ): string =>
-	code.replace(RELATIVE_SPECIFIER, (match, keyword, quote, specifier) => {
-		if (HAS_EXTENSION.test(specifier)) return match;
+	code.replace(RELATIVE_SPECIFIER, (match, skip, keyword, quote, specifier) => {
+		if (skip || HAS_EXTENSION.test(specifier)) return match;
 		const target = posixJoin(fromSource, specifier);
 		const resolved = [".ts", ".tsx"].some((ext) => isSource(`${target}${ext}`))
 			? `${specifier}.js`
@@ -60,5 +63,6 @@ export const withClassicyDeclarationExtensions = (
 /** The relative specifiers in a declaration's `code` that carry no extension. */
 export const findClassicyExtensionlessSpecifiers = (code: string): string[] =>
 	[...code.matchAll(RELATIVE_SPECIFIER)]
-		.map((match) => match[3])
+		.filter((match) => match[1] === undefined)
+		.map((match) => match[4])
 		.filter((specifier) => !HAS_EXTENSION.test(specifier));

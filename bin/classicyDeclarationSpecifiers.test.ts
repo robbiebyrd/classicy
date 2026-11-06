@@ -83,6 +83,24 @@ describe("withClassicyDeclarationExtensions", () => {
 		).toBe(code);
 	});
 
+	// The core's ClassicyIcons.d.ts documents `import appIcon from
+	// './icon.png'` in its JSDoc (0151-0cc): no host resolves a comment.
+	it("leaves comments and string literals alone", () => {
+		const code = [
+			"/**",
+			" * import appIcon from './icon.png';",
+			" */",
+			"// export * from './gone';",
+			'export declare const GLOB = "src/**/*.png";',
+			"export declare const NOTE = \"import from './gone'\";",
+			"type B = import('./hooks').B;",
+			"/* closes the glob's would-be comment */",
+		].join("\n");
+		expect(
+			withClassicyDeclarationExtensions(code, "src/index.ts", isSource),
+		).toBe(code.replace("import('./hooks')", "import('./hooks.js')"));
+	});
+
 	it("throws on a relative specifier that names no module", () =>
 		expect(() =>
 			withClassicyDeclarationExtensions(
@@ -106,6 +124,18 @@ describe("findClassicyExtensionlessSpecifiers", () => {
 				].join("\n"),
 			),
 		).toEqual(["./hooks", "../x", "./Window.view"]));
+
+	it("names none in a comment or a string literal", () =>
+		expect(
+			findClassicyExtensionlessSpecifiers(
+				[
+					"/** import appIcon from './icon.png'; */",
+					"// export * from './gone';",
+					"export declare const NOTE = 'export * from \"./gone\"';",
+					"export * from './hooks';",
+				].join("\n"),
+			),
+		).toEqual(["./hooks"]));
 
 	it("finds none in declarations that carry their extensions", () =>
 		expect(
