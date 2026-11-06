@@ -1,6 +1,6 @@
 # Release notes: Appearance Packages
 
-These notes cover the Appearance Packages release (pull request 333, which
+These notes cover the Appearance Packages release (pull request 337, which
 merges `feat/AppearancePackages` into `main`). They list every change a host
 can see, measured from the 2.1.x line (`main`), with the step each breaking
 change needs. Longer material is linked from
