@@ -457,6 +457,16 @@ describe("theme files and appearance packages", () => {
 		expect(file.theme.package).toBe("platinum");
 	});
 
+	// A saved reference's `defaults` flag (0147-qyy) is persisted state, not
+	// theme data: a theme file or import carrying one never keeps it.
+	it("strips a saved reference's defaults flag", () => {
+		const file = JSON.parse(exportClassicyTheme(theme("default")));
+		file.theme.defaults = true;
+		expect(parseOk(JSON.stringify(file))).not.toHaveProperty("defaults");
+		const read = readClassicyTheme({ ...theme("default"), defaults: true });
+		expect(read.ok && read.theme).not.toHaveProperty("defaults");
+	});
+
 	it("a v1 file without package loads as platinum", () => {
 		const file = JSON.parse(exportClassicyTheme(theme("azul")));
 		delete file.theme.package;

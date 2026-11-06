@@ -2193,7 +2193,10 @@ user's choice (`packageId`, the active theme) are saved:
   session state: dispatch it on every boot, as packages are registered.
 - A built-in active theme (its id names one of its package's `defaults` or
   `presets`, that package registered) is saved as a reference,
-  `{ id, package }`. Every other active theme is saved whole: a custom theme,
+  `{ id, package }`, with `defaults: true` when the id is its package's
+  `defaults.id`. The flag belongs to the saved reference only: the load path
+  removes it before the merge, and theme files and imports strip it like any
+  unknown key. Every other active theme is saved whole: a custom theme,
   a host-loaded theme, or a theme of a package not registered at save time.
 - Every saved theme holds a registered wallpaper by its filename, never the
   URL a build resolved it to (that URL breaks when the host rebuilds). On
@@ -2534,7 +2537,9 @@ dispatches.
 **Another package's defaults give way to the drawn package's.** When the
 active theme is its own package's defaults theme (by id: the registered
 package's `defaults.id`, or, while the default package is not registered,
-`CLASSICY_CORE_DEFAULT_THEME`'s) and the desktop draws another package, the
+`CLASSICY_CORE_DEFAULT_THEME`'s, or, for another package that is not
+registered, a pending saved reference flagged `defaults: true`) and the
+desktop draws another package, the
 store activates the drawn package's `defaults`, completed as a switch
 completes them, without writing `packageId`. It checks at store creation, on
 every registry change and whenever the drawn package changes through the
@@ -2545,7 +2550,11 @@ package is another draws that package's own defaults, a knob edit forks into
 `custom-<id>`, a Platinum session's saved `{ id: "default", package:
 "platinum" }` reloads under another package on that package's defaults, and a
 save made with only another package reloads with Platinum, once Platinum is
-drawn, on Platinum's. Never replaced: a custom theme, a preset (any other
+drawn, on Platinum's. A host that dropped a package heals too: a saved
+`{ id: "foo-default", package: "foo", defaults: true }` loads, with `foo`
+never registering, on the drawn package's defaults; a reference to one of its
+presets, or a defaults reference saved before the flag existed, stays
+pending. Never replaced: a custom theme, a preset (any other
 theme of a package), or a host-loaded theme of a package not registered. The
 cost: another package's defaults theme chosen explicitly lasts until the
 next load or drawn-package change.

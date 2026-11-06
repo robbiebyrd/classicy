@@ -596,7 +596,8 @@ Start with [Install and build](#install-and-build).
   - A stored theme keeps only the package knob values a user changed.
   - Built-in themes are no longer stored: `Appearance.availableThemes` is
     dropped on save (and on load, from older state), and a built-in active
-    theme is stored as `{ id, package }`. *Migrate:* a host that dispatched
+    theme is stored as `{ id, package }`, plus `defaults: true` when it is
+    its package's defaults theme. *Migrate:* a host that dispatched
     `ClassicyDesktopLoadThemes` once and relied on the saved list must
     dispatch it on every boot; the list is session state now.
     - State saved before v0.83 that edited a built-in theme in place (a

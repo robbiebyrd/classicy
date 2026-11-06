@@ -106,7 +106,10 @@ function withRefreshedActiveTheme(
  */
 function withDrawnPackageDefaults(state: ClassicyStore): ClassicyStore {
 	const appearance = state.System.Manager.Appearance;
-	const activeTheme = drawnClassicyPackageDefaults(appearance);
+	const activeTheme = drawnClassicyPackageDefaults(
+		appearance,
+		pendingReferenceFor(appearance.activeTheme),
+	);
 	if (!activeTheme) return state;
 	return {
 		...state,
@@ -205,10 +208,10 @@ export const withSeededPackageDefaults = (
 	const packageId = seed.System?.Manager?.Appearance?.packageId;
 	if (typeof packageId !== "string") return state;
 	const appearance = state.System.Manager.Appearance;
-	const activeTheme = drawnClassicyPackageDefaults({
-		...appearance,
-		packageId,
-	});
+	const activeTheme = drawnClassicyPackageDefaults(
+		{ ...appearance, packageId },
+		pendingReferenceFor(appearance.activeTheme),
+	);
 	if (!activeTheme) return state;
 	return {
 		...state,
@@ -416,8 +419,11 @@ function loadInitialState(): ClassicyStore {
 									typeof saved.package === "string"
 										? saved.package
 										: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+								...(saved.defaults === true ? { defaults: true } : {}),
 							}
 						: undefined;
+				// The flag is the reference's, never theme data (0147-qyy).
+				if (reference) delete saved.defaults;
 				// Merge persisted state on top of current defaults so any new fields
 				// added since the state was saved get their default values instead of
 				// being undefined (e.g. new typography.monoSize / digitalSize keys).
@@ -551,11 +557,14 @@ const refreshThemesOnRegistration = (): void => {
 		refreshedActiveBuiltInTheme(appearance) ??
 		appearance.activeTheme;
 	const activeTheme = withHealedWallpaper(
-		drawnClassicyPackageDefaults({
-			...appearance,
-			activeTheme: refreshed,
-			customThemes: seeded?.customThemes ?? appearance.customThemes,
-		}) ?? refreshed,
+		drawnClassicyPackageDefaults(
+			{
+				...appearance,
+				activeTheme: refreshed,
+				customThemes: seeded?.customThemes ?? appearance.customThemes,
+			},
+			pendingReferenceFor(refreshed),
+		) ?? refreshed,
 		registered,
 	);
 	if (seededThemeFork?.theme === refreshed) seededThemeFork.theme = activeTheme;
@@ -616,7 +625,10 @@ const followDrawnPackage = (state: ClassicyStore): void => {
 		);
 		return;
 	}
-	const activeTheme = drawnClassicyPackageDefaults(appearance);
+	const activeTheme = drawnClassicyPackageDefaults(
+		appearance,
+		pendingReferenceFor(appearance.activeTheme),
+	);
 	if (!activeTheme) return;
 	useAppManager.setState((currentState) =>
 		produce(currentState, (draft) => {
@@ -689,7 +701,8 @@ export function sanitizeStateForPersistence(
 ): ClassicyStore {
 	// Built-in themes are not persisted: they come from the code on load
 	// (ClassicyBuiltInThemes.internal.ts), so `availableThemes` is dropped and
-	// a built-in active theme is saved as its reference, `{ id, package }`.
+	// a built-in active theme is saved as its reference, `{ id, package }`
+	// (`defaults: true` for its package's defaults theme).
 	// Every other theme is saved whole, keeping only the package-family values
 	// a user changed (H-R17): the rest equal the package defaults, which
 	// getThemeVars fills when it reads the theme. That keeps saved state near

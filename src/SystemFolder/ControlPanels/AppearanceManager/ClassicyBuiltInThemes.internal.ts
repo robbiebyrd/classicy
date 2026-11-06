@@ -28,13 +28,24 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  * and the user's choice, so a preset fixed, added or removed by a later
  * release reaches existing users. `sanitizeStateForPersistence` drops
  * `availableThemes` and stores a built-in active theme as a reference, its
- * `{ id, package }`; the load path replaces an active theme naming a built-in
+ * `{ id, package }`, with `defaults: true` when it is its package's defaults
+ * theme (story 0147-qyy); the load path replaces an active theme naming a built-in
  * by the current preset (`refreshedClassicyActiveTheme`), or, when its
  * package is not registered yet (H-R17), that package's registration does.
  */
 
-/** A built-in active theme as persisted: which theme, not its data. */
-export type ClassicyThemeReference = { id: string; package: string };
+/**
+ * A built-in active theme as persisted: which theme, not its data.
+ * `defaults` marks its package's defaults theme, so a reference whose
+ * package never registers again still counts as those defaults for the
+ * drawn-package rule (`drawnClassicyPackageDefaults`); a reference saved
+ * before the flag existed has none.
+ */
+export type ClassicyThemeReference = {
+	id: string;
+	package: string;
+	defaults?: true;
+};
 
 /** The package a theme belongs to; a theme naming none is the default's. */
 const themePackageId = (theme: Pick<ClassicyTheme, "package">): string =>
@@ -81,14 +92,16 @@ export const activatableClassicyPackageTheme = (
 
 /**
  * True when `theme` is a persisted reference: an object holding nothing but
- * a string `id` and, optionally, a `package` (shape-detecting; a whole theme
- * always carries its data).
+ * a string `id` and, optionally, a `package` and a `defaults` flag
+ * (shape-detecting; a whole theme always carries its data).
  */
 export const isClassicyThemeReference = (theme: unknown): boolean =>
 	!!theme &&
 	typeof theme === "object" &&
 	typeof (theme as { id?: unknown }).id === "string" &&
-	Object.keys(theme).every((key) => key === "id" || key === "package");
+	Object.keys(theme).every(
+		(key) => key === "id" || key === "package" || key === "defaults",
+	);
 
 /**
  * The built-in of its own package that `appearance.activeTheme` names, with
@@ -121,7 +134,8 @@ const activeBuiltIn = (
  * The reference `activeTheme` is persisted as, or `undefined` to persist it
  * whole: a reference when it is not a custom theme and its id names one of
  * its own package's built-ins (its defaults or presets; that package
- * registered). Its data is never consulted, since the load path
+ * registered), flagged `defaults: true` when that id is the package's
+ * defaults id. Its data is never consulted, since the load path
  * replaces such a theme by the preset anyway. Kept whole: a custom theme, a
  * host-loaded theme (`availableThemes`, not a built-in of the code), and a
  * theme of a package not registered yet.
@@ -133,9 +147,11 @@ export const classicyBuiltInThemeReference = (
 	>,
 ): ClassicyThemeReference | undefined => {
 	const found = activeBuiltIn(appearance);
-	return found?.builtIn
-		? { id: found.builtIn.id, package: found.pkg.id }
-		: undefined;
+	if (!found?.builtIn) return undefined;
+	const { builtIn, pkg } = found;
+	return builtIn.id === pkg.defaults.id
+		? { id: builtIn.id, package: pkg.id, defaults: true }
+		: { id: builtIn.id, package: pkg.id };
 };
 
 /**
@@ -182,14 +198,20 @@ export const refreshedClassicyActiveTheme = (
  * The id of `packageId`'s defaults theme: the registered package's; for the
  * default package while it is not registered, the core stand-in's
  * (`CLASSICY_CORE_DEFAULT_THEME`, the default state's theme, which a saved
- * `{ id: "default", package: "platinum" }` reference also loads as); else
- * `undefined`.
+ * `{ id: "default", package: "platinum" }` reference also loads as); for
+ * another unregistered package, the id of a `pending` reference to it saved
+ * with `defaults: true` (0147-qyy); else `undefined`.
  */
-const packageDefaultsThemeId = (packageId: string): string | undefined =>
+const packageDefaultsThemeId = (
+	packageId: string,
+	pending: ClassicyThemeReference | null | undefined,
+): string | undefined =>
 	knownClassicyThemePackage(packageId)?.defaults.id ??
 	(packageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID
 		? CLASSICY_CORE_DEFAULT_THEME.id
-		: undefined);
+		: pending?.defaults === true && pending.package === packageId
+			? pending.id
+			: undefined);
 
 /**
  * The defaults of the package the desktop draws (`packageId` resolved as the
@@ -210,13 +232,18 @@ const packageDefaultsThemeId = (packageId: string): string | undefined =>
  * a theme is matched by its id like any other. The
  * cost: another package's defaults chosen explicitly last until the next
  * load or package change. `packageId` is not written: the desktop draws the
- * package by resolution.
+ * package by resolution. `pending` is the saved reference the active theme
+ * was loaded from while its package is unregistered: flagged `defaults:
+ * true`, it names that package's defaults, so a package the host dropped
+ * still gives way (0147-qyy); unflagged (a preset, or a save from before the
+ * flag), it stays pending.
  */
 export const drawnClassicyPackageDefaults = (
 	appearance: Pick<
 		ClassicyStoreSystemAppearanceManager,
 		"activeTheme" | "packageId" | "customThemes" | "availableThemes"
 	>,
+	pending?: ClassicyThemeReference | null,
 ): ClassicyTheme | undefined => {
 	const active = appearance.activeTheme;
 	if (!active || typeof active !== "object") return undefined;
@@ -225,7 +252,7 @@ export const drawnClassicyPackageDefaults = (
 	);
 	const own = themePackageId(active);
 	if (!drawn || drawn.id === own) return undefined;
-	if (active.id !== packageDefaultsThemeId(own)) return undefined;
+	if (active.id !== packageDefaultsThemeId(own, pending)) return undefined;
 	if (appearance.customThemes?.some((t) => t.id === active.id)) {
 		return undefined;
 	}

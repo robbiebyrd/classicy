@@ -213,7 +213,11 @@ describe("a first session whose only package is not the default one", () => {
 		const b = await boot();
 		b.registerFoo();
 		const saved = b.saved().System.Manager.Appearance;
-		expect(saved.activeTheme).toEqual({ id: "foo-default", package: FOO });
+		expect(saved.activeTheme).toEqual({
+			id: "foo-default",
+			package: FOO,
+			defaults: true,
+		});
 		expect(saved.packageId).toBe("platinum");
 	});
 
@@ -230,6 +234,7 @@ describe("a first session whose only package is not the default one", () => {
 			expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
 				id: "foo-default",
 				package: FOO,
+				defaults: true,
 			});
 			b.registerFoo();
 		}
@@ -433,6 +438,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
 			id: "foo-default",
 			package: FOO,
+			defaults: true,
 		});
 		// And Platinum, registering later, is drawn with its own defaults.
 		await import("@/Appearance/Platinum");
@@ -460,6 +466,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		expect(saved.System.Manager.Appearance.activeTheme).toEqual({
 			id: "foo-default",
 			package: FOO,
+			defaults: true,
 		});
 		vi.resetModules();
 		if (platinumFirst) await import("@/Appearance/Platinum");
@@ -479,6 +486,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		expect(saved.System.Manager.Appearance.activeTheme).toEqual({
 			id: "default",
 			package: "platinum",
+			defaults: true,
 		});
 		const b = await boot({ saved, fooFirst: true });
 		expect(strip(b.active())).toEqual(strip(b.fooDefaults()));
@@ -983,5 +991,154 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 			</ClassicyAppManagerProvider>,
 		);
 		expect(JSON.stringify(b.saved())).toBe(before);
+	});
+});
+
+describe("a saved defaults reference to a package the host dropped (0147-qyy)", () => {
+	/** What a session with only foo saves: foo's defaults, as a reference. */
+	const fooOnlySave = async () => {
+		const first = await boot();
+		first.registerFoo();
+		return first.saved();
+	};
+
+	it.each([
+		["registered after the store", false],
+		["registered before the store", true],
+	])("heals to Platinum's defaults when only Platinum is %s", async (_name, platinumFirst) => {
+		const saved = await fooOnlySave();
+		expect(saved.System.Manager.Appearance.activeTheme).toEqual({
+			id: "foo-default",
+			package: FOO,
+			defaults: true,
+		});
+		vi.resetModules();
+		if (platinumFirst) await import("@/Appearance/Platinum");
+		const b = await boot({ saved, keepModules: platinumFirst });
+		if (!platinumFirst) await import("@/Appearance/Platinum");
+		// foo never registers.
+		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
+		expect(b.state().System.Manager.Appearance.packageId).toBe("platinum");
+		const vars: Record<string, unknown> = b.appearance.getThemeVars(b.active());
+		expect(vars["--menu-frame-shadow-width"]).toBe("1px");
+		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
+			id: "default",
+			package: "platinum",
+			defaults: true,
+		});
+	});
+
+	it("heals with a stored packageId naming the dropped package, unchanged", async () => {
+		const saved = await fooOnlySave();
+		saved.System.Manager.Appearance.packageId = FOO;
+		const b = await boot({ saved });
+		await import("@/Appearance/Platinum");
+		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
+		expect(b.state().System.Manager.Appearance.packageId).toBe(FOO);
+	});
+
+	it("keeps a dropped package's preset reference pending", async () => {
+		const saved = await fooOnlySave();
+		saved.System.Manager.Appearance.activeTheme = {
+			id: "foo-dark",
+			package: FOO,
+		} as ClassicyTheme;
+		const b = await boot({ saved });
+		await import("@/Appearance/Platinum");
+		expect(b.active().id).toBe("foo-dark");
+		expect(b.active().package).toBe(FOO);
+		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
+			id: "foo-dark",
+			package: FOO,
+		});
+	});
+
+	it("loads an old defaults reference, without the flag, as before", async () => {
+		const saved = await fooOnlySave();
+		saved.System.Manager.Appearance.activeTheme = {
+			id: "foo-default",
+			package: FOO,
+		} as ClassicyTheme;
+		const b = await boot({ saved });
+		await import("@/Appearance/Platinum");
+		expect(b.active().id).toBe("foo-default");
+		expect(b.active().package).toBe(FOO);
+		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
+			id: "foo-default",
+			package: FOO,
+		});
+		// And foo, registering at last, resolves it.
+		b.registerFoo();
+		expect(b.active().id).toBe("default");
+		expect(b.active().package).toBe("platinum");
+	});
+
+	it("keeps a flag that is not true out of the reference", async () => {
+		const saved = await fooOnlySave();
+		saved.System.Manager.Appearance.activeTheme = {
+			id: "foo-default",
+			package: FOO,
+			defaults: "yes",
+		} as unknown as ClassicyTheme;
+		const b = await boot({ saved });
+		await import("@/Appearance/Platinum");
+		expect(b.active().id).toBe("foo-default");
+		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
+			id: "foo-default",
+			package: FOO,
+		});
+	});
+
+	it("never puts the flag on the live theme", async () => {
+		const saved = await fooOnlySave();
+		const pending = await boot({ saved });
+		expect(pending.active()).not.toHaveProperty("defaults");
+		const b = await boot({ saved, fooFirst: true });
+		expect(b.active().id).toBe("foo-default");
+		expect(b.active()).not.toHaveProperty("defaults");
+	});
+
+	it("counts a flagged reference only for the package it names", async () => {
+		await boot();
+		await import("@/Appearance/Platinum");
+		const { drawnClassicyPackageDefaults } = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal"
+		);
+		const appearance = {
+			activeTheme: {
+				...strip(CLASSICY_CORE_DEFAULT_THEME),
+				id: "foo-default",
+				package: FOO,
+			} as ClassicyTheme,
+			packageId: "platinum",
+			customThemes: [],
+			availableThemes: [],
+		};
+		const pending = (pkg: string) => ({
+			id: "foo-default",
+			package: pkg,
+			defaults: true as const,
+		});
+		expect(drawnClassicyPackageDefaults(appearance, pending("bar"))).toBe(
+			undefined,
+		);
+		expect(drawnClassicyPackageDefaults(appearance, pending(FOO))?.id).toBe(
+			"default",
+		);
+	});
+
+	it("saves a preset's reference without the flag", async () => {
+		const b = await boot();
+		b.registerFoo();
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeTheme",
+				activeTheme: "foo-dark",
+			}),
+		);
+		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
+			id: "foo-dark",
+			package: FOO,
+		});
 	});
 });
