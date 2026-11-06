@@ -1671,8 +1671,8 @@ the two in one dependency tree.
 2. Rewrite every specifier, including the ones inside strings: imports and
    re-exports, deep paths (`classicy/dist/classicy.css`, `classicy/scss/*`,
    `classicy/fonts`), `vi.mock("classicy", …)`,
-   `importOriginal<typeof import("classicy")>()` and `optimizeDeps` lists. From
-   the repository root, then read the diff (a quoted word `classicy` that is
+   `importOriginal<typeof import("classicy")>()` and `optimizeDeps` lists. Run
+   this from the repository root, then read the diff (a quoted word `classicy` that is
    not a specifier, such as a storage key, must stay):
 
    ```sh
