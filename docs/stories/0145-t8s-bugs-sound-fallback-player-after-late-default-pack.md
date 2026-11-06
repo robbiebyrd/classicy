@@ -3,12 +3,13 @@ id: 0145-t8s
 title: The sound fallback player stays null when the default pack registers after the provider mounts
 purpose: Sprites a pack lacks fall back to the default pack however late it registers.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-06T00:14:19.091Z"
-updated: "2026-11-06T00:14:37.879Z"
+updated: "2026-11-06T02:18:16.637Z"
 started: "2026-11-06T00:14:37.879Z"
+completed: "2026-11-06T02:18:16.637Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -48,11 +49,13 @@ In the provider effect, also reload (or build the fallback) when the loaded pack
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The repro test passes, a pack's own sprites still win over the fallback, and with the default pack never registered sound stays silent with the existing once-per-id log.
-- [ ] VERIFY: Full gate green.
+- [x] VERIFY: The repro test passes, a pack's own sprites still win over the fallback, and with the default pack never registered sound stays silent with the existing once-per-id log.
+- [x] VERIFY: Full gate green.
 
 ## Files
 
 - `src/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider.tsx` - rebuild the fallback player when the default pack registers late
 
 ## Work Log
+
+### 2026-11-06T02:17:58.346Z - Landed on feat/AppearancePackages at 5ebf1c3fe as a stack 0123 → 0145 → 0126 on 7c1f4b034. Stacked gate: 467 files / 6539 tests, GATE_EXIT=0. Parity from the static Storybook build plus the example app against platinum-split/before: 445 total, 445 AE 0. Review: no findings >=70 (StrictMode extra Howl ~30, same as ClassicySoundLoad). New action ClassicySoundLoadFallback.

@@ -3,12 +3,13 @@ id: 0123-qzc
 title: '0015 §1.2: Load and persist without a Platinum special case'
 purpose: Execute plan 0015-kxa section 1.2.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:10.591Z"
-updated: "2026-11-05T23:19:29.008Z"
+updated: "2026-11-06T02:18:08.846Z"
 started: "2026-11-05T23:19:29.008Z"
+completed: "2026-11-06T02:18:08.846Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -74,8 +75,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyLoadBeforePackage.test.ts` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run src/SystemFolder/ControlPanels/AppManager/ClassicyLoadBeforePackage.test.ts` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -87,3 +88,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `src/SystemFolder/ControlPanels/AppManager/ClassicyLoadBeforePackage.test.ts` - test
 
 ## Work Log
+
+### 2026-11-06T02:17:56.021Z - Landed on feat/AppearancePackages at 5ebf1c3fe as a stack 0123 → 0145 → 0126 on 7c1f4b034. Stacked gate: 467 files / 6539 tests, GATE_EXIT=0. Parity from the static Storybook build plus the example app against platinum-split/before: 445 total, 445 AE 0. Review: no code findings; the one doc finding (AGENT-REFERENCE custom-theme line) fixed in c3eb2ddd1, with CLAUDE.md's J1 exception. The earlier AE 69 grip diff was storybook dev vs static serving (noted on 0140).

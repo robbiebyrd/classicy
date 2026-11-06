@@ -3,11 +3,12 @@ id: 0144-6sc
 title: A host whose only package is not Platinum draws it with the core stand-in theme
 purpose: Make a first session with a non-Platinum package look like that package, once 1.6 drops the Platinum import.
 type: bugs
-status: ready
+status: in_progress
 priority: "1"
 effort: S
 created: "2026-11-06T00:14:15.984Z"
-updated: "2026-11-06T00:14:42.027Z"
+updated: "2026-11-06T02:19:06.115Z"
+started: "2026-11-06T02:19:06.115Z"
 tags: []
 milestone: ""
 due_date: ""

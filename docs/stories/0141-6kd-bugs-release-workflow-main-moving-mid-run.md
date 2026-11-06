@@ -3,11 +3,12 @@ id: 0141-6kd
 title: 'Release workflow: main moving mid-run publishes an old build, and the codename push has no retry'
 purpose: Make a release that races another push to main either rebuild or stop cleanly.
 type: bugs
-status: pending
+status: in_progress
 priority: "3"
 effort: S
 created: "2026-11-05T21:39:09.677Z"
-updated: "2026-11-05T21:39:09.677Z"
+updated: "2026-11-06T02:19:19.656Z"
+started: "2026-11-06T02:19:19.656Z"
 tags: []
 milestone: ""
 due_date: ""

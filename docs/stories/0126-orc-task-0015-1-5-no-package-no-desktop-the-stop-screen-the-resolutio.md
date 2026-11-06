@@ -3,12 +3,13 @@ id: 0126-orc
 title: '0015 §1.5: No package, no desktop: the stop screen, the resolution chain and the package icon'
 purpose: Execute plan 0015-kxa section 1.5.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:37.968Z"
-updated: "2026-11-05T22:40:14.885Z"
+updated: "2026-11-06T02:18:24.024Z"
 started: "2026-11-05T22:40:14.885Z"
+completed: "2026-11-06T02:18:24.024Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -79,8 +80,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run src/SystemFolder/SystemResources/Desktop src/Appearance` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -99,3 +100,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-05T22:32:56.746Z - Started early (2026-11-05, for speed) in worktree fu-0126 on top of 1.1's branch (fu/0122 at 66481727b, in its landing gate as part of stack A); the status moves to in_progress once 0122-ieh lands. If 1.1's landing changes, this branch is rebased.
+
+### 2026-11-06T02:18:00.854Z - Landed on feat/AppearancePackages at 5ebf1c3fe as a stack 0123 → 0145 → 0126 on 7c1f4b034. Stacked gate: 467 files / 6539 tests, GATE_EXIT=0. Parity from the static Storybook build plus the example app against platinum-split/before: 445 total, 445 AE 0. Review fixes for findings 1-4 and 7 landed (useThemesTab packageIcon docs, layout chain, guard scans .storybook sources, no warning for the default id, passthrough row). Findings 5 and 6 filed as 0144-6sc (with 1.6) and 0145-t8s (landed here).

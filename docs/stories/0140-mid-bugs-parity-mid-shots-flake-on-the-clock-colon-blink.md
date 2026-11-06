@@ -3,11 +3,12 @@ id: 0140-mid
 title: parity:shoot --mid flakes on the menu-bar clock's blinking colon (AE 12)
 purpose: Make mid-time parity shots deterministic, so a parity failure always means a real change.
 type: bugs
-status: pending
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-11-05T20:58:59.049Z"
-updated: "2026-11-05T20:58:59.049Z"
+updated: "2026-11-06T02:19:13.073Z"
+started: "2026-11-06T02:19:13.073Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -61,3 +62,5 @@ If the chosen fix changes which frame `@mid` captures, re-shoot `@mid` for the 0
 - `bin/parity/` - deterministic mid-time pause
 
 ## Work Log
+
+### 2026-11-06T00:32:57.382Z - 2026-11-06: second parity-recipe gap. bin/parity/README.md says to shoot from 'storybook dev', but the platinum-split/before baseline was shot from the static build (python http.server over storybook-static). In dev mode the window grow-box grip renders differently: AE 69 in a 10x10 box on every window story (fu/0123: static AE 0, dev AE 69 on desktop-window--default and colorpicker--controlled). When fixing the clock flake, also make the README name one serving mode (static, to match baselines) and find why dev draws the grip differently.
