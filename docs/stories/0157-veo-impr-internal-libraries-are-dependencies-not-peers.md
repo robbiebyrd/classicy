@@ -3,12 +3,13 @@ id: 0157-veo
 title: Hosts install only react, react-dom and the two Classicy packages
 purpose: A host's install line is just Classicy, with no version pins to know about.
 type: impr
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T20:01:43.122Z"
-updated: "2026-11-06T20:01:50.812Z"
+updated: "2026-11-06T20:27:24.167Z"
 started: "2026-11-06T20:01:50.812Z"
+completed: "2026-11-06T20:27:24.167Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -51,11 +52,13 @@ Install line becomes `pnpm add @classicy/classicy @classicy/appearance-platinum`
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The packed core manifest lists only react, react-dom and optional @types/react as peers; a scratch host installing only the two Classicy packages plus react/react-dom builds, renders and type-checks (verify:host-types).
-- [ ] VERIFY: No doc tells a host to pin or install @tanstack/react-table, immer, react-player or zustand; full gate green.
+- [x] VERIFY: The packed core manifest lists only react, react-dom and optional @types/react as peers; a scratch host installing only the two Classicy packages plus react/react-dom builds, renders and type-checks (verify:host-types).
+- [x] VERIFY: No doc tells a host to pin or install @tanstack/react-table, immer, react-player or zustand; full gate green.
 
 ## Files
 
 - `package.json` - four peers become dependencies
 
 ## Work Log
+
+### 2026-11-06T20:27:16.227Z - Landed at ac51cfe82 (6d16651fc, e6b058001 rebased onto 3fcde4b86, no conflicts). @tanstack/react-table, immer, react-player and zustand are dependencies (still external in both bundles); peers are react, react-dom and optional @types/react; lockfile libc: 63. Install line is pnpm add @classicy/classicy @classicy/appearance-platinum (plus react react-dom for a new app); the pin note is gone; a release-note line says upgrading hosts have nothing to do. Scratch host (two tarballs + react/react-dom, npm) resolved react-table 8.21.3, built, and type-checked without skipLibCheck. Gate 495 files / 7210 tests, Platinum 24/319. Controller reviewed the manifest and docs, and after the rebase ClassicyPackageExports (44) and biome are green; the owner's rename-entry title is intact.

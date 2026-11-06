@@ -7,7 +7,7 @@ status: in_progress
 priority: "1"
 effort: S
 created: "2026-11-06T20:03:49.422Z"
-updated: "2026-11-06T20:03:56.889Z"
+updated: "2026-11-06T20:27:25.877Z"
 started: "2026-11-06T20:03:56.889Z"
 tags: []
 milestone: ""
@@ -64,3 +64,5 @@ Remove the sized-container sentence from the release notes' Summary, README and 
 - `src/SystemFolder/SystemResources/Desktop/ClassicyDesktop.scss` - base-layer ancestor sizing
 
 ## Work Log
+
+### 2026-11-06T20:27:25.877Z - 2026-11-06: 0157 landed (ac51cfe82). The release notes' Summary paragraph now opens 'One note applies to a new host; nothing changes for a working 2.1.x host.' followed by the sized-container sentence: when this story removes that sentence, remove the lead-in sentence too (the paragraph then has nothing left).
