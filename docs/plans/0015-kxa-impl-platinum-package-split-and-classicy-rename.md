@@ -6,7 +6,7 @@ status: in_progress
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-06T16:24:33.024Z"
+updated: "2026-11-06T16:26:11.723Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -102,7 +102,7 @@ progress:
     stories:
       - 0137-dm7
   "5.2":
-    status: pending
+    status: in_progress
     stories:
       - 0138-cj4
   "6":
