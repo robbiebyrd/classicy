@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-11-05T19:55:21.066Z"
-updated: "2026-11-06T20:10:04.538Z"
+updated: "2026-11-06T20:58:43.655Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -41,12 +41,14 @@ Work through the acceptance criteria below; each is ticked when done.
 ## Acceptance Criteria
 
 - [x] [MANUAL] Create the free npm organization `classicy` on npmjs.com.
-- [ ] [MANUAL] Make sure the `NPM_TOKEN` secret can publish `@classicy/*` (a granular token that lists the organization, or a classic automation token).
+- [~] [MANUAL] Make sure the `NPM_TOKEN` secret can publish `@classicy/*` (a granular token that lists the organization, or a classic automation token).
 - [x] [MANUAL] Approve the new release-note entries (4.2).
 - [ ] [MANUAL] Merge the classicy-web and rt911 PRs (5.1, 5.2) when ready, per their PR notes.
 - [ ] [MANUAL] Merge PR 333 with the major-bump keyword recorded in 4.1, so both packages publish as 3.0.0.
 - [ ] [MANUAL] After both 3.0.0 packages are live, run `npm deprecate classicy "Renamed to @classicy/classicy. See https://github.com/robbiebyrd/classicy#readme"`.
 - [ ] [MANUAL] V&V: in the example app and on classicy-web, the desktop looks and sounds as before (boot chime, button clicks, menu hover), the Appearance Manager's Themes tab shows Platinum's icon, a saved custom theme with a wallpaper survives the upgrade, and a host with Platinum removed shows the stop screen.
+- [ ] [MANUAL] At most a day before merging PR 333, on feat/AppearancePackages with npm 11.15.0+, 2FA on and `npm login` done: run `bin/npm-bootstrap-trusted-publishing.sh` (dry run), then `bin/npm-bootstrap-trusted-publishing.sh --publish` (re-run it if it stops partway). Then check `npm trust list` shows one GitHub Actions entry (robbiebyrd/classicy, push.yml, publish allowed) for @classicy/classicy and @classicy/appearance-platinum, and a few minutes later `npm dist-tag ls` for both. Merge PR 333 within 2 days of this step.
+- [ ] [MANUAL] In the release run, "Check trusted publishing for every package" prints that the registry accepted the OIDC token for both packages, and "Wait for the release to appear on npm" confirms both latest tags are 3.0.0; then delete the NPM_TOKEN repository secret.
 
 ## Work Log
 
@@ -59,3 +61,5 @@ Work through the acceptance criteria below; each is ticked when done.
 ### 2026-11-06T20:00:47.558Z - 2026-11-06: criterion 2 reopened. The owner clarified the release uses npm trusted publishing (OIDC), not an automation token. Trusted publishers are configured per package on that package's npmjs.com settings, so @classicy/classicy and @classicy/appearance-platinum (not yet on npm) cannot have one before their first publish; push.yml's first 3.0.0 publish would then authenticate with NODE_AUTH_TOKEN = secrets.NPM_TOKEN (last set 2026-01-27, likely expired under npm's 2025 token limits). Also push.yml publishes with pnpm 10.26, whose OIDC publish support is unconfirmed (pnpm's docs confirm it in 11.x). Tracked as a release-blocking story.
 
 ### 2026-11-06T20:10:04.538Z - 2026-11-06: owner approved the release notes as edited (rename entry retitled), committed in d7f1ad2cb with the rename scan's pattern following the new title (aa326e76e). Stories still changing the notes before release: 0157 (drops the react-table pin note), 0158 (drops the sized-container note), 0156 (first-publish steps); the controller will show the owner those entries when they land.
+
+### 2026-11-06T20:58:43.655Z - 2026-11-06: criterion 2 (NPM_TOKEN) marked not applicable: since 0156 (484a92387) releases publish only over npm trusted publishing and push.yml no longer reads NPM_TOKEN. Two criteria added for the one-time bootstrap (bin/npm-bootstrap-trusted-publishing.sh: placeholder 0.0.0 under the bootstrap dist-tag, deprecated, plus the push.yml trusted publisher) and for watching the release run. Full step list with the npmjs.com fields: .superpowers/sdd/followups/0156-tx7-report.md §3.
