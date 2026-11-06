@@ -4775,7 +4775,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   default; the core ships no sprites) and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
-  `src` is resolved.
+  `src` is resolved. The encode is deterministic (ffmpeg runs bit-exact) and
+  skipped when `<name>.sprites.sha256` still matches the sources, so an unchanged
+  sound keeps its sprite bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway.
 
 ---
 
