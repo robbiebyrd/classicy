@@ -16,7 +16,10 @@
 #      repository robbiebyrd/classicy, workflow push.yml, no environment,
 #      `npm publish` allowed, unless the package has it already. The registry
 #      takes one configuration per package, so a different one stops the run;
-#      it is never revoked or replaced.
+#      it is never revoked or replaced. When reading the list needs a one-time
+#      password (npm asks for one only with its output on the terminal), the
+#      script adds push.yml's without reading, which the registry refuses if
+#      the package has a configuration already.
 # Each step checks the registry first, so a run that stopped partway (a
 # mistyped one-time password, a dropped connection) is safe to re-run.
 # Without --publish it is a dry run: nothing on the registry changes, and npm
@@ -219,12 +222,21 @@ for MANIFEST in "${MANIFESTS[@]}"; do
 	# is left alone, and any other stops the run for the owner to look at.
 	TRUST="none"
 	if [ "$EXISTED" = 1 ]; then
-		if LIST="$(npm trust list "$NAME" --json)"; then
+		if LIST="$(npm trust list "$NAME" --json 2>"$VIEW_ERR")"; then
 			TRUST="$(classify_trust <<<"$LIST")"
+		elif grep -q "EOTP" "$VIEW_ERR"; then
+			# Reading the list takes a one-time password, and npm asks for one
+			# only when its output goes to the terminal, never while this script
+			# reads it. Adding cannot replace a configuration (the registry
+			# refuses a second one), so add push.yml's, where npm can ask.
+			TRUST="unread"
+			echo "npm needs a one-time password to read $NAME's trusted publishers, and cannot ask for one here; adding push.yml's (the registry refuses it if $NAME has one already)."
 		elif [ "$PUBLISH" = 1 ]; then
+			cat "$VIEW_ERR" >&2
 			echo "Could not list $NAME's trusted publishers (are you logged in?); nothing was changed." >&2
 			exit 1
 		else
+			cat "$VIEW_ERR" >&2
 			echo "Could not list $NAME's trusted publishers (are you logged in?); the dry run goes on."
 		fi
 	fi
@@ -235,6 +247,15 @@ for MANIFEST in "${MANIFESTS[@]}"; do
 	none)
 		# shellcheck disable=SC2086 # DRY_RUN and CONFIRM are one word or none
 		npm trust github "$NAME" --repo "$REPOSITORY" --file "$WORKFLOW" --allow-publish $DRY_RUN $CONFIRM
+		;;
+	unread)
+		# shellcheck disable=SC2086 # DRY_RUN and CONFIRM are one word or none
+		if ! npm trust github "$NAME" --repo "$REPOSITORY" --file "$WORKFLOW" --allow-publish $DRY_RUN $CONFIRM; then
+			echo "npm did not add $NAME's trusted publisher. If it has one already, this lists it (npm asks for a one-time password):" >&2
+			npm trust list "$NAME" >&2 || true
+			echo "Nothing was replaced. If the list shows GitHub Actions, $REPOSITORY, $WORKFLOW, no environment, npm publish allowed, $NAME is done: re-run with the remaining package.json files only. Otherwise edit it on npmjs.com (package Settings, Trusted Publisher) and re-run." >&2
+			exit 1
+		fi
 		;;
 	*)
 		echo "$NAME already has a different trusted publisher (${TRUST#other }), and the registry takes one per package." >&2

@@ -72,6 +72,14 @@ interface Registry {
 	trustList?: Record<string, string>;
 	/** `npm trust list` fails (not logged in, say). */
 	trustListFails?: boolean;
+	/**
+	 * `npm trust list` asks for a one-time password, which npm can do only
+	 * with its output on the terminal: `--json` (read by the script) is
+	 * EOTP, the plain list (shown to the owner) prints `trustList`'s entry.
+	 */
+	trustListNeedsOtp?: boolean;
+	/** `npm trust github` is refused (the package has a configuration). */
+	trustAddFails?: boolean;
 	npmVersion?: string;
 	/**
 	 * How many `npm view`s of a name it just published still 404 before the
@@ -126,8 +134,12 @@ case "$1" in
   trust)
     if [ "$2" = list ]; then
       if [ "${opts.trustListFails ? 1 : 0}" = 1 ]; then echo "npm error code E401" >&2; exit 1; fi
+      if [ "${opts.trustListNeedsOtp ? 1 : 0}" = 1 ] && [ "$4" = --json ]; then
+        echo "npm error code EOTP" >&2; echo "npm error This operation requires a one-time password." >&2; exit 1
+      fi
       cat "${dir}/trust-$(slug "$3")" 2>/dev/null; exit 0
-    fi ;;
+    fi
+    if [ "${opts.trustAddFails ? 1 : 0}" = 1 ]; then echo "npm error code E409" >&2; exit 1; fi ;;
   publish)
     name=$(node -p 'require("./package.json").name')
     cp package.json "${dir}/placeholder-$(printf %s "$name" | tr -c "a-z0-9" _).json"
@@ -451,6 +463,48 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		});
 		expect(dry.status, dry.out).toBe(0);
 		expect(dry.calls).toContain(`${trustArgs("@classicy/classicy")} --dry-run`);
+	});
+
+	// The owner's second --publish run: the deprecation went through (npm
+	// asked in the browser), then the captured `npm trust list --json` was
+	// EOTP, since npm asks for a one-time password only on a terminal.
+	it("adds push.yml's trusted publisher when npm needs a one-time password to read the list", () => {
+		const r = run(["--publish", CORE], {
+			existing: ["@classicy/classicy"],
+			trustListNeedsOtp: true,
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toEqual([
+			"view @classicy/classicy name",
+			"view @classicy/classicy@0.0.0 deprecated",
+			expect.stringMatching(/^deprecate @classicy\/classicy@0\.0\.0 /),
+			"trust list @classicy/classicy --json",
+			`${trustArgs("@classicy/classicy")} --yes`,
+		]);
+		expect(r.out).toMatch(
+			/needs a one-time password to read @classicy\/classicy's trusted publishers/,
+		);
+	});
+
+	it("when npm refuses that add, shows the list and stops, replacing nothing", () => {
+		const r = run(["--publish", CORE, PLATINUM], {
+			existing: ["@classicy/classicy"],
+			deprecated: { "@classicy/classicy": "Placeholder" },
+			trustListNeedsOtp: true,
+			trustAddFails: true,
+			trustList: { "@classicy/classicy": "push.yml (robbiebyrd/classicy)" },
+		});
+		expect(r.status).toBe(1);
+		expect(r.calls).toEqual([
+			"view @classicy/classicy name",
+			"view @classicy/classicy@0.0.0 deprecated",
+			"trust list @classicy/classicy --json",
+			`${trustArgs("@classicy/classicy")} --yes`,
+			"trust list @classicy/classicy",
+		]);
+		expect(r.calls.some((c) => c.includes("revoke"))).toBe(false);
+		expect(r.out).toMatch(/push\.yml \(robbiebyrd\/classicy\)/);
+		expect(r.out).toMatch(/re-run with the remaining package\.json files only/);
 	});
 
 	it("stops before publishing when npm view fails for any reason but a 404", () => {
