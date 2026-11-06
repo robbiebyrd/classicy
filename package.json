@@ -91,24 +91,24 @@
 		"@analytics/google-tag-manager": "^0.6.0",
 		"@noble/hashes": "^2.2.0",
 		"@plussub/srt-vtt-parser": "^2.0.5",
+		"@tanstack/react-table": "^8.21.3",
 		"@types/howler": "^2.2.13",
 		"analytics": "^0.8.19",
 		"classnames": "^2.5.1",
 		"he": "^1.2.0",
 		"howler": "^2.2.4",
+		"immer": "^11.1.8",
 		"react-json-tree": "^0.20.0",
+		"react-player": "^3.4.0",
 		"screenfull": "^6.0.2",
 		"use-analytics": "^1.1.0",
-		"zod": "^4.4.3"
+		"zod": "^4.4.3",
+		"zustand": "^5.0.14"
 	},
 	"peerDependencies": {
-		"@tanstack/react-table": "^8.21.3",
 		"@types/react": "^18.0.0 || ^19.0.0",
-		"immer": "^11.1.8",
 		"react": "^18.0.0 || ^19.0.0",
-		"react-dom": "^18.0.0 || ^19.0.0",
-		"react-player": "^3.4.0",
-		"zustand": "^5.0.14"
+		"react-dom": "^18.0.0 || ^19.0.0"
 	},
 	"peerDependenciesMeta": {
 		"@types/react": {
@@ -123,7 +123,6 @@
 		"@biomejs/biome": "^2.5.0",
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
 		"@mdxeditor/editor": "^3.55.0",
-		"@tanstack/react-table": "^8.21.3",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
@@ -137,7 +136,6 @@
 		"barrelsby": "^2.8.1",
 		"concurrently": "^9.2.3",
 		"husky": "^9.1.7",
-		"immer": "^11.1.8",
 		"jsdom": "^29.1.1",
 		"lint-staged": "^17.0.7",
 		"nodemon": "^3.1.14",
@@ -145,7 +143,6 @@
 		"playwright": "1.57.0",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"react-player": "^3.4.0",
 		"sass": "^1.101.0",
 		"ts-node": "^10.9.2",
 		"tsc-alias": "^1.8.17",
@@ -154,8 +151,7 @@
 		"vite-plugin-dts": "^4.5.4",
 		"vite-plugin-image-tools": "^3.1.3",
 		"vite-plugin-react-rich-svg": "^1.3.0",
-		"vitest": "^5.0.0",
-		"zustand": "^5.0.14"
+		"vitest": "^5.0.0"
 	},
 	"volta": {
 		"node": "24.12.0"

@@ -92,11 +92,12 @@ function injectCssPlugin(): Plugin {
 	};
 }
 
-// Packages that must resolve to a single shared instance in the consumer's
-// app (zustand, most notably -- bundling it would create a second store
-// realm) or that are large enough to not belong inlined in a UI library.
+// Packages that must resolve to one shared instance (zustand, most notably --
+// bundling it would create a second store realm) or that are large enough to not belong inlined in a UI library.
 // Matched by exact specifier or "<pkg>/<subpath>" so subpath imports (e.g.
-// zustand/middleware, react-player/lazy providers) are externalized too.
+// zustand/middleware, react-player/lazy providers) are externalized too. The
+// last four are the core's own dependencies (not peers): the package manager
+// installs them and dedupes them against a host's copies when in range.
 //
 // DO NOT add "@mdxeditor/editor" here. It pulls in @lexical/code -> prismjs,
 // and prismjs's language files (prism-clike.js et al) are plain scripts that

@@ -28,6 +28,8 @@ const pkg = JSON.parse(read("package.json")) as {
 	files: string[];
 	sideEffects: string[];
 	scripts: Record<string, string>;
+	dependencies: Record<string, string>;
+	peerDependencies: Record<string, string>;
 };
 
 // The core publishes as @classicy/classicy from 3.0.0 on (plan 0014-ahm). Only
@@ -55,6 +57,27 @@ describe("package.json: the npm name", () => {
 		expect(viteConfig).toMatch(
 			/fileName: \(format\) => `classicy\.\$\{format\}\.js`,/,
 		);
+	});
+});
+
+// Classicy's own implementation details are dependencies, so a host installs
+// only react, react-dom and the two Classicy packages (story 0157-veo).
+describe("package.json: dependencies and peers", () => {
+	it("lists only react, react-dom and the optional @types/react as peers", () =>
+		expect(Object.keys(pkg.peerDependencies).sort()).toEqual([
+			"@types/react",
+			"react",
+			"react-dom",
+		]));
+
+	it("depends on react-table, immer, react-player and zustand", () => {
+		for (const name of [
+			"@tanstack/react-table",
+			"immer",
+			"react-player",
+			"zustand",
+		])
+			expect(pkg.dependencies[name], name).toBeDefined();
 	});
 });
 
