@@ -720,15 +720,20 @@ Start with [Install and build](#install-and-build).
   own themes may name any plain filename.
 
   A filename is unique within its package only. A bare filename means the
-  theme's own package's wallpaper (then the active package's, then
-  Platinum's). Another package's is written to theme files as
+  theme's own package's wallpaper (then Platinum's, then the active
+  package's). Another package's is written to theme files as
   `<package>|<file>` (`"platinum|default.png"` in a theme of another
-  package), and stored and persisted that way where its bare filename would
-  render a different wallpaper, so two packages that register the same
-  filename stay two wallpapers. **Theme files may now hold `<package>|<file>`**; an older build
+  package). A theme stores and persists a wallpaper bare when it is its own
+  package's, or Platinum's and its package has no file of that name, and
+  qualified otherwise, never depending on the active package, so two
+  packages that register the same filename stay two wallpapers and a stored
+  theme renders the same image whichever package is active. **Theme files may now hold `<package>|<file>`**; an older build
   refuses such a file. Importing a bare filename the theme's package does not
-  register pins it to the package that does, so it renders; a reference no
-  package registers is refused. A wallpaper `file` may no longer contain `|`.
+  register pins it to the first of Platinum, the importing host's active
+  package, then the other packages in registration order that registers it,
+  so it renders (with two other packages sharing the filename, the pick
+  depends on the importing host); a reference no package registers is
+  refused. A wallpaper `file` may no longer contain `|`.
   Bare filenames, Platinum's included, are never rewritten, so a
   Platinum-only host's saved state and theme files are unchanged.
 
