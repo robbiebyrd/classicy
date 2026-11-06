@@ -413,6 +413,30 @@ Start with [Install and build](#install-and-build).
   own image under it, for example
   `registerClassicyIcons({ system: { bomb } })`. The 2.1.7 images are in that
   release's source, under `assets/img/`.
+- **Thirteen more icon paths are gone: Platinum's files left the core's
+  `assets/`.** The files Platinum alone read (its sound sprites, its 47
+  wallpapers, and the art and cursors below) moved into the Platinum package,
+  `packages/appearance/platinum/assets/`, so the core ships none of them and
+  its icon tree drops their paths. `ClassicyIcons.system.apple` is a type
+  error and `undefined` at runtime, and
+  `useClassicyAsset("icons", "system.apple")` returns `undefined`. *Who:*
+  hosts that read one of these paths. *Migrate:* read what Platinum
+  registers in its place, the same image:
+
+  | Removed icon path | Read instead |
+  |---|---|
+  | `system.apple` | `resolveClassicyAsset("systemArt", "appleMenu")` |
+  | `system.alias` | `resolveClassicyAsset("systemArt", "aliasBadge")` |
+  | `system.desktop.trashEmpty`, `system.desktop.trashFull` | `resolveClassicyAsset("systemArt", "trashEmpty")`, `"trashFull"` |
+  | `ui.helpButton` | `resolveClassicyAsset("systemArt", "helpButton")` |
+  | `ui.cursors.watch`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | `resolveClassicyAsset("cursors", role)`, the role of the same name |
+  | `controlPanels.appearanceManager.platinum` | `getClassicyAppearancePackage("platinum")?.icon` |
+
+  In a component, read them with `useClassicyAsset`. They resolve once
+  Platinum is imported. `classicy.logo`, `system.macosSvg`,
+  `ui.halftoneLarge` and `ui.cursors.hand` stay in the icon tree, because the
+  core draws them too. Saved state is unaffected: themes hold wallpapers by
+  filename, and 2.x `data:` URIs and older hashed URLs still map to them.
 - **`useClassicyCursor` takes a cursor role, and ten cursor names are gone.**
   `setCursor(name)` took any key of `ClassicyIcons.ui.cursors` (18 names). It
   now takes a `ClassicyCursorRole` (13 roles), read from the cursor registry

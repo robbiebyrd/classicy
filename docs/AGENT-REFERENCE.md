@@ -1402,10 +1402,10 @@ Two things changed for code that registered or read icons:
   through `useClassicyAsset('icons', path)` or
   `resolveClassicyAsset('icons', path)`, not the constant; keep the typed value
   `registerClassicyIcons` returns if you want autocomplete.
-- **System art and cursors moved out of the icon tree.** Platinum copies these
-  icon paths into system art and cursors when `platinumAssets.ts` loads, and
-  every consumer now reads the system-art key or cursor role, so registering
-  the icon path no longer changes what is drawn:
+- **System art and cursors moved out of the icon tree.** Platinum registers
+  these as system art and cursors when `platinumAssets.ts` loads, and every
+  consumer now reads the system-art key or cursor role, so registering the
+  icon path no longer changes what is drawn:
 
 | Icon path | Now drawn from | Register with |
 |---|---|---|
@@ -1419,9 +1419,10 @@ Two things changed for code that registered or read icons:
 | `ui.cursors.watch`, `hand`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | the cursor role of the same name | `registerClassicyCursors(pkg, { watch, hand, … })` |
 
 `pkg` is `"platinum"` to replace Platinum's art, or your own package's id for
-art only that package uses (reads fall back to `"platinum"`). The icon
-paths stay registered, so reading them still works: the PDF viewer's pan-tool
-button, for one, still draws the `ui.cursors.hand` icon. The screen saver's
+art only that package uses (reads fall back to `"platinum"`). Three of
+these icon paths stay registered, because the core draws their files too:
+`classicy.logo`, `system.macosSvg` and `ui.cursors.hand` (the PDF viewer's
+pan-tool button draws it). The others are gone (below). The screen saver's
 built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
 with `registerClassicyScreenSaverLogo`.
 
@@ -1441,9 +1442,25 @@ with `registerClassicyScreenSaverLogo`.
 | `ui.stripe` | None. It is a diagonal hatch; the title-bar stripes are system art `windowStripes`, a different, horizontal pattern |
 | `ui.tab` | Nearest: system art `tabOutline`, the same tab shape drawn as an open outline in `currentColor` rather than filled |
 
+- **Thirteen more icon paths are gone (3.0).** Platinum was the only reader of
+  their files, which moved out of the core's `assets/` into the Platinum
+  package (`packages/appearance/platinum/assets/`, plan 0015 §3.3), so the
+  core's icon tree no longer has them. Read the replacement, which Platinum
+  registers with the same file:
+
+| Removed icon path | Read instead |
+|---|---|
+| `system.apple` | system art `appleMenu` |
+| `system.alias` | system art `aliasBadge` |
+| `system.desktop.trashEmpty`, `system.desktop.trashFull` | system art `trashEmpty`, `trashFull` |
+| `ui.helpButton` | system art `helpButton` |
+| `ui.cursors.watch`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | the cursor role of the same name |
+| `controlPanels.appearanceManager.platinum` | the Platinum package's `icon` (`getClassicyAppearancePackage("platinum")?.icon`), the same image |
+
 Read system art with `useClassicyAsset('systemArt', key)`,
 `resolveClassicyAsset('systemArt', key)`, or `var(--classicy-art-<key>)` in
-CSS inside a desktop ("System art", below).
+CSS inside a desktop ("System art", below); a cursor with
+`resolveClassicyAsset('cursors', role)` or `useClassicyCursor`.
 
 ### Migrating to the shared vocabulary (breaking change)
 
@@ -4602,7 +4619,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   ```
 
   A bundled pack does the same at build time with
-  `new URL('./x.ogg', import.meta.url)`, as the Platinum pack does.
+  `new URL('./x.ogg', import.meta.url)` or asset imports. The Platinum pack
+  imports its four files (`packages/appearance/platinum/assets/sounds/platinum/`),
+  which its build emits in `dist/assets/`.
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
   (registration order), `subscribeClassicySoundPacks(listener)` and the live
@@ -4642,7 +4661,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   disabled list and defaults to the current one). The provider builds its
   Howls through `ClassicySoundLoad` (which calls `createSoundPlayer`).
 - `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
-  `assets/sounds/<name>/sprites/` directory and writes `<name>.json` plus the
+  `packages/appearance/platinum/assets/sounds/<name>/sprites/` directory (the
+  default; the core ships no sprites) and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
   `src` is resolved.

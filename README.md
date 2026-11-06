@@ -51,8 +51,9 @@ links `@classicy/classicy/dist/classicy-platinum.fonts.css` in its place (below)
 not reflect later `registerClassicyIcons` calls (`ClassicyIcons.myApp.icon` is
 `undefined` at runtime), so read icons through `useClassicyAsset` (in a
 component) or `resolveClassicyAsset` (elsewhere), never the constant. And
-Platinum copies these icon paths into system art and cursors when it loads, so
-registering them under `registerClassicyIcons` no longer changes what is drawn.
+Platinum draws these as system art and cursors, so registering them under
+`registerClassicyIcons` no longer changes what is drawn (most of them are gone
+from the icon tree, below).
 Register the replacement instead:
 
 | Icon path you used to register | Register now |
@@ -79,6 +80,19 @@ that release's `assets/img/`):
 | `ui.menuDropdownArrows` | System art `popupArrows` (the same arrows, in `currentColor`) |
 | `ui.stripe` | None (a diagonal hatch; the title-bar stripes, system art `windowStripes`, are a different pattern) |
 | `ui.tab` | Nearest: system art `tabOutline` (the same shape as an open outline, not filled) |
+
+Thirteen more icon paths are gone in 3.0: their files were Platinum's alone,
+and moved into the Platinum package. Read what Platinum registers in their
+place, the same image (`useClassicyAsset` or `resolveClassicyAsset`):
+
+| Removed icon path | Read instead |
+|---|---|
+| `system.apple` | system art `appleMenu` |
+| `system.alias` | system art `aliasBadge` |
+| `system.desktop.trashEmpty`, `system.desktop.trashFull` | system art `trashEmpty`, `trashFull` |
+| `ui.helpButton` | system art `helpButton` |
+| `ui.cursors.watch`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | the cursor role of the same name |
+| `controlPanels.appearanceManager.platinum` | the Platinum package's `icon` (`getClassicyAppearancePackage("platinum")?.icon`) |
 
 `docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
 
