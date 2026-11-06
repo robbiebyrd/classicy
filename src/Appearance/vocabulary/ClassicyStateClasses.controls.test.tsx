@@ -37,7 +37,6 @@ vi.mock(
 		useClassicyAnalytics: () => ({ track: vi.fn() }),
 	}),
 );
-vi.mock("@img/ui/tab.svg?base64", () => ({ default: "" }));
 
 const driveFixtures = [
 	{

@@ -15,7 +15,6 @@ vi.mock(
 	}),
 );
 
-vi.mock("@img/ui/tab.svg?base64", () => ({ default: "" }));
 vi.mock("@/SystemFolder/SystemResources/Tabs/ClassicyTabs.scss", () => ({}));
 
 const tabs = [

@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -148,7 +149,7 @@ describe("the core's icon tree", () => {
 
 	it("names only files that exist: every leaf resolves", () => {
 		const all = leaves(ClassicyIcons);
-		expect(all.length).toBeGreaterThan(300);
+		expect(all.length).toBeGreaterThan(250);
 		expect(
 			all.filter(([, value]) => typeof value !== "string" || value === ""),
 		).toEqual([]);
@@ -162,5 +163,118 @@ describe("the core's icon tree", () => {
 			"ui.cursors.hand",
 		])
 			expect(resolveClassicyAsset("icons", dotted), dotted).toMatch(/\S/);
+	});
+});
+
+/**
+ * Dead art leaves the core (story 0150-jga). ClassicyIcons' eager globs inline
+ * every file under assets/img/icons and assets/img/ui, so a file the icon tree
+ * does not name still lands in the bundle as a data URI. Each tracked file under
+ * assets/img is therefore either named by the icon tree (`icon("…")` /
+ * `ui("…")` in ClassicyIcons.ts), read by another file listed here with its
+ * reason, or not shipped at all and listed with that reason.
+ */
+const ICONS_SOURCE = readFileSync(
+	"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts",
+	"utf8",
+);
+
+/** Files read outside the icon tree: the reader must still name the file. */
+const OTHER_READERS: Record<string, { reader: string; reason: string }> = {
+	"assets/img/apps/quicktime/sample-picture.jpg": {
+		reader: "src/SystemFolder/QuickTime/PictureViewer/PictureViewer.tsx",
+		reason: "the Picture Viewer's sample document, imported ?inline",
+	},
+};
+
+/** Files no glob reaches, so no bundle ships them. */
+const NOT_SHIPPED: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
+	{
+		pattern:
+			/^assets\/img\/(android-icon|apple-touch-icon|ms-icon|icon)(-\d+x\d+)?\.png$|^assets\/img\/apple-touch-icon\.png$/,
+		reason:
+			"the favicon set: it sits outside both globs and outside package.json files",
+	},
+];
+
+const REMOVED_ORPHAN_FILES = [
+	"assets/img/PlatinumClickLaunch.png",
+	"assets/img/ui/stripe.svg",
+	"assets/img/ui/tab.svg",
+	"assets/img/ui/halftone-small.png",
+	"assets/img/ui/menu-dropdown-arrows.svg",
+	"assets/img/ui/sad-mac.png",
+	"assets/img/ui/cursors/cursor-resize-ld.png",
+	"assets/img/icons/system/bomb.svg",
+	"assets/img/icons/system/files/font.png",
+	"assets/img/icons/system/files/messages.png",
+	...[
+		"add",
+		"eyedropper",
+		"hand-counting",
+		"highlight",
+		"menu",
+		"plus",
+		"precision",
+		"rom",
+		"shortcut",
+		"spin",
+	].map((name) => `assets/img/ui/cursors/cursor-${name}.png`),
+];
+
+const REMOVED_ORPHAN_ICON_PATHS = [
+	"ui.cursors.add",
+	"ui.cursors.eyedropper",
+	"ui.cursors.handCounting",
+	"ui.cursors.highlight",
+	"ui.cursors.menu",
+	"ui.cursors.plus",
+	"ui.cursors.precision",
+	"ui.cursors.rom",
+	"ui.cursors.shortcut",
+	"ui.cursors.spin",
+];
+
+describe("the core ships no unread image", () => {
+	// A long path wraps onto its own line, so allow whitespace after the paren.
+	const calls = (fn: string, path: string): boolean =>
+		new RegExp(
+			`\\b${fn}\\(\\s*"${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
+		).test(ICONS_SOURCE);
+	const named = (file: string): boolean => {
+		const icon = file.match(/^assets\/img\/icons\/(.+)$/);
+		if (icon) return calls("icon", icon[1]);
+		const ui = file.match(/^assets\/img\/ui\/(.+)$/);
+		return ui ? calls("ui", ui[1]) : false;
+	};
+
+	it.each(
+		tracked("assets/img"),
+	)("%s is read, or listed with a reason", (file) => {
+		if (named(file)) return;
+		const other = OTHER_READERS[file];
+		if (other) {
+			expect(readFileSync(other.reader, "utf8"), other.reason).toContain(
+				file.split("/").slice(-1)[0],
+			);
+			return;
+		}
+		expect(
+			NOT_SHIPPED.some(({ pattern }) => pattern.test(file)),
+			`${file} is shipped but nothing reads it`,
+		).toBe(true);
+	});
+
+	it.each(REMOVED_ORPHAN_FILES)("deleted %s", (file) => {
+		expect(tracked(file)).toEqual([]);
+	});
+
+	it.each(REMOVED_ORPHAN_ICON_PATHS)("has no entry %s", (dotted) => {
+		expect(leaf(ClassicyIcons, dotted)).toBeUndefined();
+		expect(resolveClassicyAsset("icons", dotted)).toBeUndefined();
+	});
+
+	it("keeps ui.cursors.hand, the PDF viewer's pan tool", () => {
+		expect(ClassicyIcons.ui.cursors.hand).toMatch(/cursor-hand/);
 	});
 });

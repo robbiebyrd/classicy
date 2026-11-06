@@ -508,17 +508,7 @@ export const ClassicyIcons = {
 		halftoneLarge: ui("halftone-large.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),
 		cursors: {
-			add: ui("cursors/cursor-add.png"),
-			eyedropper: ui("cursors/cursor-eyedropper.png"),
-			handCounting: ui("cursors/cursor-hand-counting.png"),
 			hand: ui("cursors/cursor-hand.png"),
-			highlight: ui("cursors/cursor-highlight.png"),
-			menu: ui("cursors/cursor-menu.png"),
-			plus: ui("cursors/cursor-plus.png"),
-			rom: ui("cursors/cursor-rom.png"),
-			shortcut: ui("cursors/cursor-shortcut.png"),
-			spin: ui("cursors/cursor-spin.png"),
-			precision: ui("cursors/cursor-precision.png"),
 		},
 	},
 };

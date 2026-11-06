@@ -88,8 +88,6 @@ import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/Classi
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyWindowFrame } from "@/SystemFolder/SystemResources/Window/ClassicyWindowFrame";
 
-vi.mock("@img/ui/tab.svg?base64", () => ({ default: "" }));
-
 const APP = "Passthrough.app";
 
 const app: ClassicyStoreSystemApp = {
