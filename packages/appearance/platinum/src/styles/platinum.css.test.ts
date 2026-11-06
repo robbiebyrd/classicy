@@ -1546,7 +1546,7 @@ describe("the moved Platinum mixin files", () => {
 		`));
 
 	// The mixins local to a component partial (the Control Strip bevels, the
-	// slider thumb), which the `./appearance/platinum/scss/*` wildcard export
+	// slider thumb), which the package's `./scss/*` wildcard export
 	// also exposes, pinned the same way. The Part B final review matched their
 	// compiled declarations against the originals in ClassicyControlStrip.scss
 	// and ClassicySlider.scss; the slider thumb is included with the normal
