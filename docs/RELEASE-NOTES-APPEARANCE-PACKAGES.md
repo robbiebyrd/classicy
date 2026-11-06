@@ -631,14 +631,19 @@ Start with [Install and build](#install-and-build).
     [`registerApp`](AGENT-REFERENCE.md#app-manifest-registration--registerapp).
 - **Movie Player, Picture Viewer and PDF Viewer come forward** when asked to
   open a file, a file already open included.
-- **Two Appearance Manager tab hooks take new required props.**
-  `useThemesTab` requires `packageId` and `packageName`, the active
-  package's, which the tab names in its label. `useSoundTab` requires
+- **Two Appearance Manager tab hooks take new props.**
+  `useThemesTab` requires `packageName` and takes `packageIcon`, the active
+  package's name and icon, which the tab shows in its label (a generic
+  package glyph when `packageIcon` is absent). `useSoundTab` requires
   `soundPacks`, `soundPack` and `changeSoundPack`, for its new Sound Pack
   pop-up. *Who:* hosts that assemble their own Appearance Manager from these
   hooks. *Migrate:*
-  - For `useThemesTab`, take `packageId` and `packageName` from
-    `useActiveClassicyAppearancePackage()` (its `id` and `name`).
+  - For `useThemesTab`, pass `packageName` and `packageIcon` from
+    `useActiveClassicyAppearancePackage()` (its `name` and `icon`).
+  - `useThemesTab`'s `packageId` prop, in earlier 3.0 builds, is gone: it
+    only chose the label's icon (Platinum's for `"platinum"`, none
+    otherwise). Pass `packageIcon: useActiveClassicyAppearancePackage().icon`
+    instead; a `packageId` passed now is ignored (and a type error).
   - For `useSoundTab`, pass `soundPacks` as `{ id, name }` entries from
     `useClassicySoundPacks()`. The Appearance Manager lists the packs whose
     `packageId` is unset or the active package's. Pass `soundPack` as the
@@ -967,7 +972,7 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
 - The Themes list follows the active package. Load Theme… switches to the
   file's package first.
 - Tab hooks: `usePackagesTab`, `useOptionsTab`, `useMetricsTab`.
-  `useThemesTab` and `useSoundTab` take new required props (see
+  `useThemesTab` and `useSoundTab` take new props (see
   [State, actions and behavior](#state-actions-and-behavior)).
 - [Appearance Manager tabs](AGENT-REFERENCE.md#appearance-manager-tabs).
 
