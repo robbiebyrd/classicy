@@ -29,10 +29,6 @@ import platinumJsonSource from "./platinum.json";
 import platinumCss from "./styles/platinum.scss?inline";
 
 export * from "./assets/platinumAssets";
-export {
-	PLATINUM_WALLPAPERS,
-	platinumWallpaperUrl,
-} from "./assets/platinumWallpapers";
 export * from "./assets/sounds/platinum";
 export * from "./hooks";
 
