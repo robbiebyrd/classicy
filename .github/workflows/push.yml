@@ -129,28 +129,6 @@ jobs:
           git add packages/appearance/platinum/package.json
           git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
 
-      # Push the bump (and sync) commit, retrying after a rebase if main moved,
-      # and only then tag that commit. A failure before this point leaves no
-      # tag, so a re-run bumps from the same version.
-      - name: Push the release commit and tag
-        if: steps.bump_version.outputs.newTag != ''
-        env:
-          TAG: ${{ steps.bump_version.outputs.newTag }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if git push origin HEAD:main; then
-              break
-            fi
-            if [ "$attempt" = 3 ]; then
-              echo "::error::Could not push the release commit to main after 3 attempts; nothing was tagged."
-              exit 1
-            fi
-            git pull --rebase origin main
-          done
-          git tag "$TAG"
-          git push origin "$TAG"
-
       - name: Select release codename
         if: steps.bump_version.outputs.newTag != ''
         id: codename
@@ -176,6 +154,7 @@ jobs:
 
           echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
 
+      # Committed locally, before the tag, so the codename travels in the one push.
       - name: Update release codename in package.json
         if: steps.bump_version.outputs.newTag != '' && steps.codename.outputs.name != ''
         run: |
@@ -184,7 +163,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "ci: set release codename to ${{ steps.codename.outputs.name }} [skip ci]"
-          git push
+
+      # One push, after the version, sync and codename commits, and nothing
+      # pushes after it. The branch and the tag go in a single --atomic push, so
+      # a rejection leaves neither on the remote and a re-run bumps from the
+      # same version. There is deliberately no pull-and-rebase retry: a
+      # rebase would put newer upstream commits under a tag whose dist/ was
+      # built from the old tree, and rebuilding is another ten minutes. If main
+      # moved during the run, fail cleanly and let a re-run start fresh.
+      - name: Push the release commit and tag
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          TAG: ${{ steps.bump_version.outputs.newTag }}
+        run: |
+          set -euo pipefail
+          git tag "$TAG"
+          if ! git push --atomic origin HEAD:main "refs/tags/$TAG"; then
+            echo "::error::Could not push the release commit and tag to main (main moved during the run, or the push was refused). Nothing was pushed or tagged; re-run the workflow to release from the new main."
+            exit 1
+          fi
 
       - name: Create GitHub Release
         if: steps.bump_version.outputs.newTag != ''

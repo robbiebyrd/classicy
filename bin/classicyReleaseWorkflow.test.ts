@@ -65,13 +65,16 @@ describe("push.yml release workflow", () => {
 		expect(header).toMatch(/^ {6}- '!\*\*\/\*\.stories\.tsx'$/m);
 	});
 
-	it("runs the steps in order: bump, sync, tag, codename, release, publish, wait, dispatches", () => {
+	// Story 0141-6kd: the codename is committed before the tag, so the one
+	// push (branch and tag together) is the last thing that touches the remote
+	// before the release is created.
+	it("runs the steps in order: bump, sync, codename, tag, release, publish, wait, dispatches", () => {
 		const order = [
 			/^Bump version/,
 			/Sync the Platinum/,
-			/^Push the release commit and tag/,
 			/^Select release codename/,
 			/^Update release codename/,
+			/^Push the release commit and tag/,
 			/^Create GitHub Release/,
 			/^Publish to npm$/,
 			/^Wait for the release/,
@@ -128,19 +131,51 @@ describe("push.yml release workflow", () => {
 		expect(ifOf(sync)).toContain(HAS_PLATINUM);
 	});
 
-	it("pushes the commit with a rebase-and-retry, then tags that commit", () => {
-		const tag = scriptOf(step(/^Push the release commit and tag/));
-		const push = tag.indexOf("git push origin HEAD:main");
-		const rebase = tag.indexOf("git pull --rebase");
+	it("pushes once, branch and tag together, after the commits are made", () => {
+		const tagStep = step(/^Push the release commit and tag/);
+		const tag = scriptOf(tagStep);
 		const mkTag = tag.indexOf('git tag "$TAG"');
-		const pushTag = tag.indexOf('git push origin "$TAG"');
-		expect(push).toBeGreaterThanOrEqual(0);
-		expect(rebase).toBeGreaterThan(push);
-		// The tag is made only after the commit is on the remote.
-		expect(mkTag).toBeGreaterThan(rebase);
-		expect(pushTag).toBeGreaterThan(mkTag);
+		const push = tag.indexOf("git push --atomic origin HEAD:main");
+		expect(mkTag).toBeGreaterThanOrEqual(0);
+		expect(push).toBeGreaterThan(mkTag);
+		expect(tag).toContain('"refs/tags/$TAG"');
+		expect(tag.match(/git push/g)).toHaveLength(1);
 		expect(tag).toContain("set -euo pipefail");
-		expect(ifOf(step(/^Push the release commit and tag/))).toBe(NEW_TAG);
+		expect(ifOf(tagStep)).toBe(NEW_TAG);
+	});
+
+	it("pushes nothing in any step after the one that tags", () => {
+		const tagStep = step(/^Push the release commit and tag/);
+		for (const s of steps.filter((x) => x.index > tagStep.index)) {
+			expect(s.text, s.name).not.toMatch(/git push/);
+		}
+		// ... and nothing before it pushes either: one push for the release.
+		for (const s of steps.filter((x) => x.index < tagStep.index)) {
+			expect(s.text, s.name).not.toMatch(/git push/);
+		}
+	});
+
+	it("never rebases onto a moved main without rebuilding (it fails instead)", () => {
+		const tagStep = step(/^Push the release commit and tag/);
+		const build = step(/^Build Package/);
+		for (const s of steps) {
+			if (!/git (pull|rebase|merge)/.test(s.text)) continue;
+			// Any step that brings in upstream commits must be followed by a build.
+			expect(
+				steps.some((x) => x.index > s.index && /pnpm build/.test(x.text)),
+				`${s.name} rebases but nothing rebuilds after it`,
+			).toBe(true);
+		}
+		expect(tagStep.text).not.toMatch(/git (pull|rebase|merge)/);
+		expect(build.index).toBeLessThan(tagStep.index);
+	});
+
+	it("commits the codename before the tag is created", () => {
+		const codename = step(/^Update release codename/);
+		const tagStep = step(/^Push the release commit and tag/);
+		expect(codename.index).toBeLessThan(tagStep.index);
+		expect(scriptOf(codename)).toContain("git commit");
+		expect(scriptOf(codename)).not.toContain("git push");
 	});
 
 	it("publishes both packages recursively with pnpm, not JS-DevTools", () => {
@@ -278,5 +313,56 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 		const r = run({ platinum: false, lagFor: {} });
 		expect(r.status).toBe(0);
 		expect(new Set(r.calls)).toEqual(new Set(["@fake/core"]));
+	});
+});
+
+describe("push.yml push step, run against a fake git", () => {
+	const root = mkdtempSync(join(tmpdir(), "classicy-push-"));
+	afterAll(() => rmSync(root, { recursive: true, force: true }));
+	const script = scriptOf(step(/^Push the release commit and tag/));
+
+	const run = (
+		rejectPush: boolean,
+	): { status: number | null; calls: string[]; out: string } => {
+		const dir = mkdtempSync(join(root, "case-"));
+		const bin = join(dir, "bin");
+		mkdirSync(bin);
+		writeFileSync(
+			join(bin, "git"),
+			`#!/bin/bash
+echo "$*" >> "${dir}/calls"
+if [ "$1" = push ] && [ "${rejectPush ? "1" : "0"}" = 1 ]; then exit 1; fi
+exit 0
+`,
+		);
+		chmodSync(join(bin, "git"), 0o755);
+		const r = spawnSync("bash", ["-c", script], {
+			cwd: dir,
+			env: {
+				...process.env,
+				PATH: `${bin}:${process.env.PATH}`,
+				TAG: "v3.0.0",
+			},
+			encoding: "utf8",
+		});
+		const calls = readFileSync(join(dir, "calls"), "utf8").trim().split("\n");
+		return { status: r.status, calls, out: r.stdout + r.stderr };
+	};
+
+	it("tags, then pushes branch and tag in one atomic push", () => {
+		const r = run(false);
+		expect(r.status).toBe(0);
+		expect(r.calls).toEqual([
+			"tag v3.0.0",
+			"push --atomic origin HEAD:main refs/tags/v3.0.0",
+		]);
+	});
+
+	it("fails on a rejected push without pulling, rebasing or retrying", () => {
+		const r = run(true);
+		expect(r.status).toBe(1);
+		expect(r.out).toContain("re-run");
+		expect(r.calls.filter((c) => c.startsWith("push"))).toHaveLength(1);
+		expect(r.calls.some((c) => /pull|rebase|merge/.test(c))).toBe(false);
 	});
 });
