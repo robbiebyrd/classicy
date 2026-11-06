@@ -324,12 +324,15 @@ describe("platinumAppearanceHooks", () => {
 		expect(platinumAppearanceHooks.decorate).toBeUndefined();
 	});
 
-	it("is the Platinum package's hooks, and the library barrel exports it", async () => {
-		await import("@/Appearance/Platinum");
+	it("is the Platinum package's hooks, exported by Platinum's index, not the library barrel", async () => {
+		const platinumIndex: Record<string, unknown> = await import(
+			"@/Appearance/Platinum"
+		);
 		expect(getClassicyAppearancePackage("platinum")?.hooks).toBe(
 			platinumAppearanceHooks,
 		);
+		expect(platinumIndex.platinumAppearanceHooks).toBe(platinumAppearanceHooks);
 		const api: Record<string, unknown> = await import("@/index");
-		expect(api.platinumAppearanceHooks).toBe(platinumAppearanceHooks);
+		expect(api).not.toHaveProperty("platinumAppearanceHooks");
 	}, 60_000);
 });

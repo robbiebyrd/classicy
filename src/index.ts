@@ -16,7 +16,6 @@ export * from "./Appearance/ClassicyPixelArtSource";
 export * from "./Appearance/ClassicyWallpaperIndex";
 export * from "./Appearance/useClassicyAppearance";
 export * from "./Appearance/useClassicyAppearanceLayout";
-export * from "./Appearance/Platinum/index";
 export * from "./Appearance/vocabulary/ClassicyVocabulary";
 export * from "./SystemFolder/ControlPanels/ClassicyControlPanels";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";

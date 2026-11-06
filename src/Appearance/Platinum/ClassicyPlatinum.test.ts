@@ -268,17 +268,24 @@ describe("the Platinum appearance package", () => {
 		expect(resolveClassicyWallpaper("azul_dark.png")).not.toBe("");
 	});
 
-	it("the top barrel re-exports the Platinum entry", () =>
-		expect(readFileSync("src/index.ts", "utf8")).toContain(
-			"./Appearance/Platinum/index",
+	// The core neither imports nor exports Platinum (0015 §1.6): barrelsby
+	// excludes this folder, and Platinum's names come from its own index.
+	it("the top barrel does not re-export the Platinum entry", () =>
+		expect(readFileSync("src/index.ts", "utf8")).not.toContain(
+			"./Appearance/Platinum",
 		));
 
-	it("the library barrel still exports the Platinum sound pack", async () => {
+	it("Platinum's index, not the library barrel, exports the Platinum sound pack", async () => {
 		const api: Record<string, unknown> = await import("@/index");
+		const platinumIndex: Record<string, unknown> = await import(
+			"@/Appearance/Platinum"
+		);
 		const { platinumSoundPack } = await import(
 			"@/Appearance/Platinum/assets/sounds/platinum"
 		);
-		expect(api.platinumSoundPack).toBe(platinumSoundPack);
-		expect(api.PLATINUM_APPEARANCE_PACKAGE_ID).toBe("platinum");
+		expect(platinumIndex.platinumSoundPack).toBe(platinumSoundPack);
+		expect(platinumIndex.PLATINUM_APPEARANCE_PACKAGE_ID).toBe("platinum");
+		expect(api).not.toHaveProperty("platinumSoundPack");
+		expect(api).not.toHaveProperty("PLATINUM_APPEARANCE_PACKAGE_ID");
 	}, 60_000);
 });

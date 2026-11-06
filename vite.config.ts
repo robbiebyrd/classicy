@@ -314,7 +314,8 @@ const config = defineConfig({
 		// deliberately not set. noInlineAppearanceAssetsPlugin uses the per-import
 		// `?no-inline` opt-out to emit package assets under src/Appearance as files.
 		lib: {
-			entry: resolve(__dirname, "src/index.ts"),
+			// The barrel, plus Platinum until it is its own package (see the file).
+			entry: resolve(__dirname, "src/ClassicyLibraryBuild.internal.ts"),
 			formats: ["umd", "es"],
 			name: "classicy",
 			fileName: (format) => `classicy.${format}.js`,

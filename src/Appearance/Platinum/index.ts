@@ -1,10 +1,12 @@
 // The Platinum Appearance Package (Mac OS 8). Importing this module registers
-// it; ClassicyDesktop imports it, so `import "@classicy/classicy"` is enough.
+// it. The core neither imports nor exports it (plan 0015 §1.6): a host, a
+// test (`@/__tests__/withPlatinum`) or Storybook's preview imports it, and
+// the library build's entry (`src/ClassicyLibraryBuild.internal.ts`) bundles
+// it until it ships as its own package.
 //
-// Hand-written, not a barrelsby barrel (it carries no barrelsby header, so
-// `generate-barrels` never purges it). barrelsby treats it as this folder's
-// barrel, so the top barrel re-exports this file in place of the modules
-// below it: re-export their public names here, or src/index.ts loses them.
+// Hand-written, not a barrelsby barrel (it carries no barrelsby header, and
+// `.ts-barrel.json` excludes this folder). Its exports are Platinum's public
+// names, the future `@classicy/appearance-platinum`'s API.
 
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
