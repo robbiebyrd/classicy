@@ -598,27 +598,30 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 	});
 });
 
-describe("a host defaultState seed that names a packageId", () => {
-	const SEED_TWEAKS = { desktop: { iconSize: 64, backgroundColor: 0x112233 } };
-
-	/** Mounts ClassicyAppManagerProvider with `defaultState`, on a first session. */
-	const mountSeeded = async (
-		b: Awaited<ReturnType<typeof boot>>,
-		appearance: Record<string, unknown>,
-	) => {
-		const { ClassicyAppManagerProvider } = await import(
-			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
-		);
-		const defaultState = { System: { Manager: { Appearance: appearance } } };
-		render(
-			<ClassicyAppManagerProvider defaultState={defaultState}>
-				<p>host</p>
-			</ClassicyAppManagerProvider>,
-		);
-		return b.state().System.Manager.Appearance;
+/** Mounts ClassicyAppManagerProvider with `defaultState` (its Appearance). */
+const mountSeeded = async (
+	b: Awaited<ReturnType<typeof boot>>,
+	appearance: Record<string, unknown>,
+	rest: Record<string, unknown> = {},
+) => {
+	const { ClassicyAppManagerProvider } = await import(
+		"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+	);
+	const defaultState = {
+		System: { Manager: { ...rest, Appearance: appearance } },
 	};
+	render(
+		<ClassicyAppManagerProvider defaultState={defaultState}>
+			<p>host</p>
+		</ClassicyAppManagerProvider>,
+	);
+	return b.state().System.Manager.Appearance;
+};
 
-	it("lands the seed's theme tweaks on the named package's defaults", async () => {
+const SEED_TWEAKS = { desktop: { iconSize: 64, backgroundColor: 0x112233 } };
+
+describe("a host defaultState seed that names a packageId", () => {
+	it("forks the seed's theme tweaks on the named package's defaults", async () => {
 		const b = await boot();
 		await import("@/Appearance/Platinum");
 		b.registerFoo();
@@ -627,30 +630,35 @@ describe("a host defaultState seed that names a packageId", () => {
 			activeTheme: SEED_TWEAKS,
 		});
 		expect(appearance.packageId).toBe(FOO);
-		expect(appearance.activeTheme.id).toBe("foo-default");
+		expect(appearance.activeTheme.id).toBe("custom-foo");
 		expect(appearance.activeTheme.package).toBe(FOO);
 		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
 		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
-		// foo's own knob values still come through.
+		// foo's own data and knob values still come through.
+		expect(appearance.activeTheme.sound.pack).toBe(FOO_SOUND);
 		const vars: Record<string, unknown> = b.appearance.getThemeVars(
 			appearance.activeTheme,
 		);
 		expect(vars["--foo-frame-bevel-width"]).toBe("3px");
+		expect(appearance.customThemes?.map((t) => [t.id, t.package])).toEqual([
+			["custom-foo", FOO],
+		]);
 	});
 
-	it("keeps today's behavior for tweaks with no packageId", async () => {
+	it("forks tweaks with no packageId on the default package's theme", async () => {
 		const b = await boot();
 		await import("@/Appearance/Platinum");
 		b.registerFoo();
 		const appearance = await mountSeeded(b, { activeTheme: SEED_TWEAKS });
 		expect(appearance.packageId).toBe("platinum");
-		expect(appearance.activeTheme.id).toBe("default");
+		expect(appearance.activeTheme.id).toBe("custom");
+		expect(appearance.activeTheme.name).toBe("Custom");
 		expect(appearance.activeTheme.package).toBe("platinum");
 		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
 		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
 	});
 
-	it("keeps the live package's theme for tweaks with no packageId", async () => {
+	it("forks tweaks with no packageId on the live package's theme", async () => {
 		const b = await boot();
 		await import("@/Appearance/Platinum");
 		b.registerFoo();
@@ -662,7 +670,7 @@ describe("a host defaultState seed that names a packageId", () => {
 		);
 		const appearance = await mountSeeded(b, { activeTheme: SEED_TWEAKS });
 		expect(appearance.packageId).toBe(FOO);
-		expect(appearance.activeTheme.id).toBe("foo-default");
+		expect(appearance.activeTheme.id).toBe("custom-foo");
 		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
 	});
 
@@ -674,8 +682,306 @@ describe("a host defaultState seed that names a packageId", () => {
 			activeTheme: SEED_TWEAKS,
 		});
 		expect(appearance.packageId).toBe("nope");
-		expect(appearance.activeTheme.id).toBe("default");
+		expect(appearance.activeTheme.id).toBe("custom");
+		expect(appearance.activeTheme.package).toBe("platinum");
 		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
 		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
+	});
+});
+
+describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
+	/** Reloads `saved` in a fresh module graph, as a host boots: the store,
+	 * then Platinum and foo, then the provider with the same seed. */
+	const reload = async (
+		saved: unknown,
+		appearance: Record<string, unknown>,
+	) => {
+		const b = await boot({ saved });
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		await mountSeeded(b, appearance);
+		return b;
+	};
+
+	it("J15: survives a reload, tweaks on the default package", async () => {
+		const seed = { activeTheme: SEED_TWEAKS };
+		const first = await boot();
+		await import("@/Appearance/Platinum");
+		await mountSeeded(first, seed);
+		const saved = first.saved();
+		// Saved whole, as a custom theme, never as the built-in's reference.
+		expect(saved.System.Manager.Appearance.activeTheme.id).toBe("custom");
+		expect(saved.System.Manager.Appearance.activeTheme.desktop.iconSize).toBe(
+			64,
+		);
+		const b = await reload(saved, seed);
+		expect(b.active().id).toBe("custom");
+		expect(b.active().package).toBe("platinum");
+		expect(b.active().desktop.iconSize).toBe(64);
+		expect(b.active().desktop.backgroundColor).toBe(0x112233);
+	});
+
+	it("J15: survives a reload, tweaks on a named package's defaults", async () => {
+		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
+		const first = await boot();
+		await import("@/Appearance/Platinum");
+		first.registerFoo();
+		await mountSeeded(first, seed);
+		const b = await reload(first.saved(), seed);
+		expect(b.active().id).toBe("custom-foo");
+		expect(b.active().package).toBe(FOO);
+		expect(b.active().desktop.iconSize).toBe(64);
+		const vars: Record<string, unknown> = b.appearance.getThemeVars(b.active());
+		expect(vars["--foo-frame-bevel-width"]).toBe("3px");
+	});
+
+	it("J14: moves onto a named package that registers after mount", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		await mountSeeded(b, { packageId: FOO, activeTheme: SEED_TWEAKS });
+		b.registerFoo();
+		const appearance = b.state().System.Manager.Appearance;
+		expect(appearance.activeTheme.id).toBe("custom-foo");
+		expect(appearance.activeTheme.package).toBe(FOO);
+		expect(appearance.activeTheme.sound.pack).toBe(FOO_SOUND);
+		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
+		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
+		const vars: Record<string, unknown> = b.appearance.getThemeVars(
+			appearance.activeTheme,
+		);
+		expect(vars["--foo-frame-bevel-width"]).toBe("3px");
+		// The seed's fork on the default package was never the user's.
+		expect(appearance.customThemes?.map((t) => t.id)).toEqual(["custom-foo"]);
+		// And it persists whole, across a reload.
+		const c = await reload(b.saved(), {
+			packageId: FOO,
+			activeTheme: SEED_TWEAKS,
+		});
+		expect(c.active().id).toBe("custom-foo");
+		expect(c.active().desktop.iconSize).toBe(64);
+	});
+
+	it("J14: moves onto the only package, registered after mount", async () => {
+		const b = await boot();
+		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		b.registerFoo();
+		expect(b.active().id).toBe("custom-foo");
+		expect(b.active().package).toBe(FOO);
+		expect(b.active().desktop.iconSize).toBe(64);
+		expect(
+			b.state().System.Manager.Appearance.customThemes?.map((t) => t.id),
+		).toEqual(["custom-foo"]);
+	});
+
+	it("moves back onto Platinum when it registers after foo", async () => {
+		const b = await boot();
+		b.registerFoo();
+		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		expect(b.active().id).toBe("custom-foo");
+		await import("@/Appearance/Platinum");
+		expect(b.active().id).toBe("custom");
+		expect(b.active().package).toBe("platinum");
+		expect(b.active().desktop.iconSize).toBe(64);
+		expect(strip(b.active().color)).toEqual(
+			strip(b.appearance.getTheme("default").color),
+		);
+	});
+
+	it("follows a stored packageId change, both ways", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		expect(b.active().id).toBe("custom");
+		const setPackageId = (packageId: string) =>
+			act(() =>
+				b.store.useAppManager.setState((state: ClassicyStore) => ({
+					...state,
+					System: {
+						...state.System,
+						Manager: {
+							...state.System.Manager,
+							Appearance: { ...state.System.Manager.Appearance, packageId },
+						},
+					},
+				})),
+			);
+		setPackageId(FOO);
+		expect(b.active().id).toBe("custom-foo");
+		expect(
+			b.state().System.Manager.Appearance.customThemes?.map((t) => t.id),
+		).toEqual(["custom-foo"]);
+		expect(b.active().sound.pack).toBe(FOO_SOUND);
+		expect(b.active().desktop.iconSize).toBe(64);
+		setPackageId("platinum");
+		expect(b.active().id).toBe("custom");
+		expect(b.active().desktop.iconSize).toBe(64);
+		expect(
+			b.state().System.Manager.Appearance.customThemes?.map((t) => t.id),
+		).toEqual(["custom"]);
+	});
+
+	it("still follows the drawn package after its wallpaper is healed", async () => {
+		const b = await boot();
+		await mountSeeded(b, {
+			activeTheme: {
+				...SEED_TWEAKS,
+				desktop: {
+					...SEED_TWEAKS.desktop,
+					backgroundImage: "/x/azul_dark.png",
+				},
+			},
+		});
+		expect(b.active().id).toBe("custom");
+		// Platinum's registration stores the wallpaper by its filename: a
+		// new object, still the seed's fork.
+		await import("@/Appearance/Platinum");
+		expect(b.active().desktop.backgroundImage).toBe("azul_dark.png");
+		b.registerFoo();
+		act(() =>
+			b.store.useAppManager.setState((state: ClassicyStore) => ({
+				...state,
+				System: {
+					...state.System,
+					Manager: {
+						...state.System.Manager,
+						Appearance: { ...state.System.Manager.Appearance, packageId: FOO },
+					},
+				},
+			})),
+		);
+		expect(b.active().id).toBe("custom-foo");
+		expect(b.active().desktop.iconSize).toBe(64);
+	});
+
+	it("writes nothing when the fork's package re-registers unchanged", async () => {
+		const b = await boot();
+		b.registerFoo();
+		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		expect(b.active().id).toBe("custom-foo");
+		const writes: unknown[] = [];
+		const unsubscribe = b.store.useAppManager.subscribe((state: unknown) =>
+			writes.push(state),
+		);
+		b.registry.registerClassicyAppearancePackage(fooPackage());
+		unsubscribe();
+		expect(writes).toEqual([]);
+		expect(b.active().id).toBe("custom-foo");
+	});
+
+	it("keeps a theme the user chose after the seed", async () => {
+		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		await mountSeeded(b, seed);
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeTheme",
+				activeTheme: "azul",
+			}),
+		);
+		b.registerFoo();
+		expect(b.active().id).toBe("azul");
+		const c = await reload(b.saved(), seed);
+		expect(c.active().id).toBe("azul");
+		expect(c.active().desktop.iconSize).not.toBe(64);
+	});
+
+	it("keeps the user's edit of the seed's fork", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		await mountSeeded(b, { packageId: FOO, activeTheme: SEED_TWEAKS });
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeColor",
+				colorKey: "outline",
+				color: 0x123456,
+			}),
+		);
+		b.registerFoo();
+		expect(b.active().id).toBe("custom");
+		expect(b.active().package).toBe("platinum");
+		expect(b.active().color.outline).toBe(0x123456);
+		expect(b.active().desktop.iconSize).toBe(64);
+	});
+
+	it("keeps a seed that names its theme's package on that package", async () => {
+		const b = await boot();
+		b.registerFoo();
+		await mountSeeded(b, { activeTheme: { ...SEED_TWEAKS, package: FOO } });
+		expect(b.active().id).toBe("custom-foo");
+		// Platinum is drawn now (packageId "platinum"); the pinned fork stays.
+		await import("@/Appearance/Platinum");
+		expect(b.active().id).toBe("custom-foo");
+		expect(b.active().package).toBe(FOO);
+		expect(b.active().sound.pack).toBe(FOO_SOUND);
+		expect(b.active().desktop.iconSize).toBe(64);
+	});
+
+	it("leaves a seed without tweaks to the drawn-package rule", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		await mountSeeded(b, { activeTheme: { id: "default" } });
+		act(() =>
+			b.store.useAppManager.setState((state: ClassicyStore) => ({
+				...state,
+				System: {
+					...state.System,
+					Manager: {
+						...state.System.Manager,
+						Appearance: { ...state.System.Manager.Appearance, packageId: FOO },
+					},
+				},
+			})),
+		);
+		expect(strip(b.active())).toEqual(strip(b.fooDefaults()));
+		expect(b.state().System.Manager.Appearance.customThemes).toEqual([]);
+	});
+
+	it.each([
+		["no theme in the seed", {}, { Desktop: { disableBalloonHelp: true } }],
+		[
+			"theme values the theme already has",
+			{ activeTheme: { id: "default" } },
+			{},
+		],
+	])("creates no custom theme for %s", async (_name, appearance, rest) => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		const before = b.saved();
+		const after = await mountSeeded(b, appearance, rest);
+		expect(after.activeTheme.id).toBe("default");
+		expect(after.customThemes).toEqual([]);
+		const saved = b.saved().System.Manager.Appearance;
+		expect(saved.activeTheme).toEqual(
+			before.System.Manager.Appearance.activeTheme,
+		);
+		expect(saved.customThemes).toEqual([]);
+	});
+
+	it("keeps a seeded theme with an id of its own whole, never forked", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		const after = await mountSeeded(b, {
+			activeTheme: { ...SEED_TWEAKS, id: "host-blue", name: "Host Blue" },
+		});
+		expect(after.activeTheme.id).toBe("host-blue");
+		expect(after.customThemes).toEqual([]);
+	});
+
+	it("saves the same bytes for a host with no seed", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		const before = JSON.stringify(b.saved());
+		const { ClassicyAppManagerProvider } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		render(
+			<ClassicyAppManagerProvider>
+				<p>host</p>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(JSON.stringify(b.saved())).toBe(before);
 	});
 });

@@ -10,8 +10,12 @@ import {
 import { connectClassicyAssetPackageSource } from "@/Appearance/ClassicyAssetPackageSource.internal";
 import { withPortableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-import type { ClassicyTheme } from "../AppearanceManager/ClassicyAppearance";
+import type {
+	ClassicyStoreSystemAppearanceManager,
+	ClassicyTheme,
+} from "../AppearanceManager/ClassicyAppearance";
 import {
+	activatableClassicyPackageTheme,
 	type ClassicyThemeReference,
 	classicyBuiltInThemeReference,
 	drawnClassicyPackageDefaults,
@@ -19,6 +23,10 @@ import {
 	knownClassicyThemePackage,
 	refreshedClassicyActiveTheme,
 } from "../AppearanceManager/ClassicyBuiltInThemes.internal";
+import {
+	cloneClassicyTheme,
+	editActiveClassicyTheme,
+} from "../AppearanceManager/ClassicyCustomTheme";
 import {
 	classicyThemeMeasurementDefaults,
 	withoutDefaultThemeMeasurements,
@@ -214,6 +222,143 @@ export const withSeededPackageDefaults = (
 	};
 };
 
+/**
+ * The custom theme a host's `defaultState` seed forked its theme tweaks into
+ * (`withClassicyDefaultStateSeed`), while it is the active theme as the seed
+ * left it (by identity: an edit, ChangeTheme or package switch makes a new
+ * object, which is the user's), with the seed's `activeTheme` overrides, so
+ * the fork can follow the drawn package (`seededThemeOnDrawnPackage`).
+ * Session-only: a reload loads the fork whole, as any custom theme.
+ */
+let seededThemeFork: {
+	theme: ClassicyTheme;
+	overrides: DeepPartial<ClassicyTheme>;
+} | null = null;
+
+/** The package a theme belongs to; a theme naming none is the default's. */
+const themePackageOf = (theme: Pick<ClassicyTheme, "package">): string =>
+	theme.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+
+/**
+ * `seed` merged over `base` (`mergeClassicyState`), with the active theme
+ * forked into its package's Custom slot (`editActiveClassicyTheme`, as the
+ * first edit of a built-in forks it) when the seed changed the theme's data
+ * but not its id: merged as is, the tweaks would sit on a built-in, which is
+ * saved as its reference (story 0148-wf3). A seed that leaves the theme as it
+ * is, or gives it an id of its own (a host theme, saved whole), is merged as
+ * is. A fork is noted in `seededThemeFork`; a seed that names its theme's
+ * `package` pins the fork there, so it never follows the drawn package.
+ */
+const withForkedSeedTheme = (
+	base: ClassicyStore,
+	seed: DeepPartial<ClassicyStore>,
+): ClassicyStore => {
+	const merged = mergeClassicyState(base, seed);
+	const overrides = seed.System?.Manager?.Appearance?.activeTheme;
+	const plain = mergeClassicyState(base, {}).System.Manager.Appearance
+		.activeTheme;
+	const tweaked = merged.System.Manager.Appearance.activeTheme;
+	if (
+		!overrides ||
+		!plain ||
+		!tweaked ||
+		tweaked.id !== plain.id ||
+		JSON.stringify(tweaked) === JSON.stringify(plain)
+	) {
+		return merged;
+	}
+	const forked = produce(merged, (draft) => {
+		const appearance = draft.System.Manager.Appearance;
+		appearance.activeTheme = castDraft(cloneClassicyTheme(plain));
+		editActiveClassicyTheme(
+			appearance as ClassicyStoreSystemAppearanceManager,
+			(theme) => {
+				const target = theme as unknown as Record<string, unknown>;
+				for (const key of Object.keys(target)) delete target[key];
+				Object.assign(target, cloneClassicyTheme(tweaked));
+			},
+		);
+	});
+	seededThemeFork =
+		"package" in overrides
+			? null
+			: {
+					theme: forked.System.Manager.Appearance.activeTheme,
+					overrides: JSON.parse(JSON.stringify(overrides)),
+				};
+	return forked;
+};
+
+/**
+ * `state` with a host's `defaultState` seed applied, as the provider applies
+ * it on a first session: over the live state with its default knob families
+ * dropped (`withoutDefaultActiveThemeMeasurements`, as the load path merges
+ * saved state: the merge is deep, H-R17), whose active theme is the named
+ * package's defaults when the seed names a `packageId`
+ * (`withSeededPackageDefaults`), with theme tweaks forked into a custom theme
+ * (`withForkedSeedTheme`), so they persist whole and survive a reload.
+ * @internal
+ */
+export const withClassicyDefaultStateSeed = (
+	state: ClassicyStore,
+	seed: DeepPartial<ClassicyStore>,
+): ClassicyStore => {
+	seededThemeFork = null;
+	return withForkedSeedTheme(
+		withoutDefaultActiveThemeMeasurements(
+			withSeededPackageDefaults(state, seed),
+		),
+		seed,
+	);
+};
+
+/**
+ * The seed's fork moved onto the package the desktop now draws, or
+ * `undefined` when it stays: while the active theme is the fork as the seed
+ * left it (`seededThemeFork`) and its package is not the drawn one (a seeded
+ * `packageId`, or the only package, registered after mount: 0127-qvl J14),
+ * the seed's overrides are merged over the drawn package's defaults
+ * (completed as a switch completes them) and forked into its Custom slot,
+ * replacing the old fork, which was never the user's. The same rule as
+ * `drawnClassicyPackageDefaults`, which never matches a custom theme, for
+ * the seed's custom theme.
+ */
+const seededThemeOnDrawnPackage = (
+	state: ClassicyStore,
+):
+	| Pick<ClassicyStoreSystemAppearanceManager, "activeTheme" | "customThemes">
+	| undefined => {
+	const fork = seededThemeFork;
+	const appearance = state.System.Manager.Appearance;
+	if (!fork || appearance.activeTheme !== fork.theme) return undefined;
+	const drawn = getRegisteredClassicyAppearancePackageOrDefault(
+		appearance.packageId,
+	);
+	if (!drawn || drawn.id === themePackageOf(fork.theme)) return undefined;
+	const base = withoutDefaultActiveThemeMeasurements({
+		...state,
+		System: {
+			...state.System,
+			Manager: {
+				...state.System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme: activatableClassicyPackageTheme(drawn, drawn.defaults),
+					customThemes: appearance.customThemes?.filter(
+						(t) =>
+							t.id !== fork.theme.id ||
+							themePackageOf(t) !== themePackageOf(fork.theme),
+					),
+				},
+			},
+		},
+	});
+	const next = withForkedSeedTheme(base, {
+		System: { Manager: { Appearance: { activeTheme: fork.overrides } } },
+	}).System.Manager.Appearance;
+	return { activeTheme: next.activeTheme, customThemes: next.customThemes };
+};
+
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
 
@@ -388,6 +533,7 @@ let drawnPackageId = drawnPackageIdOf(
  * re-registers, or leaves), in one store write and only when something
  * changes: the active built-in (`refreshedActiveBuiltInTheme`), another
  * package's defaults by the drawn package's (`drawnClassicyPackageDefaults`),
+ * a seed's fork moved onto the drawn package (`seededThemeOnDrawnPackage`),
  * and the wallpapers of every theme (active, host-loaded or custom) of a package
  * that just registered. A wallpaper saved before its package registered (a
  * `data:` URI from an inlining build, an older build's URL) could not be
@@ -396,21 +542,29 @@ let drawnPackageId = drawnPackageIdOf(
  */
 const refreshThemesOnRegistration = (): void => {
 	const registered = takeNewlyRegisteredPackageIds();
-	const appearance = useAppManager.getState().System.Manager.Appearance;
+	const state = useAppManager.getState();
+	const appearance = state.System.Manager.Appearance;
 	drawnPackageId = drawnPackageIdOf(appearance);
+	const seeded = seededThemeOnDrawnPackage(state);
 	const refreshed =
-		refreshedActiveBuiltInTheme(appearance) ?? appearance.activeTheme;
+		seeded?.activeTheme ??
+		refreshedActiveBuiltInTheme(appearance) ??
+		appearance.activeTheme;
 	const activeTheme = withHealedWallpaper(
-		drawnClassicyPackageDefaults({ ...appearance, activeTheme: refreshed }) ??
-			refreshed,
+		drawnClassicyPackageDefaults({
+			...appearance,
+			activeTheme: refreshed,
+			customThemes: seeded?.customThemes ?? appearance.customThemes,
+		}) ?? refreshed,
 		registered,
 	);
+	if (seededThemeFork?.theme === refreshed) seededThemeFork.theme = activeTheme;
 	const availableThemes = withHealedWallpapers(
 		appearance.availableThemes,
 		registered,
 	);
 	const customThemes = withHealedWallpapers(
-		appearance.customThemes,
+		seeded ? seeded.customThemes : appearance.customThemes,
 		registered,
 	);
 	if (
@@ -441,7 +595,8 @@ subscribeClassicyAppearancePackages(refreshThemesOnRegistration);
  * When the package the desktop draws changes through the store (a
  * `packageId` written by a provider's `defaultState` seed, a reset, a
  * switch), an active theme that is another package's defaults gives way to
- * the drawn package's, in one store write. Registry changes are
+ * the drawn package's, and a seed's fork moves onto the drawn package
+ * (`seededThemeOnDrawnPackage`), in one store write. Registry changes are
  * `refreshThemesOnRegistration`'s. Nothing is written while the drawn
  * package stays the same.
  */
@@ -450,6 +605,17 @@ const followDrawnPackage = (state: ClassicyStore): void => {
 	const id = drawnPackageIdOf(appearance);
 	if (id === drawnPackageId) return;
 	drawnPackageId = id;
+	const seeded = seededThemeOnDrawnPackage(state);
+	if (seeded) {
+		useAppManager.setState((currentState) =>
+			produce(currentState, (draft) => {
+				const draftAppearance = draft.System.Manager.Appearance;
+				draftAppearance.activeTheme = castDraft(seeded.activeTheme);
+				draftAppearance.customThemes = castDraft(seeded.customThemes);
+			}),
+		);
+		return;
+	}
 	const activeTheme = drawnClassicyPackageDefaults(appearance);
 	if (!activeTheme) return;
 	useAppManager.setState((currentState) =>

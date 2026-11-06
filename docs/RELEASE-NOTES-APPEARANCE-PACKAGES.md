@@ -604,6 +604,11 @@ Start with [Install and build](#install-and-build).
       edits on load: the active theme is replaced by its current preset.
       *Migrate:* pick a theme and apply the edits again; an edit now forks a
       Custom theme, which is kept.
+  - A `defaultState` seed's theme tweaks (an `activeTheme` that changes
+    the theme's data, not its id) are forked into its package's Custom
+    theme, so they are saved whole and survive a reload. Before, they sat on
+    a built-in, which is saved as its reference, and were lost on the
+    second visit.
   - `Desktop.errorDialog` is no longer persisted (as `systemDialog`
     already was not), so a reload never re-shows an open alert.
   - The transient window flags `resizing`, `dragging` and `moving` are

@@ -13,12 +13,10 @@ import type {
 	ClassicyStore,
 	DeepPartial,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { mergeClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
 	wasHydratedFromStorage,
-	withoutDefaultActiveThemeMeasurements,
-	withSeededPackageDefaults,
+	withClassicyDefaultStateSeed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -88,17 +86,11 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	useEffect(() => {
 		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
 		seeded.current = true;
-		// Over the live state with its default knob families dropped, as the
-		// load path merges saved state: the merge is deep (H-R17). A seed
-		// naming a packageId merges its theme tweaks over that package's
-		// defaults (withSeededPackageDefaults), not the default package's.
+		// Merged deeply over the live state (H-R17), a seed's theme tweaks on
+		// the defaults of the package it names and forked into a custom theme,
+		// so they persist (withClassicyDefaultStateSeed).
 		useAppManager.setState((s) =>
-			mergeClassicyState(
-				withoutDefaultActiveThemeMeasurements(
-					withSeededPackageDefaults(s as ClassicyStore, defaultState),
-				),
-				defaultState,
-			),
+			withClassicyDefaultStateSeed(s as ClassicyStore, defaultState),
 		);
 	}, [defaultState]);
 

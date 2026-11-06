@@ -2548,10 +2548,24 @@ save made with only another package reloads with Platinum, once Platinum is
 drawn, on Platinum's. Never replaced: a custom theme, a preset (any other
 theme of a package), or a host-loaded theme of a package not registered. The
 cost: another package's defaults theme chosen explicitly lasts until the
-next load or drawn-package change. A provider `defaultState` that names a
-`packageId` merges its theme tweaks over the defaults of the package that id
-draws (`withSeededPackageDefaults`), so they survive; one whose package is
-not registered keeps them on the current theme.
+next load or drawn-package change.
+
+**A `defaultState` seed's theme tweaks.** A provider `defaultState` whose
+`activeTheme` changes the theme's data but not its id (`{ desktop: {
+iconSize: 64 } }`) is merged over the defaults of the package its
+`packageId` draws (`withSeededPackageDefaults`; the current theme without
+one, or when that package is not registered) and forked into that package's
+Custom theme, as a first edit forks a built-in, so it is saved whole and
+survives a reload (`withClassicyDefaultStateSeed`). A seed that leaves the
+theme as it is creates no custom theme, and one that gives the theme an id
+of its own is the host's theme, merged and saved whole as before. While the
+fork is the active theme as the seed left it, it follows the drawn package
+for the session: when the drawn package changes (a package registering
+after mount included), the seed's `activeTheme` is merged over the drawn
+package's defaults, completed as a switch completes them, and forked into
+its Custom slot, replacing the old fork. A seed that names its theme's
+`package` stays on that package. Any edit, `ChangeTheme` or package switch
+ends this; the user's choice wins.
 
 **`theme.package`.** Every theme names its package. A theme without one is
 Platinum's: persisted state is migrated on load (`migrateClassicyState`),
