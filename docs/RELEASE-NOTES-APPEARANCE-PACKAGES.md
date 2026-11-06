@@ -14,12 +14,6 @@ Platinum look). Install both at the same version, and import Platinum once at
 your app's entry. Both packages are listed under
 [Install and build](#install-and-build).
 
-One note applies to a new host; nothing changes for a working 2.1.x host.
-`ClassicyDesktop` is `height: 100%`, so give `html`, `body` and your mount
-element a height (`html, body, #root { height: 100%; margin: 0; }`), or the
-page is white with only a menu bar. 2.x behaved the same; it was not
-documented.
-
 Classicy's look is now an **Appearance Package**. Classicy's own stylesheet
 holds structure only (layout, sizing, state rules). The Platinum look, meaning
 every bevel, border, gradient, piece of art, feedback sound, cursor and font,
@@ -1244,6 +1238,16 @@ warnings about derived folder names.
 
 ## Fixes
 
+- **The desktop sizes its page.** A host with no CSS of its own used to get a
+  white page with only a menu bar (2.x too). When the desktop is the page
+  (mounted in a child of `body`, directly or through wrappers that each hold
+  nothing else), Classicy's base layer now gives `html`, `body` and those
+  elements `height: 100%` and `body` `margin: 0`, at zero specificity, so any
+  host rule wins. *Who:* a host embedding the desktop in a child of `body`
+  (`body` loses its default margin), or in a wrapper holding only its sized
+  container (the wrapper becomes the window's height). *Migrate:* set that
+  margin or `height: auto` yourself. Without `:has()` (Firefox 113–120) the
+  desktop itself is the window's height, capped at its parent's.
 - **Built-in themes follow the release.** Saved state froze the built-in
   theme list, and a built-in active theme, at the version a user first saved,
   so preset fixes never reached existing users and removed presets lingered.

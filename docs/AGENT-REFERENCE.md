@@ -50,13 +50,15 @@ import '@classicy/appearance-platinum'
 import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
 ```
 
-The desktop is `height: 100%`, so the element you mount into, and its
-ancestors, need a height; otherwise the page is white and shows only the menu
-bar (2.x behaved the same):
-
-```css
-html, body, #root { height: 100%; margin: 0; }
-```
+The desktop fills the window with no host CSS. When it is the page (mounted
+in a child of `body`, directly or through up to four wrappers that each hold
+nothing else), `classicy.base` gives `html`, `body` and those elements
+`height: 100%` and `body` `margin: 0`, at zero specificity, so any host rule
+wins (`ClassicyDesktop.scss`). A host embedding the desktop sizes its own
+container; a wrapper that holds only that container is sized too, so give it
+`height: auto` if it should keep its content's height. Without `:has()`
+(Firefox 113–120) the desktop itself is the window's height, capped at its
+parent's.
 
 With no package registered, `ClassicyDesktop` draws only
 `ClassicyNoAppearancePackage` (a plain "No Appearance Package is loaded"

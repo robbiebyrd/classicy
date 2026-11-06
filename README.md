@@ -43,14 +43,6 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-The desktop is `height: 100%`, so the element you mount into needs a height,
-and so do its ancestors. Without one the page is white and shows only the menu
-bar. Add, for example:
-
-```css
-html, body, #root { height: 100%; margin: 0; }
-```
-
 Without that import, `ClassicyDesktop` draws a "No Appearance Package is
 loaded" message (showing the import line) instead of the desktop, mounts none
 of its children, and logs one error per page. The desktop appears as soon as a
