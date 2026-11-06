@@ -89,7 +89,7 @@ describe("the core's assets/ folder", () => {
 		expect(tracked("assets/img/wallpapers")).toEqual([]);
 	});
 
-	it("moved Platinum's sounds and wallpapers into the package, photos/ included", () => {
+	it("moved Platinum's sounds and wallpapers into the package, photos/ dropped", () => {
 		const sounds = tracked(`${PLATINUM_ASSETS}sounds/platinum`);
 		expect(sounds).toEqual(
 			expect.arrayContaining(
@@ -106,11 +106,12 @@ describe("the core's assets/ folder", () => {
 		const wallpapers = tracked(`${PLATINUM_ASSETS}wallpapers`);
 		expect(wallpapers).toContain(`${PLATINUM_ASSETS}wallpapers/azul_dark.png`);
 		expect(wallpapers).toContain(`${PLATINUM_ASSETS}wallpapers/default.jpg`);
+		// Nothing read the 83 photos (about 15 MB); story 0159-tf5 deleted them.
 		expect(
 			wallpapers.some((file) =>
 				file.startsWith(`${PLATINUM_ASSETS}wallpapers/photos/`),
 			),
-		).toBe(true);
+		).toBe(false);
 	});
 
 	it.each(MOVED)("moved %s to the package's assets/%s", (from, to) => {
@@ -170,7 +171,8 @@ describe("the core's icon tree", () => {
  * Dead art leaves the core (story 0150-jga). ClassicyIcons' eager globs inline
  * every file under assets/img/icons and assets/img/ui, so a file the icon tree
  * does not name still lands in the bundle as a data URI. Each tracked file under
- * assets/img is therefore either named by the icon tree (`icon("…")` /
+ * assets (story 0159-tf5 widened this from assets/img to the whole folder) is
+ * therefore either named by the icon tree (`icon("…")` /
  * `ui("…")` in ClassicyIcons.ts), read by another file listed here with its
  * reason, or not shipped at all and listed with that reason.
  */
@@ -184,6 +186,10 @@ const OTHER_READERS: Record<string, { reader: string; reason: string }> = {
 	"assets/img/apps/quicktime/sample-picture.jpg": {
 		reader: "src/SystemFolder/QuickTime/PictureViewer/PictureViewer.tsx",
 		reason: "the Picture Viewer's sample document, imported ?inline",
+	},
+	"assets/vid/quicktime/sample.mp4": {
+		reader: "src/SystemFolder/QuickTime/MoviePlayer/MoviePlayer.tsx",
+		reason: "the Movie Player's sample movie, imported ?no-inline",
 	},
 };
 
@@ -248,9 +254,7 @@ describe("the core ships no unread image", () => {
 		return ui ? calls("ui", ui[1]) : false;
 	};
 
-	it.each(
-		tracked("assets/img"),
-	)("%s is read, or listed with a reason", (file) => {
+	it.each(tracked("assets"))("%s is read, or listed with a reason", (file) => {
 		if (named(file)) return;
 		const other = OTHER_READERS[file];
 		if (other) {

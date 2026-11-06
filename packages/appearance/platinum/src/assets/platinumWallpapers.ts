@@ -1,6 +1,6 @@
 // Platinum's wallpapers, the files in the package's assets/wallpapers (moved
-// out of the core's assets/img/wallpapers, plan 0015-kxa §3.3; its photos/
-// folder is read by nothing and matched by no glob). Importing
+// out of the core's assets/img/wallpapers, plan 0015-kxa §3.3; the unread photos/
+// folder was deleted in story 0159-tf5). Importing
 // platinumAssets.ts registers them (`registerClassicyWallpapers`, with each
 // filename as its `file`); the core resolves a theme's wallpaper filename
 // through the asset registry (`resolveClassicyWallpaper`), never through this

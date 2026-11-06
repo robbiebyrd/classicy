@@ -41,7 +41,6 @@ vi.mock(
 vi.mock("@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons", () => ({
 	ClassicyIcons: {
 		system: { files: { file: "file.png" } },
-		ui: { helpButton: "help-button.png" },
 	},
 }));
 
