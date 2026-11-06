@@ -47,6 +47,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	useActiveClassicyAppearancePackage,
 	useClassicyAppearancePackages,
@@ -652,9 +653,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	// Say once per page which package a stored id that is not registered is
 	// drawn as. Here, not in the resolver, which reducers and lookups call
 	// before a host has registered its packages; the desktop mounts after.
+	// Never for the default package's id: the default state seeds it, so a
+	// host that registers only its own package stores it without choosing
+	// it, and would be warned on every load.
 	useEffect(() => {
 		if (
 			storedPackageId === undefined ||
+			storedPackageId === CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID ||
 			storedPackageId === appearancePackageId ||
 			reportedUnregisteredPackageIds.has(storedPackageId)
 		)

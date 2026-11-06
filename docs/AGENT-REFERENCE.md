@@ -2490,7 +2490,9 @@ default layout with no CSS or hooks, used only while no package is
 registered at all, for lone components: `ClassicyDesktop` then draws
 `ClassicyNoAppearancePackage` instead, below). When the stored id is not
 registered, the desktop logs one `ClassicyAppearance` warning per id per
-page naming the package it draws instead. Components read it with `useActiveClassicyAppearancePackage()`;
+page naming the package it draws instead, except for the default package's
+id: the default state seeds it, so a host that registers only its own
+package is not warned. Components read it with `useActiveClassicyAppearancePackage()`;
 reducers, effects and other non-hook code with
 `resolveClassicyAppearancePackage(packageId?)` (the store's id at call time
 when omitted). Code that must not import the store (the desktop reducer)

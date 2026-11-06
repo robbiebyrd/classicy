@@ -125,12 +125,28 @@ describe("ClassicyDesktop's package resolution", () => {
 		if (platinum) registerClassicyAppearancePackage(platinum);
 	});
 
-	it("draws the only registered package when the stored id is the unregistered default", async () => {
+	// First in the file: the desktop reports each stored id once per page,
+	// so this case must run before anything else stores "platinum" unregistered.
+	// The default state seeds packageId "platinum", so a host that registers
+	// only its own package stores the default id without ever choosing it,
+	// and must not be warned on every load.
+	it("draws the only registered package when the stored id is the unregistered default, and says nothing", async () => {
 		resetClassicyAppearancePackagesForTests();
 		registerClassicyAppearancePackage(mirrored);
-		setPackageId("platinum");
-		renderDesktop();
-		await act(async () => {});
+		const log = collectLog("resolution-default-test");
+		try {
+			setPackageId("platinum");
+			const first = renderDesktop();
+			await act(async () => {});
+			first.unmount();
+			renderDesktop();
+			await act(async () => {});
+		} finally {
+			log.stop();
+		}
+		expect(
+			log.entries.filter((e) => /is not registered; drawing/.test(e.message)),
+		).toEqual([]);
 		expect(rootAppearance()).toBe("mirrored");
 		expect(
 			document
