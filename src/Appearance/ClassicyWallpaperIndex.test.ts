@@ -6,14 +6,21 @@ import {
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 import {
+	CLASSICY_WALLPAPER_PACKAGE_SEPARATOR,
 	classicyWallpaperDigest,
 	classicyWallpaperFilename,
+	classicyWallpaperReference,
+	classicyWallpaperReferenceFor,
 	defaultClassicyWallpaper,
 	listClassicyWallpapers,
 	portableClassicyWallpaper,
 	resolveClassicyWallpaper,
 	withPortableClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
+import {
+	isPlainClassicyWallpaperFile,
+	parseClassicyWallpaperReference,
+} from "@/Appearance/ClassicyWallpaperSource.internal";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
@@ -561,6 +568,254 @@ describe("ClassicyWallpaperIndex", () => {
 		it("is empty with nothing registered", () => {
 			resetClassicyAssets();
 			expect(defaultClassicyWallpaper()).toBe("");
+		});
+	});
+	// 0143: a wallpaper filename is unique within a package only. A theme's
+	// bare filename means its own package's (then the active one's, then
+	// Platinum's, as before); `<package>|<file>` names another package's.
+	describe("two packages registering the same filename", () => {
+		const PLAT_DEFAULT = "/p/default.png";
+		const FOO_DEFAULT = "/foo/default.png";
+
+		beforeEach(() => {
+			registerClassicyWallpapers("platinum", [
+				{ name: "Default", file: "default.png", src: PLAT_DEFAULT },
+			]);
+			registerClassicyWallpapers("foo", [
+				{ name: "Foo Default", file: "default.png", src: FOO_DEFAULT },
+			]);
+		});
+
+		it("resolves a package-qualified reference to that package's wallpaper, whatever the theme", () => {
+			expect(resolveClassicyWallpaper("foo|default.png")).toBe(FOO_DEFAULT);
+			expect(resolveClassicyWallpaper("foo|default.png", "platinum")).toBe(
+				FOO_DEFAULT,
+			);
+			expect(resolveClassicyWallpaper("platinum|default.png", "foo")).toBe(
+				PLAT_DEFAULT,
+			);
+		});
+
+		it("resolves a bare filename in the theme's own package first, as before", () => {
+			expect(resolveClassicyWallpaper("default.png", "foo")).toBe(FOO_DEFAULT);
+			expect(resolveClassicyWallpaper("default.png", "platinum")).toBe(
+				PLAT_DEFAULT,
+			);
+			expect(resolveClassicyWallpaper("default.png")).toBe(PLAT_DEFAULT);
+		});
+
+		it("renders nothing for a reference its package does not register, never another package's", () => {
+			expect(resolveClassicyWallpaper("bar|default.png")).toBe("");
+			// Platinum has azul_dark.png; foo does not.
+			expect(resolveClassicyWallpaper("foo|azul_dark.png", "platinum")).toBe(
+				"",
+			);
+			expect(entries.map((e) => e.details[0])).toEqual([
+				{ value: "bar|default.png" },
+				{ value: "foo|azul_dark.png" },
+			]);
+		});
+
+		it("builds a bare reference for the theme's own package and a qualified one for another's", () => {
+			expect(classicyWallpaperReference("foo", "default.png", "foo")).toBe(
+				"default.png",
+			);
+			expect(classicyWallpaperReference("foo", "default.png", "platinum")).toBe(
+				"foo|default.png",
+			);
+			expect(classicyWallpaperReference("platinum", "a.png", "foo")).toBe(
+				"platinum|a.png",
+			);
+			expect(CLASSICY_WALLPAPER_PACKAGE_SEPARATOR).toBe("|");
+		});
+
+		it("names a source, a reference or a filename relative to the theme's package", () => {
+			expect(classicyWallpaperReferenceFor(FOO_DEFAULT, "platinum")).toBe(
+				"foo|default.png",
+			);
+			expect(classicyWallpaperReferenceFor(FOO_DEFAULT, "foo")).toBe(
+				"default.png",
+			);
+			expect(classicyWallpaperReferenceFor(PLAT_DEFAULT, "foo")).toBe(
+				"platinum|default.png",
+			);
+			expect(classicyWallpaperReferenceFor(PLAT_DEFAULT, "platinum")).toBe(
+				"default.png",
+			);
+			expect(classicyWallpaperReferenceFor("foo|default.png", "foo")).toBe(
+				"default.png",
+			);
+			expect(classicyWallpaperReferenceFor("default.png", "foo")).toBe(
+				"default.png",
+			);
+			expect(classicyWallpaperReferenceFor("default.png", "platinum")).toBe(
+				"default.png",
+			);
+			// A bare filename the theme's package lacks names what it renders as.
+			expect(classicyWallpaperReferenceFor("azul_dark.png", "foo")).toBe(
+				"platinum|azul_dark.png",
+			);
+		});
+
+		it("names nothing for an unregistered reference, a URL or an unknown value", () => {
+			for (const value of [
+				"bar|default.png",
+				"foo|azul_dark.png",
+				"https://example.com/default.png",
+				"nope.png",
+				"",
+			]) {
+				expect(classicyWallpaperReferenceFor(value, "foo")).toBeUndefined();
+			}
+		});
+
+		it("pins a filename only a third package registers to that package, which renders it", () => {
+			registerClassicyWallpapers("bar", [
+				{ name: "Bar Wall", file: "bar_wall.png", src: "/bar/wall.png" },
+			]);
+			const pinned = classicyWallpaperReferenceFor("bar_wall.png", "foo");
+			expect(pinned).toBe("bar|bar_wall.png");
+			expect(resolveClassicyWallpaper(pinned ?? "", "foo")).toBe(
+				"/bar/wall.png",
+			);
+		});
+
+		it("accepts a registered qualified reference as a registered wallpaper, and no other", () => {
+			expect(classicyWallpaperFilename("foo|default.png")).toBe(
+				"foo|default.png",
+			);
+			expect(classicyWallpaperFilename("platinum|azul_dark.png")).toBe(
+				"platinum|azul_dark.png",
+			);
+			expect(classicyWallpaperFilename("bar|default.png")).toBeUndefined();
+			expect(classicyWallpaperFilename("foo|azul_dark.png")).toBeUndefined();
+		});
+
+		it("stores another package's wallpaper qualified and the theme's own bare", () => {
+			expect(portableClassicyWallpaper(FOO_DEFAULT, "platinum")).toBe(
+				"foo|default.png",
+			);
+			expect(portableClassicyWallpaper(FOO_DEFAULT, "foo")).toBe("default.png");
+			expect(portableClassicyWallpaper(PLAT_DEFAULT, "foo")).toBe(
+				"platinum|default.png",
+			);
+			expect(portableClassicyWallpaper("foo|default.png", "foo")).toBe(
+				"default.png",
+			);
+			expect(portableClassicyWallpaper("foo|default.png", "platinum")).toBe(
+				"foo|default.png",
+			);
+			// An older build's path, in a theme of foo: foo's own, so bare.
+			expect(
+				portableClassicyWallpaper("/assets/x/default-0A1b2C3d.png", "foo"),
+			).toBe("default.png");
+		});
+
+		it("qualifies only a shared filename: another package's stays bare where the filename renders it", () => {
+			// foo registers no azul_dark.png, so for a theme of foo the bare
+			// filename already renders Platinum's: saved state is unchanged.
+			expect(portableClassicyWallpaper(AZUL, "foo")).toBe("azul_dark.png");
+			expect(portableClassicyWallpaper(AZUL_DATA, "foo")).toBe(AZUL_DATA);
+			expect(
+				portableClassicyWallpaper("/assets/azul_dark-0a1b2c3d.png", "foo"),
+			).toBe("azul_dark.png");
+			// A theme file pins it either way, for a host whose active package
+			// might register one.
+			expect(classicyWallpaperReferenceFor(AZUL, "foo")).toBe(
+				"platinum|azul_dark.png",
+			);
+			// A reference is kept as a theme file pinned it.
+			expect(portableClassicyWallpaper("platinum|azul_dark.png", "foo")).toBe(
+				"platinum|azul_dark.png",
+			);
+		});
+
+		it("never rewrites a bare filename, which keeps resolving as it did", () => {
+			expect(portableClassicyWallpaper("default.png", "foo")).toBe(
+				"default.png",
+			);
+			expect(portableClassicyWallpaper("azul_dark.png", "foo")).toBe(
+				"azul_dark.png",
+			);
+		});
+
+		it("keeps a reference no package registers yet, for a package that registers later", () => {
+			expect(portableClassicyWallpaper("late|late.png", "platinum")).toBe(
+				"late|late.png",
+			);
+			expect(resolveClassicyWallpaper("late|late.png")).toBe("");
+			registerClassicyWallpapers("late", [
+				{ name: "Late", file: "late.png", src: "/late/late.png" },
+			]);
+			expect(resolveClassicyWallpaper("late|late.png")).toBe("/late/late.png");
+		});
+
+		it("without a package, stores a source by its bare filename, as before", () => {
+			expect(portableClassicyWallpaper(PLAT_DEFAULT)).toBe("default.png");
+			expect(portableClassicyWallpaper("foo|default.png")).toBe(
+				"foo|default.png",
+			);
+		});
+
+		it("canonicalizes a theme against its own package, Platinum when it names none", () => {
+			const fooTheme = {
+				package: "foo",
+				desktop: { backgroundImage: "foo|default.png" },
+			};
+			expect(withPortableClassicyWallpaper(fooTheme).desktop).toEqual({
+				backgroundImage: "default.png",
+			});
+			const platinumTheme = { desktop: { backgroundImage: FOO_DEFAULT } };
+			expect(withPortableClassicyWallpaper(platinumTheme).desktop).toEqual({
+				backgroundImage: "foo|default.png",
+			});
+			const same = {
+				package: "platinum",
+				desktop: { backgroundImage: "foo|default.png" },
+			};
+			expect(withPortableClassicyWallpaper(same)).toBe(same);
+		});
+	});
+
+	describe("the package separator", () => {
+		it("is never part of a URL's scheme, a data: URI's start or a path", () => {
+			for (const value of [
+				"data:image/png;base64,QVpVTA==",
+				"blob:https://x.test/1",
+				"https://x.test/a.png",
+				"//x.test/a.png",
+				"/assets/a.png",
+				"platinum:default.png",
+				"platinum/default.png",
+				"default.png",
+				"|default.png",
+				"platinum|",
+				"a|b|c.png",
+				"a b|c.png",
+			]) {
+				expect(parseClassicyWallpaperReference(value)).toBeUndefined();
+			}
+			expect(parseClassicyWallpaperReference("my-pack|a_b.png")).toEqual({
+				packageId: "my-pack",
+				file: "a_b.png",
+			});
+		});
+
+		it("is not allowed in a wallpaper filename, so a filename is never a reference", () => {
+			expect(isPlainClassicyWallpaperFile("a|b.png")).toBe(false);
+			registerClassicyWallpapers("platinum", [
+				{ name: "Piped", file: "foo|x.png", src: "/x/piped.png" },
+			]);
+			expect(classicyWallpaperFilename("/x/piped.png")).toBeUndefined();
+		});
+
+		it("keeps a package named like a URL scheme apart from that scheme", () => {
+			registerClassicyWallpapers("data", [
+				{ name: "D", file: "d.png", src: "/data/d.png" },
+			]);
+			expect(resolveClassicyWallpaper("data|d.png")).toBe("/data/d.png");
+			expect(resolveClassicyWallpaper("data:d.png")).toBe("data:d.png");
+			expect(classicyWallpaperFilename("data:d.png")).toBeUndefined();
 		});
 	});
 });

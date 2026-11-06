@@ -7,14 +7,42 @@
 
 /**
  * A wallpaper `file`: a bare filename, never a path, URL or anything that
- * could leave a quoted CSS `url("…")`.
+ * could leave a quoted CSS `url("…")`, and never holding the package
+ * separator (`|`), so a filename is never a package-qualified reference.
  */
 // biome-ignore lint/suspicious/noControlCharactersInRegex: refusing control characters is the point
-const PLAIN_WALLPAPER_FILE = /^[^\s/\\:"'`()<>{};\u0000-\u001f\u007f]+$/;
+const PLAIN_WALLPAPER_FILE = /^[^\s/\\:"'`()<>{};|\u0000-\u001f\u007f]+$/;
 
 /** True for a plain wallpaper filename (`"azul_dark.png"`), registered or not. */
 export const isPlainClassicyWallpaperFile = (value: string): boolean =>
 	value.length <= 255 && PLAIN_WALLPAPER_FILE.test(value);
+
+/**
+ * What separates the package from the file in a package-qualified wallpaper
+ * reference, `"<package>|<file>"`. Neither half may hold a `:` or `/`
+ * (`isPlainClassicyWallpaperFile`), so a reference never starts like a URL
+ * (`<scheme>:`, `//`, `/`) or a `data:` URI, and it is not a path.
+ */
+export const CLASSICY_WALLPAPER_PACKAGE_SEPARATOR = "|";
+
+/**
+ * The package and file of a package-qualified wallpaper reference
+ * (`"platinum|default.png"`), registered or not; `undefined` for anything
+ * else (a bare filename, a URL, a path).
+ */
+export const parseClassicyWallpaperReference = (
+	value: string,
+): { packageId: string; file: string } | undefined => {
+	if (typeof value !== "string") return undefined;
+	const at = value.indexOf(CLASSICY_WALLPAPER_PACKAGE_SEPARATOR);
+	if (at < 0) return undefined;
+	const packageId = value.slice(0, at);
+	const file = value.slice(at + 1);
+	return isPlainClassicyWallpaperFile(packageId) &&
+		isPlainClassicyWallpaperFile(file)
+		? { packageId, file }
+		: undefined;
+};
 
 /** One registered wallpaper: its display name, source and, if given, filename. */
 export type ClassicyWallpaperRecord = {
