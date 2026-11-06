@@ -14,6 +14,15 @@ Platinum look). Install both at the same version, and import Platinum once at
 your app's entry. Both packages are listed under
 [Install and build](#install-and-build).
 
+Two install notes apply to a new host, or to one that reinstalls its peers;
+nothing changes for a working 2.1.x host. Install `@tanstack/react-table` as
+`@tanstack/react-table@^8.21.3`, because its unpinned latest is 9.x, outside
+the core's peer range (the other peers' latest versions are in range). And
+`ClassicyDesktop` is `height: 100%`, so give `html`, `body` and your mount
+element a height (`html, body, #root { height: 100%; margin: 0; }`), or the
+page is white with only a menu bar. 2.x behaved the same; it was not
+documented.
+
 Classicy's look is now an **Appearance Package**. Classicy's own stylesheet
 holds structure only (layout, sizing, state rules). The Platinum look, meaning
 every bevel, border, gradient, piece of art, feedback sound, cursor and font,
@@ -187,13 +196,6 @@ Start with [Install and build](#install-and-build).
   Monaco and VCR OSD Mono, thirteen faces), unlayered, each pointing at its
   file in the Platinum package's `dist/assets/`. Serve that folder beside the
   stylesheet, and allow it in `font-src`.
-- **The install line pins `@tanstack/react-table`, and the desktop needs a
-  sized container.** Its unpinned latest is 9.x, outside the core's `^8.21.3`
-  peer range, so install `@tanstack/react-table@^8.21.3` (the other peers'
-  latest versions are in range). `ClassicyDesktop` is `height: 100%`: give
-  `html`, `body` and your mount element a height
-  (`html, body, #root { height: 100%; margin: 0; }`), or the page is white with
-  only a menu bar. 2.x behaved the same; it was not documented.
 - **Browser floor: Chrome/Edge 120, Safari 16.2, Firefox 113.** Theme tints
   are `color-mix()` and icons use unprefixed `mask-image` with mask
   compositing. In an older engine those declarations are dropped: error title
