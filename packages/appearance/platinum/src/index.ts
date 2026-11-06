@@ -25,7 +25,7 @@ import "./assets/platinumAssets";
 import { platinumArt } from "./assets/art/platinumArt";
 import { platinumSoundPack } from "./assets/sounds/platinum";
 import { platinumAppearanceHooks } from "./hooks";
-import platinumJson from "./platinum.json";
+import platinumJsonSource from "./platinum.json";
 import platinumCss from "./styles/platinum.scss?inline";
 
 export * from "./assets/platinumAssets";
@@ -35,9 +35,22 @@ export {
 } from "./assets/platinumWallpapers";
 export * from "./assets/sounds/platinum";
 export * from "./hooks";
-// The package's theme data and wallpaper lookup, for hosts and tests that read
-// them (they were deep imports of the in-core path before the move).
-export { platinumJson };
+
+type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
+
+const deepFreeze = <T extends object>(value: T): DeepReadonly<T> => {
+	for (const child of Object.values(value))
+		if (typeof child === "object" && child !== null) deepFreeze(child);
+	return Object.freeze(value) as DeepReadonly<T>;
+};
+
+/**
+ * Platinum's theme data (`platinum.json`), deep-frozen. It is a copy: the
+ * registered package shares its objects with the source (knobs, the presets'
+ * colors, typography and desktop), so a host that could mutate this export
+ * would edit a registered built-in theme.
+ */
+export const platinumJson = deepFreeze(structuredClone(platinumJsonSource));
 
 /** The Platinum package's id. */
 export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
@@ -46,7 +59,7 @@ export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
 // `defaults.measurements` alone and filled here (H-R8), key by key, as
 // `classicyThemeMeasurementDefaults("platinum")` will once the package is
 // registered (the core floor under these values, which hold every floor key).
-const platinumMeasurements = platinumJson.defaults.measurements;
+const platinumMeasurements = platinumJsonSource.defaults.measurements;
 
 /**
  * A platinum.json theme as Platinum registers it: its wallpaper named by
@@ -60,25 +73,26 @@ const platinumTheme = (theme: ClassicyTheme): ClassicyTheme => ({
 });
 
 const platinumPresets = (
-	platinumJson.presets as unknown as ClassicyTheme[]
+	platinumJsonSource.presets as unknown as ClassicyTheme[]
 ).map(platinumTheme);
 
 // The defaults are the preset with their id, the same object, so a switch to
 // Platinum and ChangeTheme activate one and the same theme.
 const platinumDefaults =
-	platinumPresets.find((theme) => theme.id === platinumJson.defaults.id) ??
-	platinumTheme(platinumJson.defaults as unknown as ClassicyTheme);
+	platinumPresets.find(
+		(theme) => theme.id === platinumJsonSource.defaults.id,
+	) ?? platinumTheme(platinumJsonSource.defaults as unknown as ClassicyTheme);
 
 registerClassicyAppearancePackage({
 	id: PLATINUM_APPEARANCE_PACKAGE_ID,
-	name: platinumJson.name,
+	name: platinumJsonSource.name,
 	icon: platinumArt("platinum.png"),
 	defaults: platinumDefaults,
 	presets: platinumPresets,
 	css: platinumCss,
-	knobs: platinumJson.knobs,
-	options: classicyKnobsToSchema(platinumJson.knobs),
-	layout: platinumJson.layout as ClassicyAppearanceLayout,
+	knobs: platinumJsonSource.knobs,
+	options: classicyKnobsToSchema(platinumJsonSource.knobs),
+	layout: platinumJsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [platinumSoundPack],
 	hooks: platinumAppearanceHooks,
 });
