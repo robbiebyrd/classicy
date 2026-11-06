@@ -51,9 +51,6 @@ export default defineConfig({
 	resolve: {
 		dedupe: ["react", "react-dom"],
 		alias: [
-			// Interim, until the core's tests import the package by name (plan
-			// 0015-kxa §3.2): the old in-core path resolves to its new home.
-			{ find: /^@\/Appearance\/Platinum(?=\/|$)/, replacement: platinumSrc },
 			{
 				find: /^@classicy\/appearance-platinum$/,
 				replacement: path.join(platinumSrc, "index.ts"),

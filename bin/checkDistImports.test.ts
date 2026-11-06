@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
+import { PLATINUM_FONT_FACES } from "../packages/appearance/platinum/src/assets/platinumFonts.internal";
 import {
 	CLASSICY_PLATINUM_FONT_STYLESHEET,
 	classicyFontStylesheet,

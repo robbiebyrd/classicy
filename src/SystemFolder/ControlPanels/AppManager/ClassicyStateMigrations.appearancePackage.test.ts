@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 // A theme list to migrate: Platinum's built-ins (the default state lists
 // none; ClassicyDesktop loads them on mount).
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import { getAllThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,

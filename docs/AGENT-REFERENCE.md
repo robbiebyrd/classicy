@@ -3316,7 +3316,7 @@ Behavior that follows from the move:
 
 - **A component with no package hooks is silent.** A component rendered while
   only `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` applies (no package registered:
-  a lone-component test that never imports `@/Appearance/Platinum`, or a host
+  a lone-component test that never imports `@classicy/appearance-platinum`, or a host
   that never loads Platinum), or under a package whose hooks map nothing,
   plays no feedback sounds. Rendering `ClassicyDesktop` does not register
   Platinum: import it (in the repo's tests, `@/__tests__/withPlatinum`).

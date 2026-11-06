@@ -25,11 +25,11 @@ const liveSourceAliases = [
 		replacement: path.resolve(__dirname, "live-source.css"),
 	},
 	// The core's source registers no Appearance Package; the app imports
-	// Platinum through this subpath, so point it at Platinum's source, the
-	// workspace package packages/appearance/platinum (the built subpath is a
-	// no-op, since the built bundle still registers it).
+	// Platinum by name, so point it at Platinum's source, the workspace
+	// package packages/appearance/platinum (a production build uses the
+	// package's own dist).
 	{
-		find: /^@classicy\/classicy\/appearance\/platinum$/,
+		find: /^@classicy\/appearance-platinum$/,
 		replacement: path.resolve(
 			root,
 			"packages/appearance/platinum/src/index.ts",

@@ -3,14 +3,14 @@ import { produce } from "immer";
 import type { ChangeEvent } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
+import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import {
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
-import { platinumWallpaperUrl } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	type ClassicyTheme,
 	getTheme,

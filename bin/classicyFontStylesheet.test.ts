@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 // Registers the Platinum faces at runtime: the <style> the static file mirrors.
-import "@/Appearance/Platinum/assets/platinumAssets";
-import { PLATINUM_FONT_FACES } from "@/Appearance/Platinum/assets/platinumFonts.internal";
+import "@classicy/appearance-platinum";
+import { PLATINUM_FONT_FACES } from "../packages/appearance/platinum/src/assets/platinumFonts.internal";
 import {
 	CLASSICY_PLATINUM_FONT_STYLESHEET,
 	classicyEmittedFontFiles,

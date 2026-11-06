@@ -255,7 +255,7 @@ describe("a first session whose only package is not the default one", () => {
 	it("gives way to the default package when it registers later in the session", async () => {
 		const b = await boot();
 		b.registerFoo();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		// The desktop now draws Platinum (the stored packageId), so the stand-in
 		// is Platinum's defaults, as on a first session with Platinum alone.
 		expect(b.active().package).toBe("platinum");
@@ -333,7 +333,7 @@ describe("a theme the store never replaces with the drawn package's defaults", (
 			}),
 		);
 		expect(b.active().id).toBe("foo-dark");
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("foo-dark");
 	});
 
@@ -341,7 +341,7 @@ describe("a theme the store never replaces with the drawn package's defaults", (
 		// The accepted cost: an explicit choice of another package's defaults
 		// theme lasts the session; the next load activates the drawn package's.
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		// As a mounted desktop loads them, so ChangeTheme finds foo's themes.
 		act(() =>
@@ -359,7 +359,7 @@ describe("a theme the store never replaces with the drawn package's defaults", (
 		expect(b.active().id).toBe("foo-default");
 		const saved = b.saved();
 		const c = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		c.registerFoo();
 		expect(c.active().id).toBe("default");
 		expect(c.active().package).toBe("platinum");
@@ -393,7 +393,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		const b = await boot();
 		b.registerFoo();
 		await seedDefaultState(b);
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 	});
 
@@ -406,7 +406,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 			bevelWidth: 4,
 			shadowWidth: 2,
 		});
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 	});
 
@@ -441,7 +441,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 			defaults: true,
 		});
 		// And Platinum, registering later, is drawn with its own defaults.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 	});
 
@@ -469,9 +469,9 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 			defaults: true,
 		});
 		vi.resetModules();
-		if (platinumFirst) await import("@/Appearance/Platinum");
+		if (platinumFirst) await import("@classicy/appearance-platinum");
 		const b = await boot({ saved, keepModules: platinumFirst });
-		if (!platinumFirst) await import("@/Appearance/Platinum");
+		if (!platinumFirst) await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		expect(b.active().package).toBe("platinum");
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
@@ -481,7 +481,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 
 	it("J5 reversed: a Platinum save reloads with foo alone drawn on foo's defaults", async () => {
 		const first = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const saved = first.saved();
 		expect(saved.System.Manager.Appearance.activeTheme).toEqual({
 			id: "default",
@@ -495,7 +495,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 
 	it("follows a stored packageId change to the package it names", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		expect(b.active().package).toBe("platinum");
 		act(() =>
@@ -519,7 +519,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		const saved = first.saved();
 		saved.System.Manager.Appearance.packageId = FOO;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().package).toBe("platinum");
 		b.registerFoo();
 		expect(strip(b.active())).toEqual(strip(b.fooDefaults()));
@@ -527,7 +527,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 
 	it("keeps a preset when the stored packageId changes", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		act(() =>
 			b.store.dispatch({
@@ -567,7 +567,7 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 			package: FOO,
 		} as ClassicyTheme;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 	});
@@ -631,7 +631,7 @@ const SEED_TWEAKS = { desktop: { iconSize: 64, backgroundColor: 0x112233 } };
 describe("a host defaultState seed that names a packageId", () => {
 	it("forks the seed's theme tweaks on the named package's defaults", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		const appearance = await mountSeeded(b, {
 			packageId: FOO,
@@ -655,7 +655,7 @@ describe("a host defaultState seed that names a packageId", () => {
 
 	it("forks tweaks with no packageId on the default package's theme", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		const appearance = await mountSeeded(b, { activeTheme: SEED_TWEAKS });
 		expect(appearance.packageId).toBe("platinum");
@@ -668,7 +668,7 @@ describe("a host defaultState seed that names a packageId", () => {
 
 	it("forks tweaks with no packageId on the live package's theme", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		act(() =>
 			b.store.dispatch({
@@ -684,7 +684,7 @@ describe("a host defaultState seed that names a packageId", () => {
 
 	it("keeps the tweaks when the named package is not registered", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const appearance = await mountSeeded(b, {
 			packageId: "nope",
 			activeTheme: SEED_TWEAKS,
@@ -705,7 +705,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		appearance: Record<string, unknown>,
 	) => {
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		await mountSeeded(b, appearance);
 		return b;
@@ -714,7 +714,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 	it("J15: survives a reload, tweaks on the default package", async () => {
 		const seed = { activeTheme: SEED_TWEAKS };
 		const first = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		await mountSeeded(first, seed);
 		const saved = first.saved();
 		// Saved whole, as a custom theme, never as the built-in's reference.
@@ -732,7 +732,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 	it("J15: survives a reload, tweaks on a named package's defaults", async () => {
 		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
 		const first = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		first.registerFoo();
 		await mountSeeded(first, seed);
 		const b = await reload(first.saved(), seed);
@@ -745,7 +745,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("J14: moves onto a named package that registers after mount", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		await mountSeeded(b, { packageId: FOO, activeTheme: SEED_TWEAKS });
 		b.registerFoo();
 		const appearance = b.state().System.Manager.Appearance;
@@ -786,7 +786,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		b.registerFoo();
 		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
 		expect(b.active().id).toBe("custom-foo");
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("custom");
 		expect(b.active().package).toBe("platinum");
 		expect(b.active().desktop.iconSize).toBe(64);
@@ -797,7 +797,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("follows a stored packageId change, both ways", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		await mountSeeded(b, { activeTheme: SEED_TWEAKS });
 		expect(b.active().id).toBe("custom");
@@ -843,7 +843,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		expect(b.active().id).toBe("custom");
 		// Platinum's registration stores the wallpaper by its filename: a
 		// new object, still the seed's fork.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().desktop.backgroundImage).toBe("azul_dark.png");
 		b.registerFoo();
 		act(() =>
@@ -880,7 +880,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 	it("keeps a theme the user chose after the seed", async () => {
 		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		await mountSeeded(b, seed);
 		act(() =>
 			b.store.dispatch({
@@ -897,7 +897,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("keeps the user's edit of the seed's fork", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		await mountSeeded(b, { packageId: FOO, activeTheme: SEED_TWEAKS });
 		act(() =>
 			b.store.dispatch({
@@ -919,7 +919,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		await mountSeeded(b, { activeTheme: { ...SEED_TWEAKS, package: FOO } });
 		expect(b.active().id).toBe("custom-foo");
 		// Platinum is drawn now (packageId "platinum"); the pinned fork stays.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("custom-foo");
 		expect(b.active().package).toBe(FOO);
 		expect(b.active().sound.pack).toBe(FOO_SOUND);
@@ -928,7 +928,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("leaves a seed without tweaks to the drawn-package rule", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		await mountSeeded(b, { activeTheme: { id: "default" } });
 		act(() =>
@@ -956,7 +956,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		],
 	])("creates no custom theme for %s", async (_name, appearance, rest) => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const before = b.saved();
 		const after = await mountSeeded(b, appearance, rest);
 		expect(after.activeTheme.id).toBe("default");
@@ -970,7 +970,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("keeps a seeded theme with an id of its own whole, never forked", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const after = await mountSeeded(b, {
 			activeTheme: { ...SEED_TWEAKS, id: "host-blue", name: "Host Blue" },
 		});
@@ -980,7 +980,7 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 
 	it("saves the same bytes for a host with no seed", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const before = JSON.stringify(b.saved());
 		const { ClassicyAppManagerProvider } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
@@ -1013,7 +1013,7 @@ describe("a defaultState seed applies once per page session (review of 0148-wf3)
 		["a named package", { packageId: FOO }, "custom-foo", "foo-dark"],
 	])("keeps the user's Custom theme and choice across a remount (%s)", async (_name, extra, slot, choice) => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		b.registerFoo();
 		const seed = { ...extra, activeTheme: SEED_TWEAKS };
 		const unmount = await mount(seed);
@@ -1051,7 +1051,7 @@ describe("a defaultState seed applies once per page session (review of 0148-wf3)
 
 	it("still follows the drawn package after a remount on the untouched fork", async () => {
 		const b = await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const seed = { packageId: FOO, activeTheme: SEED_TWEAKS };
 		const unmount = await mount(seed);
 		expect(b.active().id).toBe("custom");
@@ -1086,9 +1086,9 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 			defaults: true,
 		});
 		vi.resetModules();
-		if (platinumFirst) await import("@/Appearance/Platinum");
+		if (platinumFirst) await import("@classicy/appearance-platinum");
 		const b = await boot({ saved, keepModules: platinumFirst });
-		if (!platinumFirst) await import("@/Appearance/Platinum");
+		if (!platinumFirst) await import("@classicy/appearance-platinum");
 		// foo never registers.
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 		expect(b.state().System.Manager.Appearance.packageId).toBe("platinum");
@@ -1105,7 +1105,7 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 		const saved = await fooOnlySave();
 		saved.System.Manager.Appearance.packageId = FOO;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(strip(b.active())).toEqual(strip(b.appearance.getTheme("default")));
 		expect(b.state().System.Manager.Appearance.packageId).toBe(FOO);
 	});
@@ -1117,7 +1117,7 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 			package: FOO,
 		} as ClassicyTheme;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("foo-dark");
 		expect(b.active().package).toBe(FOO);
 		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
@@ -1133,7 +1133,7 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 			package: FOO,
 		} as ClassicyTheme;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("foo-default");
 		expect(b.active().package).toBe(FOO);
 		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
@@ -1154,7 +1154,7 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 			defaults: "yes",
 		} as unknown as ClassicyTheme;
 		const b = await boot({ saved });
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.active().id).toBe("foo-default");
 		expect(b.saved().System.Manager.Appearance.activeTheme).toEqual({
 			id: "foo-default",
@@ -1173,7 +1173,7 @@ describe("a saved defaults reference to a package the host dropped (0147-qyy)", 
 
 	it("counts a flagged reference only for the package it names", async () => {
 		await boot();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const { drawnClassicyPackageDefaults } = await import(
 			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal"
 		);

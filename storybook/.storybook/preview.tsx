@@ -1,6 +1,6 @@
 // The Appearance Package, imported by path as a host imports it: the core
 // registers none.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 // Every bundled app's manifest and reducer, as a host's `import "@classicy/classicy"`
 // registers them, so a story's app actions reach their reducers.
 import "@/SystemFolder/ClassicyBundledApps.internal";

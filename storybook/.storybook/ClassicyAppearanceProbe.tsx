@@ -1,3 +1,6 @@
+// Importing Platinum registers it, and with it the "platinum" sound pack that
+// the probe's default theme names (a package's defaults are validated).
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import type { FC, ReactNode } from "react";
 import { useLayoutEffect, useState } from "react";
 import { action } from "storybook/actions";
@@ -12,9 +15,6 @@ import {
 	registerClassicyAppearancePackage,
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
-// Importing Platinum registers it, and with it the "platinum" sound pack that
-// the probe's default theme names (a package's defaults are validated).
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import {
 	CLASSICY_COMPONENT,
 	type ClassicyState,

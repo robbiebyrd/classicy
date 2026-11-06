@@ -1,14 +1,13 @@
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperUrl,
+} from "@classicy/appearance-platinum";
 import { act } from "@testing-library/react";
 import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
-import "@/Appearance/Platinum/assets/platinumAssets";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
-import {
-	PLATINUM_WALLPAPERS,
-	platinumWallpaperUrl,
-} from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	classicyBackgroundSizeOption,
 	isClassicyBackgroundPictureUrl,

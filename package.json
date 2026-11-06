@@ -29,7 +29,7 @@
 		"generate-barrels": "node bin/generate-vocabulary.ts && barrelsby -c .ts-barrel.json",
 		"dev": "pnpm build:source",
 		"build": "pnpm build:audio && pnpm build:source",
-		"build:source": "pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist",
+		"build:source": "pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build",
 		"verify:dist": "node bin/check-dist-imports.mjs",
 		"build:audio": "./bin/make_audio_sprites.sh",
 		"build:watch": "concurrently --kill-others \"pnpm build:watchaudio\" \"pnpm build:watchsource\"",
@@ -115,6 +115,7 @@
 		"zustand": "^5.0.14"
 	},
 	"devDependencies": {
+		"@classicy/appearance-platinum": "workspace:*",
 		"@analytics/google-analytics": "^1.1.0",
 		"@babel/core": "^7.29.7",
 		"@babel/preset-env": "^7.29.7",

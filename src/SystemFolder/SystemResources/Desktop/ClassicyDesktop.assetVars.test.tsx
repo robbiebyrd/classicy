@@ -2,7 +2,7 @@
 import "@/__tests__/withPlatinum";
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import "@/Appearance/Platinum/assets/platinumAssets";
+import "@classicy/appearance-platinum";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";

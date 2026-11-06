@@ -1,3 +1,4 @@
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
@@ -12,7 +13,6 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,

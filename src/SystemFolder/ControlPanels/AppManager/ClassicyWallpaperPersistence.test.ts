@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
+import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
-import { platinumWallpaperUrl } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -258,7 +258,7 @@ describe("a 2.1.x save, booted from localStorage", () => {
 		localStorage.setItem("classicyDesktopState", JSON.stringify(persisted));
 		// Platinum first, as a host imports it: its wallpapers are registered
 		// when the store loads.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const { registerClassicyWallpapers: register } = await import(
 			"@/Appearance/ClassicyAssetRegistry"
 		);

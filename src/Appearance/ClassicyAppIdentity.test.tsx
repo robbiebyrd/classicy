@@ -1,3 +1,4 @@
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -20,7 +21,6 @@ import {
 	useClassicyAppIdentity,
 	useClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,

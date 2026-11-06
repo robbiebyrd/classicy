@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { fireEvent, render, renderHook, screen } from "@/__tests__/test-utils";
 // Registers Platinum (and its sound pack, which test-pack's defaults name).
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	listClassicyAppearancePackages,

@@ -17,11 +17,11 @@ const freshStore = async () => {
 	vi.resetModules();
 	// The fresh graph's sound registry is empty; the Platinum themes the
 	// packages below build on name Platinum's pack.
-	await import("@/Appearance/Platinum/assets/sounds/platinum");
+	await import("@classicy/appearance-platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
 	// Platinum registers after the store, as the library barrel loads them.
-	await import("@/Appearance/Platinum");
+	await import("@classicy/appearance-platinum");
 	return {
 		store,
 		appearance: await import(APPEARANCE),

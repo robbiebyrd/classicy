@@ -6,10 +6,8 @@ import {
 	ClassicyDesktop,
 	registerClassicyIcons,
 } from "@classicy/classicy";
-// The Appearance Package: the core draws no desktop without one. Until
-// Platinum ships as @classicy/appearance-platinum, its interim entry is
-// this subpath.
-import "@classicy/classicy/appearance/platinum";
+// The Appearance Package: the core draws no desktop without one.
+import "@classicy/appearance-platinum";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
 // Side-effect import: registers example HyperCard plugins (custom part, commands,

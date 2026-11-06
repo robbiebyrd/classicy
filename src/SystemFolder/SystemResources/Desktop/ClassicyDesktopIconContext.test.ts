@@ -1,6 +1,8 @@
 // jsdom's getComputedStyle reports inline custom properties set with
 // `style.setProperty`, so the metric tests mount a real #classicyDesktop
 // carrying the desktop-icon variables; no getComputedStyle stub is needed.
+
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -17,7 +19,6 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	type ClassicyTheme,

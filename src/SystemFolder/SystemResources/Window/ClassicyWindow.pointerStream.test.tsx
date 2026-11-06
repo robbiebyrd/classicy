@@ -4,7 +4,7 @@
 // gesture ends where it is, exactly as a release there would end it: the
 // store's gesture flags are cleared and the window keeps the geometry it was
 // dragged to. It never resumes following the pointer on return.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	losePointerStream,

@@ -5,12 +5,19 @@
 // and is refreshed then: a built-in by its current preset, a wallpaper by its
 // filename. Each test boots a fresh module graph from saved state and
 // registers Platinum afterward, as a host's entry (and the library build) does.
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyLogEntry } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+
+// Platinum's source, for the module copies below (a query makes a new instance).
+const PLATINUM_SRC = path.resolve(
+	__dirname,
+	"../../../../packages/appearance/platinum/src",
+);
 
 const STORE = "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 const APPEARANCE =
@@ -55,7 +62,7 @@ const boot = async (saved?: unknown) => {
 		saved: (): ClassicyStore =>
 			strip(store.sanitizeStateForPersistence(state())),
 		warnings: () => entries.filter((e) => e.level === "warn"),
-		registerPlatinum: () => import("@/Appearance/Platinum"),
+		registerPlatinum: () => import("@classicy/appearance-platinum"),
 	};
 };
 
@@ -343,9 +350,9 @@ describe("Platinum imported twice, or re-registered by HMR", () => {
 			// instance) registers new objects under the same ids. The query
 			// makes each a module of its own, evaluated again.
 			for (const copy of [
-				"@/Appearance/Platinum/assets/sounds/platinum.ts?copy",
-				"@/Appearance/Platinum/assets/platinumAssets.ts?copy",
-				"@/Appearance/Platinum/index.ts?copy",
+				`${PLATINUM_SRC}/assets/sounds/platinum.ts?copy`,
+				`${PLATINUM_SRC}/assets/platinumAssets.ts?copy`,
+				`${PLATINUM_SRC}/index.ts?copy`,
 			]) {
 				await import(/* @vite-ignore */ copy);
 			}

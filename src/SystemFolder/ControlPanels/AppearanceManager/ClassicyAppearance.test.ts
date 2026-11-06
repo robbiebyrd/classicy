@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 // getTheme/getAllThemes serve the registered packages' themes: Platinum's.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import {
 	type ClassicyThemeMeasurements,
 	getAllThemes,

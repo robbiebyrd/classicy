@@ -1,5 +1,8 @@
 // Registers Test Pack. The module imports Platinum first, so Platinum
 // registers before it and stays first in the Packages list.
+
+// Registers Platinum, whose look Test Pack borrows.
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { TEST_PACK_ID } from "@sb/TestPackPackage";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
@@ -21,8 +24,6 @@ import {
 	defaultClassicyWallpaper,
 	resolveClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
-// Registers Platinum, whose look Test Pack borrows.
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { useColorsTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";

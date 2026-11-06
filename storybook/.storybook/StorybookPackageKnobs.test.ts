@@ -1,5 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import {
+	PLATINUM_APPEARANCE_PACKAGE_ID,
+	platinumJson,
+} from "@classicy/appearance-platinum";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
@@ -7,8 +11,6 @@ import {
 	getClassicyAppearancePackage,
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getThemeVars,

@@ -3,7 +3,7 @@ import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
-import "@/Appearance/Platinum/assets/sounds/platinum";
+import "@classicy/appearance-platinum";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID as LEAF_DEFAULT_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
@@ -426,8 +426,14 @@ describe("module load order", () => {
 			"the library build entry",
 			() => import("@/ClassicyLibraryBuild.internal"),
 		],
-		["the Platinum package module", () => import("@/Appearance/Platinum")],
-		["the Platinum hooks", () => import("@/Appearance/Platinum/hooks")],
+		[
+			"the Platinum package module",
+			() => import("@classicy/appearance-platinum"),
+		],
+		[
+			"the Platinum hooks",
+			() => import("../../packages/appearance/platinum/src/hooks"),
+		],
 		[
 			"the theme metrics module",
 			() =>
@@ -460,7 +466,7 @@ describe("module load order", () => {
 			);
 			// The fresh graph's sound registry is empty, and the package's
 			// Platinum theme names Platinum's pack.
-			await import("@/Appearance/Platinum/assets/sounds/platinum");
+			await import("@classicy/appearance-platinum");
 			packages.registerClassicyAppearancePackage(makePackage("load-order"));
 			store.useAppManager.setState(
 				produce(state, (draft) => {
@@ -536,7 +542,7 @@ describe("module load order", () => {
 			);
 			// The fresh graph's sound registry is empty, and the package's
 			// Platinum theme names Platinum's pack.
-			await import("@/Appearance/Platinum/assets/sounds/platinum");
+			await import("@classicy/appearance-platinum");
 			const mirror = makePackage("load-order", {
 				layout: { ...PLATINUM_LAYOUT, menuBar: { placement: "window" } },
 			});

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
 	ClassicyStore,
@@ -27,6 +26,7 @@ import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 // Side-effect imports: register app plugins so ClassicyAppFinder* and
 // ClassicyAppMoviePlayer* events are handled by classicyDesktopStateEventReducer.
 import "@/SystemFolder/Finder/FinderContext";
@@ -2046,7 +2046,7 @@ describe("keyboard shortcut registry reducer", () => {
 
 // Module-evaluation order: the default state is the core's own data
 // (ClassicyCoreTheme.ts), so it never waits on the side-effect module that
-// registers a package. This file must not import "@/Appearance/Platinum".
+// registers a package. This file must not import "@classicy/appearance-platinum".
 describe("DefaultAppManagerState without the Platinum package module", () => {
 	it("starts from the core default theme and lists no built-ins", () => {
 		expect(getClassicyAppearancePackage("platinum")).toBeUndefined();

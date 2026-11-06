@@ -12,13 +12,13 @@
 // the package import that, so the package registers only in a story iframe
 // that has loaded one of them (ruling F-R6), never in every iframe.
 // Platinum first: its registered stylesheet, layout and hooks are read here.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 // `?no-inline`: served as files, never `data:` URIs, so a drawn icon's `src`
 // names the art it shows.

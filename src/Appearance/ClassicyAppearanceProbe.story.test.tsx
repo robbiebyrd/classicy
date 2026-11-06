@@ -1,4 +1,4 @@
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import { describe, expect, it, vi } from "vitest";
 import { losePointerStream } from "@/__tests__/losePointerStream";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 // Registers Platinum's sound pack, which the Platinum themes used here name
 // (`sound.pack` must name a registered pack).
-import "@/Appearance/Platinum/assets/sounds/platinum";
+import "@classicy/appearance-platinum";
 // A theme list to migrate: Platinum's built-ins (the default state lists
 // none; ClassicyDesktop loads them on mount).
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { getAllThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {

@@ -4,7 +4,7 @@
 // and ClassicyDesktop loads getAllThemes() into `availableThemes` when it
 // mounts. Reducer tests that start from "the default state with every
 // built-in" build it here. Importing this module registers Platinum.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import {
 	type ClassicyTheme,
 	getAllThemes,

@@ -1,5 +1,5 @@
+import { platinumJson } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	classicyPopUpMenuPlacement,
 	POPUP_MENU_VIEWPORT_MARGIN,

@@ -5,6 +5,8 @@
 // re-render nor `ws.resizing` ever happens there.)
 // jsdom's getComputedStyle reports inline custom properties set with
 // `style.setProperty`; no getComputedStyle stub is needed.
+
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@/__tests__/test-utils";
@@ -14,7 +16,6 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import {
 	classicyLayoutThemeVars,
 	classicyLayoutVars,

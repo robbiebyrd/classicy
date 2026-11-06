@@ -51,8 +51,7 @@ const config: StorybookConfig = {
 				alias: [
 					// Platinum (plan 0015-kxa §3.1) reaches the core as
 					// `@classicy/classicy`: the stories' own core source, so there is one
-					// copy of the registries. Interim, until the stories and the preview
-					// import Platinum by name (§3.2): its old in-core path.
+					// copy of the registries.
 					{
 						find: /^@classicy\/classicy$/,
 						replacement: path.join(repoRoot, "src/index.ts"),
@@ -60,10 +59,6 @@ const config: StorybookConfig = {
 					{
 						find: /^@classicy\/appearance-platinum$/,
 						replacement: path.join(platinumSrc, "index.ts"),
-					},
-					{
-						find: /^@\/Appearance\/Platinum(?=\/|$)/,
-						replacement: platinumSrc,
 					},
 					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
 					{ find: "@", replacement: path.join(repoRoot, "src") },

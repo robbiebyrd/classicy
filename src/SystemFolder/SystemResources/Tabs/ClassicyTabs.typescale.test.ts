@@ -1,7 +1,7 @@
 import path from "node:path";
+import { platinumJson } from "@classicy/appearance-platinum";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	getTheme,
 	getThemeVars,

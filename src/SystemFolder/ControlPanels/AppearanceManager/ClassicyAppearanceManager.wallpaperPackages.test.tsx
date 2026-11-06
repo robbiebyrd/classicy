@@ -1,5 +1,6 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
+import { platinumWallpaperUrl } from "@classicy/appearance-platinum";
 import {
 	act,
 	fireEvent,
@@ -12,7 +13,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
-import { platinumWallpaperUrl } from "@/Appearance/Platinum/assets/platinumWallpapers";
 import {
 	getTheme,
 	getThemeVars,

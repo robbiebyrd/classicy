@@ -1,3 +1,4 @@
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +14,6 @@ import {
 	resetClassicyAppearancePackagesForTests,
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import {
 	type ActionMessage,
 	DefaultAppManagerState,

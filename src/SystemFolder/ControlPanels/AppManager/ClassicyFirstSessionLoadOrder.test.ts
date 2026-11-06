@@ -19,18 +19,21 @@ afterEach(() => {
 
 describe("a first session's active theme, by module load order", () => {
 	it.each<[string, Array<() => Promise<unknown>>]>([
-		["Platinum, then the store", [() => import("@/Appearance/Platinum")]],
+		[
+			"Platinum, then the store",
+			[() => import("@classicy/appearance-platinum")],
+		],
 		[
 			"Platinum, the bundled apps, then the store (Storybook's preview)",
 			[
-				() => import("@/Appearance/Platinum"),
+				() => import("@classicy/appearance-platinum"),
 				() => import("@/SystemFolder/ClassicyBundledApps.internal"),
 			],
 		],
 		[
 			"Platinum, the desktop, then the store",
 			[
-				() => import("@/Appearance/Platinum"),
+				() => import("@classicy/appearance-platinum"),
 				() => import("@/SystemFolder/SystemResources/Desktop/ClassicyDesktop"),
 			],
 		],
@@ -41,7 +44,7 @@ describe("a first session's active theme, by module load order", () => {
 			vi.resetModules();
 			localStorage.clear();
 			for (const load of first) await load();
-			await import("@/Appearance/Platinum");
+			await import("@classicy/appearance-platinum");
 			const store = await import(STORE);
 			store.stopAppManagerPersistence();
 			const { getTheme } = await import(

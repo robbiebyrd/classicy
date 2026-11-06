@@ -29,8 +29,15 @@ import platinumJson from "./platinum.json";
 import platinumCss from "./styles/platinum.scss?inline";
 
 export * from "./assets/platinumAssets";
+export {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperUrl,
+} from "./assets/platinumWallpapers";
 export * from "./assets/sounds/platinum";
 export * from "./hooks";
+// The package's theme data and wallpaper lookup, for hosts and tests that read
+// them (they were deep imports of the in-core path before the move).
+export { platinumJson };
 
 /** The Platinum package's id. */
 export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";

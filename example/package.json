@@ -16,6 +16,7 @@
 		"proxy:down": "cd timemachine && docker compose down"
 	},
 	"dependencies": {
+		"@classicy/appearance-platinum": "workspace:*",
 		"@classicy/classicy": "workspace:*",
 		"dompurify": "^3.4.0",
 		"react": "^19.1.0",

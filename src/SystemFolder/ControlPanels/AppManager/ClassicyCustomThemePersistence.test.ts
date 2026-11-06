@@ -88,7 +88,7 @@ describe("customThemes — boot from localStorage", () => {
 
 		// Platinum first, as a host imports it: its wallpapers are registered
 		// when the store loads.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const utils = await import("./ClassicyAppManagerUtils");
 		const a = utils.useAppManager.getState().System.Manager.Appearance;
 		expect(utils.wasHydratedFromStorage()).toBe(true);

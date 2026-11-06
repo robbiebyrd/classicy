@@ -12,37 +12,38 @@
 //
 // Relative paths, not the `@/` alias: the test compiles this file through the
 // sass API, which has no aliases. Platinum's partials are in its workspace
-// package (plan 0015-kxa §3.1) and reach the vocabulary as
+// package (plan 0015-kxa §3.1), `@use`d as
+// `pkg:@classicy/appearance-platinum/scss/*`, and they reach the vocabulary as
 // `pkg:@classicy/classicy/scss/*`, so compile this with Sass's
 // NodePackageImporter.
 @use "../../src/Appearance/vocabulary/package";
-@use "../../packages/appearance/platinum/src/styles/assets";
-@use "../../packages/appearance/platinum/src/styles/components/Alert";
-@use "../../packages/appearance/platinum/src/styles/components/Button";
-@use "../../packages/appearance/platinum/src/styles/components/BevelButton";
-@use "../../packages/appearance/platinum/src/styles/components/Menu";
-@use "../../packages/appearance/platinum/src/styles/components/Window";
-@use "../../packages/appearance/platinum/src/styles/components/Slider";
-@use "../../packages/appearance/platinum/src/styles/components/Checkbox";
-@use "../../packages/appearance/platinum/src/styles/components/PopUpMenu";
-@use "../../packages/appearance/platinum/src/styles/components/DriveSetupList";
-@use "../../packages/appearance/platinum/src/styles/components/Assistant";
-@use "../../packages/appearance/platinum/src/styles/components/ProgressBar";
-@use "../../packages/appearance/platinum/src/styles/components/Icon";
-@use "../../packages/appearance/platinum/src/styles/components/Table";
-@use "../../packages/appearance/platinum/src/styles/components/QuickTimeMovieEmbed";
-@use "../../packages/appearance/platinum/src/styles/components/StartupScreen";
-@use "../../packages/appearance/platinum/src/styles/components/ControlStrip";
-@use "../../packages/appearance/platinum/src/styles/components/Desktop";
-@use "../../packages/appearance/platinum/src/styles/components/Tabs";
-@use "../../packages/appearance/platinum/src/styles/components/DesktopIcon";
-@use "../../packages/appearance/platinum/src/styles/components/HyperCard";
-@use "../../packages/appearance/platinum/src/styles/components/FileInput";
-@use "../../packages/appearance/platinum/src/styles/components/Meter";
-@use "../../packages/appearance/platinum/src/styles/components/Output";
-@use "../../packages/appearance/platinum/src/styles/components/Placard";
-@use "../../packages/appearance/platinum/src/styles/components/SplitView";
-@use "../../packages/appearance/platinum/src/styles/components/WindowFrame";
+@use "pkg:@classicy/appearance-platinum/scss/assets";
+@use "pkg:@classicy/appearance-platinum/scss/components/Alert";
+@use "pkg:@classicy/appearance-platinum/scss/components/Button";
+@use "pkg:@classicy/appearance-platinum/scss/components/BevelButton";
+@use "pkg:@classicy/appearance-platinum/scss/components/Menu";
+@use "pkg:@classicy/appearance-platinum/scss/components/Window";
+@use "pkg:@classicy/appearance-platinum/scss/components/Slider";
+@use "pkg:@classicy/appearance-platinum/scss/components/Checkbox";
+@use "pkg:@classicy/appearance-platinum/scss/components/PopUpMenu";
+@use "pkg:@classicy/appearance-platinum/scss/components/DriveSetupList";
+@use "pkg:@classicy/appearance-platinum/scss/components/Assistant";
+@use "pkg:@classicy/appearance-platinum/scss/components/ProgressBar";
+@use "pkg:@classicy/appearance-platinum/scss/components/Icon";
+@use "pkg:@classicy/appearance-platinum/scss/components/Table";
+@use "pkg:@classicy/appearance-platinum/scss/components/QuickTimeMovieEmbed";
+@use "pkg:@classicy/appearance-platinum/scss/components/StartupScreen";
+@use "pkg:@classicy/appearance-platinum/scss/components/ControlStrip";
+@use "pkg:@classicy/appearance-platinum/scss/components/Desktop";
+@use "pkg:@classicy/appearance-platinum/scss/components/Tabs";
+@use "pkg:@classicy/appearance-platinum/scss/components/DesktopIcon";
+@use "pkg:@classicy/appearance-platinum/scss/components/HyperCard";
+@use "pkg:@classicy/appearance-platinum/scss/components/FileInput";
+@use "pkg:@classicy/appearance-platinum/scss/components/Meter";
+@use "pkg:@classicy/appearance-platinum/scss/components/Output";
+@use "pkg:@classicy/appearance-platinum/scss/components/Placard";
+@use "pkg:@classicy/appearance-platinum/scss/components/SplitView";
+@use "pkg:@classicy/appearance-platinum/scss/components/WindowFrame";
 
 @include package.classicy-package("mirrored") {
   @include assets.platinum-root-properties;

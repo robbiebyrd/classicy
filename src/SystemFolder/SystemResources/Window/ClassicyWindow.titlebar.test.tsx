@@ -1,7 +1,7 @@
 // The window sounds come from Platinum's hooks. ClassicyIcons is not mocked:
 // the icon tree registers itself in ClassicyIcons.ts, which Platinum's assets
 // import and read at load, and a mock of a different shape broke that module.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";

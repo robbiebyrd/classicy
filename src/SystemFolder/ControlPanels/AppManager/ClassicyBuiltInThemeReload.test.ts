@@ -33,12 +33,12 @@ const boot = async (saved?: unknown) => {
 	});
 	// The fresh graph's sound registry is empty; the Platinum themes the
 	// packages below build on name Platinum's pack.
-	await import("@/Appearance/Platinum/assets/sounds/platinum");
+	await import("@classicy/appearance-platinum");
 	const store = await import(STORE);
 	store.stopAppManagerPersistence();
 	// Platinum registers after the store, as the library barrel loads them:
 	// its built-ins come from its registration, not from the store's load.
-	await import("@/Appearance/Platinum");
+	await import("@classicy/appearance-platinum");
 	return {
 		store,
 		appearance: await import(APPEARANCE),
@@ -291,7 +291,7 @@ describe("hydrate takes built-ins from the code", () => {
 	it("never rewrites the store at boot when nothing is stale", async () => {
 		const b = await boot();
 		const before = b.state();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		expect(b.state()).toBe(before);
 	});
 });

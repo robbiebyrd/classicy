@@ -30,7 +30,7 @@ describe("Storybook preview theme toolbar", () => {
 
 	it("lists every registered package's presets, Platinum's first", async () => {
 		vi.resetModules();
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const { registerClassicyAppearancePackage } = await import(
 			"@/Appearance/ClassicyAppearancePackageRegistry"
 		);

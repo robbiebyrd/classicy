@@ -281,7 +281,7 @@ describe("the example app", () => {
 		expect(browser).not.toContain("scss/appearance");
 		expect(browser).not.toContain("scss-platinum");
 		expect(browser).toContain(
-			"@use '@classicy/classicy/appearance/platinum/scss/mixins';",
+			"@use '@classicy/appearance-platinum/scss/mixins';",
 		);
 		expect(browser).toContain(
 			"@include mixins.platinum-window-control-box-border;",

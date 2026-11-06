@@ -326,7 +326,7 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 		vi.resetModules();
 		// Platinum first, as a host imports it: its wallpapers are registered
 		// when the store loads.
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const { useAppManager, stopAppManagerPersistence } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 		);
@@ -372,7 +372,7 @@ describe("getInitialState — localStorage behavior (via module re-import)", () 
 	// first, as the library barrel loads them).
 	it("replaces a background set on a built-in theme with the preset's", async () => {
 		await hydrateBackground("https://example.com/my-wallpaper.png", "default");
-		await import("@/Appearance/Platinum");
+		await import("@classicy/appearance-platinum");
 		const { getTheme } = await import(
 			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
 		);

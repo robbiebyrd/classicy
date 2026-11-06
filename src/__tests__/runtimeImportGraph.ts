@@ -17,9 +17,6 @@ const resolveSpecifier = (from: string, specifier: string): string => {
 	if (bare === "@classicy/classicy") base = path.join(SRC, "index.ts");
 	else if (bare === "@classicy/appearance-platinum")
 		base = path.join(PLATINUM_SRC, "index.ts");
-	// Interim (plan 0015-kxa §3.2 retires it): Platinum's old in-core path.
-	else if (/^@\/Appearance\/Platinum(?:\/|$)/.test(bare))
-		base = path.join(PLATINUM_SRC, bare.slice("@/Appearance/Platinum".length));
 	else if (bare.startsWith("@/")) base = path.join(SRC, bare.slice(2));
 	else if (bare.startsWith("@img/"))
 		base = path.join(ROOT, "assets/img", bare.slice(5));

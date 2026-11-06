@@ -7,7 +7,8 @@
 // the desktop looks. Only ClassicyAppearanceManager.stories.tsx imports it,
 // and the registration lasts for the iframe's lifetime, so shoot those
 // stories in a fresh page.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import type {
 	ClassicyAppearanceKnobs,
 	ClassicyAppearancePackage,
@@ -17,7 +18,6 @@ import {
 	registerClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
-import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@/Appearance/Platinum";
 import {
 	type ClassicyTheme,
 	getTheme,

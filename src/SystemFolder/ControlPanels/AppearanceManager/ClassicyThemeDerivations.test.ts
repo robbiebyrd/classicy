@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { platinumJson } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import type { ClassicyThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_THEME_DERIVATIONS,

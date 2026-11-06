@@ -5,6 +5,7 @@
 // package stops (ClassicyNoAppearancePackage.test.tsx).
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
+import { platinumSoundPack } from "@classicy/appearance-platinum";
 import { act, render, renderHook } from "@testing-library/react";
 import { produce } from "immer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +22,6 @@ import {
 	resolveClassicyAsset,
 	useClassicyAssetVars,
 } from "@/Appearance/ClassicyAssetRegistry";
-import { platinumSoundPack } from "@/Appearance/Platinum/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";

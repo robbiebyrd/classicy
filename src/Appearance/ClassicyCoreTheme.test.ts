@@ -4,7 +4,8 @@
 // stylesheets and components read, and Platinum renders as it did.
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
+import { platinumJson } from "@classicy/appearance-platinum";
 import {
 	getClassicyAppearancePackage,
 	registerClassicyAppearancePackage,
@@ -14,7 +15,6 @@ import {
 	CLASSICY_CORE_DEFAULT_THEME,
 	CLASSICY_CORE_MEASUREMENT_DEFAULTS,
 } from "@/Appearance/ClassicyCoreTheme";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getAllThemes,

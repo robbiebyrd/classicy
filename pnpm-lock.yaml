@@ -79,6 +79,9 @@ importers:
       '@biomejs/biome':
         specifier: ^2.5.0
         version: 2.5.0
+      '@classicy/appearance-platinum':
+        specifier: workspace:*
+        version: link:packages/appearance/platinum
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
@@ -190,6 +193,9 @@ importers:
 
   example:
     dependencies:
+      '@classicy/appearance-platinum':
+        specifier: workspace:*
+        version: link:../packages/appearance/platinum
       '@classicy/classicy':
         specifier: workspace:*
         version: link:..

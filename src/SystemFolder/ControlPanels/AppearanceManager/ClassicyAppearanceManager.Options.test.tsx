@@ -1,5 +1,6 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
+import { platinumJson } from "@classicy/appearance-platinum";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	act,
@@ -20,7 +21,6 @@ import {
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
 import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
-import platinumJson from "@/Appearance/Platinum/platinum.json";
 import {
 	type ClassicyTheme,
 	getTheme,

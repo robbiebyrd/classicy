@@ -1,5 +1,5 @@
 // The flash class comes from Platinum's MenuItem press hook.
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {

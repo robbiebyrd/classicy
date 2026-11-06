@@ -5,4 +5,4 @@
 // (ClassicyNoAppearancePackage), so such tests import this:
 //
 //   import "@/__tests__/withPlatinum";
-import "@/Appearance/Platinum";
+import "@classicy/appearance-platinum";
