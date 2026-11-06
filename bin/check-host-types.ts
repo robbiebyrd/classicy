@@ -8,14 +8,22 @@
 // No other check reads the declarations the way a host does: verify:dist and
 // Platinum's verify-dist scan them as text.
 //
-// The check packs both packages (`pnpm pack`, as 4.1 publishes them), extracts
-// the tarballs into a scratch host's node_modules beside links to the core's
-// dependencies and peer dependencies (and their @types) from this checkout,
-// and runs `tsc --noEmit` on a host file under each resolution in
-// CLASSICY_HOST_RESOLUTIONS, with `skipLibCheck` as hosts set it. Run after
-// both builds (the end of `build:source`):
+// A host also installs only what the packages declare (story 0153-k0e): a
+// declaration importing a devDependency (`@mdxeditor/editor`) or a package
+// whose types are a devDependency (`howler` without `@types/howler`) resolves
+// to nothing there, an `any` under `skipLibCheck` and an error without it.
 //
-//   node bin/check-host-types.ts      exit 1 if any resolution fails
+// The check packs both packages (`pnpm pack`, as 4.1 publishes them), extracts
+// the tarballs into a scratch host's node_modules beside links, from this
+// checkout, to the packages' dependencies and peer dependencies and nothing
+// else (an `@types/…` package only when it is itself one of them). It fails
+// on any package a packed declaration imports that its package does not
+// declare, then runs `tsc --noEmit` on a host file under each mode in
+// CLASSICY_HOST_MODES: `skipLibCheck` as most hosts set it, and once
+// (`bundler-lib-check`) without it, so every declaration is checked. Run
+// after both builds (the end of `build:source`):
+//
+//   node bin/check-host-types.ts      exit 1 if any import or mode fails
 //
 // Build script, not library code: it reports through stdout/stderr and exit
 // codes. Erasable TypeScript syntax only, so Node runs it directly.
@@ -31,18 +39,46 @@ import {
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
+import { isBuiltin } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+	classicyPackageOfSpecifier,
+	findClassicyBareSpecifiers,
+} from "./classicyDeclarationSpecifiers.ts";
 
-/** The module settings of each resolution a host may use. */
-export const CLASSICY_HOST_RESOLUTIONS = {
-	bundler: { module: "esnext", moduleResolution: "bundler" },
-	node16: { module: "node16", moduleResolution: "node16" },
-	nodenext: { module: "nodenext", moduleResolution: "nodenext" },
+/**
+ * The compiler settings of each mode a host may type-check in: each
+ * resolution with `skipLibCheck`, and bundler without it.
+ */
+export const CLASSICY_HOST_MODES = {
+	bundler: {
+		module: "esnext",
+		moduleResolution: "bundler",
+		skipLibCheck: true,
+	},
+	"bundler-lib-check": {
+		module: "esnext",
+		moduleResolution: "bundler",
+		skipLibCheck: false,
+	},
+	node16: { module: "node16", moduleResolution: "node16", skipLibCheck: true },
+	nodenext: {
+		module: "nodenext",
+		moduleResolution: "nodenext",
+		skipLibCheck: true,
+	},
 } as const;
 
-export type ClassicyHostResolution = keyof typeof CLASSICY_HOST_RESOLUTIONS;
+export type ClassicyHostMode = keyof typeof CLASSICY_HOST_MODES;
+
+/** The fields of a package.json the host reads. */
+export type ClassicyHostManifest = {
+	name?: string;
+	dependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+};
 
 /**
  * The host file: a core type, a core function, Platinum's hooks and its
@@ -68,43 +104,88 @@ export const host = {
 };
 `;
 
-/** The host's tsconfig under `resolution`. */
-export const classicyHostTsconfig = (resolution: ClassicyHostResolution) => ({
+/** The host's tsconfig under `mode`. */
+export const classicyHostTsconfig = (mode: ClassicyHostMode) => ({
 	compilerOptions: {
-		...CLASSICY_HOST_RESOLUTIONS[resolution],
+		...CLASSICY_HOST_MODES[mode],
 		target: "es2022",
 		lib: ["es2022", "dom", "dom.iterable"],
 		strict: true,
-		skipLibCheck: true,
 		noEmit: true,
 		types: [],
 	},
 	files: ["host.ts"],
 });
 
+/** What `manifest` declares a host installs: its dependencies and peers. */
+const declaredBy = (manifest: ClassicyHostManifest): string[] => [
+	...Object.keys(manifest.dependencies ?? {}),
+	...Object.keys(manifest.peerDependencies ?? {}),
+];
+
 /**
- * The packages a host installs beside `manifest`'s: its dependencies and
- * peer dependencies, each with its DefinitelyTyped package (`@types/he`,
- * `@types/scope__name`).
+ * The packages a host installs beside the `manifests`' own: their
+ * dependencies and peer dependencies, and nothing else. A package's types
+ * come with it only when they ship in it or its `@types/…` package is itself
+ * declared; a devDependency never reaches a host.
  */
-export const classicyHostDependencies = (manifest: {
-	dependencies?: Record<string, string>;
-	peerDependencies?: Record<string, string>;
-}): string[] =>
-	[
-		...Object.keys(manifest.dependencies ?? {}),
-		...Object.keys(manifest.peerDependencies ?? {}),
-	]
-		.flatMap((name) => [
-			name,
-			`@types/${name.startsWith("@") ? name.slice(1).replace("/", "__") : name}`,
-		])
-		.filter((name, index, all) => all.indexOf(name) === index)
+export const classicyHostDependencies = (
+	...manifests: ClassicyHostManifest[]
+): string[] => {
+	const own = new Set(manifests.map((manifest) => manifest.name));
+	return manifests
+		.flatMap(declaredBy)
+		.filter((name, index, all) => !own.has(name) && all.indexOf(name) === index)
 		.sort();
+};
+
+/**
+ * The host's links (name → directory) to each of the `manifests`' declared
+ * packages present in `nodeModules`, by real path, so their own dependencies
+ * resolve through pnpm's store.
+ */
+export const classicyHostLinks = (
+	nodeModules: string,
+	...manifests: ClassicyHostManifest[]
+): Record<string, string> =>
+	Object.fromEntries(
+		classicyHostDependencies(...manifests)
+			.map((name) => [name, join(nodeModules, name)])
+			.filter(([, path]) => existsSync(path))
+			.map(([name, path]) => [name, realpathSync(path)]),
+	);
+
+export type ClassicyUndeclaredImport = { file: string; specifier: string };
+
+/**
+ * Each package specifier a declaration under `typesDir` imports that
+ * `manifest` does not declare (a dependency or peer), other than a Node
+ * built-in or the package's own name: a host has no such package, so the
+ * declaration's type is `any` under `skipLibCheck` and an error without it.
+ * `file` is relative to `typesDir`.
+ */
+export const findClassicyUndeclaredImports = (
+	typesDir: string,
+	manifest: ClassicyHostManifest,
+): ClassicyUndeclaredImport[] => {
+	const declared = new Set([...declaredBy(manifest), manifest.name]);
+	return (readdirSync(typesDir, { recursive: true }) as string[])
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()
+		.flatMap((file) =>
+			findClassicyBareSpecifiers(readFileSync(join(typesDir, file), "utf8"))
+				.filter(
+					(specifier) =>
+						!isBuiltin(specifier) &&
+						!declared.has(classicyPackageOfSpecifier(specifier)),
+				)
+				.map((specifier) => ({ file: file.split("\\").join("/"), specifier })),
+		);
+};
 
 /**
  * Writes the host into `hostDir`: its package.json (`"type": "module"`),
- * host.ts, one tsconfig per resolution, and a link in node_modules to each of
+ * host.ts, one tsconfig per mode, and a link in node_modules to each of
  * `links` (name → directory). The packages under test are put in its
  * node_modules by the caller.
  */
@@ -118,12 +199,10 @@ export const writeClassicyHost = (
 		`${JSON.stringify({ name: "classicy-host", private: true, type: "module" }, null, "\t")}\n`,
 	);
 	writeFileSync(join(hostDir, "host.ts"), CLASSICY_HOST_SOURCE);
-	for (const resolution of Object.keys(
-		CLASSICY_HOST_RESOLUTIONS,
-	) as ClassicyHostResolution[])
+	for (const mode of Object.keys(CLASSICY_HOST_MODES) as ClassicyHostMode[])
 		writeFileSync(
-			join(hostDir, `tsconfig.${resolution}.json`),
-			`${JSON.stringify(classicyHostTsconfig(resolution), null, "\t")}\n`,
+			join(hostDir, `tsconfig.${mode}.json`),
+			`${JSON.stringify(classicyHostTsconfig(mode), null, "\t")}\n`,
 		);
 	for (const [name, target] of Object.entries(links)) {
 		const link = join(hostDir, "node_modules", name);
@@ -133,30 +212,54 @@ export const writeClassicyHost = (
 };
 
 export type ClassicyHostResult = {
-	resolution: ClassicyHostResolution;
+	mode: ClassicyHostMode;
 	status: number | null;
 	output: string;
 };
 
-/** Runs `tsc` (the path of its bin script) on the host under each resolution. */
+/** Runs `tsc` (the path of its bin script) on the host under each mode. */
 export const checkClassicyHost = (
 	hostDir: string,
 	tsc: string,
 ): ClassicyHostResult[] =>
-	(Object.keys(CLASSICY_HOST_RESOLUTIONS) as ClassicyHostResolution[]).map(
-		(resolution) => {
-			const result = spawnSync(
-				process.execPath,
-				[tsc, "-p", `tsconfig.${resolution}.json`, "--pretty", "false"],
-				{ cwd: hostDir, encoding: "utf8" },
-			);
-			return {
-				resolution,
-				status: result.status,
-				output: `${result.stdout}${result.stderr}`.trim(),
-			};
-		},
-	);
+	(Object.keys(CLASSICY_HOST_MODES) as ClassicyHostMode[]).map((mode) => {
+		const result = spawnSync(
+			process.execPath,
+			[tsc, "-p", `tsconfig.${mode}.json`, "--pretty", "false"],
+			{ cwd: hostDir, encoding: "utf8" },
+		);
+		return {
+			mode,
+			status: result.status,
+			output: `${result.stdout}${result.stderr}`.trim(),
+		};
+	});
+
+/**
+ * `tsc`'s error lines in `output`, one per distinct message: the first file
+ * that reports it, then how many more do (`react` without its types is one
+ * line, not one per declaration). Other lines are kept as they are.
+ */
+export const summarizeClassicyTscOutput = (output: string): string[] => {
+	const seen = new Map<string, { line: string; count: number }>();
+	const other: string[] = [];
+	for (const line of output.split("\n")) {
+		const error = /^(.*?)\(\d+,\d+\): (error TS\d+: .*)$/.exec(line);
+		if (error === null) {
+			if (line.trim() !== "" && !/^\s/.test(line)) other.push(line);
+			continue;
+		}
+		const entry = seen.get(error[2]);
+		if (entry === undefined) seen.set(error[2], { line, count: 1 });
+		else entry.count++;
+	}
+	return [
+		...[...seen.values()].map(({ line, count }) =>
+			count === 1 ? line : `${line} (and ${count - 1} more)`,
+		),
+		...other,
+	];
+};
 
 /** Packs the package in `packageDir` with pnpm into `out`; the tarball's path. */
 const pack = (packageDir: string, out: string): string => {
@@ -196,37 +299,64 @@ if (
 	let failed = false;
 	try {
 		const host = join(scratch, "host");
-		const core = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-		const links = Object.fromEntries(
-			classicyHostDependencies(core)
-				.map((name) => [name, join(root, "node_modules", name)])
-				.filter(([, path]) => existsSync(path))
-				.map(([name, path]) => [name, realpathSync(path)]),
-		);
-		writeClassicyHost(host, links);
+		const packed = {
+			"@classicy/classicy": join(host, "node_modules/@classicy/classicy"),
+			"@classicy/appearance-platinum": join(
+				host,
+				"node_modules/@classicy/appearance-platinum",
+			),
+		};
 		extract(
 			pack(root, join(scratch, "pack-core")),
-			join(host, "node_modules/@classicy/classicy"),
+			packed["@classicy/classicy"],
 		);
 		extract(
 			pack(platinum, join(scratch, "pack-platinum")),
-			join(host, "node_modules/@classicy/appearance-platinum"),
+			packed["@classicy/appearance-platinum"],
 		);
-		for (const { resolution, status, output } of checkClassicyHost(
+		// The packed manifests: what a host's install reads (workspace ranges
+		// already replaced by versions).
+		const manifests = Object.values(packed).map(
+			(dir) =>
+				JSON.parse(
+					readFileSync(join(dir, "package.json"), "utf8"),
+				) as ClassicyHostManifest,
+		);
+		writeClassicyHost(
 			host,
-			join(root, "node_modules/typescript/bin/tsc"),
-		)) {
-			if (status === 0) {
+			classicyHostLinks(join(root, "node_modules"), ...manifests),
+		);
+		for (const [index, dir] of Object.values(packed).entries()) {
+			const undeclared = findClassicyUndeclaredImports(
+				join(dir, "dist/types"),
+				manifests[index],
+			);
+			if (undeclared.length === 0) {
 				console.log(
-					`host types (${resolution}): both packed packages type-check`,
+					`host imports (${manifests[index].name}): every package dist/types imports is a dependency or peer`,
 				);
 				continue;
 			}
 			failed = true;
 			console.error(
-				`host types (${resolution}): tsc exited ${status} -> check the relative specifiers in dist/types (beforeWriteFile on dts in vite.config.ts):`,
+				`host imports (${manifests[index].name}): ${undeclared.length} import(s) of a package hosts do not install -> declare it, or keep its types off the public surface:`,
 			);
-			for (const line of output.split("\n").slice(0, 10))
+			for (const { file, specifier } of undeclared)
+				console.error(`  dist/types/${file}: "${specifier}"`);
+		}
+		for (const { mode, status, output } of checkClassicyHost(
+			host,
+			join(root, "node_modules/typescript/bin/tsc"),
+		)) {
+			if (status === 0) {
+				console.log(`host types (${mode}): both packed packages type-check`);
+				continue;
+			}
+			failed = true;
+			console.error(
+				`host types (${mode}): tsc exited ${status} -> check the relative specifiers in dist/types (beforeWriteFile on dts in vite.config.ts) and that every package a declaration imports, with its types, is a dependency or peer:`,
+			);
+			for (const line of summarizeClassicyTscOutput(output).slice(0, 20))
 				console.error(`  ${line}`);
 		}
 	} finally {

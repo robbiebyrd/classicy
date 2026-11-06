@@ -1232,7 +1232,9 @@ None of this changes the published package's behavior.
     file in `dist/assets/`.
   - `verify:host-types`, the end of `build:source`, which packs both
     packages and type-checks a host file against them under `bundler`,
-    `node16` and `nodenext`.
+    `node16` and `nodenext`, and under `bundler` without `skipLibCheck`,
+    with only the packages' declared dependencies and peers installed. It
+    fails on any package a shipped declaration imports that is neither.
 - **Visual parity tooling.** `bin/parity/` (`pnpm parity:stories`,
   `parity:shoot`, `parity:app`, `parity:compare`) shoots Storybook and the example app
   with Playwright and compares the shots with ImageMagick. It also reports
