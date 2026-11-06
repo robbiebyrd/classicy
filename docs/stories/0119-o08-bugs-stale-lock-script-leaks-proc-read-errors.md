@@ -3,12 +3,13 @@ id: 0119-o08
 title: git-clear-stale-lock.sh prints /proc read errors for other users' git processes
 purpose: Keep the stale-lock script's stderr clean (and its test deterministic) on a shared machine.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-05T19:12:46.972Z"
-updated: "2026-11-05T19:13:48.413Z"
+updated: "2026-11-06T00:13:00.025Z"
 started: "2026-11-05T19:13:48.413Z"
+completed: "2026-11-06T00:13:00.025Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -56,9 +57,9 @@ Run `bin/gitClearStaleLock.test.ts` 20 times in a loop while another user's git 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The new test fails on the old script and passes on the fixed one.
-- [ ] VERIFY: `for i in $(seq 20); do pnpm exec vitest run bin/gitClearStaleLock.test.ts || exit 1; done` passes, and the full gate is green.
-- [ ] VERIFY: `bin/git-clear-stale-lock.sh` still refuses (exit 2) when a git process runs in the checkout's own git dir.
+- [x] VERIFY: The new test fails on the old script and passes on the fixed one.
+- [x] VERIFY: `for i in $(seq 20); do pnpm exec vitest run bin/gitClearStaleLock.test.ts || exit 1; done` passes, and the full gate is green.
+- [x] VERIFY: `bin/git-clear-stale-lock.sh` still refuses (exit 2) when a git process runs in the checkout's own git dir.
 
 ## Files
 
@@ -66,3 +67,5 @@ Run `bin/gitClearStaleLock.test.ts` 20 times in a loop while another user's git 
 - `bin/gitClearStaleLock.test.ts` - a deterministic test for an unreadable or vanished environ
 
 ## Work Log
+
+### 2026-11-06T00:12:42.928Z - Landed on feat/AppearancePackages at eeb597bb0 (rebased onto 2e8776646 as 9ce5d8eee..55148d14c, stacked under 0142). Round-3 re-review clean (no findings >=70; newline-repo, gitfile-worktree and bare.git<newline> cases refuse; 0/50 over-refusals). 20x loop 92/92; stacked gate 463 files / 6489 tests, GATE_EXIT=0. Known limitation (pre-existing in the original script, below threshold): git --git-dir=X sets GIT_DIR after startup, so such a process is mapped by cwd.

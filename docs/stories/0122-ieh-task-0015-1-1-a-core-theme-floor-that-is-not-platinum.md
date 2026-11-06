@@ -7,7 +7,7 @@ status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:07.578Z"
-updated: "2026-11-05T22:40:13.043Z"
+updated: "2026-11-05T23:36:28.146Z"
 started: "2026-11-05T20:25:46.050Z"
 completed: "2026-11-05T22:40:13.043Z"
 tags: []
@@ -100,3 +100,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-05T22:38:59.226Z - 1.1: CLASSICY_CORE_MEASUREMENT_DEFAULTS (core five + 84 structural knobs, pinned to AGENT-REFERENCE's table) and CLASSICY_CORE_DEFAULT_THEME; no platinum.json read in the core; getAllThemes/getTheme read registered packages; Platinum builds its own presets; J1 (knownClassicyThemePackage registered-only) and J2 (availableThemes [] by default) accepted. Review fixes: F1 first-session theme when Platinum registers before the store (defaultInitialState via withRefreshedActiveTheme), F2 the desktop loads built-in themes only once a package is registered. Rebased onto 1.3 with 9 test-import conflicts resolved by keeping both imports and 2 doc conflicts by 1.1's text with the rename reapplied. Landed 2026-11-05 on feat/AppearancePackages at 66481727b (pushed) as part of stack A (3.5 landed first; then 4.1, 1.3, 0120, 1.1 in one fast-forward). Stack landing gate at the top: 462 files / 6325 tests, lint, tsc, storybook:typecheck, vocabulary --check, color sweep, build:source + verify:dist (jsxDEV=0), build:storybook, example build, exit 0.
+
+### 2026-11-05T23:36:28.146Z - Post-landing regression found 2026-11-05 by 1.5's parity check: `system-appearancemanager--options` (and @mid) differ from the 0.1 baseline by AE 1662 in the Control Strip under the Storybook-only Test Pack package. The cause is 1.1 removing the 11 look-only knobs from the core floor, so a package that reuses Platinum's Control Strip SCSS without declaring them lost those values. 1.1 was gated without a parity round. The fix is being made on fu/0126 (story 0126-orc) as a separate commit, with a guard test for undeclared knob reads in the Storybook packages. Process change: from here every landing that can affect rendering includes a parity round against platinum-split/before.

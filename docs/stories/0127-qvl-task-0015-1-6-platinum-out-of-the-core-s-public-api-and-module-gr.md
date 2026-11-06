@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:42.107Z"
-updated: "2026-11-05T20:26:20.060Z"
+updated: "2026-11-06T00:15:27.230Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -87,3 +87,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `storybook/.storybook/RenamedPackage.ts` - modify
 
 ## Work Log
+
+### 2026-11-06T00:15:27.230Z - 2026-11-06: 0144-6sc (first session with only a non-Platinum package draws the core stand-in theme; found by 0126's review) becomes reachable with this section and is dispatched with it: the 1.6 implementer also fixes 0144.

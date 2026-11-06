@@ -3,12 +3,13 @@ id: 0142-h84
 title: 'Remove bin/ tooling we no longer need: parity dump, forced and probe, and the empty pixel-literal ratchet'
 purpose: Ship PR 333 without tools that only served the Appearance Packages extraction.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-05T21:48:42.949Z"
-updated: "2026-11-05T21:48:50.592Z"
+updated: "2026-11-06T00:13:02.753Z"
 started: "2026-11-05T21:48:50.592Z"
+completed: "2026-11-06T00:13:02.753Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Full gate, plus one `pnpm parity:shoot --mid` and `parity:compare` round against
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `git grep -nE 'parity:(dump|forced|probe)|pixel-literal-allowlist|parityDump|parityForced|parityProbe' -- . ':!docs/plans' ':!docs/stories' ':!docs/superpowers'` prints only release-note history, if anything.
-- [ ] VERIFY: Full gate green, and a parity shoot/compare round against `/home/robbiebyrd/classicy/.playwright-mcp/parity/platinum-split/before` runs (AE 0 except the known clock-colon @mid flake).
+- [x] VERIFY: `git grep -nE 'parity:(dump|forced|probe)|pixel-literal-allowlist|parityDump|parityForced|parityProbe' -- . ':!docs/plans' ':!docs/stories' ':!docs/superpowers'` prints only release-note history, if anything.
+- [x] VERIFY: Full gate green, and a parity shoot/compare round against `/home/robbiebyrd/classicy/.playwright-mcp/parity/platinum-split/before` runs (AE 0 except the known clock-colon @mid flake).
 
 ## Files
 
@@ -76,3 +77,5 @@ Full gate, plus one `pnpm parity:shoot --mid` and `parity:compare` round against
 - `package.json` - drop parity:probe, parity:dump and parity:forced
 
 ## Work Log
+
+### 2026-11-06T00:12:56.839Z - Landed at eeb597bb0 (6b4854944, eeb597bb0) stacked on 0119. Grep leaves only the two tests asserting bin/pixel-literal-allowlist.json is absent. Gate on old tip 456/6260 green and parity 440 zero, 1 nonzero (clock-colon @mid flake, 0140), 4 app shots not reshot; stacked gate 463/6489 green.

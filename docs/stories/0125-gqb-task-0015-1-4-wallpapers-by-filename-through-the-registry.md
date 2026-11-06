@@ -3,12 +3,13 @@ id: 0125-gqb
 title: '0015 §1.4: Wallpapers by filename, through the registry'
 purpose: Execute plan 0015-kxa section 1.4.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:34.533Z"
-updated: "2026-11-05T20:25:52.696Z"
+updated: "2026-11-05T23:19:07.956Z"
 started: "2026-11-05T20:25:52.696Z"
+completed: "2026-11-05T23:19:07.956Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -77,8 +78,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run src/Appearance src/SystemFolder/ControlPanels` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm exec vitest run src/Appearance src/SystemFolder/ControlPanels` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -98,3 +99,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers.ts` - delete
 
 ## Work Log
+
+### 2026-11-05T23:19:04.663Z - Landed 2026-11-05 at 2e8776646 on feat/AppearancePackages (pushed), rebased by its implementer onto stack A (18710eff6) with conflicts resolved file by file. Wallpapers are persisted and held by filename (resolved only in getThemeVars); registerClassicyWallpapers takes optional file and legacyDigests; ClassicyWallpaperIndex (resolve/filename/list/default, portable helpers); a 2.1.8 legacy digest table (46 inlined PNGs, pinned verbatim from the published tarball) maps old data: URIs to filenames after 3.3; bundler-hash strip (exactly 8 chars, not all-lowercase, paths only); case-insensitive pass-through; the Picture field accepts only absolute http(s). Reviews: 1 important + 4 minor, then 2 minor, all fixed; collision case filed as 0143-sdy. Gate at the tip: 465 files / 6417 tests, builds, exit 0.
