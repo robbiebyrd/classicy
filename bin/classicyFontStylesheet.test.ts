@@ -3,22 +3,25 @@ import { describe, expect, it } from "vitest";
 import "../packages/appearance/platinum/src/assets/platinumAssets";
 import { PLATINUM_FONT_FACES } from "../packages/appearance/platinum/src/assets/platinumFonts.internal";
 import {
-	CLASSICY_PLATINUM_FONT_STYLESHEET,
 	classicyEmittedFontFiles,
 	classicyFontStylesheet,
+	classicyFontStylesheetFile,
 	findClassicyFontStylesheetProblems,
 } from "./classicyFontStylesheet";
 
-const FILE = `dist/${CLASSICY_PLATINUM_FONT_STYLESHEET}`;
+const STYLESHEET = classicyFontStylesheetFile("platinum");
+const FILE = `dist/${STYLESHEET}`;
 const emitted = (face: { file: string }) => `assets/${face.file}.woff2`;
-const css = classicyFontStylesheet(PLATINUM_FONT_FACES, emitted);
+const css = classicyFontStylesheet(PLATINUM_FONT_FACES, emitted, STYLESHEET);
 const everyFile = () => true;
 
 describe("classicyFontStylesheet", () => {
-	it("is named after the package stylesheet it follows, outside the classicy-<name>.css namespace", () =>
-		expect(CLASSICY_PLATINUM_FONT_STYLESHEET).toBe(
-			"classicy-platinum.fonts.css",
-		));
+	it("is named after the package stylesheet it follows, outside the classicy-<name>.css namespace", () => {
+		expect(STYLESHEET).toBe("classicy-platinum.fonts.css");
+		expect(classicyFontStylesheetFile("mirrored")).toBe(
+			"classicy-mirrored.fonts.css",
+		);
+	});
 
 	it("holds the rules the runtime writes into <style id=classicy-fonts-platinum>, urls relative to dist", () => {
 		const runtime =
@@ -53,48 +56,73 @@ describe("classicyFontStylesheet", () => {
 					},
 				],
 				() => "assets/Geneva-bold-normal-a1b2.woff2",
+				STYLESHEET,
 			),
 		).toBe(
 			'@font-face{font-family:"Geneva";src:url("assets/Geneva-bold-normal-a1b2.woff2") format("woff2");font-weight:bold;font-style:normal;font-display:swap}\n',
 		));
 
-	it("throws naming a face whose file was not emitted", () =>
+	it("throws naming the stylesheet and a face whose file was not emitted", () =>
 		expect(() =>
-			classicyFontStylesheet(PLATINUM_FONT_FACES, (face) =>
-				face.file === "Monaco-normal-normal" ? undefined : emitted(face),
+			classicyFontStylesheet(
+				PLATINUM_FONT_FACES,
+				(face) =>
+					face.file === "Monaco-normal-normal" ? undefined : emitted(face),
+				"classicy-x.fonts.css",
 			),
-		).toThrow(/Monaco-normal-normal/));
+		).toThrow(
+			/^classicy-x\.fonts\.css: no emitted file for Monaco-normal-normal/,
+		));
 });
 
+// A package's fonts, by their path under the build's root: the core's build
+// saw packages/appearance/platinum/src/assets/fonts/…, Platinum's own build
+// (root: its package folder) sees src/assets/fonts/… (plan 0015-kxa §3.4).
 describe("classicyEmittedFontFiles", () => {
-	it("maps each Platinum font source to its emitted file name", () =>
-		expect(
-			classicyEmittedFontFiles([
-				{
-					fileName: "assets/Geneva-bold-normal.woff2",
-					originalFileNames: [
-						"packages/appearance/platinum/src/assets/fonts/Geneva-bold-normal.woff2",
-					],
-				},
-				{
-					fileName: "assets/Monaco-normal-normal-x.woff2",
-					originalFileNames: [
-						"/repo/packages/appearance/platinum/src/assets/fonts/Monaco-normal-normal.woff2",
-					],
-				},
-				{
-					fileName: "assets/grip.svg",
-					originalFileNames: [
-						"packages/appearance/platinum/src/assets/art/grip.svg",
-					],
-				},
-			]),
-		).toEqual(
+	const assets = [
+		{
+			fileName: "assets/Geneva-bold-normal.woff2",
+			originalFileNames: ["src/assets/fonts/Geneva-bold-normal.woff2"],
+		},
+		{
+			fileName: "assets/Monaco-normal-normal-x.woff2",
+			originalFileNames: [
+				"/repo/packages/appearance/platinum/src/assets/fonts/Monaco-normal-normal.woff2",
+			],
+		},
+		{
+			fileName: "assets/Charcoal-normal-normal.woff2",
+			originalFileNames: [
+				"packages\\appearance\\platinum\\src\\assets\\fonts\\Charcoal-normal-normal.woff2",
+			],
+		},
+		{
+			fileName: "assets/grip.svg",
+			originalFileNames: ["src/assets/art/grip.svg"],
+		},
+		// Under another folder that merely ends in the same name.
+		{
+			fileName: "assets/Other.woff2",
+			originalFileNames: ["vendor/xsrc/assets/fonts/Other.woff2"],
+		},
+	];
+
+	it("maps each font under the package's font folder to its emitted file name", () =>
+		expect(classicyEmittedFontFiles(assets, "src/assets/fonts")).toEqual(
 			new Map([
 				["Geneva-bold-normal", "assets/Geneva-bold-normal.woff2"],
 				["Monaco-normal-normal", "assets/Monaco-normal-normal-x.woff2"],
+				["Charcoal-normal-normal", "assets/Charcoal-normal-normal.woff2"],
 			]),
 		));
+
+	it("takes only fonts under the folder it is given", () =>
+		expect([
+			...classicyEmittedFontFiles(
+				assets,
+				"packages/appearance/platinum/src/assets/fonts",
+			).keys(),
+		]).toEqual(["Monaco-normal-normal", "Charcoal-normal-normal"]));
 });
 
 describe("findClassicyFontStylesheetProblems", () => {
@@ -114,7 +142,7 @@ describe("findClassicyFontStylesheetProblems", () => {
 
 	it("fails a missing file", () =>
 		expect(problems(null)).toEqual([
-			`${FILE}: missing -> check the font stylesheet in injectCssPlugin (vite.config.ts).`,
+			`${FILE}: missing -> check classicyPackageStylesheetsPlugin in the package's vite.config.ts (bin/classicyPackageStylesheets.ts).`,
 		]));
 
 	it("fails a missing face, naming it", () => {

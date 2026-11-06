@@ -1,52 +1,192 @@
 import { describe, expect, it } from "vitest";
 import {
-	compareClassicyArtNames,
-	isClassicyArtName,
+	compareClassicyAssetNames,
+	findClassicyCorePackageFiles,
+	findClassicyInlinedFiles,
+	findClassicyStrayAssetUrls,
 } from "./classicyDistAssets";
 
-describe("isClassicyArtName", () => {
-	it("takes .svg and .png files only", () =>
+describe("compareClassicyAssetNames", () => {
+	it("finds nothing when dist ships exactly the expected files", () =>
 		expect(
-			[
-				"zoom.svg",
-				"sad-mac.png",
-				"charcoal.woff2",
-				"README.md",
-				"x.svg.map",
-			].filter(isClassicyArtName),
-		).toEqual(["zoom.svg", "sad-mac.png"]));
+			compareClassicyAssetNames(
+				["zoom.svg", "sad-mac.png", "Geneva-normal-normal.woff2"],
+				["Geneva-normal-normal.woff2", "sad-mac.png", "zoom.svg"],
+			),
+		).toEqual({ missing: [], extra: [] }));
+
+	it("names expected files dist/assets lacks, sorted", () =>
+		expect(
+			compareClassicyAssetNames(
+				["zoom.svg", "platinum.ogg", "collapse.svg"],
+				["zoom.svg"],
+			),
+		).toEqual({ missing: ["collapse.svg", "platinum.ogg"], extra: [] }));
+
+	// Every file counts, not just art: a stray sprite, wallpaper or font fails
+	// by name too.
+	it("names files in dist/assets that nothing expects, sorted", () =>
+		expect(
+			compareClassicyAssetNames(
+				["zoom.svg"],
+				["zoom.svg", "stray.png", "old.woff2", "x.webp"],
+			),
+		).toEqual({ missing: [], extra: ["old.woff2", "stray.png", "x.webp"] }));
 });
 
-describe("compareClassicyArtNames", () => {
-	it("finds nothing when dist ships exactly the source art", () =>
-		expect(
-			compareClassicyArtNames(
-				["zoom.svg", "sad-mac.png"],
-				["sad-mac.png", "zoom.svg", "charcoal.woff2"],
-			),
-		).toEqual({ missing: [], extra: [] }));
+describe("findClassicyInlinedFiles", () => {
+	const file = Uint8Array.from({ length: 4096 }, (_, i) => (i * 7) % 256);
+	const inlined = `const a="data:image/png;base64,${Buffer.from(file).toString("base64")}";`;
 
-	it("names source art that dist/assets lacks", () =>
+	it("names each package file a bundle carries as base64", () =>
 		expect(
-			compareClassicyArtNames(
-				["zoom.svg", "sad-mac.png", "collapse.svg"],
-				["zoom.svg"],
+			findClassicyInlinedFiles(
+				[
+					{ file: "dist/classicy.es.js", source: inlined },
+					{ file: "dist/classicy.umd.js", source: "const a=1;" },
+				],
+				[
+					{
+						path: "packages/appearance/x/assets/wallpapers/a.png",
+						bytes: file,
+					},
+					{
+						path: "packages/appearance/x/assets/wallpapers/b.png",
+						bytes: Uint8Array.from(file).reverse(),
+					},
+				],
 			),
-		).toEqual({ missing: ["collapse.svg", "sad-mac.png"], extra: [] }));
+		).toEqual([
+			{
+				bundle: "dist/classicy.es.js",
+				path: "packages/appearance/x/assets/wallpapers/a.png",
+			},
+		]));
 
-	it("names art in dist/assets that has no source", () =>
+	// Files of one format share long stretches: a PNG's signature and IHDR,
+	// an exporter's XMP packet, an mp3's silent frames. Only the whole file
+	// counts, so a bundle inlining another file with the same stretches
+	// does not report this one.
+	it("does not report a file that only shares a stretch with an inlined one", () => {
+		const other = Uint8Array.from(file);
+		other[4000] = 255 - other[4000];
 		expect(
-			compareClassicyArtNames(
-				["zoom.svg"],
-				["zoom.svg", "stray.png", "old-art.svg"],
+			findClassicyInlinedFiles(
+				[
+					{
+						file: "dist/classicy.es.js",
+						source: `a="data:image/png;base64,${Buffer.from(other).toString("base64")}"`,
+					},
+				],
+				[{ path: "a.png", bytes: file }],
 			),
-		).toEqual({ missing: [], extra: ["old-art.svg", "stray.png"] }));
+		).toEqual([]);
+	});
 
-	it("ignores non-art files on either side", () =>
+	it("finds nothing in a bundle that carries no package file", () =>
 		expect(
-			compareClassicyArtNames(
-				["zoom.svg", "notes.txt"],
-				["zoom.svg", "charcoal.woff2"],
+			findClassicyInlinedFiles(
+				[{ file: "dist/classicy.es.js", source: "const a=1;" }],
+				[{ path: "a.png", bytes: file }],
 			),
-		).toEqual({ missing: [], extra: [] }));
+		).toEqual([]));
+});
+
+describe("findClassicyStrayAssetUrls", () => {
+	const es =
+		'a=new URL("assets/zoom.svg",import.meta.url);b=new URL("assets/gone.png",import.meta.url);c=new URL("assets/zoom.svg",import.meta.url)';
+
+	it('names each `new URL("assets/…")` reference with no file, once', () =>
+		expect(findClassicyStrayAssetUrls(es, ["zoom.svg"])).toEqual({
+			refs: ["assets/zoom.svg", "assets/gone.png"],
+			stray: ["assets/gone.png"],
+		}));
+
+	it("finds no references in a bundle with none", () =>
+		expect(findClassicyStrayAssetUrls("const a=1;", [])).toEqual({
+			refs: [],
+			stray: [],
+		}));
+});
+
+// verify:dist invariant 5 (plan 0015-kxa §3.4): the core's dist holds none
+// of a workspace Appearance Package's files, as files or inlined.
+describe("findClassicyCorePackageFiles", () => {
+	const wallpaper = Uint8Array.from({ length: 4096 }, (_, i) => (i * 13) % 256);
+	const PACKAGE_FILES = [
+		{
+			path: "packages/appearance/platinum/assets/wallpapers/azul.png",
+			bytes: wallpaper,
+		},
+		{
+			path: "packages/appearance/platinum/src/assets/art/zoom.svg",
+			bytes: new Uint8Array([60, 115]),
+		},
+	];
+	const clean = {
+		distFiles: [
+			"classicy.es.js",
+			"classicy.umd.js",
+			"classicy.css",
+			"fonts.js",
+			"fonts.d.ts",
+			"assets",
+			"types",
+		],
+		assets: ["sad-mac.png"],
+		packageFiles: PACKAGE_FILES,
+		bundles: [
+			{
+				file: "dist/classicy.es.js",
+				source: 'a="data:audio/wav;base64,UklGRiQAAABXQVZF"',
+			},
+		],
+	};
+
+	it("passes a dist with none of them (a dependency's tiny data:audio probe included)", () =>
+		expect(findClassicyCorePackageFiles(clean)).toEqual([]));
+
+	it.each([
+		["a font", "Geneva-normal-normal.woff2"],
+		["a sound sprite", "platinum.ogg"],
+		["a package file by name", "zoom.svg"],
+		["a wallpaper by name", "azul.png"],
+	])("fails %s in dist/assets", (_name, file) =>
+		expect(
+			findClassicyCorePackageFiles({
+				...clean,
+				assets: [...clean.assets, file],
+			}),
+		).toEqual([
+			`dist/assets/${file}: an Appearance Package's file in the core's dist -> the core bundles no package; it ships in the package's own build.`,
+		]));
+
+	it.each([
+		"classicy-platinum.fonts.css",
+		"appearance-platinum.js",
+		"appearance-platinum.d.ts",
+	])("fails dist/%s", (file) =>
+		expect(
+			findClassicyCorePackageFiles({
+				...clean,
+				distFiles: [...clean.distFiles, file],
+			}),
+		).toEqual([
+			`dist/${file}: an Appearance Package's file in the core's dist -> the core bundles no package; it ships in the package's own build.`,
+		]));
+
+	it("fails a package file a bundle inlined", () =>
+		expect(
+			findClassicyCorePackageFiles({
+				...clean,
+				bundles: [
+					{
+						file: "dist/classicy.umd.js",
+						source: `a="data:image/png;base64,${Buffer.from(wallpaper).toString("base64")}"`,
+					},
+				],
+			}),
+		).toEqual([
+			"dist/classicy.umd.js: inlines packages/appearance/platinum/assets/wallpapers/azul.png -> the core bundles no package; check that nothing under src/ imports one.",
+		]));
 });

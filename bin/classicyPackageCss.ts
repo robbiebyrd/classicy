@@ -1,9 +1,10 @@
 // Shape checks for Appearance Package CSS, shared by classicyCssLayerPlugin
 // (which must leave a package's own `@layer classicy.package { … }` block
-// alone) and bin/check-dist-imports.mjs invariant 7 (which proves the shipped
-// package CSS is that one block, never nested in `classicy.base`). No imports
-// and only erasable TypeScript: check-dist-imports.mjs loads this file
-// straight into Node.
+// alone), bin/check-dist-imports.mjs invariant 7 (the core's bundles carry no
+// package block at all) and the Platinum package's verify-dist (its bundles
+// carry its stylesheet as that one block, never nested in `classicy.base`,
+// and dist/classicy-platinum.css is that block). No imports and only erasable
+// TypeScript: both dist checks load this file straight into Node.
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -220,6 +221,11 @@ export type ClassicyPackageCssInput = {
 	 */
 	requiredBundles?: ReadonlyArray<string>;
 	/**
+	 * Bundles that must carry no `@layer classicy.package` block at all, well
+	 * formed or not: the core's entry bundles, which register no package.
+	 */
+	packageFreeBundles?: ReadonlyArray<string>;
+	/**
 	 * Package stylesheet files that must be among `packageStylesheets`
 	 * (dist/classicy-platinum.css, linked by strict-CSP hosts), each a
 	 * non-empty scoped package stylesheet whose block is, byte for byte, the
@@ -242,7 +248,7 @@ const packageFileProblems = (
 	const css = packageStylesheets.find((sheet) => sheet.file === file)?.css;
 	if (css === undefined)
 		return [
-			`${file}: missing -> injectCssPlugin (vite.config.ts) emits it from the package's ?inline stylesheet; strict-CSP hosts link it.`,
+			`${file}: missing -> classicyPackageStylesheetsPlugin (bin/classicyPackageStylesheets.ts, in the package's vite.config.ts) emits it from the package's ?inline stylesheet; strict-CSP hosts link it.`,
 		];
 	if (!isScopedPackageStylesheet(css, layerOrder))
 		return [
@@ -276,6 +282,7 @@ export const findClassicyPackageCssProblems = ({
 	baseStylesheets,
 	packageStylesheets,
 	requiredBundles = [],
+	packageFreeBundles = [],
 	requiredPackageStylesheets = [],
 }: ClassicyPackageCssInput): string[] => {
 	const checked = bundles.map(({ file, source }) => ({
@@ -291,6 +298,16 @@ export const findClassicyPackageCssProblems = ({
 		...requiredBundles
 			.filter((file) => !bundles.some((bundle) => bundle.file === file))
 			.map(missingPackageStylesheet),
+		...bundles
+			.filter(
+				({ file, source }) =>
+					packageFreeBundles.includes(file) &&
+					new RegExp(PACKAGE_BLOCK.source).test(source),
+			)
+			.map(
+				({ file }) =>
+					`${file}: carries a @layer ${PACKAGE_LAYER} block -> the core ships no Appearance Package; a package's look ships in its own bundles (Platinum's in @classicy/appearance-platinum).`,
+			),
 		...baseStylesheets.flatMap(({ file, css }) =>
 			new RegExp(PACKAGE_BLOCK.source).test(css) || css.includes(PACKAGE_SCOPE)
 				? [
@@ -317,41 +334,22 @@ export const findClassicyPackageCssProblems = ({
 	];
 };
 
-/** The entry bundles: each registers Platinum, so each must ship its look. */
+/** The core's entry bundles, which register no Appearance Package. */
 export const CLASSICY_ENTRY_BUNDLES = ["classicy.es.js", "classicy.umd.js"];
 
 /**
- * The bundles invariant 7 requires a package stylesheet in. With named files
- * (check-dist-imports.mjs's arguments), the entry bundles among them, matched
- * by basename; otherwise both entry bundles, as `inDist` places them.
+ * The files among `names` a dist check looks at: with named files (the
+ * check's arguments), those of them whose basename is in `names`; otherwise
+ * every one of `names`, as `inDist` places it in dist/.
  */
-export const requiredClassicyPackageBundles = (
+export const classicyCheckedDistFiles = (
 	named: ReadonlyArray<string>,
 	inDist: (file: string) => string,
+	names: ReadonlyArray<string>,
 ): string[] =>
 	named.length
-		? named.filter((file) =>
-				CLASSICY_ENTRY_BUNDLES.includes(file.split(/[\\/]/).pop() ?? ""),
-			)
-		: CLASSICY_ENTRY_BUNDLES.map(inDist);
-
-/** The package stylesheet files dist must hold: Platinum's, for strict-CSP hosts (R5). */
-export const CLASSICY_PACKAGE_STYLESHEETS = ["classicy-platinum.css"];
-
-/**
- * The package stylesheet files invariant 7 requires: with named files, those
- * of them that are one, matched by basename; otherwise all of them in dist,
- * as `inDist` places them.
- */
-export const requiredClassicyPackageStylesheets = (
-	named: ReadonlyArray<string>,
-	inDist: (file: string) => string,
-): string[] =>
-	named.length
-		? named.filter((file) =>
-				CLASSICY_PACKAGE_STYLESHEETS.includes(file.split(/[\\/]/).pop() ?? ""),
-			)
-		: CLASSICY_PACKAGE_STYLESHEETS.map(inDist);
+		? named.filter((file) => names.includes(file.split(/[\\/]/).pop() ?? ""))
+		: names.map(inDist);
 
 // An Appearance Package's stylesheet module, as the library build loads it:
 // `packages/appearance/<id>/src/styles/<name>.scss?inline` for a workspace
@@ -362,7 +360,7 @@ export const requiredClassicyPackageStylesheets = (
 const PACKAGE_STYLESHEET_MODULE =
 	/\/(?:src\/Appearance\/[^/]+|packages\/appearance\/[^/]+\/src)\/styles\/([^/_][^/]*)\.scss\?inline$/;
 // The name must be lowercase kebab-case: it becomes dist/classicy-<name>.css,
-// and check-dist-imports.mjs only recognizes such files (invariant 7).
+// and the dist checks only recognize such files.
 const PACKAGE_STYLESHEET_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // What vite:css-post turns an `?inline` stylesheet into in a build.
 const INLINE_CSS_MODULE = /^export default ("(?:[^"\\]|\\.)*");?\s*$/;

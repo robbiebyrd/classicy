@@ -40,7 +40,19 @@ beforeAll(() => {
 	outDir = mkdtempSync(path.join(scratch, "bundle-"));
 	execFileSync(
 		process.execPath,
-		[vite, "build", "--outDir", outDir, "--emptyOutDir", "--logLevel", "warn"],
+		[
+			vite,
+			"build",
+			"--outDir",
+			outDir,
+			"--emptyOutDir",
+			"--logLevel",
+			"warn",
+			// No type declarations: they need the core's built ones, and this
+			// runs before any build (vite.config.ts).
+			"--mode",
+			"bundle-test",
+		],
 		{ cwd: packageDir, stdio: "pipe" },
 	);
 	es = readFileSync(path.join(outDir, "appearance-platinum.es.js"), "utf8");

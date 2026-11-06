@@ -1,35 +1,20 @@
 import path, { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
-import { NodePackageImporter } from "sass";
 import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
-import {
-	CLASSICY_PLATINUM_FONT_STYLESHEET,
-	classicyEmittedFontFiles,
-	classicyFontStylesheet,
-} from "./bin/classicyFontStylesheet";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import {
 	isClassicyAppearanceSourcePath,
-	isClassicyCoreBuildPackageAsset,
 	noInlineAppearanceAssetsPlugin,
 } from "./bin/classicyNoInlineAssets";
-import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
-import { PLATINUM_FONT_FACES } from "./packages/appearance/platinum/src/assets/platinumFonts.internal";
-
-// Platinum's source, the workspace package @classicy/appearance-platinum (plan
-// 0015-kxa §3.1). Until the two builds separate (§3.4), the core's bundle still
-// carries it (src/ClassicyLibraryBuild.internal.ts), so its files are package
-// assets here too.
-const platinumSrc = path.resolve(__dirname, "packages/appearance/platinum/src");
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -50,33 +35,19 @@ const platinumSrc = path.resolve(__dirname, "packages/appearance/platinum/src");
 // component stylesheet into. The code is inserted before the sourceMappingURL
 // comment, after all existing code, so the bundles' source maps stay aligned.
 //
-// Each Appearance Package's stylesheet ships in the bundle as a string (its
-// `?inline` import) that the package registry injects at runtime as
-// `<style id="classicy-appearance-<id>">`. A strict CSP blocks that element
-// too, so the same string is also emitted as dist/classicy-<name>.css
-// (Platinum: dist/classicy-platinum.css), starting with CLASSICY_LAYER_ORDER;
-// such hosts link it right after classicy.css. It is read from the module's
-// final transformed code, so it is byte for byte what the bundle injects
-// (check-dist-imports.mjs invariant 7 compares the two).
-//
-// The Platinum fonts are files in dist/assets that registerClassicyFonts
-// writes `@font-face` rules for, at runtime, into
-// `<style id="classicy-fonts-platinum">`, which a strict CSP blocks as well.
-// dist/classicy-platinum.fonts.css carries the same rules (the runtime's face
-// list and rule writer, bin/classicyFontStylesheet.ts), each url() naming the
-// font's emitted file relative to dist/, for those hosts to link after
-// classicy-platinum.css (invariant 12).
+// The core registers no Appearance Package (plan 0015-kxa §3.4): a package's
+// look, fonts and their strict-CSP stylesheets ship in the package's own build
+// (Platinum's dist/classicy-platinum.css and classicy-platinum.fonts.css, in
+// @classicy/appearance-platinum, from bin/classicyPackageStylesheets.ts).
+// Strict-CSP hosts link this build's dist/classicy.css first, then those.
 //
 // dist/fonts.js is a deprecated no-op: the Platinum fonts are files registered
-// at runtime (registerClassicyFonts), but `import "@classicy/classicy/fonts"` must keep
-// resolving for existing consumers. UMD allows only one entry, so fonts.js is
-// not a Rollup input but an emitted asset: a self-contained script with no
-// imports or exports, valid as an ES module, as CommonJS and as a classic
-// <script>. dist/fonts.d.ts lets TypeScript resolve the import.
-// dist/appearance-platinum.js (+ .d.ts), the `@classicy/classicy/appearance/platinum`
-// export, is the same kind of no-op: importing `@classicy/classicy` already registers
-// the Platinum package, and the package source (TypeScript with `?inline`
-// SCSS) is not loadable by consumers.
+// at runtime (registerClassicyFonts) by the Platinum package, but
+// `import "@classicy/classicy/fonts"` must keep resolving for existing
+// consumers. UMD allows only one entry, so fonts.js is not a Rollup input but
+// an emitted asset: a self-contained script with no imports or exports, valid
+// as an ES module, as CommonJS and as a classic <script>. dist/fonts.d.ts lets
+// TypeScript resolve the import.
 function injectCssPlugin(): Plugin {
 	return {
 		name: "classicy-inject-css",
@@ -108,47 +79,6 @@ function injectCssPlugin(): Plugin {
 				source:
 					"// Deprecated no-op side-effect module, kept for compatibility: classicy's fonts are registered by the Platinum appearance package.\nexport {};\n",
 			});
-			this.emitFile({
-				type: "asset",
-				fileName: "appearance-platinum.js",
-				source:
-					'// No-op: importing "@classicy/classicy" registers the Platinum appearance package. Kept so `import "@classicy/classicy/appearance/platinum"` resolves.\n',
-			});
-			this.emitFile({
-				type: "asset",
-				fileName: "appearance-platinum.d.ts",
-				source:
-					'// No-op side-effect module: importing "@classicy/classicy" registers the Platinum appearance package.\nexport {};\n',
-			});
-			const fontFiles = classicyEmittedFontFiles(
-				Object.values(bundle).flatMap((output) =>
-					output.type === "asset" ? [output] : [],
-				),
-			);
-			try {
-				this.emitFile({
-					type: "asset",
-					fileName: CLASSICY_PLATINUM_FONT_STYLESHEET,
-					source: classicyFontStylesheet(PLATINUM_FONT_FACES, (face) =>
-						fontFiles.get(face.file),
-					),
-				});
-			} catch (error) {
-				this.error(error instanceof Error ? error.message : String(error));
-			}
-			for (const { fileName, css: packageCss } of classicyPackageStylesheets(
-				Array.from(this.getModuleIds(), (id) => ({
-					id,
-					code: this.getModuleInfo(id)?.code ?? null,
-				})),
-			)) {
-				this.emitFile({
-					type: "asset",
-					fileName,
-					source: prependLayerOrder(packageCss),
-				});
-			}
-
 			for (const output of Object.values(bundle)) {
 				if (output.type !== "chunk" || !output.isEntry) continue;
 				const marker = output.code.lastIndexOf("\n//# sourceMappingURL=");
@@ -258,34 +188,18 @@ const config = defineConfig({
 		"**/*.wav",
 		"**/*.caf",
 	],
-	css: {
-		preprocessorOptions: {
-			// Platinum's SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/*`.
-			scss: { importers: [new NodePackageImporter()] },
-		},
-	},
 	resolve: {
 		alias: [
-			// The build entry's Platinum import, and Platinum's own imports of the
-			// core, which resolve to this build's barrel: one module graph, one
-			// copy of the registries.
-			{
-				find: /^@classicy\/appearance-platinum$/,
-				replacement: path.join(platinumSrc, "index.ts"),
-			},
-			{
-				find: /^@classicy\/classicy$/,
-				replacement: path.resolve(__dirname, "./src/index.ts"),
-			},
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
 			{ find: "@img", replacement: path.resolve(__dirname, "./assets/img") },
 			{ find: "@vid", replacement: path.resolve(__dirname, "./assets/vid") },
 		],
 	},
 	plugins: [
-		// Platinum's files from the old assets/ folder stay inlined in the core's
-		// interim bundle (see the predicate).
-		noInlineAppearanceAssetsPlugin(isClassicyCoreBuildPackageAsset),
+		// An Appearance Package's assets ship as files (bin/classicyNoInlineAssets.ts);
+		// the core's bundle reaches none since it stopped bundling Platinum, and
+		// verify:dist (invariant 5) fails if it ever does.
+		noInlineAppearanceAssetsPlugin(),
 		// Compiles every component stylesheet into @layer classicy.base; the
 		// injected stylesheet declares the layer order first (CLASSICY_LAYER_ORDER).
 		classicyCssLayerPlugin(),
@@ -316,8 +230,9 @@ const config = defineConfig({
 		// `?no-inline` opt-out to emit package assets (src/Appearance,
 		// packages/appearance) as files.
 		lib: {
-			// The barrel, plus Platinum until it is its own package (see the file).
-			entry: resolve(__dirname, "src/ClassicyLibraryBuild.internal.ts"),
+			// The barrel: the core registers no Appearance Package (plan 0015-kxa
+			// §3.4), so a host imports one itself.
+			entry: resolve(__dirname, "src/index.ts"),
 			formats: ["umd", "es"],
 			name: "classicy",
 			fileName: (format) => `classicy.${format}.js`,

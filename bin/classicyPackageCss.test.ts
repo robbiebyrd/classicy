@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	CLASSICY_ENTRY_BUNDLES,
-	CLASSICY_PACKAGE_STYLESHEETS,
+	classicyCheckedDistFiles,
 	classicyPackageStylesheets,
 	findClassicyPackageCssProblems,
 	isSingleClassicyLayerBlock,
-	requiredClassicyPackageBundles,
-	requiredClassicyPackageStylesheets,
 } from "./classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
@@ -339,26 +337,58 @@ describe("findClassicyPackageCssProblems (check-dist invariant 7)", () => {
 	});
 });
 
-// check-dist-imports.mjs requires the entry bundles: by default the two in
-// dist/, and with named files only the entry bundles among them.
-describe("requiredClassicyPackageBundles", () => {
+// The core registers no Appearance Package (plan 0015-kxa §3.4), so its entry
+// bundles must carry no package block at all, well-formed or not; the
+// package's look ships in the package's own bundles.
+describe("findClassicyPackageCssProblems: package-free bundles", () => {
+	const FREE = "dist/classicy.es.js";
+	const free = (source: string) =>
+		check({ bundles: [{ file: FREE, source }], packageFreeBundles: [FREE] });
+
+	it("passes a bundle with no package block", () =>
+		expect(free(bundle(js(BASE)))).toEqual([]));
+
+	it.each([
+		["a scoped package stylesheet", js(PACKAGE)],
+		["an empty block", js("@layer classicy.package{}")],
+		["a block nested in classicy.base", js(`@layer classicy.base{${PACKAGE}}`)],
+	])("fails %s", (_name, literal) =>
+		expect(free(bundle(literal))).toContainEqual(
+			`${FREE}: carries a @layer classicy.package block -> the core ships no Appearance Package; a package's look ships in its own bundles (Platinum's in @classicy/appearance-platinum).`,
+		));
+
+	it("leaves other bundles to the other rules", () =>
+		expect(
+			check({
+				bundles: [
+					{ file: FREE, source: bundle(js(BASE)) },
+					{ file: "dist/other.js", source: bundle(js(PACKAGE)) },
+				],
+				packageFreeBundles: [FREE],
+			}),
+		).toEqual([]));
+});
+
+// The dist checks look at a fixed set of files (the core's entry bundles,
+// Platinum's entry bundles and dist/classicy-platinum.css): by default each in
+// dist/, and with named files only those named, matched by basename.
+describe("classicyCheckedDistFiles", () => {
 	const inDist = (file: string) => `dist/${file}`;
 
-	it("names the two entry bundles", () =>
+	it("names the core's two entry bundles", () =>
 		expect(CLASSICY_ENTRY_BUNDLES).toEqual([
 			"classicy.es.js",
 			"classicy.umd.js",
 		]));
 
-	it("requires both entry bundles in dist/ when no file is named", () =>
-		expect(requiredClassicyPackageBundles([], inDist)).toEqual([
-			"dist/classicy.es.js",
-			"dist/classicy.umd.js",
-		]));
-
-	it("requires only the named entry bundles, by basename, wherever they are", () => {
+	it("takes every file in dist/ when no file is named", () =>
 		expect(
-			requiredClassicyPackageBundles(
+			classicyCheckedDistFiles([], inDist, CLASSICY_ENTRY_BUNDLES),
+		).toEqual(["dist/classicy.es.js", "dist/classicy.umd.js"]));
+
+	it("takes only the named ones, by basename, wherever they are", () => {
+		expect(
+			classicyCheckedDistFiles(
 				[
 					"dist/classicy.es.js",
 					"dist/classicy.css",
@@ -366,19 +396,34 @@ describe("requiredClassicyPackageBundles", () => {
 					"fixtures\\classicy.umd.js",
 				],
 				inDist,
+				CLASSICY_ENTRY_BUNDLES,
 			),
 		).toEqual(["dist/classicy.es.js", "fixtures\\classicy.umd.js"]);
 		expect(
-			requiredClassicyPackageBundles(
+			classicyCheckedDistFiles(
 				["dist/fonts.js", "dist/classicy.css"],
 				inDist,
+				CLASSICY_ENTRY_BUNDLES,
 			),
 		).toEqual([]);
-		// A name only ending like an entry bundle is not one.
+		// A name only ending like one is not one.
 		expect(
-			requiredClassicyPackageBundles(["dist/my-classicy.es.js"], inDist),
+			classicyCheckedDistFiles(
+				["dist/my-classicy.es.js"],
+				inDist,
+				CLASSICY_ENTRY_BUNDLES,
+			),
 		).toEqual([]);
 	});
+
+	it("takes any list of names", () =>
+		expect(
+			classicyCheckedDistFiles(
+				["dist/classicy.es.js", "fx/classicy-platinum.css"],
+				inDist,
+				["classicy-platinum.css"],
+			),
+		).toEqual(["fx/classicy-platinum.css"]));
 });
 
 // R5: strict-CSP hosts link dist/classicy-platinum.css, emitted from the very
@@ -437,29 +482,7 @@ describe("required package stylesheet files (R5)", () => {
 	});
 });
 
-describe("requiredClassicyPackageStylesheets", () => {
-	const inDist = (file: string) => `dist/${file}`;
-
-	it("names Platinum's file", () =>
-		expect(CLASSICY_PACKAGE_STYLESHEETS).toEqual(["classicy-platinum.css"]));
-
-	it("requires it in dist/ when no file is named, else only when named", () => {
-		expect(requiredClassicyPackageStylesheets([], inDist)).toEqual([
-			"dist/classicy-platinum.css",
-		]);
-		expect(
-			requiredClassicyPackageStylesheets(
-				["dist/classicy.es.js", "fx/classicy-platinum.css"],
-				inDist,
-			),
-		).toEqual(["fx/classicy-platinum.css"]);
-		expect(
-			requiredClassicyPackageStylesheets(["dist/classicy.css"], inDist),
-		).toEqual([]);
-	});
-});
-
-// What injectCssPlugin emits as dist/classicy-<name>.css: the compiled text of
+// What classicyPackageStylesheetsPlugin emits as dist/classicy-<name>.css: the compiled text of
 // each package stylesheet module (`packages/appearance/<id>/src/styles/<name>.scss?inline`,
 // or `src/Appearance/<Package>/styles/<name>.scss?inline` in the core).
 describe("classicyPackageStylesheets", () => {

@@ -12,8 +12,10 @@ import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./classicyImageTools";
 // bundle. Imports that already carry a Vite query (the halftone mask's
 // `?inline`, ruling E17) are left alone. Shared by the core's and Platinum's
 // library builds (vite.config.ts, packages/appearance/platinum/vite.config.ts);
-// `isPackageAsset` narrows what counts as a package's asset (the core's build
-// passes isClassicyCoreBuildPackageAsset, below).
+// `isPackageAsset` can narrow what counts as a package's asset. Since the core
+// stopped bundling Platinum (plan 0015-kxa §3.4) both builds use the default:
+// every package source file, the sound sprites, wallpapers, art and cursors
+// under packages/appearance/<id>/assets included.
 
 const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
 
@@ -23,23 +25,6 @@ const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
  */
 export const isClassicyAppearanceSourcePath = (file: string): boolean =>
 	CLASSICY_IMAGE_TOOLS_EXCLUDES.test(file.replace(/\\/g, "/"));
-
-// Platinum's files that came from the core's assets/ folder (plan 0015-kxa
-// §3.3): its sound sprites, wallpapers, and the system art and cursors the
-// core's icon tree used to carry.
-const PLATINUM_FILES_FROM_CORE_ASSETS =
-	/(?:^|\/)packages\/appearance\/platinum\/assets\//;
-
-/**
- * The package assets the core's library build emits as files. Until it stops
- * bundling Platinum (plan 0015-kxa §3.4), it inlines Platinum's files from
- * the core's old assets/ folder as it did while they lived there, so its
- * dist/assets and verify:dist are unchanged; Platinum's own build emits every
- * package asset (the default predicate).
- */
-export const isClassicyCoreBuildPackageAsset = (file: string): boolean =>
-	isClassicyAppearanceSourcePath(file) &&
-	!PLATINUM_FILES_FROM_CORE_ASSETS.test(file.replace(/\\/g, "/"));
 
 export function noInlineAppearanceAssetsPlugin(
 	isPackageAsset: (file: string) => boolean = isClassicyAppearanceSourcePath,

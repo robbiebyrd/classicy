@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Thirteen invariants on the *published* bundle (and, for invariant 11, on
-// the sources it is built from). The first two have shipped
+// Twelve invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-13: number 12 moved to the
+// Platinum package's own dist check, packages/appearance/platinum/bin/
+// verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
 // succeeds either way, and jsdom tests never load our own dist -- these only
 // surfaced as production outages.
@@ -24,34 +26,36 @@
 //    console error and no failing test anywhere.
 //
 // 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and carry no inlined
-//    fonts. `import "@classicy/classicy"` is supposed to be enough for a styled desktop;
-//    if injectCssPlugin stopped matching the CSS asset (it is found by name),
-//    the bundles would silently ship unstyled. The Platinum fonts are files
-//    under src/Appearance, registered at runtime by registerClassicyFonts; if
-//    the `?no-inline` resolver stopped matching them, Vite's lib mode would
-//    base64 them into the bundle again (every consumer pays for every font).
+//    fonts. `import "@classicy/classicy"` is supposed to be enough for the
+//    structure stylesheet; if injectCssPlugin stopped matching the CSS asset
+//    (it is found by name), the bundles would silently ship unstyled. Fonts
+//    belong to an Appearance Package (Platinum's are files in its own dist);
+//    a base64 font in the core's bundle means one was pulled in and inlined
+//    (every consumer pays for every font).
 //
-// 4. dist/fonts.js AND dist/appearance-platinum.js MUST STAY SELF-CONTAINED
-//    NO-OPS. `import "@classicy/classicy/fonts"` is the deprecated opt-in from before the
+// 4. dist/fonts.js MUST STAY A SELF-CONTAINED NO-OP. `import
+//    "@classicy/classicy/fonts"` is the deprecated opt-in from before the
 //    fonts became files; existing consumers still import it, so it has to keep
-//    resolving. `import "@classicy/classicy/appearance/platinum"` is the Platinum
-//    package's documented side-effect entry, a no-op because the main bundle
-//    already registers Platinum (and a second copy of the registries would
-//    split the state). Each ships with a .d.ts (the `types` condition of its
-//    export) that must exist and stay import-free too, or a TypeScript
-//    consumer's side-effect import stops resolving under
-//    `noUncheckedSideEffectImports`. All four are emitted assets, not Rollup
-//    chunks, so nothing else notices if one goes missing or picks up an import
-//    a consumer can't resolve. In named-file mode a shim and its declaration
-//    are checked together when either is named.
+//    resolving. It ships with a .d.ts (the `types` condition of its export)
+//    that must exist and stay import-free too, or a TypeScript consumer's
+//    side-effect import stops resolving under `noUncheckedSideEffectImports`.
+//    Both are emitted assets, not Rollup chunks, so nothing else notices if
+//    one goes missing or picks up an import a consumer can't resolve. In
+//    named-file mode the two are checked together when either is named.
 //
-// 5. PACKAGE ASSETS MUST EMIT AS FILES. dist/assets/ holds exactly the 13
-//    Platinum .woff2 fonts plus the Platinum art (svg/png): exactly the
-//    names in packages/appearance/platinum/src/assets/art (classicyDistAssets.ts), so
-//    a file that goes missing or lingers fails by name. The ES bundle
-//    resolves them with `new URL("assets/...", import.meta.url)`. They ship
-//    exactly as authored: no .webp, only .woff2/.svg/.png references, and a
-//    shipped SVG byte-identical to its source.
+// 5. THE CORE SHIPS NO APPEARANCE PACKAGE (plan 0015-kxa §3.4). The core
+//    registers none, and a host that uses another package must pay for none
+//    of Platinum: dist/assets holds no font, no sound sprite and no file named
+//    like any file of a workspace package (packages/appearance/<id>/src/assets
+//    and packages/appearance/<id>/assets: Platinum's art, cursors, wallpapers,
+//    fonts and sprites); dist/ holds no package font stylesheet
+//    (classicy-<id>.fonts.css) and no package entry shim (the 2.x
+//    appearance-platinum.js); and no emitted bundle carries any of those
+//    files inlined (its whole base64, findClassicyInlinedFiles; a bundled
+//    dependency's few-byte `data:audio` codec probes are not sprites, so the
+//    type alone proves nothing). The core's own
+//    assets ship as authored: no .webp in dist/assets. Skipped when the
+//    caller names files.
 //
 // 6. THE STYLESHEET MUST DECLARE THE CASCADE LAYER ORDER BEFORE ANY RULE.
 //    Every component rule is compiled into `@layer classicy.base`
@@ -61,22 +65,15 @@
 //    Checked in the injected <style> text of both entry bundles and at the
 //    head of dist/classicy.css (linked by strict-CSP hosts).
 //
-// 7. PACKAGE CSS IS ITS OWN `@layer classicy.package` BLOCK. An Appearance
-//    Package's stylesheet (`platinum.scss?inline`) must ship as exactly one
-//    `classicy.package` block, never nested inside `classicy.base`: the layer
-//    plugin wraps every src stylesheet, and a wrapped package block would sit
-//    in `classicy.base.classicy.package`, under every base rule, so the whole
-//    look would lose to the structure it decorates. Checked in every emitted
-//    bundle, in each emitted dist/classicy-<id>.css (the order statement, then
-//    the one block), and in the library stylesheet (dist/classicy.css and the
-//    injected text), which must carry no package look. Both entry bundles
-//    (classicy.es.js, classicy.umd.js) must carry a NON-EMPTY one: they
-//    register Platinum, whose look ships in it since plan 0005-1b3 §4.2, so a
-//    missing string, an empty block, the bare `@layer classicy.package;`
-//    statement, or a block not scoped under `[data-classicy-appearance=…]`
-//    means the look stopped shipping. And dist/classicy-platinum.css must
-//    exist and be that same block, byte for byte: strict-CSP hosts, whose
-//    policy blocks the injected <style>, link it after classicy.css.
+// 7. NO PACKAGE CSS IN THE CORE. An Appearance Package's look is its
+//    `@layer classicy.package` stylesheet, which ships in the package's own
+//    build (Platinum's verify-dist checks its shape and its strict-CSP twin,
+//    dist/classicy-platinum.css). The core registers none (plan 0015-kxa
+//    §3.4), so no emitted bundle carries a `@layer classicy.package` block,
+//    well-formed or not, dist/ holds no package stylesheet
+//    (classicy-<id>.css), and the library stylesheet (dist/classicy.css and
+//    the injected text) carries no package look: no package block and no
+//    `[data-classicy-appearance=…]` selector.
 //
 // 8. DIST/TYPES DECLARES THE LIBRARY, NOT ITS TESTS OR BUILD SCRIPTS.
 //    vite-plugin-dts emits a .d.ts for every file tsconfig selects, so until
@@ -112,16 +109,10 @@
 //    packages/appearance/<id>/src/**/*.css, a workspace Appearance Package's
 //    source (named .css files under either in named mode).
 //
-// 12. THE PLATINUM FONTS SHIP AS A STYLESHEET TOO. The runtime writes them into
-//    `<style id="classicy-fonts-platinum">` (registerClassicyFonts), which a
-//    strict CSP blocks like the injected look; those hosts link
-//    dist/classicy-platinum.fonts.css after classicy.css and
-//    classicy-platinum.css. It must exist and hold only unlayered @font-face
-//    rules, exactly one per face the runtime registers
-//    (PLATINUM_FONT_FACES), each the rule the runtime writes
-//    (classicyFontFaceRule), and every url() must name a file in the
-//    assets/ folder beside it (bin/classicyFontStylesheet.ts). Checked when
-//    the file is named, in named mode.
+// 12. (Moved.) The Platinum font stylesheet, classicy-platinum.fonts.css,
+//    ships in @classicy/appearance-platinum and is checked by its
+//    bin/verify-dist.mjs (plan 0015-kxa §3.4); invariant 5 checks the core
+//    emits no font stylesheet.
 //
 // 13. THE ENTRY BUNDLES USE THE PRODUCTION JSX RUNTIME. No import of
 //    react/jsx-dev-runtime, no jsxDEV() call, and no absolute build-machine
@@ -131,20 +122,15 @@
 //    directory (0120-ak4: vite read NODE_ENV=development from the shell).
 //    Checked in both entry bundles (those of them named, in named mode).
 
-import { statSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { join } from "node:path";
 import { argv, exit } from "node:process";
-import { PLATINUM_FONT_FACES } from "../packages/appearance/platinum/src/assets/platinumFonts.internal.ts";
 import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
-import {
-	CLASSICY_ART_SOURCE_DIR,
-	compareClassicyArtNames,
-	isClassicyArtName,
-} from "./classicyDistAssets.ts";
+import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import { findClassicyCorePackageFiles } from "./classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "./classicyDistCharset.ts";
 import { findClassicyDevJsxProblems } from "./classicyDistJsx.ts";
 import {
@@ -152,15 +138,7 @@ import {
 	findClassicyJsonDeclarations,
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
-import {
-	CLASSICY_PLATINUM_FONT_STYLESHEET,
-	findClassicyFontStylesheetProblems,
-} from "./classicyFontStylesheet.ts";
-import {
-	findClassicyPackageCssProblems,
-	requiredClassicyPackageBundles,
-	requiredClassicyPackageStylesheets,
-} from "./classicyPackageCss.ts";
+import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
 
 const DIST = "dist";
 
@@ -178,49 +156,11 @@ async function bundles() {
 		.map((f) => join(DIST, f));
 }
 
-// One ESM static import at the head of a bundle. An import clause can never
-// contain a quote or a semicolon, so [^"';]* consumes it without risking a
-// match against a string literal deeper in the file.
-const IMPORT = /\s*import\s*(?:[^"';]*from\s*)?"([^"]*)"\s*;?/y;
-
-// Dynamic imports are NOT in the prologue and are the form that actually
-// mattered: PDFViewerDocument loads pdfjs lazily, so an externalized
-// `import("pdfjs-dist")` sits in the middle of the minified body. Checking only
-// static imports passed 0.70.2 clean while every PDF was broken in production.
-// Minified output quotes with " or ` depending on the chunk, so accept both.
-const DYNAMIC_IMPORT = /\bimport\(\s*(["'`])([^"'`]*)\1\s*\)/g;
-
-// UMD lists its static externals as require() calls in the factory header.
-const REQUIRE = /\brequire\(\s*(["'`])([^"'`]*)\1\s*\)/g;
-
-// Our own emitted chunks, and specifiers the bundler computes at runtime
-// (`import(`${v}`)`), are not external packages.
-const isExternalSpecifier = (s) =>
-	!s.startsWith(".") && !s.startsWith("/") && !s.includes("${");
-
-async function specifiersOf(file) {
-	const source = await readFile(file, "utf8");
-	const specifiers = [];
-	IMPORT.lastIndex = 0;
-	// The prologue is a contiguous run of imports; the first non-import ends it.
-	let match = IMPORT.exec(source);
-	while (match) {
-		specifiers.push(match[1]);
-		match = IMPORT.exec(source);
-	}
-	for (const re of [DYNAMIC_IMPORT, REQUIRE]) {
-		for (const m of source.matchAll(re)) {
-			if (isExternalSpecifier(m[2])) specifiers.push(m[2]);
-		}
-	}
-	return specifiers;
-}
-
 const MUST_BE_BUNDLED = ["pdfjs-dist"];
 
 let failed = false;
 for (const file of await bundles()) {
-	const specifiers = await specifiersOf(file);
+	const specifiers = classicyBundleSpecifiers(await readFile(file, "utf8"));
 
 	const queried = specifiers.filter((s) => s.includes("?"));
 	if (queried.length) {
@@ -277,9 +217,8 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	}
 }
 
-// Invariant 4: the no-op shims (the deprecated fonts entry, the Platinum
-// package entry) and their declarations.
-for (const shim of ["fonts", "appearance-platinum"]) {
+// Invariant 4: the deprecated fonts entry's no-op shim and its declaration.
+for (const shim of ["fonts"]) {
 	const pair = [
 		{ entry: join(DIST, `${shim}.js`), kind: "script" },
 		{ entry: join(DIST, `${shim}.d.ts`), kind: "declaration" },
@@ -309,78 +248,65 @@ for (const shim of ["fonts", "appearance-platinum"]) {
 	}
 }
 
-// Invariant 5: package assets are files in dist/assets, referenced relative to
-// the bundle. Skipped when the caller names specific files.
+// Invariant 5: no Appearance Package file in the core's dist, as a file or
+// inlined. Skipped when the caller names specific files.
 if (!argv.slice(2).length) {
+	const distFiles = await readdir(DIST);
 	const assets = await readdir(join(DIST, "assets")).catch(() => []);
-	const fonts = assets.filter((f) => f.endsWith(".woff2"));
-	const art = assets.filter(isClassicyArtName);
-	const { missing, extra } = compareClassicyArtNames(
-		await readdir(CLASSICY_ART_SOURCE_DIR),
-		assets,
-	);
-	if (fonts.length !== 13) {
-		failed = true;
-		console.error(
-			`${join(DIST, "assets")}: expected 13 .woff2 files, found ${fonts.length} -> check noInlineAppearanceAssetsPlugin in vite.config.ts.`,
-		);
-	} else if (missing.length || extra.length) {
-		failed = true;
-		console.error(
-			`${join(DIST, "assets")}: .svg/.png files differ from ${CLASSICY_ART_SOURCE_DIR}: missing ${missing.join(", ") || "none"}; extra ${extra.join(", ") || "none"} -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
-		);
-	} else {
-		console.log(
-			`${join(DIST, "assets")}: ${fonts.length} .woff2 font(s), ${art.length} .svg/.png file(s), exactly those in ${CLASSICY_ART_SOURCE_DIR}`,
-		);
-	}
-	// Package assets ship exactly as authored: the image plugin must not have
-	// rewritten them to WebP or run svgo over them (Part E uses the art as CSS
-	// masks, and svgo's removeViewBox breaks that).
-	const webp = assets.filter((f) => f.endsWith(".webp"));
-	if (webp.length) {
-		failed = true;
-		console.error(
-			`${join(DIST, "assets")}: ${webp.length} .webp file(s) (${webp.join(", ")}) -> the image plugin rewrote package art; check \`excludes\` on VitePluginImageTools in vite.config.ts.`,
-		);
-	}
-	const es = join(DIST, "classicy.es.js");
-	const esSource = await readFile(es, "utf8");
-	const refs = [...esSource.matchAll(/new URL\("(assets\/[^"]*)"/g)].map(
-		(m) => m[1],
-	);
-	const strays = [...new Set(refs)].filter(
-		(r) => !/\.(woff2|svg|png)$/.test(r),
-	);
-	if (refs.length === 0) {
-		failed = true;
-		console.error(
-			`${es}: no \`new URL("assets/\` reference -> package assets are not resolved relative to the bundle.`,
-		);
-	} else if (strays.length) {
-		failed = true;
-		console.error(
-			`${es}: asset reference(s) to unexpected file types: ${strays.join(", ")}`,
-		);
-	} else {
-		console.log(
-			`${es}: ${refs.length} file asset reference(s), all as authored`,
-		);
-	}
-	const svgSource =
-		"packages/appearance/platinum/src/assets/art/slider-strikes.svg";
-	const [authored, shipped] = await Promise.all([
-		readFile(svgSource).catch(() => null),
-		readFile(join(DIST, "assets", "slider-strikes.svg")).catch(() => null),
+	// Every file of every workspace package's asset folders.
+	const packageRoots = (
+		await readdir(join("packages", "appearance")).catch(() => [])
+	).flatMap((id) => [
+		join("packages", "appearance", id, "src", "assets"),
+		join("packages", "appearance", id, "assets"),
 	]);
-	if (authored === null || shipped === null || !authored.equals(shipped)) {
-		failed = true;
-		console.error(
-			`${join(DIST, "assets", "slider-strikes.svg")}: differs from ${svgSource} (or is missing) -> package SVGs must ship byte-for-byte.`,
+	const packagePaths = (
+		await Promise.all(
+			packageRoots.map(async (root) =>
+				(
+					await readdir(root, { recursive: true, withFileTypes: true }).catch(
+						() => [],
+					)
+				)
+					.filter((entry) => entry.isFile())
+					.map((entry) => join(entry.parentPath, entry.name)),
+			),
+		)
+	).flat();
+	const packageFiles = await Promise.all(
+		packagePaths.map(async (path) => ({ path, bytes: await readFile(path) })),
+	);
+	const bundles = await Promise.all(
+		distFiles
+			.filter((f) => f.endsWith(".js"))
+			.map(async (f) => ({
+				file: join(DIST, f),
+				source: await readFile(join(DIST, f), "utf8"),
+			})),
+	);
+	const problems = findClassicyCorePackageFiles({
+		distFiles,
+		assets,
+		packageFiles,
+		bundles,
+	});
+	if (packageFiles.length === 0) {
+		problems.push(
+			"packages/appearance: no package asset files found -> run verify:dist from the repository root.",
 		);
-	} else {
-		console.log("dist/assets/slider-strikes.svg: byte-identical to its source");
 	}
+	// The core's own assets ship as authored: the image plugin must not have
+	// rewritten one to WebP.
+	for (const f of assets.filter((name) => name.endsWith(".webp")))
+		problems.push(
+			`${join(DIST, "assets", f)}: a .webp file -> check \`excludes\` on VitePluginImageTools in vite.config.ts.`,
+		);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`${DIST}: none of ${packageFiles.length} workspace package file(s) as a file or inlined in ${bundles.length} bundle(s); ${assets.length} file(s) in dist/assets`,
+		);
 }
 
 // Invariant 6: the cascade layer order, first, in the injected stylesheet of
@@ -436,8 +362,8 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 	}
 }
 
-// Invariant 7: package CSS is its own classicy.package block. With named
-// files, only those are checked (a .js file as a bundle, a .css file by name).
+// Invariant 7: no package CSS in the core. With named files, only those are
+// checked (a .js file as a bundle, a .css file by name).
 {
 	const named = argv.slice(2);
 	const distFiles = named.length ? [] : await readdir(DIST);
@@ -467,32 +393,25 @@ if (!argv.slice(2).length || argv.slice(2).includes(cssFile)) {
 		const css = await readFile(cssFile, "utf8").catch(() => null);
 		if (css !== null) baseStylesheets.push({ file: cssFile, css });
 	}
-	const packageStylesheets = (await Promise.all(packageFiles.map(read))).map(
-		({ file, text }) => ({ file, css: text }),
-	);
-	// The entry bundles register Platinum, so each must ship its stylesheet.
-	// Named files: those of them that were named.
-	const requiredBundles = requiredClassicyPackageBundles(named, (f) =>
-		join(DIST, f),
-	);
-	// dist/classicy-platinum.css (R5). Named files: if it was named.
-	const requiredPackageStylesheets = requiredClassicyPackageStylesheets(
-		named,
-		(f) => join(DIST, f),
-	);
-	const problems = findClassicyPackageCssProblems({
-		layerOrder: LAYER_ORDER,
-		bundles: bundles.map(({ file, text }) => ({ file, source: text })),
-		baseStylesheets,
-		packageStylesheets,
-		requiredBundles,
-		requiredPackageStylesheets,
-	});
+	const problems = [
+		...findClassicyPackageCssProblems({
+			layerOrder: LAYER_ORDER,
+			bundles: bundles.map(({ file, text }) => ({ file, source: text })),
+			baseStylesheets,
+			packageStylesheets: [],
+			// Every bundle: the core registers no package.
+			packageFreeBundles: bundles.map(({ file }) => file),
+		}),
+		...packageFiles.map(
+			(file) =>
+				`${file}: a package stylesheet in the core's dist -> the core ships no Appearance Package; a package's strict-CSP stylesheet ships in its own dist (Platinum's in @classicy/appearance-platinum).`,
+		),
+	];
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`package CSS: ${requiredBundles.length} entry bundle(s) carry a non-empty package stylesheet; ${packageStylesheets.length} package stylesheet file(s), ${requiredPackageStylesheets.length} of them required and identical to the injected one; every @layer classicy.package block stands alone`,
+			`package CSS: none in ${bundles.length} bundle(s), ${baseStylesheets.length} library stylesheet(s) or dist/`,
 		);
 }
 
@@ -641,36 +560,6 @@ if (!argv.slice(2).length) {
 		console.log(
 			`src/ and packages/appearance/*/src/: ${files.length} plain .css file(s), none with CSS`,
 		);
-}
-
-// Invariant 12: the Platinum font stylesheet. With named files, only if named.
-{
-	const named = argv.slice(2);
-	const files = named.length
-		? named.filter((f) => basename(f) === CLASSICY_PLATINUM_FONT_STYLESHEET)
-		: [join(DIST, CLASSICY_PLATINUM_FONT_STYLESHEET)];
-	for (const file of files) {
-		const css = await readFile(file, "utf8").catch(() => null);
-		const isFile = (url) => {
-			try {
-				return statSync(join(dirname(file), url)).isFile();
-			} catch {
-				return false;
-			}
-		};
-		const problems = findClassicyFontStylesheetProblems(
-			file,
-			css,
-			PLATINUM_FONT_FACES,
-			isFile,
-		);
-		for (const problem of problems) console.error(problem);
-		if (problems.length) failed = true;
-		else
-			console.log(
-				`${file}: the ${PLATINUM_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
-			);
-	}
 }
 
 // Invariant 13: the production JSX runtime, with no build-machine paths.

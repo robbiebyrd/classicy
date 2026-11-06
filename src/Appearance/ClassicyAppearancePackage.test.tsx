@@ -423,10 +423,6 @@ describe("module load order", () => {
 		],
 		["the library barrel", () => import("@/index")],
 		[
-			"the library build entry",
-			() => import("@/ClassicyLibraryBuild.internal"),
-		],
-		[
 			"the Platinum package module",
 			() => import("@classicy/appearance-platinum"),
 		],

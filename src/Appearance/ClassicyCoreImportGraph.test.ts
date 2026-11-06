@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
 
@@ -86,20 +86,17 @@ describe("the core's import graph", () => {
 		expect(api).toHaveProperty("registerClassicyAppearancePackage");
 	}, 60_000);
 
-	// Until the core's build stops bundling Platinum (plan 0015 §3.4), the
-	// library build bundles the package from its own entry, after the barrel,
-	// so the built bundle still registers it; its API stays the barrel's.
-	it("the build entry adds Platinum's registration, not its names", async () => {
-		expect(runtimeImportGraph("src/ClassicyLibraryBuild.internal.ts")).toEqual(
-			expect.arrayContaining([
-				"src/index.ts",
-				`${PLATINUM_PACKAGE}src/index.ts`,
-			]),
-		);
-		const api: Record<string, unknown> = await import("@/index");
-		const build: Record<string, unknown> = await import(
-			"@/ClassicyLibraryBuild.internal"
-		);
-		expect(Object.keys(build).sort()).toEqual(Object.keys(api).sort());
-	}, 60_000);
+	// The core's library build enters at the barrel (plan 0015 §3.4): the
+	// interim entry that bundled Platinum after it is gone, and so are the
+	// build's aliases that resolved Platinum, and Platinum's own import of the
+	// core, to source. Platinum ships in its own build.
+	it("builds the library from the barrel alone", () => {
+		expect(existsSync("src/ClassicyLibraryBuild.internal.ts")).toBe(false);
+		const config = readFileSync("vite.config.ts", "utf8");
+		expect(config).toMatch(/entry: resolve\(__dirname, "src\/index\.ts"\)/);
+		expect(config).not.toContain("ClassicyLibraryBuild");
+		expect(config).not.toContain("@classicy\\/appearance-platinum");
+		expect(config).not.toContain("@classicy\\/classicy$");
+		expect(config).not.toContain("packages/appearance/platinum");
+	});
 });

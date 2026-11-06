@@ -1,5 +1,13 @@
 import { execFile, execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import * as sass from "sass";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -12,8 +20,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 const root = process.cwd();
 // The name the core published under through 2.x (plan 0015-kxa §2.1).
 const OLD_NAME = "classicy";
-// Platinum's stylesheets, in its workspace package (plan 0015-kxa §3.1).
-const PLATINUM_STYLES = "packages/appearance/platinum/src/styles";
 const read = (file: string) => readFileSync(path.resolve(root, file), "utf8");
 const pkg = JSON.parse(read("package.json")) as {
 	name: string;
@@ -34,15 +40,13 @@ describe("package.json: the npm name", () => {
 		expect(pkg.publishConfig?.access).toBe("public");
 	});
 
-	it("keeps every exports key", () =>
+	it("keeps every exports key but the two Platinum moved to its package", () =>
 		expect(Object.keys(pkg.exports)).toEqual([
 			".",
 			"./dist/classicy.css",
 			"./fonts",
 			"./dist/*",
 			"./scss/*",
-			"./appearance/platinum",
-			"./appearance/platinum/scss/*",
 		]));
 
 	it("keeps the UMD global and the dist file names", () => {
@@ -55,28 +59,23 @@ describe("package.json: the npm name", () => {
 });
 
 describe("package.json: the Appearance Packages surface", () => {
-	it("exports the vocabulary, the Platinum entry and its scss", () => {
+	// Platinum is its own package, @classicy/appearance-platinum (plan 0015-kxa
+	// §3.4): its entry and its SCSS (`./scss/*`) are that package's exports,
+	// and the core's 2.x `./appearance/platinum` subpaths are gone.
+	it("exports the vocabulary, and nothing of Platinum's", () => {
 		expect(pkg.exports["./scss/*"]).toBe("./src/Appearance/vocabulary/*");
-		// R4: the main bundle registers Platinum, so the entry is an emitted
-		// no-op shim (the dist/fonts.js pattern), not the TypeScript source.
-		expect(pkg.exports["./appearance/platinum"]).toEqual({
-			types: "./dist/appearance-platinum.d.ts",
-			default: "./dist/appearance-platinum.js",
-		});
-		// Platinum's SCSS is in its workspace package (plan 0015-kxa §3.1). Until
-		// §3.4 drops this export for the package's own `./scss/*`, the core
-		// still serves it, from the package's styles, which it packs.
-		expect(pkg.exports["./appearance/platinum/scss/*"]).toBe(
-			"./packages/appearance/platinum/src/styles/*",
-		);
+		expect(pkg.exports).not.toHaveProperty("./appearance/platinum");
+		expect(pkg.exports).not.toHaveProperty("./appearance/platinum/scss/*");
 	});
 
 	it("drops the temporary scss-platinum bridge", () =>
 		expect(pkg.exports).not.toHaveProperty("./scss-platinum/*"));
 
-	it("ships src/Appearance, and Platinum's styles while it exports them", () => {
+	it("ships src/Appearance, and nothing under packages/", () => {
 		expect(pkg.files).toContain("src/Appearance");
-		expect(pkg.files).toContain(PLATINUM_STYLES);
+		expect(pkg.files.filter((entry) => entry.startsWith("packages"))).toEqual(
+			[],
+		);
 		// Subsumed by src/Appearance, and AppearanceManager/styles is gone.
 		expect(pkg.files).not.toContain("src/Appearance/vocabulary");
 		expect(pkg.files).not.toContain(
@@ -84,26 +83,25 @@ describe("package.json: the Appearance Packages surface", () => {
 		);
 	});
 
-	// Strict-CSP hosts link classicy.css, classicy-platinum.css and
-	// classicy-platinum.fonts.css as `@classicy/classicy/dist/<name>`: the `./dist/*`
-	// subpath and `files: ["dist"]` serve all three, with no export of their own.
-	it("serves the three strict-CSP stylesheets through ./dist/*", () => {
+	// Strict-CSP hosts link `@classicy/classicy/dist/classicy.css` (the
+	// `./dist/classicy.css` export, and `./dist/*` with `files: ["dist"]`),
+	// then Platinum's two from @classicy/appearance-platinum.
+	it("serves classicy.css, the strict-CSP structure stylesheet", () => {
+		expect(pkg.exports["./dist/classicy.css"]).toBe("./dist/classicy.css");
 		expect(pkg.exports["./dist/*"]).toBe("./dist/*");
 		expect(pkg.files).toContain("dist");
 		expect(pkg.sideEffects).toContain("**/*.css");
 	});
 
-	// Platinum's source modules are the workspace package's side effects
+	// Platinum's modules are the workspace package's side effects
 	// (packages/appearance/platinum/package.json), no longer the core's.
-	it("marks the Platinum shim as a side effect, and no Platinum source", () => {
-		expect(pkg.sideEffects).toContain("./dist/appearance-platinum.js");
-		expect(
-			pkg.sideEffects.filter((entry) => entry.includes("Appearance/Platinum")),
-		).toEqual([]);
-	});
+	it("marks nothing of Platinum's as a side effect", () =>
+		expect(pkg.sideEffects.filter((entry) => /platinum/i.test(entry))).toEqual(
+			[],
+		));
 
 	it("points every source export at a directory that exists", () => {
-		for (const key of ["./scss/*", "./appearance/platinum/scss/*"]) {
+		for (const key of ["./scss/*"]) {
 			const target = pkg.exports[key] as string;
 			expect(
 				existsSync(path.resolve(root, target.replace(/\*$/, ""))),
@@ -113,14 +111,24 @@ describe("package.json: the Appearance Packages surface", () => {
 	});
 
 	// Only the barrel barrelsby generates is ignored, so editing a
-	// hand-written index.ts (Platinum's, which the build still bundles)
-	// rebuilds in watch mode.
-	it("rebuilds in watch mode when a hand-written index.ts changes", () => {
+	// hand-written index.ts (Platinum's) rebuilds in watch mode, and a change
+	// to Platinum rebuilds its own build, which the core's no longer carries.
+	it("rebuilds the core and Platinum in watch mode", () => {
 		const watch = pkg.scripts["build:watchsource"];
 		expect(watch).not.toContain('--ignore "**/index.ts"');
 		expect(watch).toContain('--ignore "src/index.ts"');
 		expect(watch).toContain('--watch "packages/appearance/platinum/src/**"');
+		expect(watch).toContain(
+			'--exec "tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build"',
+		);
 	});
+
+	// Two builds, two dist checks (plan 0015-kxa §3.4): the core's, then
+	// Platinum's, whose `build` runs its own verify-dist.
+	it("builds and verifies the core, then Platinum", () =>
+		expect(pkg.scripts["build:source"]).toBe(
+			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build",
+		));
 });
 
 // What the packers really put in the tarball. pnpm 10 ignores a "!" pattern
@@ -159,18 +167,16 @@ const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
 		),
 	);
 
-// Every .scss file under the directories the SCSS exports serve.
-const exportedScss = ["./scss/*", "./appearance/platinum/scss/*"].flatMap(
-	(key) => {
-		const dir = (pkg.exports[key] as string)
-			.replace(/^\.\//, "")
-			.replace(/\*$/, "");
-		return readdirSync(path.resolve(root, dir), { recursive: true })
-			.map(String)
-			.filter((file) => file.endsWith(".scss"))
-			.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
-	},
-);
+// Every .scss file under the directory the SCSS export serves.
+const exportedScss = ["./scss/*"].flatMap((key) => {
+	const dir = (pkg.exports[key] as string)
+		.replace(/^\.\//, "")
+		.replace(/\*$/, "");
+	return readdirSync(path.resolve(root, dir), { recursive: true })
+		.map(String)
+		.filter((file) => file.endsWith(".scss"))
+		.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
+});
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -190,34 +196,18 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		).toEqual([]);
 	});
 
-	// From packages/, only Platinum's stylesheets, which the interim
-	// `./appearance/platinum/scss/*` export serves (until plan 0015-kxa §3.4),
-	// without the tests beside them (their .npmignore).
-	it("ships nothing from packages/ but Platinum's styles, and nothing from resources/", ({
-		skip,
-	}) => {
-		const shipped = files(skip);
+	// Platinum ships as its own package (plan 0015-kxa §3.4); verify:dist
+	// (invariant 5) keeps its files out of dist/.
+	it("ships nothing from packages/ or resources/", ({ skip }) =>
 		expect(
-			shipped.filter(
-				(file) =>
-					(file.startsWith("packages/") &&
-						!file.startsWith(`${PLATINUM_STYLES}/`)) ||
-					file.startsWith("resources/"),
+			files(skip).filter(
+				(file) => file.startsWith("packages/") || file.startsWith("resources/"),
 			),
-		).toEqual([]);
-		expect(
-			shipped.filter(
-				(file) => file.startsWith("packages/") && !file.endsWith(".scss"),
-			),
-		).toEqual([]);
-	});
+		).toEqual([]));
 
 	it("ships every SCSS file the scss exports serve", ({ skip }) => {
 		expect(exportedScss).toEqual(
-			expect.arrayContaining([
-				"src/Appearance/vocabulary/_layout.scss",
-				`${PLATINUM_STYLES}/_mixins.scss`,
-			]),
+			expect.arrayContaining(["src/Appearance/vocabulary/_layout.scss"]),
 		);
 		const shipped = new Set(files(skip));
 		expect(exportedScss.filter((file) => !shipped.has(file))).toEqual([]);
@@ -248,12 +238,11 @@ describe("the SCSS exports, resolved as a host's Sass resolves them", () => {
 	const compile = (scss: string) =>
 		sass.compileString(scss, { importers: [importer] }).css;
 
-	it("serves the Platinum mixins at @classicy/classicy/appearance/platinum/scss/mixins", () =>
-		expect(
-			compile(
-				'@use "pkg:@classicy/classicy/appearance/platinum/scss/mixins";\n.a { @include mixins.platinum-window-control-box-border; }',
-			),
-		).toMatch(/^\.a \{[\s\S]*border/));
+	// Platinum's are @classicy/appearance-platinum/scss/* (its own test).
+	it("no longer serves Platinum's SCSS", () =>
+		expect(() =>
+			compile('@use "pkg:@classicy/classicy/appearance/platinum/scss/mixins";'),
+		).toThrow(/Can't find stylesheet/));
 
 	it("serves the vocabulary at @classicy/classicy/scss/*", () =>
 		expect(
@@ -271,6 +260,44 @@ describe("the SCSS exports, resolved as a host's Sass resolves them", () => {
 		expect(() => compile(`@use "pkg:${OLD_NAME}/scss/layout";`)).toThrow(
 			/Can't find stylesheet/,
 		));
+});
+
+// Review focus "a host bundler" (plan 0015-kxa §3.4, design 0014-ahm): both
+// packages' fonts, art, wallpapers and sprites are `new URL("assets/…",
+// import.meta.url)` files, which Vite's dependency pre-bundle breaks, so a
+// Vite host keeps both out of it. The example app is the reference host.
+describe("the example app's Vite config", () => {
+	// Loaded as Vite loads it, in a child Node process (esbuild, which
+	// bundles the config, cannot run under jsdom), from a CommonJS main
+	// module (the config's Sass NodePackageImporter reads require.main).
+	it("keeps both packages out of the dev server's pre-bundle", () => {
+		const dir = mkdtempSync(path.join(tmpdir(), "classicy-example-config-"));
+		try {
+			const runner = path.join(dir, "load.cjs");
+			writeFileSync(
+				runner,
+				`import(${JSON.stringify(path.join(root, "node_modules/vite/dist/node/index.js"))}).then(async ({ loadConfigFromFile }) => {
+	const loaded = await loadConfigFromFile({ command: "serve", mode: "development" }, "example/vite.config.ts", "example", "silent");
+	console.log(JSON.stringify(loaded.config.optimizeDeps?.exclude ?? []));
+});
+`,
+			);
+			const exclude = JSON.parse(
+				execFileSync(process.execPath, [runner], {
+					cwd: root,
+					encoding: "utf8",
+				}),
+			);
+			expect(exclude).toEqual(
+				expect.arrayContaining([
+					"@classicy/classicy",
+					"@classicy/appearance-platinum",
+				]),
+			);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	}, 60_000);
 });
 
 describe("the example app", () => {

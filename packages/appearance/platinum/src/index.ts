@@ -1,11 +1,10 @@
 // The Platinum Appearance Package (Mac OS 8), `@classicy/appearance-platinum`.
-// Importing this module registers it. The core neither imports nor exports it
-// (plan 0015 §1.6): a host, a test (`@/__tests__/withPlatinum`) or Storybook's
-// preview imports it, and the core's library build entry
-// (`src/ClassicyLibraryBuild.internal.ts`) still bundles it until the two
-// builds separate (plan 0015 §3.4). It reaches the core only through
-// `@classicy/classicy`, a peer dependency its own build leaves external, so
-// it registers into the host's one copy of the registries.
+// Importing this module registers it. The core neither imports, exports nor
+// bundles it (plan 0015 §1.6, §3.4): a host, a test (`@/__tests__/withPlatinum`)
+// or Storybook's preview imports it, and it ships in its own build. It
+// reaches the core only through `@classicy/classicy`, a peer dependency its
+// build leaves external, so it registers into the host's one copy of the
+// registries.
 //
 // Hand-written. Its exports are the package's public API.
 

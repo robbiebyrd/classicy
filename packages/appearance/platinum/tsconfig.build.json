@@ -1,0 +1,21 @@
+{
+	// The package's type declarations (vite-plugin-dts, dist/types). Unlike
+	// tsconfig.json, `@classicy/classicy` is not mapped to the core's source:
+	// it resolves through the workspace link to the core's built declarations
+	// (its `types` export, dist/types/src/index.d.ts; build:source builds the
+	// core first), so the emitted declarations import it by name, as a host
+	// resolves it, and none of the core's files is declared here.
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"paths": {}
+	},
+	"include": ["src"],
+	"exclude": [
+		"dist",
+		"node_modules",
+		"resources",
+		"src/**/*.test.ts",
+		"src/**/*.test.tsx",
+		"src/**/__tests__/**"
+	]
+}

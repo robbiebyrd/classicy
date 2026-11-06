@@ -20,14 +20,18 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"types": "./dist/types/index.d.ts",
 	"main": "./dist/appearance-platinum.umd.js",
 	"module": "./dist/appearance-platinum.es.js",
 	"exports": {
 		".": {
+			"types": "./dist/types/index.d.ts",
 			"import": "./dist/appearance-platinum.es.js",
 			"require": "./dist/appearance-platinum.umd.js"
 		},
-		"./scss/*": "./src/styles/*"
+		"./scss/*": "./src/styles/*",
+		"./classicy-platinum.css": "./dist/classicy-platinum.css",
+		"./classicy-platinum.fonts.css": "./dist/classicy-platinum.fonts.css"
 	},
 	"files": [
 		"dist",
@@ -44,7 +48,8 @@
 		"**/*.scss"
 	],
 	"scripts": {
-		"build": "vite build",
+		"build": "vite build && pnpm verify:dist",
+		"verify:dist": "node bin/verify-dist.mjs",
 		"test": "vitest run"
 	},
 	"peerDependencies": {
