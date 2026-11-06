@@ -72,6 +72,20 @@ describe("the built bundle and the core's registries", () => {
 		expect(resolveClassicyAsset("systemArt", "windowGrip")).toMatch(/resizer/);
 	}, 60_000);
 
+	// The negative check below is only as good as its markers: each must still
+	// be in the core's registries, or "carries none of it" would hold vacuously.
+	it("checks for markers the core's registries really hold", () => {
+		const core = [
+			"src/Appearance/ClassicyAppearancePackageRegistry.ts",
+			"src/Appearance/ClassicyAssetRegistry.ts",
+			"src/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks.ts",
+		]
+			.map((file) => readFileSync(path.join(repoRoot, file), "utf8"))
+			.join("\n");
+		for (const marker of CORE_REGISTRY_MARKERS)
+			expect(core, marker).toContain(marker);
+	});
+
 	it("imports @classicy/classicy, in both formats, and carries none of it", () => {
 		expect(es).toMatch(/\bfrom\s*["']@classicy\/classicy["']/);
 		expect(umd).toMatch(/require\(["']@classicy\/classicy["']\)/);
