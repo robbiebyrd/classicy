@@ -3,12 +3,13 @@ id: 0130-rpe
 title: '0015 §3.2: Root consumers and the lint gates follow the move'
 purpose: Execute plan 0015-kxa section 3.2.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:52.288Z"
-updated: "2026-11-06T08:26:59.418Z"
+updated: "2026-11-06T15:15:07.533Z"
 started: "2026-11-06T08:26:59.418Z"
+completed: "2026-11-06T15:15:07.533Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -67,8 +68,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -92,3 +93,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-06T08:25:52.840Z - 2026-11-06 from 0129-00o: already done in 3.1 (after its review): the color sweep, PACKAGE_FILE and varCoverage scan packages/appearance/<id>/src (shared roots classicyScssSourceRoots), as do the pixel gate, !important, vocabulary, quoted url() and verify:dist invariant 11. Remaining for 3.2: remove the interim @/Appearance/Platinum alias (vitest, tsconfig, Storybook, 5 places) and switch specifiers to @classicy/appearance-platinum; see the 3.1 report's 'Left for later sections'.
+
+### 2026-11-06T15:14:57.820Z - Landed at da9fe7d99 (8 commits, rebased on 86612b0e3 then over the tracker-only 825d24bf3). Review fix-first items all fixed: the specifier scan skips itself and covers packages/ and relative paths; narrow sound-pack/assets/JSON imports restored with an allowlist test; BuiltInThemeReload order restored; platinumJson exported deep-frozen (registered data unfrozen, a copy); PLATINUM_WALLPAPERS/platinumWallpaperUrl off the public index; docs; the root->package dependency cycle removed (moved to storybook/package.json; libc: 63). The implementer was cut off twice by session restarts; the controller finished verification: gate 487 files / 7113 tests, package 21 files / 278 tests + vite build, all 86 touched root test files pass alone, no cyclic-workspace warning. Parity (implementer's second round, fu0130b, against before-land): 445/445 AE 0; its leftover servers stopped by PID.

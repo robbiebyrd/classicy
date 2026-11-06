@@ -3,11 +3,12 @@ id: 0132-jsg
 title: '0015 §3.4: Two builds, two dist checks, two packs'
 purpose: Execute plan 0015-kxa section 3.4.
 type: task
-status: ready
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:58.963Z"
-updated: "2026-11-06T09:39:00.850Z"
+updated: "2026-11-06T15:15:31.792Z"
+started: "2026-11-06T15:15:31.792Z"
 tags: []
 milestone: ""
 due_date: ""
