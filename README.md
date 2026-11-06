@@ -16,6 +16,41 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ## Using Classicy in a Vite app
 
+Classicy is two packages: `@classicy/classicy`, the framework, and
+`@classicy/appearance-platinum`, the Platinum look. Install both, at the same
+version, with the framework's peer dependencies:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-platinum
+pnpm add react react-dom zustand immer @tanstack/react-table react-player
+```
+
+Import Platinum once, at your app's entry, before you render. The framework
+registers no Appearance Package of its own:
+
+```tsx
+import "@classicy/appearance-platinum";
+import {
+  ClassicyAppManagerProvider,
+  ClassicyDesktop,
+} from "@classicy/classicy";
+import { createRoot } from "react-dom/client";
+
+createRoot(document.getElementById("root")!).render(
+  <ClassicyAppManagerProvider>
+    <ClassicyDesktop>{/* your ClassicyApp components */}</ClassicyDesktop>
+  </ClassicyAppManagerProvider>,
+);
+```
+
+Without that import, `ClassicyDesktop` draws a "No Appearance Package is
+loaded" message (showing the import line) instead of the desktop, mounts none
+of its children, and logs one error per page. The desktop appears as soon as a
+package registers. Platinum's own names
+(`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
+`platinumSoundPack`) are exports of `@classicy/appearance-platinum`, which
+ships its type declarations (bundler module resolution).
+
 **Browser support:** Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme
 colors are mixed in CSS with `color-mix()` (Safari 16.2, Firefox 113), and
 icons are drawn with unprefixed `mask-image` and mask compositing (Chrome
@@ -23,6 +58,15 @@ icons are drawn with unprefixed `mask-image` and mask compositing (Chrome
 and icon art go missing.
 
 **Upgrading from 2.1.x?** [`docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`](docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md) lists every breaking change below, and the rest of the release, with its migration step.
+
+**Breaking change: the package is renamed.** `classicy` is now
+`@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
+and rewrite every specifier, strings included: `from "classicy"`, deep paths
+(`classicy/dist/classicy.css`, `classicy/scss/*`), `vi.mock("classicy", …)` and
+`typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
+script, pnpm's `minimumReleaseAgeExclude`) must list **both** package names and
+move them together. Installs 404 until 3.0.0 is published, so a host's
+migration lands after the publish. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
 wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
@@ -54,7 +98,12 @@ links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place
 `ClassicyIcons` constant is now only the Platinum icon tree as shipped: it does
 not reflect later `registerClassicyIcons` calls (`ClassicyIcons.myApp.icon` is
 `undefined` at runtime), so read icons through `useClassicyAsset` (in a
-component) or `resolveClassicyAsset` (elsewhere), never the constant. And
+component) or `resolveClassicyAsset` (elsewhere), never the constant. In
+particular, `registerClassicyIcons({ applications: { ...ClassicyIcons.applications, mine } })`
+followed by a read of `ClassicyIcons.applications.mine` now returns
+`undefined` (usually behind a cast, so `tsc` is silent): drop the spread and
+read through the value `registerClassicyIcons` returns, or
+`resolveClassicyAsset("icons", "applications.mine")`. And
 Platinum draws these as system art and cursors, so registering them under
 `registerClassicyIcons` no longer changes what is drawn (most of them are gone
 from the icon tree, below).
@@ -139,7 +188,11 @@ own markup. The screen saver's hidden cursor no longer beats an unlayered host
 `* { cursor: … }`.
 
 The full old → new table (every renamed class) is in `docs/AGENT-REFERENCE.md`
-§5, "Migrating to the shared vocabulary".
+§5, "Migrating to the shared vocabulary". Markup you build by hand to look like
+Classicy's needs the same vocabulary: the bare state classes, plus
+`data-classicy-part` on menu-bar clusters and `data-classicy-control` on
+title-bar boxes, which flex `order` now keys on (without them a zoom box sorts
+left of the title).
 
 **Breaking change: the look is an Appearance Package.** Classicy's stylesheet
 now holds structure only; the Platinum look (every bevel, border, gradient
@@ -185,7 +238,13 @@ and piece of art) is the Platinum Appearance Package's own stylesheet, in
   the vocabulary as `classicy-px-rect`/`classicy-no-select`
   (`@classicy/classicy/scss/layout`). The full rename table is in
   `docs/AGENT-REFERENCE.md`, "Migrating to Appearance Packages". `classicy/scss/themes.json` is gone: call
-  `getAllThemes()`. `@classicy/classicy/appearance/platinum` is gone:
+  `getAllThemes()`. Platinum's partials reach the vocabulary as
+  `pkg:@classicy/classicy/scss/*`, so a host that `@use`s them compiles with
+  Sass's `NodePackageImporter` (Vite: `css.preprocessorOptions.scss.importers:
+  [new NodePackageImporter()]`), imported from the Sass package your build
+  uses: `sass-embedded` for a host on `sass-embedded`, `sass` for one on
+  `sass`. `@classicy/classicy/appearance/platinum` and
+  `@classicy/classicy/appearance/platinum/scss/*` are gone:
   import `@classicy/appearance-platinum`, which registers Platinum and
   exports its names (`PLATINUM_APPEARANCE_PACKAGE_ID`,
   `platinumAppearanceHooks`, `platinumSoundPack`), which are no longer

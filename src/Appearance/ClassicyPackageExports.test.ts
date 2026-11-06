@@ -371,7 +371,20 @@ describe("the rename to @classicy/classicy", () => {
 		"scss/fonts",
 		"scss-platinum/*",
 		"dist/fonts.css",
-	].map((subpath) => `${OLD_NAME}/${subpath}`);
+	]
+		.map((subpath) => `${OLD_NAME}/${subpath}`)
+		// The rename's own migration steps (README, AGENT-REFERENCE, release
+		// notes) quote the old specifiers they tell a host to rewrite.
+		.concat([
+			`from "${OLD_NAME}"`,
+			`from '${OLD_NAME}'`,
+			`pnpm remove ${OLD_NAME}`,
+			`${OLD_NAME}/dist/classicy.css`,
+			`${OLD_NAME}/fonts`,
+			`${OLD_NAME}/scss/*`,
+			`vi.mock("${OLD_NAME}"`,
+			`import("${OLD_NAME}")`,
+		]);
 
 	/** `file:line: text` for every line of `text` naming the old package. */
 	const leftovers = (file: string, text: string) =>

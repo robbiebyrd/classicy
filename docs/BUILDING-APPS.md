@@ -60,6 +60,13 @@ and the desktop icons. Nothing else is required to make the app appear — mount
 `<ClassicyApp>` registers the app, adds its desktop icon, and adds it to the
 Applications folder.
 
+> **Import an Appearance Package at your app's entry.** The core draws no
+> desktop without one: with none registered, `ClassicyDesktop` shows a "No
+> Appearance Package is loaded" message and mounts none of its children, your
+> app included. Add `import '@classicy/appearance-platinum'` once, before you
+> render (and in your test setup file, for tests that render a desktop). The
+> entry is in AGENT-REFERENCE §1.
+
 > **Mount `ClassicyDesktop` eagerly.** Lazy-loading it so that it mounts a tick
 > after `ClassicyAppManagerProvider` corrupts manager state: early dispatches
 > reach a reducer whose state the desktop has not seeded yet, and every later

@@ -10,10 +10,15 @@ Classicy is a React/TypeScript UI framework that replicates the Mac OS 8
 Platinum-styled controls, plus built-in apps (Finder, SimpleText, HyperCard,
 PDF Viewer, Movie Player, Picture Viewer, Web Viewer).
 
-- Package: `@classicy/classicy` (ES + UMD builds, TypeScript types included)
+- Packages: `@classicy/classicy` (the framework; ES + UMD builds, TypeScript
+  types included) and `@classicy/appearance-platinum` (the Platinum look, an
+  Appearance Package; ES + UMD builds, types included). Install both at the
+  same version.
 - License: Unlicense
 - Peer dependencies you must install: `react` (18 or 19), `react-dom`,
-  `zustand@^5`, `immer@^11`, `@tanstack/react-table@^8`, `react-player@^3`
+  `zustand@^5`, `immer@^11`, `@tanstack/react-table@^8`, `react-player@^3`.
+  `@classicy/appearance-platinum` peer-depends on `@classicy/classicy`, so
+  both resolve to one copy of the registries.
 
 **Writing an app rather than looking up an API?** Read
 [`BUILDING-APPS.md`](BUILDING-APPS.md) instead — it is the narrative,
@@ -26,8 +31,30 @@ reference only names.
 ## 1. Installation & Setup
 
 ```bash
-npm install @classicy/classicy react react-dom zustand immer @tanstack/react-table react-player
+pnpm add @classicy/classicy @classicy/appearance-platinum
+pnpm add react react-dom zustand immer @tanstack/react-table react-player
 ```
+
+The package was published as `classicy` through 2.x; every specifier is
+`@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
+auto-bumps its dependencies must list both package names and move them
+together.
+
+**Import an Appearance Package at the entry.** The core registers none.
+Import Platinum once, before rendering; importing it registers Platinum and
+its sound pack, assets and fonts:
+
+```tsx
+import '@classicy/appearance-platinum'
+import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
+```
+
+With no package registered, `ClassicyDesktop` draws only
+`ClassicyNoAppearancePackage` (a plain "No Appearance Package is loaded"
+message that shows the import line; not the Sad Mac), mounts none of its
+children, and logs one `classicyLog("error", "Appearance", …)` per page. The
+desktop appears as soon as a package registers. In tests, import the package in
+the setup file for anything that renders a desktop.
 
 Browser support: Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme color
 variants are `color-mix()` (Safari 16.2, Firefox 113) and icons use
@@ -60,10 +87,9 @@ without `'unsafe-inline'`), link the three stylesheets yourself instead:
    fonts, which the package otherwise writes as
    `<style id="classicy-fonts-platinum">`.
 
-The first is the core's; the other two are the Platinum package's (3.0
-moved them out of `@classicy/classicy/dist/`). Those specifiers are the two
-packages' `exports`; a plain `<link>` names the files where they are, under
-each package's `dist/`.
+The first is the core's; the other two are the Platinum package's. Those
+specifiers are the two packages' `exports`; a plain `<link>` names the files
+where they are, under each package's `dist/`.
 
 Importing them as well is harmless. Link `classicy.css` **first in
 `<head>`**, before any other stylesheet, and the other two right after it:
@@ -108,9 +134,8 @@ listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
 a plugin), copy the Platinum package's `dist/assets/` next to your bundle.
-Also new in this release: `import '@classicy/classicy/fonts'` is a deprecated no-op (the
-Platinum package registers its fonts), and `classicy/dist/fonts.css` no longer
-exists.
+`import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
+package registers its fonts), and `dist/fonts.css` no longer exists.
 
 ### Cascade layers (overriding Classicy styles)
 
@@ -129,14 +154,10 @@ host overrides; a later layer beats an earlier one whatever the specificity.
 sizing, state rules). Every bevel, border, gradient and piece of art is the
 active **Appearance Package**'s (§8, "Appearance Packages"). Registering a
 package (`registerClassicyAppearancePackage`; the core registers none, so a
-host imports one at its entry, and until Platinum ships as
-`@classicy/appearance-platinum` the `@classicy/classicy` bundle still
-registers Platinum) writes its compiled CSS into
+host imports one at its entry) writes its compiled CSS into
 `<style id="classicy-appearance-<id>">`: directly after `#classicy-styles`
-when that element is already there, else at the end of `<head>` (the shipped
-bundle registers Platinum before its own stylesheet injector runs, so in
-practice it lands at the end; element order does not matter, because the
-order statement decides precedence). That CSS is one `@layer classicy.package
+when that element is already there, else at the end of `<head>` (element
+order does not matter, because the order statement decides precedence). That CSS is one `@layer classicy.package
 { … }` block, every rule scoped under
 `.classicyDesktop[data-classicy-appearance="<id>"]`, and the desktop root
 carries `data-classicy-appearance` with the resolved active package's id. So a
@@ -252,6 +273,7 @@ Package `exports` map:
 ### Minimal app
 
 ```tsx
+import '@classicy/appearance-platinum' // registers the Platinum look; the core draws no desktop without one
 import {
     ClassicyAppManagerProvider,
     ClassicyDesktop,
@@ -1418,7 +1440,14 @@ Two things changed for code that registered or read icons:
   (`ClassicyIcons['myApp']['icon']` is `undefined` at runtime). Read icons
   through `useClassicyAsset('icons', path)` or
   `resolveClassicyAsset('icons', path)`, not the constant; keep the typed value
-  `registerClassicyIcons` returns if you want autocomplete.
+  `registerClassicyIcons` returns if you want autocomplete. The 2.x idiom
+  `registerClassicyIcons({ applications: { ...ClassicyIcons.applications, mine } })`
+  followed by a read of `ClassicyIcons.applications.mine` therefore yields
+  `undefined` at runtime (no type error when the read goes through a cast).
+  Drop the spread (registrations merge) and read your own key from the
+  returned value. `resolveClassicyAsset` returns leaves only and
+  `useClassicyAssetTree` is a hook, so a host that indexes a namespace by data
+  keeps the object it registered.
 - **System art and cursors moved out of the icon tree.** Platinum registers
   these as system art and cursors when `platinumAssets.ts` loads, and every
   consumer now reads the system-art key or cursor role, so registering the
@@ -1610,6 +1639,34 @@ A host rule on them never matched anything, so there is nothing to migrate.
   host cursor rules, or put them in the reserved `classicy.base.host`
   sublayer (§1); any other host layer still outranks Classicy.
 
+### Migrating to the scoped packages (breaking change)
+
+The framework was published as `classicy` through 2.x. It is
+`@classicy/classicy` now, and the Platinum look is a second package,
+`@classicy/appearance-platinum`. The unscoped name stops at 2.x; do not mix
+the two in one dependency tree.
+
+1. Swap the dependency: `pnpm remove classicy`, then
+   `pnpm add @classicy/classicy @classicy/appearance-platinum` (same version).
+2. Rewrite every specifier, including the ones inside strings: imports and
+   re-exports, deep paths (`classicy/dist/classicy.css`, `classicy/scss/*`,
+   `classicy/fonts`), `vi.mock("classicy", …)`,
+   `importOriginal<typeof import("classicy")>()` and `optimizeDeps` lists. From
+   the repository root, then read the diff (a quoted word `classicy` that is
+   not a specifier, such as a storage key, must stay):
+
+   ```sh
+   git grep -lE "['\"]classicy(['\"/])" -- . ':!pnpm-lock.yaml' \
+     | xargs sed -i -E "s#(['\"])classicy(['\"/])#\1@classicy/classicy\2#g"
+   ```
+
+3. Import `@classicy/appearance-platinum` once at the entry (§1).
+4. Auto-bump tooling (Renovate, scripts, pnpm `minimumReleaseAgeExclude`) lists
+   both names and moves them together.
+
+Neither scoped name is on the registry before 3.0.0 is published, so installs
+and CI 404 until then.
+
 ### Migrating to Appearance Packages (breaking change)
 
 Classicy's look is now the Platinum **Appearance Package** (§8, "Appearance
@@ -1659,6 +1716,18 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `@classicy/appearance-platinum/scss/assets` exports only `platinum-root-properties` |
   | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `packages/appearance/platinum/src/platinum.json`) |
   | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `@classicy/appearance-platinum/classicy-platinum.fonts.css` (§1) |
+- **Hand-built Classicy markup needs the vocabulary.** Markup a host builds to
+  look like Classicy's (a CMS chrome, a custom menu bar or title bar) needs the
+  bare state classes (§4.0.1) and the part attributes that flex `order` keys on:
+  `data-classicy-part` on menu-bar clusters (`apple`, `app`, `help`,
+  `switcher`, `extensions`, `clock`) and `data-classicy-control` on title-bar
+  boxes (`close`, `zoom`, `collapse`). Without them the parts sort by their
+  default order and, for one, the zoom box lands left of the title.
+- **Compiling Platinum's SCSS needs a package importer.** Its partials `@use`
+  the vocabulary as `pkg:@classicy/classicy/scss/*`, so pass Sass's
+  `NodePackageImporter` (Vite: `css.preprocessorOptions.scss.importers`). Import
+  it from the Sass package the build compiles with: `sass-embedded` for a host
+  on `sass-embedded`, `sass` for one on `sass`.
 - **Components outside a desktop lose their look.** The package's rules only
   match inside an element carrying `class="classicyDesktop"` and
   `data-classicy-appearance="platinum"`; wrap standalone components in one,
@@ -2435,13 +2504,12 @@ registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships one, Platinum, the
-workspace package `@classicy/appearance-platinum`
-(`packages/appearance/platinum/`), which the core neither imports nor
-exports: a host imports it at its entry (until the package publishes on its
-own, the `@classicy/classicy` bundle still registers it); themes
-are presets of a package, and every theme names its package in
-`theme.package`.
+sound packs and hooks that go with it. Classicy ships one, Platinum, as its own
+package, `@classicy/appearance-platinum` (`packages/appearance/platinum/` in
+the repository), which the core neither imports nor exports: a host imports it
+at its entry (`import '@classicy/appearance-platinum'`), and the desktop draws
+only the stop screen until some package registers. Themes are presets of a
+package, and every theme names its package in `theme.package`.
 
 ```ts
 import { registerClassicyAppearancePackage, classicyKnobsToSchema, getTheme } from '@classicy/classicy'

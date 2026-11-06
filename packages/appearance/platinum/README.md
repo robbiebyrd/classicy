@@ -19,6 +19,14 @@ import "@classicy/appearance-platinum";
 pnpm add @classicy/classicy @classicy/appearance-platinum
 ```
 
+A host that auto-bumps its dependencies lists both names and moves them
+together. The package ships its type declarations, so a named import
+type-checks under bundler module resolution:
+
+```ts
+import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
+```
+
 ## Exports
 
 - `.`: the package entry (ES and UMD bundles, with types). Importing it

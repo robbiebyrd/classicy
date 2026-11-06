@@ -8,6 +8,12 @@ change needs. Longer material is linked from
 
 ## Summary
 
+**This is 3.0.0, and Classicy is two packages now:** `@classicy/classicy` (the
+framework, formerly the unscoped package) and `@classicy/appearance-platinum` (the
+Platinum look). Install both at the same version, and import Platinum once at
+your app's entry. Both packages are listed under
+[Install and build](#install-and-build).
+
 Classicy's look is now an **Appearance Package**. Classicy's own stylesheet
 holds structure only (layout, sizing, state rules). The Platinum look, meaning
 every bevel, border, gradient, piece of art, feedback sound, cursor and font,
@@ -39,24 +45,83 @@ Start with [Install and build](#install-and-build).
 
 ### Install and build
 
+- **The package is renamed: `classicy` is now `@classicy/classicy`.** The
+  unscoped `classicy` stops at 2.x; 3.0.0 and later publish only under the
+  scoped names, so do not mix the two in one dependency tree. *Who:* every
+  host. *Migrate:* swap the dependency, then rewrite every specifier,
+  including the ones inside strings:
+
+  ```sh
+  pnpm remove classicy
+  pnpm add @classicy/classicy @classicy/appearance-platinum
+  ```
+
+  - Rewrite imports and re-exports (`from "classicy"` and
+    `from 'classicy'`), deep paths (`classicy/dist/classicy.css`,
+    `classicy/scss/*`, `classicy/fonts`), and the specifier strings that
+    imports do not reach: `vi.mock("classicy", …)`, `jest.mock`,
+    `importOriginal<typeof import("classicy")>()`, `import("classicy")` and
+    `optimizeDeps` lists. One pass that does it, from the repository root:
+
+    ```sh
+    git grep -lE "['\"]classicy(['\"/])" -- . ':!pnpm-lock.yaml' \
+      | xargs sed -i -E "s#(['\"])classicy(['\"/])#\1@classicy/classicy\2#g"
+    ```
+
+    Read the diff: a string that happens to be the word `classicy` (a
+    storage key, a class name in a quoted selector) is not a specifier.
+  - The package is installed from both names or neither: a host that
+    auto-bumps its dependencies (Renovate, a script, pnpm's
+    `minimumReleaseAgeExclude`) must list **both** `@classicy/classicy` and
+    `@classicy/appearance-platinum` and move them together, at the same
+    version. Bumping one alone leaves a peer mismatch.
+  - Installs and CI 404 until 3.0.0 is published, because neither scoped name
+    exists on the registry before it. A host that migrates early lands the
+    change after the publish. pnpm 11 also runs an install check before
+    `pnpm run`, so an unpublished range fails every script, not only
+    `pnpm install`.
+
 - **The core no longer registers Platinum.** `@classicy/classicy` neither
   imports nor exports the Platinum package, and `ClassicyDesktop` no longer
-  loads it: with no package registered, the desktop draws the
-  `ClassicyNoAppearancePackage` screen instead (see
-  [Appearance Packages](#appearance-packages)). Platinum's own names,
-  `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks` and
-  `platinumSoundPack`, are no longer `@classicy/classicy` exports. *Who:*
-  every host. *Migrate:* import Platinum once at your app's entry, before
-  rendering, and take Platinum's names from it:
+  loads it. *Who:* every host. *Migrate:* import Platinum once at your app's
+  entry, before rendering:
 
   ```ts
   import "@classicy/appearance-platinum";
-  import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
   ```
 
   The `@classicy/classicy` bundle carries none of Platinum (no look, fonts,
-  art, wallpapers or sounds), and `@classicy/classicy/appearance/platinum`
-  is gone with its no-op shim: `@classicy/appearance-platinum` replaces it.
+  art, wallpapers or sounds). Platinum's own names are exported by the
+  Platinum package, with their declarations, so a named import type-checks
+  under bundler module resolution (`moduleResolution: "bundler"`):
+
+  ```ts
+  import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
+  ```
+
+- **No package, no desktop: the stop screen.** With no Appearance Package
+  registered, `ClassicyDesktop` draws `ClassicyNoAppearancePackage` instead of
+  the desktop: a plain message showing the import line above. It mounts none
+  of its children, so your apps do not run, and it logs one
+  `classicyLog("error", "Appearance", …)` per page. The desktop appears the
+  moment a package registers. *Who:* a host that forgot the import, and tests
+  that render `ClassicyDesktop` without one. *Migrate:* add the import at the
+  entry. In a test setup file, import it there too
+  (`import "@classicy/appearance-platinum"` in vitest's `setupFiles`).
+
+- **Removed exports, and what replaces them.**
+
+  | Removed | Replacement |
+  |---|---|
+  | `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack` from `@classicy/classicy` | The same names from `@classicy/appearance-platinum` |
+  | `@classicy/classicy/appearance/platinum` (the JavaScript specifier, a no-op shim) | `import "@classicy/appearance-platinum"` |
+  | `@classicy/classicy/appearance/platinum/scss/*` | `@classicy/appearance-platinum/scss/*` (see [SCSS](#scss)) |
+  | `ClassicyWallpapers`, `resolveWallpaper`, `ClassicyDefaultWallpaper`, `buildClassicyWallpaperIndex` | `resolveClassicyWallpaper`, `defaultClassicyWallpaper`, `listClassicyWallpapers` (see [Themes hold wallpapers by filename](#state-actions-and-behavior)) |
+  | `ClassicySounds`, `loadSoundTheme` | Sound packs (see [Sound](#sound)) |
+  | Icon paths for Platinum's art and cursors | System art and cursor roles (see [Icons, system art and cursors](#icons-system-art-and-cursors)) |
+
+  The `@classicy/classicy/fonts` specifier and `@classicy/classicy/dist/*`
+  stay (the first is a no-op; see below).
 
 - **Vite's dev server must not pre-bundle either package.** Platinum's
   fonts, art, wallpapers and sound sprites are now files in
@@ -207,6 +272,18 @@ Start with [Install and build](#install-and-build).
   `ClassicyBevelButtonState` is deleted. *Migrate:* select the state classes
   instead (`.checked`, `.pressed`, `.mixed`, `.disabled`, `.selected`, and
   `.open` while a bevel button's menu shows).
+- **Hand-built Classicy markup needs the vocabulary too.** A host that
+  mirrors Classicy's DOM by hand (a CMS chrome outside a desktop, a custom
+  menu bar or title bar) must carry the bare state classes above, and the
+  part attributes that flex `order` now keys on: `data-classicy-part`
+  (`apple`, `app`, `help`, `switcher`, `extensions`, `clock`) on menu-bar
+  clusters and `data-classicy-control` (`close`, `zoom`, `collapse`) on
+  title-bar boxes. Without them the parts sort by their default order, and a
+  zoom box lands left of the title. *Migrate:* add the attributes (and the
+  desktop-root attributes, under
+  [Components outside a desktop](#components-outside-a-desktop)). The
+  vocabulary is in
+  [§4.0.1](AGENT-REFERENCE.md#401-vocabulary-state-classes-part-attributes-passthrough-layers).
 - **Generic state names can collide with host CSS.** The 15 states are
   `active`, `inactive`, `disabled`, `selected`, `pressed`, `focused`, `hover`,
   `collapsed`, `open`, `dragging`, `error`, `default`, `checked`, `mixed` and
@@ -302,9 +379,25 @@ Start with [Install and build](#install-and-build).
   The full rename table is in
   [§5, "Migrating to Appearance Packages"](AGENT-REFERENCE.md#migrating-to-appearance-packages-breaking-change).
   Platinum's partials reach the vocabulary as `pkg:@classicy/classicy/scss/*`,
-  so a host that `@use`s them compiles with Sass's `NodePackageImporter`
-  (Vite: `css.preprocessorOptions.scss.importers: [new NodePackageImporter()]`,
-  `NodePackageImporter` from `sass`).
+  so a host that `@use`s them compiles with Sass's `NodePackageImporter`. Take
+  it from the Sass package your build compiles with, because the two are not
+  interchangeable: `NodePackageImporter` from `sass-embedded` for a host on
+  `sass-embedded`, from `sass` for one on `sass`.
+
+  ```ts
+  // vite.config.ts
+  import { NodePackageImporter } from "sass-embedded"; // or "sass"
+  export default defineConfig({
+    css: {
+      preprocessorOptions: {
+        scss: { importers: [new NodePackageImporter()] },
+      },
+    },
+  })
+  ```
+
+  The mixin names are kebab-case with a `platinum-` prefix
+  (`platinum-window-control-box-border`), not the camelCase of 2.1.x.
   Exceptions and removals:
   - `px-rect` and `no-select` moved to `@classicy/classicy/scss/layout` as
     `classicy-px-rect` and `classicy-no-select`.
@@ -361,6 +454,28 @@ Start with [Install and build](#install-and-build).
   leaf keeps its siblings. *Migrate:* read icons with `useClassicyAsset`
   (in a component) or `resolveClassicyAsset` (elsewhere), at render or call
   time, never in a module-scope constant.
+
+  The common 2.x idiom breaks silently. A host that spread the shipped tree
+  into its registration and read its own key back from the constant:
+
+  ```ts
+  registerClassicyIcons({ applications: { ...ClassicyIcons.applications, mine } })
+  const icon = ClassicyIcons.applications.mine // undefined now
+  ```
+
+  type-checks when the read goes through a cast, and fails at runtime. The
+  spread is unnecessary now (registrations merge), and the read goes through
+  the value `registerClassicyIcons` returns (your own argument, typed), or
+  through `resolveClassicyAsset("icons", "applications.mine")` for a leaf:
+
+  ```ts
+  export const AppIcons = registerClassicyIcons({ applications: { mine } })
+  const icon = AppIcons.applications.mine
+  ```
+
+  `resolveClassicyAsset` returns leaves, and `useClassicyAssetTree` (a hook)
+  is the only subtree read, so code that indexes a namespace by data (station
+  slugs, say) keeps its own object, as the one it passed to the registration.
 - **System art and cursors are no longer icons.** Registering these icon
   paths no longer changes what is drawn. *Migrate:* register the replacement
   instead:
