@@ -1,9 +1,8 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { NodePackageImporter } from "sass";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
-import { withClassicyDeclarationExtensions } from "../../../bin/classicyDeclarationSpecifiers";
+import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { PLATINUM_FONT_FACES } from "./src/assets/platinumFonts.internal";
@@ -82,25 +81,10 @@ export default defineConfig(({ mode }) => ({
 						// Each relative specifier gets the `.js` its module ships as:
 						// a node16/nodenext host resolves `"./hooks"` to nothing in a
 						// `"type": "module"` package (verify-dist invariant 7).
-						beforeWriteFile: (filePath, content) => {
-							if (!filePath.endsWith(".d.ts")) return;
-							const declared = path
-								.relative(
-									path.join(import.meta.dirname, "dist/types"),
-									filePath,
-								)
-								.split(path.sep)
-								.join("/");
-							return {
-								filePath,
-								content: withClassicyDeclarationExtensions(
-									content,
-									`src/${declared.replace(/\.d\.ts$/, ".ts")}`,
-									(source) =>
-										existsSync(path.join(import.meta.dirname, source)),
-								),
-							};
-						},
+						beforeWriteFile: classicyDeclarationExtensionsWriter({
+							root: import.meta.dirname,
+							entryRoot: "src",
+						}),
 					}),
 				]),
 	],

@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
 import {
+	classicyDeclarationExtensionsWriter,
+	classicyPackageOfSpecifier,
+	findClassicyBareSpecifiers,
 	findClassicyExtensionlessSpecifiers,
 	withClassicyDeclarationExtensions,
 } from "./classicyDeclarationSpecifiers";
@@ -143,4 +149,115 @@ describe("findClassicyExtensionlessSpecifiers", () => {
 				"export * from './hooks.js';\nexport * from './a/index.js';",
 			),
 		).toEqual([]));
+});
+
+// The packages a declaration imports: each must be one a host installs
+// beside it (bin/check-host-types.ts, story 0153-k0e).
+describe("findClassicyBareSpecifiers", () => {
+	it("names each package specifier, type references included", () =>
+		expect(
+			findClassicyBareSpecifiers(
+				[
+					'/// <reference types="node" />',
+					"import { Howl } from 'howler';",
+					'export type { T } from "@scope/pkg/sub";',
+					"type A = import('analytics').DetachListeners;",
+					'import "side-effect";',
+					"import { a } from './hooks.js';",
+					"import { b } from '../up';",
+					"import { c } from '#internal';",
+				].join("\n"),
+			),
+		).toEqual([
+			"node",
+			"howler",
+			"@scope/pkg/sub",
+			"analytics",
+			"side-effect",
+		]));
+
+	it("names none in a comment or a string literal", () =>
+		expect(
+			findClassicyBareSpecifiers(
+				[
+					"/**",
+					' * Test helper: forget the last press, so each test starts from "pointer".',
+					" */",
+					"/** import { MDXEditor } from '@mdxeditor/editor'; */",
+					"// import { Howl } from 'howler';",
+					"export declare const NOTE = \"import from 'zod'\";",
+					'declare module "ambient" {}',
+					'/// <reference path="./local.d.ts" />',
+					"import type { Z } from 'zod';",
+				].join("\n"),
+			),
+		).toEqual(["zod"]));
+});
+
+describe("classicyPackageOfSpecifier", () => {
+	it("is the package a specifier names, its subpath dropped", () =>
+		expect(
+			[
+				"react",
+				"react/jsx-runtime",
+				"@mdxeditor/editor",
+				"@scope/pkg/deep/path",
+				"node:fs",
+			].map(classicyPackageOfSpecifier),
+		).toEqual([
+			"react",
+			"react",
+			"@mdxeditor/editor",
+			"@scope/pkg",
+			"node:fs",
+		]));
+});
+
+// The one vite-plugin-dts `beforeWriteFile` both builds use: the core keeps
+// `src/` in its declaration paths (dist/types/src/…), Platinum's dts strips
+// it (entryRoot "src", dist/types/…).
+describe("classicyDeclarationExtensionsWriter", () => {
+	const root = mkdtempSync(join(tmpdir(), "classicy-declaration-writer-"));
+	afterAll(() => rmSync(root, { recursive: true, force: true }));
+	mkdirSync(join(root, "src/a"), { recursive: true });
+	writeFileSync(join(root, "src/a/hooks.ts"), "");
+	writeFileSync(join(root, "src/index.ts"), "");
+
+	it("resolves from the source path under the declaration's own path (the core)", () =>
+		expect(
+			classicyDeclarationExtensionsWriter({ root })(
+				join(root, "dist/types/src/index.d.ts"),
+				"export * from './a/hooks';",
+			),
+		).toEqual({
+			filePath: join(root, "dist/types/src/index.d.ts"),
+			content: "export * from './a/hooks.js';",
+		}));
+
+	it("resolves from the source path under entryRoot (Platinum)", () =>
+		expect(
+			classicyDeclarationExtensionsWriter({ root, entryRoot: "src" })(
+				join(root, "dist/types/a/hooks.d.ts"),
+				"export * from '../index';",
+			),
+		).toEqual({
+			filePath: join(root, "dist/types/a/hooks.d.ts"),
+			content: "export * from '../index.js';",
+		}));
+
+	it("leaves other files alone", () =>
+		expect(
+			classicyDeclarationExtensionsWriter({ root })(
+				join(root, "dist/types/src/index.d.ts.map"),
+				"export * from './a/hooks';",
+			),
+		).toBeUndefined());
+
+	it("throws on a specifier that names no source module", () =>
+		expect(() =>
+			classicyDeclarationExtensionsWriter({ root, entryRoot: "src" })(
+				join(root, "dist/types/index.d.ts"),
+				"export * from './a/hooks';\nexport * from './gone';",
+			),
+		).toThrow(/src\/index\.ts: "\.\/gone" names no module/));
 });

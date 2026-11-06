@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import path, { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -6,7 +5,7 @@ import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
-import { withClassicyDeclarationExtensions } from "./bin/classicyDeclarationSpecifiers";
+import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import {
@@ -216,21 +215,7 @@ const config = defineConfig({
 			// node16/nodenext host resolves `"./…"` to nothing in a
 			// `"type": "module"` package (verify:dist invariant 8,
 			// bin/check-host-types.ts).
-			beforeWriteFile: (filePath, content) => {
-				if (!filePath.endsWith(".d.ts")) return;
-				const declared = path
-					.relative(path.join(__dirname, "dist/types"), filePath)
-					.split(path.sep)
-					.join("/");
-				return {
-					filePath,
-					content: withClassicyDeclarationExtensions(
-						content,
-						declared.replace(/\.d\.ts$/, ".ts"),
-						(source) => existsSync(path.join(__dirname, source)),
-					),
-				};
-			},
+			beforeWriteFile: classicyDeclarationExtensionsWriter({ root: __dirname }),
 		}),
 		richSvg(),
 		VitePluginImageTools({
