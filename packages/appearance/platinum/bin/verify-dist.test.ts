@@ -26,6 +26,10 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 const PACKAGE =
 	'@layer classicy.package{.classicyDesktop[data-classicy-appearance="platinum"] .classicyWindow{border:1px solid}}';
+// PACKAGE as the JavaScript string literal the fixture bundles carry. Written
+// out, not built with JSON.stringify, so the fixture source is fixed text; a
+// test below keeps it equal to PACKAGE.
+const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"platinum\"] .classicyWindow{border:1px solid}}"`;
 const HALFTONE = "data:image/svg+xml,%3csvg%3e%3c/svg%3e";
 const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
@@ -65,8 +69,8 @@ const SHIPPED = Object.keys(SOURCES).filter(
 const urls = SHIPPED.map(
 	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
 ).join(",");
-const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const h="${HALFTONE}";const u=[${urls}];const css=${JSON.stringify(PACKAGE)};r({css});export{u};\n//# sourceMappingURL=appearance-platinum.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${JSON.stringify(PACKAGE)};c.registerClassicyAppearancePackage({css});});\n`;
+const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const h="${HALFTONE}";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-platinum.es.js.map\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
 const FONTS = classicyFontStylesheet(
 	PLATINUM_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -112,6 +116,10 @@ const verify = (changes: Record<string, string | Buffer | null> = {}) => {
 };
 
 describe("bin/verify-dist.mjs", () => {
+	it("carries PACKAGE as its JavaScript string literal", () => {
+		expect(JSON.parse(PACKAGE_LITERAL)).toBe(PACKAGE);
+	});
+
 	it("passes a dist that holds what the package ships", () =>
 		expect(verify()).toEqual({ status: 0, stderr: "" }));
 
@@ -264,10 +272,7 @@ describe("bin/verify-dist.mjs", () => {
 		it("fails a bundle without it", () =>
 			expect(
 				verify({
-					"appearance-platinum.umd.js": UMD.replaceAll(
-						JSON.stringify(PACKAGE),
-						'""',
-					),
+					"appearance-platinum.umd.js": UMD.replaceAll(PACKAGE_LITERAL, '""'),
 				}).stderr,
 			).toMatch(
 				/^dist\/appearance-platinum\.umd\.js: carries no non-empty @layer classicy\.package stylesheet/,
