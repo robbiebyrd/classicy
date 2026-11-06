@@ -69,6 +69,12 @@ order: the core's, then this package's two.
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
 
+Link the files rather than importing `classicy-platinum.fonts.css` through your
+own bundler: Vite inlines the small Monaco font as a `data:` URL, which
+`font-src 'self'` blocks. Linking (copied, or served from `node_modules`) is
+recommended; otherwise set `build.assetsInlineLimit: 0` or allow
+`font-src data:`.
+
 ## Developing
 
 This package lives in the Classicy repository, at

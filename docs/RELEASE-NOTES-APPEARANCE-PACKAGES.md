@@ -169,6 +169,12 @@ Start with [Install and build](#install-and-build).
   and `@classicy/appearance-platinum/classicy-platinum.fonts.css`, its
   `exports`). In 2.x pre-releases all three were in `@classicy/classicy/dist/`.
 
+  Link the files; do not import them through your own bundler. Vite inlines
+  the small Monaco font as a `data:` URL, and `font-src 'self'` blocks it.
+  Linking (copied, or served from `node_modules`) is the recommended way; the
+  alternatives are `build.assetsInlineLimit: 0` in the host's Vite config, or
+  allowing `font-src data:`.
+
   Without the second file the desktop has structure but no look: no bevels,
   no art and no menu-item flash. Without the third, text falls back to the
   browser's fonts. `classicy-platinum.fonts.css` holds the same `@font-face`
@@ -176,6 +182,13 @@ Start with [Install and build](#install-and-build).
   Monaco and VCR OSD Mono, thirteen faces), unlayered, each pointing at its
   file in the Platinum package's `dist/assets/`. Serve that folder beside the
   stylesheet, and allow it in `font-src`.
+- **The install line pins `@tanstack/react-table`, and the desktop needs a
+  sized container.** Its unpinned latest is 9.x, outside the core's `^8.21.3`
+  peer range, so install `@tanstack/react-table@^8.21.3` (the other peers'
+  latest versions are in range). `ClassicyDesktop` is `height: 100%`: give
+  `html`, `body` and your mount element a height
+  (`html, body, #root { height: 100%; margin: 0; }`), or the page is white with
+  only a menu bar. 2.x behaved the same; it was not documented.
 - **Browser floor: Chrome/Edge 120, Safari 16.2, Firefox 113.** Theme tints
   are `color-mix()` and icons use unprefixed `mask-image` with mask
   compositing. In an older engine those declarations are dropped: error title

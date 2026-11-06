@@ -32,8 +32,11 @@ reference only names.
 
 ```bash
 pnpm add @classicy/classicy @classicy/appearance-platinum
-pnpm add react react-dom zustand immer @tanstack/react-table react-player
+pnpm add react react-dom zustand immer @tanstack/react-table@^8.21.3 react-player
 ```
+
+`@tanstack/react-table` is pinned because its unpinned latest is 9.x, outside
+the core's `^8.21.3` peer range; the other peers' latest versions are in range.
 
 The package was published as `classicy` through 2.x; every specifier is
 `@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
@@ -47,6 +50,14 @@ its sound pack, assets and fonts:
 ```tsx
 import '@classicy/appearance-platinum'
 import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
+```
+
+The desktop is `height: 100%`, so the element you mount into, and its
+ancestors, need a height; otherwise the page is white and shows only the menu
+bar (2.x behaved the same):
+
+```css
+html, body, #root { height: 100%; margin: 0; }
 ```
 
 With no package registered, `ClassicyDesktop` draws only
@@ -91,7 +102,7 @@ The first is the core's; the other two are the Platinum package's. Those
 specifiers are the two packages' `exports`; a plain `<link>` names the files
 where they are, under each package's `dist/`.
 
-Importing them as well is harmless. Link `classicy.css` **first in
+Importing them as well as linking them is harmless. Link `classicy.css` **first in
 `<head>`**, before any other stylesheet, and the other two right after it:
 `classicy.css` and `classicy-platinum.css` each open with the layer order
 statement (below), which only fixes the order if no earlier sheet has named a
@@ -112,6 +123,15 @@ resolves against the stylesheet, so serve the Platinum package's
 `dist/assets/` beside it and allow that origin in `font-src`. Its
 `verify:dist` fails the build if the file declares any other faces than the
 runtime registers, or names a file that is not in `dist/assets/`.
+
+A host that *imports* `classicy-platinum.fonts.css` through its own bundler
+(instead of linking it) has the bundler process the font `url()`s: Vite inlines
+the small Monaco font as a `data:` URL, and `font-src 'self'` blocks that. A
+strict-CSP host has three ways out. **Link the three stylesheets, copied or
+served from `node_modules`, as above: recommended**, since the files keep
+their own `url()`s and nothing is inlined. Otherwise set
+`build.assetsInlineLimit: 0` in the host's Vite config, or, last, allow
+`font-src data:`.
 
 **Vite consumers (breaking change).** Platinum's fonts, art, wallpapers and
 sound sprites are files in `@classicy/appearance-platinum`'s `dist/assets/`,

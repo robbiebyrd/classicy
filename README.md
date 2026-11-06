@@ -22,8 +22,11 @@ version, with the framework's peer dependencies:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-platinum
-pnpm add react react-dom zustand immer @tanstack/react-table react-player
+pnpm add react react-dom zustand immer @tanstack/react-table@^8.21.3 react-player
 ```
+
+`@tanstack/react-table` is pinned because its unpinned latest is 9.x, outside the
+core's `^8.21.3` peer range.
 
 Import Platinum once, at your app's entry, before you render. The framework
 registers no Appearance Package of its own:
@@ -41,6 +44,14 @@ createRoot(document.getElementById("root")!).render(
     <ClassicyDesktop>{/* your ClassicyApp components */}</ClassicyDesktop>
   </ClassicyAppManagerProvider>,
 );
+```
+
+The desktop is `height: 100%`, so the element you mount into needs a height,
+and so do its ancestors. Without one the page is white and shows only the menu
+bar. Add, for example:
+
+```css
+html, body, #root { height: 100%; margin: 0; }
 ```
 
 Without that import, `ClassicyDesktop` draws a "No Appearance Package is
@@ -225,6 +236,11 @@ and piece of art) is the Platinum Appearance Package's own stylesheet, in
   injections; the fonts file holds the same `@font-face` rules the package
   writes, each pointing at its `.woff2` in the Platinum package's
   `dist/assets/` (serve that folder beside it, and allow it in `font-src`).
+  Link the files rather than importing them through your bundler: Vite
+  inlines the small Monaco font as a `data:` URL, which `font-src 'self'`
+  blocks. If you must import them, set `build.assetsInlineLimit: 0` or allow
+  `font-src data:`. Linking (copied, or served from `node_modules`) is the
+  recommended way.
 - **The theme partials moved.** `classicy/scss/appearance`,
   `classicy/scss/scrollbars` and `classicy/scss/assets` (2.1.x; pre-release
   builds called them `classicy/scss-platinum/*`) are now
