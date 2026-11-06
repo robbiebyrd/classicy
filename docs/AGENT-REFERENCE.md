@@ -1684,8 +1684,7 @@ the two in one dependency tree.
 4. Auto-bump tooling (Renovate, scripts, pnpm `minimumReleaseAgeExclude`) lists
    both names and moves them together.
 
-Neither scoped name is on the registry before 3.0.0 is published, so installs
-and CI 404 until then.
+The scoped names exist from 3.0.0 on; a lower range does not resolve.
 
 ### Migrating to Appearance Packages (breaking change)
 

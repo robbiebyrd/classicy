@@ -76,8 +76,8 @@ and rewrite every specifier, strings included: `from "classicy"`, deep paths
 (`classicy/dist/classicy.css`, `classicy/scss/*`), `vi.mock("classicy", …)` and
 `typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
 script, pnpm's `minimumReleaseAgeExclude`) must list **both** package names and
-move them together. Installs 404 until 3.0.0 is published, so a host's
-migration lands after the publish. The release notes give a one-pass `sed`.
+move them together. The scoped names exist from 3.0.0 on; a lower range does
+not resolve. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
 wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
