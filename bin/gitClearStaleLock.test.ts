@@ -147,22 +147,15 @@ afterAll(() => {
 	if (hugeProcRoot) removeTree(hugeProcRoot);
 });
 
-// Runs the script with at most `limit` open file descriptors.
+// Runs the script with at most `limit` open file descriptors, through a
+// helper script (not `bash -c`), so no command text is built from values.
+const FD_LIMIT_RUNNER = path.resolve(__dirname, "run-with-fd-limit.sh");
 const runUnderFdLimit = (limit: number, cwd: string, ...args: string[]) =>
-	// A fixed command; the limit and the script path arrive as arguments
-	// ($1 and $2), never inside the command text.
-	spawnSync(
-		"bash",
-		[
-			"-c",
-			'ulimit -n "$1" && shift && exec bash "$@"',
-			"bash",
-			String(limit),
-			SCRIPT,
-			...args,
-		],
-		{ cwd, env: gitEnv(), encoding: "utf8" },
-	);
+	spawnSync("bash", [FD_LIMIT_RUNNER, String(limit), SCRIPT, ...args], {
+		cwd,
+		env: gitEnv(),
+		encoding: "utf8",
+	});
 
 // A process that holds `file` open for the test's length.
 const holdOpen = (file: string) => {
