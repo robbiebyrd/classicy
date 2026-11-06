@@ -3,12 +3,13 @@ id: 0141-6kd
 title: 'Release workflow: main moving mid-run publishes an old build, and the codename push has no retry'
 purpose: Make a release that races another push to main either rebuild or stop cleanly.
 type: bugs
-status: in_progress
+status: complete
 priority: "3"
 effort: S
 created: "2026-11-05T21:39:09.677Z"
-updated: "2026-11-06T02:19:19.656Z"
+updated: "2026-11-06T02:39:55.997Z"
 started: "2026-11-06T02:19:19.656Z"
+completed: "2026-11-06T02:39:55.997Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -48,11 +49,13 @@ Prefer folding the codename into the version/sync commit before the push and tag
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` passes with the new assertions, and they fail on the current workflow.
-- [ ] VERIFY: No push happens after the tag is created.
+- [x] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` passes with the new assertions, and they fail on the current workflow.
+- [x] VERIFY: No push happens after the tag is created.
 
 ## Files
 
 - `.github/workflows/push.yml` - codename before the tag; rebuild or fail after a rebase
 
 ## Work Log
+
+### 2026-11-06T02:39:47.804Z - Landed at a9dcc8e10. One atomic push of branch+tag after the version, sync and codename commits; no rebase retry (a rejection leaves nothing on the remote; re-run starts clean). 7 new/changed assertions failed on the old workflow; 20/20 pass. Implementer gate 467 files / 6544 tests green at 9f25184e8; tip differed only in docs/plans, so re-verified with the workflow test file (20/20) and biome after the rebase. Controller reviewed the diff (small CI change). Process note: the implementer used git stash once for the fails-before run (stash stack verified intact); IMPLEMENTER-RULES now forbids it explicitly.
