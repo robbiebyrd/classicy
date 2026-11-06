@@ -200,6 +200,14 @@ pnpm parity:compare $P/before $P/after --filter '@mid$'       # the @mid set onl
   in about 1 shot in 100 under load (AE 12 in a 3x8 box). A story whose only
   animation is the blink therefore still gets an `@mid` shot, equal to its t=0
   shot apart from the clock.
+- **The chasing arrows' spinner is held too.**
+  `.classicyProgressChasingArrowsSpinner` (`steps(8, end)` rotation) is in the
+  same list: its paused mid frame came out unrotated in about 1 shot in 25 under
+  load (AE 99 in a 15x13 box). Its `@mid` shot is the t=0 (0deg) frame, so
+  the `@mid` baseline of `controls-progressbar--chasing-arrows` changed.
+- **The wallpaper is awaited.** The mid shot waits for the desktop's `url()`
+  backgrounds to decode (`waitForDesktopBackgrounds`); under load a whole mid
+  shot (AE 745780) was taken as the plain desktop color, two matching frames.
 - **How it freezes.** Every animation is paused with the Web Animations API
   (`a.pause(); a.currentTime = T`) from `effect.getComputedTiming()`, twice a
   frame apart; a capture-phase `animationstart`/`transitionrun` listener

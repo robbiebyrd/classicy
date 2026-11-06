@@ -132,6 +132,31 @@ export async function settleAnimations(
 	}, images);
 }
 
+/** Wait until every `url()` background of the story's desktop has decoded.
+ * Under load a shot can otherwise be taken before the wallpaper first paints:
+ * the desktop's plain color, in two frames 150 ms apart that agree, so
+ * `shootUntilStable` accepts it (AE 745780 on a whole mid shot, 0149-e3b). */
+export async function waitForDesktopBackgrounds(page: Page): Promise<void> {
+	await page.evaluate(async () => {
+		const urls = new Set<string>();
+		for (const el of document.querySelectorAll(".classicyDesktop"))
+			for (const m of getComputedStyle(el).backgroundImage.matchAll(
+				/url\("?([^")]+)"?\)/g,
+			))
+				urls.add(m[1]);
+		await Promise.all(
+			[...urls].map((u) => {
+				const img = new Image();
+				img.src = u;
+				return img.decode().catch(() => {});
+			}),
+		);
+		await new Promise<void>((r) =>
+			requestAnimationFrame(() => requestAnimationFrame(() => r())),
+		);
+	});
+}
+
 type Shooter = {
 	screenshot: (options?: { animations?: "disabled" }) => Promise<Buffer>;
 	waitForTimeout: (ms: number) => Promise<void>;

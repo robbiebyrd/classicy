@@ -217,7 +217,14 @@ describe("midFreezeScript", () => {
 describe("midStillCss", () => {
 	it("switches the clock colon's blink off, with enough weight to win", () => {
 		expect(PARITY_MID_STILL_SELECTORS).toContain(".textBlinker");
-		expect(midStillCss()).toBe(".textBlinker { animation: none !important; }");
+		expect(midStillCss()).toContain(".textBlinker, ");
+		expect(midStillCss()).toMatch(/ \{ animation: none !important; \}$/);
+	});
+
+	it("holds the chasing arrows' spinner still too", () => {
+		expect(PARITY_MID_STILL_SELECTORS).toContain(
+			".classicyProgressChasingArrowsSpinner",
+		);
 	});
 
 	it("lists every selector, comma separated", () => {

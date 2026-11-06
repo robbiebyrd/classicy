@@ -30,9 +30,20 @@ export const PARITY_MID_CLOCK_MS = 2000;
  * paused there it came out on either side of the step in about 1 shot in 100
  * under load (AE 12 in a 3x8 box, 0140-mid); pausing a hair past
  * the boundary did not remove it. A blink carries no pixels worth comparing mid-cycle, so
- * the colon is held in its visible state. Selectors are classes of the
- * bundled components; a host's own blinkers are paused as usual. */
-export const PARITY_MID_STILL_SELECTORS: readonly string[] = [".textBlinker"];
+ * the colon is held in its visible state.
+ *
+ * The chasing arrows' spinner (`classicyChasingArrowsSpin 1s steps(8, end)`,
+ * a composited `transform`) is held at its first frame for the same reason: a
+ * paused frame of it came out unrotated in about 1 shot in 25 under load
+ * (AE 99 in a 15x13 box, 0149-e3b), as if the compositor had not applied the
+ * paused time. Moving the pause point off the step edge did not remove it. A
+ * rotation step carries no pixels worth comparing mid-cycle, so the spinner
+ * is held at 0deg, the frame the t=0 shot shows. Selectors are classes of the
+ * bundled components; a host's own animations are paused as usual. */
+export const PARITY_MID_STILL_SELECTORS: readonly string[] = [
+	".textBlinker",
+	".classicyProgressChasingArrowsSpinner",
+];
 
 /** The stylesheet that holds PARITY_MID_STILL_SELECTORS still. */
 export const midStillCss = () =>

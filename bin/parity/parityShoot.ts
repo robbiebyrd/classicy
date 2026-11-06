@@ -21,6 +21,7 @@ import {
 	runPool,
 	settleAnimations,
 	shootUntilStable,
+	waitForDesktopBackgrounds,
 	waitForStoryReady,
 } from "./parityBrowser.ts";
 import {
@@ -91,6 +92,7 @@ async function shootMid(page: Page, mid: ParityMidOptions) {
 		mid.at,
 	);
 	await freezeMid(page, mid.at);
+	await waitForDesktopBackgrounds(page);
 	await page.waitForTimeout(500);
 	let shot: Awaited<ReturnType<typeof shootUntilStable>> | undefined;
 	for (let round = 0; round < 3; round++) {
