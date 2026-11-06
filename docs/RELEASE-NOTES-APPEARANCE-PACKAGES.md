@@ -719,6 +719,19 @@ Start with [Install and build](#install-and-build).
   (`ClassicyThemeSchema`) only once a package has registered it; a package's
   own themes may name any plain filename.
 
+  A filename is unique within its package only. A bare filename means the
+  theme's own package's wallpaper (then the active package's, then
+  Platinum's). Another package's is written to theme files as
+  `<package>|<file>` (`"platinum|default.png"` in a theme of another
+  package), and stored and persisted that way where its bare filename would
+  render a different wallpaper, so two packages that register the same
+  filename stay two wallpapers. **Theme files may now hold `<package>|<file>`**; an older build
+  refuses such a file. Importing a bare filename the theme's package does not
+  register pins it to the package that does, so it renders; a reference no
+  package registers is refused. A wallpaper `file` may no longer contain `|`.
+  Bare filenames, Platinum's included, are never rewritten, so a
+  Platinum-only host's saved state and theme files are unchanged.
+
   *Who:* code that reads `backgroundImage` as a URL, or imports the removed
   helpers. *Migrate:* `resolveClassicyWallpaper(value)` for a URL,
   `defaultClassicyWallpaper()` for the default, `listClassicyWallpapers()` for
@@ -816,7 +829,11 @@ full reference.
   `portableClassicyWallpaper`, `withPortableClassicyWallpaper`,
   `listClassicyWallpapers` and `defaultClassicyWallpaper`. A wallpaper's
   optional `legacyDigests` (`classicyWallpaperDigest`) name the `data:` URIs
-  older builds inlined it as.
+  older builds inlined it as. Another package's wallpaper is referenced as
+  `<package>|<file>`: `classicyWallpaperReference`,
+  `classicyWallpaperReferenceFor` and `CLASSICY_WALLPAPER_PACKAGE_SEPARATOR`;
+  `portableClassicyWallpaper` takes the theme's package as an optional second
+  argument.
 - `isClassicyAssetSource` checks every leaf. An unsafe scheme, or a
   character that could break out of a quoted `url("…")`, is skipped with a
   warning.

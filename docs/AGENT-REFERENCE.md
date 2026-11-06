@@ -406,7 +406,7 @@ Common built-in actions:
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
 | `ClassicyDesktopImportTheme` | `{ theme: ClassicyTheme }` | Add a (schema-validated) theme to `customThemes` with a fresh id and activate it. A theme whose `package` is not registered (Platinum included: no package counts as installed until it registers) is refused with a `ClassicyAppearance` warning and `Desktop.errorDialog` `{ title: "Appearance", message }` (see §8 "Theme files") |
-| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename or its source) is stored by filename (`portableClassicyWallpaper`). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
+| `ClassicyDesktopChangeBackground` | `{ backgroundImage }` | Set wallpaper; a registered wallpaper (its filename, `<package>\|<file>` or its source) is stored by filename, or as `<package>\|<file>` where that filename would render another package's wallpaper for the theme (`portableClassicyWallpaper(value, theme.package)`). A relative or unknown value renders no image; the Desktop tab's Picture field accepts only absolute http(s) URLs (`isClassicyBackgroundPictureUrl`) |
 | `ClassicyDesktopSetBalloonHelp` | `{ disableBalloonHelp: boolean }` | Toggle balloon help globally |
 | `ClassicyDesktopSetDoubleClickTitleToCollapse` | `{ doubleClickTitleToCollapse: boolean }` | Toggle whether double-clicking a window's title bar collapses it (`System.Manager.Desktop.doubleClickTitleToCollapse`, default `true`; the Appearance control panel's checkbox) |
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
@@ -1301,10 +1301,21 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   warning. Platinum's thirteen faces are `.woff2` files in `dist/assets/`.
 - **Wallpapers** register as `wallpapers.<name>`; the Appearance Manager's
   Desktop tab lists the merged tree. **Fonts** feed its Fonts tab the same way.
-  A wallpaper's `file` (a plain filename; anything else is ignored with a
-  warning) is the portable reference a theme's `desktop.backgroundImage`
-  holds and persists, resolved at render through the wallpaper index
-  (`ClassicyWallpaperIndex.ts`, store-free). Its optional `legacyDigests`
+  A wallpaper's `file` (a plain filename, holding no `|`; anything else is
+  ignored with a warning) is the portable reference a theme's
+  `desktop.backgroundImage` holds and persists, resolved at render through
+  the wallpaper index (`ClassicyWallpaperIndex.ts`, store-free). A filename
+  is unique within its package only: a bare filename means the theme's own
+  package's (then the active one's, then Platinum's), and another package's
+  wallpaper is named **`<package>|<file>`** (`"platinum|default.png"` in a
+  theme of a package that has its own `default.png`;
+  `CLASSICY_WALLPAPER_PACKAGE_SEPARATOR`) wherever its bare filename would
+  render another one. Neither
+  half holds a `:` or `/`, so a reference never reads as a URL, a `data:`
+  URI or a path; it resolves to that package's wallpaper only, or to no
+  image while that package has not registered it. So two packages
+  registering `default.png` stay two Desktop-tab choices, each stored and
+  rendered as its own. Its optional `legacyDigests`
   (`classicyWallpaperDigest(dataUri)`: payload length and FNV-1a 64, the
   media type ignored) name the `data:` URIs older builds inlined it as;
   Platinum registers those of every 2.x build
@@ -1320,16 +1331,27 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   source; a name registered without a file resolves by name; anything else
   is `""`, one warning per value), `classicyWallpaperFilename(value)` (the
   filename for a registered filename, its exact source, or a plain base64
-  `data:` URI matching a legacy digest; else `undefined`; never by basename),
-  `portableClassicyWallpaper(value)` (the stored form: that filename, or the
-  basename rule above for a path; else the value) and
-  `withPortableClassicyWallpaper(theme)`, `listClassicyWallpapers(packageId?)`
+  `data:` URI matching a legacy digest, a registered `<package>|<file>`
+  itself; else `undefined`; never by basename),
+  `classicyWallpaperReference(packageId, file, themePackage)` (bare for the
+  theme's own package, `<package>|<file>` for another's),
+  `classicyWallpaperReferenceFor(value, themePackage)` (that reference for
+  the wallpaper `value` names: a bare filename the one it renders as for the
+  theme, else the first other package registering it; theme files use it),
+  `portableClassicyWallpaper(value, packageId?)` (the stored form: a bare
+  filename and a `<package>|<file>` as they are, so they resolve as before,
+  except a reference to the theme's own package, stored bare; any other
+  registered form, or the basename rule above for a path, by its filename
+  where that resolves to it for the theme, else as `<package>|<file>`; else
+  the value) and
+  `withPortableClassicyWallpaper(theme)` (for `theme.package`), `listClassicyWallpapers(packageId?)`
   and `defaultClassicyWallpaper(packageId?)` (the package's `default.png`,
   else its first, else Platinum's; `""` with none). `ClassicyThemeSchema`
   (files, imports, `ClassicyDesktopLoadThemes`) accepts a wallpaper filename
-  only once a package has registered it; a package's own `defaults` and
-  `presets` (`ClassicyPackageThemeSchema`) may name any plain filename, so its
-  wallpapers may register after it.
+  or `<package>|<file>` only once a package has registered it; a package's
+  own `defaults` and `presets` (`ClassicyPackageThemeSchema`) may name any
+  plain filename or `<package>|<file>`, so its wallpapers may register after
+  it.
 
 ### Reading (the rule)
 
@@ -2203,7 +2225,9 @@ user's choice (`packageId`, the active theme) are saved:
   load, a `migrateClassicyState` step stores `portableClassicyWallpaper`:
   a registered source, a 2.x save's inlined `data:` URI (by legacy digest)
   and an older build's path or hashed asset URL (by basename, hash
-  stripped) become the filename. A value that matches nothing is kept: a
+  stripped) become the filename (`<package>|<file>` only where the filename
+  would render another package's wallpaper for the theme; a bare filename is
+  never rewritten, so a Platinum-only host's saved bytes are unchanged). A value that matches nothing is kept: a
   `data:` or http(s) URL still renders; any other value (a relative path, an
   unknown filename) renders no image.
 - On load, an active theme whose id names a built-in of its own package is
@@ -3507,8 +3531,14 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
   it counts as installed only once it registers.
 - `desktop.backgroundImage` is written as the registered wallpaper's
   **filename** (`"azul_dark.png"`) — the URL a build resolves it to (dev path,
-  inlined `data:` URI) is build-specific — and kept as the filename on load,
-  as every theme holds it (`getThemeVars` resolves it). A plain http(s) URL is
+  inlined `data:` URI) is build-specific — or, for another package's than the
+  theme's, as **`<package>|<file>`** (`"platinum|azul_dark.png"` in a theme of
+  another package; `classicyWallpaperReferenceFor`), and kept so on load, as
+  every theme holds it (`getThemeVars` resolves it). On import a bare
+  filename the theme's package does not register is pinned to the package
+  that renders it, or else to the first other package registering it, so it
+  renders; one no package registers is refused (`This theme has invalid
+  settings: desktop.backgroundImage: must be a registered wallpaper …`). A plain http(s) URL is
   kept; anything else (custom `data:`/`blob:` URL, relative path) is written
   as `""` (no image).
 
@@ -3531,7 +3561,7 @@ and is kept. Types are strict:
 | package family and key names (`measurements.controlStrip.cellHeight`) | lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`, `/^[a-z][A-Za-z0-9]*$/`) |
 | font stacks | letters, digits, spaces, `"` `'` `,` `.` `_` `-` only |
 | `backgroundRepeat`, string `backgroundPosition`/`backgroundSize` | CSS keyword chars (`A-Za-z0-9 % . -`) |
-| `desktop.backgroundImage` | `""`, a registered wallpaper (filename or its registered source), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it lands in the double-quoted `url("…")` that `getThemeVars` writes, and none of those characters may break out of it (`isSafeClassicyThemeBackgroundImage`) |
+| `desktop.backgroundImage` | `""`, a registered wallpaper (filename, `<package>\|<file>` or its registered source), or an absolute http(s) URL with no whitespace, quotes, `()`, `\`, `;`, `<>`, `{}` — it lands in the double-quoted `url("…")` that `getThemeVars` writes, and none of those characters may break out of it (`isSafeClassicyThemeBackgroundImage`) |
 | `sound.pack` | a registered sound pack id (e.g. `"platinum"`); see §10 |
 
 ```ts
@@ -3605,7 +3635,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
-| Desktop | `useDesktopTab({ bg, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
+| Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
