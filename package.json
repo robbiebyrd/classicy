@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "2.1.8",
+	"version": "3.0.0",
 	"release": "Fortissimo",
 	"repository": {
 		"type": "git",
