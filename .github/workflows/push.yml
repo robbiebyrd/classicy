@@ -82,10 +82,6 @@ jobs:
         id: run-tests
         run: pnpm test
 
-      - name: Build Package
-        id: build-package
-        run: pnpm build
-
       # Pinned to a full commit SHA (master at v12.0.2), never `@master`: this
       # step runs with contents: write. The action only bumps and commits here
       # (skip-tag, skip-push): the tag and the push follow the Platinum version
@@ -163,6 +159,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "ci: set release codename to ${{ steps.codename.outputs.name }} [skip ci]"
+
+      # Built here, after every step that edits package.json and before the
+      # push: FinderAboutThisComputer bakes package.json's version and `release`
+      # codename into the bundle at build time, so building earlier would ship
+      # the previous version in About This Computer (story 0152-alb). Nothing
+      # between this step and the publish edits the tree. The Platinum package
+      # bakes no version. Skipped with the rest of the release when the bump
+      # found nothing to release.
+      - name: Build Package
+        id: build-package
+        if: steps.bump_version.outputs.newTag != ''
+        run: pnpm build
 
       # One push, after the version, sync and codename commits, and nothing
       # pushes after it. The branch and the tag go in a single --atomic push, so

@@ -86,6 +86,39 @@ describe("push.yml release workflow", () => {
 		expect(new Set(order).size).toBe(order.length);
 	});
 
+	// Story 0152-alb: FinderAboutThisComputer bakes package.json's version (and
+	// its `release` codename) into the bundle at build time, so the published
+	// dist/ must be built after every step that edits package.json.
+	it("builds the published dist after the bump, sync and codename, before the push", () => {
+		const build = step(/^Build Package/);
+		for (const re of [
+			/^Bump version/,
+			/Sync the Platinum/,
+			/^Select release codename/,
+			/^Update release codename/,
+		]) {
+			expect(build.index, String(re)).toBeGreaterThan(step(re).index);
+		}
+		expect(build.index).toBeLessThan(
+			step(/^Push the release commit and tag/).index,
+		);
+		expect(build.index).toBeLessThan(step(/^Publish to npm$/).index);
+		expect(build.text).toContain("pnpm build");
+		expect(ifOf(build)).toBe(NEW_TAG);
+	});
+
+	it("changes nothing the build reads between the build and the publish", () => {
+		const build = step(/^Build Package/);
+		const publish = step(/^Publish to npm$/);
+		for (const s of steps.filter(
+			(x) => x.index > build.index && x.index <= publish.index,
+		)) {
+			expect(s.text, s.name).not.toMatch(
+				/pkg set|npm version|pnpm version|git (commit|checkout|reset|pull|rebase|merge)|pnpm (install|build)/,
+			);
+		}
+	});
+
 	it("pins the bump action to a full commit SHA, never a branch", () => {
 		const bump = step(/^Bump version/);
 		expect(bump.text).toMatch(
