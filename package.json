@@ -115,7 +115,6 @@
 		"zustand": "^5.0.14"
 	},
 	"devDependencies": {
-		"@classicy/appearance-platinum": "workspace:*",
 		"@analytics/google-analytics": "^1.1.0",
 		"@babel/core": "^7.29.7",
 		"@babel/preset-env": "^7.29.7",
