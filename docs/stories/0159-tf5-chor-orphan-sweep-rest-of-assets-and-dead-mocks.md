@@ -3,12 +3,13 @@ id: 0159-tf5
 title: 'Orphan sweep: the rest of the assets, and dead test mocks'
 purpose: Ship and keep only files something reads, everywhere 0150 did not reach.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-06T20:29:02.731Z"
-updated: "2026-11-06T20:29:10.820Z"
+updated: "2026-11-06T21:18:54.709Z"
 started: "2026-11-06T20:29:10.820Z"
+completed: "2026-11-06T21:18:54.709Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,11 +50,13 @@ Check every reader with `git grep` (src, packages, storybook, example, bin, work
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Every tracked file under `assets/` and Platinum's `src/assets` is read or listed with a reason; no test mocks a missing path; the core and Platinum dist sizes are reported before and after.
-- [ ] VERIFY: Full gate green and parity 445/445 AE 0.
+- [x] VERIFY: Every tracked file under `assets/` and Platinum's `src/assets` is read or listed with a reason; no test mocks a missing path; the core and Platinum dist sizes are reported before and after.
+- [x] VERIFY: Full gate green and parity 445/445 AE 0.
 
 ## Files
 
 - `src/Appearance/ClassicyCoreAssets.test.ts` - cover all asset folders
 
 ## Work Log
+
+### 2026-11-06T21:18:46.491Z - Landed at 5915c8dba (616ecaeb6 + controller fix f30bf160d listing 0155's platinum.sprites.sha256 as build:audio's skip stamp; rebased onto f30b144c7, the owner's Demo tweak and the #337 commits). Deleted the 83 unread wallpaper photos (~15 MB; never registered, globbed or among the pinned 2.x digests) and one dead test mock (ClassicyAlert ui.helpButton). New tests: the core's whole assets/ tree, every non-code file in Platinum's src/assets, and every vi.mock target and mocked ClassicyIcons path. Shipped bytes unchanged. Integration gate over 0155-0158 + 0159: 499 files / 7590 tests, Platinum 25 / 468 + build + verify:dist, GATE_EXIT=0; parity 445/445 (implementer). After the final rebase: build:source + example build OK, biome clean, PackageExports + CoreAssets 424/424.
