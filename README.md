@@ -93,6 +93,7 @@ place, the same image (`useClassicyAsset` or `resolveClassicyAsset`):
 | `ui.helpButton` | system art `helpButton` |
 | `ui.cursors.watch`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | the cursor role of the same name |
 | `controlPanels.appearanceManager.platinum` | the Platinum package's `icon` (`getClassicyAppearancePackage("platinum")?.icon`) |
+| `ui.cursors.add`, `eyedropper`, `handCounting`, `highlight`, `menu`, `plus`, `precision`, `rom`, `shortcut`, `spin` | None (the files were unread and are deleted; register your own at the path with `registerClassicyIcons` to keep one) |
 
 `docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
 

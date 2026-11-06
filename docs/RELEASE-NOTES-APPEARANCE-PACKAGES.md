@@ -431,6 +431,7 @@ Start with [Install and build](#install-and-build).
   | `ui.helpButton` | `resolveClassicyAsset("systemArt", "helpButton")` |
   | `ui.cursors.watch`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | `resolveClassicyAsset("cursors", role)`, the role of the same name |
   | `controlPanels.appearanceManager.platinum` | `getClassicyAppearancePackage("platinum")?.icon` |
+  | `ui.cursors.add`, `eyedropper`, `handCounting`, `highlight`, `menu`, `plus`, `precision`, `rom`, `shortcut`, `spin` | None. No image ships: the ten files were unread art, deleted from the core. To keep one, register your own at the path (`registerClassicyIcons({ ui: { cursors: { eyedropper } } })`); the images are in earlier releases' source, under `assets/img/ui/cursors/` |
 
   In a component, read them with `useClassicyAsset`. They resolve once
   Platinum is imported. `classicy.logo`, `system.macosSvg`,
@@ -447,9 +448,9 @@ Start with [Install and build](#install-and-build).
   `registerClassicyCursors` takes only the 13 roles, so the ten cannot be
   registered back as roles. *Who:* hosts that call `setCursor` with one of
   the ten. *Migrate:*
-  - The ten images still ship, in the Platinum icon tree at
-    `ui.cursors.<name>`. Set the page's cursor yourself, and clear it when
-    the operation ends:
+  - The ten images no longer ship, so `ui.cursors.<name>` is `undefined`
+    (listed in the removed-path table above). Bring your own image, set the
+    page's cursor yourself, and clear it when the operation ends:
 
     ```ts
     const src = resolveClassicyAsset("icons", "ui.cursors.eyedropper")
@@ -457,6 +458,9 @@ Start with [Install and build](#install-and-build).
     // when the operation ends
     document.body.style.cursor = ""
     ```
+
+    where `src` is your own, registered with
+    `registerClassicyIcons({ ui: { cursors: { eyedropper } } })`.
 
   - For a cursor over one element, write a CSS `cursor` rule with that image
     or your own, such as `cursor: url("/cursors/eyedropper.png"), auto`.

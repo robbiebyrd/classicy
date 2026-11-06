@@ -1456,6 +1456,7 @@ with `registerClassicyScreenSaverLogo`.
 | `ui.helpButton` | system art `helpButton` |
 | `ui.cursors.watch`, `resizeLr`, `resizeUd`, `resizeU`, `resizeD`, `resizeL`, `resizeR` | the cursor role of the same name |
 | `controlPanels.appearanceManager.platinum` | the Platinum package's `icon` (`getClassicyAppearancePackage("platinum")?.icon`), the same image |
+| `ui.cursors.add`, `eyedropper`, `handCounting`, `highlight`, `menu`, `plus`, `precision`, `rom`, `shortcut`, `spin` | None. The files were unread and are deleted; register your own at the path (`registerClassicyIcons`) to keep one |
 
 Read system art with `useClassicyAsset('systemArt', key)`,
 `resolveClassicyAsset('systemArt', key)`, or `var(--classicy-art-<key>)` in
