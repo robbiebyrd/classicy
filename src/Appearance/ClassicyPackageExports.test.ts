@@ -124,11 +124,17 @@ describe("package.json: the Appearance Packages surface", () => {
 	});
 
 	// Two builds, two dist checks (plan 0015-kxa §3.4): the core's, then
-	// Platinum's, whose `build` runs its own verify-dist.
-	it("builds and verifies the core, then Platinum", () =>
+	// Platinum's, whose `build` runs its own verify-dist. Then both packed
+	// packages type-check in a host under bundler, node16 and nodenext
+	// (0151-0cc).
+	it("builds and verifies the core, then Platinum, then a host's types", () => {
 		expect(pkg.scripts["build:source"]).toBe(
-			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build",
-		));
+			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm verify:host-types",
+		);
+		expect(pkg.scripts["verify:host-types"]).toBe(
+			"node bin/check-host-types.ts",
+		);
+	});
 });
 
 // What the packers really put in the tarball. pnpm 10 ignores a "!" pattern
