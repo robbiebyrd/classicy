@@ -3,12 +3,13 @@ id: 0129-00o
 title: '0015 §3.1: Scaffold the package and move Platinum''s source'
 purpose: Execute plan 0015-kxa section 3.1.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:48.766Z"
-updated: "2026-11-06T05:13:14.116Z"
+updated: "2026-11-06T08:26:05.632Z"
 started: "2026-11-06T05:13:14.115Z"
+completed: "2026-11-06T08:26:05.632Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -74,8 +75,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm --filter @classicy/appearance-platinum exec vitest run && pnpm --filter @classicy/appearance-platinum exec vite build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm --filter @classicy/appearance-platinum exec vitest run && pnpm --filter @classicy/appearance-platinum exec vite build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -93,3 +94,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-06T03:26:29.235Z - 2026-11-06, from 0127-qvl (1.6) J1: the library build now enters through src/ClassicyLibraryBuild.internal.ts (the barrel, then import of Platinum) so verify:dist's package-block invariant still passes while Platinum lives in src/. Phase 3 must delete that file, point the build back at src/index.ts, and move the Platinum package-block invariant to Platinum's own dist check.
+
+### 2026-11-06T08:25:49.908Z - Landed at d8a1732e4 (11 commits on db6d0589d). Platinum is packages/appearance/platinum (@classicy/appearance-platinum), 98 files as renames; ES+UMD builds with @classicy/classicy external and a peer dep. Review: fix-first (gates blind to Platinum, shim check narrower than allowed import forms, dangling ./appearance/platinum/scss export, vite.config.ts rebase conflict with 0146) all fixed with mutants. Controller: rebase onto 42c798ef1 resolved one CLAUDE.md conflict (tip paragraph kept, 3.1's nine gate-scope edits re-applied); landing gate 480 files / 6698 tests green; the package's own vitest failed every run on ClassicyPlatinum.test.ts's first cold barrel import (~2.5 s alone, >5 s with 20 files in parallel), fixed in affcb2d29 with a commented 30 s timeout, then 255/255 three runs; package vite build OK. Parity against platinum-split/before (now the 0146 set): 441 story shots AE 0; the 4 app shots were first taken from a stale fu-0126 example server I had left on port 5397 (wrapper-PID kill), so they were reshot from fu-0129's own example (PID-verified listener): 4/4 AE 0. Total 445/445.

@@ -3,11 +3,12 @@ id: 0130-rpe
 title: '0015 §3.2: Root consumers and the lint gates follow the move'
 purpose: Execute plan 0015-kxa section 3.2.
 type: task
-status: ready
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:52.288Z"
-updated: "2026-11-05T20:26:28.685Z"
+updated: "2026-11-06T08:26:59.418Z"
+started: "2026-11-06T08:26:59.418Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -89,3 +90,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `package.json` - modify
 
 ## Work Log
+
+### 2026-11-06T08:25:52.840Z - 2026-11-06 from 0129-00o: already done in 3.1 (after its review): the color sweep, PACKAGE_FILE and varCoverage scan packages/appearance/<id>/src (shared roots classicyScssSourceRoots), as do the pixel gate, !important, vocabulary, quoted url() and verify:dist invariant 11. Remaining for 3.2: remove the interim @/Appearance/Platinum alias (vitest, tsconfig, Storybook, 5 places) and switch specifiers to @classicy/appearance-platinum; see the 3.1 report's 'Left for later sections'.
