@@ -3,11 +3,12 @@ id: 0155-t2u
 title: pnpm build rewrites the Platinum audio sprites with new bytes every time
 purpose: Unchanged sounds keep the same sprite files, so deploys keep cache hits and release diffs stay clean.
 type: bugs
-status: ready
+status: in_progress
 priority: "3"
 effort: S
 created: "2026-11-06T19:19:01.014Z"
-updated: "2026-11-06T19:19:06.356Z"
+updated: "2026-11-06T19:56:24.268Z"
+started: "2026-11-06T19:56:24.268Z"
 tags: []
 milestone: ""
 due_date: ""
