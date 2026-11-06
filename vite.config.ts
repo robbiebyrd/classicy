@@ -13,7 +13,10 @@ import {
 	classicyFontStylesheet,
 } from "./bin/classicyFontStylesheet";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
-import { noInlineAppearanceAssetsPlugin } from "./bin/classicyNoInlineAssets";
+import {
+	isClassicyAppearanceSourcePath,
+	noInlineAppearanceAssetsPlugin,
+} from "./bin/classicyNoInlineAssets";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
@@ -26,7 +29,6 @@ import { PLATINUM_FONT_FACES } from "./packages/appearance/platinum/src/assets/p
 // carries it (src/ClassicyLibraryBuild.internal.ts), so its files are package
 // assets here too.
 const platinumSrc = path.resolve(__dirname, "packages/appearance/platinum/src");
-const APPEARANCE_SOURCE = /(?:^|\/)(?:src\/Appearance|packages\/appearance)\//;
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -326,7 +328,7 @@ const config = defineConfig({
 				// name (injectCssPlugin and `@classicy/classicy/dist/classicy.css` depend on it).
 				assetFileNames: (asset) =>
 					asset.originalFileNames.some((name) =>
-						APPEARANCE_SOURCE.test(name.replace(/\\/g, "/")),
+						isClassicyAppearanceSourcePath(name),
 					)
 						? "assets/[name][extname]"
 						: "[name][extname]",

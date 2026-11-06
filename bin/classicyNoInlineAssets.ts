@@ -1,4 +1,5 @@
 import type { Plugin } from "vite";
+import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./classicyImageTools";
 
 // Appearance Package assets (the Platinum fonts and system art) must ship as
 // files in dist/assets, not as base64 inside the bundle. Lib mode inlines every
@@ -17,9 +18,12 @@ import type { Plugin } from "vite";
 
 const ASSET_RE = /\.(woff2?|ttf|otf|png|jpe?g|gif|svg|ogg|m4a|mp3|ac3|wav)$/i;
 
-/** Whether a resolved file is an Appearance Package's own source asset. */
+/**
+ * Whether a resolved file is an Appearance Package's own source file: the one
+ * matcher (bin/classicyImageTools.ts), on a path with forward slashes.
+ */
 export const isClassicyAppearanceSourcePath = (file: string): boolean =>
-	file.includes("/src/Appearance/") || file.includes("/packages/appearance/");
+	CLASSICY_IMAGE_TOOLS_EXCLUDES.test(file.replace(/\\/g, "/"));
 
 export function noInlineAppearanceAssetsPlugin(
 	isPackageAsset: (file: string) => boolean = isClassicyAppearanceSourcePath,
