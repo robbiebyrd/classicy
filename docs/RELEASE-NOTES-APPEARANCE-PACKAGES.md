@@ -295,6 +295,10 @@ Start with [Install and build](#install-and-build).
 
   The full rename table is in
   [§5, "Migrating to Appearance Packages"](AGENT-REFERENCE.md#migrating-to-appearance-packages-breaking-change).
+  Platinum's partials reach the vocabulary as `pkg:@classicy/classicy/scss/*`,
+  so a host that `@use`s them compiles with Sass's `NodePackageImporter`
+  (Vite: `css.preprocessorOptions.scss.importers: [new NodePackageImporter()]`,
+  `NodePackageImporter` from `sass`).
   Exceptions and removals:
   - `px-rect` and `no-select` moved to `@classicy/classicy/scss/layout` as
     `classicy-px-rect` and `classicy-no-select`.

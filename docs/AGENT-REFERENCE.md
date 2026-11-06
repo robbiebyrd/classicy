@@ -230,7 +230,7 @@ Package `exports` map:
 | `@classicy/classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
 | `@classicy/classicy/appearance/platinum` | Registers nothing: until Platinum ships as its own package, `@classicy/appearance-platinum` (which replaces this specifier), the `@classicy/classicy` bundle still carries and registers it. The core's API exports none of Platinum's names (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack`): they are Platinum's own exports |
-| `@classicy/classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
+| `@classicy/classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). They `@use` the vocabulary as `pkg:@classicy/classicy/scss/*`, so compile them with Sass's `NodePackageImporter` (in Vite, `css.preprocessorOptions.scss.importers`). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
 
@@ -1225,7 +1225,7 @@ Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 Every swappable image, cursor, wallpaper and font is registered under an
 appearance **package id** and read back through one registry
 (`src/Appearance/ClassicyAssetRegistry.ts`). Platinum registers everything it
-ships as package `"platinum"` (`src/Appearance/Platinum/assets/platinumAssets.ts`
+ships as package `"platinum"` (`packages/appearance/platinum/src/assets/platinumAssets.ts`
 plus the icon tree in `ClassicyIcons.ts`); a host registers its own assets at
 app entry, once, before rendering.
 
@@ -1622,7 +1622,7 @@ bevel, border, gradient and piece of art moved into Platinum's own stylesheet
   | `scrollbars.scrollbars-inactive` | Nothing: removed. Classicy included it on the inactive window's root, which never scrolls (its contents do), so it never drew; if you used it on a scroller of your own, copy its rules from the 2.1.7 source, `src/SystemFolder/ControlPanels/AppearanceManager/styles/scrollbars.scss` (no Classicy release after 2.1.7 ships them) |
   | `scrollbars.sb-glyph-up`/`-down`/`-left`/`-right`, `sb-btn-box`, `sb-btn-pressed` | `scrollbars.platinum-scrollbar-glyph-up`/`-down`/`-left`/`-right`, `platinum-scrollbar-button-box`, `platinum-scrollbar-button-pressed` |
   | `assets.$…` (the art variables) | Gone: read the registered art as `var(--classicy-art-<key>)` ("System art", below). `@classicy/classicy/appearance/platinum/scss/assets` exports only `platinum-root-properties` |
-  | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `src/Appearance/Platinum/platinum.json`) |
+  | `classicy/scss/themes.json` (the theme list) | `getAllThemes()` (the `presets` of `packages/appearance/platinum/src/platinum.json`) |
   | `classicy/scss/fonts` (the `@font-face` rules) | Nothing: the Platinum package registers its fonts at runtime. Strict-CSP hosts link `dist/classicy-platinum.fonts.css` (§1) |
 - **Components outside a desktop lose their look.** The package's rules only
   match inside an element carrying `class="classicyDesktop"` and
@@ -2109,7 +2109,7 @@ build with this rule, as the derived entries leave the persisted tree.
 
 Themes are JSON presets of an Appearance Package (`ClassicyTheme` objects;
 see "Appearance Packages" below). Platinum's 21 built-ins, the `presets` of
-`src/Appearance/Platinum/platinum.json`, ship with ids
+`packages/appearance/platinum/src/platinum.json`, ship with ids
 `default, azul, bondi, copper, crimson, emerald, frenchBlue, gold, ivy,
 lavender, pistachio, magenta, nutmeg, poppy, plum, rose, sapphire, silver,
 teal, turquoise, sunny`.
@@ -2393,16 +2393,17 @@ and the integer colors themes use. Wallpapers go through the asset registry
 (§5): `resolveClassicyWallpaper(value)` maps a `desktop.backgroundImage` (a
 wallpaper's filename, as themes hold it) to its URL and
 `classicyWallpaperFilename(value)` is its inverse; Platinum's 47 wallpapers are
-registered by `src/Appearance/Platinum/assets/platinumWallpapers.ts`.
+registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 ### Appearance Packages
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships one, Platinum
-(`src/Appearance/Platinum/`), which the core neither imports nor exports: a
-host imports it at its entry (until it ships as `@classicy/appearance-platinum`,
-the `@classicy/classicy` bundle registers it); themes
+sound packs and hooks that go with it. Classicy ships one, Platinum, the
+workspace package `@classicy/appearance-platinum`
+(`packages/appearance/platinum/`), which the core neither imports nor
+exports: a host imports it at its entry (until the package publishes on its
+own, the `@classicy/classicy` bundle still registers it); themes
 are presets of a package, and every theme names its package in
 `theme.package`.
 
@@ -3255,7 +3256,7 @@ from a layout-effect cleanup). An `onEnd` that throws is logged
 (`classicyLog`, subsystem `ClassicyFileDrag`) and the drop still happens.
 
 **Platinum's hooks.** `platinumAppearanceHooks`
-(`src/Appearance/Platinum/hooks.ts`, exported by Platinum's own index, not by
+(`packages/appearance/platinum/src/hooks.ts`, exported by Platinum's own index, not by
 `@classicy/classicy`) holds Platinum's feedback
 sounds and its menu-item flash. It is the very object Platinum registers, so
 it is deeply frozen and read-only to the type checker; a package that builds
@@ -3532,7 +3533,7 @@ File format — a versioned envelope, saved as `<theme-name>.classicy-theme.json
 ```
 
 - Loading also accepts a **bare theme object** (no envelope), e.g. an entry
-  copied from the `presets` of `src/Appearance/Platinum/platinum.json`. A `format` other than `"classicy-theme"`, a
+  copied from the `presets` of `packages/appearance/platinum/src/platinum.json`. A `format` other than `"classicy-theme"`, a
   missing version, or a version other than `1` is rejected (a higher version
   reports "saved by a newer version of Classicy").
 - `theme.package` names the theme's Appearance Package (`"platinum"` when
@@ -3724,7 +3725,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
 **Package knob families.** Platinum adds 21 families of its own (95 keys)
-to the core five, in `src/Appearance/Platinum/platinum.json`
+to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
 emitted as `--<family>-<key>` like a core input. Pixel-matched surfaces
@@ -4605,7 +4606,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
   (registration order), `subscribeClassicySoundPacks(listener)` and the live
   hook `useClassicySoundPacks()`. The stock `"platinum"` pack registers itself
-  from `src/Appearance/Platinum/assets/sounds/platinum.ts`. Re-registering the
+  from `packages/appearance/platinum/src/assets/sounds/platinum.ts`. Re-registering the
   id of the pack that is currently active updates the registry but does not
   rebuild the playing Howl: the provider only reloads when the active pack id
   changes.
