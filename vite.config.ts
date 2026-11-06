@@ -11,6 +11,7 @@ import {
 	classicyEmittedFontFiles,
 	classicyFontStylesheet,
 } from "./bin/classicyFontStylesheet";
+import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
 import {
 	classicyStyleInjector,
@@ -300,7 +301,7 @@ const config = defineConfig({
 			// Package assets ship exactly as authored (Part E uses the art as CSS
 			// masks): no WebP conversion, no svgo. This one option gates the build
 			// WebP pass, the svgo pass and the dev middleware alike.
-			excludes: /src\/Appearance\//,
+			excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES,
 			quality: 100,
 			enableWebp: true,
 			enableDev: true,

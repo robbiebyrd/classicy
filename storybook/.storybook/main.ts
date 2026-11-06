@@ -4,6 +4,7 @@ import { mergeConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
+import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
@@ -52,6 +53,9 @@ const config: StorybookConfig = {
 				classicyCssLayerPlugin(),
 				richSvg(),
 				VitePluginImageTools({
+					// Package art is served and built exactly as authored (no svgo),
+					// as in vite.config.ts; story 0146-doe.
+					excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES,
 					quality: 100,
 					// Disabled: pdfjs-dist's worker is imported with `?url` (see
 					// PDFViewerDocument.tsx) and is emitted as a plain asset whose

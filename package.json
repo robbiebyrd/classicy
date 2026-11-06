@@ -44,7 +44,7 @@
 		"preview:dist": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
 		"prepare": "husky",
 		"storybook": "pnpm --filter classicy-storybook dev",
-		"build:storybook": "pnpm --filter classicy-storybook build",
+		"build:storybook": "pnpm --filter classicy-storybook build && node bin/check-storybook-art.mjs",
 		"parity": "node bin/parity/parity.ts",
 		"parity:stories": "node bin/parity/parity.ts stories",
 		"parity:shoot": "node bin/parity/parity.ts shoot",
