@@ -30,6 +30,8 @@ interface Run {
 	/** Each npm call as "<args>", publish calls with the placeholder's package.json. */
 	calls: string[];
 	placeholders: Record<string, Record<string, unknown>>;
+	/** Each `sleep` the script ran, by its argument. */
+	sleeps: string[];
 }
 
 /** A name as a file-name fragment. */
@@ -71,6 +73,13 @@ interface Registry {
 	/** `npm trust list` fails (not logged in, say). */
 	trustListFails?: boolean;
 	npmVersion?: string;
+	/**
+	 * How many `npm view`s of a name it just published still 404 before the
+	 * registry lists it (a new package is "processed" first); never, if null.
+	 */
+	lag?: number | null;
+	/** Extra environment for the script. */
+	env?: Record<string, string>;
 }
 
 /**
@@ -100,6 +109,12 @@ case "$1" in
   view)
     if [ "${opts.viewFails ? 1 : 0}" = 1 ]; then echo "npm error code ECONNRESET" >&2; exit 1; fi
     name="\${2%@0.0.0}"
+    lag="${dir}/lag-$(slug "$name")"
+    if [ -f "$lag" ]; then
+      left=$(cat "$lag")
+      if [ "$left" = 0 ]; then rm "$lag"; echo "$name" >> "${dir}/existing"
+      elif [ "$left" != never ]; then echo $((left - 1)) > "$lag"; fi
+    fi
     if ! grep -qxF -- "$name" "${dir}/existing"; then
       echo "npm error code E404" >&2; echo "npm error 404 Not Found - GET https://registry.npmjs.org/$name" >&2; exit 1
     fi
@@ -116,15 +131,22 @@ case "$1" in
   publish)
     name=$(node -p 'require("./package.json").name')
     cp package.json "${dir}/placeholder-$(printf %s "$name" | tr -c "a-z0-9" _).json"
-    [ -f README.md ] || { echo "no README" >&2; exit 1; } ;;
+    [ -f README.md ] || { echo "no README" >&2; exit 1; }
+    case " $* " in *" --dry-run "*) ;; *) echo "${opts.lag === null ? "never" : (opts.lag ?? 0)}" > "${dir}/lag-$(slug "$name")" ;; esac ;;
 esac
 exit 0
 `,
 	);
 	chmodSync(join(bin, "npm"), 0o755);
+	// The wait between polls is recorded, not slept.
+	writeFileSync(
+		join(bin, "sleep"),
+		`#!/bin/bash\necho "$*" >> "${dir}/sleeps"\n`,
+	);
+	chmodSync(join(bin, "sleep"), 0o755);
 	const r = spawnSync("bash", [SCRIPT, ...args], {
 		cwd: dir,
-		env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+		env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, ...opts.env },
 		encoding: "utf8",
 	});
 	const callsFile = join(dir, "calls");
@@ -136,7 +158,17 @@ exit 0
 		const f = join(dir, `placeholder-${slug(name)}.json`);
 		if (existsSync(f)) placeholders[name] = JSON.parse(readFileSync(f, "utf8"));
 	}
-	return { status: r.status, out: r.stdout + r.stderr, calls, placeholders };
+	const sleepsFile = join(dir, "sleeps");
+	const sleeps = existsSync(sleepsFile)
+		? readFileSync(sleepsFile, "utf8").trimEnd().split("\n")
+		: [];
+	return {
+		status: r.status,
+		out: r.stdout + r.stderr,
+		calls,
+		placeholders,
+		sleeps,
+	};
 };
 
 const trustArgs = (name: string) =>
@@ -164,12 +196,14 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		expect(r.calls).toEqual([
 			"view @classicy/classicy name",
 			"publish --access public --tag bootstrap",
+			"view @classicy/classicy@0.0.0 version",
 			expect.stringMatching(
 				/^deprecate @classicy\/classicy@0\.0\.0 .*install @classicy\/classicy@3\.0\.0 or later/,
 			),
 			`${trustArgs("@classicy/classicy")} --yes`,
 			"view @classicy/appearance-platinum name",
 			"publish --access public --tag bootstrap",
+			"view @classicy/appearance-platinum@0.0.0 version",
 			expect.stringMatching(
 				/^deprecate @classicy\/appearance-platinum@0\.0\.0 .*install @classicy\/appearance-platinum@3\.0\.0 or later/,
 			),
@@ -177,6 +211,60 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		]);
 		// The 2-day window is the owner's to keep: the script says so.
 		expect(r.out).toMatch(/2 days/);
+		expect(r.sleeps).toEqual([]);
+	});
+
+	// A brand-new package is "processed" before the registry serves it, and
+	// `npm deprecate` (and `npm trust`) on it until then is E404, as the
+	// owner's first --publish run found.
+	it("with --publish, waits for a just-published placeholder to be listed before deprecating it", () => {
+		const r = run(["--publish", CORE], { lag: 3 });
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toEqual([
+			"view @classicy/classicy name",
+			"publish --access public --tag bootstrap",
+			"view @classicy/classicy@0.0.0 version",
+			"view @classicy/classicy@0.0.0 version",
+			"view @classicy/classicy@0.0.0 version",
+			"view @classicy/classicy@0.0.0 version",
+			expect.stringMatching(/^deprecate @classicy\/classicy@0\.0\.0 /),
+			`${trustArgs("@classicy/classicy")} --yes`,
+		]);
+		expect(r.sleeps).toEqual(["15", "15", "15"]);
+		expect(r.out).toMatch(
+			/Waiting for the registry to list @classicy\/classicy@0\.0\.0/,
+		);
+	});
+
+	it("with --publish, stops before deprecating when the placeholder is never listed, saying when to re-run", () => {
+		const r = run(["--publish", CORE, PLATINUM], {
+			lag: null,
+			env: {
+				CLASSICY_BOOTSTRAP_WAIT_SECONDS: "60",
+				CLASSICY_BOOTSTRAP_POLL_SECONDS: "20",
+			},
+		});
+		expect(r.status).toBe(1);
+		expect(r.sleeps).toEqual(["20", "20", "20"]);
+		expect(r.calls.some((c) => c.startsWith("deprecate"))).toBe(false);
+		expect(r.calls.some((c) => c.startsWith("trust github"))).toBe(false);
+		// Platinum is not started: a re-run picks the core up where it stopped.
+		expect(r.calls.some((c) => c.includes("appearance-platinum"))).toBe(false);
+		expect(r.out).toMatch(
+			/@classicy\/classicy@0\.0\.0 is published but not listed after 60s; re-run this script once `npm view @classicy\/classicy version` shows it/,
+		);
+	});
+
+	it.each([
+		["CLASSICY_BOOTSTRAP_POLL_SECONDS", "0"],
+		["CLASSICY_BOOTSTRAP_POLL_SECONDS", "1.5"],
+		["CLASSICY_BOOTSTRAP_WAIT_SECONDS", "-1"],
+		["CLASSICY_BOOTSTRAP_WAIT_SECONDS", "ten"],
+	])("refuses %s=%s before calling npm", (key, value) => {
+		const r = run(["--publish", CORE], { env: { [key]: value } });
+		expect(r.status).toBe(1);
+		expect(r.calls).toEqual([]);
+		expect(r.out).toMatch(/must be a whole number/);
 	});
 
 	// The owner wants `latest` never to point at the placeholder. The CLI sends
@@ -260,6 +348,7 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			"trust list @classicy/classicy --json",
 			"view @classicy/appearance-platinum name",
 			"publish --access public --tag bootstrap",
+			"view @classicy/appearance-platinum@0.0.0 version",
 			expect.stringMatching(
 				/^deprecate @classicy\/appearance-platinum@0\.0\.0 /,
 			),

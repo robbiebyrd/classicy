@@ -43,6 +43,13 @@ REPOSITORY="robbiebyrd/classicy"
 WORKFLOW="push.yml"
 PLACEHOLDER_VERSION="0.0.0"
 PLACEHOLDER_TAG="bootstrap"
+# How long to wait for a just-published placeholder to be listed (tests shorten it).
+PUBLISH_WAIT_SECONDS="${CLASSICY_BOOTSTRAP_WAIT_SECONDS:-600}"
+PUBLISH_POLL_SECONDS="${CLASSICY_BOOTSTRAP_POLL_SECONDS:-15}"
+if ! [[ "$PUBLISH_WAIT_SECONDS" =~ ^[0-9]+$ && "$PUBLISH_POLL_SECONDS" =~ ^[1-9][0-9]*$ ]]; then
+	echo "CLASSICY_BOOTSTRAP_WAIT_SECONDS must be a whole number and CLASSICY_BOOTSTRAP_POLL_SECONDS a positive one." >&2
+	exit 1
+fi
 # The release the placeholder makes way for, named in its deprecation.
 FIRST_RELEASE="3.0.0"
 
@@ -186,6 +193,21 @@ for MANIFEST in "${MANIFESTS[@]}"; do
 	fi
 	if [ "$NEEDS_DEPRECATION" = 1 ]; then
 		if [ "$PUBLISH" = 1 ]; then
+			# A package published moments ago is not served yet ("may take a few
+			# minutes to become available"), and `npm deprecate` on it fails with
+			# E404, so wait until the registry lists the version.
+			if [ "$EXISTED" = 0 ]; then
+				waited=0
+				until npm view "$NAME@$PLACEHOLDER_VERSION" version >/dev/null 2>&1; do
+					if [ "$waited" -ge "$PUBLISH_WAIT_SECONDS" ]; then
+						echo "$NAME@$PLACEHOLDER_VERSION is published but not listed after ${PUBLISH_WAIT_SECONDS}s; re-run this script once \`npm view $NAME version\` shows it." >&2
+						exit 1
+					fi
+					[ "$waited" = 0 ] && echo "Waiting for the registry to list $NAME@$PLACEHOLDER_VERSION before deprecating it..."
+					sleep "$PUBLISH_POLL_SECONDS"
+					waited=$((waited + PUBLISH_POLL_SECONDS))
+				done
+			fi
 			npm deprecate "$NAME@$PLACEHOLDER_VERSION" "$DEPRECATION"
 		else
 			echo "Would run: npm deprecate $NAME@$PLACEHOLDER_VERSION \"$DEPRECATION\""
