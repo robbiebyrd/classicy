@@ -4802,17 +4802,18 @@ tools live in the repository only, not in the npm package. Full guide:
 **Servers on chosen ports** (record the PIDs and stop them by PID):
 
 ```bash
-(cd storybook && exec pnpm exec storybook dev -p 6091 --no-open) &   # stories
+pnpm build:storybook   # stories are shot from the static build, never `storybook dev`
+(cd storybook/storybook-static && exec python3 -m http.server 6091 --bind 127.0.0.1) &
 (cd example && exec node node_modules/vite/bin/vite.js --port 5391 --strictPort --host 127.0.0.1) &   # app shots
 ```
 
 **Baseline, after set, compare** (data under the gitignored `.playwright-mcp/parity/`):
 
 ```bash
-pnpm parity:shoot --port 6091 --out .playwright-mcp/parity/x/before   # on the base commit
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out .playwright-mcp/parity/x/before   # on the base commit
 pnpm parity:app   --port 5391 --out .playwright-mcp/parity/x/before
 # ... make the change ...
-pnpm parity:shoot --port 6091 --out .playwright-mcp/parity/x/after
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out .playwright-mcp/parity/x/after
 pnpm parity:app   --port 5391 --out .playwright-mcp/parity/x/after
 pnpm parity:compare .playwright-mcp/parity/x/before .playwright-mcp/parity/x/after \
   --summary .playwright-mcp/parity/x/ae.txt

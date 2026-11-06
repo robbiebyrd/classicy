@@ -49,27 +49,37 @@ Exit codes: 0 when the run is clean, 1 when anything differs or a shot failed,
 
 Use a port nobody else is using; several worktrees can run at once.
 
+**Shoot the static build, always.** `storybook dev` draws the window grow-box
+grip differently (AE 69 in a 10x10 box on every window story), and a baseline
+and its after set must come from the same serving mode. The reason: Storybook's
+`VitePluginImageTools` has no `excludes`, so the build runs svgo over every
+emitted SVG, `resizer.svg` (the grip) included, and svgo rewrites its `<rect>`s
+as `<path>`s that rasterize differently; the dev server serves the file as
+authored. The static build is therefore not the art as authored, but it is the
+reference every baseline so far was shot from, so stay with it.
+
 ```bash
-# Storybook, from the checkout under test (live source; no build needed)
-cd storybook
-pnpm exec storybook dev -p 6091 --no-open > ../.playwright-mcp/parity/sb.log 2>&1 &
-echo $! > ../.playwright-mcp/parity/sb.pid
-until curl -sf -o /dev/null http://localhost:6091/index.json; do sleep 3; done
+# Storybook: the STATIC build of the checkout under test, never `storybook dev`
+pnpm build:storybook
+(cd storybook/storybook-static && exec python3 -m http.server 6091 --bind 127.0.0.1 \
+  > ../../.playwright-mcp/parity/sb.log 2>&1) &
+echo $! > .playwright-mcp/parity/sb.pid
+until curl -sf -o /dev/null http://127.0.0.1:6091/index.json; do sleep 1; done
 
 # The example app (live source too), for `app`
-cd ../example
+cd example
 node node_modules/vite/bin/vite.js --port 5391 --strictPort --host 127.0.0.1 \
   > ../.playwright-mcp/parity/example.log 2>&1 &
 echo $! > ../.playwright-mcp/parity/example.pid
 ```
 
 Without `--port`, Storybook commands use `$SB_PORT`, else 6006, on
-`http://localhost`; `app` uses `$EXAMPLE_PORT`, else 5173, on
+`http://localhost`, so pass `--base-url http://127.0.0.1:<port>` for the
+server above (it binds IPv4 only); `app` uses `$EXAMPLE_PORT`, else 5173, on
 `http://127.0.0.1` (the example binds IPv4 only with `--host 127.0.0.1`).
 
 Stop them by the PIDs you saved, after checking each one is the process you
-started (`ps -o pid,args -p <pid>`). `pnpm exec storybook` leaves a child
-process (Storybook's dispatcher) that must be stopped too. Never `pkill` or
+started (`ps -o pid,args -p <pid>`). Never `pkill` or
 `killall`: other agents' servers look the same.
 
 ## Baseline, after set, compare
@@ -81,15 +91,15 @@ commit screenshots or dumps.
 P=.playwright-mcp/parity/my-change
 
 # 1. Baseline, on the commit before the change.
-pnpm parity:shoot --port 6091 --out $P/before
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out $P/before
 pnpm parity:app   --port 5391 --out $P/before
 
 # 2. Prove the setup is deterministic: shoot again and compare. Expect AE 0.
-pnpm parity:shoot --port 6091 --out $P/rerun
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out $P/rerun
 pnpm parity:compare $P/before $P/rerun --summary $P/ae-before-vs-rerun.txt
 
 # 3. Make the change (Storybook and the example reload), then the after set.
-pnpm parity:shoot --port 6091 --out $P/after
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out $P/after
 pnpm parity:app   --port 5391 --out $P/after
 pnpm parity:compare $P/before $P/after --summary $P/ae-before-vs-after.txt
 ```
@@ -149,8 +159,8 @@ saver's path, a window's zoom) shoots AE 0. `shoot --mid` adds a second shot of
 each animated story, paused part-way through:
 
 ```bash
-pnpm parity:shoot --port 6091 --out $P/before --mid           # t=0 set + @mid set
-pnpm parity:shoot --port 6091 --out $P/mid --mid-only --at 400ms
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out $P/before --mid           # t=0 set + @mid set
+pnpm parity:shoot --base-url http://127.0.0.1:6091 --out $P/mid --mid-only --at 400ms
 pnpm parity:compare $P/before $P/after                        # compares both sets
 pnpm parity:compare $P/before $P/after --filter '@mid$'       # the @mid set only
 ```
@@ -179,6 +189,13 @@ pnpm parity:compare $P/before $P/after --filter '@mid$'       # the @mid set onl
   50% is the point farthest from both ends; it misses an animation whose
   middle looks like its start (the Fish saver's fish are off-screen at both
   0% and 50%), so pass another `--at` for those.
+- **The clock's colon is not paused but held.** `.textBlinker` (the menu-bar
+  clock's separator, `steps(1, end)` with a keyframe at exactly 50%) is set to
+  `animation: none` for the mid shot (`PARITY_MID_STILL_SELECTORS`), so the
+  colon is always drawn. Paused at the step it came out on either side of it
+  in about 1 shot in 100 under load (AE 12 in a 3x8 box). A story whose only
+  animation is the blink therefore still gets an `@mid` shot, equal to its t=0
+  shot apart from the clock.
 - **How it freezes.** Every animation is paused with the Web Animations API
   (`a.pause(); a.currentTime = T`) from `effect.getComputedTiming()`, twice a
   frame apart; a capture-phase `animationstart`/`transitionrun` listener
