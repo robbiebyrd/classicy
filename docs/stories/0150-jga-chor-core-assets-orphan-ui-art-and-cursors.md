@@ -3,12 +3,13 @@ id: 0150-jga
 title: 'Core assets/: delete or stop inlining the orphan ui art and cursors'
 purpose: Ship only the core art something reads, so the bundle carries no dead images.
 type: chor
-status: in_progress
+status: complete
 priority: "3"
 effort: S
 created: "2026-11-06T09:33:57.431Z"
-updated: "2026-11-06T10:00:17.455Z"
+updated: "2026-11-06T10:30:13.072Z"
 started: "2026-11-06T10:00:17.455Z"
+completed: "2026-11-06T10:30:13.072Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,10 +50,12 @@ A test that every file under `assets/img/ui` is either reachable from the icon t
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: No unread file under `assets/img` is shipped, the release notes list every removed icon path, and the full gate is green.
+- [x] VERIFY: No unread file under `assets/img` is shipped, the release notes list every removed icon path, and the full gate is green.
 
 ## Files
 
 - `src/SystemFolder/SystemResources/Icons/ClassicyIcons.ts` - narrow the eager glob or drop orphans
 
 ## Work Log
+
+### 2026-11-06T10:30:05.446Z - Landed at fc40f0abc (855cd7480, fc40f0abc). 20 unread files deleted (the 17 listed plus system/bomb.svg and system/files/{font,messages}.png found by the new test); the ten ui.cursors.<name> paths are removed and listed in the release notes' removed-path table, AGENT-REFERENCE and README. ClassicyCoreAssets.test.ts pins every tracked assets/img file as named, read or not shipped. Core bundle: ES -35,149 B, UMD -34,923 B. Gate 484 files / 7103 tests + package 274 tests green; parity 445/445 against before-land. Controller check: no code reads a deleted file (two unrelated tests use 'sad-mac.png'/'tab.svg' as example strings).
