@@ -3,12 +3,13 @@ id: 0140-mid
 title: parity:shoot --mid flakes on the menu-bar clock's blinking colon (AE 12)
 purpose: Make mid-time parity shots deterministic, so a parity failure always means a real change.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-05T20:58:59.049Z"
-updated: "2026-11-06T02:19:13.073Z"
+updated: "2026-11-06T03:39:25.151Z"
 started: "2026-11-06T02:19:13.073Z"
+completed: "2026-11-06T03:39:25.151Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -54,8 +55,8 @@ If the chosen fix changes which frame `@mid` captures, re-shoot `@mid` for the 0
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Three full `pnpm parity:shoot --mid` passes under load (4 workers) compare AE 0 against each other for every `@mid` shot.
-- [ ] VERIFY: t=0 shots are byte-identical to before the change.
+- [x] VERIFY: Three full `pnpm parity:shoot --mid` passes under load (4 workers) compare AE 0 against each other for every `@mid` shot.
+- [x] VERIFY: t=0 shots are byte-identical to before the change.
 
 ## Files
 
@@ -64,3 +65,5 @@ If the chosen fix changes which frame `@mid` captures, re-shoot `@mid` for the 0
 ## Work Log
 
 ### 2026-11-06T00:32:57.382Z - 2026-11-06: second parity-recipe gap. bin/parity/README.md says to shoot from 'storybook dev', but the platinum-split/before baseline was shot from the static build (python http.server over storybook-static). In dev mode the window grow-box grip renders differently: AE 69 in a 10x10 box on every window story (fu/0123: static AE 0, dev AE 69 on desktop-window--default and colorpicker--controlled). When fixing the clock flake, also make the README name one serving mode (static, to match baselines) and find why dev draws the grip differently.
+
+### 2026-11-06T03:39:17.393Z - Landed at fcc7d4b4d (5fea6f002 colon held visible in @mid shots via PARITY_MID_STILL_SELECTORS; 9bd57808e README/AGENT-REFERENCE prescribe the static build). Epsilon pause tried first and still flaked 2/~250, reverted. Evidence: three full --mid passes (4 workers) AE 0 pairwise, 441/441; t=0 byte-identical old vs new tool, 344/344 on two passes. New @mid baseline shot at BASE 66f465efc into platinum-split/before-mid2 (97 shots, AE 0 vs fu/0140, AE 12 colon-only vs before); the controller swaps it into before/ after 0127's in-flight parity round (that branch still has the old tool). Grip-in-dev cause: storybook main.ts VitePluginImageTools lacks excludes, so the static build svgo's Platinum art; filed as 0146-doe. Implementer gate 467/6541 green; after rebase bin/parity tests 67/67 and biome clean.

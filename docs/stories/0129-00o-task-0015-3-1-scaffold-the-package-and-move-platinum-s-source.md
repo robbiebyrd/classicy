@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:48.766Z"
-updated: "2026-11-05T20:26:24.459Z"
+updated: "2026-11-06T03:26:29.235Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -90,3 +90,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 - `src/Appearance/Platinum/` - delete (moved with git mv to packages/appearance/platinum/src/)
 
 ## Work Log
+
+### 2026-11-06T03:26:29.235Z - 2026-11-06, from 0127-qvl (1.6) J1: the library build now enters through src/ClassicyLibraryBuild.internal.ts (the barrel, then import of Platinum) so verify:dist's package-block invariant still passes while Platinum lives in src/. Phase 3 must delete that file, point the build back at src/index.ts, and move the Platinum package-block invariant to Platinum's own dist check.
