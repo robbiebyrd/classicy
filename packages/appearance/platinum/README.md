@@ -20,8 +20,8 @@ pnpm add @classicy/classicy @classicy/appearance-platinum
 ```
 
 A host that auto-bumps its dependencies lists both names and moves them
-together. The package ships its type declarations, so a named import
-type-checks under bundler module resolution:
+together. The package ships its type declarations (`bundler`, `node16` and `nodenext`
+resolution), so a named import type-checks:
 
 ```ts
 import { platinumAppearanceHooks } from "@classicy/appearance-platinum";

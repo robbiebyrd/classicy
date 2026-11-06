@@ -60,7 +60,7 @@ of its children, and logs one error per page. The desktop appears as soon as a
 package registers. Platinum's own names
 (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
 `platinumSoundPack`) are exports of `@classicy/appearance-platinum`, which
-ships its type declarations (bundler module resolution).
+ships its type declarations (`bundler`, `node16` and `nodenext` resolution).
 
 **Browser support:** Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme
 colors are mixed in CSS with `color-mix()` (Safari 16.2, Firefox 113), and

@@ -92,8 +92,8 @@ Start with [Install and build](#install-and-build).
 
   The `@classicy/classicy` bundle carries none of Platinum (no look, fonts,
   art, wallpapers or sounds). Platinum's own names are exported by the
-  Platinum package, with their declarations, so a named import type-checks
-  under bundler module resolution (`moduleResolution: "bundler"`):
+  Platinum package, with their declarations (`bundler`, `node16` and
+  `nodenext` resolution), so a named import type-checks:
 
   ```ts
   import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
