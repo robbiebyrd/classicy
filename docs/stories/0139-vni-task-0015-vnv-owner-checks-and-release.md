@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-11-05T19:55:21.066Z"
-updated: "2026-11-06T20:00:47.558Z"
+updated: "2026-11-06T20:10:04.538Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -42,7 +42,7 @@ Work through the acceptance criteria below; each is ticked when done.
 
 - [x] [MANUAL] Create the free npm organization `classicy` on npmjs.com.
 - [ ] [MANUAL] Make sure the `NPM_TOKEN` secret can publish `@classicy/*` (a granular token that lists the organization, or a classic automation token).
-- [ ] [MANUAL] Approve the new release-note entries (4.2).
+- [x] [MANUAL] Approve the new release-note entries (4.2).
 - [ ] [MANUAL] Merge the classicy-web and rt911 PRs (5.1, 5.2) when ready, per their PR notes.
 - [ ] [MANUAL] Merge PR 333 with the major-bump keyword recorded in 4.1, so both packages publish as 3.0.0.
 - [ ] [MANUAL] After both 3.0.0 packages are live, run `npm deprecate classicy "Renamed to @classicy/classicy. See https://github.com/robbiebyrd/classicy#readme"`.
@@ -57,3 +57,5 @@ Work through the acceptance criteria below; each is ticked when done.
 ### 2026-11-06T19:59:14.823Z - 2026-11-06: owner states the repo's NPM_TOKEN is a classic Automation token connected to GitHub, which publishes to every org the account belongs to, classicy included; criterion 2 ticked on that basis. push.yml publishes with NODE_AUTH_TOKEN from this secret.
 
 ### 2026-11-06T20:00:47.558Z - 2026-11-06: criterion 2 reopened. The owner clarified the release uses npm trusted publishing (OIDC), not an automation token. Trusted publishers are configured per package on that package's npmjs.com settings, so @classicy/classicy and @classicy/appearance-platinum (not yet on npm) cannot have one before their first publish; push.yml's first 3.0.0 publish would then authenticate with NODE_AUTH_TOKEN = secrets.NPM_TOKEN (last set 2026-01-27, likely expired under npm's 2025 token limits). Also push.yml publishes with pnpm 10.26, whose OIDC publish support is unconfirmed (pnpm's docs confirm it in 11.x). Tracked as a release-blocking story.
+
+### 2026-11-06T20:10:04.538Z - 2026-11-06: owner approved the release notes as edited (rename entry retitled), committed in d7f1ad2cb with the rename scan's pattern following the new title (aa326e76e). Stories still changing the notes before release: 0157 (drops the react-table pin note), 0158 (drops the sized-container note), 0156 (first-publish steps); the controller will show the owner those entries when they land.
