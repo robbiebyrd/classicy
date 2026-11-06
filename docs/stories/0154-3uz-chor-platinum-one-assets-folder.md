@@ -3,12 +3,13 @@ id: 0154-3uz
 title: 'Platinum package: consolidate assets/ into src/assets/'
 purpose: One assets folder in the Platinum package, so its layout is obvious.
 type: chor
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-06T19:14:33.873Z"
-updated: "2026-11-06T19:14:41.737Z"
+updated: "2026-11-06T19:44:22.297Z"
 started: "2026-11-06T19:14:41.737Z"
+completed: "2026-11-06T19:44:22.297Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -52,11 +53,13 @@ Update every reference: the Platinum asset modules and their globs (platinumAsse
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: No `packages/appearance/platinum/assets/` folder; Platinum's dist, verify:dist and packed file list are unchanged except for nothing (same emitted file names and bytes).
-- [ ] VERIFY: Full gate green and a parity round AE 0 against platinum-split/before.
+- [x] VERIFY: No `packages/appearance/platinum/assets/` folder; Platinum's dist, verify:dist and packed file list are unchanged except for nothing (same emitted file names and bytes).
+- [x] VERIFY: Full gate green and a parity round AE 0 against platinum-split/before.
 
 ## Files
 
 - `packages/appearance/platinum/src/assets` - receives the 188 files
 
 ## Work Log
+
+### 2026-11-06T19:44:13.765Z - Landed at 7f1a43d22 (e2ddff1d3 move + reference updates, 3d5cb18dd docs; rebased over tracker-only commits). 188 R100 renames from packages/appearance/platinum/assets/ to src/assets/; old folder gone; platinumAssetsFolder.test.ts pins it (failed 5/5 before). Platinum dist/assets: 95 files byte-identical before/after, both stylesheets identical, new URL('assets/...') lists identical; verify:dist passes; pack lists unchanged. Gate 495 files / 7196 tests; Platinum 24/319; parity 445/445 AE 0. Controller verified: no folder, 188 R100 + 27 M + 1 A, no stale path references outside the tracker.
