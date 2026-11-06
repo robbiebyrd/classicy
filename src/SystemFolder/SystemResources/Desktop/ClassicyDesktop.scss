@@ -92,3 +92,96 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+// The page (0158). ClassicyDesktop is `height: 100%`, so the desktop fills the
+// window only when html, body and the element it is mounted into have heights.
+// Classicy sizes them itself when the desktop is the page: the root that
+// ClassicyDesktop draws (the one `.classicyDesktop` carrying
+// `data-classicy-menu-bar`, or the no-package screen), not inside another
+// desktop (a Storybook frame), and mounted in a child of body directly or
+// through wrappers that are each their parent's only element child (an App
+// div, say). Body may hold anything else, but a wrapper below it that does
+// (an embedding page's <main>) stops the chain, and nothing is sized. The
+// rules are in `classicy.base` at zero specificity, so any host rule wins.
+$_page-root: ":is(.classicyDesktop[data-classicy-menu-bar], .classicyNoAppearancePackage):not(.classicyDesktop *)";
+// The most only-child wrappers between the mount element and the desktop.
+$_page-wrappers: 4;
+
+// $s, $n times.
+@function _repeat($s, $n) {
+  $out: "";
+  @if $n > 0 {
+    @for $i from 1 through $n {
+      $out: "#{$out}#{$s}";
+    }
+  }
+  @return $out;
+}
+
+// The paths from body down to the desktop: body's child, or the mount
+// element (body's child) and up to $_page-wrappers wrappers.
+$_page-paths: ("> #{$_page-root}");
+@for $depth from 0 through $_page-wrappers {
+  $_page-paths: list.append(
+    $_page-paths,
+    "> * > #{_repeat(':only-child > ', $depth)}#{$_page-root}",
+    $separator: comma
+  );
+}
+
+$_page-html: ();
+$_page-body: ();
+@each $path in $_page-paths {
+  $_page-html: list.append($_page-html, "html:has(> body #{$path})", $separator: comma);
+  $_page-body: list.append($_page-body, "body:has(#{$path})", $separator: comma);
+}
+
+// The mount element and each wrapper: the element at $level (1, body's
+// child) of a desktop $depth wrappers below the mount.
+$_page-chain: ();
+@for $depth from 0 through $_page-wrappers {
+  @for $level from 1 through $depth + 1 {
+    $_page-chain: list.append(
+      $_page-chain,
+      "body > *#{_repeat(' > :only-child', $level - 1)}:has(> #{_repeat(':only-child > ', $depth + 1 - $level)}#{$_page-root})",
+      $separator: comma
+    );
+  }
+}
+
+:where(#{$_page-html}) {
+  height: 100%;
+}
+
+:where(#{$_page-chain}) {
+  height: 100%;
+}
+
+// A user agent's 8 px body margin would push the full-height body past the
+// window: scroll bars and a white frame around the desktop.
+:where(#{$_page-body}) {
+  height: 100%;
+  margin: 0;
+}
+
+// Without :has() (Firefox 113-120) the ancestors cannot be found, so the
+// desktop takes the window's height itself, capped at its parent's when the
+// parent has one (a host-sized container). Keyed on the same paths, which need
+// no :has() going down. Its specificity beats `.classicyDesktop` and
+// `.classicyNoAppearancePackage`; the layer still lets any host rule win.
+@supports not selector(:has(*)) {
+  :where(body) {
+    margin: 0;
+  }
+
+  $_fallback: ();
+  @each $path in $_page-paths {
+    $_fallback: list.append($_fallback, "body #{$path}", $separator: comma);
+  }
+
+  #{$_fallback} {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100%;
+  }
+}
