@@ -61,7 +61,8 @@ Start with [Install and build](#install-and-build).
     `classicy/scss/*`, `classicy/fonts`), and the specifier strings that
     imports do not reach: `vi.mock("classicy", …)`, `jest.mock`,
     `importOriginal<typeof import("classicy")>()`, `import("classicy")` and
-    `optimizeDeps` lists. One pass that does it, from the repository root:
+    `optimizeDeps` lists. One pass that does it, from the repository root (GNU
+    sed; on macOS use `gsed`, or `perl -pi -e` with the same pattern):
 
     ```sh
     git grep -lE "['\"]classicy(['\"/])" -- . ':!pnpm-lock.yaml' \
@@ -69,7 +70,11 @@ Start with [Install and build](#install-and-build).
     ```
 
     Read the diff: a string that happens to be the word `classicy` (a
-    storage key, a class name in a quoted selector) is not a specifier.
+    storage key, a class name in a quoted selector) is not a specifier. The
+    pass also turns `@use "classicy/scss/appearance"` (and `scrollbars`,
+    `assets`) into a path that does not exist, because those partials moved to
+    Platinum's package: fix those lines by hand, as the [SCSS](#scss) section
+    describes.
   - The package is installed from both names or neither: a host that
     auto-bumps its dependencies (Renovate, a script, pnpm's
     `minimumReleaseAgeExclude`) must list **both** `@classicy/classicy` and

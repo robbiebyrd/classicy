@@ -1673,12 +1673,18 @@ the two in one dependency tree.
    `classicy/fonts`), `vi.mock("classicy", …)`,
    `importOriginal<typeof import("classicy")>()` and `optimizeDeps` lists. Run
    this from the repository root, then read the diff (a quoted word `classicy` that is
-   not a specifier, such as a storage key, must stay):
+   not a specifier, such as a storage key, must stay). The command is for GNU
+   sed; on macOS use `gsed`, or `perl -pi -e` with the same pattern:
 
    ```sh
    git grep -lE "['\"]classicy(['\"/])" -- . ':!pnpm-lock.yaml' \
      | xargs sed -i -E "s#(['\"])classicy(['\"/])#\1@classicy/classicy\2#g"
    ```
+
+   The pass also turns `@use "classicy/scss/appearance"` (and `scrollbars`,
+   `assets`) into a path that does not exist, because those partials moved to
+   Platinum's package. Fix those lines by hand from the table in "Migrating to
+   Appearance Packages" below.
 
 3. Import `@classicy/appearance-platinum` once at the entry (§1).
 4. Auto-bump tooling (Renovate, scripts, pnpm `minimumReleaseAgeExclude`) lists
