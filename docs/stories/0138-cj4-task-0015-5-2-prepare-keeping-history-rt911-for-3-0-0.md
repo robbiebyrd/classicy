@@ -7,7 +7,7 @@ status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:18.059Z"
-updated: "2026-11-06T16:26:14.295Z"
+updated: "2026-11-06T17:21:51.995Z"
 started: "2026-11-06T16:26:09.017Z"
 tags: []
 milestone: ""
@@ -77,3 +77,5 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 ### 2026-11-06T14:18:44.057Z - 2026-11-06, owner instruction: do not start this story until the owner has been alerted to begin the verification on 0139-vni (V&V) and has given the go.
 
 ### 2026-11-06T16:26:14.295Z - 2026-11-06 16:25: owner asked to start 0138 the same way as 0137 (early, while 3.4/0132 runs; force-started past the dependency). Unlike classicy-web, rt911 is a real consumer: packages/frontend pins classicy 2.1.3 (several releases behind), 248 files import it (many vi.mock('classicy')), .github/workflows/bump-classicy.yml (repository_dispatch classicy-published) plus a .husky/pre-commit auto-bump; the Go module classicy/streamer is unrelated and keeps its name. Steps 1, 2 and 4 now; step 3 against tarballs packed from the current tip, re-run against 3.4's tarballs when it lands; PR opened only after that.
+
+### 2026-11-06T17:21:51.994Z - 2026-11-06: implementer done against the pre-3.4 tip (rt911 was on 2.1.7, not 2.1.3; 7 commits on classicy-3.0.0 in the scratchpad clone; typecheck, lint, vitest 315 files / 3526 tests, build, e2e 21 passed / 2 skipped, browser check clean). Migration-guide gaps logged on 0135 (4.2). Controller re-running step 3 against the landed 3.4 tip 58fa3f525 before showing the owner the PR.

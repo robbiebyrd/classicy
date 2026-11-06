@@ -3,12 +3,13 @@ id: 0132-jsg
 title: '0015 §3.4: Two builds, two dist checks, two packs'
 purpose: Execute plan 0015-kxa section 3.4.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:58.963Z"
-updated: "2026-11-06T15:15:31.792Z"
+updated: "2026-11-06T17:19:40.637Z"
 started: "2026-11-06T15:15:31.792Z"
+completed: "2026-11-06T17:19:40.637Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -73,8 +74,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -99,3 +100,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ### 2026-11-06T09:34:05.084Z - 2026-11-06, from 0131-ku3 J1: the core build uses a narrower no-inline rule (isClassicyCoreBuildPackageAsset) so it keeps inlining Platinum's moved files while it still bundles Platinum; 3.4 deletes that rule and its test together with src/ClassicyLibraryBuild.internal.ts.
 
 ### 2026-11-06T09:39:00.850Z - 2026-11-06, from 0131-ku3's review: the package's byte-identity test (PlatinumOneRegistry.test.ts:335-343) covers only the four sprites; 3.4's package verify-dist must check every non-font file in the package dist/assets (art, cursors, wallpapers) is byte-identical to its source, so an image optimizer added to the package's Vite config is caught.
+
+### 2026-11-06T17:19:32.330Z - Landed at 414c09fa9 (6 commits, rebased over tracker-only commits). The core and Platinum build, verify and pack separately; src/ClassicyLibraryBuild.internal.ts and isClassicyCoreBuildPackageAsset deleted; the core's dist holds no Platinum code, styles or assets; Platinum's verify-dist checks every dist asset byte-for-byte; the example's production bundle holds one Platinum copy (largest chunk 10,576,873 -> 5,604,531 B). Fable review fix-first items fixed: PlatinumJson type on the core's types (index.d.ts 594 -> 31 lines), .js relative specifiers in Platinum's declarations, a stale comment. Gate 492 files / 7168 tests; Platinum 23 files / 314 tests + build + verify:dist; packs 685 (core) / 152 (Platinum) on npm and pnpm; parity 445/445 + production example 4/4 (review fixes changed no runtime code: UMD, stylesheets and assets byte-identical). Follow-ups: 0151 (core declarations under node16), 0152 (release bakes the pre-bump version).

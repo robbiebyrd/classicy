@@ -3,12 +3,13 @@ id: 0152-alb
 title: The published bundle bakes in the version from before the release bump, so About This Computer shows the old version
 purpose: A released bundle reports its own version.
 type: bugs
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T16:46:02.551Z"
-updated: "2026-11-06T16:54:23.979Z"
+updated: "2026-11-06T17:21:11.213Z"
 started: "2026-11-06T16:54:23.979Z"
+completed: "2026-11-06T17:21:11.213Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,11 +50,13 @@ Build after the bump and Platinum sync, before the atomic push and publish (keep
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The release workflow builds the published dist after the version bump, and a test pins it.
-- [ ] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` and the full gate are green.
+- [x] VERIFY: The release workflow builds the published dist after the version bump, and a test pins it.
+- [x] VERIFY: `pnpm exec vitest run bin/classicyReleaseWorkflow.test.ts` and the full gate are green.
 
 ## Files
 
 - `.github/workflows/push.yml` - build after the bump
 
 ## Work Log
+
+### 2026-11-06T17:21:02.988Z - Landed at 58fa3f525 (052965331 rebased on 414c09fa9). push.yml's Build Package step now runs after Bump, Sync, Select codename and Update codename (About This Computer bakes the version and the release codename), guarded by newTag, and before the single atomic push and publish (0141's invariants unchanged). New tests: build after the version/codename steps and before push/publish; no step between build and publish edits the tree (failed on the old order; a planted pnpm pkg set in the push step fails 3 tests). Implementer gate 487/7115 green; after the rebase the workflow tests 22/22, biome and tsc clean. Controller reviewed the diff (small CI change).
