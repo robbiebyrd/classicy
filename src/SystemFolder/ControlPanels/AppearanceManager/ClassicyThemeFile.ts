@@ -6,6 +6,7 @@ import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyApp
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	classicyWallpaperFilename,
+	classicyWallpaperReferenceFor,
 	portableClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
@@ -41,8 +42,12 @@ import {
  *
  * Wallpapers are written as their registered filename (`"azul_dark.png"`):
  * the URL a build resolves a wallpaper to (a dev-server path, an inlined
- * `data:` URI) only works in that build. Loading keeps the filename, as every
- * theme does; `getThemeVars` resolves it through the asset registry.
+ * `data:` URI) only works in that build. Another package's wallpaper is
+ * written `"<package>|<file>"` (`classicyWallpaperReferenceFor`), so the
+ * file names the same wallpaper on any host. Loading keeps that reference,
+ * pinning a bare filename the theme's package does not register to the
+ * package that does, as every theme does; `getThemeVars` resolves it through
+ * the asset registry.
  */
 
 export type ClassicyThemeParseResult =
@@ -54,14 +59,21 @@ const MAX_THEME_FILE_LENGTH = 256 * 1024;
 const MAX_REPORTED_ISSUES = 3;
 
 /**
- * The portable form of a `backgroundImage`: a registered wallpaper's filename,
- * an http(s) URL kept as-is, or "" (no image) for anything else — a custom
- * `data:`/`blob:` URL, or a relative path that only means something on the
- * host it was set on.
+ * The portable form of a `backgroundImage`: a registered wallpaper's filename
+ * (for a theme of `packageId`, its reference: the filename for the package's
+ * own, `"<package>|<file>"` for another's), an http(s) URL kept as-is, or ""
+ * (no image) for anything else — a custom `data:`/`blob:` URL, or a relative
+ * path that only means something on the host it was set on.
  */
-export const portableClassicyThemeBackground = (value: string): string => {
-	const filename = classicyWallpaperFilename(value);
-	if (filename) return filename;
+export const portableClassicyThemeBackground = (
+	value: string,
+	packageId?: string,
+): string => {
+	const reference =
+		packageId === undefined
+			? classicyWallpaperFilename(value)
+			: classicyWallpaperReferenceFor(value, packageId);
+	if (reference) return reference;
 	return isSafeClassicyThemeBackgroundImage(value) ? value : "";
 };
 
@@ -73,10 +85,14 @@ export const portableClassicyThemeBackground = (value: string): string => {
 const isClassicyAppearancePackageInstalled = (packageId: string): boolean =>
 	getClassicyAppearancePackage(packageId) !== undefined;
 
-/** The stored form of a validated `backgroundImage`: a registered wallpaper
- * (its filename or this build's URL for it) as its filename; http(s) URLs
- * as they are. */
-const loadableClassicyThemeBackground = portableClassicyWallpaper;
+/** The stored form of a validated, imported `backgroundImage`: a registered
+ * wallpaper (its filename, `<package>|<file>` or this build's URL for it) as
+ * the reference that pins it for a theme of `packageId`; http(s) URLs as
+ * they are. */
+const importableClassicyThemeBackground = (
+	value: string,
+	packageId: string,
+): string => classicyWallpaperReferenceFor(value, packageId) ?? value;
 
 /**
  * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
@@ -94,6 +110,7 @@ export const exportClassicyTheme = (stored: ClassicyTheme): string => {
 			...theme.desktop,
 			backgroundImage: portableClassicyThemeBackground(
 				theme.desktop.backgroundImage,
+				theme.package,
 			),
 		},
 	};
@@ -148,8 +165,9 @@ export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 			error: `This theme needs the "${theme.package}" appearance package, which is not installed.`,
 		};
 	}
-	theme.desktop.backgroundImage = loadableClassicyThemeBackground(
+	theme.desktop.backgroundImage = importableClassicyThemeBackground(
 		theme.desktop.backgroundImage,
+		theme.package,
 	);
 	return { ok: true, theme };
 };
@@ -208,8 +226,12 @@ export const readClassicyLoadedThemes = (
 			return;
 		}
 		const theme = parsed.data;
-		theme.desktop.backgroundImage = loadableClassicyThemeBackground(
+		// Stored as every theme is (`portableClassicyWallpaper`), never pinned
+		// as an import is: the theme's package may not have registered its
+		// wallpapers yet, and a bare filename resolves in it once it does.
+		theme.desktop.backgroundImage = portableClassicyWallpaper(
 			theme.desktop.backgroundImage,
+			theme.package,
 		);
 		themes.push(theme);
 	});

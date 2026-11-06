@@ -1,6 +1,7 @@
 import { type ChangeEvent, useMemo } from "react";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
-import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
+import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { isSafeClassicyThemeBackgroundImage } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
@@ -36,6 +37,12 @@ export const isClassicyBackgroundPictureUrl = (url: string): boolean =>
 interface DesktopTabProps {
 	/** Current background image URL (resolved), or a stand-in for none. */
 	bg: string;
+	/**
+	 * The edited theme's Appearance Package (default: Platinum). Options
+	 * name its own wallpapers by filename and another package's as
+	 * `<package>|<file>`, so two packages' same filename stay two choices.
+	 */
+	themePackage?: string;
 	/** Current `desktop.backgroundPosition`. */
 	bgPosition?: string | number;
 	/** Current `desktop.backgroundRepeat`. */
@@ -51,6 +58,7 @@ interface DesktopTabProps {
 
 export const useDesktopTab = ({
 	bg,
+	themePackage = CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 	bgPosition = "center",
 	bgRepeat = "repeat",
 	bgSize = "auto",
@@ -63,20 +71,21 @@ export const useDesktopTab = ({
 	const sizeOption = classicyBackgroundSizeOption(bgSize);
 	const wallpapers = useClassicyAssetTree("wallpapers");
 	// Option values are what ClassicyDesktopChangeBackground stores: a
-	// registered wallpaper's filename (its source, for one registered without
-	// a file), so the resolved `bg` is matched by its filename.
+	// registered wallpaper's filename, or `<package>|<file>` where the
+	// filename would resolve to another package's for the theme (its source,
+	// for one registered without a file), so the resolved `bg` is matched the
+	// same way.
 	const wallpaperOptions = useMemo(
 		() =>
 			Object.entries(wallpapers)
 				.filter(([, value]) => typeof value === "string")
 				.map(([label, value]) => ({
 					label,
-					value:
-						classicyWallpaperFilename(value as string) ?? (value as string),
+					value: portableClassicyWallpaper(value as string, themePackage),
 				})),
-		[wallpapers],
+		[wallpapers, themePackage],
 	);
-	const selected = classicyWallpaperFilename(bg) ?? bg;
+	const selected = portableClassicyWallpaper(bg, themePackage);
 	return useMemo(
 		() => ({
 			title: "Desktop",

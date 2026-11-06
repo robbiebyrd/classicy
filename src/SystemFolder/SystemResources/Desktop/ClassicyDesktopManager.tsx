@@ -523,9 +523,12 @@ export const classicyDesktopEventHandler = (
 			if (!hasBackgroundImage(action)) break;
 			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) => {
 				// A registered wallpaper is stored by filename, whichever form
-				// the action names it in (getThemeVars resolves it at render).
+				// the action names it in (getThemeVars resolves it at render):
+				// bare for the theme's own package, `<package>|<file>` for
+				// another's.
 				theme.desktop.backgroundImage = portableClassicyWallpaper(
 					action.backgroundImage,
+					theme.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 				);
 				theme.desktop.backgroundSize = "auto";
 			});

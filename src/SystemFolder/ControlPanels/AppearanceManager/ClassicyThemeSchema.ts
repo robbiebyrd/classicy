@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
-import { isPlainClassicyWallpaperFile } from "@/Appearance/ClassicyWallpaperSource.internal";
+import {
+	isPlainClassicyWallpaperFile,
+	parseClassicyWallpaperReference,
+} from "@/Appearance/ClassicyWallpaperSource.internal";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	CLASSICY_THEME_FONT_SIZE_MAX,
@@ -105,8 +108,9 @@ const UNSAFE_URL_CHARS = /[\s"'`()\\;<>{}]/;
 /**
  * True for a `desktop.backgroundImage` value that is safe to interpolate into
  * the double-quoted `url("…")` that `getThemeVars` writes: empty (color-only),
- * a registered wallpaper (its filename or the source its package registered,
- * `classicyWallpaperFilename`), or an absolute http(s) URL with no characters
+ * a registered wallpaper (its filename, `<package>|<file>` or the source its
+ * package registered, `classicyWallpaperFilename`; it is resolved, never
+ * written into the `url()` as it is), or an absolute http(s) URL with no characters
  * that could break out of the quoted string or the `url()` — whitespace,
  * quotes, parentheses, backslashes, semicolons, angle brackets or braces.
  * `javascript:`, `data:` (other than a
@@ -129,7 +133,8 @@ export const isSafeClassicyThemeBackgroundImage = (value: string): boolean => {
 };
 
 const backgroundImage = z.string().refine(isSafeClassicyThemeBackgroundImage, {
-	error: "must be a bundled wallpaper name or an http(s) URL",
+	error:
+		"must be a registered wallpaper (a filename, or <package>|<filename> for another package's) or an http(s) URL",
 });
 
 // Evaluated per parse, so a pack registered after module load validates. The
@@ -275,8 +280,9 @@ export type ClassicyThemeSchemaMatchesType = AssertTrue<
 /**
  * `ClassicyThemeSchema` for an Appearance Package's own themes (its `defaults`
  * and `presets`, `ClassicyAppearancePackageSchema`): a `backgroundImage` may
- * also be a plain wallpaper filename no package has registered yet. A
- * package's themes are code that names its wallpapers by filename, and its
+ * also be a plain wallpaper filename, or a `<package>|<file>` reference, no
+ * package has registered yet. A package's themes are code that names its
+ * wallpapers by filename (another package's as `<package>|<file>`), and those
  * wallpapers may register after it; a filename is only ever resolved through
  * the registry (`resolveClassicyWallpaper`, unknown → no image), never written
  * into CSS as it is. Untrusted themes (files, imports, host-loaded themes)
@@ -289,8 +295,12 @@ export const ClassicyPackageThemeSchema = ClassicyThemeSchema.extend({
 			.refine(
 				(value) =>
 					isSafeClassicyThemeBackgroundImage(value) ||
-					isPlainClassicyWallpaperFile(value),
-				{ error: "must be a wallpaper filename or an http(s) URL" },
+					isPlainClassicyWallpaperFile(value) ||
+					parseClassicyWallpaperReference(value) !== undefined,
+				{
+					error:
+						"must be a wallpaper filename, a <package>|<filename> reference or an http(s) URL",
+				},
 			),
 	}),
 });

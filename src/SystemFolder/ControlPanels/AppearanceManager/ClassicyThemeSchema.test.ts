@@ -238,6 +238,23 @@ describe("ClassicyPackageThemeSchema — a package's own themes", () => {
 		expect(ClassicyThemeSchema.safeParse(theme).success).toBe(false);
 	});
 
+	it("accepts another package's <package>|<file> reference, registered or not", () => {
+		for (const value of ["platinum|azul_dark.png", "late|not_yet.png"]) {
+			expect(
+				ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+				value,
+			).toBe(true);
+		}
+		// Only a registered one is accepted from an untrusted theme.
+		expect(
+			ClassicyThemeSchema.safeParse(withBackground("platinum|azul_dark.png"))
+				.success,
+		).toBe(true);
+		expect(
+			ClassicyThemeSchema.safeParse(withBackground("late|not_yet.png")).success,
+		).toBe(false);
+	});
+
 	it("accepts what the strict schema accepts", () => {
 		for (const value of ["", "azul_dark.png", "https://example.com/a.png"]) {
 			expect(
@@ -254,6 +271,8 @@ describe("ClassicyPackageThemeSchema — a package's own themes", () => {
 		["whitespace", "a b.png"],
 		["javascript:", "javascript:alert(1)"],
 		["an unknown data: URI", "data:image/png;base64,iVBORw0KGgo="],
+		["a reference with a path", "platinum|a/b.png"],
+		["a reference with a scheme", "data:x|a.png"],
 	])("still rejects %s", (_label, value) => {
 		expect(
 			ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,

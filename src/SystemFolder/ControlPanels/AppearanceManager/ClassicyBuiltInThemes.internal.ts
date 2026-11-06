@@ -85,7 +85,10 @@ export const activatableClassicyPackageTheme = (
 		package: pkg.id,
 		desktop: {
 			...theme.desktop,
-			backgroundImage: portableClassicyWallpaper(theme.desktop.backgroundImage),
+			backgroundImage: portableClassicyWallpaper(
+				theme.desktop.backgroundImage,
+				pkg.id,
+			),
 		},
 	};
 };

@@ -516,6 +516,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 
 	const desktopTab = useDesktopTab({
 		bg,
+		themePackage: appearanceState.activeTheme.package,
 		bgPosition: appearanceState.activeTheme.desktop.backgroundPosition,
 		bgRepeat: appearanceState.activeTheme.desktop.backgroundRepeat,
 		bgSize: appearanceState.activeTheme.desktop.backgroundSize,
