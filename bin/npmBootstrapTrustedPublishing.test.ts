@@ -32,29 +32,87 @@ interface Run {
 	placeholders: Record<string, Record<string, unknown>>;
 }
 
+/** A name as a file-name fragment. */
+const slug = (name: string) => name.replace(/[^a-z0-9]/g, "_");
+
+/** What `npm trust list <name> --json` prints for one configuration. */
+const trustEntry = (
+	over: Partial<{
+		repository: string;
+		file: string;
+		environment: string;
+		permissions: string[];
+	}> = {},
+) =>
+	JSON.stringify(
+		{
+			id: "a1b2c3",
+			type: "github",
+			file: "push.yml",
+			repository: "robbiebyrd/classicy",
+			permissions: ["createPackage"],
+			...over,
+		},
+		null,
+		2,
+	);
+
+interface Registry {
+	/** Names `npm view <name> name` finds; the rest are E404. */
+	existing?: string[];
+	/** Every `npm view` fails with ECONNRESET. */
+	viewFails?: boolean;
+	/** Per name: what `npm view <name>@0.0.0 deprecated` prints (absent: ""). */
+	deprecated?: Record<string, string>;
+	/** Existing names with no 0.0.0: `npm view <name>@0.0.0 …` is E404. */
+	noPlaceholder?: string[];
+	/** Per name: what `npm trust list <name> --json` prints (absent: nothing). */
+	trustList?: Record<string, string>;
+	/** `npm trust list` fails (not logged in, say). */
+	trustListFails?: boolean;
+	npmVersion?: string;
+}
+
 /**
- * Runs the script with a fake npm. `npm view <name>` succeeds for names in
- * `existing`, fails with E404 for the rest, or with ECONNRESET for every name
- * when `viewFails`; `npm --version` prints `npmVersion`.
+ * Runs the script with a fake npm that answers from `registry` and records
+ * every call; `npm --version` prints `registry.npmVersion`.
  */
-const run = (
-	args: string[],
-	opts: { existing?: string[]; viewFails?: boolean; npmVersion?: string } = {},
-): Run => {
+const run = (args: string[], opts: Registry = {}): Run => {
 	const dir = mkdtempSync(join(tmp, "case-"));
 	const bin = join(dir, "bin");
 	mkdirSync(bin);
 	writeFileSync(join(dir, "existing"), `${(opts.existing ?? []).join("\n")}\n`);
 	writeFileSync(
+		join(dir, "noplaceholder"),
+		`${(opts.noPlaceholder ?? []).join("\n")}\n`,
+	);
+	for (const [name, text] of Object.entries(opts.deprecated ?? {}))
+		writeFileSync(join(dir, `deprecated-${slug(name)}`), text);
+	for (const [name, text] of Object.entries(opts.trustList ?? {}))
+		writeFileSync(join(dir, `trust-${slug(name)}`), text);
+	writeFileSync(
 		join(bin, "npm"),
 		`#!/bin/bash
 if [ "$1" = --version ]; then echo "${opts.npmVersion ?? "11.19.1"}"; exit 0; fi
 echo "$*" >> "${dir}/calls"
+slug() { printf %s "$1" | tr -c "a-z0-9" _; }
 case "$1" in
   view)
     if [ "${opts.viewFails ? 1 : 0}" = 1 ]; then echo "npm error code ECONNRESET" >&2; exit 1; fi
-    if grep -qxF -- "$2" "${dir}/existing"; then echo "$2"; exit 0; fi
-    echo "npm error code E404" >&2; echo "npm error 404 Not Found - GET https://registry.npmjs.org/$2" >&2; exit 1 ;;
+    name="\${2%@0.0.0}"
+    if ! grep -qxF -- "$name" "${dir}/existing"; then
+      echo "npm error code E404" >&2; echo "npm error 404 Not Found - GET https://registry.npmjs.org/$name" >&2; exit 1
+    fi
+    if [ "$name" = "$2" ]; then echo "$2"; exit 0; fi
+    if grep -qxF -- "$name" "${dir}/noplaceholder"; then
+      echo "npm error code E404" >&2; echo "npm error 404 No match found for version 0.0.0" >&2; exit 1
+    fi
+    cat "${dir}/deprecated-$(slug "$name")" 2>/dev/null; exit 0 ;;
+  trust)
+    if [ "$2" = list ]; then
+      if [ "${opts.trustListFails ? 1 : 0}" = 1 ]; then echo "npm error code E401" >&2; exit 1; fi
+      cat "${dir}/trust-$(slug "$3")" 2>/dev/null; exit 0
+    fi ;;
   publish)
     name=$(node -p 'require("./package.json").name')
     cp package.json "${dir}/placeholder-$(printf %s "$name" | tr -c "a-z0-9" _).json"
@@ -75,7 +133,7 @@ exit 0
 		: [];
 	const placeholders: Run["placeholders"] = {};
 	for (const name of ["@classicy/classicy", "@classicy/appearance-platinum"]) {
-		const f = join(dir, `placeholder-${name.replace(/[^a-z0-9]/g, "_")}.json`);
+		const f = join(dir, `placeholder-${slug(name)}.json`);
 		if (existsSync(f)) placeholders[name] = JSON.parse(readFileSync(f, "utf8"));
 	}
 	return { status: r.status, out: r.stdout + r.stderr, calls, placeholders };
@@ -139,7 +197,11 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			expect(r.out).toMatch(/`bootstrap` dist-tag/);
 			expect(r.out).toMatch(/`latest` reads 0\.0\.0 until the 3\.0\.0 release/);
 			expect(r.out).toMatch(/`latest` stays unset until/);
-			expect(r.out).toContain("npm view <name> dist-tags");
+			expect(r.out).toContain("npm dist-tag ls <name>");
+			// Once set, `latest` cannot be removed; the deprecation is the guard.
+			expect(r.out).toMatch(/cannot be removed/);
+			expect(r.out).toMatch(/deprecation is the guard/);
+			expect(r.out).toMatch(/re-running it is safe/i);
 		}
 	});
 
@@ -168,13 +230,138 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 		});
 	});
 
-	it("skips the placeholder for a name already on npm, and still adds the trusted publisher", () => {
+	it("skips the placeholder for a name already on npm, and still deprecates and trusts it", () => {
 		const r = run(["--publish", CORE], { existing: ["@classicy/classicy"] });
 		expect(r.status, r.out).toBe(0);
 		expect(r.calls).toEqual([
 			"view @classicy/classicy name",
+			"view @classicy/classicy@0.0.0 deprecated",
+			expect.stringMatching(/^deprecate @classicy\/classicy@0\.0\.0 /),
+			"trust list @classicy/classicy --json",
 			`${trustArgs("@classicy/classicy")} --yes`,
 		]);
+	});
+
+	// Review of fu/0156: the core done, then Platinum's publish failed (a
+	// mistyped one-time password); the re-run must not die on the core.
+	it("re-runs safely after a partial run: an already deprecated, already trusted package is left alone", () => {
+		const r = run(["--publish"], {
+			existing: ["@classicy/classicy"],
+			deprecated: {
+				"@classicy/classicy":
+					"Placeholder with no code; install @classicy/classicy@3.0.0 or later.",
+			},
+			trustList: { "@classicy/classicy": trustEntry() },
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toEqual([
+			"view @classicy/classicy name",
+			"view @classicy/classicy@0.0.0 deprecated",
+			"trust list @classicy/classicy --json",
+			"view @classicy/appearance-platinum name",
+			"publish --access public --tag bootstrap",
+			expect.stringMatching(
+				/^deprecate @classicy\/appearance-platinum@0\.0\.0 /,
+			),
+			`${trustArgs("@classicy/appearance-platinum")} --yes`,
+		]);
+		expect(r.out).toMatch(/@classicy\/classicy@0\.0\.0 is already deprecated/);
+		expect(r.out).toMatch(/@classicy\/classicy is already trusted/);
+	});
+
+	// Review of fu/0156: a publish that went through with a failed deprecate
+	// (its one-time password) is deprecated by the re-run.
+	it("deprecates a placeholder left undeprecated by an earlier run", () => {
+		const r = run(["--publish", CORE], {
+			existing: ["@classicy/classicy"],
+			trustList: { "@classicy/classicy": trustEntry() },
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls).toEqual([
+			"view @classicy/classicy name",
+			"view @classicy/classicy@0.0.0 deprecated",
+			expect.stringMatching(
+				/^deprecate @classicy\/classicy@0\.0\.0 .*install @classicy\/classicy@3\.0\.0 or later/,
+			),
+			"trust list @classicy/classicy --json",
+		]);
+	});
+
+	it("does not deprecate an existing package that has no 0.0.0", () => {
+		const r = run(["--publish", CORE], {
+			existing: ["@classicy/classicy"],
+			noPlaceholder: ["@classicy/classicy"],
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls.some((c) => c.startsWith("deprecate"))).toBe(false);
+		expect(r.calls).toContain(`${trustArgs("@classicy/classicy")} --yes`);
+	});
+
+	it("in a dry run, reports an existing placeholder's deprecation and trust without changing them", () => {
+		const r = run([], {
+			existing: ["@classicy/classicy"],
+			trustList: { "@classicy/classicy": trustEntry() },
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.calls.some((c) => c.startsWith("deprecate"))).toBe(false);
+		expect(r.out).toContain(
+			"Would run: npm deprecate @classicy/classicy@0.0.0",
+		);
+		expect(r.calls).not.toContain(
+			`${trustArgs("@classicy/classicy")} --dry-run`,
+		);
+		expect(r.out).toMatch(/@classicy\/classicy is already trusted/);
+	});
+
+	it.each([
+		["another repository", { repository: "someone/classicy" }],
+		["another workflow", { file: "release.yml" }],
+		["an environment", { environment: "npm" }],
+		["stage publish only", { permissions: ["createStagedPackage"] }],
+	])("stops, revoking nothing, when the package already trusts %s", (_, over) => {
+		const r = run(["--publish"], {
+			existing: ["@classicy/classicy"],
+			deprecated: { "@classicy/classicy": "Placeholder" },
+			trustList: { "@classicy/classicy": trustEntry(over) },
+		});
+		expect(r.status).toBe(1);
+		expect(r.out).toMatch(
+			/@classicy\/classicy already has a different trusted publisher/,
+		);
+		expect(r.calls.filter((c) => c.startsWith("trust"))).toEqual([
+			"trust list @classicy/classicy --json",
+		]);
+		// Platinum is not reached.
+		expect(r.calls.some((c) => c.includes("appearance-platinum"))).toBe(false);
+	});
+
+	it("finds the matching configuration among several", () => {
+		const r = run(["--publish", CORE], {
+			existing: ["@classicy/classicy"],
+			deprecated: { "@classicy/classicy": "Placeholder" },
+			trustList: {
+				"@classicy/classicy": `\n${trustEntry({ file: "nightly.yml" })}\n\n${trustEntry()}\n`,
+			},
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.out).toMatch(/@classicy\/classicy is already trusted/);
+		expect(r.calls.some((c) => c.startsWith("trust github"))).toBe(false);
+	});
+
+	it("stops when it cannot list an existing package's trusted publishers, but a dry run goes on", () => {
+		const publish = run(["--publish", CORE], {
+			existing: ["@classicy/classicy"],
+			deprecated: { "@classicy/classicy": "Placeholder" },
+			trustListFails: true,
+		});
+		expect(publish.status).toBe(1);
+		expect(publish.calls.some((c) => c.startsWith("trust github"))).toBe(false);
+		const dry = run([CORE], {
+			existing: ["@classicy/classicy"],
+			trustListFails: true,
+		});
+		expect(dry.status, dry.out).toBe(0);
+		expect(dry.calls).toContain(`${trustArgs("@classicy/classicy")} --dry-run`);
 	});
 
 	it("stops before publishing when npm view fails for any reason but a 404", () => {
