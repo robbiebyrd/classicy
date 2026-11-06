@@ -3,12 +3,13 @@ id: 0158-wlm
 title: The desktop fills the page without the host sizing html, body and its mount element
 purpose: A host mounts the desktop and it fills the window, with no CSS to write.
 type: impr
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T20:03:49.422Z"
-updated: "2026-11-06T20:27:25.877Z"
+updated: "2026-11-06T21:03:57.097Z"
 started: "2026-11-06T20:03:56.889Z"
+completed: "2026-11-06T21:03:57.097Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -56,8 +57,8 @@ Remove the sized-container sentence from the release notes' Summary, README and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A scratch host with no CSS of its own shows a desktop filling the viewport (Chromium, and Firefox if available); a host that sizes its container keeps its size.
-- [ ] VERIFY: Parity 445/445 AE 0 (or every difference explained and accepted by the controller), no doc tells a host to size html/body/the mount element, full gate green.
+- [x] VERIFY: A scratch host with no CSS of its own shows a desktop filling the viewport (Chromium, and Firefox if available); a host that sizes its container keeps its size.
+- [x] VERIFY: Parity 445/445 AE 0 (or every difference explained and accepted by the controller), no doc tells a host to size html/body/the mount element, full gate green.
 
 ## Files
 
@@ -66,3 +67,5 @@ Remove the sized-container sentence from the release notes' Summary, README and 
 ## Work Log
 
 ### 2026-11-06T20:27:25.877Z - 2026-11-06: 0157 landed (ac51cfe82). The release notes' Summary paragraph now opens 'One note applies to a new host; nothing changes for a working 2.1.x host.' followed by the sized-container sentence: when this story removes that sentence, remove the lead-in sentence too (the paragraph then has nothing left).
+
+### 2026-11-06T21:03:49.137Z - Landed at 0204720f7 (b7b1438cc, 752063e3f rebased onto ef2f32818, clean). ClassicyDesktop.scss (classicy.base, zero specificity): html, body, the mount element and up to four only-child wrappers get height: 100%, body margin 0, only when the desktop (keyed on data-classicy-menu-bar, which only ClassicyDesktop's root carries) is the page; the no-package stop screen too; Firefox <121 fallback: the desktop itself min(100dvh, parent). Narrower than the brief's :has() on every ancestor, to keep Storybook frames and embedding pages untouched. Owner chose to keep the trade-off: an embedded host-sized mount that is body's direct child loses body's 8px margin, and its only-child wrapper becomes viewport height (documented with one-line fixes). Verified in Chromium 143, Firefox 157 and real Firefox 119; zero-CSS host fills 1024x768 (was 1008x19). Gate 496 / 7223; parity 445/445. Controller after the rebase: pageSizing + PackageExports + Cascade 88/88, biome, pixel gate clean.
