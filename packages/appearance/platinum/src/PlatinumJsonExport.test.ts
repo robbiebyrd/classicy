@@ -25,7 +25,7 @@ describe("the platinumJson export", () => {
 		}).toThrow(TypeError);
 		expect(() => {
 			(
-				platinumJson.presets[0].colors as unknown as { [k: string]: unknown }
+				platinumJson.presets[0].color as unknown as { [k: string]: unknown }
 			).extra = 1;
 		}).toThrow(TypeError);
 	});
@@ -33,8 +33,8 @@ describe("the platinumJson export", () => {
 	it("is a copy: the registered package is not the export's objects", () => {
 		const registered = getClassicyAppearancePackage("platinum");
 		expect(registered?.knobs).not.toBe(platinumJson.knobs);
-		expect(registered?.presets?.[0].colors).not.toBe(
-			platinumJson.presets[0].colors,
+		expect(registered?.presets?.[0].color).not.toBe(
+			platinumJson.presets[0].color,
 		);
 		// ...and the registered data was not frozen by the export.
 		expect(Object.isFrozen(registered?.knobs)).toBe(

@@ -27,6 +27,8 @@ const ALLOWED: Record<string, string> = {
 		"the face list the dist checks compare against; internal, not exported",
 	"packages/appearance/platinum/src/assets/art/cursor-arrow.svg":
 		"the cursor art file, for the cursor test",
+	"packages/appearance/platinum/assets/sounds/platinum/platinum.json":
+		"the sound pack's sprite map, read by the sound-pack tests (it moved out of the core's assets/ in 3.3)",
 	"packages/appearance/platinum/src":
 		"the source directory, to build a module-copy path (a query makes a new instance)",
 };
@@ -75,10 +77,10 @@ describe("relative imports from root code into packages/", () => {
 		);
 	});
 
-	it("are all inside Platinum's package source", () => {
+	it("are all inside Platinum's package", () => {
 		expect(
 			Object.keys(ALLOWED).filter(
-				(target) => !target.startsWith("packages/appearance/platinum/src"),
+				(target) => !target.startsWith("packages/appearance/platinum/"),
 			),
 		).toEqual([]);
 	});
