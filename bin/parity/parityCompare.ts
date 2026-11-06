@@ -144,12 +144,15 @@ export function compareAeDirs(
 	beforeDir: string,
 	afterDir: string,
 	filter?: RegExp,
-	compare: readonly string[] = findImageMagickCompare(),
+	compareCommand?: readonly string[],
 	runner: Run = run,
 ): ParityAeResult[] {
+	// The directories are checked before ImageMagick is looked up, so a
+	// missing directory is reported as such on a machine without ImageMagick.
 	if (!existsSync(beforeDir))
 		throw new Error(`no such directory: ${beforeDir}`);
 	if (!existsSync(afterDir)) throw new Error(`no such directory: ${afterDir}`);
+	const compare = compareCommand ?? findImageMagickCompare();
 	const before = new Set(pngNames(beforeDir, filter));
 	const after = new Set(pngNames(afterDir, filter));
 	return [...new Set([...before, ...after])].sort().map((name) => {
