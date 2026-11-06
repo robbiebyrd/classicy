@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:11.304Z"
-updated: "2026-11-05T20:26:55.366Z"
+updated: "2026-11-06T16:30:28.778Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -72,3 +72,5 @@ Write the results to the story's work log: parity counts, sizes before/after, th
 - `bin/standalone-host/` - create (a throwaway Vite app under the scratchpad, not committed)
 
 ## Work Log
+
+### 2026-11-06T16:30:28.778Z - 2026-11-06 (owner): the live demo at demo.classicy.ing is published by this repo (.github/workflows/pages.yml; previews by pr-preview.yml), not by classicy-web. 4.3's real-host check must run pages.yml's exact steps locally after 3.4 lands: pnpm install --frozen-lockfile; pnpm build; (cd example && pnpm exec vite build --base /); pnpm --filter classicy-storybook build; mv storybook/storybook-static example/dist/storybook; cp -r assets/. example/dist/assets/. Serve example/dist statically and check the demo and /storybook render with Platinum (desktop, boot chime and sprites load, no 404s, no console errors) and that the bundle holds one Platinum copy. Repeat once with pr-preview.yml's sub-path BASE_PATH and STORYBOOK_BASE.
