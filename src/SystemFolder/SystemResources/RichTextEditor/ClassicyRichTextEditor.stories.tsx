@@ -1,9 +1,11 @@
-import type { MDXEditorMethods } from "@mdxeditor/editor";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
-import { ClassicyRichTextEditor } from "./ClassicyRichTextEditor";
+import {
+	ClassicyRichTextEditor,
+	type ClassicyRichTextEditorMethods,
+} from "./ClassicyRichTextEditor";
 
 const meta = {
 	title: "Controls/RichTextEditor",
@@ -36,7 +38,7 @@ export const Default: Story = {
 };
 
 const ImperativeEditor = () => {
-	const editorRef = useRef<MDXEditorMethods>(null);
+	const editorRef = useRef<ClassicyRichTextEditorMethods>(null);
 	const [saved, setSaved] = useState("");
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

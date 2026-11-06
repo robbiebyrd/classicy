@@ -39,6 +39,9 @@ importers:
       '@plussub/srt-vtt-parser':
         specifier: ^2.0.5
         version: 2.0.5
+      '@types/howler':
+        specifier: ^2.2.13
+        version: 2.2.13
       analytics:
         specifier: ^0.8.19
         version: 0.8.19(@types/dlv@1.1.5)
@@ -103,9 +106,6 @@ importers:
       '@types/he':
         specifier: ^1.2.3
         version: 1.2.3
-      '@types/howler':
-        specifier: ^2.2.13
-        version: 2.2.13
       '@types/node':
         specifier: ^24.13.2
         version: 24.13.2

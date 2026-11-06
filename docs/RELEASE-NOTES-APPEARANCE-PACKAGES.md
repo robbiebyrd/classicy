@@ -1167,6 +1167,16 @@ warnings about derived folder names.
   Platinum's, now carries its `.js`, dotted module names included
   (`./ClassicyAppearanceManager.Colors.js`). `bundler` resolution was not
   affected.
+- **Types without `skipLibCheck`.** The declarations imported
+  `MDXEditorMethods` from `@mdxeditor/editor`, a dev dependency, and `Howl`
+  from `howler`, whose types were a dev dependency too, so a host without
+  `skipLibCheck` failed to type-check (TS2307, TS7016) and one with it got
+  `any`. `ClassicyRichTextEditor`'s `editorRef` now takes the new
+  `ClassicyRichTextEditorMethods`, the same methods (a
+  `useRef<MDXEditorMethods>` still fits), so hosts need not install
+  MDXEditor, which the bundle carries. `@types/howler` is a dependency, and
+  `@types/react` an optional peer dependency, since the declarations use
+  React's types.
 - **Security hardening.** The HyperCard script builder can no longer write to
   `Object.prototype` from stack data (CodeQL
   `js/prototype-polluting-assignment`). The Finder open-with trust fixes above
