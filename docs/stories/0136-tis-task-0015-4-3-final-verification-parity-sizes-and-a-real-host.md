@@ -3,12 +3,13 @@ id: 0136-tis
 title: '0015 §4.3: Final verification: parity, sizes, and a real host'
 purpose: Execute plan 0015-kxa section 4.3.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:11.304Z"
-updated: "2026-11-06T18:36:16.363Z"
+updated: "2026-11-06T19:19:35.080Z"
 started: "2026-11-06T18:36:11.481Z"
+completed: "2026-11-06T19:19:35.080Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -65,8 +66,8 @@ Write the results to the story's work log: parity counts, sizes before/after, th
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -77,3 +78,5 @@ Write the results to the story's work log: parity counts, sizes before/after, th
 ### 2026-11-06T16:30:28.778Z - 2026-11-06 (owner): the live demo at demo.classicy.ing is published by this repo (.github/workflows/pages.yml; previews by pr-preview.yml), not by classicy-web. 4.3's real-host check must run pages.yml's exact steps locally after 3.4 lands: pnpm install --frozen-lockfile; pnpm build; (cd example && pnpm exec vite build --base /); pnpm --filter classicy-storybook build; mv storybook/storybook-static example/dist/storybook; cp -r assets/. example/dist/assets/. Serve example/dist statically and check the demo and /storybook render with Platinum (desktop, boot chime and sprites load, no 404s, no console errors) and that the bundle holds one Platinum copy. Repeat once with pr-preview.yml's sub-path BASE_PATH and STORYBOOK_BASE.
 
 ### 2026-11-06T18:36:16.363Z - 2026-11-06 18:35: started at the owner's request while 4.2 (docs only) finishes; force-started past the 0135 dependency. Verifies code at the current tip; 4.2's doc changes do not affect these checks.
+
+### 2026-11-06T19:19:28.211Z - Done at 55c29e181 (verification only; nothing committed). Gate 494 files / 7191 tests, GATE EXIT 0; build:source ran both dist checks and verify:host-types (4 modes). Parity: before vs after 445/445 AE 0; production example 4/4; against the original sets the differences are exactly the three documented swaps (presvgo: 63 = 62 grip + chasing-arrows@mid; midold: the colon frames). Sizes vs BASE rebuilt in production mode (sizes-before.txt was a dev build, NODE_ENV=development from mise.toml): core ES 10,572,040 -> 5,596,935 (-47%), UMD 10,363,645 -> 5,379,227 (-48%), core dist 48,072,502 -> 36,431,982, Platinum dist 4,469,700, together 40,901,682 (-15%). Core greps: data:audio only Howler 2.2.4's silent WAV (library code); no wallpaper, no woff2 file, no @layer classicy.package. Real host from both tarballs: (a) core only builds and shows the stop screen; (b) with Platinum: desktop, boot chime Howl loaded and played, every request 200; (c) strict CSP with the three linked stylesheets: screenshot byte-identical to (b); main.tsx type-checks (bundler, skipLibCheck false). Demo deploy (pages.yml's steps, then pr-preview's sub-path): demo and Storybook render with Platinum, sprites load, 0 404s, one Platinum copy. Controller spot-checked the parity summaries and the gate log. Findings outside the plan: three host doc gaps sent to 4.2 (0135), sprite non-determinism filed as 0155-t2u. Criterion 2: there is nothing to land (verification only); reviewed by the controller. 0154 (assets consolidation) lands after this, and the controller re-runs builds, dist checks, packs and parity on it.
