@@ -155,8 +155,11 @@ registers it, and everything inside `ClassicyDesktop` looks as before.
   the vocabulary as `classicy-px-rect`/`classicy-no-select`
   (`@classicy/classicy/scss/layout`). The full rename table is in
   `docs/AGENT-REFERENCE.md`, "Migrating to Appearance Packages". `classicy/scss/themes.json` is gone: call
-  `getAllThemes()`. `@classicy/classicy/appearance/platinum` is kept for compatibility
-  and registers nothing (importing `@classicy/classicy` registers Platinum).
+  `getAllThemes()`. `@classicy/classicy/appearance/platinum` registers nothing:
+  until Platinum ships as `@classicy/appearance-platinum`, the
+  `@classicy/classicy` bundle still registers it, and its names
+  (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
+  `platinumSoundPack`) are no longer `@classicy/classicy` exports.
 - **`platinum-halftone` takes a token name.** The mixin now takes a color
   token NAME (`@include mixins.platinum-halftone("--color-black")`, not a
   color) and paints the dither on a `::before` child, which sets

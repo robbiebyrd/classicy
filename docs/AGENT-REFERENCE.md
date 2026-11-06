@@ -118,8 +118,10 @@ host overrides; a later layer beats an earlier one whatever the specificity.
 **Where the look comes from.** `classicy.css` holds structure only (layout,
 sizing, state rules). Every bevel, border, gradient and piece of art is the
 active **Appearance Package**'s (§8, "Appearance Packages"). Registering a
-package (`registerClassicyAppearancePackage`; Platinum registers itself when
-`@classicy/classicy` is imported) writes its compiled CSS into
+package (`registerClassicyAppearancePackage`; the core registers none, so a
+host imports one at its entry, and until Platinum ships as
+`@classicy/appearance-platinum` the `@classicy/classicy` bundle still
+registers Platinum) writes its compiled CSS into
 `<style id="classicy-appearance-<id>">`: directly after `#classicy-styles`
 when that element is already there, else at the end of `<head>` (the shipped
 bundle registers Platinum before its own stylesheet injector runs, so in
@@ -227,7 +229,7 @@ Package `exports` map:
 | `@classicy/classicy/fonts` | Deprecated no-op kept so existing `import '@classicy/classicy/fonts'` lines keep resolving |
 | `@classicy/classicy/dist/*` | Anything in dist; the fonts ship as `dist/assets/*.woff2` |
 | `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
-| `@classicy/classicy/appearance/platinum` | Kept for compatibility; registers nothing. Importing `@classicy/classicy` registers the Platinum package, so you never need this specifier |
+| `@classicy/classicy/appearance/platinum` | Registers nothing: until Platinum ships as its own package, `@classicy/appearance-platinum` (which replaces this specifier), the `@classicy/classicy` bundle still carries and registers it. The core's API exports none of Platinum's names (`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`, `platinumSoundPack`): they are Platinum's own exports |
 | `@classicy/classicy/appearance/platinum/scss/*` | Platinum's SCSS partials for host `@use`: `mixins` (the `platinum-*` mixins), `scrollbars` (`platinum-scrollbars*`), `assets` (`platinum-root-properties`; the `$` art variables are gone, §5). `platinum-menu-frame` and `platinum-scrollbars` read knob variables (`--menu-frame-*`, `--scrollbar-thumb-grip-*`) that only `getThemeVars` emits, so include them where the theme's variables are set (§5, "Upgrading: package knobs and the pixel-literal purge (Part H)"). The package stylesheet itself (`platinum.scss` and its `components/` partials) is not for host compilation: it ships compiled, injected by the bundle and as `dist/classicy-platinum.css`, and one of its `url()`s points at an asset outside the published files |
 
 ### Minimal app
@@ -2363,7 +2365,9 @@ registered by `src/Appearance/Platinum/assets/platinumWallpapers.ts`.
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
 sound packs and hooks that go with it. Classicy ships one, Platinum
-(`src/Appearance/Platinum/`), registered when `@classicy/classicy` is imported; themes
+(`src/Appearance/Platinum/`), which the core neither imports nor exports: a
+host imports it at its entry (until it ships as `@classicy/appearance-platinum`,
+the `@classicy/classicy` bundle registers it); themes
 are presets of a package, and every theme names its package in
 `theme.package`.
 
@@ -3166,7 +3170,8 @@ from a layout-effect cleanup). An `onEnd` that throws is logged
 (`classicyLog`, subsystem `ClassicyFileDrag`) and the drop still happens.
 
 **Platinum's hooks.** `platinumAppearanceHooks`
-(`src/Appearance/Platinum/hooks.ts`, exported) holds Platinum's feedback
+(`src/Appearance/Platinum/hooks.ts`, exported by Platinum's own index, not by
+`@classicy/classicy`) holds Platinum's feedback
 sounds and its menu-item flash. It is the very object Platinum registers, so
 it is deeply frozen and read-only to the type checker; a package that builds
 on it composes a new object:
@@ -3209,8 +3214,8 @@ Behavior that follows from the move:
   only `CLASSICY_FALLBACK_APPEARANCE_PACKAGE` applies (no package registered:
   a lone-component test that never imports `@/Appearance/Platinum`, or a host
   that never loads Platinum), or under a package whose hooks map nothing,
-  plays no feedback sounds. Importing `@classicy/classicy` or rendering
-  `ClassicyDesktop` registers Platinum.
+  plays no feedback sounds. Rendering `ClassicyDesktop` does not register
+  Platinum: import it (in the repo's tests, `@/__tests__/withPlatinum`).
 - **A menu with no package flash does not flash.** Under a package whose
   MenuItem `press` returns no decoration (or with no package hooks), a chosen
   item gets no flash class. In a body-level portal outside every

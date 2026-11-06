@@ -11,7 +11,8 @@ change needs. Longer material is linked from
 Classicy's look is now an **Appearance Package**. Classicy's own stylesheet
 holds structure only (layout, sizing, state rules). The Platinum look, meaning
 every bevel, border, gradient, piece of art, feedback sound, cursor and font,
-is the Platinum package, which registers itself when you import `@classicy/classicy`.
+is the Platinum package, which you import at your app's entry: the core no
+longer registers it.
 A second package can replace all of it at runtime:
 
 - its stylesheet, scoped under the desktop root;
@@ -37,6 +38,21 @@ Start with [Install and build](#install-and-build).
 ## Breaking changes
 
 ### Install and build
+
+- **The core no longer registers Platinum.** `@classicy/classicy` neither
+  imports nor exports the Platinum package, and `ClassicyDesktop` no longer
+  loads it: with no package registered, the desktop draws the
+  `ClassicyNoAppearancePackage` screen instead (see
+  [Appearance Packages](#appearance-packages)). Platinum's own names,
+  `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks` and
+  `platinumSoundPack`, are no longer `@classicy/classicy` exports. *Who:*
+  every host. *Migrate:* import Platinum once at your app's entry, before
+  rendering, and take Platinum's names from it:
+
+  ```ts
+  import "@classicy/appearance-platinum";
+  import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
+  ```
 
 - **Vite's dev server must not pre-bundle classicy.** The fonts and art are
   now files in `dist/assets/`, referenced as
@@ -283,7 +299,8 @@ Start with [Install and build](#install-and-build).
   - `classicy/scss/themes.json` is gone: call `getAllThemes()`.
   - `classicy/scss/fonts` is gone: the package registers its fonts.
   - `@classicy/classicy/appearance/platinum` (the JavaScript specifier) registers
-    nothing. Importing `@classicy/classicy` registers Platinum.
+    nothing. Import `@classicy/appearance-platinum` (see
+    [Install and build](#install-and-build)).
 - **`platinum-halftone` takes a color token name.** It was
   `appearance.theme-halftone($color, $size)`. It is now
   `platinum-halftone($token, $size)`, where `$token` is a custom-property
@@ -727,7 +744,8 @@ Everything is exported from `@classicy/classicy`. The links go to the full refer
   (`injectClassicyAppearanceStyles`). The Storybook-only `mirrored` and
   `renamed` packages are templates for a new package.
 - `PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks` and
-  `platinumSoundPack` expose Platinum's own parts for reuse.
+  `platinumSoundPack`, exported by the Platinum package (not by
+  `@classicy/classicy`), expose Platinum's own parts for reuse.
 - Types: `ClassicyAppearancePackage` (the package object),
   `ClassicyAppearanceHooks` (its `hooks`) and `ClassicyAppearanceLayout` (its
   `layout`).
