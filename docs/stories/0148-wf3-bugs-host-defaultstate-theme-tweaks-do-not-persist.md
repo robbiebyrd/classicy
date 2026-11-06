@@ -3,12 +3,13 @@ id: 0148-wf3
 title: A host defaultState's theme tweaks are lost on the second session, or when the seeded package registers after mount
 purpose: A host that customizes its first-session theme through defaultState keeps that look.
 type: bugs
-status: in_progress
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-06T04:52:43.682Z"
-updated: "2026-11-06T05:13:21.082Z"
+updated: "2026-11-06T07:32:24.313Z"
 started: "2026-11-06T05:13:21.082Z"
+completed: "2026-11-06T07:32:24.313Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,11 +50,13 @@ Choose: a tweaked seed theme is a custom theme (fork it, like the first edit of 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A host defaultState's theme tweaks survive a reload and a late-registering seeded package, and a user's later theme choice still wins.
-- [ ] VERIFY: Full gate green.
+- [x] VERIFY: A host defaultState's theme tweaks survive a reload and a late-registering seeded package, and a user's later theme choice still wins.
+- [x] VERIFY: Full gate green.
 
 ## Files
 
 - `src/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext.tsx` - seed tweaks persist
 
 ## Work Log
+
+### 2026-11-06T07:32:09.781Z - Landed at 42c798ef1 as a stack 0148/0147 (9ec24d9f0, 084162667, 9cd044a2d) then 0143 (d442d5f15..757d567da, plus 42c798ef1 restoring 0147's CLAUDE.md sentences after the doc conflict) on f86f7ac35. Stacked gate: 476 files / 6668 tests, GATE_EXIT=0. Controller parity (static build + example dev server) against platinum-split/before-svgo (the tip carries 0146): 445/445 AE 0. Review: fix-first (provider remount re-ran the seed over the user's Custom theme, confidence 85), fixed in 9cd044a2d (seed applies once per page session, ClassicyDefaultStateSeed.internal.ts) and verified by the controller; release notes describe the fork's consequences for hosts.

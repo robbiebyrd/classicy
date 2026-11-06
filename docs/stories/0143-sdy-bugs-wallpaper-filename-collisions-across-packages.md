@@ -3,12 +3,13 @@ id: 0143-sdy
 title: Two packages registering the same wallpaper filename collide in the Desktop tab and in resolution
 purpose: Keep wallpapers unambiguous once a second package registers its own.
 type: bugs
-status: in_progress
+status: complete
 priority: "3"
 effort: S
 created: "2026-11-05T22:16:22.186Z"
-updated: "2026-11-06T05:13:23.689Z"
+updated: "2026-11-06T07:32:40.685Z"
 started: "2026-11-06T05:13:23.689Z"
+completed: "2026-11-06T07:32:40.685Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -48,10 +49,12 @@ Apply the choice in the index, the Desktop tab and theme files; keep bare filena
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: With two packages registering `default.png`, each Desktop-tab option stores and renders its own image, and an imported theme naming another package's wallpaper renders it or is refused with a clear error.
+- [x] VERIFY: With two packages registering `default.png`, each Desktop-tab option stores and renders its own image, and an imported theme naming another package's wallpaper renders it or is refused with a clear error.
 
 ## Files
 
 - `src/Appearance/ClassicyWallpaperIndex.ts` - unambiguous references
 
 ## Work Log
+
+### 2026-11-06T07:32:14.724Z - Landed at 42c798ef1 as a stack 0148/0147 (9ec24d9f0, 084162667, 9cd044a2d) then 0143 (d442d5f15..757d567da, plus 42c798ef1 restoring 0147's CLAUDE.md sentences after the doc conflict) on f86f7ac35. Stacked gate: 476 files / 6668 tests, GATE_EXIT=0. Controller parity (static build + example dev server) against platinum-split/before-svgo (the tip carries 0146): 445/445 AE 0. Review: fix-first (stored bare/qualified form depended on the active package, confidence 82), fixed in 83d223b9d: stored bare only for the theme's own package or Platinum when the theme's package lacks it; bare lookup order theme package -> Platinum -> active; docs on where import errors show and the import tie-break.

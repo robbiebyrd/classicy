@@ -3,12 +3,13 @@ id: 0147-qyy
 title: A saved defaults reference to a package the host dropped stays pending, so the drawn package renders without its look-only knobs
 purpose: A host that removes an Appearance Package still gets the drawn package's defaults on returning sessions.
 type: bugs
-status: in_progress
+status: complete
 priority: "3"
 effort: S
 created: "2026-11-06T04:21:29.726Z"
-updated: "2026-11-06T05:13:18.857Z"
+updated: "2026-11-06T07:32:33.344Z"
 started: "2026-11-06T05:13:18.857Z"
+completed: "2026-11-06T07:32:33.344Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -48,11 +49,13 @@ When `sanitizeStateForPersistence` saves a built-in active theme as a reference,
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A dropped package's saved defaults reference heals to the drawn package's defaults; a dropped package's preset reference stays pending; old saves load unchanged.
-- [ ] VERIFY: Full gate green.
+- [x] VERIFY: A dropped package's saved defaults reference heals to the drawn package's defaults; a dropped package's preset reference stays pending; old saves load unchanged.
+- [x] VERIFY: Full gate green.
 
 ## Files
 
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal.ts` - defaults flag on saved built-in references
 
 ## Work Log
+
+### 2026-11-06T07:32:12.296Z - Landed at 42c798ef1 as a stack 0148/0147 (9ec24d9f0, 084162667, 9cd044a2d) then 0143 (d442d5f15..757d567da, plus 42c798ef1 restoring 0147's CLAUDE.md sentences after the doc conflict) on f86f7ac35. Stacked gate: 476 files / 6668 tests, GATE_EXIT=0. Controller parity (static build + example dev server) against platinum-split/before-svgo (the tip carries 0146): 445/445 AE 0. Saved defaults references carry defaults: true; a dropped package's reference heals to the drawn package's defaults; preset references byte-identical.
