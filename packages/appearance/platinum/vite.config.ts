@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => ({
 							"**/*.test.tsx",
 							"**/__tests__/**",
 							"**/*.stories.tsx",
-							// platinumJson's type is written out in index.d.ts.
+							// No exported type refers to the JSON: platinumJson is PlatinumJson.
 							"**/*.json",
 						],
 					}),

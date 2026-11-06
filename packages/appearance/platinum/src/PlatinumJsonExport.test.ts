@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import type {
+	ClassicyAppearanceKnobs,
+	ClassicyAppearanceLayout,
+	ClassicyTheme,
+} from "@classicy/classicy";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import "./index";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
-import { platinumJson } from "./index";
+import { type PlatinumJson, platinumJson } from "./index";
 import platinumSource from "./platinum.json";
 
 // `platinumJson` is public. The registered package shares its objects with the
@@ -44,5 +49,40 @@ describe("the platinumJson export", () => {
 
 	it("equals the source data", () => {
 		expect(platinumJson).toEqual(platinumSource);
+	});
+});
+
+// Its public type is the core's own types, not the JSON literal TypeScript
+// infers (`growBoxCorner: string`, `disabled: never[]`), which no host could
+// hand back to the core: a preset is a ClassicyTheme, the layout a
+// ClassicyAppearanceLayout. Checked by the gate's `tsc --noEmit -p .`, which
+// type-checks this file: the assignments below compile without a cast.
+describe("the platinumJson export's type", () => {
+	it("is PlatinumJson, on the core's types", () => {
+		const theme: ClassicyTheme = platinumJson.presets[0];
+		const defaults: ClassicyTheme = platinumJson.defaults;
+		const layout: ClassicyAppearanceLayout = platinumJson.layout;
+		const knobs: ClassicyAppearanceKnobs = platinumJson.knobs;
+		expect([theme, defaults, layout, knobs]).toHaveLength(4);
+		expectTypeOf(platinumJson).toEqualTypeOf<PlatinumJson>();
+		expectTypeOf(platinumJson.layout.window.growBoxCorner).toEqualTypeOf<
+			ClassicyAppearanceLayout["window"]["growBoxCorner"]
+		>();
+	});
+
+	// The JSON's top-level keys are the type's, no more and no fewer.
+	it("has the JSON's top-level keys", () => {
+		const keys: Array<keyof PlatinumJson> = [
+			"id",
+			"name",
+			"defaults",
+			"presets",
+			"layout",
+			"knobs",
+		];
+		expect(Object.keys(platinumSource).sort()).toEqual([...keys].sort());
+		expectTypeOf<keyof PlatinumJson>().toEqualTypeOf<
+			keyof typeof platinumSource
+		>();
 	});
 });

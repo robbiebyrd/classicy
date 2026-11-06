@@ -332,7 +332,7 @@ describe("bin/verify-dist.mjs", () => {
 					"dist/types/index.d.ts: missing -> the package's `types` export points at it; check dts in vite.config.ts.",
 			}));
 
-		// platinumJson's type is written out in index.d.ts; nothing imports
+		// platinumJson is PlatinumJson, on the core's types; nothing imports
 		// the JSON's own declaration.
 		it("fails a JSON declaration", () =>
 			expect(

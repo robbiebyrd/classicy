@@ -47,8 +47,8 @@
 //
 // 7. DIST/TYPES DECLARES THE PACKAGE. dist/types/index.d.ts (the `types`
 //    export) exists, and no declaration is for a test, a test helper, a story,
-//    a build script or an imported JSON file (index.d.ts writes out
-//    platinumJson's type; nothing imports platinum.json.d.ts).
+//    a build script or an imported JSON file (platinumJson is typed
+//    PlatinumJson, on the core's types; nothing imports platinum.json.d.ts).
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";

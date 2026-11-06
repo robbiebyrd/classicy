@@ -9,6 +9,7 @@
 // Hand-written. Its exports are the package's public API.
 
 import {
+	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
@@ -31,21 +32,40 @@ export * from "./assets/platinumAssets";
 export * from "./assets/sounds/platinum";
 export * from "./hooks";
 
-type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
-
-const deepFreeze = <T extends object>(value: T): DeepReadonly<T> => {
+const deepFreeze = <T extends object>(value: T): T => {
 	for (const child of Object.values(value))
 		if (typeof child === "object" && child !== null) deepFreeze(child);
-	return Object.freeze(value) as DeepReadonly<T>;
+	return Object.freeze(value);
+};
+
+/**
+ * Platinum's theme data (`platinum.json`), typed with the core's own types,
+ * so a host can hand a preset, the defaults, the layout or the knobs straight
+ * back to the core. (The JSON's inferred type, with `growBoxCorner: string`
+ * and `sound.disabled: never[]`, is none of them.) The top level and each
+ * member's first level are readonly; the object is deep-frozen at runtime.
+ */
+export type PlatinumJson = {
+	readonly id: string;
+	readonly name: string;
+	readonly defaults: Readonly<ClassicyTheme>;
+	readonly presets: ReadonlyArray<Readonly<ClassicyTheme>>;
+	readonly layout: Readonly<ClassicyAppearanceLayout>;
+	readonly knobs: Readonly<ClassicyAppearanceKnobs>;
 };
 
 /**
  * Platinum's theme data (`platinum.json`), deep-frozen. It is a copy: the
  * registered package shares its objects with the source (knobs, the presets'
  * colors, typography and desktop), so a host that could mutate this export
- * would edit a registered built-in theme.
+ * would edit a registered built-in theme. Its presets and defaults are the
+ * JSON's, before Platinum completes them for registration
+ * (ClassicyThemeSchema.test.ts parses them; ClassicyPlatinum.test.ts pins the
+ * layout).
  */
-export const platinumJson = deepFreeze(structuredClone(platinumJsonSource));
+export const platinumJson: PlatinumJson = deepFreeze(
+	structuredClone(platinumJsonSource),
+) as unknown as PlatinumJson;
 
 /** The Platinum package's id. */
 export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
