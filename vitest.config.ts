@@ -34,6 +34,9 @@ const platinumCoreImportsPlugin = (): Plugin => ({
 
 export default defineConfig({
 	plugins: [platinumCoreImportsPlugin()],
+	// Platinum's sound sprites include an ac3 file, a format Vite does not
+	// know as an asset (src/assets/sounds/platinum.ts imports it).
+	assetsInclude: ["**/*.ac3"],
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./src/__tests__/setup.ts"],
@@ -57,7 +60,6 @@ export default defineConfig({
 			},
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
 			{ find: "@img", replacement: path.resolve(__dirname, "./assets/img") },
-			{ find: "@snd", replacement: path.resolve(__dirname, "./assets/sounds") },
 			{ find: "@vid", replacement: path.resolve(__dirname, "./assets/vid") },
 			{
 				find: "@classicy/classicy",

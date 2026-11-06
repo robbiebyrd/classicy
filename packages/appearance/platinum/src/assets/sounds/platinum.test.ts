@@ -1,11 +1,15 @@
-import platinumJson from "@snd/platinum/platinum.json";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { assetSourceFile } from "@/__tests__/assetSourceFile";
 import {
 	CLASSICY_SOUND_SPRITE_IDS,
 	classicySoundPackMissingSprites,
 	getClassicySoundPack,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import platinumJson from "../../../assets/sounds/platinum/platinum.json";
 import { platinumSoundPack } from "./platinum";
+
+const PACK_JSON = "../../../assets/sounds/platinum/platinum.json";
 
 describe("platinum sound pack", () => {
 	it("registers itself under id platinum on import", () => {
@@ -27,6 +31,19 @@ describe("platinum sound pack", () => {
 			"platinum.mp3",
 			"platinum.ac3",
 		]);
+	});
+
+	it("loads its four sprite files from the package's own assets/sounds/platinum", () => {
+		// Moved out of the core's assets/sounds (plan 0015-kxa §3.3), beside
+		// the JSON bin/make_audio_sprites.sh writes with them.
+		const pkg = path.resolve(import.meta.dirname, "../../..");
+		expect(
+			platinumSoundPack.src.map((src) => assetSourceFile(src, pkg)),
+		).toEqual(
+			["ogg", "m4a", "mp3", "ac3"].map((ext) =>
+				path.join(pkg, "assets/sounds/platinum", `platinum.${ext}`),
+			),
+		);
 	});
 
 	it("keeps the four loop sprites flagged", () => {
@@ -59,7 +76,7 @@ describe("platinum sound pack src consistency check", () => {
 		vi.doMock("@/SystemFolder/SystemResources/Log/ClassicyLog", () => ({
 			classicyLog: log,
 		}));
-		vi.doMock("@snd/platinum/platinum.json", () => ({
+		vi.doMock(PACK_JSON, () => ({
 			default: { ...platinumJson, src },
 		}));
 		await import("./platinum");
@@ -68,8 +85,7 @@ describe("platinum sound pack src consistency check", () => {
 
 	afterEach(() => {
 		vi.doUnmock("@/SystemFolder/SystemResources/Log/ClassicyLog");
-		vi.doUnmock("@snd/platinum/platinum.json");
-		vi.unstubAllGlobals();
+		vi.doUnmock(PACK_JSON);
 		vi.resetModules();
 	});
 
@@ -87,11 +103,7 @@ describe("platinum sound pack src consistency check", () => {
 		);
 	});
 
-	it("stays silent when the bundler inlines the audio as data: URLs", async () => {
-		class InlinedURL {
-			href = "data:audio/ogg;base64,T2dnUwACAAAAAAAAAAA=";
-		}
-		vi.stubGlobal("URL", InlinedURL);
+	it("stays silent for the committed JSON", async () => {
 		const log = await loadPlatinum(platinumJson.src);
 		expect(log).not.toHaveBeenCalled();
 	});

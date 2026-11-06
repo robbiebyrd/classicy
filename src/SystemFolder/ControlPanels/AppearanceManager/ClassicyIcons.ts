@@ -182,7 +182,6 @@ export const ClassicyIcons = {
 				"control-panels/appearance-manager/background-tile.png",
 			),
 			file: icon("control-panels/appearance-manager/file.png"),
-			platinum: icon("control-panels/appearance-manager/platinum.png"),
 			preferences: icon("control-panels/appearance-manager/preferences.png"),
 		},
 		controlStripManager: {
@@ -214,7 +213,6 @@ export const ClassicyIcons = {
 		},
 	},
 	system: {
-		alias: icon("system/alias.png"),
 		// 16 × 16 Control Strip module icons, lifted pixel-for-pixel from
 		// HIGOS8 Figure 6-15.
 		controlStrip: {
@@ -232,7 +230,6 @@ export const ClassicyIcons = {
 		},
 		appleBlackOnWhite: icon("system/apple-black-on-white.png"),
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
-		apple: icon("system/apple.png"),
 		bigSwitchOff: icon("system/big-switch-off.png"),
 		bigSwitchOn: icon("system/big-switch-on.png"),
 		clipboard: icon("system/clipboard.png"),
@@ -266,8 +263,6 @@ export const ClassicyIcons = {
 		},
 		desktop: {
 			desktop: icon("system/desktop/desktop.png"),
-			trashEmpty: icon("system/desktop/trash-empty.png"),
-			trashFull: icon("system/desktop/trash-full.png"),
 		},
 		display: {
 			brightness: icon("system/display/brightness.png"),
@@ -510,9 +505,6 @@ export const ClassicyIcons = {
 		},
 	},
 	ui: {
-		// The "standard help icon" a Help button wears (HIGOS8 Ch.3 p.86): the
-		// Apple Guide lightbulb "?", lifted pixel-for-pixel from Figure 3-36.
-		helpButton: ui("help-button.png"),
 		halftoneLarge: ui("halftone-large.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),
 		cursors: {
@@ -523,16 +515,9 @@ export const ClassicyIcons = {
 			highlight: ui("cursors/cursor-highlight.png"),
 			menu: ui("cursors/cursor-menu.png"),
 			plus: ui("cursors/cursor-plus.png"),
-			resizeD: ui("cursors/cursor-resize-d.png"),
-			resizeL: ui("cursors/cursor-resize-l.png"),
-			resizeLr: ui("cursors/cursor-resize-lr.png"),
-			resizeR: ui("cursors/cursor-resize-r.png"),
-			resizeU: ui("cursors/cursor-resize-u.png"),
-			resizeUd: ui("cursors/cursor-resize-ud.png"),
 			rom: ui("cursors/cursor-rom.png"),
 			shortcut: ui("cursors/cursor-shortcut.png"),
 			spin: ui("cursors/cursor-spin.png"),
-			watch: ui("cursors/cursor-watch.png"),
 			precision: ui("cursors/cursor-precision.png"),
 		},
 	},

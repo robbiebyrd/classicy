@@ -21,8 +21,6 @@ const resolveSpecifier = (from: string, specifier: string): string => {
 	else if (/^@\/Appearance\/Platinum(?:\/|$)/.test(bare))
 		base = path.join(PLATINUM_SRC, bare.slice("@/Appearance/Platinum".length));
 	else if (bare.startsWith("@/")) base = path.join(SRC, bare.slice(2));
-	else if (bare.startsWith("@snd/"))
-		base = path.join(ROOT, "assets/sounds", bare.slice(5));
 	else if (bare.startsWith("@img/"))
 		base = path.join(ROOT, "assets/img", bare.slice(5));
 	else if (bare.startsWith(".")) base = path.resolve(path.dirname(from), bare);

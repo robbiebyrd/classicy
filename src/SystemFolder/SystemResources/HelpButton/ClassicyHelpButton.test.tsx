@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
 import "@/Appearance/Platinum/assets/platinumAssets";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButtonToolbar } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 
@@ -34,7 +34,12 @@ describe("ClassicyHelpButton", () => {
 		// No visible text: the glyph is the whole face.
 		expect(button).toHaveTextContent("");
 		const glyph = button.querySelector("img");
-		expect(glyph).toHaveAttribute("src", ClassicyIcons.ui.helpButton);
+		// The registered system art (Platinum's own file, plan 0015-kxa §3.3).
+		expect(glyph).toHaveAttribute(
+			"src",
+			resolveClassicyAsset("systemArt", "helpButton"),
+		);
+		expect(glyph?.getAttribute("src")).toMatch(/help-button\.png$/);
 		// Decorative — the button's aria-label carries the name.
 		expect(glyph).toHaveAttribute("alt", "");
 	});

@@ -14,11 +14,9 @@ import {
 	platinumWallpaperUrl,
 } from "./platinumWallpapers";
 
-// Still in the core's assets/ folder until plan 0015-kxa §3.3 moves them in.
-const WALLPAPERS = path.resolve(
-	import.meta.dirname,
-	"../../../../../assets/img/wallpapers",
-);
+// The package's own wallpaper files (moved out of the core's
+// assets/img/wallpapers, plan 0015-kxa §3.3, byte for byte).
+const WALLPAPERS = path.resolve(import.meta.dirname, "../../assets/wallpapers");
 
 /** The data: URI a 2.x library build inlines for a wallpaper file. */
 const inlined = (file: string) =>

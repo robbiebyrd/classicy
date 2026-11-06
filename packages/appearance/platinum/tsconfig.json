@@ -8,7 +8,6 @@
 		"paths": {
 			"@classicy/classicy": ["../../../src/index.ts"],
 			"@/*": ["../../../src/*"],
-			"@snd/*": ["../../../assets/sounds/*"],
 			"@img/*": ["../../../assets/img/*"],
 			"@vid/*": ["../../../assets/vid/*"]
 		}

@@ -15,6 +15,7 @@ import {
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import {
 	isClassicyAppearanceSourcePath,
+	isClassicyCoreBuildPackageAsset,
 	noInlineAppearanceAssetsPlugin,
 } from "./bin/classicyNoInlineAssets";
 import { classicyPackageStylesheets } from "./bin/classicyPackageCss";
@@ -277,13 +278,14 @@ const config = defineConfig({
 				replacement: path.resolve(__dirname, "./src/index.ts"),
 			},
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
-			{ find: "@snd", replacement: path.resolve(__dirname, "./assets/sounds") },
 			{ find: "@img", replacement: path.resolve(__dirname, "./assets/img") },
 			{ find: "@vid", replacement: path.resolve(__dirname, "./assets/vid") },
 		],
 	},
 	plugins: [
-		noInlineAppearanceAssetsPlugin(),
+		// Platinum's files from the old assets/ folder stay inlined in the core's
+		// interim bundle (see the predicate).
+		noInlineAppearanceAssetsPlugin(isClassicyCoreBuildPackageAsset),
 		// Compiles every component stylesheet into @layer classicy.base; the
 		// injected stylesheet declares the layer order first (CLASSICY_LAYER_ORDER).
 		classicyCssLayerPlugin(),

@@ -67,7 +67,6 @@ const config: StorybookConfig = {
 					},
 					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
 					{ find: "@", replacement: path.join(repoRoot, "src") },
-					{ find: "@snd", replacement: path.join(repoRoot, "assets/sounds") },
 					{ find: "@img", replacement: path.join(repoRoot, "assets/img") },
 					{ find: "@vid", replacement: path.join(repoRoot, "assets/vid") },
 				],

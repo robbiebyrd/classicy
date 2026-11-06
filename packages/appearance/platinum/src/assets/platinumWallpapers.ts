@@ -1,16 +1,19 @@
-// Platinum's wallpapers. Importing platinumAssets.ts registers them
-// (`registerClassicyWallpapers`, with each filename as its `file`); the core
-// resolves a theme's wallpaper filename through the asset registry
-// (`resolveClassicyWallpaper`), never through this module.
+// Platinum's wallpapers, the files in the package's assets/wallpapers (moved
+// out of the core's assets/img/wallpapers, plan 0015-kxa §3.3; its photos/
+// folder is read by nothing and matched by no glob). Importing
+// platinumAssets.ts registers them (`registerClassicyWallpapers`, with each
+// filename as its `file`); the core resolves a theme's wallpaper filename
+// through the asset registry (`resolveClassicyWallpaper`), never through this
+// module.
 
 const wallpaperModules = import.meta.glob(
-	"../../../../../assets/img/wallpapers/*.{png,jpg}",
+	"../../assets/wallpapers/*.{png,jpg}",
 	{ eager: true, import: "default" },
 ) as Record<string, string>;
 
 /** This build's URL for a Platinum wallpaper file, or "" when there is none. */
 export const platinumWallpaperUrl = (file: string): string =>
-	wallpaperModules[`../../../../../assets/img/wallpapers/${file}`] ?? "";
+	wallpaperModules[`../../assets/wallpapers/${file}`] ?? "";
 
 /**
  * Platinum's 47 wallpapers: the Desktop tab's label and the filename themes

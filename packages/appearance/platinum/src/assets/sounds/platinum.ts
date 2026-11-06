@@ -4,26 +4,33 @@ import {
 	classicyLog,
 	registerClassicySoundPack,
 } from "@classicy/classicy";
-import platinumJson from "@snd/platinum/platinum.json";
+import platinumJson from "../../../assets/sounds/platinum/platinum.json";
 
 const PLATINUM = "platinum";
 
-const platinumOgg = new URL("@snd/platinum/platinum.ogg", import.meta.url).href;
-const platinumM4a = new URL("@snd/platinum/platinum.m4a", import.meta.url).href;
-const platinumMp3 = new URL("@snd/platinum/platinum.mp3", import.meta.url).href;
-const platinumAc3 = new URL("@snd/platinum/platinum.ac3", import.meta.url).href;
+// The sprite sheet bin/make_audio_sprites.sh writes beside its JSON, in the
+// package's assets/sounds/platinum (moved out of the core's assets/sounds,
+// plan 0015-kxa §3.3). Imported as files, like the art, fonts and wallpapers:
+// Platinum's build emits them in dist/assets. The core's build, which bundles
+// Platinum until §3.4, inlines them as `data:` URIs.
+const spriteModules = import.meta.glob(
+	"../../../assets/sounds/platinum/platinum.{ogg,m4a,mp3,ac3}",
+	{ eager: true, import: "default" },
+) as Record<string, string>;
 
-// Vite needs the four static `new URL` literals above. In the library build
-// they are inlined as `data:` URIs, so the resolved URLs cannot be compared
-// with the JSON; instead the JSON's relative `src` must name exactly the four
-// bundled files, in the same order.
-const platinumUrls = [platinumOgg, platinumM4a, platinumMp3, platinumAc3];
 const PLATINUM_FILE_NAMES = [
 	"platinum.ogg",
 	"platinum.m4a",
 	"platinum.mp3",
 	"platinum.ac3",
 ];
+const platinumUrls = PLATINUM_FILE_NAMES.map(
+	(file) => spriteModules[`../../../assets/sounds/platinum/${file}`] ?? "",
+);
+
+// A resolved URL may be a `data:` URI, so it cannot be compared with the
+// JSON; instead the JSON's relative `src` must name exactly the four bundled
+// files, in the same order.
 if (
 	JSON.stringify(platinumJson.src.map((src) => src.split("/").pop())) !==
 	JSON.stringify(PLATINUM_FILE_NAMES)

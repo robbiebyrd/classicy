@@ -7,7 +7,6 @@ import {
 } from "@/Appearance/ClassicyAssetRegistry";
 import "@/Appearance/Platinum/assets/platinumAssets";
 import arrowUrl from "@/Appearance/Platinum/assets/art/cursor-arrow.svg";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { useClassicyCursor } from "./useClassicyCursor";
 
 describe("useClassicyCursor", () => {
@@ -23,7 +22,7 @@ describe("useClassicyCursor", () => {
 		const { result } = renderHook(() => useClassicyCursor());
 		result.current("resizeLr");
 		expect(document.body.style.cursor).toBe(
-			`url("${ClassicyIcons.ui.cursors.resizeLr}"), auto`,
+			`url("${resolveClassicyAsset("cursors", "resizeLr")}"), auto`,
 		);
 	});
 

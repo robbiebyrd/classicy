@@ -1,18 +1,13 @@
 import path from "node:path";
 import { NodePackageImporter } from "sass";
 import { defineConfig } from "vite";
-import {
-	isClassicyAppearanceSourcePath,
-	noInlineAppearanceAssetsPlugin,
-} from "../../../bin/classicyNoInlineAssets";
+import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 
 // @classicy/appearance-platinum's library build: ES and UMD bundles of the
 // Platinum Appearance Package (plan 0015-kxa §3.1). The core is a peer
 // dependency and stays external in both formats, so a host's one copy of the
 // core's registries (package, asset, sound pack, log) is the one Platinum
 // registers into (design 0014-ahm, anti-goal "Two copies of the registries").
-
-const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
 const externalPackages = [
 	"@classicy/classicy",
@@ -26,18 +21,6 @@ const externalPackages = [
 // vite.config.ts).
 const isAssetQuery = (id: string) =>
 	/\?(?:.*&)?(?:url|raw|worker|inline)\b/.test(id);
-
-// Platinum's files still in the core's assets/ folder until plan 0015-kxa
-// §3.3 moves them in: its wallpapers and sound sprites. They ship as files in
-// dist/assets too, like the art and fonts; only the halftone mask is inlined
-// (ruling E17).
-const PLATINUM_FILES_IN_CORE_ASSETS = [
-	path.join(repoRoot, "assets/img/wallpapers/"),
-	path.join(repoRoot, "assets/sounds/platinum/"),
-];
-const isPlatinumAsset = (file: string) =>
-	isClassicyAppearanceSourcePath(file) ||
-	PLATINUM_FILES_IN_CORE_ASSETS.some((dir) => file.startsWith(dir));
 
 const isExternal = (id: string) =>
 	!isAssetQuery(id) &&
@@ -59,14 +42,11 @@ export default defineConfig({
 			scss: { importers: [new NodePackageImporter()] },
 		},
 	},
-	resolve: {
-		alias: {
-			// Platinum's sound sprites stay in the core's assets/ until they move
-			// into the package (plan 0015-kxa §3.3).
-			"@snd": path.join(repoRoot, "assets/sounds"),
-		},
-	},
-	plugins: [noInlineAppearanceAssetsPlugin(isPlatinumAsset)],
+	// Every asset in the package ships as a file in dist/assets: its art and
+	// fonts (src/assets) and the sound sprites, wallpapers, art and cursors in
+	// assets/ (plan 0015-kxa §3.3). Only the halftone mask is inlined (ruling
+	// E17).
+	plugins: [noInlineAppearanceAssetsPlugin()],
 	build: {
 		sourcemap: true,
 		lib: {

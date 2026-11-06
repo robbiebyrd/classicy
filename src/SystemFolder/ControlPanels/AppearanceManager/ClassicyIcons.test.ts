@@ -6,26 +6,28 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 
 describe("ClassicyIcons registry wiring", () => {
-	const original = ClassicyIcons.system.alias;
+	const original = ClassicyIcons.system.extension;
 
 	afterEach(() => {
-		registerClassicyIcons({ system: { alias: original } });
+		registerClassicyIcons({ system: { extension: original } });
 	});
 
-	it("registers the Platinum icon tree on import", () => {
-		expect(resolveClassicyAsset("icons", "system.apple")).toBe(
-			ClassicyIcons.system.apple,
+	it("registers the core's icon tree on import", () => {
+		expect(resolveClassicyAsset("icons", "system.extension")).toBe(
+			ClassicyIcons.system.extension,
 		);
-		expect(ClassicyIcons.system.apple).not.toBe("");
+		expect(ClassicyIcons.system.extension).not.toBe("");
 	});
 
-	it("registerClassicyIcons deep-merges: system.alias override keeps every other system entry", () => {
+	it("registerClassicyIcons deep-merges: system.extension override keeps every other system entry", () => {
 		const before = Object.keys(ClassicyIcons.system).length;
-		registerClassicyIcons({ system: { alias: "custom.png" } });
+		registerClassicyIcons({ system: { extension: "custom.png" } });
 		expect(Object.keys(ClassicyIcons.system).length).toBe(before);
-		expect(resolveClassicyAsset("icons", "system.alias")).toBe("custom.png");
-		expect(resolveClassicyAsset("icons", "system.desktop.trashFull")).toBe(
-			ClassicyIcons.system.desktop.trashFull,
+		expect(resolveClassicyAsset("icons", "system.extension")).toBe(
+			"custom.png",
+		);
+		expect(resolveClassicyAsset("icons", "system.desktop.desktop")).toBe(
+			ClassicyIcons.system.desktop.desktop,
 		);
 	});
 

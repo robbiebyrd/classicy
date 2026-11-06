@@ -1,10 +1,18 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { assetSourceFile } from "@/__tests__/assetSourceFile";
 import {
+	type ClassicyCursorRole,
 	type ClassicySystemArtKey,
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 import "./platinumAssets";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+
+/** The package's folder, this project's root: its own files live under it. */
+const PACKAGE = path.resolve(import.meta.dirname, "../..");
+const fileOf = (url: string | undefined) =>
+	url === undefined ? undefined : assetSourceFile(url, PACKAGE);
 
 /**
  * Every `ClassicySystemArtKey`, classified: `true` = Platinum registers it. A
@@ -76,21 +84,91 @@ describe("Platinum system art", () => {
 		expect(UNREGISTERED).toHaveLength(3);
 	});
 
-	it("the Apple menu, trash, alias badge and help button are the icon-tree leaves", () => {
-		expect(resolveClassicyAsset("systemArt", "appleMenu")).toBe(
-			ClassicyIcons.system.apple,
+	it("draws the Apple menu, trash, alias badge and help button from its own assets/art", () => {
+		// Moved out of the core's assets/ with their icon-tree entries (plan
+		// 0015-kxa §3.3): Platinum was their only reader.
+		for (const [key, file] of [
+			["appleMenu", "apple.png"],
+			["trashEmpty", "trash-empty.png"],
+			["trashFull", "trash-full.png"],
+			["aliasBadge", "alias.png"],
+			["helpButton", "help-button.png"],
+		] as const) {
+			expect(fileOf(resolveClassicyAsset("systemArt", key)), key).toBe(
+				path.join(PACKAGE, "assets/art", file),
+			);
+		}
+	});
+
+	it("still reads the art the core draws too from the core's icon tree", () => {
+		expect(resolveClassicyAsset("systemArt", "startupLogo")).toBe(
+			ClassicyIcons.system.macosSvg,
 		);
-		expect(resolveClassicyAsset("systemArt", "trashFull")).toBe(
-			ClassicyIcons.system.desktop.trashFull,
+		expect(resolveClassicyAsset("systemArt", "aboutLogo")).toBe(
+			ClassicyIcons.classicy.logo,
 		);
-		expect(resolveClassicyAsset("systemArt", "trashEmpty")).toBe(
-			ClassicyIcons.system.desktop.trashEmpty,
+		expect(resolveClassicyAsset("systemArt", "halftoneLarge")).toBe(
+			ClassicyIcons.ui.halftoneLarge,
 		);
-		expect(resolveClassicyAsset("systemArt", "aliasBadge")).toBe(
-			ClassicyIcons.system.alias,
-		);
-		expect(resolveClassicyAsset("systemArt", "helpButton")).toBe(
-			ClassicyIcons.ui.helpButton,
+	});
+});
+
+/**
+ * Every `ClassicyCursorRole`, classified like the system art: `true` =
+ * Platinum registers it.
+ */
+const PLATINUM_CURSORS: Record<ClassicyCursorRole, boolean> = {
+	arrow: true,
+	ibeam: false,
+	crosshair: false,
+	watch: true,
+	hand: true,
+	resizeLr: true,
+	resizeUd: true,
+	resizeNwse: false,
+	resizeNesw: false,
+	resizeU: true,
+	resizeD: true,
+	resizeL: true,
+	resizeR: true,
+};
+
+describe("Platinum cursors", () => {
+	const roles = Object.entries(PLATINUM_CURSORS) as [
+		ClassicyCursorRole,
+		boolean,
+	][];
+
+	it.each(
+		roles.filter(([, yes]) => yes).map(([role]) => role),
+	)("registers cursor %s", (role) => {
+		expect(resolveClassicyAsset("cursors", role)).toMatch(/\S/);
+	});
+
+	it.each(
+		roles.filter(([, yes]) => !yes).map(([role]) => role),
+	)("leaves cursor %s unregistered", (role) => {
+		expect(resolveClassicyAsset("cursors", role)).toBeUndefined();
+	});
+
+	it("draws the watch and resize cursors from its own assets/cursors", () => {
+		for (const [role, name] of [
+			["watch", "watch"],
+			["resizeLr", "resize-lr"],
+			["resizeUd", "resize-ud"],
+			["resizeU", "resize-u"],
+			["resizeD", "resize-d"],
+			["resizeL", "resize-l"],
+			["resizeR", "resize-r"],
+		] as const)
+			expect(fileOf(resolveClassicyAsset("cursors", role)), role).toBe(
+				path.join(PACKAGE, "assets/cursors", `cursor-${name}.png`),
+			);
+	});
+
+	it("still reads the hand from the core's icon tree (the PDF viewer draws it)", () => {
+		expect(resolveClassicyAsset("cursors", "hand")).toBe(
+			ClassicyIcons.ui.cursors.hand,
 		);
 	});
 });

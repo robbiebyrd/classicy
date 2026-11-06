@@ -10,6 +10,9 @@ import { defineConfig } from "vitest/config";
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
 export default defineConfig({
+	// The sound sprites' formats Vite does not know as assets (it knows ogg,
+	// m4a and mp3): the ac3 file is imported too (src/assets/sounds/platinum.ts).
+	assetsInclude: ["**/*.ac3"],
 	test: {
 		name: "appearance-platinum",
 		environment: "jsdom",
@@ -22,7 +25,6 @@ export default defineConfig({
 			"@classicy/classicy": path.join(repoRoot, "src/index.ts"),
 			"@": path.join(repoRoot, "src"),
 			"@img": path.join(repoRoot, "assets/img"),
-			"@snd": path.join(repoRoot, "assets/sounds"),
 			"@vid": path.join(repoRoot, "assets/vid"),
 		},
 	},

@@ -42,7 +42,6 @@ const liveSourceAliases = [
 		replacement: path.resolve(root, "src/index.ts"),
 	},
 	// Internal path aliases the library source relies on (mirror ../vite.config.ts).
-	{ find: "@snd", replacement: path.resolve(root, "assets/sounds") },
 	{ find: "@img", replacement: path.resolve(root, "assets/img") },
 	{ find: "@vid", replacement: path.resolve(root, "assets/vid") },
 	{ find: "@", replacement: path.resolve(root, "src") },

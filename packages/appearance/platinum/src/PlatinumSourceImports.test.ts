@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 // Tests may still import core internals and test helpers.
 
 const srcDir = path.resolve(import.meta.dirname);
+const packageDir = path.dirname(srcDir);
 const sourceFiles = (pattern: RegExp) =>
 	readdirSync(srcDir, { recursive: true })
 		.map((file) => String(file).split(path.sep).join("/"))
@@ -44,10 +45,14 @@ const moduleSpecifiers = (file: string): string[] => {
 	return specifiers;
 };
 
-/** Whether a relative specifier from `file` stays inside src/. */
+/**
+ * Whether a relative specifier from `file` stays inside the package: its
+ * src/, or the files in its assets/ (the sprites, wallpapers, art and cursors
+ * that left the core's assets/, plan 0015-kxa §3.3).
+ */
 const staysInPackage = (file: string, specifier: string) =>
 	!path
-		.relative(srcDir, path.resolve(srcDir, path.dirname(file), specifier))
+		.relative(packageDir, path.resolve(srcDir, path.dirname(file), specifier))
 		.startsWith("..");
 
 describe("Platinum's TypeScript", () => {

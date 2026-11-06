@@ -34,7 +34,6 @@
 			"@/Appearance/Platinum": ["../packages/appearance/platinum/src/index.ts"],
 			"@/Appearance/Platinum/*": ["../packages/appearance/platinum/src/*"],
 			"@/*": ["../src/*"],
-			"@snd/*": ["../assets/sounds/*"],
 			"@img/*": ["../assets/img/*"],
 			"@vid/*": ["../assets/vid/*"]
 		}

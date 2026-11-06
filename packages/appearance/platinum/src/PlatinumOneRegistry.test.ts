@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+} from "node:fs";
 import path from "node:path";
 import {
 	getClassicyAppearancePackage,
@@ -7,6 +13,7 @@ import {
 	resolveClassicyAsset,
 } from "@classicy/classicy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { PLATINUM_WALLPAPERS } from "./assets/platinumWallpapers";
 
 // Review focus "one registry, not two" (plan 0015-kxa §3.1 step 5, design
 // 0014-ahm anti-goal "Two copies of the registries"): the package's built
@@ -96,23 +103,52 @@ describe("the built bundle and the core's registries", () => {
 		}
 	});
 
-	// The four sound sprites are the exception for now: `new URL()` assets
-	// still in the core's assets/ folder, inlined as the core's bundle inlines
-	// them, until plan 0015-kxa §3.3 moves them into the package and §3.4
-	// emits them as files.
-	const SPRITES = [
-		"audio/ogg",
-		"audio/mp4",
-		"audio/mpeg",
-		"application/octet-stream",
-	];
-
-	it("ships its art, fonts and wallpapers as files: only the halftone mask is inlined (ruling E17)", () => {
-		const inlined = [...es.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]/g)]
-			.map((match) => match[1])
-			.filter((type) => !SPRITES.includes(type));
-		expect(inlined).toEqual(["image/svg+xml"]);
+	it("ships its art, fonts, wallpapers and sound sprites as files: only the halftone mask is inlined (ruling E17)", () => {
+		for (const bundle of [es, umd]) {
+			const inlined = [
+				...bundle.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]/g),
+			].map((match) => match[1]);
+			expect(inlined).toEqual(["image/svg+xml"]);
+		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.png["']/);
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
+		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+			expect(es).toContain(`new URL("assets/platinum.${ext}"`);
+	});
+
+	// Platinum's files from the core's assets/ folder (plan 0015-kxa §3.3)
+	// are the package's own now, emitted with the rest of its assets.
+	it("emits the sound sprites, wallpapers and the moved art and cursors into dist/assets", () => {
+		const assets = readdirSync(path.join(outDir, "assets"));
+		expect(assets).toEqual(
+			expect.arrayContaining([
+				"platinum.ogg",
+				"platinum.m4a",
+				"platinum.mp3",
+				"platinum.ac3",
+				...PLATINUM_WALLPAPERS.map(({ file }) => file),
+				"apple.png",
+				"alias.png",
+				"trash-empty.png",
+				"trash-full.png",
+				"help-button.png",
+				"cursor-watch.png",
+				...["lr", "ud", "u", "d", "l", "r"].map(
+					(dir) => `cursor-resize-${dir}.png`,
+				),
+			]),
+		);
+		// Nothing else is in dist/assets: the fonts and the package's art.
+		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12);
+		// The sprites are the files bin/make_audio_sprites.sh wrote, byte for byte.
+		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+			expect(
+				readFileSync(path.join(outDir, "assets", `platinum.${ext}`)).equals(
+					readFileSync(
+						path.join(packageDir, `assets/sounds/platinum/platinum.${ext}`),
+					),
+				),
+				ext,
+			).toBe(true);
 	});
 });
