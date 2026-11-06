@@ -3,11 +3,12 @@ id: 0146-doe
 title: Storybook's build runs svgo over Appearance Package art, so the static Storybook and the parity baseline draw altered art
 purpose: The published Storybook and the parity baseline show package art exactly as authored, as the library does.
 type: bugs
-status: ready
+status: in_progress
 priority: "2"
 effort: S
 created: "2026-11-06T03:39:09.727Z"
-updated: "2026-11-06T03:39:15.201Z"
+updated: "2026-11-06T05:13:16.568Z"
+started: "2026-11-06T05:13:16.568Z"
 tags: []
 milestone: ""
 due_date: ""

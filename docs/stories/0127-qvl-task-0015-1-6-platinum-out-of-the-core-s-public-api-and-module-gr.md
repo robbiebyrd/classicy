@@ -3,12 +3,13 @@ id: 0127-qvl
 title: '0015 §1.6: The desktop stops importing Platinum, and Platinum leaves the core''s API and module graph'
 purpose: Execute plan 0015-kxa section 1.6.
 type: task
-status: in_progress
+status: complete
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:42.107Z"
-updated: "2026-11-06T02:19:03.746Z"
+updated: "2026-11-06T05:12:28.231Z"
 started: "2026-11-06T02:19:03.746Z"
+completed: "2026-11-06T05:12:28.230Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -73,8 +74,8 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
-- [ ] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
+- [x] VERIFY: `pnpm lint && pnpm exec tsc --noEmit -p . && pnpm storybook:typecheck && node bin/generate-vocabulary.ts --check && node bin/classicyLiteralColorSweep.ts && pnpm test --maxWorkers=3 && pnpm build:source && pnpm build:storybook && pnpm --filter classicy-example build` passes.
+- [x] VERIFY: Reviewed with no open finding at or above 70 confidence, verified by the controller, and landed on feat/AppearancePackages with the full gate green.
 
 ## Files
 
@@ -90,3 +91,5 @@ Conventional commit(s) ending with the session trailers; confirm the branch and 
 ## Work Log
 
 ### 2026-11-06T00:15:27.230Z - 2026-11-06: 0144-6sc (first session with only a non-Platinum package draws the core stand-in theme; found by 0126's review) becomes reachable with this section and is dispatched with it: the 1.6 implementer also fixes 0144.
+
+### 2026-11-06T05:12:16.175Z - Landed at afe942157 (12 commits rebased onto 28a2cccd5). Rebased gate: 470 files / 6584 tests, GATE_EXIT=0. Controller parity with the 0140 tool from the static build plus the example dev server against platinum-split/before (its @mid set swapped to before-mid2, old set in before-mid-old): 445/445 AE 0. Reviews: round 1 fix-first (0144 detection), round 2 fix-first (defaultState seed tweaks lost, confidence 75), fixed in df7f2ca76 exactly as the reviewer prescribed and verified by the controller. J1 (library build entry src/ClassicyLibraryBuild.internal.ts still registers Platinum) logged on 0129/0132 for Phase 3. Follow-ups: 0147-qyy (J12, dropped package's defaults reference), 0148-wf3 (J14/J15, seed tweaks lost on reload or late registration).

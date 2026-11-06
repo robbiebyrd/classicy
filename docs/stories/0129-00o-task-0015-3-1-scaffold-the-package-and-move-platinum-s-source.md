@@ -3,11 +3,12 @@ id: 0129-00o
 title: '0015 §3.1: Scaffold the package and move Platinum''s source'
 purpose: Execute plan 0015-kxa section 3.1.
 type: task
-status: ready
+status: in_progress
 priority: "1"
 effort: M
 created: "2026-11-05T19:54:48.766Z"
-updated: "2026-11-06T03:26:29.235Z"
+updated: "2026-11-06T05:13:14.116Z"
+started: "2026-11-06T05:13:14.115Z"
 tags: []
 milestone: ""
 due_date: ""

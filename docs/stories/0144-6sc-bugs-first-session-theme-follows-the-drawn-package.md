@@ -3,12 +3,13 @@ id: 0144-6sc
 title: A host whose only package is not Platinum draws it with the core stand-in theme
 purpose: Make a first session with a non-Platinum package look like that package, once 1.6 drops the Platinum import.
 type: bugs
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T00:14:15.984Z"
-updated: "2026-11-06T02:19:06.115Z"
+updated: "2026-11-06T05:12:36.049Z"
 started: "2026-11-06T02:19:06.115Z"
+completed: "2026-11-06T05:12:36.049Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -49,11 +50,13 @@ Controller's call (reviewer's suggestion): when the active theme is the core sta
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: With only `foo` registered, a first session draws `foo`'s defaults theme (every declared knob emitted), knob edits fork into `custom-foo`, `packageId` is unchanged, and a persisted custom or host theme is never replaced.
-- [ ] VERIFY: Full gate green and a parity round against `platinum-split/before` is AE 0 except the known clock-colon @mid flake.
+- [x] VERIFY: With only `foo` registered, a first session draws `foo`'s defaults theme (every declared knob emitted), knob edits fork into `custom-foo`, `packageId` is unchanged, and a persisted custom or host theme is never replaced.
+- [x] VERIFY: Full gate green and a parity round against `platinum-split/before` is AE 0 except the known clock-colon @mid flake.
 
 ## Files
 
 - `src/SystemFolder/ControlPanels/AppearanceManager/ClassicyBuiltInThemes.internal.ts` - refresh the core stand-in to the drawn package's defaults
 
 ## Work Log
+
+### 2026-11-06T05:12:18.749Z - Landed at afe942157 (12 commits rebased onto 28a2cccd5). Rebased gate: 470 files / 6584 tests, GATE_EXIT=0. Controller parity with the 0140 tool from the static build plus the example dev server against platinum-split/before (its @mid set swapped to before-mid2, old set in before-mid-old): 445/445 AE 0. Detection is the id rule (drawnClassicyPackageDefaults: the active theme is another package's defaults.id, not custom/host-loaded), applied at store creation, on registry changes and through followDrawnPackage; withSeededPackageDefaults keeps a host seed's tweaks. ClassicyDrawnPackageTheme.test.tsx 28+4 tests; mutants R1-R12 and S1-S4 killed except the equivalent S3.

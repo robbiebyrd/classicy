@@ -3,11 +3,12 @@ id: 0143-sdy
 title: Two packages registering the same wallpaper filename collide in the Desktop tab and in resolution
 purpose: Keep wallpapers unambiguous once a second package registers its own.
 type: bugs
-status: pending
+status: in_progress
 priority: "3"
 effort: S
 created: "2026-11-05T22:16:22.186Z"
-updated: "2026-11-05T22:16:22.186Z"
+updated: "2026-11-06T05:13:23.689Z"
+started: "2026-11-06T05:13:23.689Z"
 tags: []
 milestone: ""
 due_date: ""

@@ -6,7 +6,7 @@ status: in_progress
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-06T02:35:24.750Z"
+updated: "2026-11-06T05:13:26.101Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -28,7 +28,7 @@ progress:
     stories:
       - 0121-e89
   "1":
-    status: in_progress
+    status: complete
   "1.1":
     status: complete
     stories:
@@ -50,7 +50,7 @@ progress:
     stories:
       - 0126-orc
   "1.6":
-    status: in_progress
+    status: complete
     stories:
       - 0127-qvl
   "2":
@@ -62,7 +62,7 @@ progress:
   "3":
     status: in_progress
   "3.1":
-    status: pending
+    status: in_progress
     stories:
       - 0129-00o
   "3.2":
