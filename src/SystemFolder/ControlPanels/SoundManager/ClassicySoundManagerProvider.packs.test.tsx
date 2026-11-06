@@ -135,6 +135,68 @@ describe("ClassicySoundManagerProvider sound packs", () => {
 		expect(latest.packId).toBe("late");
 	});
 
+	describe("fallback pack registered after mount", () => {
+		const foo = {
+			id: "foo",
+			name: "foo",
+			src: ["foo.ogg"],
+			sprite: { ClassicyOther: [0, 100] as [number, number] },
+		};
+
+		beforeEach(() => {
+			resetClassicySoundPacks();
+			resetClassicySoundPackWarnings();
+			registerClassicySoundPack(foo);
+			mockAppearance.activeTheme.sound.pack = "foo";
+		});
+
+		it("plays a sprite the pack lacks on the default pack registered late", () => {
+			render(tree());
+			expect(created).toEqual([["foo.ogg"]]);
+			act(() => registerClassicySoundPack(pack("platinum", PLATINUM_SRC)));
+			expect(created).toContainEqual([PLATINUM_SRC]);
+			act(() =>
+				dispatchRef({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }),
+			);
+			const platinum =
+				instances[created.findIndex(([s]) => s === PLATINUM_SRC)];
+			expect(platinum.play).toHaveBeenCalledWith("ClassicyBeep");
+			expect(instances[0].play).not.toHaveBeenCalled();
+			expect(platinum.volume).toHaveBeenCalled();
+		});
+
+		it("keeps the pack's own sprites on the pack after the late registration", () => {
+			render(tree());
+			act(() => registerClassicySoundPack(pack("platinum", PLATINUM_SRC)));
+			act(() =>
+				dispatchRef({ type: "ClassicySoundPlay", sound: "ClassicyOther" }),
+			);
+			expect(instances[0].play).toHaveBeenCalledWith("ClassicyOther");
+			expect(created.filter(([s]) => s === "foo.ogg")).toHaveLength(1);
+		});
+
+		it("builds the fallback once and logs nothing new", () => {
+			const log = vi.spyOn(ClassicyLog, "classicyLog");
+			render(tree());
+			const before = log.mock.calls.length;
+			act(() => registerClassicySoundPack(pack("platinum", PLATINUM_SRC)));
+			act(() => registerClassicySoundPack(pack("other", "other.ogg")));
+			expect(created.filter(([s]) => s === PLATINUM_SRC)).toHaveLength(1);
+			expect(log.mock.calls.length).toBe(before);
+			log.mockRestore();
+		});
+
+		it("stays silent while the default pack is never registered", () => {
+			render(tree());
+			act(() => registerClassicySoundPack(pack("other", "other.ogg")));
+			act(() =>
+				dispatchRef({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }),
+			);
+			expect(created).toEqual([["foo.ogg"]]);
+			expect(instances[0].play).not.toHaveBeenCalled();
+		});
+	});
+
 	it("reloads when the theme's pack changes and re-applies the volume", () => {
 		const { rerender } = render(tree());
 		act(() => dispatchRef({ type: "ClassicyVolumeSet", volume: 40 }));

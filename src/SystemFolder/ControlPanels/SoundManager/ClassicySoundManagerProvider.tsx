@@ -60,7 +60,19 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 		const pack =
 			findClassicySoundPack(packId) ??
 			findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
-		if (!pack || pack.id === sound.packId) return;
+		if (!pack) return;
+		if (pack.id === sound.packId) {
+			// Loaded already; only the stand-in for the sprites it lacks can be
+			// missing, when the default pack registered after this one loaded.
+			if (
+				!sound.fallbackPlayer &&
+				pack.id !== CLASSICY_DEFAULT_SOUND_PACK_ID &&
+				findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID)
+			) {
+				soundDispatch({ type: "ClassicySoundLoadFallback" });
+			}
+			return;
+		}
 		soundDispatch({
 			type: "ClassicySoundLoad",
 			pack,
@@ -68,7 +80,7 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 				useAppManager.getState().System.Manager.Appearance?.activeTheme?.sound
 					?.disabled,
 		});
-	}, [packId, packs, sound.packId]);
+	}, [packId, packs, sound.packId, sound.fallbackPlayer]);
 
 	// Bridge the persisted Appearance selection (Zustand) into the sound state
 	// so the reducer stays pure and the ClassicyAlertSound/PlayError events can

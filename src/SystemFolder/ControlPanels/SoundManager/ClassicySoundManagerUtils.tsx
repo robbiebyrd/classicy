@@ -66,6 +66,7 @@ export enum ClassicySoundActionTypes {
 	ClassicySoundPlayInterrupt = "ClassicySoundPlayInterrupt",
 	ClassicySoundPlayError = "ClassicySoundPlayError",
 	ClassicySoundLoad = "ClassicySoundLoad",
+	ClassicySoundLoadFallback = "ClassicySoundLoadFallback",
 	ClassicySoundSet = "ClassicySoundSet",
 	ClassicySoundDisable = "ClassicySoundDisable",
 	ClassicySoundDisableOne = "ClassicySoundDisableOne",
@@ -349,6 +350,16 @@ export const ClassicySoundStateEventReducer = (
 					: (ss.fallbackPlayer ?? createDefaultPackPlayer()),
 				disabled,
 			};
+			break;
+		}
+		case ClassicySoundActionTypes.ClassicySoundLoadFallback: {
+			// The default pack registered after the active pack loaded: build the
+			// stand-in for the sprites the active pack lacks. Never replaces one.
+			const fallbackPlayer =
+				ss.packId === CLASSICY_DEFAULT_SOUND_PACK_ID || ss.fallbackPlayer
+					? null
+					: createDefaultPackPlayer();
+			next = fallbackPlayer ? { ...ss, fallbackPlayer } : ss;
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundSet: {
