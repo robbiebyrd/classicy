@@ -179,6 +179,41 @@ export const withoutDefaultActiveThemeMeasurements = (
 	};
 };
 
+/**
+ * `state` as the base for a host's `defaultState` seed that names a
+ * `packageId`: its active theme swapped for the defaults of the package that
+ * id draws (`drawnClassicyPackageDefaults`), when that is not the theme's
+ * own package, so the seed's theme tweaks land on those defaults. Merged as
+ * is, the tweaks would land on the default package's theme, which then
+ * gives way, whole, to the drawn package's defaults (`followDrawnPackage`).
+ * An unregistered `packageId` draws the registered default, so nothing is
+ * swapped. `state` itself without a `packageId`.
+ * @internal
+ */
+export const withSeededPackageDefaults = (
+	state: ClassicyStore,
+	seed: DeepPartial<ClassicyStore>,
+): ClassicyStore => {
+	const packageId = seed.System?.Manager?.Appearance?.packageId;
+	if (typeof packageId !== "string") return state;
+	const appearance = state.System.Manager.Appearance;
+	const activeTheme = drawnClassicyPackageDefaults({
+		...appearance,
+		packageId,
+	});
+	if (!activeTheme) return state;
+	return {
+		...state,
+		System: {
+			...state.System,
+			Manager: {
+				...state.System.Manager,
+				Appearance: { ...appearance, activeTheme },
+			},
+		},
+	};
+};
+
 /** True iff the module store initialized from valid persisted localStorage state. */
 export const wasHydratedFromStorage = (): boolean => hydratedFromStorage;
 

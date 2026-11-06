@@ -18,6 +18,7 @@ import {
 	useAppManager,
 	wasHydratedFromStorage,
 	withoutDefaultActiveThemeMeasurements,
+	withSeededPackageDefaults,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -88,10 +89,14 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
 		seeded.current = true;
 		// Over the live state with its default knob families dropped, as the
-		// load path merges saved state: the merge is deep (H-R17).
+		// load path merges saved state: the merge is deep (H-R17). A seed
+		// naming a packageId merges its theme tweaks over that package's
+		// defaults (withSeededPackageDefaults), not the default package's.
 		useAppManager.setState((s) =>
 			mergeClassicyState(
-				withoutDefaultActiveThemeMeasurements(s as ClassicyStore),
+				withoutDefaultActiveThemeMeasurements(
+					withSeededPackageDefaults(s as ClassicyStore, defaultState),
+				),
 				defaultState,
 			),
 		);

@@ -597,3 +597,85 @@ describe("stand-ins the store heals (review of 0144-6sc)", () => {
 		expect(b.active().package).toBe("bar");
 	});
 });
+
+describe("a host defaultState seed that names a packageId", () => {
+	const SEED_TWEAKS = { desktop: { iconSize: 64, backgroundColor: 0x112233 } };
+
+	/** Mounts ClassicyAppManagerProvider with `defaultState`, on a first session. */
+	const mountSeeded = async (
+		b: Awaited<ReturnType<typeof boot>>,
+		appearance: Record<string, unknown>,
+	) => {
+		const { ClassicyAppManagerProvider } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
+		);
+		const defaultState = { System: { Manager: { Appearance: appearance } } };
+		render(
+			<ClassicyAppManagerProvider defaultState={defaultState}>
+				<p>host</p>
+			</ClassicyAppManagerProvider>,
+		);
+		return b.state().System.Manager.Appearance;
+	};
+
+	it("lands the seed's theme tweaks on the named package's defaults", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		const appearance = await mountSeeded(b, {
+			packageId: FOO,
+			activeTheme: SEED_TWEAKS,
+		});
+		expect(appearance.packageId).toBe(FOO);
+		expect(appearance.activeTheme.id).toBe("foo-default");
+		expect(appearance.activeTheme.package).toBe(FOO);
+		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
+		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
+		// foo's own knob values still come through.
+		const vars: Record<string, unknown> = b.appearance.getThemeVars(
+			appearance.activeTheme,
+		);
+		expect(vars["--foo-frame-bevel-width"]).toBe("3px");
+	});
+
+	it("keeps today's behavior for tweaks with no packageId", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		const appearance = await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		expect(appearance.packageId).toBe("platinum");
+		expect(appearance.activeTheme.id).toBe("default");
+		expect(appearance.activeTheme.package).toBe("platinum");
+		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
+		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
+	});
+
+	it("keeps the live package's theme for tweaks with no packageId", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		b.registerFoo();
+		act(() =>
+			b.store.dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: FOO,
+			}),
+		);
+		const appearance = await mountSeeded(b, { activeTheme: SEED_TWEAKS });
+		expect(appearance.packageId).toBe(FOO);
+		expect(appearance.activeTheme.id).toBe("foo-default");
+		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
+	});
+
+	it("keeps the tweaks when the named package is not registered", async () => {
+		const b = await boot();
+		await import("@/Appearance/Platinum");
+		const appearance = await mountSeeded(b, {
+			packageId: "nope",
+			activeTheme: SEED_TWEAKS,
+		});
+		expect(appearance.packageId).toBe("nope");
+		expect(appearance.activeTheme.id).toBe("default");
+		expect(appearance.activeTheme.desktop.iconSize).toBe(64);
+		expect(appearance.activeTheme.desktop.backgroundColor).toBe(0x112233);
+	});
+});
