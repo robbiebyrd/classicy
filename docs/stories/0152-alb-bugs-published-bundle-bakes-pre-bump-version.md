@@ -3,11 +3,12 @@ id: 0152-alb
 title: The published bundle bakes in the version from before the release bump, so About This Computer shows the old version
 purpose: A released bundle reports its own version.
 type: bugs
-status: ready
+status: in_progress
 priority: "1"
 effort: S
 created: "2026-11-06T16:46:02.551Z"
-updated: "2026-11-06T16:46:09.828Z"
+updated: "2026-11-06T16:54:23.979Z"
+started: "2026-11-06T16:54:23.979Z"
 tags: []
 milestone: ""
 due_date: ""

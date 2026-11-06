@@ -3,11 +3,12 @@ id: 0151-0cc
 title: '@classicy/classicy''s declarations yield no types under moduleResolution node16/nodenext'
 purpose: Hosts on node16/nodenext module resolution get the core's types in 3.0.0.
 type: bugs
-status: ready
+status: in_progress
 priority: "1"
 effort: S
 created: "2026-11-06T16:45:52.021Z"
-updated: "2026-11-06T16:45:59.949Z"
+updated: "2026-11-06T16:54:26.489Z"
+started: "2026-11-06T16:54:21.440Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -56,3 +57,5 @@ Rewrite relative specifiers in the core's emitted declarations to `.js` (e.g. `v
 - `vite.config.ts` - declaration specifiers with .js
 
 ## Work Log
+
+### 2026-11-06T16:54:26.488Z - 2026-11-06 16:53: started at the owner's request in parallel with 3.4, based on fu/0132 at fc49bddc4 (it needs 3.4's separate packs and Platinum's declarations); rebases onto 3.4's final head, and reuses 3.4's bin/classicyDeclarationSpecifiers.ts for the core's half.
