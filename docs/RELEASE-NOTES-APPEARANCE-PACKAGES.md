@@ -1158,6 +1158,15 @@ warnings about derived folder names.
 - **Finder list rows** carry the `selected` class once, not twice.
 - **`ClassicyButton` keeps a `className` you pass** (it used to drop it).
 - **The Platinum arrow cursor** has its outline on every edge.
+- **Types under `node16` and `nodenext` resolution.** The package is
+  `"type": "module"`, and its declarations re-exported with extensionless
+  relative specifiers (`export * from './…'`), so a host on
+  `moduleResolution: node16` or `nodenext` got none of its names (TS2305:
+  `Module '"@classicy/classicy"' has no exported member 'ClassicyTheme'`).
+  Every relative specifier in the shipped declarations, the core's and
+  Platinum's, now carries its `.js`, dotted module names included
+  (`./ClassicyAppearanceManager.Colors.js`). `bundler` resolution was not
+  affected.
 - **Security hardening.** The HyperCard script builder can no longer write to
   `Object.prototype` from stack data (CodeQL
   `js/prototype-polluting-assignment`). The Finder open-with trust fixes above
@@ -1211,6 +1220,9 @@ None of this changes the published package's behavior.
     published type declarations, and that `classicy-platinum.fonts.css`
     declares exactly the faces the runtime registers, each pointing at a
     file in `dist/assets/`.
+  - `verify:host-types`, the end of `build:source`, which packs both
+    packages and type-checks a host file against them under `bundler`,
+    `node16` and `nodenext`.
 - **Visual parity tooling.** `bin/parity/` (`pnpm parity:stories`,
   `parity:shoot`, `parity:app`, `parity:compare`) shoots Storybook and the example app
   with Playwright and compares the shots with ImageMagick. It also reports
