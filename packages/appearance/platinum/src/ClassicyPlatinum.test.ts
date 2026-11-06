@@ -53,7 +53,11 @@ describe("the Platinum appearance package", () => {
 			expect.anything(),
 		);
 		log.mockRestore();
-	});
+		// The first `import("./index")` in this file loads the whole core
+		// barrel cold (Platinum imports `@classicy/classicy`): about 2.5 s
+		// alone, past vitest's 5 s default when the package's 20 files run
+		// in parallel. Later imports in the file are cached.
+	}, 30_000);
 
 	it("passes the package schema, defaults.package included", async () => {
 		await import("./index");
