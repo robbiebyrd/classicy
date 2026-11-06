@@ -91,6 +91,16 @@ const readBy = (file: string): string => {
 			? "the sound pack"
 			: "";
 
+	// build:audio's skip stamp (0155): the script compares it with a hash of
+	// the pack's sources before encoding.
+	if (base.endsWith(".sprites.sha256") && inAssets.startsWith("sounds/"))
+		return readFileSync(
+			path.join(REPO, "bin/make_audio_sprites.sh"),
+			"utf8",
+		).includes(".sprites.sha256")
+			? "build:audio's skip stamp (bin/make_audio_sprites.sh)"
+			: "";
+
 	const sprite = file.match(SPRITE_SOURCE);
 	if (sprite) {
 		const pack = JSON.parse(
