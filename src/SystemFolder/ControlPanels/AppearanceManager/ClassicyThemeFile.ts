@@ -145,7 +145,9 @@ const describeIssues = (issues: z.core.$ZodIssue[]): string => {
 
 /**
  * Validates an untrusted theme object and makes it loadable: unknown keys
- * stripped, a registered wallpaper held by its filename. Used for both file imports
+ * stripped, a registered wallpaper held by its filename, or pinned as
+ * `<package>|<file>` when it is another package's
+ * (`importableClassicyThemeBackground`). Used for both file imports
  * and `ClassicyDesktopImportTheme` payloads. A theme for an Appearance Package
  * that is not installed is refused. Identity (id/name) is left alone — see
  * `assignImportedClassicyThemeIdentity`.
@@ -186,8 +188,10 @@ export type ClassicyDroppedTheme = {
 /**
  * Validates the themes a host hands to `ClassicyDesktopLoadThemes`, each
  * against `ClassicyThemeSchema` exactly as an import is (unknown keys
- * stripped, `package` defaulted, a registered wallpaper held by its filename). A
- * theme written before the metric groups existed is completed from its
+ * stripped, `package` defaulted, a registered wallpaper held by its filename,
+ * or as `<package>|<file>` where its filename would name another's, though
+ * never pinned as an import's is). A theme written before the metric groups
+ * existed is completed from its
  * package's defaults first, as before. Unlike an import, a theme for an
  * Appearance Package that is not registered (yet) is kept: a host may load
  * its themes before it registers the package. Invalid entries are left out

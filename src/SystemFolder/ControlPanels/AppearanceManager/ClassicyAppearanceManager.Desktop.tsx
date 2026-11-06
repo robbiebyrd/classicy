@@ -71,8 +71,9 @@ export const useDesktopTab = ({
 	const sizeOption = classicyBackgroundSizeOption(bgSize);
 	const wallpapers = useClassicyAssetTree("wallpapers");
 	// Option values are what ClassicyDesktopChangeBackground stores: a
-	// registered wallpaper's filename, or `<package>|<file>` where the
-	// filename would resolve to another package's for the theme (its source,
+	// registered wallpaper's filename, or `<package>|<file>` for one of
+	// neither the theme's package nor Platinum, or Platinum's that the
+	// theme's package shadows (its source,
 	// for one registered without a file), so the resolved `bg` is matched the
 	// same way.
 	const wallpaperOptions = useMemo(

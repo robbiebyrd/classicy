@@ -21,10 +21,12 @@ export { CLASSICY_WALLPAPER_PACKAGE_SEPARATOR };
  * `portableClassicyWallpaper(value, theme.package)`.
  *
  * A filename is unique within its package only, so a bare filename means the
- * theme's own package's (then the active package's, then Platinum's), and
+ * theme's own package's (then Platinum's, then the active package's), and
  * another package's wallpaper is named `"<package>|<file>"`
  * (`classicyWallpaperReference`): `"platinum|default.png"` in a theme of
- * another package. A Platinum theme naming Platinum's wallpaper stays bare.
+ * another package. A Platinum theme naming Platinum's wallpaper stays bare;
+ * whether a stored one is bare never depends on the active package
+ * (`storedReferenceTo`).
  *
  * Store-free, like the registry it reads, so reducers and the theme schema may
  * import it. The index is rebuilt lazily, on the first lookup after any asset
@@ -153,11 +155,20 @@ const packages = (): Map<string, PackageIndex> => {
 	return built;
 };
 
-/** The given package, the active one, then Platinum. */
+/**
+ * The given package (default: the active one), Platinum, then the active
+ * package. Platinum comes before the active package so that a bare filename
+ * a theme stores for Platinum's wallpaper (`storedReferenceTo`) renders it
+ * whichever package is active.
+ */
+const lookupOrder = (packageId?: string): string[] => {
+	const active = getActiveClassicyAppearancePackageId();
+	return [...new Set([packageId ?? active, PLATINUM, active])];
+};
+
 const lookupChain = (packageId?: string): PackageIndex[] => {
 	const all = packages();
-	const active = getActiveClassicyAppearancePackageId();
-	return [...new Set([packageId ?? active, active, PLATINUM])]
+	return lookupOrder(packageId)
 		.map((key) => all.get(key))
 		.filter((index): index is PackageIndex => index !== undefined);
 };
@@ -179,8 +190,8 @@ const warnUnknown = (value: string): void => {
 /**
  * The registered wallpaper `value` names exactly: a package-qualified
  * reference its package registers; else, searching `packageId` (default: the
- * active package), the active package, Platinum, then every other package, a
- * registered filename, the source registered for one, or a base64 `data:`
+ * active package), Platinum, the active package, then every other package in
+ * registration order, a registered filename, the source registered for one, or a base64 `data:`
  * URI matching one's `legacyDigests`. Never by basename. The search's first
  * three steps are `resolveClassicyWallpaper`'s, so a bare filename names the
  * wallpaper it renders as, when it renders.
@@ -194,10 +205,7 @@ const exactIdentity = (
 	const ref = parseClassicyWallpaperReference(value);
 	if (ref)
 		return all.get(ref.packageId)?.byFile.has(ref.file) ? ref : undefined;
-	const active = getActiveClassicyAppearancePackageId();
-	const order = [
-		...new Set([packageId ?? active, active, PLATINUM, ...all.keys()]),
-	];
+	const order = [...new Set([...lookupOrder(packageId), ...all.keys()])];
 	for (const id of order) {
 		const index = all.get(id);
 		if (!index) continue;
@@ -238,22 +246,23 @@ const referenceTo = (
 
 /**
  * The reference a theme of `themePackage` stores for `identity`: its bare
- * filename whenever that already resolves to it for the theme (the theme's
- * own package's, or one the theme's package, the active one and Platinum
- * reach first), else `"<package>|<file>"`. So only a filename two packages
- * share is ever qualified, and saved state stays as it was otherwise.
+ * filename for the theme's own package's wallpaper, and for Platinum's when
+ * the theme's package registers no file of that name (the bare filename
+ * reaches Platinum before the active package, `lookupOrder`); else
+ * `"<package>|<file>"`. Decided from the theme's package and Platinum only,
+ * never the active package, which is session state: a stored theme renders
+ * the same image whichever package is active. A Platinum-only host stores
+ * every wallpaper bare, as before.
  */
 const storedReferenceTo = (
 	identity: WallpaperIdentity,
 	themePackage: string,
 ): string => {
-	const owner = packages().get(identity.packageId);
-	const renders = lookupChain(themePackage).find((index) =>
-		index.byFile.has(identity.file),
-	);
-	return renders !== undefined && renders === owner
-		? identity.file
-		: referenceTo(identity, themePackage);
+	if (identity.packageId === themePackage) return identity.file;
+	const own = packages().get(themePackage);
+	if (identity.packageId === PLATINUM && !own?.byFile.has(identity.file))
+		return identity.file;
+	return referenceTo(identity, themePackage);
 };
 
 /**
@@ -288,8 +297,9 @@ export const classicyWallpaperReferenceFor = (
  * - Anything else is `""`, with one warning per value: an unloadable path
  *   would only request a 404.
  *
- * Looks in `packageId` (a theme's own package), then the active package,
- * then Platinum, as `resolveClassicyAsset` does.
+ * Looks in `packageId` (a theme's own package), then Platinum, then the
+ * active package (Platinum first, unlike `resolveClassicyAsset`, so that a
+ * bare filename stored for Platinum's wallpaper never renders another's).
  */
 export const resolveClassicyWallpaper = (
 	value: string,
