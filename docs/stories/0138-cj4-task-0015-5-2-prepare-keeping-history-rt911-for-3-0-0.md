@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: M
 created: "2026-11-05T19:55:18.059Z"
-updated: "2026-11-05T20:27:04.109Z"
+updated: "2026-11-06T14:18:44.057Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -72,3 +72,5 @@ Title `Classicy 3.0.0: @classicy/classicy and @classicy/appearance-platinum`; bo
 - `Keeping-History/rt911:` - modify package.json, the lockfile, every `from "classicy` import, the app entry, its classicy auto-bump workflow (classicy-published)
 
 ## Work Log
+
+### 2026-11-06T14:18:44.057Z - 2026-11-06, owner instruction: do not start this story until the owner has been alerted to begin the verification on 0139-vni (V&V) and has given the go.
