@@ -12,6 +12,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 const root = process.cwd();
 // The name the core published under through 2.x (plan 0015-kxa §2.1).
 const OLD_NAME = "classicy";
+// Platinum's stylesheets, in its workspace package (plan 0015-kxa §3.1).
+const PLATINUM_STYLES = "packages/appearance/platinum/src/styles";
 const read = (file: string) => readFileSync(path.resolve(root, file), "utf8");
 const pkg = JSON.parse(read("package.json")) as {
 	name: string;
@@ -61,9 +63,9 @@ describe("package.json: the Appearance Packages surface", () => {
 			types: "./dist/appearance-platinum.d.ts",
 			default: "./dist/appearance-platinum.js",
 		});
-		// Platinum's SCSS is in its workspace package (plan 0015-kxa §3.1). The
-		// export serves it in the workspace until §3.4 drops it for the
-		// package's own `./scss/*`; the core's tarball holds no packages/.
+		// Platinum's SCSS is in its workspace package (plan 0015-kxa §3.1). Until
+		// §3.4 drops this export for the package's own `./scss/*`, the core
+		// still serves it, from the package's styles, which it packs.
 		expect(pkg.exports["./appearance/platinum/scss/*"]).toBe(
 			"./packages/appearance/platinum/src/styles/*",
 		);
@@ -72,8 +74,9 @@ describe("package.json: the Appearance Packages surface", () => {
 	it("drops the temporary scss-platinum bridge", () =>
 		expect(pkg.exports).not.toHaveProperty("./scss-platinum/*"));
 
-	it("ships src/Appearance", () => {
+	it("ships src/Appearance, and Platinum's styles while it exports them", () => {
 		expect(pkg.files).toContain("src/Appearance");
+		expect(pkg.files).toContain(PLATINUM_STYLES);
 		// Subsumed by src/Appearance, and AppearanceManager/styles is gone.
 		expect(pkg.files).not.toContain("src/Appearance/vocabulary");
 		expect(pkg.files).not.toContain(
@@ -156,17 +159,18 @@ const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
 		),
 	);
 
-// Every .scss file under the directories the SCSS exports the core ships
-// serve (Platinum's, in its workspace package, ships with that package).
-const exportedScss = ["./scss/*"].flatMap((key) => {
-	const dir = (pkg.exports[key] as string)
-		.replace(/^\.\//, "")
-		.replace(/\*$/, "");
-	return readdirSync(path.resolve(root, dir), { recursive: true })
-		.map(String)
-		.filter((file) => file.endsWith(".scss"))
-		.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
-});
+// Every .scss file under the directories the SCSS exports serve.
+const exportedScss = ["./scss/*", "./appearance/platinum/scss/*"].flatMap(
+	(key) => {
+		const dir = (pkg.exports[key] as string)
+			.replace(/^\.\//, "")
+			.replace(/\*$/, "");
+		return readdirSync(path.resolve(root, dir), { recursive: true })
+			.map(String)
+			.filter((file) => file.endsWith(".scss"))
+			.map((file) => path.posix.join(dir, file.split(path.sep).join("/")));
+	},
+);
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -186,10 +190,24 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		).toEqual([]);
 	});
 
-	it("ships nothing from packages/ or resources/", ({ skip }) => {
+	// From packages/, only Platinum's stylesheets, which the interim
+	// `./appearance/platinum/scss/*` export serves (until plan 0015-kxa §3.4),
+	// without the tests beside them (their .npmignore).
+	it("ships nothing from packages/ but Platinum's styles, and nothing from resources/", ({
+		skip,
+	}) => {
+		const shipped = files(skip);
 		expect(
-			files(skip).filter(
-				(file) => file.startsWith("packages/") || file.startsWith("resources/"),
+			shipped.filter(
+				(file) =>
+					(file.startsWith("packages/") &&
+						!file.startsWith(`${PLATINUM_STYLES}/`)) ||
+					file.startsWith("resources/"),
+			),
+		).toEqual([]);
+		expect(
+			shipped.filter(
+				(file) => file.startsWith("packages/") && !file.endsWith(".scss"),
 			),
 		).toEqual([]);
 	});
@@ -198,7 +216,7 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 		expect(exportedScss).toEqual(
 			expect.arrayContaining([
 				"src/Appearance/vocabulary/_layout.scss",
-				"src/Appearance/vocabulary/_color.scss",
+				`${PLATINUM_STYLES}/_mixins.scss`,
 			]),
 		);
 		const shipped = new Set(files(skip));

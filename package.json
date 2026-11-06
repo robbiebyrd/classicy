@@ -58,6 +58,7 @@
 		"dist",
 		"docs/AGENT-REFERENCE.md",
 		"docs/BUILDING-APPS.md",
+		"packages/appearance/platinum/src/styles",
 		"src/Appearance"
 	],
 	"sideEffects": [
