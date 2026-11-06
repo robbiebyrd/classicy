@@ -6,7 +6,7 @@ status: in_progress
 priority: "1"
 effort: XL
 created: "2026-11-05T19:52:35.565Z"
-updated: "2026-11-06T16:26:11.723Z"
+updated: "2026-11-06T16:41:32.690Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -105,8 +105,6 @@ progress:
     status: in_progress
     stories:
       - 0138-cj4
-  "6":
-    status: pending
 ---
 
 # Implement: Platinum as @classicy/appearance-platinum, and the core as @classicy/classicy

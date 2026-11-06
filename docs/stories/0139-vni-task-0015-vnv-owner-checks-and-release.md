@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-11-05T19:55:21.066Z"
-updated: "2026-11-05T20:27:08.275Z"
+updated: "2026-11-06T16:41:56.357Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -21,8 +21,6 @@ links:
     - ["0136-tis", "depends"]
     - ["0137-dm7", "depends"]
     - ["0138-cj4", "depends"]
-  plans:
-    - ["0015-kxa", "included"]
 progress:
   "1":
     status: pending
@@ -51,3 +49,5 @@ Work through the acceptance criteria below; each is ticked when done.
 - [ ] [MANUAL] V&V: in the example app and on classicy-web, the desktop looks and sounds as before (boot chime, button clicks, menu hover), the Appearance Manager's Themes tab shows Platinum's icon, a saved custom theme with a wallpaper survives the upgrade, and a host with Platinum removed shows the stop screen.
 
 ## Work Log
+
+### 2026-11-06T16:41:56.357Z - 2026-11-06 (owner): 0139 is no longer tied to the plans. Unlinked from plan 0015-kxa, and plan 0015's Phase 6 progress section removed, so 0014 and 0015 close when their implementation sections do; this checklist (npm org, token, merges, deprecate, hands-on V&V) stays open on its own.
