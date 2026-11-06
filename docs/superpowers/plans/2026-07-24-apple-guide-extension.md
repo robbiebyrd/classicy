@@ -18,7 +18,7 @@
 > whole-branch review. Read the current source, not these paths, when working
 > on this feature.
 >
-> 1. **The pager moved and was generalised.** Task 3 created
+> 1. **The pager moved and was generalized.** Task 3 created
 >    `src/SystemFolder/Extensions/AppleGuide/AppleGuidePager.tsx`. It now lives at
 >    `src/SystemFolder/SystemResources/Pager/ClassicyPager.tsx`, exported as
 >    `ClassicyPager`, with its classes renamed `appleGuidePager*` →
@@ -28,7 +28,7 @@
 >    a `ClassicyAssistant` in controlled mode (`page` + `onPageChange`) inside
 >    its `ClassicyWindow`, and restyles it via `.appleGuideWindow`-scoped SCSS.
 >    `ClassicyAssistant` gained an optional `page?: number` controlled mode;
->    omitting it preserves the original uncontrolled `initialPage` behaviour.
+>    omitting it preserves the original uncontrolled `initialPage` behavior.
 >
 > Also changed after review: the measured hex colors in Task 4's stylesheet were
 > replaced with `--color-*` theme tokens, and `.classicyWindow` is `border-box`
@@ -1402,7 +1402,7 @@ git commit -m "feat(apple-guide): open About Balloon Help from the Help menu"
 - Consumes: everything from Tasks 1-6.
 - Produces: no new exports — this task only tunes SCSS values.
 
-Unit tests verify behaviour; they cannot verify that the window *looks* like
+Unit tests verify behavior; they cannot verify that the window *looks* like
 the reference. This task closes that gap.
 
 - [ ] **Step 1: Build and launch the example app**

@@ -1,21 +1,43 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+import {
+	registerTestRenamePackage,
+	TEST_RENAME_PACKAGE_ID,
+} from "@/__tests__/testRenamePackage";
+import {
+	type ClassicyAppearancePackage,
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	type ActionMessage,
+	DefaultAppManagerState,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { MoviePlayer } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayer";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	registerClassicyControlStripModule,
 	unregisterClassicyControlStripModule,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import {
+	type ClassicyFileSystemSnapshot,
+	flushClassicyFileSystemPendingForStorageKey,
 	getClassicyFileSystemAdapters,
 	registerClassicyFileSystemAdapter,
 	unregisterClassicyFileSystemAdapter,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	ClassicyDefaultFileSystemContext,
 	resetClassicyFileSystemReconciliation,
@@ -23,10 +45,34 @@ import {
 	useClassicyFileSystem,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import {
+	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+// Side-effect imports: register the Movie Player and Finder reducers, as the
+// package barrel does in the real app.
+import "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerContext";
+import "@/SystemFolder/Finder/FinderContext";
+
+// Every action dispatched through the module, recorded on its way into the
+// real store: the wrapper calls straight through, so the reducers still run.
+const dispatched = vi.hoisted((): ActionMessage[] => []);
+
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => {
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
+	},
+);
 
 type ContextValue = {
 	defaultFileSystem?: ClassicyFileSystemTree;
@@ -219,6 +265,511 @@ describe("useClassicyFileSystem Applications overlay", () => {
 	});
 });
 
+describe("useClassicyFileSystem derived folders by display name", () => {
+	// Importing the Platinum module registered it; keep that object so every
+	// test can put the real Platinum registration back after a reset.
+	const platinum = getClassicyAppearancePackage(
+		PLATINUM_APPEARANCE_PACKAGE_ID,
+	) as ClassicyAppearancePackage;
+
+	const APPLICATIONS = "Macintosh HD:Applications";
+	const MEDIA_PLAYER_PATH = `${APPLICATIONS}:Media Player`;
+
+	const resetToPlatinum = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(DefaultAppManagerState, true);
+	};
+
+	const switchPackage = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+
+	// The real hook on the real store, with Movie Player mounted beside it.
+	const renderWithMoviePlayer = async () => {
+		const view: { fs?: ClassicyFileSystem } = {};
+		const Probe = () => {
+			view.fs = useClassicyFileSystem();
+			return null;
+		};
+		render(
+			<>
+				<MoviePlayer />
+				<Probe />
+			</>,
+		);
+		await waitFor(() =>
+			expect(
+				view.fs?.resolve(`${APPLICATIONS}:${MoviePlayerAppInfo.name}`),
+			).toBeDefined(),
+		);
+		return () => view.fs as ClassicyFileSystem;
+	};
+
+	// Names a folder lists, metadata keys aside.
+	const listed = (folder: ClassicyFileSystemEntry) =>
+		Object.keys(folder).filter((key) => !key.startsWith("_"));
+
+	beforeEach(() => {
+		// A previous case's debounced write would land on this case's storage.
+		flushClassicyFileSystemPendingForStorageKey("classicyStorage");
+		localStorage.clear();
+		resetToPlatinum();
+		resetClassicyDerivedAppEntryNameWarnings();
+		resetClassicyFileSystemReconciliation();
+		registerTestRenamePackage();
+		dispatched.length = 0;
+	});
+
+	afterEach(() => {
+		for (const adapter of getClassicyFileSystemAdapters()) {
+			unregisterClassicyFileSystemAdapter(adapter.id);
+		}
+		resetClassicyFileSystemReconciliation();
+		vi.restoreAllMocks();
+		resetToPlatinum();
+	});
+
+	it("relists Applications by display name on a package switch, and back", async () => {
+		const fs = await renderWithMoviePlayer();
+		expect(listed(fs().resolve(APPLICATIONS))).toContain("Movie Player");
+
+		dispatched.length = 0;
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		const renamed = listed(fs().resolve(APPLICATIONS));
+		expect(renamed).toContain("Media Player");
+		expect(renamed).not.toContain("Movie Player");
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+
+		const restored = listed(fs().resolve(APPLICATIONS));
+		expect(restored).toContain("Movie Player");
+		expect(restored).not.toContain("Media Player");
+		// The overlay followed the package alone: no other action reached the
+		// store, so the store's icon and app sets never changed.
+		expect(dispatched).toEqual([
+			{
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: TEST_RENAME_PACKAGE_ID,
+			},
+			{
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+			},
+		]);
+	});
+
+	it("opens Movie Player from its renamed Applications entry", async () => {
+		const fs = await renderWithMoviePlayer();
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		const entry = fs().resolve(MEDIA_PLAYER_PATH);
+		expect(entry).toBeDefined();
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				MoviePlayerAppInfo.id
+			].open,
+		).toBeFalsy();
+
+		act(() =>
+			dispatch({
+				type: "ClassicyAppFinderOpenFile",
+				file: entry,
+				path: MEDIA_PLAYER_PATH,
+			}),
+		);
+
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps[
+				MoviePlayerAppInfo.id
+			].open,
+		).toBe(true);
+	});
+
+	it("persists no derived entry, so a package switch changes no stored byte", async () => {
+		const fs = await renderWithMoviePlayer();
+		const snapshots: ClassicyFileSystemSnapshot[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "test-derived-persistence",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+
+		// The hash of the user's content under Platinum…
+		fs().flushNow();
+		const before = fs().buildSnapshot().hash;
+		const storedBefore = localStorage.getItem("classicyStorage");
+
+		// …is the hash of the same content under the renaming package.
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)).toBeDefined();
+		expect(fs().buildSnapshot().hash).toBe(before);
+
+		// An ordinary write persists the user's tree, never the overlay.
+		act(() => {
+			fs().mkDir("Macintosh HD:Documents:After Switch");
+		});
+		fs().flushNow();
+		const stored = localStorage.getItem("classicyStorage") as string;
+		const snapshot = snapshots.at(-1) as ClassicyFileSystemSnapshot;
+		for (const text of [stored, JSON.stringify(snapshot.tree)]) {
+			expect(text).toContain("After Switch");
+			expect(text).not.toContain("Media Player");
+			expect(text).not.toContain("Movie Player");
+			expect(text).not.toContain("_derived");
+		}
+
+		// Switching back changes nothing persisted either.
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expect(fs().buildSnapshot().hash).toBe(snapshot.hash);
+		fs().flushNow();
+		expect(localStorage.getItem("classicyStorage")).toBe(stored);
+		expect(storedBefore).not.toContain("_derived");
+	});
+
+	it("keeps a static Applications file a display name would take, across a switch and back", async () => {
+		// A user's tree with a file of their own in Applications, where
+		// `test-rename` would put Movie Player.
+		const tree = structuredClone(DefaultFSContent) as ClassicyFileSystemTree;
+		tree["Macintosh HD"].Applications["Media Player"] = {
+			_type: ClassicyFileSystemEntryFileType.TextFile,
+			_data: "mine",
+		};
+		localStorage.setItem("classicyStorage", JSON.stringify(tree));
+		const fs = await renderWithMoviePlayer();
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._data).toBe("mine");
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._data).toBe("mine");
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+	});
+
+	it("relists System Folder:Extensions by display name on a package switch", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		act(() =>
+			dispatch({
+				type: "ClassicyAppLoad",
+				app: { id: "TV.app", name: "TV", icon: "/icons/tv.png" },
+				extension: true,
+			}),
+		);
+		const extensions = "Macintosh HD:System Folder:Extensions";
+		expect(result.current.resolve(`${extensions}:TV`)._creator).toBe("TV.app");
+
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		expect(result.current.resolve(`${extensions}:Television`)._creator).toBe(
+			"TV.app",
+		);
+		expect(result.current.resolve(`${extensions}:TV`)).toBeUndefined();
+	});
+
+	it("rebuilds the derived folders after an adapter reconcile replaces the tree", async () => {
+		registerClassicyFileSystemAdapter({
+			id: "test-derived-reconcile",
+			reconcile: async () => ({
+				action: "replace",
+				tree: {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					"Macintosh HD": {
+						_type: ClassicyFileSystemEntryFileType.Drive,
+						"FromRemote.txt": {
+							_type: ClassicyFileSystemEntryFileType.TextFile,
+							_data: "remote",
+						},
+					},
+				},
+			}),
+		});
+		const fs = await renderWithMoviePlayer();
+
+		await waitFor(() =>
+			expect(fs().resolve("Macintosh HD:FromRemote.txt")?._data).toBe("remote"),
+		);
+		// The remote tree has no Applications folder; the overlay put it back.
+		expect(fs().resolve(`${APPLICATIONS}:Movie Player`)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+	});
+
+	it("rebuilds the derived folders after a tree is loaded back from its snapshot", async () => {
+		const fs = await renderWithMoviePlayer();
+		switchPackage(TEST_RENAME_PACKAGE_ID);
+
+		// Drive Setup's rollback: load the persisted form, which holds no
+		// derived entries.
+		const persisted = fs().snapshot();
+		expect(persisted).not.toContain("Media Player");
+		act(() => {
+			fs().load(persisted);
+		});
+
+		expect(fs().resolve(MEDIA_PLAYER_PATH)._creator).toBe(
+			MoviePlayerAppInfo.id,
+		);
+	});
+});
+
+// Story 0096: a user's file in a derived folder is never replaced by an app
+// of the same name; only the seeded placeholders give way.
+describe("useClassicyFileSystem keeps user files in the derived folders", () => {
+	const platinum = getClassicyAppearancePackage(
+		PLATINUM_APPEARANCE_PACKAGE_ID,
+	) as ClassicyAppearancePackage;
+	const RENAMING_PACKAGE_ID = "test-0096-rename";
+	const STORAGE_KEY = "classicyStorage";
+	const APPLICATIONS = "Macintosh HD:Applications";
+	const EXTENSIONS = "Macintosh HD:System Folder:Extensions";
+	const SINK_ID = "derived-folder-user-files";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	const resetToPlatinum = () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(DefaultAppManagerState, true);
+	};
+
+	const addAppIcon = (id: string, name: string) =>
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopIconAdd",
+				app: { id, name, icon: `/icons/${id}.png` },
+				kind: "app_shortcut",
+			});
+		});
+
+	const addExtension = (id: string, name: string) =>
+		act(() => {
+			dispatch({
+				type: "ClassicyAppLoad",
+				app: { id, name, icon: `/icons/${id}.png` },
+				extension: true,
+			});
+		});
+
+	const switchPackage = (packageId: string) =>
+		act(() =>
+			dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId }),
+		);
+
+	/** Saves, then reloads: a new file-system epoch re-reads localStorage. */
+	const saveAndReload = (fs: () => ClassicyFileSystem) => {
+		fs().flushNow();
+		act(() => {
+			dispatch({ type: "ClassicyDesktopFileSystemVersionBump" });
+		});
+	};
+
+	const stored = () =>
+		JSON.parse(localStorage.getItem(STORAGE_KEY) as string)["Macintosh HD"];
+
+	// The default tree as this file loaded it. The tests that edit boot from
+	// this stored copy, as a returning visitor does. (Before story 0098 a fresh
+	// boot's live tree was DefaultFSContent itself, so this also kept an edit
+	// from leaking into every later test.)
+	const PRISTINE_TREE = structuredClone(DefaultFSContent);
+	const bootFromStoredDefaults = () =>
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(PRISTINE_TREE));
+
+	beforeEach(() => {
+		// A previous case's debounced write would land on this case's storage.
+		flushClassicyFileSystemPendingForStorageKey(STORAGE_KEY);
+		localStorage.clear();
+		resetToPlatinum();
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerTestAppsPackage(RENAMING_PACKAGE_ID, {
+			"TV.app": { name: "Television" },
+			"Clock.app": { name: "Timepiece" },
+		});
+		entries = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+		resetToPlatinum();
+	});
+
+	it("keeps a user file named like an installed app across a rebuild, a save and a reload", () => {
+		bootFromStoredDefaults();
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		addAppIcon("TV.app", "TV");
+		addExtension("Clock.app", "Clock");
+		expect(fs().resolve(`${APPLICATIONS}:TV`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Clock`)._creator).toBe("Clock.app");
+
+		act(() => {
+			fs().writeFile(`${APPLICATIONS}:TV`, "my TV notes");
+			fs().writeFile(`${EXTENSIONS}:Clock`, "my clock notes");
+		});
+
+		const expectUserFilesKept = () => {
+			expect(fs().resolve(`${APPLICATIONS}:TV`)._data).toBe("my TV notes");
+			expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)._creator).toBe(
+				"TV.app",
+			);
+			expect(fs().resolve(`${EXTENSIONS}:Clock`)._data).toBe("my clock notes");
+			expect(fs().resolve(`${EXTENSIONS}:Clock (Clock.app)`)._creator).toBe(
+				"Clock.app",
+			);
+		};
+		expectUserFilesKept();
+
+		saveAndReload(fs);
+		expect(stored().Applications.TV._data).toBe("my TV notes");
+		expect(stored()["System Folder"].Extensions.Clock._data).toBe(
+			"my clock notes",
+		);
+		expectUserFilesKept();
+
+		// One warning per folder, however many rebuilds ran.
+		expect(warnings().map((entry) => entry.message)).toEqual([
+			'Name "TV" already taken in Applications; using "TV (TV.app)"',
+			'Name "Clock" already taken in Extensions; using "Clock (Clock.app)"',
+		]);
+	});
+
+	it("never loses a user file across a package switch and back", () => {
+		bootFromStoredDefaults();
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		addAppIcon("TV.app", "TV");
+		addExtension("Clock.app", "Clock");
+		act(() => {
+			fs().writeFile(`${APPLICATIONS}:TV`, "my TV notes");
+			fs().writeFile(`${EXTENSIONS}:Clock`, "my clock notes");
+		});
+
+		const expectUserFiles = () => {
+			expect(fs().resolve(`${APPLICATIONS}:TV`)._data).toBe("my TV notes");
+			expect(fs().resolve(`${EXTENSIONS}:Clock`)._data).toBe("my clock notes");
+			fs().flushNow();
+			expect(stored().Applications.TV._data).toBe("my TV notes");
+			expect(stored()["System Folder"].Extensions.Clock._data).toBe(
+				"my clock notes",
+			);
+		};
+		expectUserFiles();
+
+		// Renamed, the apps no longer collide with the user's files…
+		switchPackage(RENAMING_PACKAGE_ID);
+		expectUserFiles();
+		expect(fs().resolve(`${APPLICATIONS}:Television`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Timepiece`)._creator).toBe("Clock.app");
+		expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)).toBeUndefined();
+
+		// …and back under their own names, they take the suffix form again.
+		switchPackage(PLATINUM_APPEARANCE_PACKAGE_ID);
+		expectUserFiles();
+		expect(fs().resolve(`${APPLICATIONS}:TV (TV.app)`)._creator).toBe("TV.app");
+		expect(fs().resolve(`${EXTENSIONS}:Clock (Clock.app)`)._creator).toBe(
+			"Clock.app",
+		);
+
+		saveAndReload(fs);
+		expectUserFiles();
+	});
+
+	it("marks Platinum's SimpleText and Calculator stand-ins as placeholders", () => {
+		const applications = DefaultFSContent["Macintosh HD"].Applications;
+		expect(applications.SimpleText._placeholder).toBe(true);
+		expect(applications.Calculator._placeholder).toBe(true);
+	});
+
+	it("hands the seeded SimpleText and Calculator placeholders to the real apps", () => {
+		const { result } = renderHook(() => useClassicyFileSystem());
+		addAppIcon("SimpleText.app", "SimpleText");
+		addAppIcon("Calculator.app", "Calculator");
+
+		const applications = result.current.resolve(APPLICATIONS);
+		expect(applications.SimpleText._creator).toBe("SimpleText.app");
+		expect(applications.Calculator._creator).toBe("Calculator.app");
+		expect(applications["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(applications["Calculator (Calculator.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("keeps the Calculator placeholder once the user has saved into it (K-R11)", () => {
+		// The review's P1: a stand-in edited through SimpleText's save path,
+		// then an app of its name appears.
+		bootFromStoredDefaults();
+		const { result } = renderHook(() => useClassicyFileSystem());
+		const fs = () => result.current;
+		act(() => {
+			fs().setMetadata(`${APPLICATIONS}:Calculator`, {
+				_data: "my sums",
+				_modifiedOn: new Date(),
+			});
+		});
+		fs().flushNow();
+		expect(stored().Applications.Calculator._placeholder).toBe(true);
+
+		addAppIcon("Calculator.app", "Calculator");
+
+		const expectEditKept = () => {
+			expect(fs().resolve(`${APPLICATIONS}:Calculator`)._data).toBe("my sums");
+			expect(
+				fs().resolve(`${APPLICATIONS}:Calculator (Calculator.app)`)._creator,
+			).toBe("Calculator.app");
+		};
+		expectEditKept();
+
+		saveAndReload(fs);
+		expect(stored().Applications.Calculator._data).toBe("my sums");
+		expectEditKept();
+		expect(warnings().map((entry) => entry.message)).toEqual([
+			'Name "Calculator" already taken in Applications; using "Calculator (Calculator.app)"',
+		]);
+	});
+
+	it("hands the unmarked placeholders an older build stored to the real apps", () => {
+		// A returning visitor's tree, saved before placeholders were marked.
+		const tree = structuredClone(PRISTINE_TREE) as ClassicyFileSystemTree;
+		const legacy = tree["Macintosh HD"].Applications;
+		delete legacy.SimpleText._placeholder;
+		delete legacy.Calculator._placeholder;
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
+
+		const { result } = renderHook(() => useClassicyFileSystem());
+		expect(stored().Applications.SimpleText._placeholder).toBeUndefined();
+		addAppIcon("SimpleText.app", "SimpleText");
+		addAppIcon("Calculator.app", "Calculator");
+
+		const applications = result.current.resolve(APPLICATIONS);
+		expect(applications.SimpleText._creator).toBe("SimpleText.app");
+		expect(applications.Calculator._creator).toBe("Calculator.app");
+		expect(applications["SimpleText (SimpleText.app)"]).toBeUndefined();
+		expect(applications["Calculator (Calculator.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+});
+
 describe("useClassicyFileSystem Extensions overlay", () => {
 	const drive = () => ({
 		"Macintosh HD": {
@@ -353,6 +904,211 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 		);
 		act(() => unmount());
 		expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+	});
+
+	// K-R13 (m4): the overlay passes the file system's own separator, so a
+	// display name holding it falls back to the module's label.
+	it("never keys a module file by a display name holding the file system's separator", () => {
+		registerTestAppsPackage("test-fs-strip-separator", {
+			"FsOwner.app": { name: "Owner/Display" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-separator", "/"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: drive(),
+						mode: "exclusive",
+					}),
+				},
+			);
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-separator",
+				});
+			});
+			const slashFolder = "Macintosh HD/System Folder/Control Strip Modules";
+			expect(
+				Object.keys(result.current.resolve(slashFolder)).filter(
+					(key) => !key.startsWith("_"),
+				),
+			).toEqual(["Owned"]);
+			expect(result.current.resolve(`${slashFolder}/Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+		} finally {
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+				});
+			});
+			act(() => unmount());
+			unregisterClassicyAppearancePackage("test-fs-strip-separator");
+			warn.mockRestore();
+		}
+	});
+
+	// K-D7: a module an app owns is filed under the app's display name; a
+	// module with no owner keeps its own label. Display names never persist.
+	it("names an app's module file by the app's display name", () => {
+		registerTestAppsPackage("test-fs-strip-rename", {
+			"FsOwner.app": { name: "Owner Display" },
+			"fs-test-plain": { name: "Not A Module Label" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-plain",
+			label: "Plain",
+			icon: "/plain.png",
+		});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		const snapshots: ClassicyFileSystemSnapshot[] = [];
+		registerClassicyFileSystemAdapter({
+			id: "test-strip-overlay-rename",
+			onSnapshot: (snapshot) => {
+				snapshots.push(snapshot);
+			},
+		});
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-rename"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: drive(),
+						mode: "exclusive",
+					}),
+				},
+			);
+			expect(result.current.resolve(`${folder}:Owned`)).toBeDefined();
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-rename",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._creator).toBe(
+				"FsOwner.app",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)).toBeUndefined();
+			expect(result.current.resolve(`${folder}:Plain`)).toBeDefined();
+
+			// An ordinary write after the switch persists the user's tree, never
+			// a module file or a display name (K-R5): not to localStorage, not
+			// to an adapter's snapshot.
+			act(() => {
+				result.current.mkDir("Macintosh HD:Probe Folder");
+			});
+			result.current.flushNow();
+			const stored = JSON.parse(
+				localStorage.getItem("test-strip-overlay-rename") as string,
+			) as ClassicyFileSystemTree;
+			const snapshot = snapshots.at(-1) as ClassicyFileSystemSnapshot;
+			for (const tree of [stored, snapshot.tree]) {
+				const text = JSON.stringify(tree);
+				expect(text).toContain("Probe Folder");
+				for (const name of ["Owner Display", "Owned", "Plain", "_derived"]) {
+					expect(text).not.toContain(name);
+				}
+				const modules =
+					tree["Macintosh HD"]["System Folder"]["Control Strip Modules"] ?? {};
+				expect(Object.keys(modules).filter((k) => !k.startsWith("_"))).toEqual(
+					[],
+				);
+			}
+
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "platinum",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owned`)).toBeDefined();
+			expect(result.current.resolve(`${folder}:Owner Display`)).toBeUndefined();
+		} finally {
+			act(() => unmount());
+			unregisterClassicyFileSystemAdapter("test-strip-overlay-rename");
+			unregisterClassicyControlStripModule("fs-test-plain");
+			unregisterClassicyAppearancePackage("test-fs-strip-rename");
+		}
+	});
+
+	it("keeps a static module file a display name would hide, across a switch and back (K-R7)", () => {
+		registerTestAppsPackage("test-fs-strip-static", {
+			"FsOwner.app": { name: "Owner Display" },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			appId: "FsOwner.app",
+			label: "Owned",
+			icon: "/owned.png",
+		});
+		const tree = drive();
+		(tree["Macintosh HD"]["System Folder"] as Record<string, unknown>)[
+			"Control Strip Modules"
+		] = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"Owner Display": {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "mine",
+			},
+		};
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const unmount = markClassicyAppMounted("FsOwner.app");
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-static"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: tree as unknown as ClassicyFileSystemTree,
+						mode: "exclusive",
+					}),
+				},
+			);
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "test-fs-strip-static",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._data).toBe(
+				"mine",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: "platinum",
+				});
+			});
+			expect(result.current.resolve(`${folder}:Owner Display`)._data).toBe(
+				"mine",
+			);
+			expect(result.current.resolve(`${folder}:Owned`)._creator).toBe(
+				"FsOwner.app",
+			);
+		} finally {
+			act(() => unmount());
+			vi.restoreAllMocks();
+			unregisterClassicyAppearancePackage("test-fs-strip-static");
+		}
 	});
 
 	it("does not persist the overlay to localStorage", () => {

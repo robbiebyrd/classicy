@@ -8,12 +8,18 @@ import {
 	useReducer,
 } from "react";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
+import {
+	CLASSICY_DEFAULT_SOUND_PACK_ID,
+	useClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
 	ClassicySoundDispatchContext,
 	ClassicySoundManagerContext,
 	ClassicySoundStateEventReducer,
 	classicySoundGain,
 	initialPlayer,
+	seedSoundState,
 } from "./ClassicySoundManagerUtils";
 
 export const ClassicySoundManagerProvider: FunctionalComponent<{
@@ -30,11 +36,51 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 	// widget and Sound control panel toggle, and the one `playerCanPlay` gates
 	// on. The lazy initializer seeds it exactly once per mount and copies
 	// `initialPlayer` rather than mutating that module-level singleton.
+	// The same initializer loads the persisted theme's sound pack, so the
+	// player exists before children's mount effects (the boot chime) dispatch.
+	// The selector reads the pack id string, so editing any other part of the
+	// theme never re-runs the load effect below.
+	const packId =
+		useAppManager(
+			(s) => s.System.Manager.Appearance?.activeTheme?.sound?.pack,
+		) ?? CLASSICY_DEFAULT_SOUND_PACK_ID;
+	const packs = useClassicySoundPacks();
 	const [sound, soundDispatch] = useReducer(
 		ClassicySoundStateEventReducer,
 		initialPlayer,
-		(base) => (defaultMuted ? { ...base, disabled: ["*"] } : base),
+		(base) => seedSoundState(base, packId, defaultMuted),
 	);
+
+	// Load the theme's pack when it changes, or when it is registered after
+	// mount (`packs` is the registry snapshot). Falls back to the default pack
+	// while the theme's is unknown, and stays silent while neither is
+	// registered (the core ships no pack; Platinum's comes with its package).
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `packs` is the registry snapshot; it re-runs the load when a pack registers after mount.
+	useEffect(() => {
+		const pack =
+			findClassicySoundPack(packId) ??
+			findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+		if (!pack) return;
+		if (pack.id === sound.packId) {
+			// Loaded already; only the stand-in for the sprites it lacks can be
+			// missing, when the default pack registered after this one loaded.
+			if (
+				!sound.fallbackPlayer &&
+				pack.id !== CLASSICY_DEFAULT_SOUND_PACK_ID &&
+				findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID)
+			) {
+				soundDispatch({ type: "ClassicySoundLoadFallback" });
+			}
+			return;
+		}
+		soundDispatch({
+			type: "ClassicySoundLoad",
+			pack,
+			disabled:
+				useAppManager.getState().System.Manager.Appearance?.activeTheme?.sound
+					?.disabled,
+		});
+	}, [packId, packs, sound.packId, sound.fallbackPlayer]);
 
 	// Bridge the persisted Appearance selection (Zustand) into the sound state
 	// so the reducer stays pure and the ClassicyAlertSound/PlayError events can
@@ -59,10 +105,11 @@ export const ClassicySoundManagerProvider: FunctionalComponent<{
 
 	// The system volume (ClassicyVolumeSet) is the player's gain. Re-applied
 	// when a sound theme loads a new player, so the level carries over.
-	const { soundPlayer, volume } = sound;
+	const { soundPlayer, fallbackPlayer, volume } = sound;
 	useEffect(() => {
 		soundPlayer?.volume(classicySoundGain(volume));
-	}, [soundPlayer, volume]);
+		fallbackPlayer?.volume(classicySoundGain(volume));
+	}, [soundPlayer, fallbackPlayer, volume]);
 
 	return (
 		<ClassicySoundManagerContext.Provider value={sound}>

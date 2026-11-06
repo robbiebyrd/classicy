@@ -1,0 +1,12 @@
+// Test fixture (not shipped: src/Appearance/.npmignore drops __tests__/).
+
+/**
+ * The data: URI the published 2.1.8 bundle, the last under the old package
+ * name (dist/classicy.es.js and
+ * dist/classicy.umd.js alike; tarball sha256
+ * fb7ded2e70b267f145c40468bc53294749e730bf05fbaa0fc10458f7a6a9a94b) inlined
+ * for Platinum's azul_dark.png, copied verbatim: what a 2.1.x save holds as
+ * a forked Azul theme's `desktop.backgroundImage`.
+ */
+export const AZUL_DARK_2_1_8 =
+	"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAFxlWElmTU0AKgAAAAgAAwEGAAMAAAABAAIAAAEoAAMAAAABAAIAAIdpAAQAAAABAAAAMgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAABcNHXOAAAB22lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iWE1QIENvcmUgNi4wLjAiPgogICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPgogICAgICA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIgogICAgICAgICAgICB4bWxuczp0aWZmPSJodHRwOi8vbnMuYWRvYmUuY29tL3RpZmYvMS4wLyI+CiAgICAgICAgIDx0aWZmOlBob3RvbWV0cmljSW50ZXJwcmV0YXRpb24+MjwvdGlmZjpQaG90b21ldHJpY0ludGVycHJldGF0aW9uPgogICAgICAgICA8dGlmZjpSZXNvbHV0aW9uVW5pdD4yPC90aWZmOlJlc29sdXRpb25Vbml0PgogICAgICAgICA8dGlmZjpDb21wcmVzc2lvbj4xPC90aWZmOkNvbXByZXNzaW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4Kg1aF/AAAACRJREFUOBFj1Het+c9AAWCiQC9Y66gBDAyjYTAaBqDMMPDpAAAaTwIPV29qKAAAAABJRU5ErkJggg==";

@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest";
+// The schema does not register Platinum's sound pack; the bundled themes name
+// it, so this file registers it explicitly.
+import { platinumJson, platinumSoundPack } from "@classicy/appearance-platinum";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
+import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getAllThemes,
@@ -10,11 +15,14 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
+	ClassicyPackageThemeSchema,
 	ClassicyThemeSchema,
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
-import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
-import themesData from "@/SystemFolder/ControlPanels/AppearanceManager/styles/themes.json";
+import {
+	registerClassicySoundPack,
+	resetClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 const base = (): ClassicyTheme => structuredClone(getTheme("default"));
 
@@ -30,8 +38,10 @@ const rejects = (value: unknown) =>
 
 describe("ClassicyThemeSchema — accepts", () => {
 	it.each(
-		(themesData as unknown as ClassicyTheme[]).map((t) => [t.id, t] as const),
-	)("bundled theme %s as written in themes.json", (_id, theme) => {
+		(platinumJson.presets as unknown as ClassicyTheme[]).map(
+			(t) => [t.id, t] as const,
+		),
+	)("bundled theme %s as written in platinum.json", (_id, theme) => {
 		const parsed = ClassicyThemeSchema.safeParse(theme);
 		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
 	});
@@ -46,6 +56,7 @@ describe("ClassicyThemeSchema — accepts", () => {
 
 	it("the forked Custom theme", () => {
 		const appearance = {
+			packageId: "platinum",
 			activeTheme: base(),
 			availableThemes: getAllThemes(),
 			customThemes: [] as ClassicyTheme[],
@@ -84,7 +95,7 @@ describe("ClassicyThemeSchema — rejects", () => {
 		["fractional", 12.5],
 		["a string", "#ffffff"],
 		["NaN", Number.NaN],
-	])("a %s colour", (_label, value) => {
+	])("a %s color", (_label, value) => {
 		rejects(withEdit((t) => Object.assign(t.color, { select: value })));
 		rejects(
 			withEdit((t) => {
@@ -151,14 +162,41 @@ describe("ClassicyThemeSchema — rejects", () => {
 
 	it("an unknown sound theme", () => {
 		const parsed = ClassicyThemeSchema.safeParse(
-			withEdit((t) => Object.assign(t.sound, { name: "sosumi" })),
+			withEdit((t) => Object.assign(t.sound, { pack: "sosumi" })),
 		);
 		expect(parsed.success).toBe(false);
-		expect(parsed.error?.issues[0].path).toEqual(["sound", "name"]);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
 	});
 
-	it("a sound name inherited from Object.prototype", () => {
-		rejects(withEdit((t) => Object.assign(t.sound, { name: "toString" })));
+	it("a sound pack registered after module load validates", () => {
+		registerClassicySoundPack({
+			id: "late",
+			name: "Late",
+			src: ["https://x/l.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.sound, { pack: "late" });
+			}),
+		);
+		expect(parsed.success).toBe(true);
+	});
+
+	it("a theme file still using sound.name is refused with a sound.pack issue", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				const sound = t.sound as Record<string, unknown>;
+				delete sound.pack;
+				sound.name = "platinum";
+			}),
+		);
+		expect(parsed.success).toBe(false);
+		expect(parsed.error?.issues[0].path).toEqual(["sound", "pack"]);
+	});
+
+	it("a sound pack inherited from Object.prototype", () => {
+		rejects(withEdit((t) => Object.assign(t.sound, { pack: "toString" })));
 	});
 
 	it("font stacks carrying CSS syntax", () => {
@@ -186,11 +224,64 @@ describe("ClassicyThemeSchema — rejects", () => {
 	});
 });
 
+describe("ClassicyPackageThemeSchema — a package's own themes", () => {
+	const withBackground = (backgroundImage: string) =>
+		withEdit((t) => Object.assign(t.desktop, { backgroundImage }));
+
+	it("accepts a plain wallpaper filename no package has registered yet", () => {
+		const theme = withBackground("not_registered_yet.png");
+		expect(ClassicyPackageThemeSchema.safeParse(theme).success).toBe(true);
+		// Untrusted themes keep the strict rule.
+		expect(ClassicyThemeSchema.safeParse(theme).success).toBe(false);
+	});
+
+	it("accepts another package's <package>|<file> reference, registered or not", () => {
+		for (const value of ["platinum|azul_dark.png", "late|not_yet.png"]) {
+			expect(
+				ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+				value,
+			).toBe(true);
+		}
+		// Only a registered one is accepted from an untrusted theme.
+		expect(
+			ClassicyThemeSchema.safeParse(withBackground("platinum|azul_dark.png"))
+				.success,
+		).toBe(true);
+		expect(
+			ClassicyThemeSchema.safeParse(withBackground("late|not_yet.png")).success,
+		).toBe(false);
+	});
+
+	it("accepts what the strict schema accepts", () => {
+		for (const value of ["", "azul_dark.png", "https://example.com/a.png"]) {
+			expect(
+				ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+				value,
+			).toBe(true);
+		}
+	});
+
+	it.each([
+		["a path", "/assets/other.png"],
+		["a url() breakout", 'x");background:url(y'],
+		["a parenthesis", "a).png"],
+		["whitespace", "a b.png"],
+		["javascript:", "javascript:alert(1)"],
+		["an unknown data: URI", "data:image/png;base64,iVBORw0KGgo="],
+		["a reference with a path", "platinum|a/b.png"],
+		["a reference with a scheme", "data:x|a.png"],
+	])("still rejects %s", (_label, value) => {
+		expect(
+			ClassicyPackageThemeSchema.safeParse(withBackground(value)).success,
+		).toBe(false);
+	});
+});
+
 describe("isSafeClassicyThemeBackgroundImage", () => {
 	it.each([
-		["empty (colour-only)", ""],
-		["a bundled filename", "azul_dark.png"],
-		["a resolved bundled wallpaper", ClassicyDefaultWallpaper],
+		["empty (color-only)", ""],
+		["a registered filename", "azul_dark.png"],
+		["a resolved registered wallpaper", defaultClassicyWallpaper()],
 		["an https URL", "https://example.com/wallpaper.png"],
 		["an http URL", "http://example.com/a/b.png?size=2"],
 	])("accepts %s", (_label, value) => {
@@ -282,5 +373,131 @@ describe("ClassicyThemeSchema — metric defaults", () => {
 				);
 			}),
 		);
+	});
+});
+
+describe("ClassicyThemeSchema — appearance package", () => {
+	it("defaults package to platinum when absent", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				delete (t as Record<string, unknown>).package;
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.package).toBe("platinum");
+	});
+
+	// R16: the default comes from CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID, never
+	// a literal, so the schema follows the constant wherever it is defined.
+	it("defaults package to CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID", async () => {
+		const defaults = "@/Appearance/ClassicyAppearanceDefaults";
+		vi.resetModules();
+		vi.doMock(defaults, async (importOriginal) => ({
+			...(await importOriginal<object>()),
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID: "default-under-test",
+		}));
+		try {
+			// The fresh module graph's registry needs Platinum's wallpapers too.
+			await import(
+				"../../../../packages/appearance/platinum/src/assets/platinumAssets"
+			);
+			const fresh = await import(
+				"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema"
+			);
+			// The fresh module graph has its own, empty, sound pack registry.
+			(
+				await import(
+					"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks"
+				)
+			).registerClassicySoundPack(platinumSoundPack);
+			const parsed = fresh.ClassicyThemeSchema.safeParse(
+				withEdit((t) => {
+					delete (t as Record<string, unknown>).package;
+				}),
+			);
+			expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+			expect(parsed.data?.package).toBe("default-under-test");
+		} finally {
+			vi.doUnmock(defaults);
+			vi.resetModules();
+		}
+	}, 30_000);
+
+	it("keeps a package id", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => Object.assign(t, { package: "irix" })),
+		);
+		expect(parsed.success).toBe(true);
+		expect(parsed.data?.package).toBe("irix");
+	});
+
+	it("theme schema keeps package knob families", () => {
+		const parsed = ClassicyThemeSchema.safeParse(platinumJson.defaults);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements.controlStrip.cellHeight).toBe(22);
+	});
+
+	it("accepts a package measurement family", () => {
+		const parsed = ClassicyThemeSchema.safeParse(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: 22 } });
+			}),
+		);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(parsed.data?.measurements.controlStrip.cellHeight).toBe(22);
+	});
+
+	it("rejects a non-numeric package measurement", () => {
+		rejects(
+			withEdit((t) => {
+				Object.assign(t.measurements, { controlStrip: { cellHeight: "22" } });
+			}),
+		);
+	});
+});
+
+describe("ClassicyThemeSchema — sound packs", () => {
+	afterEach(() => {
+		resetClassicySoundPacks();
+		registerClassicySoundPack(platinumSoundPack);
+	});
+
+	it("sound.pack validates against whatever is registered, Platinum included", () => {
+		resetClassicySoundPacks();
+		registerClassicySoundPack({
+			id: "only",
+			name: "Only",
+			src: ["https://x/o.ogg"],
+			sprite: { ClassicyBeep: [0, 1] },
+		});
+		const withPack = (pack: string) =>
+			ClassicyThemeSchema.safeParse(
+				withEdit((t) => Object.assign(t.sound, { pack })),
+			);
+		expect(withPack("only").success).toBe(true);
+		const platinum = withPack("platinum");
+		expect(platinum.success).toBe(false);
+		expect(platinum.error?.issues[0].path).toEqual(["sound", "pack"]);
+	});
+
+	it("the schema's module graph loads no Platinum module", () => {
+		const graph = runtimeImportGraph(
+			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema.ts",
+		);
+		// Platinum is its own workspace package (plan 0015-kxa §3.1).
+		expect(graph.filter((file) => file.startsWith("packages/"))).toEqual([]);
+	});
+});
+
+describe("ClassicyThemeSchema — package measurement names", () => {
+	it.each([
+		["a hyphenated family", { "control-strip": { cellHeight: 22 } }],
+		["a PascalCase family", { ControlStrip: { cellHeight: 22 } }],
+		["a family starting with a digit", { "2x": { cellHeight: 22 } }],
+		["an underscored key", { controlStrip: { cell_height: 22 } }],
+		["a key starting with a digit", { controlStrip: { "2x": 22 } }],
+		["a PascalCase key", { controlStrip: { CellHeight: 22 } }],
+	])("rejects %s", (_label, family) => {
+		rejects(withEdit((t) => Object.assign(t.measurements, family)));
 	});
 });

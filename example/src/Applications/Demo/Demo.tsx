@@ -18,7 +18,7 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 	useAppManagerDispatch,
-} from "classicy";
+} from "@classicy/classicy";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppIcons } from "../../app";
 
@@ -307,6 +307,7 @@ export const Demo = () => {
 				initialSize={["40%", 500]}
 				initialPosition={[300, 50]}
 				appMenu={appMenu}
+				backgroundColor="var(--color-system-03)"
 			>
 				<ClassicyTabs tabs={tabs} />
 			</ClassicyWindow>

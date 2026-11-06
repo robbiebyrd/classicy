@@ -1,5 +1,6 @@
 import "./ClassicyFileOpenDialog.scss";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type MouseEvent,
@@ -82,6 +83,10 @@ type ClassicyFileDialogSharedProps = {
 	volumes: ClassicyFileDialogVolume[];
 	/** Called when Cancel, Escape or Command-period fires. */
 	onCancelFunc?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 };
 
 export type ClassicyFileDialogOpenProps = ClassicyFileDialogSharedProps & {
@@ -148,7 +153,7 @@ const cacheKey = (volumeId: string, path: string[]) =>
 export const ClassicyFileDialog: FunctionalComponent<
 	ClassicyFileDialogProps
 > = (props) => {
-	const { id, appId, open, volumes, onCancelFunc } = props;
+	const { id, appId, open, volumes, onCancelFunc, className, style } = props;
 	const dialogBodyRef = useRef<HTMLDivElement | null>(null);
 	const mode = props.mode;
 	const title = props.title ?? (mode === "open" ? "Open" : "Save");
@@ -495,6 +500,8 @@ export const ClassicyFileDialog: FunctionalComponent<
 		<>
 			<ClassicyWindow
 				id={id}
+				className={className}
+				style={style}
 				appId={appId}
 				title={title}
 				modal={true}

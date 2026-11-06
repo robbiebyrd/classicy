@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicyFileSystemJournalEntry,
 	type ClassicyFileSystemSnapshot,
@@ -17,6 +17,7 @@ import {
 	type ClassicyFileSystemEntryMetadata,
 	type ClassicyFileSystemTree,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { copyClassicyFileSystemSeed } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedCopy.internal";
 import {
 	applyClassicyFileSystemSeedMigrations,
 	type ClassicyFileSystemSeedMigration,
@@ -26,8 +27,6 @@ import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultCla
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-
-const directoryIcon = ClassicyIcons.system.folders.directory;
 
 // filterByType's default allow-list: every ClassicyFileSystemEntryFileType
 // except Drive, derived from the enum so a newly added type is included
@@ -135,6 +134,24 @@ export function resetClassicyFileSystemSharedTrees(): void {
 	sharedTrees.clear();
 }
 
+/**
+ * `JSON.stringify` replacer for the persisted tree: drops every entry a
+ * derived overlay generated (`_derived: true`). A metadata key's own value
+ * is always kept, but `JSON.stringify` still runs the replacer on what is
+ * nested inside it, so a value tagged `_derived: true` under a non-`_` key
+ * there is dropped too (an object property omitted, an array element written
+ * as `null`). No metadata field holds such values today (`_data` is a
+ * string).
+ */
+const omitDerivedEntries = (key: string, value: unknown): unknown =>
+	key !== "" &&
+	!key.startsWith("_") &&
+	typeof value === "object" &&
+	value !== null &&
+	(value as ClassicyFileSystemEntry)._derived === true
+		? undefined
+		: value;
+
 export class ClassicyFileSystem {
 	storageKey: string;
 	separator: string;
@@ -153,7 +170,8 @@ export class ClassicyFileSystem {
 
 	/**
 	 * The first instance for a storage key reads the tree from localStorage (or
-	 * seeds it from `defaultFS`); later ones attach to that same live tree and
+	 * seeds it from a deep copy of `defaultFS`, which is never changed); later
+	 * ones attach to that same live tree and
 	 * ignore `defaultFS`. `epoch` forces a fresh read when it differs from the
 	 * one the tree was read under — `useClassicyFileSystem` passes the store's
 	 * `fsVersion`, bumped after the tree is replaced behind the instances' backs
@@ -196,39 +214,41 @@ export class ClassicyFileSystem {
 
 		// A reload replaces the tree in place, so instances already holding this
 		// record see the reloaded tree too.
-		this.shared = existing ?? { tree: defaultFS, version: 0 };
+		const tree = this.readStoredTree() ?? copyClassicyFileSystemSeed(defaultFS);
+		this.shared = existing ?? { tree, version: 0 };
 		this.shared.epoch = epoch;
 		sharedTrees.set(storageKey, this.shared);
-		this.fs = defaultFS;
-
-		const retrieved =
-			typeof window !== "undefined"
-				? localStorage.getItem(this.storageKey)
-				: null;
-		if (typeof window !== "undefined" && retrieved) {
-			try {
-				const parsed = JSON.parse(retrieved);
-				if (isValidFileSystemEntry(parsed)) {
-					this.fs = parsed;
-				} else {
-					classicyLog(
-						"warn",
-						"ClassicyFileSystem",
-						"localStorage data failed validation, using defaults",
-					);
-				}
-			} catch (e) {
-				classicyLog(
-					"error",
-					"ClassicyFileSystem",
-					"Failed to parse localStorage data, using defaults:",
-					e,
-				);
-			}
-		}
+		this.fs = tree;
 
 		applyClassicyFileSystemSeedMigrations(this.fs, seedMigrations, separator);
 		this.persist();
+	}
+
+	/**
+	 * The tree stored under this storage key, or undefined when there is none
+	 * (or no window) or it cannot be used, in which case the defaults seed it.
+	 */
+	private readStoredTree(): ClassicyFileSystemEntry | undefined {
+		if (typeof window === "undefined") return undefined;
+		const retrieved = localStorage.getItem(this.storageKey);
+		if (!retrieved) return undefined;
+		try {
+			const parsed = JSON.parse(retrieved);
+			if (isValidFileSystemEntry(parsed)) return parsed;
+			classicyLog(
+				"warn",
+				"ClassicyFileSystem",
+				"localStorage data failed validation, using defaults",
+			);
+		} catch (e) {
+			classicyLog(
+				"error",
+				"ClassicyFileSystem",
+				"Failed to parse localStorage data, using defaults:",
+				e,
+			);
+		}
+		return undefined;
 	}
 
 	load(data: string) {
@@ -247,8 +267,15 @@ export class ClassicyFileSystem {
 		}
 	}
 
+	/**
+	 * The tree as it is persisted: serialized without the entries a derived
+	 * overlay generated (`_derived`, at any depth), which are rebuilt on every
+	 * load (K-R5). So nothing an Appearance Package shows reaches localStorage
+	 * or an adapter, and switching packages never changes a snapshot's bytes or
+	 * hash. Loading a snapshot back drops the overlay until it is rebuilt.
+	 */
 	snapshot(): string {
-		return JSON.stringify(this.fs, null, 2);
+		return JSON.stringify(this.fs, omitDerivedEntries, 2);
 	}
 
 	/** Centralized localStorage persistence — the only place the tree is written. */
@@ -334,7 +361,8 @@ export class ClassicyFileSystem {
 	/**
 	 * Replace the tree with a derived overlay (Applications / Extensions
 	 * folders). Derived state regenerates from the app store every boot, so
-	 * this intentionally neither journals nor notifies adapters.
+	 * this intentionally neither journals nor notifies adapters, and its
+	 * `_derived` entries are left out of every snapshot.
 	 */
 	applyDerivedTree(tree: ClassicyFileSystemEntry) {
 		this.fs = tree;
@@ -367,7 +395,7 @@ export class ClassicyFileSystem {
 	}
 
 	/**
-	 * Persist to localStorage and deliver onSnapshot immediately, cancelling any
+	 * Persist to localStorage and deliver onSnapshot immediately, canceling any
 	 * pending debounce. Adapter delivery is fire-and-forget — a slow or broken
 	 * backend must never stall the filesystem. Arrow property so pagehide can
 	 * call it detached.
@@ -847,7 +875,7 @@ export class ClassicyFileSystem {
 		const newDirectoryObject = () => {
 			return {
 				_type: "directory",
-				_icon: directoryIcon,
+				_icon: resolveClassicyAsset("icons", "system.folders.directory") ?? "",
 			} as ClassicyFileSystemEntry;
 		};
 

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, userEvent, within } from "@/__tests__/test-utils";
 
@@ -59,7 +60,7 @@ describe("ClassicyPopUpMenu", () => {
 		expect(control).toHaveTextContent("Apple");
 		expect(control).toBeDisabled();
 		expect(control).toHaveAttribute("aria-disabled", "true");
-		expect(control).toHaveClass("classicyPopUpMenuButtonDisabled");
+		expect(control).toHaveClass("disabled");
 	});
 
 	it("opens the menu on click and marks the current item with a checkmark", async () => {
@@ -72,11 +73,16 @@ describe("ClassicyPopUpMenu", () => {
 		expect(within(listbox).getAllByRole("option")).toHaveLength(3);
 		const current = within(listbox).getByRole("option", { name: "Banana" });
 		expect(current).toHaveAttribute("aria-selected", "true");
-		expect(current).toHaveTextContent("✓");
+		// The check is package look (`.classicyPopUpMenuCheck.checked::before`):
+		// the gutter carries the state class and no text.
+		const check = (option: HTMLElement) =>
+			option.querySelector(".classicyPopUpMenuCheck");
+		expect(check(current)).toHaveClass("checked");
+		expect(check(current)?.textContent).toBe("");
 		// Non-current items carry no checkmark.
 		expect(
-			within(listbox).getByRole("option", { name: "Apple" }),
-		).not.toHaveTextContent("✓");
+			check(within(listbox).getByRole("option", { name: "Apple" })),
+		).not.toHaveClass("checked");
 	});
 
 	it("selecting an option updates the value and fires onChangeFunc with target.value", async () => {
@@ -297,6 +303,25 @@ describe("ClassicyPopUpMenu", () => {
 		expect(onChangeFunc.mock.calls[0][0].target.value).toBe("cherry");
 	});
 
+	// H-R26: the open list's height cap is the theme's
+	// --menu-pop-up-max-height, read from the control when the menu opens.
+	it.each([
+		200, 400,
+	])("caps the open list at a --menu-pop-up-max-height of %ipx from an ancestor", async (cap) => {
+		const scroll = vi
+			.spyOn(HTMLElement.prototype, "scrollHeight", "get")
+			.mockReturnValue(1000);
+		const user = userEvent.setup();
+		render(
+			<div style={{ "--menu-pop-up-max-height": `${cap}px` } as CSSProperties}>
+				<ClassicyPopUpMenu id="fruit" options={many} selected="opt-3" />
+			</div>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		expect(screen.getByRole("listbox").style.maxHeight).toBe(`${cap}px`);
+		scroll.mockRestore();
+	});
+
 	it("renders the open list outside a clipping ancestor (portaled to the body)", async () => {
 		const user = userEvent.setup();
 		render(
@@ -450,7 +475,7 @@ describe("ClassicyPopUpMenu", () => {
 			render(<ClassicyPopUpMenu id="fruit" options={many} selected="opt-0" />);
 			await user.click(screen.getByRole("combobox"));
 			const listbox = screen.getByRole("listbox");
-			// Button centre 110, selected row centre 10 -> top 100 puts the current
+			// Button center 110, selected row center 10 -> top 100 puts the current
 			// choice directly over the button (classic Platinum aligned pop-up).
 			expect(listbox.style.top).toBe("100px");
 			expect(listbox.style.bottom).toBe("");

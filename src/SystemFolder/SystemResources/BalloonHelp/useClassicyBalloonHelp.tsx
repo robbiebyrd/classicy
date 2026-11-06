@@ -1,6 +1,7 @@
 import type { CSSProperties, FC, ReactNode, RefObject } from "react";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 
 export type ClassicyBalloonPosition =
@@ -24,16 +25,10 @@ export interface ClassicyIconBalloonHelp {
 	delay?: number;
 }
 
-// Read --window-control-size from the desktop element at the time of display.
-const readControlSize = (): number => {
-	const el =
-		document.getElementById("classicyDesktop") ?? document.documentElement;
-	return (
-		parseFloat(
-			getComputedStyle(el).getPropertyValue("--window-control-size"),
-		) || 0
-	);
-};
+// Read --window-control-size from the desktop element at the time of display
+// (the default theme's 12 px before the desktop mounts).
+const readControlSize = (): number =>
+	readClassicyThemeVar("--window-control-size");
 
 /** The subset of DOMRect this module measures against. */
 interface AnchorRect {
@@ -84,8 +79,8 @@ const horizontalSpan = (
 		const end = anchor.left + controlSize;
 		return { start: end - width, end };
 	}
-	const centre = anchor.left + anchor.width / 2;
-	return { start: centre - width / 2, end: centre + width / 2 };
+	const center = anchor.left + anchor.width / 2;
+	return { start: center - width / 2, end: center + width / 2 };
 };
 
 const fits = (span: Span, limit: number): boolean =>
@@ -118,7 +113,7 @@ const pick = <T,>(
  * per-icon default could have covered this.
  *
  * Each axis is resolved independently, preferring the caller's side, then its
- * opposite, then centre. Exported for tests: jsdom reports every rect as zero,
+ * opposite, then center. Exported for tests: jsdom reports every rect as zero,
  * so the decision has to be checked as a function of measurements rather than
  * through a rendered balloon.
  */

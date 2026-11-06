@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
 	ClassicyButtonToolbar,
@@ -13,12 +13,15 @@ const meta = {
 } satisfies Meta<typeof ClassicyButtonToolbar>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyButtonToolbar>;
 
 // Use a bundled icon (Vite rewrites the URL against the build base) rather than
 // an absolute "/assets/..." path, so the story renders correctly when Storybook
 // is served from a sub-path (e.g. a PR preview at /<repo>/pr-preview/pr-N/).
-const icon = ClassicyIcons.system.info;
+const icon = (): string => resolveClassicyAsset("icons", "system.info") ?? "";
 
 /**
  * One group of icon-only bevel buttons: squared by the toolbar, packed flush,
@@ -28,9 +31,9 @@ export const SingleGroup: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
 			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton icon={icon} iconAlt="Back" />
-				<ClassicyBevelButton icon={icon} iconAlt="Forward" />
-				<ClassicyBevelButton icon={icon} iconAlt="Stop" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Back" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Forward" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Stop" />
 			</ClassicyButtonToolbarGroup>
 		</ClassicyButtonToolbar>
 	),
@@ -45,15 +48,15 @@ export const MultipleGroups: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
 			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton icon={icon} iconAlt="Back" />
-				<ClassicyBevelButton icon={icon} iconAlt="Forward" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Back" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Forward" />
 			</ClassicyButtonToolbarGroup>
 			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton icon={icon} iconAlt="Zoom in" />
-				<ClassicyBevelButton icon={icon} iconAlt="Zoom out" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Zoom in" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Zoom out" />
 			</ClassicyButtonToolbarGroup>
 			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton icon={icon} iconAlt="Settings" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Settings" />
 			</ClassicyButtonToolbarGroup>
 		</ClassicyButtonToolbar>
 	),
@@ -67,8 +70,8 @@ export const MixedIconAndText: Story = {
 	render: () => (
 		<ClassicyButtonToolbar>
 			<ClassicyButtonToolbarGroup>
-				<ClassicyBevelButton icon={icon} iconAlt="New" />
-				<ClassicyBevelButton icon={icon} iconAlt="Open" />
+				<ClassicyBevelButton icon={icon()} iconAlt="New" />
+				<ClassicyBevelButton icon={icon()} iconAlt="Open" />
 			</ClassicyButtonToolbarGroup>
 			<ClassicyButtonToolbarGroup>
 				<ClassicyBevelButton>Subscribe</ClassicyBevelButton>
@@ -94,15 +97,15 @@ export const ToggleAndRadioGroups: Story = {
 		return (
 			<ClassicyButtonToolbar>
 				<ClassicyButtonToolbarGroup>
-					<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Bold" />
-					<ClassicyBevelButton mode="toggle" icon={icon} iconAlt="Italic" />
+					<ClassicyBevelButton mode="toggle" icon={icon()} iconAlt="Bold" />
+					<ClassicyBevelButton mode="toggle" icon={icon()} iconAlt="Italic" />
 				</ClassicyButtonToolbarGroup>
 				<ClassicyButtonToolbarGroup>
 					{alignments.map((label) => (
 						<ClassicyBevelButton
 							key={label}
 							mode="radio"
-							icon={icon}
+							icon={icon()}
 							iconAlt={label}
 							on={alignment === label}
 							onChangeFunc={() => setAlignment(label)}
@@ -124,8 +127,8 @@ export const Sizes: Story = {
 			{(["large", "medium", "small"] as const).map((size) => (
 				<ClassicyButtonToolbar key={size} size={size}>
 					<ClassicyButtonToolbarGroup>
-						<ClassicyBevelButton icon={icon} iconAlt="Back" />
-						<ClassicyBevelButton icon={icon} iconAlt="Forward" />
+						<ClassicyBevelButton icon={icon()} iconAlt="Back" />
+						<ClassicyBevelButton icon={icon()} iconAlt="Forward" />
 					</ClassicyButtonToolbarGroup>
 					<ClassicyButtonToolbarGroup>
 						<ClassicyBevelButton>Subscribe</ClassicyBevelButton>

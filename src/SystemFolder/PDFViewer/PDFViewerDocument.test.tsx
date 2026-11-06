@@ -1,6 +1,11 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import {
 	fireEvent,
 	render,
 	screen,
@@ -93,6 +98,11 @@ vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
 	default: "mock-worker-url",
 }));
 
+import { act } from "react";
+import {
+	ClassicyIcons,
+	registerClassicyIcons,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { PDFViewerDocument } from "@/SystemFolder/PDFViewer/PDFViewerDocument";
 import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
@@ -235,7 +245,7 @@ describe("PDFViewerDocument", () => {
 	it("cancels the in-flight render task when the page changes again before it settles", async () => {
 		const cancel = vi.fn();
 		// Render never resolves/rejects for this test; we only care that the
-		// task returned by page.render() gets cancelled by the next effect run.
+		// task returned by page.render() gets canceled by the next effect run.
 		mockPage.render.mockReturnValueOnce({
 			promise: new Promise(() => {}),
 			cancel,
@@ -249,7 +259,7 @@ describe("PDFViewerDocument", () => {
 		expect(cancel).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not leave an unhandled rejection when a cancelled render task's promise rejects, and does not show an error", async () => {
+	it("does not leave an unhandled rejection when a canceled render task's promise rejects, and does not show an error", async () => {
 		// Unlike the never-settling promise above, pdf.js actually rejects
 		// `renderTask.promise` with a RenderingCancelledException once
 		// `cancel()` runs. Wire `cancel` to reject the same promise the
@@ -444,6 +454,35 @@ describe("PDFViewerDocument", () => {
 			expect(wrapper).not.toHaveClass("pdfViewerDocumentToolPan");
 		});
 
+		it("hands the stylesheet the zoom lens as --classicy-pdf-zoom-cursor, following a later icon registration", async () => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const root = container.querySelector(".pdfViewerDocument") as HTMLElement;
+			expect(root.style.getPropertyValue("--classicy-pdf-zoom-cursor")).toBe(
+				`url("${ClassicyIcons.system.sherlock.search}")`,
+			);
+			try {
+				act(() => {
+					registerClassicyIcons({
+						system: { sherlock: { search: "host-search.png" } },
+					});
+				});
+				expect(root.style.getPropertyValue("--classicy-pdf-zoom-cursor")).toBe(
+					'url("host-search.png")',
+				);
+			} finally {
+				act(() => {
+					registerClassicyIcons({
+						system: {
+							sherlock: { search: ClassicyIcons.system.sherlock.search },
+						},
+					});
+				});
+			}
+		});
+
 		it("pans the scroll offsets while dragging with the Pan tool, and stops on release", async () => {
 			const { container } = render(
 				<PDFViewerDocument url="http://example.com/sample.pdf" />,
@@ -468,6 +507,54 @@ describe("PDFViewerDocument", () => {
 			fireEvent.pointerMove(wrapper, { pointerId: 1, clientX: 0, clientY: 0 });
 			expect(wrapper.scrollLeft).toBe(20);
 			expect(wrapper.scrollTop).toBe(30);
+		});
+
+		it.each(
+			POINTER_STREAM_LOSSES,
+		)("ends a pan where it is on a %s", async (loss) => {
+			const { container } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, {
+				pointerId: 1,
+				clientX: 100,
+				clientY: 100,
+			});
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 80,
+				clientY: 70,
+			});
+			losePointerStream(loss);
+			// The pointer coming back with no button held pans nothing.
+			fireEvent.pointerMove(wrapper, {
+				pointerId: 1,
+				clientX: 0,
+				clientY: 0,
+			});
+			expect(wrapper.scrollLeft).toBe(20);
+			expect(wrapper.scrollTop).toBe(30);
+		});
+
+		it("watches the pointer stream only while a pan lasts", async () => {
+			const { container, unmount } = render(
+				<PDFViewerDocument url="http://example.com/sample.pdf" />,
+			);
+			await screen.findByText("Page 1 of 3");
+			const live = trackPointerStreamListeners();
+			const wrapper = getWrapper(container);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			expect(live.size).toBe(3);
+			fireEvent.pointerUp(wrapper, { pointerId: 1 });
+			expect(live.size).toBe(0);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			losePointerStream("blur");
+			expect(live.size).toBe(0);
+			fireEvent.pointerDown(wrapper, { pointerId: 1, clientX: 100 });
+			unmount();
+			expect(live.size).toBe(0);
 		});
 
 		it("does not pan while the Zoom tool is active", async () => {
@@ -577,7 +664,7 @@ describe("PDFViewerDocument", () => {
 		const { unmount } = render(<PDFViewerDocument url="" data={compressed} />);
 		// Unmount synchronously, right after render — before the in-flight
 		// decompression (a genuinely async operation) has any chance to
-		// settle. This is the exact race the effect's `cancelled` check
+		// settle. This is the exact race the effect's `canceled` check
 		// before creating the pdf.js loading task exists to guard against.
 		unmount();
 		await new Promise((resolve) => setTimeout(resolve, 0));

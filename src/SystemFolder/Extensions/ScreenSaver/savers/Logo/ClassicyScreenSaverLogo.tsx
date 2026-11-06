@@ -1,4 +1,5 @@
 import "./ClassicyScreenSaverLogo.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
@@ -61,10 +62,11 @@ const declaredSize = (
  */
 export const ClassicyScreenSaverLogo: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const logo = selectedLogo(config);
 	const [measured, setMeasured] = useState<LogoSize | undefined>();
-	if (!logo) return <div className="classicySaverLogo" />;
+	const rootClassName = classNames("classicySaverLogo", className);
+	if (!logo) return <div className={rootClassName} style={style} />;
 	const size = declaredSize(logo) ?? measured;
 	const onLoad = (e: SyntheticEvent<HTMLImageElement>) => {
 		if (declaredSize(logo)) return;
@@ -72,7 +74,7 @@ export const ClassicyScreenSaverLogo: FunctionalComponent<
 		setMeasured({ width: rect.width, height: rect.height });
 	};
 	return (
-		<div className="classicySaverLogo">
+		<div className={rootClassName} style={style}>
 			<img
 				// Remount per logo so a stale measurement never applies to the
 				// next image.
@@ -100,8 +102,13 @@ export const ClassicyScreenSaverLogo: FunctionalComponent<
  * host registers logos at module scope, possibly after the saver did.
  */
 export const ClassicyScreenSaverLogoOptions: FunctionalComponent<
-	ClassicyScreenSaverConfigProps
-> = ({ config, onChange }) => {
+	ClassicyScreenSaverConfigProps & {
+		/** Extra class names, forwarded to the pop-up menu's root. */
+		className?: string;
+		/** Inline style, forwarded to the pop-up menu's root. */
+		style?: CSSProperties;
+	}
+> = ({ config, onChange, className, style }) => {
 	const logos = useClassicyScreenSaverLogos();
 	const selected = selectedLogo(config);
 	return (
@@ -112,6 +119,8 @@ export const ClassicyScreenSaverLogoOptions: FunctionalComponent<
 			options={logos.map((logo) => ({ value: logo.id, label: logo.name }))}
 			selected={selected?.id ?? ""}
 			onChangeFunc={(e) => onChange({ logo: e.target.value })}
+			className={className}
+			style={style}
 		/>
 	);
 };

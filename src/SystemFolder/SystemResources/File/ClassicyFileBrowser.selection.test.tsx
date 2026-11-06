@@ -63,7 +63,7 @@ describe("ClassicyFileBrowser selection handle", () => {
 		Array.from(container.querySelectorAll("tr.classicyTableRow"));
 
 	const selectedNames = (container: HTMLElement) =>
-		Array.from(container.querySelectorAll("tr.classicyTableRowSelected")).map(
+		Array.from(container.querySelectorAll("tr.classicyTableRow.selected")).map(
 			(row) => row.getAttribute("data-row-id"),
 		);
 
@@ -155,9 +155,7 @@ describe("ClassicyFileBrowser delete key and item menus", () => {
 		) as HTMLElement;
 		fireEvent.mouseDown(row);
 		fireEvent.click(row);
-		await waitFor(() =>
-			expect(row.classList.contains("classicyTableRowSelected")).toBe(true),
-		);
+		await waitFor(() => expect(row.classList.contains("selected")).toBe(true));
 		expect(fireEvent.keyDown(box, { key: "Delete" })).toBe(false);
 		fireEvent.keyDown(box, { key: "Backspace", ctrlKey: true });
 		expect(onDeleteItems.mock.calls).toEqual([

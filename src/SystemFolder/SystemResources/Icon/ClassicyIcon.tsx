@@ -10,6 +10,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -21,6 +23,12 @@ import {
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	classicyFileDragAppearanceCallbacks,
+	useClassicyFileDragEndOnUnmount,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -88,6 +96,16 @@ interface ClassicyIconProps {
 		point: [number, number],
 		outlineTopLeft: [number, number],
 	) => boolean;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/**
+	 * Inline style, merged onto the root element after the component's own, so
+	 * its keys win — including `--desktop-icon-size`. A `left`/`top` here
+	 * overrides the icon's position, so the icon no longer follows a drag.
+	 * Stacking belongs to the icon states (ClassicyIcon.scss: 10, dragging 500), so a
+	 * `zIndex` here is dropped.
+	 */
+	style?: CSSProperties;
 }
 
 /**
@@ -143,6 +161,8 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	dropFolderPath,
 	filePath,
 	onFileDrag,
+	className,
+	style,
 }) => {
 	const [position, setPosition] = useState<[number, number]>(initialPosition);
 	const [dragging, setDragging] = useState<boolean>(false);
@@ -154,6 +174,15 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const movedWhileDragging = useRef<boolean>(false);
 
 	const iconRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance(
+		"Icon",
+		{ dragging, selected: active },
+		iconRef,
+	);
+	// One dragEnd per dragStart: mouseup also ends presses that never dragged.
+	const dragEmittedRef = useRef(false);
+	// A file drag in progress ends (canceled) before the icon unmounts.
+	const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
 	const id = `${appId}.shortcut`;
 
@@ -162,6 +191,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const toggleFocus = () => {
 		track("focus", analyticsArgs);
+		appearance.emit("select", { selected: !active });
 		setActive(!active);
 	};
 	const setFocus = (active: boolean) => {
@@ -176,12 +206,15 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const doDoubleClick = () => {
 		if (onClickFunc) {
+			// A double-click or Enter/Space.
+			appearance.emit("open", withClassicyAppearanceInput());
 			clearFocus();
 			onClickFunc();
 		}
 	};
 
-	const stopChangeIcon = () => {
+	// `lost`: ended by the pointer stream being lost, not by a release.
+	const stopChangeIcon = (lost: boolean) => {
 		// Gated on a real drag: mouseup also ends a bare click, and Mac OS 8 never
 		// moved an icon you only clicked to select it.
 		if (snapTo && movedWhileDragging.current) {
@@ -189,18 +222,29 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		}
 		movedWhileDragging.current = false;
 		setDragging(false);
+		if (dragEmittedRef.current) {
+			dragEmittedRef.current = false;
+			appearance.emit("dragEnd", { lost });
+		}
 	};
+
+	// The pointer stream lost mid-drag (the window blurred, a pointercancel,
+	// the page hidden): the icon stays where it was dragged, as if released
+	// there, instead of following the pointer back with no button held.
+	useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 		if (onFileDrag) {
 			if (e.button !== 0) return;
 			const el = iconRef.current;
-			startClassicyFileDrag({
+			const abandon = startClassicyFileDrag({
 				start: { clientX: e.clientX, clientY: e.clientY },
 				parts: [
 					{ image: el?.querySelector("img"), label: el?.querySelector("p") },
 				],
 				source: el,
+				// The outline drags, not the icon: `dragging` stays off.
+				...classicyFileDragAppearanceCallbacks(appearance.emit),
 				onDrop: (target, point, outlineTopLeft) => {
 					if (onFileDrag(target, point, outlineTopLeft)) return;
 					if (positionLocked) return;
@@ -214,11 +258,14 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					setFocus(true);
 				},
 			});
+			endFileDragOnUnmount(abandon);
 			return;
 		}
 		if (positionLocked) return;
 		movedWhileDragging.current = false;
 		setDragging(true);
+		dragEmittedRef.current = true;
+		appearance.emit("dragStart");
 	};
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
@@ -249,7 +296,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
 			)}
-			style={{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties}
+			style={{ "--classicy-icon-mask": `url("${icon}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
 				<img src={icon} alt={name} />
@@ -260,6 +307,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: icon is a draggable div with ref and complex mouse handling incompatible with <button>
 		<div
+			{...appearance.attrs}
 			role="button"
 			tabIndex={0}
 			ref={iconRef}
@@ -273,12 +321,15 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 				: { [CLASSICY_FILE_PATH_ATTRIBUTE]: filePath })}
 			className={classNames(
 				"classicyIcon",
-				dragging ? "classicyIconDragging" : "",
-				active ? "classicyIconActive" : "",
+				appearance.className,
 				labelPositionClass(labelPosition),
+				className,
 			)}
 			style={
 				{
+					// Package style first: the icon's position is its own (a
+					// package never moves it), and only a consumer's wins over it.
+					...withoutZIndex(appearance.style),
 					left: `${position[0]}px`,
 					top: `${position[1]}px`,
 					// Every rule in ClassicyIcon.scss that sizes this icon — the
@@ -291,6 +342,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 					// when `size` is undefined so the theme's value keeps cascading
 					// exactly as it did before this prop existed.
 					...(size === undefined ? {} : { "--desktop-icon-size": `${size}px` }),
+					...withoutZIndex(style),
 				} as CSSProperties
 			}
 			onClick={toggleFocus}
@@ -302,7 +354,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			}}
 			onMouseDown={startDrag}
 			onMouseMove={changeIcon}
-			onMouseUp={stopChangeIcon}
+			onMouseUp={() => stopChangeIcon(false)}
 			onDoubleClick={doDoubleClick}
 		>
 			{labelPosition === "above" ? labelEl : iconEl}

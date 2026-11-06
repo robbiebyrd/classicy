@@ -1,6 +1,7 @@
 import "./ClassicyForm.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FormEvent,
 	FormHTMLAttributes,
 	FC as FunctionalComponent,
@@ -86,9 +87,10 @@ export const ClassicyFormButtonRow: FunctionalComponent<
 	PropsWithChildren<{
 		/** Extra class on the row. */
 		className?: string;
+		style?: CSSProperties;
 	}>
-> = ({ className, children }) => (
-	<div className={classNames("classicyFormButtonRow", className)}>
+> = ({ className, style, children }) => (
+	<div className={classNames("classicyFormButtonRow", className)} style={style}>
 		{children}
 	</div>
 );

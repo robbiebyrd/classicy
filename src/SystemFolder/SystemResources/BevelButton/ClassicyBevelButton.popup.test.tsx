@@ -1,5 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import {
+	act,
 	fireEvent,
 	render,
 	screen,
@@ -24,18 +31,9 @@ vi.mock(
 );
 
 // ClassicyMenu runs a leaf item's action only once its click-flash animation
-// ends. jsdom has no AnimationEvent, so React listens for the prefixed event;
-// see ClassicyDesktopMenuBar.help.test.tsx for the full explanation.
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 const lassoItems = (onPick: (id: string) => void): ClassicyMenuItem[] => [
 	{
@@ -80,9 +78,14 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		expect(button).toHaveAttribute("aria-expanded", "true");
 		expect(button).toHaveAttribute("aria-controls", menu.id);
 		// The button reads as pressed while its menu is down.
-		expect(button).toHaveAttribute("data-state", "pressed-off");
-		const shrink = screen.getByRole("menuitem", { name: "Shrink" });
-		expect(shrink).toHaveTextContent("✓");
+		expect(button).toHaveClass("open", "pressed");
+		expect(button).not.toHaveAttribute("data-state");
+		const shrink = screen.getByRole("menuitemcheckbox", { name: "Shrink" });
+		expect(shrink).toHaveAttribute("aria-checked", "true");
+		// The ✓ is package CSS on `.classicyMenuItemCheck.checked::before`.
+		expect(shrink.querySelector(".classicyMenuItemCheck")).toHaveClass(
+			"checked",
+		);
 	});
 
 	it("keeps describing its own pop-up even when a caller passes disclosure ARIA", () => {
@@ -220,7 +223,9 @@ describe("ClassicyBevelButton pop-up menu (HIGOS8 p.32)", () => {
 		button.focus();
 		// Enter/Space produce a click with no pointer behind it (detail 0).
 		fireEvent.click(button, { detail: 0 });
-		const [shrink, noShrink] = screen.getAllByRole("menuitem");
+		// Both items are checkable, so they are menuitemcheckbox items, and
+		// keyboard navigation must still reach them.
+		const [shrink, noShrink] = screen.getAllByRole("menuitemcheckbox");
 		expect(shrink).toHaveFocus();
 		fireEvent.keyDown(shrink, { key: "ArrowDown" });
 		expect(noShrink).toHaveFocus();
@@ -346,6 +351,119 @@ describe("ClassicyBevelButton press-and-hold options (HIGOS8 p.33)", () => {
 	});
 });
 
+describe("ClassicyBevelButton press-and-hold ending before its delay", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	const renderHold = (onClick = vi.fn(), onPick = vi.fn()) => {
+		vi.useFakeTimers();
+		const view = render(
+			<ClassicyBevelButton
+				mode="push"
+				aria-label="Lasso"
+				menuItems={lassoItems(onPick)}
+				popupHoldDelayMs={500}
+				onClickFunc={onClick}
+			/>,
+		);
+		const tool = screen.getByRole("button", { name: "Lasso" });
+		return { ...view, tool, onClick, onPick };
+	};
+	const pastTheDelay = () => act(() => vi.advanceTimersByTime(1_000));
+
+	const pressEnds: [string, (tool: HTMLElement) => void][] = [
+		[
+			"let go elsewhere",
+			(tool) => {
+				// A browser reports the pointer leaving before the release.
+				fireEvent.mouseLeave(tool);
+				fireEvent.mouseUp(document.body);
+			},
+		],
+		...POINTER_STREAM_LOSSES.map(
+			(loss): [string, (tool: HTMLElement) => void] => [
+				`lost on a ${loss}`,
+				() => losePointerStream(loss),
+			],
+		),
+	];
+
+	it.each(pressEnds)("never opens the options of a press %s", (_, end) => {
+		const { tool, onClick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		act(() => vi.advanceTimersByTime(200));
+		end(tool);
+		// The hold is canceled with the press, not left to fire.
+		expect(vi.getTimerCount()).toBe(0);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(tool).not.toHaveClass("pressed");
+		// A later release anywhere opens nothing either.
+		fireEvent.mouseUp(document.body);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("never opens the options of a press let go over the button, which clicks it", () => {
+		const { tool, onClick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		fireEvent.mouseUp(tool, { button: 0 });
+		fireEvent.click(tool, { detail: 1 });
+		expect(vi.getTimerCount()).toBe(0);
+		pastTheDelay();
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it("never opens the options of a press whose button unmounts", () => {
+		const { tool, unmount } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		unmount();
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it("still opens the options of a press held past the delay", () => {
+		const { tool, onClick, onPick } = renderHold();
+		fireEvent.mouseDown(tool, { button: 0 });
+		// Dragging off toward the menu is part of the gesture.
+		fireEvent.mouseLeave(tool);
+		act(() => vi.advanceTimersByTime(499));
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		act(() => vi.advanceTimersByTime(1));
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		fireEvent.mouseUp(screen.getByText("No Shrink"));
+		act(() => completeMenuItemFlash("no-shrink"));
+		pastTheDelay();
+		expect(onPick).toHaveBeenCalledExactlyOnceWith("no-shrink");
+		expect(onClick).not.toHaveBeenCalled();
+	});
+
+	it("leaves a click trigger's quick click, here or let go elsewhere, sticky", () => {
+		vi.useFakeTimers();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={500}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		quickClick(button);
+		pastTheDelay();
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		fireEvent.mouseDown(button, { button: 0 });
+		fireEvent.mouseUp(document.body);
+		pastTheDelay();
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+});
+
 describe("ClassicyBevelButton pop-up placement", () => {
 	const at = { top: 100, bottom: 120, left: 50, right: 90 };
 	const mockButtonRect = () =>
@@ -416,7 +534,34 @@ describe("ClassicyBevelButton pop-up placement", () => {
 		spy.mockRestore();
 	});
 
-	it("popupAlign centres a surface on the button", () => {
+	// H 6.1: an inset read from the theme is computed when the surface opens,
+	// from the button, once per opening, never per render.
+	it("popupAnchorInset may be computed from the button as the surface opens", () => {
+		const spy = mockButtonRect();
+		const inset = vi.fn((button: HTMLElement) => ({
+			top: 3,
+			left: button.getAttribute("aria-label") === "Module" ? -2 : 0,
+		}));
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Module"
+				popupPlacement="below"
+				popupAnchorInset={inset}
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		expect(inset).not.toHaveBeenCalled();
+		quickClick(screen.getByRole("button", { name: "Module" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("48px");
+		expect(menu.style.top).toBe("120px");
+		expect(inset).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
+	});
+
+	it("popupAlign centers a surface on the button", () => {
 		const spy = mockButtonRect();
 		// The panel measures itself: 20 x 10.
 		const panelRect = vi
@@ -447,5 +592,120 @@ describe("ClassicyBevelButton pop-up placement", () => {
 		expect(panel.style.left).toBe("60px"); // 50 + (40 - 20) / 2
 		panelRect.mockRestore();
 		spy.mockRestore();
+	});
+});
+
+describe("ClassicyBevelButton when a press loses its pointer stream", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("closes a menu a held press is tracking, choosing nothing, on a %s", (loss) => {
+		const onPick = vi.fn();
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(onPick)}
+				popupHoldDelayMs={0}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		fireEvent.mouseDown(button, { button: 0 });
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		losePointerStream(loss);
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		expect(button).not.toHaveClass("pressed");
+		fireEvent.mouseUp(document.body);
+		expect(onPick).not.toHaveBeenCalled();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("never opens the options of a press-and-hold lost before the delay, on a %s", async (loss) => {
+		const onClick = vi.fn();
+		render(
+			<ClassicyBevelButton
+				mode="push"
+				aria-label="Lasso"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={20}
+				onClickFunc={onClick}
+			/>,
+		);
+		const tool = screen.getByRole("button", { name: "Lasso" });
+		fireEvent.mouseDown(tool, { button: 0 });
+		losePointerStream(loss);
+		expect(tool).not.toHaveClass("pressed");
+		await new Promise((resolve) => setTimeout(resolve, 40));
+		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+	});
+
+	it("leaves a sticky menu open: a click that ended is no gesture", () => {
+		render(
+			<ClassicyBevelButton
+				mode="popup"
+				aria-label="Marquee"
+				menuItems={lassoItems(vi.fn())}
+				popupHoldDelayMs={10_000}
+			/>,
+		);
+		quickClick(screen.getByRole("button", { name: "Marquee" }));
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		losePointerStream("blur");
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
+	it("watches the pointer stream only while a press lasts", async () => {
+		const live = trackPointerStreamListeners();
+		const { unmount } = render(
+			<>
+				<ClassicyBevelButton
+					mode="popup"
+					aria-label="Marquee"
+					menuItems={lassoItems(vi.fn())}
+					popupHoldDelayMs={10_000}
+				/>
+				<ClassicyBevelButton
+					mode="push"
+					aria-label="Lasso"
+					menuItems={lassoItems(vi.fn())}
+					popupHoldDelayMs={20}
+				/>
+			</>,
+		);
+		const marquee = screen.getByRole("button", { name: "Marquee" });
+		const lasso = screen.getByRole("button", { name: "Lasso" });
+		expect(live.size).toBe(0);
+		// A click-trigger press, released: the menu stays open, unwatched.
+		fireEvent.mouseDown(marquee, { button: 0 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(marquee, { button: 0 });
+		expect(live.size).toBe(0);
+		fireEvent.keyDown(document, { key: "Escape" });
+		// A hold-trigger press released before the delay.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(lasso, { button: 0 });
+		expect(live.size).toBe(0);
+		// A hold that opens its options, released elsewhere.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		await screen.findByRole("menu");
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document.body);
+		expect(live.size).toBe(0);
+		// A hold released over an item, which then flashes before it runs.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		await screen.findByRole("menu");
+		fireEvent.mouseUp(screen.getByText("No Shrink"));
+		expect(live.size).toBe(0);
+		completeMenuItemFlash("no-shrink");
+		// Lost, then unmounted mid-press.
+		fireEvent.mouseDown(lasso, { button: 0 });
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(lasso, { button: 0 });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });

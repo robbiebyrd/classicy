@@ -1,4 +1,4 @@
-@use "../../ControlPanels/AppearanceManager/styles/appearance";
+@use "../../../Appearance/vocabulary/layout";
 
 .classicyStartupScreen {
   position: fixed;
@@ -14,11 +14,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--window-padding-size) * 3);
-  padding: calc(var(--window-padding-size) * 6)
-    calc(var(--window-padding-size) * 8);
+  gap: var(--startup-screen-panel-gap);
+  padding: var(--startup-screen-panel-padding-block)
+    var(--startup-screen-panel-padding-inline);
   background: var(--color-system-03);
-  @include appearance.platinumWindowBorder;
+  // Its window border is in the Platinum package.
 }
 
 .classicyStartupScreenLogo {
@@ -44,7 +44,7 @@
   line-height: 1;
   color: var(--color-black);
 
-  @include appearance.no-select;
+  @include layout.classicy-no-select;
 }
 
 .classicyStartupScreenProgress {
@@ -54,16 +54,16 @@
 
 .classicyStartupScreenExtensions {
   position: absolute;
-  inset: auto calc(var(--window-padding-size) * 2)
-    calc(var(--window-padding-size) * 2);
+  inset: auto var(--startup-screen-extensions-inset)
+    var(--startup-screen-extensions-inset);
   display: flex;
   // wrap-reverse grows the parade upward when a row fills, like Mac OS 7
   flex-wrap: wrap-reverse;
-  gap: calc(var(--window-padding-size) * 1.5);
+  gap: var(--control-padding-wide);
 
   img {
-    width: var(--icon-size-regular, 32px);
-    height: var(--icon-size-regular, 32px);
+    width: var(--icon-size-regular);
+    height: var(--icon-size-regular);
     image-rendering: pixelated;
   }
 }

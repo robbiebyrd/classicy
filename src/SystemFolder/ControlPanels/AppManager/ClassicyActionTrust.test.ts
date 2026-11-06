@@ -16,6 +16,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
+	type ClassicyActionTrust,
 	isActionTrustGuarded,
 	isActionTrustPermitted,
 	registerClassicyUntrustedActionAllowlist,
@@ -345,5 +346,29 @@ describe("dispatch — trust defaults through the public API", () => {
 			"trust-untrusted-w1",
 		);
 		expect(win).toBeUndefined();
+	});
+});
+
+describe("the trust a plugin handler receives", () => {
+	const seen: unknown[] = [];
+	registerAppEventHandler("ClassicyAppTrustProbe", (ds, _action, trust) => {
+		seen.push(trust);
+		return ds;
+	});
+	registerClassicyUntrustedActionAllowlist("ClassicyAppTrustProbeEvent");
+
+	it.each([
+		["a garbage value", "bogus", "untrusted"],
+		["untrusted", "untrusted", "untrusted"],
+		["trusted", "trusted", "trusted"],
+		["no value (the reducer's default)", undefined, "trusted"],
+	])("is %s normalized", (_label, given, received) => {
+		seen.length = 0;
+		classicyDesktopStateEventReducer(
+			makeStore(),
+			{ type: "ClassicyAppTrustProbeEvent" },
+			given as ClassicyActionTrust | undefined,
+		);
+		expect(seen).toEqual([received]);
 	});
 });

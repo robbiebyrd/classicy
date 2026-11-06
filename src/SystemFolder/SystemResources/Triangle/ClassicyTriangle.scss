@@ -1,9 +1,7 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 .classicyTriangle {
   width: calc(var(--window-control-size) + var(--window-padding-size));
   height: calc(var(--window-control-size) + var(--window-padding-size));
-  margin-left: calc(var(--window-control-size) / -2);
+  margin-left: calc(var(--disclosure-triangle-offset) * -1);
   transition-timing-function: steps(4, end);
   transition-duration: 0.125s;
   transition-property: all;

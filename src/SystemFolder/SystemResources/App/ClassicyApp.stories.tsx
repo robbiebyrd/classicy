@@ -1,8 +1,19 @@
 import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
+import { renamedParameters } from "@sb/renamed";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { fn } from "storybook/test";
-import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import {
+	useAppManager,
+	useAppManagerDispatch,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { hasAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { MoviePlayerAppInfo } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import {
+	registerClassicyControlStripModule,
+	unregisterClassicyControlStripModule,
+} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyApp } from "./ClassicyApp";
 
@@ -13,7 +24,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyApp>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyApp>;
 
 /**
  * One open app with two document windows. Clicking a window focuses it and
@@ -127,4 +141,129 @@ const AppWithContextMenu = () => {
  */
 export const AppContextMenu: Story = {
 	render: () => <AppWithContextMenu />,
+};
+
+const APPLICATIONS_FOLDER = "Macintosh HD:Applications";
+
+/** A Control Strip module the host app owns, so its label follows the app. */
+const TV_CONTROL_STRIP_MODULE_ID = "storybook-tv";
+
+/**
+ * A movie for Movie Player to open, so it has a focused window publishing
+ * its menus (and with them the Apple menu's About item). Opened as audio:
+ * the window draws only the controller, never a video frame. Relative, so it
+ * resolves under any Storybook base path (`staticDirs` serves /assets).
+ */
+const SAMPLE_MOVIE = {
+	url: "assets/vid/quicktime/sample.mp4",
+	name: "Sample",
+	type: "audio",
+} as const;
+
+const RenamedByPackageDesktop = () => {
+	const dispatch = useAppManagerDispatch();
+	// A host app opts its own window into the package's identity the way the
+	// bundled control panels do: the title and proxy icon are the display
+	// identity, resolved at render, never stored.
+	const tv = useClassicyAppIdentity("TV.app", { name: "TV", icon: SB_ICON });
+	// Both windows register (and take focus) on mount, so Movie Player is
+	// opened, and focused, only once they have.
+	const windowsReady = useAppManager((state) => {
+		const { apps } = state.System.Manager.Applications;
+		return (
+			hasAppWindow(apps["TV.app"], "main") &&
+			hasAppWindow(apps["Finder.app"], APPLICATIONS_FOLDER)
+		);
+	});
+	const moviePlayerOpened = useRef(false);
+
+	useEffect(() => {
+		// Owned by TV.app, so the strip, its control panel and the Control
+		// Strip Modules folder show it under the app's display name.
+		registerClassicyControlStripModule({
+			id: TV_CONTROL_STRIP_MODULE_ID,
+			appId: "TV.app",
+			label: "TV",
+			icon: SB_ICON,
+			menuItems: [
+				{
+					id: "storybook-tv-channel",
+					title: "Channel 8",
+					disabled: true,
+					className: "classicyControlStripStatus",
+				},
+			],
+		});
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: "TV.app", name: "TV", icon: SB_ICON },
+		});
+		dispatch({
+			type: "ClassicyAppFinderOpenFolder",
+			path: APPLICATIONS_FOLDER,
+		});
+		return () => {
+			unregisterClassicyControlStripModule(TV_CONTROL_STRIP_MODULE_ID);
+		};
+	}, [dispatch]);
+
+	useEffect(() => {
+		if (!windowsReady || moviePlayerOpened.current) return;
+		moviePlayerOpened.current = true;
+		// Movie Player on the desktop too (a bundled app registers a hidden
+		// icon): with no balloon of its own, its icon's balloon is the
+		// package's `description` override.
+		dispatch({
+			type: "ClassicyDesktopIconAdd",
+			app: MoviePlayerAppInfo,
+			kind: "app_shortcut",
+		});
+		dispatch({ type: "ClassicyAppOpen", app: MoviePlayerAppInfo });
+		dispatch({
+			type: "ClassicyAppMoviePlayerOpenDocument",
+			document: SAMPLE_MOVIE,
+		});
+	}, [dispatch, windowsReady]);
+
+	return (
+		<ClassicyApp
+			id="TV.app"
+			name="TV"
+			icon={SB_ICON}
+			showDesktopIcon
+			addSystemMenu
+			desktopIconBalloonHelp="Double-click to watch TV."
+		>
+			<ClassicyWindow
+				id="main"
+				appId="TV.app"
+				title={tv.name}
+				icon={tv.icon}
+				initialSize={[300, 160]}
+				initialPosition={[420, 400]}
+			>
+				<p style={{ padding: "1em" }}>Now playing on channel 8.</p>
+			</ClassicyWindow>
+		</ClassicyApp>
+	);
+};
+
+/**
+ * Under the Storybook-only `renamed` package, Movie Player is 'Media Player'
+ * with its own icon (menu bar, App Switcher, Applications) and the host app
+ * TV.app is 'Television' on the desktop. Switch the package back in the
+ * Appearance control panel and every name and icon returns.
+ *
+ * Movie Player has a document open and focused, so the Apple menu offers
+ * "About Media Player" and its About box; its desktop icon's balloon is the
+ * package's description. The TV window titles itself with
+ * `useClassicyAppIdentity`, as the bundled control panels do, so its title
+ * and proxy icon follow the package too, and TV.app's Control Strip module
+ * is labeled "Television" in the strip and its control panel. Persisted
+ * state never changes: records, menus and the file system keep the apps'
+ * own names.
+ */
+export const RenamedByPackage: Story = {
+	parameters: renamedParameters,
+	render: () => <RenamedByPackageDesktop />,
 };

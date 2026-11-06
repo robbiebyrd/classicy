@@ -1,9 +1,12 @@
 import { type ChangeEvent, useMemo } from "react";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { useClassicyAssetTree } from "@/Appearance/ClassicyAssetRegistry";
+import { portableClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
+import { isSafeClassicyThemeBackgroundImage } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import { ClassicyWallpapers } from "./ClassicyWallpapers";
 
 /**
  * The Size pop-up's three choices. "auto" is the CSS keyword for an image
@@ -22,9 +25,24 @@ export const classicyBackgroundSizeOption = (
 ): ClassicyBackgroundSizeOption =>
 	size === "cover" || size === "contain" ? size : "auto";
 
+/**
+ * True for what the Picture field may set as the desktop picture: an absolute
+ * http(s) URL the theme schema accepts. A relative path is refused: it means
+ * nothing on another host, and a theme renders only registered wallpapers
+ * and URLs.
+ */
+export const isClassicyBackgroundPictureUrl = (url: string): boolean =>
+	/^https?:\/\//i.test(url) && isSafeClassicyThemeBackgroundImage(url);
+
 interface DesktopTabProps {
 	/** Current background image URL (resolved), or a stand-in for none. */
 	bg: string;
+	/**
+	 * The edited theme's Appearance Package (default: Platinum). Options
+	 * name its own wallpapers by filename and another package's as
+	 * `<package>|<file>`, so two packages' same filename stay two choices.
+	 */
+	themePackage?: string;
 	/** Current `desktop.backgroundPosition`. */
 	bgPosition?: string | number;
 	/** Current `desktop.backgroundRepeat`. */
@@ -40,6 +58,7 @@ interface DesktopTabProps {
 
 export const useDesktopTab = ({
 	bg,
+	themePackage = CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
 	bgPosition = "center",
 	bgRepeat = "repeat",
 	bgSize = "auto",
@@ -50,6 +69,24 @@ export const useDesktopTab = ({
 	backgroundSize,
 }: DesktopTabProps): TabIndividual => {
 	const sizeOption = classicyBackgroundSizeOption(bgSize);
+	const wallpapers = useClassicyAssetTree("wallpapers");
+	// Option values are what ClassicyDesktopChangeBackground stores: a
+	// registered wallpaper's filename, or `<package>|<file>` for one of
+	// neither the theme's package nor Platinum, or Platinum's that the
+	// theme's package shadows (its source,
+	// for one registered without a file), so the resolved `bg` is matched the
+	// same way.
+	const wallpaperOptions = useMemo(
+		() =>
+			Object.entries(wallpapers)
+				.filter(([, value]) => typeof value === "string")
+				.map(([label, value]) => ({
+					label,
+					value: portableClassicyWallpaper(value as string, themePackage),
+				})),
+		[wallpapers, themePackage],
+	);
+	const selected = portableClassicyWallpaper(bg, themePackage);
 	return useMemo(
 		() => ({
 			title: "Desktop",
@@ -66,12 +103,11 @@ export const useDesktopTab = ({
 							<ClassicyControlLabel label={"Patterns"} direction={"left"} />
 							<ClassicyPopUpMenu
 								id={"bg"}
-								options={ClassicyWallpapers}
+								options={wallpaperOptions}
 								onChangeFunc={changeBackground}
-								// Option values are the full resolved wallpaper URLs, so
-								// the stored URL matches one directly. A user-supplied
-								// picture matches none and shows the placeholder.
-								selected={bg}
+								// A user-supplied picture matches no option and shows
+								// the placeholder.
+								selected={selected}
 								placeholder={"Custom"}
 							/>
 							<br />
@@ -137,6 +173,7 @@ export const useDesktopTab = ({
 		}),
 		[
 			bg,
+			selected,
 			bgPosition,
 			bgRepeat,
 			sizeOption,
@@ -145,6 +182,7 @@ export const useDesktopTab = ({
 			alignBackground,
 			repeatBackground,
 			backgroundSize,
+			wallpaperOptions,
 		],
 	);
 };

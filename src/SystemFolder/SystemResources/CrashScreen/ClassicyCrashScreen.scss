@@ -1,6 +1,6 @@
 .classicyCrashScreen {
 	position: absolute;
-	z-index: 2000 !important;
+	z-index: 2000;
 	top: 0;
 	left: 0;
 	display: flex;
@@ -9,13 +9,14 @@
 	width: 100vw;
 	height: 100vh;
 	cursor: pointer;
-	background: var(--color-black, black) !important;
+	background: var(--color-black, black);
 	border: none;
 	padding: 0;
 
 	img {
-		/* 2x the asset's natural 245px width; crisp pixel scaling. */
-		width: 245px;
+		/* The Sad Mac art at its intrinsic size, crisply scaled. The screen
+		   replaces the whole desktop, so no theme variable reaches it: it reads
+		   no theme measurement (H-R27a). */
 		max-width: 40vw;
 		image-rendering: pixelated;
 	}

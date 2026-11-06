@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
 import { ClassicyTable, type ClassicyTableColumn } from "./ClassicyTable";
@@ -41,6 +46,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTable>;
 
 /**
  * Sortable, resizable columns, sorted by Name on mount: click a header to
@@ -152,6 +161,21 @@ const FolderTable = () => {
  * Focus a branch row and press ⌘→ / ⌘← to expand or collapse it. Selection
  * here is controlled (`selected` + `onSelectionChange`).
  */
-export const TreeRows: Story = {
+export const TreeRows: RenderStory = {
 	render: () => <FolderTable />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: AboutThisComputer.args,
+	render: (args: ComponentProps<typeof ClassicyTable>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyTable {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

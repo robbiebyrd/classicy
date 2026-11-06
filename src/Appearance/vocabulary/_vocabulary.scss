@@ -1,0 +1,11 @@
+// generated — do not edit (bin/generate-vocabulary.ts)
+@use "sass:list";
+
+$classicy-states: (active, inactive, disabled, selected, pressed, focused, hover, collapsed, open, dragging, error, default, checked, mixed, expanded);
+
+@function classicy-state($name) {
+	@if not list.index($classicy-states, $name) {
+		@error "classicy-state: unknown state #{$name}";
+	}
+	@return ".#{$name}";
+}

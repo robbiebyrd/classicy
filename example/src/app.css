@@ -1,7 +1,16 @@
-html,
-body,
-div {
-	overscroll-behavior: none;
+/*
+ * A page-wide default that must not override Classicy's own components (the
+ * pop-up menu list sets `overscroll-behavior: contain`). Classicy's rules live
+ * in `@layer classicy.base`, and any unlayered rule -- or any layer of our own,
+ * which ranks after Classicy's -- would beat them. `classicy.base.host` is the
+ * sublayer reserved for hosts: it ranks below Classicy's own rules.
+ */
+@layer classicy.base.host {
+	html,
+	body,
+	div {
+		overscroll-behavior: none;
+	}
 }
 
 html,

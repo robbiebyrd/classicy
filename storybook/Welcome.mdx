@@ -44,20 +44,16 @@ While you browse:
 ## Install
 
 ```sh
-npm install classicy
+npm install @classicy/classicy
 # peer dependencies
 npm install react react-dom zustand immer @tanstack/react-table react-player
 ```
 
-Importing `classicy` brings its styles with it: the bundle adds its stylesheet
+Importing `@classicy/classicy` brings its styles with it: the bundle adds its stylesheet
 to the page's `<head>` the first time it loads, so there is no CSS file to
 import or loader to configure. The bundled fonts (ChicagoFLF, Charcoal,
-Geneva, Monaco and more, base64-embedded) are a separate, optional import
-that works the same way. Skip it if you supply your own fonts.
-
-```ts
-import "classicy/fonts"; // optional: the bundled fonts
-```
+Geneva, Monaco and more) are files that the Platinum appearance package
+registers at runtime, so there is nothing to import for them either.
 
 ## Quick start
 
@@ -71,7 +67,7 @@ import {
   ClassicyButton,
   ClassicyDesktop,
   ClassicyWindow,
-} from "classicy";
+} from "@classicy/classicy";
 import appIcon from "./my-app.png";
 
 export const MyApp = () => (
@@ -156,9 +152,9 @@ dispatch({ type: "ClassicyAppOpen", app: { id: "MyApp.app", name: "MyApp", icon 
 
 ### Theming
 
-Themes are JSON and set typography, the system palette, accent colours and the
+Themes are JSON and set typography, the system palette, accent colors and the
 desktop pattern or picture. The **Appearance** control panel switches themes
-and edits colours, fonts and the desktop. The first edit to a built-in theme
+and edits colors, fonts and the desktop. The first edit to a built-in theme
 forks it into a _Custom_ theme, so built-ins never change. Themes save to and
 load from `.json` theme files.
 
@@ -195,9 +191,9 @@ pnpm lint && pnpm exec tsc --noEmit -p . && pnpm test   # what CI runs
   the step-by-step guide to apps, windows, manifests, reducers, menus, files,
   dialogs, sound, persistence and testing, with the traps that cost the most
   time. It also ships in the package at
-  `node_modules/classicy/docs/BUILDING-APPS.md`.
+  `node_modules/@classicy/classicy/docs/BUILDING-APPS.md`.
 - [Agent Reference](https://github.com/robbiebyrd/classicy/blob/main/docs/AGENT-REFERENCE.md):
   every public component, prop, action and registry in one flat, searchable
   reference, written for AI coding agents and handy for people too.
 - [README](https://github.com/robbiebyrd/classicy#readme): the feature list,
-  the full component table, and acknowledgements.
+  the full component table, and acknowledgments.

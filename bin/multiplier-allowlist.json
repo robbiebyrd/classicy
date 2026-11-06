@@ -1,0 +1,64 @@
+{
+	"packages/appearance/platinum/src/styles/_scrollbars.scss": [
+		{
+			"count": 3,
+			"reason": "Platinum's scroll-bar arrow glyph geometry: the half, 1.5x and 2x of the arrow stripe unit (--window-scrollbar-arrow-size) are pixel positions in the glyph art, not theme proportions (Part G, kept on purpose)."
+		}
+	],
+	"packages/appearance/platinum/src/styles/components/_ControlStrip.scss": [
+		{
+			"count": 8,
+			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
+		}
+	],
+	"src/SystemFolder/HyperCard/HyperCard.scss": [
+		{
+			"count": 12,
+			"reason": "Handle-centering halves: an editor selection handle is pulled half its own size (--hyper-card-handle-size / -2) over the corner or edge it marks; geometry, not a role (H-R7)."
+		},
+		{
+			"count": 4,
+			"reason": "Edge midpoints: a side handle sits at 50% minus half its own size (--hyper-card-handle-size / 2), centered on the edge it marks; geometry, not a role (H-R21)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Button/ClassicyButton.scss": [
+		{
+			"count": 3,
+			"reason": "The button spacing scale: the Sm/Md/Lg/Xl padding and margin classes scale --control-padding and --window-padding-size by the named Sass map $classicy-button-spacing (0.5, 1, 1.5, 2), so the scale is named in Sass and still follows the Metrics tab (H 6.2a, H-R29a)."
+		}
+	],
+	"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss": [
+		{
+			"count": 1,
+			"reason": "Crayon-art geometry: each crayon row slides up by all but its tip, (1 - $cp-crayon-tip) of a crayon's height, where 0.31 is the tip's share of the 36 x 96 crayon SVG; a proportion of the artwork over the component's own --cp-crayon-cols and --cp-crayon-aspect, not a theme metric (H-R7)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon.scss": [
+		{
+			"count": 1,
+			"reason": "The alias badge is a quarter of the icon (--desktop-icon-size / 4, measured off Mac OS 8), not the grid padding --desktop-icon-padding (Part G, kept on purpose)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Icon/ClassicyIcon.scss": [
+		{
+			"count": 2,
+			"reason": "The icon box is twice --desktop-icon-size, which the size prop sets per icon; the root's --desktop-icon-cell would not follow it (Part G, kept on purpose)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss": [
+		{
+			"count": 1,
+			"reason": "Thumb-on-track centering: the thumb's margin-top is half the difference of the track and thumb heights (($track-h - $thumb-h) / 2), so the thumb's center sits on the track's center line; geometry, not a role (H-R21)."
+		},
+		{
+			"count": 4,
+			"reason": "Thumb-centering halves: the tick rail, tick labels and ghost thumb are inset by half the thumb's own size (#{$thumb-w} / 2, #{$thumb-h} / 2), so a value lands under the thumb's center; geometry, not a role (H-R21)."
+		}
+	],
+	"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss": [
+		{
+			"count": 1,
+			"reason": "The utility window's local arrow unit, a quarter of its own local --window-scrollbar-size, as the theme's --window-scrollbar-arrow-size is of the root's (Part G, kept on purpose)."
+		}
+	]
+}

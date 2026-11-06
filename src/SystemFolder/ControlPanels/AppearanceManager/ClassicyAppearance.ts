@@ -1,22 +1,41 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { listClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
-import { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
+import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import {
+	classicyMeasurementVars,
+	classicyThemeMeasurementDefaults,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import type { ClassicyThemeSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import themesData from "../AppearanceManager/styles/themes.json";
 
 export interface ClassicyStoreSystemAppearanceManager
 	extends ClassicyStoreSystemManager {
-	/** Built-in themes. Never mutated by edits — see `customThemes`. */
+	/**
+	 * The active Appearance Package id, persisted, default "platinum". Set by
+	 * `ClassicyDesktopChangeAppearancePackage`; an id that is not registered
+	 * renders as the default package, else the first registered one
+	 * (`resolveClassicyAppearancePackage`).
+	 */
+	packageId: string;
+	/**
+	 * Built-in themes. Never mutated by edits — see `customThemes` — and never
+	 * persisted: they come from the code on every load (the defaults' list, or
+	 * a host's `ClassicyDesktopLoadThemes` for the session).
+	 */
 	availableThemes?: ClassicyTheme[];
 	/**
 	 * User-editable themes, kept apart from `availableThemes` so a persisted
 	 * list never shadows the built-ins shipped by a newer build. The first
-	 * colour/font/desktop edit made on a built-in forks it here as "Custom"
+	 * color/font/desktop edit made on a built-in forks it here as "Custom"
 	 * (id `"custom"`); see `ClassicyCustomTheme.ts`. Absent in state persisted
 	 * before custom themes existed.
 	 */
@@ -87,7 +106,8 @@ export type ClassicyThemeTypography = {
 
 /**
  * Theme metrics, grouped per control family. Every value is a whole number of
- * CSS pixels. These are the *inputs*; `getThemeVars` derives the rest
+ * CSS pixels. These are the *inputs* (`classicyMeasurementVars` emits each as
+ * `--<family>-<key>`); `getThemeVars` derives the rest
  * (frames, bevels, edit-field height, …) from them. Platinum defaults live in
  * `CLASSICY_DEFAULT_THEME_METRICS` (`ClassicyThemeMetrics.ts`).
  */
@@ -138,12 +158,23 @@ export type ClassicyThemeMeasurementsLayout = {
 	dialogEdge: number;
 };
 
-export type ClassicyThemeMeasurements = {
+/** The five metric families every theme carries (the Platinum layout). */
+export type ClassicyThemeCoreMeasurements = {
 	window: ClassicyThemeMeasurementsWindow;
 	control: ClassicyThemeMeasurementsControl;
 	button: ClassicyThemeMeasurementsButton;
 	groupBox: ClassicyThemeMeasurementsGroupBox;
 	layout: ClassicyThemeMeasurementsLayout;
+};
+
+/**
+ * The core families plus any family an Appearance Package adds
+ * (`controlStrip`, `menuFrame`, …): family → key → whole CSS pixels. Every
+ * numeric leaf becomes `--<family>-<key>` (kebab-case) on the desktop root
+ * (`classicyMeasurementVars`).
+ */
+export type ClassicyThemeMeasurements = ClassicyThemeCoreMeasurements & {
+	[family: string]: Record<string, number>;
 };
 
 export type ClassicyThemeDesktop = {
@@ -159,6 +190,8 @@ export type ClassicyThemeDesktop = {
 export type ClassicyTheme = {
 	id: string;
 	name: string;
+	/** The Appearance Package this theme belongs to (default "platinum"). */
+	package: string;
 	color: ClassicyThemeColors;
 	typography: ClassicyThemeTypography;
 	measurements: ClassicyThemeMeasurements;
@@ -167,9 +200,24 @@ export type ClassicyTheme = {
 };
 
 export const getThemeVars = (theme: ClassicyTheme) => {
-	const m = theme.measurements;
+	// Completed first, key by key, from the theme's package defaults over
+	// Platinum's (H-R2): themes reach here unmigrated (previews, stories,
+	// tests, a theme saved before a family existed), and a missing knob
+	// would leave a base stylesheet reading an unset variable. Copy-on-write,
+	// so a complete theme costs no allocation.
+	const m = withDefaultThemeMetrics(
+		theme,
+		classicyThemeMeasurementDefaults(theme.package),
+	).measurements;
 	const border = m.window.borderSize;
 	return {
+		// --- Layout metrics: every theme input under `measurements.<family>`
+		// as `--<family>-<key>` (the core families' Platinum defaults are Mac
+		// OS 8 HIG Ch. 3 "Layout Guidelines"; a package may add families, and
+		// a core input wins any name collision with one). Spread first, so
+		// no package family can override a color, font, desktop or derived
+		// variable set below.
+		...classicyMeasurementVars(m),
 		"--color-black": intToHex(theme.color.black),
 		"--color-white": intToHex(theme.color.white),
 		"--color-alert": intToHex(theme.color.alert),
@@ -188,14 +236,8 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-theme-05": intToHex(theme.color.theme[4]),
 		"--color-theme-06": intToHex(theme.color.theme[5]),
 		"--color-theme-07": intToHex(theme.color.theme[6]),
-		"--window-control-size": intToPx(theme.measurements.window.controlSize),
-		"--window-border-size": intToPx(theme.measurements.window.borderSize),
-		"--window-padding-size": intToPx(theme.measurements.window.paddingSize),
-		"--window-scrollbar-size": intToPx(theme.measurements.window.scrollbarSize),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
-		"--window-scrollbar-arrow-size": intToPx(
-			theme.measurements.window.scrollbarSize / 4,
-		),
+		"--window-scrollbar-arrow-size": intToPx(m.window.scrollbarSize / 4),
 		// Classic Mac OS small-icon (SICN) size.
 		"--icon-small-size": intToPx(16),
 		// Classic Mac OS regular icon size (dialog icons, previews).
@@ -221,7 +263,9 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-outline": intToHex(theme.color.outline),
 		"--color-select": intToHex(theme.color.select),
 		"--color-highlight": intToHex(theme.color.highlight),
-		"--desktop-background-image": `url(${theme.desktop.backgroundImage})`,
+		// Themes hold a registered wallpaper by filename; resolved here, at
+		// render, through the asset registry (the theme's own package first).
+		"--desktop-background-image": `url("${resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package)}")`,
 		"--desktop-background-color": intToHex(theme.desktop.backgroundColor),
 		"--desktop-background-repeat": theme.desktop.backgroundRepeat,
 		"--desktop-background-position": theme.desktop.backgroundPosition,
@@ -229,34 +273,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 			typeof theme.desktop.backgroundSize === "number"
 				? intToPct(theme.desktop.backgroundSize)
 				: theme.desktop.backgroundSize,
-		// --- Layout metrics (theme inputs under `measurements.<family>`; the
-		// Platinum defaults are Mac OS 8 HIG Ch. 3 "Layout Guidelines").
-		// Windows.
-		"--window-title-bar-height": intToPx(m.window.titleBarHeight),
-		"--window-utility-title-bar-height": intToPx(
-			m.window.utilityTitleBarHeight,
-		),
-		// Controls.
-		"--control-height": intToPx(m.control.height),
-		"--control-label-gap": intToPx(m.control.labelGap),
-		"--control-static-text-height": intToPx(m.control.staticTextHeight),
-		// Push buttons (height is the standard control height).
-		"--button-height": intToPx(m.control.height),
-		"--button-min-width": intToPx(m.button.minWidth),
-		"--button-text-padding": intToPx(m.button.textPadding),
-		"--button-gap": intToPx(m.button.gap),
-		// Group boxes.
-		"--group-box-margin-side": intToPx(m.groupBox.marginSide),
-		"--group-box-margin-top": intToPx(m.groupBox.marginTop),
-		"--group-box-margin-bottom": intToPx(m.groupBox.marginBottom),
-		"--group-box-title-pad": intToPx(m.groupBox.titlePad),
-		"--group-box-gap": intToPx(m.groupBox.gap),
-		// Generic spacing.
-		"--layout-item-gap": intToPx(m.layout.itemGap),
-		"--layout-group-gap": intToPx(m.layout.groupGap),
-		"--layout-dialog-edge": intToPx(m.layout.dialogEdge),
 		// --- Derived metrics: structural relationships, computed from the
-		// inputs above so a theme that changes an input gets them for free.
+		// inputs so a theme that changes an input gets them for free.
+		// Push buttons: the standard control height.
+		"--button-height": intToPx(m.control.height),
 		// A frame is two borders; bevels are 2/3/4 borders deep.
 		"--control-frame-width": intToPx(border * 2),
 		"--control-bevel-sm": intToPx(border * 2),
@@ -272,31 +292,82 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--help-button-height": intToPx(m.control.height + border),
 		// Preferred gap when focus rings show: the standard padding.
 		"--layout-focus-gap": intToPx(m.window.paddingSize),
+		// The named Platinum proportions (`CLASSICY_THEME_DERIVATIONS`):
+		// collapsed heights, menu and pop-up sizes, paddings, font steps, the
+		// desktop icon grid. Last, so no measurement input can shadow one.
+		...classicyThemeDerivations({
+			measurements: m,
+			typography: theme.typography,
+			desktop: theme.desktop,
+		}),
 	};
 };
 
 /**
- * `themes.json` names its wallpapers; the bundler owns the URLs. Resolving once
- * here means every reader of a theme — `getTheme`, `getAllThemes`, and the
- * default app-manager state — gets a background image that actually loads.
+ * `theme` with a `package` — "platinum" when it names none (themes saved or
+ * supplied before Appearance Packages existed). The same object back when it
+ * already has one.
  */
-const resolvedThemes = (themesData as unknown as ClassicyTheme[]).map((theme) =>
-	withDefaultThemeMetrics({
-		...theme,
-		desktop: {
-			...theme.desktop,
-			backgroundImage: resolveWallpaper(theme.desktop.backgroundImage),
-		},
-	}),
-);
+export function withDefaultThemePackage(theme: ClassicyTheme): ClassicyTheme {
+	if (typeof (theme as Partial<ClassicyTheme>).package === "string") {
+		return theme;
+	}
+	return { ...theme, package: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID };
+}
 
+/** `withDefaultThemePackage` over a list; the same array back when untouched. */
+export function withDefaultThemePackageList(
+	themes: ClassicyTheme[],
+): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		if (!theme || typeof theme !== "object") return;
+		const filled = withDefaultThemePackage(theme);
+		if (filled === theme) return;
+		next ??= [...themes];
+		next[i] = filled;
+	});
+	return next ?? themes;
+}
+
+// The packages `getAllThemes` last read, and the themes it built from them:
+// the registry publishes a new list on every change, so the same list means
+// the same themes.
+let themesFrom: readonly ClassicyAppearancePackage[] | undefined;
+let themes: ClassicyTheme[] = [];
+
+/**
+ * The built-in themes of every registered Appearance Package, in registration
+ * order: each package's `defaults` (unless a preset has their id) and its
+ * `presets`, as the package registered them (Platinum resolves its own
+ * wallpapers and completes its own metrics). While no package is registered,
+ * the core's own default theme alone (`CLASSICY_CORE_DEFAULT_THEME`: no
+ * wallpaper, the core floor's measurements). The same array until the
+ * registry changes.
+ */
 export const getAllThemes = (): ClassicyTheme[] => {
-	return resolvedThemes;
+	const packages = listClassicyAppearancePackages();
+	if (packages !== themesFrom) {
+		themesFrom = packages;
+		themes = packages.flatMap(({ defaults, presets = [] }) =>
+			presets.some((t) => t.id === defaults.id)
+				? presets
+				: [defaults, ...presets],
+		);
+		if (themes.length === 0) themes = [CLASSICY_CORE_DEFAULT_THEME];
+	}
+	return themes;
 };
 
+/**
+ * The built-in theme with id `theme` (`getAllThemes`: the first registered
+ * package that has one), else the first built-in theme, deep-merged with
+ * `overrides` into a copy when given. With no package registered every id
+ * names the core default theme.
+ */
 export const getTheme = (theme: string, overrides?: object) => {
-	const namedThemeData =
-		resolvedThemes.find((t) => t.id === theme) || resolvedThemes[0];
+	const all = getAllThemes();
+	const namedThemeData = all.find((t) => t.id === theme) || all[0];
 	const updatedTheme = overrides
 		? mergeDeep(
 				structuredClone(namedThemeData) as Record<string, unknown>,

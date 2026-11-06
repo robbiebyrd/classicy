@@ -212,4 +212,31 @@ describe("ClassicyScreenSaverConfigForm", () => {
 		// enum → pop-up menu options
 		expect(screen.getByText(/How many layers of rain fall/i)).toBeDefined();
 	});
+
+	it("saves the clamped value the field shows: Warp layers 99 → 9", () => {
+		const saver = getClassicyScreenSaver("warp");
+		expect(saver).toBeDefined();
+		if (!saver) return;
+		const onChange = vi.fn();
+		render(
+			<ClassicyScreenSaverConfigForm
+				saver={saver}
+				config={resolveScreenSaverConfig(saver, undefined)}
+				onChange={onChange}
+			/>,
+		);
+		const layers = document.getElementById(
+			"ScreenSaver_warp_layers",
+		) as HTMLInputElement;
+		fireEvent.change(layers, { target: { value: "99" } });
+		expect(layers).toHaveValue(9);
+		expect(onChange).toHaveBeenLastCalledWith({ layers: 9 });
+		// The patch the panel would dispatch is accepted and stored as shown.
+		const ds = classicyScreenSaverEventHandler(makeStore(), {
+			type: "ClassicyAppScreenSaverSetConfig",
+			saverId: "warp",
+			config: onChange.mock.lastCall?.[0],
+		});
+		expect(dataOf(ds).saverConfigs?.warp).toEqual({ layers: 9 });
+	});
 });

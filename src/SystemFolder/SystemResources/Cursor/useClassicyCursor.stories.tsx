@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { useClassicyCursor } from "./useClassicyCursor";
 
@@ -14,8 +14,8 @@ const CursorDemo = () => {
 			<ClassicyButton onClickFunc={() => setCursor("hand")}>
 				Hand
 			</ClassicyButton>
-			<ClassicyButton onClickFunc={() => setCursor("eyedropper")}>
-				Eyedropper
+			<ClassicyButton onClickFunc={() => setCursor("resizeLr")}>
+				Resize
 			</ClassicyButton>
 			<ClassicyButton onClickFunc={() => setCursor()}>Reset</ClassicyButton>
 		</div>
@@ -31,7 +31,7 @@ const meta = {
 				component:
 					"`useClassicyCursor()` returns a stable `setCursor(name?)` that swaps the " +
 					"whole page's pointer (`document.body.style.cursor`) for one of the Mac OS 8 " +
-					"cursors in `ClassicyIcons.ui.cursors`; call it with no name to restore the " +
+					"cursor roles registered with `registerClassicyCursors`; call it with no name to restore the " +
 					"default. The change is global, so reset it when the operation ends. " +
 					"`ClassicySplitView` uses it to hold the resize cursor during a divider drag.",
 			},
@@ -48,13 +48,27 @@ type Story = StoryObj<typeof meta>;
  */
 export const Default: Story = {};
 
-const cursorNames = Object.keys(
-	ClassicyIcons.ui.cursors,
-) as (keyof typeof ClassicyIcons.ui.cursors)[];
+const cursorNames: ClassicyCursorRole[] = [
+	"arrow",
+	"watch",
+	"hand",
+	"ibeam",
+	"crosshair",
+	"resizeLr",
+	"resizeUd",
+	"resizeNwse",
+	"resizeNesw",
+	"resizeU",
+	"resizeD",
+	"resizeL",
+	"resizeR",
+];
 
 /**
- * Every bundled cursor name, one button each, so the full set can be
- * compared. Remember to Reset afterwards — the cursor stays until changed.
+ * Every cursor role, one button each, so the full set can be compared. Platinum
+ * registers no cursor for `ibeam`, `crosshair`, `resizeNwse` or `resizeNesw`,
+ * so those buttons restore the default. Remember to Reset afterwards — the
+ * cursor stays until changed.
  */
 export const AllCursors: Story = {
 	render: function AllCursorsRender() {

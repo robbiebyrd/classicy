@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 
@@ -58,8 +60,22 @@ describe("ClassicyLink", () => {
 
 	it("leaves modifier-clicks to the browser", () => {
 		render(<ClassicyLink href="https://example.com">Docs</ClassicyLink>);
-		fireEvent.click(screen.getByText("Docs"), { metaKey: true });
-		fireEvent.click(screen.getByText("Docs"), { ctrlKey: true });
+		// The browser's own handling is a navigation, which jsdom cannot do. A
+		// document listener (after React's root listener) records whether the
+		// link left the default alone, then cancels the navigation itself.
+		const leftToBrowser: boolean[] = [];
+		const stopNavigation = (e: MouseEvent) => {
+			leftToBrowser.push(!e.defaultPrevented);
+			e.preventDefault();
+		};
+		document.addEventListener("click", stopNavigation);
+		try {
+			fireEvent.click(screen.getByText("Docs"), { metaKey: true });
+			fireEvent.click(screen.getByText("Docs"), { ctrlKey: true });
+		} finally {
+			document.removeEventListener("click", stopNavigation);
+		}
+		expect(leftToBrowser).toEqual([true, true]);
 		expect(dispatchMock).not.toHaveBeenCalled();
 	});
 
@@ -171,5 +187,16 @@ describe("ClassicyLink keyboard activation without an href (#307)", () => {
 		fireEvent.keyDown(screen.getByText("Go"), { key: "Enter" });
 		expect(onClickFunc).not.toHaveBeenCalled();
 		expect(dispatchMock).not.toHaveBeenCalled();
+	});
+});
+
+// H-R27d: the focus ring is --focus-ring-width wide, and it stands off the
+// text by a border's width, not by another ring (one name per role, H-R6).
+describe("ClassicyLink styles", () => {
+	it("draws its focus ring a border's width off the text", () => {
+		const sheet = readFileSync(resolve(__dirname, "ClassicyLink.scss"), "utf8");
+		expect(sheet).toMatch(
+			/outline: var\(--focus-ring-width\) dotted var\(--color-outline\);\s*outline-offset: var\(--window-border-size\);/,
+		);
 	});
 });

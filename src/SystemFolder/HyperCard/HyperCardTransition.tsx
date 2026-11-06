@@ -7,6 +7,7 @@
 
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useEffect,
@@ -25,11 +26,15 @@ interface HyperCardTransitionProps {
 	/** Current card id — keys the stage so plain card changes remount cleanly. */
 	cardKey: string;
 	children: ReactNode;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardTransition: FunctionalComponent<
 	HyperCardTransitionProps
-> = ({ transition, stackId, cardKey, children }) => {
+> = ({ transition, stackId, cardKey, children, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const token = transition?.token;
 
@@ -62,7 +67,9 @@ export const HyperCardTransition: FunctionalComponent<
 				"classicyHyperCardStageInner",
 				token && "classicyHyperCardAnimating",
 				token && transition && `effect-${transition.effect}`,
+				className,
 			)}
+			style={style}
 			onAnimationEnd={token ? complete : undefined}
 		>
 			{children}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SoundDataSchema = z.object({
+export const SoundDataSchema = z.looseObject({
 	src: z.array(z.string()),
 	sprite: z.record(
 		z.string(),

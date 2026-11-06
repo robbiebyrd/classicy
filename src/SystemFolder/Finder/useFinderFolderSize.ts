@@ -8,18 +8,18 @@ export function useFinderFolderSize(
 	const [size, setSize] = useState<number | undefined>(undefined);
 
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		setSize(undefined);
 
 		const entry = fs.resolve(path);
 		if (entry) {
 			fs.calculateSizeDir(entry).then((resolvedSize) => {
-				if (!cancelled) setSize(resolvedSize);
+				if (!canceled) setSize(resolvedSize);
 			});
 		}
 
 		return () => {
-			cancelled = true;
+			canceled = true;
 		};
 	}, [path, fs]);
 

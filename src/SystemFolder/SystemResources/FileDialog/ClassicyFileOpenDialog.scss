@@ -1,9 +1,7 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 .classicyFileOpenDialogBody {
 	display: flex;
 	flex-direction: column;
-	gap: calc(var(--window-padding-size) * 1);
+	gap: var(--window-padding-size);
 	padding: var(--window-padding-size);
 	height: 100%;
 	box-sizing: border-box;
@@ -11,7 +9,7 @@
 
 .classicyFileOpenDialogWell {
 	flex: 1;
-	min-height: 220px;
+	min-height: var(--dialog-file-dialog-min-height);
 	overflow-y: auto;
 	background: var(--color-white);
 	border: var(--window-border-size) solid var(--color-window-border);
@@ -34,7 +32,7 @@
 .classicyFileDialogNameRow {
 	display: flex;
 	align-items: center;
-	gap: calc(var(--window-padding-size) / 2);
+	gap: var(--control-padding);
 
 	.classicyInputHolder {
 		flex: 1;

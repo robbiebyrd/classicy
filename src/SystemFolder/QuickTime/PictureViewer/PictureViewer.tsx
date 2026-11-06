@@ -1,4 +1,6 @@
 import "./PictureViewer.scss";
+// Sample content, not system art: stays a direct import rather than a registry
+// read.
 import samplePicture from "@img/apps/quicktime/sample-picture.jpg?inline";
 import {
 	type FC as FunctionalComponent,
@@ -7,7 +9,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -34,7 +36,9 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import { useResolvedMediaSource } from "@/SystemFolder/SystemResources/File/useResolvedMediaSource";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
+/** Handled by the Picture Viewer reducer (`PictureViewerContext.tsx`). A
+ *  literal, never built from the app's name. */
+const CLOSE_FILE = "ClassicyAppPictureViewerCloseFile";
 
 type ResolvedPictureDocument = {
 	key: string;
@@ -85,7 +89,11 @@ const PictureViewerImage: FunctionalComponent<{
 };
 
 export const QuickTimePictureViewer: FunctionalComponent = () => {
-	const { name: appName, id: appId, icon: appIcon } = PictureViewerAppInfo;
+	const { name: appName, id: appId } = PictureViewerAppInfo;
+	const appIcon =
+		useClassicyAsset("icons", "applications.pictureViewer.app") ?? "";
+	const defaultDocumentIcon =
+		useClassicyAsset("icons", "system.quicktime.movie") ?? "";
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appData = useAppManager(
@@ -126,12 +134,17 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				documents: defaultDocs,
 			});
 		}
-	}, [appOpen, pictureData?.openFiles, desktopEventDispatch]);
+	}, [
+		appOpen,
+		pictureData?.openFiles,
+		desktopEventDispatch,
+		defaultDocumentIcon,
+	]);
 
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName.replace(/\s+/g, "")}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -159,7 +172,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 		(doc: ResolvedPictureDocument) =>
 			doc.path
 				? {
-						type: "ClassicyAppPictureViewerCloseFile",
+						type: CLOSE_FILE,
 						app: { id: appId },
 						path: doc.path,
 					}
@@ -193,7 +206,7 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, closeDocAction, windowEntries, aboutMenuItem],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem, appIcon],
 	);
 
 	return (

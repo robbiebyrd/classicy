@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
+import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.ts";
 
 const mockState = vi.hoisted(() => ({ disableBalloonHelp: false }));
 
@@ -103,5 +106,31 @@ describe("ClassicyBalloonHelp", () => {
 		const tooltip = await screen.findByRole("tooltip");
 		expect(tooltip).toHaveTextContent("Opens the file.");
 		expect(anchor).toHaveAttribute("aria-describedby", tooltip.id);
+	});
+});
+
+// The bubble and tail geometry are balloon-help knobs (measurements.balloonHelp,
+// platinum.json), never pixel literals.
+describe("ClassicyBalloonHelp stylesheet", () => {
+	it("no bare literal", () =>
+		expect(
+			scanPixelLiteralsInSource(
+				readFileSync(resolve(__dirname, "ClassicyBalloonHelp.scss"), "utf8"),
+				"ClassicyBalloonHelp.scss",
+			).filter((literal) => literal.kind === "bare"),
+		).toEqual([]));
+
+	// H-R22: the tail is a fixed 20 × 14 drawing, so the centered tail is
+	// centered by layout (both insets, auto margins), following the drawing's
+	// own width; no tail-width knob, no halving.
+	it("centers the tail by layout, not by a tail-width knob", () => {
+		const sheet = readFileSync(
+			resolve(__dirname, "ClassicyBalloonHelp.scss"),
+			"utf8",
+		);
+		const center = sheet.match(/\.classicyBalloonHelpTailCenter \{([^}]*)\}/);
+		expect(center?.[1]).toMatch(/left: 0;\s*right: 0;\s*margin-inline: auto;/);
+		expect(sheet).not.toContain("--balloon-help-tail-width");
+		expect(sheet).not.toMatch(/\/ 2/);
 	});
 });

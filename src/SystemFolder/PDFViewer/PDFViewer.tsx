@@ -1,4 +1,5 @@
 import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -20,9 +21,15 @@ import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/Fil
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
-const { name: appName, id: appId, icon: appIcon } = PDFViewerAppInfo;
+const { name: appName, id: appId } = PDFViewerAppInfo;
+
+/** Handled by classicyPDFViewerEventHandler (`PDFViewerContext.tsx`). A
+ *  literal, never built from the app's name: a display name is not an action
+ *  type, and "PDF Viewer" carries a space. */
+const CLOSE_FILE = "ClassicyAppPDFViewerCloseFile";
 
 export const PDFViewer: FunctionalComponent = () => {
+	const appIcon = useClassicyAsset("icons", "system.files.document") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appState = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
@@ -36,7 +43,7 @@ export const PDFViewer: FunctionalComponent = () => {
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -59,7 +66,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [
 					closeWindowMenuItemHelper(`${windowId}_close_window`, () =>
 						closeWindow(windowId, {
-							type: `ClassicyApp${appName}CloseFile`,
+							type: CLOSE_FILE,
 							app: { id: appId },
 							path,
 						}),
@@ -67,7 +74,7 @@ export const PDFViewer: FunctionalComponent = () => {
 					closeAllWindowsMenuItemHelper(`${appId}_close_all_windows`, () => {
 						for (const p of openFiles) {
 							closeWindow(`${appId}_file_${p}`, {
-								type: `ClassicyApp${appName}CloseFile`,
+								type: CLOSE_FILE,
 								app: { id: appId },
 								path: p,
 							});
@@ -82,7 +89,7 @@ export const PDFViewer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, openFiles, aboutMenuItem],
+		[closeWindow, openFiles, aboutMenuItem, appIcon],
 	);
 
 	return (

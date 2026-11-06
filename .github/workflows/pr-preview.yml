@@ -45,7 +45,8 @@ env:
 
 jobs:
   preview:
-    runs-on: ubuntu-latest
+    # Pinned: the distro ffmpeg (8.0.1 here) builds the audio sprites and must not change with ubuntu-latest; revisit when 26.04 nears retirement.
+    runs-on: ubuntu-26.04
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - name: Checkout code

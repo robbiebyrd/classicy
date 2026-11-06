@@ -1,20 +1,22 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:math';
 
 // Wheel geometry. The wheel is drawn as a 200px bitmap (WHEEL_SIZE in
 // ClassicyColorPickerHSV/HLS.tsx) but laid out as a square that shrinks to
-// the room left beside its fields, up to $cp-wheel-max: the canvas is scaled
-// by CSS and the hit test reads its rendered size. Inside the square the wheel
-// sits $cp-wheel-inset in from each edge, and the degree labels ring it on the
-// square's edge — all in percentages, so the ring follows the wheel at any
-// size.
-$cp-wheel-max: 240px;
-$cp-wheel-inset: math.div(20px, $cp-wheel-max) * 100%;
+// the room left beside its fields, up to --picker-wheel-max: the canvas is
+// scaled by CSS and the hit test reads its rendered size. Inside the square
+// the wheel sits $cp-wheel-inset in from each edge, and the degree labels ring
+// it on the square's edge — all in percentages, so the ring follows the wheel
+// at any size. The inset is a proportion of the full-size square (20 of 240,
+// unitless), so it holds whatever size a theme gives the wheel.
+//
+// $cp-wheel-max must equal Platinum's measurements.picker.wheelMax (the
+// --picker-wheel-max the square's max-width reads): Sass cannot read a CSS
+// variable, and CSS cannot divide one length by another for a unitless
+// ratio, so the reference size is written twice. A test
+// (ClassicyColorPickerDialog.styles.test.ts) fails when the two drift.
+$cp-wheel-max: 240;
+$cp-wheel-inset: math.div(20, $cp-wheel-max) * 100%;
 $cp-wheel-degree-marks: 0, 60, 120, 180, 240, 300;
-// The 0° and 180° labels straddle the square's side edges; this is the half
-// of a label that hangs outside, which the layout leaves room for on the
-// left (on the right it sits in the gap before the fields).
-$cp-wheel-label-overhang: 14px;
 
 // Crayon artwork: the SVG is 36 × 96, drawn at 1:3; its tip (the part a row
 // in front leaves visible) is the top 31%. Both feed the CSS below.
@@ -26,8 +28,8 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerSwatch {
   display: inline-block;
   background-color: var(--classicy-preview-color);
-  width: calc(var(--window-control-size) * 2.5);
-  height: calc(var(--window-control-size) * 2.5);
+  width: var(--picker-swatch-size);
+  height: var(--picker-swatch-size);
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
     inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-01),
@@ -36,7 +38,7 @@ $cp-crayon-tip: 0.31;
   padding: 0;
 
   &:disabled,
-  &.classicyColorPickerSwatchDisabled {
+  &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -75,7 +77,7 @@ $cp-crayon-tip: 0.31;
   list-style: none;
   margin: 0;
   padding: 0;
-  width: 90px;
+  width: var(--picker-mode-list-width);
   flex-shrink: 0;
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
@@ -85,12 +87,12 @@ $cp-crayon-tip: 0.31;
   overflow-y: auto;
 
   &:focus-visible {
-    outline: 1px solid var(--color-outline);
-    outline-offset: -3px;
+    outline: var(--focus-ring-width) solid var(--color-outline);
+    outline-offset: calc(var(--focus-ring-inset) * -1);
   }
 
   .classicyColorPickerModeListItem {
-    padding: 3px 6px;
+    padding: var(--picker-item-padding-y) var(--window-padding-size);
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
     cursor: default;
@@ -103,7 +105,7 @@ $cp-crayon-tip: 0.31;
   }
 }
 
-.classicyColorPickerModeListItemSelected {
+:where(.classicyColorPickerModeListItem).selected {
   background: var(--color-select);
   color: var(--color-white);
 }
@@ -154,8 +156,8 @@ $cp-crayon-tip: 0.31;
   background: #0e0906;
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow:
-    inset calc(var(--window-border-size) * 2) calc(var(--window-border-size) * 2) 0 rgba(255, 255, 255, 0.06),
-    inset calc(var(--window-border-size) * -2) calc(var(--window-border-size) * -2) 0 rgba(0, 0, 0, 0.55);
+    inset var(--control-frame-width) var(--control-frame-width) 0 rgba(255, 255, 255, 0.06),
+    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 rgba(0, 0, 0, 0.55);
   padding: 0;
   overflow: hidden;
 }
@@ -216,29 +218,29 @@ $cp-crayon-tip: 0.31;
   }
 
   &:hover {
-    transform: translateY(-8px);
+    transform: translateY(calc(var(--picker-crayon-hover-lift) * -1));
     z-index: 100;
   }
 
-  &:focus-visible { outline: calc(var(--window-border-size) * 2) solid var(--color-outline); }
+  &:focus-visible { outline: var(--control-frame-width) solid var(--color-outline); }
 }
 
-.classicyColorPickerCrayonSelected {
-  transform: translateY(-5px);
+:where(.classicyColorPickerCrayon).selected {
+  transform: translateY(calc(var(--picker-crayon-selected-lift) * -1));
   z-index: 50;
 }
 
 // Gray front lip of the crayon box, below the crayons.
 .classicyColorPickerCrayonBoxLip {
-  height: 22px;
+  height: var(--picker-box-lip-height);
   background: linear-gradient(to bottom, #bbbbbb, #888888);
-  border-top: calc(var(--window-border-size) * 2) solid #d4d4d4;
-  margin-top: 6px;
+  border-top: var(--control-frame-width) solid #d4d4d4;
+  margin-top: var(--window-padding-size);
 }
 
 .classicyColorPickerCrayonPreviewStrip {
   background-color: var(--classicy-preview-color);
-  height: 20px;
+  height: var(--control-height);
   flex-shrink: 0;
   border: var(--window-border-size) solid var(--color-window-border);
   box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06);
@@ -253,22 +255,20 @@ $cp-crayon-tip: 0.31;
   .classicySlider::-moz-range-track               { background: linear-gradient(to right, $from, $to); }
 }
 
-.classicyColorPickerSlider {
-  &--red     { @include color-track(#000000, #ff0000); }
-  &--green   { @include color-track(#000000, #00ff00); }
-  &--blue    { @include color-track(#000000, #0000ff); }
-  &--cyan    { @include color-track(#ffffff, #00ffff); }
-  &--magenta { @include color-track(#ffffff, #ff00ff); }
-  &--yellow  { @include color-track(#ffffff, #ffff00); }
-  &--black   { @include color-track(#ffffff, #000000); }
-}
+.classicyColorPickerSliderRed     { @include color-track(#000000, #ff0000); }
+.classicyColorPickerSliderGreen   { @include color-track(#000000, #00ff00); }
+.classicyColorPickerSliderBlue    { @include color-track(#000000, #0000ff); }
+.classicyColorPickerSliderCyan    { @include color-track(#ffffff, #00ffff); }
+.classicyColorPickerSliderMagenta { @include color-track(#ffffff, #ff00ff); }
+.classicyColorPickerSliderYellow  { @include color-track(#ffffff, #ffff00); }
+.classicyColorPickerSliderBlack   { @include color-track(#ffffff, #000000); }
 
 // ── RGB / CMYK layout ────────────────────────────────────────────────────────
 
 .classicyColorPickerSlidersTab {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--window-padding-size) * 2);
+  gap: var(--picker-layout-gap);
   padding: var(--window-padding-size);
 }
 
@@ -283,7 +283,7 @@ $cp-crayon-tip: 0.31;
 
 .classicyColorPickerWheelLayout {
   display: flex;
-  gap: calc(var(--window-padding-size) * 2);
+  gap: var(--picker-layout-gap);
   align-items: flex-start;
 }
 
@@ -294,9 +294,12 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerWheelOuter {
   position: relative;
   width: 100%;
-  max-width: $cp-wheel-max;
+  max-width: var(--picker-wheel-max);
   aspect-ratio: 1;
-  margin-left: $cp-wheel-label-overhang;
+  // The 0° and 180° labels straddle the square's side edges; this is the half
+  // of a label that hangs outside, which the layout leaves room for on the
+  // left (on the right it sits in the gap before the fields).
+  margin-left: var(--picker-label-overhang);
 }
 
 .classicyColorPickerWheelCanvasWrapper {
@@ -315,7 +318,7 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerWheelDegreeLabel {
   position: absolute;
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) * 0.8);
+  font-size: var(--ui-font-size-small);
   color: var(--color-black);
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -355,11 +358,11 @@ $cp-crayon-tip: 0.31;
 
   input[type="number"] {
     // Three digits and a little air; the old 52px bought nothing but width.
-    width: 44px;
+    width: var(--picker-field-width);
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
     border: var(--window-border-size) solid var(--color-window-border);
-    padding: calc(var(--window-border-size) * 2) 4px;
+    padding: var(--control-frame-width) var(--layout-item-gap);
     background: var(--color-white);
     box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-05);
     -moz-appearance: textfield;
@@ -368,7 +371,7 @@ $cp-crayon-tip: 0.31;
   }
 
   .classicyColorPickerWheelUnit {
-    min-width: 14px;
+    min-width: var(--picker-unit-width);
     color: var(--color-black);
   }
 }

@@ -1,5 +1,7 @@
-import platinumJson from "@snd/platinum/platinum.json";
+// Platinum's committed sprite sheet JSON, in its package (plan 0015-kxa §3.3).
+
 import { describe, expect, it } from "vitest";
+import platinumJson from "../../../../packages/appearance/platinum/src/assets/sounds/platinum/platinum.json";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 // Guards the two invariants HyperCard's SoundField (and the Sound control

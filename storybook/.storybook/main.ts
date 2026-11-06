@@ -1,10 +1,15 @@
 import path from "node:path";
 import type { StorybookConfig } from "@storybook/react-vite";
+import { NodePackageImporter } from "sass";
 import { mergeConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
+import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
+// Platinum's source, the workspace package @classicy/appearance-platinum.
+const platinumSrc = path.join(repoRoot, "packages/appearance/platinum/src");
 
 const config: StorybookConfig = {
 	framework: "@storybook/react-vite",
@@ -19,10 +24,14 @@ const config: StorybookConfig = {
 		return mergeConfig(config, {
 			// Serve Storybook under a sub-path when STORYBOOK_BASE is set (used by
 			// the PR-preview workflow, e.g. "/classicy/pr-preview/pr-12/"). Left
-			// unset for the normal/main build so its behaviour is unchanged. Vite
+			// unset for the normal/main build so its behavior is unchanged. Vite
 			// rewrites glob-imported asset URLs (ClassicyIcons) against this base,
 			// so component icons resolve correctly under the preview sub-path.
 			base: process.env.STORYBOOK_BASE || config.base,
+			// Storybook does not load the root vite.config.ts, so the library
+			// build's charset is repeated here: stories exercise the same escaped
+			// glyph CSS that dist ships (verify:dist invariant 9).
+			esbuild: { charset: "ascii" },
 			assetsInclude: [
 				"**/*.ogg",
 				"**/*.m4a",
@@ -31,19 +40,41 @@ const config: StorybookConfig = {
 				"**/*.wav",
 				"**/*.caf",
 			],
-			resolve: {
-				dedupe: ["react", "react-dom"],
-				alias: {
-					"@sb": path.resolve(import.meta.dirname),
-					"@": path.join(repoRoot, "src"),
-					"@snd": path.join(repoRoot, "assets/sounds"),
-					"@img": path.join(repoRoot, "assets/img"),
-					"@vid": path.join(repoRoot, "assets/vid"),
+			// Platinum's SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/*`.
+			css: {
+				preprocessorOptions: {
+					scss: { importers: [new NodePackageImporter()] },
 				},
 			},
+			resolve: {
+				dedupe: ["react", "react-dom"],
+				alias: [
+					// Platinum (plan 0015-kxa §3.1) reaches the core as
+					// `@classicy/classicy`: the stories' own core source, so there is one
+					// copy of the registries.
+					{
+						find: /^@classicy\/classicy$/,
+						replacement: path.join(repoRoot, "src/index.ts"),
+					},
+					{
+						find: /^@classicy\/appearance-platinum$/,
+						replacement: path.join(platinumSrc, "index.ts"),
+					},
+					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
+					{ find: "@", replacement: path.join(repoRoot, "src") },
+					{ find: "@img", replacement: path.join(repoRoot, "assets/img") },
+					{ find: "@vid", replacement: path.join(repoRoot, "assets/vid") },
+				],
+			},
 			plugins: [
+				// Storybook compiles the SCSS itself, so the component stylesheets
+				// are layered here too (@layer classicy.base), as in the library build.
+				classicyCssLayerPlugin(),
 				richSvg(),
 				VitePluginImageTools({
+					// Package art is served and built exactly as authored (no svgo),
+					// as in vite.config.ts; story 0146-doe.
+					excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES,
 					quality: 100,
 					// Disabled: pdfjs-dist's worker is imported with `?url` (see
 					// PDFViewerDocument.tsx) and is emitted as a plain asset whose

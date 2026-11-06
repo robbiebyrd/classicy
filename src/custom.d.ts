@@ -1,27 +1,4 @@
-declare module "*.svg" {
-	const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
-	export default content;
-}
-
-declare module "*.png" {
-	const value: unknown;
-	export default value;
-}
-
-declare module "*.gif" {
-	const value: string;
-	export default value;
-}
-
-declare module "*.jpg" {
-	const value: string;
-	export default value;
-}
-
-declare module "*.webp" {
-	const value: string;
-	export default value;
-}
+// Image, font and other asset imports are typed by vite/client (tsconfig "types").
 
 declare module "@analytics/google-tag-manager" {
 	type AnalyticsPlugin = import("analytics").AnalyticsPlugin;

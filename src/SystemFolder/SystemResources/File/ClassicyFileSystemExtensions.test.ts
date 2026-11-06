@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
+import { resetClassicyDerivedAppEntryNameWarnings } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import {
 	buildExtensionsFolder,
 	withExtensionsFolder,
@@ -9,6 +11,11 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 const app = (
 	id: string,
@@ -125,6 +132,232 @@ describe("withExtensionsFolder", () => {
 		} as unknown as ClassicyFileSystemEntry;
 		expect(withExtensionsFolder(tree, [app("ClockExt.app", "Clock")])).toBe(
 			tree,
+		);
+	});
+});
+
+describe("buildExtensionsFolder display names", () => {
+	const SINK_ID = "extensions-folder-display-names";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	it("keys an entry by its display name and icon, keeping its creator", () => {
+		const folder = buildExtensionsFolder([app("A.app", "A")], {
+			"A.app": { name: "Ay", icon: "i.png" },
+		});
+
+		expect(folder.Ay).toEqual({
+			_type: ClassicyFileSystemEntryFileType.Extension,
+			_icon: "i.png",
+			_creator: "A.app",
+			_readOnly: true,
+			_nameLocked: true,
+			_derived: true,
+		});
+		expect(folder.A).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("gives a colliding display name to the first extension and the later one its own name", () => {
+		const folder = buildExtensionsFolder(
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Same" }, "B.app": { name: "Same" } },
+		);
+
+		expect(folder.Same._creator).toBe("A.app");
+		expect(folder.B._creator).toBe("B.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message: "App display name unusable in Extensions; using its own name",
+			details: [{ appId: "B.app", name: "Same" }],
+		});
+	});
+
+	it("falls back to the extension's own name when the display name holds the separator", () => {
+		const folder = buildExtensionsFolder(
+			[app("A.app", "A")],
+			{ "A.app": { name: "A/B" } },
+			"/",
+		);
+
+		expect(folder.A._creator).toBe("A.app");
+		expect(folder["A/B"]).toBeUndefined();
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("forwards overrides and the separator through withExtensionsFolder", () => {
+		const tree = {
+			"Macintosh HD": { _type: ClassicyFileSystemEntryFileType.Drive },
+		} as unknown as ClassicyFileSystemEntry;
+		const result = withExtensionsFolder(
+			tree,
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Ay" }, "B.app": { name: "B/2" } },
+			"/",
+		);
+		const extensions = result["Macintosh HD"]["System Folder"].Extensions;
+
+		expect(extensions.Ay._creator).toBe("A.app");
+		expect(extensions.B._creator).toBe("B.app");
+		expect(extensions["B/2"]).toBeUndefined();
+	});
+
+	it("keeps a static Extensions entry when a display name would take it", () => {
+		const tree = {
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					Extensions: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						Clock: { _type: ClassicyFileSystemEntryFileType.TextFile },
+					},
+				},
+			},
+		} as unknown as ClassicyFileSystemEntry;
+		const extensions = withExtensionsFolder(
+			tree,
+			[app("A.app", "A"), app("B.app", "B")],
+			{ "A.app": { name: "Clock" }, "B.app": { name: "A" } },
+		)["Macintosh HD"]["System Folder"].Extensions;
+
+		// A cannot take the static "Clock"; B cannot take A's own name, which
+		// A fell back to, and its own "B" is free.
+		expect(extensions.Clock._type).toBe(
+			ClassicyFileSystemEntryFileType.TextFile,
+		);
+		expect(extensions.A._creator).toBe("A.app");
+		expect(extensions.B._creator).toBe("B.app");
+	});
+});
+
+// Story 0096: only placeholders give way to an extension; a user's file never
+// does.
+describe("withExtensionsFolder keeps static files, replacing only placeholders", () => {
+	const SINK_ID = "extensions-folder-placeholders";
+	let entries: ClassicyLogEntry[];
+	const warnings = () => entries.filter((entry) => entry.level === "warn");
+
+	beforeEach(() => {
+		entries = [];
+		resetClassicyDerivedAppEntryNameWarnings();
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		// The dev console mirror of the expected warnings; keep the output clean.
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	const treeWith = (statics: Record<string, unknown>) =>
+		({
+			"Macintosh HD": {
+				_type: ClassicyFileSystemEntryFileType.Drive,
+				"System Folder": {
+					_type: ClassicyFileSystemEntryFileType.Directory,
+					Extensions: {
+						_type: ClassicyFileSystemEntryFileType.Directory,
+						...statics,
+					},
+				},
+			},
+		}) as unknown as ClassicyFileSystemEntry;
+	const extensionsWith = (
+		statics: Record<string, unknown>,
+		apps: ClassicyStoreSystemApp[],
+	) =>
+		withExtensionsFolder(treeWith(statics), apps)["Macintosh HD"][
+			"System Folder"
+		].Extensions;
+	/** The seeded stand-in, under the Clock extension's name. */
+	const clockStandIn = () => ({ ...CLASSICY_SEEDED_PLACEHOLDER });
+
+	it('keeps a user file named like an extension, listing it as "<own name> (<id>)"', () => {
+		const extensions = extensionsWith(
+			{
+				Clock: {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_data: "mine",
+				},
+			},
+			[app("Clock.app", "Clock")],
+		);
+
+		expect(extensions.Clock._data).toBe("mine");
+		expect(extensions["Clock (Clock.app)"]._creator).toBe("Clock.app");
+		expect(warnings()).toHaveLength(1);
+		expect(warnings()[0]).toMatchObject({
+			subsystem: "ClassicyFileSystem",
+			message:
+				'Name "Clock" already taken in Extensions; using "Clock (Clock.app)"',
+			details: [{ appId: "Clock.app", name: "Clock" }],
+		});
+	});
+
+	it("lets a marked placeholder give way to its extension while it is exactly as seeded", () => {
+		const extensions = extensionsWith({ Clock: clockStandIn() }, [
+			app("Clock.app", "Clock"),
+		]);
+
+		expect(extensions.Clock._creator).toBe("Clock.app");
+		expect(extensions["Clock (Clock.app)"]).toBeUndefined();
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("keeps a marked placeholder once edited (K-R11)", () => {
+		const extensions = extensionsWith(
+			{
+				Clock: {
+					...clockStandIn(),
+					_data: "mine",
+					_modifiedOn: "2026-10-30T00:00:00.000Z",
+				},
+			},
+			[app("Clock.app", "Clock")],
+		);
+
+		expect(extensions.Clock._data).toBe("mine");
+		expect(extensions["Clock (Clock.app)"]._creator).toBe("Clock.app");
+	});
+
+	it("recognizes the unmarked old placeholders in Applications only", () => {
+		const extensions = extensionsWith(
+			{
+				SimpleText: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_mimeType: "text/plain",
+					_data: "File Contents",
+					_invisible: true,
+				},
+			},
+			[app("SimpleText.app", "SimpleText")],
+		);
+
+		expect(extensions.SimpleText._creator).toBeUndefined();
+		expect(extensions["SimpleText (SimpleText.app)"]._creator).toBe(
+			"SimpleText.app",
 		);
 	});
 });

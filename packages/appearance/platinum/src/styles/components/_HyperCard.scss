@@ -1,0 +1,13 @@
+// The Platinum HyperCard editor look (from HyperCard.scss): the check after
+// the tools palette entry armed for click-to-place. A font glyph with its
+// leading space, as an escape kept by `string.unquote` so the Sass output
+// stays ASCII (the build keeps dist ASCII; verify:dist invariant 9). The mark
+// is an aria-hidden inline span after the label, so the entry's accessible
+// name stays its label and aria-pressed carries the state.
+@use "sass:string";
+
+@mixin hyperCard {
+  .classicyHyperCardPaletteEntry.selected .classicyHyperCardPaletteEntryMark::after {
+    content: string.unquote('" \\2713"'); // " ✓"
+  }
+}

@@ -102,7 +102,7 @@ describe("ClassicyContextualMenuProvider", () => {
 			document.querySelectorAll(".classicyContextMenu > li"),
 		);
 		expect(items[0]).toHaveTextContent("Help");
-		expect(items[0]).toHaveClass("classicyMenuItemDisabled");
+		expect(items[0]).toHaveClass("disabled");
 		// The caller's own items still render after Help.
 		expect(screen.getByText("Alpha One")).toBeInTheDocument();
 	});

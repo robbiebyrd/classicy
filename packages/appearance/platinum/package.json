@@ -1,0 +1,63 @@
+{
+	"name": "@classicy/appearance-platinum",
+	"version": "2.1.8",
+	"description": "Platinum, the Mac OS 8 Appearance Package for Classicy.",
+	"keywords": [
+		"classicy",
+		"appearance-package",
+		"platinum",
+		"macos-classic",
+		"react"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/robbiebyrd/classicy",
+		"directory": "packages/appearance/platinum"
+	},
+	"author": "Robbie Byrd <me@robbiebyrd.com>",
+	"license": "Unlicense",
+	"type": "module",
+	"publishConfig": {
+		"access": "public"
+	},
+	"types": "./dist/types/index.d.ts",
+	"main": "./dist/appearance-platinum.umd.js",
+	"module": "./dist/appearance-platinum.es.js",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/appearance-platinum.es.js",
+			"require": "./dist/appearance-platinum.umd.js"
+		},
+		"./scss/*": "./src/styles/*",
+		"./classicy-platinum.css": "./dist/classicy-platinum.css",
+		"./classicy-platinum.fonts.css": "./dist/classicy-platinum.fonts.css"
+	},
+	"files": [
+		"dist",
+		"src/styles",
+		"README.md",
+		"LICENSE"
+	],
+	"sideEffects": [
+		"./dist/*.js",
+		"./src/index.ts",
+		"./src/assets/platinumAssets.ts",
+		"./src/assets/sounds/platinum.ts",
+		"**/*.css",
+		"**/*.scss"
+	],
+	"scripts": {
+		"build": "vite build && pnpm verify:dist",
+		"verify:dist": "node bin/verify-dist.mjs",
+		"test": "vitest run"
+	},
+	"peerDependencies": {
+		"@classicy/classicy": "workspace:^",
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@classicy/classicy": "workspace:*"
+	}
+}

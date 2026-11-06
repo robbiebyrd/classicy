@@ -6,10 +6,12 @@
 
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useEffect,
 	useState,
 } from "react";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { HCDialog } from "@/SystemFolder/HyperCard/HyperCardUtils";
 import { HyperCardAppInfo } from "@/SystemFolder/HyperCard/HyperCardUtils";
@@ -21,13 +23,24 @@ import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWi
 interface HyperCardDialogProps {
 	dialog: HCDialog;
 	stackId: string;
+	/** Extra class names, forwarded to the dialog's `ClassicyWindow` root. */
+	className?: string;
+	/** Inline style, forwarded to the dialog's `ClassicyWindow` root. */
+	style?: CSSProperties;
 }
 
 export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 	dialog,
 	stackId,
+	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
+	// Display only: the dialog's window keeps HyperCard's internal app id.
+	const appName = useClassicyAppIdentity(HyperCardAppInfo.id, {
+		name: HyperCardAppInfo.name,
+		icon: "",
+	}).name;
 	const [text, setText] = useState(dialog.defaultValue ?? "");
 
 	useEffect(() => {
@@ -53,7 +66,9 @@ export const HyperCardDialog: FunctionalComponent<HyperCardDialogProps> = ({
 		<ClassicyWindow
 			id={"hypercard_dialog"}
 			appId={HyperCardAppInfo.id}
-			title={dialog.kind === "ask" ? "Ask" : HyperCardAppInfo.name}
+			className={className}
+			style={style}
+			title={dialog.kind === "ask" ? "Ask" : appName}
 			closable={false}
 			resizable={false}
 			zoomable={false}

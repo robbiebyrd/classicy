@@ -8,8 +8,11 @@ import type {
 	MouseEvent as ReactMouseEvent,
 	ReactNode,
 } from "react";
-import { Children, Fragment, useRef, useState } from "react";
+import { Children, Fragment, useEffect, useRef, useState } from "react";
+import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
+import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 /**
  * Axis along which the panes are arranged. `"horizontal"` (default) lays the
@@ -30,12 +33,15 @@ const KEYBOARD_STEP_PCT = 1;
 // directional resize cursor (bar-and-arrow, e.g. cursor-resize-u.png).
 type ClassicySplitViewDragDirection = "u" | "d" | "l" | "r";
 
-const dragCursorName = {
+const dragCursorName: Record<
+	ClassicySplitViewDragDirection,
+	ClassicyCursorRole
+> = {
 	u: "resizeU",
 	d: "resizeD",
 	l: "resizeL",
 	r: "resizeR",
-} as const;
+};
 
 /**
  * Redistribute pane sizes (percentages) after a divider drag. Only the two
@@ -100,16 +106,22 @@ interface ClassicySplitViewProps {
 	/** Fired with the new percentage sizes on every divider drag step. */
 	onResize?: (sizes: number[]) => void;
 	/**
-	 * Fired once per resize gesture — on mouse release after a drag, or on
-	 * arrow-key release — with the final percentage sizes. Use this to
-	 * persist the user's chosen split (e.g. dispatching into app state from
-	 * a wrapping ClassicyWindow/ClassicyApp) without a store write per
-	 * intermediate step; pass the saved sizes back as `defaultSizes` on the
-	 * next mount to restore them.
+	 * Fired once per resize gesture — on mouse release after a drag (or when
+	 * the drag's pointer stream is lost: the window blurs, a pointercancel,
+	 * the page is hidden; the divider stays where it was dragged), or on
+	 * arrow-key release — with the final percentage sizes, then
+	 * `{ lost }`: true when the drag ended by its pointer stream being lost,
+	 * false for a release or a key release. Use this to persist the user's
+	 * chosen split (e.g. dispatching into app state from a wrapping
+	 * ClassicyWindow/ClassicyApp) without a store write per intermediate
+	 * step; pass the saved sizes back as `defaultSizes` on the next mount to
+	 * restore them.
 	 */
-	onResizeCommit?: (sizes: number[]) => void;
+	onResizeCommit?: (sizes: number[], info: ClassicyGestureEnd) => void;
 	/** Extra class names to merge onto the root element. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Two or three content areas; extras are dropped with a dev warning. */
 	children: ReactNode;
 }
@@ -117,10 +129,10 @@ interface ClassicySplitViewProps {
 /**
  * A resizable container splitting two or three content areas along a single
  * axis. The bordered divider between panes carries the Platinum window-frame
- * treatment (`--color-window-frame` fill with the `platinumWindowBorder`
- * bevel) and is dragged to trade space between the two panes it separates —
- * dragging toward the leading side grows the trailing pane and shrinks the
- * leading one, exactly like a window frame edge being pushed.
+ * treatment (`--color-window-frame` fill with the `platinum-window-border` bevel
+ * from Platinum's `_mixins.scss`) and is dragged to trade space between the two
+ * panes it separates — dragging toward the leading side grows the trailing pane
+ * and shrinks the leading one, exactly like a window frame edge being pushed.
  *
  * There is no HTML equivalent (the nearest ancestor is the obsolete
  * `<frameset>`). The root fills its parent, so give the parent a size; each
@@ -147,6 +159,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 	onResize,
 	onResizeCommit,
 	className,
+	style,
 	children,
 }) => {
 	const allChildren = Children.toArray(children);
@@ -189,6 +202,10 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 		const rect = root.getBoundingClientRect();
 		return horizontal ? rect.width : rect.height;
 	};
+
+	// Ends a live divider drag's listeners when the split view unmounts.
+	const dragCleanupRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => dragCleanupRef.current?.(), []);
 
 	const applySizes = (next: number[]) => {
 		setSizes(next);
@@ -240,15 +257,34 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 				);
 				applySizes(latestSizes);
 			};
-			const upHandler = () => {
+			// A release, or the pointer stream lost (the window blurs, a
+			// pointercancel, the page is hidden): either way the divider stays
+			// where it was dragged and the sizes on screen are committed, as a
+			// window's move or resize ends where it is.
+			const detach = () => {
+				stopWatchingPointerStream();
 				document.removeEventListener("mousemove", moveHandler);
 				document.removeEventListener("mouseup", upHandler);
+				dragCleanupRef.current = null;
+			};
+			const endDrag = (lost: boolean) => {
+				detach();
 				setDragDirection(null);
 				setCursor();
-				if (latestSizes) onResizeCommit?.(latestSizes);
+				if (latestSizes) onResizeCommit?.(latestSizes, { lost });
 			};
+			const upHandler = () => endDrag(false);
 			document.addEventListener("mousemove", moveHandler);
 			document.addEventListener("mouseup", upHandler);
+			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
+				endDrag(true),
+			);
+			// Unmounted mid-drag: the listeners go, and the body cursor is
+			// put back; nothing is committed (the split view is gone).
+			dragCleanupRef.current = () => {
+				detach();
+				setCursor();
+			};
 		};
 
 	// ARIA window-splitter keyboard support: the arrow keys along the split
@@ -276,7 +312,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 			? ["ArrowLeft", "ArrowRight"]
 			: ["ArrowUp", "ArrowDown"];
 		if (!axisKeys.includes(e.key)) return;
-		onResizeCommit?.(effectiveSizes);
+		onResizeCommit?.(effectiveSizes, { lost: false });
 	};
 
 	return (
@@ -290,6 +326,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 					: "classicySplitViewVertical",
 				className,
 			)}
+			style={style}
 		>
 			{panes.map((child, index) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: panes are positional; order is their identity

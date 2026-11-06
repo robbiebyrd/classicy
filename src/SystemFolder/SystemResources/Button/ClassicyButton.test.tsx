@@ -58,17 +58,29 @@ describe("ClassicyButton", () => {
 		expect(onClick).not.toHaveBeenCalled();
 	});
 
-	it("adds classicyButtonDefault class when isDefault=true", () => {
+	it("adds default class when isDefault=true", () => {
 		render(<ClassicyButton isDefault={true}>OK</ClassicyButton>);
-		expect(screen.getByRole("button", { name: "OK" })).toHaveClass(
-			"classicyButtonDefault",
+		expect(screen.getByRole("button", { name: "OK" })).toHaveClass("default");
+	});
+
+	it("merges a consumer className with its own and state classes instead of replacing them", () => {
+		render(
+			<ClassicyButton className="host" isDefault depressed>
+				Go
+			</ClassicyButton>,
+		);
+		expect(screen.getByRole("button")).toHaveClass(
+			"classicyButton",
+			"default",
+			"pressed",
+			"host",
 		);
 	});
 
-	it("does not add classicyButtonDefault class when isDefault=false (default)", () => {
+	it("does not add default class when isDefault=false (default)", () => {
 		render(<ClassicyButton>Cancel</ClassicyButton>);
 		expect(screen.getByRole("button", { name: "Cancel" })).not.toHaveClass(
-			"classicyButtonDefault",
+			"default",
 		);
 	});
 
@@ -134,7 +146,7 @@ describe("ClassicyButton", () => {
 			</ClassicyButton>,
 		);
 		expect(ref.current).toBeInstanceOf(HTMLButtonElement);
-		expect(ref.current).toHaveClass("classicyButtonDefault");
+		expect(ref.current).toHaveClass("default");
 	});
 
 	it("adds a transient keyboard-activation highlight on Enter and clears it (~8 ticks)", () => {
@@ -187,5 +199,93 @@ describe("ClassicyButton", () => {
 			key: "Enter",
 		});
 		expect(onKeyDown).toHaveBeenCalledTimes(1);
+	});
+});
+
+// The forwarded ref is merged with the component's own root ref (for the
+// appearance hook), so every ref form React supports must still reach the
+// <button>: object refs, classic callback refs (null on detach) and React 19
+// callback refs that return a cleanup (no null call on detach).
+describe("ClassicyButton forwarded ref", () => {
+	it("detaches the old ref and attaches the new one when the ref changes", () => {
+		const firstCleanup = vi.fn();
+		const firstCalls: (HTMLButtonElement | null)[] = [];
+		const first = (el: HTMLButtonElement | null) => {
+			firstCalls.push(el);
+			return firstCleanup;
+		};
+		const secondCleanup = vi.fn();
+		const secondCalls: (HTMLButtonElement | null)[] = [];
+		const second = (el: HTMLButtonElement | null) => {
+			secondCalls.push(el);
+			return secondCleanup;
+		};
+		const { rerender, unmount } = render(
+			<ClassicyButton ref={first}>x</ClassicyButton>,
+		);
+		rerender(<ClassicyButton ref={second}>x</ClassicyButton>);
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+		expect(firstCalls).toHaveLength(1);
+		expect(secondCalls).toHaveLength(1);
+		expect(secondCalls[0]).toBeInstanceOf(HTMLButtonElement);
+		expect(secondCalls[0]).toBe(firstCalls[0]);
+		unmount();
+		expect(secondCleanup).toHaveBeenCalledTimes(1);
+		expect(secondCalls).toHaveLength(1);
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+	});
+
+	it("clears an object ref when it is swapped for a callback ref", () => {
+		const objectRef = createRef<HTMLButtonElement>();
+		const calls: (HTMLButtonElement | null)[] = [];
+		const callbackRef = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+		};
+		const { rerender } = render(
+			<ClassicyButton ref={objectRef}>x</ClassicyButton>,
+		);
+		const button = objectRef.current;
+		expect(button).toBeInstanceOf(HTMLButtonElement);
+		rerender(<ClassicyButton ref={callbackRef}>x</ClassicyButton>);
+		expect(objectRef.current).toBeNull();
+		expect(calls).toEqual([button]);
+	});
+
+	it("sets and clears an object ref", () => {
+		const ref = createRef<HTMLButtonElement>();
+		const { unmount } = render(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(ref.current).toBeNull();
+	});
+
+	it("calls a classic callback ref with the element, then null", () => {
+		const calls: (HTMLButtonElement | null)[] = [];
+		const ref = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+		};
+		const { rerender, unmount } = render(
+			<ClassicyButton ref={ref}>x</ClassicyButton>,
+		);
+		rerender(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(calls).toEqual([calls[0], null]);
+	});
+
+	it("runs a cleanup-returning callback ref's cleanup instead of calling it with null", () => {
+		const calls: (HTMLButtonElement | null)[] = [];
+		const cleanup = vi.fn();
+		const ref = (el: HTMLButtonElement | null) => {
+			calls.push(el);
+			return cleanup;
+		};
+		const { unmount } = render(<ClassicyButton ref={ref}>x</ClassicyButton>);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]).toBeInstanceOf(HTMLButtonElement);
+		unmount();
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(calls).toHaveLength(1);
 	});
 });

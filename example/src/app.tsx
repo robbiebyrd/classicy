@@ -1,12 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
-import "classicy/fonts";
 import {
 	ClassicyAppManagerProvider,
 	ClassicyDesktop,
 	registerClassicyIcons,
-} from "classicy";
+} from "@classicy/classicy";
+// The Appearance Package: the core draws no desktop without one.
+import "@classicy/appearance-platinum";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
 // Side-effect import: registers example HyperCard plugins (custom part, commands,

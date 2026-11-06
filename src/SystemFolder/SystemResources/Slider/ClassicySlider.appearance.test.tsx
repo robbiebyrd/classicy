@@ -1,0 +1,267 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import { fireEvent, render } from "@/__tests__/test-utils";
+import { installClassicyAppearanceProbe } from "@/Appearance/__tests__/appearanceProbe";
+import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+
+let probe: ReturnType<typeof installClassicyAppearanceProbe>;
+
+beforeEach(() => {
+	probe = installClassicyAppearanceProbe();
+});
+
+afterEach(() => {
+	probe.uninstall();
+	vi.restoreAllMocks();
+});
+
+/** The events Slider emitted after its own `mount`. */
+const emitted = () => {
+	const own = probe.events.filter((e) => e.component === "Slider");
+	return own
+		.slice(own.findIndex((e) => e.event === "mount") + 1)
+		.map(({ event, detail }) => ({ event, detail }));
+};
+
+/**
+ * The document's live pointerup/pointercancel listeners, followed through
+ * spies on add/removeEventListener.
+ */
+const trackReleaseListeners = () => {
+	const live = new Set<string>();
+	const ids = new Map<unknown, number>();
+	const key = (type: string, listener: unknown) => {
+		if (!ids.has(listener)) ids.set(listener, ids.size);
+		return `${type}:${ids.get(listener)}`;
+	};
+	const add = document.addEventListener.bind(document);
+	const remove = document.removeEventListener.bind(document);
+	vi.spyOn(document, "addEventListener").mockImplementation(
+		(type, listener, options) => {
+			if (type === "pointerup" || type === "pointercancel")
+				live.add(key(type, listener));
+			add(type, listener, options);
+		},
+	);
+	vi.spyOn(document, "removeEventListener").mockImplementation(
+		(type, listener, options) => {
+			live.delete(key(type, listener));
+			remove(type, listener, options);
+		},
+	);
+	return live;
+};
+
+const root = (container: HTMLElement) =>
+	container.querySelector(".classicySlider") as HTMLInputElement;
+
+describe("ClassicySlider appearance", () => {
+	it("carries the probe decoration and state classes", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} disabled />);
+		const el = root(container);
+		expect(el).toHaveClass("classicySlider", "probe-Slider", "disabled");
+		expect(el.getAttribute("data-probe-state")).toBe("disabled");
+	});
+
+	it("emits its events", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		// A click on the track: the mouse goes down, the value jumps.
+		fireEvent.mouseDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { value: 40, input: "pointer" } },
+		]);
+	});
+
+	it("brackets a pointer drag with dragStart and dragEnd, with or without a ghost", () => {
+		for (const ghost of [false, true]) {
+			const { container, unmount } = render(
+				<ClassicySlider id="s" value={10} ghost={ghost} />,
+			);
+			const el = root(container);
+			fireEvent.pointerDown(el);
+			fireEvent.change(el, { target: { value: "40" } });
+			fireEvent.pointerUp(el);
+			expect(emitted()).toEqual([
+				{ event: "dragStart", detail: { value: 10 } },
+				{ event: "change", detail: { value: 40, input: "pointer" } },
+				{ event: "dragEnd", detail: { value: 40, lost: false } },
+			]);
+			unmount();
+			probe.events.length = 0;
+		}
+	});
+
+	it("ends a canceled drag once", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.pointerCancel(el);
+		fireEvent.pointerUp(el);
+		expect(emitted().map((e) => e.event)).toEqual(["dragStart", "dragEnd"]);
+	});
+
+	it("ends a drag released outside the input once", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "30" } });
+		fireEvent.pointerUp(document.body);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: { value: 10 } },
+			{ event: "change", detail: { value: 30, input: "pointer" } },
+			{ event: "dragEnd", detail: { value: 30, lost: false } },
+		]);
+		// A later release on the input is not a second end.
+		fireEvent.pointerUp(el);
+		expect(emitted()).toHaveLength(3);
+	});
+
+	it("listens to the document for a release only while a press lasts", () => {
+		const live = trackReleaseListeners();
+		const { container, unmount } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(2);
+		fireEvent.pointerUp(el);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		fireEvent.pointerCancel(el);
+		expect(live.size).toBe(0);
+		// Unmounted mid-drag: the listeners go with it.
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(2);
+		unmount();
+		expect(live.size).toBe(0);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a press where it is, committing that value, on a %s", (loss) => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} ghost onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		const ghostEl = container.querySelector(".classicySliderGhost");
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		expect(ghostEl).not.toHaveClass("classicySliderGhostHidden");
+
+		losePointerStream(loss);
+		expect(emitted()).toEqual([
+			{ event: "dragStart", detail: { value: 10 } },
+			{ event: "change", detail: { value: 40, input: "pointer" } },
+			{ event: "dragEnd", detail: { value: 40, lost: true } },
+		]);
+		expect(ghostEl).toHaveClass("classicySliderGhostHidden");
+		expect(onCommit.mock.calls).toEqual([[40, { lost: true }]]);
+
+		// A second loss, or a release on the document, ends nothing more.
+		losePointerStream(loss);
+		fireEvent.pointerUp(document.body);
+		expect(emitted()).toHaveLength(3);
+		expect(onCommit).toHaveBeenCalledOnce();
+	});
+
+	it("commits once when the press's own release still arrives after a loss", () => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		losePointerStream("blur");
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([[40, { lost: true }]]);
+		// The next press commits on its release as usual.
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "50" } });
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([
+			[40, { lost: true }],
+			[50, { lost: false }],
+		]);
+	});
+
+	it("commits the next press after a loss whose release never arrived", () => {
+		const onCommit = vi.fn();
+		const { container } = render(
+			<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />,
+		);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "40" } });
+		losePointerStream("hidden");
+		fireEvent.pointerDown(el);
+		fireEvent.change(el, { target: { value: "60" } });
+		fireEvent.pointerUp(el);
+		expect(onCommit.mock.calls).toEqual([
+			[40, { lost: true }],
+			[60, { lost: false }],
+		]);
+	});
+
+	it("commits nothing for a loss with no press under way", () => {
+		const onCommit = vi.fn();
+		render(<ClassicySlider id="s" value={10} onCommitFunc={onCommit} />);
+		losePointerStream("blur");
+		expect(onCommit).not.toHaveBeenCalled();
+		expect(emitted()).toEqual([]);
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { container, unmount } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		expect(live.size).toBe(3);
+		fireEvent.pointerUp(el);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(el);
+		unmount();
+		expect(live.size).toBe(0);
+	});
+
+	it("reports keyboard stepping as change, with no drag", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} />);
+		const el = root(container);
+		// A native range input steps on the arrow key and fires `input`.
+		fireEvent.keyDown(el, { key: "ArrowRight" });
+		fireEvent.change(el, { target: { value: "11" } });
+		fireEvent.keyUp(el, { key: "ArrowRight" });
+		expect(emitted()).toEqual([
+			{ event: "change", detail: { value: 11, input: "keyboard" } },
+		]);
+	});
+
+	it("emits no drag while disabled", () => {
+		const { container } = render(<ClassicySlider id="s" value={10} disabled />);
+		const el = root(container);
+		fireEvent.pointerDown(el);
+		fireEvent.pointerUp(el);
+		expect(emitted()).toEqual([]);
+	});
+
+	it("adds nothing when the package returns nothing", () => {
+		probe.uninstall();
+		const { container } = render(<ClassicySlider id="s" value={10} disabled />);
+		const el = root(container);
+		expect(el.hasAttribute("data-probe-state")).toBe(false);
+		expect(el.hasAttribute("style")).toBe(false);
+		expect(el.getAttribute("class")).toBe(
+			"classicySlider disabled classicySliderIndicatorDown",
+		);
+	});
+});

@@ -1,25 +1,41 @@
 import { castDraft, produce } from "immer";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { defaultStateWithPlatinumThemes } from "@/__tests__/platinumBuiltInThemes";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	getClassicyAppearancePackage,
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	type ClassicyTheme,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { listClassicyPackageThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
-import { resolveWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import { isUntrustedActionAllowed } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	type ActionMessage,
 	type ClassicyStore,
 	classicyDesktopStateEventReducer,
-	DefaultAppManagerState,
-	mergeClassicyState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
-const makeStore = (): ClassicyStore =>
-	mergeClassicyState(DefaultAppManagerState, {});
+// A deep, unaliased copy of the default state with every built-in theme.
+const makeStore = (): ClassicyStore => defaultStateWithPlatinumThemes();
 
 const appearance = (ds: ClassicyStore) => ds.System.Manager.Appearance;
 
@@ -78,16 +94,28 @@ describe("ClassicyDesktopImportTheme", () => {
 		const state = run(makeStore(), importTheme(parsed.theme));
 		expect(appearance(state).activeTheme.name).toBe("Azul 2");
 		expect(appearance(state).activeTheme.desktop.backgroundImage).toBe(
-			resolveWallpaper("azul_dark.png"),
+			"azul_dark.png",
 		);
 	});
 
-	it("resolves a wallpaper filename in the payload for this build", () => {
+	it("keeps a wallpaper filename in the payload, which renders this build's URL", () => {
 		const theme = fileTheme();
 		theme.desktop.backgroundImage = "waves_bondi.png";
 		const state = run(makeStore(), importTheme(theme));
+		const active = appearance(state).activeTheme;
+		expect(active.desktop.backgroundImage).toBe("waves_bondi.png");
+		expect(getThemeVars(active)["--desktop-background-image"]).toBe(
+			`url("${resolveClassicyWallpaper("waves_bondi.png")}")`,
+		);
+		expect(resolveClassicyWallpaper("waves_bondi.png")).not.toBe("");
+	});
+
+	it("stores this build's wallpaper URL in the payload as its filename", () => {
+		const theme = fileTheme();
+		theme.desktop.backgroundImage = resolveClassicyWallpaper("waves_bondi.png");
+		const state = run(makeStore(), importTheme(theme));
 		expect(appearance(state).activeTheme.desktop.backgroundImage).toBe(
-			resolveWallpaper("waves_bondi.png"),
+			"waves_bondi.png",
 		);
 	});
 
@@ -171,7 +199,7 @@ describe("ClassicyDesktopImportTheme", () => {
 		["a non-object", "azul"],
 		["an empty object", {}],
 		[
-			"an out-of-range colour",
+			"an out-of-range color",
 			(() => {
 				const t = fileTheme();
 				t.color.select = 0x1000000;
@@ -190,7 +218,7 @@ describe("ClassicyDesktopImportTheme", () => {
 			"an unknown sound",
 			(() => {
 				const t = fileTheme();
-				t.sound.name = "sosumi";
+				t.sound.pack = "sosumi";
 				return t;
 			})(),
 		],
@@ -220,5 +248,284 @@ describe("ClassicyDesktopImportTheme", () => {
 		warn.mockRestore();
 		expect(appearance(state).customThemes ?? []).toHaveLength(0);
 		expect(appearance(state).activeTheme.id).toBe("default");
+	});
+});
+
+describe("ClassicyDesktopImportTheme — appearance packages", () => {
+	const SINK_ID = "import-theme-package-test";
+
+	// Platinum's themes are importable only while Platinum is registered, and
+	// each test below starts from a reset registry.
+	const platinum = getClassicyAppearancePackage("platinum");
+	beforeEach(() => {
+		if (platinum) registerClassicyAppearancePackage(platinum);
+	});
+
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		unregisterClassicyLogSink(SINK_ID);
+		vi.restoreAllMocks();
+	});
+
+	it("refuses an uninstalled package with the error dialog", () => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const entries: ClassicyLogEntry[] = [];
+		registerClassicyLogSink({
+			id: SINK_ID,
+			onLog: (entry) => entries.push(entry),
+		});
+		const before = makeStore();
+		const state = run(before, importTheme(fileTheme({ package: "irix" })));
+		expect(appearance(state).customThemes ?? []).toEqual(
+			appearance(before).customThemes ?? [],
+		);
+		expect(appearance(state).activeTheme).toEqual(
+			appearance(before).activeTheme,
+		);
+		expect(state.System.Manager.Desktop.errorDialog).toEqual({
+			title: "Appearance",
+			message:
+				'This theme needs the "irix" appearance package, which is not installed.',
+		});
+		expect(entries).toEqual([
+			expect.objectContaining({
+				level: "warn",
+				subsystem: "ClassicyAppearance",
+				message:
+					'This theme needs the "irix" appearance package, which is not installed.',
+			}),
+		]);
+	});
+
+	it("refuses a platinum theme while Platinum is not registered", () => {
+		resetClassicyAppearancePackagesForTests();
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+		const before = makeStore();
+		const state = run(before, importTheme(fileTheme({ package: "platinum" })));
+		expect(appearance(state).customThemes).toEqual(
+			appearance(before).customThemes,
+		);
+		expect(appearance(state).activeTheme).toBe(appearance(before).activeTheme);
+		expect(state.System.Manager.Desktop.errorDialog?.message).toBe(
+			'This theme needs the "platinum" appearance package, which is not installed.',
+		);
+	});
+
+	it("accepts a registered package", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: { ...structuredClone(getTheme("azul")), package: "irix" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		const state = run(makeStore(), importTheme(fileTheme({ package: "irix" })));
+		expect(appearance(state).customThemes).toHaveLength(1);
+		expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+		expect(appearance(state).activeTheme.package).toBe("irix");
+		expect(state.System.Manager.Desktop.errorDialog ?? null).toBeNull();
+	});
+
+	it("an imported theme survives a fork into a later package's Custom slot", () => {
+		// Imported while no "ocean" package exists: custom-ocean is free.
+		let state = run(makeStore(), importTheme(fileTheme({ name: "Ocean" })));
+		expect(appearance(state).customThemes?.map((t) => t.id)).toEqual([
+			"custom-ocean",
+		]);
+		const importedColor = appearance(state).activeTheme.color;
+		const oceanPreset = {
+			...structuredClone(getTheme("azul")),
+			id: "ocean-one",
+			name: "Ocean One",
+			package: "ocean",
+		};
+		const oceanPackage: ClassicyAppearancePackage = {
+			id: "ocean",
+			name: "Ocean",
+			css: "",
+			defaults: oceanPreset,
+			presets: [oceanPreset],
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		};
+		registerClassicyAppearancePackage(structuredClone(oceanPackage));
+		state = run(state, {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "ocean",
+		});
+		// The first edit on an Ocean preset forks into Ocean's slot, custom-ocean.
+		state = run(state, {
+			type: "ClassicyDesktopChangeColor",
+			colorKey: "black",
+			color: 0x010101,
+		});
+		const a = appearance(state);
+		expect(a.activeTheme.id).toBe("custom-ocean");
+		expect(a.activeTheme.package).toBe("ocean");
+		// The import moved aside, name and data intact.
+		const imported = a.customThemes?.find((t) => t.package === "platinum");
+		expect(imported?.id).toBe("custom-ocean-2");
+		expect(imported?.name).toBe("Ocean");
+		expect(imported?.color).toEqual(importedColor);
+		expect(a.customThemes).toHaveLength(2);
+
+		// Both are listed under their own package and selectable.
+		expect(
+			listClassicyPackageThemes(a, { id: "platinum" }).map((t) => t.id),
+		).toContain("custom-ocean-2");
+		expect(listClassicyPackageThemes(a, oceanPackage).map((t) => t.id)).toEqual(
+			["ocean-one", "custom-ocean"],
+		);
+		state = run(state, {
+			type: "ClassicyDesktopChangeTheme",
+			activeTheme: "custom-ocean-2",
+		});
+		expect(appearance(state).activeTheme.name).toBe("Ocean");
+		expect(appearance(state).activeTheme.color).toEqual(importedColor);
+		state = run(state, {
+			type: "ClassicyDesktopChangeTheme",
+			activeTheme: "custom-ocean",
+		});
+		expect(appearance(state).activeTheme.package).toBe("ocean");
+		expect(appearance(state).activeTheme.color.black).toBe(0x010101);
+	});
+
+	describe("moving a squatting import aside", () => {
+		const testPackage = (
+			id: string,
+			presetIds: string[] = [`${id}-one`],
+		): ClassicyAppearancePackage => {
+			const presets = presetIds.map((presetId) => ({
+				...structuredClone(getTheme("azul")),
+				id: presetId,
+				name: presetId,
+				package: id,
+			}));
+			return {
+				id,
+				name: id,
+				css: "",
+				defaults: presets[0],
+				presets,
+				layout: {
+					window: { growBoxCorner: "bottom-right" },
+					menuBar: { placement: "screen" },
+					desktop: { iconGridOrigin: "top-right" },
+				},
+			};
+		};
+
+		/** Imports "Ocean" for `importPackage`, then forks under a later "ocean". */
+		const forkOverImportedOcean = (importPackage: string) => {
+			let state = run(
+				makeStore(),
+				importTheme(fileTheme({ name: "Ocean", package: importPackage })),
+			);
+			expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+			registerClassicyAppearancePackage(testPackage("ocean"));
+			state = run(state, {
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "ocean",
+			});
+			state = run(state, {
+				type: "ClassicyDesktopChangeColor",
+				colorKey: "black",
+				color: 0x010101,
+			});
+			expect(appearance(state).activeTheme.id).toBe("custom-ocean");
+			expect(appearance(state).activeTheme.package).toBe("ocean");
+			return appearance(state).customThemes?.find(
+				(t) => t.package === importPackage,
+			);
+		};
+
+		it("skips a preset id of the import's own package", () => {
+			// Reef ships a preset whose id is custom-ocean-2: the moved import
+			// must not be shadowed by it while Reef is active.
+			registerClassicyAppearancePackage(
+				testPackage("reef", ["reef-one", "custom-ocean-2"]),
+			);
+			const moved = forkOverImportedOcean("reef");
+			expect(moved?.id).toBe("custom-ocean-3");
+			expect(moved?.name).toBe("Ocean");
+		});
+
+		it("skips a registered package's Custom slot id", () => {
+			// custom-ocean-2 is the "ocean-2" package's fork slot.
+			registerClassicyAppearancePackage(testPackage("ocean-2"));
+			const moved = forkOverImportedOcean("platinum");
+			expect(moved?.id).toBe("custom-ocean-3");
+		});
+	});
+
+	it("never duplicates a preset name or id of the active package", () => {
+		const preset = (id: string, name: string) => ({
+			...structuredClone(getTheme("azul")),
+			id,
+			name,
+			package: "presets-pack",
+		});
+		registerClassicyAppearancePackage({
+			id: "presets-pack",
+			name: "Presets Pack",
+			css: "",
+			defaults: preset("tp-one", "TP One"),
+			presets: [preset("tp-one", "TP One"), preset("custom-sea", "Sea Star")],
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		let state = run(makeStore(), {
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "presets-pack",
+		});
+		state = run(state, importTheme(fileTheme({ name: "TP One" })));
+		state = run(state, importTheme(fileTheme({ name: "Sea" })));
+		expect(
+			(appearance(state).customThemes ?? []).map((t) => [t.id, t.name]),
+		).toEqual([
+			["custom-tp-one-2", "TP One 2"],
+			// custom-sea is a preset's id: an import there would be unreachable.
+			["custom-sea-2", "Sea"],
+		]);
+	});
+
+	it("never takes a package's Custom fork slot id", () => {
+		registerClassicyAppearancePackage({
+			id: "irix",
+			name: "IRIX",
+			css: "",
+			defaults: { ...structuredClone(getTheme("azul")), package: "irix" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		// "Irix" slugs to the IRIX package's slot id, custom-irix, whichever
+		// package the theme belongs to.
+		let state = run(
+			makeStore(),
+			importTheme(fileTheme({ name: "Irix", package: "irix" })),
+		);
+		state = run(state, importTheme(fileTheme({ name: "Irix Two" })));
+		state = run(
+			state,
+			importTheme(fileTheme({ name: "Platinum", package: "platinum" })),
+		);
+		expect((appearance(state).customThemes ?? []).map((t) => t.id)).toEqual([
+			"custom-irix-2",
+			"custom-irix-two",
+			"custom-platinum",
+		]);
 	});
 });

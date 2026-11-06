@@ -1,9 +1,11 @@
-import type { MDXEditorMethods } from "@mdxeditor/editor";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
 import { fn } from "storybook/test";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
-import { ClassicyRichTextEditor } from "./ClassicyRichTextEditor";
+import {
+	ClassicyRichTextEditor,
+	type ClassicyRichTextEditorMethods,
+} from "./ClassicyRichTextEditor";
 
 const meta = {
 	title: "Controls/RichTextEditor",
@@ -13,6 +15,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyRichTextEditor>;
 
 /**
  * A Markdown document with a heading, bold text and a block quote. Use the
@@ -32,7 +38,7 @@ export const Default: Story = {
 };
 
 const ImperativeEditor = () => {
-	const editorRef = useRef<MDXEditorMethods>(null);
+	const editorRef = useRef<ClassicyRichTextEditorMethods>(null);
 	const [saved, setSaved] = useState("");
 	return (
 		<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -64,6 +70,6 @@ const ImperativeEditor = () => {
  * replaced through `editorRef` (`setMarkdown`), and read back with
  * `getMarkdown`.
  */
-export const ImperativeAccess: Story = {
+export const ImperativeAccess: RenderStory = {
 	render: () => <ImperativeEditor />,
 };

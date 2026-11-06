@@ -208,7 +208,7 @@ describe("persistence lifecycle", () => {
 
 // ─── getInitialState (via dynamic import after pre-seeding localStorage) ──────
 
-describe("getInitialState — localStorage behaviour (via module re-import)", () => {
+describe("getInitialState — localStorage behavior (via module re-import)", () => {
 	afterEach(async () => {
 		// Tear down persistence from the freshly loaded module before resetting
 		vi.resetModules();
@@ -225,7 +225,7 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		stopAppManagerPersistence();
 
 		// The DefaultAppManagerState is from ClassicyAppManager; the store was
-		// initialised from it, so Finder.app (seeded in default state) must exist.
+		// initialized from it, so Finder.app (seeded in default state) must exist.
 		const state = useAppManager.getState();
 		expect(state.System.Manager.Applications.apps["Finder.app"]).toBeDefined();
 	});
@@ -258,20 +258,75 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 		).toBeDefined();
 	});
 
-	/** Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`. */
-	async function hydrateBackground(backgroundImage: string): Promise<string> {
+	// A blob saved mid-gesture by an older build still carries the gesture
+	// flags; a loaded `dragging: true` would make the window jump to the
+	// pointer on its first mouse move.
+	it("drops a persisted window's resizing, dragging and moving on load", async () => {
 		const stored = makeValidStoredState();
+		(
+			stored.System as Record<string, unknown> & {
+				Manager: { Applications: { apps: Record<string, unknown> } };
+			}
+		).Manager.Applications.apps["Persisted.app"] = {
+			id: "Persisted.app",
+			name: "Persisted",
+			icon: "",
+			open: true,
+			windows: {
+				w: {
+					id: "w",
+					closed: false,
+					resizing: true,
+					dragging: true,
+					moving: true,
+					size: [100, 100],
+					position: [10, 40],
+				},
+			},
+		};
+		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
+
+		vi.resetModules();
+		const { useAppManager, stopAppManagerPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		stopAppManagerPersistence();
+
+		const win =
+			useAppManager.getState().System.Manager.Applications.apps["Persisted.app"]
+				.windows.w;
+		expect(win.position).toEqual([10, 40]);
+		expect("resizing" in win).toBe(false);
+		expect("dragging" in win).toBe(false);
+		expect("moving" in win).toBe(false);
+	});
+
+	/**
+	 * Hydrate a fresh store from a persisted `activeTheme.desktop.backgroundImage`.
+	 * The active theme is a custom one by default (also listed in
+	 * `customThemes`): a built-in id is replaced by its preset on load.
+	 */
+	async function hydrateBackground(
+		backgroundImage: string,
+		themeId = "custom",
+	): Promise<string> {
+		const stored = makeValidStoredState();
+		const theme = { id: themeId, desktop: { backgroundImage } };
 		(
 			stored.System as Record<string, unknown> & {
 				Manager: { Appearance: Record<string, unknown> };
 			}
 		).Manager.Appearance = {
-			activeTheme: { id: "default", desktop: { backgroundImage } },
+			activeTheme: theme,
 			availableThemes: [],
+			customThemes: themeId === "custom" ? [structuredClone(theme)] : [],
 		};
 		localStorage.setItem("classicyDesktopState", JSON.stringify(stored));
 
 		vi.resetModules();
+		// Platinum first, as a host imports it: its wallpapers are registered
+		// when the store loads.
+		await import("@classicy/appearance-platinum");
 		const { useAppManager, stopAppManagerPersistence } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
 		);
@@ -285,30 +340,51 @@ describe("getInitialState — localStorage behaviour (via module re-import)", ()
 	// older build — when themes carried a literal path no consuming app serves —
 	// would outlive the fix and keep 404ing without healing on hydration.
 	//
-	// These inputs are deliberately chosen so that input !== resolved output in
-	// BOTH environments. Under vitest a bundled asset resolves to its own source
-	// path, so asserting against a stored "/assets/img/wallpapers/*.png" would
-	// hold whether or not healing ran — the same dev/production aliasing that hid
-	// the original bug.
-	it("re-resolves a stale wallpaper path persisted by an older build", async () => {
-		const { resolveWallpaper } = await import(
-			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers"
-		);
+	// The path is deliberately not the one a bundled asset has under vitest
+	// ("/assets/img/wallpapers/*.png"), so only the basename can match it.
+	it("stores a stale wallpaper path persisted by an older build as its filename", async () => {
 		expect(await hydrateBackground("/legacy/wallpapers/default.png")).toBe(
-			resolveWallpaper("default.png"),
+			"default.png",
 		);
 	});
 
-	it("blanks a persisted wallpaper that no longer ships, rather than 404ing", async () => {
+	it("renders no image for a persisted wallpaper that no longer ships, rather than 404ing", async () => {
 		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-		expect(await hydrateBackground("retired_wallpaper.png")).toBe("");
+		expect(await hydrateBackground("retired_wallpaper.png")).toBe(
+			"retired_wallpaper.png",
+		);
+		const { resolveClassicyWallpaper } = await import(
+			"@/Appearance/ClassicyWallpaperIndex"
+		);
+		expect(resolveClassicyWallpaper("retired_wallpaper.png")).toBe("");
 		warnSpy.mockRestore();
 	});
 
-	it("keeps a background URL the user set themselves", async () => {
+	it("keeps a background URL the user set themselves on a custom theme", async () => {
 		expect(
 			await hydrateBackground("https://example.com/my-wallpaper.png"),
 		).toBe("https://example.com/my-wallpaper.png");
+	});
+
+	// State saved before custom themes (v0.83) edited a built-in in place.
+	// Built-ins come from the code, so such an edit gives way to the preset's
+	// own wallpaper once the preset's package registers (the store loads
+	// first, as the library barrel loads them).
+	it("replaces a background set on a built-in theme with the preset's", async () => {
+		await hydrateBackground("https://example.com/my-wallpaper.png", "default");
+		await import("@classicy/appearance-platinum");
+		const { getTheme } = await import(
+			"@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance"
+		);
+		const { useAppManager } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const preset = getTheme("default").desktop.backgroundImage;
+		expect(preset).not.toBe("");
+		expect(
+			useAppManager.getState().System.Manager.Appearance.activeTheme.desktop
+				.backgroundImage,
+		).toBe(preset);
 	});
 
 	it("falls back to DefaultAppManagerState and calls console.error for malformed JSON", async () => {
@@ -660,6 +736,45 @@ describe("sanitizeStateForPersistence — closedThisSession", () => {
 	});
 });
 
+describe("sanitizeStateForPersistence — gesture flags", () => {
+	// A reload ends any drag or resize; a persisted `resizing: true` would keep
+	// the window acting as if resized until its first click.
+	it("strips resizing, dragging and moving from every window", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			data: {},
+			windows: {
+				w: {
+					id: "w",
+					closed: false,
+					resizing: true,
+					dragging: true,
+					moving: true,
+					size: [100, 100],
+					position: [0, 0],
+					minimumSize: [0, 0],
+				},
+			},
+		};
+		const out = sanitizeStateForPersistence(state);
+		const win = out.System.Manager.Applications.apps["X.app"].windows.w;
+		expect(win.size).toEqual([100, 100]);
+		expect("resizing" in win).toBe(false);
+		expect("dragging" in win).toBe(false);
+		expect("moving" in win).toBe(false);
+	});
+});
+
 // ─── wasHydratedFromStorage ───────────────────────────────────────────────────
 
 describe("wasHydratedFromStorage", () => {
@@ -910,8 +1025,11 @@ describe("windows record migration (0.x saved state)", () => {
 
 		const second = await loadStore();
 		const reloaded = second.useAppManager.getState();
+		// The reload is the live state as persisted: session-only fields (the
+		// move's `moving: false` among them) are stripped on save.
 		expect(reloaded.System.Manager.Applications.apps).toEqual(
-			first.useAppManager.getState().System.Manager.Applications.apps,
+			first.sanitizeStateForPersistence(first.useAppManager.getState()).System
+				.Manager.Applications.apps,
 		);
 		expect(
 			JSON.parse(JSON.stringify(second.sanitizeStateForPersistence(reloaded))),
@@ -974,7 +1092,7 @@ describe("migrateClassicyState", () => {
 });
 
 describe("mergeClassicyState with window overrides", () => {
-	it("normalises a 0.x windows array in the overrides", async () => {
+	it("normalizes a 0.x windows array in the overrides", async () => {
 		const { DefaultAppManagerState, mergeClassicyState } = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
 		);

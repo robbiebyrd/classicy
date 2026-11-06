@@ -4,6 +4,7 @@ import "./ClassicyComboBox.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useCallback,
@@ -15,6 +16,10 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	ClassicyControlLabel,
@@ -32,8 +37,6 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
-
-const CHECKMARK = "✓";
 
 /**
  * How typing narrows the suggestions: by label prefix, by label substring, or
@@ -73,6 +76,10 @@ type ClassicyComboBoxProps = {
 	onChangeFunc?: (text: string) => void;
 	/** Fired when a suggestion is committed (click or Enter). */
 	onSelectFunc?: (value: string, option: ClassicyPopUpMenuOption) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -108,6 +115,8 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	disabled = false,
 	onChangeFunc,
 	onSelectFunc,
+	className,
+	style,
 }) => {
 	const [text, setText] = useState(prefillValue ?? "");
 	useEffect(() => {
@@ -132,6 +141,16 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const reactId = useId();
 	const listId = `${reactId}-list`;
 	const optionId = (index: number) => `${reactId}-opt-${index}`;
+	const appearance = useClassicyAppearance("ComboBox", { disabled }, anchorRef);
+	const emitAppearance = appearance.emit;
+	// `close` follows the list going away, whichever path dismissed it, and
+	// so comes after the `change` a commit emits.
+	const wasOpenRef = useRef(open);
+	useEffect(() => {
+		if (wasOpenRef.current === open) return;
+		wasOpenRef.current = open;
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
+	}, [open, emitAppearance]);
 
 	const { track } = useClassicyAnalytics();
 
@@ -190,9 +209,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 				setMenuRect(anchorRef.current.getBoundingClientRect());
 			}
 			setOpen(true);
+			emitAppearance("open", withClassicyAppearanceInput());
 			inputRef.current?.focus();
 		},
-		[disabled],
+		[disabled, emitAppearance],
 	);
 
 	const commitOption = useCallback(
@@ -201,6 +221,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			committedLabel.current = option.label;
 			committedValue.current = option.value;
 			closeList();
+			emitAppearance(
+				"change",
+				withClassicyAppearanceInput({ value: option.value }),
+			);
 			inputRef.current?.focus();
 			track("selected", {
 				type: "ClassicyComboBox",
@@ -211,7 +235,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			onChangeFunc?.(option.label);
 			onSelectFunc?.(option.value, option);
 		},
-		[closeList, track, id, label, onChangeFunc, onSelectFunc],
+		[closeList, emitAppearance, track, id, label, onChangeFunc, onSelectFunc],
 	);
 
 	// freeText=false: a dismissed combo may only hold an option label.
@@ -274,7 +298,19 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		const el = listRef.current;
 		if (!el) return;
 		setPlacement(
-			classicyPopUpMenuPlacement(menuRect, el.scrollHeight, window.innerHeight),
+			classicyPopUpMenuPlacement(
+				menuRect,
+				el.scrollHeight,
+				window.innerHeight,
+				null,
+				// The theme's cap, read from the input (the list may be portaled
+				// out of its themed ancestor) once per opening.
+				readClassicyThemeVar(
+					"--menu-pop-up-max-height",
+					undefined,
+					inputRef.current,
+				),
+			),
 		);
 	}, [open, menuRect]);
 
@@ -334,7 +370,9 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			className={classNames(
 				"classicyComboBoxWrapper",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			{label && (
 				<ClassicyControlLabel
@@ -345,11 +383,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 				/>
 			)}
 			<div
+				{...appearance.attrs}
 				ref={anchorRef}
-				className={classNames(
-					"classicyComboBox",
-					disabled && "classicyComboBoxDisabled",
-				)}
+				className={classNames("classicyComboBox", appearance.className)}
+				style={appearance.style}
 			>
 				<input
 					ref={inputRef}
@@ -469,9 +506,13 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 										}
 									}}
 								>
-									<span className="classicyPopUpMenuCheck" aria-hidden={true}>
-										{isSelected ? CHECKMARK : ""}
-									</span>
+									<span
+										className={classNames(
+											"classicyPopUpMenuCheck",
+											classicyStateClasses({ checked: isSelected }),
+										)}
+										aria-hidden={true}
+									/>
 									{o.icon && (
 										<img
 											className="classicyPopUpMenuListItemIcon"

@@ -1,0 +1,33 @@
+// The Platinum checkbox look (from ClassicyCheckbox.scss): the beveled box
+// border, then the base sheet's pressed, disabled and default overrides of
+// it, in their original order.
+@use "../mixins";
+
+@mixin checkbox {
+  .classicyCheckbox {
+    @include mixins.platinum-window-border;
+
+    &:active {
+      box-shadow: none;
+    }
+
+    &:disabled,
+    &:disabled:active {
+      border: var(--window-border-size) solid var(--color-system-06);
+      box-shadow: none;
+    }
+  }
+
+  // `isDefault` emphasizes the box with the theme accent while it is on or
+  // pressed; a disabled default box keeps the disabled border.
+  .classicyCheckbox.default {
+    &:checked,
+    &:active {
+      border-color: var(--color-theme-06);
+    }
+
+    &:disabled {
+      border-color: var(--color-system-06);
+    }
+  }
+}

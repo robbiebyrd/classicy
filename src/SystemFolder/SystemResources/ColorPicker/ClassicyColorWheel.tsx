@@ -1,4 +1,13 @@
-import { type FC, type PointerEvent, useEffect, useRef } from "react";
+import classNames from "classnames";
+import {
+	type CSSProperties,
+	type FC,
+	type PointerEvent,
+	useEffect,
+	useRef,
+} from "react";
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { hlsToRgb, hsvToRgb } from "./ClassicyColorPickerUtils";
 
 interface ClassicyColorWheelProps {
@@ -8,6 +17,10 @@ interface ClassicyColorWheelProps {
 	mode: "hsv" | "hls";
 	size?: number;
 	onChangeFunc: (h: number, s: number) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
@@ -17,10 +30,18 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 	mode,
 	size = 200,
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const dragging = useRef(false);
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopWatchingPointerStreamRef.current?.(), []);
+	// The crosshair color is read from the package's stylesheet, so a package
+	// switch must redraw the wheel even though no prop changed.
+	const packageId = useActiveClassicyAppearancePackage().id;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: packageId is not read in the effect; it re-reads --classicy-color-picker-crosshair when the active package changes
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -68,9 +89,15 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		const cy = radius + r * Math.sin(rad);
 		const ARM = 7;
 
+		// The crosshair color is the Appearance Package's (declared on its root).
+		const crosshair =
+			getComputedStyle(canvas)
+				.getPropertyValue("--classicy-color-picker-crosshair")
+				.trim() || "#ffffff";
+
 		ctx.save();
 		ctx.globalCompositeOperation = "difference";
-		ctx.strokeStyle = "#ffffff";
+		ctx.strokeStyle = crosshair;
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();
 		ctx.moveTo(cx - ARM, cy);
@@ -79,7 +106,7 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		ctx.lineTo(cx, cy + ARM);
 		ctx.stroke();
 		ctx.restore();
-	}, [size, hue, saturation, brightness, mode]);
+	}, [size, hue, saturation, brightness, mode, packageId]);
 
 	// In rendered pixels, not bitmap pixels: the canvas is `size` square but
 	// the stylesheet scales it to the room the panel has, so the radius is
@@ -102,6 +129,9 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 
 	const onPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
 		dragging.current = true;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(onPointerUp);
 		// Optional-called: jsdom has no pointer capture.
 		(e.target as HTMLCanvasElement).setPointerCapture?.(e.pointerId);
 		const hs = hitTest(e);
@@ -114,8 +144,13 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 		if (hs) onChangeFunc(hs.h, hs.s);
 	};
 
+	// Also the end of a drag whose pointer stream is lost (the window blurs,
+	// a pointercancel, the page is hidden): the color stays where the drag
+	// left it, and moving the pointer back with no button held picks nothing.
 	const onPointerUp = () => {
 		dragging.current = false;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	};
 
 	return (
@@ -123,7 +158,8 @@ export const ClassicyColorWheel: FC<ClassicyColorWheelProps> = ({
 			ref={canvasRef}
 			width={size}
 			height={size}
-			className="classicyColorPickerWheelCanvas"
+			className={classNames("classicyColorPickerWheelCanvas", className)}
+			style={style}
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}

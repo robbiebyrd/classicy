@@ -3,9 +3,9 @@ import "./ClassicyScreenSaver.scss";
 import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns";
 // Side-effect import: registers the Screen Saver Control Strip module.
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
-import type { FC as FunctionalComponent } from "react";
+import type { FC as FunctionalComponent, RefObject } from "react";
 import { useEffect, useRef } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -96,11 +96,15 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
 
 /**
  * Class put on `<html>` while a saver is showing. Its stylesheet rule hides the
- * pointer everywhere in the document — not only over the overlay, so a saver's
- * own elements and any host page outside the desktop show no cursor either —
- * and it comes off with the overlay, so waking restores the pointer.
+ * pointer on every element in the document — not only the overlay — and it
+ * comes off with the overlay, so waking restores the pointer. Being a
+ * stylesheet rule (id-level specificity, no `!important`), it does not outrank
+ * an inline `cursor`, so savers set `cursor` from stylesheets.
  */
 export const SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS = "classicyScreenSaverActive";
+
+/** The overlay's DOM id; ClassicyScreenSaver.scss keys its overrides on it. */
+export const SCREEN_SAVER_OVERLAY_ID = "classicy-screen-saver-overlay";
 
 const useHideCursorWhileActive = () => {
 	useEffect(() => {
@@ -112,10 +116,88 @@ const useHideCursorWhileActive = () => {
 	}, []);
 };
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/**
+ * Pauses every CSS animation in the overlay for reduced-motion users. The
+ * stylesheet's `animation-play-state: paused` already covers animations a
+ * saver declares in CSS; this also stops ones a registered saver writes
+ * inline, which no stylesheet rule can outrank:
+ * - after the saver mounts and whenever the selected saver changes, every
+ *   animation in the subtree (including ones still in their delay phase);
+ * - from then on, each CSS animation that starts later (an element spawned on
+ *   a timer, a style written after render), via a capture-phase
+ *   `animationstart` listener on the overlay;
+ * - when the preference flips (resuming, when it is turned off, only the
+ *   animations this hook paused).
+ * An animation that is already paused (by the stylesheet's rule, or by the
+ * saver itself) is left alone: pausing it from script would detach it from
+ * `animation-play-state`, and resuming it would replay an animation the saver
+ * stopped on purpose. The other way round is not tracked: an animation this
+ * hook paused and the saver then also paused while reduced motion was on is
+ * resumed when it is turned off (a script `pause()` detaches it from
+ * `animation-play-state`, so the two pauses look alike). Web Animations API
+ * animations (`element.animate()`) fire no `animationstart` and are not
+ * caught once the saver has mounted.
+ */
+const usePauseForReducedMotion = (
+	overlayRef: RefObject<HTMLDivElement | null>,
+	saverId: string | undefined,
+) => {
+	useEffect(() => {
+		const overlay = overlayRef.current;
+		if (
+			saverId === undefined ||
+			!overlay ||
+			typeof window.matchMedia !== "function"
+		)
+			return;
+		const query = window.matchMedia(REDUCED_MOTION_QUERY);
+		// The running animations this hook paused, the only ones it resumes.
+		// Pruned of animations whose element has left the document on every
+		// add, so a saver that spawns and removes elements keeps it bounded.
+		const paused = new Set<Animation>();
+		const pause = (animation: Animation) => {
+			if (animation.playState === "paused") return;
+			for (const held of paused)
+				if (
+					(held.effect as KeyframeEffect | null)?.target?.isConnected === false
+				)
+					paused.delete(held);
+			animation.pause();
+			paused.add(animation);
+		};
+		const apply = (reduce: boolean) => {
+			if (!reduce) {
+				for (const animation of paused) animation.play();
+				paused.clear();
+				return;
+			}
+			if (typeof overlay.getAnimations !== "function") return;
+			for (const animation of overlay.getAnimations({ subtree: true }))
+				pause(animation);
+		};
+		if (query.matches) apply(true);
+		const onAnimationStart = (event: Event) => {
+			if (!query.matches) return;
+			for (const animation of (event.target as Element).getAnimations?.() ?? [])
+				pause(animation);
+		};
+		const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+		overlay.addEventListener("animationstart", onAnimationStart, true);
+		query.addEventListener?.("change", onChange);
+		return () => {
+			overlay.removeEventListener("animationstart", onAnimationStart, true);
+			query.removeEventListener?.("change", onChange);
+		};
+	}, [overlayRef, saverId]);
+};
+
 const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	data: ScreenSaverData;
 }> = ({ data }) => {
 	useHideCursorWhileActive();
+	const overlayRef = useRef<HTMLDivElement>(null);
 	const saver = data.selectedSaver
 		? getClassicyScreenSaver(data.selectedSaver)
 		: undefined;
@@ -123,8 +205,14 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	const config = saver
 		? resolveScreenSaverConfig(saver, data.saverConfigs?.[saver.id])
 		: {};
+	usePauseForReducedMotion(overlayRef, saver?.id);
 	return (
 		<div
+			ref={overlayRef}
+			// The id gives the overlay's stylesheet rules (hidden cursor, paused
+			// animation for reduced motion) id-level specificity, so they outrank
+			// every saver's class-based rules.
+			id={SCREEN_SAVER_OVERLAY_ID}
 			className={`classicyScreenSaverOverlay${
 				saver?.transparentBackground
 					? " classicyScreenSaverOverlayTransparent"
@@ -138,6 +226,8 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 };
 
 export const ClassicyScreenSaver: FunctionalComponent = () => {
+	const screenSaverIcon =
+		useClassicyAsset("icons", "system.extensions.screensaver") ?? "";
 	const data = useAppManager(
 		(s) =>
 			s.System.Manager.Applications.apps[SCREEN_SAVER_APP_ID]?.data as
@@ -153,7 +243,7 @@ export const ClassicyScreenSaver: FunctionalComponent = () => {
 			<ClassicyApp
 				id={SCREEN_SAVER_APP_ID}
 				name={SCREEN_SAVER_APP_NAME}
-				icon={ClassicyIcons.system.extensions.screensaver}
+				icon={screenSaverIcon}
 				extension
 			/>
 			{/* Rendered as a sibling, not a ClassicyApp child: extension children

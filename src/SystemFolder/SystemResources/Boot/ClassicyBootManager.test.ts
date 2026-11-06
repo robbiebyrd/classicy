@@ -68,6 +68,59 @@ describe("classicyBootEventHandler", () => {
 		]);
 	});
 
+	it("stores followsAppIcon for an entry that shows its app's own icon", () => {
+		const ds = makeStore();
+		classicyBootEventHandler(ds, {
+			type: "ClassicyBootParadeIconAdd",
+			id: "Paint.app",
+			icon: "/paint.png",
+			name: "Paint",
+			followsAppIcon: true,
+		});
+		expect(ds.System.Manager.Boot.paradeIcons).toEqual([
+			{
+				id: "Paint.app",
+				icon: "/paint.png",
+				name: "Paint",
+				followsAppIcon: true,
+			},
+		]);
+	});
+
+	it("stores no followsAppIcon for an entry with its own icon", () => {
+		const ds = makeStore();
+		classicyBootEventHandler(ds, {
+			type: "ClassicyBootParadeIconAdd",
+			id: "Paint.app",
+			icon: "/custom.png",
+			name: "Paint",
+			followsAppIcon: false,
+		});
+		expect(ds.System.Manager.Boot.paradeIcons[0]).not.toHaveProperty(
+			"followsAppIcon",
+		);
+	});
+
+	it("clears followsAppIcon when a re-add switches to a string icon", () => {
+		const ds = makeStore();
+		classicyBootEventHandler(ds, {
+			type: "ClassicyBootParadeIconAdd",
+			id: "Paint.app",
+			icon: "/paint.png",
+			followsAppIcon: true,
+		});
+		classicyBootEventHandler(ds, {
+			type: "ClassicyBootParadeIconAdd",
+			id: "Paint.app",
+			icon: "/custom.png",
+			followsAppIcon: false,
+		});
+		expect(ds.System.Manager.Boot.paradeIcons[0]).not.toHaveProperty(
+			"followsAppIcon",
+		);
+		expect(ds.System.Manager.Boot.paradeIcons[0].icon).toBe("/custom.png");
+	});
+
 	it("removes an icon on ClassicyBootParadeIconRemove", () => {
 		const ds = makeStore();
 		classicyBootEventHandler(ds, {

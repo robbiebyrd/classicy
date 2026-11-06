@@ -1,0 +1,12 @@
+// The Platinum file input look (from ClassicyFileInput.scss): the glyph on a
+// listed file's remove button. A font glyph, as an escape kept by
+// `string.unquote` so the Sass output stays ASCII (Sass decodes a quoted
+// escape and prepends `@charset`; the build keeps dist ASCII, verify:dist
+// invariant 9); the button's aria-label stays its accessible name.
+@use "sass:string";
+
+@mixin fileInput {
+  .classicyFileInputRemoveGlyph::before {
+    content: string.unquote('"\\2715"'); // ✕
+  }
+}

@@ -310,28 +310,28 @@ export const PDFViewerDocument: FunctionalComponent<
 
 	// Load the document whenever the URL changes
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		setDoc(null);
 		setError(false);
 		setCurrentPage(1);
 		getDocument(url)
 			.promise.then((loadedDoc) => {
-				if (!cancelled) setDoc(loadedDoc);
+				if (!canceled) setDoc(loadedDoc);
 			})
 			.catch(() => {
-				if (!cancelled) setError(true);
+				if (!canceled) setError(true);
 			});
 		return () => {
-			cancelled = true;
+			canceled = true;
 		};
 	}, [url]);
 
 	// Render the current page whenever the document, page, or zoom changes
 	useEffect(() => {
 		if (!doc || !canvasRef.current) return;
-		let cancelled = false;
+		let canceled = false;
 		doc.getPage(currentPage).then((page) => {
-			if (cancelled || !canvasRef.current) return;
+			if (canceled || !canvasRef.current) return;
 			const viewport = page.getViewport({ scale });
 			const context = canvasRef.current.getContext("2d");
 			if (!context) return;
@@ -340,7 +340,7 @@ export const PDFViewerDocument: FunctionalComponent<
 			page.render({ canvasContext: context, viewport });
 		});
 		return () => {
-			cancelled = true;
+			canceled = true;
 		};
 	}, [doc, currentPage, scale]);
 

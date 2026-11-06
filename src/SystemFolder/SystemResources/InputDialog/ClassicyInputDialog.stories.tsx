@@ -21,7 +21,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * A labelled prompt with an empty field. The default validator requires a
+ * A labeled prompt with an empty field. The default validator requires a
  * non-blank value, so OK stays dimmed until you type something.
  */
 export const Default: Story = {

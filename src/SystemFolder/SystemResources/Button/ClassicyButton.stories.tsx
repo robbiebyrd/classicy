@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 import { ClassicyButton } from "./ClassicyButton";
 
@@ -53,7 +58,7 @@ export const Square: Story = {
 };
 
 /**
- * Short-labelled buttons still honor the HIG minimum width (58px), so an
+ * Short-labeled buttons still honor the HIG minimum width (58px), so an
  * "OK"/"Cancel" pair lines up at a consistent size. In a real dialog, wrap the
  * pair in `ClassicyFormButtonRow` for the HIG spacing.
  */
@@ -78,4 +83,19 @@ export const OkCancelRow: Story = {
  */
 export const KeyboardActivation: Story = {
 	args: { isDefault: true, children: "Press Return" },
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyButton>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyButton {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

@@ -5,6 +5,7 @@
  * ClassicyAppHCEditSetRect commits on pointer-up.
  */
 
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type DragEvent,
@@ -19,6 +20,7 @@ import {
 	peekLayerParts,
 } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 import type { HCRect } from "@/SystemFolder/HyperCard/HyperCardModel";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export const HYPERCARD_PART_DRAG_MIME = "application/x-hypercard-part-type";
 
@@ -64,11 +66,15 @@ export function dragRect(drag: DragState): HCRect {
 interface HyperCardEditorOverlayProps {
 	stackId: string;
 	edit: HCEditState;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardEditorOverlay: FunctionalComponent<
 	HyperCardEditorOverlayProps
-> = ({ stackId, edit }) => {
+> = ({ stackId, edit, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const [drag, setDrag] = useState<DragState | undefined>();
 
@@ -121,6 +127,10 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 		}
 		setDrag(undefined);
 	};
+	// The pointer stream lost mid-drag (the window blurs, a pointercancel,
+	// the page is hidden): the part stays where it was dragged, committed as
+	// a release there would commit it (and undoable like one).
+	useClassicyPointerStreamLost(drag !== undefined, onPointerUp);
 
 	const surfacePoint = (
 		e: { clientX: number; clientY: number },
@@ -225,7 +235,8 @@ export const HyperCardEditorOverlay: FunctionalComponent<
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: editor design surface handles pointer/key/drop directly
 		<div
-			className={"classicyHyperCardEditorOverlay"}
+			className={classNames("classicyHyperCardEditorOverlay", className)}
+			style={style}
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: editor surface needs keyboard input for arrow/delete/undo editing
 			tabIndex={0}
 			onPointerDown={onSurfacePointerDown}

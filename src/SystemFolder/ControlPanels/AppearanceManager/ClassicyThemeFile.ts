@@ -1,6 +1,21 @@
 import type { z } from "zod";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+// The store-free registry, never ClassicyAppearancePackage.ts: the desktop
+// reducer imports this module, and a path from it to the store would evaluate
+// the store before its default state.
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import {
+	classicyWallpaperFilename,
+	classicyWallpaperReferenceFor,
+	portableClassicyWallpaper,
+} from "@/Appearance/ClassicyWallpaperIndex";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import {
+	type ClassicyThemeWithPartialMetrics,
+	classicyThemeMeasurementDefaults,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	CLASSICY_THEME_FILE_FORMAT,
 	CLASSICY_THEME_FILE_VERSION,
@@ -8,10 +23,6 @@ import {
 	ClassicyThemeSchema,
 	isSafeClassicyThemeBackgroundImage,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
-import {
-	classicyWallpaperFilename,
-	resolveWallpaper,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 
 /**
  * Saving a theme to a `.classicy-theme.json` file and loading one back.
@@ -20,13 +31,23 @@ import {
  *
  *     { "format": "classicy-theme", "version": 1, "theme": { …ClassicyTheme } }
  *
- * Loading also accepts a bare theme object (no envelope) — the shape of an
- * entry in `themes.json` or of `JSON.stringify(activeTheme)` — so themes
+ * A theme names its sound pack as `sound: { pack, disabled }`; the pack must be
+ * registered (`registerClassicySoundPack`) when the file is loaded. Likewise
+ * its Appearance Package (`package`, "platinum" when absent) must be
+ * registered (`registerClassicyAppearancePackage`), Platinum included.
+ *
+ * Loading also accepts a bare theme object (no envelope) — the shape of a
+ * preset in `platinum.json` or of `JSON.stringify(activeTheme)` — so themes
  * written by hand or copied out of the store load without wrapping.
  *
- * Wallpapers are written as their bundled filename (`"azul_dark.png"`): the
- * URL a build resolves a wallpaper to (a dev-server path, an inlined `data:`
- * URI) only works in that build. Loading resolves the filename back.
+ * Wallpapers are written as their registered filename (`"azul_dark.png"`):
+ * the URL a build resolves a wallpaper to (a dev-server path, an inlined
+ * `data:` URI) only works in that build. Another package's wallpaper is
+ * written `"<package>|<file>"` (`classicyWallpaperReferenceFor`), so the
+ * file names the same wallpaper on any host. Loading keeps that reference,
+ * pinning a bare filename the theme's package does not register to the
+ * package that does, as every theme does; `getThemeVars` resolves it through
+ * the asset registry.
  */
 
 export type ClassicyThemeParseResult =
@@ -38,32 +59,58 @@ const MAX_THEME_FILE_LENGTH = 256 * 1024;
 const MAX_REPORTED_ISSUES = 3;
 
 /**
- * The portable form of a `backgroundImage`: a bundled wallpaper's filename,
- * an http(s) URL kept as-is, or "" (no image) for anything else — a custom
- * `data:`/`blob:` URL, or a relative path that only means something on the
- * host it was set on.
+ * The portable form of a `backgroundImage`: a registered wallpaper's filename
+ * (for a theme of `packageId`, its reference: the filename for the package's
+ * own, `"<package>|<file>"` for another's), an http(s) URL kept as-is, or ""
+ * (no image) for anything else — a custom `data:`/`blob:` URL, or a relative
+ * path that only means something on the host it was set on.
  */
-export const portableClassicyThemeBackground = (value: string): string => {
-	const filename = classicyWallpaperFilename(value);
-	if (filename) return filename;
+export const portableClassicyThemeBackground = (
+	value: string,
+	packageId?: string,
+): string => {
+	const reference =
+		packageId === undefined
+			? classicyWallpaperFilename(value)
+			: classicyWallpaperReferenceFor(value, packageId);
+	if (reference) return reference;
 	return isSafeClassicyThemeBackgroundImage(value) ? value : "";
 };
 
-/** The loadable form of a validated `backgroundImage`: bundled wallpapers
- * resolve to this build's URL; http(s) URLs pass through. */
-const loadableClassicyThemeBackground = (value: string): string => {
-	const filename = classicyWallpaperFilename(value);
-	return filename ? resolveWallpaper(filename) : value;
-};
+/**
+ * True when themes of `packageId` can be shown: the package is registered.
+ * The default package gets no special case: the core's fallback package
+ * holds only the core theme, never a package's look.
+ */
+const isClassicyAppearancePackageInstalled = (packageId: string): boolean =>
+	getClassicyAppearancePackage(packageId) !== undefined;
 
-/** Serializes `theme` as a theme file (tab-indented JSON, trailing newline). */
-export const exportClassicyTheme = (theme: ClassicyTheme): string => {
+/** The stored form of a validated, imported `backgroundImage`: a registered
+ * wallpaper (its filename, `<package>|<file>` or this build's URL for it) as
+ * the reference that pins it for a theme of `packageId`; http(s) URLs as
+ * they are. */
+const importableClassicyThemeBackground = (
+	value: string,
+	packageId: string,
+): string => classicyWallpaperReferenceFor(value, packageId) ?? value;
+
+/**
+ * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
+ * The theme is completed first (H-R17): a stored theme carries only the
+ * package-family values it changed, and the file carries them all.
+ */
+export const exportClassicyTheme = (stored: ClassicyTheme): string => {
+	const theme = withDefaultThemeMetrics(
+		stored,
+		classicyThemeMeasurementDefaults(stored.package),
+	);
 	const portable: ClassicyTheme = {
 		...theme,
 		desktop: {
 			...theme.desktop,
 			backgroundImage: portableClassicyThemeBackground(
 				theme.desktop.backgroundImage,
+				theme.package,
 			),
 		},
 	};
@@ -98,9 +145,12 @@ const describeIssues = (issues: z.core.$ZodIssue[]): string => {
 
 /**
  * Validates an untrusted theme object and makes it loadable: unknown keys
- * stripped, the wallpaper resolved for this build. Used for both file imports
- * and `ClassicyDesktopImportTheme` payloads. Identity (id/name) is left alone —
- * see `assignImportedClassicyThemeIdentity`.
+ * stripped, a registered wallpaper held by its filename, or pinned as
+ * `<package>|<file>` when it is another package's
+ * (`importableClassicyThemeBackground`). Used for both file imports
+ * and `ClassicyDesktopImportTheme` payloads. A theme for an Appearance Package
+ * that is not installed is refused. Identity (id/name) is left alone — see
+ * `assignImportedClassicyThemeIdentity`.
  */
 export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 	const parsed = ClassicyThemeSchema.safeParse(value);
@@ -111,14 +161,86 @@ export const readClassicyTheme = (value: unknown): ClassicyThemeParseResult => {
 		};
 	}
 	const theme = parsed.data;
-	theme.desktop.backgroundImage = loadableClassicyThemeBackground(
+	if (!isClassicyAppearancePackageInstalled(theme.package)) {
+		return {
+			ok: false,
+			error: `This theme needs the "${theme.package}" appearance package, which is not installed.`,
+		};
+	}
+	theme.desktop.backgroundImage = importableClassicyThemeBackground(
 		theme.desktop.backgroundImage,
+		theme.package,
 	);
 	return { ok: true, theme };
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** An entry `readClassicyLoadedThemes` refused: its position, its id (when
+ * it has a string one) and the first problem found. */
+export type ClassicyDroppedTheme = {
+	index: number;
+	id: string | undefined;
+	issue: string;
+};
+
+/**
+ * Validates the themes a host hands to `ClassicyDesktopLoadThemes`, each
+ * against `ClassicyThemeSchema` exactly as an import is (unknown keys
+ * stripped, `package` defaulted, a registered wallpaper held by its filename,
+ * or as `<package>|<file>` where its filename would name another's, though
+ * never pinned as an import's is). A theme written before the metric groups
+ * existed is completed from its
+ * package's defaults first, as before. Unlike an import, a theme for an
+ * Appearance Package that is not registered (yet) is kept: a host may load
+ * its themes before it registers the package. Invalid entries are left out
+ * and reported, so one bad theme never costs the host the rest. The input is
+ * never mutated.
+ */
+export const readClassicyLoadedThemes = (
+	values: readonly unknown[],
+): { themes: ClassicyTheme[]; dropped: ClassicyDroppedTheme[] } => {
+	const themes: ClassicyTheme[] = [];
+	const dropped: ClassicyDroppedTheme[] = [];
+	values.forEach((value, index) => {
+		if (!isRecord(value)) {
+			dropped.push({ index, id: undefined, issue: "not a theme object" });
+			return;
+		}
+		const id = typeof value.id === "string" ? value.id : undefined;
+		const packageId =
+			typeof value.package === "string"
+				? value.package
+				: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+		const parsed = ClassicyThemeSchema.safeParse(
+			// Unvalidated until the parse: the completion only reads
+			// `measurements`, and copies anything it does not recognize.
+			withDefaultThemeMetrics(
+				value as unknown as ClassicyThemeWithPartialMetrics,
+				classicyThemeMeasurementDefaults(packageId),
+			),
+		);
+		if (!parsed.success) {
+			dropped.push({
+				index,
+				id,
+				issue: describeIssues(parsed.error.issues.slice(0, 1)),
+			});
+			return;
+		}
+		const theme = parsed.data;
+		// Stored as every theme is (`portableClassicyWallpaper`), never pinned
+		// as an import is: the theme's package may not have registered its
+		// wallpapers yet, and a bare filename resolves in it once it does.
+		theme.desktop.backgroundImage = portableClassicyWallpaper(
+			theme.desktop.backgroundImage,
+			theme.package,
+		);
+		themes.push(theme);
+	});
+	return { themes, dropped };
+};
 
 /**
  * Parses the text of a theme file. Returns the validated, loadable theme or a

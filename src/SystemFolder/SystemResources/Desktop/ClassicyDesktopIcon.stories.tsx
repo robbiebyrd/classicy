@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import { desktopParameters, SB_ICON } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect } from "react";
@@ -13,7 +17,10 @@ const meta = {
 } satisfies Meta<typeof ClassicyDesktopIcon>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+// Every story here draws the component itself in `render` and ignores the
+// args, so the stories are typed against the component (every arg optional),
+// not `typeof meta`, which would demand its required props as story args.
+type Story = StoryObj<typeof ClassicyDesktopIcon>;
 
 const AddIcon = () => {
 	const dispatch = useAppManagerDispatch();
@@ -138,4 +145,22 @@ const AddIconWithContextMenu = () => {
  */
 export const WithContextMenu: Story = {
 	render: () => <AddIconWithContextMenu />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ *
+ * The desktop draws the icon, so the desktop's own icons are decorated too.
+ *
+ * It renders a fixed tree and takes no args.
+ */
+export const AppearanceHooks: StoryObj<Record<string, never>> = {
+	render: () => (
+		<ClassicyAppearanceProbe>
+			<AddIcon />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters("600px"),
 };

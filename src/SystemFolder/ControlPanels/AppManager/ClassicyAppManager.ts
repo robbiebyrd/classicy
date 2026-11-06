@@ -1,9 +1,8 @@
-import {
-	type ClassicyStoreSystemAppearanceManager,
-	getAllThemes,
-	getTheme,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import type { ClassicyStoreSystemAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	hasApp,
 	hasAppAndFileType,
@@ -13,7 +12,8 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
 	type ClassicyActionTrust,
-	isActionTrustPermitted,
+	checkClassicyActionTrust,
+	classicyActionTrustOf,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionTrust";
 import {
 	activateApp,
@@ -45,8 +45,6 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
-
-const macosIcon = ClassicyIcons.system.macos;
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonObject = { [key: string]: JsonValue };
@@ -198,9 +196,22 @@ export type ActionMessage = Record<string, unknown> & {
 	type: string;
 };
 
+/**
+ * A plugin reducer. The kernel always passes `trust`, the trust it reduced
+ * `action` under, normalized to `"trusted"` or `"untrusted"`
+ * (`dispatchToPlugin` passes `"trusted"`). A handler that reduces a further
+ * action on the action's behalf, from inside the reducer, MUST forward it
+ * (`classicyDesktopStateEventReducer(ds, next, trust)`,
+ * `routeClassicyAppOpenFile(…, trust)`), so the trust floor and the untrusted
+ * allowlist apply to that action too. Forward the value received, or wrap it
+ * in `classicyActionTrustOf` when the handler may be called directly without
+ * one: the reducer's own `"trusted"` default would upgrade a missing trust.
+ * A handler that never forwards may declare only `(ds, action)`.
+ */
 export type AppEventHandler = (
 	ds: ClassicyStore,
 	action: ActionMessage,
+	trust: ClassicyActionTrust,
 ) => ClassicyStore;
 
 const pluginEventHandlers: Array<{
@@ -232,6 +243,26 @@ export function registerAppEventHandler(
 }
 
 /**
+ * The registered plugin prefix the kernel routes `actionType` to — the first
+ * registration it starts with, the same lookup `classicyDesktopStateEventReducer`
+ * makes — or undefined when no plugin handler would receive it: none matches,
+ * or a built-in route (`ClassicyWindow*`, `ClassicyDesktop*`, …), which the
+ * kernel checks first, takes the type.
+ */
+export function findAppEventHandlerPrefix(
+	actionType: string,
+): string | undefined {
+	if (findBuiltInRoute(actionType)) return undefined;
+	return findPluginEventHandler(actionType)?.prefix;
+}
+
+function findPluginEventHandler(actionType: string) {
+	return pluginEventHandlers.find(({ prefix }) =>
+		actionType.startsWith(prefix),
+	);
+}
+
+/**
  * Dispatch an action to the registered handler for the given prefix.
  * Used for cross-app orchestration without a direct import between apps.
  */
@@ -242,7 +273,7 @@ export function dispatchToPlugin(
 ): ClassicyStore {
 	const plugin = pluginEventHandlers.find((entry) => entry.prefix === prefix);
 	if (plugin) {
-		return plugin.handler(ds, action);
+		return plugin.handler(ds, action, "trusted");
 	}
 	// Without this the caller's action vanishes silently — the symptom is "the
 	// feature did nothing at all", with nothing to grep for. Almost always means
@@ -460,6 +491,29 @@ export const classicyShortcutEventHandler = (
 	return ds;
 };
 
+/**
+ * The kernel's built-in routes, by action-type prefix, in the order it checks
+ * them (`ClassicyDesktopIcon` before `ClassicyDesktop`). They are consulted
+ * before any plugin prefix.
+ */
+const BUILT_IN_ROUTES: ReadonlyArray<
+	readonly [
+		prefix: string,
+		handler: (ds: ClassicyStore, action: ActionMessage) => ClassicyStore,
+	]
+> = [
+	["ClassicyWindow", classicyWindowEventHandler],
+	["ClassicyDesktopIcon", classicyDesktopIconEventHandler],
+	["ClassicyDesktop", classicyDesktopEventHandler],
+	["ClassicyBootParadeIcon", classicyBootEventHandler],
+	["ClassicyManagerDateTime", classicyDateTimeManagerEventHandler],
+	["ClassicyShortcut", classicyShortcutEventHandler],
+];
+
+function findBuiltInRoute(actionType: string) {
+	return BUILT_IN_ROUTES.find(([prefix]) => actionType.startsWith(prefix));
+}
+
 export const classicyDesktopStateEventReducer = (
 	ds: ClassicyStore,
 	action: ActionMessage,
@@ -477,31 +531,16 @@ export const classicyDesktopStateEventReducer = (
 		// plugin — sees it, if its type falls under a guarded route. This must
 		// run before the prefix routing below, since plugin handlers are also a
 		// route into the reducer and are not otherwise distinguishable here.
-		if (!isActionTrustPermitted(trust, action.type)) {
-			classicyLog(
-				"warn",
-				"ClassicyDesktopStateEventReducer",
-				"Rejected untrusted action",
-				{ type: action.type },
-			);
-		} else if (action.type.startsWith("ClassicyWindow")) {
-			ds = classicyWindowEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyDesktopIcon")) {
-			ds = classicyDesktopIconEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyDesktop")) {
-			ds = classicyDesktopEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyBootParadeIcon")) {
-			ds = classicyBootEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyManagerDateTime")) {
-			ds = classicyDateTimeManagerEventHandler(ds, action);
-		} else if (action.type.startsWith("ClassicyShortcut")) {
-			ds = classicyShortcutEventHandler(ds, action);
-		} else {
-			const plugin = pluginEventHandlers.find(({ prefix }) =>
-				action.type.startsWith(prefix),
-			);
-			if (plugin) {
-				ds = plugin.handler(ds, action);
+		// One definite level for the check and for every handler: a value
+		// other than "trusted" or "untrusted" reaches no handler as itself.
+		const level = classicyActionTrustOf(trust);
+		if (checkClassicyActionTrust(level, action.type)) {
+			const builtIn = findBuiltInRoute(action.type);
+			const plugin = builtIn ? undefined : findPluginEventHandler(action.type);
+			if (builtIn) {
+				ds = builtIn[1](ds, action);
+			} else if (plugin) {
+				ds = plugin.handler(ds, action, level);
 			} else if (action.type.startsWith("ClassicyApp")) {
 				ds = classicyAppEventHandler(ds, action);
 			} else {
@@ -601,7 +640,8 @@ export const DefaultAppManagerState: ClassicyStore = {
 					"Finder.app": {
 						id: "Finder.app",
 						name: "Finder",
-						icon: macosIcon,
+						// Platinum icons are registered by the ClassicyIcons import above
+						icon: resolveClassicyAsset("icons", "system.macos") ?? "",
 						windows: {},
 						open: true,
 						focused: true,
@@ -618,10 +658,16 @@ export const DefaultAppManagerState: ClassicyStore = {
 				) as Record<ClassicyFileSystemEntryFileType, string>,
 			},
 			Appearance: {
-				availableThemes: getAllThemes(),
-				// Via getTheme, not themesData: the raw JSON names its wallpaper
-				// rather than carrying a loadable URL.
-				activeTheme: getTheme("default"),
+				packageId: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+				// Built-ins come from the registered packages, which register
+				// after this state is built: none are listed here (a list of the
+				// core theme would shadow the default package's own "default"),
+				// and ClassicyDesktop loads getAllThemes() when it mounts.
+				availableThemes: [],
+				// The core's own theme (no wallpaper, the core floor's
+				// measurements), a built-in of the default package: that
+				// package's registration replaces it with its own "default".
+				activeTheme: CLASSICY_CORE_DEFAULT_THEME,
 				customThemes: [],
 				alertSound: DEFAULT_ALERT_SOUND,
 				// Alerts play at the full system volume until the user lowers it.

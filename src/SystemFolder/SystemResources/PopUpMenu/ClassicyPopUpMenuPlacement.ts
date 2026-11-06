@@ -17,16 +17,10 @@
 // The menu is rendered into a `position: fixed` portal, so it cannot rely on the
 // layout engine to keep itself on screen — the policy clamps both the top and
 // the height to the viewport, and the list scrolls internally past the cap.
+import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 
 /** Gutter left between the menu and the viewport edge. */
 export const POPUP_MENU_VIEWPORT_MARGIN = 4;
-
-/**
- * Design cap on menu height — mirrors `max-height` in ClassicyPopUpMenu.scss,
- * which governs the single measuring pass before this policy is applied. Keep
- * the two in sync.
- */
-export const POPUP_MENU_MAX_HEIGHT = 300;
 
 /**
  * Floor on menu height. A menu shorter than roughly two rows is unusable, so in
@@ -63,11 +57,19 @@ export type ClassicyPopUpMenuPlacementResult = {
 	scrollTop: number;
 };
 
+/**
+ * Where an open pop-up menu (or combo box list) goes, and how tall it is.
+ * `maxHeightCap` is the design cap on its height: the theme's
+ * `--menu-pop-up-max-height`, which the stylesheet also applies to the single
+ * measuring pass. Callers read it with `readClassicyThemeVar` once per
+ * opening (G14); omitted, it is the core floor's `menu.popUpMaxHeight`.
+ */
 export const classicyPopUpMenuPlacement = (
 	anchor: ClassicyPopUpMenuAnchor,
 	contentHeight: number,
 	viewportHeight: number,
 	selected?: ClassicyPopUpMenuSelectedMetrics | null,
+	maxHeightCap: number = CLASSICY_CORE_MEASUREMENT_DEFAULTS.menu.popUpMaxHeight,
 ): ClassicyPopUpMenuPlacementResult => {
 	const margin = POPUP_MENU_VIEWPORT_MARGIN;
 
@@ -80,13 +82,13 @@ export const classicyPopUpMenuPlacement = (
 		);
 		const maxHeight = Math.max(
 			POPUP_MENU_MIN_HEIGHT,
-			Math.min(contentHeight, POPUP_MENU_MAX_HEIGHT, viewportAvail),
+			Math.min(contentHeight, maxHeightCap, viewportAvail),
 		);
 
-		// Put the selected row's centre on the button's centre…
-		const anchorCentre = anchor.top + (anchor.bottom - anchor.top) / 2;
-		const selectionCentre = selected.offsetTop + selected.height / 2;
-		let top = anchorCentre - selectionCentre;
+		// Put the selected row's center on the button's center…
+		const anchorCenter = anchor.top + (anchor.bottom - anchor.top) / 2;
+		const selectionCenter = selected.offsetTop + selected.height / 2;
+		let top = anchorCenter - selectionCenter;
 
 		// …then slide the whole menu back on screen if that pushed it off an edge.
 		if (top + maxHeight > viewportHeight - margin) {
@@ -99,7 +101,7 @@ export const classicyPopUpMenuPlacement = (
 		let scrollTop = 0;
 		if (contentHeight > maxHeight) {
 			scrollTop = Math.min(
-				Math.max(top + selectionCentre - anchorCentre, 0),
+				Math.max(top + selectionCenter - anchorCenter, 0),
 				contentHeight - maxHeight,
 			);
 		}
@@ -117,7 +119,7 @@ export const classicyPopUpMenuPlacement = (
 	// Fit is tested against the height the menu will actually render at, not its
 	// full content height: a long list is already capped and scrolling, so using
 	// the raw content height here would flip menus above even with ample room.
-	const desiredHeight = Math.min(contentHeight, POPUP_MENU_MAX_HEIGHT);
+	const desiredHeight = Math.min(contentHeight, maxHeightCap);
 
 	const above = desiredHeight > spaceBelow && spaceAbove > spaceBelow;
 

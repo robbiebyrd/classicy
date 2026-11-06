@@ -1,11 +1,16 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_SEEDED_PLACEHOLDER } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
-const diskIcon = ClassicyIcons.system.drives.disk;
-const directoryIcon = ClassicyIcons.system.folders.directory;
-const macIcon = ClassicyIcons.system.mac;
-const documentIcon = ClassicyIcons.system.files.document;
-const extensionsFolderIcon = ClassicyIcons.system.folders.extensions;
+// Platinum icons are registered by the ClassicyIcons import above
+const platinumIcon = (path: string): string =>
+	resolveClassicyAsset("icons", path) ?? "";
+
+const diskIcon = platinumIcon("system.drives.disk");
+const directoryIcon = platinumIcon("system.folders.directory");
+const documentIcon = platinumIcon("system.files.document");
+const extensionsFolderIcon = platinumIcon("system.folders.extensions");
 
 export const DefaultFSContent = {
 	"Macintosh HD": {
@@ -14,28 +19,13 @@ export const DefaultFSContent = {
 		Applications: {
 			_type: ClassicyFileSystemEntryFileType.Directory,
 			_icon: directoryIcon,
-			SimpleText: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-				_invisible: true,
-			},
-			Calculator: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-				_invisible: true,
-			},
-		},
-		Library: {
-			_type: ClassicyFileSystemEntryFileType.Directory,
-			_icon: directoryIcon,
-			Extensions: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_icon: macIcon,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-			},
+			// Invisible stand-ins that give way to the real apps of the same
+			// name in the derived Applications folder while untouched
+			// (`_placeholder`). Copies, so an edit to a live one never changes
+			// the frozen seed. Trees stored before the marker are recognized by
+			// their exact shape (ClassicyDerivedFolderPlaceholders.internal.ts).
+			SimpleText: { ...CLASSICY_SEEDED_PLACEHOLDER },
+			Calculator: { ...CLASSICY_SEEDED_PLACEHOLDER },
 		},
 		"System Folder": {
 			_type: ClassicyFileSystemEntryFileType.Directory,
@@ -101,20 +91,6 @@ export const DefaultFSContent = {
 				_data: "File Contents",
 			},
 			Shared: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-			},
-		},
-		Utilities: {
-			_type: ClassicyFileSystemEntryFileType.Directory,
-			_icon: directoryIcon,
-			"Disk Utility.app": {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_mimeType: "text/plain",
-				_data: "File Contents",
-			},
-			"Terminal.app": {
 				_type: ClassicyFileSystemEntryFileType.File,
 				_mimeType: "text/plain",
 				_data: "File Contents",

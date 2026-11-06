@@ -7,7 +7,10 @@ on:
     paths:
       - 'src/**'
       - 'assets/**'
-      - '!src/**/*.stories.tsx'
+      # The Platinum package lives under packages/, so a change only there
+      # still releases (plan 0014-ahm).
+      - 'packages/**'
+      - '!**/*.stories.tsx'
       # Build config changes the published artifact just as much as source
       # does. Both 0.70.1 and 0.70.2 were vite.config.ts-only fixes for
       # consumer-breaking bugs and neither triggered a release -- they had to
@@ -20,14 +23,28 @@ on:
       # would make every release retrigger the release. Verified against the
       # 0.70.0/0.70.1 bump commits.
   workflow_dispatch:
+    inputs:
+      version-type:
+        description: 'Override the version bump (major, minor, patch, ...). Empty: read it from the commit messages.'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - major
+          - minor
+          - patch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a release in flight: a cancel between the two publishes would
+  # ship the core without Platinum. A newer run queues behind it instead.
+  cancel-in-progress: false
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # Pinned: the distro ffmpeg (8.0.1 here) builds the audio sprites and must not change with ubuntu-latest; revisit when 26.04 nears retirement.
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       id-token: write
@@ -65,22 +82,89 @@ jobs:
         id: run-tests
         run: pnpm test
 
-      - name: Build Package
-        id: build-package
-        run: pnpm build
-
-      - name: Bump version and push tag
+      # Pinned to a full commit SHA (master at v12.0.2), never `@master`: this
+      # step runs with contents: write. The action only bumps and commits here
+      # (skip-tag, skip-push): the tag and the push follow the Platinum version
+      # sync, so the tag points at a commit where both versions agree.
+      #
+      # It substring-matches EVERY commit message in the push (and `type!:`
+      # subjects), so the keyword is "BREAKING CHANGE" only; the bare word
+      # "major" would cut 4.0.0 on a message like "fix: major layout bug". A
+      # squash merge whose message lacks the keyword would cut 2.1.9. The safe
+      # path for 3.0.0 is a manual workflow_dispatch with version-type=major.
+      - name: Bump version
         id: bump_version
-        uses: phips28/gh-action-bump-version@master
+        uses: phips28/gh-action-bump-version@63bc5b97aade4390bf3f33416b8adb891a0f28d7 # v12.0.2
         with:
           target-branch: main
           tag-prefix:  'v'
           default: patch
+          major-wording: 'BREAKING CHANGE'
+          # Manual runs: a non-empty input replaces the commit-message logic.
+          version-type: ${{ inputs.version-type }}
+          skip-tag: 'true'
+          skip-push: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 'Use newTag output'
         run: echo "New version tag is ${{ steps.bump_version.outputs.newTag }}"
+
+      # The Platinum package ships at the root's version (lockstep). The bump
+      # action only edits the root package.json, so copy the number across in
+      # a local commit. Nothing is pushed or tagged yet. Skipped until the
+      # package exists.
+      - name: Sync the Platinum package version
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p 'require("./package.json").version')"
+          npm pkg set version="$VERSION" --prefix packages/appearance/platinum
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add packages/appearance/platinum/package.json
+          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
+
+      # Releases publish with npm trusted publishing (OIDC), never a stored
+      # token (story 0156-tx7). Checked here, before the build and the push, so
+      # a package whose trusted publisher is missing, mistyped or expired (a new
+      # one expires unless a publish uses it within 2 days) fails the run with
+      # nothing tagged or pushed, rather than after the tag with one package
+      # published. pnpm 10 publishes through the npm CLI on PATH, which needs
+      # 11.5.1 or later to exchange the job's OIDC token. A dry run performs
+      # the same exchange the publish will and uploads nothing; it exits 0
+      # whether or not the exchange succeeds, so its verbose log is read.
+      - name: Check trusted publishing for every package
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: |
+          set -euo pipefail
+          NPM_VERSION="$(npm --version)"
+          if ! node -e '
+            const [major, minor, patch] = process.argv[1].split(".").map(Number);
+            process.exit(major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1))) ? 0 : 1);
+          ' "$NPM_VERSION"; then
+            echo "::error::npm $NPM_VERSION cannot publish with trusted publishing; it needs npm 11.5.1 or later. Nothing was pushed."
+            exit 1
+          fi
+          DIRS=(.)
+          if [ -f packages/appearance/platinum/package.json ]; then
+            DIRS+=(packages/appearance/platinum)
+          fi
+          FAILED=0
+          for DIR in "${DIRS[@]}"; do
+            NAME="$(node -p "require('./$DIR/package.json').name")"
+            LOG="$(cd "$DIR" && npm publish --dry-run --ignore-scripts --loglevel verbose 2>&1 || true)"
+            if grep -q "oidc Successfully retrieved and set token" <<<"$LOG"; then
+              echo "$NAME: the registry accepted this workflow's OIDC token."
+            else
+              grep "oidc" <<<"$LOG" || true
+              echo "::error::$NAME: the registry refused this workflow's OIDC token. Add a trusted publisher for it on npmjs.com (GitHub Actions; robbiebyrd/classicy; push.yml; no environment; allow npm publish), or replace an expired one, then re-run. Nothing was pushed."
+              FAILED=1
+            fi
+          done
+          exit "$FAILED"
 
       - name: Select release codename
         if: steps.bump_version.outputs.newTag != ''
@@ -107,6 +191,7 @@ jobs:
 
           echo "name=$CODENAME" >> "$GITHUB_OUTPUT"
 
+      # Committed locally, before the tag, so the codename travels in the one push.
       - name: Update release codename in package.json
         if: steps.bump_version.outputs.newTag != '' && steps.codename.outputs.name != ''
         run: |
@@ -115,7 +200,37 @@ jobs:
           git config user.name "github-actions[bot]"
           git add package.json
           git commit -m "ci: set release codename to ${{ steps.codename.outputs.name }} [skip ci]"
-          git push
+
+      # Built here, after every step that edits package.json and before the
+      # push: FinderAboutThisComputer bakes package.json's version and `release`
+      # codename into the bundle at build time, so building earlier would ship
+      # the previous version in About This Computer (story 0152-alb). Nothing
+      # between this step and the publish edits the tree. The Platinum package
+      # bakes no version. Skipped with the rest of the release when the bump
+      # found nothing to release.
+      - name: Build Package
+        id: build-package
+        if: steps.bump_version.outputs.newTag != ''
+        run: pnpm build
+
+      # One push, after the version, sync and codename commits, and nothing
+      # pushes after it. The branch and the tag go in a single --atomic push, so
+      # a rejection leaves neither on the remote and a re-run bumps from the
+      # same version. There is deliberately no pull-and-rebase retry: a
+      # rebase would put newer upstream commits under a tag whose dist/ was
+      # built from the old tree, and rebuilding is another ten minutes. If main
+      # moved during the run, fail cleanly and let a re-run start fresh.
+      - name: Push the release commit and tag
+        if: steps.bump_version.outputs.newTag != ''
+        env:
+          TAG: ${{ steps.bump_version.outputs.newTag }}
+        run: |
+          set -euo pipefail
+          git tag "$TAG"
+          if ! git push --atomic origin HEAD:main "refs/tags/$TAG"; then
+            echo "::error::Could not push the release commit and tag to main (main moved during the run, or the push was refused). Nothing was pushed or tagged; re-run the workflow to release from the new main."
+            exit 1
+          fi
 
       - name: Create GitHub Release
         if: steps.bump_version.outputs.newTag != ''
@@ -127,11 +242,27 @@ jobs:
             --title "${{ steps.codename.outputs.name }}" \
             --generate-notes
 
+      # pnpm, not the old npm-publish action: only pnpm rewrites the Platinum
+      # package's `workspace:^` peer range to a real `^<version>`. `-r` publishes
+      # in topological order and skips versions already on the registry, so a
+      # re-run after a partial publish is safe. pnpm 10 hands each packed
+      # tarball to `npm publish`, which exchanges the job's OIDC token
+      # (id-token: write) for a short-lived publish token per package, and
+      # adds provenance. The token is empty on purpose: npm uses the configured
+      # token only when the exchange is refused, and then a stale one would turn
+      # a clear "requires you to be logged in" into a confusing 404.
       - name: Publish to npm
-        if: steps.bump_version.outputs.newTag != ''
-        uses: JS-DevTools/npm-publish@v4
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks
+
+      # Until the Platinum package exists, only the root publishes.
+      - name: Publish to npm (core only)
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') == ''
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: pnpm publish --access public --no-git-checks
 
       # The registry lists a new version several minutes after the publish
       # call returns (2.0.0 and 2.0.1 each took 8–10 minutes), and npm-publish
@@ -146,18 +277,28 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${TAG#v}"
-          NAME="$(node -p 'require("./package.json").name')"
-          for attempt in $(seq 1 60); do
-            LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
-            if [ "$LATEST" = "$VERSION" ]; then
-              echo "$NAME@$VERSION is live on npm (attempt $attempt)."
-              exit 0
+          PACKAGES=("$(node -p 'require("./package.json").name')")
+          if [ -f packages/appearance/platinum/package.json ]; then
+            PACKAGES+=("$(node -p 'require("./packages/appearance/platinum/package.json").name')")
+          fi
+          # Both packages must be listed before anything downstream runs.
+          for NAME in "${PACKAGES[@]}"; do
+            LIVE=""
+            for attempt in $(seq 1 60); do
+              LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
+              if [ "$LATEST" = "$VERSION" ]; then
+                echo "$NAME@$VERSION is live on npm (attempt $attempt)."
+                LIVE=1
+                break
+              fi
+              echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
+              sleep 30
+            done
+            if [ -z "$LIVE" ]; then
+              echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
+              exit 1
             fi
-            echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
-            sleep 30
           done
-          echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
-          exit 1
 
       - name: Trigger classicy-web deploy
         if: steps.bump_version.outputs.newTag != ''

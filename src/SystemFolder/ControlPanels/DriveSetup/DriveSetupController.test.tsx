@@ -12,6 +12,7 @@ import {
 	unregisterClassicyFileSystemAdapter,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { DriveSetupController } from "./DriveSetupController";
 
 afterEach(() => {
@@ -176,6 +177,27 @@ describe("DriveSetupController", () => {
 		// Anonymous users are localStorage-only: nothing to await, nothing to fail.
 		await waitFor(() => expect(reload).toHaveBeenCalled());
 		expect(persistedTree()).not.toContain(MARKER);
+	});
+
+	it("initializes the drive to untouched defaults after a fresh boot's edits (0098)", async () => {
+		const reload = vi.fn();
+		vi.stubGlobal("location", { ...window.location, reload });
+		const pristine = JSON.parse(
+			JSON.stringify(DefaultFSContent["Macintosh HD"]),
+		);
+		// A fresh boot (nothing stored), then edits to files the defaults seed.
+		const fs = new ClassicyFileSystem();
+		fs.writeFile("Macintosh HD:Documents:Mine.txt", "mine");
+		fs.setMetadata("Macintosh HD:Documents:Read Me.txt", { _data: "edited" });
+		fs.rmDir("Macintosh HD:Users:Guest");
+		fs.flushNow();
+
+		await initializeDrive();
+
+		await waitFor(() => expect(reload).toHaveBeenCalled());
+		const drive = JSON.parse(persistedTree())["Macintosh HD"];
+		expect(drive.Documents).toEqual(pristine.Documents);
+		expect(drive.Users).toEqual(pristine.Users);
 	});
 
 	it("reports a failed backup instead of claiming success", async () => {

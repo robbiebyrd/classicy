@@ -62,10 +62,14 @@ interface ClassicySpinnerProps {
 	 * for any host styling that targets it; removed in the next major version.
 	 */
 	isDefault?: boolean;
-	/** Field fill colour (any CSS colour). Defaults to the theme's white. */
+	/** Field fill color (any CSS color). Defaults to the theme's white. */
 	backgroundColor?: string;
 	/** Forwarded to the native `<input>`. */
 	ref?: ForwardedRef<HTMLInputElement>;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -98,6 +102,8 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 			backgroundColor,
 			onChangeFunc,
 			onEnterFunc,
+			className,
+			style,
 		},
 		ref,
 	) {
@@ -197,7 +203,9 @@ export const ClassicySpinner: FunctionalComponent<ClassicySpinnerProps> =
 				className={classNames(
 					"classicySpinnerHolder",
 					labelPositionClass(labelPosition),
+					className,
 				)}
+				style={style}
 			>
 				{labelTitle && (
 					<ClassicyControlLabel

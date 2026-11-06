@@ -1,9 +1,8 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
 .classicyTimePickerHolder {
   display: flex;
-  width: calc(100% - var(--window-padding-size) * 2);
+  width: calc(100% - var(--window-padding-size) - var(--window-padding-size));
   padding: var(--window-padding-size);
 }
 
@@ -13,7 +12,7 @@
   width: auto;
   border: var(--window-border-size) solid var(--color-black);
   box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-  calc(var(--window-border-size) * 1) calc(var(--window-border-size) * 1) 0 0 var(--color-system-04);
+  var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -23,17 +22,17 @@
     margin: 0;
     padding: 0;
     font-family: var(--ui-font), sans-serif;
-    box-shadow: none !important;
+    box-shadow: none;
     height: 100%;
     margin-right: var(--window-padding-size);
     text-align: right;
     border: none;
     outline: none;
 
-    height: calc(var(--window-control-size) * 1.5);
+    height: var(--control-row-height);
 
     &:focus-visible {
-      outline: 0 !important;
+      outline: 0;
     }
   }
 }
@@ -50,7 +49,7 @@
 }
 
 .classicyTimePickerPeriod {
-  min-width: calc(var(--ui-font-size) * 4);
+  min-width: var(--time-picker-period-min-width);
 }
 
 .classicyTimePickerField {

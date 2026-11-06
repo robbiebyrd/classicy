@@ -40,7 +40,7 @@ const ScreenSaverPreview: FC<ScreenSaverPreviewProps> = ({
 				height: 300,
 				overflow: "hidden",
 				// Transparent savers reveal what is underneath; stand in for the
-				// desktop with the theme's desktop colour.
+				// desktop with the theme's desktop color.
 				background: saver.transparentBackground
 					? "var(--desktop-background-color, #6666cc)"
 					: "var(--color-black, #000)",
@@ -125,7 +125,7 @@ export const Warp: Story = {
 
 /**
  * A `transparentBackground` saver: the overlay skips its black fill so the
- * live desktop shows through the moving spotlight. Here a flat colour stands
+ * live desktop shows through the moving spotlight. Here a flat color stands
  * in for the desktop.
  */
 export const Spotlight: Story = {

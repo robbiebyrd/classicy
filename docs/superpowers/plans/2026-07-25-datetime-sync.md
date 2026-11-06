@@ -122,7 +122,7 @@ In `ClassicyDateAndTimeEventHandler.ts`, add this function above `classicyDateTi
  * as a UTC ISO string, and update boundaryLocked.
  *
  * Shared by ClassicyManagerDateTimeSet and ClassicyManagerDateTimeSync so both
- * honour host-configured bounds identically.
+ * honor host-configured bounds identically.
  */
 function applyDateTimeWithBounds(ds: ClassicyStore, date: Date): void {
 	const { minDateTime, maxDateTime } = ds.System.Manager.DateAndTime;
@@ -494,7 +494,7 @@ git commit -m "test(datetime): cover min/max clamping on clock sync"
 
 ### Task 5: Sync button in the control panel
 
-Adds the visible control: a bottom flex row with Sync on the left and the existing Quit on the right, with Sync greyed out while the clock is locked.
+Adds the visible control: a bottom flex row with Sync on the left and the existing Quit on the right, with Sync grayed out while the clock is locked.
 
 **Files:**
 - Modify: `src/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManager.tsx`

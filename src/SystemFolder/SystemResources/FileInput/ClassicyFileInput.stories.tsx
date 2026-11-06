@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { useRef } from "react";
 import { fn } from "storybook/test";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -70,4 +75,19 @@ export const AddFilesFromCode: Story = {
 /** Disabled: the Choose button is inactive and the label is dimmed. */
 export const Disabled: Story = {
 	args: { id: "file-disabled", labelTitle: "Attachment", disabled: true },
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyFileInput>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyFileInput {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

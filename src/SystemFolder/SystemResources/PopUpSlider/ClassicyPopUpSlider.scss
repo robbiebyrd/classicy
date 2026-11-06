@@ -1,15 +1,16 @@
 // HIGOS8 Figure 2-16: the pop-up slider fills the 17 × 73 inside of its
-// 19 × 75 pop-up frame. Offsets are the figure's, in that inner box.
+// 19 × 75 pop-up frame. Offsets are the figure's, in that inner box
+// (measurements.popUpSlider, platinum.json).
 .classicyPopUpSlider {
   position: relative;
-  width: 17px;
-  height: 73px;
+  width: var(--pop-up-slider-width);
+  height: var(--pop-up-slider-height);
   outline: none;
   cursor: default;
 
   &:focus-visible {
-    outline: 1px solid var(--color-outline);
-    outline-offset: -1px;
+    outline: var(--focus-ring-width) solid var(--color-outline);
+    outline-offset: calc(var(--focus-ring-width) * -1);
   }
 
   svg {
@@ -19,15 +20,18 @@
 
 .classicyPopUpSliderTrack {
   position: absolute;
-  left: 4px;
-  top: 3px;
+  left: var(--pop-up-slider-track-left);
+  top: var(--pop-up-slider-track-top);
 }
 
+// The thumb's top starts on the track's top; the slider's value adds its drop
+// below that as an inline margin-top (H-R23), so thumb and track move together.
 .classicyPopUpSliderThumb {
   position: absolute;
-  left: 1px;
+  left: var(--pop-up-slider-thumb-left);
+  top: var(--pop-up-slider-track-top);
 }
 
-.classicyPopUpSliderDisabled {
+:where(.classicyPopUpSlider).disabled {
   opacity: 0.5;
 }

@@ -1,5 +1,10 @@
 import { createRef } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
 	ClassicyTable,
@@ -112,7 +117,7 @@ describe("ClassicyTable", () => {
 		fireEvent.click(screen.getByText("Abbey Road"));
 		expect(onSelection).toHaveBeenLastCalledWith(["abbey"]);
 		expect(
-			container.querySelectorAll(".classicyTableRowSelected"),
+			container.querySelectorAll(".classicyTableRow.selected"),
 		).toHaveLength(1);
 	});
 
@@ -220,7 +225,7 @@ describe("ClassicyTable", () => {
 			/>,
 		);
 		const selectedRows = container.querySelectorAll(
-			".classicyTableRowSelected",
+			".classicyTableRow.selected",
 		);
 		expect(selectedRows).toHaveLength(2);
 	});
@@ -384,7 +389,7 @@ describe("ClassicyTable — tree rows (expansion)", () => {
 			/>,
 		);
 		fireEvent.click(screen.getByText("top.pdf"));
-		const selected = container.querySelector(".classicyTableRowSelected");
+		const selected = container.querySelector(".classicyTableRow.selected");
 		expect(selected).toHaveClass("legacySelected");
 		expect(container.querySelector(".legacyRow")).toHaveClass(
 			"classicyTableRow",
@@ -637,5 +642,155 @@ describe("ClassicyTable containerRef (#270)", () => {
 		);
 		unmount();
 		expect(containerRef.current).toBeNull();
+	});
+});
+
+describe("ClassicyTable column resize when the pointer stream is lost", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const renderTable = () => {
+		const view = render(
+			<ClassicyTable columns={columns} rows={albums} getRowId={(a) => a.id} />,
+		);
+		const header = view.container.querySelector("th") as HTMLElement;
+		const resizer = header.querySelector(".resizer") as HTMLElement;
+		return { ...view, header, resizer };
+	};
+	const isResizing = (container: HTMLElement) =>
+		container.querySelector(".isResizing") !== null;
+
+	it("follows the pointer and ends on release", () => {
+		const { container, header, resizer } = renderTable();
+		expect(header.style.width).toBe("150px");
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		expect(isResizing(container)).toBe(true);
+		fireEvent.mouseMove(document, { clientX: 150 });
+		expect(header.style.width).toBe("200px");
+		fireEvent.mouseUp(document, { clientX: 150 });
+		expect(isResizing(container)).toBe(false);
+		fireEvent.mouseMove(document, { clientX: 250 });
+		expect(header.style.width).toBe("200px");
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a mouse resize at the width reached on a %s", (loss) => {
+		const { container, header, resizer } = renderTable();
+		const removed = vi.spyOn(document, "removeEventListener");
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		expect(header.style.width).toBe("200px");
+
+		losePointerStream(loss);
+		// Ended as a release there would end it: the column keeps the width
+		// on screen, and the table is no longer resizing.
+		expect(isResizing(container)).toBe(false);
+		expect(header.style.width).toBe("200px");
+		// TanStack's own listeners went with it.
+		const types = removed.mock.calls.map(([type]) => type);
+		expect(types).toContain("mousemove");
+		expect(types).toContain("mouseup");
+
+		// The pointer coming back does not move the column, and the release
+		// that finally comes changes nothing.
+		fireEvent.mouseMove(document, { clientX: 300 });
+		fireEvent.mouseUp(document, { clientX: 300 });
+		expect(header.style.width).toBe("200px");
+		expect(isResizing(container)).toBe(false);
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a touch resize at the width reached on a %s", (loss) => {
+		const { container, header, resizer } = renderTable();
+		fireEvent.touchStart(resizer, { touches: [{ clientX: 100 }] });
+		expect(isResizing(container)).toBe(true);
+		fireEvent.touchMove(document, { touches: [{ clientX: 130 }] });
+		expect(header.style.width).toBe("180px");
+
+		losePointerStream(loss);
+		expect(isResizing(container)).toBe(false);
+		expect(header.style.width).toBe("180px");
+
+		fireEvent.touchMove(document, { touches: [{ clientX: 300 }] });
+		expect(header.style.width).toBe("180px");
+	});
+
+	it("keeps the width when the stream is lost before the pointer moved", () => {
+		const { container, header, resizer } = renderTable();
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		losePointerStream("blur");
+		expect(isResizing(container)).toBe(false);
+		fireEvent.mouseMove(document, { clientX: 300 });
+		expect(header.style.width).toBe("150px");
+	});
+
+	it("ends the resize once when one loss fires several events", () => {
+		const { container, resizer } = renderTable();
+		const released = vi.fn();
+		document.addEventListener("mouseup", released);
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		// Hiding a tab also blurs the window, in one task.
+		act(() => {
+			window.dispatchEvent(new Event("blur"));
+			document.dispatchEvent(new Event("pointercancel"));
+		});
+		document.removeEventListener("mouseup", released);
+		expect(released).toHaveBeenCalledOnce();
+		expect(isResizing(container)).toBe(false);
+	});
+
+	it("watches the pointer stream only while a resize lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { resizer } = renderTable();
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document, { clientX: 150 });
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		expect(live.size).toBe(3);
+		losePointerStream("pointercancel");
+		expect(live.size).toBe(0);
+	});
+
+	it("sends no release of its own after a normal one", () => {
+		const { resizer, unmount } = renderTable();
+		const released = vi.fn();
+		document.addEventListener("mouseup", released);
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		fireEvent.mouseUp(document, { clientX: 150 });
+		losePointerStream("blur");
+		unmount();
+		document.removeEventListener("mouseup", released);
+		// Only the user's own release.
+		expect(released).toHaveBeenCalledOnce();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("cleans up when it unmounts mid-resize, then sees a %s", (loss) => {
+		const consoleError = vi.spyOn(console, "error");
+		const live = trackPointerStreamListeners();
+		const removed = vi.spyOn(document, "removeEventListener");
+		const { resizer, unmount } = renderTable();
+		fireEvent.mouseDown(resizer, { clientX: 100 });
+		fireEvent.mouseMove(document, { clientX: 150 });
+		expect(live.size).toBe(3);
+		unmount();
+		expect(live.size).toBe(0);
+		// TanStack's document listeners do not outlive the table.
+		const types = removed.mock.calls.map(([type]) => type);
+		expect(types).toContain("mousemove");
+		expect(types).toContain("mouseup");
+		losePointerStream(loss);
+		fireEvent.mouseMove(document, { clientX: 300 });
+		fireEvent.mouseUp(document, { clientX: 300 });
+		expect(consoleError).not.toHaveBeenCalled();
 	});
 });

@@ -1,15 +1,23 @@
 import "./ClassicyPlacard.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
+	type KeyboardEvent,
 	type MouseEvent,
 	type MouseEventHandler,
 	type PropsWithChildren,
+	type RefObject,
 	useEffect,
 	useRef,
 	useState,
 } from "react";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import {
+	useClassicyKeyPress,
+	useClassicyPointerPress,
+} from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 export type ClassicyPlacardMenuItem = {
 	/** Value passed to `onSelect` when the item is chosen. */
@@ -32,6 +40,10 @@ type ClassicyPlacardProps = PropsWithChildren<{
 	onClick?: MouseEventHandler<HTMLElement>;
 	/** Fired with the id of a chosen pop-up menu item. */
 	onSelect?: (id: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }>;
 
 /**
@@ -43,9 +55,10 @@ type ClassicyPlacardProps = PropsWithChildren<{
  *
  * It has three looks: normal, pressed and disabled. A plain placard is
  * static information (a `<div>`). Given `onClick` or `menuItems` it becomes
- * a `<button>` that plays the button click sounds; with `menuItems` it shows
- * a down-arrow and opens a small menu (closed by an outside click) whose
- * choice is reported through `onSelect`.
+ * a `<button>` that plays the button click sounds (the appearance package's
+ * press/release hooks); with `menuItems` it shows a down-arrow and opens a
+ * small menu (closed by an outside click) whose choice is reported through
+ * `onSelect`.
  *
  * ```tsx
  * <ClassicyWindow
@@ -62,14 +75,36 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	onClick,
 	onSelect,
 	children,
+	className,
+	style,
 }) => {
-	const player = useSoundDispatch();
 	const hasMenu = Array.isArray(menuItems) && menuItems.length > 0;
 	const interactive = !disabled && (hasMenu || Boolean(onClick));
 
 	const [pressed, setPressed] = useState(false);
 	const [open, setOpen] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
+	// The element carrying `.classicyPlacard`: a <button> when interactive,
+	// otherwise a <div>.
+	const placardRef = useRef<HTMLElement>(null);
+	const appearance = useClassicyAppearance(
+		"Placard",
+		{
+			disabled,
+			// A disabled placard never reads as pressed.
+			pressed: !disabled && (pressed || open),
+		},
+		placardRef,
+	);
+	const emitAppearance = appearance.emit;
+	// `close` follows the menu going away, whichever path dismissed it (a
+	// pick, a second click, an outside press).
+	const wasOpenRef = useRef(open);
+	useEffect(() => {
+		if (wasOpenRef.current === open) return;
+		wasOpenRef.current = open;
+		if (!open) emitAppearance("close", withClassicyAppearanceInput());
+	}, [open, emitAppearance]);
 
 	// Close the pop-up menu on any outside click.
 	useEffect(() => {
@@ -83,13 +118,47 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 		return () => document.removeEventListener("mousedown", onDocClick);
 	}, [open]);
 
-	const state = disabled ? "disabled" : pressed || open ? "pressed" : "normal";
-
 	const handleClick = (e: MouseEvent<HTMLElement>) => {
 		if (disabled) return;
-		if (hasMenu) setOpen((o) => !o);
+		appearance.emit("click", withClassicyAppearanceInput({ menu: hasMenu }));
+		if (hasMenu) {
+			setOpen((o) => !o);
+			if (!open) appearance.emit("open", withClassicyAppearanceInput());
+		}
 		if (onClick) onClick(e);
 	};
+
+	// Return and Space press and release the placard like the mouse does (the
+	// browser turns them into the click). A key press ends in one `release`
+	// too: at its keyup, or canceled, when the window loses focus (lost) or
+	// focus leaves the placard first; a canceled press's late keyup is
+	// prevented, so the browser clicks nothing for it.
+	const { watchKeyPress, releaseKey } = useClassicyKeyPress(placardRef);
+	const isActivationKey = (key: string) => key === "Enter" || key === " ";
+	const handleKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+		if (!e.repeat && isActivationKey(e.key)) {
+			appearance.emit("press", withClassicyAppearanceInput());
+			watchKeyPress(e.key, (lost) =>
+				appearance.emit("release", {
+					input: "keyboard",
+					lost,
+					canceled: true,
+				}),
+			);
+		}
+	};
+	const handleKeyUp = (e: KeyboardEvent<HTMLElement>) => {
+		if (isActivationKey(e.key) && releaseKey(e))
+			appearance.emit(
+				"release",
+				withClassicyAppearanceInput({ lost: false, canceled: false }),
+			);
+	};
+
+	// A mouse press ends in exactly one `release`: over the placard, let go
+	// elsewhere (`canceled`), or, when its pointer stream is lost (the window
+	// blurs, a pointercancel, the page is hidden), lost.
+	const { watchPress, releasedOver } = useClassicyPointerPress();
 
 	const handleSelect = (item: ClassicyPlacardMenuItem) => {
 		if (item.disabled) return;
@@ -98,29 +167,30 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 	};
 
 	const commonProps = {
-		"data-state": state,
-		className: classNames("classicyPlacard", {
+		className: classNames("classicyPlacard", appearance.className, {
 			classicyPlacardInteractive: interactive,
 			classicyPlacardHasMenu: hasMenu,
-			classicyPlacardDisabled: disabled,
 		}),
+		style: appearance.style,
 	};
 
 	const body = (
 		<>
 			<span className="classicyPlacardContent">{children}</span>
-			{hasMenu && (
-				<span className="classicyPlacardArrow" aria-hidden={true}>
-					▾
-				</span>
-			)}
+			{hasMenu && <span className="classicyPlacardArrow" aria-hidden={true} />}
 		</>
 	);
 
 	return (
-		<div className="classicyPlacardHolder" ref={rootRef}>
+		<div
+			className={classNames("classicyPlacardHolder", className)}
+			style={style}
+			ref={rootRef}
+		>
 			{interactive ? (
 				<button
+					{...appearance.attrs}
+					ref={placardRef as RefObject<HTMLButtonElement | null>}
 					type="button"
 					tabIndex={0}
 					disabled={disabled}
@@ -128,18 +198,44 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					aria-expanded={hasMenu ? open : undefined}
 					{...commonProps}
 					onClick={handleClick}
+					onKeyDown={handleKeyDown}
+					onKeyUp={handleKeyUp}
+					// Pointer-only by construction: a key pressed while the mouse
+					// is held must not make the release read as keyboard input.
 					onMouseDown={() => {
 						setPressed(true);
-						player({
-							type: "ClassicySoundPlay",
-							sound: "ClassicyButtonClickDown",
+						appearance.emit("press", { input: "pointer" });
+						watchPress({
+							isOver: (target) =>
+								target instanceof Node &&
+								!!placardRef.current?.contains(target),
+							onRelease: (canceled) => {
+								setPressed(false);
+								appearance.emit("release", {
+									input: "pointer",
+									lost: false,
+									canceled,
+								});
+							},
+							onLost: () => {
+								setPressed(false);
+								appearance.emit("release", {
+									input: "pointer",
+									lost: true,
+									canceled: true,
+								});
+							},
 						});
 					}}
-					onMouseUp={() => {
+					// A release here with no press of its own behind it (pressed
+					// elsewhere); the press's own release was reported above.
+					onMouseUp={(e) => {
 						setPressed(false);
-						player({
-							type: "ClassicySoundPlay",
-							sound: "ClassicyButtonClickUp",
+						if (releasedOver(e.nativeEvent)) return;
+						appearance.emit("release", {
+							input: "pointer",
+							lost: false,
+							canceled: false,
 						});
 					}}
 					onMouseLeave={() => setPressed(false)}
@@ -147,7 +243,13 @@ export const ClassicyPlacard: FunctionalComponent<ClassicyPlacardProps> = ({
 					{body}
 				</button>
 			) : (
-				<div {...commonProps}>{body}</div>
+				<div
+					{...appearance.attrs}
+					ref={placardRef as RefObject<HTMLDivElement | null>}
+					{...commonProps}
+				>
+					{body}
+				</div>
 			)}
 			{hasMenu && open && (
 				// biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: <ul> hosting menuitems requires role="menu" per the ARIA menu pattern

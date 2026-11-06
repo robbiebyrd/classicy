@@ -1,9 +1,13 @@
-/* eslint-disable react-refresh/only-export-components -- Utilities and constants file, not components */
-
 import { Howl } from "howler";
 import { createContext, type Dispatch } from "react";
-import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
 import type { ClassicyStoreSystemManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { findClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPackLookup.internal";
+import {
+	CLASSICY_DEFAULT_SOUND_PACK_ID,
+	type ClassicySoundPack,
+	classicySoundPackMissingSprites,
+	getClassicySoundPack,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import {
 	type SoundData,
 	SoundDataSchema,
@@ -20,7 +24,7 @@ export interface ClassicyStoreSystemSoundManager
 }
 
 export type ClassicyThemeSound = {
-	name: string;
+	pack: string;
 	disabled: string[];
 };
 
@@ -33,6 +37,16 @@ export type ClassicySoundInfo = {
 
 export type ClassicySoundState = {
 	soundPlayer: Howl | null;
+	/** Id of the pack `soundPlayer` was built from; null before any load. */
+	packId: string | null;
+	/** Sprite ids the active pack defines. */
+	sprites: ReadonlySet<string>;
+	/**
+	 * The default pack's (Platinum's) player, used for sprites the active pack
+	 * lacks. Null when the default pack is the active one or is not registered;
+	 * those sprites are then silent.
+	 */
+	fallbackPlayer: Howl | null;
 	disabled: string[];
 	labels: ClassicySoundInfo[];
 	volume?: number;
@@ -52,6 +66,7 @@ export enum ClassicySoundActionTypes {
 	ClassicySoundPlayInterrupt = "ClassicySoundPlayInterrupt",
 	ClassicySoundPlayError = "ClassicySoundPlayError",
 	ClassicySoundLoad = "ClassicySoundLoad",
+	ClassicySoundLoadFallback = "ClassicySoundLoadFallback",
 	ClassicySoundSet = "ClassicySoundSet",
 	ClassicySoundDisable = "ClassicySoundDisable",
 	ClassicySoundDisableOne = "ClassicySoundDisableOne",
@@ -65,7 +80,8 @@ export enum ClassicySoundActionTypes {
 export interface ClassicySoundAction {
 	type: ClassicySoundActionTypes | string;
 	sound?: string;
-	file?: SoundData;
+	/** ClassicySoundLoad: the pack to build the player from. */
+	pack?: ClassicySoundPack;
 	disabled?: string | string[];
 	enabled?: string | string[];
 	soundPlayer?: Howl;
@@ -127,16 +143,15 @@ export const createSoundPlayer = ({
 	return null;
 };
 
-const defaultSoundData = ClassicySounds.platinum;
-
 /** The system volume as a 0–1 gain for the player (100 when unset). */
 export const classicySoundGain = (volume: number | undefined): number =>
 	(volume ?? 100) / 100;
 
 export const initialPlayer: ClassicySoundState = {
-	soundPlayer: defaultSoundData
-		? createSoundPlayer({ soundData: defaultSoundData })
-		: null,
+	soundPlayer: null,
+	packId: null,
+	sprites: new Set<string>(),
+	fallbackPlayer: null,
 	disabled: [] as string[],
 	labels: soundLabels,
 	volume: 100,
@@ -144,8 +159,48 @@ export const initialPlayer: ClassicySoundState = {
 	alertVolume: 100,
 };
 
-export const loadSoundTheme = (soundTheme: SoundData): Howl | null => {
-	return createSoundPlayer({ soundData: soundTheme });
+/** The default pack's player, or null while that pack is not registered. */
+const createDefaultPackPlayer = (): Howl | null => {
+	const fallback = getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+	return fallback ? createSoundPlayer({ soundData: fallback }) : null;
+};
+
+/**
+ * Stop whatever either player is playing. A loop started on one player (the
+ * window-move loops) is ended by a sprite that may live on the other, so an
+ * interrupt must silence both.
+ */
+const stopAll = (ss: ClassicySoundState) => {
+	ss.soundPlayer?.stop();
+	ss.fallbackPlayer?.stop();
+};
+
+/** The player that owns `sound`: the active pack's, else the default pack's. */
+const playerFor = (ss: ClassicySoundState, sound: string): Howl | null =>
+	ss.sprites.has(sound) ? ss.soundPlayer : ss.fallbackPlayer;
+
+/**
+ * Initial sound state for a provider mount: `base` (muted when asked) with the
+ * player already loaded from `packId`, or the default pack when that one is not
+ * registered (yet). Seeding at init means children's mount effects, such as the
+ * boot chime, find a player. Returns `base`, with no player, when neither is
+ * registered; each missing id is logged once.
+ */
+export const seedSoundState = (
+	base: ClassicySoundState,
+	packId: string,
+	muted: boolean | undefined,
+): ClassicySoundState => {
+	const start = muted ? { ...base, disabled: ["*"] } : base;
+	const pack =
+		findClassicySoundPack(packId) ??
+		findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+	return pack
+		? ClassicySoundStateEventReducer(start, {
+				type: ClassicySoundActionTypes.ClassicySoundLoad,
+				pack,
+			})
+		: start;
 };
 
 export const ClassicySoundManagerContext =
@@ -154,11 +209,12 @@ export const ClassicySoundDispatchContext = createContext<
 	Dispatch<ClassicySoundAction>
 >((() => undefined) as Dispatch<ClassicySoundAction>);
 
-const playerCanPlayInterrupt = (
-	{ disabled, soundPlayer }: ClassicySoundState,
-	sound: string,
-) => {
-	return !disabled.includes("*") && !disabled.includes(sound) && soundPlayer;
+const playerCanPlayInterrupt = (ss: ClassicySoundState, sound: string) => {
+	return (
+		!ss.disabled.includes("*") &&
+		!ss.disabled.includes(sound) &&
+		playerFor(ss, sound)
+	);
 };
 
 /** Clamp a 0–100 percentage to a whole number; `undefined` when not finite. */
@@ -174,10 +230,11 @@ const clampPercent = (value: number | undefined): number | undefined =>
  * computed here. Other sounds keep the plain player gain.
  */
 const playAlert = (ss: ClassicySoundState, sound: string) => {
-	ss.soundPlayer?.stop();
-	const id = ss.soundPlayer?.play(sound);
+	const player = playerFor(ss, sound);
+	stopAll(ss);
+	const id = player?.play(sound);
 	if (typeof id === "number") {
-		ss.soundPlayer?.volume(
+		player?.volume(
 			classicySoundGain(ss.volume) * classicySoundGain(ss.alertVolume),
 			id,
 		);
@@ -185,7 +242,11 @@ const playAlert = (ss: ClassicySoundState, sound: string) => {
 };
 
 const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
-	return playerCanPlayInterrupt(ss, sound) && !ss.soundPlayer?.playing();
+	return (
+		playerCanPlayInterrupt(ss, sound) &&
+		!ss.soundPlayer?.playing() &&
+		!ss.fallbackPlayer?.playing()
+	);
 };
 
 export const ClassicySoundStateEventReducer = (
@@ -201,21 +262,22 @@ export const ClassicySoundStateEventReducer = (
 	let next: ClassicySoundState;
 	switch (action.type) {
 		case ClassicySoundActionTypes.ClassicySoundStop: {
-			ss.soundPlayer?.stop();
+			stopAll(ss);
 			next = { ...ss };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlay: {
 			if (action.sound && playerCanPlay(ss, action.sound)) {
-				ss.soundPlayer?.play(action.sound);
+				playerFor(ss, action.sound)?.play(action.sound);
 			}
 			next = { ...ss };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlayInterrupt: {
 			if (action.sound && playerCanPlayInterrupt(ss, action.sound)) {
-				ss.soundPlayer?.stop();
-				ss.soundPlayer?.play(action.sound);
+				const player = playerFor(ss, action.sound);
+				stopAll(ss);
+				player?.play(action.sound);
 			}
 			next = { ...ss };
 			break;
@@ -243,15 +305,61 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundLoad: {
+			const requested = action.disabled
+				? Array.isArray(action.disabled)
+					? action.disabled
+					: [action.disabled]
+				: ss.disabled;
+			// A reload never un-mutes: the "*" wildcard (defaultMuted, or the
+			// user's mute) survives the theme's own disabled list.
+			const disabled =
+				ss.disabled.includes("*") && !requested.includes("*")
+					? [...requested, "*"]
+					: requested;
+			const pack = action.pack;
+			if (!pack) {
+				next = { ...ss, disabled };
+				break;
+			}
+			const isDefault = pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID;
+			const missing = classicySoundPackMissingSprites(pack);
+			if (missing.length > 0) {
+				// Only the default pack can stand in for the sprites; without it
+				// (or when it is the pack missing them) they play nothing.
+				const fallsBack =
+					!isDefault &&
+					getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID) !== undefined;
+				classicyLog(
+					"warn",
+					"ClassicySoundManager",
+					fallsBack
+						? `Sound pack is missing sprites; falling back to ${CLASSICY_DEFAULT_SOUND_PACK_ID}`
+						: "Sound pack is missing sprites; they play nothing",
+					{ id: pack.id, missing },
+				);
+			}
+			ss.soundPlayer?.unload();
+			if (isDefault) ss.fallbackPlayer?.unload();
 			next = {
 				...ss,
-				soundPlayer: action.file ? loadSoundTheme(action.file) : ss.soundPlayer,
-				disabled: action.disabled
-					? Array.isArray(action.disabled)
-						? action.disabled
-						: [action.disabled]
-					: ss.disabled,
+				soundPlayer: createSoundPlayer({ soundData: pack }),
+				packId: pack.id,
+				sprites: new Set(Object.keys(pack.sprite)),
+				fallbackPlayer: isDefault
+					? null
+					: (ss.fallbackPlayer ?? createDefaultPackPlayer()),
+				disabled,
 			};
+			break;
+		}
+		case ClassicySoundActionTypes.ClassicySoundLoadFallback: {
+			// The default pack registered after the active pack loaded: build the
+			// stand-in for the sprites the active pack lacks. Never replaces one.
+			const fallbackPlayer =
+				ss.packId === CLASSICY_DEFAULT_SOUND_PACK_ID || ss.fallbackPlayer
+					? null
+					: createDefaultPackPlayer();
+			next = fallbackPlayer ? { ...ss, fallbackPlayer } : ss;
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundSet: {

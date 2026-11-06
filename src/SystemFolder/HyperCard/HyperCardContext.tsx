@@ -226,11 +226,11 @@ export const classicyHyperCardEventHandler = (
 		}
 
 		case "ClassicyAppHyperCardOpenFile": {
-			// Double-clicked Stack-type files land in data.openFiles: Finder
-			// dispatches ClassicyAppHyperCardOpenFile through the generic
-			// classicyAppEventHandler (whose *OpenFile default appends the path
-			// and opens the app); this case gives programmatic dispatch through
-			// the plugin router the same behavior, plus focus-if-already-open.
+			// Double-clicked Stack-type files land here: Finder routes its
+			// open-with through the kernel (routeClassicyAppOpenFile), and the
+			// manifest declares this type, so a Finder open and a programmatic
+			// dispatch behave alike: queue the path in data.openFiles and open
+			// the app, or focus the stack already open from that path.
 			// Fetching/parsing is async, so the HyperCard component consumes the
 			// queue and dispatches OpenStack/OpenFileConsumed/OpenFileFailed.
 			const path = action.path as string | undefined;

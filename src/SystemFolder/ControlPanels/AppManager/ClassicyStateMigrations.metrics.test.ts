@@ -1,9 +1,20 @@
 import { describe, expect, it } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	registerClassicyAppearancePackage,
+	unregisterClassicyAppearancePackage,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	type ClassicyTheme,
+	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import type { ClassicyThemeWithPartialMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
+	CLASSICY_DEFAULT_THEME_METRICS,
+	type ClassicyThemeWithPartialMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	type ClassicyStore,
 	DefaultAppManagerState,
@@ -74,6 +85,83 @@ describe("migrateClassicyState — theme metrics", () => {
 				"--layout-item-gap"
 			],
 		).toBe("4px");
+	});
+
+	// H-R17 (amends H-R2): the migration runs at store creation, before a
+	// host package can register, so it fills only the core five; knob
+	// families are healed at read time, from the package registered by then.
+	it("heals knob families from the package defaults", () => {
+		const migrated = migrateClassicyState(strippedState());
+		const appearance = migrated.System.Manager.Appearance;
+		const defaults = DefaultAppManagerState.System.Manager.Appearance;
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme && (getThemeVars(theme) as Record<string, string>);
+		// The stored shape: the core five only.
+		expect(appearance.activeTheme.measurements.pager).toBeUndefined();
+		expect(appearance.customThemes?.[0]?.measurements.balloonHelp).toBe(
+			undefined,
+		);
+		// What a reader sees: every variable of the unstripped theme it
+		// came from, the knob families included.
+		expect(vars(appearance.activeTheme)).toEqual(vars(defaults.activeTheme));
+		expect(vars(appearance.activeTheme)?.["--pager-cell-height"]).toBe("36px");
+		(appearance.availableThemes ?? []).forEach((theme, i) => {
+			expect(Object.keys(theme.measurements), theme.id).toEqual(
+				Object.keys(CLASSICY_DEFAULT_THEME_METRICS),
+			);
+			expect(vars(theme), theme.id).toEqual(
+				vars(defaults.availableThemes?.[i]),
+			);
+		});
+		// The custom theme is the active theme under another id and name.
+		expect(vars(appearance.customThemes?.[0])).toEqual(
+			vars(defaults.activeTheme),
+		);
+	});
+
+	it("a host package registered after the store loads gets its own knob value", () => {
+		const base = getTheme("default");
+		// A theme persisted before its package declared controlStrip.
+		const persistedTheme = {
+			...base,
+			id: "late-theme",
+			package: "late-pack",
+			measurements: structuredClone(CLASSICY_DEFAULT_THEME_METRICS),
+		} as ClassicyTheme;
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Appearance.activeTheme = persistedTheme;
+		// Store creation migrates here, before the host registers its package.
+		const migrated =
+			migrateClassicyState(state).System.Manager.Appearance.activeTheme;
+		registerClassicyAppearancePackage({
+			id: "late-pack",
+			name: "Late Pack",
+			css: "",
+			defaults: {
+				...base,
+				id: "late-pack",
+				name: "Late Pack",
+				package: "late-pack",
+				measurements: {
+					...base.measurements,
+					controlStrip: { ...base.measurements.controlStrip, cellHeight: 30 },
+				},
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		try {
+			expect(
+				(getThemeVars(migrated) as Record<string, string>)[
+					"--control-strip-cell-height"
+				],
+			).toBe("30px");
+		} finally {
+			unregisterClassicyAppearancePackage("late-pack");
+		}
 	});
 
 	it("returns the same object when themes are complete", () => {

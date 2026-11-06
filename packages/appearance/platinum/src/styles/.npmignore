@@ -1,0 +1,6 @@
+# Published with the package (package.json "files": "src/styles"), minus the
+# tests that sit beside the stylesheets. npm and pnpm both honor a nested
+# .npmignore inside a "files" directory (a "!" pattern in "files" itself is
+# ignored by pnpm 10). PlatinumPackageManifest.test.ts checks what both
+# packers really pack.
+*.test.*

@@ -1,6 +1,20 @@
 import { render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
+import { describe, expect, it, vi } from "vitest";
+import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
+import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import * as codec from "@/Appearance/ClassicyPixelArtSource";
+import { parseClassicyPixelArtSource } from "@/Appearance/ClassicyPixelArtSource.internal";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import {
+	CLASSICY_PIXEL_ART_MIME,
+	ClassicyPixelArt,
+	decodeClassicyPixelArtRows,
+	encodeClassicyPixelArtRows,
+} from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 describe("ClassicyPixelArt", () => {
 	it("draws each run of one token as a single themed rect, skipping transparency", () => {
@@ -23,5 +37,182 @@ describe("ClassicyPixelArt", () => {
 			["3", "0", "1", "classicyPixelW"],
 			["1", "1", "2", "classicyPixel3"],
 		]);
+	});
+
+	it("encode/decode round-trips rows", () => {
+		const rows = ["KKKK", "K33K", "K..K"];
+		expect(
+			decodeClassicyPixelArtRows(encodeClassicyPixelArtRows(rows)),
+		).toEqual(rows);
+	});
+
+	it("decode rejects foreign sources and drops a trailing empty row", () => {
+		expect(decodeClassicyPixelArtRows("data:image/png;base64,AAAA")).toEqual(
+			[],
+		);
+		expect(decodeClassicyPixelArtRows(undefined)).toEqual([]);
+		expect(
+			decodeClassicyPixelArtRows("data:text/x-classicy-pixel-art,KK%0AKK%0A"),
+		).toEqual(["KK", "KK"]);
+	});
+
+	/** Warnings logged while `run` runs, read through a registered sink. */
+	const captureLog = (run: () => void): ClassicyLogEntry[] => {
+		const entries: ClassicyLogEntry[] = [];
+		// The dev console mirror would print the warning; keep the output clean.
+		const mirror = vi.spyOn(console, "warn").mockImplementation(() => {});
+		registerClassicyLogSink({
+			id: "pixel-art-test",
+			onLog: (entry) => entries.push(entry),
+		});
+		try {
+			run();
+		} finally {
+			unregisterClassicyLogSink("pixel-art-test");
+			mirror.mockRestore();
+		}
+		return entries;
+	};
+
+	it("decode returns no rows for a malformed payload instead of throwing", () => {
+		const entries = captureLog(() => {
+			expect(
+				decodeClassicyPixelArtRows("data:text/x-classicy-pixel-art,K%ZZ"),
+			).toEqual([]);
+			expect(
+				decodeClassicyPixelArtRows("data:text/x-classicy-pixel-art;base64,*"),
+			).toEqual([]);
+		});
+		expect(
+			entries.map(({ level, subsystem, message }) => [
+				level,
+				subsystem,
+				message,
+			]),
+		).toEqual([
+			[
+				"warn",
+				"ClassicyPixelArt",
+				"Ignored pixel art with a malformed payload",
+			],
+			[
+				"warn",
+				"ClassicyPixelArt",
+				"Ignored pixel art with a malformed payload",
+			],
+		]);
+	});
+
+	it("decode strips carriage returns", () => {
+		expect(
+			decodeClassicyPixelArtRows(encodeClassicyPixelArtRows(["KK\r", "KK"])),
+		).toEqual(["KK", "KK"]);
+		expect(
+			decodeClassicyPixelArtRows(
+				"data:text/x-classicy-pixel-art,KK%0D%0AKK%0D%0A",
+			),
+		).toEqual(["KK", "KK"]);
+	});
+
+	it("decodes every spelling of the pixel-art data: URI: parameters, base64, any case", () => {
+		expect(
+			decodeClassicyPixelArtRows(
+				"data:text/x-classicy-pixel-art;charset=utf-8,KK%0AK.",
+			),
+		).toEqual(["KK", "K."]);
+		expect(
+			decodeClassicyPixelArtRows(
+				`data:text/x-classicy-pixel-art;base64,${btoa("KK\nK.")}`,
+			),
+		).toEqual(["KK", "K."]);
+		expect(
+			decodeClassicyPixelArtRows(
+				`data:TEXT/X-Classicy-Pixel-Art;charset=US-ASCII;BASE64,${btoa("KK")}`,
+			),
+		).toEqual(["KK"]);
+		// A longer MIME that merely starts with the pixel-art one is not pixel art.
+		expect(
+			decodeClassicyPixelArtRows("data:text/x-classicy-pixel-artwork,KK"),
+		).toEqual([]);
+	});
+
+	it("parseClassicyPixelArtSource is the one rule both the decoder and the CSS variables follow", () => {
+		expect(
+			parseClassicyPixelArtSource("data:text/x-classicy-pixel-art,KK"),
+		).toEqual({ base64: false, payload: "KK" });
+		expect(
+			parseClassicyPixelArtSource(
+				"data:text/x-classicy-pixel-art;charset=utf-8;base64,S0s=",
+			),
+		).toEqual({ base64: true, payload: "S0s=" });
+		expect(parseClassicyPixelArtSource("data:image/png;base64,AAAA")).toBe(
+			undefined,
+		);
+		expect(parseClassicyPixelArtSource("pixel.txt")).toBe(undefined);
+		expect(parseClassicyPixelArtSource(undefined)).toBe(undefined);
+	});
+
+	it("re-exports the codec ClassicyPixelArtSource defines (one definition each)", () => {
+		expect(CLASSICY_PIXEL_ART_MIME).toBe("text/x-classicy-pixel-art");
+		expect(CLASSICY_PIXEL_ART_MIME).toBe(codec.CLASSICY_PIXEL_ART_MIME);
+		expect(encodeClassicyPixelArtRows).toBe(codec.encodeClassicyPixelArtRows);
+		expect(decodeClassicyPixelArtRows).toBe(codec.decodeClassicyPixelArtRows);
+	});
+
+	// The parser is the codec's internal rule (the decoder and the asset
+	// registry's CSS variables share it), not public API.
+	it("keeps parseClassicyPixelArtSource out of the public codec", () => {
+		expect(codec).not.toHaveProperty("parseClassicyPixelArtSource");
+	});
+
+	it("draws nothing when given neither rows nor art", () => {
+		registerClassicySystemArt("platinum", {
+			controlStripTab: encodeClassicyPixelArtRows(["KKK"]),
+		});
+		const { container } = render(
+			// @ts-expect-error: one of `rows` or `art` is required
+			<ClassicyPixelArt />,
+		);
+		expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(
+			"0 0 0 0",
+		);
+		expect(container.querySelectorAll("rect")).toHaveLength(0);
+	});
+
+	it("renders registered art by key", () => {
+		registerClassicySystemArt("platinum", {
+			controlStripModuleArrow: encodeClassicyPixelArtRows(["K.", "KK"]),
+		});
+		const { container } = render(
+			<ClassicyPixelArt art="controlStripModuleArrow" />,
+		);
+		expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(
+			"0 0 2 2",
+		);
+		expect(container.querySelectorAll("rect")).toHaveLength(2);
+	});
+
+	it("takes exactly one of rows or art (rows win if a caller casts past the type)", () => {
+		registerClassicySystemArt("platinum", {
+			controlStripTab: encodeClassicyPixelArtRows(["KKK"]),
+		});
+		const { container } = render(
+			// @ts-expect-error: `rows` and `art` are mutually exclusive
+			<ClassicyPixelArt rows={["K"]} art="controlStripTab" />,
+		);
+		expect(container.querySelector("svg")?.getAttribute("viewBox")).toBe(
+			"0 0 1 1",
+		);
+	});
+
+	it("encodes rows as a data: source the asset registry accepts", () => {
+		// Every palette token, plus the characters encodeURIComponent leaves
+		// alone (`'`, `(`, `)`), which must not trip the quoted-url() check.
+		const rows = ["KW1234567", "bcdmn.", "'()"];
+		const src = encodeClassicyPixelArtRows(rows);
+		expect(src.startsWith(`data:${CLASSICY_PIXEL_ART_MIME},`)).toBe(true);
+		expect(src).not.toMatch(/["\\\r\n]/);
+		expect(isClassicyAssetSource(src)).toBe(true);
+		expect(decodeClassicyPixelArtRows(src)).toEqual(rows);
 	});
 });

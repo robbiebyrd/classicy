@@ -9,6 +9,7 @@ import {
 	useId,
 	useState,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
@@ -39,22 +40,26 @@ interface ClassicyColorPickerDialogProps {
 	 *  change elsewhere while the dialog stays open), stealing focus either
 	 *  way. */
 	appId?: string;
-	/** Shows the dialog. Each time it opens, the pending colour resets to `initialColor`. */
+	/** Shows the dialog. Each time it opens, the pending color resets to `initialColor`. */
 	open: boolean;
-	/** Colour the dialog opens with, as `0xRRGGBB`. Defaults to `0x000000`. */
+	/** Color the dialog opens with, as `0xRRGGBB`. Defaults to `0x000000`. */
 	initialColor?: number;
 	/** Palette for the Crayons panel. Defaults to `MAC_OS_8_CRAYONS`. */
 	crayons?: ClassicyCrayon[];
-	/** Called with the pending colour when OK is clicked. The caller closes the dialog. */
+	/** Called with the pending color when OK is clicked. The caller closes the dialog. */
 	onSelectFunc?: (color: number) => void;
 	/** Called by Cancel or the close box. The caller closes the dialog. */
 	onCancelFunc?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
  * The Mac OS 8 Color Picker dialog on its own: a modal, fixed-size
  * `ClassicyWindow` with a mode list (Crayons, RGB, HSV, HLS, CMYK — Up/Down
- * switch modes), the active panel, a preview of the pending colour and
+ * switch modes), the active panel, a preview of the pending color and
  * Cancel / OK buttons. The dialog is controlled by `open`; it never closes
  * itself, so close it from `onSelectFunc` and `onCancelFunc`.
  * `ClassicyColorPicker` wraps it in a swatch button — use the dialog directly
@@ -68,6 +73,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 	crayons = MAC_OS_8_CRAYONS,
 	onSelectFunc,
 	onCancelFunc,
+	className,
+	style,
 }) => {
 	const [pendingColor, setPendingColor] = useState(initialColor);
 	const listId = useId();
@@ -160,6 +167,8 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 			scrollable={false}
 			initialSize={[520, 430]}
 			initialPosition={[200, 100]}
+			className={className}
+			style={style}
 			onCloseFunc={() => onCancelFunc?.()}
 			analyticsExclude
 		>
@@ -189,7 +198,7 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 								aria-selected={m === mode}
 								className={classNames(
 									"classicyColorPickerModeListItem",
-									m === mode && "classicyColorPickerModeListItemSelected",
+									classicyStateClasses({ selected: m === mode }),
 								)}
 								onClick={() => setMode(m)}
 							>

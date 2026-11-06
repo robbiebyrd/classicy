@@ -62,6 +62,18 @@ describe("normalizeIconBalloonHelp", () => {
 		).toEqual({ title: "Foo", content: "Opens the editor." });
 	});
 
+	it("omits the title when there is no default title", () => {
+		const fromString = normalizeIconBalloonHelp("Opens the editor.", undefined);
+		expect(fromString).toEqual({ content: "Opens the editor." });
+		expect(fromString).not.toHaveProperty("title");
+		const fromObject = normalizeIconBalloonHelp(
+			{ content: "Opens the editor.", delay: 0 },
+			undefined,
+		);
+		expect(fromObject).toEqual({ content: "Opens the editor.", delay: 0 });
+		expect(fromObject).not.toHaveProperty("title");
+	});
+
 	it("returns undefined for undefined or empty input", () => {
 		expect(normalizeIconBalloonHelp(undefined, "Foo")).toBeUndefined();
 		expect(normalizeIconBalloonHelp("", "Foo")).toBeUndefined();

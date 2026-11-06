@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 /** One open shortcut target. `url` is the window identity. */
 export type WebViewerOpenUrl = {
@@ -39,5 +39,9 @@ export function isWebViewerData(
 export const WebViewerAppInfo = {
 	name: "Web Viewer",
 	id: "WebViewer.app",
-	icon: ClassicyIcons.applications.internetExplorer.globe,
+	get icon() {
+		return (
+			resolveClassicyAsset("icons", "applications.internetExplorer.globe") ?? ""
+		);
+	},
 };

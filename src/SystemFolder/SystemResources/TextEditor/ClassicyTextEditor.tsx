@@ -3,6 +3,7 @@ import classNames from "classnames";
 import {
 	type ChangeEvent,
 	type ChangeEventHandler,
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useCallback,
 	useEffect,
@@ -52,6 +53,10 @@ export interface EditorProps {
 	labelPosition?: ClassicyLabelPosition;
 	/** Fired with the native change event on every edit. */
 	onChangeFunc?: ChangeEventHandler<HTMLTextAreaElement>;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 const fontSizeClass: Record<ClassicyControlLabelSize, string> = {
@@ -96,6 +101,8 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	labelSize = "medium",
 	labelPosition = "above",
 	onChangeFunc,
+	className,
+	style,
 }) => {
 	// Controlled with internal state so the editor reflects later prefillValue/
 	// content changes. A bare <textarea defaultValue> is uncontrolled and snapshots
@@ -119,7 +126,9 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 			className={classNames(
 				"classicyTextEditorHolder",
 				labelPositionClass(labelPosition),
+				className,
 			)}
+			style={style}
 		>
 			{labelTitle && (
 				<ClassicyControlLabel

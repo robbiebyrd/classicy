@@ -2,6 +2,7 @@ import "./ClassicyControlGroup.scss";
 import classNames from "classnames";
 import type {
 	ComponentProps,
+	CSSProperties,
 	FC as FunctionalComponent,
 	ReactNode,
 } from "react";
@@ -57,6 +58,10 @@ type ClassicyControlGroupProps = {
 	backgroundColor?: string;
 	/** The grouped controls. */
 	children: ReactNode;
+	/** Extra class names, merged onto the root `<fieldset>` after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root `<fieldset>` after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -91,6 +96,8 @@ export const ClassicyControlGroup: FunctionalComponent<
 	layout = "default",
 	backgroundColor = "var(--color-system-03)",
 	children,
+	className,
+	style,
 }) => {
 	// Legend precedence: checkbox convenience > pop-up convenience > explicit
 	// ReactNode title > plain-text label. An empty label means "untitled".
@@ -118,7 +125,9 @@ export const ClassicyControlGroup: FunctionalComponent<
 					: "classicyControlGroupFieldsetPrimary",
 				hasLegend && "classicyControlGroupFieldsetLabeled",
 				columns && "classicyControlGroupFieldsetColumns",
+				className,
 			)}
+			style={style}
 		>
 			{hasLegend && (
 				<legend
@@ -143,6 +152,10 @@ type ClassicyControlGroupFormRowProps = {
 	justify?: "start" | "end";
 	/** The row's content. */
 	children: ReactNode;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -168,12 +181,14 @@ type ClassicyControlGroupFormRowProps = {
  */
 export const ClassicyControlGroupFormRow: FunctionalComponent<
 	ClassicyControlGroupFormRowProps
-> = ({ justify = "start", children }) => (
+> = ({ justify = "start", children, className, style }) => (
 	<div
 		className={classNames(
 			"classicyControlGroupFormRow",
 			justify === "end" && "classicyControlGroupFormRowEnd",
+			className,
 		)}
+		style={style}
 	>
 		{children}
 	</div>
@@ -182,6 +197,8 @@ export const ClassicyControlGroupFormRow: FunctionalComponent<
 type ClassicyControlGroupStackProps = {
 	/** Extra class on the stack (e.g. for the panel's own padding). */
 	className?: string;
+	/** Inline style on the stack. */
+	style?: CSSProperties;
 	/** The group boxes, top to bottom. */
 	children: ReactNode;
 };
@@ -202,8 +219,11 @@ type ClassicyControlGroupStackProps = {
  */
 export const ClassicyControlGroupStack: FunctionalComponent<
 	ClassicyControlGroupStackProps
-> = ({ className, children }) => (
-	<div className={classNames("classicyControlGroupStack", className)}>
+> = ({ className, style, children }) => (
+	<div
+		className={classNames("classicyControlGroupStack", className)}
+		style={style}
+	>
 		{children}
 	</div>
 );

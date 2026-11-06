@@ -13,10 +13,11 @@ import type {
 	ClassicyStore,
 	DeepPartial,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { mergeClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	useAppManager,
+	wasDefaultStateSeedApplied,
 	wasHydratedFromStorage,
+	withClassicyDefaultStateSeed,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -84,10 +85,22 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 }) => {
 	const seeded = useRef(false);
 	useEffect(() => {
-		if (seeded.current || !defaultState || wasHydratedFromStorage()) return;
+		// Once per page session: a remount (a route, a `key`, Fast Refresh, a
+		// second provider) must not seed again over the user's state.
+		if (
+			seeded.current ||
+			!defaultState ||
+			wasHydratedFromStorage() ||
+			wasDefaultStateSeedApplied()
+		) {
+			return;
+		}
 		seeded.current = true;
+		// Merged deeply over the live state (H-R17), a seed's theme tweaks on
+		// the defaults of the package it names and forked into a custom theme,
+		// so they persist (withClassicyDefaultStateSeed).
 		useAppManager.setState((s) =>
-			mergeClassicyState(s as ClassicyStore, defaultState),
+			withClassicyDefaultStateSeed(s as ClassicyStore, defaultState),
 		);
 	}, [defaultState]);
 

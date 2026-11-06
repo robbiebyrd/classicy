@@ -1,5 +1,6 @@
 import { type FC, useMemo, useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -28,9 +29,8 @@ import { DRIVE_SETUP_APP_ID } from "@/SystemFolder/ControlPanels/DriveSetup/Clas
 const APP_ID = DRIVE_SETUP_APP_ID;
 const APP_NAME = "Drive Setup";
 const WINDOW_ID = "DriveSetup_1";
-const appIcon = ClassicyIcons.system.drives.disk;
-
 export const ClassicyDriveSetup: FC = () => {
+	const appIcon = useClassicyAsset("icons", "system.drives.disk") ?? "";
 	const dispatch = useAppManagerDispatch();
 	const fs = useClassicyFileSystem();
 	const fsVersion = useAppManager(
@@ -38,6 +38,12 @@ export const ClassicyDriveSetup: FC = () => {
 	);
 	const desktopEventDispatch = useAppManagerDispatch();
 
+	// Display only: the app's id, record, stored menus and Quit keep APP_NAME
+	// and appIcon; the menu bars title the About item at render (K-R8).
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
 		APP_NAME,
@@ -128,9 +134,9 @@ export const ClassicyDriveSetup: FC = () => {
 			>
 				<ClassicyWindow
 					id={WINDOW_ID}
-					title={APP_NAME}
+					title={identity.name}
 					appId={APP_ID}
-					icon={appIcon}
+					icon={identity.icon}
 					closable={true}
 					resizable={false}
 					zoomable={false}

@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 import { ClassicyInput } from "./ClassicyInput";
 
@@ -52,4 +57,19 @@ export const Password: Story = {
 /** A disabled field: not editable, with field and label dimmed. */
 export const Disabled: Story = {
 	args: { id: "input-disabled", labelTitle: "Serial Number", disabled: true },
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyInput>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyInput {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

@@ -15,7 +15,9 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import type { ClassicyState } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyBevelButtonPopup } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopup";
 import type {
@@ -24,6 +26,7 @@ import type {
 	ClassicyBevelPopupSide,
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /** HIG bevel widths: small = 2px, medium = 3px, large = 4px. */
@@ -50,16 +53,6 @@ export type ClassicyBevelButtonMode = "push" | "toggle" | "radio" | "popup";
  */
 export type ClassicyBevelPopupTrigger = "click" | "hold";
 
-/** The seven HIG visual states, exposed on `data-state` for styling/testing. */
-export type ClassicyBevelButtonState =
-	| "off"
-	| "pressed-off"
-	| "on"
-	| "pressed-on"
-	| "mixed"
-	| "disabled-off"
-	| "disabled-on";
-
 /**
  * Stand-in for the user's double-click time, which separates a sticky click
  * from a held press. Mac OS 8's middle Double-Click Speed was 32 ticks
@@ -67,7 +60,10 @@ export type ClassicyBevelButtonState =
  */
 const DEFAULT_HOLD_DELAY_MS = 500;
 
-const MENU_ITEM_SELECTOR = 'li[role="menuitem"]:not(.classicyMenuItemDisabled)';
+// Plain and checkable items alike (ClassicyMenu renders a checkable item as
+// a menuitemcheckbox).
+const MENU_ITEM_SELECTOR =
+	'li:is([role="menuitem"],[role="menuitemcheckbox"]):not(.disabled)';
 
 type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**
@@ -142,7 +138,7 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	popupPlacement?: ClassicyBevelPopupSide;
 	/**
-	 * Line the surface up with the button's edge (`start`) or centre it on the
+	 * Line the surface up with the button's edge (`start`) or center it on the
 	 * button (`center`, as Figure 2-16's slider sits on its module). Defaults
 	 * to `start`.
 	 */
@@ -150,9 +146,13 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	/**
 	 * Pixels to move each edge of the rect the surface is placed against, inward
 	 * positive. The Control Strip uses it so a module's surface overlaps the
-	 * strip and meets the module's separator, as in Figure 6-15.
+	 * strip and meets the module's separator, as in Figure 6-15. A function is
+	 * called with the button each time the surface opens, so an inset can be
+	 * read from the theme's variables once per opening, never per render.
 	 */
-	popupAnchorInset?: Partial<ClassicyBevelPopupRect>;
+	popupAnchorInset?:
+		| Partial<ClassicyBevelPopupRect>
+		| ((button: HTMLElement) => Partial<ClassicyBevelPopupRect>);
 	/**
 	 * The menu this button reveals (HIGOS8 Figure 2-15). Items take the full
 	 * `ClassicyMenuItem` shape, so `checked` marks the current choice.
@@ -193,17 +193,24 @@ const bevelWidthClass = {
 const hasRenderableContent = (children: unknown): boolean =>
 	children != null && children !== "" && children !== false;
 
-const computeState = (
+// The HIG's seven visual states as the shared bare state classes. Disabled
+// outranks mixed, and mixed outranks pressed, so a rule keyed on one class
+// never has to unpick another; `checked` (on) combines with any of them.
+// `open` marks a showing pop-up surface; the button also reads as `pressed`
+// while it is down, so the caller passes `pressed || popupOpen` for `pressed`.
+const bevelButtonStates = (
 	disabled: boolean,
 	mixed: boolean,
 	pressed: boolean,
 	on: boolean,
-): ClassicyBevelButtonState => {
-	if (disabled) return on ? "disabled-on" : "disabled-off";
-	if (mixed) return "mixed";
-	if (pressed) return on ? "pressed-on" : "pressed-off";
-	return on ? "on" : "off";
-};
+	popupOpen: boolean,
+): Partial<Record<ClassicyState, boolean>> => ({
+	disabled,
+	mixed: mixed && !disabled,
+	pressed: pressed && !disabled && !mixed,
+	checked: on,
+	open: popupOpen,
+});
 
 /**
  * The Platinum bevel button (HIGOS8 Ch.2 "Bevel Buttons", p.29): a
@@ -215,20 +222,22 @@ const computeState = (
  * `ClassicyButton`. It renders a real `<button>` and passes other `<button>`
  * attributes through.
  *
- * All seven HIG states are exposed on `data-state` (`off`, `pressed-off`,
- * `on`, `pressed-on`, `mixed`, `disabled-off`, `disabled-on`). Presses play
- * the theme's click sounds and are reported to analytics. A radio button only
- * ever turns itself on: mutual exclusion is the caller's job, by wiring a
- * group's `on`/`onChangeFunc` to one shared value.
+ * The seven HIG states are exposed as the shared bare state classes beside
+ * the root (`pressed`, `checked`, `mixed`, `disabled`, and `open` while its
+ * pop-up shows). Presses play the click sounds (the appearance package's
+ * press/release hooks) and are reported to analytics. A radio button only ever
+ * turns itself on: mutual exclusion is the caller's job, by wiring a group's
+ * `on`/`onChangeFunc` to one shared value.
  *
  * Given `menuItems` (a Platinum menu, HIGOS8 Figure 2-15) or `popupContent`
  * (any other surface, e.g. `ClassicyPopUpSlider`, Figure 2-16), it opens that
  * surface in a fixed-position portal below or to the right of itself
- * (pp.32–33), flipping when there is no room, and plays the menu-open sound.
+ * (pp.32–33), flipping when there is no room, and plays the menu-open sound
+ * (the appearance package's open hook).
  * With the `click` trigger (default in `popup` mode) a quick click leaves the
  * menu open and a press held past `popupHoldDelayMs` is a press-drag-release
  * menu; with `hold` (default in other modes) a click keeps the button's own
- * behaviour and only a long press shows the surface. Enter/Space toggles a
+ * behavior and only a long press shows the surface. Enter/Space toggles a
  * click-trigger surface and Down Arrow opens either kind with the first item
  * focused; Escape, an outside press, scrolling or resizing closes it.
  *
@@ -268,9 +277,9 @@ export const ClassicyBevelButton: FunctionalComponent<
 	"aria-haspopup": callerAriaHasPopup,
 	"aria-expanded": callerAriaExpanded,
 	"aria-controls": callerAriaControls,
+	style,
 	...rest
 }) => {
-	const player = useSoundDispatch();
 	const { track } = useClassicyAnalytics();
 	const inToolbar = useContext(ClassicyButtonToolbarContext);
 	// Inside a toolbar an icon-only control takes the square box by default;
@@ -305,12 +314,46 @@ export const ClassicyBevelButton: FunctionalComponent<
 	const releaseListenerRef = useRef<
 		((e: globalThis.MouseEvent) => void) | null
 	>(null);
+	// A press watches the pointer stream until it is released (see
+	// losePress); one that may open the surface, until the surface is done
+	// with it.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	// Ends the mouse press under way, which lasts from its mousedown to the
+	// next mouseup anywhere; null when there is none.
+	const endPressRef = useRef<(() => void) | null>(null);
+	// The mouseup that reported a press's release over the button, so the
+	// button's own mouseup handler does not report it again.
+	const releasedOverRef = useRef<Event | null>(null);
+	const appearance = useClassicyAppearance(
+		"BevelButton",
+		bevelButtonStates(
+			disabled,
+			mixed,
+			pressed || popupOpen,
+			onState,
+			popupOpen,
+		),
+		buttonRef,
+	);
+	// `close` follows the surface going away, whichever path dismissed it.
+	const wasPopupOpenRef = useRef(popupOpen);
+	const emitAppearance = appearance.emit;
+	useEffect(() => {
+		if (wasPopupOpenRef.current === popupOpen) return;
+		wasPopupOpenRef.current = popupOpen;
+		if (!popupOpen) emitAppearance("close", withClassicyAppearanceInput());
+	}, [popupOpen, emitAppearance]);
 
 	const clearHoldTimer = useCallback(() => {
 		if (holdTimerRef.current !== null) {
 			clearTimeout(holdTimerRef.current);
 			holdTimerRef.current = null;
 		}
+	}, []);
+
+	const stopWatchingPointerStream = useCallback(() => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	}, []);
 
 	const detachReleaseListener = useCallback(() => {
@@ -321,33 +364,40 @@ export const ClassicyBevelButton: FunctionalComponent<
 	}, []);
 
 	const openPopup = (byKeyboard: boolean) => {
-		const rect = buttonRef.current?.getBoundingClientRect();
-		if (!rect) return;
+		const button = buttonRef.current;
+		const rect = button?.getBoundingClientRect();
+		if (!button || !rect) return;
+		const inset =
+			typeof popupAnchorInset === "function"
+				? popupAnchorInset(button)
+				: popupAnchorInset;
 		setFocusFirstItem(byKeyboard);
 		setPopupAnchor({
-			top: rect.top + (popupAnchorInset?.top ?? 0),
-			bottom: rect.bottom - (popupAnchorInset?.bottom ?? 0),
-			left: rect.left + (popupAnchorInset?.left ?? 0),
-			right: rect.right - (popupAnchorInset?.right ?? 0),
+			top: rect.top + (inset?.top ?? 0),
+			bottom: rect.bottom - (inset?.bottom ?? 0),
+			left: rect.left + (inset?.left ?? 0),
+			right: rect.right - (inset?.right ?? 0),
 		});
-		player({ type: "ClassicySoundPlay", sound: "ClassicyMenuOpen" });
+		appearance.emit("open", withClassicyAppearanceInput({ trigger }));
 		track("open", { type: "ClassicyBevelButton", mode, trigger });
 	};
 
 	const closePopup = useCallback(() => {
+		stopWatchingPointerStream();
 		detachReleaseListener();
 		setPopupAnchor(null);
 		setFocusFirstItem(false);
 		// Hand focus back if it was inside the surface (keyboard use, Escape).
 		const surface = document.getElementById(popupId);
 		if (surface?.contains(document.activeElement)) buttonRef.current?.focus();
-	}, [detachReleaseListener, popupId]);
+	}, [detachReleaseListener, stopWatchingPointerStream, popupId]);
 
 	// Standard (non-sticky) menu semantics for a press that was held: releasing
 	// over an item chooses it, releasing anywhere else closes the menu.
 	const listenForRelease = (pressedAt: number) => {
 		detachReleaseListener();
 		const onRelease = (e: globalThis.MouseEvent) => {
+			stopWatchingPointerStream();
 			detachReleaseListener();
 			const target = e.target instanceof Element ? e.target : null;
 			// mouseup reaches the document before the click it produces. Only a
@@ -372,13 +422,38 @@ export const ClassicyBevelButton: FunctionalComponent<
 		() => () => {
 			clearHoldTimer();
 			detachReleaseListener();
+			stopWatchingPointerStream();
+			endPressRef.current?.();
 		},
-		[clearHoldTimer, detachReleaseListener],
+		[clearHoldTimer, detachReleaseListener, stopWatchingPointerStream],
 	);
+
+	// The pointer stream lost mid-press (the window blurs, a pointercancel,
+	// the page is hidden): the press is canceled, as a file drag is, since a
+	// release at the pointer's return spot would choose whatever is there. A
+	// pending hold never opens the surface, and a menu the press is tracking
+	// closes with nothing chosen. A sticky menu, left open by a click that
+	// already ended, is not a press and stays. The press's `press` ends in a
+	// `release` that says it was lost (and so canceled), the only one it
+	// gets, before the menu's `close`.
+	const losePress = () => {
+		const pressLasting = endPressRef.current !== null;
+		endPressRef.current?.();
+		stopWatchingPointerStream();
+		clearHoldTimer();
+		setPressed(false);
+		suppressClickRef.current = false;
+		if (releaseListenerRef.current) closePopup();
+		if (pressLasting)
+			appearance.emit("release", {
+				input: "pointer",
+				lost: true,
+				canceled: true,
+			});
+	};
 
 	const showArrow =
 		(mode === "popup" || hasSurface) && popupArrow !== undefined;
-	const state = computeState(disabled, mixed, pressed || popupOpen, onState);
 
 	const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
 		if (disabled) return;
@@ -386,6 +461,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 			suppressClickRef.current = false;
 			return;
 		}
+		appearance.emit("click", withClassicyAppearanceInput());
 		// A click with no pointer behind it (detail 0) is Enter or Space: with a
 		// click trigger that is how the keyboard opens and closes the surface.
 		if (hasSurface && trigger === "click" && e.detail === 0) {
@@ -401,6 +477,49 @@ export const ClassicyBevelButton: FunctionalComponent<
 		}
 		track("click", { type: "ClassicyBevelButton", mode, on: next, disabled });
 		if (onClickFunc) onClickFunc(e);
+	};
+
+	// Follows a press to the next mouseup anywhere (in the capture phase, so
+	// a target that stops it cannot hide it), watching the pointer stream
+	// meanwhile. Run after onPopupMouseDown, so a press that closes a sticky
+	// surface is watched too. That mouseup cancels a hold still pending,
+	// wherever it lands: a press let go before its delay is over opens
+	// nothing later. A press with no surface to track (none, one that closed
+	// it, or a hold it just canceled) stops watching the pointer stream at
+	// that mouseup; one whose surface is open leaves that to the surface's
+	// own release.
+	// That mouseup ends the press in its one `release`: over the button, or
+	// let go elsewhere (`canceled`: dragged off, a held menu let go over an
+	// item or outside). It comes before any of the mouseup's own handlers,
+	// so before a held menu chooses the item and before its `close`, as a
+	// lost release does.
+	const beginPress = () => {
+		endPressRef.current?.();
+		stopWatchingPointerStream();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(losePress);
+		const onUp = (e: globalThis.MouseEvent) => {
+			endPressRef.current?.();
+			clearHoldTimer();
+			if (!releaseListenerRef.current) stopWatchingPointerStream();
+			const over =
+				e.target instanceof Node && !!buttonRef.current?.contains(e.target);
+			if (over) {
+				releasedOverRef.current = e;
+				appearance.emit("release", { lost: false, canceled: false });
+			} else {
+				appearance.emit("release", {
+					input: "pointer",
+					lost: false,
+					canceled: true,
+				});
+			}
+		};
+		document.addEventListener("mouseup", onUp, true);
+		endPressRef.current = () => {
+			document.removeEventListener("mouseup", onUp, true);
+			endPressRef.current = null;
+		};
 	};
 
 	const onPopupMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
@@ -438,12 +557,12 @@ export const ClassicyBevelButton: FunctionalComponent<
 		<>
 			{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is only set when role="radio" (mode="radio"); the role is dynamic so static analysis can't prove it */}
 			<button
+				{...appearance.attrs}
 				{...rest}
 				ref={buttonRef}
 				type="button"
 				tabIndex={0}
 				disabled={disabled}
-				data-state={state}
 				data-mode={mode}
 				aria-pressed={
 					mode === "toggle" || mode === "push"
@@ -469,6 +588,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 				}
 				className={classNames(
 					"classicyBevelButton",
+					appearance.className,
 					isSquare && "classicyBevelButtonSquare",
 					bevelWidthClass[bevelWidth],
 					`classicyBevelButtonMode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`,
@@ -476,22 +596,25 @@ export const ClassicyBevelButton: FunctionalComponent<
 					// className above would otherwise silently overwrite.
 					className,
 				)}
+				style={appearance.style ? { ...appearance.style, ...style } : style}
 				onClick={onHandleFunc}
 				onKeyDown={onKeyDown}
 				onMouseDown={(e) => {
 					if (disabled) return;
 					setPressed(true);
-					player({
-						type: "ClassicySoundPlay",
-						sound: "ClassicyButtonClickDown",
-					});
+					appearance.emit("press");
 					onPopupMouseDown(e);
+					beginPress();
 				}}
-				onMouseUp={() => {
+				onMouseUp={(e) => {
 					if (disabled) return;
+					stopWatchingPointerStream();
 					clearHoldTimer();
 					setPressed(false);
-					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
+					// A release here with no press of its own behind it (pressed
+					// elsewhere); the press's own release was reported by beginPress.
+					if (releasedOverRef.current === e.nativeEvent) return;
+					appearance.emit("release", { lost: false, canceled: false });
 				}}
 				// If the pointer leaves while held, a push button reverts to off. A
 				// pending hold keeps running: dragging off toward the menu is part of
@@ -519,9 +642,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 								: "classicyBevelButtonArrowVertical",
 						)}
 						aria-hidden={true}
-					>
-						{popupDirection === "horizontal" ? "▸" : "▾"}
-					</span>
+					/>
 				)}
 			</button>
 			{popupAnchor && (

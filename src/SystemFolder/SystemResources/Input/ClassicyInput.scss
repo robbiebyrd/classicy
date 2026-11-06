@@ -1,4 +1,3 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
 @use 'sass:list';
 
 
@@ -18,8 +17,8 @@
   // frame's shape. (Previously a border-radius rounded the corners on focus and
   // an invalid `outline` shorthand rendered nothing.)
   &:focus-visible {
-    box-shadow: 0 0 0 calc(var(--window-border-size) * 2) var(--color-theme-04),
-    0 0 var(--window-border-size) calc(var(--window-border-size) * 2) var(--color-theme-04);
+    box-shadow: 0 0 0 var(--control-frame-width) var(--color-theme-04),
+    0 0 var(--window-border-size) var(--control-frame-width) var(--color-theme-04);
   }
 }
 

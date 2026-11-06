@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-table";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type KeyboardEvent,
 	type ReactElement,
 	type ReactNode,
@@ -20,14 +21,21 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const arrowUpIcon = ClassicyIcons.ui.menuDropdownArrowUp;
+import type {
+	ClassicyAppearanceEmitDetail,
+	ClassicyAppearanceEvent,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
  * first) can draw its own disclosure affordance and depth indent. All-zero /
- * no-op when the table has no `getSubRows`.
+ * no-op when the table has no `getSubRows`. Also carries `emitDrag`, for a
+ * cell that starts a drag of its own.
  */
 export type ClassicyTableCellContext = {
 	/** Nesting level of the row; 0 for top-level rows. */
@@ -38,6 +46,22 @@ export type ClassicyTableCellContext = {
 	isExpanded: boolean;
 	/** Expand or collapse the row (fires `onToggleRow`). */
 	toggle: () => void;
+	/**
+	 * Reports a drag the cell starts (the file browser's list view drags rows
+	 * as Finder items) to the active Appearance Package: the table emits
+	 * `dragStart` or `dragEnd` with `detail` from its own root. Pair every
+	 * `dragStart` with exactly one `dragEnd`, and keep user data (paths,
+	 * names) out of `detail`. A `dragEnd` must say whether the pointer stream
+	 * was lost (`ClassicyAppearanceDragEnd`), as every package `dragEnd` does.
+	 * Always set by `ClassicyTable`; optional so a context built by hand (a
+	 * column's `render` under test) need not supply it.
+	 */
+	emitDrag?: <
+		E extends Extract<ClassicyAppearanceEvent, "dragStart" | "dragEnd">,
+	>(
+		event: E,
+		...detail: ClassicyAppearanceEmitDetail<E>
+	) => void;
 };
 
 export type ClassicyTableColumn<T> = {
@@ -89,6 +113,8 @@ type ClassicyTableProps<T> = {
 	stickyHeader?: boolean;
 	/** Extra class(es) for the scrolling container. */
 	className?: string;
+	/** Inline style for the scrolling container. */
+	style?: CSSProperties;
 	/** Extra class(es) for a row — e.g. legacy class names a consumer's CSS keys on. */
 	rowClassName?: (row: T, isSelected: boolean) => string | undefined;
 	/**
@@ -165,6 +191,7 @@ export function ClassicyTable<T>({
 	defaultSort,
 	stickyHeader = true,
 	className,
+	style,
 	rowClassName,
 	getSubRows,
 	rowCanExpand,
@@ -173,6 +200,7 @@ export function ClassicyTable<T>({
 	selectionApiRef,
 	containerRef: externalContainerRef,
 }: ClassicyTableProps<T>): ReactElement {
+	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
 		defaultSort ? [{ id: defaultSort.columnId, desc: !!defaultSort.desc }] : [],
 	);
@@ -212,6 +240,8 @@ export function ClassicyTable<T>({
 		},
 		[externalContainerRef],
 	);
+	// The container had no state class; `selected` stays on rows and headers.
+	const appearance = useClassicyAppearance("Table", {}, containerRef);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -255,6 +285,43 @@ export function ClassicyTable<T>({
 		columnResizeMode: "onChange",
 	});
 
+	// A column resize runs inside TanStack, on its own document listeners,
+	// with no cancel API: a lost pointer stream (blur, pointercancel, a hidden
+	// page) would leave the column following the pointer with no button held.
+	// It is ended through TanStack's own release path instead, a `mouseup` or
+	// `touchend` on the document, which detaches its listeners and resets
+	// `columnSizingInfo`. The release carries no position, so TanStack skips
+	// its final offset update and the column keeps the width the last move
+	// gave it (onChange mode has already applied it): it ends where it is, as
+	// a window resize or a split view divider does.
+	const resizeInputRef = useRef<"mouse" | "touch" | undefined>(undefined);
+	const endColumnResize = useCallback(() => {
+		const input = resizeInputRef.current;
+		// One loss can fire more than one event (hiding a tab also blurs).
+		if (!input) return;
+		resizeInputRef.current = undefined;
+		const release = new Event(input === "touch" ? "touchend" : "mouseup");
+		if (input === "touch") {
+			Object.defineProperty(release, "touches", { value: [] });
+		}
+		document.dispatchEvent(release);
+	}, []);
+	const resizingColumn = table.getState().columnSizingInfo.isResizingColumn;
+	useEffect(() => {
+		if (!resizingColumn) return;
+		const stopWatchingPointerStream =
+			onClassicyPointerStreamLost(endColumnResize);
+		return () => {
+			stopWatchingPointerStream();
+			// Still resizing here means the table is unmounting mid-resize:
+			// end TanStack's gesture too, so its listeners do not outlive it.
+			// After a release, the render that ran this already reads false.
+			if (table.getState().columnSizingInfo.isResizingColumn) {
+				endColumnResize();
+			}
+		};
+	}, [resizingColumn, table, endColumnResize]);
+
 	// Wrapped in useCallback (rather than left as a plain function) so
 	// `selectAll` below gets a stable dependency — otherwise the effect that
 	// assigns `selectionApiRef` would re-run on every render.
@@ -281,22 +348,30 @@ export function ClassicyTable<T>({
 		};
 	}, [selectionApiRef, selectAll]);
 
-	// Selection semantics over the CURRENT visual (sorted) order.
+	// Selection semantics over the CURRENT visual (sorted) order. Clicks and
+	// the keyboard (arrows, Home/End, type-select) all select through here.
 	const applySelection = (rowId: string, mods: SelectionModifiers) => {
 		if (selectionMode === "none") return;
 		const visual = table.getRowModel().rows;
+		const emitSelect = (selected: boolean) =>
+			appearance.emit(
+				"select",
+				withClassicyAppearanceInput({ rowId, selected }),
+			);
 		if (selectionMode === "multi") {
 			if (mods.shiftKey && anchorId.current) {
 				const ai = visual.findIndex((r) => r.id === anchorId.current);
 				const bi = visual.findIndex((r) => r.id === rowId);
 				if (ai >= 0 && bi >= 0) {
 					const [from, to] = ai <= bi ? [ai, bi] : [bi, ai];
+					emitSelect(true);
 					commit(visual.slice(from, to + 1).map((r) => r.id));
 					return; // the anchor survives so the range can keep pivoting
 				}
 			}
 			if (mods.metaKey || mods.ctrlKey) {
 				anchorId.current = rowId;
+				emitSelect(!effectiveSelected.includes(rowId));
 				commit(
 					effectiveSelected.includes(rowId)
 						? effectiveSelected.filter((v) => v !== rowId)
@@ -306,6 +381,7 @@ export function ClassicyTable<T>({
 			}
 		}
 		anchorId.current = rowId;
+		emitSelect(true);
 		commit([rowId]);
 	};
 
@@ -442,10 +518,16 @@ export function ClassicyTable<T>({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
 		<div
+			{...appearance.attrs}
 			ref={setContainerRef}
 			tabIndex={selectionMode === "none" ? undefined : 0}
 			onKeyDown={handleKeyDown}
-			className={classNames("classicyTableContainer", className)}
+			className={classNames(
+				"classicyTableContainer",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
 		>
 			<table className="classicyTable">
 				<thead
@@ -474,7 +556,7 @@ export function ClassicyTable<T>({
 										className={classNames(
 											"classicyTableColumnHeader",
 											header.column.getIsResizing() ? "isResizing" : "",
-											isSorted ? "classicyTableColumnHeaderSelected" : "",
+											classicyStateClasses({ selected: !!isSorted }),
 										)}
 										onClick={() => {
 											if (!header.column.getCanSort()) {
@@ -482,14 +564,15 @@ export function ClassicyTable<T>({
 											}
 											// First click sorts ascending; clicking the sorted
 											// column flips it (same cycle as the Finder view).
-											if (
+											const desc = !(
 												header.column.getIsSorted() === false ||
 												header.column.getIsSorted() === "desc"
-											) {
-												header.column.toggleSorting(false, false);
-											} else {
-												header.column.toggleSorting(true, false);
-											}
+											);
+											header.column.toggleSorting(desc, false);
+											appearance.emit("change", {
+												columnId: header.id,
+												desc,
+											});
 										}}
 									>
 										<div className="classicyTableHeaderCellContent">
@@ -511,8 +594,14 @@ export function ClassicyTable<T>({
 											{header.column.getCanResize() && (
 												// biome-ignore lint/a11y/noStaticElementInteractions: resize handle requires mouse events only; no keyboard equivalent
 												<div
-													onMouseDown={header.getResizeHandler()}
-													onTouchStart={header.getResizeHandler()}
+													onMouseDown={(e) => {
+														resizeInputRef.current = "mouse";
+														header.getResizeHandler()(e);
+													}}
+													onTouchStart={(e) => {
+														resizeInputRef.current = "touch";
+														header.getResizeHandler()(e);
+													}}
 													className={classNames(
 														"resizer",
 														header.column.getIsResizing() ? "isResizing" : "",
@@ -534,9 +623,9 @@ export function ClassicyTable<T>({
 							data-selected={effectiveSelected.includes(row.id) || undefined}
 							className={classNames(
 								"classicyTableRow",
-								effectiveSelected.includes(row.id)
-									? "classicyTableRowSelected"
-									: null,
+								classicyStateClasses({
+									selected: effectiveSelected.includes(row.id),
+								}),
 								rowClassName?.(
 									row.original,
 									effectiveSelected.includes(row.id),
@@ -565,6 +654,7 @@ export function ClassicyTable<T>({
 												canExpand: row.getCanExpand(),
 												isExpanded: row.getIsExpanded(),
 												toggle: () => toggleRow(row.id),
+												emitDrag: appearance.emit,
 											})
 										) : (
 											<span>{`${cell.getValue() ?? ""}`}</span>

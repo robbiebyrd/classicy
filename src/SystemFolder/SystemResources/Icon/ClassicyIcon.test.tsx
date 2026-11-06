@@ -63,3 +63,24 @@ describe("ClassicyIcon snapping", () => {
 		expect(icon.style.top).toBe("50px");
 	});
 });
+
+describe("ClassicyIcon consumer style", () => {
+	// Stacking belongs to the icon states (ClassicyIcon.scss: 10, dragging
+	// 500), which no longer win by !important; a consumer zIndex is dropped.
+	it("drops a consumer zIndex and keeps the rest", () => {
+		render(
+			<ClassicyIcon
+				appId={"Test.app"}
+				name={"thing.pdf"}
+				icon={"data:image/gif;base64,R0lGODlhAQABAAAAACw="}
+				initialPosition={[50, 50]}
+				style={{ zIndex: 7, opacity: 0.5 }}
+			/>,
+		);
+		const icon = screen
+			.getByRole("img")
+			.closest(".classicyIcon") as HTMLElement;
+		expect(icon.style.zIndex).toBe("");
+		expect(icon.style.opacity).toBe("0.5");
+	});
+});

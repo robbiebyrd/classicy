@@ -75,8 +75,8 @@ describe("ClassicyCheckbox", () => {
 		expect(screen.getByText("Accept terms")).toBeInTheDocument();
 	});
 
-	it("mixed state adds classicyCheckboxMixed class", () => {
+	it("mixed state adds mixed class", () => {
 		render(<ClassicyCheckbox id="cb-1" mixed={true} />);
-		expect(screen.getByRole("checkbox")).toHaveClass("classicyCheckboxMixed");
+		expect(screen.getByRole("checkbox")).toHaveClass("mixed");
 	});
 });

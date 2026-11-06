@@ -1,7 +1,11 @@
+// Platinum registered, its sound pack included, which the themes used here
+// name (`sound.pack` must name a registered pack).
+import { platinumJson } from "@classicy/appearance-platinum";
 import { describe, expect, it } from "vitest";
 import { windowsRecord } from "@/__tests__/windowsRecord";
 import {
 	type ClassicyTheme,
+	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
@@ -9,6 +13,10 @@ import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/App
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { classicyDesktopEventHandler } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import {
+	CLASSICY_SYSTEM_MENU_APP_PREFIX,
+	withClassicyAppIdentityMenuItems,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 function makeStore(
@@ -71,6 +79,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -86,6 +95,7 @@ function makeStoreForDesktop(): ClassicyStore {
 	ds.System.Manager.Appearance.activeTheme = {
 		id: "test-theme",
 		name: "Test",
+		package: "platinum",
 		color: {
 			outline: 0,
 			select: 0,
@@ -134,7 +144,7 @@ function makeStoreForDesktop(): ClassicyStore {
 			backgroundRepeat: "no-repeat",
 			backgroundPosition: "center",
 		},
-		sound: { name: "platinum", disabled: [] },
+		sound: { pack: "platinum", disabled: [] },
 	};
 	ds.System.Manager.Appearance.availableThemes = [
 		ds.System.Manager.Appearance.activeTheme,
@@ -170,6 +180,22 @@ describe("classicyDesktopEventHandler — ClassicyDesktopAppMenuAdd", () => {
 
 		expect(ds.System.Manager.Desktop.systemMenu).toHaveLength(1);
 		expect(ds.System.Manager.Desktop.systemMenu[0].title).toBe("Notes Updated");
+	});
+
+	it("ids the entry with the shared prefix the Apple menu resolves display names by", () => {
+		const ds = makeStoreForDesktop();
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopAppMenuAdd",
+			app: { id: "Notes.app", name: "Notes", icon: "notes.png" },
+		});
+
+		const [entry] = ds.System.Manager.Desktop.systemMenu;
+		expect(entry.id).toBe(`${CLASSICY_SYSTEM_MENU_APP_PREFIX}Notes.app`);
+		const [shown] =
+			withClassicyAppIdentityMenuItems(ds.System.Manager.Desktop.systemMenu, {
+				"Notes.app": { name: "Jottings" },
+			}) ?? [];
+		expect(shown.title).toBe("Jottings");
 	});
 });
 
@@ -409,8 +435,35 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 			availableThemes: newThemes,
 		});
 
-		expect(ds.System.Manager.Appearance.availableThemes).toBe(newThemes);
-		expect(ds.System.Manager.Appearance.availableThemes).toHaveLength(2);
+		// The fixture carries the core five only, so each theme is completed
+		// with Platinum's knob families (H 2.1) and the list is a copy.
+		const loaded = ds.System.Manager.Appearance.availableThemes ?? [];
+		expect(loaded).toHaveLength(2);
+		const { window, control, button, groupBox, layout, ...knobFamilies } =
+			platinumJson.defaults.measurements;
+		loaded.forEach((theme, i) => {
+			expect(theme).toEqual({
+				...newThemes[i],
+				measurements: { ...newThemes[i].measurements, ...knobFamilies },
+			});
+		});
+	});
+
+	// Each theme is schema-validated, so the store holds the parsed copies,
+	// never the caller's objects (getAllThemes() hands out shared ones).
+	it("stores validated copies equal to complete themes", () => {
+		const ds = makeStoreForDesktop();
+		const newThemes = [getTheme("default"), getTheme("azul")];
+		classicyDesktopEventHandler(ds, {
+			type: "ClassicyDesktopLoadThemes",
+			availableThemes: newThemes,
+		});
+		const loaded = ds.System.Manager.Appearance.availableThemes ?? [];
+		expect(loaded).toEqual(newThemes);
+		expect(loaded).not.toBe(newThemes);
+		loaded.forEach((theme, i) => {
+			expect(theme).not.toBe(newThemes[i]);
+		});
 	});
 });
 

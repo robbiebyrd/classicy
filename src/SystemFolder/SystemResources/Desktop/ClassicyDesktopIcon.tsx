@@ -1,9 +1,14 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
 import {
 	type ClassicyIconBalloonHelp,
@@ -11,13 +16,20 @@ import {
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
+import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
 	type ClassicyFileDropDestination,
 	startClassicyFileDrag,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
+import {
+	classicyFileDragAppearanceCallbacks,
+	useClassicyFileDragEndOnUnmount,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources/File/ClassicyFileDragOutline";
+import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 import "./ClassicyDesktopIcon.scss";
@@ -28,6 +40,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	memo,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -41,11 +54,18 @@ interface ClassicyDesktopIconProps {
 	 * `${appId}.shortcut`.
 	 */
 	appId: string;
-	/** App name, used as the label when `label` is unset and as the image alt text. */
+	/**
+	 * App name, used as the label when `label` is unset and as the image alt
+	 * text; for an `app_shortcut`, an Appearance Package's `apps` override is
+	 * shown instead. The open action and analytics always carry this name.
+	 */
 	appName: string;
-	/** Icon image (URL or data URI). */
+	/**
+	 * Icon image (URL or data URI); for an `app_shortcut`, an Appearance
+	 * Package's `apps` override is shown instead.
+	 */
 	icon: string;
-	/** Text under the icon. Defaults to `appName`. */
+	/** Text under the icon. Defaults to the displayed app name. */
 	label?: string;
 	/**
 	 * Icon kind: `drive`, `directory`, `app_shortcut`, `shortcut`, `trash`,
@@ -76,10 +96,12 @@ interface ClassicyDesktopIconProps {
 	 */
 	contextMenu?: ClassicyMenuItem[];
 	/**
-	 * Balloon help, `{ title?, content, position?, delay? }`. When omitted,
-	 * `trash` and `drive` icons use stock copy titled with the label; other
-	 * kinds show no balloon. (`ClassicyApp` fills this from its
-	 * `desktopIconBalloonHelp` or registered manifest description.)
+	 * Balloon help, `{ title?, content, position?, delay? }`, titled with the
+	 * label (or the displayed app name) when it has no title. When omitted, an
+	 * `app_shortcut` shows its app's description (an Appearance Package's
+	 * `apps` override, else the registered manifest's), `trash` and `drive`
+	 * icons use stock copy titled with the label, and other kinds show no
+	 * balloon. (`ClassicyApp` fills this from its `desktopIconBalloonHelp`.)
 	 */
 	balloonHelp?: ClassicyIconBalloonHelp;
 	/**
@@ -105,6 +127,16 @@ interface ClassicyDesktopIconProps {
 	 * addition to `onClickFunc`/`event`. `ClassicyDesktop` supplies it.
 	 */
 	onOpenFilePath?: (path: string) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/**
+	 * Inline style, merged onto the root element after the component's own, so
+	 * its keys win. A `left`/`top` here overrides the icon's stored desktop
+	 * location, so the icon no longer follows a drag.
+	 * Stacking belongs to the icon states (ClassicyDesktopIcon.scss: 10, dragging 500), so a
+	 * `zIndex` here is dropped.
+	 */
+	style?: CSSProperties;
 }
 
 /** File-backed icons drag as files; drives and the Trash only take drops. */
@@ -121,7 +153,9 @@ const draggedAsFile = (kind: string, filePath: string | undefined) =>
  * Icons whose `kind` is `app_shortcut` or `shortcut` — every icon `ClassicyApp`
  * registers — render the alias arrow over the bottom-left corner and an
  * italic label (`isAliasKind`); system kinds get neither. Swap the arrow art by
- * registering your own `system.alias` icon with `registerClassicyIcons`.
+ * registering your own `aliasBadge` with
+ * `registerClassicySystemArt("<package>", { aliasBadge })`
+ * (read at render time, so a later registration takes effect).
  *
  * You rarely render this directly: `ClassicyDesktop` draws one for each record
  * in `System.Manager.Desktop.icons`, which `ClassicyApp` and the
@@ -156,7 +190,24 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			filePath,
 			onMoveFilePaths,
 			onOpenFilePath,
+			className,
+			style,
 		}) => {
+			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+			// How the active package shows the app. Only an app shortcut stands
+			// for its app: drives share Finder.app's id, and other kinds name
+			// their own target.
+			const isAppShortcut = kind === APP_SHORTCUT_ICON_KIND;
+			const identity = useClassicyAppIdentity(
+				isAppShortcut ? appId : undefined,
+				{
+					name: appName,
+					icon,
+					description: isAppShortcut
+						? getAppManifest(appId)?.description
+						: undefined,
+				},
+			);
 			const [clickPosition, setClickPosition] = useState<[number, number]>([
 				0, 0,
 			]);
@@ -165,6 +216,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
+			);
+			// A click on a selected icon still changes the selection when it
+			// collapses a multiple selection down to this icon.
+			const isMultipleSelection = useAppManager(
+				(s) => (s.System.Manager.Desktop.selectedIcons?.length ?? 0) > 1,
 			);
 			const iconLocation = useAppManager((s) => {
 				const icon = s.System.Manager.Desktop.icons.find(
@@ -196,11 +252,32 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const { showContextMenu } = useClassicyContextualMenu();
 
 			const iconRef = useRef<HTMLDivElement>(null);
+			// The press that selects an icon reports it; the click ending that
+			// press must not report it again.
+			const selectedOnPressRef = useRef(false);
+			// Set when a press or click on the icon has reported the selection
+			// change it makes, so the selection effect below does not report it
+			// again.
+			const selectReportedRef = useRef(false);
+			// One dragEnd per dragStart: mouseup also ends presses that never dragged.
+			const dragEmittedRef = useRef(false);
+			// A file drag in progress ends (canceled) before the icon unmounts.
+			const endFileDragOnUnmount = useClassicyFileDragEndOnUnmount();
 
-			// Stock copy is resolved here, not stored on the icon record, so revised
-			// text ships with the library rather than staying frozen in localStorage.
-			const effectiveBalloonHelp =
-				balloonHelp ?? defaultBalloonForKind(kind, label ?? appName);
+			// Stock copy, the app's description and the title are resolved here,
+			// not stored on the icon record, so revised text ships with the
+			// library rather than staying frozen in localStorage, and they follow
+			// the active package.
+			// The text under the icon, which also titles its balloon: an empty
+			// label falls back to the name too. (Only an app shortcut's name can
+			// differ from `appName`, and only kinds that are not one get stock
+			// copy.)
+			const shownName = label || identity.name;
+			const effectiveBalloonHelp = balloonHelp
+				? { ...balloonHelp, title: balloonHelp.title ?? shownName }
+				: identity.description
+					? { title: shownName, content: identity.description }
+					: defaultBalloonForKind(kind, shownName);
 			const { handlers: balloonHandlers, balloon } = useClassicyBalloonHelp(
 				iconRef,
 				effectiveBalloonHelp,
@@ -214,6 +291,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				e.stopPropagation();
 				if (didDragRef.current) {
 					didDragRef.current = false;
+					selectedOnPressRef.current = false;
 					return;
 				}
 				// Only when selection actually changes, so "focus" means the icon
@@ -223,10 +301,19 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				if (!isSelected) {
 					track("focus", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				}
+				// "select" reports a change of selection: this icon becoming
+				// selected, or a multiple selection collapsing to it -- never a
+				// click on the icon that already is the selection.
+				const selectionChanges = !isSelected || isMultipleSelection;
 				desktopEventDispatch({
 					type: "ClassicyDesktopIconFocus",
 					iconId: appId,
 				});
+				if (selectedOnPressRef.current) selectedOnPressRef.current = false;
+				else if (selectionChanges) {
+					selectReportedRef.current = true;
+					appearance.emit("select", withClassicyAppearanceInput());
+				}
 				// Take keyboard focus from whatever window had it, so Delete and
 				// the arrow keys act on the desktop's selection.
 				iconRef.current?.focus({ preventScroll: true });
@@ -249,6 +336,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			};
 
 			const launchIcon = () => {
+				// A double-click or Enter/Space.
+				appearance.emit("open", withClassicyAppearanceInput());
 				if (onClickFunc) {
 					onClickFunc();
 				}
@@ -288,7 +377,45 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				return isOpen;
 			};
 
-			const stopChangeIcon = () => {
+			const appearance = useClassicyAppearance(
+				"DesktopIcon",
+				{ selected: isSelected, open: isLaunched(), dragging },
+				iconRef,
+			);
+
+			// Selection the desktop makes from the keyboard (its arrow keys and
+			// type-ahead; ruling I-R14) reaches the icon only as store state, so
+			// the icon reports it here, after the commit, when it became
+			// selected or a multiple selection collapsed to it. The desktop
+			// marks the id it selects (ClassicyDesktopIconKeyboardSelection),
+			// and only a marked change is reported: a selection rectangle or a
+			// selection set in code carries no mark, whatever key was pressed
+			// last. A press or click on the icon has already reported its own
+			// change (selectReportedRef).
+			const selectionRef = useRef({ isSelected, isMultipleSelection });
+			const emitAppearance = appearance.emit;
+			useEffect(() => {
+				const previous = selectionRef.current;
+				selectionRef.current = { isSelected, isMultipleSelection };
+				const reported = selectReportedRef.current;
+				selectReportedRef.current = false;
+				// Deselected mid-press (an arrow key while the mouse is down):
+				// the click ending the press re-selects the icon, a new change
+				// it must report.
+				if (previous.isSelected && !isSelected)
+					selectedOnPressRef.current = false;
+				const becameSelection =
+					isSelected &&
+					(!previous.isSelected ||
+						(previous.isMultipleSelection && !isMultipleSelection));
+				if (!becameSelection) return;
+				const fromKeyboard = takeClassicyDesktopIconKeyboardSelection(appId);
+				if (fromKeyboard && !reported)
+					emitAppearance("select", { input: "keyboard" });
+			}, [appId, isSelected, isMultipleSelection, emitAppearance]);
+
+			// `lost`: ended by the pointer stream being lost, not by a release.
+			const stopChangeIcon = (lost: boolean) => {
 				// Bound to onMouseUp, so this runs on every release on the icon.
 				// Report only a drag that actually happened. didDragRef -- not
 				// the `dragging` state -- is the signal: setDragging(true) runs
@@ -300,7 +427,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 				setDragging(false);
 				setClickPosition([0, 0]);
+				if (dragEmittedRef.current) {
+					dragEmittedRef.current = false;
+					appearance.emit("dragEnd", { lost });
+				}
 			};
+
+			// The pointer stream lost mid-drag (the window blurred, a
+			// pointercancel, the page hidden): the icon stays where it was
+			// dragged, as if released there, instead of following the pointer
+			// back with no button held.
+			useClassicyPointerStreamLost(dragging, () => stopChangeIcon(true));
 
 			const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 				if (iconRef.current == null) {
@@ -311,11 +448,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				didDragRef.current = false;
 
 				// If icon is not already selected, select just this one for the drag
+				selectedOnPressRef.current = !isSelected;
 				if (!isSelected) {
 					desktopEventDispatch({
 						type: "ClassicyDesktopIconFocus",
 						iconId: appId,
 					});
+					selectReportedRef.current = true;
+					appearance.emit("select", withClassicyAppearanceInput());
 				}
 
 				if (draggedAsFile(kind, filePath)) {
@@ -327,6 +467,8 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				setClickPosition([e.clientX - rect.left, e.clientY - rect.top]);
 
 				setDragging(true);
+				dragEmittedRef.current = true;
+				appearance.emit("dragStart");
 			};
 
 			// A file-backed icon drags as Finder items do: a dotted outline of every
@@ -359,10 +501,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						: [];
 				});
 				const start: [number, number] = [e.clientX, e.clientY];
-				startClassicyFileDrag({
+				const abandon = startClassicyFileDrag({
 					start: { clientX: start[0], clientY: start[1] },
 					parts,
 					source: iconRef.current,
+					// The outline drags, not the icon: `dragging` stays off.
+					...classicyFileDragAppearanceCallbacks(appearance.emit),
 					onDrop: (target, point) => {
 						if (!target) return;
 						track("halt", { type: "ClassicyDesktopIcon", ...analyticsArgs });
@@ -391,19 +535,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 						onMoveFilePaths?.(paths, target.destination);
 					},
 				});
-			};
-
-			const getClass = () => {
-				const launched = isLaunched();
-				if (isSelected && launched) {
-					return "classicyDesktopIconActiveAndOpen";
-				} else if (isSelected) {
-					return "classicyDesktopIconActive";
-				} else if (launched) {
-					return "classicyDesktopIconOpen";
-				} else {
-					return "";
-				}
+				endFileDragOnUnmount(abandon);
 			};
 
 			const isAlias = isAliasKind(kind);
@@ -411,13 +543,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			return (
 				// biome-ignore lint/a11y/useSemanticElements: desktop icon is a draggable div with ref and complex mouse handling incompatible with <button>
 				<div
+					{...appearance.attrs}
 					role="button"
 					tabIndex={0}
 					ref={iconRef}
 					id={`${id}`}
 					onMouseDown={startDrag}
 					onMouseMove={changeIcon}
-					onMouseUp={stopChangeIcon}
+					onMouseUp={() => stopChangeIcon(false)}
 					onDoubleClick={launchIcon}
 					draggable={false}
 					{...(filePath !== undefined &&
@@ -441,22 +574,31 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					}}
 					className={classNames(
 						"classicyDesktopIcon",
-						dragging ? "classicyDesktopIconDragging" : "",
-						getClass(),
+						appearance.className,
 						isAlias ? "classicyDesktopIconAlias" : "",
+						className,
 					)}
-					style={{ top: thisLocation[0], left: thisLocation[1] }}
+					style={{
+						// Package style first: the icon's location is its own (a
+						// package never moves it), and only a consumer's wins over it.
+						...withoutZIndex(appearance.style),
+						top: thisLocation[0],
+						left: thisLocation[1],
+						...withoutZIndex(style),
+					}}
 					{...balloonHandlers}
 				>
 					<div className={"classicyDesktopIconImage"}>
 						<div
 							className={"classicyDesktopIconMaskOuter"}
 							style={
-								{ "--classicy-icon-mask": `url(${icon})` } as CSSProperties
+								{
+									"--classicy-icon-mask": `url("${identity.icon}")`,
+								} as CSSProperties
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={icon} alt={appName} />
+								<img src={identity.icon} alt={identity.name} />
 							</div>
 						</div>
 						{isAlias && (
@@ -466,21 +608,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 								}
 								style={
 									{
-										"--classicy-icon-mask": `url(${ClassicyIcons.system.alias})`,
+										"--classicy-icon-mask": `url("${aliasBadge}")`,
 									} as CSSProperties
 								}
 							>
 								<div className={"classicyDesktopIconMask"}>
-									<img
-										src={ClassicyIcons.system.alias}
-										alt=""
-										aria-hidden="true"
-									/>
+									<img src={aliasBadge} alt="" aria-hidden="true" />
 								</div>
 							</div>
 						)}
 					</div>
-					<p>{label ? label : appName}</p>
+					<p>{shownName}</p>
 					{balloon}
 				</div>
 			);

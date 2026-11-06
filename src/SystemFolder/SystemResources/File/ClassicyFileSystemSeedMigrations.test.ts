@@ -209,6 +209,34 @@ describe("applyClassicyFileSystemSeedMigrations — add", () => {
 
 		expect(fs["Macintosh HD"].Documents["Read Me.txt"]._data).toBe("hello");
 	});
+
+	it("adds a copy of the entry, so later edits never reach the host's migration (0098)", () => {
+		const entry = {
+			_type: ClassicyFileSystemEntryFileType.Directory,
+			"Note.txt": {
+				_type: ClassicyFileSystemEntryFileType.TextFile,
+				_data: "a",
+			},
+		};
+		const pristine = structuredClone(entry);
+		const migrations: ClassicyFileSystemSeedMigration[] = [
+			{ op: "add", path: "Macintosh HD:Documents:Added", entry },
+		];
+		const first = tree();
+		const second = tree();
+
+		applyClassicyFileSystemSeedMigrations(first, migrations);
+		const added = first["Macintosh HD"].Documents.Added;
+		expect(added).toEqual(pristine);
+		expect(added).not.toBe(entry);
+		expect(added["Note.txt"]).not.toBe(entry["Note.txt"]);
+		added["Note.txt"]._data = "edited";
+		added["New.txt"] = { _type: "text_file", _data: "new" };
+
+		expect(entry).toEqual(pristine);
+		applyClassicyFileSystemSeedMigrations(second, migrations);
+		expect(second["Macintosh HD"].Documents.Added).toEqual(pristine);
+	});
 });
 
 describe("applyClassicyFileSystemSeedMigrations — misc", () => {

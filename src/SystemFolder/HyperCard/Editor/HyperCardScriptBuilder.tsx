@@ -5,7 +5,12 @@
  * dispatches one SetScript (undo granularity = one mutation).
  */
 
-import type { ChangeEvent, FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type {
+	ChangeEvent,
+	CSSProperties,
+	FC as FunctionalComponent,
+} from "react";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSound } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import type { HCScriptTarget } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
@@ -85,7 +90,7 @@ export interface HCActionPath {
 // Runtime mirror of the HCActionPath branch union. The union is compile-time
 // only; every current caller builds paths in the editor UI, but this guard
 // keeps a future caller that parses paths from stack data (untrusted) from
-// turning the bracket assignments below into a prototype-pollution sink.
+// turning the bracket lookups below into a prototype-pollution sink.
 const isHCBranch = (branch: string): branch is "then" | "else" | "body" =>
 	branch === "then" || branch === "else" || branch === "body";
 
@@ -123,9 +128,24 @@ export function withListAt(
 		];
 	}
 	const last = path.hops[path.hops.length - 1];
-	if (!isHCBranch(last.branch)) return clone;
-	(list[last.index] as unknown as Record<string, HCAction[]>)[last.branch] =
-		next;
+	const target = list[last.index] as unknown as Partial<
+		Record<"then" | "else" | "body", HCAction[]>
+	>;
+	// Write through a named property, never a computed key, so a branch read
+	// from untrusted stack data can't reach Object.prototype.
+	switch (last.branch) {
+		case "then":
+			target.then = next;
+			break;
+		case "else":
+			target.else = next;
+			break;
+		case "body":
+			target.body = next;
+			break;
+		default:
+			return clone;
+	}
 	return clone;
 }
 
@@ -133,11 +153,15 @@ interface HyperCardScriptBuilderProps {
 	stackId: string;
 	target: HCScriptTarget;
 	handlers: HCEventHandlers;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const HyperCardScriptBuilder: FunctionalComponent<
 	HyperCardScriptBuilderProps
-> = ({ stackId, target, handlers }) => {
+> = ({ stackId, target, handlers, className, style }) => {
 	const dispatch = useAppManagerDispatch();
 	const commands = getRegisteredEditorCommands();
 	const verbOptions = [
@@ -157,7 +181,10 @@ export const HyperCardScriptBuilder: FunctionalComponent<
 	const absent = HC_EVENT_NAMES.filter((e) => !(e in handlers));
 
 	return (
-		<div className={"classicyHyperCardScriptBuilder"}>
+		<div
+			className={classNames("classicyHyperCardScriptBuilder", className)}
+			style={style}
+		>
 			{events.map((event) => (
 				<div key={event} className={"classicyHyperCardScriptEvent"}>
 					<ClassicyControlLabel label={event} />

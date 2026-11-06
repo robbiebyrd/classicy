@@ -17,7 +17,7 @@
 	cursor: default;
 
 	img {
-		height: calc(var(--window-control-size) * 1);
+		height: var(--window-control-size);
 		width: auto;
 	}
 }

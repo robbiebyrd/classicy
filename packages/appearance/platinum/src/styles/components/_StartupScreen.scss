@@ -1,0 +1,9 @@
+// The Platinum startup screen look (from ClassicyStartupScreen.scss): the
+// window border and bevel around the logo panel.
+@use "../mixins";
+
+@mixin startupScreen {
+  .classicyStartupScreenPanel {
+    @include mixins.platinum-window-border;
+  }
+}

@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
+	useClassicyAppIdentity,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -24,6 +28,8 @@ import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/Classi
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import {
 	arrangeClassicyControlStripModules,
+	type ClassicyControlStripModuleDefinition,
+	classicyControlStripModuleLabel,
 	useClassicyControlStripDisabledModules,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
@@ -44,7 +50,15 @@ const WINDOW_ID = "ControlStripManager_1";
  */
 export function ClassicyControlStripManager() {
 	const dispatch = useAppManagerDispatch();
-	const appIcon = ClassicyIcons.controlPanels.controlStripManager.app;
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.controlStripManager.app") ?? "";
+
+	// Display only: the app's id, record, stored menus and Quit keep APP_NAME
+	// and appIcon; the menu bars title the About item at render (K-R8).
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File. No
 	// Edit menu: the panel has no edit-text fields.
@@ -59,6 +73,10 @@ export function ClassicyControlStripManager() {
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const disabledModules = useClassicyControlStripDisabledModules();
+	// K-D7: a module an app owns is listed under the app's display name.
+	const appIdentityOverrides = useClassicyAppIdentityOverrides();
+	const moduleLabel = (module: ClassicyControlStripModuleDefinition) =>
+		classicyControlStripModuleLabel(module, appIdentityOverrides);
 
 	const visible = stored?.visible ?? true;
 	const hiddenModules = stored?.hiddenModules ?? [];
@@ -100,9 +118,9 @@ export function ClassicyControlStripManager() {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}
@@ -162,8 +180,8 @@ export function ClassicyControlStripManager() {
 									options={modules.map((m) => ({
 										value: m.id,
 										label: hiddenModules.includes(m.id)
-											? `${m.label} (Hidden)`
-											: m.label,
+											? `${moduleLabel(m)} (Hidden)`
+											: moduleLabel(m),
 										icon: typeof m.icon === "string" ? m.icon : m.fileIcon,
 									}))}
 									selected={selected ? [selected.id] : []}
@@ -175,7 +193,7 @@ export function ClassicyControlStripManager() {
 										// when the selection changes.
 										key={selected.id}
 										id="ControlStripManager_moduleShown"
-										label={`Show “${selected.label}” in the Control Strip`}
+										label={`Show “${moduleLabel(selected)}” in the Control Strip`}
 										checked={!selectedHidden}
 										onClickFunc={(checked) =>
 											dispatch({

@@ -1,4 +1,9 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 import { ClassicyComboBox } from "./ClassicyComboBox";
 
@@ -107,4 +112,19 @@ export const Disabled: Story = {
 		disabled: true,
 		options: cities,
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: StartsWith.args,
+	render: (args: ComponentProps<typeof ClassicyComboBox>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyComboBox {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

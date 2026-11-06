@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+// Platinum's wallpapers: the schema accepts a filename once it is registered.
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	hasActiveTheme,
@@ -21,6 +26,7 @@ import {
 	hasErrorDialogMessage,
 	hasFinderFile,
 	hasFont,
+	hasFontSize,
 	hasIconAddFields,
 	hasIconId,
 	hasIconIds,
@@ -507,6 +513,44 @@ describe("hasFont", () => {
 	});
 });
 
+// ─── hasFontSize ──────────────────────────────────────────────────────────────
+
+describe("hasFontSize", () => {
+	it.each([
+		"uiSize",
+		"bodySize",
+		"headerSize",
+		"monoSize",
+		"digitalSize",
+	])("returns true for %s with a size within 8–72", (fontType) => {
+		for (const fontSize of [8, 14, 72])
+			expect(hasFontSize({ type: "X", fontType, fontSize })).toBe(true);
+	});
+
+	it.each([
+		-1,
+		0,
+		7,
+		73,
+		1e6,
+		Number.NaN,
+		Number.POSITIVE_INFINITY,
+		"14",
+		undefined,
+	])("returns false for fontSize %s", (fontSize) => {
+		expect(hasFontSize({ type: "X", fontType: "uiSize", fontSize })).toBe(
+			false,
+		);
+	});
+
+	it("returns false for a fontType that is not a size key", () => {
+		expect(hasFontSize({ type: "X", fontType: "ui", fontSize: 14 })).toBe(
+			false,
+		);
+		expect(hasFontSize({ type: "X", fontSize: 14 })).toBe(false);
+	});
+});
+
 // ─── hasAlertVolume ───────────────────────────────────────────────────────────
 
 describe("hasAlertVolume", () => {
@@ -531,7 +575,7 @@ describe("hasThemeColorChange", () => {
 		...fields,
 	});
 
-	it("accepts a scalar key with an in-range integer colour", () => {
+	it("accepts a scalar key with an in-range integer color", () => {
 		expect(hasThemeColorChange(msg({ colorKey: "outline", color: 0 }))).toBe(
 			true,
 		);
@@ -551,7 +595,7 @@ describe("hasThemeColorChange", () => {
 		).toBe(true);
 	});
 
-	it("rejects bad keys, indices and colours", () => {
+	it("rejects bad keys, indices and colors", () => {
 		for (const fields of [
 			{ colorKey: "nope", color: 0 },
 			{ colorKey: "system", color: 0 },

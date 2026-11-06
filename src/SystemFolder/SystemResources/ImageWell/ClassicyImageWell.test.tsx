@@ -20,10 +20,10 @@ describe("ClassicyImageWell", () => {
 
 	it("defaults to the enabled state", () => {
 		const { container } = render(<ClassicyImageWell src="pic.png" alt="P" />);
-		expect(container.querySelector(".classicyImageWell")).toHaveAttribute(
-			"data-state",
-			"enabled",
-		);
+		const well = container.querySelector(".classicyImageWell");
+		expect(well).not.toHaveClass("disabled");
+		expect(well).not.toHaveClass("selected");
+		expect(well).not.toHaveAttribute("data-state");
 	});
 
 	it("reports the selected state", () => {
@@ -31,8 +31,9 @@ describe("ClassicyImageWell", () => {
 			<ClassicyImageWell src="pic.png" alt="P" selected={true} />,
 		);
 		const well = container.querySelector(".classicyImageWell");
-		expect(well).toHaveAttribute("data-state", "selected");
-		expect(well).toHaveClass("classicyImageWellSelected");
+		expect(well).toHaveClass("selected");
+		expect(well).not.toHaveClass("classicyImageWellSelected");
+		expect(well).not.toHaveAttribute("data-state");
 	});
 
 	it("reports the disabled state via aria-disabled", () => {
@@ -40,7 +41,9 @@ describe("ClassicyImageWell", () => {
 			<ClassicyImageWell src="pic.png" alt="P" enabled={false} />,
 		);
 		const well = container.querySelector(".classicyImageWell");
-		expect(well).toHaveAttribute("data-state", "disabled");
+		expect(well).toHaveClass("disabled");
+		expect(well).not.toHaveClass("classicyImageWellDisabled");
+		expect(well).not.toHaveAttribute("data-state");
 		expect(well).toHaveAttribute("aria-disabled", "true");
 	});
 

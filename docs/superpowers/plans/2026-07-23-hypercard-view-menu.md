@@ -15,7 +15,7 @@
 - Vitest does **not** type-check. Run `pnpm build:source` (tsc -b) before declaring done to catch type errors.
 - The checkmark glyph is the literal `✓` (U+2713), matching `ClassicyPopUpMenu`'s existing `CHECKMARK`.
 - An item with `checked` defined (true **or** false) reserves the check gutter and renders **no** icon/image; an item with `checked` omitted behaves exactly as today. This keeps checked/unchecked items in the same menu text-aligned.
-- View menu is **always present**, placed **immediately after `Go`**. Its two items are `disabled` (greyed) when not editing; the existing `findMenuItemByShortcut` already skips disabled items, so ⌘T/⌘I are inert outside edit mode.
+- View menu is **always present**, placed **immediately after `Go`**. Its two items are `disabled` (grayed) when not editing; the existing `findMenuItemByShortcut` already skips disabled items, so ⌘T/⌘I are inert outside edit mode.
 - Out of scope: the Script editor window (`hypercard_script`, a document window); any new events or store fields.
 - The two palettes: `hypercard_tools` (title "Tools", initialSize `[130,0]`, initialPosition `[8,100]`) and `hypercard_inspector` (title "Info", initialSize `[240,0]`, initialPosition `[8,360]`).
 

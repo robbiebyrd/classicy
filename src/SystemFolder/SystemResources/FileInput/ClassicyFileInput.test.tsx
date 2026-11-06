@@ -86,6 +86,12 @@ describe("ClassicyFileInput", () => {
 		render(<ClassicyFileInput id="fi-test" multiple />);
 		addFiles([new File(["x"], "photo.png", { type: "image/png" })]);
 		await waitFor(() => screen.getByText("photo.png"));
+		// The ✕ is package CSS on an aria-hidden glyph span; the aria-label
+		// stays the accessible name.
+		expect(screen.getByRole("button", { name: /Remove/ }).textContent).toBe("");
+		expect(
+			screen.getByRole("button", { name: "Remove photo.png" }),
+		).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: /remove photo\.png/i }));
 		expect(screen.queryByText("photo.png")).not.toBeInTheDocument();
 	});

@@ -810,7 +810,7 @@ git commit -m "feat(assistant): dual header icons with overflowing lg accessory"
 
 **Interfaces:**
 - Consumes: `goNext`, `goPrev`, `page.title` from earlier tasks.
-- Produces: root gains `onKeyDown` handling ArrowRight → `goNext`, ArrowLeft → `goPrev` (honoring gate + ends). The header region is `role="region"` + `aria-live="polite"` labelled via `aria-label={page.title}`; the body is `role="group"` with `aria-label={page.title}`.
+- Produces: root gains `onKeyDown` handling ArrowRight → `goNext`, ArrowLeft → `goPrev` (honoring gate + ends). The header region is `role="region"` + `aria-live="polite"` labeled via `aria-label={page.title}`; the body is `role="group"` with `aria-label={page.title}`.
 
 - [ ] **Step 1: Write the failing test**
 

@@ -22,6 +22,11 @@ export const classicyPDFViewerEventHandler = (
 	action: ClassicyPDFViewerEvent,
 ) => {
 	const { id: appId } = PDFViewerAppInfo;
+	// Unlike the kernel's generic handler, this creates a missing record and
+	// replaces invalid `data` with `{ openFiles: [] }` (dropping other keys).
+	// Those are the only states where a ClassicyAppPDFViewerCloseFile differs
+	// from the generic close, and the UI cannot reach them: a close box only
+	// shows for a queued file, so the record and its `openFiles` exist.
 	if (!ds.System.Manager.Applications.apps[appId]) {
 		loadApp(
 			ds,
@@ -40,15 +45,18 @@ export const classicyPDFViewerEventHandler = (
 
 	switch (action.type) {
 		case "ClassicyAppPDFViewerOpenFile": {
-			if (action.path && !appData.openFiles.includes(action.path)) {
+			if (!action.path) break;
+			if (!appData.openFiles.includes(action.path)) {
 				appData.openFiles = [...appData.openFiles, action.path];
-				openApp(
-					ds,
-					PDFViewerAppInfo.id,
-					PDFViewerAppInfo.name,
-					PDFViewerAppInfo.icon,
-				);
 			}
+			// Opening an already-open file still brings the app forward, as
+			// the generic OpenFile handler does.
+			openApp(
+				ds,
+				PDFViewerAppInfo.id,
+				PDFViewerAppInfo.name,
+				PDFViewerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppPDFViewerCloseFile": {

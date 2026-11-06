@@ -47,7 +47,8 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    # Pinned: the distro ffmpeg (8.0.1 here) builds the audio sprites and must not change with ubuntu-latest; revisit when 26.04 nears retirement.
+    runs-on: ubuntu-26.04
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     environment:
       name: github-pages

@@ -254,7 +254,9 @@ describe("ClassicyTree selection & disabled", () => {
 			/>,
 		);
 		const row = screen.getByText("b").closest("li");
-		expect(row?.querySelector(".classicyTreeNodeDisabled")).not.toBeNull();
+		expect(
+			row?.querySelector(".classicyTreeNodeLabelHolder.disabled"),
+		).not.toBeNull();
 		await user.click(screen.getByText("b"));
 		expect(onSelectNode).not.toHaveBeenCalled();
 	});
@@ -270,7 +272,7 @@ describe("ClassicyTree selection & disabled", () => {
 		);
 		expect(
 			screen.getByText("c").closest(".classicyTreeNodeLabelHolder")?.className,
-		).toContain("classicyTreeNodeSelected");
+		).toContain("selected");
 	});
 
 	it("fires onActivateNode on leaf double-click", async () => {

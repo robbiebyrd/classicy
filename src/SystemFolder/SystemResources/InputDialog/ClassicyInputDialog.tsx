@@ -1,5 +1,6 @@
 import "./ClassicyInputDialog.scss";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type ReactNode,
 	useCallback,
@@ -59,6 +60,10 @@ export type ClassicyInputDialogProps = {
 	 * unmount itself.
 	 */
 	onCancel?: () => void;
+	/** Extra class names, merged onto the dialog window after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the dialog window after the component's own. */
+	style?: CSSProperties;
 };
 
 const defaultValidate = (value: string): boolean => value.trim().length > 0;
@@ -71,7 +76,7 @@ const defaultValidate = (value: string): boolean => value.trim().length > 0;
  * only an icon, text and buttons (p.60), a dialog may host editable controls;
  * use this instead of `window.prompt()`.
  *
- * Behaviour (HIGOS8 Ch.3 "Keyboard Navigation and Focus", p.66):
+ * Behavior (HIGOS8 Ch.3 "Keyboard Navigation and Focus", p.66):
  *   - the field is focused with its contents selected on open, so the user
  *     can type a replacement immediately, and Tab is trapped in the dialog;
  *   - Return / Enter triggers the default button (single-line field, so Return
@@ -114,6 +119,8 @@ export const ClassicyInputDialog: FunctionalComponent<
 	icon,
 	onConfirm,
 	onCancel,
+	className,
+	style,
 }) => {
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement | null>(null);
@@ -153,6 +160,8 @@ export const ClassicyInputDialog: FunctionalComponent<
 	return (
 		<ClassicyWindow
 			id={id}
+			className={className}
+			style={style}
 			appId={appId}
 			title={title}
 			hideIcon={true}

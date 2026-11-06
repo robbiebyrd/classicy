@@ -1,4 +1,3 @@
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	ClassicyControlLabel,
 	type ClassicyControlLabelSize,
@@ -7,8 +6,19 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import "./ClassicyRadioInput.scss";
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type MouseEvent,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicyPointerPress } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 type ClassicyRadioInputProps = {
 	/** Shared native `name` for every button in the group. */
@@ -20,8 +30,8 @@ type ClassicyRadioInputProps = {
 	/** Where the group title sits relative to the buttons. Defaults to `above`. */
 	labelPosition?: ClassicyLabelPosition;
 	/**
-	 * Button layout: `columns` stacks the buttons in one vertical column;
-	 * `rows` lays them out side by side in one row. Defaults to `columns`.
+	 * Button layout: `rows` lays the buttons out side by side in one row;
+	 * `columns` stacks them in one vertical column. Defaults to `rows`.
 	 */
 	align?: "rows" | "columns";
 	/**
@@ -37,6 +47,10 @@ type ClassicyRadioInputProps = {
 	 * none is, the first button does. Passing a new array re-applies that rule.
 	 */
 	inputs: ClassicyRadioInputValueProps[];
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 };
 
 type ClassicyRadioInputValueProps = {
@@ -46,7 +60,7 @@ type ClassicyRadioInputValueProps = {
 	checked?: boolean;
 	/** Draws the mixed-state dash (a selection spanning several values). */
 	mixed?: boolean;
-	/** Rings the button in the theme accent colour while on or pressed. */
+	/** Rings the button in the theme accent color while on or pressed. */
 	isDefault?: boolean;
 	/** Dims this button and its label and ignores clicks. */
 	disabled?: boolean;
@@ -68,13 +82,14 @@ const initialRadioCheck = (list: ClassicyRadioInputValueProps[]): string =>
  * on, as the HIG requires: if no entry is `checked` the first one starts on.
  * Radio buttons choose a setting; they never start an action.
  *
- * Clicking a button or its label turns it on, plays the radio click sounds,
- * reports to analytics and calls `onClickFunc` with that entry's `id`. The
- * selection is held internally and re-derived from `inputs` whenever a new
- * array is passed: keep `inputs` stable (memoised) or rebuild it with the
- * current `checked` flags, since a fresh inline array on every parent render
- * resets the user's choice. For button-shaped radios (a palette or toolbar)
- * use `ClassicyBevelButton mode="radio"`.
+ * Clicking a button or its label turns it on, plays the radio click sounds (the
+ * appearance package's press/release hooks), reports to analytics and calls
+ * `onClickFunc` with that entry's `id`. The selection is held internally and
+ * re-derived from `inputs` whenever a new array is passed: keep `inputs` stable
+ * (memoized) or rebuild it with the current `checked` flags, since a fresh
+ * inline array on every parent render resets the user's choice. For
+ * button-shaped radios (a palette or toolbar) use
+ * `ClassicyBevelButton mode="radio"`.
  *
  * ```tsx
  * <ClassicyRadioInput
@@ -95,21 +110,68 @@ export const ClassicyRadioInput: FunctionalComponent<
 	label,
 	labelSize = "medium",
 	labelPosition = "above",
-	align = "columns",
+	align = "rows",
 	disabled = false,
 	onClickFunc,
 	inputs,
+	className,
+	style,
 }) => {
 	const [check, setCheck] = useState<string>(() => initialRadioCheck(inputs));
 	useEffect(() => {
 		setCheck(initialRadioCheck(inputs));
 	}, [inputs]);
-	const player = useSoundDispatch();
+	const groupRef = useRef<HTMLDivElement>(null);
+	// The group carries no state class of its own: `checked` and `disabled`
+	// live on each item's wrapper.
+	const appearance = useClassicyAppearance("RadioInput", {}, groupRef);
+	// A press on an item (its button or its label) ends in exactly one
+	// `release`: over the item (its button or its label), let go elsewhere
+	// (`canceled`, another item included), or, when its pointer stream is
+	// lost (the window blurs, a pointercancel, the page is hidden), lost.
+	const { watchPress, releasedOver } = useClassicyPointerPress();
+	const pressItem = (itemId: string, pressed: HTMLElement) => {
+		appearance.emit("press", { itemId });
+		// The item's radio button and every label for it; a label's control is
+		// its radio button.
+		const input =
+			pressed instanceof HTMLLabelElement ? pressed.control : pressed;
+		const parts: Element[] =
+			input instanceof HTMLInputElement
+				? [input, ...(input.labels ?? [])]
+				: [pressed];
+		watchPress({
+			isOver: (target) =>
+				target instanceof Node && parts.some((part) => part.contains(target)),
+			onRelease: (canceled) =>
+				appearance.emit(
+					"release",
+					canceled
+						? { itemId, input: "pointer", lost: false, canceled }
+						: { itemId, lost: false, canceled },
+				),
+			onLost: () =>
+				appearance.emit("release", {
+					itemId,
+					input: "pointer",
+					lost: true,
+					canceled: true,
+				}),
+		});
+	};
+	// A release over an item with no press of its own behind it (pressed
+	// elsewhere); a press's own release was reported by `watchPress`.
+	const releaseItem = (itemId: string, e: MouseEvent) => {
+		if (releasedOver(e.nativeEvent)) return;
+		appearance.emit("release", { itemId, lost: false, canceled: false });
+	};
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { name, label, disabled, inputs };
 
 	const handleOnChange = (id: string) => {
+		if (id !== check)
+			appearance.emit("change", withClassicyAppearanceInput({ itemId: id }));
 		setCheck(id);
 		track("selected", {
 			type: "ClassicyRadioInput",
@@ -124,15 +186,23 @@ export const ClassicyRadioInput: FunctionalComponent<
 	// The group is a radiogroup named by its title (#310); a <label for> can't
 	// name a group, and no element has the group's name as its id.
 	const titleId = label ? `${name}_label` : undefined;
+	const groupStyle = label ? undefined : style;
 	const group = (
 		<div
+			{...appearance.attrs}
+			ref={groupRef}
 			role="radiogroup"
 			aria-labelledby={titleId}
 			aria-disabled={disabled || undefined}
 			className={classNames(
 				"classicyRadioInputGroup",
+				appearance.className,
 				align === "columns" ? "classicyRadioInputGroupColumns" : "",
+				label ? "" : className,
 			)}
+			style={
+				appearance.style ? { ...appearance.style, ...groupStyle } : groupStyle
+			}
 		>
 			{inputs?.map((item) => {
 				const itemDisabled = disabled || item.disabled === true;
@@ -141,8 +211,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 						<div
 							className={classNames(
 								"classicyRadioInputWrapper",
-								check === item.id ? "classicyRadioInputWrapperChecked" : "",
-								itemDisabled ? "classicyRadioInputWrapperDisabled" : "",
+								classicyStateClasses({
+									checked: check === item.id,
+									disabled: itemDisabled,
+								}),
 							)}
 						>
 							<input
@@ -151,8 +223,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 								disabled={itemDisabled}
 								className={classNames(
 									"classicyRadioInput",
-									item.isDefault ? "classicyRadioInputDefault" : "",
-									item.mixed ? "classicyRadioInputMixed" : "",
+									classicyStateClasses({
+										default: item.isDefault,
+										mixed: item.mixed,
+									}),
 								)}
 								type={"radio"}
 								value={item.id}
@@ -161,24 +235,18 @@ export const ClassicyRadioInput: FunctionalComponent<
 								checked={check === item.id}
 								tabIndex={0}
 								onChange={() => !itemDisabled && handleOnChange(item.id)}
-								onMouseDown={() => {
+								onMouseDown={(e) => {
 									if (itemDisabled) return;
+									pressItem(item.id, e.currentTarget);
 									track("click", {
 										type: "ClassicyRadioInput",
 										itemId: item.id,
 										...analyticsArgs,
 									});
-									player({
-										type: "ClassicySoundPlay",
-										sound: "ClassicyInputRadioClickDown",
-									});
 								}}
-								onMouseUp={() => {
+								onMouseUp={(e) => {
 									if (itemDisabled) return;
-									player({
-										type: "ClassicySoundPlay",
-										sound: "ClassicyInputRadioClickUp",
-									});
+									releaseItem(item.id, e);
 								}}
 							/>
 						</div>
@@ -186,24 +254,18 @@ export const ClassicyRadioInput: FunctionalComponent<
 							labelFor={item.id}
 							disabled={itemDisabled}
 							label={item.label}
-							onMouseDown={() => {
+							onMouseDown={(e) => {
 								if (itemDisabled) return;
+								pressItem(item.id, e.currentTarget as HTMLElement);
 								track("click", {
 									type: "ClassicyRadioInput",
 									itemId: item.id,
 									...analyticsArgs,
 								});
-								player({
-									type: "ClassicySoundPlay",
-									sound: "ClassicyInputRadioClickDown",
-								});
 							}}
-							onMouseUp={() => {
+							onMouseUp={(e) => {
 								if (itemDisabled) return;
-								player({
-									type: "ClassicySoundPlay",
-									sound: "ClassicyInputRadioClickUp",
-								});
+								releaseItem(item.id, e);
 							}}
 						/>
 					</div>
@@ -215,7 +277,10 @@ export const ClassicyRadioInput: FunctionalComponent<
 	if (!label) return group;
 
 	return (
-		<div className={labelPositionClass(labelPosition)}>
+		<div
+			className={classNames(labelPositionClass(labelPosition), className)}
+			style={style}
+		>
 			<ClassicyControlLabel
 				id={titleId}
 				disabled={disabled}

@@ -1,50 +1,13 @@
-@use '../../ControlPanels/AppearanceManager/styles/appearance';
-
 // ── Thumb geometry ────────────────────────────────────────────────────────────
-$thumb-w:   calc(var(--window-control-size)*2);   // 1:1 aspect ratio with $thumb-h
-$thumb-h:   calc(var(--window-control-size)*1.75);   // rectangular body (0–62%) + downward triangle (62–100%)
+$thumb-w:   var(--slider-thumb-width);   // 1:1 aspect ratio with $thumb-h
+$thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downward triangle (62–100%)
 $track-h:   calc(var(--window-padding-size));
 // Centers the tall thumb vertically on the track
-$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −6.5 px
+$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum: (6 − 21) / 2
 
-// Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
-$thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
-
-// ── Thumb border SVG ──────────────────────────────────────────────────────────
-// `border`, `box-shadow`, and `filter: drop-shadow` all fail on
-// ::webkit-slider-thumb: border/shadow paint before clip-path (rectangle-clipped),
-// and filter is not applied to this pseudo-element by the browser.
-//
-// Solution: SVG background layer draws a 4px black stroke on the same pentagon
-// path used by clip-path. The stroke is centered on the path so its outer 2px
-// are cropped by clip-path, leaving a clean 2px border (= --window-border-size × 2)
-// that follows every edge exactly — including the diagonal lower sides.
-//
-// SVG viewBox = 21 × 21 px (matches $thumb-w × $thumb-h, 1:1 aspect ratio).
-// Points = $thumb-shape converted to px: (0,0)(21,0)(21,13.02)(10.5,21)(0,13.02)
-$_thumb-border-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpolygon points='0,0 21,0 21,13.02 10.5,21 0,13.02' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
-
-// ── Thumb grip strikes SVG ────────────────────────────────────────────────────
-// Three vertical lines centered in the thumb body to indicate draggability.
-// Sourced from assets/img/ui/slider-strikes.svg (ui icon section).
-$_thumb-strikes-svg: url('../../../../assets/img/ui/slider-strikes.svg');
-
-// ── Nondirectional thumb (unpointed knob) ─────────────────────────────────────
-// A plain rounded-rectangle indicator for sliders where the pointed edge would
-// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border.
-$_thumb-rect-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Crect x='0' y='0' width='21' height='21' rx='3' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
-$_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
-
-// ── Thumb appearance mixin ────────────────────────────────────────────────────
-@mixin thumb-appearance(
-  $body-gradient,
-) {
-  clip-path: $thumb-shape;
-  background:
-    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
-    $_thumb-strikes-svg center 30% / 45% 35% no-repeat,
-    $body-gradient;
-}
+// The indicator's look (its pentagon or nondirectional shape, border, grip
+// strikes and face, for every state, and the ghost's) is in the Platinum
+// package; this sheet sizes and places it.
 
 // ─── Track ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +35,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   // Grooved cylinder track
   &::-webkit-slider-runnable-track {
     height: $track-h;
-    border-radius: 999px;
+    border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
     background: linear-gradient(
       to bottom,
@@ -88,7 +51,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 
   &::-moz-range-track {
     height: $track-h;
-    border-radius: 999px;
+    border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
     background: linear-gradient(
       to bottom,
@@ -102,7 +65,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
       inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
 
-  // Image 1 — normal (raised Platinum silver)
+  // The thumb's box (its images 1–3 are in the Platinum package)
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -110,9 +73,6 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
     height: $thumb-h;
     margin-top: $thumb-margin-top;
     cursor: pointer;
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
-    );
   }
 
   &::-moz-range-thumb {
@@ -120,54 +80,12 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
     height: $thumb-h;
     border: none;
     cursor: pointer;
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
-    );
-  }
-
-  // Image 2 — depressed / dragging (inverted gradient, reversed glint)
-  &:active::-webkit-slider-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-    );
-  }
-
-  &:active::-moz-range-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-    );
-  }
-}
-
-// ─── Highlighted variant (Image 3) — theme blue ───────────────────────────────
-
-.classicySliderHighlighted {
-  &::-webkit-slider-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-    );
-  }
-
-  &::-moz-range-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03))    );
-  }
-
-  &:active::-webkit-slider-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))
-    );
-  }
-
-  &:active::-moz-range-thumb {
-    @include thumb-appearance(
-      linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))    );
   }
 }
 
 // ─── Disabled variant (Image 1 at 50% contrast) ───────────────────────────────
 
-.classicySliderDisabled {
+:where(.classicySlider).disabled {
   cursor: not-allowed;
   filter: contrast(0.5);
 
@@ -182,14 +100,22 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 
 .classicySliderValue {
   font-family: var(--ui-font);
-  font-size: calc(var(--ui-font-size) / 1.25);
   text-align: center;
+}
+
+// The readout is drawn at the small size whatever labelSize says (bf10949e5),
+// though it also carries its labelSize class (classicyControlLabelSize*,
+// sizeClassMap in ClassicySlider.tsx). Named under its track group so it
+// outranks those one-class rules whichever stylesheet loads first.
+.classicySliderTrackGroup > .classicySliderValue {
+  font-size: var(--ui-font-size-small);
 }
 
 // ─── Indicator direction ───────────────────────────────────────────────────────
 // The thumb's pentagon points down by default. Rotate the whole pseudo-element
 // (clip-path + border + strikes travel together) to face any edge; the
-// nondirectional variant swaps in a rounded-rectangle knob with no point.
+// nondirectional variant (classicySliderIndicatorNondirectional, drawn by the
+// Platinum package) swaps in a rounded-rectangle knob with no point.
 
 .classicySliderIndicatorUp {
   &::-webkit-slider-thumb { transform: rotate(180deg); }
@@ -204,37 +130,6 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 .classicySliderIndicatorRight {
   &::-webkit-slider-thumb { transform: rotate(-90deg); }
   &::-moz-range-thumb { transform: rotate(-90deg); }
-}
-
-.classicySliderIndicatorNondirectional {
-  &::-webkit-slider-thumb {
-    clip-path: $_thumb-rect-shape;
-    background:
-      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
-  }
-  &::-moz-range-thumb {
-    clip-path: $_thumb-rect-shape;
-    background:
-      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-      linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
-  }
-  &:active::-webkit-slider-thumb {
-    clip-path: $_thumb-rect-shape;
-    background:
-      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
-  }
-  &:active::-moz-range-thumb {
-    clip-path: $_thumb-rect-shape;
-    background:
-      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-      $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-      linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
-  }
 }
 
 // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────────
@@ -260,20 +155,10 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   // Center travels from thumb-width/2 to width − thumb-width/2, matching the
   // native thumb, so the ghost lands exactly beneath the real indicator.
   left: calc(#{$thumb-w} / 2 + (100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0));
-  clip-path: $thumb-shape;
-  background:
-    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
-    linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
 
   &.classicySliderIndicatorUp { transform: translateX(-50%) rotate(180deg); }
   &.classicySliderIndicatorLeft { transform: translateX(-50%) rotate(90deg); }
   &.classicySliderIndicatorRight { transform: translateX(-50%) rotate(-90deg); }
-  &.classicySliderIndicatorNondirectional {
-    clip-path: $_thumb-rect-shape;
-    background:
-      $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-      linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
-  }
 }
 
 .classicySliderGhostHidden {
@@ -293,7 +178,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   direction: rtl; // min at the bottom, max at the top
   width: $thumb-h;
   height: 100%;
-  min-height: calc(var(--window-control-size) * 8);
+  min-height: var(--slider-vertical-min-height);
   flex: 0 0 auto;
 }
 
@@ -311,7 +196,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   // inverted so 0% sits at the bottom (matching direction: rtl).
   .classicySliderTicks {
     padding: calc(#{$thumb-h} / 2) 0;
-    width: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+    width: calc(var(--slider-tick-length) + var(--window-border-size));
     height: auto;
   }
 
@@ -319,7 +204,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
     top: auto;
     left: var(--window-border-size);
     bottom: var(--classicy-tick-left);
-    width: calc(var(--window-padding-size) * 0.75);
+    width: var(--slider-tick-length);
     height: var(--window-border-size);
     transform: translateY(50%);
   }
@@ -353,7 +238,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 // point.
 .classicySliderTicks {
   padding: 0 calc(#{$thumb-w} / 2);
-  height: calc(var(--window-padding-size) * 0.75 + var(--window-border-size));
+  height: calc(var(--slider-tick-length) + var(--window-border-size));
 }
 
 .classicySliderTicksTrack {
@@ -366,12 +251,12 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   left: var(--classicy-tick-left);
   top: var(--window-border-size);
   width: var(--window-border-size);
-  height: calc(var(--window-padding-size) * 0.75);
+  height: var(--slider-tick-length);
   background: var(--color-black);
   transform: translateX(-50%);
 }
 
-.classicySliderTicksDisabled {
+:where(.classicySliderTicks).disabled {
   filter: contrast(0.5);
 }
 
@@ -381,7 +266,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
 .classicySliderTickLabels {
   position: relative;
   padding: 0 calc(#{$thumb-w} / 2);
-  height: calc(var(--ui-font-size) * 1.2);
+  height: var(--slider-tick-labels-height);
 }
 
 .classicySliderTickLabel {
@@ -389,7 +274,7 @@ $_thumb-rect-shape: inset(0 round calc(var(--window-border-size) * 1.5));
   left: var(--classicy-tick-left);
   transform: translateX(-50%);
   font-family: var(--ui-font), sans-serif;
-  font-size: calc(var(--ui-font-size) / 1.25);
+  font-size: var(--ui-font-size-small);
   line-height: 1;
   white-space: nowrap;
   color: var(--color-black);

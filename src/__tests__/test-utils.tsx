@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- Test utilities, not components */
 import {
 	type RenderOptions,
 	type RenderResult,

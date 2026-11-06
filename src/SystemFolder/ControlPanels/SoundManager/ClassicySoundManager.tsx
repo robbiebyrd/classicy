@@ -1,12 +1,14 @@
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import "./ClassicySoundManager.scss";
 import { type FC as FunctionalComponent, useCallback, useMemo } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicySoundInfo,
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	useClassicyAboutMenu,
@@ -17,10 +19,6 @@ import {
 	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
-
-const appIcon = ClassicyIcons.controlPanels.soundManager.app;
-
-import { SOUND_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerManifest";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
@@ -33,11 +31,19 @@ const APP_NAME = "Sound Manager";
 const WINDOW_ID = "SoundManager_1";
 
 export const ClassicySoundManager: FunctionalComponent = () => {
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.soundManager.app") ?? "";
 	const desktopEventDispatch = useAppManagerDispatch();
 
 	const playerState = useSound();
 	const player = useSoundDispatch();
 
+	// Display only: the app's id, record, stored menus and Quit keep APP_NAME
+	// and appIcon; the menu bars title the About item at render (K-R8).
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
 		APP_ID,
 		APP_NAME,
@@ -57,7 +63,7 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 
 	const volume = playerState.volume ?? 100;
 
-	// Per-sound enable/disable (audit ch. 6 §35). Playback honours each sound's
+	// Per-sound enable/disable (audit ch. 6 §35). Playback honors each sound's
 	// own entry in `disabled` (see playerCanPlayInterrupt), so toggling a sound
 	// here takes effect immediately per the HIGOS8 Ch.6 "Settings" rule that
 	// control-panel changes apply at once. The checkbox is checked when the
@@ -134,9 +140,9 @@ export const ClassicySoundManager: FunctionalComponent = () => {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}

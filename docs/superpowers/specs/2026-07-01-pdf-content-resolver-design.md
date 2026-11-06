@@ -128,24 +128,24 @@ pdf.js load starts, checking cancellation in between:
 
 ```tsx
 useEffect(() => {
-	let cancelled = false;
+	let canceled = false;
 	let loadingTask: ReturnType<typeof getDocument> | null = null;
 	setDoc(null); setError(false); setPageError(false); setCurrentPage(1);
 
 	(async () => {
 		try {
 			const source = data ? { data: await decompressFromBase64(data) } : { url };
-			if (cancelled) return;
+			if (canceled) return;
 			loadingTask = getDocument(source);
 			const loadedDoc = await loadingTask.promise;
-			if (!cancelled) setDoc(loadedDoc);
+			if (!canceled) setDoc(loadedDoc);
 		} catch {
-			if (!cancelled) setError(true);
+			if (!canceled) setError(true);
 		}
 	})();
 
 	return () => {
-		cancelled = true;
+		canceled = true;
 		loadingTask?.destroy();
 	};
 }, [url, data]);
@@ -185,7 +185,7 @@ from today, `getDocument({ url })`, fetched by pdf.js itself.
   state.
 - Valid base64 but not valid gzip → `DecompressionStream` rejects → same
   catch → same error state.
-- Fast unmount/path-change while decompression is in flight → `cancelled` is
+- Fast unmount/path-change while decompression is in flight → `canceled` is
   checked immediately after `await decompressFromBase64(...)`, before
   `getDocument()` is ever called, so no orphaned pdf.js task is created. If
   cancellation happens after `getDocument()` was already called, the existing

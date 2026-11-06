@@ -6,11 +6,17 @@ import {
 	screen,
 	userEvent,
 } from "@/__tests__/test-utils";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { useThemesTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Themes";
-import { listClassicyThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import {
+	listClassicyPackageThemes,
+	listClassicyThemes,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 
-const baseProps = {
+const baseProps: Parameters<typeof useThemesTab>[0] = {
+	packageIcon: "/platinum-icon.png",
+	packageName: "Platinum",
 	themesList: [{ value: "default", label: "Platinum" }],
 	switchTheme: vi.fn(),
 	activeThemeId: "default",
@@ -77,6 +83,34 @@ describe("useThemesTab — Smart Scrolling", () => {
 	});
 });
 
+describe("useThemesTab — Appearance Package", () => {
+	it("names the active package", () => {
+		render(<Host packageName="Platinum" />);
+		expect(
+			screen.getByText("The current Appearance Package is Platinum"),
+		).toBeInTheDocument();
+	});
+
+	it("shows the package's own icon", () => {
+		const { container } = render(<Host packageIcon="/irix.png" />);
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/irix.png",
+		);
+	});
+
+	it("shows the generic package glyph for a package with no icon", () => {
+		const glyph = resolveClassicyAsset("icons", "system.extension");
+		expect(glyph).toBeTruthy();
+		const { container } = render(
+			<Host packageIcon={undefined} packageName="Test Pack" />,
+		);
+		expect(
+			screen.getByText("The current Appearance Package is Test Pack"),
+		).toBeInTheDocument();
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(glyph);
+	});
+});
+
 describe("useThemesTab — custom themes", () => {
 	it("shows Custom as the selected theme when it is active", () => {
 		render(
@@ -115,7 +149,96 @@ describe("listClassicyThemes", () => {
 	});
 });
 
-// #280: Smart Scrolling's neighbour on the Mac OS 8 Appearance Options tab.
+describe("listClassicyPackageThemes", () => {
+	const theme = (id: string, pkg: string, name = id) =>
+		({ id, name, package: pkg }) as unknown as ClassicyTheme;
+
+	it("lists the package's presets and loaded themes once each, then its custom themes", () => {
+		expect(
+			listClassicyPackageThemes(
+				{
+					availableThemes: [
+						theme("default", "platinum", "Loaded Platinum"),
+						theme("host", "platinum"),
+						theme("other", "test-pack"),
+					],
+					customThemes: [
+						theme("custom", "platinum"),
+						theme("custom-test-pack", "test-pack"),
+					],
+				},
+				{
+					id: "platinum",
+					presets: [theme("default", "platinum"), theme("azul", "platinum")],
+				},
+			).map((t) => [t.id, t.name]),
+		).toEqual([
+			// A loaded theme with a preset's id replaces the preset, as
+			// ChangeTheme activates the loaded one first.
+			["default", "Loaded Platinum"],
+			["azul", "azul"],
+			["host", "host"],
+			["custom", "custom"],
+		]);
+	});
+
+	it("lists another package's presets and none of Platinum's", () => {
+		expect(
+			listClassicyPackageThemes(
+				{
+					availableThemes: [theme("default", "platinum")],
+					customThemes: [theme("custom", "platinum")],
+				},
+				{ id: "test-pack", presets: [theme("tp-one", "test-pack")] },
+			).map((t) => t.id),
+		).toEqual(["tp-one"]);
+	});
+});
+
+describe("listClassicyPackageThemes — a package's defaults (J-R22)", () => {
+	const theme = (id: string, pkg: string, name = id) =>
+		({ id, name, package: pkg }) as unknown as ClassicyTheme;
+
+	it("lists the defaults first when no preset has their id", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [theme("default", "platinum")], customThemes: [] },
+				{
+					id: "irix",
+					defaults: theme("indigo", "irix"),
+					presets: [theme("dusk", "irix")],
+				},
+			).map((t) => t.id),
+		).toEqual(["indigo", "dusk"]);
+	});
+
+	it("lists a package with defaults only", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [], customThemes: [] },
+				{ id: "irix", defaults: theme("indigo", "irix") },
+			).map((t) => t.id),
+		).toEqual(["indigo"]);
+	});
+
+	it("does not list the defaults twice when a preset has their id", () => {
+		expect(
+			listClassicyPackageThemes(
+				{ availableThemes: [], customThemes: [] },
+				{
+					id: "irix",
+					defaults: theme("indigo", "irix", "Defaults"),
+					presets: [theme("dusk", "irix"), theme("indigo", "irix", "Preset")],
+				},
+			).map((t) => [t.id, t.name]),
+		).toEqual([
+			["dusk", "dusk"],
+			["indigo", "Preset"],
+		]);
+	});
+});
+
+// #280: Smart Scrolling's neighbor on the Mac OS 8 Appearance Options tab.
 describe("useThemesTab — Double-click title bar to collapse", () => {
 	it("renders the checkbox checked when on", () => {
 		render(<Host doubleClickTitleToCollapse={true} />);
@@ -210,7 +333,7 @@ describe("useThemesTab — Save Theme… / Load Theme…", () => {
 		expect(fileInput().value).toBe("");
 	});
 
-	it("ignores a cancelled pick", () => {
+	it("ignores a canceled pick", () => {
 		const loadThemeFile = vi.fn();
 		render(<Host loadThemeFile={loadThemeFile} />);
 		fireEvent.change(fileInput(), { target: { files: [] } });

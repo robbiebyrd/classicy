@@ -1,7 +1,5 @@
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const appIcon = ClassicyIcons.system.quicktime.player;
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 
 export type QuickTimeMovieDocument = {
 	url: string;
@@ -75,5 +73,7 @@ export const MoviePlayerDataSchema = z.looseObject({
 export const MoviePlayerAppInfo = {
 	name: "Movie Player",
 	id: "MoviePlayer.app",
-	icon: appIcon,
+	get icon() {
+		return resolveClassicyAsset("icons", "system.quicktime.player") ?? "";
+	},
 };

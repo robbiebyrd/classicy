@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import type {
 	ClassicyStore,
@@ -10,6 +12,7 @@ import {
 	classicyAppEventHandler,
 	classicyDesktopStateEventReducer,
 	closeApp,
+	DefaultAppManagerState,
 	deFocusApps,
 	focusApp,
 	focusWindow,
@@ -23,6 +26,7 @@ import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 // Side-effect imports: register app plugins so ClassicyAppFinder* and
 // ClassicyAppMoviePlayer* events are handled by classicyDesktopStateEventReducer.
 import "@/SystemFolder/Finder/FinderContext";
@@ -92,6 +96,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -821,7 +826,7 @@ describe("loadApp", () => {
 		expect(app.name).toBe("Calculator");
 	});
 
-	it("is a no-op when the app is already registered", () => {
+	it("keeps an already-registered app's state, refreshing its name and icon", () => {
 		const ds = makeStore();
 		// Pre-register with open=true and custom name to verify state is not reset
 		ds.System.Manager.Applications.apps["Notes.app"] = {
@@ -844,8 +849,30 @@ describe("loadApp", () => {
 
 		const app = ds.System.Manager.Applications.apps["Notes.app"];
 		expect(app.open).toBe(true);
-		expect(app.name).toBe("Original Name");
+		expect(app.focused).toBe(true);
+		expect(app.data).toEqual({ custom: "value" });
+		// Name and icon are code-derived identity, refreshed on every load.
+		expect(app.name).toBe("New Name");
+		expect(app.icon).toBe("new-icon.png");
 		expect(countAppWindows(app)).toBe(1);
+	});
+});
+
+describe("ClassicyAppLoad — code-derived identity", () => {
+	it("refreshes the record's name and icon on every load", () => {
+		const ds = makeStore();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "A.app", name: "A", icon: "a.png" },
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "A.app", name: "A2", icon: "b.png" },
+		});
+		expect(ds.System.Manager.Applications.apps["A.app"]).toMatchObject({
+			name: "A2",
+			icon: "b.png",
+		});
 	});
 });
 
@@ -2014,5 +2041,22 @@ describe("keyboard shortcut registry reducer", () => {
 		});
 		expect(ds.System.Manager.Keyboard.app["TextEditor.app"]).toBeUndefined();
 		expect(ds.System.Manager.Keyboard.global["control+space"]).toBeUndefined();
+	});
+});
+
+// Module-evaluation order: the default state is the core's own data
+// (ClassicyCoreTheme.ts), so it never waits on the side-effect module that
+// registers a package. This file must not import "@classicy/appearance-platinum".
+describe("DefaultAppManagerState without the Platinum package module", () => {
+	it("starts from the core default theme and lists no built-ins", () => {
+		expect(getClassicyAppearancePackage("platinum")).toBeUndefined();
+		const { availableThemes, activeTheme, packageId } =
+			DefaultAppManagerState.System.Manager.Appearance;
+		expect(packageId).toBe("platinum");
+		// Built-ins come from the registered packages, which register later.
+		expect(availableThemes).toEqual([]);
+		expect(activeTheme).toBe(CLASSICY_CORE_DEFAULT_THEME);
+		expect(activeTheme.id).toBe(platinumJson.defaults.id);
+		expect(activeTheme.desktop.backgroundImage).toBe("");
 	});
 });

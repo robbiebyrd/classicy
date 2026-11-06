@@ -1,3 +1,5 @@
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 /**
  * HyperCard.app — a JSON-driven HyperCard stack player for Classicy.
@@ -80,7 +82,7 @@ import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAp
 // Registers the built-in Download save provider under the save-provider registry.
 registerDownloadSaveProvider();
 
-const { id: appId, name: appName, icon: appIcon } = HyperCardAppInfo;
+const { id: appId, name: appName } = HyperCardAppInfo;
 
 function useHyperCardData(): HyperCardData | undefined {
 	return useAppManager((s) => {
@@ -116,6 +118,13 @@ function makeBlankStack(): HCStack {
 }
 
 export const HyperCard: FunctionalComponent = () => {
+	const appIcon = useClassicyAsset("icons", "system.files.application") ?? "";
+	// Display only: the app's id, record, stored menus and Quit keep appName
+	// and appIcon; the menu bars title the About item at render (K-R8).
+	const identity = useClassicyAppIdentity(appId, {
+		name: appName,
+		icon: appIcon,
+	});
 	const dispatch = useAppManagerDispatch();
 	const player = useSoundDispatch();
 	const { aboutMenuItem, aboutWindow } = useClassicyAboutMenu(
@@ -296,7 +305,7 @@ export const HyperCard: FunctionalComponent = () => {
 			dispatch(quitAppHelper(appId, appName, appIcon));
 		};
 		void runCascade();
-	}, [confirmDirtyStack, dispatch]);
+	}, [confirmDirtyStack, dispatch, appIcon]);
 
 	// Browse-preview: entering the browse tool pushes the draft into the player.
 	const editTool = edit?.tool;
@@ -473,7 +482,7 @@ export const HyperCard: FunctionalComponent = () => {
 
 	// --- load queued `.stack` documents (Finder OpenFile routing) ---
 	// Double-clicking a Stack file appends its path to this app's
-	// data.openFiles (the kernel's generic *OpenFile handling). Read it raw —
+	// data.openFiles (ClassicyAppHyperCardOpenFile). Read it raw —
 	// not through useHyperCardData — because on first open the kernel writes
 	// { openFiles } before any HyperCard action has seeded openStacks. This
 	// effect resolves each entry through the file system, fetches/decodes its
@@ -959,6 +968,7 @@ export const HyperCard: FunctionalComponent = () => {
 		dispatch,
 		aboutMenuItem,
 		handleQuit,
+		appIcon,
 	]);
 
 	// Keep the menu bar in sync with the dynamic edit-mode menus. Focus
@@ -988,7 +998,7 @@ export const HyperCard: FunctionalComponent = () => {
 		? editingActive && edit
 			? `${edit.draft.name}${editCard?.name ? ` — ${editCard.name}` : ""}${edit.dirty ? " •" : ""}`
 			: `${open.stack.name}${currentCard?.name ? ` — ${currentCard.name}` : ""}${edit?.dirty ? " •" : ""}`
-		: appName;
+		: identity.name;
 
 	return (
 		<ClassicyApp

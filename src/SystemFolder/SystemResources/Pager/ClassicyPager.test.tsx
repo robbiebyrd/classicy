@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
+import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.ts";
 
 describe("ClassicyPager", () => {
 	it("shows the 1-based page number", () => {
@@ -77,4 +80,26 @@ describe("ClassicyPager", () => {
 			"2",
 		);
 	});
+});
+
+// jsdom does not cascade custom properties into calc(), so the geometry is
+// pinned in the stylesheet source: every size is a pager knob
+// (measurements.pager, platinum.json), never a pixel literal.
+describe("ClassicyPager stylesheet", () => {
+	const pagerScss = resolve(__dirname, "ClassicyPager.scss");
+	const source = readFileSync(pagerScss, "utf8");
+
+	it("reads its geometry from --pager-* variables", () => {
+		expect(source).toMatch(/width:\s*var\(--pager-arrow-width\)/);
+		// H-B1: the page number is 12 px, not the 14 px --ui-font-size.
+		expect(source).toMatch(/font-size:\s*var\(--pager-font-size\)/);
+		expect(source).not.toMatch(/--ui-font-size/);
+	});
+
+	it("no bare literal", () =>
+		expect(
+			scanPixelLiteralsInSource(source, "ClassicyPager.scss").filter(
+				(literal) => literal.kind === "bare",
+			),
+		).toEqual([]));
 });

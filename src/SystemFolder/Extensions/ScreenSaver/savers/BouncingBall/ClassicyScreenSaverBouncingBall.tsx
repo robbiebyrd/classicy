@@ -1,5 +1,6 @@
 import "./ClassicyScreenSaverBouncingBall.scss";
-import type { FC as FunctionalComponent } from "react";
+import classNames from "classnames";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import { z } from "zod";
 import type {
 	ClassicyScreenSaverConfigProps,
@@ -24,26 +25,23 @@ const ballCount = (config: Record<string, unknown>): number => {
 
 /**
  * Port of After Dark in CSS "Bouncing Ball" (MIT), generalized from one
- * hard-coded ball to N. Per-ball X/Y durations are co-prime-ish multiples so
- * paths never sync up, and negative delays start each ball mid-flight.
+ * hard-coded ball to N. Each ball's timing lives in the stylesheet
+ * (`:nth-child`), so the overlay's reduced-motion rule can pause it.
  */
 export const ClassicyScreenSaverBouncingBall: FunctionalComponent<
 	ClassicyScreenSaverProps
-> = ({ config }) => {
+> = ({ config, className, style }) => {
 	const count = ballCount(config);
 	return (
-		<div className="classicySaverBouncingBall">
+		<div
+			className={classNames("classicySaverBouncingBall", className)}
+			style={style}
+		>
 			{Array.from({ length: count }, (_, i) => (
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: balls are identical; position is identity
 					key={i}
 					className="classicySaverBouncingBallBall"
-					style={{
-						animation: [
-							`classicySaverBallMoveX ${(3.4 + i * 0.55).toFixed(2)}s linear ${-(i * 0.9).toFixed(2)}s infinite alternate`,
-							`classicySaverBallMoveY ${(3 + i * 0.42).toFixed(2)}s linear ${-(i * 1.3).toFixed(2)}s infinite alternate`,
-						].join(", "),
-					}}
 				/>
 			))}
 		</div>
@@ -52,9 +50,16 @@ export const ClassicyScreenSaverBouncingBall: FunctionalComponent<
 
 /** Reference custom options UI: a single spinner, host-persisted via onChange. */
 export const ClassicyScreenSaverBouncingBallOptions: FunctionalComponent<
-	ClassicyScreenSaverConfigProps
-> = ({ config, onChange }) => (
+	ClassicyScreenSaverConfigProps & {
+		/** Extra class names, forwarded to the spinner's root. */
+		className?: string;
+		/** Inline style, forwarded to the spinner's root. */
+		style?: CSSProperties;
+	}
+> = ({ config, onChange, className, style }) => (
 	<ClassicySpinner
+		className={className}
+		style={style}
 		id="ScreenSaver_BouncingBall_balls"
 		labelTitle="Balls"
 		labelPosition="left"

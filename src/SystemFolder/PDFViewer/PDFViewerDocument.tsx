@@ -1,6 +1,4 @@
 import "./PDFViewerDocument.scss";
-import zoomToolIcon from "@img/icons/system/sherlock/search.png";
-import panToolIcon from "@img/ui/cursors/cursor-hand.png";
 import classNames from "classnames";
 import type {
 	PDFDocumentLoadingTask,
@@ -9,6 +7,7 @@ import type {
 } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type PointerEvent,
@@ -16,8 +15,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
@@ -43,12 +44,24 @@ const SCALE_STEP = 0.25;
 interface PDFViewerDocumentProps {
 	url: string;
 	data?: string;
+	/**
+	 * Extra class names, merged onto the root element after the component's
+	 * own — the loading and error messages while those show, then the viewer.
+	 */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	url,
 	data,
+	className,
+	style,
 }) => {
+	const zoomToolIcon =
+		useClassicyAsset("icons", "system.sherlock.search") ?? "";
+	const panToolIcon = useClassicyAsset("icons", "ui.cursors.hand") ?? "";
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Pan-drag bookkeeping. A ref, not state: pointermove happens dozens of
@@ -60,6 +73,10 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		scrollLeft: number;
 		scrollTop: number;
 	} | null>(null);
+	// A pan watches the pointer stream while it lasts: lost (the window
+	// blurs, a pointercancel, the page is hidden), it ends where it is.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	useEffect(() => () => stopWatchingPointerStreamRef.current?.(), []);
 	// Set by a Zoom-tool click, consumed by the render effect. The scroll
 	// adjustment that keeps the clicked point under the cursor can only be
 	// applied *after* the canvas has been resized to the new scale —
@@ -90,7 +107,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// (compressed + base64url-encoded bytes) takes precedence over `url` when
 	// both are set, matching resolveFileSystemEntrySource's precedence.
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		// `destroy()` lives on the loading task (not the resolved
 		// PDFDocumentProxy), and is safe to call whether the load is still
 		// in flight or has already settled — it aborts network requests and
@@ -107,7 +124,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 			try {
 				// Decompressing `data` and loading pdfjs are both async steps
 				// before pdf.js's own document load even starts; run them
-				// concurrently since they're independent. `cancelled` is checked
+				// concurrently since they're independent. `canceled` is checked
 				// right after both settle, before creating the loading task, so
 				// a fast unmount/re-run during either never creates an orphaned
 				// task with nothing to destroy it.
@@ -117,16 +134,16 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 						: Promise.resolve({ url }),
 					loadPdfjs(),
 				]);
-				if (cancelled) return;
+				if (canceled) return;
 				loadingTask = pdfjs.getDocument(source);
 				const loadedDoc = await loadingTask.promise;
-				if (!cancelled) setDoc(loadedDoc);
+				if (!canceled) setDoc(loadedDoc);
 			} catch {
-				if (!cancelled) setError(true);
+				if (!canceled) setError(true);
 			}
 		})();
 		return () => {
-			cancelled = true;
+			canceled = true;
 			loadingTask?.destroy();
 		};
 	}, [url, data]);
@@ -134,7 +151,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// Render the current page whenever the document, page, or zoom changes
 	useEffect(() => {
 		if (!doc || !canvasRef.current) return;
-		let cancelled = false;
+		let canceled = false;
 		let renderTask: RenderTask | null = null;
 		// Reset any stale per-page error from a previous page/zoom before
 		// attempting this render — e.g. clicking Next away from a page that
@@ -143,7 +160,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		setPageError(false);
 		Promise.all([doc.getPage(currentPage), loadPdfjs()])
 			.then(([page, pdfjs]) => {
-				if (cancelled || !canvasRef.current) return;
+				if (canceled || !canvasRef.current) return;
 				const viewport = page.getViewport({ scale });
 				const context = canvasRef.current.getContext("2d");
 				if (!context) return;
@@ -176,14 +193,14 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// loaded fine), so it sets `pageError`, not `error`.
 				renderTask.promise.catch((reason: unknown) => {
 					if (reason instanceof pdfjs.RenderingCancelledException) return;
-					if (!cancelled) setPageError(true);
+					if (!canceled) setPageError(true);
 				});
 			})
 			.catch(() => {
-				if (!cancelled) setPageError(true);
+				if (!canceled) setPageError(true);
 			});
 		return () => {
-			cancelled = true;
+			canceled = true;
 			renderTask?.cancel();
 		};
 	}, [doc, currentPage, scale]);
@@ -192,11 +209,25 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	// nothing for a toolbar to navigate — full replacement is the only
 	// sensible option here.
 	if (error) {
-		return <p className="pdfViewerDocumentError">Couldn't load this PDF.</p>;
+		return (
+			<p
+				className={classNames("pdfViewerDocumentError", className)}
+				style={style}
+			>
+				Couldn't load this PDF.
+			</p>
+		);
 	}
 
 	if (!doc) {
-		return <p className="pdfViewerDocumentLoading">Loading…</p>;
+		return (
+			<p
+				className={classNames("pdfViewerDocumentLoading", className)}
+				style={style}
+			>
+				Loading…
+			</p>
+		);
 	}
 
 	const numPages = doc.numPages;
@@ -210,6 +241,9 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 			scrollLeft: wrapper.scrollLeft,
 			scrollTop: wrapper.scrollTop,
 		};
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current =
+			onClassicyPointerStreamLost(endPanDrag);
 		// Keeps the drag alive when the pointer leaves the wrapper mid-drag.
 		// Throws in environments without an active-pointer registry (jsdom);
 		// the drag still works there, just without capture.
@@ -231,6 +265,8 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 
 	const endPanDrag = () => {
 		panDragRef.current = null;
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 	};
 
 	const handleWrapperClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -253,7 +289,15 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 	};
 
 	return (
-		<div className="pdfViewerDocument">
+		<div
+			className={classNames("pdfViewerDocument", className)}
+			style={
+				{
+					"--classicy-pdf-zoom-cursor": `url("${zoomToolIcon}")`,
+					...style,
+				} as CSSProperties
+			}
+		>
 			<div className="pdfViewerDocumentToolbar">
 				<ClassicyButton
 					buttonSize="small"

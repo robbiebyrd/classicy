@@ -1,5 +1,6 @@
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
 import {
 	render,
 	screen,
@@ -55,27 +56,12 @@ function appleGuideData(): AppleGuideData {
 	return isAppleGuideData(d) ? d : {};
 }
 
-// ClassicyMenu.tsx defers a leaf item's action until its click-flash CSS
-// animation completes (`onAnimationEnd`, matched by animation name
-// "classicyMenuItemFlashKeyframes") and only then fires on a
-// requestAnimationFrame callback — see ClassicyMenu.tsx's handleClick /
-// handleAnimationEnd. jsdom has no `AnimationEvent` global, which makes React
-// fall back to its legacy vendor-prefix detection and register the listener
-// as "webkitAnimationEnd" instead of "animationend" (jsdom's style object
-// does expose "WebkitAnimation", so the prefixed branch wins). A plain click
-// therefore never reaches the dispatch in tests; complete the animation
-// manually with the event name React actually listens for in this
-// environment.
+// ClassicyMenu.tsx defers a leaf item's action until its click flash ends
+// (`onAnimationEnd` on the item itself, or a 400 ms fallback) — see
+// ClassicyMenu.tsx's handleClick / handleAnimationEnd. Complete the flash so
+// the action runs without waiting for the fallback.
 function completeMenuItemFlash(id: string) {
-	const li = document.getElementById(id);
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	li?.dispatchEvent(event);
+	dispatchAnimationEnd(document.getElementById(id));
 }
 
 describe("Help menu — About Balloon Help", () => {

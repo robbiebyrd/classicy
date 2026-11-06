@@ -6,7 +6,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -34,7 +34,9 @@ import {
 	type MoviePlayerOpenFile,
 } from "./MoviePlayerUtils";
 
-const defaultDocumentIcon = ClassicyIcons.system.quicktime.movie;
+/** Handled by the Movie Player reducer (`MoviePlayerContext.tsx`). A literal,
+ *  never built from the app's name. */
+const CLOSE_FILE = "ClassicyAppMoviePlayerCloseFile";
 
 type ResolvedMovieDocument = {
 	key: string;
@@ -125,7 +127,10 @@ const MoviePlayerVideo: FunctionalComponent<{
 };
 
 export const MoviePlayer: FunctionalComponent = () => {
-	const { name: appName, id: appId, icon: appIcon } = MoviePlayerAppInfo;
+	const { name: appName, id: appId } = MoviePlayerAppInfo;
+	const appIcon = useClassicyAsset("icons", "system.quicktime.player") ?? "";
+	const defaultDocumentIcon =
+		useClassicyAsset("icons", "system.quicktime.movie") ?? "";
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const appData = useAppManager(
@@ -167,12 +172,17 @@ export const MoviePlayer: FunctionalComponent = () => {
 				],
 			});
 		}
-	}, [appOpen, movieData?.openFiles, desktopEventDispatch]);
+	}, [
+		appOpen,
+		movieData?.openFiles,
+		desktopEventDispatch,
+		defaultDocumentIcon,
+	]);
 
 	const closeFile = useCallback(
 		(path: string) => {
 			desktopEventDispatch({
-				type: `ClassicyApp${appName.replace(/\s+/g, "")}CloseFile`,
+				type: CLOSE_FILE,
 				app: { id: appId },
 				path,
 			});
@@ -200,7 +210,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 		(doc: ResolvedMovieDocument) =>
 			doc.path
 				? {
-						type: "ClassicyAppMoviePlayerCloseFile",
+						type: CLOSE_FILE,
 						app: { id: appId },
 						path: doc.path,
 					}
@@ -234,7 +244,7 @@ export const MoviePlayer: FunctionalComponent = () => {
 				menuChildren: [aboutMenuItem],
 			},
 		],
-		[closeWindow, closeDocAction, windowEntries, aboutMenuItem],
+		[closeWindow, closeDocAction, windowEntries, aboutMenuItem, appIcon],
 	);
 
 	return (

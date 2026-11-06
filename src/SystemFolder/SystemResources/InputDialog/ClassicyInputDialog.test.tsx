@@ -71,7 +71,7 @@ describe("ClassicyInputDialog", () => {
 		expect(onCancel).toHaveBeenCalledOnce();
 	});
 
-	it("honours a custom validate (blocks confirm on invalid input)", async () => {
+	it("honors a custom validate (blocks confirm on invalid input)", async () => {
 		const user = userEvent.setup();
 		const { onConfirm } = setup({
 			validate: (name) => name.trim().length > 0 && !name.includes(":"),

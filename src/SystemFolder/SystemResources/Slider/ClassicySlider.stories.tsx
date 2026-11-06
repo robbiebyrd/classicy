@@ -1,3 +1,7 @@
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ComponentProps, useEffect, useState } from "react";
 import { fn } from "storybook/test";
@@ -52,7 +56,7 @@ export const WithValueLabel: Story = {
 	},
 };
 
-/** `highlighted` draws the thumb in the theme accent colour. */
+/** `highlighted` draws the thumb in the theme accent color. */
 export const Highlighted: Story = {
 	args: { id: "slider-hl", labelTitle: "Bass", value: 75, highlighted: true },
 };
@@ -78,7 +82,7 @@ export const Vertical: Story = {
 };
 
 /**
- * A nondirectional (unpointed) knob with a single centre tick — the HIG choice
+ * A nondirectional (unpointed) knob with a single center tick — the HIG choice
  * when direction carries no meaning, as in a balance control.
  */
 export const NondirectionalKnob: Story = {
@@ -132,4 +136,19 @@ export const SnapToTicks: Story = {
 		snapToTicks: true,
 		tickLabels: ["Off", null, null, null, null, "Fast"],
 	},
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicySlider>) => (
+		<ClassicyAppearanceProbe>
+			<LiveSlider {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

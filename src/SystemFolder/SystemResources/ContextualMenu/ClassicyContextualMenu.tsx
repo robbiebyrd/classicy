@@ -5,7 +5,9 @@ import {
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
+import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	useCallback,
 	useEffect,
@@ -26,6 +28,13 @@ interface ClassicyMenuProps {
 	menuItems: ClassicyMenuItem[];
 	/** Called when the menu should close: an item was chosen, the idle timeout passed, or the user clicked outside. Unmount the menu here. */
 	onClose?: () => void;
+	/** Extra class names, merged onto the root wrapper after the component's own. */
+	className?: string;
+	/**
+	 * Inline style, merged onto the root wrapper after the component's own. A
+	 * `left`/`top` here overrides the menu's position, viewport flip included.
+	 */
+	style?: CSSProperties;
 }
 
 /**
@@ -52,6 +61,8 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	menuItems,
 	position,
 	onClose,
+	className,
+	style,
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Start at the requested point; the layout effect flips the root menu
@@ -96,8 +107,8 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		<ClassicyMenuProvider onClose={onClose} startActive={true}>
 			<div
 				ref={wrapperRef}
-				className={"classicyContextMenuWrapper"}
-				style={{ left, top }}
+				className={classNames("classicyContextMenuWrapper", className)}
+				style={{ left, top, ...style }}
 			>
 				<ClassicyMenu
 					name={name}

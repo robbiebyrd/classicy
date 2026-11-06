@@ -1,7 +1,12 @@
 import appleFolder from "@img/icons/system/folders/folder-apple.png";
 import fontsFolder from "@img/icons/system/folders/folder-fonts.png";
 import systemFolder from "@img/icons/system/folders/folder-system.png";
+import {
+	appearanceHooksParameters,
+	ClassicyAppearanceProbe,
+} from "@sb/ClassicyAppearanceProbe";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { ClassicyTree, type ClassicyTreeNode } from "./ClassicyTree";
 
@@ -12,6 +17,10 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+// For the stories that draw the component themselves in `render` and ignore
+// the args: typed against the component (every arg optional), not
+// `typeof meta`, which would demand its required props as story args.
+type RenderStory = StoryObj<typeof ClassicyTree>;
 
 const nodes: ClassicyTreeNode[] = [
 	{
@@ -167,6 +176,21 @@ const InteractiveTree = () => {
  * `branchSelectable`, so a single click selects it and a double-click
  * toggles it; "Archive" opts out with `selectable: false`.
  */
-export const InteractiveSelection: Story = {
+export const InteractiveSelection: RenderStory = {
 	render: () => <InteractiveTree />,
+};
+
+/**
+ * The Appearance Package hook surface, under the Storybook probe package:
+ * every root `decorate()` reaches is outlined (green while pressed), and every
+ * event the component emits is logged in the Actions panel.
+ */
+export const AppearanceHooks: Story = {
+	args: Default.args,
+	render: (args: ComponentProps<typeof ClassicyTree>) => (
+		<ClassicyAppearanceProbe>
+			<ClassicyTree {...args} />
+		</ClassicyAppearanceProbe>
+	),
+	parameters: appearanceHooksParameters(),
 };

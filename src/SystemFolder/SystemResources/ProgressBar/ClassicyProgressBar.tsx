@@ -1,6 +1,10 @@
 import "./ClassicyProgressBar.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent, ReactElement } from "react";
+import type {
+	CSSProperties,
+	FC as FunctionalComponent,
+	ReactElement,
+} from "react";
 import {
 	ClassicyControlLabel,
 	type ClassicyLabelAlign,
@@ -38,6 +42,10 @@ interface ClassicyProgressProps {
 	labelPosition?: ClassicyLabelPosition;
 	/** Horizontal alignment of the label. Defaults to `"left"`. */
 	labelAlign?: ClassicyLabelAlign;
+	/** Extra class names, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the outermost element (the label wrapper when there is a label) after the component's own. */
+	style?: CSSProperties;
 }
 
 // Two comma-shaped "chasing" arrows arranged around a ring, drawn with
@@ -71,7 +79,7 @@ const ChasingArrows: FunctionalComponent = () => (
  * The HIG says to switch from indeterminate to determinate once the scope of
  * a task is known — `autoSwitch` does that as soon as a `value` arrives, so
  * the same element can carry a task from start to finish. The bar has a
- * fixed height and takes its colour from the theme accent. For a measurement
+ * fixed height and takes its color from the theme accent. For a measurement
  * within a range (disk use, battery) use `ClassicyMeter` instead.
  */
 export const ClassicyProgressBar: FunctionalComponent<
@@ -85,6 +93,8 @@ export const ClassicyProgressBar: FunctionalComponent<
 	label,
 	labelPosition = "above",
 	labelAlign = "left",
+	className,
+	style,
 }) => {
 	// autoSwitch: once a value is known, a task that started indeterminate should
 	// present as a determinate bar.
@@ -94,11 +104,19 @@ export const ClassicyProgressBar: FunctionalComponent<
 	const effectiveMax = resolvedIndeterminate ? 100 : max;
 	const effectiveValue = resolvedIndeterminate ? 100 : (value ?? 0);
 
+	// The passthrough lands on the label wrapper when there is one, else on the bar.
+	const indicatorClassName = label ? undefined : className;
+	const indicatorStyle = label ? undefined : style;
+
 	let indicator: ReactElement;
 	if (chasingArrows) {
 		indicator = (
 			<div
-				className="classicyProgress classicyProgressChasingArrows"
+				className={classNames(
+					"classicyProgress classicyProgressChasingArrows",
+					indicatorClassName,
+				)}
+				style={indicatorStyle}
 				role="progressbar"
 				aria-busy="true"
 				aria-label={label}
@@ -114,7 +132,9 @@ export const ClassicyProgressBar: FunctionalComponent<
 					resolvedIndeterminate
 						? "classicyProgressIndeterminate"
 						: "classicyProgressDeterminate",
+					indicatorClassName,
 				)}
+				style={indicatorStyle}
 			>
 				<progress max={effectiveMax} value={effectiveValue} />
 			</div>
@@ -128,7 +148,9 @@ export const ClassicyProgressBar: FunctionalComponent<
 			className={classNames(
 				labelPositionClass(labelPosition),
 				labelAlignClass(labelAlign),
+				className,
 			)}
+			style={style}
 		>
 			<ClassicyControlLabel label={label} />
 			{indicator}

@@ -7,11 +7,16 @@ import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/Classi
 import "./ClassicyDisclosure.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	type ReactNode,
+	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 
 type ClassicyDisclosureTriangleDirections = "up" | "right" | "down" | "left";
@@ -22,7 +27,7 @@ type ClassicyDisclosureProps = {
 	 * Defaults to `right`, the HIG's closed state.
 	 */
 	direction?: ClassicyDisclosureTriangleDirections;
-	/** Header text beside the triangle — HIGOS8 p.115 asks for a labelled triangle. Defaults to `""` (no text). */
+	/** Header text beside the triangle — HIGOS8 p.115 asks for a labeled triangle. Defaults to `""` (no text). */
 	label?: string;
 	/** Header text size. Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
@@ -33,10 +38,14 @@ type ClassicyDisclosureProps = {
 	labelPosition?: ClassicyLabelPosition;
 	/** The content revealed while open; not displayed while closed. */
 	children?: ReactNode;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
- * A collapsible section headed by a labelled disclosure triangle (HIGOS8 Ch.2
+ * A collapsible section headed by a labeled disclosure triangle (HIGOS8 Ch.2
  * "Disclosure Triangles", p.37) — the Classicy replacement for
  * `<details>`/`<summary>`, and the HIG's "expand/contract" pattern for showing
  * optional detail in a dialog. It always starts closed and manages its own
@@ -63,13 +72,22 @@ export const ClassicyDisclosure: FunctionalComponent<
 	labelSize = "medium",
 	labelPosition = "right",
 	children,
+	className,
+	style,
 }) => {
 	const [open, setOpen] = useState(false);
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = { type: "ClassicyLabel", label };
+	const rootRef = useRef<HTMLDivElement>(null);
+	// The root had no state class; `open` stays on the inner panel.
+	const appearance = useClassicyAppearance("Disclosure", {}, rootRef);
 
 	function setOpenState(next: boolean) {
 		track("click", { expanded: next, ...analyticsArgs });
+		appearance.emit(
+			next ? "expand" : "collapse",
+			withClassicyAppearanceInput(),
+		);
 		setOpen(next);
 	}
 
@@ -101,32 +119,43 @@ export const ClassicyDisclosure: FunctionalComponent<
 	}
 
 	return (
-		<div className={classNames("classicyDisclosure")}>
+		<div
+			{...appearance.attrs}
+			ref={rootRef}
+			className={classNames(
+				"classicyDisclosure",
+				appearance.className,
+				className,
+			)}
+			style={appearance.style ? { ...appearance.style, ...style } : style}
+		>
+			{/* One DOM order, triangle then label; a left label is moved before
+			    the triangle by `order` in the stylesheet, so a package can
+			    reorder the pair. */}
 			{/* biome-ignore lint/a11y/useSemanticElements: disclosure header is a block container with svg child incompatible with <button> */}
 			<div
 				role="button"
-				className={"classicyDisclosureHeader"}
+				className={classNames(
+					"classicyDisclosureHeader",
+					labelPosition === "left" && "classicyDisclosureLabelLeft",
+				)}
 				onClick={() => setOpenState(!open)}
 				tabIndex={0}
 				aria-expanded={open}
 				onKeyDown={(e) => handleKeyPress(e)}
 			>
-				{labelPosition === "left" && (
-					<ClassicyControlLabel label={label} labelSize={labelSize} />
-				)}
 				<ClassicyTriangle
 					direction={direction}
 					open={open}
 					interactive={false}
 				/>
-				{labelPosition !== "left" && (
-					<ClassicyControlLabel label={label} labelSize={labelSize} />
-				)}
+				<ClassicyControlLabel label={label} labelSize={labelSize} />
 			</div>
 			<div
 				className={classNames(
 					"classicyDisclosureInner",
-					open ? "classicyDisclosureInnerOpen" : "classicyDisclosureInnerClose",
+					open ? "" : "classicyDisclosureInnerClose",
+					classicyStateClasses({ open }),
 				)}
 			>
 				{children}

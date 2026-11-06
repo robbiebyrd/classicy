@@ -2,9 +2,9 @@
  * HyperCard stack model — the authored, JSON-serializable description of a
  * stack. This is the "document" a HyperCard stack file contains: a stack of
  * cards, each holding parts (buttons, fields, …) with placement, content, and
- * declarative behaviour.
+ * declarative behavior.
  *
- * Behaviour is expressed as ordered lists of typed {@link HCAction} objects per
+ * Behavior is expressed as ordered lists of typed {@link HCAction} objects per
  * event (no HyperTalk text parser). Value strings inside actions are evaluated
  * by HyperCardExpression.ts; control state is executed by HyperCardEngine.ts.
  */

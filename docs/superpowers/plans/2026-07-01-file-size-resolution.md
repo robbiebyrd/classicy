@@ -753,7 +753,7 @@ Replace the `fileList` `useMemo` block (lines 73-87) with:
 			>([]);
 
 			useEffect(() => {
-				let cancelled = false;
+				let canceled = false;
 
 				const directoryItems = fs.filterByType(path);
 				const initial = Object.entries(directoryItems).map(
@@ -776,7 +776,7 @@ Replace the `fileList` `useMemo` block (lines 73-87) with:
 				initial.forEach((entry, index) => {
 					if (typeof entry._size === "number") return;
 					fs.size(entry).then((resolvedSize) => {
-						if (cancelled) return;
+						if (canceled) return;
 						setFileList((prev) => {
 							const next = [...prev];
 							if (next[index]?._path === entry._path) {
@@ -788,7 +788,7 @@ Replace the `fileList` `useMemo` block (lines 73-87) with:
 				});
 
 				return () => {
-					cancelled = true;
+					canceled = true;
 				};
 			}, [path, fs]);
 ```
@@ -925,18 +925,18 @@ export function useFinderFolderSize(
 	const [size, setSize] = useState<number | undefined>(undefined);
 
 	useEffect(() => {
-		let cancelled = false;
+		let canceled = false;
 		setSize(undefined);
 
 		const entry = fs.resolve(path);
 		if (entry) {
 			fs.calculateSizeDir(entry).then((resolvedSize) => {
-				if (!cancelled) setSize(resolvedSize);
+				if (!canceled) setSize(resolvedSize);
 			});
 		}
 
 		return () => {
-			cancelled = true;
+			canceled = true;
 		};
 	}, [path, fs]);
 

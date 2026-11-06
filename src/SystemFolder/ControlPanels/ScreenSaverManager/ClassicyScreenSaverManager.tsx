@@ -1,4 +1,5 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -55,7 +56,15 @@ const WINDOW_ID = "ScreenSaverManager_1";
  */
 export function ClassicyScreenSaverManager() {
 	const dispatch = useAppManagerDispatch();
-	const appIcon = ClassicyIcons.system.extensions.screensaver;
+	const appIcon =
+		useClassicyAsset("icons", "system.extensions.screensaver") ?? "";
+
+	// Display only: the app's id, record, stored menus and Quit keep APP_NAME
+	// and appIcon; the menu bars title the About item at render (K-R8).
+	const identity = useClassicyAppIdentity(APP_ID, {
+		name: APP_NAME,
+		icon: appIcon,
+	});
 
 	// Mac OS 8 HIG control-panel menu bar (audit ch. 6 §35): Apple / File / Edit.
 	// The About entry is discovery data for the desktop menu bar (HIG #209):
@@ -108,9 +117,9 @@ export function ClassicyScreenSaverManager() {
 		>
 			<ClassicyWindow
 				id={WINDOW_ID}
-				title={APP_NAME}
+				title={identity.name}
 				appId={APP_ID}
-				icon={appIcon}
+				icon={identity.icon}
 				closable={true}
 				resizable={false}
 				zoomable={false}

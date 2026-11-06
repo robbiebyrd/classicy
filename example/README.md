@@ -1,10 +1,10 @@
 # Classicy Example App
 
-A standalone Vite + React application that demonstrates the Classicy component library. It is part of the pnpm workspace and consumes the local `classicy` package directly (via the `workspace:*` dependency) — no linking step required.
+A standalone Vite + React application that demonstrates the Classicy component library. It is part of the pnpm workspace and consumes the local `@classicy/classicy` package directly (via the `workspace:*` dependency) — no linking step required.
 
 ## Setup
 
-The example app runs against the **locally built** library by default (it resolves `classicy` through the pnpm workspace). It can optionally be pointed at the **published npm package** instead (for trying out the example standalone).
+The example app runs against the **locally built** library by default (it resolves `@classicy/classicy` through the pnpm workspace). It can optionally be pointed at the **published npm package** instead (for trying out the example standalone).
 
 ### Using the local build
 
@@ -25,11 +25,11 @@ pnpm dev   # start the Vite dev server (already resolving the local workspace bu
 
 ### Using the published package
 
-To point the example at the latest published version of `classicy` on npm instead of the workspace build:
+To point the example at the latest published version of `@classicy/classicy` on npm instead of the workspace build:
 
 ```sh
 cd example
-pnpm run use:published   # replaces the workspace dependency with classicy@latest
+pnpm run use:published   # replaces the workspace dependency with @classicy/classicy@latest
 pnpm dev
 ```
 

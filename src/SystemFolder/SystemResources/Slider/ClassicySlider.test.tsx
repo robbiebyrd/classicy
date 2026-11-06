@@ -1,6 +1,8 @@
 import { fireEvent } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	ClassicySlider,
 	computeSliderTicks,
@@ -83,7 +85,7 @@ describe("ClassicySlider", () => {
 		fireEvent.change(input, { target: { value: "20" } });
 		fireEvent.pointerUp(input);
 		expect(onCommit).toHaveBeenCalledTimes(1);
-		expect(onCommit).toHaveBeenCalledWith(20);
+		expect(onCommit).toHaveBeenCalledWith(20, { lost: false });
 	});
 
 	it("calls onCommitFunc with the numeric value on key release", () => {
@@ -96,7 +98,43 @@ describe("ClassicySlider", () => {
 		) as HTMLInputElement;
 		fireEvent.change(input, { target: { value: "15" } });
 		fireEvent.keyUp(input, { key: "ArrowRight" });
-		expect(onCommit).toHaveBeenCalledWith(15);
+		// A key release is never a lost pointer stream.
+		expect(onCommit).toHaveBeenCalledWith(15, { lost: false });
+	});
+
+	it("still takes a commit handler that reads only the value", () => {
+		// Type-level: an existing one-argument handler compiles unchanged...
+		const saved: number[] = [];
+		const saveValue = (value: number) => {
+			saved.push(value);
+		};
+		const accepted: ComponentProps<typeof ClassicySlider>["onCommitFunc"] =
+			saveValue;
+		// ...while one that reads the trailing info must take `{ lost: boolean }`.
+		const reads: ComponentProps<typeof ClassicySlider>["onCommitFunc"] = (
+			_value: number,
+			info: ClassicyGestureEnd,
+		) => {
+			expect(info.lost).toBeTypeOf("boolean");
+		};
+		expect(reads).toBeTypeOf("function");
+		// @ts-expect-error: the trailing info's `lost` is a boolean
+		const wrong: ComponentProps<typeof ClassicySlider>["onCommitFunc"] = (
+			_value: number,
+			_info: { lost: string },
+		) => {};
+		expect(accepted).toBe(saveValue);
+		expect(wrong).toBeTypeOf("function");
+
+		const { container } = render(
+			<ClassicySlider id="test" value={5} onCommitFunc={saveValue} />,
+		);
+		const input = container.querySelector(
+			'input[type="range"]',
+		) as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "20" } });
+		fireEvent.pointerUp(input);
+		expect(saved).toEqual([20]);
 	});
 
 	it("does not fire onCommitFunc on mere value changes (only on release)", () => {
@@ -172,7 +210,7 @@ describe("ClassicySlider", () => {
 			<ClassicySlider id="test" value={5} tickInterval={25} disabled={true} />,
 		);
 		expect(container.querySelector(".classicySliderTicks")).toHaveClass(
-			"classicySliderTicksDisabled",
+			"disabled",
 		);
 	});
 

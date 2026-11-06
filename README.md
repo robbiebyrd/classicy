@@ -14,6 +14,379 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ### [See our Storybook collection here!](https://demo.classicy.ing/storybook/)
 
+## Using Classicy in a Vite app
+
+Classicy is two packages: `@classicy/classicy`, the framework, and
+`@classicy/appearance-platinum`, the Platinum look. Install both, at the same
+version:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-platinum
+pnpm add react react-dom # for a new app
+```
+
+Import Platinum once, at your app's entry, before you render. The framework
+registers no Appearance Package of its own:
+
+```tsx
+import "@classicy/appearance-platinum";
+import {
+  ClassicyAppManagerProvider,
+  ClassicyDesktop,
+} from "@classicy/classicy";
+import { createRoot } from "react-dom/client";
+
+createRoot(document.getElementById("root")!).render(
+  <ClassicyAppManagerProvider>
+    <ClassicyDesktop>{/* your ClassicyApp components */}</ClassicyDesktop>
+  </ClassicyAppManagerProvider>,
+);
+```
+
+Without that import, `ClassicyDesktop` draws a "No Appearance Package is
+loaded" message (showing the import line) instead of the desktop, mounts none
+of its children, and logs one error per page. The desktop appears as soon as a
+package registers. Platinum's own names
+(`PLATINUM_APPEARANCE_PACKAGE_ID`, `platinumAppearanceHooks`,
+`platinumSoundPack`) are exports of `@classicy/appearance-platinum`, which
+ships its type declarations (`bundler`, `node16` and `nodenext` resolution).
+
+**Browser support:** Chrome/Edge 120+, Safari 16.2+, Firefox 113+. Theme
+colors are mixed in CSS with `color-mix()` (Safari 16.2, Firefox 113), and
+icons are drawn with unprefixed `mask-image` and mask compositing (Chrome
+120); in an older browser those declarations are dropped, so tints, overlays
+and icon art go missing.
+
+**Upgrading from 2.1.x?** [`docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`](docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md) lists every breaking change below, and the rest of the release, with its migration step.
+
+**Breaking change: the package is renamed.** `classicy` is now
+`@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
+and rewrite every specifier, strings included: `from "classicy"`, deep paths
+(`classicy/dist/classicy.css`, `classicy/scss/*`), `vi.mock("classicy", …)` and
+`typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
+script, pnpm's `minimumReleaseAgeExclude`) must list **both** package names and
+move them together. The scoped names exist from 3.0.0 on; a lower range does
+not resolve. The release notes give a one-pass `sed`.
+
+Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
+wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
+`dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
+pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
+file URLs (they return the SPA fallback page). Exclude both packages from
+the pre-bundle:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+  },
+})
+```
+
+Any CommonJS dependency they pull in may then need to go in
+`optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
+(a Vite production build, webpack 5, Rollup with a URL plugin) need no
+setting; with any other (plain esbuild, Rollup without such a plugin), copy
+the Platinum package's `dist/assets/` next to your bundle.
+`import "@classicy/classicy/fonts"` is now a deprecated no-op (the Platinum package
+registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
+links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place
+(below).
+
+**Breaking change: system art and cursors are no longer icons.** The
+`ClassicyIcons` constant is now only the Platinum icon tree as shipped: it does
+not reflect later `registerClassicyIcons` calls (`ClassicyIcons.myApp.icon` is
+`undefined` at runtime), so read icons through `useClassicyAsset` (in a
+component) or `resolveClassicyAsset` (elsewhere), never the constant. In
+particular, `registerClassicyIcons({ applications: { ...ClassicyIcons.applications, mine } })`
+followed by a read of `ClassicyIcons.applications.mine` now returns
+`undefined` (usually behind a cast, so `tsc` is silent): drop the spread and
+read through the value `registerClassicyIcons` returns, or
+`resolveClassicyAsset("icons", "applications.mine")`. And
+Platinum draws these as system art and cursors, so registering them under
+`registerClassicyIcons` no longer changes what is drawn (most of them are gone
+from the icon tree, below).
+Register the replacement instead:
+
+| Icon path you used to register | Register now |
+|---|---|
+| `system.alias` | `registerClassicySystemArt("platinum", { aliasBadge })` |
+| `system.apple` | `registerClassicySystemArt("platinum", { appleMenu })` |
+| `system.desktop.trashEmpty` | `registerClassicySystemArt("platinum", { trashEmpty })` |
+| `system.desktop.trashFull` | `registerClassicySystemArt("platinum", { trashFull })` |
+| `ui.helpButton` | `registerClassicySystemArt("platinum", { helpButton })` |
+| `classicy.logo` | `registerClassicySystemArt("platinum", { aboutLogo })` |
+| `system.macosSvg` | `registerClassicySystemArt("platinum", { startupLogo })` |
+| `ui.cursors.watch`, `.hand`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | `registerClassicyCursors("platinum", { watch, hand, resizeLr, resizeUd, resizeU, resizeD, resizeL, resizeR })` |
+
+Seven icon paths are gone from `ClassicyIcons` and the Platinum icon tree.
+Nothing in Classicy drew any of them; register your own image under a path to
+keep it (`registerClassicyIcons({ system: { bomb } })`; the 2.1.7 images are in
+that release's `assets/img/`):
+
+| Removed icon path | Replacement |
+|---|---|
+| `system.bomb` | None |
+| `system.files._229`, `system.files._232Messages` | None (their files never existed: both were `""` in 2.1.x) |
+| `ui.halftoneSmall` | None (Classicy's halftone is the system art `halftone`, a different image) |
+| `ui.menuDropdownArrows` | System art `popupArrows` (the same arrows, in `currentColor`) |
+| `ui.stripe` | None (a diagonal hatch; the title-bar stripes, system art `windowStripes`, are a different pattern) |
+| `ui.tab` | Nearest: system art `tabOutline` (the same shape as an open outline, not filled) |
+
+Thirteen more icon paths are gone in 3.0: their files were Platinum's alone,
+and moved into the Platinum package. Read what Platinum registers in their
+place, the same image (`useClassicyAsset` or `resolveClassicyAsset`):
+
+| Removed icon path | Read instead |
+|---|---|
+| `system.apple` | system art `appleMenu` |
+| `system.alias` | system art `aliasBadge` |
+| `system.desktop.trashEmpty`, `system.desktop.trashFull` | system art `trashEmpty`, `trashFull` |
+| `ui.helpButton` | system art `helpButton` |
+| `ui.cursors.watch`, `.resizeLr`, `.resizeUd`, `.resizeU`, `.resizeD`, `.resizeL`, `.resizeR` | the cursor role of the same name |
+| `controlPanels.appearanceManager.platinum` | the Platinum package's `icon` (`getClassicyAppearancePackage("platinum")?.icon`) |
+| `ui.cursors.add`, `eyedropper`, `handCounting`, `highlight`, `menu`, `plus`, `precision`, `rom`, `shortcut`, `spin` | None (the files were unread and are deleted; register your own at the path with `registerClassicyIcons` to keep one) |
+
+`docs/AGENT-REFERENCE.md` §5 has the full asset-registry reference.
+
+**Breaking change: shared state classes and cascade layers.** A component's
+state is now a bare class beside its root class, so the classes that folded a
+state into their name are gone, and `data-state` is no longer set anywhere.
+Update host CSS and tests that select them:
+
+| Old class | Now |
+|---|---|
+| `classicyWindowActive`, `classicyWindowInactive` | `.classicyWindow.active`, `.classicyWindow.inactive` |
+| `classicyWindowCollapsed`, `classicyWindowDragging` | `.classicyWindow.collapsed`, `.classicyWindow.dragging` |
+| `classicyButtonDefault`, `classicyButtonDepressed` | `.classicyButton.default`, `.classicyButton.pressed` |
+| `classicyMenuItemDisabled`, `classicyMenuItemOpen` | `.classicyMenuItem.disabled`, `.classicyMenuItem.open` |
+| `classicyTabButtonActive` | `.classicyTabButton.selected` |
+| `classicyDesktopIconActive`, `classicyDesktopIconOpen`, `classicyDesktopIconActiveAndOpen` | `.classicyDesktopIcon.selected`, `.open`, `.selected.open` |
+| `classicyIconActive` | `.classicyIcon.selected` |
+| `classicyListBoxOptionSelected`, `classicyTableRowSelected` | `.classicyListBoxOption.selected`, `.classicyTableRow.selected` |
+| `classicyDesktopMenuAppleMenu` | `classicyDesktopMenuApple` |
+| `[data-state="…"]` on BevelButton, Placard, ImageWell | `.checked`, `.pressed`, `.mixed`, `.disabled`, `.selected`, `.open` |
+
+The exported type `ClassicyBevelButtonState` is deleted. `@classicy/classicy/scss/*` now
+resolves to the vocabulary (`@use "@classicy/classicy/scss/vocabulary"`); the old theme
+partials are Platinum's, at `@classicy/appearance-platinum/scss/*` (see
+Appearance Packages below). The global `.hidden`
+utility and `classicyWindowZoomed` are gone, and a `zIndex` passed in `style`
+to `ClassicyWindow`, `ClassicyIcon` or `ClassicyDesktopIcon` is dropped.
+
+Classicy's stylesheet is now in cascade layers
+(`@layer classicy.base, classicy.package, classicy.user`), so **unlayered host
+CSS and every host layer beat Classicy whatever the specificity**: a host
+`button { … }` or Tailwind v4's Preflight now restyles Classicy's controls.
+Keep resets in the reserved `classicy.base.host` sublayer (for Tailwind v4,
+replace `@import "tailwindcss";` with the granular form in
+`docs/AGENT-REFERENCE.md` §1). Because the state classes are bare generic
+names (`active`, `open`, `error`, `selected`, …), a host's global
+`.active { … }` now matches Classicy elements too: scope such rules to your
+own markup. The screen saver's hidden cursor no longer beats an unlayered host
+`* { cursor: … }`.
+
+The full old → new table (every renamed class) is in `docs/AGENT-REFERENCE.md`
+§5, "Migrating to the shared vocabulary". Markup you build by hand to look like
+Classicy's needs the same vocabulary: the bare state classes, plus
+`data-classicy-part` on menu-bar clusters and `data-classicy-control` on
+title-bar boxes, which flex `order` now keys on (without them a zoom box sorts
+left of the title).
+
+**Breaking change: the look is an Appearance Package.** Classicy's stylesheet
+now holds structure only; the Platinum look (every bevel, border, gradient
+and piece of art) is the Platinum Appearance Package's own stylesheet, in
+`@layer classicy.package` and scoped under
+`.classicyDesktop[data-classicy-appearance="platinum"]`. Importing
+`@classicy/appearance-platinum` registers it, and everything inside
+`ClassicyDesktop` looks as before.
+
+- **Components outside a desktop get structure only, no look.** Wrap a standalone component
+  in an element carrying `class="classicyDesktop"` and
+  `data-classicy-appearance="platinum"`, with the theme and asset variables
+  on it (`getThemeVars(getTheme("default"))` and `useClassicyAssetVars()`);
+  give it `id="classicyDesktop"` so portals (menus, balloons) render inside it
+  rather than falling back, unstyled, to `document.body`.
+- **Strict-CSP hosts link three files**, first in `<head>` and in this order:
+  `@classicy/classicy/dist/classicy.css` (structure, the core's), then the
+  Platinum package's `@classicy/appearance-platinum/classicy-platinum.css`
+  (the look) and `@classicy/appearance-platinum/classicy-platinum.fonts.css`
+  (the Platinum fonts). Those are the packages' `exports`; a plain `<link>`
+  names the files themselves:
+
+  ```html
+  <link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.css">
+  <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
+  ```
+
+  A policy that blocks inline `<style>` blocks all three runtime
+  injections; the fonts file holds the same `@font-face` rules the package
+  writes, each pointing at its `.woff2` in the Platinum package's
+  `dist/assets/` (serve that folder beside it, and allow it in `font-src`).
+  Link the files rather than importing them through your bundler: Vite
+  inlines the small Monaco font as a `data:` URL, which `font-src 'self'`
+  blocks. If you must import them, set `build.assetsInlineLimit: 0` or allow
+  `font-src data:`. Linking (copied, or served from `node_modules`) is the
+  recommended way.
+- **The theme partials moved.** `classicy/scss/appearance`,
+  `classicy/scss/scrollbars` and `classicy/scss/assets` (2.1.x; pre-release
+  builds called them `classicy/scss-platinum/*`) are now
+  `@classicy/appearance-platinum/scss/mixins`, `…/scrollbars` and `…/assets`.
+  The mixins are renamed to kebab-case with a `platinum-` prefix
+  (`appearance.platinumWindowControlBoxBorder` →
+  `mixins.platinum-window-control-box-border`; `scrollbars.scrollbars` →
+  `scrollbars.platinum-scrollbars`), except `scrollbars.scrollbars-inactive`,
+  which is removed (it never drew in Classicy's own windows; copy its rules
+  from the 2.1.7 source if you used it), and `px-rect`/`no-select` moved to
+  the vocabulary as `classicy-px-rect`/`classicy-no-select`
+  (`@classicy/classicy/scss/layout`). The full rename table is in
+  `docs/AGENT-REFERENCE.md`, "Migrating to Appearance Packages". `classicy/scss/themes.json` is gone: call
+  `getAllThemes()`. Platinum's partials reach the vocabulary as
+  `pkg:@classicy/classicy/scss/*`, so a host that `@use`s them compiles with
+  Sass's `NodePackageImporter` (Vite: `css.preprocessorOptions.scss.importers:
+  [new NodePackageImporter()]`), imported from the Sass package your build
+  uses: `sass-embedded` for a host on `sass-embedded`, `sass` for one on
+  `sass`. `@classicy/classicy/appearance/platinum` and
+  `@classicy/classicy/appearance/platinum/scss/*` are gone:
+  import `@classicy/appearance-platinum`, which registers Platinum and
+  exports its names (`PLATINUM_APPEARANCE_PACKAGE_ID`,
+  `platinumAppearanceHooks`, `platinumSoundPack`), which are no longer
+  `@classicy/classicy` exports.
+- **`platinum-halftone` takes a token name.** The mixin now takes a color
+  token NAME (`@include mixins.platinum-halftone("--color-black")`, not a
+  color) and paints the dither on a `::before` child, which sets
+  `position: relative` and `isolation: isolate` on the element it is
+  included in.
+  The `encode-color` SCSS function is removed.
+- **Platinum's art is registered system art** (`--classicy-art-<key>`,
+  published by `ClassicyDesktop`): the `assets.$…` art variables are gone,
+  and a standalone component needs `useClassicyAssetVars()` on its wrapper
+  (above) or its art is missing. `ClassicyWindowFrame` now draws the window's
+  title bar (`ClassicyWindowTitleBar`): target
+  `.classicyWindowFrame .classicyWindowTitleBar` instead of the removed
+  `classicyWindowFrameTitleBar`/`classicyWindowFrameTitleText`. The Control
+  Strip and pop-up slider row constants (`controlStripTab`,
+  `popUpSliderTrack`, …) are no longer exported: read them with
+  `useClassicyPixelArtRows(key)` or draw `<ClassicyPixelArt art={key} />`.
+  The published `platinum-window-control-box` and
+  `platinum-window-control-box-depressable` mixins draw their dither from
+  `--classicy-art-window-dither`, so a host using them outside a desktop must
+  define it (or accept no dither). They and `platinum-menu-divider` now draw
+  only the look: the box's size and its `::before`/`::after` geometry, and the
+  divider's full-width stretch, are base structure, so a host including them
+  on an element of its own sets those itself.
+- **Text glyphs are package CSS.** The menu check and dash, the pop-up and
+  combo-box check, the bevel button's ▸ ▾, the placard's ▾, the file input's
+  ✕ and the HyperCard tools palette's ✓ are now empty `aria-hidden` spans the
+  package fills with `::before`/`::after` content: their `textContent` is
+  `""`, and `getByText("✓")` finds nothing.
+- **Checkable roles.** A menu item with `checked` set is
+  `role="menuitemcheckbox"` with `aria-checked`, so
+  `getByRole("menuitem", { name })` misses it; a HyperCard tools-palette entry
+  is `role="button"` with `aria-pressed`.
+- **Caption colors are custom properties.** A `captionStyle` reaches the cue
+  as `--classicy-caption-*` properties, not inline `color` and
+  `background-color` (`style.color` reads `""`), so it no longer carries
+  inline precedence: host CSS in `classicy.user`, or unlayered, overrides it.
+  Theme captions through
+  `.quickTimePlayerCaptions:not(.quickTimePlayerCaptionsCustomStyle)` to keep
+  the viewer's choice.
+- **`ClassicyKbd` wraps each modifier** in its own
+  `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">`.
+  The text is unchanged; snapshots of its children change.
+- **Fixed:** Firefox no longer shows a scroll bar under tab strips in the
+  built library (the desktop's scroll-bar fallback used to beat the tab
+  scroller's `scrollbar-width: none`).
+
+The full mixin table and the package API are in `docs/AGENT-REFERENCE.md`
+§5, "Migrating to Appearance Packages", and §8, "Appearance Packages".
+
+**Changed: sizes and colors derive from the theme.**
+
+- **Overriding an input no longer rescales the derived sizes.** Stylesheets
+  read named sizes that `getThemeVars` computes from the theme
+  (`--menu-min-width`, `--popup-height`, `--ui-font-size-small`, …) instead
+  of `calc(var(--window-control-size) * N)`. A host that overrides an input
+  such as `--window-control-size` on the desktop now changes only that
+  variable. Change the theme's measurement instead, or override the derived
+  variable itself (`docs/AGENT-REFERENCE.md` §8, "Overriding sizes from a
+  host").
+- **Error title bars are `#ffcccc`**, `classicy-tint("--color-error", 80%)`,
+  instead of `#f7cecd`, so they follow a theme's error color. New SCSS
+  helpers `classicy-tint`, `classicy-shade` and `classicy-alpha` are at
+  `@classicy/classicy/scss/color`.
+- **`ClassicyWindowOpen` no longer treats `[0, 0]` as "no position".** A new
+  window opens where its `position` says, `[0, 0]` included. To have it
+  cascaded (`30 + 10·n`), omit `position` or pass `autoPosition: true`.
+  `ClassicyWindow` always supplies a position, so its windows are unaffected
+  (default `[110, 110]`).
+- **A package knob that would make a variable Classicy sets itself**
+  (`menu.minWidth` → `--menu-min-width`) is skipped with a warning and left
+  out of the Options tab.
+
+**New: Appearance Packages can rename and re-icon apps.** A package's
+optional `apps` field (`{ "MoviePlayer.app": { name: "Media Player", icon,
+description } }`, keyed by app id, bundled or your own) changes how an app is
+shown everywhere its name or icon is drawn. It is display only: ids, action
+types, records and persisted state keep the app's own name, and analytics
+paths are built from the app id (window titles still reach GA as drawn), so
+build nothing from a displayed name, and read
+`useClassicyAppIdentity(id, { name, icon })` for text that names an app.
+Under any package:
+
+- **File-system adapters see one snapshot-hash change** on the first save
+  after upgrading: the derived Applications, Extensions and Control Strip
+  Modules entries are no longer persisted or sent in snapshots.
+- **A derived folder never overwrites a static entry.** A user's file named
+  like an app is kept, and the app is listed beside it as "<name> (<id>)";
+  only Platinum's untouched placeholders (`_placeholder`) give way.
+- **App records and desktop icon balloons follow the code.** `apps[id].name`
+  and `icon` are refreshed from `ClassicyApp`'s props on every mount, and a
+  desktop icon's balloon is stored only when `desktopIconBalloonHelp` is given
+  (the manifest description is resolved at render).
+- **PDF Viewer's close action type is fixed.** It dispatched
+  `"ClassicyAppPDF ViewerCloseFile"` (with a space); it now dispatches
+  `ClassicyAppPDFViewerCloseFile`. A host matching the old string must match
+  the new one.
+- **Every asset `url()` is quoted.** CSS variables and styles that carry an
+  asset (`--classicy-icon-mask`, `--desktop-background-image`, the cursor, …)
+  are written `url("…")`, so a `data:` SVG icon keeps its mask. Tests that
+  matched the unquoted string must expect the quotes.
+- **Error alerts are session-only.** `Desktop.errorDialog` is no longer
+  persisted, so a reload never re-shows an open alert.
+
+Details: `docs/AGENT-REFERENCE.md` §8, "App display overrides".
+
+**Changed: pixel sizes are theme knobs.** Platinum looks the same; the
+Control Strip, menu frame, Pager, Balloon Help, pop-up slider, dialogs and
+the other pixel-matched surfaces now read `measurements.<family>` knobs from
+the theme (`--<family>-<key>`) instead of `Npx` literals.
+
+- **Breaking: `POPUP_MENU_MAX_HEIGHT` is removed.** The pop-up menu's cap
+  is the theme variable `--menu-pop-up-max-height` (300 under Platinum);
+  `classicyPopUpMenuPlacement` takes it as an optional last argument.
+- **Breaking: no pixel fallbacks.** Stylesheets read `var(--x)` with no
+  `Npx` fallback, so a component outside `ClassicyDesktop` needs the full
+  `getThemeVars(theme)` on its wrapper.
+- **Breaking for packages:** a measurement whose variable starts with
+  `--color-`, or names one of the 119 named derivations, is skipped.
+- **Breaking for host CSS:** 84 more sizes are named derivations that
+  `getThemeVars` sets, so overriding an input variable such as
+  `--window-padding-size` no longer moves them: change the theme, or
+  override the derived variable.
+- **Breaking for SCSS hosts:** Platinum's published `platinum-menu-frame`
+  and `platinum-scrollbars` mixins read knob variables that only
+  `getThemeVars` emits.
+- **The Options tab** shows six groups of Platinum knobs.
+- `withDefaultThemeMetrics(theme, defaults?)` takes the defaults to fill
+  from; pass `classicyThemeMeasurementDefaults(theme.package)` to complete a
+  package's families.
+
+Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
+pixel-literal purge (Part H)", and §8, "Package knob families".
+
 ## Building and running on localhost
 
 This project uses [pnpm](https://pnpm.io/) (enable it with `corepack enable`). First install dependencies:
@@ -58,7 +431,7 @@ docker compose up -d
 
 The proxy runs on `http://localhost:8765` by default. Enable it in the Browser app under **File → Settings → Enable TimeMachine Proxy**.
 
-## Acknowledgements
+## Acknowledgments
 
 - New Dawn by [`Nathanael Gentry`](https://github.com/npjg)
 - Scrollbars of the Classic Mac OS by [`Jessica Stokes (@ticky)`](https://github.com/ticky)
@@ -175,15 +548,15 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 
 ## Component Reference
 
-All components are exported from the `classicy` package. Import them by name:
+All components are exported from the `@classicy/classicy` package. Import them by name:
 
 ```tsx
-import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from 'classicy';
+import { ClassicyWindow, ClassicyButton, ClassicyBalloonHelp } from '@classicy/classicy';
 ```
 
-> **Building an app?** [`docs/BUILDING-APPS.md`](docs/BUILDING-APPS.md) is the step-by-step guide: `ClassicyApp` and `ClassicyWindow` prop-by-prop, manifests, reducers, menus, icons, files, dialogs, balloon help, sound, analytics, extensions, persistence, and testing — plus the traps that cost the most time. It ships with the package at `node_modules/classicy/docs/BUILDING-APPS.md`.
+> **Building an app?** [`docs/BUILDING-APPS.md`](docs/BUILDING-APPS.md) is the step-by-step guide: `ClassicyApp` and `ClassicyWindow` prop-by-prop, manifests, reducers, menus, icons, files, dialogs, balloon help, sound, analytics, extensions, persistence, and testing — plus the traps that cost the most time. It ships with the package at `node_modules/@classicy/classicy/docs/BUILDING-APPS.md`.
 >
-> **Using an AI coding agent?** A complete machine-oriented reference to the public API — every component's props, app/event/icon registration, theming, analytics, sound, and the untrusted-action rules — ships with the package at [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md) (`node_modules/classicy/docs/AGENT-REFERENCE.md`). Point your agent at it.
+> **Using an AI coding agent?** A complete machine-oriented reference to the public API — every component's props, app/event/icon registration, theming, analytics, sound, and the untrusted-action rules — ships with the package at [`docs/AGENT-REFERENCE.md`](docs/AGENT-REFERENCE.md) (`node_modules/@classicy/classicy/docs/AGENT-REFERENCE.md`). Point your agent at it.
 
 Each table below lists the raw HTML element the component replaces — inside a
 Classicy desktop, prefer the component over the raw tag (e.g. `ClassicyButton`
@@ -398,7 +771,7 @@ on `ClassicyAppManagerProvider`:
 ```
 
 Disabling an app only stops it from auto-mounting — it remains available to
-import and render yourself (e.g. `import { PDFViewer } from "classicy"`) if
+import and render yourself (e.g. `import { PDFViewer } from "@classicy/classicy"`) if
 you want custom placement.
 
 ### Events

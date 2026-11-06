@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach } from "vitest";
+import { resetClassicyDefaultStateSeedForTests } from "@/SystemFolder/ControlPanels/AppManager/ClassicyDefaultStateSeed.internal";
 import { resetClassicyFileSystemSharedTrees } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 
 // Node 23+ ships an experimental, file-backed global `localStorage` that throws
@@ -37,6 +38,41 @@ class MemoryStorage implements Storage {
 	}
 }
 
+// jsdom has no media playback: HTMLMediaElement's load(), play() and pause()
+// report "Not implemented" to the console on every call (play() then returns
+// undefined, not a Promise). Replace just those three with silent no-ops, play()
+// resolving as a browser's does once playback starts, so the run's output keeps
+// only real errors. Each stays a writable, configurable prototype method, so a
+// test can still vi.spyOn / mock it. Node-environment test files have no
+// HTMLMediaElement and are left alone.
+if (typeof HTMLMediaElement !== "undefined") {
+	const stubs: Pick<HTMLMediaElement, "load" | "pause" | "play"> = {
+		load: () => {},
+		pause: () => {},
+		play: () => Promise.resolve(),
+	};
+	for (const [method, value] of Object.entries(stubs)) {
+		Object.defineProperty(HTMLMediaElement.prototype, method, {
+			value,
+			configurable: true,
+			writable: true,
+		});
+	}
+}
+
+// Likewise jsdom has no 2D canvas without the optional `canvas` package:
+// getContext() reports "Not implemented" and returns null. Return null
+// silently, the same result, so code that falls back without a context still
+// takes that path. Writable and configurable, so a test can assign or spy on
+// it to supply a context of its own.
+if (typeof HTMLCanvasElement !== "undefined") {
+	Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+		value: () => null,
+		configurable: true,
+		writable: true,
+	});
+}
+
 beforeEach(() => {
 	Object.defineProperty(globalThis, "localStorage", {
 		value: new MemoryStorage(),
@@ -46,6 +82,8 @@ beforeEach(() => {
 	// File systems share one live tree per storage key; with storage wiped,
 	// the next one must read it afresh rather than attach to the last test's.
 	resetClassicyFileSystemSharedTrees();
+	// A provider seeds once per page session; each test is a new one.
+	resetClassicyDefaultStateSeedForTests();
 });
 
 afterEach(() => {

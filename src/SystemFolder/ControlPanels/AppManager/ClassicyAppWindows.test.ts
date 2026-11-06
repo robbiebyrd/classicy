@@ -231,7 +231,7 @@ describe("mostRecentAppWindow", () => {
 	});
 });
 
-describe("record-specific behaviour", () => {
+describe("record-specific behavior", () => {
 	it("looks up ids that shadow Object.prototype members as plain keys", () => {
 		const app = makeApp(makeWindow("toString"));
 		expect(getAppWindow(app, "toString")?.id).toBe("toString");

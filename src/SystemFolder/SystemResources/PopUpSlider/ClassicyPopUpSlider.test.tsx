@@ -1,6 +1,13 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { type CSSProperties, useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/ClassicyPopUpSlider";
 
 const thumbOf = (slider: HTMLElement) =>
@@ -14,6 +21,11 @@ const Controlled = ({ start = 50 }: { start?: number }) => {
 };
 
 describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	// H-R23: the thumb's travel is measured from the track's top, so the
+	// stylesheet places the thumb at the popUpSlider.trackTop knob and the
+	// value only adds the distance traveled down from the upper cap.
 	it("is a vertical slider whose thumb travels between the track's caps", () => {
 		const { rerender } = render(
 			<ClassicyPopUpSlider ariaLabel="Volume" value={100} onChange={vi.fn()} />,
@@ -21,11 +33,22 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		const slider = screen.getByRole("slider", { name: "Volume" });
 		expect(slider).toHaveAttribute("aria-orientation", "vertical");
 		expect(slider).toHaveAttribute("aria-valuenow", "100");
-		expect(thumbOf(slider).style.top).toBe("3px"); // at the top cap
+		expect(thumbOf(slider).style.marginTop).toBe("0px"); // at the top cap
+		expect(thumbOf(slider).style.top).toBe("");
 		rerender(
 			<ClassicyPopUpSlider ariaLabel="Volume" value={0} onChange={vi.fn()} />,
 		);
-		expect(thumbOf(slider).style.top).toBe("60px"); // on the bottom cap
+		expect(thumbOf(slider).style.marginTop).toBe("57px"); // on the bottom cap
+	});
+
+	it("places the thumb at the track-top knob", () => {
+		const sheet = readFileSync(
+			resolve(__dirname, "ClassicyPopUpSlider.scss"),
+			"utf8",
+		);
+		expect(sheet).toMatch(
+			/\.classicyPopUpSliderThumb \{[^}]*top: var\(--pop-up-slider-track-top\);/,
+		);
 	});
 
 	it("steps with the arrow keys and Page Up/Down, and jumps with Home/End", () => {
@@ -51,7 +74,7 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
 			top: 0,
 		} as DOMRect);
-		// The thumb's centre on y = 8 puts its top on the upper cap: the maximum.
+		// The thumb's center on y = 8 puts its top on the upper cap: the maximum.
 		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
 		expect(slider).toHaveAttribute("aria-valuenow", "100");
 		fireEvent.mouseMove(document, { clientY: 65 });
@@ -59,6 +82,107 @@ describe("ClassicyPopUpSlider (HIGOS8 Figure 2-16)", () => {
 		fireEvent.mouseUp(document);
 		fireEvent.mouseMove(document, { clientY: 8 });
 		expect(slider).toHaveAttribute("aria-valuenow", "0"); // drag ended
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag at the value it reached on a %s", (loss) => {
+		render(<Controlled />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
+			top: 0,
+		} as DOMRect);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		fireEvent.mouseMove(document, { clientY: 65 });
+		expect(slider).toHaveAttribute("aria-valuenow", "0");
+		losePointerStream(loss);
+		// The pointer coming back with no button held moves nothing.
+		fireEvent.mouseMove(document, { clientY: 8 });
+		expect(slider).toHaveAttribute("aria-valuenow", "0");
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { unmount } = render(<Controlled />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		losePointerStream("blur");
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(slider, { button: 0, clientY: 8 });
+		unmount();
+		expect(live.size).toBe(0);
+	});
+
+	// H-R23: a package that moves the track moves the thumb's travel with
+	// it; the pointer maps through the same knob, read from the variables an
+	// ancestor sets, once per press.
+	it("maps the pointer through the track-top knob, read once per gesture", () => {
+		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const trackTopReads = () =>
+			reads.mock.calls.filter(([name]) => name === "--pop-up-slider-track-top")
+				.length;
+		render(
+			<div style={{ "--pop-up-slider-track-top": "10px" } as CSSProperties}>
+				<Controlled />
+			</div>,
+		);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
+			top: 0,
+		} as DOMRect);
+		reads.mockClear();
+		// The thumb's center on y = 15 puts its top on the moved upper cap.
+		fireEvent.mouseDown(slider, { button: 0, clientY: 15 });
+		expect(slider).toHaveAttribute("aria-valuenow", "100");
+		expect(trackTopReads()).toBe(1);
+		fireEvent.mouseMove(document, { clientY: 72 });
+		expect(slider).toHaveAttribute("aria-valuenow", "0");
+		fireEvent.mouseMove(document, { clientY: 15 + (57 * 3) / 4 });
+		expect(slider).toHaveAttribute("aria-valuenow", "25");
+		fireEvent.mouseUp(document);
+		expect(trackTopReads()).toBe(1);
+	});
+
+	// H 6.1 (from the H 4.1 integration): a drag compares against the last
+	// value it reported, not the value at the press, so dragging away and
+	// back to where the press started still reports the way back.
+	it("reports a drag back to the value it started from", () => {
+		const onChange = vi.fn();
+		const Spy = () => {
+			const [value, setValue] = useState(50);
+			return (
+				<ClassicyPopUpSlider
+					ariaLabel="Volume"
+					value={value}
+					onChange={(next) => {
+						onChange(next);
+						setValue(next);
+					}}
+				/>
+			);
+		};
+		render(<Spy />);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		vi.spyOn(slider, "getBoundingClientRect").mockReturnValue({
+			top: 0,
+		} as DOMRect);
+		// The default track top is 3 px and the thumb's center sits 5 px below
+		// its top, so value v puts the pointer at 8 + 57 * (1 - v / 100).
+		const at = (v: number) => 8 + 57 * (1 - v / 100);
+		fireEvent.mouseDown(slider, { button: 0, clientY: at(50) });
+		expect(onChange).not.toHaveBeenCalled();
+		fireEvent.mouseMove(document, { clientY: at(25) });
+		expect(slider).toHaveAttribute("aria-valuenow", "25");
+		fireEvent.mouseMove(document, { clientY: at(50) });
+		expect(slider).toHaveAttribute("aria-valuenow", "50");
+		fireEvent.mouseMove(document, { clientY: at(50) });
+		fireEvent.mouseUp(document);
+		expect(onChange.mock.calls).toEqual([[25], [50]]);
 	});
 
 	it("ignores input while disabled", () => {

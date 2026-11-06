@@ -4,8 +4,9 @@ import type {
 } from "@/SystemFolder/Finder/FinderContext";
 
 /**
- * Icon size as a multiple of the active theme's `desktop.iconSize`, so a
- * chunkier theme stays chunky. The Icons pane offers two steps, the list view
+ * Icon size as a multiple of the desktop's `--desktop-icon-size` (the
+ * callers read it from the desktop, falling back to the active theme's
+ * `desktop.iconSize`), so a chunkier theme stays chunky. The Icons pane offers two steps, the list view
  * three; `medium` maps to the same scale as `large` for the icons view because
  * that pane has no middle radio and a stored `medium` must still resolve.
  */

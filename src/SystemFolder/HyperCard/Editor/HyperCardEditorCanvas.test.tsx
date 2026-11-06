@@ -5,6 +5,11 @@ import {
 	render,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
 import type { HCEditState } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorUtils";
 
@@ -90,6 +95,64 @@ describe("HyperCardEditorCanvas", () => {
 			partId: "button1",
 			rect: [35, 22, 100, 24],
 		});
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag-move where it is, committing that rect, on a %s", (loss) => {
+		const { container } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ selectedPartId: "button1" })}
+			/>,
+		);
+		const hit = container.querySelector(
+			'.classicyHyperCardEditorHit[data-part-id="button1"]',
+		) as HTMLElement;
+		fireEvent.pointerDown(hit, { clientX: 20, clientY: 20, pointerId: 1 });
+		fireEvent.pointerMove(hit, { clientX: 45, clientY: 32, pointerId: 1 });
+		losePointerStream(loss);
+		const setRect = () =>
+			dispatch.mock.calls.filter(
+				([action]) => action.type === "ClassicyAppHCEditSetRect",
+			);
+		expect(setRect()).toEqual([
+			[
+				{
+					type: "ClassicyAppHCEditSetRect",
+					stackId: "demo",
+					partId: "button1",
+					rect: [35, 22, 100, 24],
+				},
+			],
+		]);
+		// The pointer coming back moves nothing, and a later release
+		// commits nothing more.
+		fireEvent.pointerMove(hit, { clientX: 90, clientY: 90, pointerId: 1 });
+		fireEvent.pointerUp(hit, { clientX: 90, clientY: 90, pointerId: 1 });
+		expect(setRect()).toHaveLength(1);
+	});
+
+	it("watches the pointer stream only while a part drag lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { container, unmount } = render(
+			<HyperCardEditorCanvas
+				stackId={"demo"}
+				edit={makeEdit({ selectedPartId: "button1" })}
+			/>,
+		);
+		const hit = container.querySelector(
+			'.classicyHyperCardEditorHit[data-part-id="button1"]',
+		) as HTMLElement;
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(hit, { clientX: 20, clientY: 20, pointerId: 1 });
+		expect(live.size).toBe(3);
+		fireEvent.pointerUp(hit, { clientX: 20, clientY: 20, pointerId: 1 });
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(hit, { clientX: 20, clientY: 20, pointerId: 1 });
+		unmount();
+		expect(live.size).toBe(0);
+		vi.restoreAllMocks();
 	});
 
 	it("shows 8 resize handles on the selected part and commits a resize", () => {

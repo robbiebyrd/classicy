@@ -1,8 +1,7 @@
 import "./ClassicyDesktopMenuWidgetTime.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-
-const appIcon = ClassicyIcons.controlPanels.dateTimeManager.dateTimeManager;
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 // Shared by the resync effect and the tick interval so the two can never
 // drift into computing the rendered shape differently.
@@ -19,6 +18,7 @@ const computeDisplayTime = (localDate: Date) => ({
 
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent,
 	useEffect,
@@ -31,7 +31,21 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { computeAnchoredTime } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeManagerUtils";
 
-export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
+type ClassicyDesktopMenuWidgetTimeProps = {
+	/** Extra class names, merged onto the clock's `<li>` after the component's own. */
+	className?: string;
+	/** Inline style for the clock's `<li>`. */
+	style?: CSSProperties;
+};
+
+export const ClassicyDesktopMenuWidgetTime: FunctionalComponent<
+	ClassicyDesktopMenuWidgetTimeProps
+> = ({ className, style }) => {
+	const appIcon =
+		useClassicyAsset(
+			"icons",
+			"controlPanels.dateTimeManager.dateTimeManager",
+		) ?? "";
 	const dateAndTime = useAppManager((s) => s.System.Manager.DateAndTime);
 	const desktopEventDispatch = useAppManagerDispatch();
 
@@ -197,7 +211,10 @@ export const ClassicyDesktopMenuWidgetTime: FunctionalComponent = () => {
 						"classicyMenuItem",
 						"classicyMenuItemNoImage",
 						"classicyDesktopMenuTime",
+						className,
 					)}
+					style={style}
+					{...{ [CLASSICY_PART_ATTRIBUTE.part]: "clock" }}
 					onDoubleClick={openDateTimeManager}
 					onClick={() => {
 						setShowingTime(!showingTime);

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-	CLASSICY_FONTS_STYLE_ELEMENT_ID,
+	CLASSICY_LAYER_ORDER,
 	CLASSICY_STYLE_ELEMENT_ID,
 	classicyStyleInjector,
+	prependLayerOrder,
 } from "./classicyStyleInjector";
 
 // Runs the injector exactly as a bundle would: as plain script code.
@@ -10,7 +11,6 @@ const run = (css: string) => new Function(classicyStyleInjector(css))();
 
 afterEach(() => {
 	document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.remove();
-	document.getElementById(CLASSICY_FONTS_STYLE_ELEMENT_ID)?.remove();
 	for (const el of document.head.querySelectorAll("link")) el.remove();
 });
 
@@ -25,8 +25,11 @@ describe("classicyStyleInjector (#303)", () => {
 
 		const styles = document.querySelectorAll(`#${CLASSICY_STYLE_ELEMENT_ID}`);
 		expect(styles).toHaveLength(1);
-		expect(styles[0].textContent).toBe(".a{color:red}");
-		// First in <head>, so a host stylesheet wins ties.
+		expect(styles[0].textContent).toBe(
+			`${CLASSICY_LAYER_ORDER}\n.a{color:red}`,
+		);
+		// First in <head>, so its layer order statement precedes any host
+		// layer (and unlayered host rules beat it whatever their position).
 		expect(document.head.firstChild).toBe(styles[0]);
 	});
 
@@ -35,7 +38,7 @@ describe("classicyStyleInjector (#303)", () => {
 		run(css);
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(css);
+		).toBe(`${CLASSICY_LAYER_ORDER}\n${css}`);
 	});
 
 	it("escapes </script> and line separators in the generated code", () => {
@@ -46,28 +49,34 @@ describe("classicyStyleInjector (#303)", () => {
 		run(css);
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(css);
+		).toBe(`${CLASSICY_LAYER_ORDER}\n${css}`);
 	});
 
-	it("injects the fonts into their own element, alongside the stylesheet", () => {
+	it("declares the cascade layer order before any rule", () => {
 		run(".a{color:red}");
-		new Function(
-			classicyStyleInjector(
-				"@font-face{font-family:x}",
-				CLASSICY_FONTS_STYLE_ELEMENT_ID,
-			),
-		)();
-
 		expect(
 			document.getElementById(CLASSICY_STYLE_ELEMENT_ID)?.textContent,
-		).toBe(".a{color:red}");
-		expect(
-			document.getElementById(CLASSICY_FONTS_STYLE_ELEMENT_ID)?.textContent,
-		).toBe("@font-face{font-family:x}");
+		).toBe(
+			"@layer classicy.base, classicy.package, classicy.user;\n.a{color:red}",
+		);
 	});
 
 	it("does nothing without a document", () => {
 		const code = classicyStyleInjector(".a{}");
 		expect(() => new Function("document", code)(undefined)).not.toThrow();
+	});
+});
+
+describe("prependLayerOrder", () => {
+	it("puts the layer order before the CSS", () =>
+		expect(prependLayerOrder(".a{}")).toBe(`${CLASSICY_LAYER_ORDER}\n.a{}`));
+
+	it("keeps a leading @charset first, where a linked file needs it", () => {
+		expect(prependLayerOrder('@charset "UTF-8";.a{}')).toBe(
+			`@charset "UTF-8";${CLASSICY_LAYER_ORDER}\n.a{}`,
+		);
+		expect(prependLayerOrder('@charset "UTF-8";\n.a{}')).toBe(
+			`@charset "UTF-8";\n${CLASSICY_LAYER_ORDER}\n.a{}`,
+		);
 	});
 });

@@ -2,7 +2,10 @@ import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
+import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { ClassicyButtonToolbar } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 
 vi.mock(
@@ -31,7 +34,12 @@ describe("ClassicyHelpButton", () => {
 		// No visible text: the glyph is the whole face.
 		expect(button).toHaveTextContent("");
 		const glyph = button.querySelector("img");
-		expect(glyph).toHaveAttribute("src", ClassicyIcons.ui.helpButton);
+		// The registered system art (Platinum's own file, plan 0015-kxa §3.3).
+		expect(glyph).toHaveAttribute(
+			"src",
+			resolveClassicyAsset("systemArt", "helpButton"),
+		);
+		expect(glyph?.getAttribute("src")).toMatch(/help-button\.png$/);
 		// Decorative — the button's aria-label carries the name.
 		expect(glyph).toHaveAttribute("alt", "");
 	});
@@ -106,8 +114,8 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 
 	it("is sized by the theme's help-button metrics", () => {
 		const box = rule(".classicyBevelButton.classicyHelpButton");
-		expect(box.width).toBe("var(--help-button-width, 20px)");
-		expect(box.height).toBe("var(--help-button-height, 21px)");
+		expect(box.width).toBe("var(--help-button-width)");
+		expect(box.height).toBe("var(--help-button-height)");
 		expect(box["box-sizing"]).toBe("border-box");
 		expect(box.padding).toBe("0");
 		expect(box["min-width"]).toBe("0");
@@ -118,8 +126,55 @@ describe("ClassicyHelpButton geometry (HIGOS8 p.86)", () => {
 		const glyph = rule(
 			".classicyBevelButton.classicyHelpButton .classicyBevelButtonIcon",
 		);
-		expect(glyph.width).toBe("14px");
-		expect(glyph.height).toBe("14px");
+		// helpButton.glyphSize (platinum.json): the glyph art's native 14 px.
+		expect(glyph.width).toBe("var(--help-button-glyph-size)");
+		expect(glyph.height).toBe("var(--help-button-glyph-size)");
 		expect(glyph["image-rendering"]).toBe("pixelated");
+	});
+});
+
+// In a toolbar a help button is icon-only, so square, and takes the toolbar's
+// square box like the controls beside it (the medium and small sizes always
+// did; a large toolbar used to leave it to stylesheet order, which drew the
+// base square width). Outside a toolbar it keeps the HIG's 20 px.
+describe("ClassicyHelpButton width in a toolbar", () => {
+	const SHEETS = [
+		"src/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton.scss",
+		"src/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton.scss",
+		"src/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbar.scss",
+	];
+	const orders = SHEETS.flatMap((a) =>
+		SHEETS.filter((b) => b !== a).map((b) => [
+			a,
+			b,
+			...SHEETS.filter((c) => c !== a && c !== b),
+		]),
+	);
+
+	it.each([
+		["large", "var(--button-square-width)"],
+		["medium", "var(--button-toolbar-square-button-width)"],
+		["small", "var(--control-square-size)"],
+	] as const)("is the %s toolbar's square width in any stylesheet order", (size, expected) => {
+		render(
+			<ClassicyButtonToolbar size={size}>
+				<ClassicyHelpButton />
+			</ClassicyButtonToolbar>,
+		);
+		const button = screen.getByRole("button", { name: "Help" });
+		expect(button).toHaveClass("classicyBevelButtonSquare");
+		for (const order of orders)
+			expect(classicyCascadeWinner(button, order, "width")?.value).toBe(
+				expected,
+			);
+	});
+
+	it("keeps the HIG width outside a toolbar in any stylesheet order", () => {
+		render(<ClassicyHelpButton />);
+		const button = screen.getByRole("button", { name: "Help" });
+		for (const order of orders)
+			expect(classicyCascadeWinner(button, order, "width")?.value).toBe(
+				"var(--help-button-width)",
+			);
 	});
 });

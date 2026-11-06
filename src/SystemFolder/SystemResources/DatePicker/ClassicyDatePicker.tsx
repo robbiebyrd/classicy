@@ -9,6 +9,7 @@ import "./ClassicyDatePicker.scss";
 import classNames from "classnames";
 import {
 	type ChangeEvent,
+	type CSSProperties,
 	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
@@ -31,7 +32,7 @@ interface ClassicyDatePickerProps {
 	/**
 	 * Base id. The month, day and year fields get `${id}_month`, `${id}_day`
 	 * and `${id}_year`, and the label `${id}_label`. The label points at the
-	 * month field, and the fields form a group labelled by it.
+	 * month field, and the fields form a group labeled by it.
 	 */
 	id: string;
 	/** Called with the new (range-clamped) `Date` after every edit or step. */
@@ -68,6 +69,10 @@ interface ClassicyDatePickerProps {
 	minValue?: Date;
 	/** Latest allowed date; later edits snap to it. */
 	maxValue?: Date;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
@@ -97,6 +102,8 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 				onChangeFunc,
 				minValue,
 				maxValue,
+				className,
+				style,
 			},
 			ref,
 		) {
@@ -269,7 +276,9 @@ export const ClassicyDatePicker: FunctionalComponent<ClassicyDatePickerProps> =
 					className={classNames(
 						"classicyDatePickerHolder",
 						labelPositionClass(labelPosition),
+						className,
 					)}
+					style={style}
 				>
 					{labelTitle && (
 						<ClassicyControlLabel

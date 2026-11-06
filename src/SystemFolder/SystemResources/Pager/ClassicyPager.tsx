@@ -1,6 +1,6 @@
 import "./ClassicyPager.scss";
 import classNames from "classnames";
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 
 type ClassicyPagerProps = {
 	/** Zero-based current page; the cell shows it one-based. */
@@ -18,6 +18,10 @@ type ClassicyPagerProps = {
 	 * historical class name here so consumer stylesheets keep matching.
 	 */
 	pageClassName?: string;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
 /**
@@ -32,8 +36,8 @@ type ClassicyPagerProps = {
  * keyboard-operable; the pager itself plays no sounds. `ClassicyAssistant`
  * uses it for its footer navigation.
  *
- * Disabled arrows are drawn hollow by punching their centre out in the colour
- * of the band behind the pager. That colour defaults to `--color-system-01`;
+ * Disabled arrows are drawn hollow by punching their center out in the color
+ * of the band behind the pager. That color defaults to `--color-system-01`;
  * on any other background set `--classicy-pager-band` on an ancestor.
  *
  * ```tsx
@@ -45,12 +49,14 @@ export const ClassicyPager: FunctionalComponent<ClassicyPagerProps> = ({
 	pageCount,
 	onPageChange,
 	pageClassName,
+	className,
+	style,
 }) => {
 	const canGoBack = page > 0;
 	const canGoForward = page < pageCount - 1;
 
 	return (
-		<div className="classicyPager">
+		<div className={classNames("classicyPager", className)} style={style}>
 			<button
 				type="button"
 				className="classicyPagerArrow classicyPagerArrowPrev"

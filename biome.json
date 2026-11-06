@@ -10,14 +10,14 @@
 			"**",
 			"!!**/dist",
 			"!!**/node_modules",
-			"resources/**",
+			"packages/appearance/platinum/resources/**",
 			"bin/**",
 			"assets/**",
 			"!!src/index.ts",
 			"!!example/src/Applications/TV/testdata.json",
 			"!!**/*.svg",
-			"!!assets/sounds/**/*.json",
-			"!!resources/app-icons/index.json"
+			"!!packages/appearance/platinum/src/assets/sounds/**/*.json",
+			"!!packages/appearance/platinum/resources/app-icons/index.json"
 		]
 	},
 	"formatter": {

@@ -1,0 +1,69 @@
+---
+id: 0139-vni
+title: '0015 V&V: owner actions and checks for the 3.0.0 release'
+purpose: Hold the owner-only actions and human checks for plan 0015-kxa, so implementation stories close on automated evidence.
+type: task
+status: ready
+priority: "1"
+effort: S
+created: "2026-11-05T19:55:21.066Z"
+updated: "2026-11-06T22:03:54.761Z"
+tags: []
+milestone: ""
+due_date: ""
+planned_start: ""
+planned_end: ""
+order: 0
+links:
+  repo:
+    local: ~/classicy
+  stories:
+    - ["0136-tis", "depends"]
+    - ["0137-dm7", "depends"]
+    - ["0138-cj4", "depends"]
+progress:
+  "1":
+    status: pending
+---
+
+# 0015 V&V: owner actions and checks for the 3.0.0 release
+
+## Problem Statement
+
+Plan 0015-kxa Phase 6: the actions only the owner can take (npm organization, token, merges, deprecation) and the human V&V checks for the 3.0.0 release.
+
+## Steps
+
+### 1: Owner actions and checks
+
+Work through the acceptance criteria below; each is ticked when done.
+
+## Acceptance Criteria
+
+- [x] [MANUAL] Create the free npm organization `classicy` on npmjs.com.
+- [~] [MANUAL] Make sure the `NPM_TOKEN` secret can publish `@classicy/*` (a granular token that lists the organization, or a classic automation token).
+- [x] [MANUAL] Approve the new release-note entries (4.2).
+- [ ] [MANUAL] Merge the classicy-web and rt911 PRs (5.1, 5.2) when ready, per their PR notes.
+- [ ] [MANUAL] After both 3.0.0 packages are live, run `npm deprecate classicy "Renamed to @classicy/classicy. See https://github.com/robbiebyrd/classicy#readme"`.
+- [ ] [MANUAL] V&V: in the example app and on classicy-web, the desktop looks and sounds as before (boot chime, button clicks, menu hover), the Appearance Manager's Themes tab shows Platinum's icon, a saved custom theme with a wallpaper survives the upgrade, and a host with Platinum removed shows the stop screen.
+- [ ] [MANUAL] In the release run, "Check trusted publishing for every package" prints that the registry accepted the OIDC token for both packages, and "Wait for the release to appear on npm" confirms both latest tags are 3.0.0; then delete the NPM_TOKEN repository secret.
+- [x] [MANUAL] At most a day before merging PR 337, on feat/AppearancePackages with npm 11.15.0+, 2FA on and `npm login` done: run `bin/npm-bootstrap-trusted-publishing.sh` (dry run), then `bin/npm-bootstrap-trusted-publishing.sh --publish` (re-run it if it stops partway). Then check `npm trust list` shows one GitHub Actions entry (robbiebyrd/classicy, push.yml, publish allowed) for @classicy/classicy and @classicy/appearance-platinum, and a few minutes later `npm dist-tag ls` for both.
+- [ ] [MANUAL] Merge PR 337 within 2 days of the bootstrap, with BREAKING CHANGE in the merge message (the major-bump keyword recorded in 4.1), so both packages publish as 3.0.0.
+
+## Work Log
+
+### 2026-11-06T16:41:56.357Z - 2026-11-06 (owner): 0139 is no longer tied to the plans. Unlinked from plan 0015-kxa, and plan 0015's Phase 6 progress section removed, so 0014 and 0015 close when their implementation sections do; this checklist (npm org, token, merges, deprecate, hands-on V&V) stays open on its own.
+
+### 2026-11-06T19:57:55.430Z - 2026-11-06: owner created the free npm organization classicy; it is accessible with the owner's npm tokens. Criterion 2 is still open: the repo secret NPM_TOKEN was last set 2026-01-27, before the org existed. A classic Automation token covers new orgs automatically; a granular token from then cannot list classicy and must be edited or replaced (Organizations: classicy, read and write) before PR 333 merges, or the 3.0.0 publish fails.
+
+### 2026-11-06T19:59:14.823Z - 2026-11-06: owner states the repo's NPM_TOKEN is a classic Automation token connected to GitHub, which publishes to every org the account belongs to, classicy included; criterion 2 ticked on that basis. push.yml publishes with NODE_AUTH_TOKEN from this secret.
+
+### 2026-11-06T20:00:47.558Z - 2026-11-06: criterion 2 reopened. The owner clarified the release uses npm trusted publishing (OIDC), not an automation token. Trusted publishers are configured per package on that package's npmjs.com settings, so @classicy/classicy and @classicy/appearance-platinum (not yet on npm) cannot have one before their first publish; push.yml's first 3.0.0 publish would then authenticate with NODE_AUTH_TOKEN = secrets.NPM_TOKEN (last set 2026-01-27, likely expired under npm's 2025 token limits). Also push.yml publishes with pnpm 10.26, whose OIDC publish support is unconfirmed (pnpm's docs confirm it in 11.x). Tracked as a release-blocking story.
+
+### 2026-11-06T20:10:04.538Z - 2026-11-06: owner approved the release notes as edited (rename entry retitled), committed in d7f1ad2cb with the rename scan's pattern following the new title (aa326e76e). Stories still changing the notes before release: 0157 (drops the react-table pin note), 0158 (drops the sized-container note), 0156 (first-publish steps); the controller will show the owner those entries when they land.
+
+### 2026-11-06T20:58:43.655Z - 2026-11-06: criterion 2 (NPM_TOKEN) marked not applicable: since 0156 (484a92387) releases publish only over npm trusted publishing and push.yml no longer reads NPM_TOKEN. Two criteria added for the one-time bootstrap (bin/npm-bootstrap-trusted-publishing.sh: placeholder 0.0.0 under the bootstrap dist-tag, deprecated, plus the push.yml trusted publisher) and for watching the release run. Full step list with the npmjs.com fields: .superpowers/sdd/followups/0156-tx7-report.md §3.
+
+### 2026-11-06T21:12:46.286Z - 2026-11-06: PR 333 was closed by the owner and the same branch (feat/AppearancePackages) reopened as PR #337 under the owner's account. The two criteria naming PR 333 were replaced with #337 versions; the release notes' first line now says pull request 337 (30f5947a4).
+
+### 2026-11-06T22:03:54.761Z - 2026-11-06: bootstrap done by the owner. @classicy/classicy and @classicy/appearance-platinum 0.0.0 published under bootstrap, deprecated (naming 3.0.0), trusted publishers created (github, robbiebyrd/classicy, push.yml; ids bc8cdad6, b8d98fec). The registry also set latest to 0.0.0 on both; the 3.0.0 release moves it. The trusted publishers expire unless used by 2026-11-08: merge PR 337 before then.

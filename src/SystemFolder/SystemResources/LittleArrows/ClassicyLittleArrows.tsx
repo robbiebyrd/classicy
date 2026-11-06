@@ -1,6 +1,7 @@
 import "./ClassicyLittleArrows.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	type FC as FunctionalComponent,
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
@@ -8,7 +9,8 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
 // want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
@@ -28,6 +30,8 @@ interface ClassicyLittleArrowsProps {
 	downLabel?: string;
 	/** Extra class names merged onto the arrow pair's wrapper. */
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 	/** Delay between repeats while held, in ms. Defaults to `120`. */
 	repeatIntervalMs?: number;
 	/**
@@ -52,7 +56,7 @@ interface ClassicyLittleArrowsProps {
  * (`heldMs` 0) and every `repeatIntervalMs` while held, and the caller
  * applies, clamps and (if it wants acceleration) scales the step. Each arrow
  * is a real `<button>`; Enter/Space step once, with the OS key repeat giving
- * the held behaviour. For a number field with arrows — the
+ * the held behavior. For a number field with arrows — the
  * `<input type="number">` replacement — use `ClassicySpinner`.
  *
  * ```tsx
@@ -70,15 +74,23 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	upLabel = "Increment",
 	downLabel = "Decrement",
 	className,
+	style,
 	repeatIntervalMs = REPEAT_INTERVAL_MS,
 	focusTarget,
 }) => {
+	const arrowUp = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
 	onStepRef.current = onStep;
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	// While an arrow is held, the pointer stream is watched: lost (the window
+	// blurs, a pointercancel, the page is hidden), the repeat stops, since
+	// the release that would stop it may never reach the button.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
 
 	const stop = () => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
 		if (intervalRef.current !== null) {
 			clearInterval(intervalRef.current);
 			intervalRef.current = null;
@@ -88,6 +100,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	// Cleanup on unmount.
 	useEffect(() => {
 		return () => {
+			stopWatchingPointerStreamRef.current?.();
 			if (intervalRef.current !== null) clearInterval(intervalRef.current);
 		};
 	}, []);
@@ -126,6 +139,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 		intervalRef.current = setInterval(() => {
 			onStepRef.current(direction, Date.now() - pressedAt);
 		}, repeatIntervalMs);
+		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(stop);
 	};
 
 	// Keyboard operability (HIGOS8 Ch.2 "Little Arrows"/"Clock Controls", p.35-36):
@@ -140,7 +154,10 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	};
 
 	return (
-		<div className={classNames("classicyLittleArrows", className)}>
+		<div
+			className={classNames("classicyLittleArrows", className)}
+			style={style}
+		>
 			<button
 				type="button"
 				className="classicyLittleArrowsButton"
@@ -151,7 +168,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, 1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 			<button
 				type="button"
@@ -163,7 +180,7 @@ export const ClassicyLittleArrows: FunctionalComponent<
 				onMouseLeave={stop}
 				onKeyDown={(e) => stepKey(e, -1)}
 			>
-				<img src={ClassicyIcons.ui.menuDropdownArrowUp} alt="" />
+				<img src={arrowUp} alt="" />
 			</button>
 		</div>
 	);

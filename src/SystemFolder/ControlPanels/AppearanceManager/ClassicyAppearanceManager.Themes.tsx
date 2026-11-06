@@ -1,12 +1,20 @@
 import { type ChangeEvent, useCallback, useMemo, useRef } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
-import packageIcon from "./resources/platinum.png";
 
 interface ThemesTabProps {
+	/**
+	 * The active Appearance Package's icon (`ClassicyAppearancePackage.icon`),
+	 * shown in the label; a generic package glyph when it has none.
+	 */
+	packageIcon?: ClassicyAssetSource;
+	/** The active Appearance Package's name, shown in the label. */
+	packageName: string;
 	themesList: { value: string; label: string }[] | undefined;
 	switchTheme: (e: ChangeEvent<HTMLSelectElement>) => void;
 	activeThemeId: string;
@@ -21,6 +29,8 @@ interface ThemesTabProps {
 }
 
 export const useThemesTab = ({
+	packageIcon,
+	packageName,
 	themesList,
 	switchTheme,
 	activeThemeId,
@@ -35,6 +45,9 @@ export const useThemesTab = ({
 	// and nothing to show, so ClassicyFileInput's running file list would only
 	// get in the way.
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	// The generic package glyph: the core icon tree's extension icon, for a
+	// package that brings no icon of its own.
+	const genericPackageIcon = useClassicyAsset("icons", "system.extension");
 	const openFilePicker = useCallback(() => fileInputRef.current?.click(), []);
 	const onFilePicked = useCallback(
 		(e: ChangeEvent<HTMLInputElement>) => {
@@ -52,8 +65,8 @@ export const useThemesTab = ({
 			children: (
 				<>
 					<ClassicyControlLabel
-						label={"The current Theme Package is Platinum"}
-						icon={packageIcon}
+						label={`The current Appearance Package is ${packageName}`}
+						icon={packageIcon ?? genericPackageIcon}
 					/>
 					<br />
 					{themesList && (
@@ -89,7 +102,7 @@ export const useThemesTab = ({
 						checked={smartScrolling}
 						onClickFunc={toggleSmartScrolling}
 					/>
-					{/* Its Options-tab neighbour: a title-bar double-click collapses
+					{/* Its Options-tab neighbor: a title-bar double-click collapses
 					    the window (WindowShade) when on. */}
 					<ClassicyCheckbox
 						id={"appearance_double_click_title_to_collapse"}
@@ -101,6 +114,9 @@ export const useThemesTab = ({
 			),
 		}),
 		[
+			packageIcon,
+			genericPackageIcon,
+			packageName,
 			themesList,
 			switchTheme,
 			activeThemeId,

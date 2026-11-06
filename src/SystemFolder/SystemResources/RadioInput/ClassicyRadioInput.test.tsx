@@ -143,3 +143,26 @@ describe("ClassicyRadioInput group disabled (#308)", () => {
 		expect(radios[2]).toBeDisabled();
 	});
 });
+
+describe("ClassicyRadioInput align", () => {
+	it("lays the buttons out in rows by default", () => {
+		render(<ClassicyRadioInput name="test-group" inputs={baseInputs} />);
+		const group = screen.getByRole("radiogroup");
+		expect(group).toHaveClass("classicyRadioInputGroup");
+		expect(group).not.toHaveClass("classicyRadioInputGroupColumns");
+	});
+
+	it("stacks the buttons in a column with align='columns'", () => {
+		render(
+			<ClassicyRadioInput
+				name="test-group"
+				align="columns"
+				inputs={baseInputs}
+			/>,
+		);
+		expect(screen.getByRole("radiogroup")).toHaveClass(
+			"classicyRadioInputGroup",
+			"classicyRadioInputGroupColumns",
+		);
+	});
+});

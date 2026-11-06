@@ -1,12 +1,14 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as sass from "sass";
 import { describe, expect, it } from "vitest";
+import platinumJson from "../../../../packages/appearance/platinum/src/platinum.json";
 
 /**
  * The window's contents box is a plain block, so the dialog body's `flex: 1`
  * only works inside its own full-height column. Without that column the crayon
  * box pushed the preview and the OK/Cancel footer below the window's bottom
- * edge, leaving no way to confirm a colour. jsdom does no layout, so this pins
+ * edge, leaving no way to confirm a color. jsdom does no layout, so this pins
  * the column on the compiled stylesheet.
  */
 const css = sass.compile(
@@ -83,12 +85,12 @@ describe("ClassicyColorPickerDialog layout", () => {
 		it("lets the wheel shrink to the room left beside its fields", () => {
 			const outer = rule(".classicyColorPickerWheelOuter");
 			expect(outer.width).toBe("100%");
-			expect(outer["max-width"]).toBe("240px");
+			expect(outer["max-width"]).toBe("var(--picker-wheel-max)");
 			expect(outer["aspect-ratio"]).toBe("1");
 			expect(outer.height).toBeUndefined();
 			// Room for the half of the 180° label that hangs off the square's
 			// left edge; without it the panel clipped the label to "80°".
-			expect(outer["margin-left"]).toBe("14px");
+			expect(outer["margin-left"]).toBe("var(--picker-label-overhang)");
 			expect(outer["flex-shrink"]).toBeUndefined();
 			const canvas = rule(".classicyColorPickerWheelCanvas");
 			expect(canvas.width).toBe("100%");
@@ -107,6 +109,25 @@ describe("ClassicyColorPickerDialog layout", () => {
 			expect(
 				rule(".classicyColorPickerWheelField label")["min-width"],
 			).toBeUndefined();
+		});
+
+		// The wheel inset's ratio is Sass math over $cp-wheel-max, which must be
+		// the same reference size the square's max-width reads from Platinum's
+		// picker.wheelMax: Sass cannot read the CSS variable, so the pair is
+		// written twice and pinned here.
+		it("computes the wheel inset over Platinum's own wheel size", () => {
+			const source = readFileSync(
+				path.resolve(
+					process.cwd(),
+					"src/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker.scss",
+				),
+				"utf8",
+			);
+			const sassMax = source.match(/^\$cp-wheel-max:\s*([0-9.]+);/m);
+			expect(sassMax).not.toBeNull();
+			expect(Number(sassMax?.[1])).toBe(
+				platinumJson.defaults.measurements.picker.wheelMax,
+			);
 		});
 
 		it("keeps the preview strip inside the dialog's width", () => {

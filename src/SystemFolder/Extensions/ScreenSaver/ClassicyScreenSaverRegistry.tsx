@@ -1,4 +1,4 @@
-import type { FC as FunctionalComponent } from "react";
+import type { CSSProperties, FC as FunctionalComponent } from "react";
 import type { z } from "zod";
 
 /** A saver's configuration values, persisted per saver id in app state. */
@@ -8,6 +8,14 @@ export type ClassicyScreenSaverConfig = Record<string, unknown>;
 export interface ClassicyScreenSaverProps {
 	/** Resolved config: schema/`defaultConfig` defaults merged under saved values. */
 	config: ClassicyScreenSaverConfig;
+	/**
+	 * Extra class names for the saver's root. The screen-saver overlay passes
+	 * none; they are for a host rendering a saver itself (a preview, say). The
+	 * built-in savers merge them after their own root class.
+	 */
+	className?: string;
+	/** Inline style for the saver's root, merged after the saver's own. */
+	style?: CSSProperties;
 }
 
 /** Props a saver's custom options UI receives from the host (control panel). */
@@ -59,6 +67,16 @@ const registry = new Map<string, ClassicyScreenSaverDefinition>();
  * Register a screensaver. Call at module scope before rendering, like
  * `registerClassicyIcons`. Re-registering an id replaces the previous entry,
  * so a consumer can swap out a built-in saver with their own variant.
+ *
+ * Set `cursor` from a stylesheet, never inline: the overlay hides the pointer
+ * with a stylesheet rule keyed on its id, and an inline `cursor` on a saver
+ * element outranks it, showing the pointer over that element.
+ *
+ * Animate with CSS animations. For reduced-motion users every CSS animation
+ * in the overlay is paused — declared in a stylesheet or inline, whenever it
+ * starts (the overlay pauses its subtree on mount and each later
+ * `animationstart`). Web Animations API animations (`element.animate()`)
+ * started after mount are not paused.
  */
 export function registerClassicyScreenSaver(
 	saver: ClassicyScreenSaverDefinition,

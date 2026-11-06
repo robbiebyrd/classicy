@@ -189,6 +189,10 @@ export function loadApp(
 			...(extension ? { extension: true, focused: false } : {}),
 		};
 	} else {
+		// Code-derived, like desktop-icon re-adds: the record is the app's own
+		// identity, and a package's display override is never written here.
+		findApp.name = appName;
+		findApp.icon = appIcon;
 		// Always refresh: menu onClickFunc handlers do not survive localStorage
 		// persistence, so a re-mounting app must overwrite the persisted value.
 		findApp.contextMenu = contextMenu;

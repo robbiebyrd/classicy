@@ -1,11 +1,13 @@
 import "./ClassicyControlLabel.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	KeyboardEvent,
 	MouseEvent,
 	ReactNode,
 } from "react";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 
 type ClassicyControlLabelDirections = "left" | "right";
 export type ClassicyControlLabelSize = "small" | "medium" | "large";
@@ -50,7 +52,7 @@ interface ClassicyControlLabelProps {
 	label?: string;
 	/** Text size: `small`, `medium` or `large` (double size). Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
-	/** Draws the text in the disabled grey (HIGOS8 p.42). Defaults to `false`. */
+	/** Draws the text in the disabled gray (HIGOS8 p.42). Defaults to `false`. */
 	disabled?: boolean;
 	/** Optional icon drawn beside the text (its alt text is the label). */
 	icon?: string;
@@ -74,15 +76,19 @@ interface ClassicyControlLabelProps {
 	onMouseDown?: (e: MouseEvent) => void;
 	/** Mouse-up on the text itself. */
 	onMouseUp?: (e: MouseEvent) => void;
+	/** Extra class names, merged onto the root element after the component's own. */
+	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 }
 
 /**
  * Static text naming a control (HIGOS8 Ch.2 "Static Text Fields", p.42) — use
  * it instead of a raw `<label>`. It renders a real `<label>` (pointed at a
- * control with `labelFor`) in the theme's UI font, greyed when `disabled`,
+ * control with `labelFor`) in the theme's UI font, grayed when `disabled`,
  * optionally with an icon. Classicy's own controls (`ClassicyCheckbox`,
  * `ClassicyRadioInput`, `ClassicyInput`, …) already render one from their
- * `label`/`labelTitle` props; reach for it directly when labelling your own
+ * `label`/`labelTitle` props; reach for it directly when labeling your own
  * control.
  *
  * Gotchas: an empty `label` renders nothing (not even `children`); with
@@ -110,6 +116,8 @@ export const ClassicyControlLabel: FunctionalComponent<
 	onClickFunc,
 	onMouseDown,
 	onMouseUp,
+	className,
+	style,
 }) => {
 	if (label === "") {
 		return null;
@@ -160,7 +168,9 @@ export const ClassicyControlLabel: FunctionalComponent<
 				isLeftOrBottom
 					? "classicyControlLabelHolderLeft"
 					: "classicyControlLabelHolderRight",
+				className,
 			)}
+			style={style}
 		>
 			{icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
 
@@ -172,7 +182,7 @@ export const ClassicyControlLabel: FunctionalComponent<
 				className={classNames(
 					"classicyControlLabel",
 					sizeClassMap[labelSize],
-					disabled && "classicyControlLabelDisabled",
+					classicyStateClasses({ disabled }),
 					direction === "right"
 						? "classicyControlLabelMarginRight"
 						: "classicyControlLabelMarginLeft",

@@ -78,6 +78,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -99,10 +100,14 @@ describe("classicyFinderEventHandler — guard", () => {
 		const ds = makeStore();
 		delete ds.System.Manager.Applications.apps["Finder.app"];
 
-		const result = classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolder",
-			path: "/Users/test",
-		});
+		const result = classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolder",
+				path: "/Users/test",
+			},
+			"trusted",
+		);
 
 		expect(result).toBe(ds);
 		expect(ds.System.Manager.Applications.apps["Finder.app"]).toBeUndefined();
@@ -114,10 +119,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolder", () => {
 		const ds = makeStore();
 		// data starts as {} — no openPaths key
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolder",
-			path: "/Users/test",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolder",
+				path: "/Users/test",
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(["/Users/test"]);
 	});
@@ -128,10 +137,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolder", () => {
 			openPaths: ["/Users/existing"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolder",
-			path: "/Users/new",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolder",
+				path: "/Users/new",
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toContain("/Users/existing");
 		expect(openPaths(ds)).toContain("/Users/new");
@@ -144,10 +157,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolder", () => {
 			openPaths: ["/Users/test"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolder",
-			path: "/Users/test",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolder",
+				path: "/Users/test",
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(["/Users/test"]);
 		expect(openPaths(ds)).toHaveLength(1);
@@ -158,10 +175,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 	it("merges multiple paths into openPaths", () => {
 		const ds = makeStore();
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolders",
-			paths: ["/Users/a", "/Users/b"],
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolders",
+				paths: ["/Users/a", "/Users/b"],
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(
 			expect.arrayContaining(["/Users/a", "/Users/b"]),
@@ -175,10 +196,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 			openPaths: ["/Users/a"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolders",
-			paths: ["/Users/a", "/Users/b"],
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolders",
+				paths: ["/Users/a", "/Users/b"],
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(
 			expect.arrayContaining(["/Users/a", "/Users/b"]),
@@ -191,10 +216,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFolders", () => {
 		ds.System.Manager.Applications.apps["Finder.app"].data =
 			null as unknown as Record<string, unknown>;
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFolders",
-			paths: ["/Users/c"],
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFolders",
+				paths: ["/Users/c"],
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(["/Users/c"]);
 	});
@@ -207,10 +236,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 			openPaths: ["/Users/a", "/Users/b"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderCloseFolder",
-			path: "/Users/a",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderCloseFolder",
+				path: "/Users/a",
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(["/Users/b"]);
 	});
@@ -221,10 +254,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 			openPaths: ["/Users/a"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderCloseFolder",
-			path: "/Users/nonexistent",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderCloseFolder",
+				path: "/Users/nonexistent",
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual(["/Users/a"]);
 	});
@@ -234,10 +271,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 		// data exists but no openPaths key
 
 		expect(() =>
-			classicyFinderEventHandler(ds, {
-				type: "ClassicyAppFinderCloseFolder",
-				path: "/Users/a",
-			}),
+			classicyFinderEventHandler(
+				ds,
+				{
+					type: "ClassicyAppFinderCloseFolder",
+					path: "/Users/a",
+				},
+				"trusted",
+			),
 		).not.toThrow();
 
 		expect(openPaths(ds)).toEqual([]);
@@ -254,10 +295,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 			focused: true,
 		} as never);
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderCloseFolder",
-			path: "/Users/a",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderCloseFolder",
+				path: "/Users/a",
+			},
+			"trusted",
+		);
 
 		const win = listAppWindows(
 			ds.System.Manager.Applications.apps["Finder.app"],
@@ -277,10 +322,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderCloseFolder", () => {
 			focused: false,
 		} as never);
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderCloseFolder",
-			path: "/Users/a",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderCloseFolder",
+				path: "/Users/a",
+			},
+			"trusted",
+		);
 
 		const win = listAppWindows(
 			ds.System.Manager.Applications.apps["Finder.app"],
@@ -315,9 +364,13 @@ describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen"
 			focused: false,
 		} as never);
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderAboutThisComputerOpen",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderAboutThisComputerOpen",
+			},
+			"trusted",
+		);
 
 		const app = ds.System.Manager.Applications.apps["Finder.app"];
 		expect(app.focused).toBe(true);
@@ -330,9 +383,13 @@ describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen"
 		ds.System.Manager.Applications.focusedAppId = "SimpleText.app";
 		ds.System.Manager.Applications.apps["Finder.app"].focused = false;
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderAboutThisComputerOpen",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderAboutThisComputerOpen",
+			},
+			"trusted",
+		);
 
 		const app = ds.System.Manager.Applications.apps["Finder.app"];
 		expect(app.focused).toBe(true);
@@ -345,9 +402,13 @@ describe("classicyFinderEventHandler — ClassicyAppFinderAboutThisComputerOpen"
 			openPaths: ["/Users/a"],
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderAboutThisComputerOpen",
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderAboutThisComputerOpen",
+			},
+			"trusted",
+		);
 
 		const data = ds.System.Manager.Applications.apps["Finder.app"].data;
 		expect(
@@ -363,7 +424,11 @@ describe("classicyFinderEventHandler — no-op actions", () => {
 		const ds = makeStore();
 
 		expect(() =>
-			classicyFinderEventHandler(ds, { type: "ClassicyAppFinderEmptyTrash" }),
+			classicyFinderEventHandler(
+				ds,
+				{ type: "ClassicyAppFinderEmptyTrash" },
+				"trusted",
+			),
 		).not.toThrow();
 	});
 
@@ -371,10 +436,14 @@ describe("classicyFinderEventHandler — no-op actions", () => {
 		const ds = makeStore();
 
 		expect(() =>
-			classicyFinderEventHandler(ds, {
-				type: "ClassicyAppFinderOpenFile",
-				path: "/Users/file.txt",
-			}),
+			classicyFinderEventHandler(
+				ds,
+				{
+					type: "ClassicyAppFinderOpenFile",
+					path: "/Users/file.txt",
+				},
+				"trusted",
+			),
 		).not.toThrow();
 	});
 });
@@ -395,14 +464,18 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 			ClassicyFileSystemEntryFileType.TextFile
 		] = "SimpleText.app";
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:System Folder:Finder",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.TextFile,
-				_system: true,
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:System Folder:Finder",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_system: true,
+				},
 			},
-		});
+			"trusted",
+		);
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
 			message: "This file is used by the system software. It cannot be opened.",
@@ -417,14 +490,18 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 		// makeStore's default fileTypeHandlers maps every type to "Finder.app",
 		// so without the guard this would route straight through to Finder's
 		// own openFiles list instead of showing the system-file error.
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:System Folder:System",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.File,
-				_system: true,
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:System Folder:System",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.File,
+					_system: true,
+				},
 			},
-		});
+			"trusted",
+		);
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
 			message: "This file is used by the system software. It cannot be opened.",
@@ -443,11 +520,15 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with a system
 			>
 		)[ClassicyFileSystemEntryFileType.File];
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Utilities:Terminal.app",
-			file: { _type: ClassicyFileSystemEntryFileType.File },
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Utilities:Terminal.app",
+				file: { _type: ClassicyFileSystemEntryFileType.File },
+			},
+			"trusted",
+		);
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
 			message: "Finder cannot open the file type you requested.",
@@ -479,15 +560,19 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile with an app s
 	};
 
 	const openShortcut = (ds: ClassicyStore, creator?: string) =>
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Applications:TV",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.AppShortcut,
-				_icon: "/icons/tv.png",
-				...(creator ? { _creator: creator } : {}),
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Applications:TV",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.AppShortcut,
+					_icon: "/icons/tv.png",
+					...(creator ? { _creator: creator } : {}),
+				},
 			},
-		});
+			"trusted",
+		);
 
 	it("opens and focuses a closed app", () => {
 		const ds = withTVApp(false);
@@ -540,14 +625,18 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile (Extension)",
 	it("shows the Library error dialog and does not open any app", () => {
 		const ds = makeStore();
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderOpenFile",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.Extension,
-				_creator: "ClockExt.app",
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderOpenFile",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.Extension,
+					_creator: "ClockExt.app",
+				},
+				path: "Macintosh HD:System Folder:Extensions:Clock",
 			},
-			path: "Macintosh HD:System Folder:Extensions:Clock",
-		});
+			"trusted",
+		);
 
 		expect(ds.System.Manager.Desktop.errorDialog).toEqual({
 			title: "Library",
@@ -560,16 +649,20 @@ describe("classicyFinderEventHandler — ClassicyAppFinderOpenFile (Extension)",
 
 describe("opening a shortcut entry", () => {
 	it("routes to the Web Viewer for the classicy disposition", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Press Room",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.Shortcut,
-				_url: "/press",
-				_openIn: "classicy",
-				_label: "Press Room",
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Press Room",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.Shortcut,
+					_url: "/press",
+					_openIn: "classicy",
+					_label: "Press Room",
+				},
 			},
-		});
+			"trusted",
+		);
 		const app = ds.System.Manager.Applications.apps["WebViewer.app"];
 		expect(app.open).toBe(true);
 		expect(app.data?.openUrls).toEqual([
@@ -578,15 +671,19 @@ describe("opening a shortcut entry", () => {
 	});
 
 	it("queues a browser request for the browser-new disposition", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Press Room",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.Shortcut,
-				_url: "/press",
-				_openIn: "browser-new",
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Press Room",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.Shortcut,
+					_url: "/press",
+					_openIn: "browser-new",
+				},
 			},
-		});
+			"trusted",
+		);
 		expect(ds.System.Manager.Desktop.openUrlRequest).toEqual({
 			url: "/press",
 			disposition: "browser-new",
@@ -595,25 +692,33 @@ describe("opening a shortcut entry", () => {
 
 	// The entry name is the path's last segment; _label wins when present.
 	it("titles the window from the entry name when _label is absent", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:For Teachers",
-			file: {
-				_type: ClassicyFileSystemEntryFileType.Shortcut,
-				_url: "/teachers",
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:For Teachers",
+				file: {
+					_type: ClassicyFileSystemEntryFileType.Shortcut,
+					_url: "/teachers",
+				},
 			},
-		});
+			"trusted",
+		);
 		expect(
 			ds.System.Manager.Applications.apps["WebViewer.app"].data?.openUrls,
 		).toEqual([{ url: "/teachers", title: "For Teachers" }]);
 	});
 
 	it("errors on a shortcut with no target", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Broken",
-			file: { _type: ClassicyFileSystemEntryFileType.Shortcut },
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Broken",
+				file: { _type: ClassicyFileSystemEntryFileType.Shortcut },
+			},
+			"trusted",
+		);
 		expect(ds.System.Manager.Desktop.errorDialog?.message).toMatch(
 			/could not be found/i,
 		);
@@ -624,11 +729,15 @@ describe("opening a shortcut entry", () => {
 	// error rather than falling through to classicyDesktopEventHandler with an
 	// empty url.
 	it("errors on a shortcut with an empty-string target", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderOpenFile",
-			path: "Macintosh HD:Broken",
-			file: { _type: ClassicyFileSystemEntryFileType.Shortcut, _url: "" },
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderOpenFile",
+				path: "Macintosh HD:Broken",
+				file: { _type: ClassicyFileSystemEntryFileType.Shortcut, _url: "" },
+			},
+			"trusted",
+		);
 		expect(ds.System.Manager.Desktop.errorDialog?.message).toMatch(
 			/could not be found/i,
 		);
@@ -658,10 +767,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderPathsMoved", () => {
 			folderViews: { "HD:Docs:Projects": "list" },
 		};
 
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderPathsMoved",
-			moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderPathsMoved",
+				moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
+			},
+			"trusted",
+		);
 
 		expect(openPaths(ds)).toEqual([
 			"HD:Archive:Projects",
@@ -697,10 +810,14 @@ describe("classicyFinderEventHandler — ClassicyAppFinderPathsMoved", () => {
 		ds.System.Manager.Applications.apps["Finder.app"].data = {
 			openPaths: ["HD:Docs:Projects 2"],
 		};
-		classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderPathsMoved",
-			moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
-		});
+		classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderPathsMoved",
+				moves: [{ from: "HD:Docs:Projects", to: "HD:Archive:Projects" }],
+			},
+			"trusted",
+		);
 		expect(openPaths(ds)).toEqual(["HD:Docs:Projects 2"]);
 	});
 });

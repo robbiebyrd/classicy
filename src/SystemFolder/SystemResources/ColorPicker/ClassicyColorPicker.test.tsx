@@ -1,5 +1,25 @@
+import { produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@/__tests__/test-utils";
+// Registers Platinum's sound pack, which the Platinum themes used here name
+// (`sound.pack` must name a registered pack).
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+// Platinum registered, so the default package draws until packageId names
+// another; otherwise the first registered package would draw already
+// (0015 §1.5) and a switch to it would change nothing.
+import "@/__tests__/withPlatinum";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
+import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyColorPicker } from "./ClassicyColorPicker";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
@@ -133,12 +153,12 @@ describe("ClassicyColorPicker", () => {
 	});
 
 	it("renders a label when labelTitle is provided", () => {
-		render(<ClassicyColorPicker id="test" labelTitle="Accent colour:" />);
-		expect(screen.getByText("Accent colour:")).toBeInTheDocument();
+		render(<ClassicyColorPicker id="test" labelTitle="Accent color:" />);
+		expect(screen.getByText("Accent color:")).toBeInTheDocument();
 	});
 });
 
-// ── Sub-component behavioural tests ───────────────────────────────────────────
+// ── Sub-component behavioral tests ───────────────────────────────────────────
 
 describe("ClassicyColorPickerCrayon — crayon click", () => {
 	it("calls onChangeFunc with the crayon's integer color when clicked", () => {
@@ -224,6 +244,148 @@ describe("ClassicyColorPickerCMYK — boundary values", () => {
 	});
 });
 
+describe("ClassicyColorPickerCrayon — package colors", () => {
+	// The facet, strip, band and outline tints are look: the crayon reads them
+	// from custom properties the Appearance Package declares on its root.
+	it("crayon facets read package custom properties", () => {
+		const { container } = render(
+			<ClassicyColorPickerCrayon
+				color={0x000000}
+				crayons={MAC_OS_8_CRAYONS.slice(0, 1)}
+				onChangeFunc={vi.fn()}
+			/>,
+		);
+		const facet = container.querySelector(
+			'polygon[points="18,1 5,28 18,28"]',
+		) as SVGElement;
+		expect(facet.style.getPropertyValue("fill")).toBe(
+			"var(--classicy-color-picker-crayon-facet-light, transparent)",
+		);
+		const tip = container.querySelector(
+			'polygon[points="18,1 5,28 31,28"]',
+		) as SVGElement;
+		expect(tip.style.getPropertyValue("stroke")).toBe(
+			"var(--classicy-color-picker-crayon-outline, transparent)",
+		);
+		expect(container.innerHTML).not.toMatch(/rgba\(/);
+	});
+});
+
+describe("ClassicyColorWheel — crosshair color", () => {
+	const strokeStyles = (style?: React.CSSProperties) => {
+		const seen: string[] = [];
+		const ctx = new Proxy(
+			{},
+			{
+				get: (_t, key) =>
+					key === "createImageData"
+						? () => ({ data: new Uint8ClampedArray(4 * 4 * 4) })
+						: () => {},
+				set: (_t, key, value) => {
+					if (key === "strokeStyle") seen.push(value);
+					return true;
+				},
+			},
+		);
+		const spy = vi
+			.spyOn(HTMLCanvasElement.prototype, "getContext")
+			.mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+		render(
+			<ClassicyColorWheel
+				hue={0}
+				saturation={50}
+				brightness={100}
+				mode="hsv"
+				size={4}
+				onChangeFunc={vi.fn()}
+				style={style}
+			/>,
+		);
+		spy.mockRestore();
+		return seen;
+	};
+
+	it("strokes the crosshair in the package's --classicy-color-picker-crosshair", () => {
+		expect(
+			strokeStyles({
+				"--classicy-color-picker-crosshair": "#00ff00",
+			} as React.CSSProperties),
+		).toEqual(["#00ff00"]);
+	});
+
+	it("falls back to white when no package declares it", () => {
+		expect(strokeStyles()).toEqual(["#ffffff"]);
+	});
+
+	// A package switch restyles the open picker without a drag: the wheel
+	// re-reads the new package's crosshair color when the active id changes.
+	it("re-reads the crosshair color when the active package changes", () => {
+		const seen: string[] = [];
+		const ctx = new Proxy(
+			{},
+			{
+				get: (_t, key) =>
+					key === "createImageData"
+						? () => ({ data: new Uint8ClampedArray(4 * 4 * 4) })
+						: () => {},
+				set: (_t, key, value) => {
+					if (key === "strokeStyle") seen.push(value);
+					return true;
+				},
+			},
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+			ctx as unknown as CanvasRenderingContext2D,
+		);
+		registerClassicyAppearancePackage({
+			id: "crosshair-test",
+			name: "Crosshair Test",
+			css: "",
+			defaults: { ...getTheme("default"), package: "crosshair-test" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+		});
+		try {
+			render(
+				<ClassicyColorWheel
+					hue={0}
+					saturation={50}
+					brightness={100}
+					mode="hsv"
+					size={4}
+					onChangeFunc={vi.fn()}
+					style={
+						{
+							"--classicy-color-picker-crosshair": "#00ff00",
+						} as React.CSSProperties
+					}
+				/>,
+			);
+			expect(seen).toEqual(["#00ff00"]);
+			// The new package's stylesheet declares another crosshair color.
+			(document.querySelector("canvas") as HTMLCanvasElement).style.setProperty(
+				"--classicy-color-picker-crosshair",
+				"#ff00ff",
+			);
+			act(() => {
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Appearance.packageId = "crosshair-test";
+					}),
+				);
+			});
+			expect(seen).toEqual(["#00ff00", "#ff00ff"]);
+		} finally {
+			vi.restoreAllMocks();
+			resetClassicyAppearancePackagesForTests();
+			useAppManager.setState(DefaultAppManagerState, true);
+		}
+	});
+});
+
 describe("ClassicyColorWheel — hit test", () => {
 	it("reads hue and saturation from the rendered size, not the bitmap size", () => {
 		// The canvas bitmap is `size` px square but CSS scales it to fit the
@@ -255,5 +417,65 @@ describe("ClassicyColorWheel — hit test", () => {
 		expect(onChangeFunc).toHaveBeenLastCalledWith(0, 100);
 		fireEvent.pointerDown(canvas, { clientX: 50, clientY: 75, pointerId: 1 });
 		expect(onChangeFunc).toHaveBeenLastCalledWith(90, 50);
+	});
+});
+
+describe("ClassicyColorWheel — a lost pointer stream", () => {
+	const renderWheel = () => {
+		const onChangeFunc = vi.fn();
+		const view = render(
+			<ClassicyColorWheel
+				hue={0}
+				saturation={0}
+				brightness={100}
+				mode="hsv"
+				size={200}
+				onChangeFunc={onChangeFunc}
+			/>,
+		);
+		const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+		vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+			left: 0,
+			top: 0,
+			width: 100,
+			height: 100,
+			right: 100,
+			bottom: 100,
+			x: 0,
+			y: 0,
+			toJSON: () => ({}),
+		} as DOMRect);
+		return { ...view, canvas, onChangeFunc };
+	};
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a drag at the color it reached on a %s", (loss) => {
+		const { canvas, onChangeFunc } = renderWheel();
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		fireEvent.pointerMove(canvas, { clientX: 50, clientY: 75 });
+		expect(onChangeFunc).toHaveBeenLastCalledWith(90, 50);
+		losePointerStream(loss);
+		// The pointer coming back with no button held picks nothing.
+		fireEvent.pointerMove(canvas, { clientX: 100, clientY: 50 });
+		expect(onChangeFunc).toHaveBeenCalledTimes(2);
+		vi.restoreAllMocks();
+	});
+
+	it("watches the pointer stream only while a drag lasts", () => {
+		const live = trackPointerStreamListeners();
+		const { canvas, unmount } = renderWheel();
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		expect(live.size).toBe(3);
+		fireEvent.pointerUp(canvas);
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		losePointerStream("blur");
+		expect(live.size).toBe(0);
+		fireEvent.pointerDown(canvas, { clientX: 100, clientY: 50 });
+		unmount();
+		expect(live.size).toBe(0);
+		vi.restoreAllMocks();
 	});
 });

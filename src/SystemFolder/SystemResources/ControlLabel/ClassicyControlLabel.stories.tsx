@@ -28,7 +28,7 @@ export const Large: Story = {
 	args: { label: "Section Heading", labelSize: "large" },
 };
 
-/** `disabled` draws the text in the HIG's dimmed grey, for a label whose control is inactive. */
+/** `disabled` draws the text in the HIG's dimmed gray, for a label whose control is inactive. */
 export const Disabled: Story = {
 	args: { label: "Unavailable Option", disabled: true },
 };

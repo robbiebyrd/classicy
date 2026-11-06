@@ -1,4 +1,15 @@
+import { readFileSync } from "node:fs";
+import type { CSSProperties } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dispatchAnimationEnd } from "@/__tests__/animationEnd";
+// Platinum registered: "under Platinum" means the default package is the
+// one that draws, not merely the first registered (0015 §1.5).
+import "@/__tests__/withPlatinum";
+import {
+	losePointerStream,
+	POINTER_STREAM_LOSSES,
+	trackPointerStreamListeners,
+} from "@/__tests__/losePointerStream";
 import {
 	act,
 	fireEvent,
@@ -6,13 +17,21 @@ import {
 	screen,
 	waitFor,
 } from "@/__tests__/test-utils";
+import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
+// The renaming tests switch back to Platinum, which must be registered.
+import "@classicy/appearance-platinum";
+import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
-import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import {
+	type ActionMessage,
+	DefaultAppManagerState,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
+import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
@@ -28,9 +47,23 @@ import {
 	unregisterClassicyControlStripModule,
 	useClassicyControlStripDisabledModules,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import { scanPixelLiteralsInSource } from "../../../../bin/check-pixel-literals.ts";
 // The built-in modules register when their owners' modules load.
 import "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule";
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
+
+// Every action the strip and its modules dispatch, passed through to the
+// real store.
+const dispatched = vi.hoisted((): ActionMessage[] => []);
+vi.mock(
+	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
+	async (importOriginal) => {
+		const { recordingAppManagerUtils } = await import(
+			"@/__tests__/recordingAppManagerUtils"
+		);
+		return recordingAppManagerUtils(await importOriginal(), dispatched);
+	},
+);
 
 const sound = vi.hoisted(() => ({
 	state: { disabled: [] as string[], volume: 100 as number | undefined },
@@ -45,19 +78,9 @@ vi.mock(
 	}),
 );
 
-// ClassicyMenu runs a chosen item once its flash animation ends; jsdom has no
-// AnimationEvent, so React listens for the prefixed event (see
-// ClassicyDesktopMenuBar.help.test.tsx).
-const completeMenuItemFlash = (id: string) => {
-	const event = new Event("webkitAnimationEnd", {
-		bubbles: true,
-		cancelable: true,
-	});
-	Object.defineProperty(event, "animationName", {
-		value: "classicyMenuItemFlashKeyframes",
-	});
-	document.getElementById(id)?.dispatchEvent(event);
-};
+// ClassicyMenu runs a chosen item once its flash animation ends.
+const completeMenuItemFlash = (id: string) =>
+	dispatchAnimationEnd(document.getElementById(id));
 
 /** A mouse click: press and release on one element, then its click. */
 const click = (el: Element) => {
@@ -163,10 +186,7 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 		renderStrip();
 		click(screen.getByRole("button", { name: "File Sharing" }));
 		const status = screen.getByRole("menuitem", { name: "No Users Connected" });
-		expect(status).toHaveClass(
-			"classicyControlStripStatus",
-			"classicyMenuItemDisabled",
-		);
+		expect(status).toHaveClass("classicyControlStripStatus", "disabled");
 		fireEvent.click(
 			screen.getByRole("menuitem", { name: "Open File Sharing Control Panel" }),
 		);
@@ -307,6 +327,165 @@ describe("ClassicyControlStrip (HIGOS8 Figure 6-15)", () => {
 			expect(viewport.style.width).toBe("90px");
 		});
 	});
+
+	// H-R12: with nothing measurable (jsdom lays nothing out, so offsetWidth
+	// is 0), a module step is the theme's module width plus its separator,
+	// read from the variables an ancestor sets.
+	it("scrolls one module step read from the theme variables", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		register(...testModules());
+		renderWithProviders(
+			<div
+				id="classicyDesktop"
+				style={
+					{
+						"--control-strip-module-width": "40px",
+						"--control-strip-border-width": "2px",
+					} as CSSProperties
+				}
+			>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</div>,
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Scroll Control Strip right" }),
+		);
+		const modules = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		expect(modules.scrollLeft).toBe(42);
+	});
+
+	// With nothing measured and no variable set anywhere (jsdom before the
+	// desktop's theme), the step is the default theme's: 30 + 1.
+	it("falls back to the default theme's module step", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		register(...testModules());
+		renderStrip();
+		fireEvent.click(
+			screen.getByRole("button", { name: "Scroll Control Strip right" }),
+		);
+		const modules = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		expect(modules.scrollLeft).toBe(31);
+	});
+
+	// G14/H-R12: a drag reads the step once, on the press; its mousemoves
+	// reuse it and never force a style read.
+	it("reads the module step once per drag, not per mousemove", () => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(0);
+		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const stepReads = () =>
+			reads.mock.calls.filter(
+				([name]) => name === "--control-strip-module-width",
+			).length;
+		register(...testModules());
+		renderStrip();
+		const viewport = document.querySelector(
+			".classicyControlStripModules",
+		) as HTMLElement;
+		reads.mockClear();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		expect(stepReads()).toBe(1);
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.mouseMove(document, { clientX: 140 });
+		fireEvent.mouseMove(document, { clientX: 120 });
+		fireEvent.mouseUp(document);
+		expect(stepReads()).toBe(1);
+		// 100 - 80 = 20 px snaps up to one 31 px step.
+		expect(viewport.style.width).toBe("31px");
+	});
+
+	// H 6.1 (from the H 3.1 review): a module's surface overlaps the strip
+	// (Figure 6-15's 3 px) and meets the module's left separator by the
+	// theme's variables, read from the module once per press, not by pixels
+	// in the script.
+	it("places a module's menu by the theme's overlap and separator, read once per press", () => {
+		vi.spyOn(
+			HTMLButtonElement.prototype,
+			"getBoundingClientRect",
+		).mockReturnValue({
+			top: 700,
+			bottom: 722,
+			left: 50,
+			right: 80,
+			width: 30,
+			height: 22,
+			x: 50,
+			y: 700,
+			toJSON: () => ({}),
+		} as DOMRect);
+		// The menu measures 100 x 100, so it has no room below and opens above.
+		vi.spyOn(HTMLDivElement.prototype, "getBoundingClientRect").mockReturnValue(
+			{
+				top: 0,
+				bottom: 100,
+				left: 0,
+				right: 100,
+				width: 100,
+				height: 100,
+				x: 0,
+				y: 0,
+				toJSON: () => ({}),
+			} as DOMRect,
+		);
+		const reads = vi.spyOn(CSSStyleDeclaration.prototype, "getPropertyValue");
+		const overlapReads = () =>
+			reads.mock.calls.filter(([name]) => name === "--strip-menu-overlap")
+				.length;
+		register(...testModules());
+		renderWithProviders(
+			<div
+				style={
+					{
+						"--strip-menu-overlap": "5px",
+						"--control-strip-border-width": "2px",
+					} as CSSProperties
+				}
+			>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</div>,
+		);
+		reads.mockClear();
+		click(screen.getByRole("button", { name: "File Sharing" }));
+		const menu = screen.getByRole("menu");
+		expect(menu.style.left).toBe("48px"); // onto the 2 px separator
+		expect(menu.style.top).toBe("605px"); // 700 + 5 overlap - 100 tall
+		expect(overlapReads()).toBe(1);
+	});
+
+	it("reads no pixel literal", () => {
+		expect(
+			scanPixelLiteralsInSource(
+				readFileSync(
+					"src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
+					"utf8",
+				),
+				"strip",
+			).filter((l) => l.kind === "bare"),
+		).toEqual([]);
+	});
+
+	// The Platinum bevels (Part B moved them to the package partial) and the
+	// base sheet's fallbacks: nothing left but the exempt `0px` instance ones.
+	it("draws its Platinum bevels and reads its fallbacks without a pixel literal", () => {
+		for (const file of [
+			"packages/appearance/platinum/src/styles/components/_ControlStrip.scss",
+			"src/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip.scss",
+		]) {
+			expect(
+				scanPixelLiteralsInSource(readFileSync(file, "utf8"), file),
+				file,
+			).toEqual([]);
+		}
+	});
 });
 
 describe("built-in control strip modules", () => {
@@ -405,7 +584,12 @@ describe("built-in control strip modules", () => {
 				name: "Open Screen Saver Control Panel",
 			}),
 		).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("menuitem", { name: "Screen Saver On" }));
+		// A checked choice: the menu exposes it as a checked menuitemcheckbox.
+		const enabledItem = screen.getByRole("menuitemcheckbox", {
+			name: "Screen Saver On",
+		});
+		expect(enabledItem).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(enabledItem);
 		completeMenuItemFlash("screen-saver-enabled");
 		await waitFor(() =>
 			expect(
@@ -658,6 +842,148 @@ describe("Control Strip persisted state", () => {
 	});
 });
 
+// Owner ruling 2 and K-D7: the strip shows the active package's app names —
+// in its "Open … Control Panel" items and as the label of a module an app
+// owns — while the actions it dispatches keep each app's own identity.
+describe("Control Strip under a renaming package", () => {
+	const PACKAGE_ID = "test-strip-rename";
+	let unmountApps: (() => void)[] = [];
+
+	beforeEach(() => {
+		dispatched.length = 0;
+		registerTestAppsPackage(PACKAGE_ID, {
+			[CONTROL_STRIP_MANAGER_APP_ID]: { name: "Strip" },
+			[SCREEN_SAVER_MANAGER_APP_ID]: { name: "Savers" },
+			[SCREEN_SAVER_APP_ID]: { name: "After Dark" },
+			"Owner.app": { name: "Owner Display" },
+			plain: { name: "Not A Module Label" },
+		});
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: PACKAGE_ID,
+		});
+	});
+
+	afterEach(() => {
+		for (const unmount of unmountApps) unmount();
+		unmountApps = [];
+		unregisterClassicyAppearancePackage(PACKAGE_ID);
+	});
+
+	const appOpens = () =>
+		dispatched.filter((action) => action.type === "ClassicyAppOpen");
+
+	it("offers the renamed panel and opens it by its own identity", async () => {
+		register(...testModules());
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		expect(
+			screen.queryByRole("menuitem", {
+				name: "Open Control Strip Control Panel",
+			}),
+		).toBeNull();
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Open Strip Control Panel" }),
+		);
+		completeMenuItemFlash("control-strip-open-control-panel");
+		await waitFor(() => expect(appOpens()).toHaveLength(1));
+		expect(appOpens()[0]).toMatchObject({
+			app: { id: CONTROL_STRIP_MANAGER_APP_ID, name: "Control Strip" },
+		});
+	});
+
+	it("titles Screen Saver's panel item with the panel's display name", async () => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: SCREEN_SAVER_APP_ID, name: "Screen Saver", icon: "" },
+		});
+		unmountApps.push(markClassicyAppMounted(SCREEN_SAVER_APP_ID));
+		dispatched.length = 0;
+		renderWithProviders(<ClassicyControlStrip />);
+		click(screen.getByRole("button", { name: "After Dark" }));
+		fireEvent.click(
+			screen.getByRole("menuitem", { name: "Open Savers Control Panel" }),
+		);
+		completeMenuItemFlash(`open-${SCREEN_SAVER_MANAGER_APP_ID}`);
+		await waitFor(() => expect(appOpens()).toHaveLength(1));
+		expect(appOpens()[0]).toMatchObject({
+			app: {
+				id: SCREEN_SAVER_MANAGER_APP_ID,
+				name: "Screen Saver",
+				icon: ClassicyIcons.system.extensions.screensaver,
+			},
+		});
+	});
+
+	it("labels an app's module with the app's display name, and only those", () => {
+		register(
+			{ id: "owned", appId: "Owner.app", label: "Owned", icon: "o.png" },
+			{ id: "plain", label: "Plain", icon: "p.png" },
+		);
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderStrip();
+		expect(moduleNames()).toEqual(["Owner Display", "Plain"]);
+	});
+
+	it("follows a package switch after mount: the module's name and the panel item", () => {
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "platinum",
+		});
+		register({
+			id: "owned",
+			appId: "Owner.app",
+			label: "Owned",
+			icon: "o.png",
+		});
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderWithProviders(
+			<ClassicyContextualMenuProvider>
+				<ClassicyControlStrip disabledModules={BUILT_INS} />
+			</ClassicyContextualMenuProvider>,
+		);
+		expect(moduleNames()).toEqual(["Owned"]);
+
+		act(() =>
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: PACKAGE_ID,
+			}),
+		);
+
+		expect(moduleNames()).toEqual(["Owner Display"]);
+		fireEvent.contextMenu(tab(), { clientX: 10, clientY: 10 });
+		expect(
+			screen.getByRole("menuitem", { name: "Open Strip Control Panel" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("menuitem", {
+				name: "Open Control Strip Control Panel",
+			}),
+		).toBeNull();
+	});
+
+	it("labels an app's module with its own label under Platinum", () => {
+		dispatch({
+			type: "ClassicyDesktopChangeAppearancePackage",
+			packageId: "platinum",
+		});
+		register({
+			id: "owned",
+			appId: "Owner.app",
+			label: "Owned",
+			icon: "o.png",
+		});
+		unmountApps.push(markClassicyAppMounted("Owner.app"));
+		renderStrip();
+		expect(moduleNames()).toEqual(["Owned"]);
+	});
+});
+
 describe("computeClassicyControlStripPosition (#298, #299)", () => {
 	const desktop = { left: 0, top: 0, width: 800, height: 600 };
 	const at = (x: number, y: number, topInset = 0) =>
@@ -765,7 +1091,7 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
 		// The press was a move: the strip did not collapse.
 		expect(storedStrip()?.collapsed).toBeUndefined();
-		expect(strip()).not.toHaveClass("classicyControlStripCollapsed");
+		expect(strip()).not.toHaveClass("collapsed");
 	});
 
 	it("docks back to the left when dropped on the left half", () => {
@@ -927,5 +1253,111 @@ describe("Control-dragging the Control Strip (#298, #299)", () => {
 		expect(
 			strip().style.getPropertyValue("--classicy-control-strip-top-inset"),
 		).toBe("20px");
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a Control-drag where it is, storing that position, on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		losePointerStream(loss);
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+		expect(strip()).not.toHaveClass("dragging");
+
+		// The pointer coming back carries it no further, and the release
+		// that finally comes stores nothing more.
+		fireEvent.mouseMove(document, { clientX: 100, clientY: 100 });
+		fireEvent.mouseUp(document);
+		expect(storedStrip()).toMatchObject({ edge: "right", bottom: 288 });
+		expect(strip()).toHaveClass("classicyControlStripRight");
+	});
+
+	it("stores nothing when the stream is lost before a Control-press moved", () => {
+		register(...testModules());
+		renderStrip();
+		controlPress();
+		losePointerStream("blur");
+		fireEvent.mouseMove(document, { clientX: 700, clientY: 300 });
+		expect(storedStrip()?.edge).toBeUndefined();
+		expect(strip()).not.toHaveClass("classicyControlStripRight");
+	});
+});
+
+describe("Control Strip tab when the pointer stream is lost", () => {
+	beforeEach(() => {
+		vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(300);
+		vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(100);
+		vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(30);
+	});
+
+	const viewport = () =>
+		document.querySelector(".classicyControlStripModules") as HTMLElement;
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("ends a tab drag at the width it was dragged to on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		fireEvent.mouseMove(document, { clientX: 160 });
+		losePointerStream(loss);
+		expect(storedStrip()?.width).toBe(60);
+
+		// The pointer coming back does not size it, and the release that
+		// finally comes is not a click on the tab.
+		fireEvent.mouseMove(document, { clientX: 900 });
+		fireEvent.mouseUp(document);
+		expect(viewport().style.width).toBe("60px");
+		expect(storedStrip()?.collapsed).toBeUndefined();
+	});
+
+	it.each(
+		POINTER_STREAM_LOSSES,
+	)("does not take a tab press for a click on a %s", (loss) => {
+		register(...testModules());
+		renderStrip();
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		losePointerStream(loss);
+		fireEvent.mouseUp(document);
+		expect(storedStrip()?.collapsed).toBeUndefined();
+		expect(
+			screen.getByRole("button", { name: "File Sharing" }),
+		).toBeInTheDocument();
+	});
+
+	it("watches the pointer stream only while a press lasts", () => {
+		const live = trackPointerStreamListeners();
+		register(...testModules());
+		const { unmount } = renderStrip();
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		expect(live.size).toBe(3);
+		fireEvent.mouseMove(document, { clientX: 160 });
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		losePointerStream("hidden");
+		expect(live.size).toBe(0);
+
+		const collapseBox = screen.getByRole("button", {
+			name: "Collapse Control Strip",
+		});
+		fireEvent.mouseDown(collapseBox, { button: 0, ctrlKey: true });
+		expect(live.size).toBe(3);
+		fireEvent.mouseUp(document);
+		expect(live.size).toBe(0);
+		fireEvent.mouseDown(collapseBox, { button: 0, ctrlKey: true });
+		losePointerStream("pointercancel");
+		expect(live.size).toBe(0);
+		// A plain press on the collapse box is a click, not a gesture.
+		fireEvent.mouseDown(collapseBox, { button: 0 });
+		expect(live.size).toBe(0);
+
+		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
+		unmount();
+		expect(live.size).toBe(0);
 	});
 });

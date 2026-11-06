@@ -33,7 +33,7 @@ utility palette, and is explicitly out of scope.
 - **R2** — Two checkmark items: **Tools** (⌘T) and **Info** (⌘I).
 - **R3** — Each item shows a **checkmark (✓)** when its palette is currently
   visible (mounted and not `closed`), and no checkmark when hidden.
-- **R4** — Each item is **disabled (greyed)** when not in edit mode (the palettes
+- **R4** — Each item is **disabled (grayed)** when not in edit mode (the palettes
   don't exist then). Disabled items don't fire their ⌘-key equivalents (the
   existing `findMenuItemByShortcut` already skips `disabled` items).
 - **R5** — Clicking an enabled item (or pressing its ⌘-key) **toggles** that
@@ -176,7 +176,7 @@ was destroyed, so any sane values are fine.)
 
 1. View menu always visible, after Go, with Tools (⌘T) and Info (⌘I) items.
 2. Checkmarks reflect live window `closed` state; close box and menu stay in sync.
-3. Items greyed and shortcuts inert outside edit mode.
+3. Items grayed and shortcuts inert outside edit mode.
 4. Toggling reopens a palette at its previous position.
 5. No new window-reducer events or store state; Script window untouched.
 6. Touched-file Biome clean; existing tests stay green.

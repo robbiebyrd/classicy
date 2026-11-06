@@ -1,37 +1,87 @@
 import { z } from "zod";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
+import {
+	isPlainClassicyWallpaperFile,
+	parseClassicyWallpaperReference,
+} from "@/Appearance/ClassicyWallpaperSource.internal";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { ClassicySounds } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySounds";
-import { CLASSICY_DEFAULT_THEME_METRICS as METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
-import { classicyWallpaperFilename } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
+import {
+	CLASSICY_THEME_FONT_SIZE_MAX,
+	CLASSICY_THEME_FONT_SIZE_MIN,
+	isClassicyFontSizeMeasurementKey,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import {
+	CLASSICY_MEASUREMENT_NAME,
+	CLASSICY_DEFAULT_THEME_METRICS as METRICS,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 /**
  * Runtime schema for `ClassicyTheme`, used wherever a theme arrives from
- * outside the build: an imported theme file, or a `ClassicyDesktopImportTheme`
- * payload.
+ * outside the build: an imported theme file, a `ClassicyDesktopImportTheme`
+ * payload, or a theme a host hands to `ClassicyDesktopLoadThemes`.
  *
- * Unknown keys are tolerated and STRIPPED (zod's default object behaviour),
+ * Unknown keys are tolerated and STRIPPED (zod's default object behavior),
  * so a file written by a newer build that adds an optional field still loads
- * here, but nothing undeclared ever reaches the store. Types are strict.
+ * here, but nothing undeclared ever reaches the store. Types are strict. The
+ * one open map is `measurements`: a family the schema does not name is an
+ * Appearance Package's (`controlStrip`, …) and is kept, but only as a record
+ * of measurements.
  *
  * Every string a theme carries ends up in a CSS custom property on the
  * desktop root (`getThemeVars`), so strings are restricted to the characters
- * their CSS role needs — and `desktop.backgroundImage`, interpolated unquoted
- * into `url(…)`, must be a bundled wallpaper or a plain http(s) URL.
+ * their CSS role needs — and `desktop.backgroundImage`, interpolated into
+ * `url("…")`, must be a bundled wallpaper or a plain http(s) URL.
  */
 
-/** A 24-bit RGB colour, as themes store them (`0xRRGGBB`). */
+/** A 24-bit RGB color, as themes store them (`0xRRGGBB`). */
 const color = z
 	.number()
 	.int("must be a whole number")
-	.min(0, "must be a colour from 0x000000 to 0xFFFFFF")
-	.max(0xffffff, "must be a colour from 0x000000 to 0xFFFFFF");
+	.min(0, "must be a color from 0x000000 to 0xFFFFFF")
+	.max(0xffffff, "must be a color from 0x000000 to 0xFFFFFF");
 
 const palette = z.tuple([color, color, color, color, color, color, color]);
 
 const size = (max: number) =>
 	z.number().positive().max(max, `must be at most ${max}`);
 
+const FONT_SIZE_MIN_ERROR = `must be at least ${CLASSICY_THEME_FONT_SIZE_MIN}`;
+const FONT_SIZE_MAX_ERROR = `must be at most ${CLASSICY_THEME_FONT_SIZE_MAX}`;
+
+/** A font size in px, within the shared bounds (`ClassicyThemeFontSizes`). */
+const fontSize = z
+	.number()
+	.min(CLASSICY_THEME_FONT_SIZE_MIN, FONT_SIZE_MIN_ERROR)
+	.max(CLASSICY_THEME_FONT_SIZE_MAX, FONT_SIZE_MAX_ERROR);
+
 const measurement = z.number().nonnegative().max(512, "must be at most 512");
+
+const NAME_ERROR = "must be a camelCase name starting with a lowercase letter";
+
+/** A package measurement family: camelCase keys, each a measurement. A key
+ * that names a font size (`fontSize`, `bodyFontSize`, …;
+ * `isClassicyFontSizeMeasurementKey`) is also held to the font-size bounds,
+ * like the typography sizes, whichever package the family belongs to. */
+const packageMeasurements = z
+	.record(z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR), measurement)
+	.check((ctx) => {
+		for (const [key, value] of Object.entries(ctx.value)) {
+			if (!isClassicyFontSizeMeasurementKey(key)) continue;
+			const message =
+				value < CLASSICY_THEME_FONT_SIZE_MIN
+					? FONT_SIZE_MIN_ERROR
+					: value > CLASSICY_THEME_FONT_SIZE_MAX
+						? FONT_SIZE_MAX_ERROR
+						: undefined;
+			if (message) {
+				ctx.issues.push({ code: "custom", input: value, path: [key], message });
+			}
+		}
+	});
+
+const CORE_MEASUREMENT_FAMILIES: readonly string[] = Object.keys(METRICS);
 
 /** A CSS font stack: family names, quotes, commas — no syntax that could
  * close the declaration or pull in a resource. */
@@ -57,11 +107,14 @@ const UNSAFE_URL_CHARS = /[\s"'`()\\;<>{}]/;
 
 /**
  * True for a `desktop.backgroundImage` value that is safe to interpolate into
- * `url(…)`: empty (colour-only), a bundled wallpaper (its filename or the URL
- * the bundler resolved it to), or an absolute http(s) URL with no characters
- * that could break out of `url()` — whitespace, quotes, parentheses,
- * backslashes, semicolons, angle brackets or braces. `javascript:`, `data:`
- * (other than a bundled wallpaper's own) and relative paths are rejected.
+ * the double-quoted `url("…")` that `getThemeVars` writes: empty (color-only),
+ * a registered wallpaper (its filename, `<package>|<file>` or the source its
+ * package registered, `classicyWallpaperFilename`; it is resolved, never
+ * written into the `url()` as it is), or an absolute http(s) URL with no characters
+ * that could break out of the quoted string or the `url()` — whitespace,
+ * quotes, parentheses, backslashes, semicolons, angle brackets or braces.
+ * `javascript:`, `data:` (other than a
+ * registered wallpaper's own) and relative paths are rejected.
  */
 export const isSafeClassicyThemeBackgroundImage = (value: string): boolean => {
 	if (value === "") return true;
@@ -80,18 +133,25 @@ export const isSafeClassicyThemeBackgroundImage = (value: string): boolean => {
 };
 
 const backgroundImage = z.string().refine(isSafeClassicyThemeBackgroundImage, {
-	error: "must be a bundled wallpaper name or an http(s) URL",
+	error:
+		"must be a registered wallpaper (a filename, or <package>|<filename> for another package's) or an http(s) URL",
 });
 
-const soundName = z
+// Evaluated per parse, so a pack registered after module load validates. The
+// schema registers none itself: Platinum's comes with the Platinum package.
+const soundPack = z
 	.string()
-	.refine((name) => Object.hasOwn(ClassicySounds, name), {
-		error: `must be a known sound theme (${Object.keys(ClassicySounds).join(", ")})`,
+	.max(64)
+	.refine((id) => getClassicySoundPack(id) !== undefined, {
+		error: "must be a registered sound pack",
 	});
 
 export const ClassicyThemeSchema = z.object({
 	id: z.string().max(128),
 	name: z.string().trim().min(1, "must not be empty").max(64),
+	// The Appearance Package the theme belongs to; files saved before
+	// packages existed load as the default package (Platinum).
+	package: z.string().max(64).default(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 	color: z.object({
 		outline: color,
 		select: color,
@@ -113,65 +173,87 @@ export const ClassicyThemeSchema = z.object({
 	}),
 	typography: z.object({
 		ui: fontStack,
-		uiSize: size(512),
+		uiSize: fontSize,
 		header: fontStack,
-		headerSize: size(512),
+		headerSize: fontSize,
 		body: fontStack,
-		bodySize: size(512),
+		bodySize: fontSize,
 		mono: fontStack,
-		monoSize: size(512),
+		monoSize: fontSize,
 		digital: fontStack,
-		digitalSize: size(512),
+		digitalSize: fontSize,
 	}),
-	measurements: z.object({
-		window: z.object({
-			borderSize: measurement,
-			controlSize: measurement,
-			paddingSize: measurement,
-			scrollbarSize: measurement,
-			titleBarHeight: measurement.default(METRICS.window.titleBarHeight),
-			utilityTitleBarHeight: measurement.default(
-				METRICS.window.utilityTitleBarHeight,
-			),
+	measurements: z
+		.object({
+			window: z.object({
+				borderSize: measurement,
+				controlSize: measurement,
+				paddingSize: measurement,
+				scrollbarSize: measurement,
+				titleBarHeight: measurement.default(METRICS.window.titleBarHeight),
+				utilityTitleBarHeight: measurement.default(
+					METRICS.window.utilityTitleBarHeight,
+				),
+			}),
+			// The groups below were added after version-1 theme files already
+			// existed, so each key — and each whole group — defaults to its Platinum
+			// value. Zod 4's `.default()` does not re-parse its value, so the group
+			// default must be the full object, never `{}`.
+			control: z
+				.object({
+					height: measurement.default(METRICS.control.height),
+					labelGap: measurement.default(METRICS.control.labelGap),
+					staticTextHeight: measurement.default(
+						METRICS.control.staticTextHeight,
+					),
+				})
+				.default(METRICS.control),
+			button: z
+				.object({
+					minWidth: measurement.default(METRICS.button.minWidth),
+					textPadding: measurement.default(METRICS.button.textPadding),
+					gap: measurement.default(METRICS.button.gap),
+				})
+				.default(METRICS.button),
+			groupBox: z
+				.object({
+					marginSide: measurement.default(METRICS.groupBox.marginSide),
+					marginTop: measurement.default(METRICS.groupBox.marginTop),
+					marginBottom: measurement.default(METRICS.groupBox.marginBottom),
+					titlePad: measurement.default(METRICS.groupBox.titlePad),
+					gap: measurement.default(METRICS.groupBox.gap),
+				})
+				.default(METRICS.groupBox),
+			layout: z
+				.object({
+					itemGap: measurement.default(METRICS.layout.itemGap),
+					groupGap: measurement.default(METRICS.layout.groupGap),
+					dialogEdge: measurement.default(METRICS.layout.dialogEdge),
+				})
+				.default(METRICS.layout),
+		})
+		// Any other family belongs to an Appearance Package (`controlStrip`,
+		// `menuFrame`, …): kept, and every key in it must be a measurement.
+		// Family and key names must be ones classicyMeasurementVars emits.
+		.catchall(packageMeasurements)
+		.check((ctx) => {
+			for (const family of Object.keys(ctx.value)) {
+				if (
+					!CORE_MEASUREMENT_FAMILIES.includes(family) &&
+					!CLASSICY_MEASUREMENT_NAME.test(family)
+				) {
+					ctx.issues.push({
+						code: "custom",
+						input: family,
+						path: [family],
+						message: NAME_ERROR,
+					});
+				}
+			}
 		}),
-		// The groups below were added after version-1 theme files already
-		// existed, so each key — and each whole group — defaults to its Platinum
-		// value. Zod 4's `.default()` does not re-parse its value, so the group
-		// default must be the full object, never `{}`.
-		control: z
-			.object({
-				height: measurement.default(METRICS.control.height),
-				labelGap: measurement.default(METRICS.control.labelGap),
-				staticTextHeight: measurement.default(METRICS.control.staticTextHeight),
-			})
-			.default(METRICS.control),
-		button: z
-			.object({
-				minWidth: measurement.default(METRICS.button.minWidth),
-				textPadding: measurement.default(METRICS.button.textPadding),
-				gap: measurement.default(METRICS.button.gap),
-			})
-			.default(METRICS.button),
-		groupBox: z
-			.object({
-				marginSide: measurement.default(METRICS.groupBox.marginSide),
-				marginTop: measurement.default(METRICS.groupBox.marginTop),
-				marginBottom: measurement.default(METRICS.groupBox.marginBottom),
-				titlePad: measurement.default(METRICS.groupBox.titlePad),
-				gap: measurement.default(METRICS.groupBox.gap),
-			})
-			.default(METRICS.groupBox),
-		layout: z
-			.object({
-				itemGap: measurement.default(METRICS.layout.itemGap),
-				groupGap: measurement.default(METRICS.layout.groupGap),
-				dialogEdge: measurement.default(METRICS.layout.dialogEdge),
-			})
-			.default(METRICS.layout),
-	}),
 	desktop: z.object({
 		iconSize: size(512),
-		iconFontSize: size(512),
+		iconFontSize: fontSize,
 		backgroundImage,
 		backgroundColor: color,
 		backgroundSize: z.union([z.number().nonnegative().max(10000), cssKeyword]),
@@ -182,7 +264,7 @@ export const ClassicyThemeSchema = z.object({
 		]),
 	}),
 	sound: z.object({
-		name: soundName,
+		pack: soundPack,
 		disabled: z.array(z.string().max(128)).max(256),
 	}),
 }) satisfies z.ZodType<ClassicyTheme>;
@@ -194,6 +276,34 @@ type AssertTrue<T extends true> = T;
 export type ClassicyThemeSchemaMatchesType = AssertTrue<
 	ClassicyTheme extends z.output<typeof ClassicyThemeSchema> ? true : false
 >;
+
+/**
+ * `ClassicyThemeSchema` for an Appearance Package's own themes (its `defaults`
+ * and `presets`, `ClassicyAppearancePackageSchema`): a `backgroundImage` may
+ * also be a plain wallpaper filename, or a `<package>|<file>` reference, no
+ * package has registered yet. A package's themes are code that names its
+ * wallpapers by filename (another package's as `<package>|<file>`), and those
+ * wallpapers may register after it; a filename is only ever resolved through
+ * the registry (`resolveClassicyWallpaper`, unknown → no image), never written
+ * into CSS as it is. Untrusted themes (files, imports, host-loaded themes)
+ * keep the strict schema.
+ */
+export const ClassicyPackageThemeSchema = ClassicyThemeSchema.extend({
+	desktop: ClassicyThemeSchema.shape.desktop.extend({
+		backgroundImage: z
+			.string()
+			.refine(
+				(value) =>
+					isSafeClassicyThemeBackgroundImage(value) ||
+					isPlainClassicyWallpaperFile(value) ||
+					parseClassicyWallpaperReference(value) !== undefined,
+				{
+					error:
+						"must be a wallpaper filename, a <package>|<filename> reference or an http(s) URL",
+				},
+			),
+	}),
+});
 
 /** `format` tag of a theme file. */
 export const CLASSICY_THEME_FILE_FORMAT = "classicy-theme";

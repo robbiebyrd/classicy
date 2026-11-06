@@ -88,15 +88,18 @@ export const classicyQuickTimePictureViewerEventHandler = (
 		// Opened from Finder via a ClassicyFileSystem path — resolved to an
 		// actual image source (url or _data) at render time in PictureViewer.tsx.
 		case "ClassicyAppPictureViewerOpenFile": {
-			if (action.path && !appData.openFiles.includes(action.path)) {
+			if (!action.path) break;
+			if (!appData.openFiles.includes(action.path)) {
 				appData.openFiles = [...appData.openFiles, action.path];
-				openApp(
-					ds,
-					PictureViewerAppInfo.id,
-					PictureViewerAppInfo.name,
-					PictureViewerAppInfo.icon,
-				);
 			}
+			// Opening an already-open file still brings the app forward, as
+			// the generic OpenFile handler does.
+			openApp(
+				ds,
+				PictureViewerAppInfo.id,
+				PictureViewerAppInfo.name,
+				PictureViewerAppInfo.icon,
+			);
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseFile": {

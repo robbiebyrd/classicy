@@ -1,8 +1,9 @@
 name: CI
 
-# Lint, type check and test every pull request (any base branch) and every push
-# to main, so Biome errors and broken tests are caught before merge rather than
-# at release time (#276). push.yml ("Release Package") still runs its own
+# Lint, type check, test and build the example app for every pull request (any
+# base branch) and every push to main, so Biome errors, broken tests and a
+# broken consumer build are caught before merge rather than at release time
+# (#276). push.yml ("Release Package") still runs its own
 # `pnpm test` before publishing; that is deliberate release safety, not a
 # duplicate to remove.
 #
@@ -10,8 +11,9 @@ name: CI
 # check skipped by a path filter stays "pending" and blocks the merge.
 #
 # No ffmpeg / audio sprite build: the generated sprites
-# (assets/sounds/platinum/platinum.*) are committed, and the test suite only
-# reads platinum.json. Nothing here invokes ffmpeg.
+# (packages/appearance/platinum/src/assets/sounds/platinum/platinum.*) are
+# committed, and the test suite only reads platinum.json and the files' paths.
+# Nothing here invokes ffmpeg.
 
 on:
   pull_request:
@@ -25,13 +27,14 @@ permissions:
 # A new push to the same PR (or to main) supersedes the run in progress.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # Only superseded PR runs are cancelled; every main commit runs to completion.
+  # Only superseded PR runs are canceled; every main commit runs to completion.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
     name: Lint, type check and test
-    runs-on: ubuntu-latest
+    # Pinned with push/pages/pr-preview, whose distro ffmpeg and audio sprites must not change with ubuntu-latest; revisit them together.
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
 
     steps:
@@ -50,11 +53,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check generated vocabulary is fresh
+        run: node bin/generate-vocabulary.ts --check
+
       - name: Lint (Biome)
         run: pnpm lint
 
       - name: Type check
         run: pnpm exec tsc --noEmit -p .
 
+      # The root tsconfig excludes the stories; storybook/tsconfig.json checks
+      # them (and .storybook/) strictly.
+      - name: Type check stories (Storybook)
+        run: pnpm storybook:typecheck
+
       - name: Run tests
         run: pnpm test
+
+      # The example app consumes the library through the workspace
+      # (`@classicy/classicy: workspace:*` resolves to the built dist/), so the library is
+      # built first, in this job, as push.yml and pages.yml do (build:source
+      # skips the ffmpeg-only build:audio; the sprites are committed). The
+      # example's own `build` script is `tsc -b && vite build`, so a broken
+      # consumer import (such as the Platinum SCSS export path) or a
+      # consumer-facing type error fails the pull request (0085-c3x).
+      - name: Build library and example app
+        run: pnpm build:source && pnpm --filter classicy-example build

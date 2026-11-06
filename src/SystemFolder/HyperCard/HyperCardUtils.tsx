@@ -8,7 +8,7 @@
  */
 
 import { z } from "zod";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type {
 	HCAction,
 	HCBackground,
@@ -22,7 +22,9 @@ import type {
 export const HyperCardAppInfo = {
 	id: "HyperCard.app",
 	name: "HyperCard",
-	icon: ClassicyIcons.system.files.application,
+	get icon() {
+		return resolveClassicyAsset("icons", "system.files.application") ?? "";
+	},
 } as const;
 
 /** Prefix for all HyperCard action types routed to the app reducer. */
@@ -175,10 +177,9 @@ export interface HyperCardData {
 	activeStackId?: string;
 	openStacks: Record<string, HCOpenStack>;
 	/**
-	 * File-system paths of `.stack` documents awaiting load — written by the
-	 * kernel's generic *OpenFile handler (Finder routing for
-	 * ClassicyFileSystemEntryFileType.Stack) or by
-	 * ClassicyAppHyperCardOpenFile. The HyperCard component fetches, validates,
+	 * File-system paths of `.stack` documents awaiting load — written by
+	 * ClassicyAppHyperCardOpenFile (dispatched, or Finder's open-with for
+	 * ClassicyFileSystemEntryFileType.Stack). The HyperCard component fetches, validates,
 	 * and opens each, then consumes the path (OpenFileConsumed/OpenFileFailed).
 	 */
 	openFiles?: string[];

@@ -1,3 +1,5 @@
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+
 /**
  * Trust level of a dispatched action.
  *
@@ -67,6 +69,38 @@ export function isActionTrustPermitted(
 	actionType: string,
 ): boolean {
 	return trust === "trusted" || isUntrustedActionAllowed(actionType);
+}
+
+/**
+ * `trust` as a definite level, failing closed: only the literal `"trusted"`
+ * is trusted, and anything else (a missing argument from a JavaScript caller
+ * included) is `"untrusted"`. Code that hands a trust on to a function with a
+ * `"trusted"` default, such as `classicyDesktopStateEventReducer`, normalizes
+ * first, so leaving it out can never upgrade an action.
+ */
+export function classicyActionTrustOf(trust: unknown): ClassicyActionTrust {
+	return trust === "trusted" ? "trusted" : "untrusted";
+}
+
+/**
+ * `isActionTrustPermitted`, plus the kernel's own warning when it refuses:
+ * `[ClassicyDesktopStateEventReducer] Rejected untrusted action` with the
+ * type. The kernel's entry check and every in-reducer hand-off (Finder's
+ * open-with, its QuickTime and URL-shortcut branches) refuse through this one
+ * function, so a refusal reads the same wherever it happens.
+ */
+export function checkClassicyActionTrust(
+	trust: ClassicyActionTrust,
+	actionType: string,
+): boolean {
+	if (isActionTrustPermitted(trust, actionType)) return true;
+	classicyLog(
+		"warn",
+		"ClassicyDesktopStateEventReducer",
+		"Rejected untrusted action",
+		{ type: actionType },
+	);
+	return false;
 }
 
 // ---------------------------------------------------------------------------

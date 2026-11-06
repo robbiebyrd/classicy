@@ -1,3 +1,9 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import {
+	type ClassicyAssetTree,
+	registerClassicyAssets,
+} from "@/Appearance/ClassicyAssetRegistry";
+
 const iconModules = import.meta.glob(
 	"../../../../assets/img/icons/**/*.{png,gif,jpg,svg}",
 	{ eager: true, import: "default" },
@@ -18,31 +24,31 @@ const ui = (filename: string): string => {
 	return uiModules[key] ?? "";
 };
 
-// Recursive type for consumer icon namespaces.
-// Values are URL strings or nested objects of URL strings (up to 2 levels).
-export type ClassicyIconMap = Record<
-	string,
-	string | Record<string, string | Record<string, string>>
->;
+// Alias kept for consumers that typed their icon namespaces with it.
+export type ClassicyIconMap = ClassicyAssetTree;
 
 /**
- * Register custom icon namespaces into ClassicyIcons at runtime.
+ * Register custom icon namespaces at runtime.
  *
- * Call this once before rendering — typically in your app entry point.
- * The function returns its argument with full TypeScript types so you can
- * keep a typed local reference for autocomplete:
+ * Call this once before rendering, typically in your app entry point.
+ * Registration deep-merges into the package's icon tree (default: the
+ * default package's, `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, which every
+ * lookup falls back to), so `registerClassicyIcons({ system: { alias } })`
+ * replaces only that one entry. The function returns its argument with full TypeScript types so you
+ * can keep a typed local reference for autocomplete:
  *
  * ```ts
  * import appIcon from './icon.png';
  * const MyIcons = registerClassicyIcons({ myApp: { icon: appIcon } });
  * // MyIcons.myApp.icon  — fully typed
- * // ClassicyIcons['myApp']['icon']  — also works at runtime
+ * // useClassicyAsset("icons", "myApp.icon")  — read at render time
  * ```
  */
-export function registerClassicyIcons<
-	T extends Record<string, ClassicyIconMap>,
->(icons: T): T {
-	Object.assign(ClassicyIcons as Record<string, unknown>, icons);
+export function registerClassicyIcons<T extends ClassicyAssetTree>(
+	icons: T,
+	packageId: string = CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+): T {
+	registerClassicyAssets("icons", packageId, icons);
 	return icons;
 }
 
@@ -176,7 +182,6 @@ export const ClassicyIcons = {
 				"control-panels/appearance-manager/background-tile.png",
 			),
 			file: icon("control-panels/appearance-manager/file.png"),
-			platinum: icon("control-panels/appearance-manager/platinum.png"),
 			preferences: icon("control-panels/appearance-manager/preferences.png"),
 		},
 		controlStripManager: {
@@ -208,7 +213,6 @@ export const ClassicyIcons = {
 		},
 	},
 	system: {
-		alias: icon("system/alias.png"),
 		// 16 × 16 Control Strip module icons, lifted pixel-for-pixel from
 		// HIGOS8 Figure 6-15.
 		controlStrip: {
@@ -226,10 +230,8 @@ export const ClassicyIcons = {
 		},
 		appleBlackOnWhite: icon("system/apple-black-on-white.png"),
 		appleWhiteOnBlack: icon("system/apple-white-on-black.png"),
-		apple: icon("system/apple.png"),
 		bigSwitchOff: icon("system/big-switch-off.png"),
 		bigSwitchOn: icon("system/big-switch-on.png"),
-		bomb: icon("system/bomb.svg"),
 		clipboard: icon("system/clipboard.png"),
 		comport1: icon("system/comport1.png"),
 		comport2: icon("system/comport2.png"),
@@ -261,8 +263,6 @@ export const ClassicyIcons = {
 		},
 		desktop: {
 			desktop: icon("system/desktop/desktop.png"),
-			trashEmpty: icon("system/desktop/trash-empty.png"),
-			trashFull: icon("system/desktop/trash-full.png"),
 		},
 		display: {
 			brightness: icon("system/display/brightness.png"),
@@ -300,8 +300,6 @@ export const ClassicyIcons = {
 		files: {
 			_1292: icon("system/files/129 2.png"),
 			_1294: icon("system/files/129 4.png"),
-			_229: icon("system/files/229.png"),
-			_232Messages: icon("system/files/232.Messages.png"),
 			application: icon("system/files/application.png"),
 			document: icon("system/files/document.png"),
 			edition: icon("system/files/edition.png"),
@@ -507,34 +505,18 @@ export const ClassicyIcons = {
 		},
 	},
 	ui: {
-		// The "standard help icon" a Help button wears (HIGOS8 Ch.3 p.86): the
-		// Apple Guide lightbulb "?", lifted pixel-for-pixel from Figure 3-36.
-		helpButton: ui("help-button.png"),
 		halftoneLarge: ui("halftone-large.png"),
-		halftoneSmall: ui("halftone-small.png"),
 		menuDropdownArrowUp: ui("menu-dropdown-arrow-up.svg"),
-		menuDropdownArrows: ui("menu-dropdown-arrows.svg"),
-		stripe: ui("stripe.svg"),
-		tab: ui("tab.svg"),
 		cursors: {
-			add: ui("cursors/cursor-add.png"),
-			eyedropper: ui("cursors/cursor-eyedropper.png"),
-			handCounting: ui("cursors/cursor-hand-counting.png"),
 			hand: ui("cursors/cursor-hand.png"),
-			highlight: ui("cursors/cursor-highlight.png"),
-			menu: ui("cursors/cursor-menu.png"),
-			plus: ui("cursors/cursor-plus.png"),
-			resizeD: ui("cursors/cursor-resize-d.png"),
-			resizeL: ui("cursors/cursor-resize-l.png"),
-			resizeLr: ui("cursors/cursor-resize-lr.png"),
-			resizeR: ui("cursors/cursor-resize-r.png"),
-			resizeU: ui("cursors/cursor-resize-u.png"),
-			resizeUd: ui("cursors/cursor-resize-ud.png"),
-			rom: ui("cursors/cursor-rom.png"),
-			shortcut: ui("cursors/cursor-shortcut.png"),
-			spin: ui("cursors/cursor-spin.png"),
-			watch: ui("cursors/cursor-watch.png"),
-			precision: ui("cursors/cursor-precision.png"),
 		},
 	},
 };
+
+// The core's icon tree, under the default package's id: every package's icon
+// lookups fall back to it (ClassicyAssetRegistry).
+registerClassicyAssets(
+	"icons",
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+	ClassicyIcons,
+);

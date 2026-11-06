@@ -1,3 +1,4 @@
+import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
@@ -33,6 +34,11 @@ const useScreenSaverModuleMenu = (): ClassicyMenuItem[] => {
 	);
 	const enabled = data?.enabled ?? true;
 	const minutes = data?.timeoutMinutes ?? SCREEN_SAVER_DEFAULT_TIMEOUT_MINUTES;
+	// Display only: the item opens the panel by its own identity.
+	const panel = useClassicyAppIdentity(SCREEN_SAVER_MANAGER_APP_ID, {
+		name: "Screen Saver",
+		icon: ClassicyIcons.system.extensions.screensaver,
+	});
 	return [
 		{
 			id: "screen-saver-status",
@@ -60,7 +66,7 @@ const useScreenSaverModuleMenu = (): ClassicyMenuItem[] => {
 				}),
 		},
 		SEPARATOR,
-		classicyControlStripOpenControlPanelItem(dispatch, "Screen Saver", {
+		classicyControlStripOpenControlPanelItem(dispatch, panel.name, {
 			id: SCREEN_SAVER_MANAGER_APP_ID,
 			name: "Screen Saver",
 			icon: ClassicyIcons.system.extensions.screensaver,

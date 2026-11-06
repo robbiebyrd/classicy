@@ -49,7 +49,17 @@ export type ClassicyWindowAction =
 				id: string;
 				minimumSize: [number, number];
 				size: [number, number];
-				position: [number, number];
+				/**
+				 * Where a new window opens, taken as given ([0, 0] included).
+				 * Omit it, or set `autoPosition`, to have the window cascaded.
+				 */
+				position?: [number, number];
+				/**
+				 * The window supplied no position: a new window is cascaded
+				 * down and right of the app's others (30 + 10·n, n = the app's
+				 * window count), whatever `position` holds.
+				 */
+				autoPosition?: boolean;
 				menuBar?: ClassicyMenuItem[];
 				windowType?: "document" | "utility";
 				collapsable?: boolean;
@@ -155,7 +165,8 @@ export const classicyWindowEventHandler = (
 			if (!app) break;
 			const win = action.window as {
 				id: string;
-				position: [number, number];
+				position?: [number, number];
+				autoPosition?: unknown;
 				minimumSize: [number, number];
 				size: [number, number];
 				menuBar?: ClassicyMenuItem[];
@@ -171,11 +182,16 @@ export const classicyWindowEventHandler = (
 				flags.collapsable = win.collapsable;
 			if (typeof win.modal === "boolean") flags.modal = win.modal;
 			if (!getAppWindow(app, win.id)) {
-				let paddedPosition: [number, number] = win.position;
-				if (win.position[0] === 0 && win.position[1] === 0) {
-					// Cascade new windows by the number already registered.
+				// G18: only a window that supplied no position is cascaded, by the
+				// number already registered. The signal is explicit: [0, 0] is a
+				// real position (a top-left window under window placement, whose
+				// menu-bar band is 0).
+				let paddedPosition: [number, number];
+				if (win.autoPosition === true || !Array.isArray(win.position)) {
 					const offset = countAppWindows(app) * 10;
 					paddedPosition = [30 + offset, 30 + offset];
+				} else {
+					paddedPosition = win.position;
 				}
 				setAppWindow(app, {
 					...initialWindowState,

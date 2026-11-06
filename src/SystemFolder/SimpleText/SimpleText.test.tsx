@@ -1,3 +1,5 @@
+// The core registers no Appearance Package: these tests draw Platinum.
+import "@/__tests__/withPlatinum";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";

@@ -1,4 +1,9 @@
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { warnClassicyDerivedEntryNameFallback } from "@/SystemFolder/SystemResources/File/ClassicyDerivedEntryNameWarnings.internal";
+import {
+	classicyDerivedFolderReservedNames,
+	classicyFreeDerivedEntryName,
+} from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -11,8 +16,13 @@ export const CONTROL_STRIP_MODULES_FOLDER_NAME = "Control Strip Modules";
 /** One installed Control Strip module, as the file system lists it. */
 export type ClassicyControlStripModuleFile = {
 	id: string;
-	/** File name: the module's label. */
+	/** File name: the module's label, or its owning app's display name
+	 *  (`classicyControlStripModuleLabel`). */
 	name: string;
+	/** The module's own label. When it differs from `name`, `name` is a
+	 *  display name, which never hides a static file (K-R7). Omitted, `name`
+	 *  is the module's own label. */
+	label?: string;
 	/** Finder icon (32 px). */
 	icon: string;
 	/** The owning app, when the module declares one. */
@@ -28,20 +38,54 @@ export type ClassicyControlStripModuleFile = {
  *
  * Module files share the Extension type: like an extension, a module adds to
  * the system and is not a document Finder can open. Two modules with the same
- * label are told apart by id.
+ * name are told apart by id. No module takes one of `reservedNames` (the
+ * folder's static entries): one shown under a display name falls back to its
+ * own label, then to "<label> (<id>)"; one shown under its own label goes
+ * straight to "<label> (<id>)", numbered when that is taken too. A display
+ * name holding `separator` (the file system's) falls back the same way, as in
+ * the Applications and Extensions folders. Each fallback warns once (K-R7,
+ * K-R13, story 0096).
  */
 export const buildControlStripModulesFolder = (
 	modules: readonly ClassicyControlStripModuleFile[],
+	reservedNames: Iterable<string> = [],
+	separator = ":",
 ): ClassicyFileSystemEntry => {
 	const folder: ClassicyFileSystemEntry = {
 		_type: ClassicyFileSystemEntryFileType.Directory,
 		_icon: ClassicyIcons.system.folders.controlStrip,
 		_readOnly: true,
 	};
+	const reserved = new Set(reservedNames);
+	const isTaken = (candidate: string) =>
+		reserved.has(candidate) || Object.hasOwn(folder, candidate);
 
 	for (const module of modules) {
-		const name =
-			module.name in folder ? `${module.name} (${module.id})` : module.name;
+		const label = module.label ?? module.name;
+		const unusableDisplayName =
+			module.name !== label &&
+			separator !== "" &&
+			module.name.includes(separator);
+		let name: string;
+		if (reserved.has(module.name) || unusableDisplayName) {
+			name =
+				module.name !== label && !isTaken(label)
+					? label
+					: classicyFreeDerivedEntryName(`${label} (${module.id})`, isTaken);
+			warnClassicyDerivedEntryNameFallback(
+				CONTROL_STRIP_MODULES_FOLDER_NAME,
+				module.name,
+				module.id,
+				label,
+				name,
+				{ moduleId: module.id, appId: module.appId, name: module.name },
+			);
+		} else {
+			// Unreserved, the name can only be another module's (K-R2).
+			name = Object.hasOwn(folder, module.name)
+				? classicyFreeDerivedEntryName(`${module.name} (${module.id})`, isTaken)
+				: module.name;
+		}
 		folder[name] = {
 			_type: ClassicyFileSystemEntryFileType.Extension,
 			_icon: module.icon,
@@ -59,14 +103,17 @@ export const buildControlStripModulesFolder = (
 /**
  * Returns a copy of the tree with the derived Control Strip Modules folder
  * merged into "System Folder" on its first drive (creating System Folder when
- * a custom tree lacks one). Static children of the folder are kept; derived
- * entries win on name collisions, and entries from an earlier build whose
- * module is gone are dropped. The input is not mutated, and a tree with no
+ * a custom tree lacks one). Static children of the folder, a user's files
+ * among them, are kept: no module takes one's name, and only a `_placeholder`
+ * entry still exactly as seeded gives way to the module of its name. Entries from an earlier build
+ * whose module is gone are dropped. The input is not mutated, and a tree with no
  * drive — or with nothing to add or drop — passes through unchanged.
+ * `separator` goes to `buildControlStripModulesFolder`.
  */
 export const withControlStripModulesFolder = (
 	tree: ClassicyFileSystemEntry,
 	modules: readonly ClassicyControlStripModuleFile[],
+	separator = ":",
 ): ClassicyFileSystemEntry => {
 	const driveKey = Object.keys(tree).find(
 		(key) => tree[key]?._type === ClassicyFileSystemEntryFileType.Drive,
@@ -87,7 +134,14 @@ export const withControlStripModulesFolder = (
 					_type: ClassicyFileSystemEntryFileType.Directory,
 				}),
 				[CONTROL_STRIP_MODULES_FOLDER_NAME]: hasSources
-					? { ...kept, ...buildControlStripModulesFolder(modules) }
+					? {
+							...kept,
+							...buildControlStripModulesFolder(
+								modules,
+								classicyDerivedFolderReservedNames(kept),
+								separator,
+							),
+						}
 					: (kept as ClassicyFileSystemEntry),
 			},
 		},

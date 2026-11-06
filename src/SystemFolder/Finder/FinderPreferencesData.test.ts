@@ -69,6 +69,7 @@ function makeStore(
 					) as Record<ClassicyFileSystemEntryFileType, string>,
 				},
 				Appearance: {
+					packageId: "platinum",
 					availableThemes: [],
 					activeTheme: {} as ClassicyTheme,
 				},
@@ -84,14 +85,22 @@ const finderData = (ds: ClassicyStore): FinderData =>
 
 describe("Finder preferences reducers", () => {
 	it("opens and closes the Preferences window", () => {
-		let ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderPreferencesOpen",
-		});
+		let ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderPreferencesOpen",
+			},
+			"trusted",
+		);
 		expect(finderData(ds).showPreferences).toBe(true);
 
-		ds = classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderPreferencesClose",
-		});
+		ds = classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderPreferencesClose",
+			},
+			"trusted",
+		);
 		expect(finderData(ds).showPreferences).toBe(false);
 	});
 
@@ -100,22 +109,30 @@ describe("Finder preferences reducers", () => {
 	});
 
 	it("writes a top-level standard-view option", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "icons",
-			option: "arrangement",
-			value: "grid",
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "icons",
+				option: "arrangement",
+				value: "grid",
+			},
+			"trusted",
+		);
 		expect(resolveStandardViews(finderData(ds)).icons.arrangement).toBe("grid");
 	});
 
 	it("writes a nested column flag WITHOUT clobbering its siblings", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "list",
-			option: "columns.created",
-			value: true,
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "list",
+				option: "columns.created",
+				value: true,
+			},
+			"trusted",
+		);
 		const columns = resolveStandardViews(finderData(ds)).list.columns;
 		expect(columns.created).toBe(true);
 		// The six flags the write did not name must keep their defaults.
@@ -128,67 +145,95 @@ describe("Finder preferences reducers", () => {
 	});
 
 	it("preserves a previously-customized sibling when writing another nested flag", () => {
-		let ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "list",
-			option: "columns.label",
-			value: true,
-		});
-		ds = classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "list",
-			option: "columns.created",
-			value: true,
-		});
+		let ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "list",
+				option: "columns.label",
+				value: true,
+			},
+			"trusted",
+		);
+		ds = classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "list",
+				option: "columns.created",
+				value: true,
+			},
+			"trusted",
+		);
 		const columns = resolveStandardViews(finderData(ds)).list.columns;
 		expect(columns.label).toBe(true);
 		expect(columns.created).toBe(true);
 	});
 
 	it("rejects an invalid value rather than writing it", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "icons",
-			option: "arrangement",
-			value: "diagonally",
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "icons",
+				option: "arrangement",
+				value: "diagonally",
+			},
+			"trusted",
+		);
 		expect(resolveStandardViews(finderData(ds)).icons.arrangement).toBe("none");
 	});
 
 	it("rejects a path deeper than one level", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetStandardViewOption",
-			view: "list",
-			option: "columns.created.extra",
-			value: true,
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetStandardViewOption",
+				view: "list",
+				option: "columns.created.extra",
+				value: true,
+			},
+			"trusted",
+		);
 		expect(resolveStandardViews(finderData(ds)).list.columns.created).toBe(
 			false,
 		);
 	});
 
 	it("records a per-folder view as a sparse map entry", () => {
-		const ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetFolderView",
-			path: "Macintosh HD:Documents",
-			viewType: "icons",
-		});
+		const ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetFolderView",
+				path: "Macintosh HD:Documents",
+				viewType: "icons",
+			},
+			"trusted",
+		);
 		expect(finderData(ds).folderViews).toEqual({
 			"Macintosh HD:Documents": "icons",
 		});
 	});
 
 	it("keeps earlier folder choices when a new folder is set", () => {
-		let ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetFolderView",
-			path: "Macintosh HD:Documents",
-			viewType: "icons",
-		});
-		ds = classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderSetFolderView",
-			path: "Macintosh HD:System Folder",
-			viewType: "list",
-		});
+		let ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetFolderView",
+				path: "Macintosh HD:Documents",
+				viewType: "icons",
+			},
+			"trusted",
+		);
+		ds = classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderSetFolderView",
+				path: "Macintosh HD:System Folder",
+				viewType: "list",
+			},
+			"trusted",
+		);
 		expect(finderData(ds).folderViews).toEqual({
 			"Macintosh HD:Documents": "icons",
 			"Macintosh HD:System Folder": "list",
@@ -196,16 +241,24 @@ describe("Finder preferences reducers", () => {
 	});
 
 	it("overwrites a folder's own previous choice", () => {
-		let ds = classicyFinderEventHandler(makeStore(), {
-			type: "ClassicyAppFinderSetFolderView",
-			path: "Macintosh HD:Documents",
-			viewType: "icons",
-		});
-		ds = classicyFinderEventHandler(ds, {
-			type: "ClassicyAppFinderSetFolderView",
-			path: "Macintosh HD:Documents",
-			viewType: "list",
-		});
+		let ds = classicyFinderEventHandler(
+			makeStore(),
+			{
+				type: "ClassicyAppFinderSetFolderView",
+				path: "Macintosh HD:Documents",
+				viewType: "icons",
+			},
+			"trusted",
+		);
+		ds = classicyFinderEventHandler(
+			ds,
+			{
+				type: "ClassicyAppFinderSetFolderView",
+				path: "Macintosh HD:Documents",
+				viewType: "list",
+			},
+			"trusted",
+		);
 		expect(finderData(ds).folderViews).toEqual({
 			"Macintosh HD:Documents": "list",
 		});

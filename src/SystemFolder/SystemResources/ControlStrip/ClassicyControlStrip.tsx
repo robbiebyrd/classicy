@@ -11,7 +11,14 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import {
+	useClassicyAppIdentity,
+	useClassicyAppIdentityOverrides,
+} from "@/Appearance/ClassicyAppIdentity";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -22,23 +29,17 @@ import {
 } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
+import type { ClassicyBevelPopupRect } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
-import {
-	controlStripCollapseGlyph,
-	controlStripModuleArrow,
-	controlStripScrollLeft,
-	controlStripScrollLeftDisabled,
-	controlStripScrollRight,
-	controlStripScrollRightDisabled,
-	controlStripTab,
-} from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripArt";
 import {
 	arrangeClassicyControlStripModules,
 	type ClassicyControlStripModuleDefinition,
+	classicyControlStripModuleLabel,
 	setClassicyControlStripDisabledModules,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import type { ClassicyControlStripEdge } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
+import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 
 export type ClassicyControlStripProps = {
@@ -57,35 +58,52 @@ export type ClassicyControlStripProps = {
 	 */
 	defaultWidth?: number;
 	className?: string;
+	/** Inline style, merged onto the root element after the component's own. */
+	style?: CSSProperties;
 };
 
-// HIGOS8 Figure 6-15: a module's surface overlaps the strip by 3 px (its bottom
-// border lands two rows into the module) and a menu's left edge sits on the
-// module's left separator.
-const MODULE_POPUP_INSET = { top: 3, left: -1 };
+// HIGOS8 Figure 6-15: a module's surface overlaps the strip by the theme's
+// strip menu overlap (stripMenu.overlap, 3 px under Platinum: its bottom
+// border lands two rows into the module) and a menu's left edge sits on the module's left separator, one
+// strip border wide. Read from the variables the module inherits each time
+// its surface opens (G14), never per render.
+const modulePopupInset = (
+	module: HTMLElement,
+): Partial<ClassicyBevelPopupRect> => ({
+	top: readClassicyThemeVar("--strip-menu-overlap", undefined, module),
+	left: -readClassicyThemeVar(
+		"--control-strip-border-width",
+		undefined,
+		module,
+	),
+});
 
 // Pixels a press on the tab may travel and still count as a click.
 const TAB_CLICK_SLOP = 3;
-// A module and its separator (30 + 1 px), for when nothing can be measured.
-const MODULE_STEP_FALLBACK = 31;
 
 /**
  * One module's width with its separator: the scroll arrows' step, the tab's
- * resize step, and the strip's narrowest size.
+ * resize step, and the strip's narrowest size. Measured from the first
+ * module; with nothing to measure, the theme's module width plus its
+ * separator (H-R12), read from the variables the viewport inherits. Each call
+ * may force a style read: call it once per gesture.
  */
 const moduleStepOf = (viewport: HTMLElement | null): number =>
 	viewport?.querySelector<HTMLElement>(".classicyControlStripModule")
-		?.offsetWidth || MODULE_STEP_FALLBACK;
+		?.offsetWidth ||
+	readClassicyThemeVar("--control-strip-module-width", undefined, viewport) +
+		readClassicyThemeVar("--control-strip-border-width", undefined, viewport);
 
 /**
  * Snap a requested width to whole modules — the strip never shows part of
- * one — between one module and all of them.
+ * one — between one module and all of them. `step` is the module step when
+ * the caller already holds it (a drag reads it once, on the press).
  */
 const clampStripWidth = (
 	viewport: HTMLElement | null,
 	next: number,
+	step: number = moduleStepOf(viewport),
 ): number => {
-	const step = moduleStepOf(viewport);
 	const snapped = Math.round(next / step) * step;
 	return Math.max(step, Math.min(snapped, viewport?.scrollWidth || snapped));
 };
@@ -148,6 +166,7 @@ export const computeClassicyControlStripPosition = ({
 const ClassicyControlStripModuleButton: FunctionalComponent<{
 	module: ClassicyControlStripModuleDefinition;
 }> = ({ module }) => {
+	const overrides = useClassicyAppIdentityOverrides();
 	// Function forms are hooks; a definition never switches form without a new
 	// revision, which remounts this component (see the key below).
 	const icon = typeof module.icon === "function" ? module.icon() : module.icon;
@@ -156,24 +175,47 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			? module.menuItems()
 			: module.menuItems;
 	const Content = module.content;
+	// K-D7: a module an app owns shows the app's display name.
+	const label = classicyControlStripModuleLabel(module, overrides);
 	return (
 		<ClassicyBevelButton
 			mode="popup"
 			className="classicyControlStripModule"
 			icon={icon}
-			aria-label={module.label}
+			aria-label={label}
 			popupDirection="horizontal"
 			popupPlacement="below"
 			// Figure 6-15's menus start at the module's edge; Figure 2-16's
-			// slider is centred on it.
+			// slider is centered on it.
 			popupAlign={menuItems ? "start" : "center"}
-			popupAnchorInset={MODULE_POPUP_INSET}
+			popupAnchorInset={modulePopupInset}
 			menuItems={menuItems}
 			popupContent={!menuItems && Content ? <Content /> : undefined}
 		>
-			<ClassicyPixelArt rows={controlStripModuleArrow} />
+			<ClassicyPixelArt art="controlStripModuleArrow" />
 		</ClassicyBevelButton>
 	);
+};
+
+// The strip's position custom properties belong to its stored position
+// (ClassicyDesktopControlStripSetPosition): an Appearance Package's style never
+// sets them, even in the default position, where the strip writes neither and
+// the stylesheet's default applies. A consumer `style` still may.
+const CONTROL_STRIP_POSITION_PROPERTIES = [
+	"--classicy-control-strip-bottom",
+	"--classicy-control-strip-top-inset",
+];
+const withoutPositionProperties = (
+	style: CSSProperties | undefined,
+): CSSProperties | undefined => {
+	if (
+		!style ||
+		!CONTROL_STRIP_POSITION_PROPERTIES.some((key) => Object.hasOwn(style, key))
+	)
+		return style;
+	const rest: Record<string, unknown> = { ...style };
+	for (const key of CONTROL_STRIP_POSITION_PROPERTIES) delete rest[key];
+	return rest as CSSProperties;
 };
 
 /**
@@ -211,12 +253,18 @@ export const ClassicyControlStrip: FunctionalComponent<
 	defaultCollapsed = false,
 	defaultWidth,
 	className,
+	style,
 }) => {
 	const dispatch = useAppManagerDispatch();
 	const stored = useAppManager((s) => s.System.Manager.Desktop.controlStrip);
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
 	const { showContextMenu } = useClassicyContextualMenu();
+	// Display only: opening the panel still names it by its own identity.
+	const panel = useClassicyAppIdentity(CONTROL_STRIP_MANAGER_APP_ID, {
+		name: CONTROL_STRIP_MANAGER_APP_NAME,
+		icon: "",
+	});
 
 	const hiddenModules = stored?.hiddenModules ?? [];
 	const shown = arrangeClassicyControlStripModules(registrations, {
@@ -240,14 +288,6 @@ export const ClassicyControlStrip: FunctionalComponent<
 	);
 	const width = stored?.width ?? initialWidth;
 
-	const setCollapsed = useCallback(
-		(next: boolean) =>
-			dispatch({
-				type: "ClassicyDesktopControlStripSetCollapsed",
-				collapsed: next,
-			}),
-		[dispatch],
-	);
 	const setWidth = useCallback(
 		(next: number) => {
 			if (next !== width)
@@ -267,6 +307,24 @@ export const ClassicyControlStrip: FunctionalComponent<
 
 	const [canScroll, setCanScroll] = useState({ left: false, right: false });
 	const stripRef = useRef<HTMLDivElement>(null);
+	const appearance = useClassicyAppearance(
+		"ControlStrip",
+		{ collapsed, dragging: Boolean(movePreview) },
+		stripRef,
+	);
+	const { emit } = appearance;
+	// The tab (a click, Enter or Space, or a drag on a collapsed strip) and the
+	// collapse box all land here.
+	const setCollapsed = useCallback(
+		(next: boolean) => {
+			dispatch({
+				type: "ClassicyDesktopControlStripSetCollapsed",
+				collapsed: next,
+			});
+			emit(next ? "collapse" : "expand", withClassicyAppearanceInput());
+		},
+		[dispatch, emit],
+	);
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const moveRef = useRef<{
 		startX: number;
@@ -280,8 +338,30 @@ export const ClassicyControlStrip: FunctionalComponent<
 	const dragRef = useRef<{
 		startX: number;
 		startWidth: number;
+		/** The module step, read once on the press (G14). */
+		step: number;
 		moved: boolean;
 	} | null>(null);
+	// A tab press or a Control-press on the collapse box watches the pointer
+	// stream while it lasts: lost (the window blurs, a pointercancel, the
+	// page is hidden), the gesture ends where it is, as its release would end
+	// it (the width and position on screen are stored, like a window's move
+	// or resize), except that a tab press that never moved is not taken for
+	// a click.
+	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
+	const stopWatchingPointerStream = useCallback(() => {
+		stopWatchingPointerStreamRef.current?.();
+		stopWatchingPointerStreamRef.current = null;
+	}, []);
+	const watchPointerStream = (onLost: () => void) => {
+		stopWatchingPointerStream();
+		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(onLost);
+	};
+	useEffect(() => stopWatchingPointerStream, [stopWatchingPointerStream]);
+	// The gestures' ends, kept current by the effects that own them below.
+	const endTabDragRef = useRef<(released: boolean) => void>(() => {});
+	// `lost`: ended by the pointer stream being lost, not by a release.
+	const endMoveRef = useRef<(lost: boolean) => void>(() => {});
 
 	const updateScrollState = useCallback(() => {
 		const el = viewportRef.current;
@@ -337,8 +417,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 		dragRef.current = {
 			startX: e.clientX,
 			startWidth: viewportRef.current?.clientWidth ?? 0,
+			step: moduleStepOf(viewportRef.current),
 			moved: false,
 		};
+		watchPointerStream(() => endTabDragRef.current(false));
 	};
 
 	useEffect(() => {
@@ -347,6 +429,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			if (!drag) return;
 			const dx = e.clientX - drag.startX;
 			if (!drag.moved && Math.abs(dx) <= TAB_CLICK_SLOP) return;
+			const starting = !drag.moved;
 			drag.moved = true;
 			if (collapsed) {
 				// Dragging a collapsed strip pulls it back out at its last size.
@@ -354,25 +437,39 @@ export const ClassicyControlStrip: FunctionalComponent<
 				setCollapsed(false);
 				return;
 			}
+			if (starting) emit("dragStart", { kind: "resize" });
 			setWidth(
 				clampStripWidth(
 					viewportRef.current,
 					drag.startWidth + growDirection * dx,
+					drag.step,
 				),
 			);
 		};
-		const onUp = () => {
+		// `released`: by a mouseup, not by the pointer stream being lost.
+		const endTabDrag = (released: boolean) => {
+			stopWatchingPointerStream();
 			const drag = dragRef.current;
 			dragRef.current = null;
-			if (drag && !drag.moved) setCollapsed(!collapsed);
+			if (released && drag && !drag.moved) setCollapsed(!collapsed);
+			if (drag?.moved) emit("dragEnd", { kind: "resize", lost: !released });
 		};
+		endTabDragRef.current = endTabDrag;
+		const onUp = () => endTabDrag(true);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
 		return () => {
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [collapsed, growDirection, setCollapsed, setWidth]);
+	}, [
+		collapsed,
+		growDirection,
+		setCollapsed,
+		setWidth,
+		emit,
+		stopWatchingPointerStream,
+	]);
 
 	// Control-drag on the collapse box: past the click slop the strip follows
 	// the pointer up and down and docks to the pointer's half of the desktop;
@@ -389,6 +486,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				Math.abs(e.clientY - move.startY) <= TAB_CLICK_SLOP
 			)
 				return;
+			if (!move.moved) emit("dragStart", { kind: "move" });
 			move.moved = true;
 			move.position = computeClassicyControlStripPosition({
 				pointer: [e.clientX, e.clientY],
@@ -399,7 +497,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 			});
 			setMovePreview(move.position);
 		};
-		const onUp = () => {
+		const endMove = (lost: boolean) => {
+			stopWatchingPointerStream();
 			const move = moveRef.current;
 			moveRef.current = null;
 			if (!move) return;
@@ -409,6 +508,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			setTimeout(() => {
 				suppressCollapseClickRef.current = false;
 			}, 0);
+			if (move.moved) emit("dragEnd", { kind: "move", lost });
 			if (!move.position) return;
 			dispatch({
 				type: "ClassicyDesktopControlStripSetPosition",
@@ -416,13 +516,15 @@ export const ClassicyControlStrip: FunctionalComponent<
 			});
 			setMovePreview(null);
 		};
+		endMoveRef.current = endMove;
+		const onUp = () => endMove(false);
 		document.addEventListener("mousemove", onMove);
 		document.addEventListener("mouseup", onUp);
 		return () => {
 			document.removeEventListener("mousemove", onMove);
 			document.removeEventListener("mouseup", onUp);
 		};
-	}, [dispatch]);
+	}, [dispatch, emit, stopWatchingPointerStream]);
 
 	const onCollapseBoxMouseDown = (e: MouseEvent<HTMLButtonElement>) => {
 		// Every press decides afresh whether the click that ends it collapses.
@@ -440,6 +542,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 			moved: false,
 			position: null,
 		};
+		watchPointerStream(() => endMoveRef.current(true));
 	};
 
 	// A Control-click raises a contextual menu on macOS; on the collapse box it
@@ -457,8 +560,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 		e.preventDefault();
 		const el = viewportRef.current;
 		const current = el?.clientWidth ?? 0;
-		const step = (e.key === "ArrowRight" ? 1 : -1) * growDirection;
-		setWidth(clampStripWidth(el, current + step * moduleStepOf(el)));
+		const direction = (e.key === "ArrowRight" ? 1 : -1) * growDirection;
+		const step = moduleStepOf(el);
+		setWidth(clampStripWidth(el, current + direction * step, step));
 	};
 
 	// Hidden from the Control Strip control panel; the panel brings it back.
@@ -482,14 +586,18 @@ export const ClassicyControlStrip: FunctionalComponent<
 				{
 					// HIGOS8 p.125: the strip's own control panel is a command away.
 					id: "control-strip-open-control-panel",
-					title: `Open ${CONTROL_STRIP_MANAGER_APP_NAME} Control Panel`,
+					title: `Open ${panel.name} Control Panel`,
 					onClickFunc: () =>
 						dispatch({
 							type: "ClassicyAppOpen",
 							app: {
 								id: CONTROL_STRIP_MANAGER_APP_ID,
 								name: CONTROL_STRIP_MANAGER_APP_NAME,
-								icon: ClassicyIcons.controlPanels.controlStripManager.app,
+								icon:
+									resolveClassicyAsset(
+										"icons",
+										"controlPanels.controlStripManager.app",
+									) ?? "",
 							},
 						}),
 				},
@@ -500,25 +608,27 @@ export const ClassicyControlStrip: FunctionalComponent<
 
 	return (
 		<div
+			{...appearance.attrs}
 			ref={stripRef}
 			role="toolbar"
 			aria-label="Control Strip"
 			onContextMenu={onContextMenu}
 			className={classNames(
 				"classicyControlStrip",
-				collapsed && "classicyControlStripCollapsed",
+				appearance.className,
 				edge === "right" && "classicyControlStripRight",
-				movePreview && "classicyControlStripMoving",
 				className,
 			)}
-			style={
-				bottom === 0
-					? undefined
+			style={{
+				...withoutPositionProperties(appearance.style),
+				...(bottom === 0
+					? {}
 					: ({
 							"--classicy-control-strip-bottom": `${bottom}px`,
 							"--classicy-control-strip-top-inset": `${topInset}px`,
-						} as CSSProperties)
-			}
+						} as CSSProperties)),
+				...style,
+			}}
 		>
 			{!collapsed && (
 				<>
@@ -537,7 +647,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 							setCollapsed(true);
 						}}
 					>
-						<ClassicyPixelArt rows={controlStripCollapseGlyph} />
+						<ClassicyPixelArt art="controlStripCollapse" />
 					</button>
 					<button
 						type="button"
@@ -547,10 +657,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 						onClick={() => scrollBy(-1)}
 					>
 						<ClassicyPixelArt
-							rows={
+							art={
 								canScroll.left
-									? controlStripScrollLeft
-									: controlStripScrollLeftDisabled
+									? "controlStripScrollLeft"
+									: "controlStripScrollLeftDisabled"
 							}
 						/>
 					</button>
@@ -575,10 +685,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 						onClick={() => scrollBy(1)}
 					>
 						<ClassicyPixelArt
-							rows={
+							art={
 								canScroll.right
-									? controlStripScrollRight
-									: controlStripScrollRightDisabled
+									? "controlStripScrollRight"
+									: "controlStripScrollRightDisabled"
 							}
 						/>
 					</button>
@@ -601,7 +711,7 @@ export const ClassicyControlStrip: FunctionalComponent<
 				}}
 				onKeyDown={onTabKeyDown}
 			>
-				<ClassicyPixelArt rows={controlStripTab} />
+				<ClassicyPixelArt art="controlStripTab" />
 			</button>
 		</div>
 	);

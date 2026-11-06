@@ -2,7 +2,7 @@
 	"main": "./dist/classicy.umd.js",
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
-	"name": "classicy",
+	"name": "@classicy/classicy",
 	"version": "2.1.8",
 	"release": "Fortissimo",
 	"repository": {
@@ -22,25 +22,35 @@
 	],
 	"author": "Robbie Byrd <me@robbiebyrd.com>",
 	"license": "Unlicense",
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"generate-barrels": "barrelsby -c .ts-barrel.json",
+		"generate-barrels": "node bin/generate-vocabulary.ts && barrelsby -c .ts-barrel.json",
 		"dev": "pnpm build:source",
 		"build": "pnpm build:audio && pnpm build:source",
-		"build:source": "pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist",
+		"build:source": "pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm verify:host-types",
 		"verify:dist": "node bin/check-dist-imports.mjs",
+		"verify:host-types": "node bin/check-host-types.ts",
 		"build:audio": "./bin/make_audio_sprites.sh",
 		"build:watch": "concurrently --kill-others \"pnpm build:watchaudio\" \"pnpm build:watchsource\"",
-		"build:watchaudio": "nodemon --watch \"resources/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
-		"build:watchsource": "nodemon --watch \"src/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"**/index.ts\" --ignore \"**/index\\ *.ts\" --ignore \"**/index\\ *.tsx\" ",
+		"build:watchaudio": "nodemon --watch \"packages/appearance/platinum/src/assets/sounds/**\" --ext \"mp3,mp4,wav,aif,aiff,ogg,flac,m4a,ac3,json\" --exec \"pnpm build:audio\" --ignore \"example/**\" --ignore \"rt911/**\" ",
+		"build:watchsource": "nodemon --watch \"src/**\" --watch \"packages/appearance/platinum/src/**\" --watch \"packages/appearance/platinum/src/assets/**\" --watch \"assets/**\" --ext \"tsx,ts,json,css,scss,png,jpg,svg\" --exec \"tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build\" --ignore \"example/**\" --ignore \"rt911/**\" --ignore \"src/index.ts\" --ignore \"src/index\\ *.ts\" ",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"lint": "biome check .",
+		"lint": "biome check . && node bin/check-pixel-literals.ts",
 		"lint:fix": "biome check --write .",
+		"storybook:typecheck": "tsc --noEmit -p storybook/tsconfig.json",
 		"preview": "pnpm --filter classicy-example dev",
 		"preview:dist": "pnpm build && concurrently --kill-others \"pnpm build:watchsource\" \"pnpm --filter classicy-example dev\"",
 		"prepare": "husky",
 		"storybook": "pnpm --filter classicy-storybook dev",
-		"build:storybook": "pnpm --filter classicy-storybook build"
+		"build:storybook": "pnpm --filter classicy-storybook build && node bin/check-storybook-art.mjs",
+		"parity": "node bin/parity/parity.ts",
+		"parity:stories": "node bin/parity/parity.ts stories",
+		"parity:shoot": "node bin/parity/parity.ts shoot",
+		"parity:app": "node bin/parity/parity.ts app",
+		"parity:compare": "node bin/parity/parity.ts compare"
 	},
 	"lint-staged": {
 		"**/*.{js,jsx,ts,tsx,json,css,scss}": "biome check --write --no-errors-on-unmatched"
@@ -49,12 +59,13 @@
 		"dist",
 		"docs/AGENT-REFERENCE.md",
 		"docs/BUILDING-APPS.md",
-		"src/SystemFolder/ControlPanels/AppearanceManager/styles"
+		"src/Appearance"
 	],
 	"sideEffects": [
 		"**/*.css",
 		"**/*.scss",
 		"./dist/fonts.js",
+		"./src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns.tsx",
 		"./src/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
@@ -73,30 +84,36 @@
 			"types": "./dist/fonts.d.ts",
 			"default": "./dist/fonts.js"
 		},
-		"./dist/fonts.css": "./dist/fonts.css",
 		"./dist/*": "./dist/*",
-		"./scss/*": "./src/SystemFolder/ControlPanels/AppearanceManager/styles/*"
+		"./scss/*": "./src/Appearance/vocabulary/*"
 	},
 	"dependencies": {
 		"@analytics/google-tag-manager": "^0.6.0",
 		"@noble/hashes": "^2.2.0",
 		"@plussub/srt-vtt-parser": "^2.0.5",
+		"@tanstack/react-table": "^8.21.3",
+		"@types/howler": "^2.2.13",
 		"analytics": "^0.8.19",
 		"classnames": "^2.5.1",
 		"he": "^1.2.0",
 		"howler": "^2.2.4",
+		"immer": "^11.1.8",
 		"react-json-tree": "^0.20.0",
+		"react-player": "^3.4.0",
 		"screenfull": "^6.0.2",
 		"use-analytics": "^1.1.0",
-		"zod": "^4.4.3"
+		"zod": "^4.4.3",
+		"zustand": "^5.0.14"
 	},
 	"peerDependencies": {
-		"@tanstack/react-table": "^8.21.3",
-		"immer": "^11.1.8",
+		"@types/react": "^18.0.0 || ^19.0.0",
 		"react": "^18.0.0 || ^19.0.0",
-		"react-dom": "^18.0.0 || ^19.0.0",
-		"react-player": "^3.4.0",
-		"zustand": "^5.0.14"
+		"react-dom": "^18.0.0 || ^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@types/react": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@analytics/google-analytics": "^1.1.0",
@@ -104,47 +121,38 @@
 		"@babel/preset-env": "^7.29.7",
 		"@babel/preset-react": "^7.29.7",
 		"@biomejs/biome": "^2.5.0",
-		"@eslint/js": "^9.39.4",
 		"@ffmpeg-installer/ffmpeg": "^1.1.0",
 		"@mdxeditor/editor": "^3.55.0",
-		"@tanstack/react-table": "^8.21.3",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",
 		"@types/he": "^1.2.3",
-		"@types/howler": "^2.2.13",
 		"@types/node": "^24.13.2",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"@types/use-analytics": "^0.0.3",
 		"@vitejs/plugin-react": "^5.2.0",
+		"audiosprite": "0.7.2",
 		"barrelsby": "^2.8.1",
 		"concurrently": "^9.2.3",
-		"eslint": "^9.39.4",
-		"eslint-plugin-react-hooks": "^7.1.1",
-		"eslint-plugin-react-refresh": "^0.5.3",
-		"globals": "^17.6.0",
 		"husky": "^9.1.7",
-		"immer": "^11.1.8",
 		"jsdom": "^29.1.1",
 		"lint-staged": "^17.0.7",
 		"nodemon": "^3.1.14",
 		"pdfjs-dist": "^6.1.200",
+		"playwright": "1.57.0",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"react-player": "^3.4.0",
 		"sass": "^1.101.0",
 		"ts-node": "^10.9.2",
 		"tsc-alias": "^1.8.17",
 		"typescript": "~5.9.3",
-		"typescript-eslint": "^8.61.1",
 		"vite": "^7.3.5",
 		"vite-plugin-dts": "^4.5.4",
 		"vite-plugin-image-tools": "^3.1.3",
 		"vite-plugin-react-rich-svg": "^1.3.0",
-		"vitest": "^5.0.0",
-		"zustand": "^5.0.14"
+		"vitest": "^5.0.0"
 	},
 	"volta": {
 		"node": "24.12.0"
@@ -157,25 +165,26 @@
 			"sharp"
 		],
 		"overrides": {
-			"js-yaml@>=4.0.0 <4.3.1": "^4.3.1",
+			"js-yaml@>=4.0.0 <4.3.2": "^4.3.2",
 			"fast-uri@>=3.0.0 <3.1.5": "^3.1.5",
 			"postcss@<8.5.23": "^8.5.23",
 			"undici@>=7.0.0 <7.29.0": "^7.29.0",
-			"brace-expansion@<1.1.18": "^1.1.18",
 			"brace-expansion@>=2.0.0 <2.1.4": "^2.1.4",
 			"brace-expansion@>=3.0.0 <5.0.9": "^5.0.9",
-			"shell-quote@<1.9.0": "^1.9.0",
+			"shell-quote@>=1.0.0 <1.11.0": "^1.11.0",
 			"immutable@>=5.0.0-beta.1 <5.1.8": "^5.1.8",
 			"esbuild@>=0.27.3 <0.28.1": "^0.28.1",
 			"svgo@>=3.0.0 <3.3.4": "^3.3.4",
 			"svgo@>=4.0.0 <4.0.2": "^4.0.2",
 			"nanoid@<3.3.18": "^3.3.18",
 			"request": "npm:@cypress/request@^3",
-			"sharp@<0.35.0": "^0.35.0",
+			"sharp@<0.35.5": "^0.35.5",
 			"uuid@<11.1.1": "^11.1.1",
 			"tough-cookie@<4.1.3": "^4.1.3",
 			"form-data@<2.5.6": "^2.5.6",
-			"qs@<6.15.2": "^6.15.2"
+			"qs@<6.15.2": "^6.15.2",
+			"minimatch@>=7.0.0 <11.0.1": "^11.0.1",
+			"glob@>=13.0.0 <14.0.3": "^14.0.3"
 		}
 	}
 }

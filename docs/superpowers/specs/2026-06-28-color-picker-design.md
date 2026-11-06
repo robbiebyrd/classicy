@@ -89,7 +89,7 @@ All components accept and emit colors as **integers** (e.g. `0xBA572C`), matchin
 ### Dialog state
 
 `ClassicyColorPickerDialog` holds a single `pendingColor: number` in local `useState`. This is the only color state in the dialog. It is:
-- Initialised from `initialColor` on mount and reset to `initialColor` each time `open` transitions from `false` to `true` (via `useEffect` on `open`).
+- Initialized from `initialColor` on mount and reset to `initialColor` each time `open` transitions from `false` to `true` (via `useEffect` on `open`).
 - Updated by whichever tab is active via a shared `onChangeFunc={(c) => setPendingColor(c)}`.
 - Committed on OK → `onSelectFunc(pendingColor)` then `onCancelFunc()` to close.
 - Discarded on Cancel → `onCancelFunc()` only.
@@ -204,7 +204,7 @@ Four `ClassicySlider` rows — Cyan, Magenta, Yellow, Black. Each 0–100% with 
 
 ## Swatch button
 
-`ClassicyColorPicker` renders a small square `<button>` whose background is `intToHex(value)`. It has a thin inset border matching Mac OS 8 color-well style. When `labelTitle` is provided, it is preceded by a `ClassicyControlLabel`. When `disabled`, the swatch is greyed out and the dialog cannot be opened.
+`ClassicyColorPicker` renders a small square `<button>` whose background is `intToHex(value)`. It has a thin inset border matching Mac OS 8 color-well style. When `labelTitle` is provided, it is preceded by a `ClassicyControlLabel`. When `disabled`, the swatch is grayed out and the dialog cannot be opened.
 
 ---
 

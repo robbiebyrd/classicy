@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_CUSTOM_THEME_ID } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
-import { ClassicyDefaultWallpaper } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyWallpapers";
 import {
 	type ClassicyStore,
 	type DeepPartial,
@@ -79,7 +78,7 @@ describe("customThemes — boot from localStorage", () => {
 		localStorage.clear();
 	});
 
-	it("restores custom themes and heals their legacy wallpaper paths", async () => {
+	it("restores custom themes and stores their legacy wallpaper paths by filename", async () => {
 		const custom = makeCustom();
 		custom.desktop.backgroundImage = "/assets/img/wallpapers/default.png";
 		const persisted = legacyPersisted();
@@ -87,18 +86,17 @@ describe("customThemes — boot from localStorage", () => {
 		persisted.System.Manager.Appearance.activeTheme = structuredClone(custom);
 		localStorage.setItem("classicyDesktopState", JSON.stringify(persisted));
 
+		// Platinum first, as a host imports it: its wallpapers are registered
+		// when the store loads.
+		await import("@classicy/appearance-platinum");
 		const utils = await import("./ClassicyAppManagerUtils");
 		const a = utils.useAppManager.getState().System.Manager.Appearance;
 		expect(utils.wasHydratedFromStorage()).toBe(true);
 		expect(a.activeTheme.id).toBe(CLASSICY_CUSTOM_THEME_ID);
 		expect(a.customThemes).toHaveLength(1);
 		expect(a.customThemes?.[0].color.black).toBe(0x123456);
-		expect(a.customThemes?.[0].desktop.backgroundImage).toBe(
-			ClassicyDefaultWallpaper,
-		);
-		expect(a.activeTheme.desktop.backgroundImage).toBe(
-			ClassicyDefaultWallpaper,
-		);
+		expect(a.customThemes?.[0].desktop.backgroundImage).toBe("default.png");
+		expect(a.activeTheme.desktop.backgroundImage).toBe("default.png");
 	});
 
 	it("boots legacy persisted state without customThemes", async () => {

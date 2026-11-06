@@ -6,7 +6,8 @@ import {
 	useMemo,
 	useSyncExternalStore,
 } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
+import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	dispatch,
 	useAppManager,
@@ -14,6 +15,7 @@ import {
 import { useClassicyMountedApps } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import {
 	arrangeClassicyControlStripModules,
+	classicyControlStripModuleLabel,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 import {
@@ -124,15 +126,23 @@ export function useClassicyFileSystem(
 	// mounted-app set, both runtime-only, so the derived folder follows them.
 	const registrations = useClassicyControlStripRegistrations();
 	const mountedApps = useClassicyMountedApps();
+	// The active package's display names and icons for apps. They key the
+	// derived Applications and Extensions entries, and a module an app owns is
+	// filed under the app's display name (K-D7). Live and reference-stable, so
+	// a package switch rebuilds every overlay with no store change.
+	const appIdentityOverrides = useClassicyAppIdentityOverrides();
 	// Serialized so an unrelated app mounting (which changes mountedApps)
 	// doesn't rebuild the file system.
 	const controlStripModulesKey = JSON.stringify(
 		arrangeClassicyControlStripModules(registrations, { mountedApps }).map(
 			({ definition }): ClassicyControlStripModuleFile => ({
 				id: definition.id,
-				name: definition.label,
+				name: classicyControlStripModuleLabel(definition, appIdentityOverrides),
+				label: definition.label,
 				icon:
-					definition.fileIcon ?? ClassicyIcons.system.controlStrip.moduleFile,
+					definition.fileIcon ??
+					resolveClassicyAsset("icons", "system.controlStrip.moduleFile") ??
+					"",
 				appId: definition.appId,
 			}),
 		),
@@ -158,7 +168,7 @@ export function useClassicyFileSystem(
 		() => 0,
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and treeVersion are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render, and the tree is read through the shared instance
+	// biome-ignore lint/correctness/useExhaustiveDependencies: appShortcutsKey, extensionAppsKey and treeVersion are intentional invalidation keys — the icon/app sets are read via getState() so moves/focus don't re-render, and the tree is read through the shared instance; appIdentityOverrides is read directly, and is the key for a package switch
 	const fs = useMemo(() => {
 		const resolved = resolveDefaultFileSystem(defaultFileSystem, mode);
 		const fs = new ClassicyFileSystem(
@@ -176,6 +186,8 @@ export function useClassicyFileSystem(
 			withApplicationsFolder(
 				fs.fs,
 				useAppManager.getState().System.Manager.Desktop.icons,
+				appIdentityOverrides,
+				fs.separator,
 			),
 		);
 		// Same live-only overlay strategy for System Folder/Extensions, derived
@@ -187,6 +199,8 @@ export function useClassicyFileSystem(
 				Object.values(
 					useAppManager.getState().System.Manager.Applications.apps,
 				),
+				appIdentityOverrides,
+				fs.separator,
 			),
 		);
 		// System Folder/Control Strip Modules: one file per installed module.
@@ -194,6 +208,7 @@ export function useClassicyFileSystem(
 			withControlStripModulesFolder(
 				fs.fs,
 				JSON.parse(controlStripModulesKey) as ClassicyControlStripModuleFile[],
+				fs.separator,
 			),
 		);
 		return fs;
@@ -206,6 +221,7 @@ export function useClassicyFileSystem(
 		separator,
 		appShortcutsKey,
 		extensionAppsKey,
+		appIdentityOverrides,
 		fsVersion,
 		treeVersion,
 	]);

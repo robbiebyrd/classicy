@@ -2,22 +2,19 @@ import "./ClassicyDesktopMenuWidgetSound.scss";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import type {
+	CSSProperties,
 	FC as FunctionalComponent,
 	KeyboardEvent,
 	MouseEvent,
 } from "react";
 import { useEffect } from "react";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
 	useSound,
 	useSoundDispatch,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-
-const appIcon = ClassicyIcons.controlPanels.soundManager.app;
-const soundOffImg = ClassicyIcons.controlPanels.soundManager.soundOff;
-const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
 
 /**
  * @deprecated The menu-bar speaker widget is no longer mounted by
@@ -27,6 +24,10 @@ const soundOnImg = ClassicyIcons.controlPanels.soundManager.soundOn;
  */
 type ClassicyDesktopMenuWidgetSoundProps = {
 	hide?: boolean;
+	/** Extra class names, merged onto the item's `<li>` after the component's own. */
+	className?: string;
+	/** Inline style for the item's `<li>`. */
+	style?: CSSProperties;
 };
 
 // Module-level so the deprecation notice prints once per page, however many
@@ -45,7 +46,13 @@ let deprecationWarned = false;
  */
 export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 	ClassicyDesktopMenuWidgetSoundProps
-> = ({ hide = false }) => {
+> = ({ hide = false, className, style }) => {
+	const appIcon =
+		useClassicyAsset("icons", "controlPanels.soundManager.app") ?? "";
+	const soundOffImg =
+		useClassicyAsset("icons", "controlPanels.soundManager.soundOff") ?? "";
+	const soundOnImg =
+		useClassicyAsset("icons", "controlPanels.soundManager.soundOn") ?? "";
 	useEffect(() => {
 		if (deprecationWarned || process.env.NODE_ENV === "production") return;
 		deprecationWarned = true;
@@ -88,7 +95,9 @@ export const ClassicyDesktopMenuWidgetSound: FunctionalComponent<
 						"classicyDesktopMenuWidgetSound",
 						"classicyMenuItem",
 						"classicyMenuItemNoImage",
+						className,
 					)}
+					style={style}
 					onClick={mute}
 					onDoubleClick={openSoundManager}
 					onKeyDown={(e: KeyboardEvent) => {

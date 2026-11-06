@@ -160,7 +160,7 @@ interface ClassicyAssistantProps {
   (respecting the same gate/ends rules as the buttons).
 - The header region is `role="region"` with `aria-live="polite"` so the page
   title is announced on change without a focus jump.
-- The body is wrapped in `role="group"` labelled by the header title.
+- The body is wrapped in `role="group"` labeled by the header title.
 - Both header icons (`labelIcon`, `accessoryIcon`) are decorative
   (`alt=""`, `aria-hidden`) — the header title text carries the meaning.
 

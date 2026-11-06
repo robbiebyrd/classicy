@@ -34,7 +34,7 @@ exactly, and only hours, minutes, and seconds come from the machine. The
 timezone still resets to the browser's offset, so the hour reads as real local
 time on the preserved date.
 
-Sync is disabled whenever `dateTimeLocked` is true, greying out in step with the
+Sync is disabled whenever `dateTimeLocked` is true, graying out in step with the
 date and time pickers. When `minDateTime`/`maxDateTime` are set, the synced
 value is clamped by the reducer's existing bounds logic exactly as a manual set
 would be.

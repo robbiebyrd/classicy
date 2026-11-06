@@ -11,8 +11,14 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
+import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import {
+	useClassicyKeyPress,
+	useClassicyPointerPress,
+} from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 
 type ClassicyButtonProps = PropsWithChildren<{
 	/**
@@ -80,12 +86,13 @@ const isActivationKey = (key: string): boolean =>
  * and forwards its ref. Short labels still get the HIG minimum width, so an
  * OK/Cancel pair lines up.
  *
- * Pressing plays the theme's click-down/click-up sounds, and activating the
- * focused button with Return/Enter or Space flashes the pressed state for
- * about 8 ticks, as the HIG describes. Every click is reported to analytics
- * as `click`. Any other `<button>` attribute (`aria-*`, `id`, `title`, …)
- * passes through; `onClick`, `type`, `onMouseDown` and `onMouseUp` are owned
- * by the component — use `onClickFunc` and `buttonType` instead.
+ * Pressing plays the click-down/click-up sounds (the appearance package's
+ * press/release hooks), and activating the focused button with Return/Enter or
+ * Space flashes the pressed state for about 8 ticks, as the HIG describes.
+ * Every click is reported to analytics as `click`. Any other `<button>`
+ * attribute (`aria-*`, `id`, `title`, …) passes through; `onClick`, `type`,
+ * `onMouseDown` and `onMouseUp` are owned by the component — use `onClickFunc`
+ * and `buttonType` instead.
  *
  * For latching, toggle, radio, icon or pop-up buttons use
  * `ClassicyBevelButton`; for the "?" help button use `ClassicyHelpButton`.
@@ -113,12 +120,12 @@ export const ClassicyButton = forwardRef<
 			children,
 			onKeyDown,
 			onKeyUp,
+			className,
+			style,
 			...rest
 		},
 		ref,
 	) => {
-		const player = useSoundDispatch();
-
 		const { track } = useClassicyAnalytics();
 		const analyticsArgs = { type: "ClassicyButton", isDefault, disabled };
 
@@ -138,7 +145,27 @@ export const ClassicyButton = forwardRef<
 			[],
 		);
 
+		// The root element for the appearance hook, merged with the forwarded
+		// ref so callers keep receiving the <button>.
+		const [buttonRef, setButtonRef] =
+			useClassicyMergedRef<HTMLButtonElement>(ref);
+		const appearance = useClassicyAppearance(
+			"Button",
+			{ default: isDefault, pressed: depressed || keyActive },
+			buttonRef,
+		);
+
+		// A mouse press ends in exactly one `release`: over the button, let go
+		// elsewhere (`canceled`), or, when its pointer stream is lost (the
+		// window blurs, a pointercancel, the page is hidden), lost.
+		const { watchPress, releasedOver } = useClassicyPointerPress();
+		// So does a keyboard press: at its keyup, or canceled, when the window
+		// loses focus (lost) or focus leaves the button before it. A canceled
+		// press's late keyup is prevented, so the browser clicks nothing for it.
+		const { watchKeyPress, releaseKey } = useClassicyKeyPress(buttonRef);
+
 		const onHandleFunc = (e: MouseEvent<HTMLButtonElement>) => {
+			appearance.emit("click", withClassicyAppearanceInput());
 			track("click", { ...analyticsArgs });
 			if (onClickFunc) {
 				onClickFunc(e);
@@ -148,46 +175,80 @@ export const ClassicyButton = forwardRef<
 		const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
 			if (!disabled && !e.repeat && isActivationKey(e.key)) {
 				setKeyActive(true);
-				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickDown" });
+				appearance.emit("press", withClassicyAppearanceInput());
 				if (keyTimer.current) clearTimeout(keyTimer.current);
 				keyTimer.current = setTimeout(() => setKeyActive(false), KEY_ACTIVE_MS);
+				watchKeyPress(e.key, (lost) => {
+					if (keyTimer.current) clearTimeout(keyTimer.current);
+					setKeyActive(false);
+					appearance.emit("release", {
+						input: "keyboard",
+						lost,
+						canceled: true,
+					});
+				});
 			}
 			onKeyDown?.(e);
 		};
 
 		const handleKeyUp = (e: KeyboardEvent<HTMLButtonElement>) => {
-			if (!disabled && isActivationKey(e.key)) {
-				player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
+			if (isActivationKey(e.key) && releaseKey(e) && !disabled) {
+				appearance.emit(
+					"release",
+					withClassicyAppearanceInput({ lost: false, canceled: false }),
+				);
 			}
 			onKeyUp?.(e);
 		};
 
 		return (
 			<button
+				{...appearance.attrs}
 				{...rest}
-				ref={ref}
+				ref={setButtonRef}
 				type={buttonType}
 				tabIndex={0}
 				className={classNames(
 					"classicyButton",
-					isDefault ? "classicyButtonDefault" : "",
+					appearance.className,
 					buttonShape === "square" ? "classicyButtonShapeSquare" : "",
 					buttonSize === "small" ? "classicyButtonSmall" : "",
-					depressed ? "classicyButtonDepressed" : "",
 					keyActive ? "classicyButtonKeyActive" : "",
 					buttonShape !== "square" ? paddingVariantClass[padding] : "",
 					marginVariantClass[margin],
+					className,
 				)}
+				style={appearance.style ? { ...appearance.style, ...style } : style}
 				aria-pressed={depressed || keyActive || undefined}
 				onClick={onHandleFunc}
 				onMouseDown={() => {
-					player({
-						type: "ClassicySoundPlay",
-						sound: "ClassicyButtonClickDown",
+					appearance.emit("press", withClassicyAppearanceInput());
+					watchPress({
+						isOver: (target) =>
+							target instanceof Node && !!buttonRef.current?.contains(target),
+						onRelease: (canceled) =>
+							appearance.emit(
+								"release",
+								canceled
+									? { input: "pointer", lost: false, canceled }
+									: withClassicyAppearanceInput({ lost: false, canceled }),
+							),
+						onLost: () =>
+							appearance.emit("release", {
+								input: "pointer",
+								lost: true,
+								canceled: true,
+							}),
 					});
 				}}
-				onMouseUp={() => {
-					player({ type: "ClassicySoundPlay", sound: "ClassicyButtonClickUp" });
+				// A release here with no press of its own behind it (pressed
+				// elsewhere); the press's own release was reported above.
+				onMouseUp={(e) => {
+					if (releasedOver(e.nativeEvent)) return;
+					appearance.emit(
+						"release",
+						withClassicyAppearanceInput({ lost: false, canceled: false }),
+					);
 				}}
 				onKeyDown={handleKeyDown}
 				onKeyUp={handleKeyUp}

@@ -9,8 +9,8 @@ export type ClassicyBevelPopupSide = "below" | "right";
 
 /**
  * How the popup lines up along the button: `start` puts the edges together
- * (left edges below, tops to the right); `center` centres it on the button,
- * rounding up — HIGOS8 Figure 2-16's slider sits centred on its module.
+ * (left edges below, tops to the right); `center` centers it on the button,
+ * rounding up — HIGOS8 Figure 2-16's slider sits centered on its module.
  */
 export type ClassicyBevelPopupAlign = "start" | "center";
 
@@ -34,7 +34,7 @@ export const classicyBevelPopupPlacement = (
 	side: ClassicyBevelPopupSide,
 	align: ClassicyBevelPopupAlign = "start",
 ): { left: number; top: number } => {
-	const centred = (start: number, end: number, size: number) =>
+	const centered = (start: number, end: number, size: number) =>
 		start + Math.ceil((end - start - size) / 2);
 	if (side === "right") {
 		let left = anchor.right;
@@ -45,7 +45,7 @@ export const classicyBevelPopupPlacement = (
 			left: clamp(left, popup.width, viewport.width),
 			top: clamp(
 				align === "center"
-					? centred(anchor.top, anchor.bottom, popup.height)
+					? centered(anchor.top, anchor.bottom, popup.height)
 					: anchor.top,
 				popup.height,
 				viewport.height,
@@ -59,7 +59,7 @@ export const classicyBevelPopupPlacement = (
 	return {
 		left: clamp(
 			align === "center"
-				? centred(anchor.left, anchor.right, popup.width)
+				? centered(anchor.left, anchor.right, popup.width)
 				: anchor.left,
 			popup.width,
 			viewport.width,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	arrangeClassicyControlStripModules,
 	type ClassicyControlStripModuleRegistration,
+	classicyControlStripModuleLabel,
 	classicyControlStripOpenControlPanelItem,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
 
@@ -83,5 +84,51 @@ describe("classicyControlStripOpenControlPanelItem", () => {
 				app: { id: "FileSharing.app", name: "File Sharing", icon: "fs.png" },
 			},
 		]);
+	});
+});
+
+// K-D7: a module an app owns shows the app's display name; a module with no
+// owner keeps its own label, even when its id names an overridden app.
+describe("classicyControlStripModuleLabel", () => {
+	const overrides = {
+		"Owner.app": { name: "Owner Display" },
+		"Iconic.app": { icon: "iconic.png" },
+		plain: { name: "Not A Module Label" },
+	};
+
+	it("shows an owning app's display name", () => {
+		expect(
+			classicyControlStripModuleLabel(
+				{ label: "Owned", appId: "Owner.app" },
+				overrides,
+			),
+		).toBe("Owner Display");
+	});
+
+	it("keeps the module's label when the owner's name is not overridden", () => {
+		expect(
+			classicyControlStripModuleLabel(
+				{ label: "Owned", appId: "Iconic.app" },
+				overrides,
+			),
+		).toBe("Owned");
+		expect(
+			classicyControlStripModuleLabel(
+				{ label: "Owned", appId: "Other.app" },
+				overrides,
+			),
+		).toBe("Owned");
+		expect(
+			classicyControlStripModuleLabel(
+				{ label: "Owned", appId: "constructor" },
+				overrides,
+			),
+		).toBe("Owned");
+	});
+
+	it("keeps the label of a module with no owner", () => {
+		expect(classicyControlStripModuleLabel({ label: "Plain" }, overrides)).toBe(
+			"Plain",
+		);
 	});
 });
