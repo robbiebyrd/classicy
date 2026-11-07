@@ -3,12 +3,13 @@ id: 0092-prv
 title: Clear the 37 transitive Dependabot alerts
 purpose: Close the open Dependabot alerts, whether or not Dependabot opens the PR itself.
 type: chor
-status: blocked
+status: complete
 priority: "1"
 effort: M
 created: "2026-10-30T19:15:24.764Z"
-updated: "2026-11-06T21:12:48.538Z"
-started: "2026-11-03T23:44:53.999Z"
+updated: "2026-11-07T01:00:28.426Z"
+started: "2026-11-07T01:00:20.542Z"
+completed: "2026-11-07T01:00:28.426Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -55,7 +56,7 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 
 ## Acceptance Criteria
 
-- [ ] No open Dependabot alert remains, except ones dismissed with a stated reason.
+- [x] No open Dependabot alert remains, except ones dismissed with a stated reason.
 - [x] VERIFY: pnpm install --frozen-lockfile && pnpm test --maxWorkers=3
 
 ## Files
@@ -79,3 +80,5 @@ Watch for a patched deepmerge, or dismiss the alert with a stated reason if it i
 ### 2026-11-06T15:33:17.472Z - 2026-11-06: set to blocked (owner). Waiting on PR 333 merging to main: Dependabot scans main only, which still shows 36 open alerts. Unblock after the merge, re-check alerts, tick the last criterion and complete.
 
 ### 2026-11-06T21:12:48.538Z - 2026-11-06: PR 333 was closed and the branch reopened as PR #337; this story is now blocked on #337 merging to main (Dependabot scans main only).
+
+### 2026-11-07T01:00:00.837Z - 2026-11-07: after PR 337 (e77fe6fa3) and PR 338 (5c11a8db6, story 0160) merged, Dependabot shows 0 open alerts on main. The only dismissed one is #341 (deepmerge, tolerable_risk, reason recorded 2026-11-04). The three alerts 337 brought in (#345-#347, audiosprite's minimist and underscore) were fixed by 0160's overrides at 2026-11-06T23:20Z.

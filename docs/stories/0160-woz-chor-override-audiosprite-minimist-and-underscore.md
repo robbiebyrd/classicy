@@ -3,12 +3,13 @@ id: 0160-woz
 title: 'Override audiosprite''s minimist and underscore (Dependabot #345, #346, #347)'
 purpose: Clear the three alerts the 3.0.0 merge brought onto main, and the failing Dependabot security run.
 type: chor
-status: in_progress
+status: complete
 priority: "1"
 effort: S
 created: "2026-11-06T22:14:32.014Z"
-updated: "2026-11-06T22:26:43.055Z"
+updated: "2026-11-07T01:00:34.624Z"
 started: "2026-11-06T22:26:43.055Z"
+completed: "2026-11-07T01:00:34.624Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -51,7 +52,7 @@ CLASSICY_AUDIO_FORCE=1 pnpm build:audio with the old and the new lockfile under 
 
 - [x] VERIFY: Sprites byte-identical between the old and new dependency versions under the same ffmpeg; the committed sprites are unchanged.
 - [x] VERIFY: Full gate green.
-- [ ] [MANUAL] After the PR merges, Dependabot closes #345, #346 and #347 and its security run on main passes.
+- [x] [MANUAL] After the PR merges, Dependabot closes #345, #346 and #347 and its security run on main passes.
 
 ## Files
 
@@ -61,3 +62,5 @@ CLASSICY_AUDIO_FORCE=1 pnpm build:audio with the old and the new lockfile under 
 ## Work Log
 
 ### 2026-11-06T22:26:22.468Z - 2026-11-06: overrides added; lockfile updated with --config.minimum-release-age=10080 (libc fields kept; only minimist and underscore change). CLASSICY_AUDIO_FORCE=1 build:audio under mise ffmpeg 8.0.1: old (underscore 1.8.3, minimist 0.0.10) and new (1.13.8, 0.2.4) sprites byte-identical, all five files; committed sprites (CI's distro ffmpeg) left unchanged. Full gate green: 499 files, 7599 tests, build:source, build:storybook, example build.
+
+### 2026-11-07T01:00:10.017Z - 2026-11-07: PR 338 merged (5c11a8db6). Dependabot marked #345, #346 and #347 fixed at 2026-11-06T23:20Z; 0 alerts open on main. With nothing left to update, Dependabot has not run its security job again; the failing run was the last one for these packages.
