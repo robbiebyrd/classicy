@@ -3,12 +3,13 @@ id: 0118-qm6
 title: 'Override minimatch 9.x and 10.x to 11 to close Dependabot #344'
 purpose: Fix the minimatch globParts amplification advisory instead of carrying a dismissal, now that it no longer covers minimatch 3.
 type: chor
-status: blocked
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-05T16:41:17.674Z"
-updated: "2026-11-06T21:12:50.771Z"
-started: "2026-11-05T18:27:00.095Z"
+updated: "2026-11-07T01:00:31.605Z"
+started: "2026-11-07T01:00:24.943Z"
+completed: "2026-11-07T01:00:31.605Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -59,7 +60,7 @@ After the change reaches main, confirm #344's advisory no longer matches the loc
 
 - [x] VERIFY: `grep -E "^  minimatch@(9|10)\." pnpm-lock.yaml` finds nothing, and `pnpm install --frozen-lockfile` passes.
 - [x] VERIFY: Full gate green, including `pnpm build:source` (api-extractor runs inside vite-plugin-dts) and `pnpm build:storybook`; `dist/` byte-identical to before.
-- [ ] [MANUAL] On main, Dependabot shows no open or dismissed-but-applicable alert for GHSA-g3hv-75wg-m249.
+- [x] [MANUAL] On main, Dependabot shows no open or dismissed-but-applicable alert for GHSA-g3hv-75wg-m249.
 
 ## Files
 
@@ -76,3 +77,5 @@ After the change reaches main, confirm #344's advisory no longer matches the loc
 ### 2026-11-06T15:33:21.834Z - 2026-11-06: set to blocked (owner). Waiting on PR 333 merging to main: Dependabot scans main only, which still shows 36 open alerts. Unblock after the merge, re-check alerts, tick the last criterion and complete.
 
 ### 2026-11-06T21:12:50.771Z - 2026-11-06: PR 333 was closed and the branch reopened as PR #337; this story is now blocked on #337 merging to main (Dependabot scans main only).
+
+### 2026-11-07T01:00:05.314Z - 2026-11-07: on main after PR 337 merged, the only alert for GHSA-g3hv-75wg-m249 is #344 (minimatch), state fixed; none open or dismissed.

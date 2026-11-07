@@ -7,7 +7,7 @@ status: ready
 priority: "1"
 effort: S
 created: "2026-11-05T19:55:21.066Z"
-updated: "2026-11-06T22:03:54.761Z"
+updated: "2026-11-07T01:01:00.328Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -43,12 +43,12 @@ Work through the acceptance criteria below; each is ticked when done.
 - [x] [MANUAL] Create the free npm organization `classicy` on npmjs.com.
 - [~] [MANUAL] Make sure the `NPM_TOKEN` secret can publish `@classicy/*` (a granular token that lists the organization, or a classic automation token).
 - [x] [MANUAL] Approve the new release-note entries (4.2).
-- [ ] [MANUAL] Merge the classicy-web and rt911 PRs (5.1, 5.2) when ready, per their PR notes.
-- [ ] [MANUAL] After both 3.0.0 packages are live, run `npm deprecate classicy "Renamed to @classicy/classicy. See https://github.com/robbiebyrd/classicy#readme"`.
+- [x] [MANUAL] Merge the classicy-web and rt911 PRs (5.1, 5.2) when ready, per their PR notes.
+- [x] [MANUAL] After both 3.0.0 packages are live, run `npm deprecate classicy "Renamed to @classicy/classicy. See https://github.com/robbiebyrd/classicy#readme"`.
 - [ ] [MANUAL] V&V: in the example app and on classicy-web, the desktop looks and sounds as before (boot chime, button clicks, menu hover), the Appearance Manager's Themes tab shows Platinum's icon, a saved custom theme with a wallpaper survives the upgrade, and a host with Platinum removed shows the stop screen.
 - [ ] [MANUAL] In the release run, "Check trusted publishing for every package" prints that the registry accepted the OIDC token for both packages, and "Wait for the release to appear on npm" confirms both latest tags are 3.0.0; then delete the NPM_TOKEN repository secret.
 - [x] [MANUAL] At most a day before merging PR 337, on feat/AppearancePackages with npm 11.15.0+, 2FA on and `npm login` done: run `bin/npm-bootstrap-trusted-publishing.sh` (dry run), then `bin/npm-bootstrap-trusted-publishing.sh --publish` (re-run it if it stops partway). Then check `npm trust list` shows one GitHub Actions entry (robbiebyrd/classicy, push.yml, publish allowed) for @classicy/classicy and @classicy/appearance-platinum, and a few minutes later `npm dist-tag ls` for both.
-- [ ] [MANUAL] Merge PR 337 within 2 days of the bootstrap, with BREAKING CHANGE in the merge message (the major-bump keyword recorded in 4.1), so both packages publish as 3.0.0.
+- [x] [MANUAL] Merge PR 337 within 2 days of the bootstrap, with BREAKING CHANGE in the merge message (the major-bump keyword recorded in 4.1), so both packages publish as 3.0.0.
 
 ## Work Log
 
@@ -67,3 +67,5 @@ Work through the acceptance criteria below; each is ticked when done.
 ### 2026-11-06T21:12:46.286Z - 2026-11-06: PR 333 was closed by the owner and the same branch (feat/AppearancePackages) reopened as PR #337 under the owner's account. The two criteria naming PR 333 were replaced with #337 versions; the release notes' first line now says pull request 337 (30f5947a4).
 
 ### 2026-11-06T22:03:54.761Z - 2026-11-06: bootstrap done by the owner. @classicy/classicy and @classicy/appearance-platinum 0.0.0 published under bootstrap, deprecated (naming 3.0.0), trusted publishers created (github, robbiebyrd/classicy, push.yml; ids bc8cdad6, b8d98fec). The registry also set latest to 0.0.0 on both; the 3.0.0 release moves it. The trusted publishers expire unless used by 2026-11-08: merge PR 337 before then.
+
+### 2026-11-07T01:01:00.328Z - 2026-11-07: 3.0.0 released. PR 337 merged 2026-11-06T22:04Z (squash e77fe6fa3, BREAKING CHANGE in the message), but push.yml did not start: GitHub evaluates a paths filter against the first 300 changed files only, and the merge changed 81,388. Dispatched by hand with version-type=major on the owner's go (run 42302421097): 'Check trusted publishing for every package' printed 'the registry accepted this workflow's OIDC token' for both packages; both published (+ @classicy/classicy@3.0.0, + @classicy/appearance-platinum@3.0.0); 'Wait for the release to appear on npm' saw Platinum on attempt 1 and the core on attempt 52 (~26 min of its 30); classicy-web deploy and rt911 bump dispatched. Codename Moonlight. Both latest tags are 3.0.0. classicy-web #10 merged; rt911 #635 merged 2026-11-06T23:22Z (695898351) after main was merged in and the lockfile regenerated against 3.0.0. The owner deprecated classicy (renamed to @classicy/classicy). Criterion 7 stays open only for deleting the NPM_TOKEN secret (still set, 2026-01-27). Criterion 6 (hands-on V&V) is the owner's.
