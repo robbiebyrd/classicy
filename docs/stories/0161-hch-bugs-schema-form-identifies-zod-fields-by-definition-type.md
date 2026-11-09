@@ -3,11 +3,13 @@ id: 0161-hch
 title: Schema form identifies zod fields by definition type
 purpose: Plan 0016-vbq section 1.1.
 type: bugs
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-09T19:24:30.422Z"
-updated: "2026-11-09T19:24:30.422Z"
+updated: "2026-11-09T19:36:08.610Z"
+started: "2026-11-09T19:36:05.372Z"
+completed: "2026-11-09T19:36:08.610Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -62,7 +64,7 @@ Command: `git commit -m "fix(schema-form): identify zod fields by definition typ
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
+- [x] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
 
 ## Files
 

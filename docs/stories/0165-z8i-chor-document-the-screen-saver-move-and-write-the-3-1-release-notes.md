@@ -3,11 +3,13 @@ id: 0165-z8i
 title: Document the screen saver move and write the 3.1 release notes
 purpose: Plan 0016-vbq section 3.1.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-09T19:24:52.740Z"
-updated: "2026-11-09T19:24:52.740Z"
+updated: "2026-11-09T21:12:47.286Z"
+started: "2026-11-09T21:12:44.273Z"
+completed: "2026-11-09T21:12:47.286Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -50,7 +52,7 @@ Command: `git commit -m "docs: screen savers ship with Appearance Packages"`
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
+- [x] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
 
 ## Files
 

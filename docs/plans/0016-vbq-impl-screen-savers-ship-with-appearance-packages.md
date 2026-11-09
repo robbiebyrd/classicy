@@ -2,11 +2,11 @@
 id: 0016-vbq
 title: Screen savers ship with Appearance Packages
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: L
 created: "2026-11-09T19:24:12.927Z"
-updated: "2026-11-09T19:25:06.539Z"
+updated: "2026-11-09T21:12:35.805Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -22,31 +22,31 @@ progress:
   "1":
     status: pending
   "1.1":
-    status: pending
+    status: complete
     stories:
       - 0161-hch
   "1.2":
-    status: pending
+    status: complete
     stories:
       - 0162-mk7
   "1.3":
-    status: pending
+    status: complete
     stories:
       - 0163-l8n
   "2":
     status: pending
   "2.1":
-    status: pending
+    status: complete
     stories:
       - 0166-z4u
   "2.2":
-    status: pending
+    status: complete
     stories:
       - 0164-l2e
   "3":
     status: pending
   "3.1":
-    status: pending
+    status: complete
     stories:
       - 0165-z8i
   "4":

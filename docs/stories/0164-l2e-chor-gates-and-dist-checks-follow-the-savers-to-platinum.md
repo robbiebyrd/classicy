@@ -3,11 +3,13 @@ id: 0164-l2e
 title: Gates and dist checks follow the savers to Platinum
 purpose: Plan 0016-vbq section 2.2.
 type: chor
-status: pending
+status: complete
 priority: "2"
 effort: S
 created: "2026-11-09T19:24:47.308Z"
-updated: "2026-11-09T19:24:47.308Z"
+updated: "2026-11-09T21:08:24.768Z"
+started: "2026-11-09T21:08:21.534Z"
+completed: "2026-11-09T21:08:24.768Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -62,7 +64,7 @@ Command: `git commit -m "chore(gates): saver exemptions and dist checks follow t
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
+- [x] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
 
 ## Files
 

@@ -3,11 +3,13 @@ id: 0162-mk7
 title: Savers name packages; packages name a default saver
 purpose: Plan 0016-vbq section 1.2.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-11-09T19:24:36.020Z"
-updated: "2026-11-09T19:24:36.020Z"
+updated: "2026-11-09T19:42:55.845Z"
+started: "2026-11-09T19:42:52.384Z"
+completed: "2026-11-09T19:42:55.845Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -62,7 +64,7 @@ Command: `git commit -m "feat(screen-saver): savers name the packages they are o
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
+- [x] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
 
 ## Files
 

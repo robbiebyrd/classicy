@@ -3,11 +3,13 @@ id: 0163-l8n
 title: Overlay, reducer, control panel and Control Strip follow the active package
 purpose: Plan 0016-vbq section 1.3.
 type: feat
-status: pending
+status: complete
 priority: "2"
 effort: M
 created: "2026-11-09T19:24:40.835Z"
-updated: "2026-11-09T19:24:40.835Z"
+updated: "2026-11-09T20:04:09.034Z"
+started: "2026-11-09T20:04:05.789Z"
+completed: "2026-11-09T20:04:09.034Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -62,7 +64,7 @@ Command: `git commit -m "feat(screen-saver): overlay and control panel offer the
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
+- [x] VERIFY: The section's tests pass and `pnpm lint` and `pnpm exec tsc --noEmit -p .` are clean.
 
 ## Files
 
