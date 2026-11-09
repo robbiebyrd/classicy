@@ -57,6 +57,12 @@
 //    Every relative specifier in a declaration carries its extension
 //    (`./hooks.js`): the package is `"type": "module"`, so a host on
 //    `moduleResolution: node16` or `nodenext` resolves no other.
+//
+// 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
+//    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
+//    build-machine path in a fileName option: the package's vite.config.ts
+//    forces the production transform, because a shell with
+//    NODE_ENV=development otherwise ships the dev one (plan 0016-vbq §2.1).
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -68,6 +74,7 @@ import {
 	findClassicyStrayAssetUrls,
 } from "../../../../bin/classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "../../../../bin/classicyDistCharset.ts";
+import { findClassicyDevJsxProblems } from "../../../../bin/classicyDistJsx.ts";
 import {
 	findClassicyBuildScriptDeclarations,
 	findClassicyJsonDeclarations,
@@ -353,5 +360,13 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file`,
 	);
 }
+
+// Invariant 8: the production JSX runtime, with no build-machine paths.
+report(
+	bundles.flatMap(({ file, source }) =>
+		findClassicyDevJsxProblems(file, source, process.cwd()),
+	),
+	`${BUNDLES.join(", ")}: production JSX runtime, no build-machine paths`,
+);
 
 if (failed) exit(1);

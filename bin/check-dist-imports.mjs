@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Twelve invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-13: number 12 moved to the
+// Thirteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-14: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -126,6 +126,11 @@
 //    paths, so the bundle grows and two builds of one source differ by
 //    directory (0120-ak4: vite read NODE_ENV=development from the shell).
 //    Checked in both entry bundles (those of them named, in named mode).
+//
+// 14. NO SCREEN SAVER IN THE CORE. The savers, their art and their styles ship
+//    in an Appearance Package (plan 0016-vbq): no dist/*.js or dist/*.css
+//    carries a `classicySaver*` keyframe or class, and invariant 5 also
+//    covers the savers' images (src/screenSavers/**) as files or inlined.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -136,7 +141,12 @@ import {
 } from "./classicyBaseCss.ts";
 import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
-import { findClassicyCorePackageFiles } from "./classicyDistAssets.ts";
+import {
+	CLASSICY_PACKAGE_ASSET_FOLDERS,
+	findClassicyCorePackageFiles,
+	findClassicySaverMarkers,
+	isClassicyPackageAssetFile,
+} from "./classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "./classicyDistCharset.ts";
 import { findClassicyDevJsxProblems } from "./classicyDistJsx.ts";
 import {
@@ -259,24 +269,27 @@ for (const shim of ["fonts"]) {
 if (!argv.slice(2).length) {
 	const distFiles = await readdir(DIST);
 	const assets = await readdir(join(DIST, "assets")).catch(() => []);
-	// Every file of every workspace package's asset folders.
-	const packageRoots = (
-		await readdir(join("packages", "appearance")).catch(() => [])
-	).flatMap((id) => [
-		join("packages", "appearance", id, "src", "assets"),
-		join("packages", "appearance", id, "assets"),
-	]);
+	// Every file of every workspace package's asset folders, and the images
+	// under its src/screenSavers (the savers' art, plan 0016-vbq).
+	const packageIds = await readdir(join("packages", "appearance")).catch(
+		() => [],
+	);
 	const packagePaths = (
 		await Promise.all(
-			packageRoots.map(async (root) =>
-				(
-					await readdir(root, { recursive: true, withFileTypes: true }).catch(
-						() => [],
+			packageIds.flatMap((id) => {
+				const packageRoot = join("packages", "appearance", id);
+				return CLASSICY_PACKAGE_ASSET_FOLDERS.map(async (folder) =>
+					(
+						await readdir(join(packageRoot, folder), {
+							recursive: true,
+							withFileTypes: true,
+						}).catch(() => [])
 					)
-				)
-					.filter((entry) => entry.isFile())
-					.map((entry) => join(entry.parentPath, entry.name)),
-			),
+						.filter((entry) => entry.isFile())
+						.map((entry) => join(entry.parentPath, entry.name))
+						.filter((path) => isClassicyPackageAssetFile(path, packageRoot)),
+				);
+			}),
 		)
 	).flat();
 	const packageFiles = await Promise.all(
@@ -593,6 +606,28 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else console.log(`${file}: production JSX runtime, no build-machine paths`);
+}
+
+// Invariant 14: no screen saver in the core. Named files are checked as given;
+// otherwise every dist/*.js and dist/*.css.
+{
+	const named = argv.slice(2).filter((f) => /\.(?:js|css)$/.test(f));
+	const files = argv.slice(2).length
+		? named
+		: (await readdir(DIST))
+				.filter((f) => /\.(?:js|css)$/.test(f))
+				.map((f) => join(DIST, f));
+	const problems = findClassicySaverMarkers(
+		await Promise.all(
+			files.map(async (file) => ({ file, text: await readFile(file, "utf8") })),
+		),
+	);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`screen savers: no classicySaver name in ${files.length} bundle(s) or stylesheet(s)`,
+		);
 }
 
 if (failed) exit(1);

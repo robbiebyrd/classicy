@@ -113,3 +113,52 @@ export const findClassicyCorePackageFiles = ({
 		),
 	];
 };
+
+/** The folders of a package (`packages/appearance/<id>`) whose files it ships. */
+export const CLASSICY_PACKAGE_ASSET_FOLDERS = [
+	"src/assets",
+	"assets",
+	"src/screenSavers",
+];
+
+const SAVER_ART = /\.(?:webp|png|jpe?g|gif|svg)$/i;
+
+/**
+ * Whether `path` is a file a package ships as an asset: anything under its
+ * asset folders, or an image under `src/screenSavers/<Saver>/` (the screen
+ * savers' art lives beside their code, plan 0016-vbq; their .tsx and .scss
+ * are source, not assets). `packageRoot` is the package's folder.
+ */
+export const isClassicyPackageAssetFile = (
+	path: string,
+	packageRoot: string,
+): boolean => {
+	const norm = (p: string) => p.replaceAll("\\", "/");
+	const root = `${norm(packageRoot).replace(/\/$/, "")}/`;
+	const file = norm(path);
+	if (!file.startsWith(root)) return false;
+	const inside = file.slice(root.length);
+	if (inside.startsWith("src/screenSavers/")) return SAVER_ART.test(inside);
+	return CLASSICY_PACKAGE_ASSET_FOLDERS.some((folder) =>
+		inside.startsWith(`${folder}/`),
+	);
+};
+
+const SAVER_MARKER = /classicySaver[A-Za-z0-9_-]*/;
+
+/**
+ * verify:dist invariant 14's problems: the core's bundles and stylesheets name
+ * no screen saver's keyframe or class. The savers' `classicySaver*` names ship
+ * in Platinum's package stylesheet, never the core's.
+ */
+export const findClassicySaverMarkers = (
+	files: ReadonlyArray<{ file: string; text: string }>,
+): string[] =>
+	files.flatMap(({ file, text }) => {
+		const found = SAVER_MARKER.exec(text)?.[0];
+		return found === undefined
+			? []
+			: [
+					`${file}: carries a classicySaver name (${found}) -> the core names no screen saver; the savers and their styles ship in an Appearance Package.`,
+				];
+	});
