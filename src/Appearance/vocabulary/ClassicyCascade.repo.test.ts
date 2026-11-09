@@ -196,26 +196,6 @@ describe("rules that replaced !important", () => {
 		expect(radio).not.toMatch(/\.classicyRadioInput\.default/);
 	});
 
-	it("bouncing balls keep their per-ball timing in the stylesheet", () => {
-		const css = compile(
-			"Extensions/ScreenSaver/savers/BouncingBall/ClassicyScreenSaverBouncingBall.scss",
-		);
-		for (let i = 0; i < 12; i++) {
-			const animation = rule(
-				css,
-				`.classicySaverBouncingBallBall:nth-child(${i + 1})`,
-			).animation;
-			const seconds = animation.match(/-?[\d.]+s/g)?.map(Number.parseFloat);
-			// The timing the component used to write inline, ball by ball.
-			expect(seconds).toEqual([
-				Number((3.4 + i * 0.55).toFixed(2)),
-				-Number((i * 0.9).toFixed(2)) || 0,
-				Number((3 + i * 0.42).toFixed(2)),
-				-Number((i * 1.3).toFixed(2)) || 0,
-			]);
-		}
-	});
-
 	it("the screen saver's overrides key on the overlay's id", () => {
 		const css = compile("Extensions/ScreenSaver/ClassicyScreenSaver.scss");
 		expect(css).toContain(

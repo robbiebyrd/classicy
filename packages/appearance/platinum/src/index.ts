@@ -24,6 +24,9 @@ import {
 import "./assets/platinumAssets";
 import { platinumArt } from "./assets/art/platinumArt";
 import { platinumSoundPack } from "./assets/sounds/platinum";
+// The twelve screen savers register at module load too, before the package
+// below names one of them its `defaultScreenSaver` (plan 0016-vbq §2.1).
+import "./screenSavers/platinumScreenSavers";
 import { platinumAppearanceHooks } from "./hooks";
 import platinumJsonSource from "./platinum.json";
 import platinumCss from "./styles/platinum.scss?inline";
@@ -31,6 +34,21 @@ import platinumCss from "./styles/platinum.scss?inline";
 export * from "./assets/platinumAssets";
 export * from "./assets/sounds/platinum";
 export * from "./hooks";
+// The savers' components, config schemas and options UIs, and the Logo
+// saver's logo registry, under the names the core exported them by in 3.0.
+export * from "./screenSavers/BouncingBall/ClassicyScreenSaverBouncingBall";
+export * from "./screenSavers/FadeOut/ClassicyScreenSaverFadeOut";
+export * from "./screenSavers/Fish/ClassicyScreenSaverFish";
+export * from "./screenSavers/FlyingToasters/ClassicyScreenSaverFlyingToasters";
+export * from "./screenSavers/Globe/ClassicyScreenSaverGlobe";
+export * from "./screenSavers/HardRain/ClassicyScreenSaverHardRain";
+export * from "./screenSavers/Logo/ClassicyScreenSaverLogo";
+export * from "./screenSavers/Logo/ClassicyScreenSaverLogoRegistry";
+export * from "./screenSavers/Messages/ClassicyScreenSaverMessages";
+export * from "./screenSavers/Messages2/ClassicyScreenSaverMessages2";
+export * from "./screenSavers/Rainstorm/ClassicyScreenSaverRainstorm";
+export * from "./screenSavers/Spotlight/ClassicyScreenSaverSpotlight";
+export * from "./screenSavers/Warp/ClassicyScreenSaverWarp";
 
 const deepFreeze = <T extends object>(value: T): T => {
 	for (const child of Object.values(value))
@@ -110,4 +128,5 @@ registerClassicyAppearancePackage({
 	layout: platinumJsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [platinumSoundPack],
 	hooks: platinumAppearanceHooks,
+	defaultScreenSaver: "bouncing-ball",
 });

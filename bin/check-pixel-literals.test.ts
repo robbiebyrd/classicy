@@ -19,6 +19,10 @@ import {
 	scanPixelLiteralsInSource,
 } from "./check-pixel-literals.ts";
 
+// A screen saver's sheet (ported After Dark art, exempt from the gate).
+const SAVER_SHEET =
+	"packages/appearance/platinum/src/screenSavers/BouncingBall/_ClassicyScreenSaverBouncingBall.scss";
+
 const lit: ClassicyPixelLiteral = {
 	file: "a.scss",
 	line: 1,
@@ -297,12 +301,18 @@ describe("checkPixelLiterals", () => {
 });
 
 describe("scanPixelLiterals", () => {
-	it("scanPixelLiterals skips savers", () =>
+	it("scanPixelLiterals skips savers", () => {
 		expect(
 			[...scanPixelLiterals(process.cwd()).keys()].some((f) =>
-				f.includes("/savers/"),
+				f.includes("/screenSavers/"),
 			),
-		).toBe(false));
+		).toBe(false);
+		// Not vacuously: a saver's sheet holds literals the scan would report.
+		expect(
+			scanPixelLiteralsInSource(readFileSync(SAVER_SHEET, "utf8"), SAVER_SHEET)
+				.length,
+		).toBeGreaterThan(0);
+	});
 
 	// H-R1: the gate runs as a test over src as well as from `pnpm lint`.
 	it("the repository's SCSS holds no pixel literal", () =>
@@ -639,7 +649,7 @@ describe("scanMultipliers", () => {
 	it("scanMultipliers skips savers", () =>
 		expect(
 			[...scanMultipliers(process.cwd()).keys()].some((f) =>
-				f.includes("/savers/"),
+				f.includes("/screenSavers/"),
 			),
 		).toBe(false));
 

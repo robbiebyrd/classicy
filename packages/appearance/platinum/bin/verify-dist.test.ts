@@ -136,7 +136,7 @@ describe("bin/verify-dist.mjs", () => {
 			).toEqual({
 				status: 1,
 				stderr: [
-					'dist/appearance-platinum.umd.js: externalizes "@classicy/classicy-copy", which is not the core or React -> check `external` in vite.config.ts.',
+					'dist/appearance-platinum.umd.js: externalizes "@classicy/classicy-copy", which is not the core, React or zod -> check `external` in vite.config.ts.',
 					"dist/appearance-platinum.umd.js: does not import @classicy/classicy -> the core must stay external (a peer dependency), or Platinum registers into a copy of the registries nothing reads.",
 				].join("\n"),
 			}));
@@ -148,7 +148,7 @@ describe("bin/verify-dist.mjs", () => {
 					"appearance-platinum.es.js": `import"url";${ES}`,
 				}).stderr,
 			).toBe(
-				'dist/appearance-platinum.es.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
+				'dist/appearance-platinum.es.js: externalizes "url", which is not the core, React or zod -> check `external` in vite.config.ts.',
 			));
 
 		it("fails a bundle that carries the core's registries", () =>
@@ -399,6 +399,7 @@ it("reads folders the package has", () => {
 		"src/assets/cursors",
 		"src/assets/wallpapers",
 		"src/assets/sounds/platinum",
+		"src/screenSavers",
 	])
 		expect(existsSync(path.join(packageDir, dir)), dir).toBe(true);
 });

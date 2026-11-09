@@ -20,5 +20,7 @@
 		"../../../src/custom.d.ts",
 		"../../../src/__tests__/setup.ts"
 	],
-	"exclude": ["dist", "node_modules", "resources"]
+	// Stories are type-checked under storybook/tsconfig.json, which maps
+	// Storybook's types.
+	"exclude": ["dist", "node_modules", "resources", "src/**/*.stories.tsx"]
 }

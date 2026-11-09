@@ -25,8 +25,9 @@ export type ClassicyClassSets = string[][];
 const TOKEN = /(?<![\w$])classicy[A-Z][\w-]*/g;
 // A class written up to an interpolation (`classicyBevelButtonMode${…}`).
 const PREFIX = /(?<![\w$])classicy[A-Z][\w-]*$/;
-const SKIPPED =
-	/(\.(test|stories)\.tsx?$|\.d\.ts$|__tests__|ScreenSaver\/savers\/)/;
+// The screen savers Platinum ships (its src/screenSavers/, plan 0016-vbq
+// §2.1): ported After Dark markup, outside the vocabulary.
+const SKIPPED = /(\.(test|stories)\.tsx?$|\.d\.ts$|__tests__|^screenSavers\/)/;
 
 type Element = { file: string; tokens: Set<string>; component?: string };
 

@@ -150,8 +150,17 @@ describe("the built bundle and the core's registries", () => {
 				),
 			]),
 		);
-		// Nothing else is in dist/assets: the fonts and the package's art.
-		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12);
+		// The screen savers' art (plan 0016-vbq §2.1).
+		expect(assets).toEqual(
+			expect.arrayContaining([
+				"logo.webp",
+				"toaster-sprite.webp",
+				"stars4.webp",
+			]),
+		);
+		// Nothing else is in dist/assets: the fonts, the package's art and the
+		// savers' 23 images.
+		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12 + 23);
 		// The sprites are the files bin/make_audio_sprites.sh wrote, byte for byte.
 		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
 			expect(

@@ -8,7 +8,8 @@
 //
 // 1. THE CORE IS AN IMPORT, NOT A COPY. Both bundles import
 //    `@classicy/classicy` (the ES bundle with `import`, the UMD bundle with
-//    `require`), externalize nothing but the core and React, and carry none
+//    `require`), externalize nothing but the core, React and zod (the
+//    screen savers' config schemas; a dependency, plan 0016-vbq §2.1), and carry none
 //    of the core's registry code: a bundle that carried its own copy would
 //    register Platinum into registries nothing reads (design 0014-ahm,
 //    anti-goal "Two copies of the registries"). No external specifier
@@ -17,8 +18,9 @@
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
 //    (src/assets/fonts), the art (src/assets/art), the cursors
 //    (src/assets/cursors), the wallpapers (src/assets/wallpapers, not its
-//    photos/ folder) and the four sound sprites
-//    (src/assets/sounds/platinum/platinum.*),
+//    photos/ folder), the four sound sprites
+//    (src/assets/sounds/platinum/platinum.*) and the screen savers' art
+//    (src/screenSavers/**/*.webp, plan 0016-vbq §2.1),
 //    each under its source name and byte-identical to its source, so an
 //    image optimizer or a WebP pass added to vite.config.ts fails here
 //    (0131-ku3's review). dist/ itself holds only the two bundles and their
@@ -102,6 +104,8 @@ const EXTERNAL = [
 	"react",
 	"react-dom",
 	"react/jsx-runtime",
+	// The screen savers' config schemas (Platinum's one dependency).
+	"zod",
 ];
 // Vite's UMD output resolves an asset's URL with
 // `require("url").pathToFileURL(__dirname + "/assets/…")` when there is no
@@ -130,7 +134,7 @@ const CORE_REGISTRY_MARKERS = [
 				!(file === UMD && UMD_ONLY_EXTERNAL.includes(specifier))
 			)
 				problems.push(
-					`${file}: externalizes "${specifier}", which is not the core or React -> check \`external\` in vite.config.ts.`,
+					`${file}: externalizes "${specifier}", which is not the core, React or zod -> check \`external\` in vite.config.ts.`,
 				);
 		}
 		if (!specifiers.includes("@classicy/classicy"))
@@ -145,7 +149,7 @@ const CORE_REGISTRY_MARKERS = [
 	}
 	report(
 		problems,
-		`${BUNDLES.join(", ")}: import @classicy/classicy, externalize only it and React, carry none of it`,
+		`${BUNDLES.join(", ")}: import @classicy/classicy, externalize only it, React and zod, carry none of it`,
 	);
 }
 
@@ -154,6 +158,14 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
+// The screen savers' folders, one per saver, each holding its art.
+const saverDirs = (
+	await readdir(join("src", "screenSavers"), { withFileTypes: true }).catch(
+		() => [],
+	)
+)
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => join("src", "screenSavers", entry.name));
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
 	...(await listFiles("src/assets/art", (n) => /\.(?:svg|png)$/.test(n))),
@@ -164,6 +176,11 @@ const sources = [
 	...["ogg", "m4a", "mp3", "ac3"].map((ext) =>
 		join("src", "assets", "sounds", "platinum", `platinum.${ext}`),
 	),
+	...(
+		await Promise.all(
+			saverDirs.map((dir) => listFiles(dir, (n) => n.endsWith(".webp"))),
+		)
+	).flat(),
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 {

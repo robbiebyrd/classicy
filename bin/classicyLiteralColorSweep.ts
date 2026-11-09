@@ -78,10 +78,10 @@ const VAR_FALLBACK =
 	/var\(--classicy-[a-z0-9-]+\s*,[^()]*(?:\([^()]*(?:\([^()]*\)[^()]*)*\)[^()]*)*\)/gi;
 
 // Files that hold colors as data: the color helpers' own definitions (their
-// white/black mix targets) and the screen savers (ported After Dark art; the
-// overlay's own sheet, beside them, is chrome and is swept).
+// white/black mix targets) and the screen savers Platinum ships (ported After
+// Dark art; the core's overlay sheet is chrome and is swept).
 const EXEMPT_FILE =
-	/^src\/Appearance\/vocabulary\/_color\.scss$|Extensions\/ScreenSaver\/savers\//;
+	/^src\/Appearance\/vocabulary\/_color\.scss$|^packages\/appearance\/platinum\/src\/screenSavers\//;
 
 // Declarations that hold a literal color on purpose, by file. The crash
 // screen's black is its only color outside the theme. The color picker's

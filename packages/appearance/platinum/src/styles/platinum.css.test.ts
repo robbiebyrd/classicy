@@ -189,10 +189,16 @@ describe("platinum.scss (compiled)", () => {
 		).toBe(true);
 	});
 
-	it("every rule is scoped under the platinum root", () => {
+	// But the screen savers' (plan 0016-vbq §2.1): keyed on their own
+	// classes, outside the scope, so a saver another package names renders the
+	// same there (screenSavers/platinumScreenSaverStyles.test.ts).
+	it("every rule is scoped under the platinum root, but the screen savers'", () => {
 		const { selectors, unscoped } = scanSelectors(css);
-		expect(unscoped).toEqual([]);
-		expect(selectors.length).toBeGreaterThan(0);
+		expect(
+			unscoped.filter((selector) => !/^\.classicySaver[A-Z]/.test(selector)),
+		).toEqual([]);
+		expect(unscoped.length).toBeGreaterThan(0);
+		expect(selectors.length).toBeGreaterThan(unscoped.length);
 	});
 
 	it("contains no platinumCamelCase mixin name", () =>

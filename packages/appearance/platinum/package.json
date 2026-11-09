@@ -44,6 +44,8 @@
 		"./src/index.ts",
 		"./src/assets/platinumAssets.ts",
 		"./src/assets/sounds/platinum.ts",
+		"./src/screenSavers/platinumScreenSavers.ts",
+		"./src/screenSavers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 		"**/*.css",
 		"**/*.scss"
 	],
@@ -51,6 +53,9 @@
 		"build": "vite build && pnpm verify:dist",
 		"verify:dist": "node bin/verify-dist.mjs",
 		"test": "vitest run"
+	},
+	"dependencies": {
+		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
 		"@classicy/classicy": "workspace:^",

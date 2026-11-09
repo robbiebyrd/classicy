@@ -17,6 +17,8 @@ const config: StorybookConfig = {
 		"../Welcome.mdx",
 		"../../src/**/*.mdx",
 		"../../src/**/*.stories.@(ts|tsx)",
+		// Platinum's own stories (its screen savers, plan 0016-vbq §2.1).
+		"../../packages/appearance/platinum/src/**/*.stories.@(ts|tsx)",
 	],
 	addons: ["@storybook/addon-docs"],
 	staticDirs: [{ from: "../../assets", to: "/assets" }],

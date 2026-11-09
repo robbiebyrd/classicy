@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
 
@@ -16,6 +17,26 @@ import { runtimeImportGraph } from "@/__tests__/runtimeImportGraph";
  */
 
 const PLATINUM_PACKAGE = "packages/appearance/platinum/";
+
+// Platinum's saver ids and logo ids (packages/appearance/platinum/src/
+// screenSavers/), less the logo id "classicy", which the core uses as a
+// string of its own (the product name).
+const PLATINUM_SAVER_IDS = new Set([
+	"bouncing-ball",
+	"fade-out",
+	"fish",
+	"flying-toasters",
+	"globe",
+	"hard-rain",
+	"logo",
+	"messages",
+	"messages2",
+	"rainstorm",
+	"spotlight",
+	"warp",
+	"berkeley-systems",
+	"startup-screen",
+]);
 
 // The paths that matter, not the whole tree: the package folder also holds
 // resources/ (80,000 files, plan 0015-kxa §3.5).
@@ -84,6 +105,64 @@ describe("the core's import graph", () => {
 		expect(api).not.toHaveProperty("PLATINUM_APPEARANCE_PACKAGE_ID");
 		// The barrel did load: a core name is there.
 		expect(api).toHaveProperty("registerClassicyAppearancePackage");
+	}, 60_000);
+
+	// Plan 0016-vbq §2.1: the core keeps the Screen Saver mechanism and no
+	// saver. Platinum ships the twelve After Dark savers, their art and the
+	// Logo saver's logo registry.
+	it("nothing src/index.ts reaches names a saver module, its art or a Platinum saver id", () => {
+		const graph = runtimeImportGraph("src/index.ts");
+		expect(graph).toContain(
+			"src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver.tsx",
+		);
+		expect(
+			graph.filter((file) =>
+				/Extensions\/ScreenSaver\/savers\/|ClassicyScreenSaverLogoRegistry|ClassicyScreenSaverBuiltIns/.test(
+					file,
+				),
+			),
+		).toEqual([]);
+		expect(graph.filter((file) => file.endsWith(".webp"))).toEqual([]);
+		// The ids Platinum registers its savers and logos under, as string
+		// literals anywhere in the graph's source (comments do not count).
+		const literals = graph
+			.filter((file) => /\.tsx?$/.test(file))
+			.flatMap((file) => {
+				const found: string[] = [];
+				const visit = (node: ts.Node) => {
+					if (ts.isStringLiteralLike(node) && PLATINUM_SAVER_IDS.has(node.text))
+						found.push(`${file}: "${node.text}"`);
+					ts.forEachChild(node, visit);
+				};
+				visit(
+					ts.createSourceFile(
+						file,
+						readFileSync(file, "utf8"),
+						ts.ScriptTarget.Latest,
+						true,
+					),
+				);
+				return found;
+			});
+		expect(literals).toEqual([]);
+	});
+
+	it("exports none of the savers' or the logo registry's names from the barrel", async () => {
+		const api: Record<string, unknown> = await import("@/index");
+		for (const name of [
+			"ClassicyScreenSaverBouncingBall",
+			"BouncingBallConfigSchema",
+			"ClassicyScreenSaverFlyingToasters",
+			"ClassicyScreenSaverLogo",
+			"LogoConfigSchema",
+			"registerClassicyScreenSaverLogo",
+			"CLASSICY_SCREEN_SAVER_LOGO_IDS",
+			"CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID",
+		])
+			expect(api, name).not.toHaveProperty(name);
+		// The mechanism stays.
+		expect(api).toHaveProperty("registerClassicyScreenSaver");
+		expect(api).toHaveProperty("ClassicyScreenSaverConfigForm");
 	}, 60_000);
 
 	// The core's library build enters at the barrel (plan 0015 §3.4): the

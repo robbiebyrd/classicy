@@ -39,6 +39,7 @@
 	"include": [
 		".storybook/**/*",
 		"../src/**/*.stories.tsx",
+		"../packages/appearance/platinum/src/**/*.stories.tsx",
 		"../src/custom.d.ts"
 	]
 }

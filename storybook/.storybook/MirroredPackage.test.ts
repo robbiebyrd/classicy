@@ -70,11 +70,19 @@ describe("the Storybook mirrored appearance package", () => {
 		}
 	});
 
+	// Platinum's look, not its screen savers: their rules close Platinum's
+	// block, unscoped, and are offered under Platinum alone (plan 0016-vbq
+	// §2.1).
 	it("carries Platinum's whole look, rescoped, ahead of its flips", () => {
-		const platinum = layerBody(platinumCss).replaceAll(
-			"[data-classicy-appearance=platinum]",
-			"[data-classicy-appearance=mirrored]",
-		);
+		const body = layerBody(platinumCss);
+		const savers = body.indexOf("\n  .classicySaver");
+		expect(savers).toBeGreaterThan(0);
+		const platinum = body
+			.slice(0, savers)
+			.replaceAll(
+				"[data-classicy-appearance=platinum]",
+				"[data-classicy-appearance=mirrored]",
+			);
 		expect(layerBody(mirroredCss).startsWith(platinum)).toBe(true);
 	});
 

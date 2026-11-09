@@ -41,5 +41,12 @@
 			"@vid/*": ["./assets/vid/*"]
 		}
 	},
-	"exclude": ["example/", "rt911/", "storybook/", "src/**/*.stories.tsx"]
+	"exclude": [
+		"example/",
+		"rt911/",
+		"storybook/",
+		"src/**/*.stories.tsx",
+		// Type-checked under storybook/tsconfig.json, with Storybook's types.
+		"packages/appearance/*/src/**/*.stories.tsx"
+	]
 }

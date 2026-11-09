@@ -6,24 +6,6 @@ import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyA
 import { DriveSetupList } from "@/SystemFolder/ControlPanels/DriveSetup/DriveSetupList";
 import { registerAppleGuideTopic } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
-import {
-	ClassicyScreenSaverBouncingBall,
-	ClassicyScreenSaverBouncingBallOptions,
-} from "@/SystemFolder/Extensions/ScreenSaver/savers/BouncingBall/ClassicyScreenSaverBouncingBall";
-import { ClassicyScreenSaverFadeOut } from "@/SystemFolder/Extensions/ScreenSaver/savers/FadeOut/ClassicyScreenSaverFadeOut";
-import { ClassicyScreenSaverFish } from "@/SystemFolder/Extensions/ScreenSaver/savers/Fish/ClassicyScreenSaverFish";
-import { ClassicyScreenSaverFlyingToasters } from "@/SystemFolder/Extensions/ScreenSaver/savers/FlyingToasters/ClassicyScreenSaverFlyingToasters";
-import { ClassicyScreenSaverGlobe } from "@/SystemFolder/Extensions/ScreenSaver/savers/Globe/ClassicyScreenSaverGlobe";
-import { ClassicyScreenSaverHardRain } from "@/SystemFolder/Extensions/ScreenSaver/savers/HardRain/ClassicyScreenSaverHardRain";
-import {
-	ClassicyScreenSaverLogo,
-	ClassicyScreenSaverLogoOptions,
-} from "@/SystemFolder/Extensions/ScreenSaver/savers/Logo/ClassicyScreenSaverLogo";
-import { ClassicyScreenSaverMessages } from "@/SystemFolder/Extensions/ScreenSaver/savers/Messages/ClassicyScreenSaverMessages";
-import { ClassicyScreenSaverMessages2 } from "@/SystemFolder/Extensions/ScreenSaver/savers/Messages2/ClassicyScreenSaverMessages2";
-import { ClassicyScreenSaverRainstorm } from "@/SystemFolder/Extensions/ScreenSaver/savers/Rainstorm/ClassicyScreenSaverRainstorm";
-import { ClassicyScreenSaverSpotlight } from "@/SystemFolder/Extensions/ScreenSaver/savers/Spotlight/ClassicyScreenSaverSpotlight";
-import { ClassicyScreenSaverWarp } from "@/SystemFolder/Extensions/ScreenSaver/savers/Warp/ClassicyScreenSaverWarp";
 import { FinderAboutThisComputer } from "@/SystemFolder/Finder/FinderAboutThisComputer";
 import { FinderPreferences } from "@/SystemFolder/Finder/FinderPreferences";
 import { HyperCardEditorCanvas } from "@/SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";
@@ -66,8 +48,9 @@ import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/Cl
 /**
  * The passthrough rows for the exported components outside
  * ClassicyPassthrough.test.tsx: boot screens, menu surfaces, file views,
- * app windows, HyperCard's player and editor pieces, the QuickTime and PDF
- * views and the built-in screen savers.
+ * app windows, HyperCard's player and editor pieces and the QuickTime and PDF
+ * views. Platinum's screen savers have theirs in its own suite
+ * (packages/appearance/platinum/src/screenSavers/platinumScreenSaverPassthrough.test.tsx).
  */
 
 // The document loads, but its page never renders: the rows only need the
@@ -491,134 +474,6 @@ const cases: Row[] = [
 			/>
 		),
 		".quickTimePlayerWrapper",
-	],
-	[
-		"ClassicyScreenSaverBouncingBall",
-		() => (
-			<ClassicyScreenSaverBouncingBall
-				config={{}}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySaverBouncingBall",
-	],
-	[
-		"ClassicyScreenSaverBouncingBallOptions (forwards to its spinner)",
-		() => (
-			<ClassicyScreenSaverBouncingBallOptions
-				config={{}}
-				onChange={noop}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySpinnerHolder",
-	],
-	[
-		"ClassicyScreenSaverFadeOut",
-		() => (
-			<ClassicyScreenSaverFadeOut config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverFadeOut",
-	],
-	[
-		"ClassicyScreenSaverFish",
-		() => (
-			<ClassicyScreenSaverFish config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverFish",
-	],
-	[
-		"ClassicyScreenSaverFlyingToasters",
-		() => (
-			<ClassicyScreenSaverFlyingToasters
-				config={{}}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySaverFlyingToasters",
-	],
-	[
-		"ClassicyScreenSaverGlobe",
-		() => (
-			<ClassicyScreenSaverGlobe config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverGlobe",
-	],
-	[
-		"ClassicyScreenSaverHardRain",
-		() => (
-			<ClassicyScreenSaverHardRain config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverHardRain",
-	],
-	[
-		"ClassicyScreenSaverLogo",
-		() => (
-			<ClassicyScreenSaverLogo config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverLogo",
-	],
-	[
-		"ClassicyScreenSaverLogoOptions (forwards to its pop-up menu)",
-		() => (
-			<ClassicyScreenSaverLogoOptions
-				config={{}}
-				onChange={noop}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicyPopUpMenu",
-	],
-	[
-		"ClassicyScreenSaverMessages",
-		() => (
-			<ClassicyScreenSaverMessages config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverMessages",
-	],
-	[
-		"ClassicyScreenSaverMessages2",
-		() => (
-			<ClassicyScreenSaverMessages2
-				config={{}}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySaverMessages2",
-	],
-	[
-		"ClassicyScreenSaverRainstorm",
-		() => (
-			<ClassicyScreenSaverRainstorm
-				config={{}}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySaverRainstorm",
-	],
-	[
-		"ClassicyScreenSaverSpotlight",
-		() => (
-			<ClassicyScreenSaverSpotlight
-				config={{}}
-				className={HOST}
-				style={STYLE}
-			/>
-		),
-		".classicySaverSpotlight",
-	],
-	[
-		"ClassicyScreenSaverWarp",
-		() => (
-			<ClassicyScreenSaverWarp config={{}} className={HOST} style={STYLE} />
-		),
-		".classicySaverWarp",
 	],
 ];
 

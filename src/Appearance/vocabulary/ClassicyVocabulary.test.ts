@@ -143,8 +143,9 @@ const TEMPLATE_FAMILIES: Record<string, string[]> = {
 };
 
 const TOKEN = /(?<![\w$])classicy[A-Z]\w*/g;
-const SKIPPED =
-	/(\.(test|stories)\.tsx?$|\.d\.ts$|__tests__|ScreenSaver\/savers\/)/;
+// The screen savers Platinum ships (its src/screenSavers/, plan 0016-vbq
+// §2.1): ported After Dark markup, outside the vocabulary.
+const SKIPPED = /(\.(test|stories)\.tsx?$|\.d\.ts$|__tests__|^screenSavers\/)/;
 
 function declaredClasses(vocabulary: typeof json): Set<string> {
 	const known = new Set<string>();
