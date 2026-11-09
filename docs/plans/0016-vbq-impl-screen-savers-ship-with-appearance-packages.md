@@ -2,11 +2,12 @@
 id: 0016-vbq
 title: Screen savers ship with Appearance Packages
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: L
 created: "2026-11-09T19:24:12.927Z"
-updated: "2026-11-09T21:12:35.805Z"
+updated: "2026-11-09T22:46:01.017Z"
+completed: "2026-11-09T22:46:01.017Z"
 tags: []
 milestone: ""
 due_date: ""
