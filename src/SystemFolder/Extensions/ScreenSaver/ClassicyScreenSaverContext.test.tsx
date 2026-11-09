@@ -228,7 +228,7 @@ describe("savers follow the active package", () => {
 		expect(dataOf(ds).active).toBeUndefined();
 	});
 
-	it("Activate still works when only the default-offered fallback remains", () => {
+	it("Activate falls back to the first offered saver when the stored id is unregistered", () => {
 		resetClassicyScreenSaversForTests();
 		reg("a-saver");
 		const ds = classicyScreenSaverEventHandler(

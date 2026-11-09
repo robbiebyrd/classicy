@@ -5,8 +5,16 @@ import {
 	render,
 	screen,
 } from "@testing-library/react";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	dispatch,
 	useAppManager,
@@ -91,6 +99,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	resetClassicyAppearancePackagesForTests();
 	resetClassicyScreenSaversForTests();
 	dispatch({ type: "ClassicyAppClose", app: { id: APP_ID } });
 	dispatch({ type: "ClassicyAppClose", app: { id: SCREEN_SAVER_APP_ID } });
@@ -232,5 +241,74 @@ describe("ClassicyScreenSaverManager — follows the active package", () => {
 		).toBeInTheDocument();
 		expect(screen.queryByRole("combobox", { name: "Screen saver" })).toBeNull();
 		expect(screen.getByRole("button", { name: "Test" })).toBeDisabled();
+	});
+});
+
+describe("ClassicyScreenSaverManager — package switch and back", () => {
+	const pkg = (id: string, defaultScreenSaver?: string) =>
+		registerClassicyAppearancePackage({
+			id,
+			name: id,
+			css: "",
+			defaults: {
+				...structuredClone(CLASSICY_CORE_DEFAULT_THEME),
+				package: id,
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			} as ClassicyAppearancePackage["layout"],
+			defaultScreenSaver,
+		});
+	const stored = () =>
+		(
+			useAppManager.getState().System.Manager.Applications.apps[
+				SCREEN_SAVER_APP_ID
+			]?.data as { selectedSaver?: string }
+		).selectedSaver;
+
+	it("the stored selectedSaver is unchanged after a package switch and back", () => {
+		resetClassicyScreenSaversForTests();
+		registerClassicyScreenSaver({
+			id: "mine",
+			name: "Mine",
+			component: () => null,
+			packages: ["a"],
+		});
+		registerClassicyScreenSaver({
+			id: "bs",
+			name: "Bs",
+			component: () => null,
+			packages: ["b"],
+		});
+		pkg("a");
+		pkg("b", "bs");
+		openScreenSaverApp();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "a",
+			});
+		});
+		selectSaver("mine");
+		renderOpen();
+		expect(screen.getByText("Options for Mine")).toBeInTheDocument();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "b",
+			});
+		});
+		expect(screen.getByText("Options for Bs")).toBeInTheDocument();
+		expect(stored()).toBe("mine");
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "a",
+			});
+		});
+		expect(screen.getByText("Options for Mine")).toBeInTheDocument();
+		expect(stored()).toBe("mine");
 	});
 });

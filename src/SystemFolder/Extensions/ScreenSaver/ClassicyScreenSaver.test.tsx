@@ -435,6 +435,38 @@ describe("ClassicyScreenSaver overlay", () => {
 			expect(container.querySelector(".theirs")).toBeNull();
 		});
 
+		it("the stored selectedSaver is unchanged after a package switch and back", () => {
+			resetClassicyScreenSaversForTests();
+			registerClassicyScreenSaver({
+				id: "mine",
+				name: "Mine",
+				component: () => <div className="mine" />,
+				packages: ["a"],
+			});
+			registerClassicyScreenSaver({
+				id: "bs",
+				name: "Bs",
+				component: () => <div className="bs" />,
+				packages: ["b"],
+			});
+			registerPkg("a");
+			registerPkg("b", "bs");
+			mockPackageId.current = "a";
+			setData({ active: true, selectedSaver: "mine" });
+			const { container, rerender } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".mine")).not.toBeNull();
+			mockPackageId.current = "b";
+			rerender(<ClassicyScreenSaver />);
+			expect(container.querySelector(".bs")).not.toBeNull();
+			expect(container.querySelector(".mine")).toBeNull();
+			expect(mockData.current.selectedSaver).toBe("mine");
+			mockPackageId.current = "a";
+			rerender(<ClassicyScreenSaver />);
+			expect(container.querySelector(".mine")).not.toBeNull();
+			expect(container.querySelector(".bs")).toBeNull();
+			expect(mockData.current.selectedSaver).toBe("mine");
+		});
+
 		it("draws no overlay when no saver is offered, even when active", () => {
 			resetClassicyScreenSaversForTests();
 			registerClassicyScreenSaver({
