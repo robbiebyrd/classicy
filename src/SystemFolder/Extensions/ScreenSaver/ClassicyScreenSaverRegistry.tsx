@@ -1,4 +1,8 @@
-import type { CSSProperties, FC as FunctionalComponent } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useSyncExternalStore,
+} from "react";
 import type { z } from "zod";
 
 /** A saver's configuration values, persisted per saver id in app state. */
@@ -59,9 +63,49 @@ export interface ClassicyScreenSaverDefinition {
 	 * screenshot; here the real desktop plays that part.
 	 */
 	transparentBackground?: boolean;
+	/**
+	 * Ids of the Appearance Packages this saver is offered under. Absent or
+	 * empty: offered under every package. Re-registering an id replaces it.
+	 */
+	packages?: readonly string[];
 }
 
+// A Map iterates in insertion order, which is what "registration order"
+// means for the resolver; re-registering an id keeps its original position.
 const registry = new Map<string, ClassicyScreenSaverDefinition>();
+const listeners = new Set<() => void>();
+let snapshot: ClassicyScreenSaverDefinition[] = [];
+
+const publish = () => {
+	snapshot = listClassicyScreenSavers();
+	for (const listener of listeners) listener();
+};
+
+/** Whether `saver` is offered under the package `packageId` (no `packages`: every package). */
+export const classicyScreenSaverOfferedUnder = (
+	saver: ClassicyScreenSaverDefinition,
+	packageId: string,
+): boolean =>
+	saver.packages === undefined ||
+	saver.packages.length === 0 ||
+	saver.packages.includes(packageId);
+
+export function subscribeClassicyScreenSavers(
+	listener: () => void,
+): () => void {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+}
+
+/** Registered savers sorted by name; re-renders on any registration. */
+export const useClassicyScreenSavers = (): ClassicyScreenSaverDefinition[] =>
+	useSyncExternalStore(
+		subscribeClassicyScreenSavers,
+		() => snapshot,
+		() => snapshot,
+	);
 
 /**
  * Register a screensaver. Call at module scope before rendering, like
@@ -82,8 +126,15 @@ export function registerClassicyScreenSaver(
 	saver: ClassicyScreenSaverDefinition,
 ): ClassicyScreenSaverDefinition {
 	registry.set(saver.id, saver);
+	publish();
 	return saver;
 }
+
+/** Test helper: forget every registered saver. */
+export const resetClassicyScreenSaversForTests = (): void => {
+	registry.clear();
+	publish();
+};
 
 export function getClassicyScreenSaver(
 	id: string,
@@ -95,6 +146,10 @@ export function getClassicyScreenSaver(
 export function listClassicyScreenSavers(): ClassicyScreenSaverDefinition[] {
 	return [...registry.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** All registered savers in registration order (a re-registered id keeps its place). */
+export const listClassicyScreenSaversInRegistrationOrder =
+	(): ClassicyScreenSaverDefinition[] => [...registry.values()];
 
 /**
  * Merge a saver's saved config over its defaults, then validate. Schema

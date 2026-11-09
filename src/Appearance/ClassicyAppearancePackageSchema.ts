@@ -225,6 +225,13 @@ export const ClassicyAppearancePackageSchema = z
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
+		defaultScreenSaver: z
+			.string()
+			.min(1)
+			.optional()
+			.describe(
+				"The id of the screen saver the package prefers when the user's stored choice is not offered under it.",
+			),
 		apps: appsWithoutForbiddenKeys
 			.pipe(appsRecord)
 			.optional()
