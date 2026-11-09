@@ -407,8 +407,22 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 			lagFor: { "@fake/core": 0, "@fake/platinum": 1000 },
 		});
 		expect(r.status).toBe(1);
-		expect(r.out).toContain("@fake/platinum@3.0.0 was not listed");
-		expect(r.calls.filter((c) => c === "@fake/platinum")).toHaveLength(60);
+		expect(r.out).toContain(
+			"@fake/platinum@3.0.0 was not listed as latest on npm within 45 minutes",
+		);
+		expect(r.calls.filter((c) => c === "@fake/platinum")).toHaveLength(90);
+	});
+
+	// npm listed @classicy/classicy 3.0.0 on attempt 52 and 3.1.0 on attempt 51
+	// of the old 60 (30 minutes): the wait now runs 90 polls, 45 minutes.
+	it("waits up to 45 minutes for a package npm is slow to list", () => {
+		const r = run({
+			platinum: true,
+			lagFor: { "@fake/core": 85, "@fake/platinum": 0 },
+		});
+		expect(r.status, r.out).toBe(0);
+		expect(r.out).toContain("@fake/core@3.0.0 is live on npm (attempt 86).");
+		expect(r.out).toContain("attempt 85/90");
 	});
 
 	it("checks only the core before the Platinum package exists", () => {
