@@ -20,10 +20,12 @@ const externalPackages = [
 	"react",
 	"react-dom",
 	"react/jsx-runtime",
-	// The screen savers' config schemas (plan 0016-vbq §2.1): a dependency of
-	// the package, installed and deduplicated by the host's package manager.
-	"zod",
 ];
+// zod is bundled, as the core bundles it (plan 0016-vbq §2.1): the core's
+// schema-form helpers read zod's internals (`_zod.def`) on the screen savers'
+// config schemas, so both packages carry the one zod their release was built
+// with, never a host's other 4.x. It stays in package.json `dependencies`
+// because the emitted declarations import its types.
 
 // Asset imports carrying a Vite query (`?inline`, `?raw`, …) are never
 // externalized: the query is a Vite source convention (see the core's
@@ -120,7 +122,6 @@ const platinumConfig = (mode: string): UserConfig => ({
 					react: "React",
 					"react-dom": "ReactDOM",
 					"react/jsx-runtime": "react/jsx-runtime",
-					zod: "Zod",
 				},
 			},
 		},

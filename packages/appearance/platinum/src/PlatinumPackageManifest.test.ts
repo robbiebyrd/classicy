@@ -47,9 +47,9 @@ describe("packages/appearance/platinum/package.json", () => {
 		expect(pkg.devDependencies["@classicy/classicy"]).toBe("workspace:*");
 	});
 
-	// The screen savers' config schemas import zod (plan 0016-vbq §2.1), and
-	// so do their declarations: Platinum declares it at the core's range, its
-	// one dependency.
+	// The screen savers' config schemas import zod (plan 0016-vbq §2.1). The
+	// bundles carry it, as the core's do; the declarations import its types,
+	// so Platinum declares it at the core's range, its one dependency.
 	it("depends on zod alone, at the core's range", () =>
 		expect(pkg.dependencies).toEqual({ zod: core.dependencies.zod }));
 

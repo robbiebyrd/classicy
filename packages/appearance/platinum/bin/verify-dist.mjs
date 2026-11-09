@@ -8,12 +8,14 @@
 //
 // 1. THE CORE IS AN IMPORT, NOT A COPY. Both bundles import
 //    `@classicy/classicy` (the ES bundle with `import`, the UMD bundle with
-//    `require`), externalize nothing but the core, React and zod (the
-//    screen savers' config schemas; a dependency, plan 0016-vbq §2.1), and carry none
+//    `require`), externalize nothing but the core and React, and carry none
 //    of the core's registry code: a bundle that carried its own copy would
 //    register Platinum into registries nothing reads (design 0014-ahm,
 //    anti-goal "Two copies of the registries"). No external specifier
-//    carries a Vite query (the core's invariant 1).
+//    carries a Vite query (the core's invariant 1). zod is carried on purpose,
+//    as the core carries it: the core's schema forms read zod's internals on
+//    the screen savers' config schemas, so both packages ship the zod their
+//    release was built with (plan 0016-vbq §2.1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
 //    (src/assets/fonts), the art (src/assets/art), the cursors
@@ -104,8 +106,6 @@ const EXTERNAL = [
 	"react",
 	"react-dom",
 	"react/jsx-runtime",
-	// The screen savers' config schemas (Platinum's one dependency).
-	"zod",
 ];
 // Vite's UMD output resolves an asset's URL with
 // `require("url").pathToFileURL(__dirname + "/assets/…")` when there is no
@@ -134,7 +134,7 @@ const CORE_REGISTRY_MARKERS = [
 				!(file === UMD && UMD_ONLY_EXTERNAL.includes(specifier))
 			)
 				problems.push(
-					`${file}: externalizes "${specifier}", which is not the core, React or zod -> check \`external\` in vite.config.ts.`,
+					`${file}: externalizes "${specifier}", which is not the core or React -> check \`external\` in vite.config.ts.`,
 				);
 		}
 		if (!specifiers.includes("@classicy/classicy"))
@@ -149,7 +149,7 @@ const CORE_REGISTRY_MARKERS = [
 	}
 	report(
 		problems,
-		`${BUNDLES.join(", ")}: import @classicy/classicy, externalize only it, React and zod, carry none of it`,
+		`${BUNDLES.join(", ")}: import @classicy/classicy, externalize only it and React, carry none of it`,
 	);
 }
 
