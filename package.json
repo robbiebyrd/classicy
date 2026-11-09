@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.0.0",
+	"version": "3.1.0",
 	"release": "Moonlight",
 	"repository": {
 		"type": "git",
