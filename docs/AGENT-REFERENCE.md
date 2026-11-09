@@ -4860,7 +4860,10 @@ are listed in the control panel and can run. A saver whose `packages` is
 absent or empty is offered under every package; otherwise under the ids it
 names. The saver in effect is the stored `selectedSaver` when offered, else
 the package's `defaultScreenSaver` (an optional field on the package, naming
-one of its savers; an unknown id is warned about once and ignored), else the
+one of its savers; an unknown id is warned about once and ignored: the id is
+checked when the package registers, so register its savers first, otherwise
+a warning is logged though resolution still works, since it reads the
+registry live), else the
 first offered saver in registration order. The stored choice is never
 overwritten, so a package switch and back restores it. With no saver offered
 the panel says "This appearance has no screen savers.", Test and the Control

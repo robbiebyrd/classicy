@@ -79,9 +79,12 @@ if (fish) registerClassicyScreenSaver({ ...fish, packages: ['platinum', 'my-pack
 - **Saver styles live in Platinum's package stylesheet**
   (`@layer classicy.package`), not the core's base layer, and saver art ships
   as files in Platinum's `dist/assets`. Reduced-motion pausing and the hidden
-  pointer over a running saver still hold: no saver style sets
-  `animation-play-state` or `cursor`, and the overlay also pauses animations
-  from JS.
+  pointer over a running saver still hold: Platinum's package layer carries
+  its own reduced-motion pause rule after every saver (their `animation:`
+  shorthands would otherwise beat the core's base-layer rule), no saver style
+  sets `animation-play-state` or `cursor`, and the overlay also pauses
+  animations from JS. A package that ships savers in its own layer must carry
+  the same rule.
 - **Platinum bundles its own zod**, as the core does, so both packages carry
   the zod their release was built with; `zod` stays in Platinum's
   `dependencies` for its type declarations. Platinum's ES bundle grows from

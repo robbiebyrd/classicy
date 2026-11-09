@@ -366,9 +366,12 @@ keystroke/click is swallowed in the capture phase.
 - Overlay z-index is 100001 (above dialog overlay 99999 and startup 100000);
   reduced-motion users get a paused (static) saver: a stylesheet rule keyed
   on the overlay's id (`#classicy-screen-saver-overlay`) sets
-  `animation-play-state: paused` (in the core's base sheet; saver styles, now
-  in the package layer, set neither `animation-play-state` nor `cursor`, which
-  a test pins, so the rule is not outranked), and the overlay also pauses its subtree's
+  `animation-play-state: paused` (in the core's base sheet: it covers base-layer
+  and host savers, but an `animation:` shorthand in a later layer resets the
+  play state and beats it, so a package shipping savers in its own layer must
+  carry its own reduced-motion pause rule: Platinum's `_screenSavers.scss`
+  ends with one, after every saver, pinned by a test, and its saver styles set
+  neither `animation-play-state` nor `cursor`), and the overlay also pauses its subtree's
   animations from JS when the saver mounts or changes and, through a
   capture-phase `animationstart` listener, every CSS animation that starts
   later — so CSS animations (stylesheet or inline, whenever they start) are
