@@ -1,3 +1,4 @@
+import { resolveClassicyAsset } from "@classicy/classicy";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, userEvent } from "@/__tests__/test-utils";
 import {
@@ -28,6 +29,19 @@ import {
 	unregisterClassicyScreenSaverLogo,
 	useClassicyScreenSaverLogos,
 } from "./ClassicyScreenSaverLogoRegistry";
+
+// resolveClassicyAsset is the real one unless a test mocks a missing icon.
+const { realResolve } = vi.hoisted(() => ({
+	realResolve: { current: undefined as unknown },
+}));
+vi.mock("@classicy/classicy", async (importOriginal) => {
+	const original = await importOriginal<typeof import("@classicy/classicy")>();
+	realResolve.current = original.resolveClassicyAsset;
+	return {
+		...original,
+		resolveClassicyAsset: vi.fn(original.resolveClassicyAsset),
+	};
+});
 
 const markOf = (container: HTMLElement) =>
 	container.querySelector<HTMLImageElement>(".classicySaverLogoMark");
@@ -98,6 +112,33 @@ describe("screen saver logo registry", () => {
 			registerClassicyIcons(original);
 		}
 		expect(drawnSrc("classicy")).toBe(ClassicyIcons.classicy.logo);
+	});
+
+	it("falls back to the Berkeley Systems mark, warning once per logo, when a stock icon is missing", () => {
+		const berkeley = drawnSrc("berkeley-systems");
+		expect(berkeley).toBeTruthy();
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		// No package registers the icons.
+		vi.mocked(resolveClassicyAsset).mockReturnValue(undefined);
+		try {
+			expect(drawnSrc("classicy")).toBe(berkeley);
+			expect(drawnSrc("classicy")).toBe(berkeley);
+			expect(drawnSrc("startup-screen")).toBe(berkeley);
+			const calls = warn.mock.calls.map((call) => String(call[0]));
+			expect(calls.filter((c) => c.includes('"classicy" logo'))).toHaveLength(
+				1,
+			);
+			expect(
+				calls.filter((c) => c.includes('"startup-screen" logo')),
+			).toHaveLength(1);
+			expect(calls.every((c) => c.startsWith("[ScreenSaver] "))).toBe(true);
+		} finally {
+			vi.mocked(resolveClassicyAsset).mockReset();
+			vi.mocked(resolveClassicyAsset).mockImplementation(
+				realResolve.current as typeof resolveClassicyAsset,
+			);
+			warn.mockRestore();
+		}
 	});
 
 	it("draws a logo whose src is a function with what it returns", () => {

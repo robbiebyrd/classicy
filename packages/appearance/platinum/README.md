@@ -3,7 +3,7 @@
 Platinum, the Mac OS 8 look, as an Appearance Package for
 [Classicy](https://github.com/robbiebyrd/classicy). It holds Platinum's
 stylesheet, its themes (21 presets), its art, cursors, fonts and wallpapers,
-and its sound pack.
+its sound pack and its twelve screen savers.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Without one,
 `ClassicyDesktop` shows a message telling you to load one instead of the
@@ -32,10 +32,27 @@ import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
 - `.`: the package entry (ES and UMD bundles, with types). Importing it
   registers Platinum. It also exports `PLATINUM_APPEARANCE_PACKAGE_ID`,
   `platinumAppearanceHooks`, `platinumSoundPack` and `platinumJson`.
+- The screen savers, also exported from `.`: the twelve saver components
+  (`ClassicyScreenSaverBouncingBall`, `FadeOut`, `Fish`, `FlyingToasters`,
+  `Globe`, `HardRain`, `Logo`, `Messages`, `Messages2`, `Rainstorm`,
+  `Spotlight`, `Warp`), their config schemas (`BouncingBallConfigSchema`,
+  `FishConfigSchema`, ...) and options components
+  (`ClassicyScreenSaverBouncingBallOptions`, `ClassicyScreenSaverLogoOptions`),
+  and the Logo saver's registry: `registerClassicyScreenSaverLogo`,
+  `unregisterClassicyScreenSaverLogo`, `getClassicyScreenSaverLogo`,
+  `listClassicyScreenSaverLogos`, `useClassicyScreenSaverLogos`,
+  `resolveClassicyScreenSaverLogo`, `CLASSICY_SCREEN_SAVER_LOGO_IDS`,
+  `CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID` and the
+  `ClassicyScreenSaverLogoDefinition` type. Platinum registers the savers
+  under `packages: ["platinum"]` and names `defaultScreenSaver:
+  "bouncing-ball"`.
 - `./scss/*`: Platinum's SCSS (`mixins`, `scrollbars`, `assets`), for hosts
   and packages that build on its look. It uses the core's vocabulary as
   `pkg:@classicy/classicy/scss/*`, so compile it with Sass's
   `NodePackageImporter`.
+  The package also ships `platinum.scss` and the saver partial
+  `_screenSavers.scss`; they are not for host compilation (the first ships
+  compiled, the second loads saver sheets that are not published).
 - `./classicy-platinum.css` and `./classicy-platinum.fonts.css`: the look and
   the fonts as stylesheets, for hosts whose Content-Security-Policy blocks
   inline `<style>` (below).

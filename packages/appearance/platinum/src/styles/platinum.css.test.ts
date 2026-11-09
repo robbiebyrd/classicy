@@ -195,7 +195,12 @@ describe("platinum.scss (compiled)", () => {
 	it("every rule is scoped under the platinum root, but the screen savers'", () => {
 		const { selectors, unscoped } = scanSelectors(css);
 		expect(
-			unscoped.filter((selector) => !/^\.classicySaver[A-Z]/.test(selector)),
+			unscoped.filter(
+				(selector) =>
+					!/^\.classicySaver[A-Z]/.test(selector) &&
+					// The savers' reduced-motion pause (_screenSavers.scss).
+					!/^#classicy-screen-saver-overlay( \*)?$/.test(selector),
+			),
 		).toEqual([]);
 		expect(unscoped.length).toBeGreaterThan(0);
 		expect(selectors.length).toBeGreaterThan(unscoped.length);

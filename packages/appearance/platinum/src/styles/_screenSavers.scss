@@ -8,7 +8,13 @@
 //
 // In the package layer they beat the overlay's base rules, so no saver may set
 // `animation-play-state` or `cursor` (platinumScreenSaverStyles.test.ts): the
-// overlay owns the reduced-motion pause and the hidden pointer.
+// overlay owns the hidden pointer. The `animation:` shorthand does reset
+// `animation-play-state` to running, though, and a later layer beats the
+// core's reduced-motion pause (ClassicyScreenSaver.scss, base layer) whatever
+// its selector's specificity. So the mixin ends with the pause again, in this
+// layer, after every saver: a package that ships savers in its own layer
+// carries its own reduced-motion pause. The overlay's JS pause is the backstop
+// for every CSS animation.
 //
 // The paths are relative to styles/: include the mixin from a stylesheet
 // there (platinum.scss).
@@ -27,4 +33,13 @@
   @include meta.load-css("../screenSavers/Rainstorm/ClassicyScreenSaverRainstorm");
   @include meta.load-css("../screenSavers/Spotlight/ClassicyScreenSaverSpotlight");
   @include meta.load-css("../screenSavers/Warp/ClassicyScreenSaverWarp");
+
+  // After every saver, in the same layer: the id outranks their class-based
+  // `animation:` shorthands, and it comes last besides.
+  @media (prefers-reduced-motion: reduce) {
+    #classicy-screen-saver-overlay,
+    #classicy-screen-saver-overlay * {
+      animation-play-state: paused;
+    }
+  }
 }

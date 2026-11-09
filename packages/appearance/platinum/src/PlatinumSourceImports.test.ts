@@ -65,6 +65,8 @@ describe("Platinum's TypeScript", () => {
 				"hooks.ts",
 				"assets/platinumAssets.ts",
 				"assets/sounds/platinum.ts",
+				"screenSavers/platinumScreenSavers.ts",
+				"screenSavers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 			]),
 		));
 

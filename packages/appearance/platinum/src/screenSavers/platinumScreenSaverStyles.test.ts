@@ -12,8 +12,11 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 // keyed on the savers' own classes and `classicySaver*` keyframes, so a saver
 // another package also names renders the same there. In the package layer
 // they beat every `classicy.base` rule, the overlay's included, so none may
-// set what the overlay owns: the reduced-motion pause
-// (`animation-play-state`) and the hidden pointer (`cursor`).
+// set what the overlay owns: the hidden pointer (`cursor`) and the
+// `animation-play-state` longhand. An `animation:` shorthand resets the play
+// state to running, so the core's base-layer reduced-motion pause cannot
+// reach these savers; the package layer carries its own copy of that pause
+// after every saver rule (the mixin's last rule), pinned below.
 
 const PLATINUM_SRC = path.resolve(import.meta.dirname, "..");
 const CORE_SRC = path.resolve(import.meta.dirname, "../../../../../src");
@@ -22,6 +25,10 @@ const LOAD = {
 	importers: [new NodePackageImporter()],
 };
 
+// The reduced-motion pause the mixin ends with (see the header comment).
+const PAUSE_RULE =
+	/@media \(prefers-reduced-motion: reduce\) \{\s*#classicy-screen-saver-overlay,\s*#classicy-screen-saver-overlay \* \{\s*animation-play-state: paused;\s*\}\s*\}/;
+
 const platinumCss = compile(
 	path.join(PLATINUM_SRC, "styles", "platinum.scss"),
 	LOAD,
@@ -29,13 +36,15 @@ const platinumCss = compile(
 // The savers' partial alone, its mixin included at the root of a sheet in
 // styles/, as platinum.scss includes it (meta.load-css resolves the saver
 // sheets from there).
-const saverCss = compileString(
+const saverCssWithPause = compileString(
 	'@use "screenSavers";\n@include screenSavers.screenSavers;',
 	{
 		...LOAD,
 		url: pathToFileURL(path.join(PLATINUM_SRC, "styles", "test.scss")),
 	},
 ).css;
+// The savers' own rules, without the trailing pause rule.
+const saverCss = saverCssWithPause.replace(PAUSE_RULE, "");
 
 /** Each rule's selector (or at-rule header) and its declarations, flattened. */
 const declarations = (css: string): { header: string; body: string }[] => {
@@ -111,6 +120,29 @@ describe("the screen savers' styles (styles/_screenSavers.scss)", () => {
 			),
 		);
 		expect(offenders).toEqual([]);
+	});
+
+	// A saver's `animation:` shorthand resets animation-play-state to running,
+	// and the package layer beats the core's base-layer pause, so the package
+	// layer repeats the pause, last, unscoped.
+	it("end with the package layer's own reduced-motion pause, after every saver rule", () => {
+		const pause = platinumCss.search(PAUSE_RULE);
+		expect(pause, "the pause rule").toBeGreaterThan(-1);
+		// Unscoped, in the package layer's block.
+		expect(platinumCss.slice(0, pause)).toContain("@layer classicy.package");
+		expect(platinumCss.slice(pause)).not.toMatch(
+			/data-classicy-appearance=platinum\][^{]*#classicy-screen-saver-overlay/,
+		);
+		// Every saver rule that sets an `animation:` shorthand comes before it.
+		const shorthands = [...platinumCss.matchAll(/(^|\n)\s*animation:/g)];
+		expect(shorthands.length).toBeGreaterThan(0);
+		for (const hit of shorthands) expect(hit.index).toBeLessThan(pause);
+		const lastSaverRule = Math.max(
+			...SAVER_ROOTS.map((root) => platinumCss.lastIndexOf(`.${root}`)),
+		);
+		expect(lastSaverRule).toBeLessThan(pause);
+		// And it is the only place the package layer pauses animations.
+		expect(platinumCss.match(/animation-play-state/g)).toHaveLength(1);
 	});
 
 	it("ship in Platinum's package layer, outside the package scope", () => {

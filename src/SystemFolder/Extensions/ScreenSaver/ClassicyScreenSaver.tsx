@@ -124,9 +124,12 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /**
  * Pauses every CSS animation in the overlay for reduced-motion users. The
- * stylesheet's `animation-play-state: paused` already covers animations a
- * saver declares in CSS; this also stops ones a registered saver writes
- * inline, which no stylesheet rule can outrank:
+ * stylesheet's `animation-play-state: paused` covers animations a base-layer
+ * or host saver declares in CSS, and a package that ships savers in its own
+ * layer carries its own copy of that rule (a later layer's `animation:`
+ * shorthand would otherwise beat the core's). This is the backstop for every
+ * CSS animation, and also stops ones a registered saver writes inline, which
+ * no stylesheet rule can outrank:
  * - after the saver mounts and whenever the selected saver changes, every
  *   animation in the subtree (including ones still in their delay phase);
  * - from then on, each CSS animation that starts later (an element spawned on

@@ -1,4 +1,4 @@
-import { resolveClassicyAsset } from "@classicy/classicy";
+import { classicyLog, resolveClassicyAsset } from "@classicy/classicy";
 import { useSyncExternalStore } from "react";
 import berkeleySystemsLogo from "./logo.webp";
 
@@ -112,6 +112,27 @@ export const resolveClassicyScreenSaverLogo = (
 	(typeof id === "string" ? registry.get(id) : undefined) ??
 	registry.get(CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID);
 
+const warnedMissingIcons = new Set<string>();
+
+/**
+ * A stock logo's icon from the active package, or the Berkeley Systems mark
+ * (logged once per logo id) when no package registers it, so the saver never
+ * draws `<img src="">`.
+ */
+const iconOrBerkeley = (logoId: string, iconKey: string): string => {
+	const found = resolveClassicyAsset("icons", iconKey);
+	if (found) return found;
+	if (!warnedMissingIcons.has(logoId)) {
+		warnedMissingIcons.add(logoId);
+		classicyLog(
+			"warn",
+			"ScreenSaver",
+			`The "${logoId}" logo's icon "${iconKey}" is not registered; drawing the Berkeley Systems logo instead.`,
+		);
+	}
+	return String(berkeleySystemsLogo);
+};
+
 // The stock logos. The Berkeley Systems mark is the After Dark original
 // (145 × 54 px); the other two are scaled to the same height so switching
 // between them keeps the bounce path.
@@ -127,7 +148,8 @@ registerClassicyScreenSaverLogo({
 	id: CLASSICY_SCREEN_SAVER_LOGO_IDS.classicy,
 	name: "Classicy",
 	// Read at draw time, from the active package's icons.
-	src: () => resolveClassicyAsset("icons", "classicy.logo") ?? "",
+	src: () =>
+		iconOrBerkeley(CLASSICY_SCREEN_SAVER_LOGO_IDS.classicy, "classicy.logo"),
 	// classicy-logo.svg is 476 × 179.
 	width: 144,
 	height: 54,
@@ -137,7 +159,11 @@ registerClassicyScreenSaverLogo({
 	id: CLASSICY_SCREEN_SAVER_LOGO_IDS.startupScreen,
 	name: "Startup Screen",
 	// The mark the startup screen shows beside the wordmark by default.
-	src: () => resolveClassicyAsset("icons", "system.macosSvg") ?? "",
+	src: () =>
+		iconOrBerkeley(
+			CLASSICY_SCREEN_SAVER_LOGO_IDS.startupScreen,
+			"system.macosSvg",
+		),
 	// macos.svg is 235.7 × 193.6.
 	width: 66,
 	height: 54,

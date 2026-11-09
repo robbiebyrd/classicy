@@ -23,8 +23,8 @@ import {
 
 const component = () => null;
 let n = 0;
-// Ids are unique per test: the saver registry has no reset, and its entries
-// would otherwise leak between cases.
+// Ids are unique per test: ids stay unique even though afterEach resets the
+// saver registry, so a case never reads another's leftovers.
 const uid = (name: string) => `${name}-${++n}`;
 const saver = (
 	id: string,
