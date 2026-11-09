@@ -872,7 +872,7 @@ and icon states own:
   `ClassicyDesktop` (`ClassicyNoAppearancePackage` while no Appearance
   Package is registered, then `#classicyDesktop`) and
   `ClassicyCrashScreen` (only the Sad Mac screen — the boundary has no element
-  until a descendant throws). The built-in screen savers take them through
+  until a descendant throws). The built-in screen savers (Platinum's) take them through
   `ClassicyScreenSaverProps`; the screen-saver overlay passes none, so they
   matter only to a host rendering a saver itself.
 - No passthrough, because there is no root element of their own:
@@ -1489,8 +1489,9 @@ art only that package uses (reads fall back to `"platinum"`). Three of
 these icon paths stay registered, because the core draws their files too:
 `classicy.logo`, `system.macosSvg` and `ui.cursors.hand` (the PDF viewer's
 pan-tool button draws it). The others are gone (below). The screen saver's
-built-in logos copy `classicy.logo` and `system.macosSvg` too; replace those
-with `registerClassicyScreenSaverLogo`.
+built-in logos read `classicy.logo` and `system.macosSvg` too, when they draw;
+replace those with `registerClassicyScreenSaverLogo` (from
+`@classicy/appearance-platinum`).
 
 - **Seven icon paths are gone.** They are no longer in `ClassicyIcons` or the
   Platinum icon tree, so `ClassicyIcons.system.bomb` is a type error and
@@ -4409,7 +4410,7 @@ skips:
   theme variable's fallback (`var(--color-black, #000)`) is not skipped:
   `getThemeVars` always sets the variable, so the literal is dead (H-R14);
 - the helpers' own definitions and the screen savers' ported art under
-  `savers/` (whole files);
+  `packages/appearance/platinum/src/screenSavers/` (whole files);
 - the crash screen's `var(--color-black, black)`: the Sad Mac replaces the
   desktop, so it renders outside the element that carries the theme;
 - in `ClassicyColorPicker.scss`, only the crayon box's art (its cardboard,
@@ -4468,7 +4469,7 @@ package's own `--<pkg>-*: Npx` constants, and a `var(--x, Npx)` fallback
 only `0px`, `calc(infinity * 1px)`, `@media`/`@container` preludes,
 comments (`/* */` across lines, and `//` except the `://` of a URL),
 `url(…)` payloads (nested parentheses and quotes included) and the screen
-savers' ported art under `Extensions/ScreenSaver/savers/`. There is no
+savers' ported art under `packages/appearance/platinum/src/screenSavers/`. There is no
 allowlist: any literal in any file fails the gate.
 A theme variable's pixel fallback is dead, since `getThemeVars` always sets
 the variable, so none is left either:
@@ -4789,7 +4790,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 |---|---|
 | `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
 | `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
-| `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension (see "Screen savers" below) |
+| `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension, offered under the Appearance Packages `def.packages` names (see "Screen savers" below) |
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
@@ -4823,14 +4824,18 @@ Validate with `validateStack(raw)` →
 `timeoutMinutes` of real-world inactivity (wall clock — independent of the
 Date & Time virtual clock) it covers the desktop with the selected
 screensaver; any input wakes it (the waking keystroke/click is swallowed).
-Twelve After Dark-style savers ship built in (ids: `bouncing-ball`,
-`fade-out`, `fish`, `flying-toasters`, `globe`, `hard-rain`, `logo`,
-`messages`, `messages2`, `rainstorm`, `spotlight`, `warp`). The "Screen
+The core ships no saver: they come with an Appearance Package. Platinum
+(`@classicy/appearance-platinum`) registers twelve After Dark-style savers
+when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
+`globe`, `hard-rain`, `logo`, `messages`, `messages2`, `rainstorm`,
+`spotlight`, `warp`), offered under `platinum`, and exports their components,
+config schemas and options UIs under the names `@classicy/classicy` exported
+them by in 3.0 (import them from the Platinum package now). The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
 timeout, on/off, and per-saver options.
 
-Register your own at module scope (re-registering an id replaces it, so
-built-ins can be swapped out):
+Register your own at module scope (re-registering an id replaces it,
+`packages` included, so Platinum's can be swapped out):
 
 ```tsx
 import { registerClassicyScreenSaver } from '@classicy/classicy'
@@ -4846,7 +4851,32 @@ registerClassicyScreenSaver({
     }),
     configComponent: MatrixOptions,   // optional custom options UI (FC<{ config, onChange }>)
     transparentBackground: false,     // true = reveal the live desktop (e.g. spotlight effects)
+    packages: ['platinum', 'acme'],   // offered under these Appearance Packages; omit = every package
 })
+```
+
+**Which savers are offered.** Only the active Appearance Package's savers
+are listed in the control panel and can run. A saver whose `packages` is
+absent or empty is offered under every package; otherwise under the ids it
+names. The saver in effect is the stored `selectedSaver` when offered, else
+the package's `defaultScreenSaver` (an optional field on the package, naming
+one of its savers; an unknown id is warned about once and ignored), else the
+first offered saver in registration order. The stored choice is never
+overwritten, so a package switch and back restores it. With no saver offered
+the panel says "This appearance has no screen savers.", Test and the Control
+Strip's Sleep Now are disabled and the overlay never activates.
+`ClassicyAppScreenSaverSetSaver` and `SetConfig` accept any registered saver,
+including one only another package offers. To offer a Platinum saver under
+your package too, re-register it with both ids, from the registered
+definition (after `import '@classicy/appearance-platinum'`) or from the
+exported parts (`ClassicyScreenSaverFish`, `FishConfigSchema`, …):
+
+```tsx
+import { getClassicyScreenSaver, registerClassicyScreenSaver } from '@classicy/classicy'
+import '@classicy/appearance-platinum'
+
+const fish = getClassicyScreenSaver('fish')
+if (fish) registerClassicyScreenSaver({ ...fish, packages: ['platinum', 'acme'] })
 ```
 
 Options UI is two-tier: a saver's `configComponent` wins; otherwise a form is
@@ -4888,24 +4918,31 @@ stacks):
 
 Registry read side: `getClassicyScreenSaver(id)`,
 `listClassicyScreenSavers()` (name-sorted),
-`resolveScreenSaverConfig(saver, saved?)`. The `active` flag is transient and
+`resolveScreenSaverConfig(saver, saved?)`, and by package:
+`isClassicyScreenSaverOffered(saver, packageId)`,
+`listClassicyScreenSaversFor(packageId)`,
+`resolveClassicyScreenSaverFor(packageId, selectedSaver?)`,
+`activeClassicyScreenSaverPackageId(state?)`,
+`subscribeClassicyScreenSavers(listener)` and `useClassicyScreenSavers()`
+(live). The `active` flag is transient and
 never persists — a reload always wakes up.
 
 **Logo saver images.** The `logo` saver bounces one of a registry of images,
-chosen in its options pop-up (config `{ logo: <id> }`). Three ship built in
+chosen in its options pop-up (config `{ logo: <id> }`). The registry, like
+the saver, is `@classicy/appearance-platinum`'s. Three ship built in
 (`CLASSICY_SCREEN_SAVER_LOGO_IDS`): `berkeley-systems` (the After Dark mark,
 default), `classicy` (the Classicy wordmark) and `startup-screen` (the mark
 the startup screen shows). Add your own at module scope; the pop-up is live,
 and re-registering an id replaces that image in place:
 
 ```tsx
-import { registerClassicyScreenSaverLogo } from '@classicy/classicy'
+import { registerClassicyScreenSaverLogo } from '@classicy/appearance-platinum'
 import logo from './acme-logo.png'
 
 registerClassicyScreenSaverLogo({
     id: 'acme',
     name: 'Acme Corp',   // shown in the Logo pop-up
-    src: logo,           // URL or data URI, drawn on black
+    src: logo,           // URL or data URI (or a () => string read at draw time), drawn on black
     width: 160,          // optional px; omit both to use the natural size,
     height: 60,          // give one to scale with the aspect kept
 })
