@@ -7,13 +7,13 @@ import type { ClassicyScreenSaverDefinition } from "@/SystemFolder/Extensions/Sc
 import { ClassicySchemaForm } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaForm";
 import { classicyZodType } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
 
-// A schema from "another copy of zod": vitest resolves one module graph per
-// file, so a second copy of zod cannot be loaded here. Instead, every schema
-// node is structurally cloned onto a plain prototype (Object.prototype), with
-// the same definition data and no class traits (zod 4 answers `instanceof`
-// from `_zod.traits`, so an empty set is what a copy that does not share the
-// core's class names looks like), so `instanceof z.ZodX` against the core's
-// classes is false at every level.
+// A schema from a zod whose classes do not match the core's. zod 4 answers
+// `instanceof` from `_zod.traits` (Symbol.hasInstance, zod/v4/core/core.js), so
+// a real second copy of the same zod version already passes `instanceof`; this
+// models the case that does not (e.g. a different zod major), which the
+// def-type detection guards. vitest's single module graph cannot load a real
+// second copy, so every schema node is cloned onto Object.prototype with the
+// same definition data and an empty trait set: `instanceof z.ZodX` is false.
 // Own plus inherited property descriptors (zod keeps getters such as
 // `minValue` on the class prototype); nearer definitions win.
 const inheritedDescriptors = (source: object): PropertyDescriptorMap => {
@@ -57,7 +57,7 @@ const foreignClone = <T,>(schema: T, seen = new Map<object, object>()): T => {
 	return clone;
 };
 
-const buildSchemas = async () => {
+const buildSchemas = () => {
 	const core = z.looseObject({
 		speed: z.number().min(1).max(10).default(5),
 		trails: z.boolean().default(true),
@@ -81,8 +81,8 @@ const expectAllFields = (prefix: string) => {
 };
 
 describe("schema form with a schema from another zod copy", () => {
-	it("really is a separate zod copy (the precondition)", async () => {
-		const { core, foreign } = await buildSchemas();
+	it("really is a separate zod copy (the precondition)", () => {
+		const { core, foreign } = buildSchemas();
 		expect(core instanceof z.ZodObject).toBe(true);
 		expect(foreign instanceof z.ZodObject).toBe(false);
 		expect(classicyZodType(foreign)).toBe("object");
@@ -94,8 +94,8 @@ describe("schema form with a schema from another zod copy", () => {
 	it.each([
 		"core",
 		"foreign",
-	] as const)("renders every field of the %s schema", async (which) => {
-		const schemas = await buildSchemas();
+	] as const)("renders every field of the %s schema", (which) => {
+		const schemas = buildSchemas();
 		render(
 			<ClassicySchemaForm
 				schema={schemas[which] as z.ZodObject<z.ZodRawShape>}
@@ -110,8 +110,8 @@ describe("schema form with a schema from another zod copy", () => {
 	it.each([
 		"core",
 		"foreign",
-	] as const)("ClassicyScreenSaverConfigForm renders the %s schema", async (which) => {
-		const schemas = await buildSchemas();
+	] as const)("ClassicyScreenSaverConfigForm renders the %s schema", (which) => {
+		const schemas = buildSchemas();
 		const saver = {
 			id: "s",
 			name: "S",
