@@ -40,8 +40,11 @@ html.classicyScreenSaverActive:has(#classicy-screen-saver-overlay) * {
 	background: transparent;
 }
 
-/* A frozen screensaver is still a screensaver; honor reduced motion. The id
-   outranks every saver's class-based animation rules. */
+/* A frozen screensaver is still a screensaver; honor reduced motion. This
+   covers savers in the base layer (and the host's); a later layer's
+   `animation:` shorthand resets the play state and beats it, so a package
+   that ships savers in its own layer carries its own copy of this rule
+   (Platinum's _screenSavers.scss). The JS pause is the backstop. */
 @media (prefers-reduced-motion: reduce) {
 	#classicy-screen-saver-overlay *,
 	#classicy-screen-saver-overlay {

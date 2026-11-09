@@ -1,4 +1,8 @@
 import { setClassicyPackageMeasurementsLookup } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
+import {
+	classicyScreenSaverOfferedUnder,
+	getClassicyScreenSaver,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import {
 	CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
@@ -46,6 +50,9 @@ export const CLASSICY_FALLBACK_APPEARANCE_PACKAGE: ClassicyAppearancePackage =
 	});
 
 const registry = new Map<string, ClassicyAppearancePackage>();
+// Package ids whose unusable `defaultScreenSaver` has been warned about (once
+// per id per page).
+const warnedDefaultSaver = new Set<string>();
 const listeners = new Set<() => void>();
 let snapshot: ClassicyAppearancePackage[] = [];
 
@@ -67,6 +74,21 @@ const frozenAppsCopy = (
 		copy[appId] = Object.freeze({ ...override });
 	}
 	return Object.freeze(copy);
+};
+
+// Savers register before their package (as Platinum's assets do), so the
+// check can run here; the package registers either way.
+const warnOnUnusableDefaultScreenSaver = (pkg: ClassicyAppearancePackage) => {
+	const saverId = pkg.defaultScreenSaver;
+	if (saverId === undefined || warnedDefaultSaver.has(pkg.id)) return;
+	const saver = getClassicyScreenSaver(saverId);
+	if (saver && classicyScreenSaverOfferedUnder(saver, pkg.id)) return;
+	warnedDefaultSaver.add(pkg.id);
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`Package "${pkg.id}" names defaultScreenSaver "${saverId}", which is not a registered screen saver offered under it; it is ignored.`,
+	);
 };
 
 /**
@@ -98,6 +120,7 @@ export function registerClassicyAppearancePackage(
 		return;
 	}
 	injectClassicyAppearanceStyles(pkg.id, pkg.css);
+	warnOnUnusableDefaultScreenSaver(pkg);
 	const apps = parsed.data?.apps;
 	registry.set(
 		pkg.id,
@@ -180,6 +203,7 @@ export function subscribeClassicyAppearancePackages(
 /** Test helper: forget every registered package and remove its stylesheet. */
 export const resetClassicyAppearancePackagesForTests = (): void => {
 	registry.clear();
+	warnedDefaultSaver.clear();
 	if (typeof document !== "undefined") {
 		for (const style of document.querySelectorAll(
 			`style[id^="${CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX}"]`,

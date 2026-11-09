@@ -16,6 +16,7 @@ describe("which assets the library builds emit as files", () => {
 		"/r/packages/appearance/platinum/src/assets/art/apple.png",
 		"/r/packages/appearance/platinum/src/assets/cursors/cursor-watch.png",
 		"packages\\appearance\\platinum\\src\\assets\\wallpapers\\default.jpg",
+		"/r/packages/appearance/platinum/src/screenSavers/Warp/stars1.webp",
 	];
 	const CORE = ["/r/assets/img/icons/system/macos.svg", "/r/src/index.ts"];
 

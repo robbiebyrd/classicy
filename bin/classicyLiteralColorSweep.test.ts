@@ -141,8 +141,12 @@ describe("classicyLiteralColorHits", () => {
 		const line = ".a { color: #123456; }";
 		expect(hits("src/Appearance/vocabulary/_color.scss", line)).toEqual([]);
 		expect(
-			hits("src/SystemFolder/Extensions/ScreenSaver/savers/X/X.scss", line),
+			hits("packages/appearance/platinum/src/screenSavers/X/_X.scss", line),
 		).toEqual([]);
+		// The savers' old home in the core is no longer exempt.
+		expect(
+			hits("src/SystemFolder/Extensions/ScreenSaver/savers/X/X.scss", line),
+		).not.toEqual([]);
 		// The overlay's own sheet is chrome, not ported art (H 6.1).
 		expect(
 			hits(

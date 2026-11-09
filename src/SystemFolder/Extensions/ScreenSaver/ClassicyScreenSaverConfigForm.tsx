@@ -1,10 +1,11 @@
 import type { FC as FunctionalComponent } from "react";
-import { z } from "zod";
+import type { z } from "zod";
 import type {
 	ClassicyScreenSaverConfigProps,
 	ClassicyScreenSaverDefinition,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicySchemaForm } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaForm";
+import { classicyZodType } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
 
 /** `current` with `value` written at `path` (copied, never mutated); `value` itself for `[]`. */
 const withValueAt = (
@@ -43,9 +44,9 @@ const withValueAt = (
 export const ClassicyScreenSaverConfigForm: FunctionalComponent<
 	{ saver: ClassicyScreenSaverDefinition } & ClassicyScreenSaverConfigProps
 > = ({ saver, config, onChange }) =>
-	saver.configSchema instanceof z.ZodObject ? (
+	classicyZodType(saver.configSchema) === "object" ? (
 		<ClassicySchemaForm
-			schema={saver.configSchema}
+			schema={saver.configSchema as z.ZodObject<z.ZodRawShape>}
 			values={config}
 			idPrefix={`ScreenSaver_${saver.id}`}
 			onChange={(path, value) =>

@@ -56,6 +56,9 @@ const SOURCES: Record<string, Buffer> = {
 			bytes(50 + i),
 		]),
 	),
+	// The screen savers' art (plan 0016-vbq §2.1): one folder per saver.
+	"src/screenSavers/Fish/fish-red.webp": bytes(70),
+	"src/screenSavers/Warp/stars1.webp": bytes(71),
 	"src/assets/sounds/platinum/platinum.json": Buffer.from("{}"),
 	"src/assets/sounds/platinum/sprites/ClassicyBeep.mp3": bytes(60),
 };
@@ -214,6 +217,28 @@ describe("bin/verify-dist.mjs", () => {
 				),
 			}));
 
+		// The savers' art ships from src/screenSavers, not src/assets.
+		it.each([
+			"fish-red.webp",
+			"stars1.webp",
+		])("fails the saver image %s when it is missing", (file) =>
+			expect(verify({ [`assets/${file}`]: null })).toEqual({
+				status: 1,
+				stderr: [
+					`dist/assets: missing ${file}; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
+					`dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/${file}`,
+				].join("\n"),
+			}));
+
+		it.each([
+			["fish-red.webp", "Fish"],
+			["stars1.webp", "Warp"],
+		])("fails the saver image %s when it differs from its source", (file, dir) =>
+			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
+				status: 1,
+				stderr: `${path.join("dist", "assets", file)}: differs from ${path.join("src", "screenSavers", dir, file)} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
+			}));
+
 		it("fails a stray file beside the bundles", () =>
 			expect(verify({ "classicy.css": "" })).toEqual({
 				status: 1,
@@ -369,6 +394,47 @@ describe("bin/verify-dist.mjs", () => {
 					"dist/types: 1 declaration(s) of tests, test helpers or stories (hooks.test.d.ts) -> check the dts exclude in vite.config.ts.",
 			}));
 	});
+
+	// Invariant 8: the production JSX runtime (the core's invariant 13).
+	describe("8. both bundles use the production JSX runtime", () => {
+		const jsxLines = (stderr: string) =>
+			stderr.split("\n").filter((l) => /JSX|jsxDEV|build-machine/.test(l));
+
+		it("passes the production runtime (the baseline bundles import it)", () =>
+			expect(verify().stderr).toBe(""));
+
+		it.each([
+			[
+				"the dev runtime import",
+				'import{jsxDEV as d}from"react/jsx-dev-runtime";',
+				/^dist\/appearance-platinum\.es\.js: references react\/jsx-dev-runtime /,
+			],
+			[
+				"a jsxDEV call",
+				'x.jsxDEV("a",{});',
+				/^dist\/appearance-platinum\.es\.js: calls jsxDEV\(\) /,
+			],
+			[
+				"a /home/ fileName",
+				'f({fileName:"/home/me/src/A.tsx",lineNumber:1});',
+				/^dist\/appearance-platinum\.es\.js: carries absolute build-machine paths in fileName /,
+			],
+		])("fails the ES bundle with %s", (_n, body, message) => {
+			const r = verify({ "appearance-platinum.es.js": `${body}${ES}` });
+			expect(r.status).toBe(1);
+			expect(jsxLines(r.stderr)[0]).toMatch(message);
+		});
+
+		it("fails the UMD bundle with a jsxDEV call", () => {
+			const r = verify({
+				"appearance-platinum.umd.js": `${UMD}x.jsxDEV("a",{});`,
+			});
+			expect(r.status).toBe(1);
+			expect(jsxLines(r.stderr).join("\n")).toMatch(
+				/^dist\/appearance-platinum\.umd\.js: calls jsxDEV\(\)/,
+			);
+		});
+	});
 });
 
 // The registry markers invariant 1 looks for must still be in the core, or
@@ -399,6 +465,7 @@ it("reads folders the package has", () => {
 		"src/assets/cursors",
 		"src/assets/wallpapers",
 		"src/assets/sounds/platinum",
+		"src/screenSavers",
 	])
 		expect(existsSync(path.join(packageDir, dir)), dir).toBe(true);
 });

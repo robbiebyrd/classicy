@@ -1,16 +1,31 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
-import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-// Registers the built-in savers, so the panel has one to select and an
-// "Options for …" group to render — as it does in the app, where the Screen
-// Saver extension imports them.
-import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import {
+	registerClassicyScreenSaver,
+	resetClassicyScreenSaversForTests,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyScreenSaverManager } from "./ClassicyScreenSaverManager";
 
 const APP_ID = "ScreenSaverManager.app";
@@ -50,7 +65,42 @@ function selectSaver(saverId: string) {
 	});
 }
 
+// Fake savers stand in for the app's: one with a number field, one with a text
+// field, and one that another package offers.
+beforeEach(() => {
+	resetClassicyScreenSaversForTests();
+	registerClassicyScreenSaver({
+		id: "fake-toasters",
+		name: "Fake Toasters",
+		component: () => null,
+		configSchema: z.looseObject({
+			count: z
+				.number()
+				.min(1)
+				.max(20)
+				.default(4)
+				.describe("How many fly past."),
+		}),
+	});
+	registerClassicyScreenSaver({
+		id: "fake-messages",
+		name: "Fake Messages",
+		component: () => null,
+		configSchema: z.looseObject({
+			text: z.string().default("Hello").describe("The message to crawl."),
+		}),
+	});
+	registerClassicyScreenSaver({
+		id: "fake-foreign",
+		name: "Fake Foreign",
+		component: () => null,
+		packages: ["some-other-package"],
+	});
+});
+
 afterEach(() => {
+	resetClassicyAppearancePackagesForTests();
+	resetClassicyScreenSaversForTests();
 	dispatch({ type: "ClassicyAppClose", app: { id: APP_ID } });
 	dispatch({ type: "ClassicyAppClose", app: { id: SCREEN_SAVER_APP_ID } });
 	cleanup();
@@ -128,13 +178,13 @@ describe("ClassicyScreenSaverManager — HIG control layout", () => {
 	it("lays a schema-derived options form out as rows of the same grid", () => {
 		openScreenSaverApp();
 		renderOpen();
-		selectSaver("flying-toasters");
+		selectSaver("fake-toasters");
 		const grids = document.querySelectorAll(
 			".classicyControlGroupStack > fieldset > .classicyControlGroupFormContent",
 		);
 		expect(grids).toHaveLength(2);
 		// Number fields are label/control pairs: direct children of the grid.
-		const toasters = screen.getByLabelText("How many toasters fly past.");
+		const toasters = screen.getByLabelText("How many fly past.");
 		expect(toasters.closest(".classicyControlGroupFormRow")).toBeNull();
 		expect(toasters.closest(".classicyControlGroupFormContent")).toBe(grids[1]);
 	});
@@ -142,11 +192,123 @@ describe("ClassicyScreenSaverManager — HIG control layout", () => {
 	it("gives a schema-derived text field a full-width row with its label above", () => {
 		openScreenSaverApp();
 		renderOpen();
-		selectSaver("messages");
+		selectSaver("fake-messages");
 		const text = screen.getByLabelText("The message to crawl.");
 		expect(text.closest(".classicyControlGroupFormRow")).toBeInTheDocument();
 		expect(text.closest(".classicyInputHolder")).toHaveClass(
 			"classicyLabelAbove",
 		);
+	});
+});
+
+describe("ClassicyScreenSaverManager — follows the active package", () => {
+	it("lists only the savers the active package offers", () => {
+		renderOpen();
+		const popUp = screen.getByRole("combobox", { name: "Screen saver" });
+		fireEvent.click(popUp);
+		const labels = screen
+			.getAllByRole("option")
+			.map((o) => o.textContent?.trim());
+		expect(labels).toEqual(["Fake Messages", "Fake Toasters"]);
+	});
+
+	it("shows the resolved saver as selected when the stored choice is not offered", () => {
+		openScreenSaverApp();
+		selectSaver("fake-foreign");
+		renderOpen();
+		expect(screen.getByText("Options for Fake Toasters")).toBeInTheDocument();
+		// The stored choice is not rewritten by looking at the panel.
+		expect(
+			(
+				useAppManager.getState().System.Manager.Applications.apps[
+					SCREEN_SAVER_APP_ID
+				]?.data as { selectedSaver?: string }
+			).selectedSaver,
+		).toBe("fake-foreign");
+	});
+
+	it("shows a message in place of the list and disables Test when none is offered", () => {
+		resetClassicyScreenSaversForTests();
+		registerClassicyScreenSaver({
+			id: "fake-foreign",
+			name: "Fake Foreign",
+			component: () => null,
+			packages: ["some-other-package"],
+		});
+		renderOpen();
+		expect(
+			screen.getByText("This appearance has no screen savers."),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("combobox", { name: "Screen saver" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Test" })).toBeDisabled();
+	});
+});
+
+describe("ClassicyScreenSaverManager — package switch and back", () => {
+	const pkg = (id: string, defaultScreenSaver?: string) =>
+		registerClassicyAppearancePackage({
+			id,
+			name: id,
+			css: "",
+			defaults: {
+				...structuredClone(CLASSICY_CORE_DEFAULT_THEME),
+				package: id,
+			},
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			} as ClassicyAppearancePackage["layout"],
+			defaultScreenSaver,
+		});
+	const stored = () =>
+		(
+			useAppManager.getState().System.Manager.Applications.apps[
+				SCREEN_SAVER_APP_ID
+			]?.data as { selectedSaver?: string }
+		).selectedSaver;
+
+	it("the stored selectedSaver is unchanged after a package switch and back", () => {
+		resetClassicyScreenSaversForTests();
+		registerClassicyScreenSaver({
+			id: "mine",
+			name: "Mine",
+			component: () => null,
+			packages: ["a"],
+		});
+		registerClassicyScreenSaver({
+			id: "bs",
+			name: "Bs",
+			component: () => null,
+			packages: ["b"],
+		});
+		pkg("a");
+		pkg("b", "bs");
+		openScreenSaverApp();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "a",
+			});
+		});
+		selectSaver("mine");
+		renderOpen();
+		expect(screen.getByText("Options for Mine")).toBeInTheDocument();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "b",
+			});
+		});
+		expect(screen.getByText("Options for Bs")).toBeInTheDocument();
+		expect(stored()).toBe("mine");
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopChangeAppearancePackage",
+				packageId: "a",
+			});
+		});
+		expect(screen.getByText("Options for Mine")).toBeInTheDocument();
+		expect(stored()).toBe("mine");
 	});
 });

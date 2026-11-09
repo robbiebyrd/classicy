@@ -3,7 +3,9 @@ import {
 	compareClassicyAssetNames,
 	findClassicyCorePackageFiles,
 	findClassicyInlinedFiles,
+	findClassicySaverMarkers,
 	findClassicyStrayAssetUrls,
+	isClassicyPackageAssetFile,
 } from "./classicyDistAssets";
 
 describe("compareClassicyAssetNames", () => {
@@ -188,5 +190,78 @@ describe("findClassicyCorePackageFiles", () => {
 			}),
 		).toEqual([
 			"dist/classicy.umd.js: inlines packages/appearance/platinum/src/assets/wallpapers/azul.png -> the core bundles no package; check that nothing under src/ imports one.",
+		]));
+});
+
+// Plan 0016-vbq §2.2: the screen savers' art lives beside their code in the
+// package (src/screenSavers/<Saver>/), not under src/assets, so the core's
+// check must treat it as a package file wherever it lives.
+describe("isClassicyPackageAssetFile", () => {
+	const root = "packages/appearance/platinum";
+	it.each([
+		`${root}/src/assets/art/zoom.svg`,
+		`${root}/src/assets/wallpapers/azul.png`,
+		`${root}/assets/x.png`,
+		`${root}/src/screenSavers/Fish/fish-red.webp`,
+		`${root}/src/screenSavers/Logo/logo.webp`,
+	])("counts %s", (path) =>
+		expect(isClassicyPackageAssetFile(path, root)).toBe(true));
+
+	it.each([
+		`${root}/src/screenSavers/Fish/Fish.tsx`,
+		`${root}/src/screenSavers/Fish/Fish.scss`,
+		`${root}/src/hooks.ts`,
+		`${root}/src/art.webp`,
+	])("skips %s", (path) =>
+		expect(isClassicyPackageAssetFile(path, root)).toBe(false));
+
+	it("catches a saver image in the core's dist, as a file and inlined", () => {
+		const webp = Uint8Array.from({ length: 2048 }, (_, i) => (i * 11) % 256);
+		const packageFiles = [
+			{
+				path: "packages/appearance/platinum/src/screenSavers/Fish/fish-red.webp",
+				bytes: webp,
+			},
+		];
+		const dist = { distFiles: [], assets: [], packageFiles, bundles: [] };
+		expect(
+			findClassicyCorePackageFiles({ ...dist, assets: ["fish-red.webp"] }),
+		).toEqual([
+			"dist/assets/fish-red.webp: an Appearance Package's file in the core's dist -> the core bundles no package; it ships in the package's own build.",
+		]);
+		expect(
+			findClassicyCorePackageFiles({
+				...dist,
+				bundles: [
+					{
+						file: "dist/classicy.es.js",
+						source: `x="data:image/webp;base64,${Buffer.from(webp).toString("base64")}"`,
+					},
+				],
+			}),
+		).toEqual([
+			"dist/classicy.es.js: inlines packages/appearance/platinum/src/screenSavers/Fish/fish-red.webp -> the core bundles no package; check that nothing under src/ imports one.",
+		]);
+	});
+});
+
+describe("findClassicySaverMarkers", () => {
+	it("passes a bundle or stylesheet with no saver class or keyframe", () =>
+		expect(
+			findClassicySaverMarkers([
+				{ file: "dist/classicy.css", text: ".classicyWindow{top:0}" },
+				{ file: "dist/classicy.es.js", text: "classicy-screen-saver-overlay" },
+			]),
+		).toEqual([]));
+
+	it.each([
+		["a keyframe", "@keyframes classicySaverFloat{from{top:0}}"],
+		["a class", ".classicySaverFishBody{top:0}"],
+		["a JS string", 'a="classicySaverToaster"'],
+	])("fails %s", (_n, text) =>
+		expect(findClassicySaverMarkers([{ file: "dist/x.css", text }])).toEqual([
+			expect.stringMatching(
+				/^dist\/x\.css: carries a classicySaver name .* -> the core names no screen saver/,
+			),
 		]));
 });

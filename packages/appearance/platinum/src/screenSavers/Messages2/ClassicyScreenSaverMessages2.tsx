@@ -1,0 +1,33 @@
+import type { ClassicyScreenSaverProps } from "@classicy/classicy";
+import type { FC as FunctionalComponent } from "react";
+import { z } from "zod";
+import { saverClassNames } from "../saverClassNames";
+
+export const Messages2ConfigSchema = z.looseObject({
+	text: z
+		.string()
+		.default("Why are you staring at my Macintosh?")
+		.describe("The message that bounces around the screen."),
+});
+
+/**
+ * Port of After Dark in CSS "Messages 2" (MIT): a fixed-width message block
+ * bouncing around the screen like the classic DVD logo. Theme UI font stands
+ * in for the original's ChicagoFLF.
+ */
+export const ClassicyScreenSaverMessages2: FunctionalComponent<
+	ClassicyScreenSaverProps
+> = ({ config, className, style }) => {
+	const parsed = Messages2ConfigSchema.safeParse(config);
+	const text = parsed.success
+		? parsed.data.text
+		: "Why are you staring at my Macintosh?";
+	return (
+		<div
+			className={saverClassNames("classicySaverMessages2", className)}
+			style={style}
+		>
+			<span className="classicySaverMessages2Text">{text}</span>
+		</div>
+	);
+};

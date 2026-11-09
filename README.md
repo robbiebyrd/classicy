@@ -59,6 +59,8 @@ and icon art go missing.
 
 **Upgrading from 2.1.x?** [`docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md`](docs/RELEASE-NOTES-APPEARANCE-PACKAGES.md) lists every breaking change below, and the rest of the release, with its migration step.
 
+**Upgrading from 3.0.x?** [`docs/RELEASE-NOTES-3.1.md`](docs/RELEASE-NOTES-3.1.md): the screen savers (and their logo registry) now ship with `@classicy/appearance-platinum`; a host importing one from `@classicy/classicy` changes the import specifier.
+
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
 and rewrite every specifier, strings included: `from "classicy"`, deep paths
@@ -473,7 +475,7 @@ The proxy runs on `http://localhost:8765` by default. Enable it in the Browser a
 - Logging & Diagnostics
     - ✅ `registerClassicyLogSink` — host apps receive Classicy logs, errors, and crash reports (production builds included)
 - Screen Saver
-    - ✅ Idle-activated full-screen screensavers (After Dark CSS ports: Flying Toasters, Fish, Warp, and 9 more)
+    - ✅ Idle-activated full-screen screensavers (After Dark CSS ports: Flying Toasters, Fish, Warp, and 9 more, shipped by `@classicy/appearance-platinum`; each Appearance Package offers its own)
     - ✅ Screen Saver Control Panel (pick saver, timeout, per-saver options)
     - ✅ `registerClassicyScreenSaver` API with custom or schema-derived options UI
 - Appearance Manager Control Panel (Theme Manager)
@@ -573,7 +575,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 | `ClassicyApp` | Application container. Props: `id`, `name`, `icon`, `defaultWindow` | — |
 | `ClassicyWindow` | Window chrome with title bar and controls. Props: `id`, `appId`, `title`, `closable`, `zoomable`, `collapsable`, `resizable`, `modal`, `initialSize`, `initialPosition`, `minimumSize` | `<dialog>` (non-modal; `modal` prop for modal) |
 | `ClassicyBoot` | Boot screen shown on first load | — |
-| `ClassicyScreenSaver` | Idle-activated screensaver extension (auto-mounted by `ClassicyDesktop`); register your own savers with `registerClassicyScreenSaver` | — |
+| `ClassicyScreenSaver` | Idle-activated screensaver extension (auto-mounted by `ClassicyDesktop`); register your own savers with `registerClassicyScreenSaver` (`packages` names the Appearance Packages that offer one) | — |
 | `ClassicyAboutWindow` | Standard "About This App" dialog. Props: `appId`, `appName`, `appIcon` | `<dialog>` |
 
 ### Inputs

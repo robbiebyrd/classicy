@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 
 /** A schema field with its wrappers peeled off, and the label text it carries. */
 export type ClassicyUnwrappedField = {
@@ -6,19 +6,39 @@ export type ClassicyUnwrappedField = {
 	description?: string;
 };
 
+/**
+ * The definition type of a zod schema (`"object"`, `"number"`, `"optional"`, ...),
+ * read from its definition rather than with `instanceof`: a schema built by
+ * another copy of zod (a package that bundles its own) is not an instance of
+ * this copy's classes, but carries the same definition.
+ */
+export const classicyZodType = (schema: unknown): string | undefined => {
+	const candidate = schema as {
+		_zod?: { def?: { type?: unknown } };
+		def?: { type?: unknown };
+	} | null;
+	const type = candidate?._zod?.def?.type ?? candidate?.def?.type;
+	return typeof type === "string" ? type : undefined;
+};
+
+/** The field map of an object schema, read from its definition. */
+export const classicyZodShape = (schema: unknown): Record<string, z.ZodType> =>
+	(schema as { _zod?: { def?: { shape?: Record<string, z.ZodType> } } })._zod
+		?.def?.shape ?? {};
+
+const WRAPPER_TYPES = new Set(["optional", "default", "nullable", "readonly"]);
+
 /** Peel Optional/Default/Nullable/Readonly, keeping the outermost .describe(). */
 export const unwrapClassicySchemaField = (
 	field: z.ZodType,
 ): ClassicyUnwrappedField => {
 	let schema = field;
 	let description = schema.description;
-	while (
-		schema instanceof z.ZodOptional ||
-		schema instanceof z.ZodDefault ||
-		schema instanceof z.ZodNullable ||
-		schema instanceof z.ZodReadonly
-	) {
-		schema = schema.unwrap() as z.ZodType;
+	for (;;) {
+		const type = classicyZodType(schema);
+		if (type === undefined || !WRAPPER_TYPES.has(type)) break;
+		schema = (schema as unknown as { _zod: { def: { innerType: z.ZodType } } })
+			._zod.def.innerType;
 		description = description ?? schema.description;
 	}
 	return { schema, description };

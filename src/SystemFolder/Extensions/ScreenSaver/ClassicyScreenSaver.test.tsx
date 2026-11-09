@@ -1,18 +1,34 @@
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { fireEvent } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { act, render } from "@/__tests__/test-utils";
+import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import {
 	ClassicyScreenSaver,
 	SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
 	SCREEN_SAVER_OVERLAY_ID,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
 import type { ScreenSaverData } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
-import { registerClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
+import {
+	type ClassicyScreenSaverDefinition,
+	registerClassicyScreenSaver,
+	resetClassicyScreenSaversForTests,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
 const mockData = vi.hoisted(
 	() => ({ current: {} }) as { current: Record<string, unknown> },
+);
+const mockPackageId = vi.hoisted(
+	() => ({ current: undefined }) as { current: string | undefined },
 );
 
 vi.mock(
@@ -36,6 +52,7 @@ vi.mock(
 							},
 						},
 						Appearance: {
+							packageId: mockPackageId.current,
 							activeTheme: {
 								color: {
 									white: 0xffffff,
@@ -53,6 +70,45 @@ vi.mock(
 	}),
 );
 
+// The core ships no saver the tests may lean on: they register fakes. Every
+// registration goes through `track` so `restoreFakes` can put them back after
+// a case that cleared the registry.
+const fakes: ClassicyScreenSaverDefinition[] = [];
+const track = (saver: ClassicyScreenSaverDefinition) => {
+	fakes.push(saver);
+	return registerClassicyScreenSaver(saver);
+};
+const restoreFakes = () => {
+	resetClassicyScreenSaversForTests();
+	for (const saver of fakes) registerClassicyScreenSaver(saver);
+};
+
+const FakeBall = ({ config }: { config: Record<string, unknown> }) => (
+	<div className="fakeBall">
+		{Array.from({ length: Number(config.balls) }, (_, i) => (
+			// biome-ignore lint/suspicious/noArrayIndexKey: static fake
+			<b key={i} className="fakeBallBall" />
+		))}
+	</div>
+);
+track({
+	id: "fake-ball",
+	name: "Fake Ball",
+	component: FakeBall,
+	configSchema: z.looseObject({ balls: z.number().min(1).max(10).default(3) }),
+});
+track({
+	id: "fake-fade",
+	name: "Fake Fade",
+	component: () => <div className="fakeFade" />,
+	transparentBackground: true,
+});
+track({
+	id: "fake-logo",
+	name: "Fake Logo",
+	component: () => <div className="fakeLogo" />,
+});
+
 const dispatchedTypes = () =>
 	mockDispatch.mock.calls.map((call) => (call[0] as { type: string }).type);
 
@@ -63,7 +119,13 @@ const setData = (data: ScreenSaverData) => {
 describe("ClassicyScreenSaver overlay", () => {
 	beforeEach(() => {
 		mockDispatch.mockClear();
+		mockPackageId.current = undefined;
 		setData({});
+	});
+
+	afterEach(() => {
+		restoreFakes();
+		resetClassicyAppearancePackagesForTests();
 	});
 
 	it("renders no overlay while inactive", () => {
@@ -72,30 +134,26 @@ describe("ClassicyScreenSaver overlay", () => {
 	});
 
 	it("renders the selected saver inside the overlay while active", () => {
-		setData({ active: true, selectedSaver: "bouncing-ball" });
+		setData({ active: true, selectedSaver: "fake-ball" });
 		const { container } = render(<ClassicyScreenSaver />);
 		expect(
 			container.querySelector(".classicyScreenSaverOverlay"),
 		).not.toBeNull();
-		expect(
-			container.querySelector(".classicySaverBouncingBall"),
-		).not.toBeNull();
+		expect(container.querySelector(".fakeBall")).not.toBeNull();
 	});
 
 	it("applies the saved ball count to the bouncing-ball saver", () => {
 		setData({
 			active: true,
-			selectedSaver: "bouncing-ball",
-			saverConfigs: { "bouncing-ball": { balls: 5 } },
+			selectedSaver: "fake-ball",
+			saverConfigs: { "fake-ball": { balls: 5 } },
 		});
 		const { container } = render(<ClassicyScreenSaver />);
-		expect(
-			container.querySelectorAll(".classicySaverBouncingBallBall"),
-		).toHaveLength(5);
+		expect(container.querySelectorAll(".fakeBallBall")).toHaveLength(5);
 	});
 
 	it("gives the overlay the id its stylesheet overrides key on", () => {
-		setData({ active: true, selectedSaver: "bouncing-ball" });
+		setData({ active: true, selectedSaver: "fake-ball" });
 		render(<ClassicyScreenSaver />);
 		expect(
 			document
@@ -105,9 +163,9 @@ describe("ClassicyScreenSaver overlay", () => {
 	});
 
 	it("leaves the balls' animation to the stylesheet, where reduced motion reaches it", () => {
-		setData({ active: true, selectedSaver: "bouncing-ball" });
+		setData({ active: true, selectedSaver: "fake-ball" });
 		const { container } = render(<ClassicyScreenSaver />);
-		const balls = container.querySelectorAll(".classicySaverBouncingBallBall");
+		const balls = container.querySelectorAll(".fakeBallBall");
 		expect(balls).toHaveLength(3);
 		for (const ball of balls) expect(ball.getAttribute("style")).toBeNull();
 	});
@@ -121,7 +179,7 @@ describe("ClassicyScreenSaver overlay", () => {
 				style={{ animation: "testSpin 1s linear infinite" }}
 			/>
 		);
-		registerClassicyScreenSaver({
+		track({
 			id: "test-inline-animation",
 			name: "Inline Animation",
 			component: InlineSaver,
@@ -275,7 +333,7 @@ describe("ClassicyScreenSaver overlay", () => {
 				</div>
 			);
 		};
-		registerClassicyScreenSaver({
+		track({
 			id: "test-spawning",
 			name: "Spawning",
 			component: SpawningSaver,
@@ -323,19 +381,111 @@ describe("ClassicyScreenSaver overlay", () => {
 	});
 
 	it("marks the overlay transparent for savers that reveal the desktop", () => {
-		setData({ active: true, selectedSaver: "fade-out" });
+		setData({ active: true, selectedSaver: "fake-fade" });
 		const { container } = render(<ClassicyScreenSaver />);
 		expect(
 			container.querySelector(".classicyScreenSaverOverlayTransparent"),
 		).not.toBeNull();
 	});
 
-	it("renders a bare overlay for an unknown saver id", () => {
+	it("draws the first offered saver for an unknown saver id", () => {
 		setData({ active: true, selectedSaver: "no-such-saver" });
 		const { container } = render(<ClassicyScreenSaver />);
-		const overlay = container.querySelector(".classicyScreenSaverOverlay");
-		expect(overlay).not.toBeNull();
-		expect(overlay?.childElementCount).toBe(0);
+		expect(container.querySelector(".fakeBall")).not.toBeNull();
+	});
+
+	describe("follows the active package", () => {
+		const LAYOUT: ClassicyAppearancePackage["layout"] = {
+			window: { growBoxCorner: "bottom-right" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+		};
+		const registerPkg = (id: string, defaultScreenSaver?: string) =>
+			registerClassicyAppearancePackage({
+				id,
+				name: id,
+				css: "",
+				defaults: {
+					...structuredClone(CLASSICY_CORE_DEFAULT_THEME),
+					package: id,
+				},
+				layout: LAYOUT,
+				defaultScreenSaver,
+			});
+
+		it("the overlay draws the active package's default when the stored choice belongs to another package", () => {
+			resetClassicyScreenSaversForTests();
+			registerClassicyScreenSaver({
+				id: "theirs",
+				name: "Theirs",
+				component: () => <div className="theirs" />,
+				packages: ["pkg-b"],
+			});
+			registerClassicyScreenSaver({
+				id: "ours",
+				name: "Ours",
+				component: () => <div className="ours" />,
+				packages: ["pkg-a"],
+			});
+			registerPkg("pkg-a", "ours");
+			mockPackageId.current = "pkg-a";
+			setData({ active: true, selectedSaver: "theirs" });
+			const { container } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".ours")).not.toBeNull();
+			expect(container.querySelector(".theirs")).toBeNull();
+		});
+
+		it("the stored selectedSaver is unchanged after a package switch and back", () => {
+			resetClassicyScreenSaversForTests();
+			registerClassicyScreenSaver({
+				id: "mine",
+				name: "Mine",
+				component: () => <div className="mine" />,
+				packages: ["a"],
+			});
+			registerClassicyScreenSaver({
+				id: "bs",
+				name: "Bs",
+				component: () => <div className="bs" />,
+				packages: ["b"],
+			});
+			registerPkg("a");
+			registerPkg("b", "bs");
+			mockPackageId.current = "a";
+			setData({ active: true, selectedSaver: "mine" });
+			const { container, rerender } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".mine")).not.toBeNull();
+			mockPackageId.current = "b";
+			rerender(<ClassicyScreenSaver />);
+			expect(container.querySelector(".bs")).not.toBeNull();
+			expect(container.querySelector(".mine")).toBeNull();
+			expect(mockData.current.selectedSaver).toBe("mine");
+			mockPackageId.current = "a";
+			rerender(<ClassicyScreenSaver />);
+			expect(container.querySelector(".mine")).not.toBeNull();
+			expect(container.querySelector(".bs")).toBeNull();
+			expect(mockData.current.selectedSaver).toBe("mine");
+		});
+
+		it("draws no overlay when no saver is offered, even when active", () => {
+			resetClassicyScreenSaversForTests();
+			registerClassicyScreenSaver({
+				id: "theirs",
+				name: "Theirs",
+				component: () => <div className="theirs" />,
+				packages: ["pkg-b"],
+			});
+			registerPkg("pkg-a");
+			mockPackageId.current = "pkg-a";
+			setData({ active: true, selectedSaver: "theirs" });
+			const { container } = render(<ClassicyScreenSaver />);
+			expect(container.querySelector(".classicyScreenSaverOverlay")).toBeNull();
+			expect(
+				document.documentElement.classList.contains(
+					SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS,
+				),
+			).toBe(false);
+		});
 	});
 
 	it("does not render the overlay while disabled, even if active is set", () => {
@@ -349,13 +499,13 @@ describe("ClassicyScreenSaver overlay", () => {
 		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
 			false,
 		);
-		setData({ active: true, selectedSaver: "logo" });
+		setData({ active: true, selectedSaver: "fake-logo" });
 		const { rerender, unmount } = render(<ClassicyScreenSaver />);
 		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
 			true,
 		);
 		// Waking clears `active`; the overlay unmounts and the class goes with it.
-		setData({ selectedSaver: "logo" });
+		setData({ selectedSaver: "fake-logo" });
 		rerender(<ClassicyScreenSaver />);
 		expect(root.classList.contains(SCREEN_SAVER_ACTIVE_DOCUMENT_CLASS)).toBe(
 			false,
@@ -364,7 +514,7 @@ describe("ClassicyScreenSaver overlay", () => {
 	});
 
 	it("takes the pointer-hiding class off when the whole extension unmounts", () => {
-		setData({ active: true, selectedSaver: "logo" });
+		setData({ active: true, selectedSaver: "fake-logo" });
 		const { unmount } = render(<ClassicyScreenSaver />);
 		unmount();
 		expect(
@@ -379,11 +529,20 @@ describe("ClassicyScreenSaver idle monitor", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		mockDispatch.mockClear();
+		mockPackageId.current = undefined;
 		setData({});
 	});
 
 	afterEach(() => {
 		vi.useRealTimers();
+		restoreFakes();
+	});
+
+	it("never activates when no saver is offered", () => {
+		resetClassicyScreenSaversForTests();
+		render(<ClassicyScreenSaver />);
+		vi.advanceTimersByTime(60 * 60_000);
+		expect(dispatchedTypes()).not.toContain("ClassicyAppScreenSaverActivate");
 	});
 
 	it("activates after the idle timeout elapses", () => {

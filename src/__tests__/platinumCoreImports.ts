@@ -18,6 +18,7 @@ export {
 	registerClassicyFonts,
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
+	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
 export { encodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 export { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -26,4 +27,13 @@ export {
 	ClassicySoundPackSchema,
 	registerClassicySoundPack,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+// Platinum's screen savers (plan 0016-vbq §2.1).
+export {
+	getClassicyScreenSaver,
+	listClassicyScreenSavers,
+	registerClassicyScreenSaver,
+	resolveScreenSaverConfig,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 export { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+export { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+export { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";

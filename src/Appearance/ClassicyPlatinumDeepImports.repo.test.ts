@@ -31,6 +31,8 @@ const ALLOWED: Record<string, string> = {
 		"the sound pack's sprite map, read by the sound-pack tests (it moved out of the core's assets/ in 3.3)",
 	"packages/appearance/platinum/src":
 		"the source directory, to build a module-copy path (a query makes a new instance)",
+	"packages/appearance/platinum/src/**/*.stories.@(ts|tsx)":
+		"Storybook's stories glob (main.ts): Platinum's own stories, its screen savers'",
 };
 
 const RELATIVE_INTO_PACKAGES = /["'`]((?:\.\.\/)+packages\/[^"'`]*)["'`]/g;

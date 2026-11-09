@@ -1,5 +1,5 @@
 import type { FC as FunctionalComponent } from "react";
-import { z } from "zod";
+import type { z } from "zod";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import {
 	ClassicyControlGroup,
@@ -10,6 +10,8 @@ import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/Clas
 import {
 	classicySchemaFieldId,
 	classicySchemaFieldLabel,
+	classicyZodShape,
+	classicyZodType,
 	unwrapClassicySchemaField,
 } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
@@ -63,17 +65,18 @@ const EMPTY_PATH: readonly string[] = [];
 export const ClassicySchemaForm: FunctionalComponent<
 	ClassicySchemaFormProps
 > = ({ schema, values, onChange, idPrefix, path = EMPTY_PATH }) => {
-	const fields = Object.entries(schema.shape as Record<string, z.ZodType>);
+	const fields = Object.entries(classicyZodShape(schema));
 	return (
 		<>
 			{fields.map(([key, rawField]) => {
 				const { schema: field, description } =
 					unwrapClassicySchemaField(rawField);
+				const fieldType = classicyZodType(field);
 				const label = classicySchemaFieldLabel(key, description);
 				const fieldPath = [...path, key];
 				const id = classicySchemaFieldId(idPrefix, fieldPath);
 				const value = values[key];
-				if (field instanceof z.ZodObject) {
+				if (fieldType === "object") {
 					const nested =
 						value !== null && typeof value === "object"
 							? (value as ClassicySchemaFormValues)
@@ -92,7 +95,7 @@ export const ClassicySchemaForm: FunctionalComponent<
 						</ClassicyControlGroupFormRow>
 					);
 				}
-				if (field instanceof z.ZodBoolean) {
+				if (fieldType === "boolean") {
 					return (
 						<ClassicyControlGroupFormRow key={key}>
 							<ClassicyCheckbox
@@ -104,9 +107,10 @@ export const ClassicySchemaForm: FunctionalComponent<
 						</ClassicyControlGroupFormRow>
 					);
 				}
-				if (field instanceof z.ZodNumber) {
-					const min = field.minValue ?? 0;
-					const max = field.maxValue ?? undefined;
+				if (fieldType === "number") {
+					const numberField = field as z.ZodNumber;
+					const min = numberField.minValue ?? 0;
+					const max = numberField.maxValue ?? undefined;
 					return (
 						<ClassicySpinner
 							key={key}
@@ -126,7 +130,7 @@ export const ClassicySchemaForm: FunctionalComponent<
 								// while the spinner shows its minimum.
 								const parsed = Number.parseFloat(e.target.value);
 								if (!Number.isFinite(parsed)) return;
-								const whole = field.isInt ? Math.round(parsed) : parsed;
+								const whole = numberField.isInt ? Math.round(parsed) : parsed;
 								onChange(
 									fieldPath,
 									Math.min(
@@ -138,11 +142,13 @@ export const ClassicySchemaForm: FunctionalComponent<
 						/>
 					);
 				}
-				if (field instanceof z.ZodEnum) {
-					const options = (field.options as string[]).map((option) => ({
-						value: option,
-						label: option,
-					}));
+				if (fieldType === "enum") {
+					const options = ((field as z.ZodEnum).options as string[]).map(
+						(option) => ({
+							value: option,
+							label: option,
+						}),
+					);
 					return (
 						<ClassicyPopUpMenu
 							key={key}
@@ -155,7 +161,7 @@ export const ClassicySchemaForm: FunctionalComponent<
 						/>
 					);
 				}
-				if (field instanceof z.ZodString) {
+				if (fieldType === "string") {
 					return (
 						<ClassicyControlGroupFormRow key={key}>
 							<ClassicyInput

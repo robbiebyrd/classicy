@@ -1,6 +1,6 @@
 import path from "node:path";
 import { NodePackageImporter } from "sass";
-import { defineConfig } from "vite";
+import { defineConfig, type UserConfig } from "vite";
 import dts from "vite-plugin-dts";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
@@ -21,6 +21,11 @@ const externalPackages = [
 	"react-dom",
 	"react/jsx-runtime",
 ];
+// zod is bundled, as the core bundles it (plan 0016-vbq §2.1): the core's
+// schema-form helpers read zod's internals (`_zod.def`) on the screen savers'
+// config schemas, so both packages carry the one zod their release was built
+// with, never a host's other 4.x. It stays in package.json `dependencies`
+// because the emitted declarations import its types.
 
 // Asset imports carrying a Vite query (`?inline`, `?raw`, …) are never
 // externalized: the query is a Vite source convention (see the core's
@@ -35,7 +40,17 @@ const isExternal = (id: string) =>
 // `--mode bundle-test` (PlatinumOneRegistry.test.ts, which builds the bundles
 // into a scratch folder before any core build) skips the type declarations:
 // they resolve `@classicy/classicy` to the core's built declarations.
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode }) => {
+	// A shipped bundle is a production build whatever the shell exports (see
+	// the core's vite.config.ts): Vite picks esbuild's dev JSX transform
+	// (react/jsx-dev-runtime, jsxDEV() calls carrying the builder's paths)
+	// from process.env.NODE_ENV, defaulting it only when unset. Platinum's
+	// screen savers are its first JSX (plan 0016-vbq §2.1).
+	if (command === "build") process.env.NODE_ENV = "production";
+	return platinumConfig(mode);
+});
+
+const platinumConfig = (mode: string): UserConfig => ({
 	// A shipped bundle is a production build (see the core's vite.config.ts).
 	define: {
 		"process.env.NODE_ENV": JSON.stringify("production"),
@@ -52,8 +67,9 @@ export default defineConfig(({ mode }) => ({
 		},
 	},
 	// Every asset in the package ships as a file in dist/assets: its art and
-	// fonts (src/assets) and the sound sprites, wallpapers, art and cursors in
-	// assets/ (plan 0015-kxa §3.3). Only the halftone mask is inlined (ruling
+	// fonts (src/assets), the sound sprites, wallpapers, art and cursors in
+	// assets/ (plan 0015-kxa §3.3) and the screen savers' art (src/screenSavers,
+	// plan 0016-vbq §2.1). Only the halftone mask is inlined (ruling
 	// E17).
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
@@ -110,4 +126,4 @@ export default defineConfig(({ mode }) => ({
 			},
 		},
 	},
-}));
+});

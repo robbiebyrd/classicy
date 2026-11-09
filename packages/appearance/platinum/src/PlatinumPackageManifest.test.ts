@@ -16,6 +16,7 @@ const readJson = (file: string) =>
 		files: string[];
 		sideEffects: string[];
 		exports: Record<string, unknown>;
+		dependencies: Record<string, string>;
 		peerDependencies: Record<string, string>;
 		devDependencies: Record<string, string>;
 		publishConfig?: { access?: string };
@@ -44,14 +45,20 @@ describe("packages/appearance/platinum/package.json", () => {
 			"react-dom": core.peerDependencies["react-dom"],
 		});
 		expect(pkg.devDependencies["@classicy/classicy"]).toBe("workspace:*");
-		expect(pkg).not.toHaveProperty("dependencies");
 	});
+
+	// The screen savers' config schemas import zod (plan 0016-vbq §2.1). The
+	// bundles carry it, as the core's do; the declarations import its types,
+	// so Platinum declares it at the core's range, its one dependency.
+	it("depends on zod alone, at the core's range", () =>
+		expect(pkg.dependencies).toEqual({ zod: core.dependencies.zod }));
 
 	it("publishes dist, the SCSS, the README and the license", () =>
 		expect(pkg.files).toEqual(["dist", "src/styles", "README.md", "LICENSE"]));
 
 	// Importing the entry registers Platinum. Its source modules that register
-	// at load (the assets and the sound pack) are side effects too, since a
+	// at load (the assets, the sound pack, the screen savers and the Logo
+	// saver's logos) are side effects too, since a
 	// bundler that builds the source (Storybook, the example's dev server)
 	// would otherwise drop `import "./assets/platinumAssets"`.
 	it("marks the entry, the registering modules and the styles as side effects", () =>
@@ -60,6 +67,8 @@ describe("packages/appearance/platinum/package.json", () => {
 			"./src/index.ts",
 			"./src/assets/platinumAssets.ts",
 			"./src/assets/sounds/platinum.ts",
+			"./src/screenSavers/platinumScreenSavers.ts",
+			"./src/screenSavers/Logo/ClassicyScreenSaverLogoRegistry.ts",
 			"**/*.css",
 			"**/*.scss",
 		]));

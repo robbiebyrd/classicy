@@ -316,6 +316,78 @@ describe("check-dist-imports.mjs invariant 13: production JSX runtime (named fil
 	});
 });
 
+describe("check-dist-imports.mjs invariant 14: no screen saver in the core (named files)", () => {
+	const lines14 = (stderr: string) =>
+		stderr.split("\n").filter((l) => /classicySaver/.test(l));
+
+	it("passes bundles and a stylesheet with no saver name", () =>
+		expect(
+			lines14(check(both(null), { "dist/classicy.css": ".a{top:0}" }).stderr),
+		).toEqual([]));
+
+	it("fails a classicySaver keyframe in a bundle", () => {
+		const r = check(both("@keyframes classicySaverFloat{}"));
+		expect(r.status).toBe(1);
+		expect(lines14(r.stderr)).toHaveLength(2);
+		expect(lines14(r.stderr)[0]).toMatch(
+			/fx[\\/]classicy\.es\.js: carries a classicySaver name/,
+		);
+	});
+
+	it("fails a classicySaver class in a stylesheet", () => {
+		const r = check(both(null), {
+			"dist/classicy.css": ".classicySaverFishBody{top:0}",
+		});
+		expect(r.status).toBe(1);
+		expect(lines14(r.stderr).join("\n")).toMatch(
+			/classicy\.css: carries a classicySaver name/,
+		);
+	});
+});
+
+// Invariant 5, whole dist: the Platinum package's saver art (under
+// src/screenSavers, not src/assets) in the core's dist fails.
+describe("check-dist-imports.mjs invariant 5: saver art (whole dist)", () => {
+	const SAVER =
+		"packages/appearance/platinum/src/screenSavers/Fish/fish-red.webp";
+	const IMAGE = Buffer.from(
+		Array.from({ length: 256 }, (_, i) => (i * 7) % 256),
+	);
+	const whole = (bundle: string, assets: string[] = []) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist", "assets"), { recursive: true });
+		mkdirSync(dirname(join(dir, SAVER)), { recursive: true });
+		writeFileSync(join(dir, SAVER), IMAGE);
+		writeFileSync(join(dir, "dist", "classicy.es.js"), bundle);
+		writeFileSync(join(dir, "dist", "classicy.umd.js"), "export{};");
+		for (const a of assets) writeFileSync(join(dir, "dist", "assets", a), "x");
+		const r = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		return r.stderr.split("\n").filter((l) => l.includes("fish-red"));
+	};
+
+	it("passes a dist with no saver image", () =>
+		expect(whole("export{};")).toEqual([]));
+
+	it("fails a saver image inlined in a bundle", () =>
+		expect(
+			whole(
+				`a="data:image/webp;base64,${IMAGE.toString("base64")}";export{a};`,
+			),
+		).toEqual([
+			expect.stringMatching(
+				/classicy\.es\.js: inlines .*fish-red\.webp -> the core bundles no package/,
+			),
+		]));
+
+	it("fails a saver image in dist/assets", () =>
+		expect(whole("export{};", ["fish-red.webp"])[0]).toMatch(
+			/fish-red\.webp: an Appearance Package's file/,
+		));
+});
+
 // Invariant 8 (0151-0cc): the package is `"type": "module"`, so a host on
 // node16 or nodenext resolves a declaration's relative specifier only with its
 // extension. Run without named files on a dist/ holding only declarations

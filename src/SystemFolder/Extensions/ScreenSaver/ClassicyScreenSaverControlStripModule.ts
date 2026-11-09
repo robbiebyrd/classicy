@@ -1,3 +1,4 @@
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
@@ -11,6 +12,8 @@ import {
 	SCREEN_SAVER_DEFAULT_TIMEOUT_MINUTES,
 	type ScreenSaverData,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import { listClassicyScreenSaversFor } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverOffer";
+import { useClassicyScreenSavers } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import {
 	CLASSICY_CONTROL_STRIP_MODULE_IDS,
 	classicyControlStripOpenControlPanelItem,
@@ -33,6 +36,10 @@ const useScreenSaverModuleMenu = (): ClassicyMenuItem[] => {
 				| undefined,
 	);
 	const enabled = data?.enabled ?? true;
+	// Re-render on a late registration or a package switch.
+	const packageId = useActiveClassicyAppearancePackage().id;
+	useClassicyScreenSavers();
+	const offered = listClassicyScreenSaversFor(packageId).length > 0;
 	const minutes = data?.timeoutMinutes ?? SCREEN_SAVER_DEFAULT_TIMEOUT_MINUTES;
 	// Display only: the item opens the panel by its own identity.
 	const panel = useClassicyAppIdentity(SCREEN_SAVER_MANAGER_APP_ID, {
@@ -52,7 +59,7 @@ const useScreenSaverModuleMenu = (): ClassicyMenuItem[] => {
 		{
 			id: "screen-saver-sleep-now",
 			title: "Sleep Now",
-			disabled: !enabled,
+			disabled: !enabled || !offered,
 			onClickFunc: () => dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT }),
 		},
 		{

@@ -12,13 +12,17 @@
 //    of the core's registry code: a bundle that carried its own copy would
 //    register Platinum into registries nothing reads (design 0014-ahm,
 //    anti-goal "Two copies of the registries"). No external specifier
-//    carries a Vite query (the core's invariant 1).
+//    carries a Vite query (the core's invariant 1). zod is carried on purpose,
+//    as the core carries it: the core's schema forms read zod's internals on
+//    the screen savers' config schemas, so both packages ship the zod their
+//    release was built with (plan 0016-vbq §2.1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
 //    (src/assets/fonts), the art (src/assets/art), the cursors
 //    (src/assets/cursors), the wallpapers (src/assets/wallpapers, not its
-//    photos/ folder) and the four sound sprites
-//    (src/assets/sounds/platinum/platinum.*),
+//    photos/ folder), the four sound sprites
+//    (src/assets/sounds/platinum/platinum.*) and the screen savers' art
+//    (src/screenSavers/**/*.webp, plan 0016-vbq §2.1),
 //    each under its source name and byte-identical to its source, so an
 //    image optimizer or a WebP pass added to vite.config.ts fails here
 //    (0131-ku3's review). dist/ itself holds only the two bundles and their
@@ -53,6 +57,12 @@
 //    Every relative specifier in a declaration carries its extension
 //    (`./hooks.js`): the package is `"type": "module"`, so a host on
 //    `moduleResolution: node16` or `nodenext` resolves no other.
+//
+// 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
+//    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
+//    build-machine path in a fileName option: the package's vite.config.ts
+//    forces the production transform, because a shell with
+//    NODE_ENV=development otherwise ships the dev one (plan 0016-vbq §2.1).
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -64,6 +74,7 @@ import {
 	findClassicyStrayAssetUrls,
 } from "../../../../bin/classicyDistAssets.ts";
 import { findClassicyCssCharsetProblem } from "../../../../bin/classicyDistCharset.ts";
+import { findClassicyDevJsxProblems } from "../../../../bin/classicyDistJsx.ts";
 import {
 	findClassicyBuildScriptDeclarations,
 	findClassicyJsonDeclarations,
@@ -154,6 +165,14 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
+// The screen savers' folders, one per saver, each holding its art.
+const saverDirs = (
+	await readdir(join("src", "screenSavers"), { withFileTypes: true }).catch(
+		() => [],
+	)
+)
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => join("src", "screenSavers", entry.name));
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
 	...(await listFiles("src/assets/art", (n) => /\.(?:svg|png)$/.test(n))),
@@ -164,6 +183,11 @@ const sources = [
 	...["ogg", "m4a", "mp3", "ac3"].map((ext) =>
 		join("src", "assets", "sounds", "platinum", `platinum.${ext}`),
 	),
+	...(
+		await Promise.all(
+			saverDirs.map((dir) => listFiles(dir, (n) => n.endsWith(".webp"))),
+		)
+	).flat(),
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 {
@@ -336,5 +360,13 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file`,
 	);
 }
+
+// Invariant 8: the production JSX runtime, with no build-machine paths.
+report(
+	bundles.flatMap(({ file, source }) =>
+		findClassicyDevJsxProblems(file, source, process.cwd()),
+	),
+	`${BUNDLES.join(", ")}: production JSX runtime, no build-machine paths`,
+);
 
 if (failed) exit(1);

@@ -21,7 +21,8 @@ import {
 // component sets from TypeScript, or one of the desktop root's asset and
 // layout variables (`useClassicyAssetVars`, `classicyLayoutVars`).
 const ROOT = resolve(__dirname, "../../../..");
-const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
+// The screen savers Platinum ships (plan 0016-vbq §2.1).
+const SAVERS = "packages/appearance/platinum/src/screenSavers/";
 
 const repoPath = (full: string): string =>
 	relative(ROOT, full).split(sep).join("/");

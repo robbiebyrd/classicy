@@ -235,6 +235,13 @@ export type ClassicyAppearancePackage = {
 	sounds?: ClassicySoundPack[];
 	/** Per-app display overrides keyed by app id (`"MoviePlayer.app"`); read with `useClassicyAppIdentity`. */
 	apps?: Readonly<Record<string, ClassicyAppIdentityOverride>>;
+	/**
+	 * The id of the screen saver this package prefers: in effect when the
+	 * user's stored choice is not offered under the package. A registered saver
+	 * that names this package (or none); an unknown id is warned about once and
+	 * ignored.
+	 */
+	defaultScreenSaver?: string;
 	hooks?: ClassicyAppearanceHooks;
 };
 

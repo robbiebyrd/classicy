@@ -5,6 +5,10 @@ import type {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { registerApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import {
+	activeClassicyScreenSaverPackageId,
+	resolveClassicyScreenSaverFor,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverOffer";
+import {
 	type ClassicyScreenSaverConfig,
 	getClassicyScreenSaver,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
@@ -16,7 +20,6 @@ export const SCREEN_SAVER_APP_NAME = "Screen Saver";
 export const SCREEN_SAVER_DEFAULT_TIMEOUT_MINUTES = 5;
 export const SCREEN_SAVER_MIN_TIMEOUT_MINUTES = 1;
 export const SCREEN_SAVER_MAX_TIMEOUT_MINUTES = 240;
-export const SCREEN_SAVER_DEFAULT_SAVER_ID = "bouncing-ball";
 
 /**
  * Event that activates the screensaver immediately. Exported (and marked
@@ -30,7 +33,11 @@ export type ScreenSaverData = {
 	enabled?: boolean;
 	/** Minutes of inactivity before the saver starts. */
 	timeoutMinutes?: number;
-	/** Id of the registered screensaver to run. */
+	/**
+	 * Id of the registered screensaver the user chose. It runs when the active
+	 * Appearance Package offers it; else that package's default stands in. Only
+	 * SetSaver writes it.
+	 */
 	selectedSaver?: string;
 	/** Whether the saver is on screen right now. Transient — never persisted. */
 	active?: boolean;
@@ -95,6 +102,14 @@ export const classicyScreenSaverEventHandler = (
 	switch (action.type) {
 		case SCREEN_SAVER_ACTIVATE_EVENT: {
 			if (!isScreenSaverEnabled(appData)) break;
+			// Nothing to draw when the active package offers no saver.
+			if (
+				!resolveClassicyScreenSaverFor(
+					activeClassicyScreenSaverPackageId(ds),
+					appData.selectedSaver,
+				)
+			)
+				break;
 			appData.active = true;
 			break;
 		}
@@ -189,7 +204,7 @@ registerApp({
 	actions: {
 		[SCREEN_SAVER_ACTIVATE_EVENT]: {
 			description:
-				"Start the selected screensaver immediately (ignored while disabled).",
+				"Start the screensaver immediately (ignored while disabled, or when the active appearance offers no saver).",
 			// A stack darkening the screen is harmless and instantly reversible
 			// by any user activity, so this is the one scriptable entry point.
 			scriptable: true,
@@ -198,7 +213,8 @@ registerApp({
 			description: "Dismiss the running screensaver.",
 		},
 		ClassicyAppScreenSaverSetSaver: {
-			description: "Choose which registered screensaver runs.",
+			description:
+				"Choose which registered screensaver runs (it runs while the active appearance offers it).",
 			params: z.object({
 				saverId: z.string().describe("Id of a registered screensaver."),
 			}),

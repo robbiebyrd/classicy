@@ -64,7 +64,8 @@ const INFINITY = /\binfinity\s*\*\s*1px/gi;
 // including) the `{` or `;` that ends it, across lines if it wraps, and over
 // any interpolation it holds (`@media #{$mq} and (min-width: 600px)`).
 const PRELUDE = /^([ \t]*)@(?:media|container)\b(?:#\{[^}]*\}|[^{;])*/gm;
-const SAVERS = "src/SystemFolder/Extensions/ScreenSaver/savers/";
+// The screen savers Platinum ships (plan 0016-vbq §2.1).
+const SAVERS = "packages/appearance/platinum/src/screenSavers/";
 
 // Spaces for every character but a newline, so line numbers survive.
 const blank = (text: string): string => text.replace(/[^\n]/g, " ");
