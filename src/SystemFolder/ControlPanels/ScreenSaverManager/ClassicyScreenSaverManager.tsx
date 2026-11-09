@@ -1,3 +1,4 @@
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
@@ -10,16 +11,18 @@ import {
 	isScreenSaverEnabled,
 	SCREEN_SAVER_ACTIVATE_EVENT,
 	SCREEN_SAVER_APP_ID,
-	SCREEN_SAVER_DEFAULT_SAVER_ID,
 	SCREEN_SAVER_MAX_TIMEOUT_MINUTES,
 	SCREEN_SAVER_MIN_TIMEOUT_MINUTES,
 	type ScreenSaverData,
 	screenSaverTimeoutMinutes,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import {
-	getClassicyScreenSaver,
-	listClassicyScreenSavers,
+	listClassicyScreenSaversFor,
+	resolveClassicyScreenSaverFor,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverOffer";
+import {
 	resolveScreenSaverConfig,
+	useClassicyScreenSavers,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -87,9 +90,17 @@ export function ClassicyScreenSaverManager() {
 	);
 	const saverData: ScreenSaverData = data ?? {};
 
-	const savers = listClassicyScreenSavers();
-	const selectedId = saverData.selectedSaver ?? SCREEN_SAVER_DEFAULT_SAVER_ID;
-	const selected = getClassicyScreenSaver(selectedId);
+	// Only the active package's savers are offered; the saver in effect is the
+	// stored choice when offered, else the package's default. Looking at the
+	// panel never rewrites the stored choice.
+	const packageId = useActiveClassicyAppearancePackage().id;
+	useClassicyScreenSavers();
+	const savers = listClassicyScreenSaversFor(packageId);
+	const selected = resolveClassicyScreenSaverFor(
+		packageId,
+		saverData.selectedSaver,
+	);
+	const selectedId = selected?.id ?? "";
 	const config = selected
 		? resolveScreenSaverConfig(selected, saverData.saverConfigs?.[selected.id])
 		: {};
@@ -176,19 +187,25 @@ export function ClassicyScreenSaverManager() {
 								}
 							/>
 						</ClassicyControlGroupFormRow>
-						<ClassicyPopUpMenu
-							id="ScreenSaverManager_saver"
-							label="Screen saver"
-							labelPosition="left"
-							options={savers.map((s) => ({ value: s.id, label: s.name }))}
-							selected={selectedId}
-							onChangeFunc={(e) =>
-								dispatch({
-									type: "ClassicyAppScreenSaverSetSaver",
-									saverId: e.target.value,
-								})
-							}
-						/>
+						{savers.length === 0 ? (
+							<ClassicyControlGroupFormRow>
+								<span>This appearance has no screen savers.</span>
+							</ClassicyControlGroupFormRow>
+						) : (
+							<ClassicyPopUpMenu
+								id="ScreenSaverManager_saver"
+								label="Screen saver"
+								labelPosition="left"
+								options={savers.map((s) => ({ value: s.id, label: s.name }))}
+								selected={selectedId}
+								onChangeFunc={(e) =>
+									dispatch({
+										type: "ClassicyAppScreenSaverSetSaver",
+										saverId: e.target.value,
+									})
+								}
+							/>
+						)}
 						<ClassicySpinner
 							id="ScreenSaverManager_timeout"
 							labelTitle="Minutes of inactivity"
@@ -208,6 +225,7 @@ export function ClassicyScreenSaverManager() {
 						/>
 						<ClassicyControlGroupFormRow justify="end">
 							<ClassicyButton
+								disabled={savers.length === 0}
 								onClickFunc={() =>
 									dispatch({ type: SCREEN_SAVER_ACTIVATE_EVENT })
 								}

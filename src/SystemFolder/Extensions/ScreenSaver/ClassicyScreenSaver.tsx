@@ -5,6 +5,7 @@ import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns
 import "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule";
 import type { FC as FunctionalComponent, RefObject } from "react";
 import { useEffect, useRef } from "react";
+import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	useAppManager,
@@ -18,9 +19,11 @@ import {
 	type ScreenSaverData,
 	screenSaverTimeoutMinutes,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import { resolveClassicyScreenSaverFor } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverOffer";
+import type { ClassicyScreenSaverDefinition } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import {
-	getClassicyScreenSaver,
 	resolveScreenSaverConfig,
+	useClassicyScreenSavers,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
@@ -35,7 +38,10 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
  * idle → `ClassicyAppScreenSaverActivate`, activity while active →
  * `ClassicyAppScreenSaverDeactivate`.
  */
-const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
+const useScreenSaverIdleMonitor = (
+	data: ScreenSaverData,
+	saverOffered: boolean,
+) => {
 	const dispatch = useAppManagerDispatch();
 	const enabled = isScreenSaverEnabled(data);
 	const timeoutMs = screenSaverTimeoutMinutes(data) * 60_000;
@@ -79,7 +85,7 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
 	// Idle timer: sleep until the earliest moment the timeout could elapse,
 	// then re-check against the activity ref — no per-event timer churn.
 	useEffect(() => {
-		if (!enabled || active) return;
+		if (!enabled || active || !saverOffered) return;
 		let timer: ReturnType<typeof setTimeout>;
 		const check = () => {
 			const elapsed = Date.now() - lastActivityRef.current;
@@ -91,7 +97,7 @@ const useScreenSaverIdleMonitor = (data: ScreenSaverData) => {
 		};
 		timer = setTimeout(check, timeoutMs);
 		return () => clearTimeout(timer);
-	}, [enabled, active, timeoutMs, dispatch]);
+	}, [enabled, active, saverOffered, timeoutMs, dispatch]);
 };
 
 /**
@@ -195,17 +201,13 @@ const usePauseForReducedMotion = (
 
 const ClassicyScreenSaverOverlay: FunctionalComponent<{
 	data: ScreenSaverData;
-}> = ({ data }) => {
+	saver: ClassicyScreenSaverDefinition;
+}> = ({ data, saver }) => {
 	useHideCursorWhileActive();
 	const overlayRef = useRef<HTMLDivElement>(null);
-	const saver = data.selectedSaver
-		? getClassicyScreenSaver(data.selectedSaver)
-		: undefined;
 	const Saver = saver?.component;
-	const config = saver
-		? resolveScreenSaverConfig(saver, data.saverConfigs?.[saver.id])
-		: {};
-	usePauseForReducedMotion(overlayRef, saver?.id);
+	const config = resolveScreenSaverConfig(saver, data.saverConfigs?.[saver.id]);
+	usePauseForReducedMotion(overlayRef, saver.id);
 	return (
 		<div
 			ref={overlayRef}
@@ -214,7 +216,7 @@ const ClassicyScreenSaverOverlay: FunctionalComponent<{
 			// every saver's class-based rules.
 			id={SCREEN_SAVER_OVERLAY_ID}
 			className={`classicyScreenSaverOverlay${
-				saver?.transparentBackground
+				saver.transparentBackground
 					? " classicyScreenSaverOverlayTransparent"
 					: ""
 			}`}
@@ -236,7 +238,13 @@ export const ClassicyScreenSaver: FunctionalComponent = () => {
 	);
 	const appData: ScreenSaverData = data ?? {};
 
-	useScreenSaverIdleMonitor(appData);
+	// The saver in effect under the active package: the stored choice when it
+	// offers it, else its default. None offered: no idle activation, no overlay.
+	const packageId = useActiveClassicyAppearancePackage().id;
+	useClassicyScreenSavers();
+	const saver = resolveClassicyScreenSaverFor(packageId, appData.selectedSaver);
+
+	useScreenSaverIdleMonitor(appData, saver !== undefined);
 
 	return (
 		<>
@@ -250,8 +258,8 @@ export const ClassicyScreenSaver: FunctionalComponent = () => {
 			    only render while the app is "open", and the overlay must not
 			    depend on app lifecycle. Position: fixed needs no portal, and
 			    mounting inside the desktop tree keeps theme vars in scope. */}
-			{appData.active === true && isScreenSaverEnabled(appData) && (
-				<ClassicyScreenSaverOverlay data={appData} />
+			{appData.active === true && isScreenSaverEnabled(appData) && saver && (
+				<ClassicyScreenSaverOverlay data={appData} saver={saver} />
 			)}
 		</>
 	);

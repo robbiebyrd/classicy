@@ -1,11 +1,9 @@
 import { fireEvent, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { render } from "@/__tests__/test-utils";
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-// Register the built-ins for handler-side saver lookups.
-import "@/SystemFolder/Extensions/ScreenSaver/savers/ClassicyScreenSaverBuiltIns";
 import { ClassicyScreenSaverConfigForm } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverConfigForm";
 import {
 	classicyScreenSaverEventHandler,
@@ -16,13 +14,18 @@ import {
 	getClassicyScreenSaver,
 	listClassicyScreenSavers,
 	registerClassicyScreenSaver,
+	resetClassicyScreenSaversForTests,
 	resolveScreenSaverConfig,
 } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 
-const makeStore = (data: ScreenSaverData = {}): ClassicyStore =>
+const makeStore = (
+	data: ScreenSaverData = {},
+	packageId?: string,
+): ClassicyStore =>
 	({
 		System: {
 			Manager: {
+				Appearance: { packageId },
 				Applications: {
 					apps: {
 						[SCREEN_SAVER_APP_ID]: {
@@ -44,12 +47,52 @@ const dataOf = (ds: ClassicyStore): ScreenSaverData =>
 	ds.System.Manager.Applications.apps[SCREEN_SAVER_APP_ID]
 		.data as ScreenSaverData;
 
+const Null = () => null;
+
+// The core registers no saver of its own in these tests: each case gets the
+// fakes it needs, so none depends on a built-in.
+beforeEach(() => {
+	resetClassicyScreenSaversForTests();
+	registerClassicyScreenSaver({
+		id: "fake-ball",
+		name: "Fake Ball",
+		component: Null,
+		configSchema: z.looseObject({
+			balls: z.number().min(1).max(10).default(3),
+		}),
+	});
+	registerClassicyScreenSaver({
+		id: "fake-rain",
+		name: "Fake Rain",
+		component: Null,
+		configSchema: z.looseObject({
+			lightning: z.boolean().default(true).describe("Lightning"),
+			layers: z.number().min(1).max(9).default(3).describe("Rain layers"),
+			density: z
+				.enum(["light", "heavy"])
+				.default("light")
+				.describe("How many layers of rain fall"),
+		}),
+	});
+	registerClassicyScreenSaver({
+		id: "fake-warp",
+		name: "Fake Warp",
+		component: Null,
+		configSchema: z.looseObject({
+			layers: z.number().min(1).max(9).default(3).describe("Warp layers"),
+		}),
+	});
+	registerClassicyScreenSaver({
+		id: "fake-fish",
+		name: "Fake Fish",
+		component: Null,
+	});
+});
+
 describe("screensaver registry", () => {
-	it("registers and lists built-in savers sorted by name", () => {
+	it("lists registered savers sorted by name", () => {
 		const names = listClassicyScreenSavers().map((s) => s.name);
-		expect(names).toContain("Flying Toasters");
-		expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-		expect(listClassicyScreenSavers().length).toBeGreaterThanOrEqual(12);
+		expect(names).toEqual(["Fake Ball", "Fake Fish", "Fake Rain", "Fake Warp"]);
 	});
 
 	it("re-registering an id replaces the entry", () => {
@@ -117,15 +160,15 @@ describe("classicyScreenSaverEventHandler", () => {
 	it("SetSaver accepts registered ids and rejects unknown ones", () => {
 		let ds = classicyScreenSaverEventHandler(makeStore(), {
 			type: "ClassicyAppScreenSaverSetSaver",
-			saverId: "flying-toasters",
+			saverId: "fake-fish",
 		});
-		expect(dataOf(ds).selectedSaver).toBe("flying-toasters");
+		expect(dataOf(ds).selectedSaver).toBe("fake-fish");
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		ds = classicyScreenSaverEventHandler(ds, {
 			type: "ClassicyAppScreenSaverSetSaver",
 			saverId: "not-a-saver",
 		});
-		expect(dataOf(ds).selectedSaver).toBe("flying-toasters");
+		expect(dataOf(ds).selectedSaver).toBe("fake-fish");
 		warn.mockRestore();
 	});
 
@@ -154,21 +197,64 @@ describe("classicyScreenSaverEventHandler", () => {
 	it("SetConfig merges validated patches per saver", () => {
 		const ds = classicyScreenSaverEventHandler(makeStore(), {
 			type: "ClassicyAppScreenSaverSetConfig",
-			saverId: "bouncing-ball",
+			saverId: "fake-ball",
 			config: { balls: 7 },
 		});
-		expect(dataOf(ds).saverConfigs?.["bouncing-ball"]).toEqual({ balls: 7 });
+		expect(dataOf(ds).saverConfigs?.["fake-ball"]).toEqual({ balls: 7 });
 	});
 
 	it("SetConfig rejects patches failing the saver's schema", () => {
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const ds = classicyScreenSaverEventHandler(makeStore(), {
 			type: "ClassicyAppScreenSaverSetConfig",
-			saverId: "bouncing-ball",
+			saverId: "fake-ball",
 			config: { balls: 999 },
 		});
-		expect(dataOf(ds).saverConfigs?.["bouncing-ball"]).toBeUndefined();
+		expect(dataOf(ds).saverConfigs?.["fake-ball"]).toBeUndefined();
 		warn.mockRestore();
+	});
+});
+
+describe("savers follow the active package", () => {
+	const reg = (id: string, packages?: string[]) =>
+		registerClassicyScreenSaver({ id, name: id, component: Null, packages });
+
+	it("Activate sets nothing when no saver is offered to the package", () => {
+		resetClassicyScreenSaversForTests();
+		reg("elsewhere-only", ["some-other-package"]);
+		const ds = classicyScreenSaverEventHandler(makeStore(), {
+			type: "ClassicyAppScreenSaverActivate",
+		});
+		expect(dataOf(ds).active).toBeUndefined();
+	});
+
+	it("Activate still works when only the default-offered fallback remains", () => {
+		resetClassicyScreenSaversForTests();
+		reg("a-saver");
+		const ds = classicyScreenSaverEventHandler(
+			makeStore({ selectedSaver: "gone" }),
+			{ type: "ClassicyAppScreenSaverActivate" },
+		);
+		expect(dataOf(ds).active).toBe(true);
+	});
+
+	it("SetSaver stores a registered saver another package offers", () => {
+		reg("theirs", ["some-other-package"]);
+		const ds = classicyScreenSaverEventHandler(makeStore(), {
+			type: "ClassicyAppScreenSaverSetSaver",
+			saverId: "theirs",
+		});
+		expect(dataOf(ds).selectedSaver).toBe("theirs");
+	});
+
+	it("the stored selectedSaver is unchanged by Activate under another package", () => {
+		reg("theirs", ["some-other-package"]);
+		const ds = classicyScreenSaverEventHandler(
+			makeStore({ selectedSaver: "theirs" }),
+			{ type: "ClassicyAppScreenSaverActivate" },
+		);
+		expect(dataOf(ds).active).toBe(true);
+		expect(dataOf(ds).selectedSaver).toBe("theirs");
 	});
 });
 
@@ -194,7 +280,7 @@ describe("persistence", () => {
 
 describe("ClassicyScreenSaverConfigForm", () => {
 	it("derives controls from a saver's schema", () => {
-		const saver = getClassicyScreenSaver("rainstorm");
+		const saver = getClassicyScreenSaver("fake-rain");
 		expect(saver).toBeDefined();
 		if (!saver) return;
 		const onChange = vi.fn();
@@ -214,7 +300,7 @@ describe("ClassicyScreenSaverConfigForm", () => {
 	});
 
 	it("saves the clamped value the field shows: Warp layers 99 → 9", () => {
-		const saver = getClassicyScreenSaver("warp");
+		const saver = getClassicyScreenSaver("fake-warp");
 		expect(saver).toBeDefined();
 		if (!saver) return;
 		const onChange = vi.fn();
@@ -226,7 +312,7 @@ describe("ClassicyScreenSaverConfigForm", () => {
 			/>,
 		);
 		const layers = document.getElementById(
-			"ScreenSaver_warp_layers",
+			"ScreenSaver_fake-warp_layers",
 		) as HTMLInputElement;
 		fireEvent.change(layers, { target: { value: "99" } });
 		expect(layers).toHaveValue(9);
@@ -234,9 +320,9 @@ describe("ClassicyScreenSaverConfigForm", () => {
 		// The patch the panel would dispatch is accepted and stored as shown.
 		const ds = classicyScreenSaverEventHandler(makeStore(), {
 			type: "ClassicyAppScreenSaverSetConfig",
-			saverId: "warp",
+			saverId: "fake-warp",
 			config: onChange.mock.lastCall?.[0],
 		});
-		expect(dataOf(ds).saverConfigs?.warp).toEqual({ layers: 9 });
+		expect(dataOf(ds).saverConfigs?.["fake-warp"]).toEqual({ layers: 9 });
 	});
 });

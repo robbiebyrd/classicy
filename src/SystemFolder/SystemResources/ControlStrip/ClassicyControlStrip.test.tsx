@@ -33,6 +33,10 @@ import {
 import { CONTROL_STRIP_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest";
 import { SCREEN_SAVER_MANAGER_APP_ID } from "@/SystemFolder/ControlPanels/ScreenSaverManager/ClassicyScreenSaverManagerManifest";
 import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
+import {
+	registerClassicyScreenSaver,
+	resetClassicyScreenSaversForTests,
+} from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverRegistry";
 import { markClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
@@ -599,6 +603,50 @@ describe("built-in control strip modules", () => {
 					]?.data as { enabled?: boolean } | undefined
 				)?.enabled,
 			).toBe(false),
+		);
+		unmount();
+	});
+});
+
+describe("Screen Saver module follows the active package's savers", () => {
+	const openMenu = () => {
+		dispatch({
+			type: "ClassicyAppOpen",
+			app: { id: SCREEN_SAVER_APP_ID, name: "Screen Saver", icon: "" },
+		});
+		const unmount = markClassicyAppMounted(SCREEN_SAVER_APP_ID);
+		renderWithProviders(<ClassicyControlStrip />);
+		click(screen.getByRole("button", { name: "Screen Saver" }));
+		return unmount;
+	};
+
+	afterEach(() => resetClassicyScreenSaversForTests());
+
+	it("the activate item is disabled with none offered", () => {
+		resetClassicyScreenSaversForTests();
+		registerClassicyScreenSaver({
+			id: "foreign-saver",
+			name: "Foreign",
+			component: () => null,
+			packages: ["some-other-package"],
+		});
+		const unmount = openMenu();
+		expect(screen.getByRole("menuitem", { name: "Sleep Now" })).toHaveClass(
+			"disabled",
+		);
+		unmount();
+	});
+
+	it("the activate item is enabled when a saver is offered", () => {
+		resetClassicyScreenSaversForTests();
+		registerClassicyScreenSaver({
+			id: "any-saver",
+			name: "Any",
+			component: () => null,
+		});
+		const unmount = openMenu();
+		expect(screen.getByRole("menuitem", { name: "Sleep Now" })).not.toHaveClass(
+			"disabled",
 		);
 		unmount();
 	});
