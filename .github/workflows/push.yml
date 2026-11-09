@@ -269,7 +269,9 @@ jobs:
       # can log "already published" even when the publish went through. The
       # downstream bumps install `latest`, so dispatching before the version is
       # listed pulls in the PREVIOUS release (rt911#598 bumped to 2.0.0 for
-      # v2.0.1). Wait until `latest` really is this version.
+      # v2.0.1). Wait until `latest` really is this version. The scoped core is
+      # slower still: 3.0.0 was listed after 52 polls and 3.1.0 after 51, so
+      # each package now gets 90 polls, 45 minutes.
       - name: Wait for the release to appear on npm
         if: steps.bump_version.outputs.newTag != ''
         env:
@@ -281,21 +283,23 @@ jobs:
           if [ -f packages/appearance/platinum/package.json ]; then
             PACKAGES+=("$(node -p 'require("./packages/appearance/platinum/package.json").name')")
           fi
+          POLL_SECONDS=30
+          POLLS=90
           # Both packages must be listed before anything downstream runs.
           for NAME in "${PACKAGES[@]}"; do
             LIVE=""
-            for attempt in $(seq 1 60); do
+            for attempt in $(seq 1 "$POLLS"); do
               LATEST="$(npm view "$NAME" dist-tags.latest --prefer-online 2>/dev/null || true)"
               if [ "$LATEST" = "$VERSION" ]; then
                 echo "$NAME@$VERSION is live on npm (attempt $attempt)."
                 LIVE=1
                 break
               fi
-              echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/60"
-              sleep 30
+              echo "Waiting for $NAME@$VERSION on npm (latest: ${LATEST:-none}), attempt $attempt/$POLLS"
+              sleep "$POLL_SECONDS"
             done
             if [ -z "$LIVE" ]; then
-              echo "::error::$NAME@$VERSION was not listed as latest on npm within 30 minutes; not dispatching downstream deploys."
+              echo "::error::$NAME@$VERSION was not listed as latest on npm within $((POLLS * POLL_SECONDS / 60)) minutes; not dispatching downstream deploys."
               exit 1
             fi
           done
