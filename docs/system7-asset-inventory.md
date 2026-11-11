@@ -2,13 +2,15 @@
 
 Every icon, system-art key, cursor, alert sound and window color the System 7 Appearance Package (`@classicy/appearance-system7`, plan 0018-dbd §2.1, design 0017-6me) needs from System 7.5, and exactly which file to export for each. Work down the tables and tick `[ ]` to `[x]` as files land. Rows whose Done cell is "—" need nothing from you.
 
+**Fallback rule.** Where System 7 would show its own generic icon for a thing it lacked, the key reuses that generic (an extension newer than 7.5 gets the generic extension, an unknown document the generic document, a DVD the CD-ROM). The core image is kept only for Classicy-specific UI glyphs, brands, and things with no file-kind meaning.
+
 `src/Appearance/ClassicySystem7AssetInventory.repo.test.ts` reads the keys from the code and fails if any icon key, `ClassicySystemArtKey` or `ClassicyCursorRole` is missing here, so a key added later shows up as a test failure, not a blank image.
 
 ## Summary
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 294 keys | 64 export (up to 4 PNGs each); 38 reuse and 192 core need nothing. 26 exports have a known ID, 38 say "ID to confirm" |
+| Icons | 294 keys | 66 export (up to 4 PNGs each); 61 reuse and 167 core need nothing. 26 exports have a known ID, 40 say "ID to confirm" |
 | System art | 39 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | 6 WAV exports and one copy |
@@ -56,7 +58,10 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 
 **Cursors.** From each `CURS`: image 1 + mask 1 is black, image 0 + mask 1 is white, image 0 + mask 0 is transparent, and image 1 + mask 0 (which inverts the screen) is black, since a PNG cannot invert. Write the hotspot in the Hotspot cell as (x, y): ResEdit's `CURS` editor shows it; in the raw resource it is the last four bytes, v then h, so x = h and y = v.
 
-**Sounds.** Each `snd ` as a WAV (PCM) at its stored rate and depth (the 7.5 alerts are 8-bit mono, most at 22.254 kHz). No resampling, normalizing, trimming or fades. The file name is the sprite id (`ClassicyAlertSimpleBeep.wav`); the audio pipeline (`bin/make_audio_sprites.sh`) builds the sprite sheet from the folder.
+**Sounds.** The file name is the sprite id (`ClassicyAlertSimpleBeep.wav`); the audio pipeline (`bin/make_audio_sprites.sh`) builds the sprite sheet from the folder. Each `snd ` is one of two kinds:
+
+- **Sampled** (it holds a sampled-sound buffer; most alerts): write it as WAV (PCM) at its stored depth and channel count (8-bit mono for the 7.5 alerts). A 22.254 kHz sound (Apple's rate, 22254.54 Hz) is written with a WAV rate of 22254 Hz; a 11.127 kHz one as 11127 Hz. No resampling, normalizing, trimming or fades.
+- **Synthesized** (a format 1 `snd ` with only note or square-wave commands and no sampled data; Simple Beep may be one): there is nothing to export. Play it in the emulator (the Sound control panel plays an alert when you click its name) and record the emulator's audio output as WAV at 22,050 Hz, mono, 16-bit, trimmed to the sound: cut the silence before the first and after the last non-silent sample, with no fades or normalizing.
 
 ### Decisions
 
@@ -132,20 +137,20 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.netscape.loader` | Netscape throbber | core | Netscape is not on the System 7.5 disks | — | — |
 | — | `applications.pager.app` | Pager application (pager device) | core | Classicy app; no System 7 counterpart | — | — |
 | — | `applications.news.app` | News reader application | core | Classicy app; no System 7 counterpart | — | — |
-| — | `applications.pictureViewer.app` | Picture Viewer application | core | Picture Viewer shipped with QuickTime 2.5 (1996), after 7.5 | — | — |
+| — | `applications.pictureViewer.app` | Picture Viewer application | reuse | `applications.simpletext.app` (SimpleText was System 7.5's picture viewer; Picture Viewer arrived with QuickTime 3, after 7.5) | — | — |
 | — | `applications.radio.app` | Radio application | core | Classicy app; no System 7 counterpart | — | — |
 | — | `applications.registerWithApple.app` | Register with Apple | core | Mac OS 7.6/8 era; not on the System 7.5 disks | — | — |
 | — | `applications.setupAssistant.setupAssistant` | Mac OS Setup Assistant | core | Mac OS 8 era; not on the System 7.5 disks | — | — |
 | [ ] | `applications.stickies.app` | Stickies application | export | Stickies (Apple Menu Items); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-app.png` |
 | — | `applications.stickies.controlButtonSprites` | Stickies window button sprite sheet | core | UI sprite sheet, not an icon | — | — |
 | [ ] | `applications.stickies.notes` | Stickies notes | export | Stickies (Apple Menu Items); ID to confirm: the document icon for the Stickies file in its `BNDL` (usually 129) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-notes.png` |
-| — | `applications.stickies.stack` | Stack of sticky notes | core | Stickies has no stack icon | — | — |
+| — | `applications.stickies.stack` | Stack of sticky notes | reuse | `applications.stickies.notes` (the Stickies file) | — | — |
 | — | `applications.stuffit.app` | StuffIt application | core | StuffIt is third-party and not on the System 7.5 disks | — | — |
 | — | `applications.stuffit.compressing` | StuffIt compressing | core | StuffIt is not on the System 7.5 disks | — | — |
-| — | `applications.stuffit.file` | StuffIt archive | core | StuffIt is not on the System 7.5 disks | — | — |
-| — | `applications.usenet.app` | Usenet reader application | core | No System 7 counterpart | — | — |
-| — | `applications.usenet.search` | Usenet search | core | No System 7 counterpart | — | — |
-| — | `applications.usenet.server` | Usenet server | core | No System 7 counterpart | — | — |
+| — | `applications.stuffit.file` | StuffIt archive | reuse | `system.files.document` (without StuffIt, System 7 shows the generic document) | — | — |
+| — | `applications.usenet.app` | Usenet reader application | core | Classicy app's own icon (a brand) | — | — |
+| — | `applications.usenet.search` | Usenet search | core | Classicy UI glyph | — | — |
+| — | `applications.usenet.server` | Usenet server | core | Classicy UI glyph | — | — |
 | — | `applications.systemProfiler.app` | Apple System Profiler | core | Apple System Profiler shipped after 7.5 | — | — |
 | [ ] | `applications.simpletext.app` | SimpleText application | export | SimpleText; ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.png` |
 
@@ -158,7 +163,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `controlPanels.appearanceManager.backgroundFill` | Wallpaper position glyph: fill | core | Classicy UI glyph; no System 7 counterpart | — | — |
 | — | `controlPanels.appearanceManager.backgroundScale` | Wallpaper position glyph: scale | core | Classicy UI glyph; no System 7 counterpart | — | — |
 | — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph; no System 7 counterpart | — | — |
-| — | `controlPanels.appearanceManager.file` | Appearance theme file | core | Theme files are a Classicy format | — | — |
+| — | `controlPanels.appearanceManager.file` | Appearance theme file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `controlPanels.appearanceManager.preferences` | Appearance preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
 | [ ] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel (PowerBook install of 7.5); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.png` |
 | [ ] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.png` |
@@ -173,8 +178,8 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `controlPanels.soundManager.soundMute` | Speaker, muted | core | Classicy volume glyph; no System 7 set | — | — |
 | — | `controlPanels.soundManager.soundOff` | Speaker, off (menu-bar widget) | core | Classicy volume glyph; no System 7 set | — | — |
 | — | `controlPanels.soundManager.soundOn` | Speaker, on (menu-bar widget) | core | Classicy volume glyph; no System 7 set | — | — |
-| — | `controlPanels.soundManager.stt` | Speech recognition (ear) | core | PlainTalk is not on the System 7.5 disks | — | — |
-| — | `controlPanels.soundManager.tts` | Text to speech (face) | core | PlainTalk is not on the System 7.5 disks | — | — |
+| [ ] | `controlPanels.soundManager.stt` | Speech recognition (ear) | export | Speech Setup control panel (PlainTalk 1.x, AV and Power Macintosh installs, 1993); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-stt.png` |
+| [ ] | `controlPanels.soundManager.tts` | Text to speech (face) | export | Speech Manager extension (PlainTalk / MacinTalk, 1993); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-tts.png` |
 
 ### System: Control Strip modules
 
@@ -215,16 +220,16 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | [ ] | `system.drives.cdrom` | CD-ROM disc | export | System, ID -3987 (`kGenericCDROMIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-cdrom.png` |
 | [ ] | `system.drives.disk` | Hard disk (startup disk) | export | System, ID -3995 (`kGenericHardDiskIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-disk.png` |
 | — | `system.drives.driveExternal` | External hard disk | reuse | `system.drives.disk` (System 7 has one hard disk icon) | — | — |
-| — | `system.drives.dvdAudio` | DVD-Audio disc | core | DVD postdates System 7.5 | — | — |
-| — | `system.drives.dvdVideo` | DVD-Video disc | core | DVD postdates System 7.5 | — | — |
-| — | `system.drives.dvd` | DVD disc | core | DVD postdates System 7.5 | — | — |
+| — | `system.drives.dvdAudio` | DVD-Audio disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
+| — | `system.drives.dvdVideo` | DVD-Video disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
+| — | `system.drives.dvd` | DVD disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
 | — | `system.drives.floppyMac` | Macintosh floppy disk | reuse | `system.drives.floppy` | — | — |
 | [ ] | `system.drives.floppyPc` | PC (DOS) floppy disk | export | PC Exchange (Control Panels); ID to confirm: the DOS disk icon PC Exchange mounts (look in its `icl8` list) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-floppy-pc.png` |
 | [ ] | `system.drives.floppy` | Floppy disk | export | System, ID -3998 (`kFloppyIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-floppy.png` |
-| — | `system.drives.internetDrive` | Internet drive | core | No System 7 counterpart | — | — |
+| — | `system.drives.internetDrive` | Internet drive | reuse | `system.drives.networkDrive` (System 7's remote volume) | — | — |
 | [ ] | `system.drives.networkDrive` | Network (AppleShare) volume | export | System, ID -3972 (`kGenericFileServerIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-network-drive.png` |
-| — | `system.drives.raid` | RAID volume | core | No System 7 counterpart | — | — |
-| — | `system.drives.rom` | ROM disk | core | No System 7 counterpart | — | — |
+| — | `system.drives.raid` | RAID volume | reuse | `system.drives.disk` (System 7's hard disk) | — | — |
+| — | `system.drives.rom` | ROM disk | reuse | `system.drives.disk` (System 7's hard disk) | — | — |
 
 ### System: extensions
 
@@ -232,37 +237,37 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `system.extensions.appleGuide` | Apple Guide extension (also the Apple Guide app) | export | Apple Guide (Extensions); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-guide.png` |
 | [ ] | `system.extensions.appleShare` | AppleShare extension | export | AppleShare (Extensions); ID to confirm: the extension's own icon (`BNDL`; Chooser shows it) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-share.png` |
-| — | `system.extensions.appleVision` | AppleVision extension | core | AppleVision (1996) postdates 7.5 | — | — |
-| — | `system.extensions.contextMenus` | Contextual Menu extension | core | Mac OS 8 era | — | — |
+| — | `system.extensions.appleVision` | AppleVision extension (boot parade) | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
+| — | `system.extensions.contextMenus` | Contextual Menu extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.dateAndTime` | Date & Time extension | reuse | `controlPanels.dateTimeManager.dateTimeManager` | — | — |
 | [ ] | `system.extensions.ethernet` | Ethernet extension | export | EtherTalk Phase 2 (Extensions, network install); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-ethernet.png` |
-| — | `system.extensions.fmRadio` | FM radio extension | core | No System 7 counterpart | — | — |
+| — | `system.extensions.fmRadio` | FM radio extension (boot parade) | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | [ ] | `system.extensions.quickdraw` | QuickDraw extension | export | QuickDraw GX (Extensions); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-quickdraw.png` |
 | [ ] | `system.extensions.quicktime` | QuickTime extension | export | QuickTime 2.0 (Extensions); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-quicktime.png` |
-| — | `system.extensions.quicktimeMpeg` | QuickTime MPEG extension | core | QuickTime MPEG postdates 7.5 | — | — |
-| — | `system.extensions.screensaver` | Screen Saver extension | core | System 7.5 has no screen saver | — | — |
+| — | `system.extensions.quicktimeMpeg` | QuickTime MPEG extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
+| — | `system.extensions.screensaver` | Screen Saver extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | [ ] | `system.extensions.soundManager` | Sound Manager extension | export | Sound Manager (Extensions); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-sound-manager.png` |
 
 ### System: files
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.files._1292` | Flowchart document | core | No System 7 counterpart | — | — |
-| — | `system.files._1294` | Yellow note stack | core | No System 7 counterpart | — | — |
+| — | `system.files._1292` | Flowchart document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
+| — | `system.files._1294` | Yellow note stack document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | [ ] | `system.files.application` | Generic application | export | System, ID -3996 (`kGenericApplicationIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-application.png` |
 | [ ] | `system.files.document` | Generic document | export | System, ID -4000 (`kGenericDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-document.png` |
 | [ ] | `system.files.edition` | Edition file | export | System, ID -3989 (`kGenericEditionFileIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-edition.png` |
-| — | `system.files.fileInvisible` | Invisible file (dotted outline) | core | Classicy marker; no System 7 counterpart | — | — |
-| — | `system.files.filePc` | PC file | core | No System 7 counterpart | — | — |
+| — | `system.files.fileInvisible` | Invisible file (dotted outline) | core | Classicy's invisible-file marker, a UI glyph: System 7 never shows invisible files | — | — |
+| — | `system.files.filePc` | PC file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | [ ] | `system.files.fileText` | Text document | export | SimpleText; ID to confirm: the `TEXT` document icon in its `BNDL` (usually 129) | `ICN#` `icl8` `ics#` `ics8` | `system-files-file-text.png` |
 | — | `system.files.file` | Plain file | reuse | `system.files.document` | — | — |
-| — | `system.files.internationalization` | International (flags) file | core | No System 7 counterpart | — | — |
+| — | `system.files.internationalization` | International (flags) file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | [ ] | `system.files.note` | Note Pad file | export | Note Pad (Apple Menu Items); ID to confirm: the Note Pad File document icon in its `BNDL` | `ICN#` `icl8` `ics#` `ics8` | `system-files-note.png` |
 | [ ] | `system.files.photo` | Picture document | export | SimpleText; ID to confirm: the `PICT` document icon in its `BNDL` | `ICN#` `icl8` `ics#` `ics8` | `system-files-photo.png` |
 | [ ] | `system.files.preferences` | Generic preferences file | export | System, ID -3971 (`kGenericPreferencesIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-preferences.png` |
 | [ ] | `system.files.script` | Script | export | Script Editor (AppleScript); ID to confirm: the compiled script document icon in its `BNDL` | `ICN#` `icl8` `ics#` `ics8` | `system-files-script.png` |
-| — | `system.files.settingsSync` | Settings sync file | core | No System 7 counterpart | — | — |
-| — | `system.files.slideshow` | Slide show document | core | No System 7 counterpart | — | — |
+| — | `system.files.settingsSync` | Settings sync file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
+| — | `system.files.slideshow` | Slide show document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | [ ] | `system.files.sound` | Sound file | export | System; ID to confirm: the icon family for file type `sfil` (a System 7 sound file; look in the System's `icl8` list) | `ICN#` `icl8` `ics#` `ics8` | `system-files-sound.png` |
 | [ ] | `system.files.stationaryBlack` | Generic stationery | export | System, ID -3985 (`kGenericStationeryIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-stationary-black.png` |
 
@@ -314,22 +319,22 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `system.network.chooser` | Chooser | export | Chooser (Apple Menu Items); ID to confirm: the desk accessory's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-chooser.png` |
 | — | `system.network.controlpanelInternet` | Internet control panel | core | Mac OS 8.5 era | — | — |
-| — | `system.network.crypto` | Encryption | core | No System 7 counterpart | — | — |
+| — | `system.network.crypto` | Encryption | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.fileServer` | File server | reuse | `system.drives.networkDrive` (the same -3972 server icon) | — | — |
-| — | `system.network.globeAnimated` | Spinning globe (animated) | core | No System 7 counterpart | — | — |
-| — | `system.network.globe` | Globe | core | No System 7 counterpart | — | — |
+| — | `system.network.globeAnimated` | Spinning globe (animated) | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.globe` | Globe | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.internetConfig` | Internet Config | core | Third-party; not on the System 7.5 disks | — | — |
-| — | `system.network.internetServices` | Internet services | core | No System 7 counterpart | — | — |
-| — | `system.network.internet` | Internet | core | No System 7 counterpart | — | — |
-| — | `system.network.ldapDirectory` | LDAP directory | core | No System 7 counterpart | — | — |
-| — | `system.network.modem` | Modem | core | No System 7 counterpart on the 7.5 disks | — | — |
+| — | `system.network.internetServices` | Internet services | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.internet` | Internet | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.ldapDirectory` | LDAP directory | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.modem` | Modem | core | Hardware glyph with no file-kind meaning | — | — |
 | [ ] | `system.network.networkLocal` | Local network | export | Network control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `system-network-network-local.png` |
-| — | `system.network.networkPublic` | Public network | core | No System 7 counterpart | — | — |
-| — | `system.network.sslInvalid` | Invalid certificate | core | No System 7 counterpart | — | — |
-| — | `system.network.sslWeb` | Secure web | core | No System 7 counterpart | — | — |
-| — | `system.network.ssl` | Lock (secure) | core | No System 7 counterpart | — | — |
-| — | `system.network.terminal` | Terminal | core | No System 7 counterpart | — | — |
-| — | `system.network.usenet` | Usenet | core | No System 7 counterpart | — | — |
+| — | `system.network.networkPublic` | Public network | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.sslInvalid` | Invalid certificate | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.sslWeb` | Secure web | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.ssl` | Lock (secure) | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.terminal` | Terminal | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.network.usenet` | Usenet | core | Concept glyph with no file-kind meaning | — | — |
 | [ ] | `system.network.userDirectory` | User directory (person with a folder) | export | Users & Groups control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `system-network-user-directory.png` |
 
 ### System: QuickTime
@@ -342,7 +347,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.quicktime.extension` | QuickTime extension (alternate) | reuse | `system.extensions.quicktime` | — | — |
 | — | `system.quicktime.forwardButton` | Step forward button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
 | — | `system.quicktime.fullscreenButton` | Full screen button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.movieStationary` | Movie stationery | core | No System 7 counterpart | — | — |
+| — | `system.quicktime.movieStationary` | Movie stationery | reuse | `system.files.stationaryBlack` (a stationery pad whose application has no stationery icon gets System 7's generic stationery; stationery-ness is what the icon says) | — | — |
 | [ ] | `system.quicktime.movie` | QuickTime movie document | export | MoviePlayer (QuickTime 2.0); ID to confirm: the `MooV` document icon in its `BNDL` | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-movie.png` |
 | — | `system.quicktime.pauseButton` | Pause button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
 | — | `system.quicktime.playButton` | Play button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
@@ -394,8 +399,8 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.security.id` | ID card | core | No System 7 counterpart | — | — |
-| — | `system.security.key` | Key | core | No System 7 counterpart | — | — |
+| — | `system.security.id` | ID card | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.security.key` | Key | core | Concept glyph with no file-kind meaning | — | — |
 
 ### System: Sherlock
 
@@ -433,28 +438,28 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | --- | --- | --- | --- | --- | --- | --- |
 | — | `system.appleBlackOnWhite` | Black Apple logo on white | core | Logo art; the Apple menu glyph is the `appleMenu` system art | — | — |
 | — | `system.appleWhiteOnBlack` | White Apple logo on black | core | Logo art; the Apple menu glyph is the `appleMenu` system art | — | — |
-| — | `system.bigSwitchOff` | Power switch, off | core | No System 7 counterpart | — | — |
-| — | `system.bigSwitchOn` | Power switch, on | core | No System 7 counterpart | — | — |
+| — | `system.bigSwitchOff` | Power switch, off | core | Classicy UI glyph | — | — |
+| — | `system.bigSwitchOn` | Power switch, on | core | Classicy UI glyph | — | — |
 | [ ] | `system.clipboard` | Clipboard file | export | System; ID to confirm: the icon family for file type `CLIP` (Finder's `FREF`/`BNDL` maps it; look for the clipboard in the System's `icl8` list) | `ICN#` `icl8` `ics#` `ics8` | `system-clipboard.png` |
-| — | `system.comport1` | COM1 serial port | core | PC port; no System 7 counterpart | — | — |
-| — | `system.comport2` | COM2 serial port | core | PC port; no System 7 counterpart | — | — |
+| — | `system.comport1` | COM1 serial port | core | Hardware glyph with no file-kind meaning | — | — |
+| — | `system.comport2` | COM2 serial port | core | Hardware glyph with no file-kind meaning | — | — |
 | [ ] | `system.error` | Stop alert icon | export | System, ID 0 (`kStopIcon`). 1-bit, no mask, no small size | `ICON` (`cicn` if present) | `system-error.png` |
 | [ ] | `system.extension` | Generic extension (puzzle piece) | export | System, ID -16415 (`kGenericExtensionIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-extension.png` |
 | [ ] | `system.help` | Help (Finder Preferences) | export | System, ID -20271 (`kHelpIconResource`) to confirm: Icons.h names it, check it is the Help icon in 7.5 | `ICN#` `icl8` `ics#` `ics8` | `system-help.png` |
 | [ ] | `system.info` | Note alert icon | export | System, ID 1 (`kNoteIcon`). 1-bit, no mask, no small size | `ICON` (`cicn` if present) | `system-info.png` |
-| — | `system.internet` | Internet (hand and globe) | core | No System 7 counterpart | — | — |
-| — | `system.macClassic` | Macintosh Classic with mouse | core | No System 7 counterpart | — | — |
-| — | `system.macWink` | Winking compact Mac | core | No System 7 counterpart | — | — |
+| — | `system.internet` | Internet (hand and globe) | core | Concept glyph with no file-kind meaning | — | — |
+| — | `system.macClassic` | Macintosh Classic with mouse | reuse | `system.mac` (the compact Mac machine icon) | — | — |
+| — | `system.macWink` | Winking compact Mac | core | Classicy's whimsical Mac glyph, no file-kind meaning | — | — |
 | [ ] | `system.mac` | Compact Macintosh (About This Computer, file dialogs) | export | System; ID to confirm: a compact Mac machine icon (About This Macintosh shows it; browse the System's `ICN#` list with negative IDs). If none, crop it from About This Macintosh on an emulated compact Mac | `ICN#` `icl8` `ics#` `ics8` | `system-mac.png` |
 | [ ] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | Finder (System Folder); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `system-macos.png` |
 | — | `system.macosSvg` | Mac OS face logo, vector (Platinum startup screen) | core | Mac OS 7.6/8 logo; System 7's startup screen is the `startupLogo` system art | — | — |
-| — | `system.pig` | Piggy bank | core | No System 7 counterpart | — | — |
+| — | `system.pig` | Piggy bank | core | Concept glyph with no file-kind meaning | — | — |
 | [ ] | `system.printer` | Printer | export | LaserWriter driver (Extensions); ID to confirm: the driver file's own icon (`BNDL`; Chooser shows it) | `ICN#` `icl8` `ics#` `ics8` | `system-printer.png` |
 | [ ] | `system.question` | Document with a question mark | export | System, ID -16506 (`kGenericQueryDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-question.png` |
-| — | `system.shockwave` | Shockwave plug-in | core | No System 7 counterpart | — | — |
+| — | `system.shockwave` | Shockwave plug-in | core | Macromedia brand (1995+) | — | — |
 | — | `system.systemResources` | System Resources file | reuse | `system.folders.suitcaseSystem` (the System file) | — | — |
 | [ ] | `system.warn` | Caution alert icon | export | System, ID 2 (`kCautionIcon`). 1-bit, no mask, no small size | `ICON` (`cicn` if present) | `system-warn.png` |
-| — | `system.windows` | Windows logo | core | No System 7 counterpart | — | — |
+| — | `system.windows` | Windows logo | core | Microsoft brand | — | — |
 
 ### UI
 
@@ -470,21 +475,21 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 
 | Done | Key | What | Decision | Source | Color file | B&W file |
 | --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `appleMenu` | Apple menu title glyph | crop | Color: the six-color rainbow apple; B&W: the solid black apple. Crop the 16×16 cell around the apple from the menu bar in a 1x screenshot (Monitors set to 256 colors, then Black & White). The System file may hold it as a small icon family (ID to confirm); a crop is enough | `art/color/apple-menu.png` | `art/bw/apple-menu.png` |
+| [ ] | `appleMenu` | Apple menu title glyph | crop | Color: the six-color rainbow apple; B&W: the solid black apple, from the menu bar in a 1x screenshot with the Apple menu closed. Box: the apple's tight bounding box (its leftmost, topmost, rightmost and bottommost non-white pixels) grown by 1 px on every side; then make every white pixel transparent. The menu bar draws it as the Apple menu's title image (as Platinum's `apple.png`, a glyph on transparency) | `art/color/apple-menu.png` | `art/bw/apple-menu.png` |
 | — | `sadMac` | Sad Mac on the crash screen | draw | ROM art, the same on every Mac: copy Platinum's `sad-mac.png` (implementer) | — | — |
 | [ ] | `startupLogo` | Startup screen logo | crop | The "Welcome to Macintosh" panel with the Happy Mac, cropped to the panel's outer frame from the System 7.5 startup screen in a 1x screenshot (the same in both modes) | `art/color/startup-logo.png` | same as color |
-| [ ] | `trashEmpty` | Trash, empty (desktop icon) | export | System, ID -3993 (`kTrashIconResource`): `ICN#` `icl8` (32 px). Also export the 16 px `ics#` `ics8` as `icons/*/16/trash-empty.png` | `art/color/trash-empty.png` | `art/bw/trash-empty.png` |
-| [ ] | `trashFull` | Trash, full (desktop icon) | export | System, ID -3984 (`kFullTrashIconResource`): `ICN#` `icl8` (32 px). Also export the 16 px `ics#` `ics8` as `icons/*/16/trash-full.png` | `art/color/trash-full.png` | `art/bw/trash-full.png` |
+| [ ] | `trashEmpty` | Trash, empty (desktop icon) | export | System, ID -3993 (`kTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-empty.png` | `art/bw/trash-empty.png` |
+| [ ] | `trashFull` | Trash, full (desktop icon) | export | System, ID -3984 (`kFullTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-full.png` | `art/bw/trash-full.png` |
 | — | `aliasBadge` | Alias arrow over an alias's icon | draw | System 7 has no alias badge: aliases show only an italic name. A transparent 32×32 SVG (implementer) | — | — |
-| [ ] | `helpButton` | Help button glyph (round help button) | crop | No help button in System 7.5; its nearest glyph is the Help (Guide) menu title: crop its 16×16 cell from the menu bar in a 1x screenshot in each mode | `art/color/help-button.png` | `art/bw/help-button.png` |
+| [ ] | `helpButton` | Help button glyph (round help button) | crop | No help button in System 7.5; its nearest glyph is the Help (Guide) menu title, the balloon with a "?": from the menu bar in a 1x screenshot in each mode, crop its tight bounding box grown by 1 px on every side, then make every white pixel transparent | `art/color/help-button.png` | `art/bw/help-button.png` |
 | — | `aboutLogo` | About This Computer logo | core | `classicy.logo`, as Platinum registers it | — | — |
 | — | `aboutBackground` | About box background | draw | No consumer today; About This Macintosh is plain white: an 8×8 white SVG (implementer) | — | — |
-| [ ] | `windowStripes` | Title-bar racing stripes (active window) | crop | A 16-px-wide tile, the full title-bar height, cut from the striped run between the close box and the title of an active document window in a 1x screenshot. Black stripes in B&W, gray in color | `art/color/window-stripes.png` | `art/bw/window-stripes.png` |
+| [ ] | `windowStripes` | Title-bar racing stripes (active window) | crop | A repeating tile, 16 px wide × 15 px tall, from an active document window's title bar in a 1x screenshot. Count the window's top frame line as row 0: take rows 2 to 16, so the frame lines and the color bar's 1 px highlight and shadow rows are out (the package draws those); the six stripes land on tile rows 2, 4, 6, 8, 10 and 12. Columns: 16 px from the middle of the stripe run between the close box and the title, clear of both gaps. Black stripes in B&W, gray in color. Platinum's consumer repeats it across each stripe band | `art/color/window-stripes.png` | `art/bw/window-stripes.png` |
 | — | `windowStripesRed` | Red title-bar stripes (Platinum variant) | reuse | `windowStripes` (System 7 has no red variant; nothing reads it) | — | — |
-| [ ] | `windowUtilityTexture` | Utility window (windoid) drag-bar texture | crop | A 16-px-wide tile, the full drag-bar height, cut from a floating window's drag bar (the Apple Guide window) in a 1x screenshot | `art/color/window-utility-texture.png` | `art/bw/window-utility-texture.png` |
-| [ ] | `windowGrip` | Size box glyph (window grow box) | crop | The two overlapping squares inside the size box: crop the 15×15 size-box cell at a window's lower right in a 1x screenshot | `art/color/window-grip.png` | `art/bw/window-grip.png` |
+| [ ] | `windowUtilityTexture` | Utility window (windoid) drag-bar texture | crop | A 4×4 tile of the 25% dot pattern (HIG p.138) from a floating utility window's drag region (the Apple Guide window, or any floating palette) in a 1x screenshot. Its top-left pixel is the first pixel inside the window's top and left frame lines (frame lines out). Platinum's consumer repeats it at the `utilityTitleBar` knob size, so the tile must be one pattern period | `art/color/window-utility-texture.png` | `art/bw/window-utility-texture.png` |
+| [ ] | `windowGrip` | Size box glyph (window grow box) | crop | The whole size box cell, glyph and face, from an active window with both scroll bars in a 1x screenshot: every pixel inside its four 1 px lines (the vertical scroll bar's left line, the horizontal scroll bar's top line, the window frame's right and bottom lines); all four lines out. The consumer expects the cell: Platinum's `resizer.svg` fills the whole resizer box as its background | `art/color/window-grip.png` | `art/bw/window-grip.png` |
 | — | `windowDither` | Control-box dither (Platinum) | draw | System 7 control boxes have no dither: a transparent 2×2 SVG (implementer) | — | — |
-| [ ] | `zoomGlyph` | Zoom box glyph | crop | The zoom box's small-box-in-a-box: crop the 11×11 zoom box from an active window's title bar in a 1x screenshot | `art/color/zoom-glyph.png` | `art/bw/zoom-glyph.png` |
+| [ ] | `zoomGlyph` | Zoom box glyph | crop | The glyph only, at its place in the box: crop the 11×11 zoom box from an active window's title bar in a 1x screenshot with its outer 1 px frame line in, then make the frame ring and the face (and, in color, the bevel pixels) transparent, keeping only the inner square's right and bottom edge lines. Platinum's consumer lays the glyph over the whole box (`.classicyWindowZoomBox::after`, `zoom.svg`) and the package draws the box frame and face | `art/color/zoom-glyph.png` | `art/bw/zoom-glyph.png` |
 | — | `collapseGlyph` | Collapse box glyph | draw | System 7 has no collapse box (the package hides it): a transparent 11×11 SVG (implementer) | — | — |
 | [ ] | `submenuArrow` | Hierarchical menu triangle | crop | The solid black right-pointing triangle: crop it from an item with a submenu (Apple menu ▸ Recent Applications, Apple Menu Options) in a 1x screenshot, tight to the triangle | `art/color/submenu-arrow.png` | same as color |
 | [ ] | `popupArrows` | Pop-up menu indicator | crop | The single solid black down triangle (HIG p.87): crop it tight from a pop-up menu (the Monitors or Sound control panel) in a 1x screenshot | `art/color/popup-arrows.png` | same as color |
@@ -544,7 +549,12 @@ The System 7.5 alert sounds from the System file's `snd ` resources, as the pack
 | [ ] | `ClassicyAlertWildEep` | Wild Eep | System, `snd ` "Wild Eep", ID to confirm | `sounds/system7/sprites/ClassicyAlertWildEep.wav` | |
 | [ ] | `ClassicyBeep` | Simple Beep | A byte-identical copy of `ClassicyAlertSimpleBeep.wav` | `sounds/system7/sprites/ClassicyBeep.wav` | The beep HyperCard's `beep` plays |
 
-Not exported: `ClassicyBoot` (the startup chime is in ROM, not the System file) and the interface feedback sounds (System 7 had none, design 0017-6me). A host that also loads Platinum plays Platinum's for those ids; a System 7-only host stays silent.
+Not exported, so a System 7-only host has no sprite for them and stays silent where they play (a host that also loads Platinum plays Platinum's):
+
+- Platinum's other alerts: `ClassicyAlertBonk`, `ClassicyAlertGrowl`, `ClassicyAlertTabitha` (a stored choice of one of them plays the pack's default alert, Simple Beep, plan 0018-dbd §1.3).
+- `ClassicyBoot`: the startup chime is in ROM, not the System file.
+- `ClassicyEmailMailError`, `ClassicyEmailMailSent`, `ClassicyEmailNewMail`, `ClassicyEmailNoMail`, `ClassicyThump`, `ClassicyClick`: no System 7.5 counterpart.
+- The interface feedback sounds (`ClassicyButtonClick*`, `ClassicyMenu*`, `ClassicyWindow*`, `ClassicyTab*`, `ClassicyInputRadio*`): System 7 had none (design 0017-6me).
 
 ## Window colors
 
