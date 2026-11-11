@@ -264,6 +264,105 @@ describe("ClassicyScrollArea", () => {
 		fireEvent.mouseUp(document.body);
 	});
 
+	it("stops repeating while the pointer is outside the arrow, resumes on re-entry", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 10 });
+		const end = part(container, "scroll-arrow-end");
+		fireEvent.mouseDown(end, { button: 0 });
+		act(() => {
+			vi.advanceTimersByTime(120);
+		});
+		expect(viewport.scrollTop).toBe(20);
+		fireEvent.mouseLeave(end);
+		expect(end.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(20);
+		// Back over the arrow, still held: it steps at once and repeats.
+		fireEvent.mouseEnter(end);
+		expect(viewport.scrollTop).toBe(30);
+		expect(end.classList.contains(CLASSICY_STATE.pressed)).toBe(true);
+		act(() => {
+			vi.advanceTimersByTime(120);
+		});
+		expect(viewport.scrollTop).toBe(40);
+		// Released (anywhere): re-entering no longer scrolls.
+		fireEvent.mouseUp(document.body);
+		fireEvent.mouseLeave(end);
+		fireEvent.mouseEnter(end);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(40);
+		expect(end.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+	});
+
+	it("does not resume an arrow once the pointer stream is lost", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 10 });
+		const end = part(container, "scroll-arrow-end");
+		fireEvent.mouseDown(end, { button: 0 });
+		fireEvent.mouseLeave(end);
+		act(() => {
+			window.dispatchEvent(new Event("blur"));
+		});
+		fireEvent.mouseEnter(end);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(10);
+	});
+
+	it("stops paging while the pointer is outside the track, resumes toward it on re-entry", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 16 });
+		const track = part(container, "scroll-track");
+		fireEvent.mouseDown(track, { button: 0, clientY: 150 });
+		expect(viewport.scrollTop).toBe(184);
+		fireEvent.mouseLeave(track);
+		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(184);
+		// Back over the track lower down: pages on toward the new point.
+		fireEvent.mouseMove(document, { clientY: 180 });
+		fireEvent.mouseEnter(track);
+		expect(viewport.scrollTop).toBe(368);
+		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(true);
+		act(() => {
+			vi.advanceTimersByTime(120 * 10);
+		});
+		// 552, 736, then the thumb (139..172) still falls short of 180: 800.
+		expect(viewport.scrollTop).toBe(800);
+		fireEvent.mouseUp(document.body);
+		// Re-entering after the release pages no more.
+		fireEvent.mouseLeave(track);
+		fireEvent.mouseMove(document, { clientY: 20 });
+		fireEvent.mouseEnter(track);
+		expect(viewport.scrollTop).toBe(800);
+	});
+
+	it("lets a thumb press reach the ancestors' mousedown handlers", () => {
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		const onMouseDown = vi.fn();
+		const { container } = render(
+			// biome-ignore lint/a11y/noStaticElementInteractions: test fixture
+			<div onMouseDown={onMouseDown}>
+				<ClassicyScrollArea>
+					<p>Content</p>
+				</ClassicyScrollArea>
+			</div>,
+		);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientY: 30,
+		});
+		expect(onMouseDown).toHaveBeenCalledTimes(1);
+		fireEvent.mouseUp(document);
+	});
+
 	it("ignores a press with another button", () => {
 		const { container, viewport } = renderTall();
 		fireEvent.mouseDown(part(container, "scroll-arrow-end"), { button: 2 });

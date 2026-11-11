@@ -538,7 +538,16 @@ const ClassicyScrollBar = ({
 	const [pressed, setPressed] = useState<PressedPart>(null);
 	const [dragging, setDragging] = useState(false);
 	const stopDragRef = useRef<(() => void) | null>(null);
-	useEffect(() => () => stopDragRef.current?.(), []);
+	// The arrow or track held now, and how to end that hold.
+	const heldRef = useRef<PressedPart>(null);
+	const endHoldRef = useRef<(() => void) | null>(null);
+	useEffect(
+		() => () => {
+			stopDragRef.current?.();
+			endHoldRef.current?.();
+		},
+		[],
+	);
 
 	const along = (e: { clientX: number; clientY: number }) =>
 		vertical ? e.clientY : e.clientX;
@@ -547,27 +556,59 @@ const ClassicyScrollBar = ({
 	// bar takes none) and starts no text selection.
 	const keepFocus = (e: ReactMouseEvent) => e.preventDefault();
 
-	// Ends a held arrow or track: the release may land anywhere.
-	const releaseOnMouseUp = () => {
-		const onUp = () => repeat.stop();
-		document.addEventListener("mouseup", onUp, true);
-		return () => document.removeEventListener("mouseup", onUp, true);
+	/**
+	 * Holds an arrow or the track until the button comes up anywhere or the
+	 * pointer stream is lost. While held, `begin()` (the part's repeat) runs
+	 * whenever the pointer is over the part: leaving it stops the repeat and
+	 * the pressed look, coming back over it starts them again, as Mac OS and
+	 * a browser's own scroll bar do.
+	 */
+	const hold = (
+		part: Exclude<PressedPart, null>,
+		el: HTMLElement,
+		begin: (run: (step: () => boolean | undefined) => void) => void,
+		cleanup?: () => void,
+	) => {
+		endHoldRef.current?.();
+		heldRef.current = part;
+		const run = (step: () => boolean | undefined) => {
+			setPressed(part);
+			repeat.start(step, () => setPressed(null));
+		};
+		const onLeave = () => repeat.stop();
+		const onEnter = () => {
+			if (heldRef.current === part) begin(run);
+		};
+		const end = () => {
+			if (endHoldRef.current !== end) return;
+			endHoldRef.current = null;
+			heldRef.current = null;
+			el.removeEventListener("mouseleave", onLeave);
+			el.removeEventListener("mouseenter", onEnter);
+			document.removeEventListener("mouseup", end, true);
+			stopWatchingPointerStream();
+			cleanup?.();
+			repeat.stop();
+		};
+		el.addEventListener("mouseleave", onLeave);
+		el.addEventListener("mouseenter", onEnter);
+		document.addEventListener("mouseup", end, true);
+		const stopWatchingPointerStream = onClassicyPointerStreamLost(end);
+		endHoldRef.current = end;
+		begin(run);
 	};
 
-	const pressArrow = (e: ReactMouseEvent, direction: 1 | -1) => {
+	const pressArrow = (
+		e: ReactMouseEvent<HTMLDivElement>,
+		direction: 1 | -1,
+	) => {
 		if (e.button !== 0) return;
 		keepFocus(e);
-		const stopListening = releaseOnMouseUp();
-		setPressed(direction < 0 ? "start" : "end");
-		repeat.start(
-			() => {
+		hold(direction < 0 ? "start" : "end", e.currentTarget, (run) =>
+			run(() => {
 				scrollBy(orientation, direction * lineStep);
 				return undefined;
-			},
-			() => {
-				stopListening();
-				setPressed(null);
-			},
+			}),
 		);
 	};
 
@@ -585,7 +626,6 @@ const ClassicyScrollBar = ({
 			pointer = along(ev) - barStart(barEl.getBoundingClientRect());
 		};
 		document.addEventListener("mousemove", onMove, true);
-		const stopListening = releaseOnMouseUp();
 		const page = () =>
 			Math.max(
 				(vertical ? el.clientHeight : el.clientWidth) - lineStep,
@@ -605,30 +645,30 @@ const ClassicyScrollBar = ({
 				end: track.start + t.offset + t.length,
 			};
 		};
-		const direction = pointer < thumbNow().start ? -1 : 1;
-		setPressed("track");
-		repeat.start(
-			() => {
-				// Stop once the thumb reaches the pointer (HIG7 p.165).
-				const t = thumbNow();
-				if (direction < 0 ? pointer >= t.start : pointer < t.end) {
-					return false;
-				}
-				scrollBy(orientation, direction * page());
-				return undefined;
+		hold(
+			"track",
+			e.currentTarget,
+			(run) => {
+				// Toward the pointer where it is now (a return over the track
+				// may be on the thumb's other side).
+				const direction = pointer < thumbNow().start ? -1 : 1;
+				run(() => {
+					// Stop once the thumb reaches the pointer (HIG7 p.165).
+					const t = thumbNow();
+					if (direction < 0 ? pointer >= t.start : pointer < t.end) {
+						return false;
+					}
+					scrollBy(orientation, direction * page());
+					return undefined;
+				});
 			},
-			() => {
-				document.removeEventListener("mousemove", onMove, true);
-				stopListening();
-				setPressed(null);
-			},
+			() => document.removeEventListener("mousemove", onMove, true),
 		);
 	};
 
 	const pressThumb = (e: ReactMouseEvent<HTMLDivElement>) => {
 		if (e.button !== 0) return;
 		keepFocus(e);
-		e.stopPropagation();
 		const el = viewportRef.current;
 		if (!el) return;
 		stopDragRef.current?.();
