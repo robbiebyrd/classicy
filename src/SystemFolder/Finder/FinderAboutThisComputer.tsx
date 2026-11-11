@@ -7,6 +7,7 @@ import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/C
 import { describeAppAction } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID } from "@/SystemFolder/Finder/FinderContext";
 import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import packageJson from "../../../package.json";
@@ -147,7 +148,7 @@ export const FinderAboutThisComputer: FunctionalComponent<
 				</div>
 				<div className="finderAboutThisComputerUsage">
 					<div className="finderAboutThisComputerUsageItem">
-						<img src={macIcon} alt="Classicy" />
+						<ClassicyIconImage src={macIcon} alt="Classicy" />
 						<span className="finderAboutThisComputerUsageName">Classicy</span>
 						<span className="finderAboutThisComputerUsageSize">
 							{osUsedMb.toFixed(1)} MB

@@ -182,6 +182,7 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 			mode="popup"
 			className="classicyControlStripModule"
 			icon={icon}
+			iconSmall
 			aria-label={label}
 			popupDirection="horizontal"
 			popupPlacement="below"

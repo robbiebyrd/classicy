@@ -1458,6 +1458,18 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   in the same module evaluation never warn). Wallpapers vary by name only
   (`registerClassicyWallpapers` registers the base tree); a theme picks its
   wallpaper with `desktop.backgroundImage` anyway.
+- **Small icon images**: an `icons` leaf may be `{ src, small? }` as well as a
+  string (base and variant trees alike). `resolveClassicyAsset` and
+  `useClassicyAsset` still return the `src` string, so every `icon={…}` prop
+  and persisted URL is unchanged; `resolveClassicyIcon(path)` returns both
+  images. Small renders look the URL up: `resolveClassicyIconImage(src, px |
+  true)` / `useClassicyIconImage` return the leaf's `small` when `px` is at
+  most `CLASSICY_SMALL_ICON_SIZE` (16; `true` for a CSS-sized small surface),
+  else `src`. `ClassicyIcon` (`size`), menu item icons, `ClassicyControlLabel`
+  (`iconSize="sm"`), the file browser's list view, Control Strip modules
+  (`ClassicyBevelButton` `iconSmall`) and the 16 px icons in PDF Viewer, About
+  This Computer and Finder Preferences do this; a leaf with no `small`
+  scales as before. A string registered over a leaf replaces it (no `small`).
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;

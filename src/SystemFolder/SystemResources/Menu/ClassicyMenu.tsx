@@ -29,6 +29,7 @@ import {
 	ClassicyBalloonHelp,
 	type ClassicyBalloonPosition,
 } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
@@ -518,9 +519,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						aria-hidden={"true"}
 					/>
 				) : menuItem.image ? (
-					<img src={menuItem.image} alt={menuItem.title} />
+					<ClassicyIconImage src={menuItem.image} alt={menuItem.title} />
 				) : menuItem.icon ? (
-					<img src={menuItem.icon} alt={menuItem.title} />
+					<ClassicyIconImage src={menuItem.icon} alt={menuItem.title} />
 				) : null}
 				{menuItem.title &&
 					(widthSamples.length > 0 ? (

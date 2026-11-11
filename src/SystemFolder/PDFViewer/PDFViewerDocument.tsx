@@ -19,6 +19,7 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
@@ -341,7 +342,11 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					depressed={activeTool === "pan"}
 					onClickFunc={() => setActiveTool("pan")}
 				>
-					<img src={panToolIcon} alt="" className="pdfViewerDocumentToolIcon" />
+					<ClassicyIconImage
+						src={panToolIcon}
+						alt=""
+						className="pdfViewerDocumentToolIcon"
+					/>
 				</ClassicyButton>
 				<ClassicyButton
 					buttonSize="small"
@@ -350,7 +355,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					depressed={activeTool === "zoom"}
 					onClickFunc={() => setActiveTool("zoom")}
 				>
-					<img
+					<ClassicyIconImage
 						src={zoomToolIcon}
 						alt=""
 						className="pdfViewerDocumentToolIcon"

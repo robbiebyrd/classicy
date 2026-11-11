@@ -35,6 +35,47 @@ export type ClassicyAssetTree = {
 	[key: string]: ClassicyAssetSource | ClassicyAssetTree;
 };
 
+/**
+ * An icon tree leaf that carries its own 16 px image beside the full-size
+ * one (System 7's `ics#`/`ics8` small icons are drawn, not scaled). A plain
+ * string leaf is still an icon: it scales at small sizes. Only the `icons`
+ * kind accepts this form.
+ */
+export type ClassicyIconLeaf = {
+	src: ClassicyAssetSource;
+	small?: ClassicyAssetSource;
+};
+
+/** The small-icon size in px (the `--icon-small-size` the theme emits). */
+export const CLASSICY_SMALL_ICON_SIZE = 16;
+
+/**
+ * What a stored `{ src, small }` leaf is. A class, not a shape, so a
+ * namespace that happens to hold a `src` key is never mistaken for one.
+ */
+class StoredIconLeaf {
+	// Structurally a tree of strings, so it nests in a ClassicyAssetTree.
+	readonly [key: string]: string;
+	/** `small` is "" when the leaf has no small image (never a valid source). */
+	constructor(
+		readonly src: ClassicyAssetSource,
+		readonly small: ClassicyAssetSource = "",
+	) {}
+}
+
+const isStoredLeaf = (value: unknown): value is StoredIconLeaf =>
+	value instanceof StoredIconLeaf;
+
+/** True for the `{ src, small? }` form an icon registration may hold. */
+const isIconLeafShape = (value: unknown): value is ClassicyIconLeaf => {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return false;
+	return (
+		Object.hasOwn(value, "src") &&
+		Object.keys(value).every((k) => k === "src" || k === "small")
+	);
+};
+
 export type ClassicyCursorRole =
 	| "arrow"
 	| "watch"
@@ -232,7 +273,7 @@ onClassicyAssetPackageSourceConnect(() => {
 });
 
 const isTree = (value: unknown): value is ClassicyAssetTree =>
-	typeof value === "object" && value !== null;
+	typeof value === "object" && value !== null && !isStoredLeaf(value);
 
 const copyTree = (tree: ClassicyAssetTree): ClassicyAssetTree => {
 	const out: ClassicyAssetTree = {};
@@ -255,7 +296,7 @@ const mergeInto = (
 		const incoming = source[key];
 		const existing = Object.hasOwn(target, key) ? target[key] : undefined;
 		if (isTree(incoming)) {
-			if (typeof existing === "string") {
+			if (typeof existing === "string" || isStoredLeaf(existing)) {
 				classicyLog(
 					"warn",
 					SUBSYSTEM,
@@ -305,7 +346,26 @@ const validLeaves = (
 			continue;
 		}
 		const value = tree[key];
-		if (isTree(value)) {
+		if (kind === "icons" && isIconLeafShape(value)) {
+			if (!isClassicyAssetSource(value.src)) {
+				classicyLog(
+					"warn",
+					SUBSYSTEM,
+					`Ignored ${kind} asset "${path}" for package "${packageId}": not a safe asset source`,
+				);
+			} else if (value.small === undefined) {
+				out[key] = new StoredIconLeaf(value.src);
+			} else if (isClassicyAssetSource(value.small)) {
+				out[key] = new StoredIconLeaf(value.src, value.small);
+			} else {
+				classicyLog(
+					"warn",
+					SUBSYSTEM,
+					`Ignored the small image of ${kind} asset "${path}" for package "${packageId}": not a safe asset source`,
+				);
+				out[key] = new StoredIconLeaf(value.src);
+			}
+		} else if (isTree(value)) {
 			const subtree = validLeaves(kind, packageId, value, path);
 			// A subtree whose every leaf was dropped registers nothing: merging
 			// `{}` would turn an existing valid leaf into an empty namespace.
@@ -420,16 +480,39 @@ export const resetClassicyAssets = (): void => {
 	notify();
 };
 
-const walk = (
+type Node = ClassicyAssetSource | ClassicyAssetTree | StoredIconLeaf;
+
+const walkNode = (
 	tree: ClassicyAssetTree | undefined,
 	path: string,
-): ClassicyAssetSource | undefined => {
-	let node: ClassicyAssetSource | ClassicyAssetTree | undefined = tree;
+): Node | undefined => {
+	let node: Node | undefined = tree;
 	for (const segment of path.split(".")) {
 		if (!isTree(node) || !Object.hasOwn(node, segment)) return undefined;
 		node = node[segment];
 	}
+	return node;
+};
+
+const walk = (
+	tree: ClassicyAssetTree | undefined,
+	path: string,
+): ClassicyAssetSource | undefined => {
+	const node = walkNode(tree, path);
+	if (isStoredLeaf(node)) return node.src;
 	return typeof node === "string" ? node : undefined;
+};
+
+const walkIcon = (
+	tree: ClassicyAssetTree | undefined,
+	path: string,
+): ClassicyIconLeaf | undefined => {
+	const node = walkNode(tree, path);
+	if (isStoredLeaf(node))
+		return node.small === ""
+			? { src: node.src }
+			: { src: node.src, small: node.small };
+	return typeof node === "string" ? { src: node } : undefined;
 };
 
 const variantTree = (
@@ -461,6 +544,79 @@ export const resolveClassicyAsset = (
 		walk(variantTree(kind, id, variant ?? activeVariantFor(id)), path) ??
 		walk(byPackage?.get(id), path) ??
 		walk(byPackage?.get(DEFAULT_PACKAGE), path)
+	);
+};
+
+/**
+ * An icon with its small image: `resolveClassicyAsset("icons", path)` is the
+ * `src`; `small` is present when the leaf was registered as `{ src, small }`.
+ * Resolved like any asset: variant tree, base tree, default package.
+ */
+export const resolveClassicyIcon = (
+	path: string,
+	packageId?: string,
+	variant?: string,
+): ClassicyIconLeaf | undefined => {
+	const byPackage = trees.get("icons");
+	const id = packageId ?? getActiveClassicyAppearancePackageId();
+	return (
+		walkIcon(variantTree("icons", id, variant ?? activeVariantFor(id)), path) ??
+		walkIcon(byPackage?.get(id), path) ??
+		walkIcon(byPackage?.get(DEFAULT_PACKAGE), path)
+	);
+};
+
+const smallIndexCache = new Map<
+	string,
+	{ version: number; value: Map<string, string> }
+>();
+
+/** Every `src` to `small` pair of the merged icon tree the active theme draws. */
+const smallIndex = (): Map<string, string> => {
+	const activeId = getActiveClassicyAppearancePackageId();
+	const key = `${activeId}|${activeVariantFor(activeId) ?? ""}`;
+	const cached = smallIndexCache.get(key);
+	if (cached && cached.version === version) return cached.value;
+	const value = new Map<string, string>();
+	const visit = (tree: ClassicyAssetTree) => {
+		for (const name of Object.keys(tree)) {
+			const node: Node | undefined = tree[name];
+			if (isStoredLeaf(node)) {
+				if (node.small !== "") value.set(node.src, node.small);
+			} else if (isTree(node)) visit(node);
+		}
+	};
+	visit(mergedTree("icons"));
+	smallIndexCache.set(key, { version, value });
+	return value;
+};
+
+/**
+ * The image to draw for the icon URL `src` at `px` (CSS px): its registered
+ * small image when it has one and `px` is no larger than the small-icon size
+ * (`CLASSICY_SMALL_ICON_SIZE`), else `src` itself. Icons travel as plain URL
+ * strings (props, persisted records), so this looks `src` up in the active
+ * theme's icon tree; a URL no leaf names returns unchanged. Pass `true` for
+ * a surface whose size comes from CSS and is the small size.
+ */
+export const resolveClassicyIconImage = (
+	src: string,
+	px: number | true = true,
+): string => {
+	if (px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)) return src;
+	return smallIndex().get(src) ?? src;
+};
+
+/** `resolveClassicyIconImage`, re-read when the registry or the theme changes. */
+export const useClassicyIconImage = (
+	src: string,
+	px: number | true = true,
+): string => {
+	const getSnapshot = () => resolveClassicyIconImage(src, px);
+	return useSyncExternalStore(
+		subscribeClassicyAssets,
+		getSnapshot,
+		getSnapshot,
 	);
 };
 

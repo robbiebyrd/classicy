@@ -10,6 +10,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
@@ -290,16 +291,19 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		</p>
 	);
 
+	// A 16 px (or smaller) render draws the icon's own small image when it
+	// has one; the theme's default size and anything larger draw `icon`.
+	const iconUrl = useClassicyIconImage(icon, size ?? Number.POSITIVE_INFINITY);
 	const iconEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
 			)}
-			style={{ "--classicy-icon-mask": `url("${icon}")` } as CSSProperties}
+			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={icon} alt={name} />
+				<img src={iconUrl} alt={name} />
 			</div>
 		</div>
 	);
