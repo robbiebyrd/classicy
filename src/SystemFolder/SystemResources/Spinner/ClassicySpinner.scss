@@ -19,17 +19,10 @@ input[type=number] {
   font-family: var(--ui-font), sans-serif;
   min-height: var(--control-square-size);
   padding: 0 var(--control-padding);
-  border: var(--window-border-size) solid var(--color-black);
-  box-shadow:
-    calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
-    var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
-  outline: none;
+  border-width: var(--window-border-size);
   width: var(--classicy-spinner-width);
-  background-color: var(--classicy-spinner-background, var(--color-white));
-
-  &:focus-visible {
-    outline: none;
-  }
+  // The border, bevel, background and focus outline are the Platinum
+  // package's (packages/appearance/platinum/src/styles/components/_Spinner.scss).
 }
 
 .classicySpinnerHolder {

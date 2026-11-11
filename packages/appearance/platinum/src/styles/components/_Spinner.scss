@@ -1,0 +1,17 @@
+// The Platinum spinner look (from ClassicySpinner.scss): the black border,
+// the bevel box-shadow and the face. The size and padding stay in the base sheet.
+@mixin spinner {
+  .classicySpinner {
+    border-style: solid;
+    border-color: var(--color-black);
+    box-shadow:
+      calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+      var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
+    outline: none;
+    background-color: var(--classicy-spinner-background, var(--color-white));
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+}

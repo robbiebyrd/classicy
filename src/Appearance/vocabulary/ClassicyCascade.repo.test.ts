@@ -496,13 +496,6 @@ describe("cross-file overrides do not depend on import order", () => {
 			`${W}ComboBox/ClassicyComboBox.scss`,
 			".classicyPopUpMenuListItem",
 			`${W}PopUpMenu/ClassicyPopUpMenu.scss`,
-			"color",
-		],
-		[
-			".classicyComboBoxNoMatches.classicyPopUpMenuListItem",
-			`${W}ComboBox/ClassicyComboBox.scss`,
-			".classicyPopUpMenuListItem",
-			`${W}PopUpMenu/ClassicyPopUpMenu.scss`,
 			"cursor",
 		],
 		[

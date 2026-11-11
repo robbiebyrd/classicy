@@ -18,6 +18,10 @@
 @use "components/Input";
 @use "components/LittleArrows";
 @use "components/ListBox";
+@use "components/Spinner";
+@use "components/DateTimePicker";
+@use "components/ComboBox";
+@use "components/ControlGroup";
 @use "components/PopUpMenu";
 @use "components/DriveSetupList";
 @use "components/Assistant";
@@ -54,6 +58,10 @@
   @include Input.input;
   @include LittleArrows.littleArrows;
   @include ListBox.listBox;
+  @include Spinner.spinner;
+  @include DateTimePicker.dateTimePicker;
+  @include ComboBox.comboBox;
+  @include ControlGroup.controlGroup;
   @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;

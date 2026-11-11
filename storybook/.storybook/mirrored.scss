@@ -29,6 +29,10 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/Input";
 @use "pkg:@classicy/appearance-platinum/scss/components/LittleArrows";
 @use "pkg:@classicy/appearance-platinum/scss/components/ListBox";
+@use "pkg:@classicy/appearance-platinum/scss/components/Spinner";
+@use "pkg:@classicy/appearance-platinum/scss/components/DateTimePicker";
+@use "pkg:@classicy/appearance-platinum/scss/components/ComboBox";
+@use "pkg:@classicy/appearance-platinum/scss/components/ControlGroup";
 @use "pkg:@classicy/appearance-platinum/scss/components/PopUpMenu";
 @use "pkg:@classicy/appearance-platinum/scss/components/DriveSetupList";
 @use "pkg:@classicy/appearance-platinum/scss/components/Assistant";
@@ -63,6 +67,10 @@
   @include Input.input;
   @include LittleArrows.littleArrows;
   @include ListBox.listBox;
+  @include Spinner.spinner;
+  @include DateTimePicker.dateTimePicker;
+  @include ComboBox.comboBox;
+  @include ControlGroup.controlGroup;
   @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;

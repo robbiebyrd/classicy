@@ -1,0 +1,16 @@
+// The Platinum group box look (from ClassicyControlGroup.scss): the primary
+// group's 2px etched frame (1px light + 1px dark; the `groove` keyword paints
+// exactly that pair) and the secondary group's single 1px line.
+@use "pkg:@classicy/classicy/scss/color" as c;
+
+@mixin controlGroup {
+  .classicyControlGroupFieldsetPrimary {
+    border-style: groove;
+    border-color: c.classicy-tint("--color-system-01", 6%);
+  }
+
+  .classicyControlGroupFieldsetSecondary {
+    border-style: solid;
+    border-color: var(--color-system-05);
+  }
+}
