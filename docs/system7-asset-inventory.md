@@ -10,7 +10,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 294 keys | 66 export (up to 4 PNGs each); 61 reuse and 167 core need nothing. 26 exports have a known ID, 40 say "ID to confirm" |
+| Icons | 294 keys | 67 export (up to 4 PNGs each); 89 reuse and 138 core need nothing. 26 exports have a known ID, 41 say "ID to confirm" |
 | System art | 39 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | 6 WAV exports and one copy |
@@ -70,7 +70,7 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 | export | Exported from a resource in a System 7.5 file | Export the files |
 | crop | Cut from a 1x System 7.5 screenshot | Crop the files |
 | draw | Drawn by the implementer, or copied from the named Platinum file | None |
-| core | The package registers the core icon tree's existing image (the fallback for anything newer than System 7) | None |
+| core | The package registers the core icon tree's existing image; only for Classicy UI glyphs, brands, and concept or hardware glyphs with no file-kind meaning (the Fallback rule) | None |
 | reuse | The package registers another row's file under this key | None |
 
 ### Finding an ID marked "to confirm"
@@ -83,75 +83,75 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 
 ## Icons
 
-Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts`). Every icon key a bundled app or component reads by name is in the tree; the test checks that too. Keys with no System 7 counterpart (apps and formats newer than System 7.5) are "core": they keep the core tree's image, never an empty one.
+Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts`). Every icon key a bundled app or component reads by name is in the tree; the test checks that too. Under the Fallback rule, every application, document, control panel, extension, folder, drive or Control Strip module System 7.5 lacked reuses the System 7 generic for its kind; "core" rows (UI glyphs, brands, concept and hardware glyphs) keep the core tree's image, never an empty one. The Source cell of each core row names which of those it is.
 
 ### Classicy
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `classicy.logo` | Classicy wordmark (About box, Logo screen saver) | core | Classicy's brand, not System 7 art | — | — |
-| — | `classicy.bg` | Earth photo behind About This Computer | core | Classicy's own art | — | — |
+| — | `classicy.logo` | Classicy wordmark (About box, Logo screen saver) | core | Brand (Classicy) | — | — |
+| — | `classicy.bg` | Earth photo behind About This Computer | core | Classicy UI glyph (About box background picture) | — | — |
 
 ### Applications
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `applications.internetExplorer.app` | Internet Explorer application | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.apple` | Apple logo (IE toolbar) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentWarn` | IE document with a warning badge | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.document` | IE HTML document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.downloadingFileAnimated` | Download in progress (animated) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.downloadingFile` | Download in progress | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.forward` | Forward arrow | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.forwardOn` | Forward arrow, pressed | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.backward` | Back arrow | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.backwardOn` | Back arrow, pressed | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.loaderAnimated` | Throbber (animated) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.loader` | Throbber | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.refresh` | Refresh arrow | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.refreshOn` | Refresh arrow, pressed | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.clipboard` | Clipboard | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.compass` | Compass (favorites) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentDownload` | Download document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentFolder` | Document in a folder | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentHome` | Home page document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentLink` | Link document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentMoveToFolder` | Move-to-folder document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentNews` | News document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentShortcut` | Internet shortcut document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentShortcutEdit` | Edit shortcut document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentSound` | Sound document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.documentWarning` | Warning document | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.editor` | HTML editor | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.favorites` | Favorites (compass) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.favoritesOn` | Favorites, pressed (compass) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.find` | Find (magnifier) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.globe` | Globe (web viewer, URL shortcuts) | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.logo` | IE logo | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.mailbox` | Mailbox | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.news` | News | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.preferences` | IE preferences | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.print` | Printer | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.internetExplorer.search` | Search | core | Internet Explorer (1996) is not on the System 7.5 disks | — | — |
-| — | `applications.netscape.loaderAnimated` | Netscape throbber (animated) | core | Netscape (1994+) is not on the System 7.5 disks | — | — |
-| — | `applications.netscape.loader` | Netscape throbber | core | Netscape is not on the System 7.5 disks | — | — |
-| — | `applications.pager.app` | Pager application (pager device) | core | Classicy app; no System 7 counterpart | — | — |
-| — | `applications.news.app` | News reader application | core | Classicy app; no System 7 counterpart | — | — |
+| — | `applications.internetExplorer.app` | Internet Explorer application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.internetExplorer.apple` | Apple logo (web viewer toolbar) | core | Brand (Apple logo) | — | — |
+| — | `applications.internetExplorer.documentWarn` | IE document with a warning badge | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.document` | IE HTML document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.downloadingFileAnimated` | Download in progress (animated) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.downloadingFile` | Download in progress (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.forward` | Forward arrow (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.forwardOn` | Forward arrow, pressed (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.backward` | Back arrow (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.backwardOn` | Back arrow, pressed (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.loaderAnimated` | Throbber (animated) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.loader` | Throbber (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.refresh` | Refresh arrow (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.refreshOn` | Refresh arrow, pressed (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.clipboard` | Clipboard (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.compass` | Compass (favorites) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.documentDownload` | Download document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentFolder` | Document in a folder | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentHome` | Home page document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentLink` | Link document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentMoveToFolder` | Move-to-folder document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentNews` | News document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentShortcut` | Internet shortcut document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentShortcutEdit` | Edit shortcut document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentSound` | Sound document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.documentWarning` | Warning document | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.internetExplorer.editor` | HTML editor (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.favorites` | Favorites (compass) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.favoritesOn` | Favorites, pressed (compass) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.find` | Find (magnifier) (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.globe` | Globe (the web viewer's app icon and URL shortcuts) | core | Concept glyph with no file-kind meaning; one key serves both an application and a shortcut file, so neither generic fits it | — | — |
+| — | `applications.internetExplorer.logo` | Internet Explorer logo | core | Brand (Microsoft) | — | — |
+| — | `applications.internetExplorer.mailbox` | Mailbox (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.news` | News (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.preferences` | IE preferences (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.print` | Printer (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.internetExplorer.search` | Search (web viewer toolbar) | core | Classicy UI glyph | — | — |
+| — | `applications.netscape.loaderAnimated` | Netscape throbber (animated) | core | Classicy UI glyph (a loading throbber) | — | — |
+| — | `applications.netscape.loader` | Netscape throbber | core | Classicy UI glyph (a loading throbber) | — | — |
+| — | `applications.pager.app` | Pager application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.news.app` | News reader application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.pictureViewer.app` | Picture Viewer application | reuse | `applications.simpletext.app` (SimpleText was System 7.5's picture viewer; Picture Viewer arrived with QuickTime 3, after 7.5) | — | — |
-| — | `applications.radio.app` | Radio application | core | Classicy app; no System 7 counterpart | — | — |
-| — | `applications.registerWithApple.app` | Register with Apple | core | Mac OS 7.6/8 era; not on the System 7.5 disks | — | — |
-| — | `applications.setupAssistant.setupAssistant` | Mac OS Setup Assistant | core | Mac OS 8 era; not on the System 7.5 disks | — | — |
+| — | `applications.radio.app` | Radio application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.registerWithApple.app` | Register with Apple application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.setupAssistant.setupAssistant` | Mac OS Setup Assistant application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | [ ] | `applications.stickies.app` | Stickies application | export | Stickies (Apple Menu Items); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-app.png` |
-| — | `applications.stickies.controlButtonSprites` | Stickies window button sprite sheet | core | UI sprite sheet, not an icon | — | — |
+| — | `applications.stickies.controlButtonSprites` | Stickies window button sprite sheet | core | Classicy UI glyph (a sprite sheet) | — | — |
 | [ ] | `applications.stickies.notes` | Stickies notes | export | Stickies (Apple Menu Items); ID to confirm: the document icon for the Stickies file in its `BNDL` (usually 129) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-notes.png` |
 | — | `applications.stickies.stack` | Stack of sticky notes | reuse | `applications.stickies.notes` (the Stickies file) | — | — |
-| — | `applications.stuffit.app` | StuffIt application | core | StuffIt is third-party and not on the System 7.5 disks | — | — |
-| — | `applications.stuffit.compressing` | StuffIt compressing | core | StuffIt is not on the System 7.5 disks | — | — |
-| — | `applications.stuffit.file` | StuffIt archive | reuse | `system.files.document` (without StuffIt, System 7 shows the generic document) | — | — |
-| — | `applications.usenet.app` | Usenet reader application | core | Classicy app's own icon (a brand) | — | — |
+| — | `applications.stuffit.app` | StuffIt application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.stuffit.compressing` | StuffIt application, compressing | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.stuffit.file` | StuffIt archive | reuse | `system.files.document` (System 7's generic document) | — | — |
+| — | `applications.usenet.app` | Usenet reader application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.usenet.search` | Usenet search | core | Classicy UI glyph | — | — |
 | — | `applications.usenet.server` | Usenet server | core | Classicy UI glyph | — | — |
-| — | `applications.systemProfiler.app` | Apple System Profiler | core | Apple System Profiler shipped after 7.5 | — | — |
+| — | `applications.systemProfiler.app` | Apple System Profiler application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | [ ] | `applications.simpletext.app` | SimpleText application | export | SimpleText; ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.png` |
 
 ### Control panels
@@ -159,25 +159,25 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `controlPanels.appearanceManager.app` | Appearance control panel | export | Color control panel (its nearest System 7.5 counterpart: window and highlight colors); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-appearance-manager-app.png` |
-| — | `controlPanels.appearanceManager.backgroundCenter` | Wallpaper position glyph: center | core | Classicy UI glyph; no System 7 counterpart | — | — |
-| — | `controlPanels.appearanceManager.backgroundFill` | Wallpaper position glyph: fill | core | Classicy UI glyph; no System 7 counterpart | — | — |
-| — | `controlPanels.appearanceManager.backgroundScale` | Wallpaper position glyph: scale | core | Classicy UI glyph; no System 7 counterpart | — | — |
-| — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph; no System 7 counterpart | — | — |
+| — | `controlPanels.appearanceManager.backgroundCenter` | Wallpaper position glyph: center | core | Classicy UI glyph | — | — |
+| — | `controlPanels.appearanceManager.backgroundFill` | Wallpaper position glyph: fill | core | Classicy UI glyph | — | — |
+| — | `controlPanels.appearanceManager.backgroundScale` | Wallpaper position glyph: scale | core | Classicy UI glyph | — | — |
+| — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.file` | Appearance theme file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `controlPanels.appearanceManager.preferences` | Appearance preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
 | [ ] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel (PowerBook install of 7.5); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.png` |
 | [ ] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.png` |
 | [ ] | `controlPanels.keyboard.app` | Keyboard control panel | export | Keyboard control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-keyboard-app.png` |
 | [ ] | `controlPanels.location.app` | Location Manager control panel | export | Map control panel (its nearest System 7.5 counterpart); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-location-app.png` |
-| — | `controlPanels.location.map` | World map picture | core | A picture, not an icon | — | — |
+| — | `controlPanels.location.map` | World map picture (Location panel) | core | Classicy UI glyph (a picture inside a panel) | — | — |
 | [ ] | `controlPanels.soundManager.app` | Sound control panel (also the menu-bar sound widget) | export | Sound control panel; ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-app.png` |
 | — | `controlPanels.soundManager.extension` | Sound Manager extension | reuse | `system.extensions.soundManager` | — | — |
 | — | `controlPanels.soundManager.preferences` | Sound preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
-| — | `controlPanels.soundManager.sound33` | Speaker at one third volume | core | Classicy volume glyph; no System 7 set | — | — |
-| — | `controlPanels.soundManager.sound66` | Speaker at two thirds volume | core | Classicy volume glyph; no System 7 set | — | — |
-| — | `controlPanels.soundManager.soundMute` | Speaker, muted | core | Classicy volume glyph; no System 7 set | — | — |
-| — | `controlPanels.soundManager.soundOff` | Speaker, off (menu-bar widget) | core | Classicy volume glyph; no System 7 set | — | — |
-| — | `controlPanels.soundManager.soundOn` | Speaker, on (menu-bar widget) | core | Classicy volume glyph; no System 7 set | — | — |
+| — | `controlPanels.soundManager.sound33` | Speaker at one third volume | core | Classicy UI glyph | — | — |
+| — | `controlPanels.soundManager.sound66` | Speaker at two thirds volume | core | Classicy UI glyph | — | — |
+| — | `controlPanels.soundManager.soundMute` | Speaker, muted | core | Classicy UI glyph | — | — |
+| — | `controlPanels.soundManager.soundOff` | Speaker, off (menu-bar widget) | core | Classicy UI glyph | — | — |
+| — | `controlPanels.soundManager.soundOn` | Speaker, on (menu-bar widget) | core | Classicy UI glyph | — | — |
 | [ ] | `controlPanels.soundManager.stt` | Speech recognition (ear) | export | Speech Setup control panel (PlainTalk 1.x, AV and Power Macintosh installs, 1993); ID to confirm: the control panel's own icon (`BNDL`, usually -4064) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-stt.png` |
 | [ ] | `controlPanels.soundManager.tts` | Text to speech (face) | export | Speech Manager extension (PlainTalk / MacinTalk, 1993); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-tts.png` |
 
@@ -185,33 +185,33 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.controlStrip.cd` | Control Strip CD module (16 px) | core | No CD module in the 7.5 Control Strip | — | — |
+| — | `system.controlStrip.cd` | Control Strip CD module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
 | [ ] | `system.controlStrip.fileSharing` | Control Strip File Sharing module (16 px) | export | File Sharing module (Control Strip Modules folder, PowerBook install); ID to confirm: the module's small icon family | `ics#` `ics8` | `system-control-strip-file-sharing.png` |
 | [ ] | `system.controlStrip.moduleFile` | Control Strip module file (32 px) | export | Any Control Strip module file; ID to confirm: the module file's icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-control-strip-module-file.png` |
-| — | `system.controlStrip.screenSaver` | Control Strip Screen Saver module (16 px) | core | No screen saver in System 7.5 | — | — |
+| — | `system.controlStrip.screenSaver` | Control Strip Screen Saver module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
 | [ ] | `system.controlStrip.sleep` | Control Strip Sleep Now module (16 px) | export | Sleep Now module (Control Strip Modules folder, PowerBook install); ID to confirm: the module's small icon family | `ics#` `ics8` | `system-control-strip-sleep.png` |
 | [ ] | `system.controlStrip.sound` | Control Strip Sound Volume module (16 px) | export | Sound Volume module (Control Strip Modules folder, PowerBook install); ID to confirm: the module's small icon family | `ics#` `ics8` | `system-control-strip-sound.png` |
-| — | `system.controlStrip.soundOff` | Control Strip Sound module, sound off (16 px) | core | Classicy variant; the 7.5 module has none | — | — |
+| — | `system.controlStrip.soundOff` | Control Strip Sound module, sound off (16 px) | reuse | `system.controlStrip.sound` (the 7.5 Sound Volume module has one icon) | — | — |
 
 ### System: colors
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `system.colors.extension` | Color Picker extension | export | Color Picker (Extensions); ID to confirm: the extension's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-colors-extension.png` |
-| — | `system.colors.pickerCmyk` | CMYK picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
-| — | `system.colors.pickerCrayon` | Crayon picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
-| — | `system.colors.pickerHex` | HTML (hex) picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
-| — | `system.colors.pickerHls` | HLS picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
-| — | `system.colors.pickerHsv` | HSV picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
-| — | `system.colors.pickerRgb` | RGB picker | core | Color Picker plug-in icons arrived after 7.5 | — | — |
+| — | `system.colors.pickerCmyk` | CMYK picker | core | Classicy UI glyph | — | — |
+| — | `system.colors.pickerCrayon` | Crayon picker | core | Classicy UI glyph | — | — |
+| — | `system.colors.pickerHex` | HTML (hex) picker | core | Classicy UI glyph | — | — |
+| — | `system.colors.pickerHls` | HLS picker | core | Classicy UI glyph | — | — |
+| — | `system.colors.pickerHsv` | HSV picker | core | Classicy UI glyph | — | — |
+| — | `system.colors.pickerRgb` | RGB picker | core | Classicy UI glyph | — | — |
 
 ### System: desktop and display
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `system.desktop.desktop` | Desktop | export | System, ID -3992 (`kDesktopIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-desktop-desktop.png` |
-| — | `system.display.brightness` | Brightness glyph (sun) | core | UI glyph; no System 7 counterpart | — | — |
-| — | `system.display.contrast` | Contrast glyph | core | UI glyph; no System 7 counterpart | — | — |
+| — | `system.display.brightness` | Brightness glyph (sun) | core | Classicy UI glyph | — | — |
+| — | `system.display.contrast` | Contrast glyph | core | Classicy UI glyph | — | — |
 
 ### System: drives
 
@@ -257,7 +257,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | [ ] | `system.files.application` | Generic application | export | System, ID -3996 (`kGenericApplicationIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-application.png` |
 | [ ] | `system.files.document` | Generic document | export | System, ID -4000 (`kGenericDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-document.png` |
 | [ ] | `system.files.edition` | Edition file | export | System, ID -3989 (`kGenericEditionFileIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-edition.png` |
-| — | `system.files.fileInvisible` | Invisible file (dotted outline) | core | Classicy's invisible-file marker, a UI glyph: System 7 never shows invisible files | — | — |
+| — | `system.files.fileInvisible` | Invisible file (dotted outline) | reuse | `system.files.document` (System 7's generic document; Classicy's file browsers dim invisible files themselves) | — | — |
 | — | `system.files.filePc` | PC file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | [ ] | `system.files.fileText` | Text document | export | SimpleText; ID to confirm: the `TEXT` document icon in its `BNDL` (usually 129) | `ICN#` `icl8` `ics#` `ics8` | `system-files-file-text.png` |
 | — | `system.files.file` | Plain file | reuse | `system.files.document` | — | — |
@@ -318,12 +318,12 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | `system.network.chooser` | Chooser | export | Chooser (Apple Menu Items); ID to confirm: the desk accessory's own icon (`BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-chooser.png` |
-| — | `system.network.controlpanelInternet` | Internet control panel | core | Mac OS 8.5 era | — | — |
+| — | `system.network.controlpanelInternet` | Internet control panel | reuse | `system.quicktime.controlPanel` (System 7's generic control panel) | — | — |
 | — | `system.network.crypto` | Encryption | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.fileServer` | File server | reuse | `system.drives.networkDrive` (the same -3972 server icon) | — | — |
 | — | `system.network.globeAnimated` | Spinning globe (animated) | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.globe` | Globe | core | Concept glyph with no file-kind meaning | — | — |
-| — | `system.network.internetConfig` | Internet Config | core | Third-party; not on the System 7.5 disks | — | — |
+| — | `system.network.internetConfig` | Internet Config application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `system.network.internetServices` | Internet services | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.internet` | Internet | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.ldapDirectory` | LDAP directory | core | Concept glyph with no file-kind meaning | — | — |
@@ -341,59 +341,59 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.quicktime.backwardButton` | Step back button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.cc` | Closed captions badge | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.controlPanel` | QuickTime Settings control panel | core | QuickTime Settings arrived with QuickTime 2.5, after 7.5 | — | — |
+| — | `system.quicktime.backwardButton` | Step back button | core | Classicy UI glyph (the movie controller) | — | — |
+| — | `system.quicktime.cc` | Closed captions badge | core | Classicy UI glyph (the movie controller) | — | — |
+| [ ] | `system.quicktime.controlPanel` | QuickTime Settings control panel, drawn as System 7's generic control panel | export | System; ID to confirm: the generic control panel icon the Finder gives a control panel (`cdev`) with no icon of its own (a panel with a slider); browse the System's `icl8` list, then Finder's. It is the generic for every control panel newer than 7.5 | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-control-panel.png` |
 | — | `system.quicktime.extension` | QuickTime extension (alternate) | reuse | `system.extensions.quicktime` | — | — |
-| — | `system.quicktime.forwardButton` | Step forward button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.fullscreenButton` | Full screen button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
+| — | `system.quicktime.forwardButton` | Step forward button | core | Classicy UI glyph (the movie controller) | — | — |
+| — | `system.quicktime.fullscreenButton` | Full screen button | core | Classicy UI glyph (the movie controller) | — | — |
 | — | `system.quicktime.movieStationary` | Movie stationery | reuse | `system.files.stationaryBlack` (a stationery pad whose application has no stationery icon gets System 7's generic stationery; stationery-ness is what the icon says) | — | — |
 | [ ] | `system.quicktime.movie` | QuickTime movie document | export | MoviePlayer (QuickTime 2.0); ID to confirm: the `MooV` document icon in its `BNDL` | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-movie.png` |
-| — | `system.quicktime.pauseButton` | Pause button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.playButton` | Play button | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
+| — | `system.quicktime.pauseButton` | Pause button | core | Classicy UI glyph (the movie controller) | — | — |
+| — | `system.quicktime.playButton` | Play button | core | Classicy UI glyph (the movie controller) | — | — |
 | [ ] | `system.quicktime.player` | Movie player application | export | MoviePlayer (QuickTime 2.0); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-player.png` |
-| — | `system.quicktime.splash` | QuickTime splash logo | core | Splash art, not an icon | — | — |
-| — | `system.quicktime.thumbSlider` | Seek slider thumb | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
-| — | `system.quicktime.volumeSlider` | Volume slider thumb | core | QuickTime controller glyph drawn by the movie embed; not System art | — | — |
+| — | `system.quicktime.splash` | QuickTime splash logo | core | Brand (QuickTime) | — | — |
+| — | `system.quicktime.thumbSlider` | Seek slider thumb | core | Classicy UI glyph (the movie controller) | — | — |
+| — | `system.quicktime.volumeSlider` | Volume slider thumb | core | Classicy UI glyph (the movie controller) | — | — |
 
 ### System: rich-text editor toolbar
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.richTextEditor.menubar.alignCenterActive` | Toolbar button: Align center, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignCenterDepressed` | Toolbar button: Align center, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignCenterOff` | Toolbar button: Align center, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignLeftActive` | Toolbar button: Align left, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignLeftDepressed` | Toolbar button: Align left, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignLeftOff` | Toolbar button: Align left, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignRightActive` | Toolbar button: Align right, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignRightDepressed` | Toolbar button: Align right, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.alignRightOff` | Toolbar button: Align right, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.boldActive` | Toolbar button: Bold, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.boldDepressed` | Toolbar button: Bold, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.boldOff` | Toolbar button: Bold, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.capsActive` | Toolbar button: Caps, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.capsDepressed` | Toolbar button: Caps, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.capsOff` | Toolbar button: Caps, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.indentActive` | Toolbar button: Indent, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.indentOff` | Toolbar button: Indent, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.italicActive` | Toolbar button: Italic, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.italicDepressed` | Toolbar button: Italic, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.italicOff` | Toolbar button: Italic, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.orderedListActive` | Toolbar button: Numbered list, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.orderedListDepressed` | Toolbar button: Numbered list, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.orderedListOff` | Toolbar button: Numbered list, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.outdentActive` | Toolbar button: Outdent, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.outdentOff` | Toolbar button: Outdent, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.ruleActive` | Toolbar button: Horizontal rule, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.ruleOff` | Toolbar button: Horizontal rule, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.search` | Toolbar button: search | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.underlineActive` | Toolbar button: Underline, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.underlineDepressed` | Toolbar button: Underline, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.underlineOff` | Toolbar button: Underline, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.unorderedListActive` | Toolbar button: Bulleted list, active | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.unorderedListDepressed` | Toolbar button: Bulleted list, pressed | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
-| — | `system.richTextEditor.menubar.unorderedListOff` | Toolbar button: Bulleted list, off | core | Classicy's rich-text toolbar glyph; System 7.5 has no such toolbar | — | — |
+| — | `system.richTextEditor.menubar.alignCenterActive` | Toolbar button: Align center, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignCenterDepressed` | Toolbar button: Align center, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignCenterOff` | Toolbar button: Align center, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignLeftActive` | Toolbar button: Align left, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignLeftDepressed` | Toolbar button: Align left, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignLeftOff` | Toolbar button: Align left, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignRightActive` | Toolbar button: Align right, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignRightDepressed` | Toolbar button: Align right, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.alignRightOff` | Toolbar button: Align right, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.boldActive` | Toolbar button: Bold, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.boldDepressed` | Toolbar button: Bold, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.boldOff` | Toolbar button: Bold, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.capsActive` | Toolbar button: Caps, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.capsDepressed` | Toolbar button: Caps, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.capsOff` | Toolbar button: Caps, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.indentActive` | Toolbar button: Indent, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.indentOff` | Toolbar button: Indent, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.italicActive` | Toolbar button: Italic, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.italicDepressed` | Toolbar button: Italic, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.italicOff` | Toolbar button: Italic, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.orderedListActive` | Toolbar button: Numbered list, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.orderedListDepressed` | Toolbar button: Numbered list, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.orderedListOff` | Toolbar button: Numbered list, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.outdentActive` | Toolbar button: Outdent, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.outdentOff` | Toolbar button: Outdent, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.ruleActive` | Toolbar button: Horizontal rule, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.ruleOff` | Toolbar button: Horizontal rule, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.search` | Toolbar button: search | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.underlineActive` | Toolbar button: Underline, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.underlineDepressed` | Toolbar button: Underline, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.underlineOff` | Toolbar button: Underline, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.unorderedListActive` | Toolbar button: Bulleted list, active | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.unorderedListDepressed` | Toolbar button: Bulleted list, pressed | core | Classicy UI glyph (the rich-text toolbar) | — | — |
+| — | `system.richTextEditor.menubar.unorderedListOff` | Toolbar button: Bulleted list, off | core | Classicy UI glyph (the rich-text toolbar) | — | — |
 
 ### System: security
 
@@ -415,29 +415,29 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.tags.colors.aqua` | Tag swatch: aqua | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.black` | Tag swatch: black | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.blue` | Tag swatch: blue | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.fuchsia` | Tag swatch: fuchsia | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.gray` | Tag swatch: gray | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.green` | Tag swatch: green | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.lime` | Tag swatch: lime | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.maroon` | Tag swatch: maroon | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.navy` | Tag swatch: navy | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.olive` | Tag swatch: olive | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.purple` | Tag swatch: purple | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.red` | Tag swatch: red | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.silver` | Tag swatch: silver | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.teal` | Tag swatch: teal | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.white` | Tag swatch: white | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
-| — | `system.tags.colors.yellow` | Tag swatch: yellow | core | Classicy's tag swatch; System 7.5 labels have no swatch icons | — | — |
+| — | `system.tags.colors.aqua` | Tag swatch: aqua | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.black` | Tag swatch: black | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.blue` | Tag swatch: blue | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.fuchsia` | Tag swatch: fuchsia | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.gray` | Tag swatch: gray | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.green` | Tag swatch: green | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.lime` | Tag swatch: lime | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.maroon` | Tag swatch: maroon | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.navy` | Tag swatch: navy | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.olive` | Tag swatch: olive | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.purple` | Tag swatch: purple | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.red` | Tag swatch: red | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.silver` | Tag swatch: silver | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.teal` | Tag swatch: teal | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.white` | Tag swatch: white | core | Classicy UI glyph (a tag swatch) | — | — |
+| — | `system.tags.colors.yellow` | Tag swatch: yellow | core | Classicy UI glyph (a tag swatch) | — | — |
 
 ### System: other
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `system.appleBlackOnWhite` | Black Apple logo on white | core | Logo art; the Apple menu glyph is the `appleMenu` system art | — | — |
-| — | `system.appleWhiteOnBlack` | White Apple logo on black | core | Logo art; the Apple menu glyph is the `appleMenu` system art | — | — |
+| — | `system.appleBlackOnWhite` | Black Apple logo on white | core | Brand (Apple logo) | — | — |
+| — | `system.appleWhiteOnBlack` | White Apple logo on black | core | Brand (Apple logo) | — | — |
 | — | `system.bigSwitchOff` | Power switch, off | core | Classicy UI glyph | — | — |
 | — | `system.bigSwitchOn` | Power switch, on | core | Classicy UI glyph | — | — |
 | [ ] | `system.clipboard` | Clipboard file | export | System; ID to confirm: the icon family for file type `CLIP` (Finder's `FREF`/`BNDL` maps it; look for the clipboard in the System's `icl8` list) | `ICN#` `icl8` `ics#` `ics8` | `system-clipboard.png` |
@@ -449,25 +449,25 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | [ ] | `system.info` | Note alert icon | export | System, ID 1 (`kNoteIcon`). 1-bit, no mask, no small size | `ICON` (`cicn` if present) | `system-info.png` |
 | — | `system.internet` | Internet (hand and globe) | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.macClassic` | Macintosh Classic with mouse | reuse | `system.mac` (the compact Mac machine icon) | — | — |
-| — | `system.macWink` | Winking compact Mac | core | Classicy's whimsical Mac glyph, no file-kind meaning | — | — |
+| — | `system.macWink` | Winking compact Mac | core | Hardware glyph with no file-kind meaning | — | — |
 | [ ] | `system.mac` | Compact Macintosh (About This Computer, file dialogs) | export | System; ID to confirm: a compact Mac machine icon (About This Macintosh shows it; browse the System's `ICN#` list with negative IDs). If none, crop it from About This Macintosh on an emulated compact Mac | `ICN#` `icl8` `ics#` `ics8` | `system-mac.png` |
 | [ ] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | Finder (System Folder); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `system-macos.png` |
-| — | `system.macosSvg` | Mac OS face logo, vector (Platinum startup screen) | core | Mac OS 7.6/8 logo; System 7's startup screen is the `startupLogo` system art | — | — |
+| — | `system.macosSvg` | Mac OS face logo, vector (Platinum startup screen) | core | Brand (Mac OS logo) | — | — |
 | — | `system.pig` | Piggy bank | core | Concept glyph with no file-kind meaning | — | — |
 | [ ] | `system.printer` | Printer | export | LaserWriter driver (Extensions); ID to confirm: the driver file's own icon (`BNDL`; Chooser shows it) | `ICN#` `icl8` `ics#` `ics8` | `system-printer.png` |
 | [ ] | `system.question` | Document with a question mark | export | System, ID -16506 (`kGenericQueryDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-question.png` |
-| — | `system.shockwave` | Shockwave plug-in | core | Macromedia brand (1995+) | — | — |
+| — | `system.shockwave` | Shockwave logo | core | Brand (Macromedia) | — | — |
 | — | `system.systemResources` | System Resources file | reuse | `system.folders.suitcaseSystem` (the System file) | — | — |
 | [ ] | `system.warn` | Caution alert icon | export | System, ID 2 (`kCautionIcon`). 1-bit, no mask, no small size | `ICON` (`cicn` if present) | `system-warn.png` |
-| — | `system.windows` | Windows logo | core | Microsoft brand | — | — |
+| — | `system.windows` | Windows logo | core | Brand (Microsoft) | — | — |
 
 ### UI
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| — | `ui.halftoneLarge` | Pre-boot screen dither | core | A 1-bit pattern, the same in System 7 | — | — |
-| — | `ui.menuDropdownArrowUp` | Menu scroll-up arrow | core | A solid black triangle, the same in System 7 | — | — |
-| — | `ui.cursors.hand` | Hand cursor image (PDF viewer pan) | core | The `hand` cursor role is in Cursors | — | — |
+| — | `ui.halftoneLarge` | Pre-boot screen dither | core | Classicy UI glyph | — | — |
+| — | `ui.menuDropdownArrowUp` | Menu scroll-up arrow | core | Classicy UI glyph | — | — |
+| — | `ui.cursors.hand` | Hand cursor image (PDF viewer pan) | core | Classicy UI glyph | — | — |
 
 ## System art
 
