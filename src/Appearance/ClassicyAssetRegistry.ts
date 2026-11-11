@@ -130,7 +130,9 @@ export type ClassicySystemArtKey =
 	| "menuCheck"
 	| "menuDash"
 	| "triangle"
-	| "downArrow";
+	| "downArrow"
+	| "ditherChecker"
+	| "helpMenuTitle";
 
 export type ClassicyFontFace = {
 	family: string;
@@ -823,6 +825,8 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	menuDash: "image",
 	triangle: "image",
 	downArrow: "image",
+	ditherChecker: "image",
+	helpMenuTitle: "image",
 };
 
 /**

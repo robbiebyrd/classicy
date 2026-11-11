@@ -172,6 +172,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"menu",
 	"table",
 	"stripMenu",
+	"dither",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one

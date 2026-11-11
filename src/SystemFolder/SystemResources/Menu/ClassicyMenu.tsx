@@ -46,6 +46,11 @@ export interface ClassicyMenuItem {
 	title?: string;
 	/** Image drawn before the title (takes precedence over `icon`). */
 	image?: string;
+	/**
+	 * The image's alternative text, for an item drawn as its image alone (no
+	 * `title`, the image standing in for it). Defaults to `title`.
+	 */
+	imageAlt?: string;
 	/** Dim the item; it cannot be chosen and its keyboard equivalent does not fire. */
 	disabled?: boolean;
 	/**
@@ -519,7 +524,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						aria-hidden={"true"}
 					/>
 				) : menuItem.image ? (
-					<ClassicyIconImage src={menuItem.image} alt={menuItem.title} />
+					<ClassicyIconImage
+						src={menuItem.image}
+						alt={menuItem.imageAlt ?? menuItem.title}
+					/>
 				) : menuItem.icon ? (
 					<ClassicyIconImage src={menuItem.icon} alt={menuItem.title} />
 				) : null}

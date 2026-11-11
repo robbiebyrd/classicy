@@ -500,6 +500,7 @@
 			"Menu",
 			"MenuBar",
 			"Modal",
+			"ModalFixed",
 			"ModalFront",
 			"ModalScrim",
 			"ModalScrimError",

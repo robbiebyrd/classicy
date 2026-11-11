@@ -209,6 +209,9 @@
 			},
 			"stripMenu": {
 				"overlap": 3
+			},
+			"dither": {
+				"tileSize": 0
 			}
 		},
 		"desktop": {

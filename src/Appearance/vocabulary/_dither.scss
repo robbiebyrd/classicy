@@ -1,0 +1,47 @@
+// The 1-bit dither: dimmed text, dimmed controls and dotted rules drawn
+// through a 50% checker on a black-and-white theme, and as plain ink on a
+// color one (System 7 HIG p.60, p.62, p.207). Emits no CSS of its own
+// (`@use "@classicy/classicy/scss/dither"` in a package).
+//
+//   @use "@classicy/classicy/scss/dither" as d;
+//   .classicyMenuItem.disabled > p { @include d.classicy-dither-text("--color-black"); }
+//   .classicyMenuDivider { height: var(--window-border-size); @include d.classicy-dither-line("--color-black"); }
+//
+// The switch is the theme's, not the stylesheet's: the knob
+// `measurements.dither.tileSize` (`--dither-tile-size`) is the checker tile's
+// edge, 0 in the core floor. At 0 the checker layer has no size, draws
+// nothing, and the mask is the full cover: plain ink, so a color theme draws
+// its dimmed text in a gray token and its rules solid. A 1-bit theme sets the
+// tile's size (2 for a 2 × 2 checker of 1 px cells), and the mask becomes the
+// full cover with the tile excluded: the ink shows where the tile is
+// transparent.
+//
+// The tile is the active package's `ditherChecker` system art
+// (`--classicy-art-dither-checker`), a raster mask like Platinum's halftone,
+// not a gradient, which moirés at fractional zoom. With no art registered the
+// mask declaration is invalid and drops out: plain ink again. The mask covers
+// the whole element, so include it on the element that holds only the ink (a
+// label, a rule), not on one that also paints a face.
+@use "color" as c;
+
+// The checker mask alone, for a whole dimmed control.
+@mixin classicy-dither-mask {
+  mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
+  mask-size: var(--dither-tile-size), auto;
+  mask-repeat: repeat, no-repeat;
+  mask-composite: exclude;
+}
+
+// Text inked in `$on` (a color token: "--color-black" on a 1-bit theme, a
+// gray on a color one) through the checker.
+@mixin classicy-dither-text($on) {
+  color: var(#{c.classicy-token($on)});
+  @include classicy-dither-mask;
+}
+
+// A rule painted in `$on` through the checker: dotted at a 1 px height on a
+// 1-bit theme, solid on a color one. The element's size is the rule's.
+@mixin classicy-dither-line($on) {
+  background-color: var(#{c.classicy-token($on)});
+  @include classicy-dither-mask;
+}

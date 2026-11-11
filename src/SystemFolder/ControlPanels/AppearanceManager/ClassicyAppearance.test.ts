@@ -46,7 +46,9 @@ import {
 // dialog.alertLabelOffset and dialog.fileInputHiddenSize, 1px each, in the
 // knob region, and the latter moved to the new formControl family as
 // formControl.fileInputHiddenSize, --form-control-file-input-hidden-size, in
-// the same place (every other key and value unchanged each time).
+// the same place; plan 0018-dbd §1.4 added the dither vocabulary's switch,
+// dither.tileSize (--dither-tile-size, 0px), after the knob region (every
+// other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -65,8 +67,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // under H-R25; the final review's H-R29b gave the alert label nudge and the
 // file input's hidden size dialog knobs of their own, off the border metric;
 // the hidden size then moved to the formControl family, for form-control
-// parts outside dialogs, which made 21 families with the same 95 keys).
-const PLATINUM_KNOB_COUNT = 95;
+// parts outside dialogs, which made 21 families with the same 95 keys; plan
+// 0018-dbd §1.4's dither.tileSize, the dither vocabulary's switch, made 22
+// families and 96 keys).
+const PLATINUM_KNOB_COUNT = 96;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -565,7 +569,7 @@ describe("classicyMeasurementVars", () => {
 	it("the walker reproduces every input variable byte-identically", () => {
 		// The 20 inputs getThemeVars emitted one by one before the walker:
 		// window 6, control 3, button 3, groupBox 5, layout 3. They come
-		// first; Platinum's knob variables (21 families, H 2.1) follow.
+		// first; Platinum's knob variables (22 families, H 2.1) follow.
 		const vars = classicyMeasurementVars(getTheme("default").measurements);
 		expect(Object.keys(vars)).toHaveLength(20 + PLATINUM_KNOB_COUNT);
 		expect(Object.fromEntries(Object.entries(vars).slice(0, 20))).toEqual({

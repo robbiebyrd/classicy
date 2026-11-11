@@ -178,6 +178,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
 	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
+	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
+	// p.52): a package that registers the art gets it in place of the word.
+	const helpMenuTitleArt = useClassicyAsset("systemArt", "helpMenuTitle");
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
@@ -291,12 +294,15 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		}
 		return {
 			id: "help-menu",
-			title: "Help",
+			// The art replaces the word, which stays its accessible name.
+			...(helpMenuTitleArt
+				? { image: helpMenuTitleArt, imageAlt: "Help" }
+				: { title: "Help" }),
 			className: "classicyDesktopMenuHelp",
 			part: "help",
 			menuChildren: helpChildren,
 		};
-	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
+	}, [disableBalloonHelp, helpMenus, focusedMenuApp, helpMenuTitleArt]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's

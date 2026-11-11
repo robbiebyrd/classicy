@@ -505,10 +505,14 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			)}
 		>
 			{label && (
+				// `open` reaches the label and the indicator too: System 7
+				// inverts the pop-up's title and hides its triangle while the
+				// menu is open (HIG p.87).
 				<ClassicyControlLabel
 					label={label}
 					labelFor={id}
 					labelSize={controlLabelSize}
+					className={classicyStateClasses({ open })}
 				></ClassicyControlLabel>
 			)}
 			<div
@@ -550,7 +554,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					onKeyDown={onButtonKeyDown}
 				>
 					<span className="classicyPopUpMenuValue">{currentLabel}</span>
-					<span className="classicyPopUpMenuIndicator" aria-hidden={true} />
+					<span
+						className={classNames(
+							"classicyPopUpMenuIndicator",
+							classicyStateClasses({ open }),
+						)}
+						aria-hidden={true}
+					/>
 				</button>
 
 				{open &&

@@ -401,9 +401,10 @@ interface ClassicyWindowProps {
 	children?: ReactNode;
 	/**
 	 * Dialog flavor. `"error"` on a `modal` window makes a fixed alert: it
-	 * cannot be dragged, beeps when it opens, and stacks in the red error band
-	 * above other modals. Has no visual effect on non-modal windows. Defaults
-	 * to `"default"`.
+	 * cannot be dragged, beeps when it opens, stacks in the red error band
+	 * above other modals and carries `classicyWindowModalFixed` on its root
+	 * (a package may drop a fixed modal's title bar). Has no visual effect on
+	 * non-modal windows. Defaults to `"default"`.
 	 */
 	type?: string;
 	/**
@@ -632,6 +633,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			),
 		);
 	}, [activeTheme, menuBarPlacement]);
+
+	// A modal of type "error" cannot be moved (a fixed modal dialog box);
+	// every other modal can (a movable one).
+	const fixedModal = modal && type === "error";
 
 	const resolvedSize = useMemo(
 		() => resolveSize(initialSize, menuBarHeight),
@@ -1252,7 +1257,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
-		if (modal && type === "error") {
+		if (fixedModal) {
 			// Don't allow modal error dialogs to move
 			return;
 		}
@@ -1906,6 +1911,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// alerts (classicyWindowRed). Error modals keep the red alert band.
 				modal && type !== "error" ? "classicyWindowModalFront" : "",
 				modal && type === "error" ? "classicyWindowRed" : "",
+				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
+				// in System 7) as opposed to a movable one: the window the move
+				// gesture refuses. Platinum draws both alike.
+				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",

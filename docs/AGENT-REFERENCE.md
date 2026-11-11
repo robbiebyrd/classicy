@@ -277,7 +277,7 @@ Package `exports` map:
 | `@classicy/classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
 | `@classicy/classicy/fonts` | Deprecated no-op kept so existing `import '@classicy/classicy/fonts'` lines keep resolving |
 | `@classicy/classicy/dist/*` | Anything in dist (the bundles, `classicy.css`, `types/`; no package's files) |
-| `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
+| `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers"), `@classicy/classicy/scss/dither` (`classicy-dither-mask`, `classicy-dither-text()`, `classicy-dither-line()`; §8, "Dither vocabulary") |
 
 `@classicy/appearance-platinum`'s `exports` map (3.0; the core's 2.x
 `@classicy/classicy/appearance/platinum` and
@@ -639,7 +639,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Help menu is when the active package registers the `helpMenuTitle` system art; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -737,7 +737,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyMenu` items | `disabled`, `open` |
 | `ClassicyTabs` tab buttons; `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
-| `ClassicyPopUpMenu` | `open`, `disabled` |
+| `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
@@ -964,7 +964,11 @@ content-box size of the zoomed ("standard") state for `zoomMode="full"`
 store record's `closed` flag wins. `growable` stretches the content area to the
 window's full height instead of sizing it to its content. `type="error"` on a
 `modal` window makes a fixed alert: it cannot be dragged, beeps when it opens,
-and stacks in the red error band above other modals.
+and stacks in the red error band above other modals. Its root carries
+`classicyWindowModalFixed` (a fixed modal dialog box, which in System 7 has no
+title bar, HIG p.190); a movable modal (`modal` without `type="error"`) does
+not, so a package can drop the title bar of the fixed one only. Platinum
+draws both alike.
 
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
@@ -1965,7 +1969,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 39 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 41 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -1985,9 +1989,13 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (3 keys): `aboutBackground` (no Platinum art), and
+Unregistered by Platinum (5 keys): `aboutBackground` (no Platinum art),
 `menuCheck`, `menuDash` (the menu check and dash are `::before` glyphs in
-Platinum's menu partial).
+Platinum's menu partial), `ditherChecker` (the dither vocabulary's checker
+tile, a mask, §8 "Dither vocabulary"; Platinum draws no dithers) and
+`helpMenuTitle` (the menu bar draws it in place of the Help menu's title
+text when the active package registers it, else the word "Help", which
+stays the image's `alt`; Platinum titles its Help menu with the word).
 
 The window, menu, pop-up, slider, tab and QuickTime art is drawn as **image layers**,
 never masks, so it shows the colors the file holds (`currentColor` draws black
@@ -3892,7 +3900,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 21 families of its own (95 keys)
+**Package knob families.** Platinum adds 22 families of its own (96 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -3907,7 +3915,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 15 families are emitted and editable in
+  groups under Platinum. The other 16 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -3917,7 +3925,7 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 84 of the 95 are
+  overriding the knob's value, never the base CSS. 85 of the 96 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
   table, so the floor and the column cannot drift). The other 11 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
@@ -4043,6 +4051,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
+| `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
@@ -4050,6 +4059,13 @@ dialog or core family fits (the core `control` family is a persisted
 contract). It sizes `ClassicyFileInput`'s visually hidden native input, off
 the border metric (H-R29b), so the input never collapses to 0×0, which some
 screen readers skip, when Border is 0.
+
+`dither.tileSize` is the switch of the dither vocabulary
+(`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
+checker tile its mixins mask with, in px. It is 0 in the core floor and in
+Platinum, which draws no dithers, so the mixins draw plain ink; a 1-bit
+theme sets it to its tile's size (2 for a 2 × 2 checker). It is structural
+because the core's vocabulary reads it, so every package emits it.
 
 `--progress-bar-stripe-period` is not a knob: it is the derivation
 `progressBar.stripeWidth × 2` (H-R27b), so the band and its period never
@@ -4461,6 +4477,33 @@ skips:
   `--classicy-color-picker-crosshair: #ffffff`, say. Only the declaration is
   skipped: a property rule such as `color: #c00` in a package partial is
   still a hit.
+
+**Dither vocabulary.** System 7 draws dimmed text and dimmed controls
+through a 50% checker, and its menu dividers as dotted rules, on 1-bit
+screens, and in plain gray on color ones (HIG p.60, p.62).
+`src/Appearance/vocabulary/_dither.scss`
+(`@use "@classicy/classicy/scss/dither" as d;`) holds the mixins; the theme
+switches them, never the stylesheet:
+
+| Mixin | Draws |
+|---|---|
+| `classicy-dither-mask` | the element through the checker (a dimmed control) |
+| `classicy-dither-text($on)` | `color: var($on)`, through the checker |
+| `classicy-dither-line($on)` | `background-color: var($on)`, through the checker; the element's size is the rule's (a 1 px height for a dotted rule) |
+
+The mask is a full cover with the checker tile excluded
+(`mask-composite: exclude`), the tile sized by the theme knob
+`dither.tileSize` (`--dither-tile-size`, §8 "Package knob families"). At 0
+(the core floor's value, and Platinum's) the tile draws nothing and the ink
+is plain, so a color theme dims with a gray `$on` and draws solid rules; a
+1-bit theme sets the tile's size (2 for a 2 × 2 checker) and the ink shows
+where the tile is transparent. The tile is the active package's
+`ditherChecker` system art (`--classicy-art-dither-checker`), a raster mask
+as Platinum's `halftone` is, not a gradient, which moirés at fractional zoom;
+with none registered the mask drops out and the ink is plain. The mask
+covers the whole element, so include a mixin on an element that holds only
+the ink (a label, a rule), not on one that also paints a face. `$on` is a
+token name, checked like the color helpers' (`classicy-token`).
 
 **Reading a metric from JS.** Code that needs a theme size in pixels reads
 the variable instead of hard-coding the number:

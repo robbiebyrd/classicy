@@ -11,7 +11,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 | Section | Rows | Your work |
 | --- | --- | --- |
 | Icons | 294 keys | 67 export (up to 4 PNGs each); 85 reuse and 142 core need nothing. 26 exports have a known ID, 41 say "ID to confirm" |
-| System art | 39 keys | the export and crop rows |
+| System art | 41 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | 6 WAV exports and one copy |
 | Window colors | `wctb` and `cctb` | read the hex values; sample 6 screen colors |
@@ -514,6 +514,8 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 | — | `menuDash` | Menu dash (mixed state) | draw | Chicago's – : a 1-bit SVG of the Chicago 12 glyph (implementer) | — | — |
 | — | `triangle` | Alias of `submenuArrow` | reuse | `submenuArrow` | — | — |
 | — | `downArrow` | Alias of `popupArrows` | reuse | `popupArrows` | — | — |
+| — | `ditherChecker` | The dither vocabulary's 50% checker tile (a mask: dimmed text and controls, dotted rules; HIG p.60, p.62) | draw | A 2×2 `currentColor` SVG with two opaque diagonal cells, as Platinum's `halftone.svg` (implementer). The `bw` theme sets `dither.tileSize` to 2 and the color theme leaves it 0, so one file serves both | — | — |
+| — | `helpMenuTitle` | Help menu title (the menu bar draws it in place of the word Help) | reuse | `helpButton` (its crop is this glyph, the balloon with a "?" from the menu bar, HIG p.52, fig 4-2) | — | — |
 
 ## Cursors
 

@@ -159,6 +159,31 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		expect(win?.classList.contains("classicyWindowModalFront")).toBe(false);
 	});
 
+	// System 7 (HIG p.190): a fixed modal dialog box has no drag region and
+	// no title bar, a movable modal one has both. The marker names the modal
+	// the window refuses to move, so a package can drop that one's title bar.
+	describe("the fixed-modal marker", () => {
+		const fixedMarker = () =>
+			document
+				.querySelector(".classicyWindow")
+				?.classList.contains("classicyWindowModalFixed");
+
+		it("marks a fixed (error) modal", () => {
+			renderWindow({ modal: true, type: "error" });
+			expect(fixedMarker()).toBe(true);
+		});
+
+		it("leaves a movable modal unmarked", () => {
+			renderWindow({ modal: true });
+			expect(fixedMarker()).toBe(false);
+		});
+
+		it("leaves a non-modal window unmarked, error-typed or not", () => {
+			renderWindow({ type: "error" });
+			expect(fixedMarker()).toBe(false);
+		});
+	});
+
 	// #208: zooming a full-mode window moves it to the standard-state origin and
 	// flags it zoomed.
 	it("zooms to the standard-state rect on a zoom-box click", () => {
