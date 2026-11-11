@@ -202,6 +202,7 @@ describe("bin/verify-dist.mjs", () => {
 			"system7.ogg",
 			"silence.wav",
 			"Geneva-bold-normal.woff2",
+			"Monaco-normal-normal.woff2",
 		])("fails %s when it differs from its source", (file) =>
 			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
 				status: 1,
@@ -324,18 +325,30 @@ describe("bin/verify-dist.mjs", () => {
 
 	// Invariant 6 (the core's old 12).
 	describe("6. the font stylesheet", () => {
-		it("fails a missing face", () =>
+		it.each(["ChicagoFLF", "Monaco"])("fails a missing %s face", (family) =>
 			expect(
 				verify({
 					"classicy-system7.fonts.css": FONTS.split("\n")
-						.filter((rule) => !rule.includes('"ChicagoFLF"'))
+						.filter((rule) => !rule.includes(`"${family}"`))
 						.join("\n"),
 				}),
 			).toEqual({
 				status: 1,
-				stderr:
-					'dist/classicy-system7.fonts.css: no @font-face for "ChicagoFLF" normal normal, which the runtime registers.',
+				stderr: `dist/classicy-system7.fonts.css: no @font-face for "${family}" normal normal, which the runtime registers.`,
 			}));
+
+		it("expects the five faces the runtime registers, Monaco among them", () =>
+			expect(
+				SYSTEM7_FONT_FACES.map(({ family, weight, style }) =>
+					[family, weight, style].join(" "),
+				),
+			).toEqual([
+				"ChicagoFLF normal normal",
+				"Geneva normal normal",
+				"Geneva bold normal",
+				"Geneva normal italic",
+				"Monaco normal normal",
+			]));
 
 		it("fails a missing file", () =>
 			expect(verify({ "classicy-system7.fonts.css": null }).stderr).toMatch(

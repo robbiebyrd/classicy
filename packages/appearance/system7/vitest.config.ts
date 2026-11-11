@@ -11,6 +11,9 @@ import { defineConfig } from "vitest/config";
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
 export default defineConfig({
+	// Platinum's sound sprites include an ac3 file, a format Vite does not know
+	// as an asset: tests that register Platinum beside System 7 import it.
+	assetsInclude: ["**/*.ac3"],
 	test: {
 		name: "appearance-system7",
 		environment: "jsdom",

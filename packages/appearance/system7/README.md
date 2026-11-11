@@ -1,18 +1,26 @@
 # @classicy/appearance-system7
 
 System 7, the classic Mac OS look, as an Appearance Package for
-[Classicy](https://github.com/robbiebyrd/classicy). One package, two themes:
+[Classicy](https://github.com/robbiebyrd/classicy). The package is being
+built. Today it ships:
 
-- **System 7**: black and white, 1-bit, drawing the package's `bw` asset
-  variant, with dimmed text and dotted rules dithered.
-- **System 7 Color**: the Standard lavender window colors, true gray, and the
-  package's color art.
+- two themes, **System 7** (black and white: a black-and-white palette,
+  flagged for the package's `bw` asset variant) and **System 7 Color** (the
+  Standard lavender window colors and true grays);
+- its layout (grow box at the bottom right, the menu bar on the screen,
+  desktop icons from the top right);
+- Chicago (ChicagoFLF), Geneva and Monaco, byte-identical copies of
+  Platinum's faces;
+- a placeholder sound pack with no sounds of its own, which takes the default
+  package's alerts (Platinum's, when a host also loads it);
+- a stylesheet that so far only hides the collapse box System 7 windows lack.
 
-The package is being built: it registers its themes, layout, fonts and sound
-pack today, and its look, art, cursors, alert sounds and screen savers land
-element by element. Until its art is registered, Classicy draws the default
-package's art (Platinum's, when a host also loads Platinum) and the core's
-icons.
+Later work adds the System 7 look element by element (window chrome, menus,
+dialogs, controls, scroll bars), dithered dimmed text and rules in the black
+and white theme, System 7 period icons, art and cursors (color art, and 1-bit
+art for the black and white theme), the System 7.5 alert sounds and the
+screen savers. Until then, Classicy draws the default package's art
+(Platinum's, when a host also loads Platinum) and the core's icons.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this
 package once, at your app's entry, to register System 7:
@@ -44,8 +52,7 @@ them. The package ships its type declarations (`bundler`, `node16` and
   the fonts as stylesheets, for hosts whose Content-Security-Policy blocks
   inline `<style>` (below).
 
-The fonts are Chicago (ChicagoFLF) and Geneva, byte-identical copies of
-Platinum's faces. They and the sound sheet are files in `dist/assets/`,
+The fonts and the placeholder sound sheet are files in `dist/assets/`,
 loaded as `new URL("assets/…", import.meta.url)`. A Vite host keeps the
 packages out of the dev server's dependency pre-bundle, which would break
 those URLs:

@@ -177,8 +177,9 @@ describe("the System 7 appearance package", () => {
 		]);
 		for (const theme of system7Json.presets)
 			expect(theme.sound.pack).toBe("system7");
-		// No alerts until the System 7.5 sounds land (plan 0018-dbd §4.2).
-		expect(system7SoundPack.alerts).toEqual([]);
+		// No alerts of its own until the System 7.5 sounds land (plan 0018-dbd
+		// §4.2): it takes the default pack's (system7.alerts.test.ts).
+		expect(system7SoundPack.alerts).toBeUndefined();
 		expect(system7SoundPack.sprite).toEqual({});
 	});
 
