@@ -25,6 +25,7 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
@@ -626,7 +627,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 											aria-hidden={true}
 										/>
 										{o.icon && (
-											<img
+											<ClassicyIconImage
 												className="classicyPopUpMenuListItemIcon"
 												src={o.icon}
 												alt=""

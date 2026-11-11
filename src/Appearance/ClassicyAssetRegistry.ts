@@ -474,6 +474,7 @@ export const resetClassicyAssets = (): void => {
 	variantTrees.clear();
 	registeredVariants.clear();
 	reportedVariants.clear();
+	reportedSmallCollisions.clear();
 	fontFaces.clear();
 	wallpaperFiles.clear();
 	wallpaperLegacyDigests.clear();
@@ -571,24 +572,67 @@ const smallIndexCache = new Map<
 	{ version: number; value: Map<string, string> }
 >();
 
-/** Every `src` to `small` pair of the merged icon tree the active theme draws. */
+/**
+ * Every `src` to `small` pair of the icon set the active theme draws: the
+ * theme's variant tree, then the active package's base tree, then the default
+ * package's, each path counted once (a more specific tree's leaf hides the
+ * same path below it, as lookups do).
+ *
+ * A small image belongs to its `src` image, not to one leaf, because icons
+ * travel as plain URL strings. So a leaf with no `small` that shares a `src`
+ * with a leaf that has one draws that `small`. When leaves sharing one `src`
+ * declare different `small` images, the most specific tree wins (variant over
+ * the active package over the default package), and within one tree the first
+ * key in tree order; one `classicyLog` warning per such `src` and page says so.
+ */
 const smallIndex = (): Map<string, string> => {
 	const activeId = getActiveClassicyAppearancePackageId();
-	const key = `${activeId}|${activeVariantFor(activeId) ?? ""}`;
+	const variant = activeVariantFor(activeId);
+	const key = `${activeId}|${variant ?? ""}`;
 	const cached = smallIndexCache.get(key);
 	if (cached && cached.version === version) return cached.value;
 	const value = new Map<string, string>();
-	const visit = (tree: ClassicyAssetTree) => {
-		for (const name of Object.keys(tree)) {
-			const node: Node | undefined = tree[name];
-			if (isStoredLeaf(node)) {
-				if (node.small !== "") value.set(node.src, node.small);
-			} else if (isTree(node)) visit(node);
-		}
-	};
-	visit(mergedTree("icons"));
+	const byPackage = trees.get("icons");
+	const tiers = [
+		variantTree("icons", activeId, variant),
+		byPackage?.get(activeId),
+		activeId === DEFAULT_PACKAGE ? undefined : byPackage?.get(DEFAULT_PACKAGE),
+	];
+	const seenPaths = new Set<string>();
+	for (const tier of tiers) {
+		if (!tier) continue;
+		const tierPaths: string[] = [];
+		const visit = (tree: ClassicyAssetTree, trail: string) => {
+			for (const name of Object.keys(tree)) {
+				const path = trail ? `${trail}.${name}` : name;
+				const node: Node | undefined = tree[name];
+				if (isStoredLeaf(node)) {
+					tierPaths.push(path);
+					if (seenPaths.has(path) || node.small === "") continue;
+					const existing = value.get(node.src);
+					if (existing === undefined) value.set(node.src, node.small);
+					else if (existing !== node.small) warnSmallCollision(node.src);
+				} else if (isTree(node)) visit(node, path);
+				else if (typeof node === "string") tierPaths.push(path);
+			}
+		};
+		visit(tier, "");
+		for (const path of tierPaths) seenPaths.add(path);
+	}
 	smallIndexCache.set(key, { version, value });
 	return value;
+};
+
+const reportedSmallCollisions = new Set<string>();
+
+const warnSmallCollision = (src: string): void => {
+	if (reportedSmallCollisions.has(src)) return;
+	reportedSmallCollisions.add(src);
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`Icons sharing the image "${src}" declare different small images; the most specific tree's first one is used`,
+	);
 };
 
 /**

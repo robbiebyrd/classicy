@@ -1,7 +1,13 @@
 // Small icon images (plan 0018-dbd 1.2): an icon tree leaf may be
 // `{ src, small }`; a render at the small-icon size draws `small`, every other
 // render (and every plain-string leaf) draws `src`.
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
 import { produce } from "immer";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,13 +35,17 @@ import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyMenuBarExtension } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 const stub = (id: string): ClassicyAppearancePackage => ({
 	id,
@@ -301,5 +311,115 @@ describe("bevel button icons", () => {
 		expect(
 			container.querySelector(".classicyBevelButtonIcon")?.getAttribute("src"),
 		).toBe("/folder.png");
+	});
+});
+
+describe("other small surfaces", () => {
+	it("list box options draw small", () => {
+		render(
+			<ClassicyListBox
+				id="lb"
+				options={[{ value: "a", label: "A", icon: "/folder.png" }]}
+			/>,
+		);
+		expect(
+			document.querySelector(".classicyListBoxOptionIcon")?.getAttribute("src"),
+		).toBe("/folder-16.png");
+	});
+
+	it("pop-up menu options draw small", () => {
+		render(
+			<ClassicyPopUpMenu
+				id="pm"
+				selected="a"
+				options={[{ value: "a", label: "A", icon: "/folder.png" }]}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("combobox"));
+		expect(
+			document
+				.querySelector(".classicyPopUpMenuListItemIcon")
+				?.getAttribute("src"),
+		).toBe("/folder-16.png");
+	});
+
+	it("the window title bar's proxy icon draws small", () => {
+		render(<ClassicyWindowTitleBar title="T" icon="/folder.png" />);
+		expect(screen.getByAltText("T").getAttribute("src")).toBe("/folder-16.png");
+	});
+
+	it("a title bar with no icon draws an image with no src", () => {
+		render(<ClassicyWindowTitleBar title="T" />);
+		expect(screen.getByAltText("T").hasAttribute("src")).toBe(false);
+	});
+
+	it("menu bar extension icons draw small", () => {
+		const region = document.createElement("div");
+		region.id = "classicyDesktopMenuExtensions";
+		document.body.append(region);
+		render(<ClassicyMenuBarExtension id="x" icon="/folder.png" title="Ext" />);
+		expect(screen.getByAltText("Ext").getAttribute("src")).toBe(
+			"/folder-16.png",
+		);
+		region.remove();
+	});
+
+	it("ClassicyIcon without size follows the theme's desktop icon size", () => {
+		const setDesktopIconSize = (n: number) =>
+			act(() => {
+				useAppManager.setState((state) =>
+					produce(state, (draft) => {
+						draft.System.Manager.Appearance.activeTheme.desktop.iconSize = n;
+					}),
+				);
+			});
+		render(<ClassicyIcon appId="T.app" name="Folder" icon="/folder.png" />);
+		expect(screen.getByRole("img").getAttribute("src")).toBe("/folder.png");
+		setDesktopIconSize(16);
+		expect(screen.getByRole("img").getAttribute("src")).toBe("/folder-16.png");
+	});
+});
+
+describe("two leaves sharing one src", () => {
+	const warnings = () =>
+		entries.filter((e) => e.level === "warn" && /small images/.test(e.message));
+
+	it("a leaf without small shares the small of the same src", () => {
+		registerClassicyAssets("icons", "sys7", {
+			a: { src: "/shared.png", small: "/shared-16.png" },
+			b: { src: "/shared.png" },
+		});
+		expect(resolveClassicyIconImage("/shared.png", 16)).toBe("/shared-16.png");
+		expect(warnings()).toHaveLength(0);
+	});
+
+	it("within one tree the first key wins, with one warning per src", () => {
+		registerClassicyAssets("icons", "sys7", {
+			a: { src: "/shared.png", small: "/first-16.png" },
+			b: { src: "/shared.png", small: "/second-16.png" },
+			c: { src: "/shared.png", small: "/third-16.png" },
+		});
+		expect(resolveClassicyIconImage("/shared.png", 16)).toBe("/first-16.png");
+		resolveClassicyIconImage("/shared.png", 16);
+		expect(warnings()).toHaveLength(1);
+	});
+
+	it("the variant tree beats the package's, which beats the default package's", () => {
+		registerClassicyAssets("icons", "platinum", {
+			p: { src: "/shared.png", small: "/default-16.png" },
+		});
+		registerClassicyAssets("icons", "sys7", {
+			q: { src: "/shared.png", small: "/package-16.png" },
+		});
+		expect(resolveClassicyIconImage("/shared.png", 16)).toBe("/package-16.png");
+		registerClassicyAssets(
+			"icons",
+			"sys7",
+			{ r: { src: "/shared.png", small: "/variant-16.png" } },
+			{ variant: "bw" },
+		);
+		activate("sys7", "bw");
+		expect(resolveClassicyIconImage("/shared.png", 16)).toBe("/variant-16.png");
+		expect(warnings()).toHaveLength(1);
 	});
 });

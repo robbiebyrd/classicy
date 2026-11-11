@@ -13,6 +13,7 @@ import {
 import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -291,9 +292,16 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		</p>
 	);
 
-	// A 16 px (or smaller) render draws the icon's own small image when it
-	// has one; the theme's default size and anything larger draw `icon`.
-	const iconUrl = useClassicyIconImage(icon, size ?? Number.POSITIVE_INFINITY);
+	// Without `size` the icon draws at the theme's desktop icon size
+	// (`--desktop-icon-size`). Rendered at the small-icon size or less, it
+	// draws the icon's own small image when it has one; larger draws `icon`.
+	const themeIconSize = useAppManager(
+		(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
+	);
+	const iconUrl = useClassicyIconImage(
+		icon,
+		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
+	);
 	const iconEl = (
 		<div
 			className={classNames(

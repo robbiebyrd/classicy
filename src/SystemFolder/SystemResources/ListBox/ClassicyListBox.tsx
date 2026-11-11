@@ -18,6 +18,7 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 
 /** One row of a `ClassicyListBox`. */
@@ -270,7 +271,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						onFocus={() => setActiveId(o.value)}
 					>
 						{o.icon && (
-							<img
+							<ClassicyIconImage
 								className="classicyListBoxOptionIcon"
 								src={o.icon}
 								alt=""

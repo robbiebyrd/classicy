@@ -1470,6 +1470,15 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   (`ClassicyBevelButton` `iconSmall`) and the 16 px icons in PDF Viewer, About
   This Computer and Finder Preferences do this; a leaf with no `small`
   scales as before. A string registered over a leaf replaces it (no `small`).
+  List box and pop-up menu option icons, the window title bar's proxy icon and
+  menu bar extension icons draw small too; `ClassicyIcon` and desktop icons
+  draw small when `size` (or, without it, the theme's `desktop.iconSize`) is
+  16 or less. A small image belongs to its `src` image: a leaf with no `small`
+  that shares a `src` with a leaf that has one draws that `small`. If leaves
+  sharing a `src` declare different `small` images, the most specific tree
+  wins (variant, then the active package, then the default package), within a
+  tree the first key, with one `classicyLog` warning per such `src`.
+  `ClassicyInputDialog` draws its icon at the regular 32 px, so it does not.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;

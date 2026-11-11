@@ -6,7 +6,7 @@ type ClassicyIconImageProps = Omit<
 	"src"
 > & {
 	/** The icon's URL, as registered (the leaf's `src`). */
-	src: string;
+	src: string | undefined;
 	/**
 	 * The size the image is drawn at in px, or `true` (default) for a surface
 	 * whose CSS gives it the small-icon size. An icon drawn at the small-icon
@@ -21,6 +21,9 @@ export const ClassicyIconImage = ({
 	drawnAt = true,
 	alt,
 	...rest
-}: ClassicyIconImageProps) => (
-	<img {...rest} src={useClassicyIconImage(src, drawnAt)} alt={alt} />
-);
+}: ClassicyIconImageProps) => {
+	const image = useClassicyIconImage(src ?? "", drawnAt);
+	return (
+		<img {...rest} src={src === undefined ? undefined : image} alt={alt} />
+	);
+};

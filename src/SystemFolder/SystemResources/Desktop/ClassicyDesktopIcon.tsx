@@ -1,5 +1,8 @@
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
-import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	useClassicyAsset,
+	useClassicyIconImage,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
@@ -194,6 +197,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			style,
 		}) => {
 			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+			// The icon draws at the theme's desktop icon size: a theme that sets
+			// it to the small-icon size or less draws the leaf's small image.
+			const desktopIconSize = useAppManager(
+				(s) => s.System.Manager.Appearance.activeTheme.desktop.iconSize,
+			);
 			// How the active package shows the app. Only an app shortcut stands
 			// for its app: drives share Finder.app's id, and other kinds name
 			// their own target.
@@ -214,6 +222,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
 
+			const iconUrl = useClassicyIconImage(identity.icon, desktopIconSize);
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
 			);
@@ -593,12 +602,12 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							className={"classicyDesktopIconMaskOuter"}
 							style={
 								{
-									"--classicy-icon-mask": `url("${identity.icon}")`,
+									"--classicy-icon-mask": `url("${iconUrl}")`,
 								} as CSSProperties
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={identity.icon} alt={identity.name} />
+								<img src={iconUrl} alt={identity.name} />
 							</div>
 						</div>
 						{isAlias && (
