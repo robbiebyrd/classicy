@@ -125,6 +125,19 @@ jobs:
           git add packages/appearance/platinum/package.json
           git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-platinum to $VERSION [skip ci]"
 
+      # System 7 ships at the root's version too (plan 0018-dbd), synced the
+      # same way and skipped until its folder exists.
+      - name: Sync the System 7 package version
+        if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/system7/package.json') != ''
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p 'require("./package.json").version')"
+          npm pkg set version="$VERSION" --prefix packages/appearance/system7
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add packages/appearance/system7/package.json
+          git diff --cached --quiet || git commit -m "ci: set @classicy/appearance-system7 to $VERSION [skip ci]"
+
       # Releases publish with npm trusted publishing (OIDC), never a stored
       # token (story 0156-tx7). Checked here, before the build and the push, so
       # a package whose trusted publisher is missing, mistyped or expired (a new
@@ -151,6 +164,9 @@ jobs:
           DIRS=(.)
           if [ -f packages/appearance/platinum/package.json ]; then
             DIRS+=(packages/appearance/platinum)
+          fi
+          if [ -f packages/appearance/system7/package.json ]; then
+            DIRS+=(packages/appearance/system7)
           fi
           FAILED=0
           for DIR in "${DIRS[@]}"; do
@@ -242,8 +258,8 @@ jobs:
             --title "${{ steps.codename.outputs.name }}" \
             --generate-notes
 
-      # pnpm, not the old npm-publish action: only pnpm rewrites the Platinum
-      # package's `workspace:^` peer range to a real `^<version>`. `-r` publishes
+      # pnpm, not the old npm-publish action: only pnpm rewrites the appearance
+      # packages' `workspace:^` peer ranges to a real `^<version>`. `-r` publishes
       # in topological order and skips versions already on the registry, so a
       # re-run after a partial publish is safe. pnpm 10 hands each packed
       # tarball to `npm publish`, which exchanges the job's OIDC token
@@ -255,7 +271,7 @@ jobs:
         if: steps.bump_version.outputs.newTag != '' && hashFiles('packages/appearance/platinum/package.json') != ''
         env:
           NODE_AUTH_TOKEN: ''
-        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks
+        run: pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --access public --no-git-checks
 
       # Until the Platinum package exists, only the root publishes.
       - name: Publish to npm (core only)
@@ -283,9 +299,12 @@ jobs:
           if [ -f packages/appearance/platinum/package.json ]; then
             PACKAGES+=("$(node -p 'require("./packages/appearance/platinum/package.json").name')")
           fi
+          if [ -f packages/appearance/system7/package.json ]; then
+            PACKAGES+=("$(node -p 'require("./packages/appearance/system7/package.json").name')")
+          fi
           POLL_SECONDS=30
           POLLS=90
-          # Both packages must be listed before anything downstream runs.
+          # Every package must be listed before anything downstream runs.
           for NAME in "${PACKAGES[@]}"; do
             LIVE=""
             for attempt in $(seq 1 "$POLLS"); do

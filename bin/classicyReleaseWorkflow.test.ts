@@ -56,6 +56,8 @@ const scriptOf = (s: Step): string => {
 };
 
 const PLATINUM_PKG = "packages/appearance/platinum/package.json";
+const SYSTEM7_PKG = "packages/appearance/system7/package.json";
+const HAS_SYSTEM7 = `hashFiles('${SYSTEM7_PKG}') != ''`;
 const HAS_PLATINUM = `hashFiles('${PLATINUM_PKG}') != ''`;
 const NO_PLATINUM = `hashFiles('${PLATINUM_PKG}') == ''`;
 const NEW_TAG = "steps.bump_version.outputs.newTag != ''";
@@ -74,6 +76,7 @@ describe("push.yml release workflow", () => {
 		const order = [
 			/^Bump version/,
 			/Sync the Platinum/,
+			/Sync the System 7/,
 			/^Check trusted publishing/,
 			/^Select release codename/,
 			/^Update release codename/,
@@ -97,6 +100,7 @@ describe("push.yml release workflow", () => {
 		for (const re of [
 			/^Bump version/,
 			/Sync the Platinum/,
+			/Sync the System 7/,
 			/^Select release codename/,
 			/^Update release codename/,
 		]) {
@@ -167,6 +171,24 @@ describe("push.yml release workflow", () => {
 		expect(ifOf(sync)).toContain(HAS_PLATINUM);
 	});
 
+	it("syncs the System 7 version into its own commit before the tag, only when its folder exists", () => {
+		const sync = step(/Sync the System 7/);
+		expect(sync.text).toContain(SYSTEM7_PKG.replace("/package.json", ""));
+		expect(sync.text).toMatch(
+			/npm pkg set version="\$VERSION" --prefix packages\/appearance\/system7/,
+		);
+		expect(sync.text).toContain(`git add ${SYSTEM7_PKG}`);
+		expect(sync.text).toMatch(
+			/git diff --cached --quiet \|\| git commit -m "ci: set @classicy\/appearance-system7 to \$VERSION \[skip ci\]"/,
+		);
+		expect(sync.text).not.toContain("git push");
+		expect(sync.text).not.toContain("git tag");
+		expect(ifOf(sync)).toContain(NEW_TAG);
+		expect(ifOf(sync)).toContain(HAS_SYSTEM7);
+		// The Platinum commit takes only Platinum's file, and the other way round.
+		expect(step(/Sync the Platinum/).text).not.toContain("system7");
+	});
+
 	it("pushes once, branch and tag together, after the commits are made", () => {
 		const tagStep = step(/^Push the release commit and tag/);
 		const tag = scriptOf(tagStep);
@@ -218,7 +240,7 @@ describe("push.yml release workflow", () => {
 		expect(WORKFLOW).not.toContain("JS-DevTools");
 		const publish = step(/^Publish to npm$/);
 		expect(publish.text).toContain(
-			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --access public --no-git-checks",
+			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --access public --no-git-checks",
 		);
 		expect(step(/^Setup Node/).text).toMatch(/registry-url:/);
 	});
@@ -300,6 +322,9 @@ describe("push.yml release workflow", () => {
 		expect(core).toContain(NEW_TAG);
 		expect(core).toContain(NO_PLATINUM);
 		expect(core).not.toContain(HAS_PLATINUM);
+		// System 7 has no publish step of its own: pnpm's filter skips a package
+		// whose folder is absent, and its sync is guarded by its own folder.
+		expect(ifOf(step(/Sync the System 7/))).not.toContain(HAS_PLATINUM);
 		// Same condition as the sync: Platinum is synced exactly when published.
 		expect(ifOf(step(/Sync the Platinum/))).toContain(HAS_PLATINUM);
 	});
@@ -338,6 +363,7 @@ describe("push.yml wait loop, run against a fake npm", () => {
 	 */
 	const run = (opts: {
 		platinum: boolean;
+		system7?: boolean;
 		lagFor: Record<string, number>;
 	}): { status: number | null; calls: string[]; out: string } => {
 		const dir = mkdtempSync(join(root, "case-"));
@@ -352,6 +378,13 @@ describe("push.yml wait loop, run against a fake npm", () => {
 			writeFileSync(
 				join(dir, PLATINUM_PKG),
 				JSON.stringify({ name: "@fake/platinum" }),
+			);
+		}
+		if (opts.system7) {
+			mkdirSync(join(dir, "packages/appearance/system7"), { recursive: true });
+			writeFileSync(
+				join(dir, SYSTEM7_PKG),
+				JSON.stringify({ name: "@fake/system7" }),
 			);
 		}
 		writeFileSync(
@@ -425,6 +458,26 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 		expect(r.out).toContain("attempt 85/90");
 	});
 
+	it("waits for System 7 as well, and fails if only the others list", () => {
+		const slow = run({
+			platinum: true,
+			system7: true,
+			lagFor: { "@fake/core": 0, "@fake/platinum": 0, "@fake/system7": 2 },
+		});
+		expect(slow.status, slow.out).toBe(0);
+		expect(slow.calls.filter((c) => c === "@fake/system7")).toHaveLength(3);
+		const never = run({
+			platinum: true,
+			system7: true,
+			lagFor: { "@fake/system7": 1000 },
+		});
+		expect(never.status).toBe(1);
+		expect(never.out).toContain(
+			"@fake/system7@3.0.0 was not listed as latest on npm within 45 minutes",
+		);
+		expect(never.calls.filter((c) => c === "@fake/system7")).toHaveLength(90);
+	});
+
 	it("checks only the core before the Platinum package exists", () => {
 		const r = run({ platinum: false, lagFor: {} });
 		expect(r.status).toBe(0);
@@ -484,7 +537,11 @@ exit 0
 });
 
 /** A workspace laid out like the repo: the core at the root, Platinum below. */
-const makeWorkspace = (root: string, platinum: boolean): string => {
+const makeWorkspace = (
+	root: string,
+	platinum: boolean,
+	system7 = false,
+): string => {
 	const dir = mkdtempSync(join(root, "case-"));
 	writeFileSync(
 		join(dir, "package.json"),
@@ -495,6 +552,13 @@ const makeWorkspace = (root: string, platinum: boolean): string => {
 		writeFileSync(
 			join(dir, PLATINUM_PKG),
 			JSON.stringify({ name: "@fake/platinum", version: "3.0.0" }),
+		);
+	}
+	if (system7) {
+		mkdirSync(join(dir, "packages/appearance/system7"), { recursive: true });
+		writeFileSync(
+			join(dir, SYSTEM7_PKG),
+			JSON.stringify({ name: "@fake/system7", version: "3.0.0" }),
 		);
 	}
 	return dir;
@@ -515,10 +579,11 @@ describe("push.yml trusted-publishing check, run against a fake npm", () => {
 	 */
 	const run = (opts: {
 		platinum: boolean;
+		system7?: boolean;
 		trusted: string[];
 		npmVersion?: string;
 	}): { status: number | null; calls: string[]; out: string } => {
-		const dir = makeWorkspace(root, opts.platinum);
+		const dir = makeWorkspace(root, opts.platinum, opts.system7);
 		const bin = join(dir, "bin");
 		mkdirSync(bin);
 		writeFileSync(join(dir, "trusted"), `${opts.trusted.join("\n")}\n`);
@@ -564,6 +629,20 @@ exit 0
 			/^\/packages\/appearance\/platinum publish --dry-run /,
 		);
 		for (const c of r.calls) expect(c).toContain("--ignore-scripts");
+	});
+
+	it("dry-runs System 7 in its own folder too, and fails naming it when it has no trusted publisher", () => {
+		const all = [...both, "@fake/system7"];
+		const ok = run({ platinum: true, system7: true, trusted: all });
+		expect(ok.status, ok.out).toBe(0);
+		expect(ok.calls).toHaveLength(3);
+		expect(ok.calls[2]).toMatch(
+			/^\/packages\/appearance\/system7 publish --dry-run /,
+		);
+		const bad = run({ platinum: true, system7: true, trusted: both });
+		expect(bad.status).toBe(1);
+		expect(bad.out).toMatch(/::error::[^\n]*@fake\/system7\b/);
+		expect(bad.out).not.toMatch(/::error::[^\n]*@fake\/platinum\b/);
 	});
 
 	it("fails, naming the package, when one package has no trusted publisher", () => {
