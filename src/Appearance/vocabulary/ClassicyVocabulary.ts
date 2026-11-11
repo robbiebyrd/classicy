@@ -16,6 +16,7 @@ export const CLASSICY_STATE = {
 	checked: "checked",
 	mixed: "mixed",
 	expanded: "expanded",
+	fits: "fits",
 } as const;
 
 export type ClassicyState = keyof typeof CLASSICY_STATE;
@@ -86,6 +87,8 @@ export const CLASSICY_COMPONENT = {
 	RadioInput: "classicyRadioInput",
 	RichTextEditor: "classicyRichTextEditor",
 	ScreenSaver: "classicyScreenSaver",
+	ScrollArea: "classicyScrollArea",
+	ScrollBar: "classicyScrollBar",
 	Separator: "classicySeparator",
 	Slider: "classicySlider",
 	SoundManager: "classicySoundManager",

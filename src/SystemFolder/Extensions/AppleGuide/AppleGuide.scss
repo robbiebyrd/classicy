@@ -35,7 +35,6 @@
   font-family: var(--body-font), serif;
   font-size: var(--apple-guide-body-font-size);
   line-height: 1.45;
-  padding: var(--apple-guide-body-padding-y) var(--apple-guide-body-padding-x);
 
   p {
     margin: 0 0 var(--apple-guide-paragraph-gap);
@@ -63,6 +62,11 @@
   // separation the reference shows above it already comes from the preceding
   // block's 12px bottom margin. The class stays as a hook for consumers
   // styling or locating the marker.
+}
+
+// The body scrolls in a ClassicyScrollArea: the padding is its viewport's.
+.appleGuideWindow .classicyAssistantBodyViewport {
+  padding: var(--apple-guide-body-padding-y) var(--apple-guide-body-padding-x);
 }
 
 .appleGuideWindow .classicyAssistantFooter {

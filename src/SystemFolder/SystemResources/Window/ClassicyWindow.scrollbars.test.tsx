@@ -1,8 +1,8 @@
 // A scrollable window draws its scroll bars only while its content overflows.
-// The contents box is `overflow: scroll` (both bars) while it overflows on
-// either axis and `overflow: auto` (no bars) otherwise, switched by the
-// classicyWindowScrollBarsHidden class that ClassicyWindow sets from a
-// measurement of the box. jsdom lays nothing out, so the extents are stubbed
+// The contents are a ClassicyScrollArea: both of Classicy's bars are drawn
+// while the content overflows on either axis and none otherwise (the window
+// then has the classicyWindowScrollBarsHidden class), from a measurement of
+// the scrolling viewport. jsdom lays nothing out, so the extents are stubbed
 // on the element.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@/__tests__/test-utils";
@@ -105,7 +105,7 @@ for (const key of [
 	Object.defineProperty(HTMLElement.prototype, key, {
 		configurable: true,
 		get() {
-			if (!(this as Element).classList.contains("classicyWindowContents")) {
+			if (!(this as Element).classList.contains("classicyScrollAreaViewport")) {
 				return 0;
 			}
 			return (extents.get(this as Element) ?? defaultExtent)[key];
@@ -129,13 +129,20 @@ const renderWindow = (
 	);
 	const root = container.querySelector(".classicyWindow") as HTMLElement;
 	const contents = container.querySelector(
-		".classicyWindowContents",
+		".classicyWindowContents .classicyScrollAreaViewport",
 	) as HTMLElement;
 	return { container, root, contents };
 };
 
-const barsHidden = (root: HTMLElement) =>
-	root.classList.contains("classicyWindowScrollBarsHidden");
+// Hidden: the window says so, and no bar is drawn. Shown: both bars.
+const barsHidden = (root: HTMLElement) => {
+	const bars = root.querySelectorAll(
+		'.classicyWindowContents [data-classicy-part="scrollbar"]',
+	);
+	const hidden = root.classList.contains("classicyWindowScrollBarsHidden");
+	expect(bars.length).toBe(hidden ? 0 : 2);
+	return hidden;
+};
 
 describe("ClassicyWindow scroll bars appear only on overflow", () => {
 	it("hides the bars while the content fits", () => {
@@ -184,9 +191,44 @@ describe("ClassicyWindow scroll bars appear only on overflow", () => {
 		expect(barsHidden(root)).toBe(false);
 	});
 
-	it("never marks a scrollable={false} window", () => {
-		const { root } = renderWindow(FITS, { scrollable: false });
-		expect(barsHidden(root)).toBe(false);
+	it("never marks a scrollable={false} window, and draws no bars", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL, { scrollable: false });
+		expect(root.classList.contains("classicyWindowScrollBarsHidden")).toBe(
+			false,
+		);
 		expect(root.classList.contains("classicyWindowNoScroll")).toBe(true);
+		expect(root.querySelector('[data-classicy-part="scrollbar"]')).toBeNull();
+		expect(
+			root
+				.querySelector(".classicyScrollAreaViewport")
+				?.classList.contains("classicyScrollAreaViewportClipped"),
+		).toBe(true);
+	});
+
+	it("draws the axis that fits as an empty track", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		const horizontal = root.querySelector(".classicyScrollBarHorizontal");
+		const vertical = root.querySelector(".classicyScrollBarVertical");
+		expect(horizontal?.classList.contains("fits")).toBe(true);
+		expect(vertical?.classList.contains("fits")).toBe(false);
+	});
+
+	it("draws its bars inactive while the window is inactive", () => {
+		// The mocked store's window is not focused.
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("inactive")).toBe(true);
+		}
+	});
+
+	it("draws a utility window's bars active: a windoid is always active", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL, { windowType: "utility" });
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("inactive")).toBe(false);
+		}
 	});
 });

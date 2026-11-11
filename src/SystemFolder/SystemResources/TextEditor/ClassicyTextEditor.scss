@@ -17,14 +17,31 @@
   font-size: var(--ui-font-size-xlarge);
 }
 
-.classicyTextEditor {
+// The text area is the viewport of a ClassicyScrollArea (Classicy's own
+// scroll bars); the area takes the field's place and size in the holder,
+// with the text's white behind its bars.
+.classicyTextEditorArea {
   box-sizing: border-box;
   width: 100%;
   height: calc(100% - var(--text-editor-height-inset));
+  background-color: var(--color-white);
+}
+
+.classicyTextEditorAreaAutoHeight {
+  height: auto;
+  // The field's floor, frame included (box-sizing), as the text area's was
+  // when it drew the frame itself.
+  min-height: var(--text-editor-auto-min-height);
+}
+
+.classicyTextEditor {
+  box-sizing: border-box;
   resize: none;
+  // A text area paints its own field (white, or the browser's disabled
+  // gray): it keeps it rather than the scroll area's inherited color.
+  background-color: revert;
   padding: var(--window-padding-size);
   border: none;
-  overflow-y: auto;
   // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): a focused edit-text field
   // shows a focus ring. The border lives on .classicyTextEditorBorder, so draw
   // an inset ring on the textarea (not clipped by its own overflow) instead of
@@ -40,13 +57,16 @@
 .classicyTextEditorAutoHeight {
   height: auto;
   field-sizing: content;
-  min-height: var(--text-editor-auto-min-height);
 }
 
+// HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): 2px recessed frame, as on
+// the image well — 1px black border (the area's) + 2px inset bevel (the
+// text area's, beneath the text, as when it drew its own scroll bars).
 .classicyTextEditorBorder {
-  // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): 2px recessed frame, as on
-  // the image well — 1px black border + 2px inset bevel.
   border: var(--window-border-size) solid var(--color-black);
+}
+
+.classicyTextEditorBevel {
   box-shadow:
     inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
     inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);

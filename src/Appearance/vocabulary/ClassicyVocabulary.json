@@ -73,6 +73,7 @@
 			"ColorsGrid",
 			"ColorsGroup",
 			"ColorsScroll",
+			"ColorsScrollViewport",
 			"Content",
 			"DesktopControls",
 			"DesktopOptionsColumn",
@@ -94,6 +95,7 @@
 			"AccessoryIconMd",
 			"AccessoryIconSm",
 			"Body",
+			"BodyViewport",
 			"Footer",
 			"FooterButtons",
 			"Header",
@@ -162,6 +164,7 @@
 			"DialogFooter",
 			"ModeList",
 			"ModeListItem",
+			"ModeListViewport",
 			"Preview",
 			"Slider",
 			"SliderBlack",
@@ -278,7 +281,7 @@
 			"Native",
 			"RemoveGlyph"
 		],
-		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
+		"FileOpenDialog": ["Actions", "Body", "Footer", "Well", "WellViewport"],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -300,6 +303,7 @@
 			"InspectorField",
 			"InspectorRow",
 			"LockedField",
+			"LockedFieldText",
 			"MissingPart",
 			"Palette",
 			"PaletteEntry",
@@ -331,7 +335,7 @@
 			"Prompt"
 		],
 		"Link": [],
-		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
+		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
 		"Menu": [],
 		"MenuItem": [
@@ -405,6 +409,16 @@
 			"Overlay",
 			"OverlayTransparent"
 		],
+		"ScrollArea": ["Body", "Corner", "Foot", "Viewport", "ViewportClipped"],
+		"ScrollBar": [
+			"Arrow",
+			"ArrowEnd",
+			"ArrowStart",
+			"Horizontal",
+			"Thumb",
+			"Track",
+			"Vertical"
+		],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
 			"Ghost",
@@ -449,7 +463,10 @@
 		],
 		"Tabs": [],
 		"TextEditor": [
+			"Area",
+			"AreaAutoHeight",
 			"AutoHeight",
+			"Bevel",
 			"Border",
 			"Holder",
 			"SizeLarge",
@@ -539,7 +556,8 @@
 		"default",
 		"checked",
 		"mixed",
-		"expanded"
+		"expanded",
+		"fits"
 	],
 	"attributes": {
 		"data-classicy-control": ["close", "zoom", "collapse"],
@@ -555,7 +573,13 @@
 			"modifier-control",
 			"modifier-option",
 			"modifier-shift",
-			"modifier-command"
+			"modifier-command",
+			"scrollbar",
+			"scroll-arrow-start",
+			"scroll-track",
+			"scroll-arrow-end",
+			"scroll-thumb",
+			"scroll-corner"
 		]
 	}
 }

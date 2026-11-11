@@ -3,7 +3,6 @@
   --classicy-listbox-row-height: calc(var(--control-row-height) + var(--window-border-size));
 
   box-sizing: border-box;
-  overflow-y: auto;
   max-height: calc(var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height));
   background: var(--color-white);
   // HIGOS8 Ch.2 "List Boxes and Frames" (p.39): a 2px frame whose inside lines
@@ -11,6 +10,12 @@
   // border + 2px inset bevel (was a 1px
   // platinum-window-inner-border, packages/appearance/platinum/src/styles/_mixins.scss).
   border: var(--window-border-size) solid var(--color-black);
+}
+
+// The bevel is the scrolling viewport's (a ClassicyScrollArea's), beneath
+// the rows, as it was the scrolling box's when the browser drew the bars:
+// the viewport paints the list's white over the root.
+.classicyListBoxViewport {
   box-shadow:
     inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
     inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);

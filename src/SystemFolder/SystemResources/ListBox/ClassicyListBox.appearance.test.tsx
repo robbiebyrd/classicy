@@ -127,6 +127,9 @@ describe("ClassicyListBox appearance", () => {
 		const el = root(container);
 		expect(el.hasAttribute("data-probe-state")).toBe(false);
 		expect(el.hasAttribute("style")).toBe(false);
-		expect(el.getAttribute("class")).toBe("classicyListBox disabled");
+		// The root is a ClassicyScrollArea (Classicy's own scroll bars).
+		expect(el.getAttribute("class")).toBe(
+			"classicyScrollArea classicyListBox disabled",
+		);
 	});
 });

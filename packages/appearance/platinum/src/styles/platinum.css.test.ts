@@ -1008,8 +1008,20 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-scrollbar-button-box",
 			"mixin platinum-scrollbar-button-pressed",
 			"mixin platinum-scrollbars",
+			"mixin platinum-scroll-track-box",
+			"mixin platinum-scroll-track-bevel-vertical",
+			"mixin platinum-scroll-track-bevel-horizontal",
+			"mixin platinum-scroll-corner",
 			"mixin platinum-scrollbars-split-arrows",
 			"mixin platinum-scrollbars-themed",
+			"mixin platinum-scroll-thumb-box",
+			"mixin platinum-scroll-thumb-grip-vertical",
+			"mixin platinum-scroll-thumb-grip-horizontal",
+			// Classicy's own scroll bars (ClassicyScrollArea), the same look.
+			"mixin platinum-scroll-bar-parts",
+			"mixin platinum-scroll-bar-parts-split-arrows",
+			"mixin platinum-scroll-thumb-vertical",
+			"mixin platinum-scroll-thumb-horizontal",
 		]);
 		expect(declared("_assets.scss")).toEqual([
 			"mixin platinum-root-properties",

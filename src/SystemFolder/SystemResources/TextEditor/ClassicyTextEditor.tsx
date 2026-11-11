@@ -15,6 +15,7 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 export interface EditorProps {
 	/** Id of the `<textarea>`; also links the label to it. */
@@ -138,17 +139,31 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 					disabled={labelDisabled ?? disabled}
 				/>
 			)}
-			<textarea
-				id={id}
-				disabled={disabled}
+			{/* The text scrolls in the textarea itself, the viewport of a
+			    ClassicyScrollArea that draws Classicy's own scroll bars. */}
+			<ClassicyScrollArea
 				className={classNames(
-					"classicyTextEditor",
-					fontSizeClass[fontSize],
-					autoHeight && "classicyTextEditorAutoHeight",
+					"classicyTextEditorArea",
+					autoHeight && "classicyTextEditorAreaAutoHeight",
 					border && "classicyTextEditorBorder",
 				)}
-				value={value}
-				onChange={handleChange}
+				renderViewport={(viewport) => (
+					<textarea
+						ref={viewport.ref}
+						onScroll={viewport.onScroll}
+						id={id}
+						disabled={disabled}
+						className={classNames(
+							viewport.className,
+							"classicyTextEditor",
+							fontSizeClass[fontSize],
+							autoHeight && "classicyTextEditorAutoHeight",
+							border && "classicyTextEditorBevel",
+						)}
+						value={value}
+						onChange={handleChange}
+					/>
+				)}
 			/>
 		</div>
 	);

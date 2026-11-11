@@ -75,6 +75,7 @@ import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
@@ -801,6 +802,15 @@ const cases: Row[] = [
 			/>
 		),
 		sel(".classicyPopUpSlider"),
+	],
+	[
+		"ClassicyScrollArea",
+		() => (
+			<ClassicyScrollArea className={HOST} style={STYLE}>
+				<p>a</p>
+			</ClassicyScrollArea>
+		),
+		sel(".classicyScrollArea"),
 	],
 	[
 		"ClassicySeparator",

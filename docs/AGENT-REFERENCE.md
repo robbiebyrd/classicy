@@ -687,6 +687,7 @@ instead:
 | `<img>` (droppable image slot) | `ClassicyImageWell` | plain static images: keep raw `<img>` |
 | `<img>` + caption (icon with label) | `ClassicyIcon` / `ClassicyDesktopIcon` | |
 | `<nav>` (top-level chrome) | `ClassicyDesktopMenuBar` | mounted automatically by `ClassicyDesktop` |
+| a `<div>` with `overflow: auto` (a scrolling region) | `ClassicyScrollArea` | the content scrolls natively; Classicy draws the bars (the package's look, in every browser). A raw scroller still gets the package's native-bar styling where the browser allows it (Platinum: WebKit and Chromium only) |
 
 **Classicy-only components with no HTML counterpart** (the desktop metaphor —
 there is no raw element to replace): `ClassicyDesktop`, `ClassicyApp`,
@@ -711,12 +712,13 @@ Classicy from outside (host CSS, appearance packages, end-to-end tests). They
 are generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` into
 `ClassicyVocabulary.ts` and `_vocabulary.scss`; never hand-edit those two.
 
-**State classes.** State is one of 15 bare classes set *beside* the
+**State classes.** State is one of 16 bare classes set *beside* the
 component's root class, never folded into a longer class name and never in a
 `data-state` attribute (Classicy emits no `data-state` anywhere):
 
 `active` `inactive` `disabled` `selected` `pressed` `focused` `hover`
 `collapsed` `open` `dragging` `error` `default` `checked` `mixed` `expanded`
+`fits`
 
 ```css
 .classicyButton.pressed { … }           /* not .classicyButtonPressed */
@@ -741,12 +743,15 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
+| `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb |
 
 Not every declared state has a component row above:
 
-- `active` and `inactive` are set only by `ClassicyWindow`, from the window
+- `active` and `inactive` are set by `ClassicyWindow`, from the window
   manager's focus rather than a prop: the focused window (and every modal) is
-  `active`, every other open window `inactive`. No other component sets them.
+  `active`, every other open window `inactive`. `ClassicyScrollArea` sets
+  `inactive` on its root and bars from the window it is drawn in (through
+  `ClassicyWindowActiveContext`), unless its `inactive` prop says otherwise.
 - `hover`, `focused` and `expanded` are declared for appearance packages and
   hosts, but no Classicy component sets them and no Classicy rule reads them
   yet. Classicy styles hover and focus with the `:hover` and `:focus-visible`
@@ -801,7 +806,7 @@ on Classicy's internal class names carry one of three attributes
 |---|---|---|
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); and each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, and the corner where two bars meet |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -810,7 +815,10 @@ document.querySelector('[data-classicy-part="clock"]')
 ```
 
 These parts are flex items in explicit `order`, so an Appearance Package
-rearranges them with CSS `order` alone; see "Layout declarations" in §8.
+rearranges them with CSS `order` alone; see "Layout declarations" in §8. A
+scroll bar's arrows and track are ordered 10, 20 and 30 (an arrow at either
+end); Platinum orders the start arrow 25 to group both at the end (Mac OS 8's
+Smart Scrolling), and back to 10 under `.classicyDesktopSplitArrows`.
 
 **`className` and `style` passthrough.** Every exported component that
 renders an element of its own takes `className` and `style` and applies them
@@ -972,8 +980,10 @@ draws both alike.
 
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
-bars, as Mac OS 8 does — the non-scrolling axis shows an empty track so the
-grow box keeps its corner. Content that fills the window and scrolls itself (a
+bars, as Mac OS 8 does — the non-scrolling axis shows an empty track (`fits`)
+so the grow box keeps its corner. Its contents are a `ClassicyScrollArea`
+(§4.4): the bars are Classicy's own, drawn by the Appearance Package, and
+`inactive` while the window is. Content that fills the window and scrolls itself (a
 full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
 `scrollable={false}`, or its inner scrolling counts as overflow and the window
 shows a second set of bars beside the inner ones.
@@ -1070,9 +1080,10 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
+| `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?`, `viewportClassName?`, `viewportProps?`, `onScroll?`, `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion; a lost pointer stream ends any of them. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal). Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
 (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |

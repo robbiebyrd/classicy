@@ -20,6 +20,7 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 /** One row of a `ClassicyListBox`. */
 export type ClassicyListBoxOption = {
@@ -213,10 +214,14 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		}
 	};
 
+	// The list scrolls in a ClassicyScrollArea (Classicy's own scroll bars);
+	// the root keeps the listbox role and the keyboard, the rows scroll in
+	// its viewport.
 	const listbox = (
-		<div
+		<ClassicyScrollArea
 			{...appearance.attrs}
 			ref={rootRef}
+			viewportClassName="classicyListBoxViewport"
 			id={id}
 			role="listbox"
 			aria-multiselectable={selectionMode === "multi" || undefined}
@@ -282,7 +287,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 					</div>
 				);
 			})}
-		</div>
+		</ClassicyScrollArea>
 	);
 
 	if (!label) return listbox;

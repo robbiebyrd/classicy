@@ -36,6 +36,7 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/ControlStrip";
 @use "pkg:@classicy/appearance-platinum/scss/components/Desktop";
 @use "pkg:@classicy/appearance-platinum/scss/components/Tabs";
+@use "pkg:@classicy/appearance-platinum/scss/components/ScrollArea";
 @use "pkg:@classicy/appearance-platinum/scss/components/DesktopIcon";
 @use "pkg:@classicy/appearance-platinum/scss/components/HyperCard";
 @use "pkg:@classicy/appearance-platinum/scss/components/FileInput";
@@ -65,6 +66,7 @@
   @include ControlStrip.controlStrip;
   @include Desktop.desktop;
   @include Tabs.tabs;
+  @include ScrollArea.scrollArea;
   @include DesktopIcon.desktopIcon;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;

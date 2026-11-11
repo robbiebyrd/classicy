@@ -155,30 +155,48 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   }
 
   &::-webkit-scrollbar-track {
-    background-color: var(--color-system-04);
-    border: var(--window-border-size) solid var(--color-black);
+    @include platinum-scroll-track-box;
   }
 
   &::-webkit-scrollbar-track:vertical {
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
-    inset calc(var(--window-border-size) * -1) var(--control-frame-width) 0 var(--color-system-03),
-    inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
-    inset calc(var(--control-frame-width) * -1) 0 0 c.classicy-alpha("--color-white", 25%);
+    @include platinum-scroll-track-bevel-vertical;
   }
 
   &::-webkit-scrollbar-track:horizontal {
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
-    inset var(--control-frame-width) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
-    inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
-    inset calc(var(--control-frame-width) * -1) 0 0 c.classicy-alpha("--color-white", 25%);
+    @include platinum-scroll-track-bevel-horizontal;
   }
 
   &::-webkit-scrollbar-corner {
-    border-top: var(--window-border-size) solid var(--color-black);
-    border-left: var(--window-border-size) solid var(--color-black);
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
-    background: var(--color-system-03);
+    @include platinum-scroll-corner;
   }
+}
+
+// The track's frame and its inset bevel along either axis, and the corner
+// where two bars meet: the native bar's and ClassicyScrollArea's.
+@mixin platinum-scroll-track-box {
+  background-color: var(--color-system-04);
+  border: var(--window-border-size) solid var(--color-black);
+}
+
+@mixin platinum-scroll-track-bevel-vertical {
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+  inset calc(var(--window-border-size) * -1) var(--control-frame-width) 0 var(--color-system-03),
+  inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
+  inset calc(var(--control-frame-width) * -1) 0 0 c.classicy-alpha("--color-white", 25%);
+}
+
+@mixin platinum-scroll-track-bevel-horizontal {
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+  inset var(--control-frame-width) calc(var(--window-border-size) * -1) 0 var(--color-system-03),
+  inset var(--control-frame-width) 0 0 c.classicy-alpha("--color-black", 25%),
+  inset calc(var(--control-frame-width) * -1) 0 0 c.classicy-alpha("--color-white", 25%);
+}
+
+@mixin platinum-scroll-corner {
+  border-top: var(--window-border-size) solid var(--color-black);
+  border-left: var(--window-border-size) solid var(--color-black);
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-white);
+  background: var(--color-system-03);
 }
 
 // ---------------------------------------------------------------------------
@@ -233,82 +251,230 @@ $sb-arrow-2x: calc(var(--window-scrollbar-arrow-size) * 2);
   &::-webkit-scrollbar-thumb {
     min-width: var(--window-control-size);
     min-height: var(--window-control-size);
-    border: var(--window-border-size) solid var(--color-theme-07);
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02),
-    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04);
+    @include platinum-scroll-thumb-box;
   }
 
   &::-webkit-scrollbar-thumb:vertical {
-    background: linear-gradient(
-                    transparent 12.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 25%,
-                    transparent 0,
-                    transparent 37.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 50%,
-                    transparent 0,
-                    transparent 62.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 75%,
-                    transparent 0,
-                    transparent 87.5%,
-                    var(--color-theme-05) 0
-    ) 50%/var(--scrollbar-thumb-grip-width) var(--scrollbar-thumb-grip-height) no-repeat,
-    linear-gradient(
-                    var(--color-theme-01) 12.5%,
-                    transparent 0,
-                    transparent 25%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 37.5%,
-                    transparent 0,
-                    transparent 50%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 62.5%,
-                    transparent 0,
-                    transparent 75%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 87.5%,
-                    transparent 0
-    ) 49%/var(--scrollbar-thumb-grip-width) var(--scrollbar-thumb-grip-height) no-repeat,
-    var(--color-theme-03);
+    @include platinum-scroll-thumb-grip-vertical;
   }
 
   &::-webkit-scrollbar-thumb:horizontal {
-    background: linear-gradient(
-                    90deg,
-                    transparent 12.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 25%,
-                    transparent 0,
-                    transparent 37.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 50%,
-                    transparent 0,
-                    transparent 62.5%,
-                    var(--color-theme-05) 0,
-                    var(--color-theme-05) 75%,
-                    transparent 0,
-                    transparent 87.5%,
-                    var(--color-theme-05) 0
-    ) 50%/var(--scrollbar-thumb-grip-height) var(--scrollbar-thumb-grip-width) no-repeat,
-    linear-gradient(
-                    90deg,
-                    var(--color-theme-01) 12.5%,
-                    transparent 0,
-                    transparent 25%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 37.5%,
-                    transparent 0,
-                    transparent 50%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 62.5%,
-                    transparent 0,
-                    transparent 75%,
-                    var(--color-theme-01) 0,
-                    var(--color-theme-01) 87.5%,
-                    transparent 0
-    ) center 49%/var(--scrollbar-thumb-grip-height) var(--scrollbar-thumb-grip-width) no-repeat,
-    var(--color-theme-03);
+    @include platinum-scroll-thumb-grip-horizontal;
   }
+}
+
+// The thumb's bevel, and its grip over the theme-ramp face along either
+// axis: the native thumb's and ClassicyScrollArea's.
+@mixin platinum-scroll-thumb-box {
+  border: var(--window-border-size) solid var(--color-theme-07);
+  box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-02),
+  inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-theme-04);
+}
+
+@mixin platinum-scroll-thumb-grip-vertical {
+  background: linear-gradient(
+                  transparent 12.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 25%,
+                  transparent 0,
+                  transparent 37.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 50%,
+                  transparent 0,
+                  transparent 62.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 75%,
+                  transparent 0,
+                  transparent 87.5%,
+                  var(--color-theme-05) 0
+  ) 50%/var(--scrollbar-thumb-grip-width) var(--scrollbar-thumb-grip-height) no-repeat,
+  linear-gradient(
+                  var(--color-theme-01) 12.5%,
+                  transparent 0,
+                  transparent 25%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 37.5%,
+                  transparent 0,
+                  transparent 50%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 62.5%,
+                  transparent 0,
+                  transparent 75%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 87.5%,
+                  transparent 0
+  ) 49%/var(--scrollbar-thumb-grip-width) var(--scrollbar-thumb-grip-height) no-repeat,
+  var(--color-theme-03);
+}
+
+@mixin platinum-scroll-thumb-grip-horizontal {
+  background: linear-gradient(
+                  90deg,
+                  transparent 12.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 25%,
+                  transparent 0,
+                  transparent 37.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 50%,
+                  transparent 0,
+                  transparent 62.5%,
+                  var(--color-theme-05) 0,
+                  var(--color-theme-05) 75%,
+                  transparent 0,
+                  transparent 87.5%,
+                  var(--color-theme-05) 0
+  ) 50%/var(--scrollbar-thumb-grip-height) var(--scrollbar-thumb-grip-width) no-repeat,
+  linear-gradient(
+                  90deg,
+                  var(--color-theme-01) 12.5%,
+                  transparent 0,
+                  transparent 25%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 37.5%,
+                  transparent 0,
+                  transparent 50%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 62.5%,
+                  transparent 0,
+                  transparent 75%,
+                  var(--color-theme-01) 0,
+                  var(--color-theme-01) 87.5%,
+                  transparent 0
+  ) center 49%/var(--scrollbar-thumb-grip-height) var(--scrollbar-thumb-grip-width) no-repeat,
+  var(--color-theme-03);
+}
+
+// ---------------------------------------------------------------------------
+// Classicy's own scroll bars (ClassicyScrollArea): the same look on its parts
+// as the native pseudo-elements above draw, pixel for pixel. The base sheet
+// places the parts (arrows at either end of the track, the thumb over the
+// track) and sizes them to --window-scrollbar-size; the package draws them.
+//
+// Mac OS 8 "Smart Scrolling" (ON, the default): both arrows at the END of the
+// bar, the up/left arrow first — the start arrow is ordered between the track
+// and the end arrow. platinum-scroll-bar-parts-split-arrows() restores the
+// classic split arrangement under .classicyDesktopSplitArrows.
+// ---------------------------------------------------------------------------
+@mixin platinum-scroll-bar-parts() {
+  [data-classicy-part="scroll-arrow-start"] {
+    order: 25;
+  }
+
+  .classicyScrollBarVertical {
+    // Both arrows at the bottom: the up arrow above the down arrow, its
+    // bottom border dividing the two.
+    .classicyScrollBarArrow {
+      background-color: var(--color-system-02);
+      border-left: var(--window-border-size) solid var(--color-black);
+      border-right: var(--window-border-size) solid var(--color-black);
+      border-top: var(--window-border-size) solid var(--color-black);
+    }
+
+    .classicyScrollBarArrowStart {
+      @include platinum-scrollbar-glyph-up(var(--color-system-02));
+      border-bottom: var(--window-border-size) solid var(--color-black);
+    }
+
+    .classicyScrollBarArrowStart.pressed {
+      @include platinum-scrollbar-glyph-up(var(--color-system-06));
+      @include platinum-scrollbar-button-pressed;
+    }
+
+    .classicyScrollBarArrowEnd {
+      @include platinum-scrollbar-glyph-down(var(--color-system-02));
+    }
+
+    .classicyScrollBarArrowEnd.pressed {
+      @include platinum-scrollbar-glyph-down(var(--color-system-06));
+      @include platinum-scrollbar-button-pressed;
+    }
+
+    .classicyScrollBarTrack {
+      @include platinum-scroll-track-bevel-vertical;
+    }
+
+    .classicyScrollBarThumb {
+      @include platinum-scroll-thumb-vertical;
+    }
+  }
+
+  .classicyScrollBarHorizontal {
+    // Both arrows at the right: the left arrow before the right arrow, its
+    // right border dividing the two.
+    .classicyScrollBarArrow {
+      background-color: var(--color-system-02);
+      border-top: var(--window-border-size) solid var(--color-black);
+      border-bottom: var(--window-border-size) solid var(--color-black);
+      border-left: var(--window-border-size) solid var(--color-black);
+    }
+
+    .classicyScrollBarArrowStart {
+      @include platinum-scrollbar-glyph-left(var(--color-system-02));
+      border-right: var(--window-border-size) solid var(--color-black);
+    }
+
+    .classicyScrollBarArrowStart.pressed {
+      @include platinum-scrollbar-glyph-left(var(--color-system-06));
+      @include platinum-scrollbar-button-pressed;
+    }
+
+    .classicyScrollBarArrowEnd {
+      @include platinum-scrollbar-glyph-right(var(--color-system-02));
+    }
+
+    .classicyScrollBarArrowEnd.pressed {
+      @include platinum-scrollbar-glyph-right(var(--color-system-06));
+      @include platinum-scrollbar-button-pressed;
+    }
+
+    .classicyScrollBarTrack {
+      @include platinum-scroll-track-bevel-horizontal;
+    }
+
+    .classicyScrollBarThumb {
+      @include platinum-scroll-thumb-horizontal;
+    }
+  }
+
+  .classicyScrollBarTrack {
+    @include platinum-scroll-track-box;
+  }
+
+  .classicyScrollAreaCorner {
+    @include platinum-scroll-corner;
+  }
+}
+
+// Smart Scrolling OFF: the up/left arrow back at the START, its divider now
+// on the track side. Two classes deeper than the grouped rules, so it wins.
+@mixin platinum-scroll-bar-parts-split-arrows() {
+  [data-classicy-part="scroll-arrow-start"] {
+    order: 10;
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarArrowStart {
+    border-top: none;
+    border-bottom: var(--window-border-size) solid var(--color-black);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarArrowStart {
+    border-left: none;
+    border-right: var(--window-border-size) solid var(--color-black);
+  }
+}
+
+// The thumb: the theme-ramp bevel and its grip, as the native thumb's above.
+// Its minimum length (the control size) is along the bar only: a thumb is as
+// thick as its bar, as a browser lays out its scroll-bar parts.
+@mixin platinum-scroll-thumb-vertical {
+  @include platinum-scroll-thumb-box;
+  min-height: var(--window-control-size);
+  @include platinum-scroll-thumb-grip-vertical;
+}
+
+@mixin platinum-scroll-thumb-horizontal {
+  @include platinum-scroll-thumb-box;
+  min-width: var(--window-control-size);
+  @include platinum-scroll-thumb-grip-horizontal;
 }

@@ -10,9 +10,13 @@
 .classicyFileOpenDialogWell {
 	flex: 1;
 	min-height: var(--dialog-file-dialog-min-height);
-	overflow-y: auto;
 	background: var(--color-white);
 	border: var(--window-border-size) solid var(--color-window-border);
+}
+
+// The well scrolls in a ClassicyScrollArea; its bevel is the viewport's,
+// beneath the list, as it was the scrolling box's.
+.classicyFileOpenDialogWellViewport {
 	box-shadow:
 		inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
 		inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-01);

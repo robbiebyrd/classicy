@@ -13,6 +13,7 @@ import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage"
 import type { ClassicyCursorRole } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyCursor } from "@/SystemFolder/SystemResources/Cursor/useClassicyCursor";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 /**
  * Axis along which the panes are arranged. `"horizontal"` (default) lays the
@@ -346,7 +347,8 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 							onKeyUp={onResizeCommit ? handleDividerKeyUp : undefined}
 						/>
 					)}
-					<div
+					{/* Each pane scrolls on its own, with Classicy's scroll bars. */}
+					<ClassicyScrollArea
 						className="classicySplitViewPane"
 						style={
 							{
@@ -358,7 +360,7 @@ export const ClassicySplitView: FunctionalComponent<ClassicySplitViewProps> = ({
 						}
 					>
 						{child}
-					</div>
+					</ClassicyScrollArea>
 				</Fragment>
 			))}
 		</div>

@@ -56,6 +56,8 @@ import {
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowRect,
@@ -292,7 +294,8 @@ interface ClassicyWindowProps {
 	 */
 	resizable?: boolean;
 	/**
-	 * Scroll the contents with Platinum scroll bars. The bars appear only
+	 * Scroll the contents with Classicy's own scroll bars (a
+	 * `ClassicyScrollArea`, drawn by the Appearance Package). The bars appear only
 	 * while the content overflows the window (or a `placard` needs the
 	 * bottom gutter), and then both are drawn, as in Mac OS 8 — the other
 	 * axis shows an empty track so the grow box keeps its corner. Content
@@ -888,12 +891,13 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return () => observer.disconnect();
 	}, [ws.closed]);
 
-	// Scroll bars only while there is something to scroll. The contents box
-	// is `overflow: scroll` (both bars, Mac OS 8 style) only while its content
-	// overflows on either axis; otherwise it drops to `auto`, which draws
-	// nothing. Measured here rather than left to `overflow: auto` alone
-	// because `auto` is per-axis: a lone vertical bar would run the full
-	// height and its end arrows would sit under the grow box. Re-measured
+	// Scroll bars only while there is something to scroll. The contents'
+	// ClassicyScrollArea draws both bars (Mac OS 8 style) only while its
+	// content overflows on either axis, and none otherwise; it always
+	// scrolls. Measured here rather than left to the area's per-axis `auto`
+	// because a lone vertical bar would run the full height and its end
+	// arrows would sit under the grow box. Measured on the area's viewport,
+	// the scroller (contentsRef). Re-measured
 	// when the box resizes (ResizeObserver: window resize, bars appearing),
 	// when its subtree changes (MutationObserver), and when something inside
 	// finishes loading (an <img> growing after mount). Layout effect so the
@@ -1877,6 +1881,40 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		!modal &&
 		!ws.collapsed;
 
+	// An array literal, so the class co-occurrence guard reads its classes.
+	const contentsClasses = [
+		!modal && !isActive()
+			? dimContents
+				? "classicyWindowContentsDimmed"
+				: "classicyWindowContentsNotDimmed"
+			: "",
+		scrollable === true ? "" : "classicyWindowNoScroll",
+		modal === true ? "classicyWindowContentsModal" : "classicyWindowContents",
+		header ? "classicyWindowContentsWithHeader" : "",
+		classicyStateClasses({ collapsed: ws.collapsed }),
+	];
+	const contentsStyle = backgroundColor
+		? ({
+				"--classicy-window-contents-bg": backgroundColor,
+			} as CSSProperties)
+		: undefined;
+	const contentsInner = (
+		<div
+			className={classNames(
+				"classicyWindowContentsInner",
+				modal === true ? "classicyWindowContentsModalInner" : "",
+				growable ? "classicyWindowContentsInnerGrow" : "",
+				contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
+				contentFrame && !isActive()
+					? "classicyWindowContentsFramed classicyWindowContentsFramedDimmed"
+					: "",
+			)}
+		>
+			{" "}
+			{children}
+		</div>
+	);
+
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
@@ -1985,44 +2023,31 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					{header}
 				</div>
 			)}
-			<div
-				ref={contentsRef}
-				className={classNames(
-					!modal && !isActive()
-						? dimContents
-							? "classicyWindowContentsDimmed"
-							: "classicyWindowContentsNotDimmed"
-						: "",
-					scrollable === true ? "" : "classicyWindowNoScroll",
-					modal === true
-						? "classicyWindowContentsModal"
-						: "classicyWindowContents",
-					header ? "classicyWindowContentsWithHeader" : "",
-					classicyStateClasses({ collapsed: ws.collapsed }),
-				)}
-				style={
-					backgroundColor
-						? ({
-								"--classicy-window-contents-bg": backgroundColor,
-							} as CSSProperties)
-						: undefined
-				}
-			>
+			{/* A modal's contents never scroll (a dialog is laid out to fit);
+			    every other window scrolls in a ClassicyScrollArea, which draws
+			    Classicy's own bars: both, or none (see showScrollBars). */}
+			{modal === true ? (
 				<div
-					className={classNames(
-						"classicyWindowContentsInner",
-						modal === true ? "classicyWindowContentsModalInner" : "",
-						growable ? "classicyWindowContentsInnerGrow" : "",
-						contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
-						contentFrame && !isActive()
-							? "classicyWindowContentsFramed classicyWindowContentsFramedDimmed"
-							: "",
-					)}
+					ref={contentsRef}
+					className={classNames(contentsClasses)}
+					style={contentsStyle}
 				>
-					{" "}
-					{children}
+					{contentsInner}
 				</div>
-			</div>
+			) : (
+				<ClassicyWindowActiveContext.Provider value={isActive()}>
+					<ClassicyScrollArea
+						className={classNames(contentsClasses)}
+						style={contentsStyle}
+						viewportRef={contentsRef}
+						scrollable={scrollable}
+						vertical={showScrollBars ? "always" : "never"}
+						horizontal={showScrollBars ? "always" : "never"}
+					>
+						{contentsInner}
+					</ClassicyScrollArea>
+				</ClassicyWindowActiveContext.Provider>
+			)}
 			{/* #196: a Platinum placard status region pinned to the window's
 					    bottom-left, to the left of the horizontal scroll bar. Hidden
 					    while collapsed and kept clear of the bottom-right resizer. */}

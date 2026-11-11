@@ -14,6 +14,7 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 const MAX_FOOTER_BUTTONS = 3;
 
@@ -229,14 +230,15 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 					/>
 				)}
 			</section>
-			{/* biome-ignore lint/a11y/useSemanticElements: group of arbitrary step content, not a form fieldset */}
-			<div
+			{/* A group of arbitrary step content, not a form fieldset. */}
+			<ClassicyScrollArea
 				className={"classicyAssistantBody"}
+				viewportClassName={"classicyAssistantBodyViewport"}
 				role="group"
 				aria-label={activePage.title}
 			>
 				{activePage.content}
-			</div>
+			</ClassicyScrollArea>
 			<div className={"classicyAssistantFooter"}>
 				<div className={"classicyAssistantFooterButtons"}>
 					{resolvedButtons.map((btn, i) => (

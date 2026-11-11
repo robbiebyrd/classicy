@@ -6,15 +6,17 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 	type MouseEvent as ReactMouseEvent,
 	type RefObject,
-	useEffect,
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import {
+	CLASSICY_PRESS_REPEAT_INTERVAL_MS,
+	useClassicyPressRepeat,
+} from "./useClassicyPressRepeat.internal";
 
 // Continuous repeat while held — the HIG's little-arrows behavior. Callers that
 // want acceleration (ClassicySpinner's ×10 escalation) derive it from `heldMs`.
-const REPEAT_INTERVAL_MS = 120;
+const REPEAT_INTERVAL_MS = CLASSICY_PRESS_REPEAT_INTERVAL_MS;
 
 interface ClassicyLittleArrowsProps {
 	/**
@@ -82,28 +84,11 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	// Keep the callback in a ref so the interval always calls the latest closure.
 	const onStepRef = useRef(onStep);
 	onStepRef.current = onStep;
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-	// While an arrow is held, the pointer stream is watched: lost (the window
-	// blurs, a pointercancel, the page is hidden), the repeat stops, since
-	// the release that would stop it may never reach the button.
-	const stopWatchingPointerStreamRef = useRef<(() => void) | null>(null);
-
-	const stop = () => {
-		stopWatchingPointerStreamRef.current?.();
-		stopWatchingPointerStreamRef.current = null;
-		if (intervalRef.current !== null) {
-			clearInterval(intervalRef.current);
-			intervalRef.current = null;
-		}
-	};
-
-	// Cleanup on unmount.
-	useEffect(() => {
-		return () => {
-			stopWatchingPointerStreamRef.current?.();
-			if (intervalRef.current !== null) clearInterval(intervalRef.current);
-		};
-	}, []);
+	// While an arrow is held it steps every `repeatIntervalMs`; the pointer
+	// stream is watched, so a lost one (the window blurs, a pointercancel, the
+	// page is hidden) stops the repeat, since the release that would stop it
+	// may never reach the button.
+	const { start: startRepeat, stop } = useClassicyPressRepeat(repeatIntervalMs);
 
 	// The group's focus ring and the arrows' own black bevel are :focus-within
 	// styles (ClassicyLittleArrows.scss), so a press must not move focus out of
@@ -133,13 +118,10 @@ export const ClassicyLittleArrows: FunctionalComponent<
 	const start = (e: ReactMouseEvent<HTMLButtonElement>, direction: 1 | -1) => {
 		keepFocus(e);
 		if (disabled) return;
-		onStepRef.current(direction, 0);
-		stop();
-		const pressedAt = Date.now();
-		intervalRef.current = setInterval(() => {
-			onStepRef.current(direction, Date.now() - pressedAt);
-		}, repeatIntervalMs);
-		stopWatchingPointerStreamRef.current = onClassicyPointerStreamLost(stop);
+		startRepeat((heldMs) => {
+			onStepRef.current(direction, heldMs);
+			return undefined;
+		});
 	};
 
 	// Keyboard operability (HIGOS8 Ch.2 "Little Arrows"/"Clock Controls", p.35-36):

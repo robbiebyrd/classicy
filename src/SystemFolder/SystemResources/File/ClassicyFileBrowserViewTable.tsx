@@ -494,6 +494,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					selected={selectedPaths}
 					onSelectionChange={trackSelection}
 					containerRef={focusTargetRef}
+					// The window is the list's only scroller (#271; see the
+					// stylesheet).
+					scrollable={false}
 				/>
 			);
 		},

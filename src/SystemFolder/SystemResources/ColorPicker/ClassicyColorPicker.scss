@@ -80,11 +80,7 @@ $cp-crayon-tip: 0.31;
   width: var(--picker-mode-list-width);
   flex-shrink: 0;
   border: var(--window-border-size) solid var(--color-window-border);
-  box-shadow:
-    inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
-    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-01);
   background: var(--color-white);
-  overflow-y: auto;
 
   &:focus-visible {
     outline: var(--focus-ring-width) solid var(--color-outline);
@@ -113,7 +109,14 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerActivePanel {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+}
+
+// The list scrolls in a ClassicyScrollArea; its bevel is the viewport's,
+// beneath the options, as it was the scrolling box's.
+.classicyColorPickerModeListViewport {
+  box-shadow:
+    inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-06),
+    inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 var(--color-system-01);
 }
 
 // ── Dialog internals ─────────────────────────────────────────────────────────

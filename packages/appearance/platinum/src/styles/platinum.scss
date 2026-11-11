@@ -25,6 +25,7 @@
 @use "components/ControlStrip";
 @use "components/Desktop";
 @use "components/Tabs";
+@use "components/ScrollArea";
 @use "components/DesktopIcon";
 @use "components/HyperCard";
 @use "components/FileInput";
@@ -58,6 +59,9 @@
   // Out of bundle order (ClassicyTabs.scss bundles before ClassicyDesktop.scss):
   // the tab scroller re-asserts its hidden scroll bar after the desktop's.
   @include Tabs.tabs;
+  // Classicy's own scroll bars, after the desktop's native ones: the
+  // viewport re-asserts its hidden native bar over the desktop's fallback.
+  @include ScrollArea.scrollArea;
   @include DesktopIcon.desktopIcon;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;

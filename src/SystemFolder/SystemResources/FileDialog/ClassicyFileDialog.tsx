@@ -15,6 +15,7 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import {
 	ClassicyTree,
 	type ClassicyTreeNode,
@@ -539,7 +540,10 @@ export const ClassicyFileDialog: FunctionalComponent<
 							}
 						}}
 					/>
-					<div className={"classicyFileOpenDialogWell"}>
+					<ClassicyScrollArea
+						className={"classicyFileOpenDialogWell"}
+						viewportClassName={"classicyFileOpenDialogWellViewport"}
+					>
 						<ClassicyTree
 							nodes={nodes}
 							selectionMode={selectionMode === "multi" ? "multi" : "single"}
@@ -550,7 +554,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 							}
 							onToggleNode={handleFolderToggle}
 						/>
-					</div>
+					</ClassicyScrollArea>
 					{mode === "save" && activeFormat && (
 						<div className={"classicyFileDialogNameRow"}>
 							<ClassicyInput

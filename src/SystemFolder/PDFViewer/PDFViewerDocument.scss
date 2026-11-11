@@ -13,12 +13,16 @@
 	border-bottom: var(--window-border-size) solid var(--color-system-04);
 }
 
-.pdfViewerDocumentCanvasWrapper {
+// The page scrolls in a ClassicyScrollArea: the area takes the rest of the
+// document's height, the wrapper (its viewport) centers the page.
+.pdfViewerDocumentCanvasArea {
 	flex: 1;
-	overflow: auto;
+	background-color: var(--color-system-01);
+}
+
+.pdfViewerDocumentCanvasWrapper {
 	display: flex;
 	padding: var(--window-padding-size);
-	background-color: var(--color-system-01);
 }
 
 .pdfViewerDocumentCanvas {

@@ -532,13 +532,6 @@ describe("cross-file overrides do not depend on import order", () => {
 			"width",
 		],
 		[
-			".classicyFileBrowserViewTableContainer.classicyTableContainer",
-			`${W}File/ClassicyFileBrowserViewTable.scss`,
-			".classicyTableContainer",
-			`${W}Table/ClassicyTable.scss`,
-			"overflow",
-		],
-		[
 			".classicyAppearanceManagerColorsGrid .classicyColorPickerSwatchWrapper",
 			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors.scss",
 			".classicyColorPickerSwatchWrapper",

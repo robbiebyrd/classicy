@@ -9,6 +9,7 @@ import { FINDER_ABOUT_THIS_COMPUTER_WINDOW_ID } from "@/SystemFolder/Finder/Find
 import { ClassicyBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import packageJson from "../../../package.json";
 
@@ -146,7 +147,7 @@ export const FinderAboutThisComputer: FunctionalComponent<
 						Not &trade; &amp; &copy; Apple Computer, Inc. 1983&ndash;1999
 					</p>
 				</div>
-				<div className="finderAboutThisComputerUsage">
+				<ClassicyScrollArea className="finderAboutThisComputerUsage">
 					<div className="finderAboutThisComputerUsageItem">
 						<ClassicyIconImage src={macIcon} alt="Classicy" />
 						<span className="finderAboutThisComputerUsageName">Classicy</span>
@@ -157,7 +158,7 @@ export const FinderAboutThisComputer: FunctionalComponent<
 							<ClassicyProgressBar value={osUsedMb} max={BUILT_IN_MEMORY_MB} />
 						</div>
 					</div>
-				</div>
+				</ClassicyScrollArea>
 			</div>
 		</ClassicyWindow>
 	);

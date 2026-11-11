@@ -40,6 +40,7 @@ import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/Cl
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 import "./HyperCard.scss";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 interface HyperCardCardProps {
 	open: HCOpenStack;
@@ -291,7 +292,15 @@ const HyperCardField: FunctionalComponent<HyperCardFieldProps> = ({
 	}, [value]);
 
 	if (part.locked) {
-		return <div className={"classicyHyperCardLockedField"}>{value}</div>;
+		// A locked field scrolls its text with Classicy's own scroll bars.
+		return (
+			<ClassicyScrollArea
+				className={"classicyHyperCardLockedField"}
+				viewportClassName={"classicyHyperCardLockedFieldText"}
+			>
+				{value}
+			</ClassicyScrollArea>
+		);
 	}
 
 	const multiline = Boolean(part.options?.multiline);

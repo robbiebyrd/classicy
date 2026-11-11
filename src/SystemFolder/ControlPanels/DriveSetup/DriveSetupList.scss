@@ -12,10 +12,10 @@
 	margin: 0;
 }
 
+// Scrolls in a ClassicyScrollArea (Classicy's own scroll bars).
 .classicyDriveSetupListTable {
 	border: var(--control-frame-width) inset var(--color-black);
 	background: var(--color-white);
-	overflow-y: auto;
 	max-height: var(--control-panel-list-max-height);
 	min-height: var(--drive-setup-list-min-height);
 }

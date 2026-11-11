@@ -30,6 +30,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 /**
  * Expansion facts handed to every cell `render`, so a column (typically the
@@ -138,6 +139,14 @@ type ClassicyTableProps<T> = {
 	 *  a hosting window can give it initial focus. Prop-shaped for the same
 	 *  reason as `selectionApiRef`. */
 	containerRef?: RefObject<HTMLDivElement | null>;
+	/**
+	 * Whether the table scrolls its own rows, in a `ClassicyScrollArea` with
+	 * Classicy's scroll bars. Defaults to `true`. `false` leaves the scrolling
+	 * to an ancestor (the Finder's list view grows with its rows inside its
+	 * window's scroll area): no bars, and the sticky header pins to that
+	 * ancestor.
+	 */
+	scrollable?: boolean;
 };
 
 type SortingState = { id: string; desc: boolean }[];
@@ -199,6 +208,7 @@ export function ClassicyTable<T>({
 	onToggleRow,
 	selectionApiRef,
 	containerRef: externalContainerRef,
+	scrollable = true,
 }: ClassicyTableProps<T>): ReactElement {
 	const arrowUpIcon = useClassicyAsset("icons", "ui.menuDropdownArrowUp") ?? "";
 	const [sorting, setSorting] = useState<SortingState>(
@@ -515,157 +525,180 @@ export function ClassicyTable<T>({
 		}
 	};
 
+	const tableElement = (
+		<table className="classicyTable">
+			<thead
+				className={classNames(
+					"classicyTableHeader",
+					stickyHeader && "classicyTableHeaderSticky",
+				)}
+			>
+				{table.getHeaderGroups().map((headerGroup) => (
+					<tr key={headerGroup.id} className="classicyTableHeaderGroup">
+						{headerGroup.headers.map((header) => {
+							const isSorted =
+								sorting.length > 0 && header.id === sorting[0].id;
+							return (
+								<th
+									key={header.id}
+									align={columnById.get(header.id)?.align ?? "left"}
+									aria-sort={
+										isSorted
+											? sorting[0].desc
+												? "descending"
+												: "ascending"
+											: undefined
+									}
+									style={{ width: header.getSize() }}
+									className={classNames(
+										"classicyTableColumnHeader",
+										header.column.getIsResizing() ? "isResizing" : "",
+										classicyStateClasses({ selected: !!isSorted }),
+									)}
+									onClick={() => {
+										if (!header.column.getCanSort()) {
+											return;
+										}
+										// First click sorts ascending; clicking the sorted
+										// column flips it (same cycle as the Finder view).
+										const desc = !(
+											header.column.getIsSorted() === false ||
+											header.column.getIsSorted() === "desc"
+										);
+										header.column.toggleSorting(desc, false);
+										appearance.emit("change", {
+											columnId: header.id,
+											desc,
+										});
+									}}
+								>
+									<div className="classicyTableHeaderCellContent">
+										{!header.isPlaceholder && (
+											<span>{columnById.get(header.id)?.title ?? ""}</span>
+										)}
+										{isSorted && (
+											<img
+												src={`${arrowUpIcon}`}
+												alt="Up Arrow"
+												className={classNames(
+													"classicyTableSortArrow",
+													!sorting[0].desc
+														? "classicyTableSortArrowAscending"
+														: "",
+												)}
+											/>
+										)}
+										{header.column.getCanResize() && (
+											// biome-ignore lint/a11y/noStaticElementInteractions: resize handle requires mouse events only; no keyboard equivalent
+											<div
+												onMouseDown={(e) => {
+													resizeInputRef.current = "mouse";
+													header.getResizeHandler()(e);
+												}}
+												onTouchStart={(e) => {
+													resizeInputRef.current = "touch";
+													header.getResizeHandler()(e);
+												}}
+												className={classNames(
+													"resizer",
+													header.column.getIsResizing() ? "isResizing" : "",
+												)}
+											></div>
+										)}
+									</div>
+								</th>
+							);
+						})}
+					</tr>
+				))}
+			</thead>
+			<tbody className="classicyTableContent">
+				{table.getRowModel().rows.map((row) => (
+					<tr
+						key={row.id}
+						data-row-id={row.id}
+						data-selected={effectiveSelected.includes(row.id) || undefined}
+						className={classNames(
+							"classicyTableRow",
+							classicyStateClasses({
+								selected: effectiveSelected.includes(row.id),
+							}),
+							rowClassName?.(row.original, effectiveSelected.includes(row.id)),
+						)}
+						onClick={(e) => {
+							setCursorId(row.id);
+							applySelection(row.id, e);
+						}}
+						onDoubleClick={() => onActivateRow?.(row.id, row.original)}
+					>
+						{row.getVisibleCells().map((cell) => {
+							const column = columnById.get(cell.column.id);
+							return (
+								<td
+									key={cell.id}
+									className="classicyTableCell"
+									style={{
+										width: cell.column.getSize(),
+										textAlign: column?.align ?? "left",
+									}}
+								>
+									{column?.render ? (
+										column.render(row.original, {
+											depth: row.depth,
+											canExpand: row.getCanExpand(),
+											isExpanded: row.getIsExpanded(),
+											toggle: () => toggleRow(row.id),
+											emitDrag: appearance.emit,
+										})
+									) : (
+										<span>{`${cell.getValue() ?? ""}`}</span>
+									)}
+								</td>
+							);
+						})}
+					</tr>
+				))}
+			</tbody>
+		</table>
+	);
+
+	// The focusable list box: the keyboard target, scrolling its rows (in a
+	// ClassicyScrollArea, which scrolls its viewport for the keys a focused
+	// scroller takes, Page Up and Page Down, that the table leaves alone).
+	const tabIndex = selectionMode === "none" ? undefined : 0;
+	if (!scrollable) {
+		return (
+			// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
+			<div
+				{...appearance.attrs}
+				ref={setContainerRef}
+				tabIndex={tabIndex}
+				onKeyDown={handleKeyDown}
+				className={classNames(
+					"classicyTableContainer",
+					appearance.className,
+					className,
+				)}
+				style={appearance.style ? { ...appearance.style, ...style } : style}
+			>
+				{tableElement}
+			</div>
+		);
+	}
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: list box is a focusable scroll region driven by arrow keys and type-selection; rows remain the click targets
-		<div
+		<ClassicyScrollArea
 			{...appearance.attrs}
-			ref={setContainerRef}
-			tabIndex={selectionMode === "none" ? undefined : 0}
-			onKeyDown={handleKeyDown}
 			className={classNames(
 				"classicyTableContainer",
 				appearance.className,
 				className,
 			)}
 			style={appearance.style ? { ...appearance.style, ...style } : style}
+			ref={setContainerRef}
+			tabIndex={tabIndex}
+			onKeyDown={handleKeyDown}
 		>
-			<table className="classicyTable">
-				<thead
-					className={classNames(
-						"classicyTableHeader",
-						stickyHeader && "classicyTableHeaderSticky",
-					)}
-				>
-					{table.getHeaderGroups().map((headerGroup) => (
-						<tr key={headerGroup.id} className="classicyTableHeaderGroup">
-							{headerGroup.headers.map((header) => {
-								const isSorted =
-									sorting.length > 0 && header.id === sorting[0].id;
-								return (
-									<th
-										key={header.id}
-										align={columnById.get(header.id)?.align ?? "left"}
-										aria-sort={
-											isSorted
-												? sorting[0].desc
-													? "descending"
-													: "ascending"
-												: undefined
-										}
-										style={{ width: header.getSize() }}
-										className={classNames(
-											"classicyTableColumnHeader",
-											header.column.getIsResizing() ? "isResizing" : "",
-											classicyStateClasses({ selected: !!isSorted }),
-										)}
-										onClick={() => {
-											if (!header.column.getCanSort()) {
-												return;
-											}
-											// First click sorts ascending; clicking the sorted
-											// column flips it (same cycle as the Finder view).
-											const desc = !(
-												header.column.getIsSorted() === false ||
-												header.column.getIsSorted() === "desc"
-											);
-											header.column.toggleSorting(desc, false);
-											appearance.emit("change", {
-												columnId: header.id,
-												desc,
-											});
-										}}
-									>
-										<div className="classicyTableHeaderCellContent">
-											{!header.isPlaceholder && (
-												<span>{columnById.get(header.id)?.title ?? ""}</span>
-											)}
-											{isSorted && (
-												<img
-													src={`${arrowUpIcon}`}
-													alt="Up Arrow"
-													className={classNames(
-														"classicyTableSortArrow",
-														!sorting[0].desc
-															? "classicyTableSortArrowAscending"
-															: "",
-													)}
-												/>
-											)}
-											{header.column.getCanResize() && (
-												// biome-ignore lint/a11y/noStaticElementInteractions: resize handle requires mouse events only; no keyboard equivalent
-												<div
-													onMouseDown={(e) => {
-														resizeInputRef.current = "mouse";
-														header.getResizeHandler()(e);
-													}}
-													onTouchStart={(e) => {
-														resizeInputRef.current = "touch";
-														header.getResizeHandler()(e);
-													}}
-													className={classNames(
-														"resizer",
-														header.column.getIsResizing() ? "isResizing" : "",
-													)}
-												></div>
-											)}
-										</div>
-									</th>
-								);
-							})}
-						</tr>
-					))}
-				</thead>
-				<tbody className="classicyTableContent">
-					{table.getRowModel().rows.map((row) => (
-						<tr
-							key={row.id}
-							data-row-id={row.id}
-							data-selected={effectiveSelected.includes(row.id) || undefined}
-							className={classNames(
-								"classicyTableRow",
-								classicyStateClasses({
-									selected: effectiveSelected.includes(row.id),
-								}),
-								rowClassName?.(
-									row.original,
-									effectiveSelected.includes(row.id),
-								),
-							)}
-							onClick={(e) => {
-								setCursorId(row.id);
-								applySelection(row.id, e);
-							}}
-							onDoubleClick={() => onActivateRow?.(row.id, row.original)}
-						>
-							{row.getVisibleCells().map((cell) => {
-								const column = columnById.get(cell.column.id);
-								return (
-									<td
-										key={cell.id}
-										className="classicyTableCell"
-										style={{
-											width: cell.column.getSize(),
-											textAlign: column?.align ?? "left",
-										}}
-									>
-										{column?.render ? (
-											column.render(row.original, {
-												depth: row.depth,
-												canExpand: row.getCanExpand(),
-												isExpanded: row.getIsExpanded(),
-												toggle: () => toggleRow(row.id),
-												emitDrag: appearance.emit,
-											})
-										) : (
-											<span>{`${cell.getValue() ?? ""}`}</span>
-										)}
-									</td>
-								);
-							})}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
+			{tableElement}
+		</ClassicyScrollArea>
 	);
 }
