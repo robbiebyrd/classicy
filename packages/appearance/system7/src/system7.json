@@ -1,0 +1,276 @@
+{
+	"id": "system7",
+	"name": "System 7",
+	"defaults": {
+		"id": "system7",
+		"name": "System 7",
+		"package": "system7",
+		"assetVariant": "bw",
+		"color": {
+			"outline": 0,
+			"select": 0,
+			"highlight": 0,
+			"window": {
+				"border": 0,
+				"borderOutset": 16777215,
+				"borderInset": 16777215,
+				"frame": 16777215,
+				"title": 0,
+				"document": 16777215
+			},
+			"black": 0,
+			"white": 16777215,
+			"alert": 0,
+			"error": 0,
+			"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
+			"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0]
+		},
+		"sound": {
+			"pack": "system7",
+			"disabled": []
+		},
+		"typography": {
+			"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+			"uiSize": 12,
+			"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+			"headerSize": 12,
+			"body": "\"Geneva\", sans-serif",
+			"bodySize": 9,
+			"mono": "\"Monaco\", monospace",
+			"monoSize": 12,
+			"digital": "\"Monaco\", monospace",
+			"digitalSize": 12
+		},
+		"measurements": {
+			"window": {
+				"borderSize": 1,
+				"controlSize": 11,
+				"paddingSize": 6,
+				"scrollbarSize": 16,
+				"titleBarHeight": 19,
+				"utilityTitleBarHeight": 11
+			},
+			"control": {
+				"height": 20,
+				"labelGap": 5,
+				"staticTextHeight": 16
+			},
+			"button": {
+				"minWidth": 58,
+				"textPadding": 8,
+				"gap": 12
+			},
+			"groupBox": {
+				"marginSide": 10,
+				"marginTop": 12,
+				"marginBottom": 10,
+				"titlePad": 3,
+				"gap": 12
+			},
+			"layout": {
+				"itemGap": 4,
+				"groupGap": 16,
+				"dialogEdge": 12
+			},
+			"dither": {
+				"tileSize": 2
+			}
+		},
+		"desktop": {
+			"iconSize": 32,
+			"iconFontSize": 9,
+			"backgroundImage": "",
+			"backgroundColor": 16777215,
+			"backgroundRepeat": "repeat",
+			"backgroundPosition": "center",
+			"backgroundSize": "auto"
+		}
+	},
+	"presets": [
+		{
+			"id": "system7",
+			"name": "System 7",
+			"package": "system7",
+			"assetVariant": "bw",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 16777215,
+					"frame": 16777215,
+					"title": 0,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 0,
+				"error": 0,
+				"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
+				"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0]
+			},
+			"sound": {
+				"pack": "system7",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"uiSize": 12,
+				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"headerSize": 12,
+				"body": "\"Geneva\", sans-serif",
+				"bodySize": 9,
+				"mono": "\"Monaco\", monospace",
+				"monoSize": 12,
+				"digital": "\"Monaco\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 11,
+					"paddingSize": 6,
+					"scrollbarSize": 16,
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 11
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 58,
+					"textPadding": 8,
+					"gap": 12
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 16,
+					"dialogEdge": 12
+				},
+				"dither": {
+					"tileSize": 2
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 9,
+				"backgroundImage": "",
+				"backgroundColor": 16777215,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "system7-color",
+			"name": "System 7 Color",
+			"package": "system7",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 14080234,
+					"borderInset": 11711956,
+					"frame": 16777215,
+					"title": 0,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15527148, 14211288, 13487565, 11053224, 8553090, 3750201, 2105376
+				],
+				"theme": [
+					16119285, 14080234, 11711956, 11054030, 9014194, 4608651, 4016261
+				]
+			},
+			"sound": {
+				"pack": "system7",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"uiSize": 12,
+				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"headerSize": 12,
+				"body": "\"Geneva\", sans-serif",
+				"bodySize": 9,
+				"mono": "\"Monaco\", monospace",
+				"monoSize": 12,
+				"digital": "\"Monaco\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 11,
+					"paddingSize": 6,
+					"scrollbarSize": 16,
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 11
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 58,
+					"textPadding": 8,
+					"gap": 12
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 16,
+					"dialogEdge": 12
+				},
+				"dither": {
+					"tileSize": 0
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 9,
+				"backgroundImage": "",
+				"backgroundColor": 13290186,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		}
+	],
+	"layout": {
+		"window": {
+			"growBoxCorner": "bottom-right"
+		},
+		"menuBar": {
+			"placement": "screen"
+		},
+		"desktop": {
+			"iconGridOrigin": "top-right"
+		}
+	},
+	"knobs": {}
+}

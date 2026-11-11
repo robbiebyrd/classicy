@@ -35,6 +35,12 @@ const liveSourceAliases = [
 			"packages/appearance/platinum/src/index.ts",
 		),
 	},
+	// System 7, the workspace package packages/appearance/system7, the same
+	// way, for when the app imports it.
+	{
+		find: /^@classicy\/appearance-system7$/,
+		replacement: path.resolve(root, "packages/appearance/system7/src/index.ts"),
+	},
 	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
 	{

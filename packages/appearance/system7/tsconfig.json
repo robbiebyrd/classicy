@@ -1,0 +1,26 @@
+{
+	// The core's compiler settings. System 7 reaches the core only as
+	// `@classicy/classicy`, mapped to the core's source so the package
+	// type-checks against the workspace copy without a core build. Its tests
+	// may also use the core's own aliases (`@/…`) for internals and helpers.
+	"extends": "../../../tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"@classicy/classicy": ["../../../src/index.ts"],
+			"@/*": ["../../../src/*"],
+			"@img/*": ["../../../assets/img/*"],
+			"@vid/*": ["../../../assets/vid/*"]
+		}
+	},
+	// The core's ambient declarations, and its test setup (the jest-dom
+	// matchers the tests use).
+	"include": [
+		"src",
+		"*.config.ts",
+		"../../../src/custom.d.ts",
+		"../../../src/__tests__/setup.ts"
+	],
+	// Stories are type-checked under storybook/tsconfig.json, which maps
+	// Storybook's types.
+	"exclude": ["dist", "node_modules", "resources", "src/**/*.stories.tsx"]
+}

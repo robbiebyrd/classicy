@@ -46,6 +46,7 @@ export default defineConfig({
 		projects: [
 			{ test: { name: "classicy", exclude: ["packages/**"] } },
 			"./packages/appearance/platinum",
+			"./packages/appearance/system7",
 		],
 	},
 	resolve: {
@@ -54,6 +55,15 @@ export default defineConfig({
 			{
 				find: /^@classicy\/appearance-platinum$/,
 				replacement: path.join(platinumSrc, "index.ts"),
+			},
+			// System 7's source, the workspace package @classicy/appearance-system7
+			// (plan 0018-dbd §2.2). No core test imports it yet.
+			{
+				find: /^@classicy\/appearance-system7$/,
+				replacement: path.resolve(
+					__dirname,
+					"./packages/appearance/system7/src/index.ts",
+				),
 			},
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
 			{ find: "@img", replacement: path.resolve(__dirname, "./assets/img") },

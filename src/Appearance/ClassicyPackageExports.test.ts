@@ -136,23 +136,24 @@ describe("package.json: the Appearance Packages surface", () => {
 	// Only the barrel barrelsby generates is ignored, so editing a
 	// hand-written index.ts (Platinum's) rebuilds in watch mode, and a change
 	// to Platinum rebuilds its own build, which the core's no longer carries.
-	it("rebuilds the core and Platinum in watch mode", () => {
+	it("rebuilds the core, Platinum and System 7 in watch mode", () => {
 		const watch = pkg.scripts["build:watchsource"];
 		expect(watch).not.toContain('--ignore "**/index.ts"');
 		expect(watch).toContain('--ignore "src/index.ts"');
 		expect(watch).toContain('--watch "packages/appearance/platinum/src/**"');
+		expect(watch).toContain('--watch "packages/appearance/system7/src/**"');
 		expect(watch).toContain(
-			'--exec "tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build"',
+			'--exec "tsc -b && vite build && pnpm --filter @classicy/appearance-platinum exec vite build && pnpm --filter @classicy/appearance-system7 exec vite build"',
 		);
 	});
 
-	// Two builds, two dist checks (plan 0015-kxa §3.4): the core's, then
-	// Platinum's, whose `build` runs its own verify-dist. Then both packed
-	// packages type-check in a host under bundler, node16 and nodenext
-	// (0151-0cc).
-	it("builds and verifies the core, then Platinum, then a host's types", () => {
+	// One build and one dist check per package (plan 0015-kxa §3.4, plan
+	// 0018-dbd §2.2): the core's, then Platinum's and System 7's, whose
+	// `build` runs its own verify-dist. Then the packed packages type-check in
+	// a host under bundler, node16 and nodenext (0151-0cc).
+	it("builds and verifies the core, then Platinum, then System 7, then a host's types", () => {
 		expect(pkg.scripts["build:source"]).toBe(
-			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm verify:host-types",
+			"pnpm generate-barrels && tsc -b && vite build && pnpm verify:dist && pnpm --filter @classicy/appearance-platinum build && pnpm --filter @classicy/appearance-system7 build && pnpm verify:host-types",
 		);
 		expect(pkg.scripts["verify:host-types"]).toBe(
 			"node bin/check-host-types.ts",

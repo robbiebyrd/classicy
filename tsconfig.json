@@ -36,6 +36,11 @@
 			"@classicy/appearance-platinum": [
 				"./packages/appearance/platinum/src/index.ts"
 			],
+			// System 7, the workspace package @classicy/appearance-system7
+			// (plan 0018-dbd §2.2), the same way.
+			"@classicy/appearance-system7": [
+				"./packages/appearance/system7/src/index.ts"
+			],
 			"@/*": ["./src/*"],
 			"@img/*": ["./assets/img/*"],
 			"@vid/*": ["./assets/vid/*"]

@@ -1,0 +1,19 @@
+// The System 7 package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="system7"]`. The
+// look is built element by element (plan 0018-dbd Phase 3), each element a
+// components/_<Name>.scss partial exposing one mixin, included inside the
+// wrapper below; until then the block holds only the arrangement System 7
+// shares with no other package.
+@use "pkg:@classicy/classicy/scss/package";
+
+@include package.classicy-package("system7") {
+  // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
+  // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box
+  // (p.168) only.
+  // A package may hide a part but never remove it, so the collapse behavior
+  // stays reachable from code.
+  .classicyWindowTitleBar [data-classicy-control="collapse"] {
+    display: none;
+  }
+}

@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Root tests, Storybook and bin scripts import Platinum by name
+ * Root tests, Storybook and bin scripts import Platinum (and System 7) by name
  * (`@classicy/appearance-platinum`), which registers the whole package. A few
  * need less: only the sound pack or the assets (a test of "no package
  * registered", or of the order they register in), a data file, or an internal
@@ -33,6 +33,8 @@ const ALLOWED: Record<string, string> = {
 		"the source directory, to build a module-copy path (a query makes a new instance)",
 	"packages/appearance/platinum/src/**/*.stories.@(ts|tsx)":
 		"Storybook's stories glob (main.ts): Platinum's own stories, its screen savers'",
+	"packages/appearance/system7/src/**/*.stories.@(ts|tsx)":
+		"Storybook's stories glob (main.ts): System 7's own stories",
 };
 
 const RELATIVE_INTO_PACKAGES = /["'`]((?:\.\.\/)+packages\/[^"'`]*)["'`]/g;
@@ -79,10 +81,12 @@ describe("relative imports from root code into packages/", () => {
 		);
 	});
 
-	it("are all inside Platinum's package", () => {
+	// Platinum's, or System 7's stories glob (plan 0018-dbd §2.2).
+	it("are all inside a workspace Appearance Package", () => {
 		expect(
 			Object.keys(ALLOWED).filter(
-				(target) => !target.startsWith("packages/appearance/platinum/"),
+				(target) =>
+					!/^packages\/appearance\/(?:platinum|system7)\//.test(target),
 			),
 		).toEqual([]);
 	});
