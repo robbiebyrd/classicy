@@ -4,43 +4,62 @@
 // (`@use "@classicy/classicy/scss/dither"` in a package).
 //
 //   @use "@classicy/classicy/scss/dither" as d;
-//   .classicyMenuItem.disabled > p { @include d.classicy-dither-text("--color-black"); }
-//   .classicyMenuDivider { height: var(--window-border-size); @include d.classicy-dither-line("--color-black"); }
+//   .classicyMenuItem.disabled > p { @include d.classicy-dither-text("--color-system-05"); }
+//   .classicyMenuDivider { height: var(--window-border-size); @include d.classicy-dither-line("--color-system-05"); }
+//
+// The ink `$on` is fixed when the stylesheet compiles, so it is one token
+// for every theme: name a theme token whose VALUE is black in the 1-bit
+// theme and the dim gray in the color theme (a system-palette entry, such as
+// `--color-system-05`, that the black-and-white theme sets to black). Never
+// `--color-black`: it is black in every theme, so a color theme would draw
+// its dimmed text black.
 //
 // The switch is the theme's, not the stylesheet's: the knob
 // `measurements.dither.tileSize` (`--dither-tile-size`) is the checker tile's
 // edge, 0 in the core floor. At 0 the checker layer has no size, draws
 // nothing, and the mask is the full cover: plain ink, so a color theme draws
-// its dimmed text in a gray token and its rules solid. A 1-bit theme sets the
-// tile's size (2 for a 2 × 2 checker of 1 px cells), and the mask becomes the
+// its dimmed text and rules solid, in the gray its value of `$on` holds. A
+// 1-bit theme sets the
+// tile's size (2 for a 2 × 2 checker of 1 px cells; the tile is sized square,
+// so art without an intrinsic size draws too), and the mask becomes the
 // full cover with the tile excluded: the ink shows where the tile is
 // transparent.
 //
 // The tile is the active package's `ditherChecker` system art
 // (`--classicy-art-dither-checker`), a raster mask like Platinum's halftone,
 // not a gradient, which moirés at fractional zoom. With no art registered the
-// mask declaration is invalid and drops out: plain ink again. The mask covers
-// the whole element, so include it on the element that holds only the ink (a
-// label, a rule), not on one that also paints a face.
+// mask declaration is invalid and drops out: plain ink again.
+//
+// Limits:
+// - The mask covers the whole element, so include it on the element that
+//   holds only the ink (a label, a rule), not on one that also paints a face.
+// - It clips to the border box: anything painted outside it (an `outline`,
+//   a `box-shadow` default-button ring) is hidden.
+// - It replaces the element's own `mask-image`, so it is not for icons
+//   (`ClassicyIcon.scss` masks their shape) or any other masked element.
+// - The checker's phase starts at each element's own corner, not at the
+//   window's origin as QuickDraw's patterns did, so two adjacent dithered
+//   elements need not line up.
 @use "color" as c;
 
 // The checker mask alone, for a whole dimmed control.
 @mixin classicy-dither-mask {
   mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
-  mask-size: var(--dither-tile-size), auto;
+  mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;
   mask-repeat: repeat, no-repeat;
   mask-composite: exclude;
 }
 
-// Text inked in `$on` (a color token: "--color-black" on a 1-bit theme, a
-// gray on a color one) through the checker.
+// Text inked in `$on` through the checker. `$on` is a token whose value is
+// black in the 1-bit theme and the dim gray in the color one (see above).
 @mixin classicy-dither-text($on) {
   color: var(#{c.classicy-token($on)});
   @include classicy-dither-mask;
 }
 
-// A rule painted in `$on` through the checker: dotted at a 1 px height on a
-// 1-bit theme, solid on a color one. The element's size is the rule's.
+// A rule painted in `$on` (the same per-theme token) through the checker:
+// dotted at a 1 px height on a 1-bit theme, solid gray on a color one. The
+// element's size is the rule's.
 @mixin classicy-dither-line($on) {
   background-color: var(#{c.classicy-token($on)});
   @include classicy-dither-mask;

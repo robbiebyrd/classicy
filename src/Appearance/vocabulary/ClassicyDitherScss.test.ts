@@ -24,7 +24,7 @@ const compile = (body: string) =>
 
 const MASK = [
 	"  mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));",
-	"  mask-size: var(--dither-tile-size), auto;",
+	"  mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;",
 	"  mask-repeat: repeat, no-repeat;",
 	"  mask-composite: exclude;",
 ];

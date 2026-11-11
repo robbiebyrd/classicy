@@ -4491,19 +4491,37 @@ switches them, never the stylesheet:
 | `classicy-dither-text($on)` | `color: var($on)`, through the checker |
 | `classicy-dither-line($on)` | `background-color: var($on)`, through the checker; the element's size is the rule's (a 1 px height for a dotted rule) |
 
+The ink `$on` is one token for every theme, because it is fixed when the
+stylesheet compiles: name a theme token whose *value* is black in the 1-bit
+theme and the dim gray in the color theme (a system-palette entry, such as
+`--color-system-05`, that the black-and-white theme sets to black), e.g.
+`@include d.classicy-dither-text("--color-system-05")`. Never
+`--color-black`, which is black in every theme. `$on` is a token name,
+checked like the color helpers' (`classicy-token`).
+
 The mask is a full cover with the checker tile excluded
-(`mask-composite: exclude`), the tile sized by the theme knob
-`dither.tileSize` (`--dither-tile-size`, §8 "Package knob families"). At 0
-(the core floor's value, and Platinum's) the tile draws nothing and the ink
-is plain, so a color theme dims with a gray `$on` and draws solid rules; a
+(`mask-composite: exclude`), the tile sized square by the theme knob
+`dither.tileSize` (`--dither-tile-size` for both dimensions, §8 "Package knob
+families", so art without an intrinsic size draws too). At 0 (the core
+floor's value, and Platinum's) the tile draws nothing and the ink is plain,
+so a color theme dims and draws rules solid, in its gray value of `$on`; a
 1-bit theme sets the tile's size (2 for a 2 × 2 checker) and the ink shows
 where the tile is transparent. The tile is the active package's
 `ditherChecker` system art (`--classicy-art-dither-checker`), a raster mask
 as Platinum's `halftone` is, not a gradient, which moirés at fractional zoom;
-with none registered the mask drops out and the ink is plain. The mask
-covers the whole element, so include a mixin on an element that holds only
-the ink (a label, a rule), not on one that also paints a face. `$on` is a
-token name, checked like the color helpers' (`classicy-token`).
+with none registered the mask drops out and the ink is plain.
+
+Limits of the mask:
+
+- It covers the whole element, so include a mixin on an element that holds
+  only the ink (a label, a rule), not on one that also paints a face.
+- It clips to the border box: anything painted outside it (an `outline`, a
+  `box-shadow` default-button ring) is hidden.
+- It replaces the element's own `mask-image`, so it is not for icons
+  (`ClassicyIcon.scss` masks their shape) or any other masked element.
+- The checker's phase starts at each element's own corner, not at the
+  window's origin as QuickDraw's patterns did, so adjacent dithered elements
+  need not line up.
 
 **Reading a metric from JS.** Code that needs a theme size in pixels reads
 the variable instead of hard-coding the number:
