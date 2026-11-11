@@ -1,0 +1,73 @@
+// The Platinum list look (from ClassicyListBox.scss, ClassicyTree.scss): the
+// list box's inset frame and bevel, its rows' selection and disabled colors,
+// and the framed list and tree frames and the tree's selection.
+@mixin listBox {
+  .classicyListBox {
+    background: var(--color-white);
+    // HIGOS8 Ch.2 "List Boxes and Frames" (p.39): a 2px frame whose inside
+    // lines share the scroll bar's, matching the image well / edit text: 1px
+    // black border + 2px inset bevel.
+    border: var(--window-border-size) solid var(--color-black);
+  }
+
+  // The bevel is the scrolling viewport's (a ClassicyScrollArea's), beneath
+  // the rows: the viewport paints the list's white over the root.
+  .classicyListBoxViewport {
+    box-shadow:
+      inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
+      inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
+  }
+
+  .classicyListBoxOption {
+    color: var(--color-black);
+    outline: none;
+  }
+
+  :where(.classicyListBoxOption).selected {
+    color: var(--color-white);
+    background-color: var(--color-theme-04);
+  }
+
+  :where(.classicyListBoxOption).disabled {
+    color: var(--color-system-05);
+  }
+
+  :where(.classicyListBox).disabled {
+    background: var(--color-system-02);
+
+    .classicyListBoxOption {
+      color: var(--color-system-05);
+    }
+  }
+
+  // Reusable HIG list-box frame: a 2 px black rule around a scrolling list.
+  .classicyListBoxFrame {
+    border: var(--control-frame-width) solid var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyTreeFramed {
+    border: var(--control-frame-width) solid var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyTreeNodeLabelHolder:focus {
+    outline: var(--color-outline) solid var(--window-border-size);
+  }
+
+  :where(.classicyTreeNodeLabelHolder).disabled {
+    .classicyTreeNodeLabel {
+      color: var(--color-system-05);
+    }
+    .classicyTreeNodeIcon {
+      opacity: 0.5;
+    }
+  }
+
+  :where(.classicyTreeNodeLabelHolder).selected {
+    background: var(--color-select);
+    .classicyTreeNodeLabel {
+      color: var(--color-white);
+    }
+  }
+}

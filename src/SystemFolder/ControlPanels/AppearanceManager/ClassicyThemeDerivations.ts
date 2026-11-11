@@ -408,14 +408,14 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--checkbox-x-mark-font-size",
 		formula: "typography.uiSize * 1.25",
-		doc: "Size of the localized checkbox's X mark glyph (ClassicyCheckbox.scss).",
+		doc: "Size of the localized checkbox's X mark glyph (_Checkbox.scss).",
 		compute: (i) => ui(i) * 1.25,
 		unrounded: true,
 	},
 	{
 		cssVar: "--checkbox-x-mark-line-height",
 		formula: "typography.uiSize * 0.65",
-		doc: "Line height that seats the localized checkbox's X mark in the box (ClassicyCheckbox.scss).",
+		doc: "Line height that seats the localized checkbox's X mark in the box (_Checkbox.scss).",
 		compute: (i) => ui(i) * 0.65,
 		unrounded: true,
 	},

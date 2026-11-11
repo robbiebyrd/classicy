@@ -25,6 +25,10 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/Window";
 @use "pkg:@classicy/appearance-platinum/scss/components/Slider";
 @use "pkg:@classicy/appearance-platinum/scss/components/Checkbox";
+@use "pkg:@classicy/appearance-platinum/scss/components/RadioInput";
+@use "pkg:@classicy/appearance-platinum/scss/components/Input";
+@use "pkg:@classicy/appearance-platinum/scss/components/LittleArrows";
+@use "pkg:@classicy/appearance-platinum/scss/components/ListBox";
 @use "pkg:@classicy/appearance-platinum/scss/components/PopUpMenu";
 @use "pkg:@classicy/appearance-platinum/scss/components/DriveSetupList";
 @use "pkg:@classicy/appearance-platinum/scss/components/Assistant";
@@ -55,6 +59,10 @@
   @include Window.window;
   @include Slider.slider;
   @include Checkbox.checkbox;
+  @include RadioInput.radioInput;
+  @include Input.input;
+  @include LittleArrows.littleArrows;
+  @include ListBox.listBox;
   @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;

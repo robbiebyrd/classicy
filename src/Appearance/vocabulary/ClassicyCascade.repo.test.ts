@@ -177,7 +177,18 @@ describe("rules that replaced !important", () => {
 		);
 		// Radio: the shared `:where(.root).state` form throughout, so the
 		// default rule wins by order at (0,2,0), not by a third class.
-		const radio = compile("SystemResources/RadioInput/ClassicyRadioInput.scss");
+		// The radio's colors are Platinum's too (task 1.6): its partial, compiled
+		// unscoped.
+		const radio = sass.compileString(
+			'@use "styles/components/RadioInput";\n@include RadioInput.radioInput;',
+			{
+				style: "expanded",
+				loadPaths: [
+					path.resolve(process.cwd(), "packages/appearance/platinum/src"),
+				],
+				importers: [new sass.NodePackageImporter()],
+			},
+		).css;
 		const radioDefault = ruleAt(
 			radio,
 			":where(.classicyRadioInput).default:checked, :where(.classicyRadioInput).default:active",

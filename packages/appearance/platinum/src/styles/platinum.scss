@@ -14,6 +14,10 @@
 @use "components/Window";
 @use "components/Slider";
 @use "components/Checkbox";
+@use "components/RadioInput";
+@use "components/Input";
+@use "components/LittleArrows";
+@use "components/ListBox";
 @use "components/PopUpMenu";
 @use "components/DriveSetupList";
 @use "components/Assistant";
@@ -46,6 +50,10 @@
   @include Window.window;
   @include Slider.slider;
   @include Checkbox.checkbox;
+  @include RadioInput.radioInput;
+  @include Input.input;
+  @include LittleArrows.littleArrows;
+  @include ListBox.listBox;
   @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;

@@ -4196,7 +4196,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss |
 | `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
-| `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | ClassicyCheckbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
+| `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | _Checkbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
 | `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |
 | `--ui-font-size-mini` | `uiSize / 1.5` | 9.333333333333334 (unrounded) | ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyPlacard.scss |
 | `--ui-font-size-large` | `uiSize × 1.5` | 21 (unrounded) | ClassicyTabs.scss |
@@ -4229,8 +4229,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
-| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | ClassicyCheckbox.scss |
-| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | ClassicyCheckbox.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | _Checkbox.scss |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | _Checkbox.scss |
 | `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
 | `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
 | `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |

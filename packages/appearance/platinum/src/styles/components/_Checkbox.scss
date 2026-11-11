@@ -1,10 +1,47 @@
-// The Platinum checkbox look (from ClassicyCheckbox.scss): the beveled box
-// border, then the base sheet's pressed, disabled and default overrides of
-// it, in their original order.
+// The Platinum checkbox look (from ClassicyCheckbox.scss): the face, the
+// beveled box border, the checkmark, dash and X glyphs, then the pressed,
+// disabled, focus and default overrides, in their original order. The size,
+// margin and holder stay in the base sheet.
+@use "sass:string";
 @use "../mixins";
 
 @mixin checkbox {
   .classicyCheckbox {
+    border-radius: 0;
+    background: var(--color-system-03);
+
+    // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard on-state
+    // mark. (The "X" is only a localization opt-in, see .classicyCheckboxX.)
+    &:checked {
+      &:after {
+        font-family: var(--ui-font), sans-serif;
+        font-size: var(--ui-font-size);
+        line-height: var(--ui-font-size-caption);
+        display: flex;
+        justify-content: center;
+        content: string.unquote('"\\2713"');
+        text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
+      }
+    }
+
+    &:disabled:checked {
+      color: var(--color-system-05);
+    }
+
+    &:active {
+      background: var(--color-system-06);
+    }
+
+    &:focus {
+      border-radius: var(--window-border-size);
+      outline: var(--color-outline) solid var(--control-frame-width);
+    }
+
+    &:disabled,
+    &:disabled:active {
+      background: transparent;
+    }
+
     @include mixins.platinum-window-border;
 
     &:active {
@@ -29,5 +66,27 @@
     &:disabled {
       border-color: var(--color-system-06);
     }
+  }
+
+  // Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the checkmark
+  // is not culturally acceptable, the familiar "X" may be used instead.
+  .classicyCheckbox.classicyCheckboxX {
+    &:checked:after {
+      font-size: var(--checkbox-x-mark-font-size);
+      line-height: var(--checkbox-x-mark-line-height);
+      content: string.unquote('"\\00D7"');
+    }
+  }
+
+  // The mixed state is a distinct third state: it shows its dash whether or
+  // not it is also checked.
+  .classicyCheckbox.mixed:after {
+    font-family: var(--ui-font), sans-serif;
+    font-size: var(--ui-font-size);
+    line-height: var(--ui-font-size-caption);
+    display: flex;
+    justify-content: center;
+    content: '-';
+    text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
   }
 }
