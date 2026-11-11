@@ -47,6 +47,17 @@ export const platinumSoundPack: ClassicySoundPack =
 		...platinumJson,
 		id: PLATINUM,
 		name: "Platinum",
+		// The alerts the Sound tab offers; the rest of the sheet is feedback.
+		alerts: [
+			{ value: "ClassicyAlertBonk", label: "Bonk" },
+			{ value: "ClassicyAlertGrowl", label: "Growl" },
+			{ value: "ClassicyAlertIndigo", label: "Indigo" },
+			{ value: "ClassicyAlertQuack", label: "Quack" },
+			{ value: "ClassicyAlertSosumi", label: "Sosumi" },
+			{ value: "ClassicyAlertTabitha", label: "Tabitha" },
+			{ value: "ClassicyAlertWildEep", label: "Wild Eep" },
+		],
+		defaultAlert: "ClassicyAlertSosumi",
 		src: platinumUrls,
 	});
 

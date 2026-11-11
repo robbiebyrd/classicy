@@ -41,7 +41,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import {
+	classicyPackAlerts,
+	resolveClassicyAlertSound,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
@@ -546,11 +549,22 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		changeMetric,
 	});
 
+	const activeSoundPack = registeredSoundPacks.find(
+		(pack) => pack.id === currentSoundPack,
+	);
+	const packAlerts = useMemo(
+		() => [...classicyPackAlerts(activeSoundPack)],
+		[activeSoundPack],
+	);
 	const soundTab = useSoundTab({
 		soundPacks,
 		soundPack: currentSoundPack,
 		changeSoundPack,
-		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
+		alerts: packAlerts,
+		alertSound:
+			(activeSoundPack
+				? resolveClassicyAlertSound(activeSoundPack, appearanceState.alertSound)
+				: appearanceState.alertSound) ?? "",
 		changeAlertSound,
 		alertVolume: appearanceState.alertVolume ?? 100,
 		changeAlertVolume,

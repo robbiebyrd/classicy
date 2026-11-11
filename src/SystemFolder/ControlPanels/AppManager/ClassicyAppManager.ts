@@ -28,7 +28,6 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	type ClassicyStoreSystemBootManager,
@@ -669,7 +668,6 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// package's registration replaces it with its own "default".
 				activeTheme: CLASSICY_CORE_DEFAULT_THEME,
 				customThemes: [],
-				alertSound: DEFAULT_ALERT_SOUND,
 				// Alerts play at the full system volume until the user lowers it.
 				alertVolume: 100,
 				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at

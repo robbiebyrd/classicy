@@ -53,7 +53,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import {
+	CLASSICY_ALERT_SOUNDS,
+	DEFAULT_ALERT_SOUND,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
@@ -398,6 +401,7 @@ const SoundTabStory = () => {
 				path: "sound.pack",
 				value: e.target.value,
 			}),
+		alerts: CLASSICY_ALERT_SOUNDS,
 		alertSound: appearance.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound: (e) => {
 			dispatch({

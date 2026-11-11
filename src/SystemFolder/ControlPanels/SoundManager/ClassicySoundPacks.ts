@@ -13,7 +13,25 @@ export type ClassicySoundPack = SoundData & {
 	id: string;
 	name: string;
 	packageId?: string;
+	/**
+	 * The sprite ids the user may pick as the alert sound, with display names
+	 * (the Sound tab's list). Absent: the pack takes the default pack's
+	 * alerts, as it takes its other sprites; `[]`: it has none, and alerts
+	 * play nothing.
+	 */
+	alerts?: ClassicyAlertSoundOption[];
+	/**
+	 * The alert played while the stored choice is not one of `alerts`. Absent
+	 * (or not in `alerts`): the first alert, or the default pack's default
+	 * when `alerts` is absent.
+	 */
+	defaultAlert?: string;
 };
+
+export interface ClassicyAlertSoundOption {
+	value: string;
+	label: string;
+}
 
 export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 	SoundDataSchema.extend({
@@ -22,6 +40,16 @@ export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 			.regex(/^[a-z0-9][a-z0-9-]{0,63}$/, "must be a kebab-case id"),
 		name: z.string().trim().min(1).max(64),
 		packageId: z.string().max(64).optional(),
+		alerts: z
+			.array(
+				z.object({
+					value: z.string().min(1).max(128),
+					label: z.string().trim().min(1).max(64),
+				}),
+			)
+			.max(64)
+			.optional(),
+		defaultAlert: z.string().min(1).max(128).optional(),
 		src: z.array(z.string().min(1)).min(1),
 	});
 
@@ -126,10 +154,21 @@ export const useClassicySoundPacks = (): readonly ClassicySoundPack[] =>
 		listClassicySoundPacks,
 	);
 
-/** Contract sprite ids that `pack` does not define. */
+/**
+ * Sprite ids `pack` should define but does not. The contract ids, except the
+ * `ClassicyAlert*` ones when the pack declares its own `alerts` (the alerts
+ * are pack-defined); plus each alert it declares.
+ */
 export const classicySoundPackMissingSprites = (
 	pack: ClassicySoundPack,
-): string[] => CLASSICY_SOUND_SPRITE_IDS.filter((id) => !(id in pack.sprite));
+): string[] => {
+	const own = pack.alerts !== undefined;
+	const required = CLASSICY_SOUND_SPRITE_IDS.filter(
+		(id) => !(own && id.startsWith("ClassicyAlert")),
+	);
+	const ids = [...required, ...(pack.alerts ?? []).map((a) => a.value)];
+	return [...new Set(ids)].filter((id) => !(id in pack.sprite));
+};
 
 /** Test helper: forget every registered pack. */
 export const resetClassicySoundPacks = (): void => {

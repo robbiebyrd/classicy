@@ -1,5 +1,4 @@
 import { type ChangeEvent, useMemo } from "react";
-import { CLASSICY_ALERT_SOUNDS } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
@@ -11,6 +10,9 @@ interface SoundTabProps {
 	/** The active theme's `sound.pack`. */
 	soundPack: string;
 	changeSoundPack: (e: ChangeEvent<HTMLSelectElement>) => void;
+	/** The active pack's alerts (what the Alert Sound pop-up lists). */
+	alerts: readonly { value: string; label: string }[];
+	/** The alert in effect: the stored choice, else the pack's default. */
 	alertSound: string;
 	changeAlertSound: (e: ChangeEvent<HTMLSelectElement>) => void;
 	/** Alert sound level, 0–100 (a percentage of the system volume). */
@@ -28,6 +30,7 @@ export const useSoundTab = ({
 	soundPacks,
 	soundPack,
 	changeSoundPack,
+	alerts,
 	alertSound,
 	changeAlertSound,
 	alertVolume,
@@ -64,7 +67,7 @@ export const useSoundTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"alertSound"}
-							options={CLASSICY_ALERT_SOUNDS}
+							options={[...alerts]}
 							selected={alertSound}
 							onChangeFunc={changeAlertSound}
 						/>
@@ -102,6 +105,7 @@ export const useSoundTab = ({
 			soundPackOptions,
 			soundPack,
 			changeSoundPack,
+			alerts,
 			alertSound,
 			changeAlertSound,
 			alertVolume,
