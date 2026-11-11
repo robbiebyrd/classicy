@@ -200,7 +200,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			// The icon draws at the theme's desktop icon size: a theme that sets
 			// it to the small-icon size or less draws the leaf's small image.
 			const desktopIconSize = useAppManager(
-				(s) => s.System.Manager.Appearance.activeTheme.desktop.iconSize,
+				(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
 			);
 			// How the active package shows the app. Only an app shortcut stands
 			// for its app: drives share Finder.app's id, and other kinds name
@@ -222,7 +222,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
 
-			const iconUrl = useClassicyIconImage(identity.icon, desktopIconSize);
+			const iconUrl = useClassicyIconImage(
+				identity.icon,
+				desktopIconSize ?? Number.POSITIVE_INFINITY,
+			);
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
 			);
