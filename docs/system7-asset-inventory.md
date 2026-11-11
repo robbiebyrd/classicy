@@ -2,7 +2,7 @@
 
 Every icon, system-art key, cursor, alert sound and window color the System 7 Appearance Package (`@classicy/appearance-system7`, plan 0018-dbd §2.1, design 0017-6me) needs from System 7.5, and exactly which file to export for each. Work down the tables and tick `[ ]` to `[x]` as files land. Rows whose Done cell is "—" need nothing from you.
 
-**Fallback rule.** Where System 7 would show its own generic icon for a thing it lacked, the key reuses that generic (an extension newer than 7.5 gets the generic extension, an unknown document the generic document, a DVD the CD-ROM). The core image is kept only for Classicy-specific UI glyphs, brands, and things with no file-kind meaning.
+**Fallback rule.** Where System 7 would show its own generic icon for a thing it lacked, the key reuses that generic (an extension newer than 7.5 gets the generic extension, an unknown document the generic document, a DVD the CD-ROM). The core image is kept only for Classicy-specific UI glyphs, brands, and things with no file-kind meaning. Classicy's own apps (software that exists only in Classicy, such as Pager, News, Radio and the Usenet reader) keep their icons as Classicy brands.
 
 `src/Appearance/ClassicySystem7AssetInventory.repo.test.ts` reads the keys from the code and fails if any icon key, `ClassicySystemArtKey` or `ClassicyCursorRole` is missing here, so a key added later shows up as a test failure, not a blank image.
 
@@ -10,7 +10,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 294 keys | 67 export (up to 4 PNGs each); 89 reuse and 138 core need nothing. 26 exports have a known ID, 41 say "ID to confirm" |
+| Icons | 294 keys | 67 export (up to 4 PNGs each); 85 reuse and 142 core need nothing. 26 exports have a known ID, 41 say "ID to confirm" |
 | System art | 39 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | 6 WAV exports and one copy |
@@ -135,10 +135,10 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.internetExplorer.search` | Search (web viewer toolbar) | core | Classicy UI glyph | — | — |
 | — | `applications.netscape.loaderAnimated` | Netscape throbber (animated) | core | Classicy UI glyph (a loading throbber) | — | — |
 | — | `applications.netscape.loader` | Netscape throbber | core | Classicy UI glyph (a loading throbber) | — | — |
-| — | `applications.pager.app` | Pager application | reuse | `system.files.application` (System 7's generic application) | — | — |
-| — | `applications.news.app` | News reader application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.pager.app` | Pager application | core | Classicy brand (Classicy-only app) | — | — |
+| — | `applications.news.app` | News reader application | core | Classicy brand (Classicy-only app) | — | — |
 | — | `applications.pictureViewer.app` | Picture Viewer application | reuse | `applications.simpletext.app` (SimpleText was System 7.5's picture viewer; Picture Viewer arrived with QuickTime 3, after 7.5) | — | — |
-| — | `applications.radio.app` | Radio application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.radio.app` | Radio application | core | Classicy brand (Classicy-only app) | — | — |
 | — | `applications.registerWithApple.app` | Register with Apple application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.setupAssistant.setupAssistant` | Mac OS Setup Assistant application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | [ ] | `applications.stickies.app` | Stickies application | export | Stickies (Apple Menu Items); ID to confirm: the application's own icon (`BNDL`, usually 128) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-app.png` |
@@ -148,7 +148,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.stuffit.app` | StuffIt application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.stuffit.compressing` | StuffIt application, compressing | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.stuffit.file` | StuffIt archive | reuse | `system.files.document` (System 7's generic document) | — | — |
-| — | `applications.usenet.app` | Usenet reader application | reuse | `system.files.application` (System 7's generic application) | — | — |
+| — | `applications.usenet.app` | Usenet reader application | core | Classicy brand (Classicy-only app) | — | — |
 | — | `applications.usenet.search` | Usenet search | core | Classicy UI glyph | — | — |
 | — | `applications.usenet.server` | Usenet server | core | Classicy UI glyph | — | — |
 | — | `applications.systemProfiler.app` | Apple System Profiler application | reuse | `system.files.application` (System 7's generic application) | — | — |
