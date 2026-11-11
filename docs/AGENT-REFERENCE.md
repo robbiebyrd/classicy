@@ -1316,12 +1316,12 @@ existing asset with an empty namespace.
 
 ```ts
 import {
-    registerClassicyAssets,   // (kind, packageId, tree) — the primitive
+    registerClassicyAssets,   // (kind, packageId, tree, options?: { variant? }) — the primitive
     registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
-    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>)
+    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>, options?)
     registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string; legacyDigests?: string[] }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
-    registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
+    registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>, options?)
 } from '@classicy/classicy'
 
 // ClassicyFontFace = { family: string; src: ClassicyAssetSource | ClassicyAssetSource[];
@@ -1437,10 +1437,27 @@ const url = resolveClassicyAsset('cursors', 'hand')   // string | undefined
 const wallpapers = useClassicyAssetTree('wallpapers')
 ```
 
-- `resolveClassicyAsset(kind, dottedPath, packageId?)` returns the leaf from the
-  given (or active) package, then the default package's
-  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`, where the core's
-  icon tree registers), else `undefined`. Components use `?? ""`.
+- `resolveClassicyAsset(kind, dottedPath, packageId?, variant?)` returns the
+  leaf from the given (or active) package's variant tree, then its base tree,
+  then the default package's (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`,
+  `"platinum"`, where the core's icon tree registers), else `undefined`.
+  Components use `?? ""`.
+- **Per-theme variants**: `registerClassicyAssets(kind, packageId, tree, {
+  variant: "bw" })` (and `registerClassicyCursors`/`registerClassicySystemArt`
+  with the same last argument) registers an extra tree for a named variant of
+  the package (`CLASSICY_ASSET_VARIANT_NAME`: a letter or digit, then letters,
+  digits, `_` or `-`, at most 64), deep-merged like the base tree. A theme
+  selects it with `assetVariant: "bw"`, which the schema, theme files,
+  persistence and custom-theme forks keep. The variant applies only while the
+  active theme belongs to the drawn package; `variant` defaults to that
+  theme's, and every reader (`useClassicyAsset`, `useClassicyAssetTree`,
+  `resolveClassicyAsset`, the published `--classicy-art-*` /
+  `--classicy-cursor-*`) follows a theme switch. A variant the package never
+  registered draws the base tree, with one `classicyLog` warning per package
+  and variant per page (checked after the current task, so trees registered
+  in the same module evaluation never warn). Wallpapers vary by name only
+  (`registerClassicyWallpapers` registers the base tree); a theme picks its
+  wallpaper with `desktop.backgroundImage` anyway.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;

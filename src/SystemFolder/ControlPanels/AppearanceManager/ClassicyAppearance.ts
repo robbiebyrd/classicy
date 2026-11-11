@@ -197,6 +197,15 @@ export type ClassicyTheme = {
 	measurements: ClassicyThemeMeasurements;
 	desktop: ClassicyThemeDesktop;
 	sound: ClassicyThemeSound;
+	/**
+	 * The variant of its package's assets this theme draws with
+	 * (`registerClassicyAssets(kind, package, tree, { variant })`): icons,
+	 * system art, cursors and wallpapers by name resolve the variant's tree,
+	 * then the package's base tree, then the default package's. Absent, the
+	 * base tree; a variant the package never registered draws the base tree
+	 * too, with one warning.
+	 */
+	assetVariant?: string;
 };
 
 export const getThemeVars = (theme: ClassicyTheme) => {

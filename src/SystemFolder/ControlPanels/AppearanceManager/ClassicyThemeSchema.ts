@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
+import { CLASSICY_ASSET_VARIANT_NAME } from "@/Appearance/ClassicyAssetRegistry";
 import { classicyWallpaperFilename } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	isPlainClassicyWallpaperFile,
@@ -267,6 +268,16 @@ export const ClassicyThemeSchema = z.object({
 		pack: soundPack,
 		disabled: z.array(z.string().max(128)).max(256),
 	}),
+	// The variant of its package's assets the theme draws with; only ever a
+	// registry key, never written into CSS. A variant the package has not
+	// registered (yet) is accepted: lookups draw the base tree meanwhile.
+	assetVariant: z
+		.string()
+		.regex(
+			CLASSICY_ASSET_VARIANT_NAME,
+			"must be a variant name: a letter or digit, then letters, digits, _ or -, at most 64",
+		)
+		.optional(),
 }) satisfies z.ZodType<ClassicyTheme>;
 
 // Compile-time guard, in the other direction from `satisfies` above: every

@@ -653,10 +653,14 @@ useAppManager.subscribe(followDrawnPackage);
 
 // The asset registry follows the active Appearance Package: the store's
 // packageId resolved against the package registry, so assets and the desktop
-// root's data-classicy-appearance always agree. Connected here, once the store
-// exists; the registry reads it lazily, never during module evaluation.
+// root's data-classicy-appearance always agree, and the active theme, whose
+// assetVariant selects a variant of that package's assets. Connected here,
+// once the store exists; the registry reads it lazily, never during module
+// evaluation.
 connectClassicyAssetPackageSource({
 	getId: () => resolveClassicyAppearancePackage().id,
+	getActiveTheme: () =>
+		useAppManager.getState().System.Manager.Appearance.activeTheme,
 	subscribe: (onChange) => {
 		const unsubscribeStore = useAppManager.subscribe(onChange);
 		const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
