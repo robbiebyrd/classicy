@@ -350,8 +350,15 @@ describe("platinum.scss (compiled)", () => {
 		const scrolling = rule(
 			lists.map((l) => `${P} .${l}.classicyMenuListScrolls`).join(", "),
 		).props;
+		// Offset half of start + reach, spread half of reach − start: the
+		// strips the pseudo-elements draw (start 3, reach 1: 2 2 0 −1).
+		const start =
+			"calc(var(--menu-frame-border-width) + var(--menu-frame-shadow-start))";
+		const reach =
+			"calc(var(--menu-frame-shadow-gap) + var(--menu-frame-shadow-width))";
+		const offset = `calc((${start} + ${reach}) / 2)`;
 		expect(scrolling["box-shadow"]).toBe(
-			"var(--menu-frame-shadow-width) var(--menu-frame-shadow-width) 0 0 var(--color-system-07)",
+			`${offset} ${offset} 0 calc((${reach} - ${start}) / 2) var(--color-system-07)`,
 		);
 		expect(scrolling["scrollbar-width"]).toBe("none");
 		expect(

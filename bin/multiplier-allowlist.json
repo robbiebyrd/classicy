@@ -11,10 +11,28 @@
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
 		}
 	],
+	"packages/appearance/platinum/src/styles/components/_Menu.scss": [
+		{
+			"count": 2,
+			"reason": "A scrolling menu's box shadow drawn where the frame's shadow pseudo-elements draw it (they would be clipped): a box shadow is the box moved and shrunk, so the offset and the spread are halves of the frame's border, shadow start, gap and width; geometry of the one rectangle, not theme proportions (H-R21)."
+		}
+	],
 	"packages/appearance/system7/src/styles/_pixel.scss": [
 		{
 			"count": 1,
 			"reason": "System 7's pixel-grid art: the pressed close and zoom boxes' starburst, the windoid close box's cross, the menu bar's screen corners, the menu checkmark, the menu and pop-up triangles, the push buttons' rounded corners and default ring, and the controls' art (the checkbox's X, the radio button's circle and dot, the little arrows, the slider's channel and thumb, the outline triangle, the dotted group box and separator) are one-pixel rectangles placed in multiples of the one grid knob (--window-box-pixel x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as the Control Strip's)."
+		}
+	],
+	"packages/appearance/system7/src/styles/components/_Menu.scss": [
+		{
+			"count": 1,
+			"reason": "A scrolling menu's box shadow drawn where the frame's shadow pseudo-elements draw it (they would be clipped): the offset and the spread take half of menuFrame.shadowStart, geometry of the one rectangle, not a theme proportion (H-R21)."
+		}
+	],
+	"packages/appearance/system7/src/styles/components/_MenuBar.scss": [
+		{
+			"count": 1,
+			"reason": "A scrolling pull-down's box shadow drawn where the frame's shadow pseudo-elements draw it under a top with no line (the bar's bottom line is its top): the spread is half of menuFrame.shadowStart less the line, geometry of the one rectangle, not a theme proportion (H-R21)."
 		}
 	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [

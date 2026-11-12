@@ -461,12 +461,36 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
 
+		// A pull-down has no top line (the bar's is its top), so its scrolling
+		// shadow takes two layers: the right strip from shadowStart down, and
+		// the general one (the bottom strip from $b + shadowStart in).
+		it("frames a scrolling pull-down's shadow in two layers, from its top with no line", () => {
+			const pullDown = css.match(
+				/\.classicySubMenu\.classicyMenuListScrolls \{[^}]*box-shadow:([^;]*);/,
+			)?.[1];
+			expect(pullDown).toBeDefined();
+			const layers = (pullDown ?? "")
+				.split(/,(?![^(]*\))/)
+				.map((l) => l.trim());
+			expect(layers).toHaveLength(2);
+			const half = "calc(var(--menu-frame-shadow-start) / 2)";
+			const offset = `calc(var(--window-border-size) + ${half})`;
+			expect(layers[0]).toBe(
+				`${offset} ${half} 0 calc(${half} * -1) var(--color-black)`,
+			);
+			expect(layers[1]).toBe(
+				`${offset} ${offset} 0 calc(${half} * -1) var(--color-black)`,
+			);
+		});
+
 		it("frames a scrolling menu with a box shadow, its pseudo-element shadows off", () => {
 			const scrolling = rule(
 				":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls",
 			);
+			// Offset $b + half the shadow start, spread minus that half: the
+			// one-pixel strips the pseudo-elements draw (2 2 0 −1).
 			expect(scrolling).toMatch(
-				/box-shadow: var\(--window-border-size\) var\(--window-border-size\) 0 0 var\(--color-black\);/,
+				/box-shadow: calc\(var\(--window-border-size\) \+ calc\(var\(--menu-frame-shadow-start\) \/ 2\)\) calc\(var\(--window-border-size\) \+ calc\(var\(--menu-frame-shadow-start\) \/ 2\)\) 0 calc\(calc\(var\(--menu-frame-shadow-start\) \/ 2\) \* -1\) var\(--color-black\);/,
 			);
 			expect(
 				rule(
