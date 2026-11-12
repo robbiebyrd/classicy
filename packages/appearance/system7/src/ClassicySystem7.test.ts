@@ -355,11 +355,27 @@ describe("the System 7 appearance package", () => {
 				"--text-field-inset": "3px",
 				"--text-field-lift": "2px",
 				"--list-box-row-height": "16px",
+				"--combo-box-indicator-width": "20px",
+				"--outline-triangle-size": "11px",
+				"--channel-slider-channel": "13px",
+				"--channel-slider-thumb-along": "11px",
+				"--channel-slider-thumb-across": "23px",
+				"--channel-slider-thumb-overhang": "5px",
 				// The text field and the progress bar (the Copy dialog's) are
 				// the core's derivations: 22 and 11 pixels.
 				"--edit-field-height": "22px",
 				"--progress-height": "11px",
 			});
+	});
+
+	// The slider's thumb overhangs its channel the same on both sides
+	// (_Slider.scss centers it by the overhang).
+	it("centers the slider's thumb across its channel", () => {
+		for (const theme of system7Json.presets) {
+			const { channel, thumbAcross, thumbOverhang } =
+				theme.measurements.channelSlider;
+			expect(channel + thumbOverhang + thumbOverhang).toBe(thumbAcross);
+		}
 	});
 
 	// The progress bar's track and fill (_ProgressBar.scss): #CCCCFF and

@@ -176,12 +176,18 @@ question n in the Open questions of
 | `color-disclosure-pressed.png` | Disclosure triangle pressed | color | Finder list | 12,85,11,11 | CIC "outline triangle" |
 | `bw-disclosure-pressed.png` | Same | 1-bit | Finder list | same | CIC "outline-triangle fill in B&W" |
 | `color-disclosure-expanded.png` | Disclosure triangle expanded, nested rows | color | Finder list | 10,84,14,13 | same |
-| `bw-disclosure-expanded.png` | Same | 1-bit | Finder list | same | same |
+| `bw-disclosure-expanded.png` | Same | 1-bit | Finder list | same | same; see the note below the table |
 | `color-controlpanel-color-standard.png` | Color control panel: Highlight color "Black & White", Window color "Standard" (the setting every color capture was shot with) | color | Color control panel | 100,42,292,128 | MWD 4, 12; CIC "highlight color" |
 | `color-popup-open-window-color.png` | Window color pop-up open: Standard, Gold, Green, Turquoise, Red, Pink, Blue, Gray, Black & White, each with its swatch | color | Color control panel | 227,132,146,146 | MWD 12 |
 | `color-controlpanel-monitors-256.png` | Monitors: depth list (scrollable), radio buttons, buttons | color | Monitors | 100,42,234,280 | CIC "4-bit color variant" |
 | `color-controlpanel-monitors-opened-icon.png` | Same, with the opened Monitors icon in the Finder window behind | color | Monitors | same | CIC "opened-icon pattern" |
 | `bw-controlpanel-monitors-bw.png` | Monitors after switching to Black & White | 1-bit | Monitors | same | — |
+
+Disclosure triangles: the color triangle's checker fill is `#9999FF` in these
+captures. No System 7 Color token holds that value, so the package draws the
+checker in `--color-theme-03` (`#9999CC`, the Standard wctb's tinge, white in
+1-bit). Against the disclosure captures a color triangle is AE 10 (its ten
+checker pixels) and a 1-bit one AE 0 (plan 0018-dbd §3.5; `_Triangle.scss`).
 
 ## What the captures settle
 

@@ -2,8 +2,9 @@
 // inside the package wrapper. Measured from Standard File and the Sound
 // control panel (`*-dialog-standardfile-open.png`,
 // `*-controlpanel-sound-slider.png`) and the HIG (printed pp.220-221, figure
-// 7-20): a one-pixel black frame, no bevel, Chicago 12 rows on an
-// 18-pixel pitch (`listBox.rowHeight`); the selected row inverted, black
+// 7-20): a one-pixel black frame, no bevel, Chicago 12 rows on a 16-pixel
+// pitch (`listBox.rowHeight`, the Sound panel's list; Standard File's rows,
+// with their 16-pixel icons, are 18); the selected row inverted, black
 // with white text, in both themes (the highlight color, black by default,
 // HIG p.260). Dimmed rows take the dimmed ink through the dither. The
 // list's scroll bar is the scroll bars' (§3.6).

@@ -127,7 +127,15 @@ const controls = () => (
 			<ClassicyCheckbox id="cb-on" checked label="Show size" />
 			<ClassicyCheckbox id="cb-off" label="Show version" />
 			<ClassicyCheckbox id="cb-mixed" mixed label="Mixed" />
+			<ClassicyCheckbox id="cb-mixed-on" checked mixed label="Mixed, on" />
 			<ClassicyCheckbox id="cb-dim-on" checked disabled label="Dimmed on" />
+			<ClassicyCheckbox
+				id="cb-dim-mixed-on"
+				checked
+				mixed
+				disabled
+				label="Dimmed mixed"
+			/>
 			<ClassicyCheckbox id="cb-dim-off" disabled label="Dimmed off" />
 			<ClassicyRadioInput
 				name="grid"
@@ -179,7 +187,9 @@ const controls = () => (
 			</div>
 		</div>
 		<div style={column}>
-			<div style={{ ...row, alignItems: "stretch", height: 120 }}>
+			<div
+				style={{ ...row, alignItems: "stretch", height: 120, marginBottom: 16 }}
+			>
 				<ClassicySlider
 					id="volume"
 					value={70}

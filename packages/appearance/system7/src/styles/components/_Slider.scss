@@ -130,52 +130,58 @@ $ink: var(--system7-slider-ink);
 }
 
 @mixin slider {
+  // The channel and the thumb's box (`channelSlider`): the thumb is
+  // `thumbAlong` (11) long down the channel and `thumbAcross` (23) across it,
+  // overhanging the channel (`channel`, 13) by `thumbOverhang` (5) each side.
   .classicySliderTrackGroup {
-    --slider-thumb-width: #{px(11)};
-    --slider-thumb-height: #{px(23)};
+    --slider-thumb-width: var(--channel-slider-thumb-along);
+    --slider-thumb-height: var(--channel-slider-thumb-across);
   }
 
   .classicySlider {
     --system7-slider-ink: var(--color-black);
 
-    height: px(23);
+    height: var(--channel-slider-thumb-across);
 
     &::-webkit-slider-runnable-track {
-      height: px(13);
+      height: var(--channel-slider-channel);
       @include channel-track(true);
     }
 
     &::-moz-range-track {
-      height: px(13);
+      height: var(--channel-slider-channel);
       @include channel-track(true);
     }
 
-    // Centered across the channel: (13 - 23) / 2.
+    // Centered across the channel.
     &::-webkit-slider-thumb {
-      margin-top: px(-5);
+      margin-top: calc(var(--channel-slider-thumb-overhang) * -1);
       clip-path: none;
       background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
     }
 
     &::-moz-range-thumb {
-      margin-top: px(-5);
+      margin-top: calc(var(--channel-slider-thumb-overhang) * -1);
       clip-path: none;
       background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
     }
   }
 
   // A vertical slider: the channel runs down its writing-mode axis.
+  // Its height is the base sheet's, the container's (the horizontal one's
+  // above is only the thumb's box across).
   .classicySliderInputVertical {
-    width: px(23);
+    width: var(--channel-slider-thumb-across);
+    height: 100%;
 
     &::-webkit-slider-runnable-track {
-      width: px(13);
+      width: var(--channel-slider-channel);
       height: auto;
       @include channel-track(false);
     }
 
     &::-moz-range-track {
-      width: px(13);
+      width: var(--channel-slider-channel);
       height: auto;
       @include channel-track(false);
     }
@@ -188,6 +194,20 @@ $ink: var(--system7-slider-ink);
 
     &::-moz-range-thumb {
       margin: 0 0 0 $px;
+    }
+  }
+
+  // With tick marks a vertical slider's input sits in a stack beside its
+  // ticks. The base sheet's later `.classicySliderStack` rule turns that
+  // stack back into a column (the ticks fall under the slider), and its
+  // track layer is only stretched, so the orthogonal input's 100% resolves
+  // against the viewport. Here the stack is a row again and the layer takes
+  // the stack's height outright.
+  .classicySliderStackVertical {
+    flex-direction: row;
+
+    > .classicySliderTrackLayer {
+      height: 100%;
     }
   }
 

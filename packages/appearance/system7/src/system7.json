@@ -176,6 +176,18 @@
 			},
 			"listBox": {
 				"rowHeight": 16
+			},
+			"comboBox": {
+				"indicatorWidth": 20
+			},
+			"outlineTriangle": {
+				"size": 11
+			},
+			"channelSlider": {
+				"channel": 13,
+				"thumbAlong": 11,
+				"thumbAcross": 23,
+				"thumbOverhang": 5
 			}
 		},
 		"desktop": {
@@ -364,6 +376,18 @@
 				},
 				"listBox": {
 					"rowHeight": 16
+				},
+				"comboBox": {
+					"indicatorWidth": 20
+				},
+				"outlineTriangle": {
+					"size": 11
+				},
+				"channelSlider": {
+					"channel": 13,
+					"thumbAlong": 11,
+					"thumbAcross": 23,
+					"thumbOverhang": 5
 				}
 			},
 			"desktop": {
@@ -554,6 +578,18 @@
 				},
 				"listBox": {
 					"rowHeight": 16
+				},
+				"comboBox": {
+					"indicatorWidth": 20
+				},
+				"outlineTriangle": {
+					"size": 11
+				},
+				"channelSlider": {
+					"channel": 13,
+					"thumbAlong": 11,
+					"thumbAcross": 23,
+					"thumbOverhang": 5
 				}
 			},
 			"desktop": {

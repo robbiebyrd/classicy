@@ -614,7 +614,13 @@ describe("system7.scss (compiled)", () => {
 			expect(css).toMatch(
 				/\.classicyDesktop\[data-classicy-appearance=system7\],\s*\.classicyDesktop\[data-classicy-appearance=system7\] \* \{\s*accent-color: var\(--color-black\);\s*\}/,
 			);
-			expect(rule("*::marker")).toMatch(/color: var\(--color-black\);/);
+			expect(rule("*::marker")).toMatch(/color: currentColor;/);
+		});
+
+		it("inverts selected text in both themes, over the base sheet's theme-02", () => {
+			const selection = rule("*::selection");
+			expect(selection).toMatch(/color: var\(--color-white\);/);
+			expect(selection).toMatch(/background: var\(--color-highlight\);/);
 		});
 
 		it("draws the checkbox as a framed 12 px box, an X of 18 pixels when on, framed twice when pressed", () => {
@@ -628,7 +634,25 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyCheckbox:active:not(:disabled)")).toMatch(
 				/box-shadow: inset 0 0 0 var\(--window-box-pixel\) var\(--color-black\);/,
 			);
-			expect(layersOf(rule(":where(.classicyCheckbox).mixed"), BLACK)).toBe(1);
+			expect(layersOf(rule(".classicyCheckbox.mixed"), BLACK)).toBe(1);
+		});
+
+		// Mixed is its own state: the dash wins over the X, checked or not,
+		// dimmed or not (same specificity, later in the sheet).
+		it("draws a mixed box's dash over a checked box's X, dimmed or not", () => {
+			const at = (selector: string) =>
+				css.indexOf(
+					`.classicyDesktop[data-classicy-appearance=system7] ${selector} {`,
+				);
+			expect(at(".classicyCheckbox.mixed")).toBeGreaterThan(
+				at(".classicyCheckbox:checked"),
+			);
+			expect(at(".classicyCheckbox.mixed:disabled")).toBeGreaterThan(
+				at(".classicyCheckbox:disabled:checked"),
+			);
+			expect(at(".classicyCheckbox:checked")).toBeGreaterThan(0);
+			expect(at(".classicyCheckbox:disabled:checked")).toBeGreaterThan(0);
+			expect(layersOf(rule(".classicyCheckbox.mixed:disabled"), DIM)).toBe(1);
 		});
 
 		it("draws the radio button's circle, its pressed ring and its dot as pixel art", () => {
@@ -682,20 +706,49 @@ describe("system7.scss (compiled)", () => {
 
 		it("draws the channel slider: its caps, runs and checker, and a capsule thumb", () => {
 			const track = rule(".classicySlider::-webkit-slider-runnable-track");
-			expect(track).toMatch(/height: calc\(var\(--window-box-pixel\) \* 13\);/);
+			expect(track).toMatch(/height: var\(--channel-slider-channel\);/);
 			// Both caps (10 rectangles each), four runs, seven checker columns.
 			expect(layersOf(track, "var(--system7-slider-ink)")).toBe(10 + 10 + 4);
 			expect(track.split("repeating-linear-gradient(").length - 1).toBe(7);
 			const thumb = rule(".classicySlider::-webkit-slider-thumb");
 			expect(layersOf(thumb, "var(--system7-slider-ink)")).toBe(10);
 			expect(layersOf(thumb, "var(--color-white)")).toBe(3);
+			expect(rule(".classicySliderTrackGroup")).toMatch(
+				/--slider-thumb-height: var\(--channel-slider-thumb-across\);/,
+			);
 			expect(rule(":where(.classicySlider).disabled")).toMatch(
 				/--system7-slider-ink: var\(--color-theme-06\);/,
 			);
 		});
 
+		// The horizontal slider is the thumb's box tall; the vertical one keeps
+		// the base sheet's 100%, its container's height, after it.
+		it("sizes a horizontal slider by its thumb and lets a vertical one fill its container", () => {
+			expect(rule(".classicySlider")).toMatch(
+				/height: var\(--channel-slider-thumb-across\);/,
+			);
+			const vertical = rule(".classicySliderInputVertical");
+			expect(vertical).toMatch(/height: 100%;/);
+			expect(vertical).toMatch(/width: var\(--channel-slider-thumb-across\);/);
+			const at = (selector: string) =>
+				css.indexOf(
+					`.classicyDesktop[data-classicy-appearance=system7] ${selector} {`,
+				);
+			expect(at(".classicySliderInputVertical")).toBeGreaterThan(
+				at(".classicySlider"),
+			);
+			// With ticks: a row again, its track layer the stack's height.
+			expect(rule(".classicySliderStackVertical")).toMatch(
+				/flex-direction: row;/,
+			);
+			expect(
+				rule(".classicySliderStackVertical > .classicySliderTrackLayer"),
+			).toMatch(/height: 100%;/);
+		});
+
 		it("draws the outline triangle on the pixel grid, turning about a whole pixel", () => {
 			const triangle = rule(".classicyTriangle");
+			expect(triangle).toMatch(/width: var\(--outline-triangle-size\);/);
 			expect(triangle).toMatch(/transform-box: border-box;/);
 			expect(triangle).toMatch(
 				/transform-origin: calc\(var\(--window-box-pixel\) \* 6\) calc\(var\(--window-box-pixel\) \* 5\);/,
@@ -726,6 +779,9 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(rule(".classicyRichTextEditor:focus-visible")).toMatch(
 				/box-shadow: none;/,
+			);
+			expect(rule(".classicyComboBoxIndicator")).toMatch(
+				/width: var\(--combo-box-indicator-width\);/,
 			);
 		});
 

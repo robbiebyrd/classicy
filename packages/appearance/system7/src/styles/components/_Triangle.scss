@@ -7,8 +7,15 @@
 // 1-bit; in color its inside is a checker of the light tinge and white. While
 // pressed it fills black (both themes).
 //
+// A known deviation: the 7.5 Finder fills the color checker with #9999FF,
+// which no System 7 Color token holds. This draws it in `--color-theme-03`
+// (#9999CC, the Standard wctb's tinge, white in 1-bit), so a color triangle
+// is AE 10 against the captures (its ten checker pixels) and AE 0 otherwise
+// (docs/system7-reference-screenshots.md, the disclosure rows).
+//
 // The component draws a vector triangle; here its shapes are hidden and the
-// triangle is pixel art on the svg's own box, an 11 x 11 square. The closed
+// triangle is pixel art on the svg's own box, an 11 x 11 square
+// (`outlineTriangle.size`). The closed
 // triangle sits in its columns 4 to 9; the rotation turns about the point
 // (6, 5), so the open one lands on rows 3 to 8, where the Finder draws it,
 // every pixel on the grid.
@@ -30,8 +37,8 @@ $solid: (0 0 1 11) (1 1 1 9) (2 2 1 7) (3 3 1 5) (4 4 1 3) (5 5 1 1);
 
 @mixin triangle {
   .classicyTriangle {
-    width: px(11);
-    height: px(11);
+    width: var(--outline-triangle-size);
+    height: var(--outline-triangle-size);
     margin-left: 0;
     transform-box: border-box;
     transform-origin: px(6) px(5);

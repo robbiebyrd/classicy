@@ -46,16 +46,26 @@
 
   // The browser's own controls take black, not the base sheet's accent
   // (`--color-theme-04`, the Standard window color's #666699 in color):
-  // System 7 drew every control black on white (HIG p.259). List markers
-  // likewise, which the base sheet draws in `--color-theme-02` (white in
-  // 1-bit).
+  // System 7 drew every control black on white (HIG p.259).
   &,
   * {
     accent-color: var(--color-black);
   }
 
+  // List markers take their text's color, not the base sheet's
+  // `--color-theme-02` (white in 1-bit), so they stay visible on inverted
+  // text too.
   *::marker {
-    color: var(--color-black);
+    color: currentColor;
+  }
+
+  // Selected text inverts in both themes: white on the highlight color,
+  // black in both (System 7.5's default "Black & White", HIG p.260), where
+  // the base sheet paints `--color-theme-02` (white in 1-bit, lavender in
+  // color).
+  *::selection {
+    color: var(--color-white);
+    background: var(--color-highlight);
   }
 
   // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's

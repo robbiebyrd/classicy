@@ -85,11 +85,6 @@ $radio-dash: ((3 5 6 2),);
     }
   }
 
-  // Before the dimmed rule: a dimmed mixed box takes the dimmed ink too.
-  :where(.classicyCheckbox).mixed {
-    background: pixel-art(var(--color-black), $dash), var(--color-white);
-  }
-
   // Dimmed (HIG p.207): the frame and the mark in the dimmed ink, through
   // the dither; the face stays white.
   .classicyCheckbox:disabled {
@@ -101,7 +96,14 @@ $radio-dash: ((3 5 6 2),);
     }
   }
 
-  :where(.classicyCheckbox).mixed:disabled {
+  // Mixed is a third state: its dash shows whether or not the box is also
+  // checked. Each rule matches its checked counterpart's specificity and
+  // follows it, so the dash wins dimmed or not.
+  .classicyCheckbox.mixed {
+    background: pixel-art(var(--color-black), $dash), var(--color-white);
+  }
+
+  .classicyCheckbox.mixed:disabled {
     background: pixel-art(var(--color-theme-06), $dash), var(--color-white);
   }
 

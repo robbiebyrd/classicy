@@ -530,6 +530,14 @@ describe("platinum.scss (compiled)", () => {
 		expect(flat.indexOf(`\n${tabs.selector} {`)).toBeGreaterThan(fallback);
 	});
 
+	// Plan 0018-dbd §3.5: the group box's title face left ClassicyControlGroup's
+	// inline default (`var(--color-system-03)`) for this partial, so another
+	// package can paint its own; a host's `backgroundColor` prop still wins.
+	it("paints the window face behind a group box's title", () =>
+		expect(rule(`${P} .classicyControlGroupLegend`).props).toEqual({
+			"background-color": "var(--color-system-03)",
+		}));
+
 	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
 		// Every rule whose selector list is exactly `selector`, in order: Sass
 		// emits a rule's declarations that follow a nested rule as a second rule

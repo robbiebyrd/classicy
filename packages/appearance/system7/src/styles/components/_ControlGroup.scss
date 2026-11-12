@@ -28,8 +28,11 @@
   @return $column right top px($skip) / $px $length no-repeat;
 }
 
-// A layer drawn in color only: its tile is two pixels long at a zero
-// `dither.tileSize` (color) and none at 2 (1-bit).
+// A layer drawn in color only. `dither.tileSize` has two legal values: 0
+// (color: plain ink) and 2 (1-bit: the 2 x 2 checker). So this tile is two
+// pixels long in color and zero, drawing nothing, in 1-bit; the 1-bit
+// layers below use the tile size itself, the other way round. Another
+// tile size would break the switch.
 $color-only: calc(#{px(2)} - var(--dither-tile-size));
 
 @mixin control-group {

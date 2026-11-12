@@ -82,12 +82,12 @@ $fields: ".classicyInput, .classicySpinner";
 
   // The combo box: the field, and beside it a pop-up box holding the pop-up
   // menu's triangle (System 7 had no combo box; this is its two parts).
-  // The box is the field's height and 20 pixels wide, the pop-up
-  // triangle centered in it (4 pixels in, 7 down).
+  // The box is the field's height and `comboBox.indicatorWidth` (20) wide,
+  // the pop-up triangle centered in it (4 pixels in, 7 down).
   .classicyComboBoxIndicator {
     align-self: stretch;
     box-sizing: border-box;
-    width: px(20);
+    width: var(--combo-box-indicator-width);
     height: auto;
     margin: 0;
     border: $px solid var(--color-black);
