@@ -100,6 +100,27 @@ const cdModule: ClassicyControlStripModuleDefinition = {
  */
 export const Default: Story = {};
 
+/**
+ * The Screen Saver module's menu open: the strip sits at the bottom of the
+ * screen, so the menu, placed below its module first, flips up above it,
+ * and its scroll cap follows it there, so all of its items show.
+ */
+export const ModuleMenuOpen: Story = {
+	render: (args) => {
+		useEffect(() => {
+			const timer = window.setTimeout(() => {
+				document
+					.querySelector<HTMLElement>(
+						'.classicyControlStripModule[aria-label="Screen Saver"]',
+					)
+					?.click();
+			}, 300);
+			return () => window.clearTimeout(timer);
+		}, []);
+		return <ClassicyControlStrip {...args} />;
+	},
+};
+
 /** Registered modules join the built-ins; `order` puts these two first. */
 const customModules = [fileSharingModule, cdModule];
 export const CustomModules: Story = {

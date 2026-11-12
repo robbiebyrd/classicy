@@ -239,22 +239,53 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	});
 	const { measure: measureScrollArrows, reset: resetScrollArrows } =
 		scrollArrows;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: menuItems is a trigger, not read: new items change the list's height
+	// The list's full height, measured while it is uncapped: a capped list's
+	// rows may follow its height (rows of `height: 100%`), so it is not
+	// measured again until its items change (below).
+	const fullHeightRef = useRef<number | null>(null);
+	// Placed on every render while shown, not only when it opens: the host
+	// may place the menu after it mounts (a contextual menu flipping up from
+	// the bottom of the screen, a bevel button's pop-up measured hidden
+	// below its button, then placed), and moving it re-renders the menu
+	// within the same commit, before paint. The cap follows where the list
+	// finally is; an unchanged cap sets no state.
 	useLayoutEffect(() => {
 		const el = listRef.current;
 		if (!shown || !el || typeof window === "undefined") {
+			fullHeightRef.current = null;
 			setScrollCap(null);
 			return;
 		}
 		const rect = el.getBoundingClientRect();
 		if (rect.height === 0) return;
 		const room = window.innerHeight - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
-		// The list's full height, border included, whatever cap it has now.
-		const full = el.scrollHeight + (el.offsetHeight - el.clientHeight);
+		if (scrollCap === null) {
+			// From the list's top to its last row's bottom (its rows run down in
+			// order), then its padding and border. Not `scrollHeight`, which
+			// counts an open submenu hanging out of it (a menu bar's pull-down)
+			// as the list's own overflow.
+			const last = el.lastElementChild;
+			const style = getComputedStyle(el);
+			fullHeightRef.current = last
+				? last.getBoundingClientRect().bottom -
+					rect.top +
+					el.scrollTop +
+					(Number.parseFloat(style.paddingBottom) || 0) +
+					(Number.parseFloat(style.borderBottomWidth) || 0)
+				: rect.height;
+		}
+		const full = fullHeightRef.current ?? rect.height;
 		setScrollCap(
 			full > room ? Math.max(Math.floor(room), MENU_MIN_SCROLL_HEIGHT) : null,
 		);
-	}, [shown, menuItems]);
+	});
+	// New items: measure the list again, uncapped. After the effect above, so
+	// its cap gives way to this.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: menuItems is a trigger, not read: new items change the list's height
+	useLayoutEffect(() => {
+		fullHeightRef.current = null;
+		setScrollCap(null);
+	}, [menuItems]);
 	useLayoutEffect(() => {
 		if (scrollCap === null) resetScrollArrows();
 		else measureScrollArrows();

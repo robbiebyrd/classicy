@@ -2,6 +2,8 @@
 // p.78): capped at the screen's bottom, no scroll bar, an indicator at an
 // end with items past it. jsdom lays nothing out: the lists' boxes and
 // extents are stubbed.
+
+import { useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 
@@ -81,13 +83,27 @@ beforeEach(() => {
 	});
 	vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
 		function (this: HTMLElement) {
+			// A row: its place in its list, which may have scrolled.
+			const list = this.parentElement;
+			if (this.tagName === "LI" && list && isList(list)) {
+				const top = list.getBoundingClientRect().y;
+				const index = Array.prototype.indexOf.call(list.children, this);
+				return DOMRect.fromRect({
+					x: 40,
+					y: top + index * ROW - list.scrollTop,
+					width: 160,
+					height: ROW,
+				});
+			}
 			if (!isList(this))
 				return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
-			// A hidden submenu list has no box.
+			// A hidden submenu list has no box. A host may place the list
+			// (`data-top` on an ancestor); else it sits 100 px down.
 			const hidden = this.closest("li") && !this.closest("li.open");
+			const host = this.closest<HTMLElement>("[data-top]");
 			return DOMRect.fromRect({
 				x: 40,
-				y: 100,
+				y: host ? Number(host.dataset.top) : 100,
 				width: 160,
 				height: hidden ? 0 : Math.min(rowsOf(this) * ROW, capOf(this)),
 			});
@@ -192,5 +208,79 @@ describe("ClassicyMenu scrolling", () => {
 			fireEvent.scroll(list);
 		});
 		expect(nested.classList.contains("open")).toBe(false);
+	});
+
+	// A host that places the menu after it mounts, as a contextual menu
+	// flips up from the bottom of the screen and a bevel button's pop-up is
+	// measured hidden below its button, then placed: the cap follows the
+	// final place.
+	// The host's items are stable across its renders, as a real host's are.
+	const FIVE = items(5);
+
+	it("caps the menu where its host finally places it, not where it first mounted", () => {
+		const Host = () => {
+			const [top, setTop] = useState(250);
+			useLayoutEffect(() => setTop(162), []);
+			return (
+				<div data-top={top}>
+					<ClassicyMenu name="m" menuItems={FIVE} />
+				</div>
+			);
+		};
+		const { container } = render(<Host />);
+		const list = container.querySelector("ul") as HTMLElement;
+		// At 250 the 100 px menu would be capped (300 − 4 − 250 = 46, so the
+		// 64 px floor); at 162 it fits (134).
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(false);
+		expect(list.style.maxHeight).toBe("");
+		expect(arrow("down")).toBeNull();
+	});
+
+	it("caps it when the host moves it down past the room it has", () => {
+		const Host = () => {
+			const [top, setTop] = useState(100);
+			useLayoutEffect(() => setTop(220), []);
+			return (
+				<div data-top={top}>
+					<ClassicyMenu name="m" menuItems={FIVE} />
+				</div>
+			);
+		};
+		const { container } = render(<Host />);
+		const list = container.querySelector("ul") as HTMLElement;
+		// 300 − 4 − 220 = 76.
+		expect(list.style.maxHeight).toBe("76px");
+		expect(arrow("down")).not.toBeNull();
+	});
+
+	// A menu bar's own list is a row of titles; the pull-down hanging out of
+	// it is the pull-down's to scroll. `scrollHeight` counts that pull-down as
+	// the bar's overflow, so the cap reads the bar's rows instead.
+	it("never caps a list whose open submenu hangs below it", () => {
+		const scrollHeight = Object.getOwnPropertyDescriptor(
+			HTMLElement.prototype,
+			"scrollHeight",
+		);
+		// The bar's list (one row) reports the pull-down below as overflow.
+		Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+			configurable: true,
+			get() {
+				return (this as HTMLElement).classList.contains("bar") ? 900 : 0;
+			},
+		});
+		try {
+			const { container } = render(
+				<ClassicyMenu name="bar" navClass="bar" menuItems={items(1)} />,
+			);
+			const bar = container.querySelector("ul.bar") as HTMLElement;
+			expect(bar.classList.contains("classicyMenuListScrolls")).toBe(false);
+		} finally {
+			if (scrollHeight)
+				Object.defineProperty(
+					HTMLElement.prototype,
+					"scrollHeight",
+					scrollHeight,
+				);
+		}
 	});
 });

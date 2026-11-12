@@ -6,6 +6,7 @@
 // (Classicy's menus are sticky). Compare with the System 7.5 captures in
 // docs/system7-reference-screenshots.md ("Desktop and menus", "Controls").
 import {
+	ClassicyContextualMenu,
 	type ClassicyMenuItem,
 	ClassicyPopUpMenu,
 	ClassicyWindow,
@@ -231,3 +232,33 @@ export const PopUpColor = inColor(popUpScene(false));
  */
 export const PopUpOpen: Story = { render: popUpScene(true) };
 export const PopUpOpenColor = inColor(popUpScene(true));
+
+/**
+ * Menus a host places after they mount, low on the screen: a contextual menu
+ * opened near the bottom flips up above the point, and the Control Strip's
+ * Screen Saver menu, placed below its module first, flips up above the
+ * strip. Each menu's scroll cap follows it to its final place, so all of its
+ * items show, with no scroll indicators.
+ */
+const lowMenusScene = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyContextualMenu
+			name="system7-context-bottom"
+			position={[420, 740]}
+			menuItems={[
+				item("open", "Open"),
+				item("print", "Print"),
+				spacer,
+				item("info", "Get Info"),
+				item("trash", "Move To Trash"),
+			]}
+			onClose={fn()}
+		/>
+		<OpenOnMount
+			selectors={['.classicyControlStripModule[aria-label="Screen Saver"]']}
+		/>
+	</StoryApp>
+);
+
+export const LowMenus: Story = { render: lowMenusScene };
+export const LowMenusColor = inColor(lowMenusScene);
