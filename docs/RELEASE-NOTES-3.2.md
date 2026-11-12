@@ -241,6 +241,14 @@ the ids the saver already names:
   roots also carry `classicyScrollArea`): a host stylesheet that styled their
   native scroll bars or set their `overflow` targets the viewport, or the
   parts above.
+- **`ClassicyScrollArea` internals.** One layout measurement per scroll
+  frame (the render a scroll causes no longer measures again); the content
+  observer ignores attributes that cannot move the content (`aria-*`,
+  `tabindex`, `data-*`) and leaves text changes to the resize observer where
+  the browser has one; a `renderViewport` scroller that remounts keeps being
+  watched; a held track that the pointer leaves pages toward where it comes
+  back. `viewportRef` is typed `Ref<HTMLElement>`, so a `<textarea>` viewport's
+  ref type-checks (a widening: existing `HTMLDivElement` refs still do).
 - **The default state seeds no `alertSound`.** A first session plays the
   active pack's default alert. `Appearance.alertSound` was already optional;
   read the alert in effect with `resolveClassicyAlertSound(pack, stored)`.

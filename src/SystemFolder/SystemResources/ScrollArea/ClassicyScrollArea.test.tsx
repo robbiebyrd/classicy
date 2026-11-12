@@ -34,6 +34,9 @@ let viewportBox: Box;
 const BAR = 17;
 const LENGTH = 200;
 const scroll = new WeakMap<Element, { top: number; left: number }>();
+// How many times the viewport's content height has been read: each
+// measurement (`update`) reads it, so this counts layout measurements.
+let viewportReads = 0;
 
 const px = (el: HTMLElement, name: string) =>
 	Number.parseFloat(el.style.getPropertyValue(name)) || 0;
@@ -43,8 +46,11 @@ const has = (el: Element, cls: string) => el.classList.contains(cls);
 const geometry: Record<string, (el: HTMLElement) => number> = {
 	scrollWidth: (el) =>
 		has(el, "classicyScrollAreaViewport") ? viewportBox.scrollWidth : 0,
-	scrollHeight: (el) =>
-		has(el, "classicyScrollAreaViewport") ? viewportBox.scrollHeight : 0,
+	scrollHeight: (el) => {
+		if (!has(el, "classicyScrollAreaViewport")) return 0;
+		viewportReads += 1;
+		return viewportBox.scrollHeight;
+	},
 	clientWidth: (el) =>
 		has(el, "classicyScrollAreaViewport") ? viewportBox.clientWidth : 0,
 	clientHeight: (el) =>
@@ -400,7 +406,7 @@ describe("ClassicyScrollArea", () => {
 		expect(viewport.scrollTop).toBe(184);
 		// Back over the track lower down: pages on toward the new point.
 		fireEvent.mouseMove(document, { clientY: 180 });
-		fireEvent.mouseEnter(track);
+		fireEvent.mouseEnter(track, { clientY: 180 });
 		expect(viewport.scrollTop).toBe(368);
 		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(true);
 		act(() => {
@@ -412,7 +418,7 @@ describe("ClassicyScrollArea", () => {
 		// Re-entering after the release pages no more.
 		fireEvent.mouseLeave(track);
 		fireEvent.mouseMove(document, { clientY: 20 });
-		fireEvent.mouseEnter(track);
+		fireEvent.mouseEnter(track, { clientY: 20 });
 		expect(viewport.scrollTop).toBe(800);
 	});
 
@@ -678,6 +684,193 @@ describe("ClassicyScrollArea", () => {
 		expect(ref.current).toBe(viewport);
 		expect(viewport.classList.contains("mine")).toBe(true);
 		expect(viewport.getAttribute("role")).toBe("region");
+	});
+});
+
+// Plan 0018-dbd task 1.5's deferred items (story 0208-m1n).
+describe("ClassicyScrollArea internals", () => {
+	// The reads one measurement makes, from a scroll that changes nothing
+	// (no state change, so no render follows).
+	const readsPerMeasure = (viewport: HTMLElement) => {
+		viewportReads = 0;
+		act(() => {
+			fireEvent.scroll(viewport);
+		});
+		return viewportReads;
+	};
+
+	it("measures once per scroll, not again on the render the scroll causes", () => {
+		const { container, viewport } = renderTall();
+		const once = readsPerMeasure(viewport);
+		expect(once).toBeGreaterThan(0);
+		viewportReads = 0;
+		act(() => {
+			viewport.scrollTop = 400;
+			fireEvent.scroll(viewport);
+		});
+		// The thumb moved (a render), measured once.
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
+		expect(viewportReads).toBe(once);
+	});
+
+	it("still measures on a render it did not cause (a policy change)", () => {
+		const { container, rerender } = renderTall();
+		expect(part(container, "scrollbar")).toBeDefined();
+		rerender(
+			<ClassicyScrollArea vertical="never">
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		expect(part(container, "scrollbar")).toBeUndefined();
+	});
+
+	it("measures for attribute changes that can move the content, not for the others", async () => {
+		const { viewport } = renderTall();
+		const once = readsPerMeasure(viewport);
+		const p = viewport.querySelector("p") as HTMLElement;
+		const mutate = async (change: () => void) => {
+			viewportReads = 0;
+			await act(async () => {
+				change();
+				// MutationObserver callbacks run as a microtask.
+				await Promise.resolve();
+			});
+			return viewportReads;
+		};
+		expect(await mutate(() => p.setAttribute("aria-selected", "true"))).toBe(0);
+		expect(await mutate(() => p.setAttribute("tabindex", "0"))).toBe(0);
+		expect(await mutate(() => p.setAttribute("data-x", "1"))).toBe(0);
+		expect(await mutate(() => p.setAttribute("class", "wide"))).toBe(once);
+		expect(await mutate(() => p.setAttribute("style", "height: 9px"))).toBe(
+			once,
+		);
+		expect(await mutate(() => p.setAttribute("hidden", ""))).toBe(once);
+		expect(await mutate(() => p.append(document.createElement("span")))).toBe(
+			once,
+		);
+	});
+
+	it("leaves text changes to the ResizeObserver where there is one", async () => {
+		const observed: Element[] = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				observe(el: Element) {
+					observed.push(el);
+				}
+				disconnect() {}
+				unobserve() {}
+			},
+		);
+		try {
+			const { viewport } = renderTall();
+			// The viewport and its children are watched for size.
+			expect(observed).toContain(viewport);
+			expect(observed).toContain(viewport.querySelector("p"));
+			const text = viewport.querySelector("p")?.firstChild as Text;
+			viewportReads = 0;
+			await act(async () => {
+				text.data = "Longer content";
+				await Promise.resolve();
+			});
+			expect(viewportReads).toBe(0);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("watches text changes itself where there is no ResizeObserver", async () => {
+		const { viewport } = renderTall();
+		const once = readsPerMeasure(viewport);
+		const text = viewport.querySelector("p")?.firstChild as Text;
+		viewportReads = 0;
+		await act(async () => {
+			text.data = "Longer content";
+			await Promise.resolve();
+		});
+		expect(viewportReads).toBe(once);
+	});
+
+	it("follows a caller's scroller that is replaced by another", () => {
+		viewportBox = { ...viewportBox, scrollHeight: 1000 };
+		const area = (key: string) => (
+			<ClassicyScrollArea
+				renderViewport={(viewport) => (
+					<textarea
+						key={key}
+						ref={viewport.ref}
+						className={viewport.className}
+						onScroll={viewport.onScroll}
+						defaultValue={key}
+					/>
+				)}
+			/>
+		);
+		const { container, rerender } = render(area("first"));
+		rerender(area("second"));
+		const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+		expect(textarea.defaultValue).toBe("second");
+		expect(part(container, "scrollbar")).toBeDefined();
+		// Typing in the new one (no render, no element change) still updates
+		// the bars: its listeners moved with it.
+		viewportBox = { ...viewportBox, scrollHeight: 200 };
+		act(() => {
+			fireEvent.input(textarea);
+		});
+		expect(part(container, "scrollbar")).toBeUndefined();
+	});
+
+	it("hands a caller's text area to its viewport ref", () => {
+		const ref = { current: null as HTMLTextAreaElement | null };
+		const { container } = render(
+			<ClassicyScrollArea
+				viewportRef={ref}
+				renderViewport={(viewport) => (
+					<textarea
+						ref={viewport.ref}
+						className={viewport.className}
+						onScroll={viewport.onScroll}
+					/>
+				)}
+			/>,
+		);
+		expect(ref.current).toBe(container.querySelector("textarea"));
+	});
+
+	it("pages toward where the pointer comes back over the track", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 16 });
+		const track = part(container, "scroll-track");
+		fireEvent.mouseDown(track, { button: 0, clientY: 150 });
+		expect(viewport.scrollTop).toBe(184);
+		fireEvent.mouseLeave(track);
+		// Back over the track above the thumb, with no move reported first.
+		fireEvent.mouseEnter(track, { clientY: 20 });
+		expect(viewport.scrollTop).toBe(0);
+		fireEvent.mouseUp(document.body);
+	});
+
+	it("stops paging the track when the pointer stream is lost", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 16 });
+		const track = part(container, "scroll-track");
+		fireEvent.mouseDown(track, { button: 0, clientY: 180 });
+		expect(viewport.scrollTop).toBe(184);
+		act(() => {
+			window.dispatchEvent(new Event("blur"));
+		});
+		expect(track.classList.contains(CLASSICY_STATE.pressed)).toBe(false);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(184);
+		// Nor does coming back over the track resume it.
+		fireEvent.mouseLeave(track);
+		fireEvent.mouseEnter(track, { clientY: 180 });
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		expect(viewport.scrollTop).toBe(184);
 	});
 });
 

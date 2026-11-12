@@ -72,8 +72,12 @@ export interface ClassicyScrollAreaProps
 	inactive?: boolean;
 	/** Pixels one press of an arrow scrolls. Defaults to 16. */
 	lineStep?: number;
-	/** The scrolling element (the viewport), for the caller's own reads. */
-	viewportRef?: Ref<HTMLDivElement>;
+	/**
+	 * The scrolling element (the viewport), for the caller's own reads: the
+	 * area's `<div>`, or the element `renderViewport` puts its `ref` on (a
+	 * `<textarea>`).
+	 */
+	viewportRef?: Ref<HTMLElement>;
 	/** Extra class names on the viewport. */
 	viewportClassName?: string;
 	/** Attributes and handlers for the viewport (role, tabIndex, aria-*). */
@@ -269,6 +273,9 @@ export const ClassicyScrollArea = forwardRef<
 	const horizontalPolicy = scrollable ? horizontal : "never";
 
 	const viewportElRef = useRef<HTMLElement | null>(null);
+	// The viewport element as state too, so the observers below move to a
+	// new one (a `renderViewport` scroller that remounts).
+	const [viewportEl, setViewportEl] = useState<HTMLElement | null>(null);
 	const barRefs: Record<ClassicyScrollBarOrientation, BarRefs> = {
 		vertical: {
 			bar: useRef<HTMLDivElement | null>(null),
@@ -296,6 +303,10 @@ export const ClassicyScrollArea = forwardRef<
 		horizontal: NO_THUMB,
 	});
 	const [fits, setFits] = useState({ vertical: true, horizontal: true });
+	// The thumbs and fits states as last set, for `update` to compare with
+	// without waiting for the render.
+	const thumbsRef = useRef(thumbs);
+	const fitsRef = useRef(fits);
 	const policyRef = useRef({
 		vertical: verticalPolicy,
 		horizontal: horizontalPolicy,
@@ -306,6 +317,11 @@ export const ClassicyScrollArea = forwardRef<
 		horizontal: horizontalPolicy,
 		paired: pairBars,
 	};
+
+	// Set by `update` when it changes only the thumbs or the fits states: the
+	// render that follows moves nothing it measured, so the layout effect
+	// below need not measure again (one measurement per scroll frame).
+	const ownRenderRef = useRef(false);
 
 	// Measure the viewport: which bars it needs, and where each thumb sits.
 	// Runs on every layout change and scroll; sets state only on a change.
@@ -350,33 +366,54 @@ export const ClassicyScrollArea = forwardRef<
 					? { length: thumb.length, offset: track.start + thumb.offset }
 					: NO_THUMB;
 		}
-		setThumbs((prev) =>
-			sameThumb(prev.vertical, nextThumbs.vertical) &&
-			sameThumb(prev.horizontal, nextThumbs.horizontal)
-				? prev
-				: nextThumbs,
-		);
-		setFits((prev) =>
-			prev.vertical === nextFits.vertical &&
-			prev.horizontal === nextFits.horizontal
-				? prev
-				: nextFits,
-		);
+		const thumbsNow = thumbsRef.current;
+		if (
+			!sameThumb(thumbsNow.vertical, nextThumbs.vertical) ||
+			!sameThumb(thumbsNow.horizontal, nextThumbs.horizontal)
+		) {
+			thumbsRef.current = nextThumbs;
+			ownRenderRef.current = true;
+			setThumbs(nextThumbs);
+		}
+		const fitsNow = fitsRef.current;
+		if (
+			fitsNow.vertical !== nextFits.vertical ||
+			fitsNow.horizontal !== nextFits.horizontal
+		) {
+			fitsRef.current = nextFits;
+			ownRenderRef.current = true;
+			setFits(nextFits);
+		}
 		snapClassicyScrollPart(refs.vertical.bar.current);
 		snapClassicyScrollPart(refs.horizontal.bar.current);
 		snapClassicyScrollPart(cornerRef.current);
 	}, []);
 
 	// Every render may have moved something (bars drawn or removed, a policy
-	// changed): measure before paint.
+	// changed): measure before paint. Not the render `update` itself caused
+	// by moving a thumb or marking a bar `fits`, which moves nothing it
+	// reads, unless the bars or their policies changed in the same render (a
+	// parent's update batched with it).
+	const layoutInputs = [
+		verticalPolicy,
+		horizontalPolicy,
+		pairBars,
+		shown.vertical,
+		shown.horizontal,
+	].join();
+	const measuredInputsRef = useRef<string | null>(null);
 	useLayoutEffect(() => {
+		const own = ownRenderRef.current;
+		ownRenderRef.current = false;
+		if (own && measuredInputsRef.current === layoutInputs) return;
+		measuredInputsRef.current = layoutInputs;
 		update();
 	});
 
 	// Layout changes that are not renders of this component: the viewport or
 	// its content resizing, the content changing, an image loading.
 	useLayoutEffect(() => {
-		const el = viewportElRef.current;
+		const el = viewportEl;
 		if (!el) return;
 		const resizeObserver =
 			typeof ResizeObserver === "undefined"
@@ -398,11 +435,20 @@ export const ClassicyScrollArea = forwardRef<
 						observeChildren();
 						update();
 					});
+		// Elements added or removed anywhere (the resize observer then
+		// watches the new children), and the attributes that can move the
+		// content without resizing a child the resize observer watches (an
+		// absolutely placed icon's `style`, a `class` or `hidden` toggled),
+		// not the ones a list changes on every focus or selection (`aria-*`,
+		// `tabindex`, `data-*`). A text change resizes the element holding
+		// it, which the resize observer sees (text directly in the viewport
+		// is the area's own children: a render, measured above); without
+		// one, the text is watched here instead.
 		mutationObserver?.observe(el, {
 			childList: true,
 			subtree: true,
-			characterData: true,
-			attributes: true,
+			attributeFilter: ["class", "style", "hidden"],
+			characterData: !resizeObserver,
 		});
 		el.addEventListener("load", update, true);
 		// A text area's own text changes no element.
@@ -413,12 +459,13 @@ export const ClassicyScrollArea = forwardRef<
 			el.removeEventListener("load", update, true);
 			el.removeEventListener("input", update);
 		};
-	}, [update]);
+	}, [viewportEl, update]);
 
 	const viewportRefCallback = useCallback(
 		(el: HTMLElement | null) => {
 			viewportElRef.current = el;
-			setRef(viewportRef, el as HTMLDivElement | null);
+			setRef(viewportRef, el);
+			if (el) setViewportEl(el);
 		},
 		[viewportRef],
 	);
@@ -612,7 +659,10 @@ const ClassicyScrollBar = ({
 	const hold = (
 		part: Exclude<PressedPart, null>,
 		el: HTMLElement,
-		begin: (run: (step: () => boolean | undefined) => void) => void,
+		begin: (
+			run: (step: () => boolean | undefined) => void,
+			pointer?: MouseEvent,
+		) => void,
 		cleanup?: () => void,
 	) => {
 		endHoldRef.current?.();
@@ -622,8 +672,9 @@ const ClassicyScrollBar = ({
 			repeat.start(step, () => setPressed(null));
 		};
 		const onLeave = () => repeat.stop();
-		const onEnter = () => {
-			if (heldRef.current === part) begin(run);
+		// Coming back over the part: where it came back is the pointer now.
+		const onEnter = (e: MouseEvent) => {
+			if (heldRef.current === part) begin(run, e);
 		};
 		const end = () => {
 			if (endHoldRef.current !== end) return;
@@ -695,9 +746,13 @@ const ClassicyScrollBar = ({
 		hold(
 			"track",
 			e.currentTarget,
-			(run) => {
+			(run, entered) => {
 				// Toward the pointer where it is now (a return over the track
-				// may be on the thumb's other side).
+				// may be on the thumb's other side): where it came back over
+				// the track, else where it last moved.
+				if (entered) {
+					pointer = along(entered) - barStart(barEl.getBoundingClientRect());
+				}
 				const direction = pointer < thumbNow().start ? -1 : 1;
 				run(() => {
 					// Stop once the thumb reaches the pointer (HIG7 p.165).
