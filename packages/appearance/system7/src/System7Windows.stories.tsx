@@ -42,9 +42,11 @@ const Window = (
 	props: Omit<ComponentProps<typeof ClassicyWindow>, "appId">,
 ) => <ClassicyWindow appId="storybook.app" {...props} />;
 
+// A document window keeps its bars while this fits, with nothing to scroll
+// (HIG p.160; the package's layout says `scrollBar.fitsBars: "shown"`).
 const fits = (
 	<div style={{ padding: "1em" }}>
-		<p>Everything fits, so there are no scroll bars to draw.</p>
+		<p>Everything fits.</p>
 	</div>
 );
 
