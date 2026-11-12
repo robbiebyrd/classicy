@@ -1050,6 +1050,22 @@ describe("system7.scss (compiled)", () => {
 				/margin: calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) 0;/,
 			));
 
+		it("draws Standard File's own list as the list: black frame, no bevel, its bar on the frame", () => {
+			expect(rule(".classicyFileOpenDialogWell")).toMatch(
+				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(rule(".classicyFileOpenDialogWellViewport")).toMatch(
+				/box-shadow: none;/,
+			);
+			expect(
+				rule(
+					".classicyFileOpenDialogWell > .classicyScrollAreaBody > .classicyScrollBarVertical",
+				),
+			).toMatch(
+				/margin: calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) 0;/,
+			);
+		});
+
 		it("draws each arrow in 20 outline and 16 fill pixels' runs, its far half moved out by the spread", () => {
 			for (const [arrow, toward] of [
 				[".classicyScrollBarVertical .classicyScrollBarArrowStart", "+"],

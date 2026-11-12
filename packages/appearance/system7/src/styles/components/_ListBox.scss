@@ -29,6 +29,20 @@
     margin: calc(#{$px} * -1) calc(#{$px} * -1) calc(#{$px} * -1) 0;
   }
 
+  // Standard File's own list (ClassicyFileDialog's well) is the same list:
+  // a black frame, no bevel, its scroll bar on the frame.
+  .classicyFileOpenDialogWell {
+    border: $px solid var(--color-black);
+  }
+
+  .classicyFileOpenDialogWellViewport {
+    box-shadow: none;
+  }
+
+  .classicyFileOpenDialogWell > .classicyScrollAreaBody > .classicyScrollBarVertical {
+    margin: calc(#{$px} * -1) calc(#{$px} * -1) calc(#{$px} * -1) 0;
+  }
+
   .classicyListBoxOption {
     color: var(--color-black);
     outline: none;
