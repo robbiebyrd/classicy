@@ -3,11 +3,13 @@ id: 0189-6pc
 title: 'Core: a fixed modal that is not an alert'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: feat
-status: pending
+status: complete
 priority: "3"
 effort: M
 created: "2026-11-12T14:12:14.396Z"
-updated: "2026-11-12T14:12:14.396Z"
+updated: "2026-11-12T17:32:19.579Z"
+started: "2026-11-12T15:00:00.309Z"
+completed: "2026-11-12T17:32:19.579Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Story and tests under Platinum and System 7; Platinum parity AE 0
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A modal window can be fixed without beeping or the error scrim, and Platinum's existing modals are unchanged.
+- [x] VERIFY: A modal window can be fixed without beeping or the error scrim, and Platinum's existing modals are unchanged.
 
 ## Files
 

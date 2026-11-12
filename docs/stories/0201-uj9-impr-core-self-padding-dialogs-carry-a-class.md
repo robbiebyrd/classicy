@@ -3,11 +3,13 @@ id: 0201-uj9
 title: 'Core: self-padding dialogs carry a class'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:53.304Z"
-updated: "2026-11-12T14:12:53.304Z"
+updated: "2026-11-12T17:32:24.493Z"
+started: "2026-11-12T15:00:07.412Z"
+completed: "2026-11-12T17:32:24.493Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ System 7 keys the zero inset on the class; tests; Platinum parity AE 0
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Self-padding dialogs get one inset in every supported browser.
+- [x] VERIFY: Self-padding dialogs get one inset in every supported browser.
 
 ## Files
 
