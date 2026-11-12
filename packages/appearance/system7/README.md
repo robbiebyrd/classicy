@@ -15,13 +15,19 @@ built. Today it ships:
   package's alerts (Platinum's, when a host also loads it);
 - a stylesheet that draws System 7's windows (the frame and drop shadow,
   the racing stripes, the close, zoom and size boxes, inactive windows and
-  the floating window's title bar) and hides the collapse box they lack.
+  the floating window's title bar) and hides the collapse box they lack, and
+  its menus: the white menu bar under the screen's rounded corners, pull-down
+  and hierarchical menus with inverted highlights, dimmed items and dividers
+  (dithered in the black and white theme, gray in color), checkmarks, and
+  pop-up menus;
+- one behavior hook, the blink of a chosen menu item (System 7 had no
+  interface feedback sounds, so it plays none).
 
-Later work adds the rest of the System 7 look element by element (menus,
-dialogs, controls, scroll bars), dithered dimmed text and rules in the black
-and white theme, System 7 period icons, art and cursors (color art, and 1-bit
-art for the black and white theme), the System 7.5 alert sounds and the
-screen savers. Until then, Classicy draws the default package's art
+Later work adds the rest of the System 7 look element by element (dialogs,
+controls, scroll bars), System 7 period icons, art and cursors (color art,
+and 1-bit art for the black and white theme, the Apple menu's apple and the
+Help menu's balloon among them), the System 7.5 alert sounds and the screen
+savers. Until then, Classicy draws the default package's art
 (Platinum's, when a host also loads Platinum) and the core's icons.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this

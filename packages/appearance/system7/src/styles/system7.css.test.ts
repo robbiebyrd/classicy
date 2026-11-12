@@ -15,6 +15,23 @@ const STYLESHEET = path.join(import.meta.dirname, "system7.scss");
 const SYSTEM7_SCOPE =
 	/^\.classicyDesktop\[data-classicy-appearance=("?)system7\1\](?=$|[\s.:#[>+~])/;
 
+/** A selector list's selectors: its commas outside parentheses (`:is(a, b)`). */
+const splitSelectors = (header: string) => {
+	const selectors: string[] = [];
+	let depth = 0;
+	let start = 0;
+	for (let i = 0; i < header.length; i++) {
+		if (header[i] === "(") depth++;
+		else if (header[i] === ")") depth--;
+		else if (header[i] === "," && depth === 0) {
+			selectors.push(header.slice(start, i).trim());
+			start = i + 1;
+		}
+	}
+	selectors.push(header.slice(start).trim());
+	return selectors;
+};
+
 /**
  * Every style-rule selector in Sass's expanded output (through at-rules, not
  * into `@keyframes` steps), a multi-line selector list included.
@@ -41,7 +58,7 @@ const selectorsOf = (css: string) => {
 			else if (header.startsWith("@")) stack.push("at");
 			else {
 				if (stack.at(-1) !== "keyframes")
-					selectors.push(...header.split(",").map((s) => s.trim()));
+					selectors.push(...splitSelectors(header));
 				stack.push("rule");
 			}
 		}
@@ -85,12 +102,7 @@ describe("system7.scss (compiled)", () => {
 	const rule = (rest: string) => {
 		const selector = `.classicyDesktop[data-classicy-appearance=system7] ${rest}`;
 		return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-			.filter(([, header]) =>
-				header
-					.split(",")
-					.map((part) => part.trim())
-					.includes(selector),
-			)
+			.filter(([, header]) => splitSelectors(header).includes(selector))
 			.map(([, , declarations]) => declarations)
 			.join("\n");
 	};
@@ -208,6 +220,174 @@ describe("system7.scss (compiled)", () => {
 					".classicyWindow .classicyWindowContents > .classicyScrollAreaBody > .classicyScrollBarVertical",
 				),
 			).toMatch(/margin: calc\(var\(--window-border-size\) \* -1\)/));
+	});
+
+	// Plan 0018-dbd §3.3: the menus, menu bar and pop-up menus, from the 7.5
+	// captures.
+	describe("menus", () => {
+		const MENUS =
+			":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)";
+		const TITLES =
+			":is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem)";
+		const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
+		const rootDeclarations = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(
+			([, header]) => header.trim() === ROOT,
+		)?.[2];
+
+		it("frames every menu in one black pixel on white, its shadow three pixels in from the corner", () => {
+			const frame = rule(MENUS);
+			expect(frame).toMatch(
+				/border: var\(--window-border-size\) solid var\(--color-black\);/,
+			);
+			expect(frame).toMatch(/background: var\(--color-white\);/);
+			expect(frame).toMatch(/box-shadow: none;/);
+			expect(frame).toMatch(/min-width: 0;/);
+			expect(rule(`${MENUS}::after`)).toMatch(
+				/top: var\(--menu-frame-shadow-start\);[\s\S]*width: var\(--window-border-size\);/,
+			);
+			expect(rule(`${MENUS}::before`)).toMatch(
+				/left: var\(--menu-frame-shadow-start\);[\s\S]*height: var\(--window-border-size\);/,
+			);
+		});
+
+		it("inverts a tracked item and an open title, black in both themes", () => {
+			for (const tracked of [
+				`${MENUS} .classicyMenuItem:hover`,
+				`${MENUS} .classicyMenuItem.open`,
+				`${TITLES}.open`,
+				".classicyPopUpMenuListItemHighlight",
+			]) {
+				const declarations = rule(tracked);
+				expect(declarations, tracked).toMatch(/color: var\(--color-white\);/);
+				expect(declarations, tracked).toMatch(
+					/background-color: var\(--color-black\);/,
+				);
+			}
+			// A title highlights only while its menu is open.
+			expect(rule(`${TITLES}:hover`)).toMatch(/background-color: transparent;/);
+		});
+
+		it("draws dimmed items and dividers in the dimmed ink through the dither", () => {
+			const dimmed = rule(`${MENUS} .classicyMenuItem.disabled > p`);
+			expect(dimmed).toMatch(/color: var\(--color-theme-06\);/);
+			expect(dimmed).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\)/,
+			);
+			expect(rule(`${MENUS} .classicyMenuItem.disabled:hover`)).toMatch(
+				/background-color: transparent;/,
+			);
+			const divider = rule(`${MENUS} .classicySeparatorHorizontal`);
+			expect(divider).toMatch(/background-color: var\(--color-theme-06\);/);
+			expect(divider).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\)/,
+			);
+			expect(divider).toMatch(/height: var\(--window-border-size\);/);
+			expect(divider).toMatch(/margin: var\(--menu-item-divider-top\) 0/);
+			expect(rule(".classicyPopUpMenuGroupHeader")).toMatch(
+				/color: var\(--color-theme-06\);/,
+			);
+		});
+
+		// The vocabulary's mixins mask with the `ditherChecker` art, which System
+		// 7 draws in CSS: a 2 x 2 checker, sized by the theme's dither knob.
+		it("draws the dither's checker tile itself", () =>
+			expect(rootDeclarations).toMatch(
+				/--classicy-art-dither-checker: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\);/,
+			));
+
+		it("sets items on the 16 px pitch, the title at the mark column's inset", () => {
+			const item = rule(`${MENUS} .classicyMenuItem`);
+			expect(item).toMatch(/height: var\(--menu-item-height\);/);
+			expect(item).toMatch(/padding: 0 0 0 var\(--menu-item-text-inset\);/);
+			expect(item).toMatch(/line-height: var\(--menu-item-line-height\);/);
+			expect(item).toMatch(/flex-wrap: nowrap;/);
+			expect(
+				rule(`${MENUS} .classicyMenuItem .classicyMenuItemKeyboardShortcut`),
+			).toMatch(/min-width: var\(--menu-item-shortcut-width\);/);
+		});
+
+		it("draws the checkmark, the submenu triangle and the pop-up triangle on the pixel grid", () => {
+			expect(
+				layersOf(
+					rule(".classicyMenuItemCheck.checked::before"),
+					"currentColor",
+				),
+			).toBe(10);
+			expect(
+				layersOf(
+					rule(".classicyPopUpMenuCheck.checked::before"),
+					"currentColor",
+				),
+			).toBe(10);
+			expect(
+				layersOf(
+					rule(`${MENUS} .classicyMenuItemChildMenuIndicator::after`),
+					"currentColor",
+				),
+			).toBe(6);
+			expect(
+				layersOf(rule(".classicyPopUpMenuIndicator"), "var(--color-black)"),
+			).toBe(6);
+		});
+
+		it("overlaps a submenu on its parent menu's right side", () =>
+			expect(
+				rule(
+					`${MENUS} .classicyMenuWrapper > :is(.classicySubMenu, .classicyContextSubMenu)`,
+				),
+			).toMatch(
+				/margin: calc\(var\(--window-border-size\) \* -1\) 0 0 calc\(var\(--menu-frame-submenu-overlap\) \* -1\);/,
+			));
+
+		it("blinks a chosen item black and white", () => {
+			expect(rule(".classicyMenuItemFlash")).toMatch(
+				/animation-name: classicySystem7MenuItemFlash;/,
+			);
+			expect(css).toMatch(/@keyframes classicySystem7MenuItemFlash \{/);
+		});
+
+		it("draws the bar white over its black line, under the screen's rounded corners", () => {
+			const bar = rule(".classicyDesktopMenu");
+			expect(bar).toMatch(/height: var\(--menu-bar-height\);/);
+			expect(bar).toMatch(
+				/border-bottom: var\(--window-border-size\) solid var\(--color-black\);/,
+			);
+			expect(bar).toMatch(/border-radius: 0;/);
+			// Four rows a corner (runs of 5, 3, 2 and 1 x 2), both corners.
+			expect(layersOf(bar, "var(--color-black)")).toBe(8);
+			const title = rule(TITLES);
+			expect(title).toMatch(
+				/border-top: var\(--menu-bar-highlight-top\) solid transparent;/,
+			);
+			expect(title).toMatch(/background-clip: padding-box;/);
+			expect(
+				rule(`${TITLES} > .classicyMenuWrapper > .classicySubMenu`),
+			).toMatch(/border-top: 0;/);
+		});
+
+		it("puts Help between the clock and the Application menu", () => {
+			expect(rule(".classicyDesktopMenu > [data-classicy-part=help]")).toMatch(
+				/order: 55;/,
+			);
+			expect(
+				rule(".classicyDesktopMenu > :has(> [data-classicy-part=help])"),
+			).toMatch(/order: 55;/);
+		});
+
+		it("inverts an open pop-up's title and hides its triangle", () => {
+			expect(
+				rule(
+					".classicyPopUpMenuWrapper > .classicyControlLabelHolder.open .classicyControlLabel",
+				),
+			).toMatch(/background-color: var\(--color-black\);/);
+			expect(rule(".classicyPopUpMenuIndicator.open")).toMatch(
+				/background: none;/,
+			);
+			expect(rule(".classicyPopUpMenuButton")).toMatch(
+				/border: var\(--window-border-size\) solid var\(--color-black\);/,
+			);
+			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
+		});
 	});
 
 	it("uses no !important (the cascade layers decide)", () =>

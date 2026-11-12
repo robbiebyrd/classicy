@@ -102,6 +102,38 @@
 				"dotInset": 3,
 				"textureWidth": 3,
 				"textureHeight": 3
+			},
+			"menuBar": {
+				"bandHeight": 20,
+				"inset": 9,
+				"titlePadding": 10,
+				"titleOverlap": 5,
+				"highlightTop": 1,
+				"lineHeight": 16
+			},
+			"menuFrame": {
+				"shadowStart": 2,
+				"submenuOverlap": 5
+			},
+			"menuItem": {
+				"height": 16,
+				"lineHeight": 14,
+				"textInset": 14,
+				"textEnd": 14,
+				"markInset": 3,
+				"markTop": 4,
+				"shortcutWidth": 22,
+				"arrowInset": 8,
+				"arrowTop": 2,
+				"dividerTop": 8,
+				"imageSize": 16,
+				"imagePad": 1,
+				"imageGap": 4
+			},
+			"popUpMenu": {
+				"height": 18,
+				"arrowTop": 5,
+				"arrowInset": 5
 			}
 		},
 		"desktop": {
@@ -216,6 +248,38 @@
 					"dotInset": 3,
 					"textureWidth": 3,
 					"textureHeight": 3
+				},
+				"menuBar": {
+					"bandHeight": 20,
+					"inset": 9,
+					"titlePadding": 10,
+					"titleOverlap": 5,
+					"highlightTop": 1,
+					"lineHeight": 16
+				},
+				"menuFrame": {
+					"shadowStart": 2,
+					"submenuOverlap": 5
+				},
+				"menuItem": {
+					"height": 16,
+					"lineHeight": 14,
+					"textInset": 14,
+					"textEnd": 14,
+					"markInset": 3,
+					"markTop": 4,
+					"shortcutWidth": 22,
+					"arrowInset": 8,
+					"arrowTop": 2,
+					"dividerTop": 8,
+					"imageSize": 16,
+					"imagePad": 1,
+					"imageGap": 4
+				},
+				"popUpMenu": {
+					"height": 18,
+					"arrowTop": 5,
+					"arrowInset": 5
 				}
 			},
 			"desktop": {
@@ -252,7 +316,7 @@
 					15527148, 14211288, 12303291, 11184810, 8947848, 7829367, 5592405
 				],
 				"theme": [
-					15658734, 13421823, 11711956, 11054030, 3355443, 4608651, 3355494
+					15658734, 13421823, 11711956, 11054030, 3355443, 8947848, 3355494
 				]
 			},
 			"sound": {
@@ -332,6 +396,38 @@
 					"dotInset": 3,
 					"textureWidth": 3,
 					"textureHeight": 3
+				},
+				"menuBar": {
+					"bandHeight": 20,
+					"inset": 9,
+					"titlePadding": 10,
+					"titleOverlap": 5,
+					"highlightTop": 1,
+					"lineHeight": 16
+				},
+				"menuFrame": {
+					"shadowStart": 2,
+					"submenuOverlap": 5
+				},
+				"menuItem": {
+					"height": 16,
+					"lineHeight": 14,
+					"textInset": 14,
+					"textEnd": 14,
+					"markInset": 3,
+					"markTop": 4,
+					"shortcutWidth": 22,
+					"arrowInset": 8,
+					"arrowTop": 2,
+					"dividerTop": 8,
+					"imageSize": 16,
+					"imagePad": 1,
+					"imageGap": 4
+				},
+				"popUpMenu": {
+					"height": 18,
+					"arrowTop": 5,
+					"arrowInset": 5
 				}
 			},
 			"desktop": {

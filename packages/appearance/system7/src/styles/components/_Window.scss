@@ -34,40 +34,12 @@
 //
 // The pressed boxes' starburst and the windoid box's cross are art on a
 // pixel grid: one-pixel rectangles (`classicy-px-rect` layers) placed in
-// multiples of `--window-box-pixel` (the multiplier allowlist names them).
+// multiples of `--window-box-pixel` (`px()` and `pixel-art()`, ../_pixel.scss).
 @use "sass:list";
 @use "pkg:@classicy/classicy/scss/layout";
+@use "../pixel" as *;
 
 $b: var(--window-border-size);
-$px: var(--window-box-pixel);
-
-// A length of `$n` grid pixels.
-@function px($n) {
-  @if $n == 1 {
-    @return $px;
-  }
-  @return calc(#{$px} * #{$n});
-}
-
-// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
-// `(x y)` is one pixel), inked in `$ink`.
-@function pixel-art($ink, $rects) {
-  $layers: ();
-  @each $rect in $rects {
-    $w: 1;
-    $h: 1;
-    @if list.length($rect) > 2 {
-      $w: list.nth($rect, 3);
-      $h: list.nth($rect, 4);
-    }
-    $layers: list.append(
-      $layers,
-      layout.classicy-px-rect($ink, px(list.nth($rect, 1)), px(list.nth($rect, 2)), px($w), px($h)),
-      $separator: comma
-    );
-  }
-  @return $layers;
-}
 
 // The pressed close and zoom boxes' starburst (11 x 11, both depths): four
 // three-pixel rays and four two-pixel diagonals around an empty center.

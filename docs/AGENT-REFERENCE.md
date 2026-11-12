@@ -3603,7 +3603,8 @@ window placement `ClassicyDesktop` sets `--menu-bar-height: 0px` on its root
 (`classicyLayoutThemeVars(layout)`, spread after the theme's variables and
 before the host's `style`, which still wins), so windows are placed, zoomed,
 dragged and resized up to the screen's top edge. In screen placement the
-band is the theme's `--menu-bar-height` (30 px under Platinum).
+band is the theme's `--menu-bar-height` (30 px under Platinum; 20 under
+System 7, whose themes set the optional knob `menuBar.bandHeight`).
 
 `ClassicyDesktopMenuBar`'s `placement` prop affects only that bar; windows
 follow the package layout, never the prop. `placement="window"` under
@@ -4180,7 +4181,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
 | `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss |
 | `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindowTitleBar.scss |
-| `--menu-bar-height` | `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
+| `--menu-bar-height` | `menuBar.bandHeight`, else `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
 | `--menu-min-width` | `controlSize × 15` | 180 | ClassicyMenu.scss |
 | `--menu-item-icon-size` | `controlSize × 1.25` | 15 | ClassicyMenu.scss |
 | `--menu-item-icon-gap` | `controlSize × 0.5` | 6 | ClassicyMenu.scss |
@@ -4674,10 +4675,11 @@ the list ends at these 41 sites over 10 files, the sites kept on purpose
   (`× 2`, `× 3`, `× 4`, alone or as `100% - …`): positions on the Control
   Strip art's bevel-pixel grid inside `classicy-px-rect` (H-R7), not theme
   proportions.
-- System 7's `_Window.scss`, the one `window-box-pixel × n` in its `px()`
-  helper: the pressed close and zoom boxes' starburst and the windoid close
-  box's cross, one-pixel rectangles on the art's pixel grid inside
-  `classicy-px-rect` (H-R7), as the Control Strip's.
+- System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
+  helper: the pressed close and zoom boxes' starburst, the windoid close
+  box's cross, the menu bar's screen corners, the menu checkmark and the
+  menu and pop-up triangles, one-pixel rectangles on the art's pixel grid
+  inside `classicy-px-rect` (H-R7), as the Control Strip's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

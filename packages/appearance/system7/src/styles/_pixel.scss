@@ -1,0 +1,49 @@
+// System 7's pixel-grid art, shared by the component partials: lengths in
+// grid pixels and stacks of one-pixel rectangles (`classicy-px-rect`
+// layers), for the parts QuickDraw drew pixel by pixel (the pressed boxes'
+// starburst, the menu bar's screen corners, the menu and pop-up triangles).
+// One grid pixel is `--window-box-pixel` (1); the multiplier allowlist names
+// this file's one site, the `px()` helper.
+@use "sass:list";
+@use "pkg:@classicy/classicy/scss/layout";
+
+$px: var(--window-box-pixel);
+
+// A length of `$n` grid pixels.
+@function px($n) {
+  @if $n == 0 {
+    @return 0;
+  }
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
+
+// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
+// `(x y)` is one pixel), inked in `$ink`. With `$from: right` the x of each
+// rectangle is its distance from the right edge to the rectangle's right
+// side, so the art is anchored to the element's right edge.
+@function pixel-art($ink, $rects, $from: left) {
+  $layers: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $x: px(list.nth($rect, 1));
+    $y: px(list.nth($rect, 2));
+    @if $from == right {
+      $x: right $x;
+      $y: top $y;
+    }
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, $x, $y, px($w), px($h)),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}

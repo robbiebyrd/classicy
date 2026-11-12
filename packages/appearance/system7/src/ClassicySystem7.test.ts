@@ -108,7 +108,7 @@ describe("the System 7 appearance package", () => {
 			0xececec, 0xd8d8d8, 0xbbbbbb, 0xaaaaaa, 0x888888, 0x777777, 0x555555,
 		]);
 		expect(color.color.theme).toEqual([
-			0xeeeeee, 0xccccff, 0xb2b5d4, 0xa8abce, 0x333333, 0x46528b, 0x333366,
+			0xeeeeee, 0xccccff, 0xb2b5d4, 0xa8abce, 0x333333, 0x888888, 0x333366,
 		]);
 		expect(color.color.window).toEqual({
 			border: BLACK,
@@ -209,6 +209,52 @@ describe("the System 7 appearance package", () => {
 		});
 	});
 
+	// The dimmed ink (styles/components/_Menu.scss): theme-06, the one slot
+	// System 7 draws nothing else with, is the 7.5 dimmed menu text's #888888
+	// in color and black in 1-bit, where the dither draws it at 50%.
+	it("dedicates theme-06 to the dimmed ink: gray in color, black dithered in 1-bit", () => {
+		const [bw, color] = system7Json.presets;
+		expect(color.color.theme[5]).toBe(0x888888);
+		expect(bw.color.theme[5]).toBe(BLACK);
+		expect(bw.measurements.dither.tileSize).toBe(2);
+		expect(color.measurements.dither.tileSize).toBe(0);
+	});
+
+	// The menus' knobs (styles/components/_Menu.scss, _MenuBar.scss,
+	// _PopUpMenu.scss), measured from the 7.5 menu captures, the same at both
+	// depths; and the menu bar's 20 px band, which windows keep clear of.
+	it("emits the menus' knobs and a 20 px menu bar in both themes", async () => {
+		await import("./index");
+		for (const theme of (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--menu-bar-height": "20px",
+				"--menu-bar-inset": "9px",
+				"--menu-bar-title-padding": "10px",
+				"--menu-bar-title-overlap": "5px",
+				"--menu-bar-highlight-top": "1px",
+				"--menu-bar-line-height": "16px",
+				"--menu-frame-shadow-start": "2px",
+				"--menu-frame-submenu-overlap": "5px",
+				"--menu-item-height": "16px",
+				"--menu-item-line-height": "14px",
+				"--menu-item-text-inset": "14px",
+				"--menu-item-text-end": "14px",
+				"--menu-item-mark-inset": "3px",
+				"--menu-item-mark-top": "4px",
+				"--menu-item-shortcut-width": "22px",
+				"--menu-item-arrow-inset": "8px",
+				"--menu-item-arrow-top": "2px",
+				"--menu-item-divider-top": "8px",
+				"--menu-item-image-size": "16px",
+				"--menu-item-image-pad": "1px",
+				"--menu-item-image-gap": "4px",
+				"--pop-up-menu-height": "18px",
+				"--pop-up-menu-arrow-top": "5px",
+				"--pop-up-menu-arrow-inset": "5px",
+			});
+	});
+
 	it("completes each theme from the core floor and its own measurements", async () => {
 		await import("./index");
 		const floor = classicyThemeMeasurementDefaults("system7");
@@ -255,13 +301,36 @@ describe("the System 7 appearance package", () => {
 	});
 
 	// Until the savers register under System 7 (plan 0018-dbd §3.8), and with
-	// no art or hooks yet (§4.1; System 7 had no feedback sounds).
-	it("names no screen saver, icon or hooks yet", async () => {
+	// no art yet (§4.1).
+	it("names no screen saver or icon yet", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("system7");
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
 		expect(pkg?.icon).toBeUndefined();
-		expect(pkg?.hooks).toBeUndefined();
+	});
+
+	// System 7 had no interface feedback sounds: its one hook blinks a chosen
+	// menu item (HIG p.56) and plays nothing.
+	it("hooks only the menu item's blink, and plays no sound", async () => {
+		const core = await import("@classicy/classicy");
+		const play = vi.spyOn(core, "playClassicyAppearanceSound");
+		const { system7AppearanceHooks } = await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		expect(pkg?.hooks).toBe(system7AppearanceHooks);
+		expect(Object.keys(system7AppearanceHooks.on ?? {})).toEqual(["MenuItem"]);
+		const menuItem = system7AppearanceHooks.on?.MenuItem ?? {};
+		expect(Object.keys(menuItem).sort()).toEqual(["press", "release"]);
+		const ctx = {
+			component: "MenuItem",
+			event: "press",
+			detail: { itemId: "x" },
+		} as never;
+		expect(menuItem.press?.(ctx)).toEqual({
+			className: "classicyMenuItemFlash",
+		});
+		expect(menuItem.release?.(ctx)).toEqual({});
+		expect(play).not.toHaveBeenCalled();
+		expect(Object.isFrozen(system7AppearanceHooks.on)).toBe(true);
 	});
 
 	it("exports its id and a frozen copy of its theme data", async () => {

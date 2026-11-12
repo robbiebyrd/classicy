@@ -24,10 +24,12 @@ import {
 // the pack; it never registers it a second time.
 import "./assets/system7Assets";
 import { system7SoundPack } from "./assets/sounds/system7";
+import { system7AppearanceHooks } from "./hooks";
 import system7Css from "./styles/system7.scss?inline";
 import system7JsonSource from "./system7.json";
 
 export * from "./assets/sounds/system7";
+export { system7AppearanceHooks } from "./hooks";
 
 const deepFreeze = <T extends object>(value: T): T => {
 	for (const child of Object.values(value))
@@ -86,9 +88,10 @@ const system7Defaults =
 	system7Presets.find((theme) => theme.id === system7JsonSource.defaults.id) ??
 	system7Theme(system7JsonSource.defaults as unknown as ClassicyTheme);
 
-// No `icon` and no art yet (plan 0018-dbd §4.1), no hooks (System 7 had no
-// interface feedback sounds) and no `defaultScreenSaver` until the screen
-// savers register under System 7 (§3.8).
+// No `icon` and no art yet (plan 0018-dbd §4.1), and no `defaultScreenSaver`
+// until the screen savers register under System 7 (§3.8). Its hooks play no
+// sound (System 7 had no interface feedback sounds): they blink a chosen
+// menu item.
 registerClassicyAppearancePackage({
 	id: SYSTEM7_APPEARANCE_PACKAGE_ID,
 	name: system7JsonSource.name,
@@ -98,5 +101,6 @@ registerClassicyAppearancePackage({
 	knobs: system7JsonSource.knobs,
 	options: classicyKnobsToSchema(system7JsonSource.knobs),
 	layout: system7JsonSource.layout as ClassicyAppearanceLayout,
+	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
 });

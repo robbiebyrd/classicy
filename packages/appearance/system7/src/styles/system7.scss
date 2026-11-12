@@ -3,13 +3,19 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="system7"]`. The
 // look is built element by element (plan 0018-dbd Phase 3), each element a
 // components/_<Name>.scss partial exposing one mixin, included inside the
-// wrapper below: so far the windows (§3.2), and the arrangement System 7
-// shares with no other package.
+// wrapper below: so far the windows (§3.2) and the menus and menu bar
+// (§3.3), and the arrangement System 7 shares with no other package.
 @use "pkg:@classicy/classicy/scss/package";
 @use "components/Window";
+@use "components/Menu";
+@use "components/MenuBar";
+@use "components/PopUpMenu";
 
 @include package.classicy-package("system7") {
   @include Window.window;
+  @include Menu.menu;
+  @include MenuBar.menu-bar;
+  @include PopUpMenu.pop-up-menu;
 
   // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
   // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box
@@ -19,4 +25,13 @@
   .classicyWindowTitleBar [data-classicy-control="collapse"] {
     display: none;
   }
+
+  // The dither vocabulary's checker tile (`ditherChecker`,
+  // `@classicy/classicy/scss/dither`): a 2 x 2 tile, its upper right and
+  // lower left cells opaque, so the ink falls on the other two. Drawn here
+  // from CSS, pixel-exact at 1x (ruling of plan 0018-dbd Phase 3); a
+  // registered `ditherChecker` file, which the desktop root sets inline,
+  // takes its place. The 1-bit theme sizes it (`dither.tileSize` 2); the
+  // color theme's 0 draws plain ink.
+  --classicy-art-dither-checker: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0);
 }

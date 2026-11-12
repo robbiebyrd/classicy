@@ -11,10 +11,10 @@
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
 		}
 	],
-	"packages/appearance/system7/src/styles/components/_Window.scss": [
+	"packages/appearance/system7/src/styles/_pixel.scss": [
 		{
 			"count": 1,
-			"reason": "System 7's window art on its pixel grid: the pressed close and zoom boxes' starburst and the windoid close box's cross are one-pixel rectangles placed in multiples of the one grid knob (--window-box-pixel x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as the Control Strip's)."
+			"reason": "System 7's pixel-grid art: the pressed close and zoom boxes' starburst, the windoid close box's cross, the menu bar's screen corners, the menu checkmark and the menu and pop-up triangles are one-pixel rectangles placed in multiples of the one grid knob (--window-box-pixel x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as the Control Strip's)."
 		}
 	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [

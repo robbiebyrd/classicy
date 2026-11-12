@@ -436,3 +436,38 @@ describe("--progress-bar-stripe-period follows progressBar.stripeWidth", () => {
 		).toBe("20px");
 	});
 });
+
+// Plan 0018-dbd §3.3: a package whose menu bar does not follow its control
+// size (System 7: 11 px window boxes under a 20 px bar) sets the optional knob
+// menuBar.bandHeight. Without it the band stays controlSize × 2.5, so
+// Platinum's still follows the Metrics tab.
+describe("--menu-bar-height follows menuBar.bandHeight when a theme sets it", () => {
+	const withMenuBar = (
+		menuBar: Record<string, number> | undefined,
+		controlSize = 12,
+	): ClassicyTheme => {
+		const theme = getTheme("default");
+		const measurements: ClassicyTheme["measurements"] = {
+			...theme.measurements,
+			window: { ...theme.measurements.window, controlSize },
+		};
+		if (menuBar) measurements.menuBar = menuBar;
+		return { ...theme, measurements };
+	};
+	const band = (theme: ClassicyTheme) =>
+		(getThemeVars(theme) as Record<string, string>)["--menu-bar-height"];
+
+	it("is the knob, whatever the control size", () => {
+		expect(band(withMenuBar({ bandHeight: 20 }, 11))).toBe("20px");
+		expect(band(withMenuBar({ bandHeight: 20 }, 16))).toBe("20px");
+		expect(band(withMenuBar({ bandHeight: 0 }, 11))).toBe("0px");
+	});
+
+	it("is controlSize × 2.5 without the knob", () => {
+		expect(band(withMenuBar(undefined, 12))).toBe("30px");
+		expect(band(withMenuBar(undefined, 11))).toBe("27.5px");
+		// A family without the key, or a value that is not a finite number.
+		expect(band(withMenuBar({ inset: 9 }, 11))).toBe("27.5px");
+		expect(band(withMenuBar({ bandHeight: Number.NaN }, 11))).toBe("27.5px");
+	});
+});
