@@ -249,7 +249,7 @@ describe("window resizer / scroll bar alignment", () => {
 	// split view's dividers do) to an image that never loads, then a keyword.
 	it("asks for the package's horizontal resize cursor", () => {
 		expect(resizer.cursor).toBe(
-			'var(--classicy-cursor-resize-lr, url("data:,")) 8 8, nwse-resize',
+			'var(--classicy-cursor-resize-lr, url("data:,")) var(--classicy-cursor-resize-lr-hotspot, 8 8), nwse-resize',
 		);
 	});
 
@@ -264,7 +264,7 @@ describe("window resizer / scroll bar alignment", () => {
 		const rules = parseCssRules(css);
 		const selector = `:where([data-classicy-grow-box=${corner}]) .classicyWindow .classicyWindowResizer`;
 		expect(cssDeclarations(rules, selector)).toEqual({
-			cursor: `var(--classicy-cursor-resize-lr, url("data:,")) 8 8, ${keyword}`,
+			cursor: `var(--classicy-cursor-resize-lr, url("data:,")) var(--classicy-cursor-resize-lr-hotspot, 8 8), ${keyword}`,
 		});
 		// Same specificity as the base rule, and after it, so it wins there; and
 		// before the resizing rule, so a resize still shows the grabbing hand.

@@ -472,6 +472,7 @@ export const registerClassicyAssets = (
 
 /** Test-only: clears every package tree and bumps the version. */
 export const resetClassicyAssets = (): void => {
+	cursorHotspots.clear();
 	trees.clear();
 	variantTrees.clear();
 	registeredVariants.clear();
@@ -750,6 +751,10 @@ const assetVars = (): Record<string, string> => {
 			// by ClassicyPixelArt, never by CSS, so it gets no variable.
 			if (typeof src === "string" && !parseClassicyPixelArtSource(src)) {
 				value[classicyAssetVarName(kind, key)] = `url("${src}")`;
+				const hotspot = kind === "cursors" && cursorHotspots.get(src);
+				if (hotspot)
+					value[`${classicyAssetVarName(kind, key)}-hotspot`] =
+						`${hotspot[0]} ${hotspot[1]}`;
 			}
 		}
 	}
@@ -758,25 +763,86 @@ const assetVars = (): Record<string, string> => {
 };
 
 /**
- * `--classicy-cursor-<role>` / `--classicy-art-<key>` as `url("…")` strings.
- * Pixel-art system art (the Control Strip and pop-up slider glyphs) is left
- * out: it is drawn by `ClassicyPixelArt`, not by stylesheets.
+ * `--classicy-cursor-<role>` / `--classicy-art-<key>` as `url("…")` strings,
+ * and `--classicy-cursor-<role>-hotspot` (`"<x> <y>"`) for a cursor registered
+ * with a hotspot. Pixel-art system art (the Control Strip and pop-up slider
+ * glyphs) is left out: it is drawn by `ClassicyPixelArt`, not by stylesheets.
  */
 export const useClassicyAssetVars = (): Record<string, string> =>
 	useSyncExternalStore(subscribeClassicyAssets, assetVars, assetVars);
 
-/** Register a package's cursors (with `options.variant`, a variant's). */
+/**
+ * A cursor image's hotspot: the pixel, from its top left, that points (CSS
+ * `cursor: url(…) <x> <y>`). A whole number from 0 to 127 on each axis.
+ */
+export type ClassicyCursorHotspot = readonly [x: number, y: number];
+
+/** A cursor with its hotspot (`registerClassicyCursors`). */
+export type ClassicyCursorLeaf = {
+	src: ClassicyAssetSource;
+	hotspot: ClassicyCursorHotspot;
+};
+
+/**
+ * Each registered cursor image's hotspot, by image: a hotspot belongs to the
+ * image, so a role resolves its hotspot from whichever tree its image came
+ * from (variant, package, default package) and the two never disagree.
+ */
+const cursorHotspots = new Map<string, ClassicyCursorHotspot>();
+
+const isHotspot = (value: unknown): value is ClassicyCursorHotspot =>
+	Array.isArray(value) &&
+	value.length === 2 &&
+	value.every((n) => Number.isInteger(n) && n >= 0 && n < 128);
+
+/**
+ * Register a package's cursors (with `options.variant`, a variant's). A
+ * cursor is an image, or `{ src, hotspot: [x, y] }` for one whose pointing
+ * pixel is not where the stylesheets that draw it assume (each names its
+ * own fallback, the center `8 8` for the resize cursors and the hand). The
+ * hotspot is published beside the image as
+ * `--classicy-cursor-<role>-hotspot` and used by `useClassicyCursor`; an
+ * invalid one is ignored with a warning, keeping the image.
+ */
 export const registerClassicyCursors = (
 	packageId: string,
-	cursors: Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>,
+	cursors: Partial<
+		Record<ClassicyCursorRole, ClassicyAssetSource | ClassicyCursorLeaf>
+	>,
 	options?: ClassicyAssetRegistrationOptions,
-): void =>
-	registerClassicyAssets(
-		"cursors",
-		packageId,
-		cursors as ClassicyAssetTree,
-		options,
-	);
+): void => {
+	const tree: ClassicyAssetTree = {};
+	for (const [role, value] of Object.entries(cursors)) {
+		if (typeof value !== "object" || value === null) {
+			if (value !== undefined) tree[role] = value;
+			continue;
+		}
+		tree[role] = value.src;
+		if (!isClassicyAssetSource(value.src)) continue;
+		if (isHotspot(value.hotspot))
+			cursorHotspots.set(value.src, [value.hotspot[0], value.hotspot[1]]);
+		else
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored the hotspot of cursor "${role}" for package "${packageId}": not two whole numbers from 0 to 127`,
+			);
+	}
+	registerClassicyAssets("cursors", packageId, tree, options);
+};
+
+/**
+ * The hotspot of the cursor `role` resolves to (`resolveClassicyAsset`), or
+ * undefined when its image was registered without one.
+ */
+export const resolveClassicyCursorHotspot = (
+	role: ClassicyCursorRole,
+	packageId?: string,
+	variant?: string,
+): ClassicyCursorHotspot | undefined => {
+	const src = resolveClassicyAsset("cursors", role, packageId, variant);
+	return src === undefined ? undefined : cursorHotspots.get(src);
+};
 
 /**
  * How each system-art key is drawn: `"image"` (a CSS image, published as

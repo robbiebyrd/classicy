@@ -13,17 +13,22 @@
 //    carries a Vite query (the core's invariant 1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
-//    (src/assets/fonts), the art (src/assets/art and its variant folders),
+//    (src/assets/fonts), the art (src/assets/art and its variant folders,
+//    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
 //    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
 //    and the sound sheet (src/assets/sounds/system7, but its JSON and its
-//    sprites/ sources), each under its source name and byte-identical to its
-//    source, so an image optimizer added to vite.config.ts fails here. A
-//    folder the package does not have yet holds nothing. dist/ itself holds
-//    only the two bundles and their maps, the two strict-CSP stylesheets,
-//    assets/ and types/.
+//    sprites/ sources), each byte-identical to its source, so an image
+//    optimizer added to vite.config.ts fails here. Each ships under the name
+//    bin/system7AssetNames.ts gives it: its own, or, in a variant or size
+//    folder, its folders and its own (`icons-bw-16-system-files-document.png`),
+//    so no two share one. A folder the package does not have yet holds
+//    nothing. dist/ itself holds only the two bundles and their maps, the two
+//    strict-CSP stylesheets, assets/ and types/.
 //
-// 3. NOTHING IS INLINED. No `data:` URI in either bundle (System 7 has no
-//    mask that would need one, unlike Platinum's halftone). The ES bundle's
+// 3. NOTHING IS INLINED BUT THE DITHER CHECKER. The only `data:` URI in
+//    either bundle is src/assets/art/dither-checker.svg, the dither
+//    vocabulary's mask, which a `mask-image` URL would fetch in CORS mode
+//    (Platinum's halftone, ruling E17). The ES bundle's
 //    `new URL("assets/…", import.meta.url)` references each name a file in
 //    dist/assets, and every file there is referenced.
 //
@@ -79,6 +84,7 @@ import {
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
 import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal.ts";
+import { system7AssetFileName } from "./system7AssetNames.ts";
 
 const DIST = "dist";
 const ES = join(DIST, "appearance-system7.es.js");
@@ -158,23 +164,28 @@ const listFiles = async (dir, accept = () => true) =>
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
 // The art's folders: src/assets/art and each variant folder in it
-// (art/bw, art/color, …), whose files ship under their own names.
+// (art/bw, art/color, …), and every icons/<variant>/<size> folder.
+const subfolders = async (dir) =>
+	(await readdir(dir, { withFileTypes: true }).catch(() => []))
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => join(dir, entry.name));
 const artDirs = [
 	join("src", "assets", "art"),
-	...(
-		await readdir(join("src", "assets", "art"), { withFileTypes: true }).catch(
-			() => [],
-		)
-	)
-		.filter((entry) => entry.isDirectory())
-		.map((entry) => join("src", "assets", "art", entry.name)),
+	...(await subfolders(join("src", "assets", "art"))),
 ];
+const iconDirs = (
+	await Promise.all(
+		(await subfolders(join("src", "assets", "icons"))).map(subfolders),
+	)
+).flat();
 const IMAGE = /\.(?:svg|png)$/;
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
 	...(
 		await Promise.all(
-			artDirs.map((dir) => listFiles(dir, (n) => IMAGE.test(n))),
+			[...artDirs, ...iconDirs].map((dir) =>
+				listFiles(dir, (n) => IMAGE.test(n)),
+			),
 		)
 	).flat(),
 	...(await listFiles("src/assets/cursors", (n) => IMAGE.test(n))),
@@ -191,17 +202,36 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	const problems = [];
 	const sourceOf = new Map();
 	for (const source of sources) {
-		const name = basename(source);
+		const name = system7AssetFileName(source);
 		if (sourceOf.has(name))
 			problems.push(
 				`${source}: shares its name with ${sourceOf.get(name)} -> both would ship as dist/assets/${name}; rename one.`,
 			);
 		sourceOf.set(name, source);
 	}
-	const { missing, extra } = compareClassicyAssetNames(
-		[...sourceOf.keys()],
-		shipped,
-	);
+	// The build emits byte-identical files once (an alert icon is the same
+	// 1-bit image in icons/color/32 and icons/bw/32), under the name of
+	// whichever is imported first: each set of identical sources ships as
+	// exactly one of its names.
+	const twins = new Map();
+	for (const [name, source] of sourceOf) {
+		const bytes = (
+			await readFile(source).catch(() => Buffer.alloc(0))
+		).toString("base64");
+		twins.set(bytes, [...(twins.get(bytes) ?? []), name]);
+	}
+	const shippedSet = new Set(shipped);
+	const missing = [];
+	for (const names of twins.values()) {
+		const present = names.filter((name) => shippedSet.has(name));
+		if (present.length === 0) missing.push(names.sort().join(" or "));
+		else if (present.length > 1)
+			problems.push(
+				`${join(DIST, "assets")}: ships the same file as ${present.sort().join(" and ")} -> identical sources ship once.`,
+			);
+	}
+	missing.sort();
+	const { extra } = compareClassicyAssetNames([...sourceOf.keys()], shipped);
 	if (missing.length || extra.length)
 		problems.push(
 			`${join(DIST, "assets")}: missing ${missing.join(", ") || "none"}; extra ${extra.join(", ") || "none"} -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
@@ -239,18 +269,30 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	);
 }
 
-// Invariant 3: nothing is inlined; the files are referenced from the ES
-// bundle.
+// Invariant 3: nothing but the dither checker is inlined; the files are
+// referenced from the ES bundle.
+const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 {
 	const problems = [];
+	const checker = ((await read(DITHER_CHECKER)) ?? "").trim();
 	for (const { file, source } of bundles) {
-		const types = new Set(
-			[...source.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]/g)].map((m) => m[1]),
+		const uris = new Set(
+			[...source.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]([^"`\s]*)/g)].map(
+				(m) => `${m[1]},${m[2]}`,
+			),
 		);
-		for (const type of [...types].sort())
+		for (const uri of [...uris].sort()) {
+			const [type, ...rest] = uri.split(",");
+			const body = rest.join(",");
+			let decoded = "";
+			try {
+				decoded = decodeURIComponent(body).replaceAll("'", '"');
+			} catch {}
+			if (type === "image/svg+xml" && checker && decoded === checker) continue;
 			problems.push(
-				`${file}: inlines ${type} -> System 7 inlines nothing; check noInlineAppearanceAssetsPlugin.`,
+				`${file}: inlines ${type} -> System 7 inlines only the dither checker (${DITHER_CHECKER}); check noInlineAppearanceAssetsPlugin.`,
 			);
+		}
 	}
 	const es = bundles.find(({ file }) => file === ES)?.source ?? "";
 	const { refs, stray } = findClassicyStrayAssetUrls(es, shipped);
@@ -265,7 +307,7 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		);
 	report(
 		problems,
-		`${BUNDLES.join(", ")}: inline nothing; ${refs.length} file reference(s), one per file in dist/assets`,
+		`${BUNDLES.join(", ")}: inline only the dither checker; ${refs.length} file reference(s), one per file in dist/assets`,
 	);
 }
 

@@ -1333,7 +1333,7 @@ existing asset with an empty namespace.
 import {
     registerClassicyAssets,   // (kind, packageId, tree, options?: { variant? }) — the primitive
     registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
-    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>, options?)
+    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource | { src, hotspot: [x, y] }>>, options?)
     registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string; legacyDigests?: string[] }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
     registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>, options?)
@@ -1345,7 +1345,7 @@ import {
 // Module scope in your entry file, before the first render:
 export const AppIcons = registerClassicyIcons({ myApp: { app: tvIcon } })  // returns its argument, typed
 registerClassicySystemArt('platinum', { aliasBadge: myAliasArrow })       // replaces ONE key, nothing else
-registerClassicyCursors('platinum', { hand: myHand })
+registerClassicyCursors('platinum', { hand: myHand, ibeam: { src: myIBeam, hotspot: [7, 4] } })
 registerClassicyWallpapers('platinum', [{ name: 'Bubbles', file: 'bubbles.png', src: bubblesPng }])
 registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
@@ -2100,10 +2100,19 @@ changes. Use them in your own SCSS inside the desktop, with a fallback because
 an undefined variable voids the whole declaration:
 
 ```scss
-.myDivider { cursor: var(--classicy-cursor-resize-lr, url('data:,')) 8 8, col-resize; }
+.myDivider {
+  cursor: var(--classicy-cursor-resize-lr, url('data:,'))
+    var(--classicy-cursor-resize-lr-hotspot, 8 8), col-resize;
+}
 ```
 
-`ClassicySplitView` and the PDF viewer's pan tool use exactly this form. The
+A cursor registered as `{ src, hotspot: [x, y] }` (whole numbers, 0–127) also
+defines `--classicy-cursor-<role>-hotspot` (`"x y"`); the hotspot belongs to
+the image, so a role reads it from whichever tree its image resolves from.
+`useClassicyCursor` sets it too, and `resolveClassicyCursorHotspot(role)`
+returns it. Without one, the stylesheet's fallback applies (`8 8` above).
+`ClassicySplitView`, the window's grow box and the PDF viewer's pan tool use
+exactly this form. The
 variables are scoped to the desktop root, so they do not exist outside it.
 
 Platinum draws all of its window, menu, pop-up, slider and tab art from these

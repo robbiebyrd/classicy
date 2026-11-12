@@ -300,13 +300,19 @@ describe("the System 7 appearance package", () => {
 		expect(system7SoundPack.sprite).toEqual({});
 	});
 
-	// Until the savers register under System 7 (plan 0018-dbd §3.8), and with
-	// no art yet (§4.1).
-	it("names no screen saver or icon yet", async () => {
+	// Until the savers register under System 7 (plan 0018-dbd §3.8).
+	it("names no screen saver yet", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("system7");
 		expect(pkg?.defaultScreenSaver).toBeUndefined();
-		expect(pkg?.icon).toBeUndefined();
+	});
+
+	// The Themes tab shows the System file's icon (plan 0018-dbd §4.1).
+	it("shows the System file's suitcase as its icon", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.icon).toMatch(
+			/\/icons\/color\/32\/system-folders-suitcase-system\.png$/,
+		);
 	});
 
 	// System 7 had no interface feedback sounds: its one hook blinks a chosen

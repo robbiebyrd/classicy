@@ -14,10 +14,12 @@ import { afterAll, describe, expect, it } from "vitest";
 import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
 import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal";
+import { system7AssetFileName } from "./system7AssetNames";
 
 // The package's dist check, bin/verify-dist.mjs (plan 0018-dbd §2.2), run for
 // real on a fixture package folder: the shape System 7's takes (src/assets/
-// fonts, art and its variant folders, cursors, wallpapers and sounds/system7)
+// fonts, art and its variant folders, icons/<variant>/<size>, cursors,
+// wallpapers and sounds/system7)
 // with a few files each, and a dist/ built to pass. Each case breaks one thing
 // and expects the script to name it, as Platinum's verify-dist.test.ts does.
 
@@ -32,6 +34,11 @@ const PACKAGE =
 // out, not built with JSON.stringify, so the fixture source is fixed text; a
 // test below keeps it equal to PACKAGE.
 const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"system7\"] .classicyWindow{border:1px solid}}"`;
+// The dither checker, the one file the bundles inline (as Vite writes an
+// SVG `data:` URI: single quotes, the rest percent-encoded).
+const DITHER_CHECKER =
+	'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="1" width="1" height="1"/></svg>';
+const DITHER_URI = `data:image/svg+xml,${encodeURIComponent(DITHER_CHECKER.replaceAll('"', "'")).replaceAll("%27", "'")}`;
 const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
 
@@ -45,8 +52,16 @@ const SOURCES: Record<string, Buffer> = {
 		]),
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
+	"src/assets/art/dither-checker.svg": Buffer.from(DITHER_CHECKER),
 	"src/assets/art/bw/apple-bw.png": bytes(40),
 	"src/assets/art/color/apple.png": bytes(41),
+	// One name in two variant folders, and in an icon's four folders.
+	"src/assets/art/bw/trash.png": bytes(44),
+	"src/assets/art/color/trash.png": bytes(45),
+	"src/assets/icons/color/32/disk.png": bytes(46),
+	"src/assets/icons/color/16/disk.png": bytes(47),
+	"src/assets/icons/bw/32/disk.png": bytes(48),
+	"src/assets/icons/bw/16/disk.png": bytes(49),
 	"src/assets/cursors/cursor-watch.png": bytes(42),
 	"src/assets/wallpapers/pattern.png": bytes(43),
 	"src/assets/sounds/system7/system7.ogg": bytes(50),
@@ -63,10 +78,11 @@ const SHIPPED = Object.keys(SOURCES).filter(
 );
 
 const urls = SHIPPED.map(
-	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
+	(file) =>
+		`new URL("assets/${system7AssetFileName(file)}",import.meta.url).href`,
 ).join(",");
-const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-system7.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const d="${DITHER_URI}";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-system7.es.js.map\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const d="${DITHER_URI}";const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
 const FONTS = classicyFontStylesheet(
 	SYSTEM7_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -82,19 +98,25 @@ const DIST: Record<string, string | Buffer> = {
 	"types/index.d.ts": 'export * from "./hooks.js";\n',
 	"types/hooks.d.ts": "export declare const a: number;\n",
 	...Object.fromEntries(
-		SHIPPED.map((file) => [`assets/${path.basename(file)}`, SOURCES[file]]),
+		SHIPPED.map((file) => [
+			`assets/${system7AssetFileName(file)}`,
+			SOURCES[file],
+		]),
 	),
 };
 
 let run = 0;
 /**
- * Writes the fixture package (the sources, then dist/ with `changes`
- * applied: a path to new content, or `null` to delete it) and runs the
- * script in it.
+ * Writes the fixture package (the sources, with `sources` over them, then
+ * dist/ with `changes` applied: a path to new content, or `null` to delete
+ * it) and runs the script in it.
  */
-const verify = (changes: Record<string, string | Buffer | null> = {}) => {
+const verify = (
+	changes: Record<string, string | Buffer | null> = {},
+	sources: Record<string, Buffer> = {},
+) => {
 	const dir = path.join(root, `case-${run++}`);
-	for (const [file, content] of Object.entries(SOURCES)) {
+	for (const [file, content] of Object.entries({ ...SOURCES, ...sources })) {
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
@@ -198,7 +220,6 @@ describe("bin/verify-dist.mjs", () => {
 			"cursor-watch.png",
 			"pattern.png",
 			"zoom.svg",
-			"apple-bw.png",
 			"system7.ogg",
 			"silence.wav",
 			"Geneva-bold-normal.woff2",
@@ -213,15 +234,61 @@ describe("bin/verify-dist.mjs", () => {
 				),
 			}));
 
-		// A variant folder's art ships under its own name (art/bw, art/color).
+		// A variant or size folder's file ships with its folders in its name
+		// (bin/system7AssetNames.ts), so one name in two folders never clashes.
 		it.each([
-			["apple-bw.png", "bw"],
-			["apple.png", "color"],
-		])("fails the variant image %s when it differs from its source", (file, dir) =>
+			["art-bw-trash.png", "art/bw/trash.png"],
+			["art-color-trash.png", "art/color/trash.png"],
+			["icons-color-32-disk.png", "icons/color/32/disk.png"],
+			["icons-bw-16-disk.png", "icons/bw/16/disk.png"],
+		])("fails the folder image %s when it differs from %s", (file, source) =>
 			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
 				status: 1,
-				stderr: `${path.join("dist", "assets", file)}: differs from ${path.join("src", "assets", "art", dir, file)} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
+				stderr: `${path.join("dist", "assets", file)}: differs from ${path.join("src", "assets", ...source.split("/"))} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
 			}));
+
+		it("fails a folder image shipped under its bare name", () => {
+			const { status, stderr } = verify({
+				"assets/icons-color-32-disk.png": null,
+				"assets/disk.png": SOURCES["src/assets/icons/color/32/disk.png"],
+			});
+			expect(status).toBe(1);
+			expect(stderr.split("\n")[0]).toBe(
+				"dist/assets: missing icons-color-32-disk.png; extra disk.png -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+			);
+		});
+
+		// The build emits byte-identical files once, under either name.
+		it("passes identical sources shipped once, under either name", () => {
+			const twin = { "src/assets/icons/bw/32/disk.png": bytes(46) };
+			expect(
+				verify(
+					{
+						"assets/icons-bw-32-disk.png": null,
+						"appearance-system7.es.js": ES.replace(
+							'new URL("assets/icons-bw-32-disk.png",import.meta.url).href,',
+							"",
+						),
+					},
+					twin,
+				),
+			).toEqual({ status: 0, stderr: "" });
+		});
+
+		it("fails identical sources when neither ships", () => {
+			const twin = { "src/assets/icons/bw/32/disk.png": bytes(46) };
+			const { status, stderr } = verify(
+				{
+					"assets/icons-bw-32-disk.png": null,
+					"assets/icons-color-32-disk.png": null,
+				},
+				twin,
+			);
+			expect(status).toBe(1);
+			expect(stderr.split("\n")[0]).toBe(
+				"dist/assets: missing icons-bw-32-disk.png or icons-color-32-disk.png; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+			);
+		});
 
 		// The sound sheet ships; its JSON, hash and sprite sources do not.
 		it("fails a sprite source in dist/assets", () =>
@@ -237,11 +304,16 @@ describe("bin/verify-dist.mjs", () => {
 			}));
 	});
 
-	// Invariant 3: assets are files, referenced from the bundle.
-	describe("3. nothing is inlined", () => {
+	// Invariant 3: assets are files, referenced from the bundle; the one
+	// inlined file is the dither checker's mask.
+	describe("3. nothing is inlined but the dither checker", () => {
 		it.each([
 			["a PNG", "data:image/png;base64,AAAA", "image/png"],
-			["an SVG", "data:image/svg+xml,%3csvg%3e%3c/svg%3e", "image/svg+xml"],
+			[
+				"another SVG",
+				"data:image/svg+xml,%3csvg%3e%3c/svg%3e",
+				"image/svg+xml",
+			],
 		])("fails a bundle that inlines %s", (_kind, uri, type) =>
 			expect(
 				verify({
@@ -252,8 +324,22 @@ describe("bin/verify-dist.mjs", () => {
 				}),
 			).toEqual({
 				status: 1,
-				stderr: `dist/appearance-system7.umd.js: inlines ${type} -> System 7 inlines nothing; check noInlineAppearanceAssetsPlugin.`,
+				stderr: `dist/appearance-system7.umd.js: inlines ${type} -> System 7 inlines only the dither checker (src/assets/art/dither-checker.svg); check noInlineAppearanceAssetsPlugin.`,
 			}));
+
+		it("fails the dither checker inlined when its source changed", () =>
+			expect(
+				verify(
+					{},
+					{
+						"src/assets/art/dither-checker.svg": Buffer.from(
+							DITHER_CHECKER.replace('x="1"', 'x="0"'),
+						),
+					},
+				).stderr.split("\n"),
+			).toContain(
+				"dist/appearance-system7.es.js: inlines image/svg+xml -> System 7 inlines only the dither checker (src/assets/art/dither-checker.svg); check noInlineAppearanceAssetsPlugin.",
+			));
 
 		it("fails a reference to a file that is not in dist/assets", () =>
 			expect(
@@ -460,17 +546,23 @@ it("looks for markers the core's registries really hold", () => {
 });
 
 // The fixture mirrors the package's layout, and the script reads every asset
-// folder the package has: a new one (icons, say) must be added to invariant 2
-// before its files can ship. Art, cursors and wallpapers land in plan
-// 0018-dbd §4.1.
+// folder the package has: a new one must be added to invariant 2 before its
+// files can ship.
 it("reads every asset folder the package has", () => {
 	const assets = path.resolve(import.meta.dirname, "../src/assets");
-	const READ = ["fonts", "art", "cursors", "wallpapers", "sounds"];
+	// pixelart/ holds `ClassicyPixelArt` rows, imported `?raw` into the
+	// bundle, never shipped as files.
+	const READ = ["fonts", "art", "icons", "cursors", "wallpapers", "sounds"];
+	const BUNDLED = ["pixelart"];
 	const folders = readdirSync(assets, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => entry.name);
-	expect(folders.filter((folder) => !READ.includes(folder))).toEqual([]);
-	for (const dir of ["fonts", "sounds/system7"])
+	expect(
+		folders.filter(
+			(folder) => !READ.includes(folder) && !BUNDLED.includes(folder),
+		),
+	).toEqual([]);
+	for (const dir of ["fonts", "sounds/system7", "icons", "art", "cursors"])
 		expect(existsSync(path.join(assets, dir)), dir).toBe(true);
 	expect(
 		readdirSync(path.join(assets, "sounds"), { withFileTypes: true })

@@ -21,6 +21,7 @@ import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
 // The renaming tests switch back to Platinum, which must be registered.
 import "@classicy/appearance-platinum";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { registerClassicyAssets } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ActionMessage,
@@ -568,6 +569,43 @@ describe("built-in control strip modules", () => {
 			"src",
 			ClassicyIcons.system.controlStrip.soundOff,
 		);
+	});
+
+	// System 7 draws its own Sound Volume glyph (plan 0018-dbd §4.1): the
+	// built-in modules read their glyphs from the icon registry at render.
+	it("draws the Sound and Screen Saver glyphs the registry holds", () => {
+		const original = {
+			sound: ClassicyIcons.system.controlStrip.sound,
+			screenSaver: ClassicyIcons.system.controlStrip.screenSaver,
+		};
+		let unmount = () => {};
+		registerClassicyAssets("icons", "platinum", {
+			system: {
+				controlStrip: {
+					sound: "/other-sound.png",
+					screenSaver: "/other-ss.png",
+				},
+			},
+		});
+		try {
+			renderWithProviders(<ClassicyControlStrip />);
+			act(() => {
+				unmount = markClassicyAppMounted(SCREEN_SAVER_APP_ID);
+			});
+			expect(
+				screen.getByRole("button", { name: "Sound" }).querySelector("img"),
+			).toHaveAttribute("src", "/other-sound.png");
+			expect(
+				screen
+					.getByRole("button", { name: "Screen Saver" })
+					.querySelector("img"),
+			).toHaveAttribute("src", "/other-ss.png");
+		} finally {
+			act(() => unmount());
+			registerClassicyAssets("icons", "platinum", {
+				system: { controlStrip: original },
+			});
+		}
 	});
 
 	it("Screen Saver reports when it starts and can be switched off", async () => {

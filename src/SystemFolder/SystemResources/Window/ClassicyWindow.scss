@@ -60,12 +60,14 @@
     user-select: none;
     // The grow box's cursor comes from the asset registry (ruling E6):
     // ClassicyDesktop defines `--classicy-cursor-<role>` as url("…") on its
-    // root. Hotspot 8 8 = the center of the 16px Platinum resize cursor.
+    // root, with `--classicy-cursor-<role>-hotspot` when the cursor was
+    // registered with a hotspot; else 8 8, the center of the 16px Platinum
+    // resize cursor.
     // Outside a desktop the variable is undefined, which would void the whole
     // declaration; the fallback is an image that never loads, so the browser
     // moves on to the keyword cursor (the split view's idiom).
     cursor:
-      var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
+      var(--classicy-cursor-resize-lr, url('data:,')) var(--classicy-cursor-resize-lr-hotspot, 8 8),
       nwse-resize;
     // Flat frame gray, no edges of its own: past the gutter this box exists only
     // to cover the contents box's border and bevel, which would otherwise draw a
@@ -158,7 +160,7 @@
     :where([data-classicy-grow-box="bottom-left"]) &,
     :where([data-classicy-grow-box="top-right"]) & {
       cursor:
-        var(--classicy-cursor-resize-lr, url('data:,')) 8 8,
+        var(--classicy-cursor-resize-lr, url('data:,')) var(--classicy-cursor-resize-lr-hotspot, 8 8),
         nesw-resize;
     }
   }

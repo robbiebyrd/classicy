@@ -45,7 +45,8 @@ $cursor-missing: url('data:,');
 
 .pdfViewerDocumentToolPan {
 	cursor:
-		var(--classicy-cursor-hand, #{$cursor-missing}) 8 8,
+		var(--classicy-cursor-hand, #{$cursor-missing})
+		var(--classicy-cursor-hand-hotspot, 8 8),
 		grab;
 }
 

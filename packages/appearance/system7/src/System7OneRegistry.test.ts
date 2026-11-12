@@ -13,6 +13,7 @@ import {
 	listClassicyAppearancePackages,
 } from "@classicy/classicy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { system7AssetFileName } from "../bin/system7AssetNames";
 import { SYSTEM7_FONT_FACES } from "./assets/system7Fonts.internal";
 
 // "One registry, not two" (design 0014-ahm anti-goal "Two copies of the
@@ -113,32 +114,68 @@ describe("the built bundle and the core's registries", () => {
 		}
 	});
 
-	it("ships its fonts and sound sheet as files: nothing is inlined", () => {
+	it("ships its files as files: only the dither checker is inlined", () => {
 		for (const bundle of [es, umd])
-			expect([...bundle.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]/g)]).toEqual(
-				[],
-			);
+			for (const [uri] of bundle.matchAll(
+				/data:[a-z]+\/[a-z0-9.+-]+[;,][^"`\s]*/g,
+			))
+				expect(decodeURIComponent(uri)).toBe(
+					`data:image/svg+xml,${readFileSync(
+						path.join(packageDir, "src/assets/art/dither-checker.svg"),
+						"utf8",
+					)
+						.trim()
+						.replaceAll('"', "'")}`,
+				);
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
 		expect(es).toContain('new URL("assets/silence.wav"');
+		expect(es).toContain(
+			'new URL("assets/icons-color-32-system-files-document.png"',
+		);
 	});
 
-	it("emits exactly its fonts and its sound sheet into dist/assets, byte for byte", () => {
+	it("emits its fonts, sound sheet, icons, art and cursors into dist/assets, byte for byte", () => {
 		const assets = readdirSync(path.join(outDir, "assets")).sort();
-		expect(assets).toEqual(
-			[
-				...SYSTEM7_FONT_FACES.map(({ file }) => `${file}.woff2`),
-				"silence.wav",
-			].sort(),
+		// Every source under its dist name; byte-identical sources ship once.
+		const sources = (
+			readdirSync(path.join(packageDir, "src/assets"), {
+				recursive: true,
+			}) as string[]
+		)
+			.map((file) => path.join("src/assets", file))
+			.filter(
+				(file) =>
+					/\.(png|svg|woff2)$/.test(file) ||
+					file === path.join("src/assets/sounds/system7/silence.wav"),
+			);
+		const byName = new Map(
+			sources.map((file) => [system7AssetFileName(file), file]),
 		);
-		for (const { file } of SYSTEM7_FONT_FACES)
+		for (const name of assets) {
+			const source = byName.get(name);
+			expect(source, name).toBeDefined();
 			expect(
-				readFileSync(path.join(outDir, "assets", `${file}.woff2`)).equals(
-					readFileSync(
-						path.join(packageDir, "src/assets/fonts", `${file}.woff2`),
-					),
+				readFileSync(path.join(outDir, "assets", name)).equals(
+					readFileSync(path.join(packageDir, source ?? "")),
 				),
-				file,
+				name,
 			).toBe(true);
+		}
+		const shipped = new Set(
+			assets.map((name) =>
+				readFileSync(path.join(outDir, "assets", name)).toString("base64"),
+			),
+		);
+		for (const source of sources)
+			expect(
+				shipped.has(
+					readFileSync(path.join(packageDir, source)).toString("base64"),
+				),
+				source,
+			).toBe(true);
+		for (const { file } of SYSTEM7_FONT_FACES)
+			expect(assets, file).toContain(`${file}.woff2`);
+		expect(assets).toContain("silence.wav");
 	});
 
 	it("emits the two strict-CSP stylesheets", () => {

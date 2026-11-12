@@ -1,3 +1,4 @@
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useSound,
@@ -11,12 +12,19 @@ import { ClassicyPopUpSlider } from "@/SystemFolder/SystemResources/PopUpSlider/
 
 const useSoundMuted = (): boolean => useSound().disabled.includes("*");
 
-/** The speaker loses its waves while sound is off or the volume is at the bottom. */
+/**
+ * The speaker loses its waves while sound is off or the volume is at the
+ * bottom. Read from the active package's icons at render time (System 7
+ * draws its Sound Volume module's glyph).
+ */
 const useSoundModuleIcon = (): string => {
 	const { volume = 100 } = useSound();
-	return useSoundMuted() || volume === 0
-		? ClassicyIcons.system.controlStrip.soundOff
-		: ClassicyIcons.system.controlStrip.sound;
+	const off = useSoundMuted() || volume === 0;
+	const on = useClassicyAsset("icons", "system.controlStrip.sound");
+	const offIcon = useClassicyAsset("icons", "system.controlStrip.soundOff");
+	return off
+		? (offIcon ?? ClassicyIcons.system.controlStrip.soundOff)
+		: (on ?? ClassicyIcons.system.controlStrip.sound);
 };
 
 /**

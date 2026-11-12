@@ -1,5 +1,6 @@
 import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	useAppManager,
@@ -81,6 +82,11 @@ const useScreenSaverModuleMenu = (): ClassicyMenuItem[] => {
 	];
 };
 
+/** The module's glyph, read from the active package's icons at render time. */
+const useScreenSaverModuleIcon = (): string =>
+	useClassicyAsset("icons", "system.controlStrip.screenSaver") ??
+	ClassicyIcons.system.controlStrip.screenSaver;
+
 /**
  * Screen Saver's module, contributed by the Screen Saver extension: it shows
  * while ScreenSaver.app is mounted.
@@ -91,7 +97,7 @@ export const CLASSICY_SCREEN_SAVER_CONTROL_STRIP_MODULE =
 		appId: SCREEN_SAVER_APP_ID,
 		label: "Screen Saver",
 		order: 20,
-		icon: ClassicyIcons.system.controlStrip.screenSaver,
+		icon: useScreenSaverModuleIcon,
 		fileIcon: ClassicyIcons.system.extensions.screensaver,
 		menuItems: useScreenSaverModuleMenu,
 	});

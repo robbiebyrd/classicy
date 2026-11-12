@@ -5,6 +5,7 @@ import dts from "vite-plugin-dts";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
+import { system7AssetFileName } from "./bin/system7AssetNames";
 import { SYSTEM7_FONT_FACES } from "./src/assets/system7Fonts.internal";
 
 // @classicy/appearance-system7's library build: ES and UMD bundles of the
@@ -104,8 +105,12 @@ const system7Config = (mode: string): UserConfig => ({
 		rollupOptions: {
 			external: isExternal,
 			output: {
-				// Package assets go under dist/assets.
-				assetFileNames: "assets/[name][extname]",
+				// Package assets go under dist/assets, each under its source
+				// name, the variant and size folders' files with their folders
+				// in it (bin/system7AssetNames.ts), so `icons/color/32/x.png`
+				// and `icons/bw/32/x.png` never collide.
+				assetFileNames: ({ names, originalFileNames }) =>
+					`assets/${system7AssetFileName(originalFileNames[0] ?? names[0] ?? "")}`,
 				globals: {
 					"@classicy/classicy": "classicy",
 					react: "React",

@@ -23,6 +23,9 @@ import {
 // and a theme's `sound.pack` must name a registered pack. The package lists
 // the pack; it never registers it a second time.
 import "./assets/system7Assets";
+// The package's own icon (the Appearance Manager's Themes tab): the System
+// file's icon, System 7's suitcase with a Mac.
+import system7Icon from "./assets/icons/color/32/system-folders-suitcase-system.png";
 import { system7SoundPack } from "./assets/sounds/system7";
 import { system7AppearanceHooks } from "./hooks";
 import system7Css from "./styles/system7.scss?inline";
@@ -88,13 +91,14 @@ const system7Defaults =
 	system7Presets.find((theme) => theme.id === system7JsonSource.defaults.id) ??
 	system7Theme(system7JsonSource.defaults as unknown as ClassicyTheme);
 
-// No `icon` and no art yet (plan 0018-dbd §4.1), and no `defaultScreenSaver`
-// until the screen savers register under System 7 (§3.8). Its hooks play no
+// No `defaultScreenSaver` until the screen savers register under System 7
+// (§3.8). Its hooks play no
 // sound (System 7 had no interface feedback sounds): they blink a chosen
 // menu item.
 registerClassicyAppearancePackage({
 	id: SYSTEM7_APPEARANCE_PACKAGE_ID,
 	name: system7JsonSource.name,
+	icon: system7Icon,
 	defaults: system7Defaults,
 	presets: system7Presets,
 	css: system7Css,
