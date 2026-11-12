@@ -131,6 +131,15 @@ question n in the Open questions of
 | `bw-alert-caution-savechanges.png` | Same | 1-bit | SimpleText | same | — |
 | `color-alert-stop-pagesetup.png` | Stop alert, one default button | color | SimpleText, Page Setup… with no printer | 118,88,404,120 | — |
 | `bw-alert-stop-pagesetup.png` | Same | 1-bit | SimpleText | same | — |
+| `color-dialog-modeless-findfile.png` | Modeless dialog (Find File 7.5): close box, striped title, no size or zoom box, pop-up menus, edit field, default button | color | Find File (Apple menu > Find File) | 88,85,463,134 | modeless dialog (HIG p.178–181, figs 6-2 to 6-5) |
+| `bw-dialog-modeless-findfile.png` | Same, over an inactive Finder window | 1-bit | Find File | same | same |
+| `color-alert-findfile-noitems.png` | Alert with the application's own icon instead of note/caution/stop (Find File "No items were found."), over the dimmed modeless dialog | color | Find File, search for "zzqqx" | 150,86,338,148 | — (no stock note alert, see Not captured) |
+| `bw-alert-findfile-noitems.png` | Same | 1-bit | Find File | same | — |
+| `color-alert-stop-sharing.png` | Stop alert, one button (Sharing… with File Sharing not installed) | color | Finder, File > Sharing… on System Folder | 128,86,384,130 | — |
+| `color-alert-caution-emptytrash.png` | Caution alert, Cancel and OK (Empty Trash); full Trash icon on the desktop | color | Finder, Special > Empty Trash… | 128,86,384,118 | — |
+| `color-alert-caution-appletalk.png` | Caution alert, one button (over the Chooser) | color | Chooser, AppleTalk "Active on restart" | 143,113,354,174 | — |
+| `color-alert-caution-printerchanged.png` | Caution alert, one button ("You have changed your current printer…") | color | Chooser, close after choosing StyleWriter II | 143,113,354,174 | — |
+| `color-chooser-dimmed-default-button.png` | Dimmed default button (OK keeps its ring), icon list with selection | color | Chooser, AppleShare | 88,58,464,312 | CIC "dimmed button frame" |
 
 ### Controls
 
@@ -168,6 +177,8 @@ question n in the Open questions of
 | `bw-disclosure-pressed.png` | Same | 1-bit | Finder list | same | CIC "outline-triangle fill in B&W" |
 | `color-disclosure-expanded.png` | Disclosure triangle expanded, nested rows | color | Finder list | 10,84,14,13 | same |
 | `bw-disclosure-expanded.png` | Same | 1-bit | Finder list | same | same |
+| `color-controlpanel-color-standard.png` | Color control panel: Highlight color "Black & White", Window color "Standard" (the setting every color capture was shot with) | color | Color control panel | 100,42,292,128 | MWD 4, 12; CIC "highlight color" |
+| `color-popup-open-window-color.png` | Window color pop-up open: Standard, Gold, Green, Turquoise, Red, Pink, Blue, Gray, Black & White, each with its swatch | color | Color control panel | 227,132,146,146 | MWD 12 |
 | `color-controlpanel-monitors-256.png` | Monitors: depth list (scrollable), radio buttons, buttons | color | Monitors | 100,42,234,280 | CIC "4-bit color variant" |
 | `color-controlpanel-monitors-opened-icon.png` | Same, with the opened Monitors icon in the Finder window behind | color | Monitors | same | CIC "opened-icon pattern" |
 | `bw-controlpanel-monitors-bw.png` | Monitors after switching to Black & White | 1-bit | Monitors | same | — |
@@ -185,13 +196,21 @@ Measured from the framebuffer files (exact pixels).
   (eight short rays from the center) inside the box; in color the box fill
   turns dark. The floating window's small close box draws a smaller
   starburst.
-- **MWD 4, color values (256 colors, this install's window tinge):** title
-  bar `#EEEEEE` with stripes `#777777` (six stripes on every other row), top
-  highlight `#CCCCFF`, bottom shade `#9999CC`, box frame `#333366`, inner
-  shade `#666699`; scroll track `#DDDDDD`; dimmed menu text `#888888`;
-  desktop `#666666`/`#AAAAAA` checkerboard. The Color control panel's window
-  color was not opened, so these are the Infinite Mac image's setting
-  (lavender-gray), assumed to be the default; verify before freezing tokens.
+- **MWD 4, color values, measured with the Color control panel's Window
+  color set to "Standard"** (checked on 2026-11-11, fix round 1: it was
+  already "Standard", with Highlight color "Black & White", so no capture was
+  re-shot; see `color-controlpanel-color-standard.png`). At 256 colors the
+  7.5 Standard window colors are: title bar `#EEEEEE` with stripes `#777777`
+  (six stripes on every other row), top highlight `#CCCCFF`, bottom shade
+  `#9999CC`, box frame `#333366`, inner shade `#666699`; scroll track
+  `#DDDDDD`; dimmed menu text `#888888`; desktop `#666666`/`#AAAAAA`
+  checkerboard. The Standard tinge is this lavender-gray ramp, not a neutral
+  gray (Gray is a separate choice in the pop-up).
+- **MWD 12, window tints:** the Color control panel offers Standard, Gold,
+  Green, Turquoise, Red, Pink, Blue, Gray and Black & White
+  (`color-popup-open-window-color.png`); only Standard was captured.
+- **CIC "highlight color":** the 7.5 default Highlight color is "Black &
+  White" (black selection, white text).
 - **MWD 5, scroll box:** the 7.5 color box has horizontal grip ridges. The
   1-bit box is a plain white box with a black frame, no ridges.
 - **MWD 6, utility (floating) window:** the close box is 9x9 px including its
@@ -225,11 +244,17 @@ Measured from the framebuffer files (exact pixels).
 
 ## Not captured
 
-- A note alert (no reliable trigger was found in the stock 7.5 install).
+- A note alert. Every stock 7.5 alert tried used the stop or caution icon
+  (Sharing…, Erase Disk on the startup disk, Empty Trash, Chooser AppleTalk
+  and printer change, Page Setup with no printer, save changes) or the
+  application's own icon (Find File "No items were found."). Fallback: HIG
+  figure 6-18, "a note alert box", printed page 194 (PDF page 218); the frame,
+  layout and button match the captured stop and caution alerts, only the
+  icon (the "talking face") differs.
 - A slider being dragged; only the resting Sound slider.
 - A size box on a window without scroll bars (MWD 7).
 - Menu blinking (MWD 10) and other animation; captures are still frames.
-- Window tints from the Color control panel (MWD 12).
+- Window tints other than Standard (MWD 12); the choices are listed above.
 - 4-bit and 16-bit depths, and grays.
 - Title clipping and truncation (MWD 9); the title gap can be measured from
   the window captures.
