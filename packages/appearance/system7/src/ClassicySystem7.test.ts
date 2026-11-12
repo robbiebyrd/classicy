@@ -390,6 +390,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "0px",
 			"--scroll-bar-arrow-spread": "1px",
 			"--scroll-bar-grip": "0px",
+			"--scroll-bar-snap-back": "20px",
 			"--window-scrollbar-size": "16px",
 		});
 		expect(vars(color)).toMatchObject({
@@ -397,6 +398,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "1px",
 			"--scroll-bar-arrow-spread": "0px",
 			"--scroll-bar-grip": "6px",
+			"--scroll-bar-snap-back": "20px",
 			"--window-scrollbar-size": "16px",
 		});
 		// The defaults are the 1-bit theme's.
@@ -509,6 +511,9 @@ describe("the System 7 appearance package", () => {
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
+			// The scroll box stays put, an outline follows the pointer and the
+			// content scrolls on release (HIG p.165).
+			scrollBar: { thumbDrag: "onRelease" },
 		});
 	});
 

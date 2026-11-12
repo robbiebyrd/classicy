@@ -45,6 +45,22 @@ export type ClassicyAppearanceLayout = {
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
 	};
+	/**
+	 * How the scroll bars behave (`ClassicyScrollArea`). Optional, as is each
+	 * key: a package that leaves one out keeps Mac OS 8's behavior.
+	 */
+	scrollBar?: {
+		/**
+		 * `"live"` (the default, Mac OS 8): dragging the thumb scrolls the
+		 * content as it goes. `"onRelease"` (System 7, HIG p.165): the thumb
+		 * stays put while a drag outline (`data-classicy-part`
+		 * `scroll-drag-outline`) follows the pointer, and the content scrolls
+		 * when the button comes up; a pointer more than the theme's
+		 * `--scroll-bar-snap-back` from the bar snaps the outline back over the
+		 * thumb, and a release there scrolls nothing.
+		 */
+		thumbDrag?: "live" | "onRelease";
+	};
 };
 
 /**

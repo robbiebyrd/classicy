@@ -136,6 +136,29 @@
   width: var(--classicy-scroll-thumb-length);
 }
 
+// An on-release drag's outline (a package's `layout.scrollBar.thumbDrag`):
+// over the track like the thumb, offset and sized by ClassicyScrollArea, and
+// drawn above the thumb it leaves in place. The package draws it.
+.classicyScrollBarDragOutline {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.classicyScrollBarVertical .classicyScrollBarDragOutline {
+  top: var(--classicy-scroll-outline-offset);
+  right: 0;
+  left: 0;
+  height: var(--classicy-scroll-outline-length);
+}
+
+.classicyScrollBarHorizontal .classicyScrollBarDragOutline {
+  top: 0;
+  bottom: 0;
+  left: var(--classicy-scroll-outline-offset);
+  width: var(--classicy-scroll-outline-length);
+}
+
 .classicyScrollAreaCorner {
   flex: none;
   box-sizing: border-box;

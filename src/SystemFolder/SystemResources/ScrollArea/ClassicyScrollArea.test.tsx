@@ -7,9 +7,17 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+import {
 	CLASSICY_PART_ATTRIBUTE,
 	CLASSICY_STATE,
 } from "@/Appearance/vocabulary/ClassicyVocabulary";
+// Registers Platinum's sound pack, which the default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyScrollArea } from "./ClassicyScrollArea";
 
@@ -673,6 +681,252 @@ describe("ClassicyScrollArea", () => {
 	});
 });
 
+// A package that declares `layout.scrollBar.thumbDrag: "onRelease"`
+// (System 7, HIG p.165): the box stays put while a drag outline follows the
+// pointer, and the content scrolls on release.
+const ON_RELEASE_PACKAGE = "test-on-release";
+const registerOnReleasePackage = () =>
+	registerClassicyAppearancePackage({
+		id: ON_RELEASE_PACKAGE,
+		name: "On Release",
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: "test-on-release-default",
+			package: ON_RELEASE_PACKAGE,
+		},
+		layout: {
+			...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+			scrollBar: { thumbDrag: "onRelease" },
+		},
+	});
+
+// The vertical bar's box on screen: 17 px wide at x 100, 200 px tall at y 0.
+const placeBar = (container: HTMLElement) => {
+	const bar = part(container, "scrollbar");
+	vi.spyOn(bar, "getBoundingClientRect").mockReturnValue(
+		DOMRect.fromRect({ x: 100, y: 0, width: BAR, height: LENGTH }),
+	);
+	return bar;
+};
+
+const outlineStyle = (outline: HTMLElement) => ({
+	offset: outline.style.getPropertyValue("--classicy-scroll-outline-offset"),
+	length: outline.style.getPropertyValue("--classicy-scroll-outline-length"),
+});
+
+describe("ClassicyScrollArea thumb drag on release", () => {
+	let sheet: HTMLStyleElement;
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		registerOnReleasePackage();
+		// The package's snap-back distance, a theme variable (System 7's
+		// `scrollBar.snapBack` knob).
+		sheet = document.createElement("style");
+		sheet.textContent = ".classicyScrollBar { --scroll-bar-snap-back: 20px; }";
+		document.head.append(sheet);
+	});
+	afterEach(() => {
+		sheet.remove();
+		resetClassicyAppearancePackagesForTests();
+	});
+
+	it("leaves the thumb in place while a drag outline follows the pointer, and scrolls on release", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		const thumb = part(container, "scroll-thumb");
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		fireEvent.mouseDown(thumb, { button: 0, clientX: 108, clientY: 30 });
+		expect(thumb.classList.contains(CLASSICY_STATE.dragging)).toBe(true);
+		const outline = part(container, "scroll-drag-outline");
+		expect(outline.getAttribute("aria-hidden")).toBe("true");
+		expect(outline.classList.contains("classicyScrollBarDragOutline")).toBe(
+			true,
+		);
+		// Over the box at the press.
+		expect(outlineStyle(outline)).toEqual({ offset: "17px", length: "33px" });
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		// The content and the box stay put; the outline is 66.5 px down,
+		// drawn on a whole pixel.
+		expect(viewport.scrollTop).toBe(0);
+		expect(thumbStyle(thumb).offset).toBe("17px");
+		expect(outlineStyle(outline).offset).toBe("84px");
+		// It stops at the track's end, as the box would (15 px below the bar
+		// is near enough to follow).
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 215 });
+		expect(outlineStyle(outline).offset).toBe("150px");
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 96.5 });
+		// Released halfway along the 133 px travel: half the 800 px range,
+		// as a live drag to the same point scrolls.
+		expect(viewport.scrollTop).toBe(400);
+		expect(thumbStyle(thumb).offset).toBe("83px");
+		expect(thumb.classList.contains(CLASSICY_STATE.dragging)).toBe(false);
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 30 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("scrolls nothing when released where it was pressed", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		act(() => {
+			viewport.scrollTop = 37;
+			fireEvent.scroll(viewport);
+		});
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 30 });
+		expect(viewport.scrollTop).toBe(37);
+	});
+
+	it("snaps the outline back past the package's distance from the bar, and scrolls nothing released there", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		const outline = part(container, "scroll-drag-outline");
+		// 20 px right of the bar's right edge (117) still follows.
+		fireEvent.mouseMove(document, { clientX: 137, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("84px");
+		// One more pixel out: back over the box.
+		fireEvent.mouseMove(document, { clientX: 138, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("17px");
+		fireEvent.mouseUp(document, { clientX: 138, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+	});
+
+	it("snaps back on every side of the bar", () => {
+		const { container } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		const outline = part(container, "scroll-drag-outline");
+		for (const [clientX, clientY, offset] of [
+			[80, 96.5, "84px"],
+			[79, 96.5, "17px"],
+			[108, -20, "17px"],
+			[108, -21, "17px"],
+			[108, 220, "150px"],
+			[108, 221, "17px"],
+		] as const) {
+			fireEvent.mouseMove(document, { clientX, clientY });
+			expect(outlineStyle(outline).offset, `${clientX},${clientY}`).toBe(
+				offset,
+			);
+		}
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 221 });
+	});
+
+	it("scrolls to where the button comes up, not to the last move", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 60 });
+		// Released lower down, with no move there first.
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		// And released far from the bar: nothing.
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 96.5,
+		});
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 30 });
+		fireEvent.mouseUp(document, { clientX: 300, clientY: 30 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("follows the pointer again once it comes back near the bar", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		fireEvent.mouseMove(document, { clientX: 300, clientY: 96.5 });
+		fireEvent.mouseMove(document, { clientX: 110, clientY: 96.5 });
+		expect(outlineStyle(part(container, "scroll-drag-outline")).offset).toBe(
+			"84px",
+		);
+		fireEvent.mouseUp(document, { clientX: 110, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("cancels the drag when the pointer stream is lost, scrolling nothing", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		const thumb = part(container, "scroll-thumb");
+		fireEvent.mouseDown(thumb, { button: 0, clientX: 108, clientY: 30 });
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		act(() => {
+			window.dispatchEvent(new Event("blur"));
+		});
+		expect(viewport.scrollTop).toBe(0);
+		expect(thumb.classList.contains(CLASSICY_STATE.dragging)).toBe(false);
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("never snaps back when the package sets no distance", () => {
+		sheet.textContent = "";
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		fireEvent.mouseMove(document, { clientX: 900, clientY: 96.5 });
+		fireEvent.mouseUp(document, { clientX: 900, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+	});
+
+	it("leaves the arrows and the track as they are", () => {
+		vi.useFakeTimers();
+		const { container, viewport } = renderTall({ lineStep: 10 });
+		fireEvent.mouseDown(part(container, "scroll-arrow-end"), { button: 0 });
+		expect(viewport.scrollTop).toBe(10);
+		fireEvent.mouseUp(document);
+		fireEvent.mouseDown(part(container, "scroll-track"), {
+			button: 0,
+			clientY: 150,
+		});
+		expect(viewport.scrollTop).toBe(200);
+		fireEvent.mouseUp(document);
+	});
+});
+
+describe("ClassicyScrollArea live thumb drag (no declaration)", () => {
+	it("draws no drag outline", () => {
+		const { container, viewport } = renderTall();
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientY: 30,
+		});
+		fireEvent.mouseMove(document, { clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(400);
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		fireEvent.mouseUp(document);
+	});
+});
+
 describe("ClassicyScrollArea vocabulary and stylesheet", () => {
 	it("declares its parts and the fits state", () => {
 		expect(CLASSICY_STATE.fits).toBe("fits");
@@ -694,9 +948,35 @@ describe("ClassicyScrollArea vocabulary and stylesheet", () => {
 			"scroll-arrow-end",
 			"scroll-thumb",
 			"scroll-corner",
+			"scroll-drag-outline",
 		]) {
 			expect(parts).toContain(name);
 		}
+	});
+
+	it("lays the drag outline over the track like the thumb, never taking the pointer", () => {
+		const base = readFileSync(
+			path.join(__dirname, "ClassicyScrollArea.scss"),
+			"utf8",
+		);
+		const rule = (selector: string) => {
+			const start = base.indexOf(`${selector} {`);
+			expect(start, selector).toBeGreaterThanOrEqual(0);
+			return base.slice(start, base.indexOf("}", start));
+		};
+		expect(rule(".classicyScrollBarDragOutline")).toMatch(
+			/position: absolute;[\s\S]*pointer-events: none;/,
+		);
+		expect(
+			rule(".classicyScrollBarVertical .classicyScrollBarDragOutline"),
+		).toMatch(
+			/top: var\(--classicy-scroll-outline-offset\);[\s\S]*height: var\(--classicy-scroll-outline-length\);/,
+		);
+		expect(
+			rule(".classicyScrollBarHorizontal .classicyScrollBarDragOutline"),
+		).toMatch(
+			/left: var\(--classicy-scroll-outline-offset\);[\s\S]*width: var\(--classicy-scroll-outline-length\);/,
+		);
 	});
 
 	it("hides the browser's own bar on the viewport, in every engine", () => {

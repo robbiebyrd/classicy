@@ -414,6 +414,7 @@
 			"Arrow",
 			"ArrowEnd",
 			"ArrowStart",
+			"DragOutline",
 			"Horizontal",
 			"Thumb",
 			"Track",
@@ -580,7 +581,8 @@
 			"scroll-track",
 			"scroll-arrow-end",
 			"scroll-thumb",
-			"scroll-corner"
+			"scroll-corner",
+			"scroll-drag-outline"
 		]
 	}
 }

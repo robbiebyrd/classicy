@@ -1126,14 +1126,17 @@ describe("system7.scss (compiled)", () => {
 			}
 		});
 
-		it("draws a dragged box as a dotted outline", () => {
-			const dragged = rule(
-				".classicyScrollBar .classicyScrollBarThumb.dragging",
-			);
-			expect(dragged).toMatch(
+		// The box stays put while the drag outline follows the pointer
+		// (layout.scrollBar.thumbDrag "onRelease", HIG p.165).
+		it("draws the drag outline dotted, leaving the dragged box as it is", () => {
+			const outline = rule(".classicyScrollBar .classicyScrollBarDragOutline");
+			expect(outline).toMatch(
 				/border: var\(--window-box-pixel\) dotted var\(--color-black\);/,
 			);
-			expect(dragged).toMatch(/background: none;/);
+			expect(outline).toMatch(/background: none;/);
+			expect(rule(".classicyScrollBar .classicyScrollBarThumb.dragging")).toBe(
+				"",
+			);
 		});
 
 		it("draws a bar with nothing to scroll with hollow 1-bit-shaped arrows and a plain track", () => {

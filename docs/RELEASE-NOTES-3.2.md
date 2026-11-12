@@ -116,6 +116,15 @@ diverge, so a logo registered through Platinum's
   text editors, split-view panes, the Assistant, file dialogs, the color
   picker and other scrolling surfaces use it. The thumb and bar math is
   exported (`computeClassicyScrollThumb`, `computeClassicyScrollBars`).
+- **Packages declare scroll-on-release.** The package `layout` gains an
+  optional `scrollBar` group (optional keys, so existing packages validate
+  unchanged). `scrollBar.thumbDrag: "onRelease"` leaves a dragged thumb in
+  place while a drag outline, the new part `scroll-drag-outline`
+  (`.classicyScrollBarDragOutline`), follows the pointer, and scrolls on
+  release. A pointer more than the theme's `--scroll-bar-snap-back` from the
+  bar snaps the outline back over the thumb, and a release there scrolls
+  nothing; a lost pointer stream cancels the drag. `"live"`, the default,
+  scrolls as the thumb moves, as before.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it, else `window.controlSize × 2.5` as before; it
   has no floor value, so Platinum's band still follows its control size.

@@ -3,7 +3,7 @@
 // reference capture has them (docs/system7-reference-screenshots.md, the
 // captures 640x480 framebuffers at 1x), so a bar's shot and its reference
 // compare region for region. A pressed arrow is held with the pointer, and
-// the dragged box follows it: no story can hold either.
+// the drag outline follows it: no story can hold either.
 import {
 	ClassicyListBox,
 	ClassicyScrollArea,

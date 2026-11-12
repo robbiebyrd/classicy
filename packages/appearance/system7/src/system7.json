@@ -193,7 +193,8 @@
 				"boxLength": 16,
 				"bevel": 0,
 				"arrowSpread": 1,
-				"grip": 0
+				"grip": 0,
+				"snapBack": 20
 			},
 			"controlStrip": {
 				"bevelWidth": 0
@@ -410,7 +411,8 @@
 					"boxLength": 16,
 					"bevel": 0,
 					"arrowSpread": 1,
-					"grip": 0
+					"grip": 0,
+					"snapBack": 20
 				},
 				"controlStrip": {
 					"bevelWidth": 0
@@ -629,7 +631,8 @@
 					"boxLength": 16,
 					"bevel": 1,
 					"arrowSpread": 0,
-					"grip": 6
+					"grip": 6,
+					"snapBack": 20
 				},
 				"controlStrip": {
 					"bevelWidth": 1
@@ -663,6 +666,9 @@
 		},
 		"desktop": {
 			"iconGridOrigin": "top-right"
+		},
+		"scrollBar": {
+			"thumbDrag": "onRelease"
 		}
 	},
 	"knobs": {}

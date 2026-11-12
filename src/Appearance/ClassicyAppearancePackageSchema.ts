@@ -10,7 +10,10 @@ import type {
 	ClassicyAppIdentityOverride,
 } from "./ClassicyAppearancePackage";
 
-/** The three arrangement groups; every group is required. */
+/**
+ * The three arrangement groups, every one required, and the optional
+ * behavior groups (`scrollBar`), each key of which is optional too.
+ */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
 		growBoxCorner: z.enum([
@@ -29,6 +32,9 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			"bottom-left",
 		]),
 	}),
+	scrollBar: z
+		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the

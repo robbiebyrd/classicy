@@ -18,7 +18,9 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicyPressRepeat } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
@@ -37,6 +39,14 @@ import {
 const DEFAULT_LINE_STEP = 16;
 
 export type ClassicyScrollBarOrientation = "vertical" | "horizontal";
+
+/** How dragging the thumb scrolls: the package's `layout.scrollBar.thumbDrag`. */
+type ClassicyScrollThumbDrag = "live" | "onRelease";
+
+// The theme variable an on-release package sets for how far the pointer may
+// stray from the bar before the drag outline snaps back (System 7's
+// `scrollBar.snapBack` knob). Unset, it never snaps back.
+const SNAP_BACK_VAR = "--scroll-bar-snap-back";
 
 export interface ClassicyScrollAreaProps
 	extends Omit<HTMLAttributes<HTMLDivElement>, "onScroll"> {
@@ -217,7 +227,13 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  *
  * An arrow press scrolls a line and repeats while held; a track press pages
  * toward the pointer and repeats until the thumb reaches it; dragging the
- * thumb scrolls in proportion. A lost pointer stream ends any of them. The
+ * thumb scrolls in proportion, as it goes (Mac OS 8) or, when the package's
+ * `layout.scrollBar.thumbDrag` is `"onRelease"` (System 7), on release: the
+ * thumb stays put while a `scroll-drag-outline` part follows the pointer,
+ * snapping back over the thumb (a release there scrolls nothing) while the
+ * pointer is more than the theme's `--scroll-bar-snap-back` from the bar. A
+ * lost pointer stream ends any of them (an on-release drag scrolling
+ * nothing). The
  * bars are `aria-hidden` and never take focus: the viewport is the
  * scrollable region assistive technology and the keyboard use, as with a
  * native scroll bar.
@@ -246,6 +262,8 @@ export const ClassicyScrollArea = forwardRef<
 	ref,
 ) {
 	const windowActive = useContext(ClassicyWindowActiveContext);
+	const thumbDrag: ClassicyScrollThumbDrag =
+		useClassicyAppearanceLayout().scrollBar?.thumbDrag ?? "live";
 	const isInactive = inactive ?? windowActive === false;
 	const verticalPolicy = scrollable ? vertical : "never";
 	const horizontalPolicy = scrollable ? horizontal : "never";
@@ -453,6 +471,7 @@ export const ClassicyScrollArea = forwardRef<
 			fits={fits[orientation]}
 			inactive={isInactive}
 			lineStep={lineStep}
+			thumbDrag={thumbDrag}
 			scrollBy={scrollBy}
 			update={update}
 		/>
@@ -533,6 +552,7 @@ type ClassicyScrollBarProps = {
 	fits: boolean;
 	inactive: boolean;
 	lineStep: number;
+	thumbDrag: ClassicyScrollThumbDrag;
 	scrollBy: (orientation: ClassicyScrollBarOrientation, delta: number) => void;
 	update: () => void;
 };
@@ -549,6 +569,7 @@ const ClassicyScrollBar = ({
 	fits,
 	inactive,
 	lineStep,
+	thumbDrag,
 	scrollBy,
 	update,
 }: ClassicyScrollBarProps) => {
@@ -556,6 +577,12 @@ const ClassicyScrollBar = ({
 	const repeat = useClassicyPressRepeat();
 	const [pressed, setPressed] = useState<PressedPart>(null);
 	const [dragging, setDragging] = useState(false);
+	// An on-release drag's outline: where it is drawn (from the bar's start)
+	// and how long it is (the thumb's length).
+	const [outline, setOutline] = useState<ClassicyScrollThumb | null>(null);
+	// The thumb as last drawn, for an outline snapping back over it.
+	const thumbRef = useRef(thumb);
+	thumbRef.current = thumb;
 	const stopDragRef = useRef<(() => void) | null>(null);
 	// The arrow or track held now, and how to end that hold.
 	const heldRef = useRef<PressedPart>(null);
@@ -694,37 +721,98 @@ const ClassicyScrollBar = ({
 		stopDragRef.current?.();
 		const from = along(e);
 		const startPosition = vertical ? el.scrollTop : el.scrollLeft;
-		const onMove = (ev: MouseEvent) => {
+		// The track, the thumb's length and its travel now, and the thumb
+		// offset (from the track's start, unrounded) the pointer asks for.
+		const measure = (ev: { clientX: number; clientY: number }) => {
 			const axis = axisOf(el, orientation);
 			const track = trackOf(refs, orientation);
 			const thumbLength = thumbOf(axis, track.length, refs, orientation).length;
 			const travel = track.length - thumbLength;
 			const range = axis.total - axis.visible;
-			if (travel <= 0 || range <= 0) return;
+			if (travel <= 0 || range <= 0) return null;
 			const startOffset = (startPosition * travel) / range;
-			const position = classicyScrollPositionForThumb(
+			return {
 				axis,
-				track.length,
+				track,
 				thumbLength,
-				startOffset + along(ev) - from,
+				offset: Math.min(Math.max(startOffset + along(ev) - from, 0), travel),
+				moved: along(ev) !== from,
+			};
+		};
+		const scrollTo = (m: NonNullable<ReturnType<typeof measure>>) => {
+			const position = classicyScrollPositionForThumb(
+				m.axis,
+				m.track.length,
+				m.thumbLength,
+				m.offset,
 			);
 			if (vertical) el.scrollTop = position;
 			else el.scrollLeft = position;
 			update();
 		};
-		const end = () => {
-			document.removeEventListener("mousemove", onMove, true);
-			document.removeEventListener("mouseup", end, true);
-			stopWatchingPointerStream();
-			if (stopDragRef.current === end) stopDragRef.current = null;
-			setDragging(false);
+
+		const onRelease = thumbDrag === "onRelease";
+		const barEl = refs.bar.current;
+		// Read once per drag (a style read): how far the pointer may stray.
+		const snapBack = onRelease
+			? readClassicyThemeVar(SNAP_BACK_VAR, Number.POSITIVE_INFINITY, barEl)
+			: Number.POSITIVE_INFINITY;
+		const nearBar = (ev: MouseEvent) => {
+			if (!barEl || snapBack === Number.POSITIVE_INFINITY) return true;
+			const r = barEl.getBoundingClientRect();
+			return (
+				ev.clientX >= r.left - snapBack &&
+				ev.clientX <= r.right + snapBack &&
+				ev.clientY >= r.top - snapBack &&
+				ev.clientY <= r.bottom + snapBack
+			);
 		};
+		// Where an on-release drag would scroll to if released now; null
+		// while the outline is snapped back (or nothing has moved).
+		let target: ReturnType<typeof measure> = null;
+
+		const onMove = (ev: MouseEvent) => {
+			if (!onRelease) {
+				const m = measure(ev);
+				if (m) scrollTo(m);
+				return;
+			}
+			const m = nearBar(ev) ? measure(ev) : null;
+			target = m?.moved ? m : null;
+			const at = thumbRef.current;
+			setOutline(
+				m
+					? {
+							length: m.thumbLength,
+							offset: m.track.start + Math.round(m.offset),
+						}
+					: { length: at.length, offset: at.offset },
+			);
+		};
+		const end = (commit: boolean) => {
+			document.removeEventListener("mousemove", onMove, true);
+			document.removeEventListener("mouseup", release, true);
+			stopWatchingPointerStream();
+			if (stopDragRef.current === cancel) stopDragRef.current = null;
+			setDragging(false);
+			setOutline(null);
+			if (commit && target) scrollTo(target);
+		};
+		// A release scrolls an on-release drag to where it was let go (where
+		// the outline is, unless snapped back).
+		const release = (ev: MouseEvent) => {
+			if (onRelease) onMove(ev);
+			end(true);
+		};
+		// A lost stream ends a live drag where it is, as a release there
+		// would; an on-release drag is canceled, scrolling nothing.
+		const cancel = () => end(false);
 		document.addEventListener("mousemove", onMove, true);
-		document.addEventListener("mouseup", end, true);
-		// A lost stream ends the drag where it is, as a release there would.
-		const stopWatchingPointerStream = onClassicyPointerStreamLost(end);
-		stopDragRef.current = end;
+		document.addEventListener("mouseup", release, true);
+		const stopWatchingPointerStream = onClassicyPointerStreamLost(cancel);
+		stopDragRef.current = cancel;
 		setDragging(true);
+		if (onRelease) setOutline({ length: thumb.length, offset: thumb.offset });
 	};
 
 	return (
@@ -786,6 +874,19 @@ const ClassicyScrollBar = ({
 				}
 				onMouseDown={pressThumb}
 			/>
+			{outline && (
+				<div
+					className="classicyScrollBarDragOutline"
+					data-classicy-part="scroll-drag-outline"
+					aria-hidden="true"
+					style={
+						{
+							"--classicy-scroll-outline-offset": `${outline.offset}px`,
+							"--classicy-scroll-outline-length": `${outline.length}px`,
+						} as CSSProperties
+					}
+				/>
+			)}
 		</div>
 	);
 };

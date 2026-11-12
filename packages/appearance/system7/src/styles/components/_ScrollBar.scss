@@ -24,9 +24,11 @@
 //   #777777 on #EEEEEE in color; the 1-bit bar looks the same, in black.
 // - Inactive (its window is): the outline alone, as the HIG asks (p.160)
 //   and the Finder draws it.
-// - Dragged, the box is a dotted outline that follows the pointer (HIG
-//   p.165); the core scrolls the content as it moves, so the box is not left
-//   behind as System 7 left it.
+// - Dragged, the box stays put while a dotted outline (the core's drag
+//   outline part) follows the pointer, and the content scrolls on release
+//   (HIG p.165; the package's layout declares `thumbDrag: "onRelease"`).
+//   More than `scrollBar.snapBack` from the bar, the outline snaps back over
+//   the box.
 //
 // Where the two depths differ in shape, not just in color, a knob of the
 // `scrollBar` family is zero in one of them: `bevel` (the arrow box's shadow,
@@ -381,8 +383,9 @@ $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transpa
     --system7-arrow-fill: var(--color-black);
   }
 
-  // Dragged, the box is a dotted outline over the track.
-  .classicyScrollBar .classicyScrollBarThumb.dragging {
+  // Dragged, the box stays put and a dotted outline follows the pointer
+  // (layout.scrollBar.thumbDrag "onRelease", HIG p.165).
+  .classicyScrollBar .classicyScrollBarDragOutline {
     border: $px dotted var(--color-black);
     background: none;
   }
