@@ -107,15 +107,23 @@ export const Default: Story = {};
  */
 export const ModuleMenuOpen: Story = {
 	render: (args) => {
+		// The Screen Saver extension registers its module once the desktop
+		// has mounted, and the story frame may still resize as it settles,
+		// which closes an open pop-up: click the module as the user would
+		// until its menu stays open.
 		useEffect(() => {
-			const timer = window.setTimeout(() => {
+			let tries = 0;
+			const timer = window.setInterval(() => {
+				tries += 1;
+				if (tries > 25) window.clearInterval(timer);
+				if (document.querySelector(".classicyBevelButtonPopup")) return;
 				document
 					.querySelector<HTMLElement>(
 						'.classicyControlStripModule[aria-label="Screen Saver"]',
 					)
 					?.click();
-			}, 300);
-			return () => window.clearTimeout(timer);
+			}, 400);
+			return () => window.clearInterval(timer);
 		}, []);
 		return <ClassicyControlStrip {...args} />;
 	},
