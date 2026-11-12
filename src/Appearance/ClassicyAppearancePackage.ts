@@ -65,9 +65,10 @@ export type ClassicyAppearanceLayout = {
 		/**
 		 * `"hidden"` (the default, Mac OS 8): a document window draws its bars
 		 * only while its content overflows, and a list box its bar only while
-		 * its rows do. `"shown"` (System 7, HIG p.160): a document window (a
-		 * resizable, non-utility `ClassicyWindow`) keeps both bars and a
-		 * `ClassicyListBox` its vertical bar while the content fits, drawn in
+		 * its rows do. `"shown"` (System 7, HIG p.160): a document window keeps
+		 * both bars (the default of `ClassicyWindow`'s `fitsScrollBars` for a
+		 * resizable, non-utility window) and a list (`ClassicyListBox`,
+		 * Standard File's) its vertical bar while the content fits, drawn in
 		 * the `fits` state (no thumb).
 		 */
 		fitsBars?: "hidden" | "shown";

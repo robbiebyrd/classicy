@@ -58,6 +58,7 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -306,6 +307,17 @@ interface ClassicyWindowProps {
 	 * counts as overflow and draws a second set of bars. Defaults to `true`.
 	 */
 	scrollable?: boolean;
+	/**
+	 * Keep both scroll bars drawn while the content fits, each in the `fits`
+	 * state (no thumb), as System 7 draws a document window's bars (HIG7
+	 * p.160). Defaults to the active package's `layout.scrollBar.fitsBars`
+	 * for a document window (resizable, not `windowType="utility"`), else
+	 * `false`. Pass `false` for a window whose content is not a document
+	 * the bars would scroll (a movie, a picture, a HyperCard card), `true`
+	 * to keep them whatever the package says. No effect when `scrollable`
+	 * is `false` or on a modal.
+	 */
+	fitsScrollBars?: boolean;
 	/**
 	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
 	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
@@ -569,6 +581,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	collapsable = true,
 	resizable = true,
 	scrollable = true,
+	fitsScrollBars,
 	modal = false,
 	movable = true,
 	type = "default",
@@ -941,61 +954,29 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Scroll bars only while there is something to scroll. The contents'
 	// ClassicyScrollArea draws both bars (Mac OS 8 style) only while its
 	// content overflows on either axis, and none otherwise; it always
-	// scrolls. Measured here rather than left to the area's per-axis `auto`
+	// scrolls. Decided here rather than left to the area's per-axis `auto`
 	// because a lone vertical bar would run the full height and its end
-	// arrows would sit under the grow box. Measured on the area's viewport,
-	// the scroller (contentsRef). Re-measured
-	// when the box resizes (ResizeObserver: window resize, bars appearing),
-	// when its subtree changes (MutationObserver), and when something inside
-	// finishes loading (an <img> growing after mount). Layout effect so the
-	// first paint already has the right bars. The 1px tolerance absorbs
-	// sub-pixel rounding between scrollHeight and clientHeight.
+	// arrows would sit under the grow box. The area measures its viewport
+	// (resize, content and load changes, by a pixel's tolerance) and reports
+	// overflow through `onOverflowChange`, so the window keeps no observer of
+	// its own.
 	const [contentOverflows, setContentOverflows] = useState(false);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed and ws.collapsed aren't read — they re-attach the observers once the contents box exists again
-	useLayoutEffect(() => {
-		if (!scrollable) return;
-		const el = contentsRef.current;
-		if (!el) return;
-		const measure = () => {
-			const next =
-				el.scrollHeight > el.clientHeight + 1 ||
-				el.scrollWidth > el.clientWidth + 1;
-			setContentOverflows((prev) => (prev === next ? prev : next));
-		};
-		measure();
-		// jsdom has neither observer; the mount measurement above still runs.
-		const resizeObserver =
-			typeof ResizeObserver === "undefined"
-				? undefined
-				: new ResizeObserver(measure);
-		resizeObserver?.observe(el);
-		const mutationObserver =
-			typeof MutationObserver === "undefined"
-				? undefined
-				: new MutationObserver(measure);
-		mutationObserver?.observe(el, {
-			childList: true,
-			subtree: true,
-			characterData: true,
-			attributes: true,
-		});
-		el.addEventListener("load", measure, true);
-		return () => {
-			resizeObserver?.disconnect();
-			mutationObserver?.disconnect();
-			el.removeEventListener("load", measure, true);
-		};
-	}, [scrollable, ws.closed, ws.collapsed]);
+	const onContentOverflow = useCallback(
+		(overflow: { vertical: boolean; horizontal: boolean }) =>
+			setContentOverflows(overflow.vertical || overflow.horizontal),
+		[],
+	);
 	// A placard lives in the horizontal scroll bar's gutter (HIGOS8 p.46), so
 	// a window with one keeps its bars. A package whose layout keeps the bars
 	// in the fits state (System 7: "If the document is no larger than the
 	// window, the scroll bars are inactive", HIG p.160) keeps them for a
 	// document window, one with a size box; a utility window or one the user
-	// cannot resize stays bare until its content overflows.
+	// cannot resize stays bare until its content overflows. `fitsScrollBars`
+	// overrides either way (a movie or a card is not a document).
+	const packageKeepsFitsBars = useClassicyFitsScrollBars();
 	const keepsFitsBars =
-		layout.scrollBar?.fitsBars === "shown" &&
-		resizable &&
-		windowType !== "utility";
+		fitsScrollBars ??
+		(packageKeepsFitsBars && resizable && windowType !== "utility");
 	const showScrollBars =
 		scrollable && (contentOverflows || Boolean(placard) || keepsFitsBars);
 
@@ -2105,6 +2086,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						scrollable={scrollable}
 						vertical={showScrollBars ? "always" : "never"}
 						horizontal={showScrollBars ? "always" : "never"}
+						onOverflowChange={onContentOverflow}
 					>
 						{contentsInner}
 					</ClassicyScrollArea>

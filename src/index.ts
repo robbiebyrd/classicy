@@ -265,6 +265,7 @@ export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaForm";
 export * from "./SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
 export * from "./SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 export * from "./SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaMetrics";
+export * from "./SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 export * from "./SystemFolder/SystemResources/Separator/ClassicySeparator";
 export * from "./SystemFolder/SystemResources/Shortcut/ClassicyShortcut";
 export * from "./SystemFolder/SystemResources/Slider/ClassicySlider";

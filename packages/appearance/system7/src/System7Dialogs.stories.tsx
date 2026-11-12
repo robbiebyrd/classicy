@@ -12,6 +12,8 @@ import {
 	ClassicyAboutWindow,
 	ClassicyAlert,
 	ClassicyButton,
+	type ClassicyFileDialogVolume,
+	ClassicyFileOpenDialog,
 	ClassicyProgressBar,
 	ClassicyWindow,
 	useAppManagerDispatch,
@@ -218,6 +220,41 @@ const fixedModal = () => (
 
 export const FixedModal: Story = { render: fixedModal };
 export const FixedModalColor = inColor(fixedModal);
+
+// The folder `*-dialog-standardfile-open.png` lists: four items, which fit.
+const appleExtras: ClassicyFileDialogVolume = {
+	id: "apple-extras",
+	label: "Apple Extras",
+	list: async () => [
+		{ id: "applescript", name: "AppleScript\u2122", kind: "folder" },
+		{ id: "disk-tools", name: "Disk Tools", kind: "folder" },
+		{ id: "portables", name: "Portables", kind: "folder" },
+		{ id: "printing", name: "Printing", kind: "folder" },
+	],
+};
+
+/**
+ * Standard File's Open dialog (the core's `ClassicyFileOpenDialog`) on the
+ * folder `*-dialog-standardfile-open.png` lists. Its four items fit, and the
+ * list keeps its vertical bar in the `fits` state (hollow arrows, a plain
+ * track), as the capture shows: the package's `scrollBar.fitsBars`.
+ */
+const standardFile = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyFileOpenDialog
+			id="standard-file"
+			appId="storybook.app"
+			open
+			volumes={[appleExtras]}
+			onOpenFunc={fn()}
+			onCancelFunc={fn()}
+		/>
+		<AtRest />
+	</StoryApp>
+);
+
+export const StandardFile: Story = { render: standardFile };
+export const StandardFileColor = inColor(standardFile);
 
 /**
  * A core modal whose contents lay out no margin of their own (the About

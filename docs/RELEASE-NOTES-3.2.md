@@ -137,10 +137,15 @@ diverge, so a logo registered through Platinum's
   (`.classicyPopUpMenuScrollArrow`), drawn by the package: Platinum a black
   triangle on the menu's face, System 7 its pop-up triangle.
 - **Packages keep the bars in the fits state.** `scrollBar.fitsBars:
-  "shown"` keeps both bars of a document window (a resizable, non-utility
-  `ClassicyWindow`) and a `ClassicyListBox`'s vertical bar drawn while the
-  content fits, in the `fits` state (no thumb). `"hidden"`, the default,
-  draws them only while the content overflows, as before.
+  "shown"` keeps both bars of a document window and the vertical bar of a
+  `ClassicyListBox` or Standard File's list drawn while the content fits,
+  in the `fits` state (no thumb). `"hidden"`, the default, draws them only
+  while the content overflows, as before. The new `ClassicyWindow` prop
+  `fitsScrollBars` decides per window: it defaults to the declaration for a
+  resizable, non-utility window, and the Movie Player, Picture Viewer and
+  HyperCard card windows pass `false`. `useClassicyFitsScrollBars()` and
+  `useClassicyFitsBarPolicy(keep?)` read the declaration for your own
+  scrollers.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it, else `window.controlSize × 2.5` as before; it
   has no floor value, so Platinum's band still follows its control size.

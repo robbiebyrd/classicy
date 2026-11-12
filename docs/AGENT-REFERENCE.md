@@ -941,6 +941,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
 | `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
+| `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
 | `movable` | `boolean` | `true` (modal only) |
 | `defaultWindow` | `boolean` | `false` |
@@ -1031,10 +1032,15 @@ dialog content claims it the same way.
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
 bars, as Mac OS 8 does — the non-scrolling axis shows an empty track (`fits`)
-so the grow box keeps its corner. Under a package whose layout says
-`scrollBar.fitsBars: "shown"` (System 7, HIG p.160) a document window (one
-with a size box, `resizable`, that is not a utility window) draws both bars
-always, each in the `fits` state while its axis has nothing to scroll. Its contents are a `ClassicyScrollArea`
+so the grow box keeps its corner. `fitsScrollBars` keeps both bars drawn
+always, each in the `fits` state while its axis has nothing to scroll. It
+defaults to the package's `layout.scrollBar.fitsBars` (`"shown"` under
+System 7, HIG p.160) for a document window, one with a size box
+(`resizable`) that is not a utility window, else `false`. A window whose
+content is not a document passes `false`: the bundled Movie Player, Picture
+Viewer and HyperCard card windows do. Which bars the window needs comes
+from its `ClassicyScrollArea`'s `onOverflowChange`; the window observes
+nothing itself. Its contents are a `ClassicyScrollArea`
 (§4.4): the bars are Classicy's own, drawn by the Appearance Package, and
 `inactive` while the window is. Content that fills the window and scrolls itself (a
 full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
@@ -3685,7 +3691,7 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
-| `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window (`resizable`, not `windowType="utility"`) always draws both bars and a list box its vertical bar, in the `fits` state (no thumb) while their axis fits. A window with no size box or a utility window keeps the `hidden` rule |
+| `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
 | `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 20; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") outside the bar's box on any side, the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a

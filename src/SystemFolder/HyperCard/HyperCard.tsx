@@ -1024,6 +1024,8 @@ export const HyperCard: FunctionalComponent = () => {
 				zoomable={false}
 				scrollable={true}
 				resizable={true}
+				// A card window has no scroll bars (a card fills it).
+				fitsScrollBars={false}
 				initialSize={open ? [(open.stack.size?.[0] ?? 420) + 4, 0] : [420, 320]}
 				initialPosition={["center", 80]}
 				onBeforeClose={onBeforeCloseMain}
