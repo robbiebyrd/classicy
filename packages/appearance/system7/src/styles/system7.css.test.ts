@@ -197,14 +197,43 @@ describe("system7.scss (compiled)", () => {
 			}
 		});
 
-		it("gives up the header's row under a window header", () =>
+		// The Finder's header (`*-finder-window-fits-active.png`): a white
+		// strip of whole pixels over a double rule, which the contents give up.
+		it("draws a window header as a white strip over a double rule, which the contents give up", () => {
+			const header = rule(".classicyWindow .classicyWindowHeader");
+			expect(header).toMatch(/height: var\(--window-header-height\);/);
+			expect(header).toMatch(
+				/border-bottom: var\(--window-header-rule\) double var\(--color-black\);/,
+			);
+			expect(header).toMatch(/background: var\(--color-window-document\);/);
 			expect(
 				rule(
 					".classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader",
 				),
 			).toMatch(
-				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--control-row-height\)\);/,
-			));
+				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--window-header-height\) - var\(--window-header-rule\)\);/,
+			);
+		});
+
+		it("draws the standalone frame as an active document window's chrome", () => {
+			expect(rule(".classicyWindowFrame")).toMatch(
+				/box-shadow: var\(--window-border-size\) var\(--window-border-size\) 0 0 var\(--color-black\);/,
+			);
+			const bar = rule(".classicyWindowFrame > .classicyWindowTitleBar");
+			expect(bar).toMatch(
+				/repeating-linear-gradient\(var\(--color-system-06\) 0 var\(--title-bar-stripe-height\)/,
+			);
+			expect(bar).toMatch(/inset .* var\(--color-theme-02\);/);
+			expect(bar).toMatch(/padding: 0;/);
+			expect(
+				rule(
+					".classicyWindowFrame > .classicyWindowTitleBar .classicyWindowIcon",
+				),
+			).toMatch(/display: none;/);
+			expect(rule(".classicyWindowFrameBody")).toMatch(
+				/background: var\(--color-window-document\);/,
+			);
+		});
 
 		it("draws a resizable windoid's size box", () =>
 			expect(
@@ -387,6 +416,151 @@ describe("system7.scss (compiled)", () => {
 				/border: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
+		});
+	});
+
+	// Plan 0018-dbd §3.4: modal dialogs, alerts and push buttons, from the
+	// 7.5 captures (Standard File, the Copy dialog, the alerts, the pressed
+	// buttons) and the HIG (pp.185-207).
+	describe("dialogs, alerts and buttons", () => {
+		const MODAL = ".classicyWindow.classicyWindowModal";
+		const FRAME =
+			"calc(var(--dialog-frame-bevel) + var(--dialog-frame-band) + var(--dialog-frame-bevel))";
+
+		it("frames a modal in the double frame, its outer bevel dark-sided on top, with no drop shadow", () => {
+			const modal = rule(MODAL);
+			expect(modal).toMatch(/padding: 0;/);
+			const shadow = modal.match(/box-shadow: ([^;]*);/)?.[1] ?? "";
+			const layers = shadow.split(/,(?![^(]*\))/).map((l) => l.trim());
+			expect(layers).toEqual([
+				"inset calc(var(--dialog-frame-bevel) * -1) calc(var(--dialog-frame-bevel) * -1) 0 0 var(--color-theme-04)",
+				"inset var(--dialog-frame-bevel) var(--dialog-frame-bevel) 0 0 var(--color-theme-02)",
+				"inset 0 0 0 calc(var(--dialog-frame-bevel) + var(--dialog-frame-band)) var(--color-system-02)",
+			]);
+			expect(rule(`${MODAL}.dragging`)).toMatch(/box-shadow: none;/);
+		});
+
+		it("lines the contents in black inside the inner bevel, its light side on top", () => {
+			const contents = rule(".classicyWindow .classicyWindowContentsModal");
+			expect(contents).toMatch(
+				/border: var\(--dialog-frame-line\) solid var\(--color-black\);/,
+			);
+			expect(contents).toMatch(/padding: 0;/);
+			const shadow = contents.match(/box-shadow: ([^;]*);/)?.[1] ?? "";
+			const layers = shadow.split(/,(?![^(]*\))/).map((l) => l.trim());
+			expect(layers).toHaveLength(4);
+			expect(
+				layers.slice(0, 3).every((l) => l.endsWith("--color-theme-02)")),
+			).toBe(true);
+			expect(layers[3]).toBe(
+				"0 0 0 var(--dialog-frame-bevel) var(--color-theme-04)",
+			);
+			expect(contents).toContain(
+				`margin: var(--dialog-frame-bevel) ${FRAME} ${FRAME};`,
+			);
+		});
+
+		it("drops a fixed modal's title bar and closes the frame over its contents", () => {
+			expect(
+				rule(
+					".classicyWindow.classicyWindowModalFixed .classicyWindowTitleBar",
+				),
+			).toMatch(/display: none;/);
+			expect(
+				rule(
+					".classicyWindow.classicyWindowModalFixed .classicyWindowContentsModal",
+				),
+			).toContain(`margin: ${FRAME};`);
+		});
+
+		it("stripes a movable modal's bar across its width, with no line of its own", () => {
+			expect(rule(".classicyWindow .classicyWindowTitleBarModal")).toMatch(
+				/border-bottom: none;/,
+			);
+			expect(
+				rule(".classicyWindow.active .classicyWindowTitleBarModal"),
+			).toMatch(
+				/var\(--title-bar-modal-stripe-inset\) center\/calc\(100% - var\(--title-bar-modal-stripe-inset\) - var\(--title-bar-modal-stripe-inset\)\)/,
+			);
+		});
+
+		// HIG p.193: alerts have no title, and System 7 no movable alert, so
+		// nothing in the package draws Platinum's red.
+		it("draws no red title bar", () =>
+			expect(css).not.toContain("--color-error"));
+
+		it("sets an alert's text in one style and lays it out on the HIG's 13 and 23 pixel grid", () => {
+			const alert = rule(".classicyAlert");
+			expect(alert).toMatch(
+				/padding: var\(--alert-layout-text-top\) var\(--alert-layout-edge\) var\(--alert-layout-edge\) var\(--alert-layout-icon-inset\);/,
+			);
+			expect(rule(".classicyAlert .classicyAlertIcon")).toMatch(
+				/margin-top: calc\(var\(--alert-layout-icon-top\) - var\(--alert-layout-text-top\)\);/,
+			);
+			for (const part of [".classicyAlertLabel", ".classicyAlertMessage"]) {
+				const text = rule(`.classicyAlert ${part}`);
+				expect(text, part).toMatch(/font-weight: normal;/);
+				expect(text, part).toMatch(/font-size: var\(--ui-font-size\);/);
+				expect(text, part).toMatch(
+					/line-height: var\(--alert-layout-line-height\);/,
+				);
+			}
+			expect(
+				rule(".classicyAlert .classicyAlertButtons .classicyButton"),
+			).toMatch(/margin: 0;/);
+		});
+
+		// FrameRoundRect's corners: four sides and two rectangles a corner for
+		// the button, four sides and six rectangles a corner for the ring.
+		it("draws the push button and its default ring as pixel art, not a radius", () => {
+			const button = rule(".classicyButton");
+			expect(button).toMatch(/border: none;/);
+			expect(button).toMatch(/border-radius: 0;/);
+			expect(layersOf(button, "var(--color-black)")).toBe(4 + 4 * 2);
+			expect(layersOf(button, "var(--color-white)")).toBe(3);
+			expect(
+				layersOf(
+					rule(":where(.classicyButton).default::after"),
+					"var(--color-black)",
+				),
+			).toBe(4 + 4 * 6);
+			expect(rule(":where(.classicyButton).default::after")).toMatch(
+				/inset: calc\(calc\(var\(--window-box-pixel\) \+ var\(--button-default-ring\)\) \* -1\);/,
+			);
+		});
+
+		it("inverts a pressed button, its face black under a white label", () => {
+			const pressed = rule(":where(.classicyButton).pressed");
+			expect(pressed).toBe(rule(".classicyButton:active:not(:disabled)"));
+			expect(layersOf(pressed, "var(--color-black)")).toBe(4 + 4 * 2 + 3);
+			expect(pressed).toMatch(/color: var\(--color-white\);/);
+		});
+
+		it("dims only the label, in the dimmed ink through the dither, and dithers a dimmed default ring", () => {
+			const dimmed = rule(".classicyButton:disabled");
+			expect(dimmed).toMatch(/color: transparent;/);
+			expect(dimmed).toMatch(
+				/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\)/,
+			);
+			expect(dimmed).toMatch(
+				/var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+			);
+			const clip = dimmed.match(/background-clip: ([^;]*);/)?.[1].split(", ");
+			// The label's two layers to the glyphs, every frame and face layer
+			// to the box: one value a layer, so the list never repeats.
+			expect(clip?.slice(0, 2)).toEqual(["text", "text"]);
+			expect(clip?.slice(2)).toEqual(Array(4 + 4 * 2 + 3).fill("border-box"));
+			expect(layersOf(dimmed, "var(--color-black)")).toBe(4 + 4 * 2);
+			expect(rule(":where(.classicyButton).default:disabled::after")).toMatch(
+				/mask: var\(--classicy-art-dither-checker\)/,
+			);
+		});
+
+		it("marks a focused button only for the keyboard, never over the default ring", () => {
+			expect(rule(".classicyButton:focus")).toMatch(/outline: none;/);
+			expect(rule(".classicyButton:focus-visible:not(.default)")).toMatch(
+				/outline: calc\(var\(--window-box-pixel\) \* 2\) solid var\(--color-black\);/,
+			);
 		});
 	});
 

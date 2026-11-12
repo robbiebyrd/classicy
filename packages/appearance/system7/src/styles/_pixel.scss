@@ -1,7 +1,8 @@
 // System 7's pixel-grid art, shared by the component partials: lengths in
 // grid pixels and stacks of one-pixel rectangles (`classicy-px-rect`
 // layers), for the parts QuickDraw drew pixel by pixel (the pressed boxes'
-// starburst, the menu bar's screen corners, the menu and pop-up triangles).
+// starburst, the menu bar's screen corners, the menu and pop-up triangles,
+// the push buttons' rounded corners and default ring).
 // One grid pixel is `--window-box-pixel` (1); the multiplier allowlist names
 // this file's one site, the `px()` helper.
 @use "sass:list";
@@ -42,6 +43,54 @@ $px: var(--window-box-pixel);
     $layers: list.append(
       $layers,
       layout.classicy-px-rect($ink, $x, $y, px($w), px($h)),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}
+
+// A frame QuickDraw drew with FrameRoundRect: straight sides `$t` grid
+// pixels thick that stop `$n` pixels short of each corner, and the corner
+// art `$corner`, `(x y w h)` rectangles in the top left `$n` x `$n` cell,
+// mirrored into the other three. Pixel-exact at any size, unlike a
+// `border-radius`, which anti-aliases its curve.
+@function round-frame($ink, $n, $t, $corner) {
+  $layers: (
+    layout.classicy-px-rect($ink, left px($n), top 0, calc(100% - #{px($n + $n)}), px($t)),
+    layout.classicy-px-rect($ink, left px($n), bottom 0, calc(100% - #{px($n + $n)}), px($t)),
+    layout.classicy-px-rect($ink, left 0, top px($n), px($t), calc(100% - #{px($n + $n)})),
+    layout.classicy-px-rect($ink, right 0, top px($n), px($t), calc(100% - #{px($n + $n)}))
+  );
+  @each $h in (left, right) {
+    @each $v in (top, bottom) {
+      @each $rect in $corner {
+        $layers: list.append(
+          $layers,
+          layout.classicy-px-rect(
+            $ink,
+            $h px(list.nth($rect, 1)),
+            $v px(list.nth($rect, 2)),
+            px(list.nth($rect, 3)),
+            px(list.nth($rect, 4))
+          ),
+          $separator: comma
+        );
+      }
+    }
+  }
+  @return $layers;
+}
+
+// The inside of such a frame, filled in `$ink`: one centered rectangle per
+// `(x y)` inset, together the rounded shape the frame encloses.
+@function round-fill($ink, $insets) {
+  $layers: ();
+  @each $inset in $insets {
+    $x: list.nth($inset, 1);
+    $y: list.nth($inset, 2);
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, px($x), px($y), calc(100% - #{px($x + $x)}), calc(100% - #{px($y + $y)})),
       $separator: comma
     );
   }

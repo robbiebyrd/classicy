@@ -3,19 +3,26 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="system7"]`. The
 // look is built element by element (plan 0018-dbd Phase 3), each element a
 // components/_<Name>.scss partial exposing one mixin, included inside the
-// wrapper below: so far the windows (§3.2) and the menus and menu bar
-// (§3.3), and the arrangement System 7 shares with no other package.
+// wrapper below: so far the windows (§3.2), the menus and menu bar (§3.3),
+// the dialogs, alerts and push buttons (§3.4), and the arrangement System 7
+// shares with no other package.
 @use "pkg:@classicy/classicy/scss/package";
 @use "components/Window";
 @use "components/Menu";
 @use "components/MenuBar";
 @use "components/PopUpMenu";
+@use "components/Dialog";
+@use "components/Alert";
+@use "components/Button";
 
 @include package.classicy-package("system7") {
   @include Window.window;
   @include Menu.menu;
   @include MenuBar.menu-bar;
   @include PopUpMenu.pop-up-menu;
+  @include Dialog.dialog;
+  @include Alert.alert;
+  @include Button.button;
 
   // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
   // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box

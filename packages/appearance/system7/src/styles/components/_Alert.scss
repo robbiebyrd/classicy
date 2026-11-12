@@ -1,0 +1,48 @@
+// The System 7 alert box (plan 0018-dbd §3.4), included by system7.scss
+// inside the package wrapper, after the dialogs. "An alert box contains only
+// an icon, text, and buttons" (HIG p.193), in a fixed modal's double frame
+// with no title (_Dialog.scss). Laid out as the HIG's figure 6-21 measures
+// it (p.196) and SimpleText's save-changes alert shows it, from the inner
+// line: the 32 x 32 icon `alertLayout.iconTop` (13) white pixels down and
+// `alertLayout.iconInset` (23) in; the text past the icon, its caps three
+// rows below the icon's top (its line `alertLayout.textTop`, 12, down), its
+// ink 22 pixels past the icon (`alertLayout.textGap` 21 and ChicagoFLF's
+// one-pixel side bearing); the buttons `alertLayout.edge` (13) from the
+// right and bottom, from each other and from the text. One text style,
+// Chicago 12 on 16-pixel lines (HIG figs 6-18 to 6-20): the label is not
+// bold and the message is not smaller.
+@mixin alert {
+  .classicyAlert {
+    gap: var(--alert-layout-edge);
+    padding: var(--alert-layout-text-top) var(--alert-layout-edge) var(--alert-layout-edge)
+      var(--alert-layout-icon-inset);
+
+    .classicyAlertTop {
+      gap: var(--alert-layout-text-gap);
+    }
+
+    .classicyAlertIcon {
+      margin-top: calc(var(--alert-layout-icon-top) - var(--alert-layout-text-top));
+    }
+
+    .classicyAlertBody {
+      padding-top: 0;
+    }
+
+    .classicyAlertLabel,
+    .classicyAlertMessage {
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--ui-font-size);
+      font-weight: normal;
+      line-height: var(--alert-layout-line-height);
+    }
+
+    .classicyAlertButtons {
+      gap: var(--alert-layout-edge);
+
+      .classicyButton {
+        margin: 0;
+      }
+    }
+  }
+}

@@ -91,6 +91,48 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     layout.classicy-px-rect(var(--color-theme-07), $o, $o, $s, $s);
 }
 
+// The active title bar's face and its six stripes on alternate rows,
+// `--window-control-size` tall and centered like the boxes, running `$inset`
+// inside the bar's bevel at both ends.
+@mixin title-bar-stripes($inset) {
+  background:
+    repeating-linear-gradient(
+        var(--color-system-06) 0 var(--title-bar-stripe-height),
+        transparent var(--title-bar-stripe-height) var(--title-bar-stripe-period)
+      )
+      $inset center / calc(100% - #{$inset} - #{$inset}) var(--window-control-size) no-repeat,
+    var(--color-theme-01);
+}
+
+// The title bar's title area: no proxy icon (System 7 titles carry none;
+// it is Mac OS 8.5's), and the title, Chicago 12 on the stripes, its line
+// `titleBar.titleTop` below the bar's top, in a gap of face
+// `titleBar.titleGap` wide on each side (with the face's one-pixel side
+// bearing, the seven pixels System 7 leaves between the stripes and the ink).
+@mixin title-area {
+  .classicyWindowIcon {
+    display: none;
+  }
+
+  .classicyWindowTitle {
+    align-self: stretch;
+
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight,
+    .classicyWindowTitleCenter {
+      height: auto;
+      margin: 0;
+    }
+
+    .classicyWindowTitleText {
+      align-self: stretch;
+      align-items: flex-start;
+      height: auto;
+      padding: var(--title-bar-title-top) var(--title-bar-title-gap) 0;
+    }
+  }
+}
+
 @mixin window {
   .classicyWindow {
     // No frame ring: the contents meet the 1 px frame, and the drop shadow
@@ -199,32 +241,7 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
           var(--color-system-04);
       }
 
-      // System 7 titles carry no proxy icon (Mac OS 8.5's).
-      .classicyWindowIcon {
-        display: none;
-      }
-
-      .classicyWindowTitle {
-        align-self: stretch;
-
-        .classicyWindowTitleLeft,
-        .classicyWindowTitleRight,
-        .classicyWindowTitleCenter {
-          height: auto;
-          margin: 0;
-        }
-
-        // The title, Chicago 12 on the stripes, its line `titleBar.titleTop`
-        // below the bar's top, in a gap of face `titleBar.titleGap` wide on
-        // each side (with the face's one-pixel side bearing, the seven pixels
-        // System 7 leaves between the stripes and the ink).
-        .classicyWindowTitleText {
-          align-self: stretch;
-          align-items: flex-start;
-          height: auto;
-          padding: var(--title-bar-title-top) var(--title-bar-title-gap) 0;
-        }
-      }
+      @include title-area;
     }
 
     // The contents fill the window under the title bar, flush with the
@@ -279,14 +296,7 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   // `--window-control-size` tall and centered like the boxes, running
   // `titleBar.stripeInset` inside the bevel.
   .classicyWindow.active .classicyWindowTitleBar {
-    background:
-      repeating-linear-gradient(
-          var(--color-system-06) 0 var(--title-bar-stripe-height),
-          transparent var(--title-bar-stripe-height) var(--title-bar-stripe-period)
-        )
-        var(--title-bar-stripe-inset) center / calc(100% - var(--title-bar-stripe-inset) - var(--title-bar-stripe-inset))
-        var(--window-control-size) no-repeat,
-      var(--color-theme-01);
+    @include title-bar-stripes(var(--title-bar-stripe-inset));
 
     @include bar-bevel;
 
@@ -391,14 +401,32 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     height: calc(100% - var(--window-utility-title-bar-height) - #{$b});
   }
 
-  // Under a window header the contents also give up the header's row (the
-  // base sheet's height, which the rule above outranks from this layer).
+  // A window header (the Finder's item count and disk space): a white strip
+  // `windowHeader.height` (17) rows tall over a double rule, two black lines
+  // a white row apart (`windowHeader.rule`, 3), meeting the frame at both
+  // ends; its text Geneva 9, the Finder's views font
+  // (`*-finder-window-fits-active.png`).
+  .classicyWindow .classicyWindowHeader {
+    height: var(--window-header-height);
+    border-bottom: var(--window-header-rule) double var(--color-black);
+    background: var(--color-window-document);
+    font-family: var(--body-font), sans-serif;
+    font-size: var(--body-font-size);
+  }
+
+  // Under a window header the contents also give up the header and its rule
+  // (the base sheet's height, which the rule above outranks from this
+  // layer).
   .classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader {
-    height: calc(100% - var(--window-title-bar-height) + #{$b} - var(--control-row-height));
+    height: calc(
+      100% - var(--window-title-bar-height) + #{$b} - var(--window-header-height) - var(--window-header-rule)
+    );
   }
 
   .classicyWindow.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
-    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - var(--control-row-height));
+    height: calc(
+      100% - var(--window-utility-title-bar-height) - #{$b} - var(--window-header-height) - var(--window-header-rule)
+    );
   }
 
   // A resizable windoid's size box: its narrower scroll-bar cell (the base
@@ -419,5 +447,32 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   .classicyWindow.classicyWindowResizing {
     border: $b dotted var(--color-black);
     box-shadow: none;
+  }
+
+  // The standalone frame (ClassicyWindowFrame): a document window's chrome
+  // around static contents, always drawn active and with no boxes, its body
+  // the window's white.
+  .classicyWindowFrame {
+    background: var(--color-window-document);
+    box-shadow: $b $b 0 0 var(--color-black);
+
+    > .classicyWindowTitleBar {
+      height: calc(var(--window-title-bar-height) - #{$b} - #{$b});
+      padding: 0;
+      column-gap: 0;
+      align-items: center;
+
+      @include title-bar-stripes(var(--title-bar-stripe-inset));
+      @include bar-bevel;
+      @include title-area;
+
+      .classicyWindowTitleText {
+        background-color: var(--color-theme-01);
+      }
+    }
+  }
+
+  .classicyWindowFrameBody {
+    background: var(--color-window-document);
   }
 }

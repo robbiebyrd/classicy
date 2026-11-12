@@ -299,6 +299,62 @@ describe("the System 7 appearance package", () => {
 			});
 	});
 
+	// The dialogs', alerts' and push buttons' knobs (styles/components/
+	// _Dialog.scss, _Alert.scss, _Button.scss and the window header in
+	// _Window.scss), measured from the 7.5 captures. The modal frame differs
+	// by depth: no bevels and a two-pixel white band and black line in 1-bit,
+	// three one-pixel rings and a one-pixel line in color.
+	it("emits the dialogs', alerts' and push buttons' knobs", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [bw, color])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--title-bar-modal-stripe-inset": "2px",
+				"--alert-layout-icon-top": "13px",
+				"--alert-layout-icon-inset": "23px",
+				"--alert-layout-text-top": "12px",
+				"--alert-layout-text-gap": "21px",
+				"--alert-layout-edge": "13px",
+				"--alert-layout-line-height": "16px",
+				"--push-button-line-height": "16px",
+				"--push-button-text-lift": "2px",
+				"--window-header-height": "17px",
+				"--window-header-rule": "3px",
+				"--button-default-ring": "3px",
+			});
+		expect(getThemeVars(bw)).toMatchObject({
+			"--dialog-frame-bevel": "0px",
+			"--dialog-frame-band": "2px",
+			"--dialog-frame-line": "2px",
+		});
+		expect(getThemeVars(color)).toMatchObject({
+			"--dialog-frame-bevel": "1px",
+			"--dialog-frame-band": "1px",
+			"--dialog-frame-line": "1px",
+		});
+	});
+
+	// HIG p.190: "The outer line is one pixel thick and the inner line is two
+	// pixels thick", two white pixels apart, in 1-bit; color's bevels and
+	// band fill the same five pixels (the 7.5 captures).
+	it("frames a modal dialog five pixels deep at both depths, in its own colors", () => {
+		const [bw, color] = system7Json.presets;
+		for (const theme of [bw, color]) {
+			const { bevel, band, line } = theme.measurements.dialogFrame;
+			expect(
+				theme.measurements.window.borderSize + bevel + band + bevel + line,
+			).toBe(5);
+		}
+		// The band (system-02) is white in 1-bit and the cctb's gray in color;
+		// the bevels' light and dark (theme-02, theme-04) the tinge ramp's.
+		expect(bw.color.system[1]).toBe(WHITE);
+		expect(color.color.system[1]).toBe(0xbbbbbb);
+		expect([color.color.theme[1], color.color.theme[3]]).toEqual([
+			0xccccff, 0x666699,
+		]);
+	});
+
 	it("completes each theme from the core floor and its own measurements", async () => {
 		await import("./index");
 		const floor = classicyThemeMeasurementDefaults("system7");

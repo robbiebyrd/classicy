@@ -15,17 +15,21 @@ built. Today it ships:
 - System 7.5's alert sounds as its sound pack: Droplet, Indigo, Quack,
   Simple Beep (the default), Sosumi and Wild Eep;
 - a stylesheet that draws System 7's windows (the frame and drop shadow,
-  the racing stripes, the close, zoom and size boxes, inactive windows and
-  the floating window's title bar) and hides the collapse box they lack, and
-  its menus: the white menu bar under the screen's rounded corners, pull-down
-  and hierarchical menus with inverted highlights, dimmed items and dividers
-  (dithered in the black and white theme, gray in color), checkmarks, and
-  pop-up menus;
+  the racing stripes, the close, zoom and size boxes, inactive windows, the
+  floating window's title bar, the Finder's window header and the standalone
+  frame) and hides the collapse box they lack; its menus: the white menu bar
+  under the screen's rounded corners, pull-down and hierarchical menus with
+  inverted highlights, dimmed items and dividers (dithered in the black and
+  white theme, gray in color), checkmarks, and pop-up menus; and its dialogs:
+  the modal double frame (no title bar on a fixed modal, the striped bar on
+  a movable one), alerts laid out on the HIG's grid in one text style, and
+  push buttons with the default ring, inverted when pressed and with a
+  dithered label when dimmed;
 - one behavior hook, the blink of a chosen menu item (System 7 had no
   interface feedback sounds, so it plays none).
 
-Later work adds the rest of the System 7 look element by element (dialogs,
-controls, scroll bars), System 7 period icons, art and cursors (color art,
+Later work adds the rest of the System 7 look element by element (controls,
+scroll bars), System 7 period icons, art and cursors (color art,
 and 1-bit art for the black and white theme, the Apple menu's apple and the
 Help menu's balloon among them) and the screen savers. Until then, Classicy draws the default package's art
 (Platinum's, when a host also loads Platinum) and the core's icons.

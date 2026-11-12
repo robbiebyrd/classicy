@@ -4686,9 +4686,10 @@ the list ends at these 41 sites over 10 files, the sites kept on purpose
   proportions.
 - System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
   helper: the pressed close and zoom boxes' starburst, the windoid close
-  box's cross, the menu bar's screen corners, the menu checkmark and the
-  menu and pop-up triangles, one-pixel rectangles on the art's pixel grid
-  inside `classicy-px-rect` (H-R7), as the Control Strip's.
+  box's cross, the menu bar's screen corners, the menu checkmark, the
+  menu and pop-up triangles and the push buttons' rounded corners and
+  default ring, one-pixel rectangles on the art's pixel grid inside
+  `classicy-px-rect` (H-R7), as the Control Strip's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

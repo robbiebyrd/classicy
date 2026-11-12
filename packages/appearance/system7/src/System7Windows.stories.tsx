@@ -4,7 +4,12 @@
 // framebuffers at 1x), so a story's shot and its reference compare region
 // for region. The pressed close and zoom boxes are `:active` states, which
 // no story can hold: press one with the pointer to see it.
-import { ClassicyWindow, useAppManagerDispatch } from "@classicy/classicy";
+import {
+	ClassicyButton,
+	ClassicyWindow,
+	ClassicyWindowFrame,
+	useAppManagerDispatch,
+} from "@classicy/classicy";
 import { StoryApp } from "@sb/helpers";
 import { system7Parameters } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -121,8 +126,9 @@ export const ScrollBarsColor = inColor(scrollBars);
 
 /**
  * A Finder-style window with a header strip over contents that overflow both
- * ways: the contents, bars and size box stay inside the frame, under the
- * header. (The header's own look is not System 7's yet.)
+ * ways: the white strip and its double rule, as the Finder draws them in
+ * `*-finder-window-fits-active.png`, with the contents, bars and size box
+ * inside the frame, under the header.
  */
 const header = () => (
 	<StoryApp id="storybook.app" name="Storybook">
@@ -177,3 +183,27 @@ const utility = () => (
 
 export const Utility: Story = { render: utility };
 export const UtilityColor = inColor(utility);
+
+/**
+ * The standalone frame (`ClassicyWindowFrame`, as a `preBootScreen` uses
+ * it): a document window's chrome, always active, with no boxes.
+ */
+const frame = () => (
+	<div style={{ position: "absolute", left: 47, top: 81 }}>
+		<ClassicyWindowFrame title="Welcome" width={379}>
+			<div style={{ padding: 13, display: "grid", gap: 13 }}>
+				<p style={{ margin: 0 }}>Press the button below to power on.</p>
+				<ClassicyButton
+					isDefault
+					onClickFunc={() => {}}
+					style={{ justifySelf: "end" }}
+				>
+					Power On
+				</ClassicyButton>
+			</div>
+		</ClassicyWindowFrame>
+	</div>
+);
+
+export const Frame: Story = { render: frame };
+export const FrameColor = inColor(frame);
