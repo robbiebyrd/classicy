@@ -63,6 +63,7 @@ import {
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
@@ -656,6 +657,18 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Only "error" carries the alert semantics (the beep, the error scrim and
 	// the red band), which key on `type` below, never on this value.
 	const fixedModal = modal && (type === "error" || !movable);
+
+	// How many mounted descendants lay themselves out from the window's edge
+	// (useClassicyWindowSelfPadding: an alert, the input and keyboard-
+	// equivalent dialogs, a dialog-layout form). A modal marks its inner area
+	// while any do, so a package's dialog inset can skip them without
+	// `:has()`. Claims are counted, not flagged, so one going never clears
+	// another's.
+	const [selfPaddingClaims, setSelfPaddingClaims] = useState(0);
+	const claimSelfPadding = useCallback(() => {
+		setSelfPaddingClaims((n) => n + 1);
+		return () => setSelfPaddingClaims((n) => n - 1);
+	}, []);
 
 	const resolvedSize = useMemo(
 		() => resolveSize(initialSize, menuBarHeight),
@@ -1919,6 +1932,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			className={classNames(
 				"classicyWindowContentsInner",
 				modal === true ? "classicyWindowContentsModalInner" : "",
+				modal === true && selfPaddingClaims > 0
+					? "classicyWindowContentsSelfPadded"
+					: "",
 				growable ? "classicyWindowContentsInnerGrow" : "",
 				contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
 				contentFrame && !isActive()
@@ -1927,7 +1943,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			)}
 		>
 			{" "}
-			{children}
+			<ClassicyWindowSelfPaddingContext.Provider value={claimSelfPadding}>
+				{children}
+			</ClassicyWindowSelfPaddingContext.Provider>
 		</div>
 	);
 

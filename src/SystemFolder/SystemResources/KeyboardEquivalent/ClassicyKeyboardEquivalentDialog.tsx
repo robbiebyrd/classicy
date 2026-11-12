@@ -22,6 +22,7 @@ import {
 } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
 import { keyboardShortcutFromEvent } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 const MODIFIER_KEYS = new Set(["Meta", "Control", "Shift", "Alt", "OS"]);
 
@@ -184,38 +185,43 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 				initialPosition={["center", "center"]}
 				analyticsExclude
 			>
-				<div
-					ref={contentRef}
-					className="classicyKeyboardEquivalentDialog"
-					tabIndex={-1}
-					role="dialog"
-					aria-modal="true"
-					aria-label={title || undefined}
-				>
-					<p className="classicyKeyboardEquivalentPrompt">{prompt}</p>
-					<output
-						className="classicyKeyboardEquivalentDisplay"
-						aria-live="polite"
-						aria-label="Keyboard equivalent"
+				{/* Pads its own root, so its window is marked self-padded. */}
+				<ClassicyWindowSelfPadding>
+					<div
+						ref={contentRef}
+						className="classicyKeyboardEquivalentDialog"
+						tabIndex={-1}
+						role="dialog"
+						aria-modal="true"
+						aria-label={title || undefined}
 					>
-						{spellKeyboardEquivalent(value) || " "}
-					</output>
-					{description != null && description !== "" && (
-						<p className="classicyKeyboardEquivalentDescription">
-							{description}
-						</p>
-					)}
-					<div className="classicyKeyboardEquivalentButtons">
-						<ClassicyButton onClickFunc={cancel}>{cancelLabel}</ClassicyButton>
-						<ClassicyButton
-							isDefault={true}
-							disabled={!value}
-							onClickFunc={confirm}
+						<p className="classicyKeyboardEquivalentPrompt">{prompt}</p>
+						<output
+							className="classicyKeyboardEquivalentDisplay"
+							aria-live="polite"
+							aria-label="Keyboard equivalent"
 						>
-							{confirmLabel}
-						</ClassicyButton>
+							{spellKeyboardEquivalent(value) || " "}
+						</output>
+						{description != null && description !== "" && (
+							<p className="classicyKeyboardEquivalentDescription">
+								{description}
+							</p>
+						)}
+						<div className="classicyKeyboardEquivalentButtons">
+							<ClassicyButton onClickFunc={cancel}>
+								{cancelLabel}
+							</ClassicyButton>
+							<ClassicyButton
+								isDefault={true}
+								disabled={!value}
+								onClickFunc={confirm}
+							>
+								{confirmLabel}
+							</ClassicyButton>
+						</div>
 					</div>
-				</div>
+				</ClassicyWindowSelfPadding>
 			</ClassicyWindow>
 			{problem && (
 				<ClassicyAlert

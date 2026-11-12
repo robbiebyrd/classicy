@@ -133,6 +133,16 @@ diverge, so a logo registered through Platinum's
   It defaults to `true` (a movable modal dialog box, as before), does nothing
   on a non-modal window, and an error modal stays fixed, beeping and red
   whatever it says.
+- **Self-padding dialogs carry a class.** A modal's inner area
+  (`.classicyWindowContentsModalInner`) carries
+  `classicyWindowContentsSelfPadded` while its content pads its own root:
+  `ClassicyAlert`, `ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog`
+  and `ClassicyForm layout="dialog"`. Content says so through the new
+  `useClassicyWindowSelfPadding(enabled?)` hook, or the
+  `<ClassicyWindowSelfPadding>` wrapper for a component that renders the
+  window itself; a host's own self-padding dialog content may use either.
+  System 7 keys its dialog inset on the class instead of `:has()`, so those
+  dialogs get one inset in Firefox 113–120 too. Platinum does not read it.
 - **Small structural hooks**: the root class `classicyWindowModalFixed` on a
   fixed modal (a modal `ClassicyWindow` of `type="error"` or with
   `movable={false}`, which cannot be dragged); the `open` state on a pop-up menu's label holder and indicator

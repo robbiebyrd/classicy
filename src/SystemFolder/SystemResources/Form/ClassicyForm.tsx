@@ -7,6 +7,7 @@ import type {
 	FC as FunctionalComponent,
 	PropsWithChildren,
 } from "react";
+import { useClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 type ClassicyFormProps = PropsWithChildren<{
 	/**
@@ -58,6 +59,9 @@ export const ClassicyForm: FunctionalComponent<ClassicyFormProps> = ({
 	children,
 	...rest
 }) => {
+	// A dialog-layout form pads its own root (the HIG dialog edge), so the
+	// modal it fills is told not to inset it again.
+	useClassicyWindowSelfPadding(layout === "dialog");
 	const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		onSubmitFunc?.(e);

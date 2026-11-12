@@ -503,6 +503,7 @@
 			"ContentsModal",
 			"ContentsModalInner",
 			"ContentsNotDimmed",
+			"ContentsSelfPadded",
 			"ContentsWithHeader",
 			"ControlBox",
 			"Document",

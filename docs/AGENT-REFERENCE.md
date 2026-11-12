@@ -999,6 +999,18 @@ can drop the title bar of the fixed one only. Platinum draws both alike: a
 `movable={false}` modal is its movable modal, title bar included, with no red
 and no drag.
 
+A modal's inner area (`.classicyWindowContentsModalInner`) carries
+`classicyWindowContentsSelfPadded` while its content lays itself out from the
+window's edge, padding its own root: `ClassicyAlert`, `ClassicyInputDialog`,
+`ClassicyKeyboardEquivalentDialog` and `ClassicyForm layout="dialog"`. They
+say so through a context, not the DOM: content calls
+`useClassicyWindowSelfPadding(enabled?)`, or a component that renders the
+window itself wraps the content it passes in `<ClassicyWindowSelfPadding>`
+(no DOM of its own). Only the nearest window is marked, only while it is
+modal, and only while a claimant is mounted. A package that insets dialog
+items itself skips those (System 7 does, below); Platinum does not read the
+class. A host's own self-padding dialog content claims it the same way.
+
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
 bars, as Mac OS 8 does — the non-scrolling axis shows an empty track (`fits`)
@@ -3581,6 +3593,12 @@ Platinum (§1); its README lists what it ships.
   (`--color-theme-06`: black in the 1-bit theme, gray in color).
 - **Scroll bars** (§4.0.1): it draws `ClassicyScrollArea`'s parts, and fixes
   the scroll box's length (equal `min-*`/`max-*` lengths along the bar).
+- **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
+  fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
+  inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),
+  whose content pads itself: alerts, the input and keyboard-equivalent
+  dialogs and dialog-layout forms. Keyed on the class, not `:has()`, so
+  Firefox 113–120 gives them one inset too.
 - **Small structural hooks**: `classicyWindowModalFixed` (a fixed modal has
   no title bar; the FixedModal story is a `modal movable={false}` window,
   Standard File's Open dialog, so it neither beeps nor takes the error

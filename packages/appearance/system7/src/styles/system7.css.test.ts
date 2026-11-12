@@ -497,21 +497,26 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
+		// The dialogs that pad themselves are named by the class the core sets
+		// on the modal's inner area (classicyWindowContentsSelfPadded), not
+		// found with `:has()`, so browsers without `:has()` (Firefox 113-120)
+		// give them one inset too.
 		it("insets every modal's items the HIG's 13 pixels, except the dialogs that pad themselves", () => {
 			const inner = rule(".classicyWindowContentsModalInner");
 			expect(inner).toMatch(/padding: var\(--dialog-frame-inset\);/);
 			expect(inner).toMatch(/box-sizing: border-box;/);
-			const selfPadded = [
-				".classicyAlert",
-				".classicyInputDialog",
-				".classicyKeyboardEquivalentDialog",
-				".classicyFormDialog",
-			];
 			expect(
 				rule(
-					`.classicyWindowContentsModalInner:has(> :is(${selfPadded.join(", ")}))`,
+					".classicyWindowContentsModalInner.classicyWindowContentsSelfPadded",
 				),
 			).toMatch(/padding: 0;/);
+			expect(
+				selectorsOf(css).filter(
+					(selector) =>
+						selector.includes("classicyWindowContentsModalInner") &&
+						selector.includes(":has("),
+				),
+			).toEqual([]);
 		});
 
 		// HIG p.193: alerts have no title, and System 7 no movable alert. The

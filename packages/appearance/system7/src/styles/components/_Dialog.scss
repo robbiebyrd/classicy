@@ -81,12 +81,14 @@ $bar: calc(var(--window-title-bar-height) - #{$b} - #{$b});
   // inner line (HIG p.196, figure 6-21), the chrome's padding for every
   // modal. The dialogs that lay themselves out from the line (an alert, the
   // input and keyboard-equivalent dialogs, a dialog-layout form) pad their
-  // own root, so the chrome gives them none.
+  // own root, so the chrome gives them none: the core marks their inner
+  // area `classicyWindowContentsSelfPadded` (useClassicyWindowSelfPadding),
+  // a class, so browsers without `:has()` get one inset too.
   .classicyWindowContentsModalInner {
     box-sizing: border-box;
     padding: var(--dialog-frame-inset);
 
-    &:has(> :is(.classicyAlert, .classicyInputDialog, .classicyKeyboardEquivalentDialog, .classicyFormDialog)) {
+    &.classicyWindowContentsSelfPadded {
       padding: 0;
     }
   }
