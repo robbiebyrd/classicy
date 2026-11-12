@@ -58,7 +58,8 @@ resolution).
   - scroll bars: arrows at both ends, the 25% dotted track, the fixed square
     scroll box (with grip ridges in color), hollow arrows when there is
     nothing to scroll, the outline alone in an inactive window, and the
-    dotted outline a dragged box leaves in place, scrolling on release;
+    outline a dragged box leaves in place (black under the track's dots),
+    scrolling on release;
   - the desktop: icons with opaque Geneva labels that invert when selected,
     the desktop pattern, the startup screen, the Control Strip in the 7.5
     Control Strip panel's own art, and the Appearance Manager's panel.

@@ -3620,7 +3620,8 @@ Platinum (§1); its README lists what it ships.
 - **Scroll bars** (§4.0.1): it draws `ClassicyScrollArea`'s parts, and fixes
   the scroll box's length (equal `min-*`/`max-*` lengths along the bar). Its
   layout declares `scrollBar.thumbDrag: "onRelease"`: a dragged box stays
-  put while its dotted outline follows the pointer, snapping back past
+  put while its outline follows the pointer (a black ring under the
+  track's dots, matching `*-scrollbox-dragging.png`), snapping back past
   `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
   box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
   list boxes keep their bars, hollow, while the content fits (HIG p.160).

@@ -1144,12 +1144,18 @@ describe("system7.scss (compiled)", () => {
 
 		// The box stays put while the drag outline follows the pointer
 		// (layout.scrollBar.thumbDrag "onRelease", HIG p.165).
-		it("draws the drag outline dotted, leaving the dragged box as it is", () => {
+		it("draws the drag outline as a black ring under the track's dots, leaving the dragged box as it is", () => {
 			const outline = rule(".classicyScrollBar .classicyScrollBarDragOutline");
-			expect(outline).toMatch(
-				/border: var\(--window-box-pixel\) dotted var\(--color-black\);/,
+			expect(outline).toMatch(/border: 0;/);
+			expect(layersOf(outline, "var(--color-black)")).toBe(4);
+			const dots = rule(
+				".classicyScrollBar .classicyScrollBarDragOutline::after",
 			);
-			expect(outline).toMatch(/background: none;/);
+			// The track's two dot layers, fixed to the screen like the track's.
+			expect(dots.match(/conic-gradient/g)).toHaveLength(2);
+			expect(dots.match(/ fixed/g)).toHaveLength(2);
+			expect(dots).toMatch(/mask-composite: exclude;/);
+			expect(dots).toMatch(/padding: var\(--window-box-pixel\);/);
 			expect(rule(".classicyScrollBar .classicyScrollBarThumb.dragging")).toBe(
 				"",
 			);

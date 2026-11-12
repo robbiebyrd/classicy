@@ -383,11 +383,36 @@ $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transpa
     --system7-arrow-fill: var(--color-black);
   }
 
-  // Dragged, the box stays put and a dotted outline follows the pointer
-  // (layout.scrollBar.thumbDrag "onRelease", HIG p.165).
+  // Dragged, the box stays put and its outline follows the pointer
+  // (layout.scrollBar.thumbDrag "onRelease", HIG p.165): a one-pixel black
+  // ring inside the bar's lines, drawn under the track's own dots, as
+  // `*-scrollbox-dragging.png` shows it. Where the ring crosses the track
+  // the light pixels go black and the gray dots keep their gray (1-bit:
+  // every pixel black), which no blend of one ink reproduces: the ring is
+  // four black lines, and over them the track's dot pattern, at the same
+  // fixed phase, masked to the ring.
   .classicyScrollBar .classicyScrollBarDragOutline {
-    border: $px dotted var(--color-black);
-    background: none;
+    border: 0;
+    background:
+      layout.classicy-px-rect(var(--color-black), left 0, top 0, 100%, $px),
+      layout.classicy-px-rect(var(--color-black), left 0, bottom 0, 100%, $px),
+      layout.classicy-px-rect(var(--color-black), left 0, top 0, $px, 100%),
+      layout.classicy-px-rect(var(--color-black), right 0, top 0, $px, 100%);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      box-sizing: border-box;
+      padding: $px;
+      background:
+        $dot 0 0 / px(4) px(2) fixed,
+        $dot px(2) $px / px(4) px(2) fixed;
+      mask:
+        linear-gradient(var(--color-black), var(--color-black)) content-box,
+        linear-gradient(var(--color-black), var(--color-black));
+      mask-composite: exclude;
+    }
   }
 
   // Nothing to scroll: hollow arrows (the 1-bit shape at both depths) and a
