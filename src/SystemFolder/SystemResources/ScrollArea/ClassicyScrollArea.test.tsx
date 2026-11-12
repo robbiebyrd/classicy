@@ -266,6 +266,22 @@ describe("ClassicyScrollArea", () => {
 		}
 	});
 
+	// Only a pixel length is a limit: a percentage (or any other unit) is
+	// relative to a box the bar does not measure, so it counts as unset.
+	it("ignores thumb limits that are not pixel lengths", () => {
+		const sheet = document.createElement("style");
+		sheet.textContent =
+			".classicyScrollBarThumb { min-height: 40%; max-height: 10%; }";
+		document.head.append(sheet);
+		try {
+			const { container } = renderTall();
+			// 200 of 1000 in a 166 px track: 33 px, neither 40 nor 10.
+			expect(thumbStyle(part(container, "scroll-thumb")).length).toBe("33px");
+		} finally {
+			sheet.remove();
+		}
+	});
+
 	it("moves the thumb when the content scrolls (wheel, keyboard, script)", () => {
 		const { container, viewport } = renderTall();
 		act(() => {

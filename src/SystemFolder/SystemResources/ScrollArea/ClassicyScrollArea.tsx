@@ -130,11 +130,19 @@ const trackOf = (
 		: { start: track.offsetLeft, length: track.offsetWidth };
 };
 
+// A computed length in CSS pixels, or undefined for anything else (`none`,
+// `auto`, a percentage of a box the bar does not measure).
+const pxLength = (value: string): number | undefined => {
+	const match = /^(-?\d*\.?\d+(?:e[-+]?\d+)?)px$/i.exec(value.trim());
+	return match ? Number(match[1]) : undefined;
+};
+
 // The thumb's minimum and maximum lengths, from the package's stylesheet
 // (min-height and max-height, or min-width and max-width, on the thumb
 // part), so a package sets them as a browser's thumb takes its minimum. A
 // maximum as long as the minimum fixes the thumb's length (System 7's
-// scroll box); `none` is no maximum.
+// scroll box). Only a pixel length counts: any other value leaves the
+// limit unset (no minimum, no maximum).
 const thumbLimitsOf = (
 	refs: BarRefs,
 	orientation: ClassicyScrollBarOrientation,
@@ -145,12 +153,9 @@ const thumbLimitsOf = (
 	}
 	const style = getComputedStyle(thumb);
 	const vertical = orientation === "vertical";
-	const min = Number.parseFloat(vertical ? style.minHeight : style.minWidth);
-	const max = Number.parseFloat(vertical ? style.maxHeight : style.maxWidth);
-	return {
-		min: Number.isFinite(min) ? min : 0,
-		max: Number.isFinite(max) ? max : Number.POSITIVE_INFINITY,
-	};
+	const min = pxLength(vertical ? style.minHeight : style.minWidth);
+	const max = pxLength(vertical ? style.maxHeight : style.maxWidth);
+	return { min: min ?? 0, max: max ?? Number.POSITIVE_INFINITY };
 };
 
 /** The thumb for `axis` in its bar, within the package's limits. */

@@ -175,7 +175,13 @@ const inactive = () => (
 export const Inactive: Story = { render: inactive };
 export const InactiveColor = inColor(inactive);
 
-/** One labeled area, scrolled to the middle of its content when asked. */
+/**
+ * One labeled area, scrolled to the middle of its content when asked. It
+ * mirrors `Area` in the core's `ClassicyScrollArea.stories.tsx` (whose
+ * states `areas` below repeats): the import boundary keeps this package from
+ * importing the core's source, so the two are copies, and a change to one
+ * belongs in the other.
+ */
 function Area({
 	caption,
 	middle = false,

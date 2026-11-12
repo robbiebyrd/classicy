@@ -15,7 +15,8 @@
 // - The track is a 25% pattern, one dot in four on each row, each row's dots
 //   two pixels over from the last's (#777777 on #DDDDDD in color, black on
 //   white in 1-bit; CIC "B&W scroll bar"), aligned to the screen as the
-//   captures have it (the same phase in every window).
+//   captures have it (the same phase in every window; see `$dot` for the
+//   limits of that).
 // - The scroll box is a fixed 16-pixel box (its maximum length as long as its
 //   minimum, which the core honors), white in a black outline in 1-bit; in
 //   color #AAAAAA, beveled, with grip ridges in its middle.
@@ -202,11 +203,16 @@ $arrow-face:
 
 // The scroll box, 14 across and `scrollBar.boxLength` along: its leading
 // line #555555, its trailing line and far side #333366, its near side
-// #CCCCFF and a #CCCCFF line inside the leading one (the far side black and
-// that line white in 1-bit), #AAAAAA inside (white in 1-bit). `$along` is
-// the bar's direction: the grip's ridges, `scrollBar.grip` wide (none in
-// 1-bit), run across it, ten pixels from the box's fourth: a #9999CC line,
-// then #CCCCFF and #666699 by turns.
+// #CCCCFF and a #CCCCFF line inside the leading one (the near side black and
+// that line white in 1-bit; every line but that one is black there),
+// #AAAAAA inside (white in 1-bit). `$along` is the bar's direction: the
+// grip's ridges, `scrollBar.grip` wide (none in 1-bit), run across it, ten
+// pixels from the box's fourth: a #9999CC line, then #CCCCFF and #666699 by
+// turns.
+//
+// The near side reuses `--color-window-border-outset`, the window boxes'
+// ring color, on purpose: it is the one token that is #CCCCFF in color and
+// black in 1-bit, as the box's near side is in both captures.
 @function scroll-box($along) {
   $grip: var(--scroll-bar-grip);
   @if $along == y {
@@ -248,7 +254,17 @@ $arrow-face:
 $none: calc(#{$px} - #{$px});
 
 // The track's pattern: a dot at the corner of a 4 x 2 tile, twice, the
-// second two pixels over and a row down, fixed to the screen.
+// second two pixels over and a row down, fixed to the screen
+// (`background-attachment: fixed`), which gives every bar the captures'
+// phase. Its limits:
+// - the dots stay put while what holds the bar scrolls: in a host page that
+//   scrolls, or for a bar inside a scrolled window viewport, they slide
+//   along the bar instead of moving with it;
+// - iOS Safari ignores `fixed` and anchors each track's pattern to the track
+//   itself, so the phase varies from bar to bar there;
+// - Chromium cannot composite-scroll a scroller that holds a fixed
+//   background, so such a scroller repaints on the main thread as it
+//   scrolls.
 $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transparent 0);
 
 @mixin scroll-bar {

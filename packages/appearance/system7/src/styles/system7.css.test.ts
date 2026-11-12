@@ -1095,6 +1095,29 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(rule(".classicyWindowHeaderDimmed")).toMatch(/opacity: 1;/);
 		});
+
+		// Where two bars meet outside a window, an empty white cell with its
+		// own outer lines; in a window the cell is under the size box, and its
+		// outer lines are the frame's.
+		it("draws the corner cell's outer lines, leaving them to a window's frame", () => {
+			const corner = rule(".classicyScrollAreaCorner");
+			expect(corner).toMatch(
+				/border-right: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(corner).toMatch(
+				/border-bottom: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(corner).toMatch(
+				/background: var\(--color-window-document\) padding-box;/,
+			);
+			const inWindow = rule(
+				".classicyWindow .classicyWindowContents > .classicyScrollAreaFoot > .classicyScrollAreaCorner",
+			);
+			expect(inWindow).toMatch(/border-color: transparent;/);
+			expect(inWindow).toMatch(
+				/margin-right: calc\(var\(--window-border-size\) \* -1\);/,
+			);
+		});
 	});
 
 	it("uses no !important (the cascade layers decide)", () =>

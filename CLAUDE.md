@@ -436,10 +436,11 @@ in every browser (Firefox now shows Platinum's full bars).
   the paging keys its own handler leaves.
 - Geometry follows Chromium's (`computeClassicyScrollThumb`,
   `computeClassicyScrollBars` in `ClassicyScrollAreaMetrics.ts`; the thumb's
-  `min-`/`max-height` or `-width` in the package's sheet bound its length, so
-  equal limits make a fixed box), and each bar is nudged onto the device-pixel grid (`--classicy-scroll-snap-x|y`), so
-  Platinum's parts (`platinum-scroll-bar-parts`, `_scrollbars.scss`, sharing
-  the native mixins' declarations) draw the old native bars pixel for pixel.
+  `min-`/`max-height` or `-width` in the package's sheet, px lengths only,
+  bound its length, so equal limits make a fixed box), and each bar is nudged
+  onto the device-pixel grid (`--classicy-scroll-snap-x|y`), so Platinum's
+  parts (`platinum-scroll-bar-parts`, `_scrollbars.scss`, sharing the native
+  mixins' declarations) draw the old native bars pixel for pixel.
   The viewport inherits the root's background color (an opaque scroller, as
   the browser rasterizes text over); an inset bevel the old scroller drew
   moves to the viewport (`classicyListBoxViewport`, …).
