@@ -7,9 +7,10 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 
 // The screen savers under System 7 (design 0017-6me, "Screen savers"; plan
 // 0018-dbd §3.8): a host loading only System 7 draws the After Dark savers
-// from System 7's own package stylesheet, which loads their Sass partials
-// from Platinum's source (styles/_screenSavers.scss), the same partials in
-// the same order as Platinum's sheet, at the package layer's root, outside the
+// from System 7's own package stylesheet, whose styles/_screenSavers.scss
+// loads their Sass partials from Platinum's source through their one index
+// there (screenSavers/_platinumScreenSavers.scss), as Platinum's sheet does,
+// at the package layer's root, outside the
 // System 7 scope, since the overlay is a portal. A saver's `animation:`
 // shorthand resets the play state to running, and the package layer beats the
 // core's base-layer reduced-motion pause, so System 7's sheet ends with its
@@ -43,7 +44,7 @@ const SAVER_ROOTS = [
 	"classicySaverWarp",
 ];
 
-/** The saver partials a `_screenSavers.scss` loads, from Platinum's src/. */
+/** The stylesheets `file` loads, as paths under Platinum's src/. */
 const loadedPartials = (file: string) =>
 	[...readFileSync(file, "utf8").matchAll(/meta\.load-css\("([^"]+)"\)/g)].map(
 		(match) =>
@@ -64,15 +65,25 @@ const saverSection = (sheet: string) =>
 	);
 
 describe("System 7's screen saver styles", () => {
-	it("load Platinum's saver partials, every one, in Platinum's order", () => {
-		const system7 = loadedPartials(path.join(STYLES, "_screenSavers.scss"));
-		expect(system7).toHaveLength(SAVER_ROOTS.length);
-		expect(system7).toEqual(
+	// One list of the partials, the index, so the two sheets cannot drift.
+	it("load the savers' one index, as Platinum's sheet does, which loads every saver partial", () => {
+		const INDEX = "screenSavers/platinumScreenSavers";
+		expect(loadedPartials(path.join(STYLES, "_screenSavers.scss"))).toEqual([
+			INDEX,
+		]);
+		expect(
 			loadedPartials(path.join(PLATINUM_STYLES, "_screenSavers.scss")),
+		).toEqual([INDEX]);
+		const partials = loadedPartials(
+			path.resolve(
+				PLATINUM_STYLES,
+				"../screenSavers/_platinumScreenSavers.scss",
+			),
 		);
-		for (const partial of system7)
+		expect(partials).toHaveLength(SAVER_ROOTS.length);
+		for (const partial of partials)
 			expect(partial).toMatch(
-				/^screenSavers\/[A-Za-z0-9]+\/ClassicyScreenSaver[A-Za-z0-9]+$/,
+				/^screenSavers\/([A-Za-z0-9]+)\/ClassicyScreenSaver\1$/,
 			);
 	});
 

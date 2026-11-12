@@ -408,7 +408,7 @@ const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 	const platinum = declarations.filter(
 		(file) =>
 			file.endsWith(".d.ts") &&
-			/(?:^|[\\/])(?:screenSavers[\\/]|platinum)/i.test(file),
+			/(?:^|[\\/])(?:screenSavers|platinum)[\\/]/i.test(file),
 	);
 	if (platinum.length)
 		problems.push(

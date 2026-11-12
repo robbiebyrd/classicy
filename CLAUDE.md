@@ -348,12 +348,13 @@ keystroke/click is swallowed in the capture phase.
   re-register it (`{ ...getClassicyScreenSaver(id), packages: [...] }`, or
   from Platinum's exported parts) with its id added to `packages`. Keyframes/classes are prefixed `classicySaver*`. Saver
   stylesheets are Sass partials (`screenSavers/<X>/_ClassicyScreenSaver<X>.scss`)
-  loaded by `styles/_screenSavers.scss` into Platinum's single package
+  listed once in the index `screenSavers/_platinumScreenSavers.scss`, which
+  `styles/_screenSavers.scss` loads into Platinum's single package
   stylesheet, in `@layer classicy.package` at the root (`@at-root`), outside
   the `[data-classicy-appearance="platinum"]` scope, since the overlay is a
   portal; saver art ships as files in Platinum's `dist/assets`. System 7's
-  sheet loads the same partials the same way, from its own
-  `styles/_screenSavers.scss` (the only Platinum stylesheets it loads), with
+  sheet loads the same index the same way, from its own
+  `styles/_screenSavers.scss` (the only Platinum stylesheet it loads), with
   its own pause rule, and its `dist/assets` ships the saver art too. The savers'
   ported art is exempt from the pixel and color gates by path.
 - The `logo` saver's image comes from its own live registry

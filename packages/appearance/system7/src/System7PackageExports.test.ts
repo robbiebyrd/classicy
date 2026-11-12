@@ -77,16 +77,17 @@ describe("the SCSS export", () => {
 		}).css;
 
 	// It ships compiled and is not for host compilation (the README): it
-	// loads the screen savers' partials from Platinum's source, which neither
+	// loads the screen savers' partials from Platinum's source (their index,
+	// screenSavers/_platinumScreenSavers.scss), which neither
 	// tarball holds (plan 0018-dbd §3.8), as Platinum's own platinum.scss
-	// does. Resolved through the export, it gets as far as those partials, past
+	// does. Resolved through the export, it gets as far as their index, past
 	// the vocabulary; from the workspace it compiles whole
 	// (styles/system7.css.test.ts).
-	it("serves the package stylesheet at @classicy/appearance-system7/scss/system7, up to the savers' partials", () =>
+	it("serves the package stylesheet at @classicy/appearance-system7/scss/system7, up to the savers' index", () =>
 		expect(() =>
 			compile('@use "pkg:@classicy/appearance-system7/scss/system7";'),
 		).toThrow(
-			/Can't find stylesheet to import\.[\s\S]*load-css\("\.\.\/\.\.\/\.\.\/platinum\/src\/screenSavers\/BouncingBall\/ClassicyScreenSaverBouncingBall"\)[\s\S]*appearance-system7\/src\/styles\/_screenSavers\.scss/,
+			/Can't find stylesheet to import\.[\s\S]*load-css\("\.\.\/\.\.\/\.\.\/platinum\/src\/screenSavers\/platinumScreenSavers"\)[\s\S]*appearance-system7\/src\/styles\/_screenSavers\.scss/,
 		));
 
 	// A partial that loads nothing of Platinum's compiles through it whole.

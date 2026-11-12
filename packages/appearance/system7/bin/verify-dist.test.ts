@@ -532,6 +532,24 @@ describe("bin/verify-dist.mjs", () => {
 				stderr: `dist/types: 1 declaration(s) of Platinum's modules (${path.join("platinum", "src", "screenSavers", "platinumScreenSavers.d.ts")}) -> System 7 re-exports nothing of the savers; check index.ts and the dts include in vite.config.ts.`,
 			}));
 
+		// The check names folders: a module of System 7's own whose name only
+		// starts with "platinum" is not Platinum's.
+		it("passes a declaration whose file name only starts with platinum", () =>
+			expect(
+				verify({
+					"types/platinumCompat.d.ts": "export declare const a: number;\n",
+					"types/assets/platinumLike.d.ts": "export {};\n",
+				}).status,
+			).toBe(0));
+
+		it("fails a declaration in a screenSavers folder", () =>
+			expect(
+				verify({ "types/screenSavers/Fish.d.ts": "export {};\n" }),
+			).toEqual({
+				status: 1,
+				stderr: `dist/types: 1 declaration(s) of Platinum's modules (${path.join("screenSavers", "Fish.d.ts")}) -> System 7 re-exports nothing of the savers; check index.ts and the dts include in vite.config.ts.`,
+			}));
+
 		it.each([
 			[
 				'export * from "../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish.js";\n',

@@ -1,0 +1,27 @@
+// The screen savers' styles, one index beside the registration module
+// (platinumScreenSavers.ts) that registers the same savers: each saver's
+// stylesheet, in the order its module is registered. It emits the savers'
+// rules and nothing else, keyed on their own classes and `classicySaver*`
+// keyframes, so the sheet that loads it decides where they land.
+//
+// Two sheets load it, each from its own styles/_screenSavers.scss mixin:
+// Platinum's, and System 7's, which bundles the savers (design 0017-6me,
+// "Screen savers"; plan 0018-dbd §3.8). This index is the one Platinum
+// stylesheet System 7 may load (System7SourceImports.test.ts). Each mixin
+// follows it with its own reduced-motion pause, so this index must stay free
+// of one, and no saver here may set `animation-play-state` or `cursor`
+// (platinumScreenSaverStyles.test.ts).
+@use "sass:meta";
+
+@include meta.load-css("BouncingBall/ClassicyScreenSaverBouncingBall");
+@include meta.load-css("FadeOut/ClassicyScreenSaverFadeOut");
+@include meta.load-css("Fish/ClassicyScreenSaverFish");
+@include meta.load-css("FlyingToasters/ClassicyScreenSaverFlyingToasters");
+@include meta.load-css("Globe/ClassicyScreenSaverGlobe");
+@include meta.load-css("HardRain/ClassicyScreenSaverHardRain");
+@include meta.load-css("Logo/ClassicyScreenSaverLogo");
+@include meta.load-css("Messages/ClassicyScreenSaverMessages");
+@include meta.load-css("Messages2/ClassicyScreenSaverMessages2");
+@include meta.load-css("Rainstorm/ClassicyScreenSaverRainstorm");
+@include meta.load-css("Spotlight/ClassicyScreenSaverSpotlight");
+@include meta.load-css("Warp/ClassicyScreenSaverWarp");
