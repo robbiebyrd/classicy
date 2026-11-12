@@ -3,8 +3,8 @@
 // strip Mac OS 8 kept, so its cells, separators and glyph positions are the
 // base sheet's (HIGOS8 Figure 6-15): only the look differs. No capture of the
 // strip was made; the look is the 7.5 Control Strip control panel's own art,
-// decoded from its resources (docs/system7-asset-inventory.md, "Control
-// Strip"):
+// decoded from its resources and written by bin/export-pixel-art.mjs
+// (docs/system7-asset-inventory.md, "Desktop pattern and Control Strip"):
 //
 // - Color (PICT -4044, the panel's picture of the strip's end): a #CCCCCC
 //   face, a white highlight one pixel in on the top and left, #AAAAAA then
@@ -23,12 +23,9 @@
 // it is drawn as Platinum draws it, two dark pixels on the top and left and
 // two light on the bottom and right on a darker face, in the same tokens.
 //
-// A module's pop-up surface (a bevel button's `popupContent`, the Sound
-// module's slider) is the panel's picture of it, PICT -4046 and -4048: the
-// strip's face with a white top row and left column inside the menu frame
-// (_Menu.scss); white all over in 1-bit, where the face is.
+// A module's pop-up surface (the Sound module's slider) is every bevel
+// button's pop-up panel, drawn in _FlatControls.scss.
 @use "pkg:@classicy/classicy/scss/layout";
-@use "Menu";
 
 $b: var(--control-strip-bevel-width);
 
@@ -78,6 +75,15 @@ $b: var(--control-strip-bevel-width);
 }
 
 @mixin control-strip {
+  // The pixel-art token `n`, "the slider track's dark inner line" (the core
+  // maps it to a darkened theme-05, Platinum's #313163): System 7's pop-up
+  // slider rows use it for the same line, #333366 in the panel's picture,
+  // which is System 7 Color's `--color-theme-07` (black in 1-bit, whose rows
+  // do not use it).
+  .classicyPixeln {
+    fill: var(--color-theme-07);
+  }
+
   // The collapse box and scroll arrows.
   .classicyControlStripCell {
     @include raised;
@@ -89,14 +95,6 @@ $b: var(--control-strip-bevel-width);
 
   .classicyControlStripScroll:disabled {
     @include recessed;
-  }
-
-  .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
-    @include Menu.menu-frame;
-    background:
-      layout.classicy-px-rect(var(--color-white), 0, 0, 100%, var(--window-box-pixel)),
-      layout.classicy-px-rect(var(--color-white), 0, 0, var(--window-box-pixel), 100%),
-      var(--color-system-02);
   }
 
   // Each module is a pop-up bevel button; the strip's bevel replaces its face

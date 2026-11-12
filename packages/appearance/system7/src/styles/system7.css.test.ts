@@ -1125,27 +1125,38 @@ describe("system7.scss (compiled)", () => {
 	// control and the Appearance Manager, from the 7.5 desktop captures and
 	// the Control Strip panel's own bitmaps.
 	describe("desktop, icons, Control Strip and tabs", () => {
-		const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
-		const rootRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-			.filter(([, header]) => header.trim() === ROOT)
-			.map(([, , declarations]) => declarations)
-			.join("\n");
-		const PATTERN = [
-			/background-color: var\(--color-system-04\);/,
-			/background-image: var\(--desktop-background-image\), linear-gradient\(var\(--desktop-background-color\), var\(--desktop-background-color\)\), var\(--classicy-art-dither-checker\);/,
-			/background-blend-mode: normal, lighten, normal;/,
-			/background-repeat: var\(--desktop-background-repeat\), no-repeat, repeat;/,
-			/background-position: var\(--desktop-background-position\), 0 0, var\(--window-box-pixel\) 0;/,
-			/background-size: var\(--desktop-background-size\), 100% 100%, calc\(var\(--window-box-pixel\) \* 2\) calc\(var\(--window-box-pixel\) \* 2\);/,
+		const CORE_BACKGROUND = [
+			/background-color: var\(--desktop-background-color\);/,
+			/background-image: var\(--desktop-background-image\);/,
+			/background-repeat: var\(--desktop-background-repeat\);/,
+			/background-position: var\(--desktop-background-position\);/,
+			/background-size: var\(--desktop-background-size\);/,
+			/image-rendering: pixelated;/,
 		];
 
-		it("draws the desktop's checker under its picture, the desktop color lightened by system-04", () => {
-			for (const declaration of PATTERN) expect(rootRules).toMatch(declaration);
+		// The pattern is the theme's desktop picture (the core draws it); the
+		// sheet only keeps its pixels whole at a fractional zoom.
+		it("leaves the desktop's background to the core, drawing its picture's pixels whole", () => {
+			const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
+			const rootRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+				.filter(([, header]) => header.trim() === ROOT)
+				.map(([, , declarations]) => declarations)
+				.join("\n");
+			expect(rootRules).toMatch(/image-rendering: pixelated;/);
+			expect(rootRules).not.toMatch(/background/);
+			expect(rule("> *")).toMatch(/image-rendering: auto;/);
+		});
+
+		it("draws the desktop under the startup screen", () => {
+			const startup = rule(".classicyStartupScreen");
+			for (const declaration of CORE_BACKGROUND)
+				expect(startup).toMatch(declaration);
 		});
 
 		it("previews the desktop itself in the Appearance Manager, on a white panel", () => {
 			const preview = rule(".classicyAppearanceManagerDesktopPreview");
-			for (const declaration of PATTERN) expect(preview).toMatch(declaration);
+			for (const declaration of CORE_BACKGROUND)
+				expect(preview).toMatch(declaration);
 			expect(preview).toMatch(
 				/border: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
@@ -1194,11 +1205,11 @@ describe("system7.scss (compiled)", () => {
 			}
 		});
 
-		it("inverts a selected icon in 1-bit and darkens it in color, by the dither tile's size", () => {
+		it("inverts a selected icon in 1-bit and darkens it in color, by the iconSelection.invert knob", () => {
 			for (const [root, outer] of FAMILIES) {
 				const invert = rule(`${root}.selected ${outer}::after`);
 				expect(invert).toMatch(
-					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top\/var\(--dither-tile-size\) var\(--dither-tile-size\);/,
+					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top\/var\(--icon-selection-invert\) var\(--icon-selection-invert\);/,
 				);
 				expect(invert).toMatch(/mix-blend-mode: difference;/);
 				const darken = rule(`${root}.selected:not(.open) ${outer}::before`);
@@ -1206,10 +1217,13 @@ describe("system7.scss (compiled)", () => {
 					/color-mix\(in srgb, var\(--color-black\) 50%, transparent\)/,
 				);
 				expect(darken).toMatch(
-					/left top\/calc\(calc\(var\(--window-box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+					/left top\/calc\(var\(--window-box-pixel\) - var\(--icon-selection-invert\)\)/,
 				);
 				expect(rule(`${root}.selected ${outer} img`)).toMatch(/filter: none;/);
+				// The overlays exist on every mask pair, the alias badge's too.
+				expect(rule(`${root} ${outer}::after`)).toMatch(/content: "";/);
 			}
+			expect(css).not.toMatch(/dither-tile-size\)[^;]*\n?[^;]*difference/);
 		});
 
 		it("draws an opened icon's shape outlined in black, its inside eroded a pixel and dotted 25%", () => {
@@ -1228,6 +1242,9 @@ describe("system7.scss (compiled)", () => {
 				);
 				expect(inside).toMatch(
 					/--system7-icon-open-face: var\(--color-theme-04\);/,
+				);
+				expect(inside).toMatch(
+					/left top\/var\(--icon-selection-invert\) var\(--icon-selection-invert\)/,
 				);
 				expect(inside).toMatch(/backdrop-filter: none;/);
 				expect(rule(`${root}.selected.open ${outer} ${mask}`)).toMatch(
@@ -1257,6 +1274,11 @@ describe("system7.scss (compiled)", () => {
 			expect(layersOf(pressed, "var(--color-system-06)")).toBe(4);
 			expect(pressed).toMatch(/, var\(--color-system-04\);$/m);
 		});
+
+		it("draws the pixel-art token n, the slider's inner ring, in theme-07", () =>
+			expect(rule(".classicyPixeln")).toMatch(
+				/fill: var\(--color-theme-07\);/,
+			));
 
 		it("frames a module's pop-up as a menu, its face the strip's with a white top and left", () => {
 			const panel = rule(

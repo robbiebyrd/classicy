@@ -202,15 +202,18 @@
 				"height": 12,
 				"pad": 2,
 				"textTop": 2
+			},
+			"iconSelection": {
+				"invert": 1
 			}
 		},
 		"desktop": {
 			"iconSize": 32,
 			"iconFontSize": 9,
-			"backgroundImage": "",
-			"backgroundColor": 0,
+			"backgroundImage": "desktop-gray-bw.png",
+			"backgroundColor": 16777215,
 			"backgroundRepeat": "repeat",
-			"backgroundPosition": "center",
+			"backgroundPosition": "top left",
 			"backgroundSize": "auto"
 		}
 	},
@@ -416,15 +419,18 @@
 					"height": 12,
 					"pad": 2,
 					"textTop": 2
+				},
+				"iconSelection": {
+					"invert": 1
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
 				"iconFontSize": 9,
-				"backgroundImage": "",
-				"backgroundColor": 0,
+				"backgroundImage": "desktop-gray-bw.png",
+				"backgroundColor": 16777215,
 				"backgroundRepeat": "repeat",
-				"backgroundPosition": "center",
+				"backgroundPosition": "top left",
 				"backgroundSize": "auto"
 			}
 		},
@@ -632,15 +638,18 @@
 					"height": 12,
 					"pad": 2,
 					"textTop": 2
+				},
+				"iconSelection": {
+					"invert": 0
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
 				"iconFontSize": 9,
-				"backgroundImage": "",
-				"backgroundColor": 6710886,
+				"backgroundImage": "desktop-gray.png",
+				"backgroundColor": 11184810,
 				"backgroundRepeat": "repeat",
-				"backgroundPosition": "center",
+				"backgroundPosition": "top left",
 				"backgroundSize": "auto"
 			}
 		}

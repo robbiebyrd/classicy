@@ -9,8 +9,10 @@ import {
 	ClassicyCheckbox,
 	ClassicyIcon,
 	ClassicyInput,
+	ClassicyStartupScreen,
 	ClassicyTabs,
 	ClassicyWindow,
+	resetStartupScreenSession,
 	useAppManagerDispatch,
 	useClassicyAsset,
 } from "@classicy/classicy";
@@ -18,6 +20,7 @@ import { StoryApp } from "@sb/helpers";
 import { system7Parameters } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactElement, type ReactNode, useEffect } from "react";
+import { fireEvent, waitFor } from "storybook/test";
 
 const meta = {
 	title: "Appearance/System 7/Desktop",
@@ -109,8 +112,8 @@ function Icons() {
 }
 
 /**
- * The 1-bit desktop: the 50% checkerboard pattern (System `ppat` 16's
- * pattern), icons with opaque Geneva 9 labels, a selected icon inverted and
+ * The 1-bit desktop: the 50% checkerboard pattern (System `ppat` 16's 1-bit
+ * pattern, the theme's desktop picture), icons with opaque Geneva 9 labels, a selected icon inverted and
  * an opened one filled with the 25% pattern, and the Control Strip.
  */
 export const Desktop: Story = {
@@ -118,7 +121,8 @@ export const Desktop: Story = {
 };
 
 /**
- * The color desktop: the #666666/#AAAAAA checkerboard, a selected icon
+ * The color desktop: the #666666/#AAAAAA checkerboard (`ppat` 16 as a
+ * 256-color screen draws it), a selected icon
  * darkened, an opened one filled with the window color's dark lavender, and
  * the Control Strip in the 7.5 strip's grays.
  */
@@ -195,9 +199,9 @@ type AppearanceTab = (typeof APPEARANCE_TABS)[number];
 
 /**
  * Opens the Appearance Manager (ClassicyDesktop mounts it with the other
- * control panels) and, once its window is up, presses the tab `tab`.
+ * control panels).
  */
-function AppearancePanel({ tab }: { tab: AppearanceTab }) {
+function AppearancePanel() {
 	const dispatch = useAppManagerDispatch();
 	const icon =
 		useClassicyAsset("icons", "controlPanels.appearanceManager.app") ?? "";
@@ -207,29 +211,32 @@ function AppearancePanel({ tab }: { tab: AppearanceTab }) {
 			app: { id: APPEARANCE_MANAGER_APP_ID, name: "Appearance", icon },
 		});
 	}, [dispatch, icon]);
-	useEffect(() => {
-		// Pressed until it shows as chosen: the window may mount more than
-		// once as it opens. A tab is chosen on the release (ClassicyTabs'
-		// `onMouseUp`).
-		const timer = setInterval(() => {
-			const button = [
-				...document.querySelectorAll<HTMLButtonElement>(".classicyTabButton"),
-			].find((b) => b.textContent === tab);
-			if (!button || button.classList.contains("selected")) return;
-			for (const type of ["mousedown", "mouseup"])
-				button.dispatchEvent(new MouseEvent(type, { bubbles: true }));
-		}, 50);
-		const stop = setTimeout(() => clearInterval(timer), 2000);
-		return () => {
-			clearInterval(timer);
-			clearTimeout(stop);
-		};
-	}, [tab]);
 	return null;
 }
 
+/**
+ * Chooses the panel's tab `tab`, as a click does (ClassicyTabs chooses on the
+ * release), until it shows as chosen: the window may mount more than once as
+ * it opens, starting again on the first tab.
+ */
+const chooseTab = (tab: AppearanceTab) =>
+	waitFor(
+		() => {
+			const button = [
+				...document.querySelectorAll<HTMLButtonElement>(".classicyTabButton"),
+			].find((b) => b.textContent === tab);
+			if (!button) throw new Error(`no ${tab} tab yet`);
+			if (button.classList.contains("selected")) return;
+			fireEvent.mouseDown(button);
+			fireEvent.mouseUp(button);
+			throw new Error(`${tab} is not chosen yet`);
+		},
+		{ timeout: 10000 },
+	);
+
 const appearanceStory = (tab: AppearanceTab, color: boolean): Story => ({
-	render: () => themed(color, <AppearancePanel tab={tab} />),
+	render: () => themed(color, <AppearancePanel />),
+	play: () => chooseTab(tab),
 });
 
 /** The Appearance Manager (a Mac OS 8 control panel) drawn in System 7's controls: Themes. */
@@ -264,3 +271,21 @@ export const AppearanceMetricsColor = appearanceStory("Metrics", true);
 export const AppearanceSound = appearanceStory("Sound", false);
 /** Sound, in color. */
 export const AppearanceSoundColor = appearanceStory("Sound", true);
+
+function StartupScreen() {
+	resetStartupScreenSession();
+	return <ClassicyStartupScreen duration={30000} />;
+}
+
+/**
+ * The startup screen ("Welcome to Mac OS") over the desktop pattern, as 7.5
+ * drew it, not over the flat desktop color.
+ */
+export const StartupScreenBlackAndWhite: Story = {
+	render: () => <StartupScreen />,
+};
+
+/** The startup screen under System 7 Color. */
+export const StartupScreenColor: Story = {
+	render: () => themed(true, <StartupScreen />),
+};

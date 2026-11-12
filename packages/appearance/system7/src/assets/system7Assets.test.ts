@@ -230,8 +230,9 @@ describe("System 7's assets", () => {
 		});
 
 		// Plan 0018-dbd §3.7: the Control Strip's art is the 7.5 Control Strip
-		// panel's own bitmaps (docs/system7-asset-inventory.md, "Control
-		// Strip"), one set of rows per theme.
+		// panel's own bitmaps (docs/system7-asset-inventory.md, "Desktop
+		// pattern and Control Strip"), one set of rows per theme, written by
+		// bin/export-pixel-art.mjs.
 		it("draws the Control Strip from the 7.5 panel's bitmaps, its own rows per theme", () => {
 			const rows = (file: string) =>
 				readFileSync(

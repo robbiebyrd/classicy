@@ -28,6 +28,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit } from "node:process";
 import { inflateSync } from "node:zlib";
+import { readBmp } from "./bmp.mjs";
 import {
 	decodeClut,
 	decodeCursor,
@@ -286,28 +287,6 @@ const readPng = (file) => {
 		// every file the export decodes.
 		if (img.pixels[i * 4 + 3] === 0) img.pixels.fill(0, i * 4, i * 4 + 4);
 	}
-	return img;
-};
-
-/** A BMP's pixels (resource_dasm's 24- or 32-bit output, RGBA byte order). */
-const readBmp = (file) => {
-	const b = readFileSync(file);
-	const offset = b.readUInt32LE(10);
-	const width = b.readInt32LE(18);
-	const h = b.readInt32LE(22);
-	const bpp = b.readUInt16LE(28);
-	const height = Math.abs(h);
-	const stride = Math.ceil((width * bpp) / 32) * 4;
-	const img = blank(width, height);
-	for (let y = 0; y < height; y++)
-		for (let x = 0; x < width; x++) {
-			const o = offset + (h > 0 ? height - 1 - y : y) * stride + (x * bpp) / 8;
-			const d = (y * width + x) * 4;
-			// 32-bit: R, G, B, A (bitfields ff, ff00, ff0000, ff000000); 24-bit: B, G, R.
-			const rgb =
-				bpp === 32 ? [b[o], b[o + 1], b[o + 2]] : [b[o + 2], b[o + 1], b[o]];
-			img.pixels.set([...rgb, bpp === 32 ? b[o + 3] : 255], d);
-		}
 	return img;
 };
 

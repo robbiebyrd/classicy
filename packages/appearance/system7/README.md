@@ -15,6 +15,10 @@ built. Today it ships:
 - System 7.5's icons, system art and cursors, with 1-bit variants for the
   black and white theme (Classicy's own glyphs and brands keep the core's
   images);
+- its desktop pattern, the System file's default (`ppat` 16, a 50%
+  checkerboard), as two wallpapers, "Gray" (#666666 and #AAAAAA) and "Gray
+  (Black & White)", each theme's desktop picture over a flat desktop color
+  (white, or #AAAAAA), so a user can keep it, pick another or pick none;
 - System 7.5's alert sounds as its sound pack: Droplet, Indigo, Quack,
   Simple Beep (the default), Sosumi and Wild Eep;
 - a stylesheet that draws System 7's windows (the frame and drop shadow,
@@ -35,13 +39,12 @@ built. Today it ships:
   each dimmed through the dither; and its scroll bars: arrows at both ends,
   the 25% dotted track, the fixed square scroll box (with grip ridges in
   color), hollow arrows when there is nothing to scroll, and the outline
-  alone in an inactive window; and its desktop: the 50% checkerboard
-  pattern (black and white, or #666666 and #AAAAAA, from the theme's
-  colors) under the desktop picture, icons with opaque Geneva labels that
-  invert when selected (the 1-bit icon inverts, the color one darkens) and
-  fill with the 25% pattern when opened, the Control Strip in the 7.5
-  Control Strip panel's own art, a tab control in System 7's lines (7.5 had
-  none), and the Appearance Manager's panel on white;
+  alone in an inactive window; and its desktop: icons with opaque Geneva
+  labels that invert when selected (the 1-bit icon inverts, the color one
+  darkens) and fill with the 25% pattern when opened, the desktop pattern
+  under the startup screen, the Control Strip in the 7.5 Control Strip
+  panel's own art, a tab control in System 7's lines (7.5 had none), and the
+  Appearance Manager's panel on white;
 - one behavior hook, the blink of a chosen menu item (System 7 had no
   interface feedback sounds, so it plays none).
 

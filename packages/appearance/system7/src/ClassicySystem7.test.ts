@@ -96,23 +96,15 @@ describe("the System 7 appearance package", () => {
 		expect(bw.measurements.dither.tileSize).toBe(2);
 	});
 
-	// The desktop pattern, System `ppat` 16 (styles/components/_Desktop.scss;
-	// docs/system7-reference-screenshots.md, MWD 4 and CIC "default 1-bit
-	// desktop pattern"): a 50% checker whose dark cells are the desktop color
-	// and whose light ones are system-04.
-	it("draws the desktop's checker from the desktop color and system-04", () => {
+	// The desktop's flat color, under the theme's pattern (its desktop picture,
+	// System7DesktopPicture.test.ts) and alone when a user picks no picture,
+	// and the startup screen's: the pattern's light cell, white in 1-bit and
+	// #AAAAAA (system-04) in color.
+	it("sets the desktop's flat color to the pattern's light cell", () => {
 		const [bw, color] = system7Json.presets;
-		expect([bw.desktop.backgroundColor, bw.color.system[3]]).toEqual([
-			BLACK,
-			WHITE,
-		]);
-		expect([color.desktop.backgroundColor, color.color.system[3]]).toEqual([
-			0x666666, 0xaaaaaa,
-		]);
-		// No picture over it, and the defaults are the 1-bit theme's.
-		for (const theme of system7Json.presets)
-			expect(theme.desktop.backgroundImage).toBe("");
-		expect(system7Json.defaults.desktop).toEqual(bw.desktop);
+		expect(bw.desktop.backgroundColor).toBe(WHITE);
+		expect(color.desktop.backgroundColor).toBe(color.color.system[3]);
+		expect(color.color.system[3]).toBe(0xaaaaaa);
 	});
 
 	// The Standard window colors as System 7.5 draws them at 256 colors
@@ -212,7 +204,6 @@ describe("the System 7 appearance package", () => {
 			expect(theme.typography.bodySize).toBe(9);
 			expect(theme.desktop.iconSize).toBe(32);
 			expect(theme.desktop.iconFontSize).toBe(9);
-			expect(theme.desktop.backgroundImage).toBe("");
 		}
 	});
 
@@ -414,7 +405,7 @@ describe("the System 7 appearance package", () => {
 		);
 	});
 
-	it("emits the Control Strip's bevel (color only) and the icon labels' knobs", async () => {
+	it("emits the Control Strip's bevel (color only), the icon labels' knobs and the 1-bit icon switch", async () => {
 		await import("./index");
 		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
 			[]) as ClassicyTheme[];
@@ -428,10 +419,12 @@ describe("the System 7 appearance package", () => {
 		};
 		expect(vars(bw)).toMatchObject({
 			"--control-strip-bevel-width": "0px",
+			"--icon-selection-invert": "1px",
 			...labels,
 		});
 		expect(vars(color)).toMatchObject({
 			"--control-strip-bevel-width": "1px",
+			"--icon-selection-invert": "0px",
 			...labels,
 		});
 		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
@@ -441,6 +434,9 @@ describe("the System 7 appearance package", () => {
 		);
 		expect(system7Json.defaults.measurements.iconLabel).toEqual(
 			system7Json.presets[0].measurements.iconLabel,
+		);
+		expect(system7Json.defaults.measurements.iconSelection).toEqual(
+			system7Json.presets[0].measurements.iconSelection,
 		);
 	});
 

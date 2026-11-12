@@ -10,6 +10,7 @@ import {
 	registerClassicyCursors,
 	registerClassicyFonts,
 	registerClassicySystemArt,
+	registerClassicyWallpapers,
 } from "@classicy/classicy";
 // The dither checker is a mask (`classicy-dither`, HIG p.60), and
 // `mask-image` URLs are fetched in CORS mode: as a `data:` URI (a
@@ -253,6 +254,35 @@ registerClassicyCursors(SYSTEM7, {
 	resizeL: { src: cursor("resize-l"), hotspot: [8, 8] },
 	resizeR: { src: cursor("resize-r"), hotspot: [8, 8] },
 });
+
+const wallpaperFiles = import.meta.glob("./wallpapers/*.png", {
+	eager: true,
+	import: "default",
+}) as Record<string, string>;
+
+/**
+ * System 7's desktop patterns, the Desktop tab's label and the filename each
+ * theme names in `desktop.backgroundImage`: System `ppat` 16, the 7.5
+ * default desktop pattern, a 50% checker drawn as an 8 × 8 tile, its color
+ * pixel map (#666666 and #AAAAAA, as a 256-color screen draws it) for "System
+ * 7 Color" and its 1-bit pattern for "System 7" (bin/export-pixel-art.mjs).
+ */
+export const SYSTEM7_WALLPAPERS: ReadonlyArray<{
+	label: string;
+	file: string;
+}> = [
+	{ label: "Gray", file: "desktop-gray.png" },
+	{ label: "Gray (Black & White)", file: "desktop-gray-bw.png" },
+];
+
+registerClassicyWallpapers(
+	SYSTEM7,
+	SYSTEM7_WALLPAPERS.map(({ label, file }) => ({
+		name: label,
+		src: wallpaperFiles[`./wallpapers/${file}`] ?? "",
+		file,
+	})),
+);
 
 const fontModules = import.meta.glob("./fonts/*.woff2", {
 	eager: true,

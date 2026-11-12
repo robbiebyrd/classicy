@@ -5,12 +5,12 @@
 //
 // - Its content area is the window's white, as every System 7 window's is
 //   (HIG p.259), not the gray its own sheet paints.
-// - The Desktop tab's preview shows the desktop itself, its pattern under
-//   its picture, from the same variables the desktop draws them from, in a
-//   one-pixel black frame. The picture alone would not show the pattern, and
-//   a theme without a picture (both of System 7's) previews the default
-//   package's stand-in. The preview's own image is moved out of its box
-//   (`object-position`), leaving its background.
+// - The Desktop tab's preview shows the desktop itself, in a one-pixel black
+//   frame: its picture as the desktop draws it (an 8 × 8 desktop pattern
+//   repeated at its own size, not one tile stretched over the preview), or
+//   its flat color when it has none (where the preview would show the
+//   default package's stand-in picture). The preview's own image is moved
+//   out of its box (`object-position`), leaving its background.
 @use "Desktop";
 
 @mixin appearance-manager {
