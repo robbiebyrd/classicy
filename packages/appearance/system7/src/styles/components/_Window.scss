@@ -127,10 +127,37 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     border: $b solid var(--color-window-border);
     box-shadow: $b $b 0 0 var(--color-black);
 
-    // A System 7 window moves by its title bar only (HIG p.154); the frame
-    // is a line, so the drag handles a wider frame needs are hidden.
-    .classicyWindowFrameEdge {
-      display: none;
+    // The frame-edge drag handles (Classicy's behavior, shared by every
+    // package) lie on the 1 px frame itself, never over the contents or the
+    // scroll bars: the base sizes them by the frame ring System 7 has none of.
+    .classicyWindowFrameEdge-top,
+    .classicyWindowFrameEdge-bottom {
+      left: calc(#{$b} * -1);
+      right: calc(#{$b} * -1);
+      height: $b;
+    }
+
+    .classicyWindowFrameEdge-top {
+      top: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-bottom {
+      bottom: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-left,
+    .classicyWindowFrameEdge-right {
+      top: calc(#{$b} * -1);
+      bottom: calc(#{$b} * -1);
+      width: $b;
+    }
+
+    .classicyWindowFrameEdge-left {
+      left: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-right {
+      right: calc(#{$b} * -1);
     }
 
     // Title bar, 19 px with the frame line above it and the line below it
@@ -332,6 +359,16 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   // references): a 13-row bar of title-bar face with three rows of single
   // dots, every `utilityTitleBar.textureWidth` pixels, and a 9 x 9 close box.
   // Named down to `.classicyWindowTitleBar` to outrank the active bar above.
+  //
+  // Rulings (plan 0018-dbd §3.2 review): the capture governs over the HIG.
+  // The HIG gives an 11 px drag region (p.138); Apple Guide's bar has 13
+  // rows inside the frame and its line, so `utilityTitleBarHeight` is 13.
+  // It is the bar's interior, unlike `titleBarHeight` (19, the document bar
+  // with its frame line and the line under it), because the core derives
+  // the windoid's box from it (`--window-utility-control-box-size`, the bar
+  // less two borders above and below: 9). And the drag area is the
+  // capture's sparse dots, one pixel in every 3 x 3, not the 50% checker
+  // the design gives System 7's other gray areas.
   .classicyWindow.classicyWindowUtility .classicyWindowTitleBar {
     top: 0;
     height: var(--window-utility-title-bar-height);
@@ -382,12 +419,23 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     height: calc(100% - var(--window-utility-title-bar-height) - #{$b});
   }
 
-  // Apple Guide's floating window draws no size box; the windoid keeps its
-  // grip's hit area (the base sheet's narrower windoid scroll bars size it),
-  // undrawn.
+  // Under a window header the contents also give up the header's row (the
+  // base sheet's height, which the rule above outranks from this layer).
+  .classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - var(--control-row-height));
+  }
+
+  .classicyWindow.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - var(--control-row-height));
+  }
+
+  // A resizable windoid's size box: its narrower scroll-bar cell (the base
+  // sheet's windoid --window-scrollbar-size) with one square, `growBox`'s
+  // windoid square. (Apple Guide's window is not resizable and draws none.)
   .classicyWindow.classicyWindowUtility .classicyWindowResizer {
-    border: none;
-    background: none;
+    background:
+      grow-square(var(--grow-box-windoid-offset), var(--grow-box-windoid-size), var(--color-system-03)),
+      var(--color-theme-01);
   }
 
   .classicyWindow.classicyWindowUtility.collapsed {

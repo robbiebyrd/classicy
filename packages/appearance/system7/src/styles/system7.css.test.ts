@@ -80,18 +80,19 @@ describe("system7.scss (compiled)", () => {
 			/\.classicyDesktop\[data-classicy-appearance=system7\] \.classicyWindowTitleBar \[data-classicy-control=collapse\] \{\s*display: none;\s*\}/,
 		));
 
-	// The declarations of the rule whose selector list holds exactly
+	// The declarations of every rule whose selector list holds exactly
 	// `<system7 root> <rest>` (expanded output: one selector per line).
 	const rule = (rest: string) => {
 		const selector = `.classicyDesktop[data-classicy-appearance=system7] ${rest}`;
-		const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
-		const block = blocks.find(([, header]) =>
-			header
-				.split(",")
-				.map((part) => part.trim())
-				.includes(selector),
-		);
-		return block?.[2] ?? "";
+		return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+			.filter(([, header]) =>
+				header
+					.split(",")
+					.map((part) => part.trim())
+					.includes(selector),
+			)
+			.map(([, , declarations]) => declarations)
+			.join("\n");
 	};
 	const layersOf = (declarations: string, ink: string) =>
 		declarations.split(`linear-gradient(${ink}, ${ink})`).length - 1;
@@ -159,6 +160,47 @@ describe("system7.scss (compiled)", () => {
 			expect(
 				rule(".classicyWindow .classicyWindowTitleBar .classicyWindowIcon"),
 			).toMatch(/display: none;/));
+
+		// The frame-edge drag handles are shared behavior: System 7 keeps them,
+		// on its one-pixel frame, never over the contents or the scroll bars.
+		it("keeps the frame-edge drag handles, on the frame and no deeper than it", () => {
+			expect(css).not.toMatch(
+				/classicyWindowFrameEdge[^{]*\{[^}]*display: none/,
+			);
+			for (const [edge, depth, side] of [
+				["top", "height", "top"],
+				["bottom", "height", "bottom"],
+				["left", "width", "left"],
+				["right", "width", "right"],
+			]) {
+				const sized = rule(`.classicyWindow .classicyWindowFrameEdge-${edge}`);
+				expect(sized, edge).toMatch(
+					new RegExp(`${depth}: var\\(--window-border-size\\);`),
+				);
+				expect(sized, edge).toMatch(
+					new RegExp(
+						`${side}: calc\\(var\\(--window-border-size\\) \\* -1\\);`,
+					),
+				);
+			}
+		});
+
+		it("gives up the header's row under a window header", () =>
+			expect(
+				rule(
+					".classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader",
+				),
+			).toMatch(
+				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--control-row-height\)\);/,
+			));
+
+		it("draws a resizable windoid's size box", () =>
+			expect(
+				layersOf(
+					rule(".classicyWindow.classicyWindowUtility .classicyWindowResizer"),
+					"var(--color-theme-07)",
+				),
+			).toBe(1));
 
 		it("lays the window's scroll bars over the frame by one pixel", () =>
 			expect(

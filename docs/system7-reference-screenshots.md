@@ -214,9 +214,11 @@ Measured from the framebuffer files (exact pixels).
 - **MWD 5, scroll box:** the 7.5 color box has horizontal grip ridges. The
   1-bit box is a plain white box with a black frame, no ridges.
 - **MWD 6, utility (floating) window:** the close box is 9x9 px including its
-  frame (the document window's is 11x11); the drag area is two rows of single
-  dots (`#333333` on `#EEEEEE` in color, black on white in 1-bit), not
-  stripes.
+  frame (the document window's is 11x11); the drag area is three rows of
+  single dots, one pixel in every 3x3 (rows 4, 7 and 10 counting the frame
+  line as row 0), `#333333` on `#EEEEEE` in color and black on white in
+  1-bit, not stripes. The bar has 13 rows between the frame line and the line
+  under it (15 with both).
 - **MWD 8, menu shadows:** pull-downs and hierarchical submenus are alike: the
   shadow column (right) starts 3 rows below the menu's top border and the
   shadow row (bottom) starts 3 px right of its left border. A window's shadow

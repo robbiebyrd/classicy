@@ -120,6 +120,33 @@ export const ScrollBars: Story = { render: scrollBars };
 export const ScrollBarsColor = inColor(scrollBars);
 
 /**
+ * A Finder-style window with a header strip over contents that overflow both
+ * ways: the contents, bars and size box stay inside the frame, under the
+ * header. (The header's own look is not System 7's yet.)
+ */
+const header = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<Window
+			id="hd"
+			title="Macintosh HD"
+			initialSize={[379, 215]}
+			initialPosition={[47, 81]}
+			header={
+				<div style={{ display: "flex", gap: "2em", padding: "0 1em" }}>
+					<span>3 items</span>
+					<span>17.4 MB in disk</span>
+				</div>
+			}
+		>
+			{tall}
+		</Window>
+	</StoryApp>
+);
+
+export const Header: Story = { render: header };
+export const HeaderColor = inColor(header);
+
+/**
  * A utility (floating) window over the active document window: the dotted
  * drag bar and the small close box, drawn active whichever window has the
  * focus. Where `*-floating-appleguide.png` has Apple Guide's window.
@@ -131,6 +158,7 @@ const utility = () => (
 			title="Macintosh Guide"
 			windowType="utility"
 			zoomable={false}
+			resizable={false}
 			initialSize={[453, 297]}
 			initialPosition={[92, 93]}
 		>

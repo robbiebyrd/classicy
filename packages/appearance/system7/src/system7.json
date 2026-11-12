@@ -93,7 +93,9 @@
 				"smallOffset": 2,
 				"smallSize": 7,
 				"largeOffset": 4,
-				"largeSize": 9
+				"largeSize": 9,
+				"windoidOffset": 1,
+				"windoidSize": 3
 			},
 			"utilityTitleBar": {
 				"boxMargin": 3,
@@ -205,7 +207,9 @@
 					"smallOffset": 2,
 					"smallSize": 7,
 					"largeOffset": 4,
-					"largeSize": 9
+					"largeSize": 9,
+					"windoidOffset": 1,
+					"windoidSize": 3
 				},
 				"utilityTitleBar": {
 					"boxMargin": 3,
@@ -319,7 +323,9 @@
 					"smallOffset": 2,
 					"smallSize": 6,
 					"largeOffset": 3,
-					"largeSize": 9
+					"largeSize": 9,
+					"windoidOffset": 1,
+					"windoidSize": 3
 				},
 				"utilityTitleBar": {
 					"boxMargin": 3,
