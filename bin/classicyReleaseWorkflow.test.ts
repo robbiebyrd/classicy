@@ -643,6 +643,11 @@ exit 0
 		expect(bad.status).toBe(1);
 		expect(bad.out).toMatch(/::error::[^\n]*@fake\/system7\b/);
 		expect(bad.out).not.toMatch(/::error::[^\n]*@fake\/platinum\b/);
+		// A package npm has never published cannot have a trusted publisher
+		// yet: the error names the script that creates it.
+		expect(bad.out).toMatch(
+			/::error::[^\n]*@fake\/system7\b[^\n]*bin\/npm-bootstrap-trusted-publishing\.sh --publish/,
+		);
 	});
 
 	it("fails, naming the package, when one package has no trusted publisher", () => {

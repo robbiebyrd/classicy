@@ -176,7 +176,7 @@ jobs:
               echo "$NAME: the registry accepted this workflow's OIDC token."
             else
               grep "oidc" <<<"$LOG" || true
-              echo "::error::$NAME: the registry refused this workflow's OIDC token. Add a trusted publisher for it on npmjs.com (GitHub Actions; robbiebyrd/classicy; push.yml; no environment; allow npm publish), or replace an expired one, then re-run. Nothing was pushed."
+              echo "::error::$NAME: the registry refused this workflow's OIDC token. Add a trusted publisher for it on npmjs.com (GitHub Actions; robbiebyrd/classicy; push.yml; no environment; allow npm publish), or replace an expired one, then re-run; a package npm has never published needs bin/npm-bootstrap-trusted-publishing.sh --publish first. Nothing was pushed."
               FAILED=1
             fi
           done
