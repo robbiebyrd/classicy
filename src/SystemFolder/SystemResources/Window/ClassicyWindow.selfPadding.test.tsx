@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
@@ -174,13 +174,12 @@ describe("the self-padded marker on a modal's inner area", () => {
 		expect(inner()).toHaveClass(SELF_PADDED);
 	});
 
-	// The contract (useClassicyWindowSelfPadding): a claim covers the nearest
-	// window's whole content, wherever the claimant renders, so it belongs on
-	// the content root only. These pin that a claim from deeper in the tree,
-	// or through a portal, still marks the window: the window cannot tell,
-	// unlike the old `:has(> …)`, which matched the content root alone.
-	describe("the contract: a claim covers the whole content", () => {
-		it("a dialog form nested below the content root still marks the window", () => {
+	// A claimant that passes its root (the four dialogs do) claims only when
+	// that root is the window's content root, a direct child of the inner
+	// area, as the old `:has(> …)` matched. Nested deeper, or rendered
+	// through a portal, it does not claim, so the window keeps its inset.
+	describe("a claim with a root ref covers the content root only", () => {
+		it("a dialog form nested below the content root does not mark the window", () => {
 			render(
 				<Modal>
 					<p>other content</p>
@@ -191,10 +190,10 @@ describe("the self-padded marker on a modal's inner area", () => {
 					</div>
 				</Modal>,
 			);
-			expect(inner()).toHaveClass(SELF_PADDED);
+			expect(inner()).not.toHaveClass(SELF_PADDED);
 		});
 
-		it("a claim through a portal still marks the window", () => {
+		it("a dialog form rendered through a portal does not mark the window", () => {
 			const target = document.createElement("div");
 			document.body.appendChild(target);
 			try {
@@ -209,10 +208,71 @@ describe("the self-padded marker on a modal's inner area", () => {
 						)}
 					</Modal>,
 				);
-				expect(inner()).toHaveClass(SELF_PADDED);
+				expect(inner()).not.toHaveClass(SELF_PADDED);
 			} finally {
 				target.remove();
 			}
+		});
+
+		it("the wrapper with a rootRef claims as the root, not when nested", () => {
+			const Host = ({ nested }: { nested: boolean }) => {
+				const ref = useRef<HTMLDivElement>(null);
+				const root = (
+					<ClassicyWindowSelfPadding rootRef={ref}>
+						<div ref={ref}>host</div>
+					</ClassicyWindowSelfPadding>
+				);
+				return <Modal>{nested ? <section>{root}</section> : root}</Modal>;
+			};
+			const { unmount } = render(<Host nested={false} />);
+			expect(inner()).toHaveClass(SELF_PADDED);
+			unmount();
+			render(<Host nested={true} />);
+			expect(inner()).not.toHaveClass(SELF_PADDED);
+		});
+
+		it("follows a non-modal window made modal: the root claims once it is", () => {
+			const Flip = () => {
+				const [modal, setModal] = useState(false);
+				return (
+					<>
+						<ClassicyWindow
+							id="flip"
+							appId="TestApp"
+							title="Flip"
+							modal={modal}
+						>
+							<ClassicyForm layout="dialog">
+								<input />
+							</ClassicyForm>
+						</ClassicyWindow>
+						<button type="button" onClick={() => setModal(true)}>
+							modal
+						</button>
+					</>
+				);
+			};
+			const { getByText } = render(<Flip />);
+			expect(inners()).toHaveLength(0);
+			fireEvent.click(getByText("modal"));
+			expect(inner()).toHaveClass(SELF_PADDED);
+		});
+
+		// Without a ref the hook keeps the whole-window contract: a claim from
+		// anywhere in the window's tree marks it.
+		it("a claim without a root ref still covers the whole content", () => {
+			const Deep = () => {
+				useClassicyWindowSelfPadding();
+				return <span>deep</span>;
+			};
+			render(
+				<Modal>
+					<div>
+						<Deep />
+					</div>
+				</Modal>,
+			);
+			expect(inner()).toHaveClass(SELF_PADDED);
 		});
 	});
 

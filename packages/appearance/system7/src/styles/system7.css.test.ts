@@ -15,6 +15,36 @@ const STYLESHEET = path.join(import.meta.dirname, "system7.scss");
 const SYSTEM7_SCOPE =
 	/^\.classicyDesktop\[data-classicy-appearance=("?)system7\1\](?=$|[\s.:#[>+~])/;
 
+/**
+ * A fixed modal holding a window of its own, under the `id` package root:
+ * each rule a fixed modal keys on must reach its own title bar and contents
+ * only (child combinators), never a window nested in its content.
+ */
+const nestedWindowInFixedModal = (id: string) => {
+	document.body.innerHTML = `
+<div class="classicyDesktop" data-classicy-appearance="${id}">
+  <div class="classicyWindow classicyWindowModal classicyWindowModalFixed">
+    <div class="classicyWindowTitleBar" id="ownBar"></div>
+    <div class="classicyWindowContentsModal" id="ownContents">
+      <div class="classicyWindowContentsInner classicyWindowContentsModalInner">
+        <div class="classicyWindow classicyWindowModal">
+          <div class="classicyWindowTitleBar" id="nestedBar"></div>
+          <div class="classicyWindowContentsModal" id="nestedContents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+	const el = (elementId: string) =>
+		document.getElementById(elementId) as HTMLElement;
+	return {
+		ownBar: el("ownBar"),
+		ownContents: el("ownContents"),
+		nestedBar: el("nestedBar"),
+		nestedContents: el("nestedContents"),
+	};
+};
+
 /** A selector list's selectors: its commas outside parentheses (`:is(a, b)`). */
 const splitSelectors = (header: string) => {
 	const selectors: string[] = [];
@@ -476,14 +506,29 @@ describe("system7.scss (compiled)", () => {
 		it("drops a fixed modal's title bar and closes the frame over its contents", () => {
 			expect(
 				rule(
-					".classicyWindow.classicyWindowModalFixed .classicyWindowTitleBar",
+					".classicyWindow.classicyWindowModalFixed > .classicyWindowTitleBar",
 				),
 			).toMatch(/display: none;/);
 			expect(
 				rule(
-					".classicyWindow.classicyWindowModalFixed .classicyWindowContentsModal",
+					".classicyWindow.classicyWindowModalFixed > .classicyWindowContentsModal",
 				),
 			).toContain(`margin: ${FRAME};`);
+		});
+
+		// Its own title bar and contents only: a window nested in a fixed
+		// modal's content keeps its bar and its contents' layout.
+		it("reaches only the fixed modal's own title bar and contents", () => {
+			const fixedRules = selectorsOf(css).filter((selector) =>
+				selector.includes("classicyWindowModalFixed"),
+			);
+			const dom = nestedWindowInFixedModal("system7");
+			const matched = (el: HTMLElement) =>
+				fixedRules.filter((selector) => el.matches(selector));
+			expect(matched(dom.ownBar)).not.toEqual([]);
+			expect(matched(dom.ownContents)).not.toEqual([]);
+			expect(matched(dom.nestedBar)).toEqual([]);
+			expect(matched(dom.nestedContents)).toEqual([]);
 		});
 
 		it("stripes a movable modal's bar across its width, with no line of its own", () => {

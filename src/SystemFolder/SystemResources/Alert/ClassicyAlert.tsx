@@ -301,7 +301,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			analyticsExclude
 		>
 			{/* Pads its own root, so its window is marked self-padded. */}
-			<ClassicyWindowSelfPadding>
+			<ClassicyWindowSelfPadding rootRef={contentRef}>
 				<div
 					{...appearance.attrs}
 					ref={contentRef}

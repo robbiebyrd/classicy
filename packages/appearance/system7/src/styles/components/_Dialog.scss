@@ -109,12 +109,13 @@ $bar: calc(var(--window-title-bar-height) - #{$b} - #{$b});
   }
 
   // A fixed modal has no title bar: the frame closes over the contents.
+  // Child combinators, so a window nested in its content keeps its own.
   .classicyWindow.classicyWindowModalFixed {
-    .classicyWindowTitleBar {
+    > .classicyWindowTitleBar {
       display: none;
     }
 
-    .classicyWindowContentsModal {
+    > .classicyWindowContentsModal {
       height: calc(100% - #{$frame} - #{$frame});
       margin: $frame;
     }

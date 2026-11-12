@@ -90,9 +90,9 @@ diverge, so a logo registered through Platinum's
   the stored choice is never rewritten. New store-free readers:
   `classicyPackAlerts`, `classicyPackDefaultAlert`,
   `resolveClassicyAlertSound` and `playingClassicySoundPack` (the pack that
-  plays for a theme's `sound.pack`: that pack, else the default). A pack that declares `alerts` need not define
-  the contract's alert ids, only its own
-  (`classicySoundPackMissingSprites`).
+  plays for a theme's `sound.pack`: that pack, else the default). A pack
+  that declares `alerts` need not define the contract's alert ids, only its
+  own (`classicySoundPackMissingSprites`).
 - **The dither vocabulary**, `@classicy/classicy/scss/dither`:
   `classicy-dither-mask`, `classicy-dither-text($on)` and
   `classicy-dither-line($on)` draw dimmed text, dimmed controls and dotted
@@ -141,20 +141,23 @@ diverge, so a logo registered through Platinum's
   `classicyWindowContentsSelfPadded` while its content pads its own root:
   `ClassicyAlert`, `ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog`
   and `ClassicyForm layout="dialog"`. Content says so through the new
-  `useClassicyWindowSelfPadding(enabled?)` hook, or the
-  `<ClassicyWindowSelfPadding>` wrapper for a component that renders the
-  window itself; a host's own self-padding dialog content may use either,
-  from its content root only, since a claim covers the window's whole
-  content.
-  System 7 keys its dialog inset on the class instead of `:has()`, so those
-  dialogs get one inset in Firefox 113–120 too. Platinum does not read it.
+  `useClassicyWindowSelfPadding(enabled?, rootRef?)` hook, or the
+  `<ClassicyWindowSelfPadding rootRef>` wrapper for a component that renders
+  the window itself; a host's own self-padding dialog content may use
+  either. With `rootRef` the claim holds only while that element is the
+  window's content root (a direct child of its inner area), so a nested or
+  portaled claimant leaves the inset alone; without it a claim covers the
+  window's whole content. System 7 keys its dialog inset on the class
+  instead of `:has()`, so those dialogs get one inset in Firefox 113–120
+  too. Platinum does not read it.
 - **Small structural hooks**: the root class `classicyWindowModalFixed` on a
   fixed modal (a modal `ClassicyWindow` of `type="error"` or with
   `movable={false}`, which cannot be dragged); the `open` state on a pop-up
-  menu's label holder and indicator while its menu is open; the system-art key `helpMenuTitle`, which, when
-  registered, draws the menu bar's Help title as an image; and
-  `ClassicyMenuItem.imageAlt`, the alt text of an item drawn as its image
-  alone (it keeps "Help" as that title's accessible name).
+  menu's label holder and indicator while its menu is open; the system-art
+  key `helpMenuTitle`, which, when registered, draws the menu bar's Help
+  title as an image; and `ClassicyMenuItem.imageAlt`, the alt text of an
+  item drawn as its image alone (it keeps "Help" as that title's accessible
+  name).
 
 ## Base looks moved into Platinum
 

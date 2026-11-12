@@ -177,7 +177,7 @@ export const ClassicyInputDialog: FunctionalComponent<
 			analyticsExclude
 		>
 			{/* Pads its own root, so its window is marked self-padded. */}
-			<ClassicyWindowSelfPadding>
+			<ClassicyWindowSelfPadding rootRef={contentRef}>
 				<div
 					ref={contentRef}
 					className="classicyInputDialog"

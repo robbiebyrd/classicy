@@ -115,6 +115,36 @@ const SAMPLE = compileString(
 	LOAD,
 ).css;
 
+/**
+ * A fixed modal holding a window of its own, under the `id` package root:
+ * each rule a fixed modal keys on must reach its own title bar and contents
+ * only (child combinators), never a window nested in its content.
+ */
+const nestedWindowInFixedModal = (id: string) => {
+	document.body.innerHTML = `
+<div class="classicyDesktop" data-classicy-appearance="${id}">
+  <div class="classicyWindow classicyWindowModal classicyWindowModalFixed">
+    <div class="classicyWindowTitleBar" id="ownBar"></div>
+    <div class="classicyWindowContentsModal" id="ownContents">
+      <div class="classicyWindowContentsInner classicyWindowContentsModalInner">
+        <div class="classicyWindow classicyWindowModal">
+          <div class="classicyWindowTitleBar" id="nestedBar"></div>
+          <div class="classicyWindowContentsModal" id="nestedContents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+	const el = (elementId: string) =>
+		document.getElementById(elementId) as HTMLElement;
+	return {
+		ownBar: el("ownBar"),
+		ownContents: el("ownContents"),
+		nestedBar: el("nestedBar"),
+		nestedContents: el("nestedContents"),
+	};
+};
+
 describe("specificity (this file's helper)", () => {
 	it("weighs classes, attributes, pseudo-classes, pseudo-elements and :where", () => {
 		const P = ".classicyDesktop[data-classicy-appearance=platinum]";
@@ -254,10 +284,10 @@ describe("platinum.scss (compiled)", () => {
 	// (`classicyWindowRed`) keeps its red bar, unchanged.
 	it("draws a fixed modal that is not an alert as figure 3-3: no title bar, one face", () => {
 		const fixed = `${P} .classicyWindow.classicyWindowModalFixed:not(.classicyWindowRed)`;
-		expect(rule(`${fixed} .classicyWindowTitleBar`).props).toEqual({
+		expect(rule(`${fixed} > .classicyWindowTitleBar`).props).toEqual({
 			display: "none",
 		});
-		const contents = rule(`${fixed} .classicyWindowContentsModal`);
+		const contents = rule(`${fixed} > .classicyWindowContentsModal`);
 		// The contents fill the window, with no line across the top; they
 		// keep the modal contents' bevel (the face's light and shaded edges).
 		expect(contents.props).toEqual({
@@ -274,6 +304,18 @@ describe("platinum.scss (compiled)", () => {
 		expect(contents.at).toBeGreaterThan(
 			rule(`${P} .classicyWindow .classicyWindowContentsModal`).at,
 		);
+		// Its own title bar and contents only: a window nested in its content
+		// keeps its bar and its contents' layout.
+		const fixedRules = scanSelectors(css).selectors.filter((selector) =>
+			selector.includes("classicyWindowModalFixed"),
+		);
+		const dom = nestedWindowInFixedModal("platinum");
+		const matched = (el: HTMLElement) =>
+			fixedRules.filter((selector) => el.matches(selector));
+		expect(matched(dom.ownBar)).not.toEqual([]);
+		expect(matched(dom.ownContents)).not.toEqual([]);
+		expect(matched(dom.nestedBar)).toEqual([]);
+		expect(matched(dom.nestedContents)).toEqual([]);
 		// No rule hides the fixed alert's (red) title bar.
 		expect(flat).not.toMatch(
 			/classicyWindowModalFixed(?!:not\(\.classicyWindowRed\))[^{,]*classicyWindowTitleBar/,

@@ -1008,20 +1008,25 @@ or collapse box to show, so pass `closable={false}` (Escape then beeps) and
 `collapsable={false}`, and dismiss it with its own buttons.
 
 A modal's inner area (`.classicyWindowContentsModalInner`) carries
-`classicyWindowContentsSelfPadded` while its content lays itself out from the
-window's edge, padding its own root: `ClassicyAlert`, `ClassicyInputDialog`,
-`ClassicyKeyboardEquivalentDialog` and `ClassicyForm layout="dialog"`. They
-say so through a context, not the DOM: content calls
-`useClassicyWindowSelfPadding(enabled?)`, or a component that renders the
-window itself wraps the content it passes in `<ClassicyWindowSelfPadding>`
-(no DOM of its own). Only the nearest window is marked, only while it is
-modal, and only while a claimant is mounted. A claim covers the window's
-whole content, wherever in the tree (portals included) the claimant renders,
-so claim only from the content root, the element that fills the window; a
-self-padding block nested among other content would take the package's
-inset away from all of it. A package that insets dialog
-items itself skips those (System 7 does, below); Platinum does not read the
-class. A host's own self-padding dialog content claims it the same way.
+`classicyWindowContentsSelfPadded` while its content root lays itself out
+from the window's edge, padding its own root: `ClassicyAlert`,
+`ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog` and
+`ClassicyForm layout="dialog"`. They say so through a context: content calls
+`useClassicyWindowSelfPadding(enabled?, rootRef?)`, or a component that
+renders the window itself wraps the content it passes in
+`<ClassicyWindowSelfPadding rootRef={…}>` (no DOM of its own). With
+`rootRef`, the element that pads itself, the claim holds only while that
+element is the window's content root, a direct child of its inner area
+(`.classicyWindowContentsInner`), the element the old `:has(> …)` matched:
+nested deeper among other content, or rendered through a portal, it does not
+claim and the window keeps the package's inset. The four dialogs pass their
+root. Without `rootRef` the window cannot tell where the claimant is, so the
+claim covers its whole content wherever in the tree (portals included) the
+caller renders; claim that way only from the content root. Only the nearest
+window is marked, only while it is modal, and only while a claimant is
+mounted. A package that insets dialog items itself skips those (System 7
+does, below); Platinum does not read the class. A host's own self-padding
+dialog content claims it the same way.
 
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
