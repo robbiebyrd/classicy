@@ -85,8 +85,9 @@ jobs:
 
       # Pinned to a full commit SHA (master at v12.0.2), never `@master`: this
       # step runs with contents: write. The action only bumps and commits here
-      # (skip-tag, skip-push): the tag and the push follow the Platinum version
-      # sync, so the tag points at a commit where both versions agree.
+      # (skip-tag, skip-push): the tag and the push follow the Platinum and
+      # System 7 version syncs, so the tag points at a commit where all three
+      # versions agree.
       #
       # It substring-matches EVERY commit message in the push (and `type!:`
       # subjects), so the keyword is "BREAKING CHANGE" only; the bare word

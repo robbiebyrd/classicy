@@ -56,10 +56,10 @@ export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 export const CLASSICY_DEFAULT_SOUND_PACK_ID = "platinum";
 
 /**
- * The sprite ids Classicy dispatches (`sound: "…"`). Equal to the key set of
- * the Platinum sprite sheet; a custom pack should provide all of them.
+ * The contract's alert sprite ids (Platinum's seven). A pack declaring its
+ * own `alerts` need not define them.
  */
-export const CLASSICY_SOUND_SPRITE_IDS = [
+export const CLASSICY_CONTRACT_ALERT_SPRITE_IDS = [
 	"ClassicyAlertBonk",
 	"ClassicyAlertGrowl",
 	"ClassicyAlertIndigo",
@@ -67,6 +67,14 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 	"ClassicyAlertSosumi",
 	"ClassicyAlertTabitha",
 	"ClassicyAlertWildEep",
+] as const satisfies readonly string[];
+
+/**
+ * The sprite ids Classicy dispatches (`sound: "…"`). Equal to the key set of
+ * the Platinum sprite sheet; a custom pack should provide all of them.
+ */
+export const CLASSICY_SOUND_SPRITE_IDS = [
+	...CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
 	"ClassicyBeep",
 	"ClassicyBoot",
 	"ClassicyButtonClickDown",
@@ -105,17 +113,9 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 
 export type ClassicySoundSpriteId = (typeof CLASSICY_SOUND_SPRITE_IDS)[number];
 
-// The contract ids that are alert sounds (Platinum's seven). A pack declaring
-// its own `alerts` need not define them.
-const CONTRACT_ALERT_SPRITE_IDS: ReadonlySet<string> = new Set([
-	"ClassicyAlertBonk",
-	"ClassicyAlertGrowl",
-	"ClassicyAlertIndigo",
-	"ClassicyAlertQuack",
-	"ClassicyAlertSosumi",
-	"ClassicyAlertTabitha",
-	"ClassicyAlertWildEep",
-]);
+const CONTRACT_ALERT_SPRITE_IDS: ReadonlySet<string> = new Set(
+	CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
+);
 
 const registry = new Map<string, ClassicySoundPack>();
 const listeners = new Set<() => void>();
@@ -180,7 +180,7 @@ export const playingClassicySoundPack = (
 
 /**
  * Sprite ids `pack` should define but does not. The contract ids, except the
- * `ClassicyAlert*` ones when the pack declares its own `alerts` (the alerts
+ * contract's alert ids when the pack declares its own `alerts` (the alerts
  * are pack-defined); plus each alert it declares.
  */
 export const classicySoundPackMissingSprites = (

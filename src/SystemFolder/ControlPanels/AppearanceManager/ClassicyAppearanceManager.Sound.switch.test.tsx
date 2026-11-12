@@ -153,4 +153,35 @@ describe("Appearance Manager Sound tab across package switches", {
 			expect(await alertOptions(panel)).toEqual(["C1"]),
 		);
 	});
+
+	it("re-reads the default pack's alerts an alert-less pack inherits when that default is re-registered", async () => {
+		const platinum = getClassicySoundPack("platinum") as ClassicySoundPack;
+		const {
+			alerts: _a,
+			defaultAlert: _d,
+			...bare
+		} = soundPack("sw-d-pack", []);
+		registerClassicySoundPack(bare as ClassicySoundPack);
+		act(() => {
+			useAppManager.setState((s) => {
+				s.System.Manager.Appearance.activeTheme.sound.pack = "sw-d-pack";
+				return s;
+			});
+		});
+		const panel = await openSoundTab();
+		try {
+			expect(await alertOptions(panel)).toHaveLength(7);
+			act(() =>
+				registerClassicySoundPack({
+					...platinum,
+					alerts: [{ value: "ClassicyAlertBonk", label: "Bonk" }],
+				}),
+			);
+			await waitFor(async () =>
+				expect(await alertOptions(panel)).toEqual(["Bonk"]),
+			);
+		} finally {
+			registerClassicySoundPack(platinum);
+		}
+	});
 });

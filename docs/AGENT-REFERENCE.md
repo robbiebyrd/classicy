@@ -4992,7 +4992,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   which its build emits in `dist/assets/`.
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
-  (registration order), `subscribeClassicySoundPacks(listener)` and the live
+  (registration order), `playingClassicySoundPack(packs, themePackId)` (the
+  pack that plays: the theme's, else the default pack), `subscribeClassicySoundPacks(listener)` and the live
   hook `useClassicySoundPacks()`. The stock `"platinum"` pack registers itself
   from `packages/appearance/platinum/src/assets/sounds/platinum.ts`. Re-registering the
   id of the pack that is currently active updates the registry but does not
@@ -5005,7 +5006,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the missing ids) and plays those sprites from the Platinum pack when it is
   registered (the warning reads `…; they play nothing` when it is not); a
   sprite missing from both is not played. A pack that declares its own
-  `alerts` need not define the contract's `ClassicyAlert*` ids, only the
+  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`), only the
   alerts it declares (`classicySoundPackMissingSprites(pack)`).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption

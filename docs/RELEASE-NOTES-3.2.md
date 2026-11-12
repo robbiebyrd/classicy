@@ -88,9 +88,10 @@ diverge, so a logo registered through Platinum's
   Platinum's pack declares its seven, Sosumi by default. The alert played is
   the stored choice when the active pack offers it, else the pack's default;
   the stored choice is never rewritten. New store-free readers:
-  `classicyPackAlerts`, `classicyPackDefaultAlert` and
-  `resolveClassicyAlertSound`. A pack that declares `alerts` need not define
-  the contract's `ClassicyAlert*` sprites, only its own
+  `classicyPackAlerts`, `classicyPackDefaultAlert`,
+  `resolveClassicyAlertSound` and `playingClassicySoundPack` (the pack that
+  plays for a theme's `sound.pack`: that pack, else the default). A pack that declares `alerts` need not define
+  the contract's alert ids, only its own
   (`classicySoundPackMissingSprites`).
 - **The dither vocabulary**, `@classicy/classicy/scss/dither`:
   `classicy-dither-mask`, `classicy-dither-text($on)` and

@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
-import { render, screen, userEvent } from "@/__tests__/test-utils";
+import { act, render, screen, userEvent } from "@/__tests__/test-utils";
 import { useSoundTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound";
 import {
 	type ClassicySoundPack,
@@ -59,31 +59,43 @@ describe("Sound tab alert list", () => {
 	});
 });
 
+// The 3.1 props, copied from v3.1.1's SoundTabProps.
+type ThreeOneProps = {
+	soundPacks: { id: string; name: string }[];
+	soundPack: string;
+	changeSoundPack: (e: ChangeEvent<HTMLSelectElement>) => void;
+	alertSound: string;
+	changeAlertSound: (e: ChangeEvent<HTMLSelectElement>) => void;
+	alertVolume: number;
+	changeAlertVolume: (alertVolume: number) => void;
+	previewAlertVolume: (alertVolume: number) => void;
+};
+
 describe("useSoundTab called as in 3.1 (no alerts)", () => {
 	it("type-checks without alerts", () => {
-		type ThreeOne = Omit<Props, "alerts">;
-		expectTypeOf<ThreeOne>().toMatchTypeOf<Parameters<typeof useSoundTab>[0]>();
-		const call = (p: ThreeOne) => useSoundTab(p);
-		expect(call).toBeTypeOf("function");
+		expectTypeOf<ThreeOneProps>().toMatchTypeOf<
+			Parameters<typeof useSoundTab>[0]
+		>();
+		expectTypeOf(useSoundTab).parameter(0).toMatchTypeOf<ThreeOneProps>();
 	});
 
-	it("lists the playing pack's alerts, and follows a late registration", async () => {
+	it("lists the playing pack's alerts, and follows a late registration while mounted", async () => {
 		resetClassicySoundPacks();
 		const user = userEvent.setup();
 		const { alerts: _omit, ...threeOne } = props({});
-		const sprite = { a: [0, 1] as [number, number] };
-		const view = render(<Host {...(threeOne as Props)} />);
+		render(<Host {...(threeOne as Props)} />);
 		await user.click(menu());
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
-		view.unmount();
-		registerClassicySoundPack({
-			id: "platinum",
-			name: "Platinum",
-			src: ["x.mp3"],
-			sprite,
-			alerts: [{ value: "ClassicyAlertBonk", label: "Bonk" }],
-		} as ClassicySoundPack);
-		render(<Host {...(threeOne as Props)} />);
+		await user.click(menu());
+		act(() => {
+			registerClassicySoundPack({
+				id: "platinum",
+				name: "Platinum",
+				src: ["x.mp3"],
+				sprite: { a: [0, 1] },
+				alerts: [{ value: "ClassicyAlertBonk", label: "Bonk" }],
+			} as ClassicySoundPack);
+		});
 		await user.click(menu());
 		expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
 			"Bonk",
