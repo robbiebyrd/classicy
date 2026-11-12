@@ -187,7 +187,11 @@ const fonts = [
 	"Times",
 ].map((label) => ({ value: label.toLowerCase(), label }));
 
-/** A window holding a titled pop-up menu, opened when `open` is set. */
+/**
+ * A window holding a titled pop-up menu, opened when `open` is set. It is
+ * the Views control panel, which has no size box (so no scroll bars while
+ * it fits, `scrollBar.fitsBars` keeping them only in document windows).
+ */
 const popUpScene = (open: boolean) => () => (
 	<StoryApp id="storybook.app" name="Storybook">
 		<ClassicyWindow
@@ -196,6 +200,7 @@ const popUpScene = (open: boolean) => () => (
 			title="Views"
 			initialSize={[337, 180]}
 			initialPosition={[152, 36]}
+			resizable={false}
 		>
 			<div style={{ padding: "16px 12px", width: 300 }}>
 				<ClassicyPopUpMenu

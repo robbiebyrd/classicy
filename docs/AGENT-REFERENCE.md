@@ -3680,7 +3680,9 @@ how they look) has two halves:
    attribute or part class (table below). The base stylesheet gives each
    part an explicit `order`; a package overrides the numbers in its own CSS.
    Which parts exist is behavior and never changes: a package may only
-   reorder or hide them.
+   reorder or hide them, except through the `scrollBar` group below, which
+   keeps scroll bars drawn while the content fits (`fitsBars`) and adds a
+   drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
    JavaScript as well as CSS, and the optional `scrollBar` group, which
    declares behavior rather than arrangement. The group and each of its
