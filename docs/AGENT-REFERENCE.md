@@ -50,6 +50,16 @@ import '@classicy/appearance-platinum'
 import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
 ```
 
+The System 7 package, `@classicy/appearance-system7` (§8, "System 7"), is
+installed and imported the same way, alone or beside Platinum
+(`pnpm add @classicy/classicy @classicy/appearance-system7`;
+`import '@classicy/appearance-system7'`). A host lists every package it loads
+at one version and bumps them together; mixing versions of the two
+Appearance Packages is unsupported. Everything below that names Platinum's
+files has a System 7 twin: `classicy-system7.css`,
+`classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
+its own `dist/assets/`.
+
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
 nothing else), `classicy.base` gives `html`, `body` and those elements
@@ -138,7 +148,8 @@ sound sprites are files in `@classicy/appearance-platinum`'s `dist/assets/`,
 referenced as `new URL("assets/…", import.meta.url)`. Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which rewrites those
 URLs, so they would come back as the SPA fallback page. Keep both packages out
-of the pre-bundle:
+of the pre-bundle (and `@classicy/appearance-system7`, when the host loads
+it):
 
 ```ts
 // vite.config.ts
@@ -2111,6 +2122,11 @@ defines `--classicy-cursor-<role>-hotspot` (`"x y"`); the hotspot belongs to
 the image, so a role reads it from whichever tree its image resolves from.
 `useClassicyCursor` sets it too, and `resolveClassicyCursorHotspot(role)`
 returns it. Without one, the stylesheet's fallback applies (`8 8` above).
+Because the hotspot is stored with the image, never hotspot an image another
+package shares, such as the core's own cursor images: the hotspot would
+follow that image into every package that draws it. Register a file of your
+own with the hotspot, or leave the shared image without one (System 7 keeps
+the core's hand that way, unhotspotted).
 `ClassicySplitView`, the window's grow box and the PDF viewer's pan tool use
 exactly this form. The
 variables are scoped to the desktop root, so they do not exist outside it.
@@ -2596,11 +2612,13 @@ registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships one, Platinum, as its own
-package, `@classicy/appearance-platinum` (`packages/appearance/platinum/` in
-the repository), which the core neither imports nor exports: a host imports it
-at its entry (`import '@classicy/appearance-platinum'`), and the desktop draws
-only the stop screen until some package registers. Themes are presets of a
+sound packs and hooks that go with it. Classicy ships two, each its own npm
+package, which the core neither imports nor exports: Platinum,
+`@classicy/appearance-platinum` (`packages/appearance/platinum/` in the
+repository), and System 7, `@classicy/appearance-system7`
+(`packages/appearance/system7/`; "System 7", below). A host imports one or
+both at its entry (`import '@classicy/appearance-platinum'`), and the desktop
+draws only the stop screen until some package registers. Themes are presets of a
 package, and every theme names its package in `theme.package`.
 
 ```ts
@@ -3521,6 +3539,76 @@ dividers their full width; story 0088-sz9), and package-owned art and glyphs
 check) are absent by design: they are Platinum's look, not the component's
 (ruling E23).
 
+#### System 7
+
+`@classicy/appearance-system7` (`packages/appearance/system7/`) is the second
+Appearance Package: System 7.5 in black and white and in color. It is built
+the way a third-party package would be (it reaches the core only as
+`@classicy/classicy`; `System7SourceImports.test.ts`), and it is the worked
+example of the capabilities 3.2 added for it. Install and import it like
+Platinum (§1); its README lists what it ships.
+
+- **Themes.** `system7` ("System 7", the package's defaults: every color
+  black or white, `assetVariant: "bw"`, `dither.tileSize: 2`) and
+  `system7-color` ("System 7 Color": the Standard window colors from System
+  7.5's `wctb`/`cctb` tables, no variant, `dither.tileSize: 0`). Both set
+  `sound.pack: "system7"` and the optional knob `menuBar.bandHeight: 20`
+  ("Package knob families"). Layout: grow box bottom right, menu bar on the
+  screen, icon grid from the top right.
+- **Per-theme variants** (§5). Icons and system art register a color base
+  tree and a `bw` variant tree under `system7`; the 1-bit theme selects
+  `bw`, and a key the variant lacks falls back to the base. Cursors are one
+  set for both themes, with hotspots (`{ src, hotspot }`, §5 "CSS
+  variables").
+- **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
+  image, and the 16 px one where System 7 had both sizes.
+- **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
+  Indigo, Quack, Simple Beep, Sosumi, Wild Eep) with `defaultAlert:
+  "ClassicyAlertSimpleBeep"`, so the Sound tab lists those six under System 7.
+- **Dither vocabulary** ("Dither vocabulary", below): dimmed menu items,
+  labels and controls, and menu dividers, through
+  `@classicy/classicy/scss/dither`, in a dedicated dim ink
+  (`--color-theme-06`: black in the 1-bit theme, gray in color).
+- **Scroll bars** (§4.0.1): it draws `ClassicyScrollArea`'s parts, and fixes
+  the scroll box's length (equal `min-*`/`max-*` lengths along the bar).
+- **Small structural hooks**: `classicyWindowModalFixed` (a fixed modal has
+  no title bar), the pop-up's `open` state (the triangle hides and the label
+  inverts while the menu is open) and the `helpMenuTitle` art (the Help menu
+  is System 7's balloon glyph).
+- **Hooks**: `system7AppearanceHooks` decorates a pressed menu item with
+  `classicyMenuItemFlash` (the blink) and plays no sound: System 7 had no
+  interface feedback sounds.
+- **Screen savers.** Platinum's twelve, offered under both packages
+  (`packages: ["platinum", "system7"]`), Bouncing Ball by default (§11).
+- **Tabs.** System 7.5 had no tab control; System 7's tabs are drawn from
+  its own vocabulary (1 px black lines on white), not copied from an
+  original.
+
+**The Platinum boundary.** The saver source stays in Platinum's
+`src/screenSavers/`. The design's rule, "the only Platinum path System 7 may
+import is the saver registration module", covers that module and its SCSS
+index together: System 7's `src/index.ts` imports
+`../../platinum/src/screenSavers/platinumScreenSavers` (for its side effect;
+nothing of it is re-exported, so System 7's declarations never reference
+Platinum's files), and its `src/styles/_screenSavers.scss` loads
+`screenSavers/_platinumScreenSavers.scss`, the index that lists the twelve
+saver partials once, then adds System 7's own reduced-motion pause rule.
+Nothing else of Platinum's is reachable: not its mixins, its hooks, its logo
+registry module on its own, a saver partial on its own, or
+`pkg:@classicy/appearance-platinum/scss/*`; `System7SourceImports.test.ts`
+pins both halves. Because the partials ship in neither tarball,
+`@classicy/appearance-system7/scss/system7` is not for host compilation; the
+sheet ships compiled.
+
+**Beside Platinum.** A host may load both. Both bundles evaluate the saver
+registration module, so the twelve ids register twice with equal
+definitions (the registry replaces each in place), and the Logo saver's
+image registry keeps its state on `globalThis`
+(`Symbol.for("@classicy/screen-saver-logos@1")`), so both copies share one
+list. Mixing versions of the two Appearance Packages is unsupported: an
+older Platinum can re-register the savers under `platinum` only, or keep its
+own logo registry, which then diverges from System 7's.
+
 ### Layout declarations
 
 A package's **arrangement** (where the parts of a surface go, as opposed to
@@ -3851,7 +3939,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
-| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost) |
+| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, required since 3.2) is what the Alert Sound pop-up lists, the active pack's (`classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
 the shared notice string (Colors passes "a color", Metrics "a metric",
@@ -3957,6 +4045,18 @@ literals.
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
   and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
   `defaults.measurements`.
+- **Optional knobs.** A third kind of knob is read by a core derivation but
+  has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
+  `menuBar.bandHeight` when a theme sets it to a finite number, else
+  `window.controlSize × 2.5` (`ClassicyThemeDerivations.ts`). It cannot be
+  structural, since a floor value would freeze Platinum's band, which must
+  keep following the editable control size (H-R25); a package whose band
+  does not follow its control size sets it instead (System 7: 20, with its
+  11 px window boxes). Like any package knob it is also emitted as its own
+  variable (`--menu-bar-band-height`), and it is not in the table below,
+  which lists Platinum's knobs. Use this pattern when a derivation needs a
+  package escape hatch from its formula: read the knob first, fall back to
+  the formula, and give the knob no core default.
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -4528,9 +4628,18 @@ floor's value, and Platinum's) the tile draws nothing and the ink is plain,
 so a color theme dims and draws rules solid, in its gray value of `$on`; a
 1-bit theme sets the tile's size (2 for a 2 × 2 checker) and the ink shows
 where the tile is transparent. The tile is the active package's
-`ditherChecker` system art (`--classicy-art-dither-checker`), a raster mask
-as Platinum's `halftone` is, not a gradient, which moirés at fractional zoom;
-with none registered the mask drops out and the ink is plain.
+`ditherChecker` system art (`--classicy-art-dither-checker`), best a raster
+mask as Platinum's `halftone` is (a gradient is pixel-exact at 1x but smears
+at fractional zoom); with none registered the mask drops out and the ink is
+plain. A package may also declare the tile itself, as a custom property on
+its package root (any image value, a CSS gradient included): it serves while
+no art is registered, and a registered `ditherChecker`, which
+`ClassicyDesktop` publishes inline on the same root, takes its place. System
+7 does both: it registers a 2 × 2 SVG tile, imported `?inline` (a mask
+fetched by URL is a CORS request, as for Platinum's `halftone`; it is the one
+`data:` URI System 7's `verify:dist` allows), and declares the same checker
+as a `conic-gradient` on its package root. Its 1-bit theme sets
+`dither.tileSize` to 2, its color theme to 0. Platinum registers no tile.
 
 Limits of the mask:
 
@@ -4818,8 +4927,25 @@ mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
 the sound `ClassicySoundPlayError` plays — play at system volume × alert
 volume (set on that Howler sound id only); every other sound plays at the
 system volume.
-Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
-Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
+**Alert sounds come from the sound pack.** A pack lists the alerts the user
+may pick, with display names, in `alerts` (`{ value, label }[]`, each
+`value` a sprite id of the pack), and names the one played by default in
+`defaultAlert`. A pack without `alerts` takes the default pack's
+(Platinum's), as it takes its other sprites; `alerts: []` means none, and
+alerts play nothing. Platinum's pack declares Bonk, Growl, Indigo, Quack,
+Sosumi, Tabitha and Wild Eep, Sosumi by default; System 7's declares
+Droplet, Indigo, Quack, Simple Beep, Sosumi and Wild Eep, Simple Beep by
+default. The alert played is the stored `Appearance.alertSound` when the
+active pack offers it, else the pack's default; the stored choice is never
+rewritten, so switching packs and back restores it. The default state seeds
+no `alertSound`, so a first session plays the active pack's default. The
+store-free readers are `classicyPackAlerts(pack)`,
+`classicyPackDefaultAlert(pack)` (`defaultAlert` when it is one of the
+alerts, else the first) and `resolveClassicyAlertSound(pack, stored)` (the
+stored choice or Platinum's default when no pack is known).
+`CLASSICY_ALERT_SOUNDS` (Platinum's seven) and `DEFAULT_ALERT_SOUND`
+(`"ClassicyAlertSosumi"`) are deprecated: they are Platinum's values, kept
+for existing imports; read the active pack instead.
 
 **Sound packs**: a sound pack is one Howler audiosprite sheet registered under
 a kebab-case id; a theme selects one with `sound.pack`. The earlier theme field
@@ -4843,7 +4969,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 })
 ```
 
-- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite }`
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert? }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
@@ -4878,7 +5004,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   logs a `warn` (`Sound pack is missing sprites; falling back to platinum`, with
   the missing ids) and plays those sprites from the Platinum pack when it is
   registered (the warning reads `…; they play nothing` when it is not); a
-  sprite missing from both is not played.
+  sprite missing from both is not played. A pack that declares its own
+  `alerts` need not define the contract's `ClassicyAlert*` ids, only the
+  alerts it declares (`classicySoundPackMissingSprites(pack)`).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
@@ -4904,7 +5032,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   Howls through `ClassicySoundLoad` (which calls `createSoundPlayer`).
 - `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
   `packages/appearance/platinum/src/assets/sounds/<name>/sprites/` directory (the
-  default; the core ships no sprites) and writes `<name>.json` plus the
+  default; the core ships no sprites), then over System 7's
+  `packages/appearance/system7/src/assets/sounds/system7/sprites/` (WAV
+  sources, no looping sprite), and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
   `src` is resolved. The encode is deterministic (ffmpeg runs bit-exact) and
@@ -4957,7 +5087,10 @@ The core ships no saver: they come with an Appearance Package. Platinum
 (`@classicy/appearance-platinum`) registers twelve After Dark-style savers
 when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
 `globe`, `hard-rain`, `logo`, `messages`, `messages2`, `rainstorm`,
-`spotlight`, `warp`), offered under `platinum`, and exports their components,
+`spotlight`, `warp`), offered under `platinum` and `system7`. System 7
+(`@classicy/appearance-system7`) bundles the same registration module, so a
+host loading System 7 alone gets them too (§8, "System 7"); both packages
+name `defaultScreenSaver: "bouncing-ball"`. Platinum exports their components,
 config schemas and options UIs under the names `@classicy/classicy` exported
 them by in 3.0 (import them from the Platinum package now). The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
@@ -4999,7 +5132,7 @@ the panel says "This appearance has no screen savers.", Test and the Control
 Strip's Sleep Now are disabled and the overlay never activates.
 `ClassicyAppScreenSaverSetSaver` and `SetConfig` accept any registered saver,
 including one only another package offers. To offer a Platinum saver under
-your package too, re-register it with both ids, from the registered
+your package too, re-register it with your id added to its `packages`, from the registered
 definition (after `import '@classicy/appearance-platinum'`) or from the
 exported parts (`ClassicyScreenSaverFish`, `FishConfigSchema`, …):
 
@@ -5008,8 +5141,13 @@ import { getClassicyScreenSaver, registerClassicyScreenSaver } from '@classicy/c
 import '@classicy/appearance-platinum'
 
 const fish = getClassicyScreenSaver('fish')
-if (fish) registerClassicyScreenSaver({ ...fish, packages: ['platinum', 'acme'] })
+if (fish) registerClassicyScreenSaver({ ...fish, packages: [...(fish.packages ?? []), 'acme'] })
 ```
+
+Keep the ids it already names (`platinum` and `system7`): a list of only
+`['platinum', 'acme']` would stop offering it under System 7. Register it
+after both packages' imports, since each package's bundle registers its
+built-ins when it loads, replacing an earlier registration of the same id.
 
 Options UI is two-tier: a saver's `configComponent` wins; otherwise a form is
 derived from `configSchema` (number → spinner, boolean → checkbox, enum →
@@ -5061,7 +5199,8 @@ never persists — a reload always wakes up.
 
 **Logo saver images.** The `logo` saver bounces one of a registry of images,
 chosen in its options pop-up (config `{ logo: <id> }`). The registry, like
-the saver, is `@classicy/appearance-platinum`'s. Three ship built in
+the saver, is `@classicy/appearance-platinum`'s; its state lives on
+`globalThis`, so the copy System 7's bundle carries shares it. Three ship built in
 (`CLASSICY_SCREEN_SAVER_LOGO_IDS`): `berkeley-systems` (the After Dark mark,
 default), `classicy` (the Classicy wordmark) and `startup-screen` (the mark
 the startup screen shows). Add your own at module scope; the pop-up is live,

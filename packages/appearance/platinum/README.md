@@ -44,8 +44,12 @@ import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
   `resolveClassicyScreenSaverLogo`, `CLASSICY_SCREEN_SAVER_LOGO_IDS`,
   `CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID` and the
   `ClassicyScreenSaverLogoDefinition` type. Platinum registers the savers
-  under `packages: ["platinum"]` and names `defaultScreenSaver:
-  "bouncing-ball"`.
+  under `packages: ["platinum", "system7"]` and names `defaultScreenSaver:
+  "bouncing-ball"`. The System 7 package (`@classicy/appearance-system7`)
+  bundles the same registration module and offers them too; a host loading
+  both installs them at one version (mixing versions of the two Appearance
+  Packages is unsupported: the savers can end up offered under `platinum`
+  only, or the Logo saver's image registries diverge).
 - `./scss/*`: Platinum's SCSS (`mixins`, `scrollbars`, `assets`), for hosts
   and packages that build on its look. It uses the core's vocabulary as
   `pkg:@classicy/classicy/scss/*`, so compile it with Sass's
