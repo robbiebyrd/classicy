@@ -149,7 +149,9 @@ diverge, so a logo registered through Platinum's
   resizable, non-utility window, and the Movie Player, Picture Viewer and
   HyperCard card windows pass `false`. `useClassicyFitsScrollBars()` and
   `useClassicyFitsBarPolicy(keep?)` read the declaration for your own
-  scrollers.
+  scrollers. `ClassicyTextEditor` gains `fitsScrollBars` (default `false`)
+  for a document editor that fills its window; SimpleText's plain-text
+  window passes the declaration.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it, else `window.controlSize × 2.5` as before; it
   has no floor value, so Platinum's band still follows its control size.

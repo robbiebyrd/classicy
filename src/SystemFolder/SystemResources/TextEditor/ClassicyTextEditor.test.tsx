@@ -11,6 +11,29 @@ vi.mock(
 	() => ({}),
 );
 
+describe("ClassicyTextEditor scroll bars while the text fits", () => {
+	// jsdom lays nothing out: the text always fits.
+	const bars = (container: HTMLElement) =>
+		container.querySelectorAll<HTMLElement>('[data-classicy-part="scrollbar"]');
+
+	it("draws none by default, as a field", () => {
+		const { container } = render(<ClassicyTextEditor id="t" content="hi" />);
+		expect(bars(container)).toHaveLength(0);
+	});
+
+	it("keeps both, fits, with fitsScrollBars (a document such as SimpleText's)", () => {
+		const { container } = render(
+			<ClassicyTextEditor id="t" content="hi" fitsScrollBars />,
+		);
+		const drawn = bars(container);
+		expect(drawn).toHaveLength(2);
+		for (const bar of drawn) expect(bar.classList.contains("fits")).toBe(true);
+		expect(
+			container.querySelector('[data-classicy-part="scroll-corner"]'),
+		).not.toBeNull();
+	});
+});
+
 describe("ClassicyTextEditor", () => {
 	it("shows the initial prefillValue", () => {
 		const { container } = render(

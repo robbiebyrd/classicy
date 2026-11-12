@@ -44,6 +44,15 @@ export interface EditorProps {
 	 * that fill a window. Defaults to `false`.
 	 */
 	border?: boolean;
+	/**
+	 * Keep both scroll bars drawn while the text fits, each in the `fits`
+	 * state (no thumb), as a document window keeps its bars (System 7's
+	 * SimpleText, HIG7 p.160). Pass the package's declaration,
+	 * `useClassicyFitsScrollBars()`, for a document editor that fills its
+	 * window. Defaults to `false`: a field (a form's, a HyperCard field) draws
+	 * a bar only while its text overflows.
+	 */
+	fitsScrollBars?: boolean;
 	/** Text size, relative to the theme UI font. Defaults to `"medium"`. */
 	fontSize?: ClassicyControlLabelSize;
 	/** Label text; no label is drawn when omitted. */
@@ -97,6 +106,7 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 	labelDisabled,
 	autoHeight = false,
 	border = false,
+	fitsScrollBars = false,
 	fontSize = "medium",
 	labelTitle,
 	labelSize = "medium",
@@ -147,6 +157,8 @@ export const ClassicyTextEditor: FunctionalComponent<EditorProps> = ({
 					autoHeight && "classicyTextEditorAreaAutoHeight",
 					border && "classicyTextEditorBorder",
 				)}
+				vertical={fitsScrollBars ? "always" : "auto"}
+				horizontal={fitsScrollBars ? "always" : "auto"}
 				renderViewport={(viewport) => (
 					<textarea
 						ref={viewport.ref}
