@@ -155,6 +155,18 @@ export const useClassicySoundPacks = (): readonly ClassicySoundPack[] =>
 	);
 
 /**
+ * The pack that plays for the theme's `packId` among `packs`: that pack, else
+ * the default pack (what the sound provider loads), else none. Store-free and
+ * silent, unlike the provider's lookup.
+ */
+export const playingClassicySoundPack = (
+	packs: readonly ClassicySoundPack[],
+	packId: string,
+): ClassicySoundPack | undefined =>
+	packs.find((pack) => pack.id === packId) ??
+	packs.find((pack) => pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID);
+
+/**
  * Sprite ids `pack` should define but does not. The contract ids, except the
  * `ClassicyAlert*` ones when the pack declares its own `alerts` (the alerts
  * are pack-defined); plus each alert it declares.

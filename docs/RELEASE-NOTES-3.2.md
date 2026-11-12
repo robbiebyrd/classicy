@@ -194,10 +194,11 @@ the ids the saver already names:
 - **The default state seeds no `alertSound`.** A first session plays the
   active pack's default alert. `Appearance.alertSound` was already optional;
   read the alert in effect with `resolveClassicyAlertSound(pack, stored)`.
-- **`useSoundTab` takes `alerts`.** The Appearance Manager's Sound tab hook
-  now requires `alerts` (the pop-up's list, `classicyPackAlerts(pack)`), and
-  its `alertSound` is the alert in effect. A host that builds its own panel
-  from `useSoundTab` passes it.
+- **`useSoundTab` takes an optional `alerts`.** Called as in 3.1, the
+  Appearance Manager's Sound tab hook lists the alerts of the sound pack that
+  plays for the active theme (`classicyPackAlerts(pack)`), so no change is
+  needed. Pass `alerts` to list others. Its `alertSound` is the alert in
+  effect.
 - **Deprecated**: `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are
   Platinum's values, kept for existing imports; read the active pack with
   `classicyPackAlerts` and `classicyPackDefaultAlert` instead.
@@ -217,6 +218,7 @@ the ids the saver already names:
 3. If you ship your own Appearance Package, draw the looks that moved into
    Platinum (above), the control group's legend face, and, if you want them
    styled, the scroll-bar parts.
-4. If you call `useSoundTab` directly, pass `alerts`.
+4. If you call `useSoundTab` directly, nothing changes; it lists the playing
+   pack's alerts unless you pass `alerts`.
 5. If you re-register a Platinum saver under your package, add your id to
    its existing `packages` rather than replacing them.

@@ -1,7 +1,12 @@
 import type { ChangeEvent } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { render, screen, userEvent } from "@/__tests__/test-utils";
 import { useSoundTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound";
+import {
+	type ClassicySoundPack,
+	registerClassicySoundPack,
+	resetClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
@@ -51,5 +56,38 @@ describe("Sound tab alert list", () => {
 		render(<Host {...props({})} />);
 		await user.click(menu());
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
+	});
+});
+
+describe("useSoundTab called as in 3.1 (no alerts)", () => {
+	it("type-checks without alerts", () => {
+		type ThreeOne = Omit<Props, "alerts">;
+		expectTypeOf<ThreeOne>().toMatchTypeOf<Parameters<typeof useSoundTab>[0]>();
+		const call = (p: ThreeOne) => useSoundTab(p);
+		expect(call).toBeTypeOf("function");
+	});
+
+	it("lists the playing pack's alerts, and follows a late registration", async () => {
+		resetClassicySoundPacks();
+		const user = userEvent.setup();
+		const { alerts: _omit, ...threeOne } = props({});
+		const sprite = { a: [0, 1] as [number, number] };
+		const view = render(<Host {...(threeOne as Props)} />);
+		await user.click(menu());
+		expect(screen.queryAllByRole("option")).toHaveLength(0);
+		view.unmount();
+		registerClassicySoundPack({
+			id: "platinum",
+			name: "Platinum",
+			src: ["x.mp3"],
+			sprite,
+			alerts: [{ value: "ClassicyAlertBonk", label: "Bonk" }],
+		} as ClassicySoundPack);
+		render(<Host {...(threeOne as Props)} />);
+		await user.click(menu());
+		expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+			"Bonk",
+		]);
+		resetClassicySoundPacks();
 	});
 });
