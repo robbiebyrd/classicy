@@ -32,12 +32,15 @@ built. Today it ships:
   panel's channel slider, outline triangles, text fields, scrolling lists
   with an inverted selection, dotted group boxes and separators, the Copy
   dialog's progress bar, and flat bevel buttons, placards and image wells,
-  each dimmed through the dither;
+  each dimmed through the dither; and its scroll bars: arrows at both ends,
+  the 25% dotted track, the fixed square scroll box (with grip ridges in
+  color), hollow arrows when there is nothing to scroll, and the outline
+  alone in an inactive window;
 - one behavior hook, the blink of a chosen menu item (System 7 had no
   interface feedback sounds, so it plays none).
 
-Later work adds the rest of the System 7 look element by element (scroll
-bars, the desktop) and the screen savers.
+Later work adds the rest of the System 7 look element by element (the
+desktop) and the screen savers.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this
 package once, at your app's entry, to register System 7:

@@ -188,6 +188,12 @@
 				"thumbAlong": 11,
 				"thumbAcross": 23,
 				"thumbOverhang": 5
+			},
+			"scrollBar": {
+				"boxLength": 16,
+				"bevel": 0,
+				"arrowSpread": 1,
+				"grip": 0
 			}
 		},
 		"desktop": {
@@ -388,6 +394,12 @@
 					"thumbAlong": 11,
 					"thumbAcross": 23,
 					"thumbOverhang": 5
+				},
+				"scrollBar": {
+					"boxLength": 16,
+					"bevel": 0,
+					"arrowSpread": 1,
+					"grip": 0
 				}
 			},
 			"desktop": {
@@ -590,6 +602,12 @@
 					"thumbAlong": 11,
 					"thumbAcross": 23,
 					"thumbOverhang": 5
+				},
+				"scrollBar": {
+					"boxLength": 16,
+					"bevel": 1,
+					"arrowSpread": 0,
+					"grip": 6
 				}
 			},
 			"desktop": {

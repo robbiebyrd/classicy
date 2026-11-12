@@ -901,6 +901,202 @@ describe("system7.scss (compiled)", () => {
 		});
 	});
 
+	// Plan 0018-dbd §3.6: the scroll bars, from the 7.5 Finder, SimpleText and
+	// Scrapbook captures.
+	describe("scroll bars", () => {
+		const BLACK = "var(--color-black)";
+		const INK = "var(--system7-arrow-ink)";
+		const FILL = "var(--system7-arrow-fill)";
+		const IN_WINDOW =
+			".classicyWindow .classicyWindowContents > .classicyScrollAreaBody > .classicyScrollBarVertical";
+		const FOOT =
+			".classicyWindow .classicyWindowContents > .classicyScrollAreaFoot > .classicyScrollBarHorizontal";
+		const count = (declarations: string, text: string) =>
+			declarations.split(text).length - 1;
+
+		it("outlines a bar in four black layers over a white face, the sides on a window's frame left out", () => {
+			const bar = rule(".classicyScrollBar");
+			expect(bar).toMatch(
+				/border: var\(--window-box-pixel\) solid transparent;/,
+			);
+			expect(layersOf(bar, BLACK)).toBe(4);
+			expect(count(bar, "no-repeat border-box")).toBe(4);
+			expect(bar).toMatch(/var\(--color-window-document\) padding-box;/);
+			for (const side of ["top", "right", "bottom", "left"])
+				expect(bar).toMatch(
+					new RegExp(
+						`--system7-bar-off-${side}: calc\\(var\\(--window-box-pixel\\) - var\\(--window-box-pixel\\)\\);`,
+					),
+				);
+			// The vertical bar lies on the line above it and the frame at its
+			// right; the horizontal one on the frame at its left and bottom.
+			const vertical = rule(IN_WINDOW);
+			expect(vertical).toMatch(
+				/--system7-bar-off-top: var\(--window-border-size\);/,
+			);
+			expect(vertical).toMatch(
+				/--system7-bar-off-right: var\(--window-border-size\);/,
+			);
+			expect(vertical).not.toMatch(/--system7-bar-off-(bottom|left)/);
+			const horizontal = rule(FOOT);
+			expect(horizontal).toMatch(
+				/--system7-bar-off-bottom: var\(--window-border-size\);/,
+			);
+			expect(horizontal).toMatch(
+				/--system7-bar-off-left: var\(--window-border-size\);/,
+			);
+			expect(horizontal).not.toMatch(/--system7-bar-off-(top|right)/);
+		});
+
+		it("shares a list's frame on three sides", () =>
+			expect(
+				rule(
+					".classicyListBox > .classicyScrollAreaBody > .classicyScrollBarVertical",
+				),
+			).toMatch(
+				/margin: calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) 0;/,
+			));
+
+		it("draws each arrow in 20 outline and 16 fill pixels' runs, its far half moved out by the spread", () => {
+			for (const [arrow, toward] of [
+				[".classicyScrollBarVertical .classicyScrollBarArrowStart", "+"],
+				[".classicyScrollBarVertical .classicyScrollBarArrowEnd", "+"],
+				[".classicyScrollBarHorizontal .classicyScrollBarArrowStart", "-"],
+				[".classicyScrollBarHorizontal .classicyScrollBarArrowEnd", "+"],
+			] as const) {
+				const declarations = rule(arrow);
+				expect(layersOf(declarations, INK), arrow).toBe(20);
+				expect(layersOf(declarations, FILL), arrow).toBe(16);
+				expect(
+					count(declarations, `${toward} var(--system7-arrow-spread)`),
+					arrow,
+				).toBeGreaterThan(0);
+			}
+			// Up: the ten outline and eight fill runs right of the tip's column.
+			expect(
+				count(
+					rule(".classicyScrollBarVertical .classicyScrollBarArrowStart"),
+					"+ var(--system7-arrow-spread)",
+				),
+			).toBe(18);
+			// Left: the whole glyph moves out (36 runs), the lower half down.
+			expect(
+				count(
+					rule(".classicyScrollBarHorizontal .classicyScrollBarArrowStart"),
+					"- var(--system7-arrow-spread)",
+				),
+			).toBe(36);
+			expect(
+				rule(".classicyScrollBarVertical .classicyScrollBarArrow"),
+			).toMatch(
+				/height: calc\(var\(--window-scrollbar-size\) - var\(--window-box-pixel\)\);/,
+			);
+		});
+
+		it("gives the arrows the 7.5 face and inks, and the scroll bar knobs their per-theme shapes", () => {
+			const bar = rule(".classicyScrollBar");
+			expect(bar).toMatch(/--system7-arrow-ink: var\(--color-theme-07\);/);
+			expect(bar).toMatch(/--system7-arrow-fill: var\(--color-theme-03\);/);
+			expect(bar).toMatch(/--system7-arrow-face: var\(--color-system-01\);/);
+			expect(bar).toMatch(/--system7-arrow-shadow: var\(--color-system-06\);/);
+			expect(bar).toMatch(/--system7-arrow-bevel: var\(--scroll-bar-bevel\);/);
+			expect(bar).toMatch(
+				/--system7-arrow-spread: var\(--scroll-bar-arrow-spread\);/,
+			);
+			expect(bar).toMatch(/--system7-scroll-line: var\(--color-black\);/);
+			expect(
+				rule(".classicyScrollBarVertical .classicyScrollBarArrowStart"),
+			).toMatch(
+				/border-bottom: var\(--window-box-pixel\) solid var\(--system7-scroll-line\);/,
+			);
+		});
+
+		it("fills a pressed arrow black, but not while there is nothing to scroll", () => {
+			const pressed = rule(
+				".classicyScrollBar:not(.fits, .inactive) .classicyScrollBarArrow.pressed",
+			);
+			expect(pressed).toMatch(/--system7-arrow-ink: var\(--color-black\);/);
+			expect(pressed).toMatch(/--system7-arrow-fill: var\(--color-black\);/);
+		});
+
+		it("dots the track 25%, fixed to the screen, over the light gray", () => {
+			const track = rule(".classicyScrollBarTrack");
+			expect(count(track, "conic-gradient(from 270deg")).toBe(2);
+			expect(count(track, "fixed")).toBe(2);
+			expect(track).toMatch(/var\(--color-system-06\) 25%/);
+			expect(track).toMatch(/var\(--color-system-01\);$/m);
+		});
+
+		it("fixes the scroll box at the knob's length, its grip as wide as the theme's", () => {
+			for (const [thumb, min, max] of [
+				[
+					".classicyScrollBarVertical .classicyScrollBarThumb",
+					"min-height",
+					"max-height",
+				],
+				[
+					".classicyScrollBarHorizontal .classicyScrollBarThumb",
+					"min-width",
+					"max-width",
+				],
+			] as const) {
+				const box = rule(thumb);
+				expect(box).toMatch(
+					new RegExp(`${min}: var\\(--scroll-bar-box-length\\);`),
+				);
+				expect(box).toMatch(
+					new RegExp(`${max}: var\\(--scroll-bar-box-length\\);`),
+				);
+				// Leading line, trailing line and far side, near side, the
+				// line inside the leading one, four ridges, their first line and
+				// their face.
+				expect(layersOf(box, "var(--color-system-07)"), thumb).toBe(1);
+				expect(layersOf(box, "var(--color-theme-07)"), thumb).toBe(2);
+				expect(layersOf(box, "var(--color-window-border-outset)"), thumb).toBe(
+					1,
+				);
+				expect(layersOf(box, "var(--color-theme-04)"), thumb).toBe(4);
+				expect(layersOf(box, "var(--color-theme-03)"), thumb).toBe(1);
+				expect(layersOf(box, "var(--color-theme-02)"), thumb).toBe(2);
+				expect(count(box, "var(--scroll-bar-grip)"), thumb).toBe(6);
+				expect(box).toMatch(/var\(--color-system-04\);$/m);
+			}
+		});
+
+		it("draws a dragged box as a dotted outline", () => {
+			const dragged = rule(
+				".classicyScrollBar .classicyScrollBarThumb.dragging",
+			);
+			expect(dragged).toMatch(
+				/border: var\(--window-box-pixel\) dotted var\(--color-black\);/,
+			);
+			expect(dragged).toMatch(/background: none;/);
+		});
+
+		it("draws a bar with nothing to scroll with hollow 1-bit-shaped arrows and a plain track", () => {
+			const fits = rule(".classicyScrollBar.fits");
+			expect(fits).toMatch(/--system7-arrow-ink: var\(--color-system-06\);/);
+			expect(fits).toMatch(/--system7-arrow-fill: var\(--color-theme-01\);/);
+			expect(fits).toMatch(/--system7-arrow-face: var\(--color-theme-01\);/);
+			expect(fits).toMatch(/--system7-arrow-light: var\(--color-theme-01\);/);
+			expect(fits).toMatch(/--system7-arrow-bevel: 0;/);
+			expect(fits).toMatch(
+				/--system7-arrow-spread: var\(--window-box-pixel\);/,
+			);
+			expect(fits).toMatch(/--system7-scroll-line: var\(--color-system-06\);/);
+			expect(rule(".classicyScrollBar.fits .classicyScrollBarTrack")).toMatch(
+				/background: var\(--color-theme-01\);/,
+			);
+		});
+
+		it("leaves an inactive bar its outline alone, and an inactive window's header undimmed", () => {
+			expect(rule(".classicyScrollBar.inactive > *")).toMatch(
+				/visibility: hidden;/,
+			);
+			expect(rule(".classicyWindowHeaderDimmed")).toMatch(/opacity: 1;/);
+		});
+	});
+
 	it("uses no !important (the cascade layers decide)", () =>
 		expect(readFileSync(STYLESHEET, "utf8")).not.toContain("!important"));
 });

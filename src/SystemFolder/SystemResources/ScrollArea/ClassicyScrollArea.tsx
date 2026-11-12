@@ -130,20 +130,38 @@ const trackOf = (
 		: { start: track.offsetLeft, length: track.offsetWidth };
 };
 
-// The thumb's minimum length, from the package's stylesheet (min-height or
-// min-width on the thumb part), so a package sets it as a browser's thumb
-// takes it.
-const minThumbOf = (
+// The thumb's minimum and maximum lengths, from the package's stylesheet
+// (min-height and max-height, or min-width and max-width, on the thumb
+// part), so a package sets them as a browser's thumb takes its minimum. A
+// maximum as long as the minimum fixes the thumb's length (System 7's
+// scroll box); `none` is no maximum.
+const thumbLimitsOf = (
 	refs: BarRefs,
 	orientation: ClassicyScrollBarOrientation,
-): number => {
+): { min: number; max: number } => {
 	const thumb = refs.thumb.current;
-	if (!thumb || typeof getComputedStyle === "undefined") return 0;
+	if (!thumb || typeof getComputedStyle === "undefined") {
+		return { min: 0, max: Number.POSITIVE_INFINITY };
+	}
 	const style = getComputedStyle(thumb);
-	const value = Number.parseFloat(
-		orientation === "vertical" ? style.minHeight : style.minWidth,
-	);
-	return Number.isFinite(value) ? value : 0;
+	const vertical = orientation === "vertical";
+	const min = Number.parseFloat(vertical ? style.minHeight : style.minWidth);
+	const max = Number.parseFloat(vertical ? style.maxHeight : style.maxWidth);
+	return {
+		min: Number.isFinite(min) ? min : 0,
+		max: Number.isFinite(max) ? max : Number.POSITIVE_INFINITY,
+	};
+};
+
+/** The thumb for `axis` in its bar, within the package's limits. */
+const thumbOf = (
+	axis: ClassicyScrollAxisMetrics,
+	trackLength: number,
+	refs: BarRefs,
+	orientation: ClassicyScrollBarOrientation,
+) => {
+	const { min, max } = thumbLimitsOf(refs, orientation);
+	return computeClassicyScrollThumb(axis, trackLength, min, max);
 };
 
 const sameThumb = (a: ClassicyScrollThumb, b: ClassicyScrollThumb) =>
@@ -303,11 +321,7 @@ export const ClassicyScrollArea = forwardRef<
 			nextFits[orientation] = classicyScrollAxisFits(axis);
 			if (!current[orientation]) continue;
 			const track = trackOf(refs[orientation], orientation);
-			const thumb = computeClassicyScrollThumb(
-				axis,
-				track.length,
-				minThumbOf(refs[orientation], orientation),
-			);
+			const thumb = thumbOf(axis, track.length, refs[orientation], orientation);
 			nextThumbs[orientation] =
 				thumb.length > 0
 					? { length: thumb.length, offset: track.start + thumb.offset }
@@ -635,10 +649,11 @@ const ClassicyScrollBar = ({
 		// render, so the repeat sees each page it has just scrolled.
 		const thumbNow = () => {
 			const track = trackOf(refs, orientation);
-			const t = computeClassicyScrollThumb(
+			const t = thumbOf(
 				axisOf(el, orientation),
 				track.length,
-				minThumbOf(refs, orientation),
+				refs,
+				orientation,
 			);
 			return {
 				start: track.start + t.offset,
@@ -677,11 +692,7 @@ const ClassicyScrollBar = ({
 		const onMove = (ev: MouseEvent) => {
 			const axis = axisOf(el, orientation);
 			const track = trackOf(refs, orientation);
-			const thumbLength = computeClassicyScrollThumb(
-				axis,
-				track.length,
-				minThumbOf(refs, orientation),
-			).length;
+			const thumbLength = thumbOf(axis, track.length, refs, orientation).length;
 			const travel = track.length - thumbLength;
 			const range = axis.total - axis.visible;
 			if (travel <= 0 || range <= 0) return;

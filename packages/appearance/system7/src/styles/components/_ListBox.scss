@@ -23,6 +23,12 @@
     box-shadow: none;
   }
 
+  // The list's scroll bar shares the list's frame on the top, right and
+  // bottom (Standard File's list, `*-dialog-standardfile-open.png`).
+  .classicyListBox > .classicyScrollAreaBody > .classicyScrollBarVertical {
+    margin: calc(#{$px} * -1) calc(#{$px} * -1) calc(#{$px} * -1) 0;
+  }
+
   .classicyListBoxOption {
     color: var(--color-black);
     outline: none;

@@ -253,8 +253,14 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       // shares (HIG p.158; the captures): the outer ones lie on the frame,
       // the vertical bar's top on the line above it, and the bars' inner ends
       // on the size box's lines. So each bar reaches one pixel past the
-      // contents on those sides. (The bars' look is §3.6's.)
+      // contents on those sides. (The bars' look is §3.6's, _ScrollBar.scss.)
+      // Where a bar lies on the frame or the line above it, that line shows
+      // through, the bar's own lines kept off it: it is the window's, gray
+      // in an inactive color window.
       > .classicyScrollAreaBody > .classicyScrollBarVertical {
+        --system7-bar-off-top: #{$b};
+        --system7-bar-off-right: #{$b};
+
         margin: calc(#{$b} * -1) calc(#{$b} * -1) calc(#{$b} * -1) 0;
       }
 
@@ -262,11 +268,16 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
         margin-bottom: calc(#{$b} * -1);
 
         > .classicyScrollBarHorizontal {
+          --system7-bar-off-bottom: #{$b};
+          --system7-bar-off-left: #{$b};
+
           margin: 0 calc(#{$b} * -1);
         }
 
+        // Under the size box; its outer lines are the frame's.
         > .classicyScrollAreaCorner {
           margin-right: calc(#{$b} * -1);
+          border-color: transparent;
         }
       }
     }
@@ -330,6 +341,13 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   .classicyWindowContentsNotDimmed {
     opacity: 1;
     filter: none;
+  }
+
+  // So is an inactive window's header (the Finder's, black on white in
+  // `*-finder-list-scrollable-inactive.png`), its double rule the line the
+  // scroll bar meets.
+  .classicyWindowHeaderDimmed {
+    opacity: 1;
   }
 
   // WindowShade: the title bar alone; its line lands on the bottom frame.

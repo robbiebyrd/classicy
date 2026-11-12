@@ -368,6 +368,35 @@ describe("the System 7 appearance package", () => {
 			});
 	});
 
+	// The scroll bar (styles/components/_ScrollBar.scss): a 16 px box at both
+	// depths; the color theme's arrow-box shadow and grip, the 1-bit theme's
+	// wider arrows.
+	it("emits the scroll bars' knobs, the color bevel and grip and the 1-bit spread", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		expect(vars(bw)).toMatchObject({
+			"--scroll-bar-box-length": "16px",
+			"--scroll-bar-bevel": "0px",
+			"--scroll-bar-arrow-spread": "1px",
+			"--scroll-bar-grip": "0px",
+			"--window-scrollbar-size": "16px",
+		});
+		expect(vars(color)).toMatchObject({
+			"--scroll-bar-box-length": "16px",
+			"--scroll-bar-bevel": "1px",
+			"--scroll-bar-arrow-spread": "0px",
+			"--scroll-bar-grip": "6px",
+			"--window-scrollbar-size": "16px",
+		});
+		// The defaults are the 1-bit theme's.
+		expect(system7Json.defaults.measurements.scrollBar).toEqual(
+			system7Json.presets[0].measurements.scrollBar,
+		);
+	});
+
 	// The slider's thumb overhangs its channel the same on both sides
 	// (_Slider.scss centers it by the overhang).
 	it("centers the slider's thumb across its channel", () => {

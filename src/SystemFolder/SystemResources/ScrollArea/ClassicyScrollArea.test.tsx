@@ -218,6 +218,54 @@ describe("ClassicyScrollArea", () => {
 		expect(part(container, "scroll-thumb").hidden).toBe(false);
 	});
 
+	// A package fixes the thumb's length with min- and max-height (System 7's
+	// 16 px scroll box), and the thumb then travels the whole track: the
+	// drawn box and the one the bar measures are the same.
+	it("keeps the thumb within the package's maximum, and travels the whole track", () => {
+		const sheet = document.createElement("style");
+		sheet.textContent =
+			".classicyScrollBarThumb { min-height: 16px; max-height: 16px; }";
+		document.head.append(sheet);
+		try {
+			viewportBox = {
+				scrollWidth: 300,
+				scrollHeight: 300,
+				clientWidth: 300,
+				clientHeight: 200,
+			};
+			const { container } = render(
+				<ClassicyScrollArea>
+					<p>Content</p>
+				</ClassicyScrollArea>,
+			);
+			const viewport = viewportOf(container);
+			// 200 of 300 would be 111 px; the box is 16.
+			expect(thumbStyle(part(container, "scroll-thumb"))).toEqual({
+				offset: "17px",
+				length: "16px",
+			});
+			act(() => {
+				viewport.scrollTop = 100;
+				fireEvent.scroll(viewport);
+			});
+			// 17 + 150 travel: the track's end.
+			expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("167px");
+			// Dragged, the 16 px box follows the pointer over that travel.
+			act(() => {
+				viewport.scrollTop = 0;
+				fireEvent.scroll(viewport);
+			});
+			const thumb = part(container, "scroll-thumb");
+			fireEvent.mouseDown(thumb, { button: 0, clientY: 30 });
+			fireEvent.mouseMove(document, { clientY: 105 });
+			// 75 of 150 px: half the 100 px range.
+			expect(viewport.scrollTop).toBe(50);
+			fireEvent.mouseUp(document);
+		} finally {
+			sheet.remove();
+		}
+	});
+
 	it("moves the thumb when the content scrolls (wheel, keyboard, script)", () => {
 		const { container, viewport } = renderTall();
 		act(() => {

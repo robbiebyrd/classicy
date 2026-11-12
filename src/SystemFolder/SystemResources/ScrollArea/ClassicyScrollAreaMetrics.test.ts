@@ -44,6 +44,64 @@ describe("computeClassicyScrollThumb (Chromium's thumb rules)", () => {
 		).toBe(10);
 	});
 
+	// A package's fixed box (System 7's 16 px scroll box): a maximum as long
+	// as the minimum, whatever share of the content is visible. As in CSS,
+	// the minimum wins over a smaller maximum.
+	it("is never longer than its maximum, which the minimum overrides", () => {
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 1000, visible: 800, position: 0 },
+				166,
+				16,
+				16,
+			).length,
+		).toBe(16);
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 100000, visible: 100, position: 0 },
+				166,
+				16,
+				16,
+			).length,
+		).toBe(16);
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 1000, visible: 800, position: 0 },
+				166,
+				20,
+				16,
+			).length,
+		).toBe(20);
+		// No maximum: the visible share.
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 1000, visible: 800, position: 0 },
+				166,
+				16,
+			).length,
+		).toBe(133);
+	});
+
+	it("travels the whole track with a fixed box", () => {
+		// travel 150 over a range of 200: 100 → 75; at the end, 150.
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 1000, visible: 800, position: 100 },
+				166,
+				16,
+				16,
+			).offset,
+		).toBe(75);
+		expect(
+			computeClassicyScrollThumb(
+				{ total: 1000, visible: 800, position: 200 },
+				166,
+				16,
+				16,
+			),
+		).toEqual({ length: 16, offset: 150 });
+	});
+
 	it("moves with the scroll position, truncated to whole pixels", () => {
 		// travel 133 over a range of 800: 400 → 66.5 → 66.
 		expect(

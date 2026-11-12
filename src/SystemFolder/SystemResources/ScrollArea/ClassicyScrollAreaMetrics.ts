@@ -32,19 +32,25 @@ export const classicyScrollAxisFits = (axis: ClassicyScrollAxisMetrics) =>
 
 /**
  * The thumb's length and offset in a track `trackLength` long, for a thumb
- * no shorter than `minLength`. No thumb (length 0) when the content fits.
+ * no shorter than `minLength` and no longer than `maxLength` (the minimum
+ * winning, as in CSS; a maximum as long as the minimum is a fixed box, such
+ * as System 7's scroll box). No thumb (length 0) when the content fits.
  */
 export const computeClassicyScrollThumb = (
 	axis: ClassicyScrollAxisMetrics,
 	trackLength: number,
 	minLength: number,
+	maxLength = Number.POSITIVE_INFINITY,
 ): ClassicyScrollThumb => {
 	if (classicyScrollAxisFits(axis) || trackLength <= 0) {
 		return { length: 0, offset: 0 };
 	}
 	const proportion = axis.total > 0 ? axis.visible / axis.total : 0;
 	const length = Math.min(
-		Math.max(Math.round(proportion * trackLength), minLength),
+		Math.max(
+			Math.min(Math.round(proportion * trackLength), maxLength),
+			minLength,
+		),
 		trackLength,
 	);
 	const range = axis.total - axis.visible;
