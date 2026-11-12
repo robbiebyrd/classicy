@@ -80,6 +80,94 @@ describe("system7.scss (compiled)", () => {
 			/\.classicyDesktop\[data-classicy-appearance=system7\] \.classicyWindowTitleBar \[data-classicy-control=collapse\] \{\s*display: none;\s*\}/,
 		));
 
+	// The declarations of the rule whose selector list holds exactly
+	// `<system7 root> <rest>` (expanded output: one selector per line).
+	const rule = (rest: string) => {
+		const selector = `.classicyDesktop[data-classicy-appearance=system7] ${rest}`;
+		const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+		const block = blocks.find(([, header]) =>
+			header
+				.split(",")
+				.map((part) => part.trim())
+				.includes(selector),
+		);
+		return block?.[2] ?? "";
+	};
+	const layersOf = (declarations: string, ink: string) =>
+		declarations.split(`linear-gradient(${ink}, ${ink})`).length - 1;
+
+	// Plan 0018-dbd §3.2: the window chrome, from the 7.5 captures.
+	describe("windows", () => {
+		it("frames a window in one pixel with a one-pixel drop shadow and no frame ring", () => {
+			const frame = rule(".classicyWindow");
+			expect(frame).toMatch(/padding: 0;/);
+			expect(frame).toMatch(
+				/border: var\(--window-border-size\) solid var\(--color-window-border\);/,
+			);
+			expect(frame).toMatch(
+				/box-shadow: var\(--window-border-size\) var\(--window-border-size\) 0 0 var\(--color-black\);/,
+			);
+		});
+
+		it("draws the racing stripes on the active title bar only", () => {
+			expect(rule(".classicyWindow.active .classicyWindowTitleBar")).toMatch(
+				/repeating-linear-gradient\(var\(--color-system-06\) 0 var\(--title-bar-stripe-height\)/,
+			);
+			const bar = rule(".classicyWindow .classicyWindowTitleBar");
+			expect(bar).toMatch(/border-bottom: var\(--window-border-size\) solid/);
+			expect(bar).not.toContain("gradient");
+		});
+
+		it("grays an inactive window's frame and drops the base sheet's dimming filter", () => {
+			const inactive = rule(".classicyWindow.inactive");
+			expect(inactive).toMatch(/border-color: var\(--color-system-07\);/);
+			expect(inactive).toMatch(/filter: none;/);
+		});
+
+		it("draws the pressed boxes' starburst and the windoid box's cross in one-pixel rectangles", () => {
+			expect(
+				layersOf(
+					rule(
+						".classicyWindow .classicyWindowTitleBar .classicyWindowCloseBox:active",
+					),
+					"var(--color-black)",
+				),
+			).toBe(12);
+			expect(
+				layersOf(
+					rule(
+						".classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowCloseBox:active",
+					),
+					"var(--color-black)",
+				),
+			).toBe(8);
+		});
+
+		it("draws the size box's two squares on its cell, glyph-less when inactive", () => {
+			expect(
+				layersOf(
+					rule(".classicyWindow .classicyWindowResizer"),
+					"var(--color-theme-07)",
+				),
+			).toBe(2);
+			expect(rule(".classicyWindow .classicyWindowResizerDimmed")).toMatch(
+				/background: var\(--color-window-document\);/,
+			);
+		});
+
+		it("hides the proxy icon, which System 7 titles lack", () =>
+			expect(
+				rule(".classicyWindow .classicyWindowTitleBar .classicyWindowIcon"),
+			).toMatch(/display: none;/));
+
+		it("lays the window's scroll bars over the frame by one pixel", () =>
+			expect(
+				rule(
+					".classicyWindow .classicyWindowContents > .classicyScrollAreaBody > .classicyScrollBarVertical",
+				),
+			).toMatch(/margin: calc\(var\(--window-border-size\) \* -1\)/));
+	});
+
 	it("uses no !important (the cascade layers decide)", () =>
 		expect(readFileSync(STYLESHEET, "utf8")).not.toContain("!important"));
 });

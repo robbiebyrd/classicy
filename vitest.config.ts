@@ -57,7 +57,7 @@ export default defineConfig({
 				replacement: path.join(platinumSrc, "index.ts"),
 			},
 			// System 7's source, the workspace package @classicy/appearance-system7
-			// (plan 0018-dbd §2.2). No core test imports it yet.
+			// (plan 0018-dbd §2.2), which the theme-variable coverage test imports.
 			{
 				find: /^@classicy\/appearance-system7$/,
 				replacement: path.resolve(

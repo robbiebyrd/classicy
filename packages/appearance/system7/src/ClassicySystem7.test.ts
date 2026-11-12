@@ -4,9 +4,11 @@ import {
 	listClassicyAppearancePackages,
 } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { ClassicyAppearancePackageSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	getAllThemes,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
@@ -95,21 +97,48 @@ describe("the System 7 appearance package", () => {
 		expect(bw.measurements.dither.tileSize).toBe(2);
 	});
 
-	// The Standard window colors measured from the HIG's color figures
-	// (docs/superpowers/specs/2026-11-11-system7-hig-controls-icons-color.md,
-	// "Color"): the gray ramp and the lavender tinge ramp; true gray, no dither.
-	it("draws the color theme with the measured grays and lavender tinge", () => {
+	// The Standard window colors as System 7.5 draws them at 256 colors
+	// (docs/system7-reference-screenshots.md, MWD 4): the title-bar face,
+	// bevel and stripes, the boxes' ink and fills, the inactive frame and
+	// title, the windoid's dots; true gray, no dither. The slots the window
+	// chrome reads are the ones named in styles/components/_Window.scss.
+	it("draws the color theme with the 7.5 Standard window colors", () => {
 		const [, color] = system7Json.presets;
 		expect(color.color.system).toEqual([
-			0xececec, 0xd8d8d8, 0xcdcdcd, 0xa8a8a8, 0x828282, 0x393939, 0x202020,
+			0xececec, 0xd8d8d8, 0xbbbbbb, 0xaaaaaa, 0x888888, 0x777777, 0x555555,
 		]);
 		expect(color.color.theme).toEqual([
-			0xf5f5f5, 0xd6d8ea, 0xb2b5d4, 0xa8abce, 0x898bb2, 0x46528b, 0x3d4885,
+			0xeeeeee, 0xccccff, 0xb2b5d4, 0xa8abce, 0x333333, 0x46528b, 0x333366,
 		]);
-		expect(color.color.window.document).toBe(WHITE);
+		expect(color.color.window).toEqual({
+			border: BLACK,
+			borderOutset: 0xccccff,
+			borderInset: 0x9999cc,
+			frame: WHITE,
+			title: BLACK,
+			document: WHITE,
+		});
 		expect(color.color.highlight).toBe(BLACK);
 		expect(color.desktop.backgroundColor).toBe(0xcacaca);
 		expect(color.measurements.dither.tileSize).toBe(0);
+	});
+
+	// The slots the window chrome reads hold, in the 1-bit theme, the black
+	// or white the 1-bit captures show for the color theme's value (the box
+	// ring's lower and right sides black, the bevel and fills white).
+	it("maps each window-chrome slot to black or white in the 1-bit theme", () => {
+		const [bw] = system7Json.presets;
+		expect(bw.color.window.borderOutset).toBe(BLACK);
+		expect(bw.color.window.borderInset).toBe(WHITE);
+		expect(bw.color.theme.slice(0, 2)).toEqual([WHITE, WHITE]);
+		expect(bw.color.theme.slice(4)).toEqual([BLACK, BLACK, BLACK]);
+		expect(bw.color.system.slice(2)).toEqual([
+			WHITE,
+			WHITE,
+			BLACK,
+			BLACK,
+			BLACK,
+		]);
 	});
 
 	// HIG p.207, p.88: Chicago 12 for interface text, Geneva 9 for small text
@@ -126,6 +155,8 @@ describe("the System 7 appearance package", () => {
 		}
 	});
 
+	// The windoid's 13-row bar is Apple Guide's (`*-floating-appleguide.png`),
+	// with its 9 px close box (the bar less two borders above and below).
 	it("sets System 7's window metrics: 11 px boxes, a 16 px scroll bar, a 19 px title bar", () => {
 		for (const theme of system7Json.presets)
 			expect(theme.measurements.window).toEqual({
@@ -134,8 +165,48 @@ describe("the System 7 appearance package", () => {
 				paddingSize: 6,
 				scrollbarSize: 16,
 				titleBarHeight: 19,
-				utilityTitleBarHeight: 11,
+				utilityTitleBarHeight: 13,
 			});
+	});
+
+	// The window chrome's knobs (styles/components/_Window.scss), measured
+	// from the 7.5 captures: the stripes and the gaps around the boxes and
+	// the title are the same at both depths; the boxes' bevel and the size
+	// box's squares differ by a pixel between them.
+	it("emits the window chrome's knobs, the 1-bit theme without bevels", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		for (const theme of [bw, color])
+			expect(vars(theme)).toMatchObject({
+				"--title-bar-stripe-inset": "1px",
+				"--title-bar-stripe-height": "1px",
+				"--title-bar-stripe-period": "2px",
+				"--title-bar-box-margin": "8px",
+				"--title-bar-box-gap": "1px",
+				"--title-bar-title-gap": "6px",
+				"--title-bar-title-top": "2px",
+				"--window-box-pixel": "1px",
+				"--window-box-zoom-glyph": "7px",
+				"--grow-box-small-offset": "2px",
+				"--grow-box-large-size": "9px",
+				"--utility-title-bar-box-margin": "3px",
+				"--utility-title-bar-dot-inset": "3px",
+				"--utility-title-bar-texture-width": "3px",
+				"--window-utility-control-box-size": "9px",
+			});
+		expect(vars(bw)).toMatchObject({
+			"--window-box-bevel": "0px",
+			"--grow-box-small-size": "7px",
+			"--grow-box-large-offset": "4px",
+		});
+		expect(vars(color)).toMatchObject({
+			"--window-box-bevel": "1px",
+			"--grow-box-small-size": "6px",
+			"--grow-box-large-offset": "3px",
+		});
 	});
 
 	it("completes each theme from the core floor and its own measurements", async () => {

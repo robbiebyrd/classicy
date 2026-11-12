@@ -12,7 +12,7 @@
 			"highlight": 0,
 			"window": {
 				"border": 0,
-				"borderOutset": 16777215,
+				"borderOutset": 0,
 				"borderInset": 16777215,
 				"frame": 16777215,
 				"title": 0,
@@ -48,7 +48,7 @@
 				"paddingSize": 6,
 				"scrollbarSize": 16,
 				"titleBarHeight": 19,
-				"utilityTitleBarHeight": 11
+				"utilityTitleBarHeight": 13
 			},
 			"control": {
 				"height": 20,
@@ -74,6 +74,32 @@
 			},
 			"dither": {
 				"tileSize": 2
+			},
+			"titleBar": {
+				"stripeInset": 1,
+				"stripeHeight": 1,
+				"stripePeriod": 2,
+				"boxMargin": 8,
+				"boxGap": 1,
+				"titleGap": 6,
+				"titleTop": 2
+			},
+			"windowBox": {
+				"pixel": 1,
+				"bevel": 0,
+				"zoomGlyph": 7
+			},
+			"growBox": {
+				"smallOffset": 2,
+				"smallSize": 7,
+				"largeOffset": 4,
+				"largeSize": 9
+			},
+			"utilityTitleBar": {
+				"boxMargin": 3,
+				"dotInset": 3,
+				"textureWidth": 3,
+				"textureHeight": 3
 			}
 		},
 		"desktop": {
@@ -98,7 +124,7 @@
 				"highlight": 0,
 				"window": {
 					"border": 0,
-					"borderOutset": 16777215,
+					"borderOutset": 0,
 					"borderInset": 16777215,
 					"frame": 16777215,
 					"title": 0,
@@ -134,7 +160,7 @@
 					"paddingSize": 6,
 					"scrollbarSize": 16,
 					"titleBarHeight": 19,
-					"utilityTitleBarHeight": 11
+					"utilityTitleBarHeight": 13
 				},
 				"control": {
 					"height": 20,
@@ -160,6 +186,32 @@
 				},
 				"dither": {
 					"tileSize": 2
+				},
+				"titleBar": {
+					"stripeInset": 1,
+					"stripeHeight": 1,
+					"stripePeriod": 2,
+					"boxMargin": 8,
+					"boxGap": 1,
+					"titleGap": 6,
+					"titleTop": 2
+				},
+				"windowBox": {
+					"pixel": 1,
+					"bevel": 0,
+					"zoomGlyph": 7
+				},
+				"growBox": {
+					"smallOffset": 2,
+					"smallSize": 7,
+					"largeOffset": 4,
+					"largeSize": 9
+				},
+				"utilityTitleBar": {
+					"boxMargin": 3,
+					"dotInset": 3,
+					"textureWidth": 3,
+					"textureHeight": 3
 				}
 			},
 			"desktop": {
@@ -182,8 +234,8 @@
 				"highlight": 0,
 				"window": {
 					"border": 0,
-					"borderOutset": 14080234,
-					"borderInset": 11711956,
+					"borderOutset": 13421823,
+					"borderInset": 10066380,
 					"frame": 16777215,
 					"title": 0,
 					"document": 16777215
@@ -193,10 +245,10 @@
 				"alert": 16776960,
 				"error": 16711680,
 				"system": [
-					15527148, 14211288, 13487565, 11053224, 8553090, 3750201, 2105376
+					15527148, 14211288, 12303291, 11184810, 8947848, 7829367, 5592405
 				],
 				"theme": [
-					16119285, 14080234, 11711956, 11054030, 9014194, 4608651, 4016261
+					15658734, 13421823, 11711956, 11054030, 3355443, 4608651, 3355494
 				]
 			},
 			"sound": {
@@ -222,7 +274,7 @@
 					"paddingSize": 6,
 					"scrollbarSize": 16,
 					"titleBarHeight": 19,
-					"utilityTitleBarHeight": 11
+					"utilityTitleBarHeight": 13
 				},
 				"control": {
 					"height": 20,
@@ -248,6 +300,32 @@
 				},
 				"dither": {
 					"tileSize": 0
+				},
+				"titleBar": {
+					"stripeInset": 1,
+					"stripeHeight": 1,
+					"stripePeriod": 2,
+					"boxMargin": 8,
+					"boxGap": 1,
+					"titleGap": 6,
+					"titleTop": 2
+				},
+				"windowBox": {
+					"pixel": 1,
+					"bevel": 1,
+					"zoomGlyph": 7
+				},
+				"growBox": {
+					"smallOffset": 2,
+					"smallSize": 6,
+					"largeOffset": 3,
+					"largeSize": 9
+				},
+				"utilityTitleBar": {
+					"boxMargin": 3,
+					"dotInset": 3,
+					"textureWidth": 3,
+					"textureHeight": 3
 				}
 			},
 			"desktop": {

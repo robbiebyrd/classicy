@@ -3,11 +3,14 @@
 // scoped under `.classicyDesktop[data-classicy-appearance="system7"]`. The
 // look is built element by element (plan 0018-dbd Phase 3), each element a
 // components/_<Name>.scss partial exposing one mixin, included inside the
-// wrapper below; until then the block holds only the arrangement System 7
+// wrapper below: so far the windows (§3.2), and the arrangement System 7
 // shares with no other package.
 @use "pkg:@classicy/classicy/scss/package";
+@use "components/Window";
 
 @include package.classicy-package("system7") {
+  @include Window.window;
+
   // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
   // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box
   // (p.168) only.

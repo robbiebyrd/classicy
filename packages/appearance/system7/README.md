@@ -13,9 +13,11 @@ built. Today it ships:
   Platinum's faces;
 - a placeholder sound pack with no sounds of its own, which takes the default
   package's alerts (Platinum's, when a host also loads it);
-- a stylesheet that so far only hides the collapse box System 7 windows lack.
+- a stylesheet that draws System 7's windows (the frame and drop shadow,
+  the racing stripes, the close, zoom and size boxes, inactive windows and
+  the floating window's title bar) and hides the collapse box they lack.
 
-Later work adds the System 7 look element by element (window chrome, menus,
+Later work adds the rest of the System 7 look element by element (menus,
 dialogs, controls, scroll bars), dithered dimmed text and rules in the black
 and white theme, System 7 period icons, art and cursors (color art, and 1-bit
 art for the black and white theme), the System 7.5 alert sounds and the
