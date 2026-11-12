@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -171,6 +172,48 @@ describe("the self-padded marker on a modal's inner area", () => {
 		expect(inner()).toHaveClass(SELF_PADDED);
 		fireEvent.click(getByText("drop"));
 		expect(inner()).toHaveClass(SELF_PADDED);
+	});
+
+	// The contract (useClassicyWindowSelfPadding): a claim covers the nearest
+	// window's whole content, wherever the claimant renders, so it belongs on
+	// the content root only. These pin that a claim from deeper in the tree,
+	// or through a portal, still marks the window: the window cannot tell,
+	// unlike the old `:has(> …)`, which matched the content root alone.
+	describe("the contract: a claim covers the whole content", () => {
+		it("a dialog form nested below the content root still marks the window", () => {
+			render(
+				<Modal>
+					<p>other content</p>
+					<div>
+						<ClassicyForm layout="dialog">
+							<input />
+						</ClassicyForm>
+					</div>
+				</Modal>,
+			);
+			expect(inner()).toHaveClass(SELF_PADDED);
+		});
+
+		it("a claim through a portal still marks the window", () => {
+			const target = document.createElement("div");
+			document.body.appendChild(target);
+			try {
+				render(
+					<Modal>
+						<p>content</p>
+						{createPortal(
+							<ClassicyForm layout="dialog">
+								<input />
+							</ClassicyForm>,
+							target,
+						)}
+					</Modal>,
+				);
+				expect(inner()).toHaveClass(SELF_PADDED);
+			} finally {
+				target.remove();
+			}
+		});
 	});
 
 	it("marks only the nearest window: a document window holding an alert stays unmarked", () => {

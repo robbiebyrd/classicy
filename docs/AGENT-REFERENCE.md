@@ -904,7 +904,8 @@ and icon states own:
   only transient alerts (`ClassicyOpenUrlController`,
   `DriveSetupController`); and the components that render a run of sibling
   elements into their parent (`QuickTimeSeekBar`, `QuickTimeVolumeControl`,
-  `ClassicySchemaForm`, `ClassicyScreenSaverConfigForm`). Style the elements
+  `ClassicySchemaForm`, `ClassicyScreenSaverConfigForm`,
+  `ClassicyWindowSelfPadding`). Style the elements
   those produce
   (windows, desktop icons, controls) instead.
 
@@ -986,18 +987,25 @@ window's full height instead of sizing it to its content. `type="error"` on a
 `modal` window makes a fixed alert: it cannot be dragged, beeps when it opens,
 and stacks in the red error band above other modals. `movable={false}` on a
 `modal` window makes a fixed modal that is not an alert (HIGOS8 p.60's
-"non-movable modal dialog box": Standard File, Print, Page Setup): it cannot
-be dragged, but it does not beep when it opens, draws the ordinary modal
-scrim and stacks in the modal-front band with the other dialogs. An error
+non-movable modal dialog box; System 7's Standard File, Print, Page Setup):
+it cannot be dragged, but it does not beep when it opens, draws the ordinary
+modal scrim and stacks in the modal-front band with the other dialogs. An error
 modal is fixed whatever `movable` says, and `movable` does nothing on a
-non-modal window. The name is the HIG's: a modal is a "movable modal dialog
+non-modal window (a development build logs a `Window` warning, once per
+window). The name is the HIG's: a modal is a "movable modal dialog
 box" unless it says otherwise, and `ClassicyAlert`'s `movable` reads the same
 way (an alert is fixed unless `movable`). Both fixed kinds carry
 `classicyWindowModalFixed` on the root (a fixed modal dialog box, which in
 System 7 has no title bar, HIG p.190); a movable modal does not, so a package
-can drop the title bar of the fixed one only. Platinum draws both alike: a
-`movable={false}` modal is its movable modal, title bar included, with no red
-and no drag.
+can drop the title bar of the fixed one only. Both packages drop it for a
+`movable={false}` modal: Platinum draws HIGOS8's figure 3-3 (p.60), no title
+bar (the drag affordance of a movable modal, p.59) and the items on one
+placard-like face inside the window's frame and bevel, with no line across
+the top and no second bevel on the contents
+(`.classicyWindowModalFixed:not(.classicyWindowRed)`). Platinum's fixed
+alert keeps its red title bar. With no title bar, such a modal has no close
+or collapse box to show, so pass `closable={false}` (Escape then beeps) and
+`collapsable={false}`, and dismiss it with its own buttons.
 
 A modal's inner area (`.classicyWindowContentsModalInner`) carries
 `classicyWindowContentsSelfPadded` while its content lays itself out from the
@@ -1007,7 +1015,11 @@ say so through a context, not the DOM: content calls
 `useClassicyWindowSelfPadding(enabled?)`, or a component that renders the
 window itself wraps the content it passes in `<ClassicyWindowSelfPadding>`
 (no DOM of its own). Only the nearest window is marked, only while it is
-modal, and only while a claimant is mounted. A package that insets dialog
+modal, and only while a claimant is mounted. A claim covers the window's
+whole content, wherever in the tree (portals included) the claimant renders,
+so claim only from the content root, the element that fills the window; a
+self-padding block nested among other content would take the package's
+inset away from all of it. A package that insets dialog
 items itself skips those (System 7 does, below); Platinum does not read the
 class. A host's own self-padding dialog content claims it the same way.
 

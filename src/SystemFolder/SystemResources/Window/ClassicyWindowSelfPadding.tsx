@@ -18,6 +18,13 @@ import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources
  * claim it; a host's own self-padding dialog content may too. Only the
  * nearest window is marked, and only while the window is modal. A no-op
  * outside any window.
+ *
+ * A claim covers the nearest window's whole content, wherever in its tree
+ * (portals included) the claimant renders: the window learns only that some
+ * descendant pads itself, not where. So claim only from the window's
+ * content root, the element that fills the window; a self-padding block
+ * nested among other content would take the package's inset away from all
+ * of it.
  */
 export const useClassicyWindowSelfPadding = (enabled = true): void => {
 	const claim = useContext(ClassicyWindowSelfPaddingContext);
@@ -31,8 +38,9 @@ export const useClassicyWindowSelfPadding = (enabled = true): void => {
 
 /**
  * `useClassicyWindowSelfPadding` as a wrapper, for a component that renders
- * the `ClassicyWindow` itself and so sits outside it: wrap the content you
- * pass the window. Renders its children unchanged, adding no DOM.
+ * the `ClassicyWindow` itself and so sits outside it: wrap the content root
+ * you pass the window (the claim covers the window's whole content, so wrap
+ * nothing deeper). Renders its children unchanged, adding no DOM.
  */
 export const ClassicyWindowSelfPadding: FunctionalComponent<
 	PropsWithChildren

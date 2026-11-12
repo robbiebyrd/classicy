@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -271,6 +276,76 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 			);
 			dragFrom(".classicyWindowTitle");
 			expect(dragStarts()).toHaveLength(0);
+		});
+
+		// `movable={false}` means nothing on a non-modal window; say so once
+		// per window, in development, rather than ignore it silently.
+		describe("on a non-modal window", () => {
+			/** Window warnings logged while `run` runs, read through a sink. */
+			const windowWarnings = (run: () => void) => {
+				const entries: ClassicyLogEntry[] = [];
+				const mirror = vi.spyOn(console, "warn").mockImplementation(() => {});
+				registerClassicyLogSink({
+					id: "window-movable-test",
+					onLog: (entry) => entries.push(entry),
+				});
+				try {
+					run();
+				} finally {
+					unregisterClassicyLogSink("window-movable-test");
+					mirror.mockRestore();
+				}
+				return entries.filter(
+					(e) => e.level === "warn" && e.subsystem === "Window",
+				);
+			};
+
+			it("warns once per window that movable={false} is ignored", () => {
+				const warnings = windowWarnings(() => {
+					const { rerender } = renderWindow({ movable: false });
+					// Retitled, then made modal and back: still the same window.
+					for (const modal of [false, true, false]) {
+						rerender(
+							<ClassicyWindow
+								id="TestWindow"
+								appId="TestApp"
+								title="Retitled"
+								modal={modal}
+								movable={false}
+							>
+								<p>content</p>
+							</ClassicyWindow>,
+						);
+					}
+				});
+				expect(warnings).toHaveLength(1);
+				expect(warnings[0].message).toMatch(/movable=\{false\}/);
+				expect(warnings[0].message).toMatch(/non-modal/);
+				expect(warnings[0].details).toContainEqual(
+					expect.objectContaining({ appId: "TestApp", id: "TestWindow" }),
+				);
+			});
+
+			it("does not warn for a modal, or a window that leaves movable alone", () => {
+				const warnings = windowWarnings(() => {
+					renderWindow({ modal: true, movable: false }).unmount();
+					renderWindow({ movable: true }).unmount();
+					renderWindow().unmount();
+				});
+				expect(warnings).toEqual([]);
+			});
+
+			it("stays quiet in production", () => {
+				vi.stubEnv("NODE_ENV", "production");
+				try {
+					const warnings = windowWarnings(() => {
+						renderWindow({ movable: false });
+					});
+					expect(warnings).toEqual([]);
+				} finally {
+					vi.unstubAllEnvs();
+				}
+			});
 		});
 	});
 

@@ -131,8 +131,11 @@ diverge, so a logo registered through Platinum's
   without the alert semantics `type="error"` brings: it does not beep when it
   opens, draws the ordinary modal scrim and stacks in the modal-front band.
   It defaults to `true` (a movable modal dialog box, as before), does nothing
-  on a non-modal window, and an error modal stays fixed, beeping and red
-  whatever it says.
+  on a non-modal window (a development build logs a warning, once per
+  window), and an error modal stays fixed, beeping and red whatever it says.
+  Platinum and System 7 draw it with no title bar (HIGOS8 figure 3-3), so
+  pass `closable={false}` and `collapsable={false}`; Platinum's fixed alert
+  keeps its red title bar.
 - **Self-padding dialogs carry a class.** A modal's inner area
   (`.classicyWindowContentsModalInner`) carries
   `classicyWindowContentsSelfPadded` while its content pads its own root:
@@ -140,13 +143,15 @@ diverge, so a logo registered through Platinum's
   and `ClassicyForm layout="dialog"`. Content says so through the new
   `useClassicyWindowSelfPadding(enabled?)` hook, or the
   `<ClassicyWindowSelfPadding>` wrapper for a component that renders the
-  window itself; a host's own self-padding dialog content may use either.
+  window itself; a host's own self-padding dialog content may use either,
+  from its content root only, since a claim covers the window's whole
+  content.
   System 7 keys its dialog inset on the class instead of `:has()`, so those
   dialogs get one inset in Firefox 113–120 too. Platinum does not read it.
 - **Small structural hooks**: the root class `classicyWindowModalFixed` on a
   fixed modal (a modal `ClassicyWindow` of `type="error"` or with
-  `movable={false}`, which cannot be dragged); the `open` state on a pop-up menu's label holder and indicator
-  while its menu is open; the system-art key `helpMenuTitle`, which, when
+  `movable={false}`, which cannot be dragged); the `open` state on a pop-up
+  menu's label holder and indicator while its menu is open; the system-art key `helpMenuTitle`, which, when
   registered, draws the menu bar's Help title as an image; and
   `ClassicyMenuItem.imageAlt`, the alt text of an item drawn as its image
   alone (it keeps "Help" as that title's accessible name).

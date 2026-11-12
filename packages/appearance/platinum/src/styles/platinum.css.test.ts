@@ -248,6 +248,38 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
+	// HIGOS8 p.60, figure 3-3: a (non-movable) modal dialog box has no title
+	// bar, the drag affordance of a movable one (p.59), and shows its items
+	// on one placard-like face inside the window's frame. The fixed alert
+	// (`classicyWindowRed`) keeps its red bar, unchanged.
+	it("draws a fixed modal that is not an alert as figure 3-3: no title bar, one face", () => {
+		const fixed = `${P} .classicyWindow.classicyWindowModalFixed:not(.classicyWindowRed)`;
+		expect(rule(`${fixed} .classicyWindowTitleBar`).props).toEqual({
+			display: "none",
+		});
+		const contents = rule(`${fixed} .classicyWindowContentsModal`);
+		// The contents fill the window, with no line across the top; they
+		// keep the modal contents' bevel (the face's light and shaded edges).
+		expect(contents.props).toEqual({
+			height:
+				"calc(100% - var(--control-padding-tight) - var(--control-padding-tight))",
+			"border-top": "none",
+		});
+		expect(
+			rule(`${P} .classicyWindow .classicyWindowContentsModal`).props[
+				"box-shadow"
+			],
+		).toBeDefined();
+		// After the modal contents' bevel.
+		expect(contents.at).toBeGreaterThan(
+			rule(`${P} .classicyWindow .classicyWindowContentsModal`).at,
+		);
+		// No rule hides the fixed alert's (red) title bar.
+		expect(flat).not.toMatch(
+			/classicyWindowModalFixed(?!:not\(\.classicyWindowRed\))[^{,]*classicyWindowTitleBar/,
+		);
+	});
+
 	// Part E 2.2: the submenu triangle (ruling E24) and the pop-up double
 	// arrow (ruling E21) are their boxes' own images, like the grow-box grip.
 	it("draws the menu and pop-up arrows from registered art", () => {

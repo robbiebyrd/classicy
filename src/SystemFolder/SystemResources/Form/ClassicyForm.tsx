@@ -19,7 +19,10 @@ type ClassicyFormProps = PropsWithChildren<{
 	/**
 	 * `default` stacks rows with the HIG item gap; `dialog` additionally
 	 * applies the HIG dialog edge inset — the layout for a form that fills a
-	 * modal ClassicyWindow. Defaults to `default`.
+	 * modal ClassicyWindow. A `dialog` form tells its window that it pads
+	 * itself (`useClassicyWindowSelfPadding`), which covers the window's
+	 * whole content, so use it only as the window's content root, never
+	 * nested among other content. Defaults to `default`.
 	 */
 	layout?: "default" | "dialog";
 	/** Extra class on the `<form>`. */

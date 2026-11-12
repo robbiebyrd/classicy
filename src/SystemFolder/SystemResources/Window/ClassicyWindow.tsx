@@ -56,6 +56,7 @@ import {
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
@@ -318,11 +319,13 @@ interface ClassicyWindowProps {
 	 * On a `modal` window, `false` makes a modal dialog box that the user
 	 * cannot move (HIGOS8 p.60, "non-movable modal dialog box", as opposed to
 	 * the movable modal dialog box of p.59): the move gesture is refused and
-	 * the root carries `classicyWindowModalFixed` (System 7 drops its title
-	 * bar). Unlike `type="error"` it is not an alert: it does not beep when it
-	 * opens, draws the ordinary modal scrim and stacks in the modal-front band
-	 * with the other dialogs. An error modal is fixed whatever this says. Has
-	 * no effect on non-modal windows. Defaults to `true`.
+	 * the root carries `classicyWindowModalFixed` (Platinum and System 7 drop
+	 * its title bar, HIGOS8 figure 3-3, so pass `closable={false}` and
+	 * `collapsable={false}`). Unlike `type="error"` it is not an alert: it
+	 * does not beep when it opens, draws the ordinary modal scrim and stacks
+	 * in the modal-front band with the other dialogs. An error modal is fixed
+	 * whatever this says. Has no effect on non-modal windows (a development
+	 * build warns, once per window). Defaults to `true`.
 	 */
 	movable?: boolean;
 	/**
@@ -657,6 +660,21 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// Only "error" carries the alert semantics (the beep, the error scrim and
 	// the red band), which key on `type` below, never on this value.
 	const fixedModal = modal && (type === "error" || !movable);
+
+	// `movable` applies to modals only (a document window always moves). Say
+	// so once per window, in development, rather than drop it silently.
+	const movableIgnoredWarned = useRef(false);
+	useEffect(() => {
+		if (process.env.NODE_ENV === "production") return;
+		if (modal || movable || movableIgnoredWarned.current) return;
+		movableIgnoredWarned.current = true;
+		classicyLog(
+			"warn",
+			"Window",
+			"movable={false} has no effect on a non-modal window; pass modal to make a fixed modal dialog box",
+			{ appId, id },
+		);
+	}, [modal, movable, appId, id]);
 
 	// How many mounted descendants lay themselves out from the window's edge
 	// (useClassicyWindowSelfPadding: an alert, the input and keyboard-
@@ -1985,8 +2003,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
-				// gesture refuses, an alert or `movable={false}`. Platinum draws
-				// both alike.
+				// gesture refuses, an alert or `movable={false}`. Platinum drops
+				// the bar of the second only (its alert keeps the red bar).
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",

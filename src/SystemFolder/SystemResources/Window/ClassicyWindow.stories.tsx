@@ -303,11 +303,13 @@ export const FixedModal: Story = {
 };
 
 /**
- * A fixed modal dialog that is not an alert (HIGOS8 p.60, a "non-movable
- * modal dialog box": Standard File, Print, Page Setup). `modal` +
- * `movable={false}` cannot be dragged, but it does not beep when it opens,
- * has no red frame and stacks with the other dialogs. Platinum draws it as
- * its movable modal; System 7 drops its title bar.
+ * A fixed modal dialog that is not an alert (HIGOS8 p.60's non-movable modal
+ * dialog box; System 7's Standard File, Print, Page Setup). `modal` +
+ * `movable={false}` cannot be dragged, does not beep when it opens, has no
+ * red frame and stacks with the other dialogs. Both packages draw it with no
+ * title bar (figure 3-3): Platinum shows its items on one placard-like face
+ * inside the window frame. With no title bar there is no close or collapse
+ * box or icon to show, so the story turns them off (Escape then beeps).
  */
 export const FixedDialog: Story = {
 	render: () => (
@@ -318,7 +320,9 @@ export const FixedDialog: Story = {
 				title="Page Setup"
 				modal={true}
 				movable={false}
-				closable={true}
+				closable={false}
+				collapsable={false}
+				hideIcon={true}
 				resizable={false}
 				initialSize={[320, 140]}
 				initialPosition={["center", "center"]}
