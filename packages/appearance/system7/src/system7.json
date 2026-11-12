@@ -139,7 +139,8 @@
 			"dialogFrame": {
 				"bevel": 0,
 				"band": 2,
-				"line": 2
+				"line": 2,
+				"inset": 13
 			},
 			"alertLayout": {
 				"iconTop": 13,
@@ -307,7 +308,8 @@
 				"dialogFrame": {
 					"bevel": 0,
 					"band": 2,
-					"line": 2
+					"line": 2,
+					"inset": 13
 				},
 				"alertLayout": {
 					"iconTop": 13,
@@ -477,7 +479,8 @@
 				"dialogFrame": {
 					"bevel": 1,
 					"band": 1,
-					"line": 1
+					"line": 1,
+					"inset": 13
 				},
 				"alertLayout": {
 					"iconTop": 13,

@@ -12,6 +12,9 @@ built. Today it ships:
   desktop icons from the top right);
 - Chicago (ChicagoFLF), Geneva and Monaco, byte-identical copies of
   Platinum's faces;
+- System 7.5's icons, system art and cursors, with 1-bit variants for the
+  black and white theme (Classicy's own glyphs and brands keep the core's
+  images);
 - System 7.5's alert sounds as its sound pack: Droplet, Indigo, Quack,
   Simple Beep (the default), Sosumi and Wild Eep;
 - a stylesheet that draws System 7's windows (the frame and drop shadow,
@@ -29,10 +32,7 @@ built. Today it ships:
   interface feedback sounds, so it plays none).
 
 Later work adds the rest of the System 7 look element by element (controls,
-scroll bars), System 7 period icons, art and cursors (color art,
-and 1-bit art for the black and white theme, the Apple menu's apple and the
-Help menu's balloon among them) and the screen savers. Until then, Classicy draws the default package's art
-(Platinum's, when a host also loads Platinum) and the core's icons.
+scroll bars) and the screen savers.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this
 package once, at your app's entry, to register System 7:

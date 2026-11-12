@@ -72,13 +72,20 @@ $dimmed-label:
       outline: none;
     }
 
-    // System 7 marks no focused button; a keyboard user still sees which
-    // one has the focus, in the HIG's own focus mark (p.198): a two-pixel
-    // rectangle a pixel out. The default button keeps its ring alone.
-    &:focus-visible:not(.default) {
+    // System 7 marks no focused button. A keyboard user still sees which one
+    // has the focus (`:focus-visible` only, so a pointer press draws
+    // nothing): a two-pixel black rectangle a pixel out, borrowed from the
+    // mark the HIG gives an active scrolling list (p.198). Around the
+    // default button it falls a pixel outside the ring, which keeps its
+    // pixels.
+    &:focus-visible {
       outline: px(2) solid var(--color-black);
       outline-offset: $px;
     }
+  }
+
+  :where(.classicyButton).default:focus-visible {
+    outline-offset: calc(#{$ring-reach} + #{$px});
   }
 
   // The default button's ring (HIG p.206), behind the button.
@@ -99,11 +106,19 @@ $dimmed-label:
   }
 
   // Dimmed (HIG p.207; Standard File's Eject and Create in the captures):
-  // the frame stays black and the label takes the dimmed ink.
+  // the frame stays black and the label takes the dimmed ink, plain where
+  // a browser cannot clip a background to text (no dither then, but no
+  // label layers painted over the frame either).
   .classicyButton:disabled {
-    background: list.join($dimmed-label, face(var(--color-white)), comma);
-    background-clip: dimmed-clip();
-    color: transparent;
+    color: var(--color-theme-06);
+  }
+
+  @supports (background-clip: text) {
+    .classicyButton:disabled {
+      background: list.join($dimmed-label, face(var(--color-white)), comma);
+      background-clip: dimmed-clip();
+      color: transparent;
+    }
   }
 
   // A dimmed default button's ring dithers, black, at both depths (the

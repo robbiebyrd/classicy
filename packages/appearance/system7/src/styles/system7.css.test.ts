@@ -484,10 +484,33 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
-		// HIG p.193: alerts have no title, and System 7 no movable alert, so
-		// nothing in the package draws Platinum's red.
-		it("draws no red title bar", () =>
-			expect(css).not.toContain("--color-error"));
+		it("insets every modal's items the HIG's 13 pixels, except the dialogs that pad themselves", () => {
+			const inner = rule(".classicyWindowContentsModalInner");
+			expect(inner).toMatch(/padding: var\(--dialog-frame-inset\);/);
+			expect(inner).toMatch(/box-sizing: border-box;/);
+			const selfPadded = [
+				".classicyAlert",
+				".classicyInputDialog",
+				".classicyKeyboardEquivalentDialog",
+				".classicyFormDialog",
+			];
+			expect(
+				rule(
+					`.classicyWindowContentsModalInner:has(> :is(${selfPadded.join(", ")}))`,
+				),
+			).toMatch(/padding: 0;/);
+		});
+
+		// HIG p.193: alerts have no title, and System 7 no movable alert. The
+		// base sheet tints an error modal's and a movable alert's title bar red
+		// (background-color, in classicy.base); every System 7 title bar sets
+		// its own from this layer, which wins, and nothing here draws red.
+		it("draws no red title bar", () => {
+			expect(rule(".classicyWindow .classicyWindowTitleBar")).toMatch(
+				/background-color: var\(--color-window-document\);/,
+			);
+			expect(css).not.toContain("--color-error");
+		});
 
 		it("sets an alert's text in one style and lays it out on the HIG's 13 and 23 pixel grid", () => {
 			const alert = rule(".classicyAlert");
@@ -537,6 +560,17 @@ describe("system7.scss (compiled)", () => {
 		});
 
 		it("dims only the label, in the dimmed ink through the dither, and dithers a dimmed default ring", () => {
+			// Only where a background clips to text: elsewhere the label is
+			// plain dimmed ink and no label layer covers the frame.
+			expect(css).toMatch(
+				/@supports \(background-clip: text\) \{\s*\.classicyDesktop\[data-classicy-appearance=system7\] \.classicyButton:disabled \{[^}]*background-clip: text,/,
+			);
+			expect(css).not.toMatch(
+				/\}\s*\.classicyDesktop\[data-classicy-appearance=system7\] \.classicyButton:disabled \{[^}]*background-clip/,
+			);
+			expect(css).toMatch(
+				/\.classicyButton:disabled \{\s*color: var\(--color-theme-06\);\s*\}/,
+			);
 			const dimmed = rule(".classicyButton:disabled");
 			expect(dimmed).toMatch(/color: transparent;/);
 			expect(dimmed).toMatch(
@@ -556,10 +590,15 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
-		it("marks a focused button only for the keyboard, never over the default ring", () => {
+		it("marks a focused button only for the keyboard, outside the default ring", () => {
 			expect(rule(".classicyButton:focus")).toMatch(/outline: none;/);
-			expect(rule(".classicyButton:focus-visible:not(.default)")).toMatch(
+			const mark = rule(".classicyButton:focus-visible");
+			expect(mark).toMatch(
 				/outline: calc\(var\(--window-box-pixel\) \* 2\) solid var\(--color-black\);/,
+			);
+			expect(mark).toMatch(/outline-offset: var\(--window-box-pixel\);/);
+			expect(rule(":where(.classicyButton).default:focus-visible")).toMatch(
+				/outline-offset: calc\(calc\(var\(--window-box-pixel\) \+ var\(--button-default-ring\)\) \+ var\(--window-box-pixel\)\);/,
 			);
 		});
 	});

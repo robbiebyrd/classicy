@@ -311,6 +311,7 @@ describe("the System 7 appearance package", () => {
 		for (const theme of [bw, color])
 			expect(getThemeVars(theme)).toMatchObject({
 				"--title-bar-modal-stripe-inset": "2px",
+				"--dialog-frame-inset": "13px",
 				"--alert-layout-icon-top": "13px",
 				"--alert-layout-icon-inset": "23px",
 				"--alert-layout-text-top": "12px",

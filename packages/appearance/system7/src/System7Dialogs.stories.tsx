@@ -9,13 +9,14 @@
 // Setup) has no prop of its own: the fixed dialog here is an error-typed
 // modal, the one fixed modal the core can draw.
 import {
+	ClassicyAboutWindow,
 	ClassicyAlert,
 	ClassicyButton,
 	ClassicyProgressBar,
 	ClassicyWindow,
 	useAppManagerDispatch,
 } from "@classicy/classicy";
-import { StoryApp } from "@sb/helpers";
+import { SB_ICON, StoryApp } from "@sb/helpers";
 import { system7Parameters } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ComponentProps, type ReactNode, useEffect } from "react";
@@ -44,18 +45,38 @@ const inColor = (scene: () => ReactNode): Story => ({
 });
 
 /**
- * Shows a modal dialog's controls at rest: the core focuses a modal's first
- * control when it opens, which is marked when the dialog was opened from
- * the keyboard (the HIG's focus mark, styles/components/_Button.scss) and
- * not when it was opened with the pointer, so the shot leaves the focus.
+ * Shows a modal dialog's controls at rest. The core focuses a modal's first
+ * control (an alert's default button) as it opens, and with no pointer or
+ * key pressed yet a browser marks that focus as a keyboard user's
+ * (`:focus-visible`, styles/components/_Button.scss), which no capture
+ * shows. So the focus a modal takes before the first key or pointer press
+ * is let go on the next animation frame, whenever it arrives; after that
+ * press the dialog keeps its focus, for trying the keyboard in the story.
  */
 function AtRest() {
 	useEffect(() => {
-		const timer = window.setTimeout(() => {
-			if (document.activeElement instanceof HTMLElement)
-				document.activeElement.blur();
-		}, 300);
-		return () => window.clearTimeout(timer);
+		let frame = 0;
+		const release = (target: EventTarget | null) => {
+			if (
+				target instanceof HTMLElement &&
+				target.closest(".classicyWindowModal")
+			) {
+				cancelAnimationFrame(frame);
+				frame = requestAnimationFrame(() => target.blur());
+			}
+		};
+		const onFocusIn = (e: FocusEvent) => release(e.target);
+		const stop = () => {
+			cancelAnimationFrame(frame);
+			document.removeEventListener("focusin", onFocusIn);
+			document.removeEventListener("keydown", stop, true);
+			document.removeEventListener("pointerdown", stop, true);
+		};
+		document.addEventListener("focusin", onFocusIn);
+		document.addEventListener("keydown", stop, true);
+		document.addEventListener("pointerdown", stop, true);
+		release(document.activeElement);
+		return stop;
 	}, []);
 	return null;
 }
@@ -129,12 +150,12 @@ const movableModal = () => (
 			initialSize={[294, 105]}
 			initialPosition={[172, 73]}
 		>
-			<div style={{ padding: "8px 13px", display: "grid", gap: 8 }}>
+			<div style={{ display: "grid", gap: 2, lineHeight: "16px" }}>
 				<p style={text}>Items remaining to be copied: 204</p>
 				<p style={text}>Writing: Macintosh HD</p>
 				<div style={row}>
 					<ClassicyProgressBar value={4} max={100} style={{ flex: 1 }} />
-					<ClassicyButton margin="sm">Stop</ClassicyButton>
+					<ClassicyButton style={{ margin: 0 }}>Stop</ClassicyButton>
 				</div>
 			</div>
 		</Dialog>
@@ -167,7 +188,7 @@ const fixedModal = () => (
 					display: "grid",
 					justifyItems: "end",
 					gap: 12,
-					padding: "37px 13px 13px",
+					paddingTop: 24,
 				}}
 			>
 				<ClassicyButton disabled margin="sm">
@@ -188,6 +209,26 @@ export const FixedModal: Story = { render: fixedModal };
 export const FixedModalColor = inColor(fixedModal);
 
 /**
+ * A core modal whose contents lay out no margin of their own (the About
+ * box): its items start the HIG's 13 white pixels inside the inner line
+ * (p.196, `dialogFrame.inset`).
+ */
+const aboutBox = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyAboutWindow
+			appId="storybook.app"
+			appName="Storybook"
+			appIcon={SB_ICON}
+			hideFunc={fn()}
+		/>
+		<AtRest />
+	</StoryApp>
+);
+
+export const AboutBox: Story = { render: aboutBox };
+export const AboutBoxColor = inColor(aboutBox);
+
+/**
  * A caution alert (HIG p.195, p.201): the caution icon, one style of text,
  * and Save as the default button with Cancel and Don't Save beside it, as
  * `*-alert-caution-savechanges.png` shows SimpleText's.
@@ -206,6 +247,7 @@ const caution = () => (
 			]}
 			onClose={fn()}
 		/>
+		<AtRest />
 	</StoryApp>
 );
 
@@ -226,6 +268,7 @@ const stop = () => (
 			message="Use the Chooser to select a printer."
 			onClose={fn()}
 		/>
+		<AtRest />
 	</StoryApp>
 );
 
@@ -245,6 +288,7 @@ const note = () => (
 			label="The document has been saved."
 			onClose={fn()}
 		/>
+		<AtRest />
 	</StoryApp>
 );
 
@@ -270,6 +314,7 @@ const movableAlert = () => (
 			]}
 			onClose={fn()}
 		/>
+		<AtRest />
 	</StoryApp>
 );
 

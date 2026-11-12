@@ -76,10 +76,18 @@ $bar: calc(var(--window-title-bar-height) - #{$b} - #{$b});
       0 0 0 $bevel var(--color-theme-04);
   }
 
-  // The dialog lays its own items out from the inner line (HIG p.196: 13
-  // white pixels to the first item, which the dialog's own padding gives).
+  // A dialog's items start `dialogFrame.inset` (13) white pixels inside the
+  // inner line (HIG p.196, figure 6-21), the chrome's padding for every
+  // modal. The dialogs that lay themselves out from the line (an alert, the
+  // input and keyboard-equivalent dialogs, a dialog-layout form) pad their
+  // own root, so the chrome gives them none.
   .classicyWindowContentsModalInner {
-    padding: 0;
+    box-sizing: border-box;
+    padding: var(--dialog-frame-inset);
+
+    &:has(> :is(.classicyAlert, .classicyInputDialog, .classicyKeyboardEquivalentDialog, .classicyFormDialog)) {
+      padding: 0;
+    }
   }
 
   // A movable modal's title bar: the windows' bar, its line below given up
