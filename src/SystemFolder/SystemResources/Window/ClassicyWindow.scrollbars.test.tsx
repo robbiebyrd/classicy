@@ -4,9 +4,17 @@
 // then has the classicyWindowScrollBarsHidden class), from a measurement of
 // the scrolling viewport. jsdom lays nothing out, so the extents are stubbed
 // on the element.
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { act, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 vi.mock(
@@ -230,5 +238,63 @@ describe("ClassicyWindow scroll bars appear only on overflow", () => {
 		)) {
 			expect(bar.classList.contains("inactive")).toBe(false);
 		}
+	});
+});
+
+// A package whose layout keeps the bars in the fits state (System 7, HIG
+// p.160): a document window with a size box draws both bars whether or not
+// its content overflows.
+describe("ClassicyWindow scroll bars under a package that keeps them while the content fits", () => {
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-fits-bars",
+			name: "Fits Bars",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-fits-bars-default",
+				package: "test-fits-bars",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				scrollBar: { fitsBars: "shown" },
+			},
+		});
+	});
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	it("draws both bars, each fits, while the content fits", () => {
+		const { root } = renderWindow(FITS);
+		expect(barsHidden(root)).toBe(false);
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("fits")).toBe(true);
+		}
+		// Both bars: the corner where they meet, under the size box.
+		expect(
+			root.querySelector('[data-classicy-part="scroll-corner"]'),
+		).not.toBeNull();
+	});
+
+	it("keeps drawing them when the content overflows", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		expect(barsHidden(root)).toBe(false);
+	});
+
+	it("leaves a window with no size box (not a document window) bare", () => {
+		const { root } = renderWindow(FITS, { resizable: false });
+		expect(barsHidden(root)).toBe(true);
+	});
+
+	it("leaves a utility window bare", () => {
+		const { root } = renderWindow(FITS, { windowType: "utility" });
+		expect(barsHidden(root)).toBe(true);
+	});
+
+	it("draws none in a scrollable={false} window", () => {
+		const { root } = renderWindow(FITS, { scrollable: false });
+		expect(root.querySelector('[data-classicy-part="scrollbar"]')).toBeNull();
 	});
 });

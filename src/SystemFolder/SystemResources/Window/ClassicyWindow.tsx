@@ -987,8 +987,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		};
 	}, [scrollable, ws.closed, ws.collapsed]);
 	// A placard lives in the horizontal scroll bar's gutter (HIGOS8 p.46), so
-	// a window with one keeps its bars.
-	const showScrollBars = scrollable && (contentOverflows || Boolean(placard));
+	// a window with one keeps its bars. A package whose layout keeps the bars
+	// in the fits state (System 7: "If the document is no larger than the
+	// window, the scroll bars are inactive", HIG p.160) keeps them for a
+	// document window, one with a size box; a utility window or one the user
+	// cannot resize stays bare until its content overflows.
+	const keepsFitsBars =
+		layout.scrollBar?.fitsBars === "shown" &&
+		resizable &&
+		windowType !== "utility";
+	const showScrollBars =
+		scrollable && (contentOverflows || Boolean(placard) || keepsFitsBars);
 
 	const pageviewPath = useMemo(
 		() => analyticsPath ?? classicyWindowPagePath(appId, id),

@@ -33,7 +33,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		]),
 	}),
 	scrollBar: z
-		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+		.object({
+			thumbDrag: z.enum(["live", "onRelease"]).optional(),
+			fitsBars: z.enum(["hidden", "shown"]).optional(),
+		})
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 

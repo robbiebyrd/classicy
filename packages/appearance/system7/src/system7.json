@@ -668,7 +668,8 @@
 			"iconGridOrigin": "top-right"
 		},
 		"scrollBar": {
-			"thumbDrag": "onRelease"
+			"thumbDrag": "onRelease",
+			"fitsBars": "shown"
 		}
 	},
 	"knobs": {}

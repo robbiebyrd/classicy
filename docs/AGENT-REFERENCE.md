@@ -1031,7 +1031,10 @@ dialog content claims it the same way.
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
 bars, as Mac OS 8 does — the non-scrolling axis shows an empty track (`fits`)
-so the grow box keeps its corner. Its contents are a `ClassicyScrollArea`
+so the grow box keeps its corner. Under a package whose layout says
+`scrollBar.fitsBars: "shown"` (System 7, HIG p.160) a document window (one
+with a size box, `resizable`, that is not a utility window) draws both bars
+always, each in the `fits` state while its axis has nothing to scroll. Its contents are a `ClassicyScrollArea`
 (§4.4): the bars are Classicy's own, drawn by the Appearance Package, and
 `inactive` while the window is. Content that fills the window and scrolls itself (a
 full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
@@ -1107,7 +1110,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs |
-| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard |
+| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
 | `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic; focus stays in the input (`aria-activedescendant`) |
 
 ### 4.4 Labels, grouping, display
@@ -3613,7 +3616,8 @@ Platinum (§1); its README lists what it ships.
   layout declares `scrollBar.thumbDrag: "onRelease"`: a dragged box stays
   put while its dotted outline follows the pointer, snapping back past
   `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
-  box", HIG p.165).
+  box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
+  list boxes keep their bars, hollow, while the content fits (HIG p.160).
 - **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
   fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
   inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),
@@ -3681,6 +3685,7 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
+| `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window (`resizable`, not `windowType="utility"`) always draws both bars and a list box its vertical bar, in the `fits` state (no thumb) while their axis fits. A window with no size box or a utility window keeps the `hidden` rule |
 | `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 20) outside the bar's box on any side, the outline sits back over the thumb, and a release there scrolls nothing; a theme that does not emit it never snaps back. A lost pointer stream cancels the drag, scrolling nothing. Arrows, the track, the wheel and the keyboard are unaffected |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a

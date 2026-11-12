@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	ClassicyControlLabel,
@@ -127,6 +128,10 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
+	// A package that keeps the bars in the fits state keeps the list's
+	// vertical bar while its rows fit (System 7's Standard File list).
+	const keepsFitsBar =
+		useClassicyAppearanceLayout().scrollBar?.fitsBars === "shown";
 	// Focus moving between rows stays inside the list: only focus entering
 	// from, or leaving to, outside the list is a focus or blur of the list.
 	const isInsideList = (target: EventTarget | null) =>
@@ -221,6 +226,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		<ClassicyScrollArea
 			{...appearance.attrs}
 			ref={rootRef}
+			vertical={keepsFitsBar ? "always" : "auto"}
 			viewportClassName="classicyListBoxViewport"
 			id={id}
 			role="listbox"

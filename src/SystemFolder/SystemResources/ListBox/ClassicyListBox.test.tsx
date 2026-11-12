@@ -1,5 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
 
 vi.mock(
@@ -223,5 +231,41 @@ describe("ClassicyListBox", () => {
 		render(<ClassicyListBox id="lb" options={options} label="Fruits" />);
 		const label = screen.getByText("Fruits");
 		expect(label.closest("label")).toHaveAttribute("for", "lb");
+	});
+});
+
+// jsdom lays nothing out, so every list here fits.
+describe("ClassicyListBox scroll bar while its rows fit", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const bars = (container: HTMLElement) =>
+		container.querySelectorAll<HTMLElement>('[data-classicy-part="scrollbar"]');
+
+	it("draws none by default (Mac OS 8)", () => {
+		const { container } = render(<ClassicyListBox id="lb" options={options} />);
+		expect(bars(container)).toHaveLength(0);
+	});
+
+	it("keeps its vertical bar, fits, under a package that keeps the bars (Standard File's list)", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-fits-bars",
+			name: "Fits Bars",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-fits-bars-default",
+				package: "test-fits-bars",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				scrollBar: { fitsBars: "shown" },
+			},
+		});
+		const { container } = render(<ClassicyListBox id="lb" options={options} />);
+		const drawn = bars(container);
+		expect(drawn).toHaveLength(1);
+		expect(drawn[0].classList.contains("classicyScrollBarVertical")).toBe(true);
+		expect(drawn[0].classList.contains("fits")).toBe(true);
 	});
 });

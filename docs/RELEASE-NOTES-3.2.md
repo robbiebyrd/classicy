@@ -125,6 +125,11 @@ diverge, so a logo registered through Platinum's
   bar snaps the outline back over the thumb, and a release there scrolls
   nothing; a lost pointer stream cancels the drag. `"live"`, the default,
   scrolls as the thumb moves, as before.
+- **Packages keep the bars in the fits state.** `scrollBar.fitsBars:
+  "shown"` keeps both bars of a document window (a resizable, non-utility
+  `ClassicyWindow`) and a `ClassicyListBox`'s vertical bar drawn while the
+  content fits, in the `fits` state (no thumb). `"hidden"`, the default,
+  draws them only while the content overflows, as before.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it, else `window.controlSize × 2.5` as before; it
   has no floor value, so Platinum's band still follows its control size.

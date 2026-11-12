@@ -36,7 +36,9 @@ resolution).
   `cctb` color tables, drawing the color assets, with dimmed text in plain
   gray.
 - **Its layout.** The grow box at the bottom right, the menu bar on the
-  screen (20 px high), desktop icons from the top right.
+  screen (20 px high), desktop icons from the top right; scroll bars that
+  scroll on release and stay drawn in document windows and lists whose
+  content fits.
 - **Its look**, one stylesheet in the package layer:
   - windows: the frame and drop shadow, the racing stripes, the close, zoom
     and size boxes (no collapse box: System 7 had none), inactive windows,

@@ -462,11 +462,14 @@ in every browser (Firefox now shows Platinum's full bars).
 - Policies `vertical`/`horizontal` (`auto`/`always`/`never`), `pairBars`,
   `scrollable={false}` (clips), `renderViewport` (a `<textarea>` as the
   viewport: `ClassicyTextEditor`). Windows pass `always`/`never` from their own
-  overflow measurement (both bars or none). Adopted by windows, list boxes,
-  tables (`scrollable={false}` in the Finder list view, whose window scrolls),
-  text editors, split-view panes, the Assistant, file dialogs, Drive Setup, the
-  color picker, the PDF viewer, HyperCard locked fields and About This
-  Computer. Menus keep the browser's scrolling (Mac OS menus have no bars).
+  overflow measurement (both bars or none), and `always` for a document window
+  (resizable, not utility) under a package whose `layout.scrollBar.fitsBars` is
+  `"shown"` (System 7); list boxes then keep their vertical bar too. Adopted
+  by windows, list boxes, tables (`scrollable={false}` in the Finder list
+  view, whose window scrolls), text editors, split-view panes, the Assistant,
+  file dialogs, Drive Setup, the color picker, the PDF viewer, HyperCard
+  locked fields and About This Computer. Menus keep the browser's scrolling
+  (Mac OS menus have no bars).
 
 ### Pop-Up Bevel Buttons
 

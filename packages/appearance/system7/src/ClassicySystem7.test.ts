@@ -512,8 +512,9 @@ describe("the System 7 appearance package", () => {
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
 			// The scroll box stays put, an outline follows the pointer and the
-			// content scrolls on release (HIG p.165).
-			scrollBar: { thumbDrag: "onRelease" },
+			// content scrolls on release (HIG p.165); a document window keeps
+			// its bars, inactive, while its document fits (p.160).
+			scrollBar: { thumbDrag: "onRelease", fitsBars: "shown" },
 		});
 	});
 

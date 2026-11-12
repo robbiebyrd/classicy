@@ -60,6 +60,15 @@ export type ClassicyAppearanceLayout = {
 		 * thumb, and a release there scrolls nothing.
 		 */
 		thumbDrag?: "live" | "onRelease";
+		/**
+		 * `"hidden"` (the default, Mac OS 8): a document window draws its bars
+		 * only while its content overflows, and a list box its bar only while
+		 * its rows do. `"shown"` (System 7, HIG p.160): a document window (a
+		 * resizable, non-utility `ClassicyWindow`) keeps both bars and a
+		 * `ClassicyListBox` its vertical bar while the content fits, drawn in
+		 * the `fits` state (no thumb).
+		 */
+		fitsBars?: "hidden" | "shown";
 	};
 };
 
