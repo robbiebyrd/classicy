@@ -46,7 +46,10 @@ import {
 	resolveClassicyAlertSound,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import {
+	playingClassicySoundPack,
+	useClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -549,12 +552,17 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		changeMetric,
 	});
 
-	const activeSoundPack = registeredSoundPacks.find(
-		(pack) => pack.id === currentSoundPack,
+	// The pack that plays: the theme's, else the default one the provider
+	// falls back to. `registeredSoundPacks` is a dependency so a pack that
+	// registers late (or the default an alert-less pack inherits from) shows.
+	const activeSoundPack = playingClassicySoundPack(
+		registeredSoundPacks,
+		currentSoundPack,
 	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `registeredSoundPacks` re-reads the default pack's alerts an alert-less pack inherits.
 	const packAlerts = useMemo(
 		() => [...classicyPackAlerts(activeSoundPack)],
-		[activeSoundPack],
+		[activeSoundPack, registeredSoundPacks],
 	);
 	const soundTab = useSoundTab({
 		soundPacks,

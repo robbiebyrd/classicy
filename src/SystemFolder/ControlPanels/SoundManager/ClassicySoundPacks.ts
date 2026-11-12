@@ -105,6 +105,18 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 
 export type ClassicySoundSpriteId = (typeof CLASSICY_SOUND_SPRITE_IDS)[number];
 
+// The contract ids that are alert sounds (Platinum's seven). A pack declaring
+// its own `alerts` need not define them.
+const CONTRACT_ALERT_SPRITE_IDS: ReadonlySet<string> = new Set([
+	"ClassicyAlertBonk",
+	"ClassicyAlertGrowl",
+	"ClassicyAlertIndigo",
+	"ClassicyAlertQuack",
+	"ClassicyAlertSosumi",
+	"ClassicyAlertTabitha",
+	"ClassicyAlertWildEep",
+]);
+
 const registry = new Map<string, ClassicySoundPack>();
 const listeners = new Set<() => void>();
 let snapshot: readonly ClassicySoundPack[] = Object.freeze([]);
@@ -176,7 +188,7 @@ export const classicySoundPackMissingSprites = (
 ): string[] => {
 	const own = pack.alerts !== undefined;
 	const required = CLASSICY_SOUND_SPRITE_IDS.filter(
-		(id) => !(own && id.startsWith("ClassicyAlert")),
+		(id) => !(own && CONTRACT_ALERT_SPRITE_IDS.has(id)),
 	);
 	const ids = [...required, ...(pack.alerts ?? []).map((a) => a.value)];
 	return [...new Set(ids)].filter((id) => !(id in pack.sprite));
