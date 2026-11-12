@@ -444,9 +444,11 @@ in every browser (Firefox now shows Platinum's full bars).
   which the little arrows share), the thumb drags proportionally, live, or
   on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"`
   (System 7: the thumb stays put, a `scroll-drag-outline` part follows the
-  pointer and snaps back past the theme's `--scroll-bar-snap-back`); a lost
-  pointer stream (`onClassicyPointerStreamLost`) ends each (an on-release
-  drag scrolling nothing). Bars are
+  pointer and snaps back past the theme's `--scroll-bar-snap-back`, else the
+  bar's thickness; keys and wheel wait, Escape cancels); a lost pointer
+  stream (`onClassicyPointerStreamLost`) ends each (an on-release drag
+  scrolling nothing). Content changes are measured once a frame (rAF).
+  Bars are
   `aria-hidden` and never focusable; a focusable root scrolls its viewport for
   the paging keys its own handler leaves.
 - Geometry follows Chromium's (`computeClassicyScrollThumb`,

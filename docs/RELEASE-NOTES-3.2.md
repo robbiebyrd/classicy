@@ -121,10 +121,12 @@ diverge, so a logo registered through Platinum's
   unchanged). `scrollBar.thumbDrag: "onRelease"` leaves a dragged thumb in
   place while a drag outline, the new part `scroll-drag-outline`
   (`.classicyScrollBarDragOutline`), follows the pointer, and scrolls on
-  release. A pointer more than the theme's `--scroll-bar-snap-back` from the
-  bar snaps the outline back over the thumb, and a release there scrolls
-  nothing; a lost pointer stream cancels the drag. `"live"`, the default,
-  scrolls as the thumb moves, as before.
+  release. A pointer more than the theme's `--scroll-bar-snap-back` (else
+  the bar's own thickness, "the width of the scroll box") from the bar
+  snaps the outline back over the thumb, and a release there scrolls
+  nothing. Escape or a lost pointer stream cancels the drag, and the keys
+  and the wheel wait while it is held. `"live"`, the default, scrolls as
+  the thumb moves, as before.
 - **Scrolling pop-up menus scroll by indicators.** A `ClassicyPopUpMenu`
   or `ClassicyComboBox` list too long for its space no longer shows the
   browser's scroll bar. As Mac OS menus do (HIG7 pp.78 and 83), an

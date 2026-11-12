@@ -687,6 +687,11 @@ describe("ClassicyScrollArea", () => {
 	});
 });
 
+// The MutationObserver's callback (a microtask), then the animation frame a
+// content change is measured in.
+const nextFrame = () =>
+	new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 // Plan 0018-dbd task 1.5's deferred items (story 0208-m1n).
 describe("ClassicyScrollArea internals", () => {
 	// The reads one measurement makes, from a scroll that changes nothing
@@ -732,8 +737,7 @@ describe("ClassicyScrollArea internals", () => {
 			viewportReads = 0;
 			await act(async () => {
 				change();
-				// MutationObserver callbacks run as a microtask.
-				await Promise.resolve();
+				await nextFrame();
 			});
 			return viewportReads;
 		};
@@ -750,7 +754,7 @@ describe("ClassicyScrollArea internals", () => {
 		);
 	});
 
-	it("leaves text changes to the ResizeObserver where there is one", async () => {
+	it("measures a text change inside a child that does not resize, even with a ResizeObserver", async () => {
 		const observed: Element[] = [];
 		vi.stubGlobal(
 			"ResizeObserver",
@@ -767,28 +771,111 @@ describe("ClassicyScrollArea internals", () => {
 			// The viewport and its children are watched for size.
 			expect(observed).toContain(viewport);
 			expect(observed).toContain(viewport.querySelector("p"));
+			const once = readsPerMeasure(viewport);
+			// The stub reports no resize: only the text change can tell.
 			const text = viewport.querySelector("p")?.firstChild as Text;
 			viewportReads = 0;
 			await act(async () => {
 				text.data = "Longer content";
-				await Promise.resolve();
+				await nextFrame();
 			});
-			expect(viewportReads).toBe(0);
+			expect(viewportReads).toBe(once);
 		} finally {
 			vi.unstubAllGlobals();
 		}
 	});
 
-	it("watches text changes itself where there is no ResizeObserver", async () => {
+	it("measures many content changes in one frame once", async () => {
 		const { viewport } = renderTall();
 		const once = readsPerMeasure(viewport);
-		const text = viewport.querySelector("p")?.firstChild as Text;
+		const p = viewport.querySelector("p") as HTMLElement;
 		viewportReads = 0;
 		await act(async () => {
-			text.data = "Longer content";
+			p.textContent = "One";
 			await Promise.resolve();
+			p.setAttribute("class", "two");
+			await Promise.resolve();
+			p.append(document.createElement("span"));
+			await nextFrame();
 		});
 		expect(viewportReads).toBe(once);
+	});
+
+	it("measures a render its parent causes right after one of its own", () => {
+		const { container, viewport, rerender } = renderTall();
+		act(() => {
+			viewport.scrollTop = 400;
+			fireEvent.scroll(viewport);
+		});
+		expect(thumbStyle(part(container, "scroll-thumb")).offset).toBe("83px");
+		// The content shrinks with no element changing; the parent renders.
+		viewportBox = { ...viewportBox, scrollHeight: 400 };
+		rerender(
+			<ClassicyScrollArea>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		expect(thumbStyle(part(container, "scroll-thumb")).length).toBe("83px");
+	});
+
+	it("reports whether the content overflows, past a pixel, when it changes", () => {
+		const onOverflowChange = vi.fn();
+		viewportBox = {
+			scrollWidth: 300,
+			scrollHeight: 201,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { rerender } = render(
+			<ClassicyScrollArea onOverflowChange={onOverflowChange}>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		// A pixel over is sub-pixel rounding, not overflow.
+		expect(onOverflowChange).toHaveBeenCalledTimes(1);
+		expect(onOverflowChange).toHaveBeenLastCalledWith({
+			vertical: false,
+			horizontal: false,
+		});
+		viewportBox = { ...viewportBox, scrollHeight: 900 };
+		rerender(
+			<ClassicyScrollArea onOverflowChange={onOverflowChange}>
+				<p>Taller</p>
+			</ClassicyScrollArea>,
+		);
+		expect(onOverflowChange).toHaveBeenLastCalledWith({
+			vertical: true,
+			horizontal: false,
+		});
+		const calls = onOverflowChange.mock.calls.length;
+		rerender(
+			<ClassicyScrollArea onOverflowChange={onOverflowChange}>
+				<p>Still taller</p>
+			</ClassicyScrollArea>,
+		);
+		expect(onOverflowChange).toHaveBeenCalledTimes(calls);
+	});
+
+	it("lets go of a caller's scroller that is removed", () => {
+		const area = (show: boolean) => (
+			<ClassicyScrollArea
+				renderViewport={(viewport) =>
+					show ? (
+						<textarea
+							ref={viewport.ref}
+							className={viewport.className}
+							onScroll={viewport.onScroll}
+						/>
+					) : null
+				}
+			/>
+		);
+		const { container, rerender } = render(area(true));
+		const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+		const removed = vi.spyOn(textarea, "removeEventListener");
+		rerender(area(false));
+		expect(container.querySelector("textarea")).toBeNull();
+		expect(removed).toHaveBeenCalledWith("input", expect.any(Function));
 	});
 
 	it("follows a caller's scroller that is replaced by another", () => {
@@ -1077,7 +1164,7 @@ describe("ClassicyScrollArea thumb drag on release", () => {
 		expect(viewport.scrollTop).toBe(0);
 	});
 
-	it("never snaps back when the package sets no distance", () => {
+	it("snaps back past the bar's own thickness when the package sets no distance", () => {
 		sheet.textContent = "";
 		const { container, viewport } = renderTall();
 		placeBar(container);
@@ -1086,9 +1173,52 @@ describe("ClassicyScrollArea thumb drag on release", () => {
 			clientX: 108,
 			clientY: 30,
 		});
-		fireEvent.mouseMove(document, { clientX: 900, clientY: 96.5 });
-		fireEvent.mouseUp(document, { clientX: 900, clientY: 96.5 });
+		const outline = part(container, "scroll-drag-outline");
+		// The bar is 17 wide ("the width of the scroll box", HIG p.165):
+		// 17 px right of its right edge (117) still follows, 18 does not.
+		fireEvent.mouseMove(document, { clientX: 134, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("84px");
+		fireEvent.mouseMove(document, { clientX: 135, clientY: 96.5 });
+		expect(outlineStyle(outline).offset).toBe("17px");
+		fireEvent.mouseUp(document, { clientX: 135, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("cancels on Escape, scrolling nothing", () => {
+		const { container, viewport } = renderTall();
+		placeBar(container);
+		const thumb = part(container, "scroll-thumb");
+		fireEvent.mouseDown(thumb, { button: 0, clientX: 108, clientY: 30 });
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		const pressed = fireEvent.keyDown(viewport, { key: "Escape" });
+		expect(pressed).toBe(false);
+		expect(part(container, "scroll-drag-outline")).toBeUndefined();
+		expect(thumb.classList.contains(CLASSICY_STATE.dragging)).toBe(false);
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 96.5 });
+		expect(viewport.scrollTop).toBe(0);
+	});
+
+	it("holds the content still under the outline: the keys and the wheel wait", () => {
+		const { container, viewport } = renderTall({ tabIndex: 0 });
+		placeBar(container);
+		const root = container.querySelector(".classicyScrollArea") as HTMLElement;
+		fireEvent.mouseDown(part(container, "scroll-thumb"), {
+			button: 0,
+			clientX: 108,
+			clientY: 30,
+		});
+		// A paging key the focused root would act on, and the wheel.
+		expect(fireEvent.keyDown(root, { key: "PageDown" })).toBe(false);
+		expect(viewport.scrollTop).toBe(0);
+		expect(fireEvent.wheel(viewport, { deltaY: 100 })).toBe(false);
+		// The drag goes on, and lands where the outline was let go.
+		fireEvent.mouseMove(document, { clientX: 108, clientY: 96.5 });
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 96.5 });
 		expect(viewport.scrollTop).toBe(400);
+		// Afterwards the keys and the wheel are the area's again.
+		fireEvent.keyDown(root, { key: "PageDown" });
+		expect(viewport.scrollTop).toBe(584);
+		expect(fireEvent.wheel(viewport, { deltaY: 100 })).toBe(true);
 	});
 
 	it("leaves the arrows and the track as they are", () => {

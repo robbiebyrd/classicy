@@ -56,8 +56,10 @@ export type ClassicyAppearanceLayout = {
 		 * stays put while a drag outline (`data-classicy-part`
 		 * `scroll-drag-outline`) follows the pointer, and the content scrolls
 		 * when the button comes up; a pointer more than the theme's
-		 * `--scroll-bar-snap-back` from the bar snaps the outline back over the
-		 * thumb, and a release there scrolls nothing.
+		 * `--scroll-bar-snap-back` (else the bar's thickness, "the width of
+		 * the scroll box") from the bar snaps the outline back over the thumb,
+		 * and a release there scrolls nothing. Escape cancels the drag; the
+		 * keys and the wheel wait until it ends.
 		 */
 		thumbDrag?: "live" | "onRelease";
 		/**

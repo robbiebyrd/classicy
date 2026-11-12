@@ -45,7 +45,8 @@ type ClassicyScrollThumbDrag = "live" | "onRelease";
 
 // The theme variable an on-release package sets for how far the pointer may
 // stray from the bar before the drag outline snaps back (System 7's
-// `scrollBar.snapBack` knob). Unset, it never snaps back.
+// `scrollBar.snapBack` knob). Unset, it is the bar's own thickness, "the
+// width of the scroll box" (HIG7 p.165).
 const SNAP_BACK_VAR = "--scroll-bar-snap-back";
 
 export interface ClassicyScrollAreaProps
@@ -84,6 +85,12 @@ export interface ClassicyScrollAreaProps
 	viewportProps?: HTMLAttributes<HTMLDivElement>;
 	/** The viewport's scroll events. */
 	onScroll?: HTMLAttributes<HTMLDivElement>["onScroll"];
+	/**
+	 * Called with whether the content overflows the viewport on each axis
+	 * (by more than a pixel, which absorbs sub-pixel rounding), once measured
+	 * and whenever that changes. `ClassicyWindow` decides its bars from it.
+	 */
+	onOverflowChange?: (overflow: ClassicyScrollBarsShown) => void;
 	/**
 	 * A scroller of the caller's own as the viewport, in place of the area's
 	 * `<div>` (a `<textarea>`, which scrolls its own text). It is handed the
@@ -235,9 +242,10 @@ const snapClassicyScrollPart = (el: HTMLElement | null) => {
  * `layout.scrollBar.thumbDrag` is `"onRelease"` (System 7), on release: the
  * thumb stays put while a `scroll-drag-outline` part follows the pointer,
  * snapping back over the thumb (a release there scrolls nothing) while the
- * pointer is more than the theme's `--scroll-bar-snap-back` from the bar. A
- * lost pointer stream ends any of them (an on-release drag scrolling
- * nothing). The
+ * pointer is more than the theme's `--scroll-bar-snap-back` (else the bar's
+ * thickness) from the bar; the keys and the wheel are held off meanwhile,
+ * and Escape cancels it. A lost pointer stream ends any of them (an
+ * on-release drag scrolling nothing). The
  * bars are `aria-hidden` and never take focus: the viewport is the
  * scrollable region assistive technology and the keyboard use, as with a
  * native scroll bar.
@@ -258,6 +266,7 @@ export const ClassicyScrollArea = forwardRef<
 		viewportClassName,
 		viewportProps,
 		onScroll,
+		onOverflowChange,
 		renderViewport,
 		className,
 		style,
@@ -318,10 +327,9 @@ export const ClassicyScrollArea = forwardRef<
 		paired: pairBars,
 	};
 
-	// Set by `update` when it changes only the thumbs or the fits states: the
-	// render that follows moves nothing it measured, so the layout effect
-	// below need not measure again (one measurement per scroll frame).
-	const ownRenderRef = useRef(false);
+	const onOverflowChangeRef = useRef(onOverflowChange);
+	onOverflowChangeRef.current = onOverflowChange;
+	const overflowRef = useRef<ClassicyScrollBarsShown | null>(null);
 
 	// Measure the viewport: which bars it needs, and where each thumb sits.
 	// Runs on every layout change and scroll; sets state only on a change.
@@ -372,7 +380,6 @@ export const ClassicyScrollArea = forwardRef<
 			!sameThumb(thumbsNow.horizontal, nextThumbs.horizontal)
 		) {
 			thumbsRef.current = nextThumbs;
-			ownRenderRef.current = true;
 			setThumbs(nextThumbs);
 		}
 		const fitsNow = fitsRef.current;
@@ -381,8 +388,20 @@ export const ClassicyScrollArea = forwardRef<
 			fitsNow.horizontal !== nextFits.horizontal
 		) {
 			fitsRef.current = nextFits;
-			ownRenderRef.current = true;
 			setFits(nextFits);
+		}
+		const overflow = {
+			vertical: el.scrollHeight > el.clientHeight + 1,
+			horizontal: el.scrollWidth > el.clientWidth + 1,
+		};
+		const overflowNow = overflowRef.current;
+		if (
+			!overflowNow ||
+			overflowNow.vertical !== overflow.vertical ||
+			overflowNow.horizontal !== overflow.horizontal
+		) {
+			overflowRef.current = overflow;
+			onOverflowChangeRef.current?.(overflow);
 		}
 		snapClassicyScrollPart(refs.vertical.bar.current);
 		snapClassicyScrollPart(refs.horizontal.bar.current);
@@ -390,10 +409,12 @@ export const ClassicyScrollArea = forwardRef<
 	}, []);
 
 	// Every render may have moved something (bars drawn or removed, a policy
-	// changed): measure before paint. Not the render `update` itself caused
-	// by moving a thumb or marking a bar `fits`, which moves nothing it
-	// reads, unless the bars or their policies changed in the same render (a
-	// parent's update batched with it).
+	// changed): measure before paint. Not the render that only commits the
+	// thumbs or fits states `update` itself set (one measurement per scroll
+	// frame): that moves nothing it reads. It is told by what the render
+	// committed, never by a flag a bailed-out render could leave set: the
+	// thumbs or fits object changed since the last commit, to the one
+	// `update` set last, and the bars and their policies did not.
 	const layoutInputs = [
 		verticalPolicy,
 		horizontalPolicy,
@@ -401,12 +422,21 @@ export const ClassicyScrollArea = forwardRef<
 		shown.vertical,
 		shown.horizontal,
 	].join();
-	const measuredInputsRef = useRef<string | null>(null);
+	const committedRef = useRef<{
+		inputs: string;
+		thumbs: Thumbs;
+		fits: typeof fits;
+	} | null>(null);
 	useLayoutEffect(() => {
-		const own = ownRenderRef.current;
-		ownRenderRef.current = false;
-		if (own && measuredInputsRef.current === layoutInputs) return;
-		measuredInputsRef.current = layoutInputs;
+		const last = committedRef.current;
+		committedRef.current = { inputs: layoutInputs, thumbs, fits };
+		const ownStateOnly =
+			last !== null &&
+			last.inputs === layoutInputs &&
+			(last.thumbs !== thumbs || last.fits !== fits) &&
+			thumbs === thumbsRef.current &&
+			fits === fitsRef.current;
+		if (ownStateOnly) return;
 		update();
 	});
 
@@ -428,32 +458,47 @@ export const ClassicyScrollArea = forwardRef<
 			}
 		};
 		observeChildren();
+		// Content changes are measured once a frame, however many arrive
+		// (typing, a list re-rendering its rows): the next animation frame,
+		// before it paints.
+		let frame = 0;
+		const onMutation = () => {
+			if (typeof requestAnimationFrame !== "function") {
+				observeChildren();
+				update();
+				return;
+			}
+			if (frame) return;
+			frame = requestAnimationFrame(() => {
+				frame = 0;
+				observeChildren();
+				update();
+			});
+		};
 		const mutationObserver =
 			typeof MutationObserver === "undefined"
 				? undefined
-				: new MutationObserver(() => {
-						observeChildren();
-						update();
-					});
+				: new MutationObserver(onMutation);
 		// Elements added or removed anywhere (the resize observer then
-		// watches the new children), and the attributes that can move the
-		// content without resizing a child the resize observer watches (an
-		// absolutely placed icon's `style`, a `class` or `hidden` toggled),
-		// not the ones a list changes on every focus or selection (`aria-*`,
-		// `tabindex`, `data-*`). A text change resizes the element holding
-		// it, which the resize observer sees (text directly in the viewport
-		// is the area's own children: a render, measured above); without
-		// one, the text is watched here instead.
+		// watches the new children), text changes (inside a child whose box
+		// does not grow, they move the content without a resize), and the
+		// attributes that can move the content without resizing a child the
+		// resize observer watches (an absolutely placed icon's `style`, a
+		// `class` or `hidden` toggled), not the ones a list changes on every
+		// focus or selection (`aria-*`, `tabindex`, `data-*`).
 		mutationObserver?.observe(el, {
 			childList: true,
 			subtree: true,
 			attributeFilter: ["class", "style", "hidden"],
-			characterData: !resizeObserver,
+			characterData: true,
 		});
 		el.addEventListener("load", update, true);
 		// A text area's own text changes no element.
 		el.addEventListener("input", update);
 		return () => {
+			if (frame && typeof cancelAnimationFrame === "function") {
+				cancelAnimationFrame(frame);
+			}
 			resizeObserver?.disconnect();
 			mutationObserver?.disconnect();
 			el.removeEventListener("load", update, true);
@@ -465,7 +510,8 @@ export const ClassicyScrollArea = forwardRef<
 		(el: HTMLElement | null) => {
 			viewportElRef.current = el;
 			setRef(viewportRef, el);
-			if (el) setViewportEl(el);
+			// Cleared when the scroller goes, so the observers leave it.
+			setViewportEl(el);
 		},
 		[viewportRef],
 	);
@@ -808,12 +854,19 @@ const ClassicyScrollBar = ({
 
 		const onRelease = thumbDrag === "onRelease";
 		const barEl = refs.bar.current;
-		// Read once per drag (a style read): how far the pointer may stray.
+		// Read once per drag (a style read): how far the pointer may stray,
+		// the theme's knob, else the bar's thickness across ("the width of
+		// the scroll box").
+		const thickness = barEl
+			? vertical
+				? barEl.offsetWidth
+				: barEl.offsetHeight
+			: 0;
 		const snapBack = onRelease
-			? readClassicyThemeVar(SNAP_BACK_VAR, Number.POSITIVE_INFINITY, barEl)
+			? readClassicyThemeVar(SNAP_BACK_VAR, thickness, barEl)
 			: Number.POSITIVE_INFINITY;
 		const nearBar = (ev: MouseEvent) => {
-			if (!barEl || snapBack === Number.POSITIVE_INFINITY) return true;
+			if (!barEl || !onRelease) return true;
 			const r = barEl.getBoundingClientRect();
 			return (
 				ev.clientX >= r.left - snapBack &&
@@ -844,9 +897,21 @@ const ClassicyScrollBar = ({
 					: { length: at.length, offset: at.offset },
 			);
 		};
+		// While an on-release drag holds the outline, the content stays where
+		// the outline measures it from: the keys and the wheel that would
+		// scroll it are swallowed (Mac OS tracked the mouse alone), and Escape
+		// cancels the drag, scrolling nothing, as a file drag's does.
+		const onKey = (ev: KeyboardEvent) => {
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (ev.key === "Escape") cancel();
+		};
+		const onWheel = (ev: WheelEvent) => ev.preventDefault();
 		const end = (commit: boolean) => {
 			document.removeEventListener("mousemove", onMove, true);
 			document.removeEventListener("mouseup", release, true);
+			window.removeEventListener("keydown", onKey, true);
+			window.removeEventListener("wheel", onWheel, true);
 			stopWatchingPointerStream();
 			if (stopDragRef.current === cancel) stopDragRef.current = null;
 			setDragging(false);
@@ -864,6 +929,13 @@ const ClassicyScrollBar = ({
 		const cancel = () => end(false);
 		document.addEventListener("mousemove", onMove, true);
 		document.addEventListener("mouseup", release, true);
+		if (onRelease) {
+			window.addEventListener("keydown", onKey, true);
+			window.addEventListener("wheel", onWheel, {
+				capture: true,
+				passive: false,
+			});
+		}
 		const stopWatchingPointerStream = onClassicyPointerStreamLost(cancel);
 		stopDragRef.current = cancel;
 		setDragging(true);
