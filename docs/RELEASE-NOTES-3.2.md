@@ -125,9 +125,17 @@ diverge, so a logo registered through Platinum's
   `resolveClassicyCursorHotspot(role)`. The hotspot belongs to the image:
   never hotspot an image another package shares. The split view, the window
   grow box and the PDF viewer's pan tool read it, falling back to `8 8`.
+- **A fixed modal that is not an alert: `ClassicyWindow`'s `movable`.**
+  `movable={false}` on a `modal` window makes a modal dialog box the user
+  cannot move (HIGOS8 p.60), such as Standard File, Print or Page Setup,
+  without the alert semantics `type="error"` brings: it does not beep when it
+  opens, draws the ordinary modal scrim and stacks in the modal-front band.
+  It defaults to `true` (a movable modal dialog box, as before), does nothing
+  on a non-modal window, and an error modal stays fixed, beeping and red
+  whatever it says.
 - **Small structural hooks**: the root class `classicyWindowModalFixed` on a
-  fixed modal (a modal `ClassicyWindow` of `type="error"`, which cannot be
-  dragged); the `open` state on a pop-up menu's label holder and indicator
+  fixed modal (a modal `ClassicyWindow` of `type="error"` or with
+  `movable={false}`, which cannot be dragged); the `open` state on a pop-up menu's label holder and indicator
   while its menu is open; the system-art key `helpMenuTitle`, which, when
   registered, draws the menu bar's Help title as an image; and
   `ClassicyMenuItem.imageAlt`, the alt text of an item drawn as its image

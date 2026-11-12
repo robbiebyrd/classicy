@@ -21,8 +21,9 @@
 // it, and five rings in color, each bevel taking two of its corners (upper
 // right, lower left) to its dark side, as the captures show.
 //
-// A fixed modal (`classicyWindowModalFixed`: an alert, the one fixed modal
-// the core draws) has no title bar (HIG p.190, p.193). A movable modal
+// A fixed modal (`classicyWindowModalFixed`: an alert, or a modal window
+// with `movable={false}` such as Standard File) has no title bar (HIG p.190,
+// p.193). A movable modal
 // (HIG p.186) keeps the striped title bar, with no boxes, over the full
 // width; the frame's sides and bottom continue below it, and the inner bevel
 // and line run under it. System 7 has no movable alert and no red title bar

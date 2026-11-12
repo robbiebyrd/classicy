@@ -307,11 +307,23 @@ interface ClassicyWindowProps {
 	/**
 	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
 	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
-	 * focus, cancels on Escape / Command-period, and draws no zoom box. It stays
-	 * movable unless `type="error"`. Its store record is dropped on unmount, so
-	 * a modal keeps no geometry between openings. Defaults to `false`.
+	 * focus, cancels on Escape / Command-period, and draws no zoom box. It is a
+	 * movable modal dialog box unless `movable={false}` or `type="error"`. Its
+	 * store record is dropped on unmount, so a modal keeps no geometry between
+	 * openings. Defaults to `false`.
 	 */
 	modal?: boolean;
+	/**
+	 * On a `modal` window, `false` makes a modal dialog box that the user
+	 * cannot move (HIGOS8 p.60, "non-movable modal dialog box", as opposed to
+	 * the movable modal dialog box of p.59): the move gesture is refused and
+	 * the root carries `classicyWindowModalFixed` (System 7 drops its title
+	 * bar). Unlike `type="error"` it is not an alert: it does not beep when it
+	 * opens, draws the ordinary modal scrim and stacks in the modal-front band
+	 * with the other dialogs. An error modal is fixed whatever this says. Has
+	 * no effect on non-modal windows. Defaults to `true`.
+	 */
+	movable?: boolean;
 	/**
 	 * Stretch the inner content area to the full height of the window, for
 	 * content that should fill it rather than size to itself. Defaults to off.
@@ -406,7 +418,8 @@ interface ClassicyWindowProps {
 	 * Dialog flavor. `"error"` on a `modal` window makes a fixed alert: it
 	 * cannot be dragged, beeps when it opens, stacks in the red error band
 	 * above other modals and carries `classicyWindowModalFixed` on its root
-	 * (a package may drop a fixed modal's title bar). Has no visual effect on
+	 * (a package may drop a fixed modal's title bar). For a fixed modal that
+	 * is not an alert, use `movable={false}` instead. Has no visual effect on
 	 * non-modal windows. Defaults to `"default"`.
 	 */
 	type?: string;
@@ -553,6 +566,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	resizable = true,
 	scrollable = true,
 	modal = false,
+	movable = true,
 	type = "default",
 	growable,
 	defaultWindow = false,
@@ -637,9 +651,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 	}, [activeTheme, menuBarPlacement]);
 
-	// A modal of type "error" cannot be moved (a fixed modal dialog box);
-	// every other modal can (a movable one).
-	const fixedModal = modal && type === "error";
+	// A modal of type "error" (an alert) or with `movable={false}` cannot be
+	// moved (a fixed modal dialog box); every other modal can (a movable one).
+	// Only "error" carries the alert semantics (the beep, the error scrim and
+	// the red band), which key on `type` below, never on this value.
+	const fixedModal = modal && (type === "error" || !movable);
 
 	const resolvedSize = useMemo(
 		() => resolveSize(initialSize, menuBarHeight),
@@ -1262,7 +1278,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		if (fixedModal) {
-			// Don't allow modal error dialogs to move
+			// A fixed modal dialog box (an alert, or `movable={false}`) never moves
 			return;
 		}
 		// Only arm a potential drag; it becomes a real drag once the pointer
@@ -1951,7 +1967,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
-				// gesture refuses. Platinum draws both alike.
+				// gesture refuses, an alert or `movable={false}`. Platinum draws
+				// both alike.
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",

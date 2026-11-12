@@ -303,6 +303,35 @@ export const FixedModal: Story = {
 };
 
 /**
+ * A fixed modal dialog that is not an alert (HIGOS8 p.60, a "non-movable
+ * modal dialog box": Standard File, Print, Page Setup). `modal` +
+ * `movable={false}` cannot be dragged, but it does not beep when it opens,
+ * has no red frame and stacks with the other dialogs. Platinum draws it as
+ * its movable modal; System 7 drops its title bar.
+ */
+export const FixedDialog: Story = {
+	render: () => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="fixed-dialog"
+				appId="storybook.app"
+				title="Page Setup"
+				modal={true}
+				movable={false}
+				closable={true}
+				resizable={false}
+				initialSize={[320, 140]}
+				initialPosition={["center", "center"]}
+			>
+				<p style={{ padding: "1em" }}>
+					A fixed modal dialog: no drag, no beep, no red frame.
+				</p>
+			</ClassicyWindow>
+		</StoryApp>
+	),
+};
+
+/**
  * #208 — zoom modes. `zoomMode` controls whether the zoom box grows both axes
  * (`full`), only the width (`horizontal`), or only the height (`vertical`). The
  * user's pre-zoom rect is remembered and restored on un-zoom; click the zoom

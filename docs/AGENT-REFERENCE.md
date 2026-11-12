@@ -941,6 +941,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
 | `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
 | `modal` | `boolean` | `false` |
+| `movable` | `boolean` | `true` (modal only) |
 | `defaultWindow` | `boolean` | `false` |
 | `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
 | `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
@@ -983,11 +984,20 @@ content-box size of the zoomed ("standard") state for `zoomMode="full"`
 store record's `closed` flag wins. `growable` stretches the content area to the
 window's full height instead of sizing it to its content. `type="error"` on a
 `modal` window makes a fixed alert: it cannot be dragged, beeps when it opens,
-and stacks in the red error band above other modals. Its root carries
-`classicyWindowModalFixed` (a fixed modal dialog box, which in System 7 has no
-title bar, HIG p.190); a movable modal (`modal` without `type="error"`) does
-not, so a package can drop the title bar of the fixed one only. Platinum
-draws both alike.
+and stacks in the red error band above other modals. `movable={false}` on a
+`modal` window makes a fixed modal that is not an alert (HIGOS8 p.60's
+"non-movable modal dialog box": Standard File, Print, Page Setup): it cannot
+be dragged, but it does not beep when it opens, draws the ordinary modal
+scrim and stacks in the modal-front band with the other dialogs. An error
+modal is fixed whatever `movable` says, and `movable` does nothing on a
+non-modal window. The name is the HIG's: a modal is a "movable modal dialog
+box" unless it says otherwise, and `ClassicyAlert`'s `movable` reads the same
+way (an alert is fixed unless `movable`). Both fixed kinds carry
+`classicyWindowModalFixed` on the root (a fixed modal dialog box, which in
+System 7 has no title bar, HIG p.190); a movable modal does not, so a package
+can drop the title bar of the fixed one only. Platinum draws both alike: a
+`movable={false}` modal is its movable modal, title bar included, with no red
+and no drag.
 
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
@@ -3572,7 +3582,9 @@ Platinum (§1); its README lists what it ships.
 - **Scroll bars** (§4.0.1): it draws `ClassicyScrollArea`'s parts, and fixes
   the scroll box's length (equal `min-*`/`max-*` lengths along the bar).
 - **Small structural hooks**: `classicyWindowModalFixed` (a fixed modal has
-  no title bar), the pop-up's `open` state (the triangle hides and the label
+  no title bar; the FixedModal story is a `modal movable={false}` window,
+  Standard File's Open dialog, so it neither beeps nor takes the error
+  scrim), the pop-up's `open` state (the triangle hides and the label
   inverts while the menu is open) and the `helpMenuTitle` art (the Help menu
   is System 7's balloon glyph).
 - **Hooks**: `system7AppearanceHooks` decorates a pressed menu item with

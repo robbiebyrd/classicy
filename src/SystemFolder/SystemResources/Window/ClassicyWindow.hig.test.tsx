@@ -184,6 +184,96 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 		});
 	});
 
+	// HIGOS8 p.60: a (non-movable) modal dialog box that is not an alert, such
+	// as Standard File, Print or Page Setup under System 7. `movable={false}`
+	// fixes the modal without the error semantics: no beep on open, no error
+	// scrim, no red alert band.
+	describe("a fixed modal that is not an alert (movable={false})", () => {
+		const win = () => document.querySelector(".classicyWindow");
+		const dragStarts = () =>
+			dispatchedTypes().filter(
+				(e: { type: string; moving?: boolean }) =>
+					e.type === "ClassicyWindowMove" && e.moving === true,
+			);
+		const dragFrom = (selector: string) => {
+			const el = document.querySelector(selector) as HTMLElement;
+			fireEvent.mouseDown(el, { clientX: 150, clientY: 120 });
+			fireEvent.mouseMove(document.body, { clientX: 200, clientY: 200 });
+		};
+
+		it("carries the fixed-modal marker", () => {
+			renderWindow({ modal: true, movable: false });
+			expect(win()).toHaveClass("classicyWindowModal");
+			expect(win()).toHaveClass("classicyWindowModalFixed");
+		});
+
+		it("cannot be dragged from the title bar or a frame edge", () => {
+			renderWindow({ modal: true, movable: false });
+			dragFrom(".classicyWindowTitle");
+			dragFrom(".classicyWindowFrameEdge-left");
+			expect(dragStarts()).toHaveLength(0);
+		});
+
+		it("does not beep when it opens", () => {
+			renderWindow({ modal: true, movable: false });
+			expect(mockPlayer).not.toHaveBeenCalled();
+		});
+
+		it("stacks in the modal-front band, not the red alert band", () => {
+			renderWindow({ modal: true, movable: false });
+			expect(win()).toHaveClass("classicyWindowModalFront");
+			expect(win()).not.toHaveClass("classicyWindowRed");
+		});
+
+		it("draws the ordinary modal scrim, not the error scrim", () => {
+			renderWindow({ modal: true, movable: false });
+			const scrim = document.querySelector(".classicyWindowModalScrim");
+			expect(scrim).not.toBeNull();
+			expect(scrim).not.toHaveClass("classicyWindowModalScrimError");
+		});
+
+		it("still beeps on a scrim click, as every modal does", () => {
+			renderWindow({ modal: true, movable: false });
+			const scrim = document.querySelector(
+				".classicyWindowModalScrim",
+			) as HTMLElement;
+			fireEvent.mouseDown(scrim);
+			expect(mockPlayer).toHaveBeenCalledWith(
+				expect.objectContaining({ type: "ClassicySoundPlayError" }),
+			);
+		});
+
+		it("leaves a modal movable by default", () => {
+			renderWindow({ modal: true });
+			dragFrom(".classicyWindowTitle");
+			expect(dragStarts().length).toBeGreaterThan(0);
+			expect(win()).not.toHaveClass("classicyWindowModalFixed");
+		});
+
+		it("has no effect on a non-modal window", () => {
+			renderWindow({ movable: false });
+			expect(win()).not.toHaveClass("classicyWindowModalFixed");
+			dragFrom(".classicyWindowTitle");
+			expect(dragStarts().length).toBeGreaterThan(0);
+		});
+
+		// `type="error"` keeps its behavior exactly: an error modal is fixed
+		// whatever `movable` says, beeps on open and takes the alert band.
+		it("leaves an error modal fixed, beeping and red even when movable", () => {
+			renderWindow({ modal: true, type: "error", movable: true });
+			expect(win()).toHaveClass("classicyWindowModalFixed");
+			expect(win()).toHaveClass("classicyWindowRed");
+			expect(document.querySelector(".classicyWindowModalScrim")).toHaveClass(
+				"classicyWindowModalScrimError",
+			);
+			expect(mockPlayer).toHaveBeenCalledWith(
+				expect.objectContaining({ type: "ClassicySoundPlayError" }),
+			);
+			dragFrom(".classicyWindowTitle");
+			expect(dragStarts()).toHaveLength(0);
+		});
+	});
+
 	// #208: zooming a full-mode window moves it to the standard-state origin and
 	// flags it zoomed.
 	it("zooms to the standard-state rect on a zoom-box click", () => {

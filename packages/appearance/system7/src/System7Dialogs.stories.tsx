@@ -5,9 +5,9 @@
 // (docs/system7-reference-screenshots.md, "Dialogs and alerts" and the button
 // rows of "Controls"), the story places it where the capture has it; alerts
 // are centered by the core, so they compare region for region from their own
-// corners. A fixed modal that is not an alert (Standard File, Print, Page
-// Setup) has no prop of its own: the fixed dialog here is an error-typed
-// modal, the one fixed modal the core can draw.
+// corners. The fixed dialog is a fixed modal that is not an alert, as
+// Standard File, Print and Page Setup are: `modal movable={false}`, which
+// neither beeps nor takes the error scrim.
 import {
 	ClassicyAboutWindow,
 	ClassicyAlert,
@@ -189,7 +189,7 @@ const fixedModal = () => (
 			id="open"
 			title="Open"
 			modal
-			type="error"
+			movable={false}
 			closable={false}
 			initialSize={[461, 195]}
 			initialPosition={[88, 105]}
