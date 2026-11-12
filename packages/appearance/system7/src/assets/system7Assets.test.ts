@@ -138,16 +138,18 @@ describe("System 7's assets", () => {
 			];
 			let checked = 0;
 			for (const file of oneBit) {
+				// Every 1-bit file is the export's own RGBA, so none goes unchecked.
 				const { pixels } = png(file);
-				if (!pixels) continue;
+				expect(pixels, `${file} is 8-bit RGBA, unfiltered`).toBeDefined();
 				checked++;
-				for (const [r, g, b, a] of pixels) {
+				for (const [r, g, b, a] of pixels ?? []) {
 					const ok =
 						(a === 0 && r === 0 && g === 0 && b === 0) ||
 						(a === 255 && r === g && g === b && (r === 0 || r === 255));
 					if (!ok) expect([r, g, b, a], file).toBe("black, white or clear");
 				}
 			}
+			expect(checked).toBe(oneBit.length);
 			expect(checked).toBeGreaterThan(100);
 		});
 
@@ -295,6 +297,30 @@ describe("System 7's assets", () => {
 					expect(bw?.small, key).toMatch(/\/icons\/bw\/16\//);
 				}
 			}
+		});
+
+		// System ICN# 3 is the generic compact Mac the System's BNDL gives
+		// several types (the same image as -16482); the Finder's own icon is
+		// Finder 3967.
+		it("draws the Finder's own icon for system.macos, not the compact Mac", () => {
+			for (const variant of [BASE, BW])
+				for (const size of ["32", "16"]) {
+					const dir = path.join(
+						assets,
+						"icons",
+						variant === BW ? "bw" : "color",
+						size,
+					);
+					expect(
+						readFileSync(path.join(dir, "system-macos.png")).equals(
+							readFileSync(path.join(dir, "system-mac.png")),
+						),
+						`${variant} ${size}`,
+					).toBe(false);
+				}
+			expect(
+				resolveClassicyAsset("icons", "system.macos", SYSTEM7, BASE),
+			).not.toBe(resolveClassicyAsset("icons", "system.mac", SYSTEM7, BASE));
 		});
 
 		it("draws a reused key as the key it reuses, in both themes", () => {

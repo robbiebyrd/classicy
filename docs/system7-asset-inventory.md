@@ -481,7 +481,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.macClassic` | Macintosh Classic with mouse | reuse | `system.mac` (the compact Mac machine icon) | — | — |
 | — | `system.macWink` | Winking compact Mac | core | Hardware glyph with no file-kind meaning | — | — |
 | [x] | `system.mac` | Compact Macintosh (About This Computer, file dialogs) | export | System, ID -16482, the compact Mac | `ICN#` `icl8` `ics#` `ics8` | `system-mac.png` |
-| [x] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | System, ID 3 (`FNDR`, the Finder's own icon, in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-macos.png` |
+| [x] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | Finder (System Folder), ID 3967, the Finder's own icon (a hand inserting a disk); the System's ID 3, which its `BNDL` gives `FNDR`, `ZSYS`, `FDOC` and `gbly` alike, is the generic compact Mac, the same image as `system.mac` | `ICN#` `icl8` `ics#` `ics8` | `system-macos.png` |
 | — | `system.macosSvg` | Mac OS face logo, vector (Platinum startup screen) | core | Brand (Mac OS logo) | — | — |
 | — | `system.pig` | Piggy bank | core | Concept glyph with no file-kind meaning | — | — |
 | [x] | `system.printer` | Printer | export | LaserWriter 8 (Extensions), ID -4096 (`PRER`, the icon the Chooser shows) | `ICN#` `icl8` `ics#` `ics8` | `system-printer.png` |

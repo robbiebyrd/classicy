@@ -148,7 +148,7 @@ const ICONS = [
 	["system-help", `${EXT}/Apple Guide.rsrc`, 130],
 	["system-info", SYSTEM, 1, { alert: true }],
 	["system-mac", SYSTEM, -16482],
-	["system-macos", SYSTEM, 3],
+	["system-macos", FINDER, 3967],
 	["system-printer", `${EXT}/LaserWriter 8.rsrc`, -4096],
 	["system-question", SYSTEM, -5696],
 	["system-warn", SYSTEM, 2, { alert: true }],
@@ -205,13 +205,17 @@ const blank = (width, height) => ({
 	pixels: Buffer.alloc(width * height * 4),
 });
 
-/** A PNG's pixels (8-bit RGB or RGBA, non-interlaced: the screenshots). */
+/**
+ * A PNG's pixels: 8-bit, non-interlaced RGB or RGBA (the screenshots) or
+ * gray or gray with alpha (Platinum's resize cursors).
+ */
 const readPng = (file) => {
 	const bytes = readFileSync(file);
 	let at = 8;
 	let width = 0;
 	let height = 0;
 	let channels = 0;
+	let colorType = 0;
 	const idat = [];
 	while (at < bytes.length) {
 		const length = bytes.readUInt32BE(at);
@@ -222,8 +226,9 @@ const readPng = (file) => {
 			height = data.readUInt32BE(4);
 			if (data[8] !== 8 || data[12] !== 0)
 				throw new Error(`${file}: not 8-bit, non-interlaced`);
-			channels = { 2: 3, 6: 4 }[data[9]];
-			if (!channels) throw new Error(`${file}: not RGB or RGBA`);
+			colorType = data[9];
+			channels = { 0: 1, 2: 3, 4: 2, 6: 4 }[colorType];
+			if (!channels) throw new Error(`${file}: not gray, RGB or their alpha`);
 		} else if (type === "IDAT") idat.push(data);
 		at += 12 + length;
 	}
@@ -255,8 +260,20 @@ const readPng = (file) => {
 	}
 	const img = blank(width, height);
 	for (let i = 0; i < width * height; i++) {
-		rows.copy(img.pixels, i * 4, i * channels, i * channels + 3);
-		img.pixels[i * 4 + 3] = channels === 4 ? rows[i * channels + 3] : 255;
+		const at = i * channels;
+		const gray = colorType === 0 || colorType === 4;
+		img.pixels.set(
+			[
+				rows[at],
+				rows[gray ? at : at + 1],
+				rows[gray ? at : at + 2],
+				colorType === 4 ? rows[at + 1] : colorType === 6 ? rows[at + 3] : 255,
+			],
+			i * 4,
+		);
+		// A transparent pixel is 0,0,0,0 whatever color it stored, as in
+		// every file the export decodes.
+		if (img.pixels[i * 4 + 3] === 0) img.pixels.fill(0, i * 4, i * 4 + 4);
 	}
 	return img;
 };
@@ -569,11 +586,12 @@ for (const [role, id] of [
 }
 
 // System 7 has no resize cursors: Platinum's, which are 1-bit in the same
-// style.
+// style, re-encoded as the export's own RGBA files (Platinum stores them as
+// gray with alpha).
 for (const role of ["lr", "ud", "u", "d", "l", "r"])
-	copy(
-		join(platinumAssets, "cursors", `cursor-resize-${role}.png`),
+	write(
 		`cursors/resize-${role}.png`,
+		readPng(join(platinumAssets, "cursors", `cursor-resize-${role}.png`)),
 	);
 
 // Nor diagonal ones (nor has Platinum): a diagonal double arrow in the
