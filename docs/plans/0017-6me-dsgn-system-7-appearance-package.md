@@ -2,11 +2,11 @@
 id: 0017-6me
 title: System 7 Appearance Package
 type: dsgn
-status: pending
+status: in_progress
 priority: "2"
 effort: XL
 created: "2026-11-11T04:38:01.540Z"
-updated: "2026-11-11T05:09:51.467Z"
+updated: "2026-11-11T15:14:26.353Z"
 tags: []
 milestone: ""
 due_date: ""

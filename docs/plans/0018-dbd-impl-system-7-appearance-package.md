@@ -2,11 +2,11 @@
 id: 0018-dbd
 title: 'System 7 Appearance Package: implementation'
 type: impl
-status: pending
+status: in_progress
 priority: "2"
 effort: XL
 created: "2026-11-11T05:11:08.451Z"
-updated: "2026-11-11T05:11:08.451Z"
+updated: "2026-11-12T14:23:27.995Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -23,57 +23,99 @@ links:
     - ["0017-6me", "parent"]
 progress:
   "1":
-    status: pending
+    status: complete
   "1.1":
-    status: pending
+    status: complete
+    stories:
+      - 0168-3iv
   "1.2":
-    status: pending
+    status: complete
+    stories:
+      - 0169-3da
   "1.3":
-    status: pending
+    status: complete
+    stories:
+      - 0170-qqt
   "1.4":
-    status: pending
+    status: complete
+    stories:
+      - 0171-ir6
   "1.5":
-    status: pending
+    status: complete
+    stories:
+      - 0172-pwu
   "1.6":
-    status: pending
+    status: complete
+    stories:
+      - 0173-q1z
   "2":
-    status: pending
+    status: complete
   "2.1":
-    status: pending
+    status: complete
+    stories:
+      - 0174-rl1
   "2.2":
-    status: pending
+    status: complete
+    stories:
+      - 0175-nqm
   "2.3":
-    status: pending
+    status: complete
+    stories:
+      - 0176-vjw
   "3":
     status: pending
   "3.1":
-    status: pending
+    status: complete
+    stories:
+      - 0177-zev
   "3.2":
-    status: pending
+    status: complete
+    stories:
+      - 0178-x2z
   "3.3":
-    status: pending
+    status: complete
+    stories:
+      - 0179-ng6
   "3.4":
-    status: pending
+    status: complete
+    stories:
+      - 0180-gaj
   "3.5":
-    status: pending
+    status: complete
+    stories:
+      - 0181-siu
   "3.6":
-    status: pending
+    status: complete
+    stories:
+      - 0182-0m3
   "3.7":
-    status: pending
+    status: complete
+    stories:
+      - 0183-25y
   "3.8":
-    status: pending
+    status: complete
+    stories:
+      - 0184-qrg
   "4":
     status: pending
   "4.1":
-    status: pending
+    status: complete
+    stories:
+      - 0185-utf
   "4.2":
-    status: pending
+    status: complete
+    stories:
+      - 0186-6vf
   "5":
     status: pending
   "5.1":
-    status: pending
+    status: complete
+    stories:
+      - 0187-xwz
   "5.2":
     status: pending
+    stories:
+      - 0188-ibi
 ---
 
 # System 7 Appearance Package: implementation
