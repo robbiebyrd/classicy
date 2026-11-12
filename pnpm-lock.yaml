@@ -198,6 +198,9 @@ importers:
       '@classicy/appearance-platinum':
         specifier: workspace:*
         version: link:../packages/appearance/platinum
+      '@classicy/appearance-system7':
+        specifier: workspace:*
+        version: link:../packages/appearance/system7
       '@classicy/classicy':
         specifier: workspace:*
         version: link:..

@@ -300,7 +300,7 @@ describe("the example app's Vite config", () => {
 	// Loaded as Vite loads it, in a child Node process (esbuild, which
 	// bundles the config, cannot run under jsdom), from a CommonJS main
 	// module (the config's Sass NodePackageImporter reads require.main).
-	it("keeps both packages out of the dev server's pre-bundle", () => {
+	it("keeps every package out of the dev server's pre-bundle", () => {
 		const dir = mkdtempSync(path.join(tmpdir(), "classicy-example-config-"));
 		try {
 			const runner = path.join(dir, "load.cjs");
@@ -322,6 +322,7 @@ describe("the example app's Vite config", () => {
 				expect.arrayContaining([
 					"@classicy/classicy",
 					"@classicy/appearance-platinum",
+					"@classicy/appearance-system7",
 				]),
 			);
 		} finally {
