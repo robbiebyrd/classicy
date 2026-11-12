@@ -27,12 +27,17 @@ built. Today it ships:
   the modal double frame (no title bar on a fixed modal, the striped bar on
   a movable one), alerts laid out on the HIG's grid in one text style, and
   push buttons with the default ring, inverted when pressed and with a
-  dithered label when dimmed;
+  dithered label when dimmed; and its controls, black on white in both
+  themes: checkboxes and radio buttons, little arrows, the Sound control
+  panel's channel slider, outline triangles, text fields, scrolling lists
+  with an inverted selection, dotted group boxes and separators, the Copy
+  dialog's progress bar, and flat bevel buttons, placards and image wells,
+  each dimmed through the dither;
 - one behavior hook, the blink of a chosen menu item (System 7 had no
   interface feedback sounds, so it plays none).
 
-Later work adds the rest of the System 7 look element by element (controls,
-scroll bars) and the screen savers.
+Later work adds the rest of the System 7 look element by element (scroll
+bars, the desktop) and the screen savers.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this
 package once, at your app's entry, to register System 7:

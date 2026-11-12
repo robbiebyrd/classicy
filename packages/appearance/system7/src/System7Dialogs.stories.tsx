@@ -154,7 +154,18 @@ const movableModal = () => (
 				<p style={text}>Items remaining to be copied: 204</p>
 				<p style={text}>Writing: Macintosh HD</p>
 				<div style={row}>
-					<ClassicyProgressBar value={4} max={100} style={{ flex: 1 }} />
+					{/* As captured: 4 rows below the button's top, 14 pixels
+					    left of it, 10 of its 186 inside pixels filled. */}
+					<ClassicyProgressBar
+						value={10}
+						max={186}
+						style={{
+							flex: 1,
+							alignSelf: "flex-start",
+							marginTop: 4,
+							marginRight: 1,
+						}}
+					/>
 					<ClassicyButton style={{ margin: 0 }}>Stop</ClassicyButton>
 				</div>
 			</div>

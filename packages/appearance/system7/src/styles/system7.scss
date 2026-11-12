@@ -4,8 +4,8 @@
 // look is built element by element (plan 0018-dbd Phase 3), each element a
 // components/_<Name>.scss partial exposing one mixin, included inside the
 // wrapper below: so far the windows (§3.2), the menus and menu bar (§3.3),
-// the dialogs, alerts and push buttons (§3.4), and the arrangement System 7
-// shares with no other package.
+// the dialogs, alerts and push buttons (§3.4), the controls (§3.5), and the
+// arrangement System 7 shares with no other package.
 @use "pkg:@classicy/classicy/scss/package";
 @use "components/Window";
 @use "components/Menu";
@@ -14,6 +14,16 @@
 @use "components/Dialog";
 @use "components/Alert";
 @use "components/Button";
+@use "components/Label";
+@use "components/Checkbox";
+@use "components/LittleArrows";
+@use "components/Slider";
+@use "components/Triangle";
+@use "components/TextField";
+@use "components/ListBox";
+@use "components/ControlGroup";
+@use "components/ProgressBar";
+@use "components/FlatControls";
 
 @include package.classicy-package("system7") {
   @include Window.window;
@@ -23,6 +33,30 @@
   @include Dialog.dialog;
   @include Alert.alert;
   @include Button.button;
+  @include Label.label;
+  @include Checkbox.checkbox;
+  @include LittleArrows.little-arrows;
+  @include Slider.slider;
+  @include Triangle.triangle;
+  @include TextField.text-field;
+  @include ListBox.list-box;
+  @include ControlGroup.control-group;
+  @include ProgressBar.progress-bar;
+  @include FlatControls.flat-controls;
+
+  // The browser's own controls take black, not the base sheet's accent
+  // (`--color-theme-04`, the Standard window color's #666699 in color):
+  // System 7 drew every control black on white (HIG p.259). List markers
+  // likewise, which the base sheet draws in `--color-theme-02` (white in
+  // 1-bit).
+  &,
+  * {
+    accent-color: var(--color-black);
+  }
+
+  *::marker {
+    color: var(--color-black);
+  }
 
   // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
   // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box

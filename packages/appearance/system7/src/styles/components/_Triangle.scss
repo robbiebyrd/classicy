@@ -1,0 +1,49 @@
+// The System 7 outline (disclosure) triangle (plan 0018-dbd §3.5), included
+// by system7.scss inside the package wrapper. Measured from the Finder's
+// list view (`*-finder-list-scrollable-active.png`,
+// `*-disclosure-expanded.png`, `*-disclosure-pressed.png`) and the HIG
+// (printed p.218, figure 7-18): a one-pixel black outline, 6 x 11 pointing
+// right while closed, rotated to point down (11 x 6) while open. Hollow in
+// 1-bit; in color its inside is a checker of the light tinge and white. While
+// pressed it fills black (both themes).
+//
+// The component draws a vector triangle; here its shapes are hidden and the
+// triangle is pixel art on the svg's own box, an 11 x 11 square. The closed
+// triangle sits in its columns 4 to 9; the rotation turns about the point
+// (6, 5), so the open one lands on rows 3 to 8, where the Finder draws it,
+// every pixel on the grid.
+@use "sass:list";
+@use "../pixel" as *;
+
+// The closed triangle's outline (6 x 11): its left side and the two
+// slopes meeting at the point.
+$outline: (0 0 1 11) (1 1) (2 2) (3 3) (4 4) (5 5) (4 6) (3 7) (2 8) (1 9);
+// Its inside, as a checker: the cells whose column and row add up odd.
+$checker: (1 2) (2 3) (1 4) (3 4) (2 5) (4 5) (1 6) (3 6) (2 7) (1 8);
+// Pressed: the whole triangle.
+$solid: (0 0 1 11) (1 1 1 9) (2 2 1 7) (3 3 1 5) (4 4 1 3) (5 5 1 1);
+
+// The triangle's art, moved to its columns 4 to 9 of the square.
+@function triangle($rects, $ink) {
+  @return pixel-art($ink, shifted($rects, 4, 0));
+}
+
+@mixin triangle {
+  .classicyTriangle {
+    width: px(11);
+    height: px(11);
+    margin-left: 0;
+    transform-box: border-box;
+    transform-origin: px(6) px(5);
+    background: list.join(triangle($outline, var(--color-black)), triangle($checker, var(--color-theme-03)), comma);
+
+    polygon {
+      display: none;
+    }
+  }
+
+  // Pressed: filled black.
+  :active > .classicyTriangle {
+    background: triangle($solid, var(--color-black));
+  }
+}

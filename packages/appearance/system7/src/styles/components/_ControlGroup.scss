@@ -1,0 +1,76 @@
+// The System 7 group box and separator (plan 0018-dbd §3.5), included by
+// system7.scss inside the package wrapper.
+//
+// - Group box (HIG p.211, figure 7-10; the Views and Sound control panels):
+//   a dotted one-pixel rectangle, a black dot on every other pixel, its
+//   corner pixel empty, at both depths (the control panels' captures are
+//   alike); the title breaks the line. A secondary group is a solid
+//   one-pixel line (System 7 drew no second kind; a plain QuickDraw frame).
+// - Separator (Standard File's, Date & Time's): a one-pixel dotted line. In
+//   1-bit, black on every other pixel; in color, the gray pattern 7.5 draws
+//   there, #888888 and #777777 alternating (`--color-theme-06` and
+//   `--color-system-06`).
+@use "../pixel" as *;
+
+// A dotted line along one edge (`$edge`) of the box: `$ink` on every
+// other pixel, starting `$skip` pixels in.
+@function dotted($ink, $edge, $skip) {
+  $line: repeating-linear-gradient(to right, $ink 0 $px, transparent 0 px(2));
+  $column: repeating-linear-gradient($ink 0 $px, transparent 0 px(2));
+  $length: calc(100% - #{px($skip)});
+  @if $edge == top {
+    @return $line left px($skip) top / $length $px no-repeat;
+  } @else if $edge == bottom {
+    @return $line left px($skip) bottom / $length $px no-repeat;
+  } @else if $edge == left {
+    @return $column left top px($skip) / $px $length no-repeat;
+  }
+  @return $column right top px($skip) / $px $length no-repeat;
+}
+
+// A layer drawn in color only: its tile is two pixels long at a zero
+// `dither.tileSize` (color) and none at 2 (1-bit).
+$color-only: calc(#{px(2)} - var(--dither-tile-size));
+
+@mixin control-group {
+  .classicyControlGroupFieldsetPrimary {
+    border: $px solid transparent;
+    background:
+      dotted(var(--color-black), top, 1),
+      dotted(var(--color-black), left, 1),
+      dotted(var(--color-black), bottom, 1),
+      dotted(var(--color-black), right, 1);
+    background-origin: border-box;
+  }
+
+  .classicyControlGroupFieldsetSecondary {
+    border: $px solid var(--color-black);
+  }
+
+  // The title, on the window's white, breaks the line.
+  .classicyControlGroupLegend {
+    background-color: var(--color-white);
+  }
+
+  .classicySeparatorHorizontal,
+  .classicySeparatorVertical {
+    border: 0;
+  }
+
+  .classicySeparatorHorizontal {
+    height: $px;
+    background:
+      linear-gradient(to right, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / $color-only $px
+        repeat-x,
+      linear-gradient(to right, transparent 50%, var(--color-system-06) 0) left top / var(--dither-tile-size) $px
+        repeat-x;
+  }
+
+  .classicySeparatorVertical {
+    width: $px;
+    background:
+      linear-gradient(var(--color-theme-06) 50%, var(--color-system-06) 0) left top / $px $color-only repeat-y,
+      linear-gradient(transparent 50%, var(--color-system-06) 0) left top / $px var(--dither-tile-size)
+        repeat-y;
+  }
+}

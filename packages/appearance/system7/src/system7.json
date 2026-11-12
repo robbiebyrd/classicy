@@ -157,6 +157,25 @@
 			"windowHeader": {
 				"height": 17,
 				"rule": 3
+			},
+			"checkBox": {
+				"size": 12,
+				"labelGap": 4
+			},
+			"radioButton": {
+				"size": 12
+			},
+			"littleArrows": {
+				"width": 11,
+				"height": 18,
+				"gap": 5
+			},
+			"textField": {
+				"inset": 3,
+				"lift": 2
+			},
+			"listBox": {
+				"rowHeight": 16
 			}
 		},
 		"desktop": {
@@ -326,6 +345,25 @@
 				"windowHeader": {
 					"height": 17,
 					"rule": 3
+				},
+				"checkBox": {
+					"size": 12,
+					"labelGap": 4
+				},
+				"radioButton": {
+					"size": 12
+				},
+				"littleArrows": {
+					"width": 11,
+					"height": 18,
+					"gap": 5
+				},
+				"textField": {
+					"inset": 3,
+					"lift": 2
+				},
+				"listBox": {
+					"rowHeight": 16
 				}
 			},
 			"desktop": {
@@ -497,6 +535,25 @@
 				"windowHeader": {
 					"height": 17,
 					"rule": 3
+				},
+				"checkBox": {
+					"size": 12,
+					"labelGap": 4
+				},
+				"radioButton": {
+					"size": 12
+				},
+				"littleArrows": {
+					"width": 11,
+					"height": 18,
+					"gap": 5
+				},
+				"textField": {
+					"inset": 3,
+					"lift": 2
+				},
+				"listBox": {
+					"rowHeight": 16
 				}
 			},
 			"desktop": {

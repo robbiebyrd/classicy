@@ -49,6 +49,18 @@ $px: var(--window-box-pixel);
   @return $layers;
 }
 
+// The `(x y w h)` rectangles `$rects` moved `$dx` right and `$dy` down,
+// to place a piece of art inside a larger box.
+@function shifted($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $rect: list.set-nth($rect, 1, list.nth($rect, 1) + $dx);
+    $rect: list.set-nth($rect, 2, list.nth($rect, 2) + $dy);
+    $moved: list.append($moved, $rect, $separator: comma);
+  }
+  @return $moved;
+}
+
 // A frame QuickDraw drew with FrameRoundRect: straight sides `$t` grid
 // pixels thick that stop `$n` pixels short of each corner, and the corner
 // art `$corner`, `(x y w h)` rectangles in the top left `$n` x `$n` cell,

@@ -1065,7 +1065,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
-| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
+| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default: the package's window face, Platinum `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
 | `ClassicySchemaForm` | `schema` * (a zod object), `values` *, `onChange(path, value)` *, `idPrefix` *, `path?` | the rows of a `ClassicyControlGroup layout="form"`, derived from a zod object: number → spinner, boolean → checkbox, enum → pop-up menu, string → text field (label above), a nested object → a titled group on a full-width row laying out its own fields; other types render nothing. A field's label is its `.describe()` text, else the humanized key (`speedSeconds` → "Speed seconds", `classicySchemaFieldLabel`); control ids are `<idPrefix>_<key>` for a top-level key and `<idPrefix>_<path…>.<key>` for a nested one, each segment with `%` and `.` percent-encoded so a key such as `a_b` can never take a nested field's id (`classicySchemaFieldId`); `unwrapClassicySchemaField(field)` peels `.optional()`/`.default()`/`.nullable()`/`.readonly()` and returns `{ schema, description }`, the outermost `.describe()` text winning, which is how the form reads a field's kind and label; `onChange` gets the field's full path. A number field reports its entry clamped to `.min()`/`.max()` (no `.min()`: 0, so a negative entry reports 0) and rounded for `.int()`; an empty or non-numeric entry reports nothing. Display gap (the shared spinner): an `.int()` field keeps showing the fraction typed, and an emptied field shows its minimum, until the next edit or a new value re-syncs it. No root of its own, so no `className`/`style`. The Screen Saver options and the Appearance Manager's Options tab use it |
@@ -4687,9 +4687,12 @@ the list ends at these 41 sites over 10 files, the sites kept on purpose
 - System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
   helper: the pressed close and zoom boxes' starburst, the windoid close
   box's cross, the menu bar's screen corners, the menu checkmark, the
-  menu and pop-up triangles and the push buttons' rounded corners and
-  default ring, one-pixel rectangles on the art's pixel grid inside
-  `classicy-px-rect` (H-R7), as the Control Strip's.
+  menu and pop-up triangles, the push buttons' rounded corners and
+  default ring, and the controls' art (the checkbox's X, the radio
+  button's circle and dot, the little arrows, the slider, the outline
+  triangle, the dotted group box and separator), one-pixel rectangles on
+  the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
+  Strip's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

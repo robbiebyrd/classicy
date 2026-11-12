@@ -603,6 +603,248 @@ describe("system7.scss (compiled)", () => {
 		});
 	});
 
+	// Plan 0018-dbd §3.5: the controls, black on white in both themes.
+	describe("controls", () => {
+		const BLACK = "var(--color-black)";
+		const DIM = "var(--color-theme-06)";
+		const dithered = (declarations: string) =>
+			/mask-image: var\(--classicy-art-dither-checker\)/.test(declarations);
+
+		it("pins the browser's accent and list markers to black, not the theme's tinge", () => {
+			expect(css).toMatch(
+				/\.classicyDesktop\[data-classicy-appearance=system7\],\s*\.classicyDesktop\[data-classicy-appearance=system7\] \* \{\s*accent-color: var\(--color-black\);\s*\}/,
+			);
+			expect(rule("*::marker")).toMatch(/color: var\(--color-black\);/);
+		});
+
+		it("draws the checkbox as a framed 12 px box, an X of 18 pixels when on, framed twice when pressed", () => {
+			const box = rule(".classicyCheckbox");
+			expect(box).toMatch(/width: var\(--check-box-size\);/);
+			expect(box).toMatch(
+				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(box).toMatch(/border-radius: 0;/);
+			expect(layersOf(rule(".classicyCheckbox:checked"), BLACK)).toBe(18);
+			expect(rule(".classicyCheckbox:active:not(:disabled)")).toMatch(
+				/box-shadow: inset 0 0 0 var\(--window-box-pixel\) var\(--color-black\);/,
+			);
+			expect(layersOf(rule(":where(.classicyCheckbox).mixed"), BLACK)).toBe(1);
+		});
+
+		it("draws the radio button's circle, its pressed ring and its dot as pixel art", () => {
+			const wrapper = rule(".classicyRadioInputWrapper");
+			expect(wrapper).toMatch(/border-radius: 0;/);
+			expect(layersOf(wrapper, BLACK)).toBe(12);
+			expect(
+				layersOf(
+					rule(".classicyRadioInputWrapper:has(> .classicyRadioInput:active)"),
+					BLACK,
+				),
+			).toBe(14);
+			expect(layersOf(rule(".classicyRadioInput"), BLACK)).toBe(3);
+		});
+
+		it("dims a checkbox, a radio button and a label through the dither in the dimmed ink", () => {
+			const box = rule(".classicyCheckbox:disabled");
+			expect(box).toMatch(/border-color: var\(--color-theme-06\);/);
+			expect(dithered(box)).toBe(true);
+			expect(layersOf(rule(".classicyCheckbox:disabled:checked"), DIM)).toBe(
+				18,
+			);
+			const radio = rule(":where(.classicyRadioInputWrapper).disabled");
+			expect(layersOf(radio, DIM)).toBe(12);
+			expect(dithered(radio)).toBe(true);
+			const label = rule(":where(.classicyControlLabel).disabled");
+			expect(label).toMatch(/color: var\(--color-theme-06\);/);
+			expect(dithered(label)).toBe(true);
+		});
+
+		it("draws the little arrows in a round-cornered frame, the pressed half inverted", () => {
+			const box = rule(".classicyLittleArrows");
+			expect(box).toMatch(/width: var\(--little-arrows-width\);/);
+			expect(box).toMatch(/height: var\(--little-arrows-height\);/);
+			// The frame's four sides and its four corner pixels.
+			expect(layersOf(box, BLACK)).toBe(4 + 4);
+			const up = ".classicyLittleArrows .classicyLittleArrowsButton";
+			expect(layersOf(rule(up), BLACK)).toBe(5);
+			expect(rule(`${up} img`)).toMatch(/visibility: hidden;/);
+			const pressed = rule(`${up}:active:not(:disabled)`);
+			expect(pressed).toMatch(/var\(--color-black\);$/m);
+			expect(layersOf(pressed, "var(--color-white)")).toBe(5);
+			expect(
+				dithered(
+					rule(
+						".classicyLittleArrows:not(:has(> .classicyLittleArrowsButton:enabled))",
+					),
+				),
+			).toBe(true);
+		});
+
+		it("draws the channel slider: its caps, runs and checker, and a capsule thumb", () => {
+			const track = rule(".classicySlider::-webkit-slider-runnable-track");
+			expect(track).toMatch(/height: calc\(var\(--window-box-pixel\) \* 13\);/);
+			// Both caps (10 rectangles each), four runs, seven checker columns.
+			expect(layersOf(track, "var(--system7-slider-ink)")).toBe(10 + 10 + 4);
+			expect(track.split("repeating-linear-gradient(").length - 1).toBe(7);
+			const thumb = rule(".classicySlider::-webkit-slider-thumb");
+			expect(layersOf(thumb, "var(--system7-slider-ink)")).toBe(10);
+			expect(layersOf(thumb, "var(--color-white)")).toBe(3);
+			expect(rule(":where(.classicySlider).disabled")).toMatch(
+				/--system7-slider-ink: var\(--color-theme-06\);/,
+			);
+		});
+
+		it("draws the outline triangle on the pixel grid, turning about a whole pixel", () => {
+			const triangle = rule(".classicyTriangle");
+			expect(triangle).toMatch(/transform-box: border-box;/);
+			expect(triangle).toMatch(
+				/transform-origin: calc\(var\(--window-box-pixel\) \* 6\) calc\(var\(--window-box-pixel\) \* 5\);/,
+			);
+			expect(layersOf(triangle, BLACK)).toBe(10);
+			expect(layersOf(triangle, "var(--color-theme-03)")).toBe(10);
+			expect(rule(".classicyTriangle polygon")).toMatch(/display: none;/);
+			expect(layersOf(rule(":active > .classicyTriangle"), BLACK)).toBe(6);
+		});
+
+		it("frames a text field in one black pixel, with no bevel or focus ring, its selection inverted", () => {
+			const field = rule(".classicyInput");
+			expect(rule(".classicySpinner")).toMatch(
+				/height: var\(--edit-field-height\);/,
+			);
+			expect(field).toMatch(
+				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(field).toMatch(/box-shadow: none;/);
+			expect(field).toMatch(/height: var\(--edit-field-height\);/);
+			expect(rule(".classicyInput:focus-visible")).toMatch(/box-shadow: none;/);
+			expect(rule(".classicyInput::selection")).toMatch(
+				/background-color: var\(--color-highlight\);/,
+			);
+			expect(dithered(rule(".classicyInput:disabled"))).toBe(true);
+			expect(rule(".classicyTextEditor:focus-visible")).toMatch(
+				/box-shadow: none;/,
+			);
+			expect(rule(".classicyRichTextEditor:focus-visible")).toMatch(
+				/box-shadow: none;/,
+			);
+		});
+
+		it("frames a list in one black pixel and inverts its selected row", () => {
+			const list = rule(".classicyListBox");
+			expect(list).toMatch(
+				/--classicy-listbox-row-height: var\(--list-box-row-height\);/,
+			);
+			expect(list).toMatch(
+				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(rule(".classicyListBoxViewport")).toMatch(/box-shadow: none;/);
+			const selected = rule(":where(.classicyListBoxOption).selected");
+			expect(selected).toMatch(/color: var\(--color-white\);/);
+			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
+		});
+
+		it("dims a pop-up's text and triangle but keeps its frame", () => {
+			expect(rule(":where(.classicyPopUpMenu).disabled")).toMatch(
+				/background-image: none;/,
+			);
+			expect(
+				dithered(
+					rule(
+						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue",
+					),
+				),
+			).toBe(true);
+			expect(
+				layersOf(
+					rule(
+						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
+					),
+					DIM,
+				),
+			).toBe(6);
+		});
+
+		it("dots the group box and separator, and paints the legend on white", () => {
+			const group = rule(".classicyControlGroupFieldsetPrimary");
+			expect(group.split("repeating-linear-gradient(").length - 1).toBe(4);
+			expect(group).toMatch(/background-origin: border-box;/);
+			expect(rule(".classicyControlGroupLegend")).toMatch(
+				/background-color: var\(--color-white\);/,
+			);
+			const separator = rule(".classicySeparatorHorizontal");
+			// A menu's divider keeps its own line (_Menu.scss).
+			expect(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu) .classicySeparatorHorizontal",
+				),
+			).toMatch(/background-image: none;/);
+			// Color's gray pair, sized away in 1-bit; 1-bit's dots, sized
+			// away in color.
+			expect(separator).toMatch(
+				/var\(--color-theme-06\) 50%, var\(--color-system-06\) 0\) left top ?\/ ?calc\(calc\(var\(--window-box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+			);
+			expect(separator).toMatch(
+				/transparent 50%, var\(--color-system-06\) 0\) left top ?\/ ?var\(--dither-tile-size\)/,
+			);
+		});
+
+		it("draws the progress bar and meter flat in a black frame, #444444 on #CCCCFF in color", () => {
+			const bar = rule(".classicyProgress progress[value]");
+			expect(bar).toMatch(/height: var\(--progress-height\);/);
+			expect(bar).toMatch(
+				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+			);
+			expect(bar).toMatch(/background: var\(--color-theme-02\);/);
+			expect(
+				rule(".classicyProgress progress[value]::-webkit-progress-value"),
+			).toMatch(
+				/background: color-mix\(in srgb, var\(--color-theme-05\), var\(--color-system-07\)\);/,
+			);
+			expect(rule(".classicyMeter")).toMatch(
+				/background: var\(--color-theme-02\);/,
+			);
+			expect(
+				rule(
+					".classicyProgressIndeterminate progress[value]::-webkit-progress-value",
+				),
+			).toMatch(/mask: none;/);
+		});
+
+		it("draws links black and the Mac OS 8 controls flat, never in the tinge", () => {
+			expect(rule(".classicyLink")).toMatch(/color: var\(--color-black\);/);
+			expect(dithered(rule(":where(.classicyLink).disabled"))).toBe(true);
+			for (const control of [
+				".classicyBevelButton:not(.classicyControlStrip *)",
+				".classicyPlacard",
+				".classicyImageWell",
+			]) {
+				const face = rule(control);
+				expect(face).toMatch(/background-color: var\(--color-white\);/);
+				expect(face).toMatch(/box-shadow: none;/);
+			}
+			// No control reads the tinge the base sheets draw faces and rings
+			// with (#666699, #BBBBBB, #AAAAAA in System 7 Color).
+			for (const control of [
+				".classicyCheckbox",
+				".classicyRadioInputWrapper",
+				".classicyLittleArrows",
+				".classicyInput",
+				".classicyListBox",
+				".classicyBevelButton:not(.classicyControlStrip *)",
+				".classicyPlacard",
+				".classicyImageWell",
+				".classicyMeter",
+				".classicyLink",
+				".classicyTextEditor:focus-visible",
+				".classicyRichTextEditor:focus-visible",
+				".classicyProgress progress[value]",
+			])
+				expect(rule(control)).not.toMatch(
+					/--color-theme-04|--color-system-0[2-4]\)/,
+				);
+		});
+	});
+
 	it("uses no !important (the cascade layers decide)", () =>
 		expect(readFileSync(STYLESHEET, "utf8")).not.toContain("!important"));
 });

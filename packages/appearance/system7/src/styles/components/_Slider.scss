@@ -1,0 +1,208 @@
+// The System 7 slider (plan 0018-dbd §3.5), included by system7.scss inside
+// the package wrapper. System 7 had no Toolbox slider (HIG p.214); its
+// control panels drew their own, and this is the Sound control panel's
+// (`*-controlpanel-sound-slider.png`, HIG figure 7-15), the same at both
+// depths:
+//
+// - the channel, 13 pixels across: a black line, a white one, a black one,
+//   seven pixels of 50% checker, and the same three lines back, its ends
+//   rounded over five rows;
+// - the indicator, a capsule 23 x 11 across the channel: a black outline
+//   whose middle five rows bulge one pixel further out, an inner line one
+//   pixel in at the top and bottom, white inside.
+//
+// Both are pixel art on the native range input's track and thumb. The art is
+// written as (across, along) pairs, `across` the channel's 13 columns and
+// `along` its length from an end, and laid out for each orientation. The
+// thumb's base box (11 x 23) points along a horizontal channel; the base
+// sheet turns it a quarter for a vertical slider (its left indicator), and
+// since the capsule is symmetric every direction draws the same shape.
+// Dimmed, the whole slider takes the dimmed ink through the dither.
+@use "sass:list";
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../pixel" as *;
+
+// One end of the channel: the outer and inner lines curving over its last
+// five rows.
+$cap: (4 0 5 1) (2 1 2 1) (9 1 2 1) (1 2 1 2) (11 2 1 2) (5 2 3 1) (3 3 2 1) (8 3 2 1) (3 4) (9 4);
+
+// The channel's straight runs, (across, from, its two ends' inset): the
+// outer lines from row 4, the inner lines from row 5.
+$runs: (0 4) (12 4) (2 5) (10 5);
+
+// The checker's band, between the inner lines (columns 3 to 9), from row 3
+// of each end (the cap's lines cover its corners): one dotted line a
+// column, each a pixel out of step with the last.
+$band: 3 4 5 6 7 8 9;
+$band-from: 3;
+
+// The indicator (along x across, 11 x 23 for a horizontal channel): its
+// outline, then its white inside.
+$thumb: (0 2 1 19) (10 2 1 19) (1 1 1 1) (1 21 1 1) (9 1 1 1) (9 21 1 1) (2 1 1 21) (8 1 1 21) (3 0 5 1)
+  (3 22 5 1);
+$thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
+
+// A rectangle of the art, (across, along, across-size, along-size), at
+// either end of the channel. `$horizontal`: the channel runs along x.
+@function rect($ink, $r, $horizontal, $far: false) {
+  $a: px(list.nth($r, 1));
+  $l: px(list.nth($r, 2));
+  $w: $px;
+  $h: $px;
+  @if list.length($r) > 2 {
+    $w: px(list.nth($r, 3));
+    $h: px(list.nth($r, 4));
+  }
+  $start: top;
+  @if $horizontal {
+    $start: left;
+  }
+  @if $far and $horizontal {
+    $start: right;
+  } @else if $far {
+    $start: bottom;
+  }
+  @if $horizontal {
+    @return layout.classicy-px-rect($ink, $start $l, top $a, $h, $w);
+  }
+  @return layout.classicy-px-rect($ink, left $a, $start $l, $w, $h);
+}
+
+// The channel's art: both caps, the straight runs and the checker band.
+@function channel($ink, $horizontal) {
+  $layers: ();
+  @each $far in (false, true) {
+    @each $r in $cap {
+      $layers: list.append($layers, rect($ink, $r, $horizontal, $far), $separator: comma);
+    }
+  }
+  @each $run in $runs {
+    $across: px(list.nth($run, 1));
+    $from: px(list.nth($run, 2));
+    $length: calc(100% - #{px(list.nth($run, 2) + list.nth($run, 2))});
+    @if $horizontal {
+      $layers: list.append($layers, layout.classicy-px-rect($ink, left $from, top $across, $length, $px), $separator: comma);
+    } @else {
+      $layers: list.append($layers, layout.classicy-px-rect($ink, left $across, top $from, $px, $length), $separator: comma);
+    }
+  }
+  @each $across in $band {
+    // Every other column starts a pixel further along: a 50% checker.
+    $from: $band-from + ($across % 2);
+    $length: calc(100% - #{px($from + $from)});
+    @if $horizontal {
+      $layers: list.append(
+        $layers,
+        repeating-linear-gradient(to right, $ink 0 $px, transparent 0 px(2)) left px($from) top px($across) /
+          $length $px no-repeat,
+        $separator: comma
+      );
+    } @else {
+      $layers: list.append(
+        $layers,
+        repeating-linear-gradient($ink 0 $px, transparent 0 px(2)) left px($across) top px($from) / $px $length
+          no-repeat,
+        $separator: comma
+      );
+    }
+  }
+  @return $layers;
+}
+
+// The indicator's art (its base box, 11 x 23).
+@function art($rects, $ink) {
+  $layers: ();
+  @each $r in $rects {
+    $layers: list.append($layers, rect($ink, $r, false), $separator: comma);
+  }
+  @return $layers;
+}
+
+// The ink every part of the slider is drawn in: black, or the dimmed ink.
+$ink: var(--system7-slider-ink);
+
+@mixin channel-track($horizontal) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: channel($ink, $horizontal);
+}
+
+@mixin slider {
+  .classicySliderTrackGroup {
+    --slider-thumb-width: #{px(11)};
+    --slider-thumb-height: #{px(23)};
+  }
+
+  .classicySlider {
+    --system7-slider-ink: var(--color-black);
+
+    height: px(23);
+
+    &::-webkit-slider-runnable-track {
+      height: px(13);
+      @include channel-track(true);
+    }
+
+    &::-moz-range-track {
+      height: px(13);
+      @include channel-track(true);
+    }
+
+    // Centered across the channel: (13 - 23) / 2.
+    &::-webkit-slider-thumb {
+      margin-top: px(-5);
+      clip-path: none;
+      background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
+    }
+
+    &::-moz-range-thumb {
+      margin-top: px(-5);
+      clip-path: none;
+      background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
+    }
+  }
+
+  // A vertical slider: the channel runs down its writing-mode axis.
+  .classicySliderInputVertical {
+    width: px(23);
+
+    &::-webkit-slider-runnable-track {
+      width: px(13);
+      height: auto;
+      @include channel-track(false);
+    }
+
+    &::-moz-range-track {
+      width: px(13);
+      height: auto;
+      @include channel-track(false);
+    }
+
+    // The thumb's box starts at the channel's edge, across it: a pixel in
+    // centers the turned capsule on the channel; nothing moves it along.
+    &::-webkit-slider-thumb {
+      margin: 0 0 0 $px;
+    }
+
+    &::-moz-range-thumb {
+      margin: 0 0 0 $px;
+    }
+  }
+
+  // Dimmed: the whole slider in the dimmed ink, through the dither.
+  :where(.classicySlider).disabled {
+    --system7-slider-ink: var(--color-theme-06);
+
+    filter: none;
+    @include d.classicy-dither-mask;
+  }
+
+  // Tick marks on whole pixels: black one-pixel lines, never moved by a
+  // half pixel (a 1 px line centered on its value blurs over two).
+  .classicySliderTick,
+  .classicySliderStackVertical .classicySliderTick {
+    transform: none;
+  }
+}

@@ -1,0 +1,133 @@
+// The System 7 text fields (plan 0018-dbd §3.5), included by system7.scss
+// inside the package wrapper. Measured from the Save dialog and Date & Time
+// captures (`*-textfield-caret.png`, `*-dialog-standardfile-save.png`,
+// `*-controlpanel-datetime.png`) and the HIG (printed pp.219-220): a
+// one-pixel black rectangle, square cornered, white inside, no bevel and no
+// shadow; 22 pixels tall (`--edit-field-height`), the text
+// `textField.inset` (3) pixels inside the frame; a black insertion point
+// and selected text inverted (the highlight color, black in both themes).
+// The HIG gives the active field no ring: the insertion point shows it.
+// Dimmed, the field and its text take the dimmed ink through the dither.
+//
+// The same frame draws the little arrows' field (the spinner), the date
+// and time pickers' fields, the combo box's field and its pop-up box, and
+// the text editors' frames.
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+@use "PopUpMenu";
+
+$fields: ".classicyInput, .classicySpinner";
+
+@mixin field-frame {
+  box-sizing: border-box;
+  border: $px solid var(--color-black);
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  color: var(--color-black);
+  background-color: var(--color-white);
+  caret-color: var(--color-black);
+
+  &::selection {
+    color: var(--color-white);
+    background-color: var(--color-highlight);
+  }
+}
+
+@mixin text-field {
+  #{$fields} {
+    @include field-frame;
+    height: var(--edit-field-height);
+    // The text's line box sits a pixel above the field's middle, so its
+    // baseline falls 14 rows below the frame's top, as captured.
+    padding: 0 var(--text-field-inset) var(--text-field-lift);
+    font-size: var(--ui-font-size);
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    &:disabled {
+      color: var(--color-theme-06);
+      border-color: var(--color-theme-06);
+      @include d.classicy-dither-mask;
+    }
+  }
+
+  // A host's own field color (the `backgroundColor` prop), else white.
+  .classicyInputHolder input {
+    background-color: var(--classicy-input-background, var(--color-white));
+  }
+
+  .classicySpinner {
+    background-color: var(--classicy-spinner-background, var(--color-white));
+  }
+
+  // The date and time pickers: one field frame around their parts.
+  .classicyDatePicker,
+  .classicyTimePicker {
+    border-style: solid;
+    border-color: var(--color-black);
+    box-shadow: none;
+    background-color: var(--color-white);
+
+    input {
+      border: none;
+      box-shadow: none;
+      outline: none;
+    }
+  }
+
+  // The combo box: the field, and beside it a pop-up box holding the pop-up
+  // menu's triangle (System 7 had no combo box; this is its two parts).
+  // The box is the field's height and 20 pixels wide, the pop-up
+  // triangle centered in it (4 pixels in, 7 down).
+  .classicyComboBoxIndicator {
+    align-self: stretch;
+    box-sizing: border-box;
+    width: px(20);
+    height: auto;
+    margin: 0;
+    border: $px solid var(--color-black);
+    border-left-width: 0;
+    border-radius: 0;
+    background: pixel-art(var(--color-black), shifted(PopUpMenu.$popup-arrow, 4, 7)), var(--color-white);
+
+    &:disabled {
+      background: pixel-art(var(--color-theme-06), shifted(PopUpMenu.$popup-arrow, 4, 7)), var(--color-white);
+      @include d.classicy-dither-mask;
+    }
+  }
+
+  .classicyComboBoxNoMatches.classicyPopUpMenuListItem {
+    @include d.classicy-dither-text("--color-theme-06");
+  }
+
+  // The text editors: the frame without the bevel or a focus ring.
+  .classicyTextEditorBevel {
+    box-shadow: none;
+  }
+
+  .classicyTextEditor {
+    caret-color: var(--color-black);
+
+    &:focus-visible {
+      box-shadow: none;
+    }
+
+    &::selection {
+      color: var(--color-white);
+      background-color: var(--color-highlight);
+    }
+  }
+
+  .classicyRichTextEditor {
+    box-shadow: none;
+
+    &:focus-visible {
+      box-shadow: none;
+    }
+  }
+}

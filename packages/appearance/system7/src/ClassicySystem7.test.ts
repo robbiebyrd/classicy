@@ -336,6 +336,47 @@ describe("the System 7 appearance package", () => {
 		});
 	});
 
+	// The controls' knobs (styles/components/_Checkbox.scss, _LittleArrows.scss,
+	// _TextField.scss, _ListBox.scss), measured from the 7.5 captures: the
+	// same at both depths, since the HIG draws controls black on white in
+	// color too (p.259).
+	it("emits the controls' knobs, the same in both themes", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [bw, color])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--check-box-size": "12px",
+				"--check-box-label-gap": "4px",
+				"--radio-button-size": "12px",
+				"--little-arrows-width": "11px",
+				"--little-arrows-height": "18px",
+				"--little-arrows-gap": "5px",
+				"--text-field-inset": "3px",
+				"--text-field-lift": "2px",
+				"--list-box-row-height": "16px",
+				// The text field and the progress bar (the Copy dialog's) are
+				// the core's derivations: 22 and 11 pixels.
+				"--edit-field-height": "22px",
+				"--progress-height": "11px",
+			});
+	});
+
+	// The progress bar's track and fill (_ProgressBar.scss): #CCCCFF and
+	// #444444 (half #333333, half #555555) in color, white and black in 1-bit.
+	it("draws the progress bar from the tinge ramp in color, black and white in 1-bit", () => {
+		const [bw, color] = system7Json.presets;
+		expect([color.color.theme[1], color.color.theme[4]]).toEqual([
+			0xccccff, 0x333333,
+		]);
+		expect(color.color.system[6]).toBe(0x555555);
+		expect([bw.color.theme[1], bw.color.theme[4], bw.color.system[6]]).toEqual([
+			WHITE,
+			0,
+			0,
+		]);
+	});
+
 	// HIG p.190: "The outer line is one pixel thick and the inner line is two
 	// pixels thick", two white pixels apart, in 1-bit; color's bevels and
 	// band fill the same five pixels (the 7.5 captures).
