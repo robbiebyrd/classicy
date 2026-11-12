@@ -115,6 +115,47 @@ describe("pnpm build:audio", () => {
 	});
 });
 
+describe("an empty loop list under set -u", () => {
+	// macOS's /bin/bash is 3.2, where a bare "${a[@]}" of an empty array is an
+	// unbound variable under `set -u` (bash 4.4 and later expand it to
+	// nothing). System 7's loop list (",") names no sprite, so its array is
+	// empty: every array expansion carries the `${a[@]+"${a[@]}"}` guard.
+	const script = readFileSync("bin/make_audio_sprites.sh", "utf8");
+
+	it("expands no array bare", () => {
+		const code = script
+			.split("\n")
+			.filter((line) => !line.trim().startsWith("#"))
+			.join("\n");
+		const bare = [...code.matchAll(/(.)"\$\{(\w+)\[@\]\}"/g)].filter(
+			([, before, name]) =>
+				before !== "+" || !script.includes(`\${${name}[@]+"\${${name}[@]}"}`),
+		);
+		expect(bare.map(([match]) => match)).toEqual([]);
+	});
+
+	it('builds no --loop argument from "," or a lone name\'s empty fields', () => {
+		// The script's own loop-list lines, run under set -u.
+		const all = script.split("\n");
+		const start = all.findIndex((line) => line.startsWith("loop_args=()"));
+		const lines = all.slice(start, start + 5).join("\n");
+		expect(lines).toContain("loop_args+=(--loop");
+		const run = (loops: string) =>
+			execFileSync(
+				"bash",
+				[
+					"-c",
+					`set -euo pipefail\nloops=$1\n${lines}\nprintf '[%s]' x \${loop_args[@]+"\${loop_args[@]}"}`,
+					"bash",
+					loops,
+				],
+				{ encoding: "utf8" },
+			);
+		expect(run(",")).toBe("[x]");
+		expect(run("A,,B")).toBe("[x][--loop][A][--loop][B]");
+	});
+});
+
 describe("deterministic, change-driven sprites", () => {
 	let work = "";
 	afterEach(() => {

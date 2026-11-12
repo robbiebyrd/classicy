@@ -83,6 +83,10 @@ export const decodeSound = (data: Buffer): DecodedSound => {
 		const encode = data.readUInt8(header + 20);
 		if (encode !== 0)
 			throw new Error(`snd header encoding ${encode} is not stdSH (0)`);
+		if (header + 22 + length > data.length)
+			throw new Error(
+				`snd resource is short: its header holds ${length} samples at ${header + 22}, the resource ${data.length} bytes`,
+			);
 		sampled = {
 			sampleRate: data.readUInt32BE(header + 8) / 65536,
 			baseFrequency: data.readUInt8(header + 21),
@@ -184,7 +188,9 @@ export const renderSquareWave = (
 /**
  * A PCM WAV file: mono, `bits` 8 (unsigned, as a `snd ` stores them) or 16
  * (signed little-endian), at a whole-number `rate`. No chunks but `fmt ` and
- * `data`, so the bytes depend on the samples alone.
+ * `data`, so the bytes depend on the samples alone. An odd-length `data`
+ * chunk is followed by one pad byte (RIFF chunks start on even offsets),
+ * which its size leaves out and the RIFF size counts.
  */
 export const encodeWav = ({
 	rate,
@@ -202,9 +208,10 @@ export const encodeWav = ({
 	for (let i = 0; i < samples.length; i++)
 		if (bits === 8) data.writeUInt8(samples[i], i);
 		else data.writeInt16LE(samples[i], i * 2);
+	const pad = Buffer.alloc(data.length % 2);
 	const header = Buffer.alloc(44);
 	header.write("RIFF", 0, "latin1");
-	header.writeUInt32LE(36 + data.length, 4);
+	header.writeUInt32LE(36 + data.length + pad.length, 4);
 	header.write("WAVE", 8, "latin1");
 	header.write("fmt ", 12, "latin1");
 	header.writeUInt32LE(16, 16);
@@ -216,5 +223,5 @@ export const encodeWav = ({
 	header.writeUInt16LE(bits, 34);
 	header.write("data", 36, "latin1");
 	header.writeUInt32LE(data.length, 40);
-	return Buffer.concat([header, data]);
+	return Buffer.concat([header, data, pad]);
 };

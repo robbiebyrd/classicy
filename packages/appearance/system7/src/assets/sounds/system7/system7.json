@@ -1,14 +1,40 @@
 {
 	"id": "system7",
 	"name": "System7",
-	"src": ["./system7.ogg", "./system7.m4a", "./system7.mp3", "./system7.ac3"],
+	"src": [
+		"./system7.ogg",
+		"./system7.m4a",
+		"./system7.mp3",
+		"./system7.ac3"
+	],
 	"sprite": {
-		"ClassicyAlertDroplet": [0, 152.7891156462585],
-		"ClassicyAlertIndigo": [1999.9999999999998, 352.31292517006784],
-		"ClassicyAlertQuack": [3999.9999999999995, 183.35600907029504],
-		"ClassicyAlertSimpleBeep": [6000, 240.00000000000023],
-		"ClassicyAlertSosumi": [8000, 179.56916099773323],
-		"ClassicyAlertWildEep": [10000, 136.9841269841263],
-		"ClassicyBeep": [12000, 240.00000000000023]
+		"ClassicyAlertDroplet": [
+			0,
+			152.7891156462585
+		],
+		"ClassicyAlertIndigo": [
+			1999.9999999999998,
+			352.31292517006784
+		],
+		"ClassicyAlertQuack": [
+			3999.9999999999995,
+			183.35600907029504
+		],
+		"ClassicyAlertSimpleBeep": [
+			6000,
+			240.00000000000023
+		],
+		"ClassicyAlertSosumi": [
+			8000,
+			179.56916099773323
+		],
+		"ClassicyAlertWildEep": [
+			10000,
+			136.9841269841263
+		],
+		"ClassicyBeep": [
+			12000,
+			240.00000000000023
+		]
 	}
 }

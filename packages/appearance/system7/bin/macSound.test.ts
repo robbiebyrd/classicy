@@ -71,6 +71,21 @@ describe("decodeSound", () => {
 		expect([...(sound.sampled?.samples ?? [])]).toEqual([...samples]);
 	});
 
+	it("refuses a resource shorter than its header's sample count", () => {
+		const header = Buffer.alloc(22);
+		header.writeUInt32BE(8, 4); // 8 samples, 4 present
+		const sound = (tail: Buffer) =>
+			decodeSound(
+				format1(
+					SAMPLED_SYNTH,
+					[cmd(0x8000 | SOUND_CMD.bufferCmd, 0, 20)],
+					Buffer.concat([header, tail]),
+				),
+			);
+		expect(() => sound(Buffer.alloc(4, 0x80))).toThrow(/short/);
+		expect(sound(Buffer.alloc(8, 0x80)).sampled?.samples).toHaveLength(8);
+	});
+
 	it("refuses a header that is not a standard one", () => {
 		const header = Buffer.alloc(22);
 		header.writeUInt8(0xff, 20);
@@ -160,7 +175,7 @@ describe("encodeWav", () => {
 	it("writes 8-bit unsigned samples as stored", () => {
 		const wav = encodeWav({ rate: 11127, bits: 8, samples: [0x80, 0xff, 0] });
 		expect(wav.toString("latin1", 0, 4)).toBe("RIFF");
-		expect(wav.readUInt32LE(4)).toBe(36 + 3);
+		expect(wav.readUInt32LE(4)).toBe(36 + 3 + 1); // and the pad byte
 		expect(wav.toString("latin1", 8, 16)).toBe("WAVEfmt ");
 		expect(wav.readUInt16LE(20)).toBe(1);
 		expect(wav.readUInt16LE(22)).toBe(1);
@@ -170,7 +185,18 @@ describe("encodeWav", () => {
 		expect(wav.readUInt16LE(34)).toBe(8);
 		expect(wav.toString("latin1", 36, 40)).toBe("data");
 		expect(wav.readUInt32LE(40)).toBe(3);
-		expect([...wav.subarray(44)]).toEqual([0x80, 0xff, 0]);
+		expect([...wav.subarray(44, 47)]).toEqual([0x80, 0xff, 0]);
+	});
+
+	it("pads an odd-length data chunk to an even length, outside its size", () => {
+		const wav = encodeWav({ rate: 11127, bits: 8, samples: [1, 2, 3] });
+		expect(wav.length).toBe(44 + 4);
+		expect(wav.readUInt32LE(4)).toBe(wav.length - 8);
+		expect(wav.readUInt32LE(40)).toBe(3);
+		expect(wav[47]).toBe(0);
+		const even = encodeWav({ rate: 11127, bits: 8, samples: [1, 2] });
+		expect(even.length).toBe(44 + 2);
+		expect(even.readUInt32LE(4)).toBe(even.length - 8);
 	});
 
 	it("writes 16-bit samples signed, little-endian", () => {
