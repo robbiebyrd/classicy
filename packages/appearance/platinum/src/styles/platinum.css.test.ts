@@ -337,6 +337,18 @@ describe("platinum.scss (compiled)", () => {
 		).toBe("var(--classicy-art-popup-arrows)");
 	});
 
+	// A long pop-up menu scrolls by its indicators (HIG7 p.78): a black
+	// triangle on the menu's face over the first or last row, and no native
+	// bar, which the desktop's Firefox fallback would otherwise show.
+	it("draws a pop-up menu's scroll indicators on the menu's face, and no native bar", () => {
+		const arrow = rule(`${P} .classicyPopUpMenuScrollArrow`).props;
+		expect(arrow["background-color"]).toBe("var(--color-system-02)");
+		expect(arrow.color).toBe("var(--color-black)");
+		expect(rule(`${P} .classicyPopUpMenuList`).props["scrollbar-width"]).toBe(
+			"none",
+		);
+	});
+
 	// Part E 5.1: the text glyphs are package look, drawn as `::before`
 	// content on the state or variant class. Escapes, so the Sass output stays
 	// ASCII: no `@charset` (or BOM) ahead of the layer block. This guards the
@@ -347,6 +359,8 @@ describe("platinum.scss (compiled)", () => {
 			[".classicyMenuItemCheck.checked::before", '"\\2713"'],
 			[".classicyMenuItemCheck.mixed::before", '"\\2013"'],
 			[".classicyPopUpMenuCheck.checked::before", '"\\2713"'],
+			[".classicyPopUpMenuScrollArrowUp::before", '"\\25B2"'],
+			[".classicyPopUpMenuScrollArrowDown::before", '"\\25BC"'],
 			[".classicyBevelButtonArrowHorizontal::before", '"\\25B8"'],
 			[".classicyBevelButtonArrowVertical::before", '"\\25BE"'],
 			[".classicyPlacardArrow::before", '"\\25BE"'],

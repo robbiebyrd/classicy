@@ -139,6 +139,14 @@
   // Let the list consume wheel gestures instead of handing them to the desktop
   // once it hits an end stop, which would scroll the surface behind the menu.
   overscroll-behavior: contain;
+  // A menu scrolls by its indicators (HIG7 p.78), never by a scroll bar: the
+  // browser's own is hidden (`scrollbar-width` for Firefox and Chromium, the
+  // pseudo-element for Safari before 18.2).
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   color: var(--color-black);
   background-color: var(--color-system-02);
@@ -148,6 +156,17 @@
     var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
 
   font: inherit;
+}
+
+// A scroll indicator, over the list's first or last row while items lie
+// hidden past it: placed and sized (one row) by ClassicyPopUpMenu, drawn by
+// the Appearance Package, the glyph centered.
+.classicyPopUpMenuScrollArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: default;
 }
 
 .classicyPopUpMenuListItem {

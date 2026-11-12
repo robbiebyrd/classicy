@@ -468,8 +468,10 @@ in every browser (Firefox now shows Platinum's full bars).
   by windows, list boxes, tables (`scrollable={false}` in the Finder list
   view, whose window scrolls), text editors, split-view panes, the Assistant,
   file dialogs, Drive Setup, the color picker, the PDF viewer, HyperCard
-  locked fields and About This Computer. Menus keep the browser's scrolling
-  (Mac OS menus have no bars).
+  locked fields and About This Computer. Menus have no bars: a long pop-up or
+  combo box list scrolls by indicators over its first and last rows
+  (`useClassicyMenuScrollArrows`, `PopUpMenu/`; parts `menu-scroll-up` and
+  `menu-scroll-down`), as HIG7 p.78 has it.
 
 ### Pop-Up Bevel Buttons
 

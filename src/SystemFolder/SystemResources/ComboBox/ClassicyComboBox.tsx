@@ -37,6 +37,7 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/PopUpMenu/useClassicyMenuScrollArrows.internal";
 
 /**
  * How typing narrows the suggestions: by label prefix, by label substring, or
@@ -135,6 +136,12 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	// A long suggestion list scrolls by its indicators, as the pop-up menu's
+	// does (HIG7 p.78), never by a scroll bar.
+	const scrollArrows = useClassicyMenuScrollArrows(listRef);
+	const resetScrollArrows = scrollArrows.reset;
+	const measureScrollArrows = scrollArrows.measure;
+	const scrollArrowsContain = scrollArrows.contains;
 	// The last committed suggestion — what a freeText=false combo reverts to.
 	const committedLabel = useRef<string | undefined>(prefillValue);
 	const committedValue = useRef<string | undefined>(undefined);
@@ -199,7 +206,8 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		setBypassFilter(false);
 		setMenuRect(null);
 		setPlacement(null);
-	}, []);
+		resetScrollArrows();
+	}, [resetScrollArrows]);
 
 	const openList = useCallback(
 		(bypass: boolean) => {
@@ -265,14 +273,15 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			const target = e.target as Node;
 			if (
 				!anchorRef.current?.contains(target) &&
-				!listRef.current?.contains(target)
+				!listRef.current?.contains(target) &&
+				!scrollArrowsContain(target)
 			) {
 				dismiss();
 			}
 		};
 		document.addEventListener("mousedown", onPointerDown);
 		return () => document.removeEventListener("mousedown", onPointerDown);
-	}, [open, dismiss]);
+	}, [open, dismiss, scrollArrowsContain]);
 
 	// A fixed-position portal can't follow its anchor; dismiss on ancestor
 	// scroll or resize, but not when the list scrolls its own overflow.
@@ -313,6 +322,12 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			),
 		);
 	}, [open, menuRect]);
+
+	// The indicators follow the list as it is placed and as typing filters
+	// its suggestions (a no-op when nothing changed).
+	useLayoutEffect(() => {
+		if (open && placement) measureScrollArrows();
+	});
 
 	useLayoutEffect(() => {
 		if (!open || effectiveHighlight < 0) return;
@@ -435,98 +450,103 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			{open &&
 				menuRect &&
 				createPortal(
-					<div
-						ref={listRef}
-						id={listId}
-						role="listbox"
-						aria-label={label ?? placeholder ?? id}
-						className={classNames(
-							"classicyPopUpMenuList",
-							placement?.above && "classicyPopUpMenuListAbove",
-						)}
-						style={{
-							position: "fixed",
-							left: `${menuRect.left}px`,
-							minWidth: `${menuRect.width}px`,
-							zIndex: 5000,
-							// Unlike the pop-up menu (which overlays its button), the
-							// suggestion list hangs below the field — or sits fully
-							// above it when there is no room below.
-							...(placement?.above
-								? { bottom: `${window.innerHeight - menuRect.top}px` }
-								: { top: `${menuRect.bottom}px` }),
-							...(placement && { maxHeight: `${placement.maxHeight}px` }),
-						}}
-					>
-						{filtered.length === 0 && (
-							<div
-								role="presentation"
-								className="classicyComboBoxNoMatches classicyPopUpMenuListItem"
-							>
-								No matches
-							</div>
-						)}
-						{rows.map((row, rowIndex) => {
-							if (row.kind === "header") {
+					<>
+						<div
+							ref={listRef}
+							id={listId}
+							role="listbox"
+							aria-label={label ?? placeholder ?? id}
+							className={classNames(
+								"classicyPopUpMenuList",
+								placement?.above && "classicyPopUpMenuListAbove",
+							)}
+							onScroll={scrollArrows.onListScroll}
+							style={{
+								position: "fixed",
+								left: `${menuRect.left}px`,
+								minWidth: `${menuRect.width}px`,
+								zIndex: 5000,
+								// Unlike the pop-up menu (which overlays its button), the
+								// suggestion list hangs below the field — or sits fully
+								// above it when there is no room below.
+								...(placement?.above
+									? { bottom: `${window.innerHeight - menuRect.top}px` }
+									: { top: `${menuRect.bottom}px` }),
+								...(placement && { maxHeight: `${placement.maxHeight}px` }),
+								...scrollArrows.listStyle,
+							}}
+						>
+							{filtered.length === 0 && (
+								<div
+									role="presentation"
+									className="classicyComboBoxNoMatches classicyPopUpMenuListItem"
+								>
+									No matches
+								</div>
+							)}
+							{rows.map((row, rowIndex) => {
+								if (row.kind === "header") {
+									return (
+										<div
+											// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the filtered options; the index disambiguates duplicate group labels and rows never reorder independently
+											key={`${id}-group-${row.label}-${rowIndex}`}
+											role="presentation"
+											className="classicyPopUpMenuGroupHeader"
+										>
+											{row.label}
+										</div>
+									);
+								}
+								const { option: o, flatIndex: index, grouped } = row;
+								const isSelected = o.value === committedValue.current;
 								return (
 									<div
-										// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the filtered options; the index disambiguates duplicate group labels and rows never reorder independently
-										key={`${id}-group-${row.label}-${rowIndex}`}
-										role="presentation"
-										className="classicyPopUpMenuGroupHeader"
+										key={id + o.value}
+										id={optionId(index)}
+										role="option"
+										tabIndex={-1}
+										aria-selected={isSelected}
+										className={classNames(
+											"classicyPopUpMenuListItem",
+											grouped && "classicyPopUpMenuListItemGrouped",
+											index === effectiveHighlight &&
+												"classicyPopUpMenuListItemHighlight",
+										)}
+										onMouseEnter={() => setHighlight(index)}
+										// Commit on mousedown-driven click; preventDefault on
+										// mousedown keeps focus in the input meanwhile.
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => commitOption(o)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												commitOption(o);
+											}
+										}}
 									>
-										{row.label}
+										<span
+											className={classNames(
+												"classicyPopUpMenuCheck",
+												classicyStateClasses({ checked: isSelected }),
+											)}
+											aria-hidden={true}
+										/>
+										{o.icon && (
+											<img
+												className="classicyPopUpMenuListItemIcon"
+												src={o.icon}
+												alt=""
+											/>
+										)}
+										<span className="classicyPopUpMenuListItemLabel">
+											{o.label}
+										</span>
 									</div>
 								);
-							}
-							const { option: o, flatIndex: index, grouped } = row;
-							const isSelected = o.value === committedValue.current;
-							return (
-								<div
-									key={id + o.value}
-									id={optionId(index)}
-									role="option"
-									tabIndex={-1}
-									aria-selected={isSelected}
-									className={classNames(
-										"classicyPopUpMenuListItem",
-										grouped && "classicyPopUpMenuListItemGrouped",
-										index === effectiveHighlight &&
-											"classicyPopUpMenuListItemHighlight",
-									)}
-									onMouseEnter={() => setHighlight(index)}
-									// Commit on mousedown-driven click; preventDefault on
-									// mousedown keeps focus in the input meanwhile.
-									onMouseDown={(e) => e.preventDefault()}
-									onClick={() => commitOption(o)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											commitOption(o);
-										}
-									}}
-								>
-									<span
-										className={classNames(
-											"classicyPopUpMenuCheck",
-											classicyStateClasses({ checked: isSelected }),
-										)}
-										aria-hidden={true}
-									/>
-									{o.icon && (
-										<img
-											className="classicyPopUpMenuListItemIcon"
-											src={o.icon}
-											alt=""
-										/>
-									)}
-									<span className="classicyPopUpMenuListItemLabel">
-										{o.label}
-									</span>
-								</div>
-							);
-						})}
-					</div>,
+							})}
+						</div>
+						{scrollArrows.indicators}
+					</>,
 					document.getElementById("classicyDesktop") ?? document.body,
 				)}
 		</div>

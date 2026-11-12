@@ -46,7 +46,8 @@ resolution).
     standalone frame;
   - menus: the white menu bar under the screen's rounded corners, pull-down,
     hierarchical and pop-up menus with inverted highlights, dimmed items and
-    dotted or gray dividers, checkmarks, and the blink of a chosen item;
+    dotted or gray dividers, checkmarks, the blink of a chosen item, and a
+    long pop-up's scroll triangles;
   - dialogs: the modal double frame (no title bar on a fixed modal, the
     striped bar on a movable one), alerts on the HIG's grid, and push
     buttons with the default ring;

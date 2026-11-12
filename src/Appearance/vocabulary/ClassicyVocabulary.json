@@ -386,6 +386,9 @@
 			"ListItemHighlight",
 			"ListItemIcon",
 			"ListItemLabel",
+			"ScrollArrow",
+			"ScrollArrowDown",
+			"ScrollArrowUp",
 			"SizeLarge",
 			"SizeMedium",
 			"SizeMini",
@@ -582,7 +585,9 @@
 			"scroll-arrow-end",
 			"scroll-thumb",
 			"scroll-corner",
-			"scroll-drag-outline"
+			"scroll-drag-outline",
+			"menu-scroll-up",
+			"menu-scroll-down"
 		]
 	}
 }

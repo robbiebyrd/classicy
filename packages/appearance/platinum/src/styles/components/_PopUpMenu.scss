@@ -24,6 +24,29 @@
     background-image: var(--classicy-art-popup-arrows);
   }
 
+  // A long open menu scrolls by its indicators (HIG7 p.78; ClassicyPopUpMenu
+  // places them over the first or last row): a black triangle on the menu's
+  // face. The list's native bar stays hidden: the desktop's Firefox fallback
+  // (`scrollbar-width: auto` on `& *`, _Desktop.scss) would show it from this
+  // layer over the base sheet's `none`; one class more wins.
+  .classicyPopUpMenuList {
+    scrollbar-width: none;
+  }
+
+  .classicyPopUpMenuScrollArrow {
+    color: var(--color-black);
+    background-color: var(--color-system-02);
+    font-size: var(--ui-font-size-small);
+  }
+
+  .classicyPopUpMenuScrollArrowUp::before {
+    content: string.unquote('"\\25B2"'); // ▲
+  }
+
+  .classicyPopUpMenuScrollArrowDown::before {
+    content: string.unquote('"\\25BC"'); // ▼
+  }
+
   // The HIG checkmark against the current selection, a font glyph in the
   // fixed check gutter (an escape kept by `string.unquote`, so the Sass output
   // stays ASCII; the build keeps dist ASCII, verify:dist invariant 9).

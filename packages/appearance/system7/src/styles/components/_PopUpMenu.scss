@@ -18,6 +18,9 @@
 // pixels, pointing down.
 $popup-arrow: (0 0 11 1) (1 1 9 1) (2 2 7 1) (3 3 5 1) (4 4 3 1) (5 5 1 1);
 
+// The same triangle pointing up: a long menu's upper scroll indicator.
+$popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
+
 @mixin pop-up-menu {
   .classicyPopUpMenu {
     height: var(--pop-up-menu-height);
@@ -151,5 +154,29 @@ $popup-arrow: (0 0 11 1) (1 1 9 1) (2 2 7 1) (3 3 5 1) (4 4 3 1) (5 5 1 1);
       background: pixel-art(var(--color-theme-06), $popup-arrow);
       @include d.classicy-dither-mask;
     }
+  }
+  // A long open menu's scroll indicators (HIG p.78, the triangle the
+  // hierarchical Control Panels menu shows at its foot): the pop-up's
+  // triangle, solid black on the menu's white face, at the items' text
+  // inset less a pixel, over the first or last row (ClassicyPopUpMenu
+  // places them inside the frame).
+  .classicyPopUpMenuScrollArrow {
+    justify-content: flex-start;
+    padding-left: calc(var(--menu-item-text-inset) - #{$px});
+    background: var(--color-white);
+
+    &::before {
+      content: "";
+      width: px(11);
+      height: px(6);
+    }
+  }
+
+  .classicyPopUpMenuScrollArrowUp::before {
+    background: pixel-art(var(--color-black), $popup-arrow-up);
+  }
+
+  .classicyPopUpMenuScrollArrowDown::before {
+    background: pixel-art(var(--color-black), $popup-arrow);
   }
 }

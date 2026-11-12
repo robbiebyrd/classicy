@@ -460,6 +460,22 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
+
+		// The menu's scroll indicator: the pop-up's 11 x 6 triangle on the
+		// menu's white face, at the items' text inset (HIG p.78, as the
+		// hierarchical Control Panels menu shows it).
+		it("draws a pop-up menu's scroll indicators as solid triangles on white", () => {
+			const arrow = rule(".classicyPopUpMenuScrollArrow");
+			expect(arrow).toMatch(/background: var\(--color-white\);/);
+			expect(arrow).toMatch(/justify-content: flex-start;/);
+			const box = rule(".classicyPopUpMenuScrollArrow::before");
+			expect(box).toMatch(/width: calc\(var\(--window-box-pixel\) \* 11\);/);
+			expect(box).toMatch(/height: calc\(var\(--window-box-pixel\) \* 6\);/);
+			for (const direction of ["Up", "Down"]) {
+				const glyph = rule(`.classicyPopUpMenuScrollArrow${direction}::before`);
+				expect(layersOf(glyph, "var(--color-black)"), direction).toBe(6);
+			}
+		});
 	});
 
 	// Plan 0018-dbd §3.4: modal dialogs, alerts and push buttons, from the
