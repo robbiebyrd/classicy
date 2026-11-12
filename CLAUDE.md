@@ -473,10 +473,12 @@ in every browser (Firefox now shows Platinum's full bars).
   by windows, list boxes, tables (`scrollable={false}` in the Finder list
   view, whose window scrolls), text editors, split-view panes, the Assistant,
   file dialogs, Drive Setup, the color picker, the PDF viewer, HyperCard
-  locked fields and About This Computer. Menus have no bars: a long pop-up or
-  combo box list scrolls by indicators over its first and last rows
-  (`useClassicyMenuScrollArrows`, `PopUpMenu/`; parts `menu-scroll-up` and
-  `menu-scroll-down`), as HIG7 p.78 has it.
+  locked fields and About This Computer. Menus have no bars: a long pop-up,
+  combo box or pull-down list scrolls by indicators over its first and last
+  rows (`useClassicyMenuScrollArrows`, `Menu/`, given each list's row
+  selector and layer; parts `menu-scroll-up` and `menu-scroll-down`), as
+  HIG7 p.78 has it. The geometry is measured on open, placement and new rows;
+  a scroll reads only the extents.
 
 ### Pop-Up Bevel Buttons
 

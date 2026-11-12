@@ -461,6 +461,20 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
 
+		it("frames a scrolling menu with a box shadow, its pseudo-element shadows off", () => {
+			const scrolling = rule(
+				":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls",
+			);
+			expect(scrolling).toMatch(
+				/box-shadow: var\(--window-border-size\) var\(--window-border-size\) 0 0 var\(--color-black\);/,
+			);
+			expect(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls::after",
+				),
+			).toMatch(/display: none;/);
+		});
+
 		// The menu's scroll indicator: the pop-up's 11 x 6 triangle on the
 		// menu's white face, at the items' text inset (HIG p.78, as the
 		// hierarchical Control Panels menu shows it).

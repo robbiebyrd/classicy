@@ -21,6 +21,25 @@
     @include mixins.platinum-menu-frame;
   }
 
+  // A menu too long for the screen scrolls (ClassicyMenu), which would clip
+  // and scroll the frame's shadow pseudo-elements: the shadow is a box
+  // shadow there (from a pixel in, not the frame's two), and the desktop's
+  // Firefox fallback (`scrollbar-width: auto`, _Desktop.scss) is kept off
+  // its native bar.
+  .classicyMenu.classicyMenuListScrolls,
+  .classicySubMenu.classicyMenuListScrolls,
+  .classicyContextMenu.classicyMenuListScrolls,
+  .classicyContextSubMenu.classicyMenuListScrolls {
+    box-shadow: var(--menu-frame-shadow-width) var(--menu-frame-shadow-width) 0 0 var(--color-system-07);
+    scrollbar-width: none;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+
   // Dividers in every menu (Figure 6-15).
   .classicyMenu,
   .classicySubMenu,

@@ -100,10 +100,28 @@ export const classicyPopUpMenuPlacement = (
 		// lands on the button despite the clamp (bounded to the scrollable range).
 		let scrollTop = 0;
 		if (contentHeight > maxHeight) {
+			const scrollMax = contentHeight - maxHeight;
 			scrollTop = Math.min(
 				Math.max(top + selectionCenter - anchorCenter, 0),
-				contentHeight - maxHeight,
+				scrollMax,
 			);
+			// A scrolled list draws an indicator over its first visible row,
+			// and one over its last while items lie below (HIG7 p.78): never
+			// leave the selection under one, but a row in from that end.
+			const row = selected.height;
+			const shownAt = selected.offsetTop - scrollTop;
+			if (scrollTop > 0 && shownAt >= 0 && shownAt < row) {
+				scrollTop = Math.max(selected.offsetTop - row, 0);
+			} else if (
+				scrollTop < scrollMax &&
+				shownAt + row > maxHeight - row &&
+				shownAt < maxHeight
+			) {
+				scrollTop = Math.min(
+					selected.offsetTop + row * 2 - maxHeight,
+					scrollMax,
+				);
+			}
 		}
 
 		return { above: top < anchor.top, maxHeight, top, scrollTop };

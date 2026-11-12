@@ -14,44 +14,61 @@ type ScrollDirection = "up" | "down";
 /**
  * Where an open menu list's scroll indicators go: the list's inside edges
  * (its border, padding and the first and last rows' margins, where a package
- * keeps its frame), one row tall, and which ends have items hidden past them.
+ * keeps its frame) and one row's height. Measured when the list opens, is
+ * placed or changes its rows, never on a scroll.
  */
-type ScrollArrows = {
+type ScrollArrowsBox = {
 	left: number;
 	width: number;
 	top: number;
 	bottom: number;
 	row: number;
-	up: boolean;
-	down: boolean;
 };
+
+/** Which ends have items hidden past them: read on every scroll. */
+type ScrollArrowsEnds = { up: boolean; down: boolean };
 
 const px = (value: string | undefined) => Number.parseFloat(value ?? "") || 0;
 
+/** How a list's indicators are found and stacked. */
+export type ClassicyMenuScrollArrowsOptions = {
+	/** A row of the list, whose height is the indicator's (and a scroll step). */
+	rowSelector: string;
+	/**
+	 * The indicators' `z-index`: over the list in the stacking context they
+	 * share with it (a pop-up's portal: 5001, over the list's 5000; a menu's
+	 * wrapper: 1).
+	 */
+	zIndex: number;
+};
+
 /**
  * The scroll indicators of a scrolling menu list (`ClassicyPopUpMenu`,
- * `ClassicyComboBox`): Mac OS menus scroll by an indicator at an end with
- * items hidden past it, never by a scroll bar (HIG7 p.78, "Scrolling
- * Menus"; p.83, a pop-up menu "scrolls like other menus"), and the menu
- * scrolls a row at a time while the pointer rests on one. The list hides
- * the browser's own bar (base stylesheet).
+ * `ClassicyComboBox`, a `ClassicyMenu` pull-down taller than the screen):
+ * Mac OS menus scroll by an indicator at an end with items hidden past it,
+ * never by a scroll bar (HIG7 p.78, "Scrolling Menus"; p.83, a pop-up menu
+ * "scrolls like other menus"), and the menu scrolls a row at a time while
+ * the pointer rests on one. The list hides the browser's own bar (its
+ * stylesheet).
  *
- * The indicators are fixed-position siblings of the list, rendered in its
- * portal after it (`indicators`), over its first or last row: never inside
- * it, so they neither scroll nor change which rows are its first and last
- * children. They are `data-classicy-part` `menu-scroll-up` and
- * `menu-scroll-down` (`.classicyPopUpMenuScrollArrow`), `aria-hidden`
- * (the keyboard scrolls by moving the highlight), and the package draws
- * them. The wheel over one scrolls the list beneath it.
+ * The indicators are fixed-position siblings of the list, rendered after it
+ * (`indicators`), over its first or last row: never inside it, so they
+ * neither scroll nor change which rows are its first and last children.
+ * They are `data-classicy-part` `menu-scroll-up` and `menu-scroll-down`
+ * (`.classicyPopUpMenuScrollArrow`), `aria-hidden` (the keyboard scrolls by
+ * moving the highlight), and the package draws them. The wheel over one
+ * scrolls the list beneath it, by rows when the wheel counts lines.
  *
- * The caller calls `measure()` once the open list is placed (and whenever
- * its rows may have changed), passes `onListScroll` and `listStyle` to the
- * list (scroll padding a row tall, so the keyboard's highlight stays clear
- * of the indicators), treats `contains(target)` as inside the menu, and
+ * The caller calls `measure()` once the open list is placed and whenever
+ * its rows may have changed (the box: a style and layout read), passes
+ * `onListScroll` (which reads only the scroll extents) and `listStyle` (scroll
+ * padding a row tall, so the keyboard's highlight stays clear of the
+ * indicators) to the list, treats `contains(target)` as inside the menu, and
  * calls `reset()` when the menu closes.
  */
 export const useClassicyMenuScrollArrows = (
 	listRef: RefObject<HTMLElement | null>,
+	{ rowSelector, zIndex }: ClassicyMenuScrollArrowsOptions,
 ): {
 	measure: () => void;
 	reset: () => void;
@@ -60,10 +77,26 @@ export const useClassicyMenuScrollArrows = (
 	listStyle: CSSProperties;
 	indicators: ReactNode;
 } => {
-	const [arrows, setArrows] = useState<ScrollArrows | null>(null);
+	const [box, setBox] = useState<ScrollArrowsBox | null>(null);
+	const [ends, setEnds] = useState<ScrollArrowsEnds>({
+		up: false,
+		down: false,
+	});
 	const upRef = useRef<HTMLDivElement>(null);
 	const downRef = useRef<HTMLDivElement>(null);
 	const repeat = useClassicyPressRepeat();
+
+	// The ends, from the scroll extents alone (no style or layout read).
+	const readEnds = useCallback(() => {
+		const el = listRef.current;
+		if (!el) return;
+		const max = el.scrollHeight - el.clientHeight;
+		const up = el.scrollTop >= 1;
+		const down = max - el.scrollTop >= 1;
+		setEnds((prev) =>
+			prev.up === up && prev.down === down ? prev : { up, down },
+		);
+	}, [listRef]);
 
 	const measure = useCallback(() => {
 		const el = listRef.current;
@@ -79,8 +112,7 @@ export const useClassicyMenuScrollArrows = (
 			el.clientLeft + px(style.paddingLeft) + px(firstStyle?.marginLeft);
 		const insetRight = px(style.paddingRight) + px(firstStyle?.marginRight);
 		const inside = rect.top + el.clientTop;
-		const max = el.scrollHeight - el.clientHeight;
-		const next: ScrollArrows = {
+		const next: ScrollArrowsBox = {
 			left: rect.left + insetLeft,
 			width: Math.max(
 				el.clientWidth + el.clientLeft - insetLeft - insetRight,
@@ -92,23 +124,23 @@ export const useClassicyMenuScrollArrows = (
 				el.clientHeight -
 				px(style.paddingBottom) -
 				px(lastStyle?.marginBottom),
-			row: el.querySelector<HTMLElement>('[role="option"]')?.offsetHeight ?? 0,
-			up: el.scrollTop >= 1,
-			down: max - el.scrollTop >= 1,
+			row: el.querySelector<HTMLElement>(rowSelector)?.offsetHeight ?? 0,
 		};
-		setArrows((prev) =>
+		setBox((prev) =>
 			prev &&
-			(Object.keys(next) as (keyof ScrollArrows)[]).every(
+			(Object.keys(next) as (keyof ScrollArrowsBox)[]).every(
 				(key) => prev[key] === next[key],
 			)
 				? prev
 				: next,
 		);
-	}, [listRef]);
+		readEnds();
+	}, [listRef, rowSelector, readEnds]);
 
 	const reset = useCallback(() => {
 		repeat.stop();
-		setArrows(null);
+		setBox(null);
+		setEnds({ up: false, down: false });
 	}, [repeat]);
 
 	const contains = useCallback(
@@ -124,22 +156,37 @@ export const useClassicyMenuScrollArrows = (
 	// that end is reached (HIG7 p.78: "When the user drags past the last
 	// visible item, the menu scrolls").
 	const startScroll = (direction: ScrollDirection) => {
-		const row = arrows?.row ?? 0;
+		const row = box?.row ?? 0;
 		repeat.start(() => {
 			const el = listRef.current;
 			if (!el || row <= 0) return false;
 			const before = el.scrollTop;
 			el.scrollTop = before + (direction === "down" ? row : -row);
-			measure();
+			readEnds();
 			return el.scrollTop === before ? false : undefined;
 		});
 	};
 
+	// The wheel over an indicator scrolls the list beneath it: by pixels,
+	// rows (a wheel that counts lines) or pages.
+	const onWheel = (e: { deltaY: number; deltaMode: number }) => {
+		const el = listRef.current;
+		if (!el) return;
+		const unit =
+			e.deltaMode === 1
+				? box?.row || 1
+				: e.deltaMode === 2
+					? el.clientHeight
+					: 1;
+		el.scrollTop += e.deltaY * unit;
+		readEnds();
+	};
+
 	const indicators =
-		arrows &&
+		box &&
 		(["up", "down"] as const).map(
 			(direction) =>
-				arrows[direction] && (
+				ends[direction] && (
 					<div
 						key={direction}
 						ref={direction === "up" ? upRef : downRef}
@@ -153,23 +200,17 @@ export const useClassicyMenuScrollArrows = (
 						aria-hidden="true"
 						style={{
 							position: "fixed",
-							left: `${arrows.left}px`,
-							width: `${arrows.width}px`,
-							height: `${arrows.row}px`,
-							top: `${direction === "up" ? arrows.top : arrows.bottom - arrows.row}px`,
-							// Over the list (5000), as a menu's own row.
-							zIndex: 5001,
+							left: `${box.left}px`,
+							width: `${box.width}px`,
+							height: `${box.row}px`,
+							top: `${direction === "up" ? box.top : box.bottom - box.row}px`,
+							zIndex,
 						}}
 						// A press keeps focus where it is (a combo box's field).
 						onMouseDown={(e) => e.preventDefault()}
 						onMouseEnter={() => startScroll(direction)}
 						onMouseLeave={() => repeat.stop()}
-						onWheel={(e) => {
-							const el = listRef.current;
-							if (!el) return;
-							el.scrollTop += e.deltaY;
-							measure();
-						}}
+						onWheel={onWheel}
 					/>
 				),
 		);
@@ -178,11 +219,11 @@ export const useClassicyMenuScrollArrows = (
 		measure,
 		reset,
 		contains,
-		onListScroll: measure,
-		listStyle: arrows?.row
+		onListScroll: readEnds,
+		listStyle: box?.row
 			? {
-					scrollPaddingTop: `${arrows.row}px`,
-					scrollPaddingBottom: `${arrows.row}px`,
+					scrollPaddingTop: `${box.row}px`,
+					scrollPaddingBottom: `${box.row}px`,
 				}
 			: {},
 		indicators,

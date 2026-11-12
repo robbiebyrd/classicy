@@ -179,10 +179,78 @@ describe("ClassicyPopUpMenu scroll indicators", () => {
 		expect(list.scrollTop).toBe(45);
 	});
 
-	it("keeps a highlighted row clear of the indicators when the keyboard scrolls to it", () => {
+	it("scrolls the list by rows for a wheel that counts lines, and by pages", () => {
 		const list = open();
-		expect(list.style.scrollPaddingTop).toBe(`${ROW}px`);
-		expect(list.style.scrollPaddingBottom).toBe(`${ROW}px`);
+		// deltaMode 1: lines, a row each.
+		fireEvent.wheel(arrow("down") as HTMLElement, { deltaY: 2, deltaMode: 1 });
+		expect(list.scrollTop).toBe(2 * ROW);
+		// deltaMode 2: pages, the list's height each.
+		fireEvent.wheel(arrow("down") as HTMLElement, { deltaY: 1, deltaMode: 2 });
+		expect(list.scrollTop).toBe(2 * ROW + VISIBLE);
+	});
+
+	it("reads only the scroll extents as the list scrolls, never its box or style", () => {
+		const list = open();
+		const boxes = vi.spyOn(list, "getBoundingClientRect");
+		const styles = vi.spyOn(window, "getComputedStyle");
+		act(() => {
+			list.scrollTop = 300;
+			fireEvent.scroll(list);
+		});
+		fireEvent.mouseEnter(arrow("down") as HTMLElement);
+		fireEvent.mouseLeave(arrow("down") as HTMLElement);
+		fireEvent.wheel(arrow("down") as HTMLElement, { deltaY: 20 });
+		expect(arrow("up")).not.toBeNull();
+		expect(boxes).not.toHaveBeenCalled();
+		expect(styles).not.toHaveBeenCalled();
+		vi.restoreAllMocks();
+	});
+
+	// The keyboard moves the highlight, and the pop-up scrolls it into view
+	// (`scrollIntoView({ block: "nearest" })`), which honors the list's scroll
+	// padding. jsdom scrolls nothing, so a stand-in does what a browser does
+	// with the padding the list really carries.
+	it("lets the keyboard scroll the list past the indicators, which follow", () => {
+		const nearest = vi.fn(function (this: Element) {
+			const list = this.closest(".classicyPopUpMenuList") as HTMLElement;
+			const pad = (side: "Top" | "Bottom") =>
+				Number.parseFloat(list.style[`scrollPadding${side}`]) || 0;
+			const index = Number(this.id.split("-opt-").pop());
+			const top = index * ROW;
+			if (top - pad("Top") < list.scrollTop) {
+				list.scrollTop = top - pad("Top");
+			} else if (top + ROW + pad("Bottom") > list.scrollTop + VISIBLE) {
+				list.scrollTop = top + ROW + pad("Bottom") - VISIBLE;
+			}
+			list.dispatchEvent(new Event("scroll"));
+		});
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			configurable: true,
+			value: nearest,
+		});
+		try {
+			const list = open();
+			const button = screen.getByRole("combobox");
+			expect(list.style.scrollPaddingTop).toBe(`${ROW}px`);
+			expect(list.style.scrollPaddingBottom).toBe(`${ROW}px`);
+			expect(arrow("up")).toBeNull();
+			// Down to the tenth item: the list scrolls, its bottom row (under
+			// the down indicator) left clear, and the up indicator appears.
+			for (let i = 0; i < 9; i++)
+				fireEvent.keyDown(button, { key: "ArrowDown" });
+			expect(list.scrollTop).toBe(10 * ROW + ROW - VISIBLE);
+			expect(arrow("up")).not.toBeNull();
+			expect(arrow("down")).not.toBeNull();
+			// End: the last item, the down indicator gone.
+			fireEvent.keyDown(button, { key: "End" });
+			expect(arrow("down")).toBeNull();
+			// Home: back to the top, the up indicator gone.
+			fireEvent.keyDown(button, { key: "Home" });
+			expect(list.scrollTop).toBe(0);
+			expect(arrow("up")).toBeNull();
+		} finally {
+			delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+		}
 	});
 
 	it("lies inside the list's frame, padding and rows' margins, one row tall", () => {
@@ -205,11 +273,17 @@ describe("ClassicyPopUpMenu scroll indicators", () => {
 				return isList(this) ? 198 : 0;
 			},
 		});
+		// The list's box on screen; measured when it opens and is placed.
+		const rect = HTMLElement.prototype.getBoundingClientRect;
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: HTMLElement) {
+				return isList(this)
+					? DOMRect.fromRect({ x: 40, y: 100, width: 200, height: 202 })
+					: rect.call(this);
+			},
+		);
 		try {
 			const list = open();
-			vi.spyOn(list, "getBoundingClientRect").mockReturnValue(
-				DOMRect.fromRect({ x: 40, y: 100, width: 200, height: 202 }),
-			);
 			act(() => {
 				list.scrollTop = 100;
 				fireEvent.scroll(list);
@@ -237,6 +311,7 @@ describe("ClassicyPopUpMenu scroll indicators", () => {
 			});
 		} finally {
 			sheet.remove();
+			vi.restoreAllMocks();
 		}
 	});
 

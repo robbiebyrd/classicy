@@ -10,6 +10,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -32,6 +33,8 @@ import {
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
+import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 
 /**
@@ -150,7 +153,18 @@ interface ClassicyMenuProps {
 	className?: string;
 	/** Inline style for the `.classicyMenuWrapper`, merged after the component's own; the list takes none. */
 	style?: CSSProperties;
+	/**
+	 * Whether the list is shown: a submenu's is only while its item is open
+	 * (the item passes it). Omitted, the list is taken to be shown as it
+	 * mounts (a root menu). A shown list taller than the screen below it
+	 * scrolls (below).
+	 */
+	open?: boolean;
 }
+
+// A pull-down too long for the screen keeps at least this much (two rows or
+// so), as a pop-up menu does.
+const MENU_MIN_SCROLL_HEIGHT = 64;
 
 /**
  * Renders a Platinum menu list from `ClassicyMenuItem` data — the building
@@ -167,6 +181,15 @@ interface ClassicyMenuProps {
  * open submenu). Most code renders menus through `ClassicyWindow`'s
  * `appMenu`, `ClassicyContextualMenuTarget` or `ClassicyBevelButton` instead
  * of using this directly.
+ *
+ * A shown list that would run past the bottom of the screen is capped there
+ * and scrolls as Mac OS menus do (HIG7 p.78): no scroll bar, an indicator
+ * over the first or last row while items lie hidden past it, the list
+ * scrolling a row at a time while the pointer rests on one
+ * (`useClassicyMenuScrollArrows`). The list then carries
+ * `classicyMenuListScrolls`, an open submenu of its items is placed fixed
+ * beside its item (so the scrolling list cannot clip it), and a scroll
+ * closes it.
  */
 export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	name,
@@ -176,6 +199,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	children,
 	className,
 	style,
+	open,
 }) => {
 	const { closeSignal } = useContext(ClassicyMenuContext);
 	const [openChildId, setOpenChildId] = useState<string | null>(null);
@@ -203,6 +227,38 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 
 	const listRef = useRef<HTMLUListElement>(null);
 	const appearance = useClassicyAppearance("Menu", {}, listRef);
+
+	// The height a list too tall for the screen below it is capped at, once
+	// shown; null while it fits (and while hidden).
+	const shown = open ?? true;
+	const [scrollCap, setScrollCap] = useState<number | null>(null);
+	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
+		rowSelector: '[role="menuitem"], [role="menuitemcheckbox"]',
+		// Over the list, in its wrapper's stacking context.
+		zIndex: 1,
+	});
+	const { measure: measureScrollArrows, reset: resetScrollArrows } =
+		scrollArrows;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: menuItems is a trigger, not read: new items change the list's height
+	useLayoutEffect(() => {
+		const el = listRef.current;
+		if (!shown || !el || typeof window === "undefined") {
+			setScrollCap(null);
+			return;
+		}
+		const rect = el.getBoundingClientRect();
+		if (rect.height === 0) return;
+		const room = window.innerHeight - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
+		// The list's full height, border included, whatever cap it has now.
+		const full = el.scrollHeight + (el.offsetHeight - el.clientHeight);
+		setScrollCap(
+			full > room ? Math.max(Math.floor(room), MENU_MIN_SCROLL_HEIGHT) : null,
+		);
+	}, [shown, menuItems]);
+	useLayoutEffect(() => {
+		if (scrollCap === null) resetScrollArrows();
+		else measureScrollArrows();
+	}, [scrollCap, measureScrollArrows, resetScrollArrows]);
 	const { emit } = appearance;
 	// A submenu opens by a click, Return, or hovering an active menu; it
 	// closes when another opens or the menus close. Reported once the open
@@ -227,8 +283,29 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			<ul
 				{...appearance.attrs}
 				ref={listRef}
-				className={classNames(navClass, appearance.className)}
-				style={appearance.style}
+				className={classNames(
+					navClass,
+					appearance.className,
+					scrollCap !== null && "classicyMenuListScrolls",
+				)}
+				style={
+					scrollCap === null
+						? appearance.style
+						: {
+								...appearance.style,
+								maxHeight: `${scrollCap}px`,
+								...scrollArrows.listStyle,
+							}
+				}
+				onScroll={
+					scrollCap === null
+						? undefined
+						: () => {
+								scrollArrows.onListScroll();
+								// An open submenu sits beside its item, which has moved.
+								setOpenChildId(null);
+							}
+				}
 				key={`${name}_menu`}
 			>
 				{menuItems.map((item: ClassicyMenuItem, index: number) =>
@@ -251,6 +328,7 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				)}
 				{children}
 			</ul>
+			{scrollCap !== null && scrollArrows.indicators}
 		</div>
 	) : null;
 };
@@ -267,6 +345,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
 	const [submenuFlipped, setSubmenuFlipped] = useState(false);
+	// Where an open submenu goes when this item's list scrolls: fixed beside
+	// the item, out of the scrolling list's clip.
+	const [submenuAt, setSubmenuAt] = useState<CSSProperties | undefined>();
 	const itemRef = useRef<HTMLLIElement>(null);
 	// Its own hook, not the menu's emit: each item is a MenuItem root.
 	const appearance = useClassicyAppearance(
@@ -281,7 +362,19 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	useEffect(() => {
 		if (!isOpen) {
 			setSubmenuFlipped(false);
+			setSubmenuAt(undefined);
 			return;
+		}
+		const item = itemRef.current;
+		if (item?.closest("ul")?.classList.contains("classicyMenuListScrolls")) {
+			const r = item.getBoundingClientRect();
+			setSubmenuAt({
+				position: "fixed",
+				top: `${r.top}px`,
+				left: `${r.left}px`,
+				width: `${r.width}px`,
+				height: 0,
+			});
 		}
 		const submenu = itemRef.current?.querySelector(
 			":scope > .classicyMenuWrapper > ul",
@@ -561,6 +654,8 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 				<ClassicyMenu
 					name={`${menuItem.id}_subitem`}
 					menuItems={menuItem.menuChildren ?? []}
+					open={isOpen}
+					style={submenuAt}
 					subNavClass={subNavClass}
 					navClass={classNames(
 						subNavClass,

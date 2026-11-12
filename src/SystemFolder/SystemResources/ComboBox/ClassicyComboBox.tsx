@@ -27,6 +27,7 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuEntry,
 	type ClassicyPopUpMenuOption,
@@ -37,7 +38,6 @@ import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
-import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/PopUpMenu/useClassicyMenuScrollArrows.internal";
 
 /**
  * How typing narrows the suggestions: by label prefix, by label substring, or
@@ -138,7 +138,11 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const listRef = useRef<HTMLDivElement>(null);
 	// A long suggestion list scrolls by its indicators, as the pop-up menu's
 	// does (HIG7 p.78), never by a scroll bar.
-	const scrollArrows = useClassicyMenuScrollArrows(listRef);
+	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
+		rowSelector: '[role="option"]',
+		// Over the list (5000) in the portal they share.
+		zIndex: 5001,
+	});
 	const resetScrollArrows = scrollArrows.reset;
 	const measureScrollArrows = scrollArrows.measure;
 	const scrollArrowsContain = scrollArrows.contains;
@@ -324,10 +328,11 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	}, [open, menuRect]);
 
 	// The indicators follow the list as it is placed and as typing filters
-	// its suggestions (a no-op when nothing changed).
+	// its suggestions; its scrolling reads only the extents.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries is a trigger, not read: the rows it renders change the list's box
 	useLayoutEffect(() => {
 		if (open && placement) measureScrollArrows();
-	});
+	}, [open, placement, filteredEntries, measureScrollArrows]);
 
 	useLayoutEffect(() => {
 		if (!open || effectiveHighlight < 0) return;

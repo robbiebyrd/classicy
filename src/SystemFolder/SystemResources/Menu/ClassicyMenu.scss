@@ -256,3 +256,17 @@
     box-sizing: border-box;
   }
 }
+
+// A menu list too long for the screen below it (ClassicyMenu caps its
+// height there): it scrolls by its indicators (HIG7 p.78), never by a bar,
+// so the browser's own is hidden.
+.classicyMenuListScrolls {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

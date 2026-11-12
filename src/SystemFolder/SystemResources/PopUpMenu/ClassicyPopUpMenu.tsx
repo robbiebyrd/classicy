@@ -26,11 +26,11 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
-import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/PopUpMenu/useClassicyMenuScrollArrows.internal";
 
 const PLACEHOLDER_VALUE = "__classicy_placeholder__";
 
@@ -204,7 +204,11 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const listRef = useRef<HTMLDivElement>(null);
 	// A long list scrolls by its indicators (HIG7 p.83: a pop-up menu
 	// "scrolls like other menus"), never by a scroll bar.
-	const scrollArrows = useClassicyMenuScrollArrows(listRef);
+	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
+		rowSelector: '[role="option"]',
+		// Over the list (5000) in the portal they share.
+		zIndex: 5001,
+	});
 	const resetScrollArrows = scrollArrows.reset;
 	const measureScrollArrows = scrollArrows.measure;
 	const scrollArrowsContain = scrollArrows.contains;

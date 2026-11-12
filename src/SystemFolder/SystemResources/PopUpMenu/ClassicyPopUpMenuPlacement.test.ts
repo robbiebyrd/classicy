@@ -112,6 +112,40 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 		expect((placement.top ?? 0) + 510 - placement.scrollTop).toBe(410);
 	});
 
+	// A scrolled list draws its scroll indicator over its first visible row
+	// (and one over its last while items lie below): the selection never
+	// lands under one, one row in from that end instead.
+	it("keeps the selection off the row the up indicator covers", () => {
+		// Button at the screen's top: the menu pins to the margin, and lining
+		// the selection up would scroll it 500 px, into the first row.
+		const placement = classicyPopUpMenuPlacement(anchor(4), 900, 800, {
+			offsetTop: 500,
+			height: 20,
+		});
+		expect(placement.top).toBe(POPUP_MENU_VIEWPORT_MARGIN);
+		expect(placement.scrollTop).toBe(480);
+		// One row below the menu's top: the second visible row.
+		expect(500 - placement.scrollTop).toBe(20);
+	});
+
+	it("keeps the selection off the row the down indicator covers", () => {
+		// Button at the screen's bottom: the capped menu reaches the bottom
+		// margin, and the selection would land in its last row, items below.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(776),
+			900,
+			800,
+			{ offsetTop: 280, height: 20 },
+			300,
+		);
+		expect((placement.top ?? 0) + placement.maxHeight).toBe(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+		expect(placement.scrollTop).toBe(20);
+		// The selection's bottom is a row clear of the menu's bottom.
+		expect(280 + 20 - placement.scrollTop).toBe(placement.maxHeight - 20);
+	});
+
 	it("keeps the whole menu on screen when the selection is at the very top", () => {
 		// First item selected, button high: menu grows down from the button, no
 		// scroll needed.

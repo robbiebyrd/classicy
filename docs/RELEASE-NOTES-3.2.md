@@ -127,13 +127,17 @@ diverge, so a logo registered through Platinum's
   nothing. Escape or a lost pointer stream cancels the drag, and the keys
   and the wheel wait while it is held. `"live"`, the default, scrolls as
   the thumb moves, as before.
-- **Scrolling pop-up menus scroll by indicators.** A `ClassicyPopUpMenu`
-  or `ClassicyComboBox` list too long for its space no longer shows the
-  browser's scroll bar. As Mac OS menus do (HIG7 pp.78 and 83), an
+- **Long menus scroll by indicators.** A `ClassicyPopUpMenu` or
+  `ClassicyComboBox` list too long for its space no longer shows the
+  browser's scroll bar, and a `ClassicyMenu` list (a pull-down, a
+  submenu, a contextual menu) too long for the screen below it no longer
+  runs off it: it is capped there (`classicyMenuListScrolls`, and the new
+  `ClassicyMenu` prop `open`). As Mac OS menus do (HIG7 pp.78 and 83), an
   indicator lies over the first or last row while items are hidden past
   that end, and the list scrolls a row at a time while the pointer rests
-  on it; the wheel and the keyboard still scroll it. The indicators are the
-  new parts `menu-scroll-up` and `menu-scroll-down`
+  on it; the wheel and the keyboard still scroll it, and an aligned pop-up
+  never opens with its selection under an indicator. The indicators are
+  the new parts `menu-scroll-up` and `menu-scroll-down`
   (`.classicyPopUpMenuScrollArrow`), drawn by the package: Platinum a black
   triangle on the menu's face, System 7 its pop-up triangle.
 - **Packages keep the bars in the fits state.** `scrollBar.fitsBars:

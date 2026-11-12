@@ -340,6 +340,33 @@ describe("platinum.scss (compiled)", () => {
 	// A long pop-up menu scrolls by its indicators (HIG7 p.78): a black
 	// triangle on the menu's face over the first or last row, and no native
 	// bar, which the desktop's Firefox fallback would otherwise show.
+	it("frames a scrolling menu with a box shadow, its pseudo-element shadows off", () => {
+		const lists = [
+			"classicyMenu",
+			"classicySubMenu",
+			"classicyContextMenu",
+			"classicyContextSubMenu",
+		];
+		const scrolling = rule(
+			lists.map((l) => `${P} .${l}.classicyMenuListScrolls`).join(", "),
+		).props;
+		expect(scrolling["box-shadow"]).toBe(
+			"var(--menu-frame-shadow-width) var(--menu-frame-shadow-width) 0 0 var(--color-system-07)",
+		);
+		expect(scrolling["scrollbar-width"]).toBe("none");
+		expect(
+			rule(
+				lists
+					.flatMap((l) =>
+						["before", "after"].map(
+							(p) => `${P} .${l}.classicyMenuListScrolls::${p}`,
+						),
+					)
+					.join(", "),
+			).props.display,
+		).toBe("none");
+	});
+
 	it("draws a pop-up menu's scroll indicators on the menu's face, and no native bar", () => {
 		const arrow = rule(`${P} .classicyPopUpMenuScrollArrow`).props;
 		expect(arrow["background-color"]).toBe("var(--color-system-02)");
