@@ -7,9 +7,9 @@ import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
 
 // The System 7 package stylesheet as Sass compiles it: one
 // `@layer classicy.package` block, every rule scoped under the System 7
-// desktop root, so its look applies only while it is the active package
-// (design 0014-ahm; the core's _package.scss), as Platinum's does
-// (platinum.css.test.ts).
+// desktop root but the screen savers', so its look applies only while it is
+// the active package (design 0014-ahm; the core's _package.scss), as
+// Platinum's does (platinum.css.test.ts).
 
 const STYLESHEET = path.join(import.meta.dirname, "system7.scss");
 const SYSTEM7_SCOPE =
@@ -78,10 +78,22 @@ describe("system7.scss (compiled)", () => {
 		).toBe(true);
 	});
 
-	it("holds rules, every one scoped under the system7 root", () => {
+	// But the screen savers' (plan 0018-dbd §3.8): keyed on their own
+	// classes, at the layer's root, as in Platinum's sheet
+	// (system7ScreenSavers.css.test.ts).
+	it("holds rules, every one scoped under the system7 root, but the screen savers'", () => {
 		const selectors = selectorsOf(css);
-		expect(selectors.length).toBeGreaterThan(0);
-		expect(selectors.filter((s) => !SYSTEM7_SCOPE.test(s))).toEqual([]);
+		const unscoped = selectors.filter((s) => !SYSTEM7_SCOPE.test(s));
+		expect(selectors.length).toBeGreaterThan(unscoped.length);
+		expect(unscoped.length).toBeGreaterThan(0);
+		expect(
+			unscoped.filter(
+				(selector) =>
+					!/^\.classicySaver[A-Z]/.test(selector) &&
+					// The savers' reduced-motion pause (_screenSavers.scss).
+					!/^#classicy-screen-saver-overlay( \*)?$/.test(selector),
+			),
+		).toEqual([]);
 	});
 
 	// The selector scan itself, so "every one scoped" cannot hold vacuously.

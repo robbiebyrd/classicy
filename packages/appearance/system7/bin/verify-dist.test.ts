@@ -20,8 +20,10 @@ import { system7AssetFileName } from "./system7AssetNames";
 // real on a fixture package folder: the shape System 7's takes (src/assets/
 // fonts, art and its variant folders, icons/<variant>/<size>, cursors,
 // wallpapers and sounds/system7)
-// with a few files each, and a dist/ built to pass. Each case breaks one thing
-// and expects the script to name it, as Platinum's verify-dist.test.ts does.
+// with a few files each, beside a Platinum source folder holding two savers'
+// art (../platinum/src/screenSavers, which every case shares), and a dist/
+// built to pass. Each case breaks one thing and expects the script to name
+// it, as Platinum's verify-dist.test.ts does.
 
 const SCRIPT = path.resolve(import.meta.dirname, "verify-dist.mjs");
 const repoRoot = path.resolve(import.meta.dirname, "../../../..");
@@ -72,12 +74,31 @@ const SOURCES: Record<string, Buffer> = {
 	"src/assets/sounds/system7/system7.sprites.sha256": Buffer.from("0"),
 	"src/assets/sounds/system7/sprites/ClassicyBeep.wav": bytes(60),
 };
-const SHIPPED = Object.keys(SOURCES).filter(
-	(file) =>
-		!file.includes("/sprites/") &&
-		!file.endsWith(".json") &&
-		!file.endsWith(".sha256"),
+// The screen savers' art, in Platinum's source beside the package folder
+// (plan 0018-dbd §3.8): every case dir is a sibling of this platinum/.
+const SAVER_ART: Record<string, Buffer> = {
+	"platinum/src/screenSavers/Fish/fish-angel.webp": bytes(70),
+	"platinum/src/screenSavers/Logo/logo.webp": bytes(71),
+	"platinum/src/screenSavers/Logo/ClassicyScreenSaverLogo.tsx": bytes(72),
+};
+for (const [file, content] of Object.entries(SAVER_ART)) {
+	mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+	writeFileSync(path.join(root, file), content);
+}
+const SAVER_SHIPPED = Object.keys(SAVER_ART).filter((file) =>
+	file.endsWith(".webp"),
 );
+const SHIPPED = [
+	...Object.keys(SOURCES).filter(
+		(file) =>
+			!file.includes("/sprites/") &&
+			!file.endsWith(".json") &&
+			!file.endsWith(".sha256"),
+	),
+	...SAVER_SHIPPED,
+];
+/** A shipped file's bytes: the package's, or a saver's in Platinum's source. */
+const sourceBytes = (file: string) => SOURCES[file] ?? SAVER_ART[file];
 
 const urls = SHIPPED.map(
 	(file) =>
@@ -102,7 +123,7 @@ const DIST: Record<string, string | Buffer> = {
 	...Object.fromEntries(
 		SHIPPED.map((file) => [
 			`assets/${system7AssetFileName(file)}`,
-			SOURCES[file],
+			sourceBytes(file),
 		]),
 	),
 };
@@ -206,6 +227,24 @@ describe("bin/verify-dist.mjs", () => {
 					// And the bundle's reference to it dangles (invariant 3).
 					"dist/appearance-system7.es.js: new URL() names no file in dist/assets: assets/pattern.png",
 				].join("\n"),
+			}));
+
+		// System 7 bundles Platinum's savers, so it ships their art.
+		it("fails a missing saver image, by name", () =>
+			expect(verify({ "assets/logo.webp": null })).toEqual({
+				status: 1,
+				stderr: [
+					"dist/assets: missing logo.webp; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/appearance-system7.es.js: new URL() names no file in dist/assets: assets/logo.webp",
+				].join("\n"),
+			}));
+
+		it("fails a saver image that differs from Platinum's source", () =>
+			expect(
+				verify({ "assets/fish-angel.webp": Buffer.from("changed") }),
+			).toEqual({
+				status: 1,
+				stderr: `${path.join("dist", "assets", "fish-angel.webp")}: differs from ${path.join("..", "platinum", "src", "screenSavers", "Fish", "fish-angel.webp")} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
 			}));
 
 		it("fails a file nothing ships, a .webp included", () =>
@@ -478,6 +517,42 @@ describe("bin/verify-dist.mjs", () => {
 				stderr:
 					'dist/types/index.d.ts: relative specifier(s) without an extension ("./hooks") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.',
 			}));
+
+		// System 7 bundles the savers but re-exports none of them (plan
+		// 0018-dbd §3.8): a host that installs only System 7 must resolve
+		// every type it declares.
+		it("fails a declaration of a Platinum module", () =>
+			expect(
+				verify({
+					"types/platinum/src/screenSavers/platinumScreenSavers.d.ts":
+						"export {};\n",
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/types: 1 declaration(s) of Platinum's modules (${path.join("platinum", "src", "screenSavers", "platinumScreenSavers.d.ts")}) -> System 7 re-exports nothing of the savers; check index.ts and the dts include in vite.config.ts.`,
+			}));
+
+		it.each([
+			[
+				'export * from "../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish.js";\n',
+				'"../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish.js"',
+			],
+			[
+				'export type { ClassicyScreenSaverLogoDefinition } from "@classicy/appearance-platinum";\n',
+				'"@classicy/appearance-platinum"',
+			],
+		])("fails a declaration that references Platinum: %s", (code, named) =>
+			expect(verify({ "types/index.d.ts": code })).toEqual({
+				status: 1,
+				stderr: `dist/types/index.d.ts: references Platinum or a file outside dist/types (${named}) -> a host that installs only System 7 resolves none of it; re-export nothing of the savers.`,
+			}));
+
+		it("passes a relative specifier that stays in dist/types, from a subfolder", () =>
+			expect(
+				verify({
+					"types/assets/a.d.ts": 'export * from "../hooks.js";\n',
+				}).status,
+			).toBe(0));
 
 		it("fails a test declaration", () =>
 			expect(verify({ "types/hooks.test.d.ts": "export {};\n" })).toEqual({

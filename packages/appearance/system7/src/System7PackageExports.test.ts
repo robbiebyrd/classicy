@@ -76,12 +76,26 @@ describe("the SCSS export", () => {
 			importers: [new sass.NodePackageImporter(host)],
 		}).css;
 
-	it("serves the package stylesheet at @classicy/appearance-system7/scss/system7", () =>
-		expect(
+	// It ships compiled and is not for host compilation (the README): it
+	// loads the screen savers' partials from Platinum's source, which neither
+	// tarball holds (plan 0018-dbd §3.8), as Platinum's own platinum.scss
+	// does. Resolved through the export, it gets as far as those partials, past
+	// the vocabulary; from the workspace it compiles whole
+	// (styles/system7.css.test.ts).
+	it("serves the package stylesheet at @classicy/appearance-system7/scss/system7, up to the savers' partials", () =>
+		expect(() =>
 			compile('@use "pkg:@classicy/appearance-system7/scss/system7";'),
-		).toMatch(
-			/^@layer classicy\.package \{\s*\.classicyDesktop\[data-classicy-appearance=system7\]/,
+		).toThrow(
+			/Can't find stylesheet to import\.[\s\S]*load-css\("\.\.\/\.\.\/\.\.\/platinum\/src\/screenSavers\/BouncingBall\/ClassicyScreenSaverBouncingBall"\)[\s\S]*appearance-system7\/src\/styles\/_screenSavers\.scss/,
 		));
+
+	// A partial that loads nothing of Platinum's compiles through it whole.
+	it("serves the partials at @classicy/appearance-system7/scss/<partial>", () =>
+		expect(
+			compile(
+				'@use "pkg:@classicy/appearance-system7/scss/pixel";\n.a { width: pixel.px(3); }',
+			),
+		).toMatch(/^\.a \{\s*width: calc\(/));
 
 	it("serves nothing outside src/styles", () =>
 		expect(() =>

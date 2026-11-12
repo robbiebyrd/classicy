@@ -530,11 +530,12 @@ describe("the System 7 appearance package", () => {
 		expect(system7SoundPack.defaultAlert).toBe("ClassicyAlertSimpleBeep");
 	});
 
-	// Until the savers register under System 7 (plan 0018-dbd §3.8).
-	it("names no screen saver yet", async () => {
+	// The After Dark savers register under System 7 too (plan 0018-dbd
+	// §3.8; System7ScreenSavers.test.tsx).
+	it("names bouncing-ball its default screen saver", async () => {
 		await import("./index");
 		const pkg = getClassicyAppearancePackage("system7");
-		expect(pkg?.defaultScreenSaver).toBeUndefined();
+		expect(pkg?.defaultScreenSaver).toBe("bouncing-ball");
 	});
 
 	// The Themes tab shows the System file's icon (plan 0018-dbd §4.1).

@@ -1,0 +1,44 @@
+// The screen savers' styles under System 7 (design 0017-6me, "Screen savers";
+// plan 0018-dbd §3.8): the After Dark savers' own Sass partials, which stay
+// in Platinum's source (packages/appearance/platinum/src/screenSavers/),
+// loaded in the order Platinum's styles/_screenSavers.scss loads them, so a
+// host loading only System 7 draws them from System 7's sheet. system7.scss
+// includes the mixin inside its `classicy.package` layer block but at the
+// root of it (`@at-root`), outside the package scope: the overlay is a
+// portal, and the rules are keyed on the savers' own classes and
+// `classicySaver*` keyframes. These partials are the only Platinum
+// stylesheets System 7 loads (System7SourceImports.test.ts); a host loading
+// both packages gets the same rules from each sheet, which is harmless.
+//
+// A saver's `animation:` shorthand resets `animation-play-state` to running,
+// and the package layer beats the core's base-layer reduced-motion pause, so
+// System 7's sheet carries its own pause, last, after every saver rule, as
+// Platinum's does. The overlay's JS pause is the backstop.
+//
+// The paths are relative to styles/: include the mixin from a stylesheet
+// there (system7.scss).
+@use "sass:meta";
+
+@mixin screenSavers {
+  @include meta.load-css("../../../platinum/src/screenSavers/BouncingBall/ClassicyScreenSaverBouncingBall");
+  @include meta.load-css("../../../platinum/src/screenSavers/FadeOut/ClassicyScreenSaverFadeOut");
+  @include meta.load-css("../../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish");
+  @include meta.load-css("../../../platinum/src/screenSavers/FlyingToasters/ClassicyScreenSaverFlyingToasters");
+  @include meta.load-css("../../../platinum/src/screenSavers/Globe/ClassicyScreenSaverGlobe");
+  @include meta.load-css("../../../platinum/src/screenSavers/HardRain/ClassicyScreenSaverHardRain");
+  @include meta.load-css("../../../platinum/src/screenSavers/Logo/ClassicyScreenSaverLogo");
+  @include meta.load-css("../../../platinum/src/screenSavers/Messages/ClassicyScreenSaverMessages");
+  @include meta.load-css("../../../platinum/src/screenSavers/Messages2/ClassicyScreenSaverMessages2");
+  @include meta.load-css("../../../platinum/src/screenSavers/Rainstorm/ClassicyScreenSaverRainstorm");
+  @include meta.load-css("../../../platinum/src/screenSavers/Spotlight/ClassicyScreenSaverSpotlight");
+  @include meta.load-css("../../../platinum/src/screenSavers/Warp/ClassicyScreenSaverWarp");
+
+  // After every saver, in the same layer: the id outranks their class-based
+  // `animation:` shorthands, and it comes last besides.
+  @media (prefers-reduced-motion: reduce) {
+    #classicy-screen-saver-overlay,
+    #classicy-screen-saver-overlay * {
+      animation-play-state: paused;
+    }
+  }
+}

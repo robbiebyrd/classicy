@@ -10,17 +10,22 @@ import { describe, expect, it } from "vitest";
 // SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/<module>`. Tests
 // may still import core internals and test helpers.
 //
-// The one path outside the package it may import is Platinum's screen-saver
+// The one module outside the package it may import is Platinum's screen-saver
 // registration module, bundled by relative import (design 0017-6me, "Screen
-// savers"; plan 0018-dbd §3.8 adds it to PLATINUM_PATHS). Nothing else of
-// Platinum's, so System 7's declarations never reference Platinum's files.
+// savers"; plan 0018-dbd §3.8), and only from index.ts. Nothing else of
+// Platinum's TypeScript, so System 7's declarations never reference
+// Platinum's files. Its stylesheet may load the savers' own Sass partials
+// (screenSavers/<Saver>/_ClassicyScreenSaver<Saver>.scss), exactly those
+// Platinum's styles/_screenSavers.scss loads: they are the same savers' source,
+// the styles that module's components draw with, and a host loading only
+// System 7 needs them in System 7's sheet. Nothing else of Platinum's SCSS.
 
 const srcDir = path.resolve(import.meta.dirname);
 const packageDir = path.dirname(srcDir);
 const platinumSrc = path.resolve(packageDir, "../platinum/src");
 
 /** The Platinum modules System 7 may import, relative to Platinum's src/. */
-const PLATINUM_PATHS: readonly string[] = [];
+const PLATINUM_PATHS: readonly string[] = ["screenSavers/platinumScreenSavers"];
 
 const sourceFiles = (pattern: RegExp) =>
 	readdirSync(srcDir, { recursive: true })
@@ -63,15 +68,17 @@ const resolved = (file: string, specifier: string) =>
 const staysInPackage = (file: string, specifier: string) =>
 	!path.relative(packageDir, resolved(file, specifier)).startsWith("..");
 
+/** A relative specifier from `file`, as a path under Platinum's src/. */
+const platinumPath = (file: string, specifier: string) =>
+	path
+		.relative(platinumSrc, resolved(file, specifier))
+		.split(path.sep)
+		.join("/");
+
 /** Whether a relative specifier from `file` names an allowed Platinum module. */
 const isAllowedPlatinumPath = (file: string, specifier: string) =>
-	PLATINUM_PATHS.includes(
-		path
-			.relative(platinumSrc, resolved(file, specifier))
-			.split(path.sep)
-			.join("/")
-			.replace(/\.tsx?$/, ""),
-	);
+	file === "index.ts" &&
+	PLATINUM_PATHS.includes(platinumPath(file, specifier).replace(/\.tsx?$/, ""));
 
 const offendersIn = (file: string, specifiers: string[]) =>
 	specifiers
@@ -98,16 +105,34 @@ describe("System 7's TypeScript", () => {
 			]),
 		));
 
-	it("imports the core only as @classicy/classicy, and nothing of Platinum's", () =>
+	it("imports the core only as @classicy/classicy, and nothing of Platinum's but the saver registration module", () =>
 		expect(
 			files.flatMap((file) => offendersIn(file, moduleSpecifiers(file))),
 		).toEqual([]));
+
+	// The savers reach a System 7-only host through this one import.
+	it("does import the saver registration module, from index.ts, for its side effect", () => {
+		const outside = files.flatMap((file) =>
+			moduleSpecifiers(file)
+				.filter(
+					(specifier) =>
+						specifier.startsWith(".") &&
+						!staysInPackage(file, specifier.split("?")[0]),
+				)
+				.map((specifier) => `${file}: ${platinumPath(file, specifier)}`),
+		);
+		expect(outside).toEqual(["index.ts: screenSavers/platinumScreenSavers"]);
+		const index = readFileSync(path.join(srcDir, "index.ts"), "utf8");
+		expect(index).toMatch(
+			/^import "\.\.\/\.\.\/platinum\/src\/screenSavers\/platinumScreenSavers";$/m,
+		);
+	});
 
 	it("does import the core as @classicy/classicy", () =>
 		expect(moduleSpecifiers("index.ts")).toContain("@classicy/classicy"));
 
 	// The rule itself, on specifiers a source file could hold.
-	it("refuses a core path, Platinum's package or a Platinum file", () =>
+	it("refuses a core path, Platinum's package or a Platinum file but the saver module", () =>
 		expect(
 			offendersIn("index.ts", [
 				"@/Appearance/ClassicyAssetRegistry",
@@ -115,6 +140,12 @@ describe("System 7's TypeScript", () => {
 				"@classicy/appearance-platinum",
 				"../../platinum/src/hooks",
 				"../../../../src/index",
+				// The savers' other modules: their components and the logo
+				// registry come with the module, never imported on their own.
+				"../../platinum/src/screenSavers/Logo/ClassicyScreenSaverLogoRegistry",
+				"../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish",
+				"../../platinum/src/screenSavers/platinumScreenSavers",
+				"../../platinum/src/screenSavers/platinumScreenSavers.ts",
 				"./assets/system7Assets",
 				"./styles/system7.scss?inline",
 				"@classicy/classicy",
@@ -125,31 +156,97 @@ describe("System 7's TypeScript", () => {
 			"index.ts: @classicy/appearance-platinum",
 			"index.ts: ../../platinum/src/hooks",
 			"index.ts: ../../../../src/index",
+			"index.ts: ../../platinum/src/screenSavers/Logo/ClassicyScreenSaverLogoRegistry",
+			"index.ts: ../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish",
+		]));
+
+	// Only index.ts registers the savers.
+	it("refuses the saver module from any other file", () =>
+		expect(
+			offendersIn("hooks.ts", [
+				"../../platinum/src/screenSavers/platinumScreenSavers",
+			]),
+		).toEqual([
+			"hooks.ts: ../../platinum/src/screenSavers/platinumScreenSavers",
 		]));
 });
 
 describe("System 7's SCSS", () => {
 	const files = sourceFiles(/\.scss$/);
+	// `@use`, `@forward` and `@import` rules, and `meta.load-css()` calls.
 	const uses = (file: string) =>
 		[
 			...readFileSync(path.join(srcDir, file), "utf8").matchAll(
-				/@(?:use|forward|import)\s+["']([^"']+)["']/g,
+				/@(?:use|forward|import)\s+["']([^"']+)["']|\bload-css\(\s*["']([^"']+)["']/g,
 			),
-		].map((match) => match[1]);
+		].map((match) => match[1] ?? match[2]);
 
-	it("uses the vocabulary as pkg:@classicy/classicy/scss/<module>", () => {
-		const offenders = files.flatMap((file) =>
+	// The saver partials Platinum's own saver mixin loads, under Platinum's
+	// src/: each a `screenSavers/<Saver>/ClassicyScreenSaver<Saver>`, so
+	// Platinum's list can never widen what System 7 may load.
+	const platinumStyles = path.join(platinumSrc, "styles");
+	const SAVER_PARTIALS = [
+		...readFileSync(path.join(platinumStyles, "_screenSavers.scss"), "utf8")
+			.matchAll(/\bload-css\(\s*["']([^"']+)["']/g)
+			.map((match) =>
+				path
+					.relative(platinumSrc, path.resolve(platinumStyles, match[1]))
+					.split(path.sep)
+					.join("/"),
+			),
+	].filter((partial) =>
+		/^screenSavers\/([A-Za-z0-9]+)\/ClassicyScreenSaver\1$/.test(partial),
+	);
+
+	/** Whether `url`, from `file`, loads a saver partial Platinum loads. */
+	const isSaverPartial = (file: string, url: string) =>
+		file === "styles/_screenSavers.scss" &&
+		SAVER_PARTIALS.includes(platinumPath(file, url));
+
+	const offendersIn = (file: string, urls: string[]) =>
+		urls
+			.filter(
+				(url) =>
+					!url.startsWith("sass:") &&
+					!/^pkg:@classicy\/classicy\/scss\/[a-z]+$/.test(url) &&
+					(url.includes(":") ||
+						(!staysInPackage(file, url) && !isSaverPartial(file, url))),
+			)
+			.map((url) => `${file}: ${url}`);
+
+	it("uses the vocabulary as pkg:@classicy/classicy/scss/<module>, and nothing of Platinum's but the saver partials", () =>
+		expect(files.flatMap((file) => offendersIn(file, uses(file)))).toEqual([]));
+
+	it("loads every saver partial Platinum loads, from _screenSavers.scss alone", () => {
+		expect(SAVER_PARTIALS).toHaveLength(12);
+		const outside = files.flatMap((file) =>
 			uses(file)
-				.filter(
-					(url) =>
-						!url.startsWith("sass:") &&
-						!/^pkg:@classicy\/classicy\/scss\/[a-z]+$/.test(url) &&
-						(url.includes(":") || !staysInPackage(file, url)),
-				)
-				.map((url) => `${file}: ${url}`),
+				.filter((url) => !url.includes(":") && !staysInPackage(file, url))
+				.map((url) => `${file}: ${platinumPath(file, url)}`),
 		);
-		expect(offenders).toEqual([]);
+		expect(outside).toEqual(
+			SAVER_PARTIALS.map((partial) => `styles/_screenSavers.scss: ${partial}`),
+		);
 	});
+
+	// The rule itself, on URLs a stylesheet could hold.
+	it("refuses Platinum's other stylesheets, and the saver partials from another file", () =>
+		expect([
+			...offendersIn("styles/_screenSavers.scss", [
+				"../../../platinum/src/styles/mixins",
+				"../../../platinum/src/styles/screenSavers",
+				"../../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish",
+				"pkg:@classicy/appearance-platinum/scss/mixins",
+			]),
+			...offendersIn("styles/system7.scss", [
+				"../../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish",
+			]),
+		]).toEqual([
+			"styles/_screenSavers.scss: ../../../platinum/src/styles/mixins",
+			"styles/_screenSavers.scss: ../../../platinum/src/styles/screenSavers",
+			"styles/_screenSavers.scss: pkg:@classicy/appearance-platinum/scss/mixins",
+			"styles/system7.scss: ../../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish",
+		]));
 
 	it("does use the vocabulary through pkg:", () =>
 		expect(uses("styles/system7.scss")).toContain(

@@ -335,23 +335,31 @@ keystroke/click is swallowed in the capture phase.
   `useClassicyScreenSavers`.
 - The 12 built-ins ported from bryanbraun/after-dark-css live in Platinum
   (`packages/appearance/platinum/src/screenSavers/`; CSS is MIT, sprite art ©
-  Berkeley Systems), registered at module load with `packages: ["platinum"]`
-  by `screenSavers/platinumScreenSavers.ts` (imported by Platinum's
-  `index.ts`, in its `sideEffects`) and exported from `@classicy/appearance-platinum`
-  under their 3.0 names; Platinum's `defaultScreenSaver` is `bouncing-ball`.
+  Berkeley Systems), registered at module load with `packages: ["platinum",
+  "system7"]` by `screenSavers/platinumScreenSavers.ts` (imported by
+  Platinum's `index.ts`, in its `sideEffects`, and bundled by System 7's
+  `index.ts` by relative import, the one Platinum module System 7 imports,
+  re-exporting none of it; `System7SourceImports.test.ts`) and exported from
+  `@classicy/appearance-platinum` under their 3.0 names; both packages'
+  `defaultScreenSaver` is `bouncing-ball`, and a host loading both registers
+  the same ids twice, harmlessly.
   The core names no saver, art or Platinum saver id outside tests
   (`ClassicyCoreImportGraph.test.ts`). To offer one under another package,
   re-register it (`{ ...getClassicyScreenSaver(id), packages: [...] }`, or
-  from Platinum's exported parts) with both ids in `packages`. Keyframes/classes are prefixed `classicySaver*`. Saver
+  from Platinum's exported parts) with its id added to `packages`. Keyframes/classes are prefixed `classicySaver*`. Saver
   stylesheets are Sass partials (`screenSavers/<X>/_ClassicyScreenSaver<X>.scss`)
   loaded by `styles/_screenSavers.scss` into Platinum's single package
   stylesheet, in `@layer classicy.package` at the root (`@at-root`), outside
   the `[data-classicy-appearance="platinum"]` scope, since the overlay is a
-  portal; saver art ships as files in Platinum's `dist/assets`. The savers'
+  portal; saver art ships as files in Platinum's `dist/assets`. System 7's
+  sheet loads the same partials the same way, from its own
+  `styles/_screenSavers.scss` (the only Platinum stylesheets it loads), with
+  its own pause rule, and its `dist/assets` ships the saver art too. The savers'
   ported art is exempt from the pixel and color gates by path.
 - The `logo` saver's image comes from its own live registry
   (`screenSavers/Logo/ClassicyScreenSaverLogoRegistry.ts` in Platinum, in
-  `sideEffects`): `registerClassicyScreenSaverLogo({ id, name, src, width?, height? })`
+  `sideEffects`; one registry per page, its state on `globalThis`, so the copy
+  System 7's bundle carries joins Platinum's): `registerClassicyScreenSaverLogo({ id, name, src, width?, height? })`
   at module scope, exported from `@classicy/appearance-platinum`; `src` is a
   string or a `() => string` read when the logo draws (so a built-in logo
   follows the active package's `classicy.logo`/`system.macosSvg` icons);

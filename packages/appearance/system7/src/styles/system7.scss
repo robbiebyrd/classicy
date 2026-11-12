@@ -6,7 +6,8 @@
 // wrapper below: so far the windows (§3.2), the menus and menu bar (§3.3),
 // the dialogs, alerts and push buttons (§3.4), the controls (§3.5), the
 // scroll bars (§3.6), the desktop, its icons, the Control Strip and the tab
-// control (§3.7), and the arrangement System 7 shares with no other package.
+// control (§3.7), and the arrangement System 7 shares with no other package;
+// then, at the block's root, the screen savers (§3.8, _screenSavers.scss).
 @use "pkg:@classicy/classicy/scss/package";
 @use "components/Window";
 @use "components/Menu";
@@ -31,6 +32,7 @@
 @use "components/ControlStrip";
 @use "components/Tabs";
 @use "components/AppearanceManager";
+@use "screenSavers";
 
 @include package.classicy-package("system7") {
   @include Window.window;
@@ -98,4 +100,12 @@
   // takes its place. The 1-bit theme sizes it (`dither.tileSize` 2); the
   // color theme's 0 draws plain ink.
   --classicy-art-dither-checker: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0);
+
+  // The screen savers (§3.8): in the package layer, but at its root, outside
+  // the package scope, keyed on their own classes, as in Platinum's sheet
+  // (see _screenSavers.scss). Last, so the reduced-motion pause that ends
+  // them is the sheet's last rule.
+  @at-root {
+    @include screenSavers.screenSavers;
+  }
 }

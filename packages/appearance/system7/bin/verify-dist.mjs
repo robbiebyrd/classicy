@@ -16,10 +16,12 @@
 //    (src/assets/fonts), the art (src/assets/art and its variant folders,
 //    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
 //    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
-//    and the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a,mp3,ac3},
-//    not its JSON, its hash or its sprites/ WAV sources), each byte-identical
-//    to its source, so an image optimizer added to vite.config.ts fails
-//    here. Each ships under the name
+//    the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a,mp3,ac3},
+//    not its JSON, its hash or its sprites/ WAV sources) and the screen
+//    savers' art, which stays in Platinum's source
+//    (../platinum/src/screenSavers/<Saver>/*.webp; plan 0018-dbd §3.8), each
+//    byte-identical to its source, so an image optimizer added to
+//    vite.config.ts fails here. Each ships under the name
 //    bin/system7AssetNames.ts gives it: its own, or, in a variant or size
 //    folder, its folders and its own (`icons-bw-16-system-files-document.png`),
 //    so no two share one. A folder the package does not have yet holds
@@ -55,7 +57,11 @@
 //    System7Json, on the core's types). Every relative specifier in a
 //    declaration carries its extension (`./assets/sounds/system7.js`): the
 //    package is `"type": "module"`, so a host on `moduleResolution: node16`
-//    or `nodenext` resolves no other.
+//    or `nodenext` resolves no other. And none references Platinum: no
+//    declaration of a Platinum module (the bundled savers), no relative
+//    specifier out of dist/types, no `@classicy/appearance-*` import, so a
+//    host that installs only System 7 resolves every type (plan 0018-dbd
+//    §3.8).
 //
 // 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
@@ -63,10 +69,14 @@
 //    plan 0018-dbd §3.8).
 
 import { readdir, readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, join, posix, sep } from "node:path";
 import { exit } from "node:process";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
-import { findClassicyExtensionlessSpecifiers } from "../../../../bin/classicyDeclarationSpecifiers.ts";
+import {
+	findClassicyBareSpecifiers,
+	findClassicyExtensionlessSpecifiers,
+	findClassicyRelativeSpecifiers,
+} from "../../../../bin/classicyDeclarationSpecifiers.ts";
 import {
 	compareClassicyAssetNames,
 	findClassicyStrayAssetUrls,
@@ -180,6 +190,10 @@ const iconDirs = (
 	)
 ).flat();
 const IMAGE = /\.(?:svg|png)$/;
+// The screen savers' folders in Platinum's source, one per saver, each
+// holding its art: System 7 bundles the savers' registration module.
+const SAVERS = join("..", "platinum", "src", "screenSavers");
+const saverDirs = await subfolders(SAVERS);
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
 	...(
@@ -198,6 +212,11 @@ const sources = [
 	...(await listFiles(join("src", "assets", "sounds", "system7"), (n) =>
 		/^system7\.(?:ogg|m4a|mp3|ac3)$/.test(n),
 	)),
+	...(
+		await Promise.all(
+			saverDirs.map((dir) => listFiles(dir, (n) => n.endsWith(".webp"))),
+		)
+	).flat(),
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 {
@@ -386,6 +405,34 @@ const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 				`${file}: relative specifier(s) without an extension (${bare.map((s) => JSON.stringify(s)).join(", ")}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 			);
 	}
+	const platinum = declarations.filter(
+		(file) =>
+			file.endsWith(".d.ts") &&
+			/(?:^|[\\/])(?:screenSavers[\\/]|platinum)/i.test(file),
+	);
+	if (platinum.length)
+		problems.push(
+			`${TYPES}: ${platinum.length} declaration(s) of Platinum's modules (${platinum.slice(0, 5).join(", ")}) -> System 7 re-exports nothing of the savers; check index.ts and the dts include in vite.config.ts.`,
+		);
+	for (const declaration of declarations
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()) {
+		const file = join(TYPES, declaration);
+		const code = (await read(file)) ?? "";
+		const from = posix.dirname(declaration.split(sep).join("/"));
+		const outside = [
+			...findClassicyRelativeSpecifiers(code).filter((specifier) =>
+				posix.join(from, specifier).startsWith(".."),
+			),
+			...findClassicyBareSpecifiers(code).filter((specifier) =>
+				specifier.startsWith("@classicy/appearance-"),
+			),
+		];
+		if (outside.length)
+			problems.push(
+				`${file}: references Platinum or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only System 7 resolves none of it; re-export nothing of the savers.`,
+			);
+	}
 	const json = findClassicyJsonDeclarations(declarations);
 	if (json.length)
 		problems.push(
@@ -398,7 +445,7 @@ const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 		);
 	report(
 		problems,
-		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file`,
+		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file, none referencing Platinum`,
 	);
 }
 

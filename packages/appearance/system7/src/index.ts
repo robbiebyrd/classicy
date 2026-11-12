@@ -23,6 +23,14 @@ import {
 // and a theme's `sound.pack` must name a registered pack. The package lists
 // the pack; it never registers it a second time.
 import "./assets/system7Assets";
+// The After Dark screen savers, Platinum's twelve, registered at load under
+// Platinum and System 7 before the registration below names one of them its
+// `defaultScreenSaver` (design 0017-6me, "Screen savers"; plan 0018-dbd
+// §3.8). The build bundles the module by relative import, so a host loading
+// only System 7 gets the savers without Platinum; it is the one Platinum path
+// System 7 imports (System7SourceImports.test.ts). Nothing of it is
+// re-exported, so System 7's declarations never reference Platinum's files.
+import "../../platinum/src/screenSavers/platinumScreenSavers";
 // The package's own icon (the Appearance Manager's Themes tab): the System
 // file's icon, System 7's suitcase with a Mac.
 import system7Icon from "./assets/icons/color/32/system-folders-suitcase-system.png";
@@ -91,10 +99,9 @@ const system7Defaults =
 	system7Presets.find((theme) => theme.id === system7JsonSource.defaults.id) ??
 	system7Theme(system7JsonSource.defaults as unknown as ClassicyTheme);
 
-// No `defaultScreenSaver` until the screen savers register under System 7
-// (§3.8). Its hooks play no
-// sound (System 7 had no interface feedback sounds): they blink a chosen
-// menu item.
+// Bouncing Ball is the default screen saver, as under Platinum. Its hooks
+// play no sound (System 7 had no interface feedback sounds): they blink a
+// chosen menu item.
 registerClassicyAppearancePackage({
 	id: SYSTEM7_APPEARANCE_PACKAGE_ID,
 	name: system7JsonSource.name,
@@ -107,4 +114,5 @@ registerClassicyAppearancePackage({
 	layout: system7JsonSource.layout as ClassicyAppearanceLayout,
 	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
+	defaultScreenSaver: "bouncing-ball",
 });

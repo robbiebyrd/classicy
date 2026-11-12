@@ -11,6 +11,7 @@ import {
 	getClassicyAppearancePackage,
 	getClassicySoundPack,
 	listClassicyAppearancePackages,
+	listClassicyScreenSavers,
 } from "@classicy/classicy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { system7AssetFileName } from "../bin/system7AssetNames";
@@ -95,6 +96,19 @@ describe("the built bundle and the core's registries", () => {
 				.getElementById("classicy-fonts-system7")
 				?.textContent?.match(/@font-face/g),
 		).toHaveLength(SYSTEM7_FONT_FACES.length);
+		// And the savers it bundles (plan 0018-dbd §3.8), into the core's saver
+		// registry, offered under System 7, the default among them.
+		const savers = listClassicyScreenSavers();
+		expect(savers).toHaveLength(12);
+		for (const saver of savers)
+			expect(saver.packages, saver.id).toContain("system7");
+		expect(getClassicyAppearancePackage("system7")?.defaultScreenSaver).toBe(
+			"bouncing-ball",
+		);
+		// Nothing of them is exported.
+		expect(Object.keys(bundle).filter((name) => /Saver/.test(name))).toEqual(
+			[],
+		);
 	}, 60_000);
 
 	it("imports @classicy/classicy, in both formats, and carries none of it", () => {
@@ -107,10 +121,17 @@ describe("the built bundle and the core's registries", () => {
 		}
 	});
 
-	it("carries nothing of Platinum's", () => {
+	// But the savers' registration module and what it brings: their
+	// components, their logo registry and their unscoped styles (plan
+	// 0018-dbd §3.8).
+	it("carries nothing of Platinum's but the savers", () => {
 		for (const bundle of [es, umd]) {
 			expect(bundle).not.toContain("appearance-platinum");
 			expect(bundle).not.toMatch(/data-classicy-appearance=\\?"?platinum/);
+			expect(bundle).toContain("classicySaverBouncingBall");
+			// Not Platinum's hooks: their feedback sounds' sprite names.
+			expect(bundle).not.toContain("ClassicyButtonClickDown");
+			expect(bundle).not.toContain("ClassicyMenuItemHover");
 		}
 	});
 
@@ -135,22 +156,35 @@ describe("the built bundle and the core's registries", () => {
 		);
 	});
 
-	it("emits its fonts, sound sheet, icons, art and cursors into dist/assets, byte for byte", () => {
+	it("emits its fonts, sound sheet, icons, art, cursors and the savers' art into dist/assets, byte for byte", () => {
 		const assets = readdirSync(path.join(outDir, "assets")).sort();
 		// Every source under its dist name; byte-identical sources ship once.
-		const sources = (
-			readdirSync(path.join(packageDir, "src/assets"), {
+		// The savers' art stays in Platinum's source (plan 0018-dbd §3.8).
+		const savers = path.join("..", "platinum", "src", "screenSavers");
+		const saverArt = (
+			readdirSync(path.join(packageDir, savers), {
 				recursive: true,
 			}) as string[]
 		)
-			.map((file) => path.join("src/assets", file))
-			.filter(
-				(file) =>
-					/\.(png|svg|woff2)$/.test(file) ||
-					/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a|mp3|ac3)$/.test(
-						file,
-					),
-			);
+			.filter((file) => file.endsWith(".webp"))
+			.map((file) => path.join(savers, file));
+		expect(saverArt.length).toBeGreaterThan(0);
+		const sources = [
+			...(
+				readdirSync(path.join(packageDir, "src/assets"), {
+					recursive: true,
+				}) as string[]
+			)
+				.map((file) => path.join("src/assets", file))
+				.filter(
+					(file) =>
+						/\.(png|svg|woff2)$/.test(file) ||
+						/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a|mp3|ac3)$/.test(
+							file,
+						),
+				),
+			...saverArt,
+		];
 		const byName = new Map(
 			sources.map((file) => [system7AssetFileName(file), file]),
 		);
@@ -180,6 +214,7 @@ describe("the built bundle and the core's registries", () => {
 			expect(assets, file).toContain(`${file}.woff2`);
 		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
 			expect(assets).toContain(`system7.${ext}`);
+		for (const file of saverArt) expect(assets).toContain(path.basename(file));
 	});
 
 	it("emits the two strict-CSP stylesheets", () => {

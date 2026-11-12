@@ -44,12 +44,37 @@ export const CLASSICY_SCREEN_SAVER_LOGO_IDS = {
 export const CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID =
 	CLASSICY_SCREEN_SAVER_LOGO_IDS.berkeleySystems;
 
-const registry = new Map<string, ClassicyScreenSaverLogoDefinition>();
-const listeners = new Set<() => void>();
-let snapshot: readonly ClassicyScreenSaverLogoDefinition[] = [];
+/** The registry's state: the logos, their subscribers and the list. */
+interface ClassicyScreenSaverLogoRegistryState {
+	readonly registry: Map<string, ClassicyScreenSaverLogoDefinition>;
+	readonly listeners: Set<() => void>;
+	snapshot: readonly ClassicyScreenSaverLogoDefinition[];
+}
+
+// One registry per page, whichever bundle evaluates this module. Platinum's
+// bundle carries it, and so does System 7's, which bundles the savers'
+// registration module (design 0017-6me, "Screen savers"), so a host loading
+// both packages evaluates it twice. The core's registries are one copy (the
+// core is a peer); this one has no core home, so its state lives on
+// `globalThis` under a registered symbol, and the second copy joins the
+// first: a logo registered through Platinum's export is the one the Logo
+// saver draws and offers, whichever bundle registered that saver last. The
+// key carries the state's shape version.
+const STATE_KEY = Symbol.for("@classicy/screen-saver-logos@1");
+const holder = globalThis as unknown as Record<
+	symbol,
+	ClassicyScreenSaverLogoRegistryState | undefined
+>;
+const state: ClassicyScreenSaverLogoRegistryState = holder[STATE_KEY] ?? {
+	registry: new Map(),
+	listeners: new Set(),
+	snapshot: [],
+};
+holder[STATE_KEY] = state;
+const { registry, listeners } = state;
 
 const publish = () => {
-	snapshot = Array.from(registry.values());
+	state.snapshot = Array.from(registry.values());
 	for (const listener of listeners) listener();
 };
 
@@ -82,7 +107,7 @@ export const getClassicyScreenSaverLogo = (
 
 /** Every registered logo, in registration order. */
 export const listClassicyScreenSaverLogos =
-	(): readonly ClassicyScreenSaverLogoDefinition[] => snapshot;
+	(): readonly ClassicyScreenSaverLogoDefinition[] => state.snapshot;
 
 export function subscribeClassicyScreenSaverLogos(
 	listener: () => void,
@@ -98,8 +123,8 @@ export const useClassicyScreenSaverLogos =
 	(): readonly ClassicyScreenSaverLogoDefinition[] =>
 		useSyncExternalStore(
 			subscribeClassicyScreenSaverLogos,
-			() => snapshot,
-			() => snapshot,
+			() => state.snapshot,
+			() => state.snapshot,
 		);
 
 /**

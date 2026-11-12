@@ -51,9 +51,12 @@ describe("packages/appearance/system7/package.json", () => {
 		});
 	});
 
-	// The screen savers bring zod with them (plan 0018-dbd §3.8); until then
-	// the package needs nothing a host does not already install.
-	it("has no dependencies of its own yet", () =>
+	// The package needs nothing a host does not already install. The screen
+	// savers it bundles (plan 0018-dbd §3.8) bring zod, bundled with them, as
+	// Platinum's bundle carries it; unlike Platinum, System 7 re-exports none
+	// of their schemas, so no declaration imports zod (verify:host-types
+	// fails on one its manifest does not declare).
+	it("has no dependencies of its own", () =>
 		expect(pkg.dependencies).toBeUndefined());
 
 	it("publishes dist, the SCSS, the README and the license", () =>
