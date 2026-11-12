@@ -37,8 +37,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # Never cancel a release in flight: a cancel between the two publishes would
-  # ship the core without Platinum. A newer run queues behind it instead.
+  # Never cancel a release in flight: a cancel between the three packages'
+  # publishes would ship some without the others (the core without Platinum or
+  # System 7, say). A newer run queues behind it instead.
   cancel-in-progress: false
 
 jobs:

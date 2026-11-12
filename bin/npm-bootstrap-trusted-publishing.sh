@@ -138,6 +138,7 @@ classify_trust() {
 
 DEPRECATION_FOR() { echo "Placeholder with no code; install $1@$(first_release_for "$1") or later."; }
 
+# The package name in the manifest file at path $1.
 manifest_name() { node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$1"; }
 
 # The distinct first releases of the packages given, oldest first, for the
@@ -158,7 +159,7 @@ VIEW_ERR="$(mktemp "${TMPDIR:-/tmp}/classicy-bootstrap-view.XXXXXX")"
 # Each step checks what is already on the registry, so a run that stopped
 # partway (a mistyped one-time password, a dropped connection) can be re-run.
 for MANIFEST in "${MANIFESTS[@]}"; do
-	NAME="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$MANIFEST")"
+	NAME="$(manifest_name "$MANIFEST")"
 	DEPRECATION="$(DEPRECATION_FOR "$NAME")"
 	echo
 	echo "== $NAME"
@@ -294,7 +295,7 @@ echo "either way, and until then the deprecation is the guard (installs warn, na
 echo "$RELEASES). Otherwise \`latest\` stays unset until then."
 echo "A few minutes after --publish, check each package with \`npm dist-tag ls <name>\`:"
 for MANIFEST in "${MANIFESTS[@]}"; do
-	echo "  npm dist-tag ls $(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$MANIFEST")"
+	echo "  npm dist-tag ls $(manifest_name "$MANIFEST")"
 done
 echo "If the script stopped partway, re-running it is safe: it skips what is done."
 echo
