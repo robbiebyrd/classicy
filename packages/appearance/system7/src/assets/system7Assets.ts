@@ -17,14 +17,20 @@ import {
 // halftone (ruling E17). The file is still emitted by the art glob below.
 import ditherChecker from "./art/dither-checker.svg?inline";
 import controlStripCollapse from "./pixelart/control-strip-collapse.txt?raw";
+import controlStripCollapseBw from "./pixelart/control-strip-collapse-bw.txt?raw";
 import controlStripModuleArrow from "./pixelart/control-strip-module-arrow.txt?raw";
 import controlStripScrollLeft from "./pixelart/control-strip-scroll-left.txt?raw";
+import controlStripScrollLeftBw from "./pixelart/control-strip-scroll-left-bw.txt?raw";
 import controlStripScrollLeftDisabled from "./pixelart/control-strip-scroll-left-disabled.txt?raw";
 import controlStripScrollRight from "./pixelart/control-strip-scroll-right.txt?raw";
+import controlStripScrollRightBw from "./pixelart/control-strip-scroll-right-bw.txt?raw";
 import controlStripScrollRightDisabled from "./pixelart/control-strip-scroll-right-disabled.txt?raw";
 import controlStripTab from "./pixelart/control-strip-tab.txt?raw";
+import controlStripTabBw from "./pixelart/control-strip-tab-bw.txt?raw";
 import popUpSliderThumb from "./pixelart/popup-slider-thumb.txt?raw";
+import popUpSliderThumbBw from "./pixelart/popup-slider-thumb-bw.txt?raw";
 import popUpSliderTrack from "./pixelart/popup-slider-track.txt?raw";
+import popUpSliderTrackBw from "./pixelart/popup-slider-track-bw.txt?raw";
 import { SYSTEM7_FONT_FACES } from "./system7Fonts.internal";
 import { SYSTEM7_ICON_FILES, SYSTEM7_ICON_REUSE } from "./system7Icons";
 
@@ -165,9 +171,13 @@ const SYSTEM7_ART: Readonly<
 	halftoneLarge: ClassicyIcons.ui.halftoneLarge,
 	quickTimeThumbSlider: ClassicyIcons.system.quicktime.thumbSlider,
 	quickTimeVolumeSlider: ClassicyIcons.system.quicktime.volumeSlider,
-	// The Control Strip (Control Strip 1.x, the same strip Mac OS 8 kept;
-	// the Control Strip panel's own glyphs, ics -4045 to -4047, match these
-	// rows) and the pop-up slider, flat in System 7's 1 px black.
+	// The Control Strip (Control Strip 1.3.1, the 7.5 control panel's own
+	// art: the collapse box and scroll arrows are its `ics8` -4045 to -4047,
+	// the tab its picture of the strip's end, PICT -4044, and the pop-up
+	// slider PICT -4045 and -4046), in the System 7 Color tokens nearest its
+	// grays: the face #CCCCCC as `2` (#BBBBBB), #DDDDDD `1`, #AAAAAA `4`,
+	// #888888 `5`, #555555 and #444444 `7`, #CCCCFF `b`, the slider's
+	// #333366 `n`. Mac OS 8 kept the strip, so the shapes are Platinum's.
 	controlStripTab: pixelArt(controlStripTab),
 	controlStripCollapse: pixelArt(controlStripCollapse),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeft),
@@ -201,6 +211,17 @@ const SYSTEM7_BW_ART: Readonly<
 	windowUtilityTexture: art("bw/window-utility-texture.png"),
 	windowGrip: art("bw/window-grip.png"),
 	zoomGlyph: art("bw/zoom-glyph.png"),
+	// The Control Strip's 1-bit art: the `ics#` glyphs and PICT -4043 and
+	// -4048, black on white, with no bevel. The 1-bit disabled arrow is the
+	// arrow itself, as the panel's 1-bit picture of the strip draws it.
+	controlStripTab: pixelArt(controlStripTabBw),
+	controlStripCollapse: pixelArt(controlStripCollapseBw),
+	controlStripScrollLeft: pixelArt(controlStripScrollLeftBw),
+	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftBw),
+	controlStripScrollRight: pixelArt(controlStripScrollRightBw),
+	controlStripScrollRightDisabled: pixelArt(controlStripScrollRightBw),
+	popUpSliderTrack: pixelArt(popUpSliderTrackBw),
+	popUpSliderThumb: pixelArt(popUpSliderThumbBw),
 };
 
 registerClassicySystemArt(SYSTEM7, SYSTEM7_ART);

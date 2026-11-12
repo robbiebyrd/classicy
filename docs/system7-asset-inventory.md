@@ -113,6 +113,23 @@ How the script decodes (`bin/macResources.mjs`, `bin/png.mjs`):
 - Crops are read from the screenshots' raw pixels; each row's Source gives the file, the position and what is made transparent.
 - The SVGs in `art/` (the transparent stand-ins, the halftone, the menu check and dash, the dither checker) and the `.txt` pixel art in `pixelart/` are hand-written; `sad-mac.png` and the resize cursors are Platinum's files, copied by the script.
 
+### Control Strip
+
+§3.7 decoded the 7.5.5 Control Strip control panel (Control Strip 1.3.1) unfiltered, every resource type, for the strip's own art:
+
+```
+resource_dasm --index-format=as/ad "<extracted>/System Folder/Control Panels/Control Strip.rsrc" <decoded>
+```
+
+Its pictures and small icons are the strip's art; the strip itself is drawn by code (`WDEF` -4048), so there is no other bitmap of it:
+
+- `PICT` -4044 (color) and -4043 (1-bit), 61 × 24: the panel's picture of the strip's right end, the Sound module, a dimmed scroll arrow's recessed cell and the tab. Its left four columns fade the picture in and are not the strip's.
+- `PICT` -4046 (color) and -4048 (1-bit), 17 × 73: the Sound module's pop-up slider, its track on the pop-up's face; `PICT` -4045 and -4047, 17 × 10, its thumb.
+- `ics#`/`ics8` -4045: the collapse box; -4046 and -4047: the right and left scroll arrows, enabled in the left 8 columns and dimmed in the right 8 (one bitmap for both in `ics#`); -4043 and -4044 are a module's drag outline, which Classicy does not draw.
+- `ppat` -4048: a 50% gray pattern for dragging.
+
+The `.txt` rows in `pixelart/` were transcribed from the decoded BMPs pixel for pixel. The 1-bit rows use `K`, `W` and clear only. The color rows map the panel's grays onto System 7 Color's tokens: the face `#CCCCCC` (`#CECECE` in the slider's picture) to `2` (system-02, `#BBBBBB`), `#DDDDDD` to `1`, `#AAAAAA` to `4`, `#888888` to `5`, `#555555` and `#444444` to `7`, `#CCCCFF` to `b`, `#222222` to `K` and the slider's `#333366` to `n`. Outside each glyph's outline is clear. Compared with the strip as drawn (shots of `Appearance/System 7/Desktop`): the 1-bit cell, tab and slider match the pictures exactly (AE 0); in color only the face, `#BBBBBB` for `#CCCCCC`, the tab's lowest row, `#555555` for `#444444`, and the slider's inner ring differ.
+
 To find an ID: the script `bundleIcons` (in `bin/macResources.mjs`) lists a file's `BNDL` as file type → icon ID, which is how every "ID to confirm" was settled.
 
 ## Icons
@@ -535,15 +552,15 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 | — | `halftoneLarge` | Pre-boot screen dither | core | `ui.halftoneLarge`, as Platinum registers it | — | — |
 | — | `quickTimeThumbSlider` | QuickTime controller seek thumb | core | `system.quicktime.thumbSlider` (QuickTime draws its own controller) | — | — |
 | — | `quickTimeVolumeSlider` | QuickTime controller volume thumb | core | `system.quicktime.volumeSlider` (QuickTime draws its own controller) | — | — |
-| — | `controlStripTab` | Control Strip tab | draw | Pixel-art rows: the Control Strip of 7.5.5 is Control Strip 1.x, the strip Mac OS 8 kept, and its control panel's own glyphs (`ics8` -4045 to -4047) match Platinum's rows, so they are copied; no reference crop was made | — | — |
-| — | `controlStripCollapse` | Control Strip collapse box | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `controlStripScrollLeft` | Control Strip scroll arrow, left | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `controlStripScrollLeftDisabled` | Control Strip scroll arrow, left, dimmed | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `controlStripScrollRight` | Control Strip scroll arrow, right | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `controlStripScrollRightDisabled` | Control Strip scroll arrow, right, dimmed | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `controlStripModuleArrow` | Control Strip module pop-up arrow | draw | Pixel-art rows, copied from Platinum's as `controlStripTab`'s | — | — |
-| — | `popUpSliderTrack` | Pop-up slider track (Control Strip sound) | draw | Mac OS 8 only: pixel-art rows in the flat 1 px black System 7 style (implementer) | — | — |
-| — | `popUpSliderThumb` | Pop-up slider thumb | draw | Mac OS 8 only: pixel-art rows in the flat 1 px black System 7 style (implementer) | — | — |
+| — | `controlStripTab` | Control Strip tab | draw | Pixel-art rows transcribed from the 7.5.5 Control Strip control panel (Control Strip 1.3.1, the strip Mac OS 8 kept) by its own picture of the strip's right end, `PICT` -4044 (color) and -4043 (1-bit), columns 44-60: its outline and dots as drawn, the colors in System 7 Color's nearest tokens (see "Control Strip" under Reproducing the files); the 1-bit rows are the `bw` variant. No reference crop was made | — | — |
+| — | `controlStripCollapse` | Control Strip collapse box | draw | Pixel-art rows transcribed from the panel's `ics8` -4045 (color) and `ics#` -4045 (1-bit, the `bw` variant), as `controlStripTab`'s | — | — |
+| — | `controlStripScrollLeft` | Control Strip scroll arrow, left | draw | Pixel-art rows transcribed from the panel's `ics8` -4047, its left 8 columns (color), and `ics#` -4047 (1-bit), as `controlStripTab`'s | — | — |
+| — | `controlStripScrollLeftDisabled` | Control Strip scroll arrow, left, dimmed | draw | Pixel-art rows transcribed from the panel's `ics8` -4047, its right 8 columns (color); in 1-bit the arrow itself, `ics#` -4047, as the panel's 1-bit picture draws a dimmed arrow | — | — |
+| — | `controlStripScrollRight` | Control Strip scroll arrow, right | draw | Pixel-art rows transcribed from the panel's `ics8` -4046, its left 8 columns (color), and `ics#` -4046 (1-bit), as `controlStripTab`'s | — | — |
+| — | `controlStripScrollRightDisabled` | Control Strip scroll arrow, right, dimmed | draw | Pixel-art rows transcribed from the panel's `ics8` -4046, its right 8 columns (color); in 1-bit the arrow itself, `ics#` -4046, as `controlStripScrollLeftDisabled`'s | — | — |
+| — | `controlStripModuleArrow` | Control Strip module pop-up arrow | draw | Pixel-art rows, copied from Platinum's: the panel's picture of the strip (`PICT` -4044) draws the same black 4 × 8 triangle, so one set serves both themes | — | — |
+| — | `popUpSliderTrack` | Pop-up slider track (Control Strip sound) | draw | Pixel-art rows transcribed from the panel's picture of the pop-up slider, `PICT` -4046 (color) and -4048 (1-bit, the `bw` variant, its channel the 50% checker), the 10 × 68 track at 4,3, its face made clear (the pop-up's own face draws it) | — | — |
+| — | `popUpSliderThumb` | Pop-up slider thumb | draw | Pixel-art rows transcribed from the panel's `PICT` -4045 (color) and -4047 (1-bit, the `bw` variant), the 15 × 10 thumb at 1,0 | — | — |
 | — | `menuCheck` | Menu check mark | draw | Chicago's ✓, from the Label menu (`color-menu-pulldown-label.png`, 9 × 8 at 156,24), as a 1-bit SVG (implementer) | — | — |
 | — | `menuDash` | Menu dash (mixed state) | draw | Chicago's – : a 1-bit SVG of the Chicago 12 glyph (implementer) | — | — |
 | — | `triangle` | Alias of `submenuArrow` | reuse | `submenuArrow` | — | — |
@@ -640,7 +657,7 @@ Part codes are Apple's (`Windows.h`, `Controls.h`; `cctb` part 4, which the tabl
 | [x] | Inactive title text | The same window's title | `#B4B4B4` | `#888888` (`system-05`) |
 | [x] | Scroll track dither dots | An active scroll bar's gray area | `#A8A8A8` on `#ECECEC` | `#777777` on `#DDDDDD` (`system-01`) |
 | [x] | Close and zoom box face | An active window's close box | `#CDCDCD` | `#AAAAAA` (`system-04`) |
-| [x] | Desktop | The default color desktop | `#CACACA` | a 1 px checkerboard of `#666666` and `#AAAAAA` (the desktop pattern, not a table color; the theme keeps `#CACACA` for now) |
+| [x] | Desktop | The default color desktop | `#CACACA` | a 1 px checkerboard of `#666666` and `#AAAAAA`, System `ppat` 16 at 256 colors (the desktop pattern, not a table color): the theme's desktop color `#666666` and `system-04` `#AAAAAA` (§3.7, `styles/components/_Desktop.scss`); its 1-bit pattern, black and white, is the 1-bit theme's |
 
 ## Reference crops
 
@@ -648,6 +665,6 @@ For art the implementer draws from System 7.5's look rather than exports. Same c
 
 | Done | File | What to crop |
 | --- | --- | --- |
-| [ ] | `resources/reference/control-strip.png` | The Control Strip, expanded with at least three modules showing and both scroll arrows (one dimmed if possible), then collapsed to its tab, in one image, from a System 7.5 setup with Control Strip installed (PowerBook install), at 256 colors |
+| [ ] | `resources/reference/control-strip.png` | The Control Strip, expanded with at least three modules showing and both scroll arrows (one dimmed if possible), then collapsed to its tab, in one image, from a System 7.5 setup with Control Strip installed (PowerBook install), at 256 colors. Not made: §3.7 drew the strip from the Control Strip panel's own pictures of it (`PICT` -4043 to -4048, see "Control Strip" under Reproducing the files) instead |
 
 The package's own `icon` (shown in the Appearance Manager's Themes tab) uses the `system.folders.suitcaseSystem` color 32 px file; nothing extra to export.

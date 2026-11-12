@@ -10,6 +10,7 @@ import {
 	resolveClassicyCursorHotspot,
 	resolveClassicyIcon,
 } from "@/Appearance/ClassicyAssetRegistry";
+import { decodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import "../index";
 import system7Json from "../system7.json";
@@ -56,6 +57,30 @@ const coreIcon = (key: string): string =>
 		) as string;
 
 const ART_KEYS = unionMembers("ClassicySystemArtKey") as ClassicySystemArtKey[];
+
+/** The Control Strip's pixel art: each key's color rows, then its 1-bit rows. */
+const STRIP_ART: Partial<Record<ClassicySystemArtKey, [string, string]>> = {
+	controlStripTab: ["control-strip-tab", "control-strip-tab-bw"],
+	controlStripCollapse: ["control-strip-collapse", "control-strip-collapse-bw"],
+	controlStripScrollLeft: [
+		"control-strip-scroll-left",
+		"control-strip-scroll-left-bw",
+	],
+	controlStripScrollLeftDisabled: [
+		"control-strip-scroll-left-disabled",
+		"control-strip-scroll-left-bw",
+	],
+	controlStripScrollRight: [
+		"control-strip-scroll-right",
+		"control-strip-scroll-right-bw",
+	],
+	controlStripScrollRightDisabled: [
+		"control-strip-scroll-right-disabled",
+		"control-strip-scroll-right-bw",
+	],
+	popUpSliderTrack: ["popup-slider-track", "popup-slider-track-bw"],
+	popUpSliderThumb: ["popup-slider-thumb", "popup-slider-thumb-bw"],
+};
 const CURSOR_ROLES = unionMembers("ClassicyCursorRole") as ClassicyCursorRole[];
 const ICON_KEYS = iconLeaves(ClassicyIcons);
 
@@ -175,8 +200,9 @@ describe("System 7's assets", () => {
 		it("gives the 1-bit theme its own file where the look differs", () => {
 			const differs = ART_KEYS.filter(
 				(key) =>
+					!(key in STRIP_ART) &&
 					resolveClassicyAsset("systemArt", key, SYSTEM7, BW) !==
-					resolveClassicyAsset("systemArt", key, SYSTEM7, BASE),
+						resolveClassicyAsset("systemArt", key, SYSTEM7, BASE),
 			);
 			expect(differs.sort()).toEqual(
 				[
@@ -201,6 +227,39 @@ describe("System 7's assets", () => {
 					/\/art\/color\//,
 				);
 			}
+		});
+
+		// Plan 0018-dbd §3.7: the Control Strip's art is the 7.5 Control Strip
+		// panel's own bitmaps (docs/system7-asset-inventory.md, "Control
+		// Strip"), one set of rows per theme.
+		it("draws the Control Strip from the 7.5 panel's bitmaps, its own rows per theme", () => {
+			const rows = (file: string) =>
+				readFileSync(
+					path.join(assets, "pixelart", `${file}.txt`),
+					"utf8",
+				).split("\n");
+			const drawn = (key: ClassicySystemArtKey, variant: string) =>
+				decodeClassicyPixelArtRows(
+					resolveClassicyAsset("systemArt", key, SYSTEM7, variant),
+				);
+			for (const [key, [color, bw]] of Object.entries(STRIP_ART) as [
+				ClassicySystemArtKey,
+				[string, string],
+			][]) {
+				expect(drawn(key, BASE), key).toEqual(rows(color));
+				expect(drawn(key, BW), key).toEqual(rows(bw));
+				// Black and white only in 1-bit; System 7 Color's tokens in color.
+				expect(rows(bw).join(""), key).toMatch(/^[KW.]+$/);
+				expect(rows(color).join(""), key).toMatch(/^[KW12457bn.]+$/);
+				// Each theme's glyph is the same shape.
+				const shape = (r: string[]) =>
+					r.map((row) => row.replace(/[^.]/g, "#"));
+				if (key !== "popUpSliderTrack")
+					expect(shape(rows(bw)), key).toEqual(shape(rows(color)));
+			}
+			// The 1-bit slider's channel is the 50% checker.
+			expect(rows("popup-slider-track-bw")[10]).toBe("KWKWKWKWK.");
+			expect(rows("popup-slider-track-bw")[11]).toBe("KWKKWKKWK.");
 		});
 
 		// verify-dist holds the build to it: the dither checker is the one

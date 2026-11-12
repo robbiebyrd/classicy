@@ -194,13 +194,21 @@
 				"bevel": 0,
 				"arrowSpread": 1,
 				"grip": 0
+			},
+			"controlStrip": {
+				"bevelWidth": 0
+			},
+			"iconLabel": {
+				"height": 12,
+				"pad": 2,
+				"textTop": 2
 			}
 		},
 		"desktop": {
 			"iconSize": 32,
 			"iconFontSize": 9,
 			"backgroundImage": "",
-			"backgroundColor": 16777215,
+			"backgroundColor": 0,
 			"backgroundRepeat": "repeat",
 			"backgroundPosition": "center",
 			"backgroundSize": "auto"
@@ -400,13 +408,21 @@
 					"bevel": 0,
 					"arrowSpread": 1,
 					"grip": 0
+				},
+				"controlStrip": {
+					"bevelWidth": 0
+				},
+				"iconLabel": {
+					"height": 12,
+					"pad": 2,
+					"textTop": 2
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
 				"iconFontSize": 9,
 				"backgroundImage": "",
-				"backgroundColor": 16777215,
+				"backgroundColor": 0,
 				"backgroundRepeat": "repeat",
 				"backgroundPosition": "center",
 				"backgroundSize": "auto"
@@ -608,13 +624,21 @@
 					"bevel": 1,
 					"arrowSpread": 0,
 					"grip": 6
+				},
+				"controlStrip": {
+					"bevelWidth": 1
+				},
+				"iconLabel": {
+					"height": 12,
+					"pad": 2,
+					"textTop": 2
 				}
 			},
 			"desktop": {
 				"iconSize": 32,
 				"iconFontSize": 9,
 				"backgroundImage": "",
-				"backgroundColor": 13290186,
+				"backgroundColor": 6710886,
 				"backgroundRepeat": "repeat",
 				"backgroundPosition": "center",
 				"backgroundSize": "auto"

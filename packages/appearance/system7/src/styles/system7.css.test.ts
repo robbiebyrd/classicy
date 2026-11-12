@@ -259,9 +259,10 @@ describe("system7.scss (compiled)", () => {
 		const TITLES =
 			":is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem)";
 		const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
-		const rootDeclarations = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(
-			([, header]) => header.trim() === ROOT,
-		)?.[2];
+		const rootDeclarations = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+			.filter(([, header]) => header.trim() === ROOT)
+			.map(([, , declarations]) => declarations)
+			.join("\n");
 
 		it("frames every menu in one black pixel on white, its shadow three pixels in from the corner", () => {
 			const frame = rule(MENUS);
@@ -1117,6 +1118,184 @@ describe("system7.scss (compiled)", () => {
 			expect(inWindow).toMatch(
 				/margin-right: calc\(var\(--window-border-size\) \* -1\);/,
 			);
+		});
+	});
+
+	// Plan 0018-dbd §3.7: the desktop, its icons, the Control Strip, the tab
+	// control and the Appearance Manager, from the 7.5 desktop captures and
+	// the Control Strip panel's own bitmaps.
+	describe("desktop, icons, Control Strip and tabs", () => {
+		const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
+		const rootRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+			.filter(([, header]) => header.trim() === ROOT)
+			.map(([, , declarations]) => declarations)
+			.join("\n");
+		const PATTERN = [
+			/background-color: var\(--color-system-04\);/,
+			/background-image: var\(--desktop-background-image\), linear-gradient\(var\(--desktop-background-color\), var\(--desktop-background-color\)\), var\(--classicy-art-dither-checker\);/,
+			/background-blend-mode: normal, lighten, normal;/,
+			/background-repeat: var\(--desktop-background-repeat\), no-repeat, repeat;/,
+			/background-position: var\(--desktop-background-position\), 0 0, var\(--window-box-pixel\) 0;/,
+			/background-size: var\(--desktop-background-size\), 100% 100%, calc\(var\(--window-box-pixel\) \* 2\) calc\(var\(--window-box-pixel\) \* 2\);/,
+		];
+
+		it("draws the desktop's checker under its picture, the desktop color lightened by system-04", () => {
+			for (const declaration of PATTERN) expect(rootRules).toMatch(declaration);
+		});
+
+		it("previews the desktop itself in the Appearance Manager, on a white panel", () => {
+			const preview = rule(".classicyAppearanceManagerDesktopPreview");
+			for (const declaration of PATTERN) expect(preview).toMatch(declaration);
+			expect(preview).toMatch(
+				/border: var\(--window-border-size\) solid var\(--color-black\);/,
+			);
+			expect(preview).toMatch(/object-position: -200vw 0;/);
+			expect(rule(".classicyAppearanceManagerContent")).toMatch(
+				/background-color: var\(--color-window-document\);/,
+			);
+		});
+
+		const FAMILIES = [
+			[
+				".classicyDesktopIcon",
+				".classicyDesktopIconMaskOuter",
+				".classicyDesktopIconMask",
+			],
+			[".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask"],
+		] as const;
+
+		it("draws an icon at its own size with an opaque Geneva label, inverted when selected", () => {
+			for (const [root, outer, mask] of FAMILIES) {
+				const box = rule(
+					`${root} ${outer}:not(.classicyDesktopIconAliasBadge)`,
+				);
+				expect(box).toMatch(/width: var\(--desktop-icon-size\);/);
+				expect(box).toMatch(/height: var\(--desktop-icon-size\);/);
+				expect(box).toMatch(/mask-size: 100% 100%;/);
+				expect(box).toMatch(/background: none;/);
+				expect(
+					rule(
+						`${root} ${outer}:not(.classicyDesktopIconAliasBadge) > ${mask}`,
+					),
+				).toMatch(/mask-size: 100% 100%;/);
+				const label = rule(`${root} p`);
+				expect(label).toMatch(/margin-top: 0;/);
+				expect(label).toMatch(
+					/padding: var\(--icon-label-text-top\) var\(--icon-label-pad\) 0;/,
+				);
+				expect(label).toMatch(/white-space: nowrap;/);
+				expect(label).toMatch(
+					/line-height: calc\(var\(--icon-label-height\) - var\(--icon-label-text-top\)\);/,
+				);
+				expect(label).toMatch(/background: var\(--color-white\);/);
+				const selected = rule(`${root}.selected p`);
+				expect(selected).toMatch(/color: var\(--color-white\);/);
+				expect(selected).toMatch(/background: var\(--color-black\);/);
+			}
+		});
+
+		it("inverts a selected icon in 1-bit and darkens it in color, by the dither tile's size", () => {
+			for (const [root, outer] of FAMILIES) {
+				const invert = rule(`${root}.selected ${outer}::after`);
+				expect(invert).toMatch(
+					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top\/var\(--dither-tile-size\) var\(--dither-tile-size\);/,
+				);
+				expect(invert).toMatch(/mix-blend-mode: difference;/);
+				const darken = rule(`${root}.selected:not(.open) ${outer}::before`);
+				expect(darken).toMatch(
+					/color-mix\(in srgb, var\(--color-black\) 50%, transparent\)/,
+				);
+				expect(darken).toMatch(
+					/left top\/calc\(calc\(var\(--window-box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				);
+				expect(rule(`${root}.selected ${outer} img`)).toMatch(/filter: none;/);
+			}
+		});
+
+		it("draws an opened icon's shape outlined in black, its inside eroded a pixel and dotted 25%", () => {
+			for (const [root, outer, mask] of FAMILIES) {
+				expect(rule(`${root}.open ${outer}`)).toMatch(
+					/background: var\(--color-black\);/,
+				);
+				const inside = rule(`${root}.open ${outer} ${mask}`);
+				expect(inside.split("var(--classicy-icon-mask)").length - 1).toBe(5);
+				expect(inside).toMatch(
+					/mask-position: 0 0, var\(--window-box-pixel\) 0, calc\(0% - var\(--window-box-pixel\)\) 0, 0 var\(--window-box-pixel\), 0 calc\(0% - var\(--window-box-pixel\)\);/,
+				);
+				expect(inside).toMatch(/mask-composite: intersect;/);
+				expect(inside).toMatch(
+					/var\(--classicy-art-halftone, none\) left top\/calc\(var\(--window-box-pixel\) \* 8\) calc\(var\(--window-box-pixel\) \* 8\)/,
+				);
+				expect(inside).toMatch(
+					/--system7-icon-open-face: var\(--color-theme-04\);/,
+				);
+				expect(inside).toMatch(/backdrop-filter: none;/);
+				expect(rule(`${root}.selected.open ${outer} ${mask}`)).toMatch(
+					/--system7-icon-open-face: var\(--color-theme-07\);/,
+				);
+			}
+		});
+
+		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
+			const BEVEL = "var(--control-strip-bevel-width)";
+			const raised = rule(".classicyControlStripCell");
+			expect(raised).toMatch(/, var\(--color-system-02\);$/m);
+			expect(layersOf(raised, "var(--color-white)")).toBe(2);
+			expect(layersOf(raised, "var(--color-system-04)")).toBe(2);
+			expect(layersOf(raised, "var(--color-system-05)")).toBe(2);
+			expect(raised).toContain(BEVEL);
+			expect(raised).not.toMatch(/\* [0-9]/);
+			expect(
+				rule(
+					".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+				),
+			).toBe(raised);
+			const recessed = rule(".classicyControlStripScroll:disabled");
+			expect(layersOf(recessed, "var(--color-system-05)")).toBe(2);
+			expect(layersOf(recessed, "var(--color-white)")).toBe(2);
+			const pressed = rule(".classicyControlStripCell:active:not(:disabled)");
+			expect(layersOf(pressed, "var(--color-system-06)")).toBe(4);
+			expect(pressed).toMatch(/, var\(--color-system-04\);$/m);
+		});
+
+		it("frames a module's pop-up as a menu, its face the strip's with a white top and left", () => {
+			const panel = rule(
+				".classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
+			);
+			expect(panel).toMatch(
+				/border: var\(--window-border-size\) solid var\(--color-black\);/,
+			);
+			expect(layersOf(panel, "var(--color-white)")).toBe(2);
+			expect(panel).toMatch(/var\(--color-system-02\);/);
+			expect(
+				rule(".classicyBevelButtonPopup.classicyBevelButtonPopupPanel::after"),
+			).toMatch(/top: var\(--menu-frame-shadow-start\);/);
+		});
+
+		it("draws a tab as a box of black lines on white, the chosen one open into its white panel", () => {
+			const BLACK = "var(--color-black)";
+			const tab = rule(".classicyTabButtonWrapper");
+			expect(tab).toMatch(/clip-path: none;/);
+			// Top, two corner pixels, two sides, and the panel's line under it.
+			expect(layersOf(tab, BLACK)).toBe(6);
+			expect(tab).toMatch(/0 100%\/100% var\(--window-box-pixel\)/);
+			const chosen = rule(
+				".classicyTabButtonWrapper:has(.classicyTabButton.selected)",
+			);
+			expect(layersOf(chosen, BLACK)).toBe(5);
+			expect(chosen).not.toMatch(/0 100%\/100%/);
+			expect(
+				rule(".classicyTabButtonWrapper + .classicyTabButtonWrapper"),
+			).toMatch(/margin-left: calc\(0% - var\(--window-box-pixel\)\);/);
+			expect(rule(".classicyTabsSizeSmall .classicyTabButton")).toMatch(
+				/font-size: var\(--ui-font-size\);/,
+			);
+			expect(rule(".classicyTabActiveContent")).toMatch(
+				/background-color: var\(--color-white\);/,
+			);
+			expect(
+				rule(".classicyTabScrollButton:disabled .classicyTabScrollGlyph"),
+			).toMatch(/mask-image: var\(--classicy-art-dither-checker\)/);
 		});
 	});
 

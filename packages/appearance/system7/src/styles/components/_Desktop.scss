@@ -1,0 +1,49 @@
+// The System 7 desktop (plan 0018-dbd §3.7), included by system7.scss inside
+// the package wrapper, whose root is the desktop itself (`&`).
+//
+// The desktop pattern is the System file's `ppat` 16, the 7.5 default: a
+// 50% checkerboard, black and white on a 1-bit screen (CIC "default 1-bit
+// desktop pattern") and #666666 and #AAAAAA on a color one (MWD 4, measured
+// at 256 colors in `*-desktop-menubar-icons.png`). Its dark cells sit where
+// x + y is even, counting from the screen's corner.
+//
+// It is drawn from two theme colors, so a user's color edits reach it: its
+// dark cells are the theme's desktop color (`desktop.backgroundColor`,
+// `--desktop-background-color`: black in "System 7", #666666 in "System 7
+// Color") and its light cells `--color-system-04` (white and #AAAAAA). The
+// cells are the dither vocabulary's raster checker (`ditherChecker`, black
+// in two cells of a 2 x 2 tile), not a gradient, which smears at fractional
+// zoom: the tile lies black over the light color, and the desktop color,
+// one layer above it, `lighten`s them, the larger of the two in each channel
+// on every pixel. So the black cells take the desktop color and the light
+// cells keep theirs, as long as the light color is the lighter of the two
+// in every channel (a desktop color lighter than the light one in some
+// channel leaves those cells the lighter mix: a plain desktop, not a broken
+// one).
+//
+// The desktop's picture (`desktop.backgroundImage`, the Appearance Manager's
+// Desktop tab) still lies on top, with its own repeat, position and size, as
+// the base sheet draws it: a centered picture shows the pattern around it,
+// as the 7.5 Desktop Pictures control panel did.
+@use "../pixel" as *;
+
+// The desktop's background: the pattern under the picture.
+@mixin desktop-background {
+  background-color: var(--color-system-04);
+  background-image:
+    var(--desktop-background-image),
+    linear-gradient(var(--desktop-background-color), var(--desktop-background-color)),
+    var(--classicy-art-dither-checker);
+  background-blend-mode: normal, lighten, normal;
+  background-repeat: var(--desktop-background-repeat), no-repeat, repeat;
+  // The tile's black cells are its upper right and lower left: one pixel
+  // over, they fall where x + y is even.
+  background-position: var(--desktop-background-position), 0 0, $px 0;
+  background-size: var(--desktop-background-size), 100% 100%, px(2) px(2);
+}
+
+@mixin desktop {
+  & {
+    @include desktop-background;
+  }
+}

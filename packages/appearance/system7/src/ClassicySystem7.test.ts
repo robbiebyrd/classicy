@@ -93,8 +93,26 @@ describe("the System 7 appearance package", () => {
 	it("draws the 1-bit theme in black and white only, dithered", () => {
 		const [bw] = system7Json.presets;
 		expect(new Set(allColors(bw.color))).toEqual(new Set([BLACK, WHITE]));
-		expect(bw.desktop.backgroundColor).toBe(WHITE);
 		expect(bw.measurements.dither.tileSize).toBe(2);
+	});
+
+	// The desktop pattern, System `ppat` 16 (styles/components/_Desktop.scss;
+	// docs/system7-reference-screenshots.md, MWD 4 and CIC "default 1-bit
+	// desktop pattern"): a 50% checker whose dark cells are the desktop color
+	// and whose light ones are system-04.
+	it("draws the desktop's checker from the desktop color and system-04", () => {
+		const [bw, color] = system7Json.presets;
+		expect([bw.desktop.backgroundColor, bw.color.system[3]]).toEqual([
+			BLACK,
+			WHITE,
+		]);
+		expect([color.desktop.backgroundColor, color.color.system[3]]).toEqual([
+			0x666666, 0xaaaaaa,
+		]);
+		// No picture over it, and the defaults are the 1-bit theme's.
+		for (const theme of system7Json.presets)
+			expect(theme.desktop.backgroundImage).toBe("");
+		expect(system7Json.defaults.desktop).toEqual(bw.desktop);
 	});
 
 	// The Standard window colors as System 7.5 draws them at 256 colors
@@ -122,7 +140,6 @@ describe("the System 7 appearance package", () => {
 			document: WHITE,
 		});
 		expect(color.color.highlight).toBe(BLACK);
-		expect(color.desktop.backgroundColor).toBe(0xcacaca);
 		expect(color.measurements.dither.tileSize).toBe(0);
 	});
 
@@ -394,6 +411,36 @@ describe("the System 7 appearance package", () => {
 		// The defaults are the 1-bit theme's.
 		expect(system7Json.defaults.measurements.scrollBar).toEqual(
 			system7Json.presets[0].measurements.scrollBar,
+		);
+	});
+
+	it("emits the Control Strip's bevel (color only) and the icon labels' knobs", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		const labels = {
+			"--icon-label-height": "12px",
+			"--icon-label-pad": "2px",
+			"--icon-label-text-top": "2px",
+			"--desktop-icon-font-size": "9px",
+		};
+		expect(vars(bw)).toMatchObject({
+			"--control-strip-bevel-width": "0px",
+			...labels,
+		});
+		expect(vars(color)).toMatchObject({
+			"--control-strip-bevel-width": "1px",
+			...labels,
+		});
+		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
+		// the strip Mac OS 8 kept), System 7 adds only the bevel.
+		expect(Object.keys(system7Json.defaults.measurements.controlStrip)).toEqual(
+			["bevelWidth"],
+		);
+		expect(system7Json.defaults.measurements.iconLabel).toEqual(
+			system7Json.presets[0].measurements.iconLabel,
 		);
 	});
 

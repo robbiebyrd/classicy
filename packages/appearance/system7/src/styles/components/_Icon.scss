@@ -1,0 +1,153 @@
+// System 7's icons (plan 0018-dbd §3.7), included by system7.scss inside the
+// package wrapper: the desktop's (ClassicyDesktopIcon) and a window's
+// (ClassicyIcon), each an image in a pair of elements masked by the image's
+// own shape (`classicy…MaskOuter` around `classicy…Mask`). Measured from the
+// 7.5 captures (`*-desktop-menubar-icons`, `*-desktop-icon-selected-opened`,
+// `*-menu-help-and-selected-icon`, `color-controlpanel-monitors-opened-icon`)
+// and the HIG (printed pp.234-241):
+//
+// - The icon draws at its own size, the mask pair exactly its box (the base
+//   sheet's pair is a pixel larger and smaller, Platinum's fringe).
+// - The label, Geneva 9, sits right under the icon's box on an opaque white
+//   rectangle `iconLabel.height` (12) rows tall, `iconLabel.pad` (2) columns
+//   wider than the name on each side; the text is set `iconLabel.textTop`
+//   (2) rows down, which puts the vector Geneva's capitals 3 rows into the
+//   box, where the bitmap face's are. One line, however far past the icon's
+//   cell it reaches; inverted (white on black) when the icon is selected, at
+//   both depths.
+// - Selected, the icon inverts on a 1-bit screen and darkens on a color one:
+//   the 1-bit theme's dither tile (`--dither-tile-size`, 2 there, 0 in color)
+//   sizes a white layer over the image whose `difference` inverts it, and
+//   the color theme's (two pixels less) a half-black one that darkens it.
+//   7.5 darkened through the 256-color table, which a filter cannot match
+//   pixel for pixel; half black is its measure (#DDDDDD to about #666666).
+// - Opened (its window open), the image gives way to its shape: outlined in
+//   black, its inside (the pixels whose four neighbors are all in the
+//   shape, as the captures' rounded corners show) filled with the 25%
+//   pattern, one black dot in four on each row, the next row's two over,
+//   from the icon's corner (the `halftone` art, Fig 8-1's open-icon
+//   pattern). The fill is the window color's dark lavender
+//   (`--color-theme-04`, #666699) in color and white in 1-bit; selected,
+//   #333366 (`--color-theme-07`) in color, and the 1-bit icon inverts as a
+//   whole (white outline, white dots on black), as the captures show. Only
+//   the selected form was captured: the unselected one is the selected one
+//   undarkened (#333366 is #666699 darkened, as 7.5 darkens through its
+//   color table) and uninverted.
+// - The alias badge (none in System 7: the art is blank) and the italic
+//   alias label stay as the base sheet draws them.
+@use "pkg:@classicy/classicy/scss/color" as c;
+@use "../pixel" as *;
+
+// The icon's shape one pixel in from its edge: its mask, and four copies of
+// it one pixel left, right, up and down, intersected.
+$eroded: var(--classicy-icon-mask), var(--classicy-icon-mask), var(--classicy-icon-mask),
+  var(--classicy-icon-mask), var(--classicy-icon-mask);
+$eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
+
+@mixin icon-states($root, $outer, $mask) {
+  #{$root} {
+    // The box, exactly the icon's, holding the overlays below.
+    #{$outer}:not(.classicyDesktopIconAliasBadge) {
+      position: relative;
+      width: var(--desktop-icon-size);
+      height: var(--desktop-icon-size);
+      mask-size: 100% 100%;
+      background: none;
+
+      > #{$mask} {
+        width: 100%;
+        height: 100%;
+        mask-size: 100% 100%;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      // Over the image, whose mask makes it a layer of its own.
+      &::before,
+      &::after {
+        position: absolute;
+        z-index: 1;
+        inset: 0;
+        content: "";
+        pointer-events: none;
+      }
+    }
+
+    p {
+      margin-top: 0;
+      padding: var(--icon-label-text-top) var(--icon-label-pad) 0;
+      white-space: nowrap;
+      line-height: calc(var(--icon-label-height) - var(--icon-label-text-top));
+      color: var(--color-black);
+      background: var(--color-white);
+    }
+  }
+
+  #{$root}.selected {
+    p {
+      color: var(--color-white);
+      background: var(--color-black);
+    }
+
+    #{$outer} {
+      filter: none;
+
+      img {
+        filter: none;
+      }
+
+      // 1-bit: inverted.
+      &::after {
+        background: linear-gradient(var(--color-white), var(--color-white)) left top /
+          var(--dither-tile-size) var(--dither-tile-size);
+        mix-blend-mode: difference;
+      }
+    }
+  }
+
+  // Color: darkened.
+  #{$root}.selected:not(.open) #{$outer}::before {
+    background: linear-gradient(c.classicy-alpha("--color-black", 50%), c.classicy-alpha("--color-black", 50%)) left top /
+      calc(#{px(2)} - var(--dither-tile-size)) calc(#{px(2)} - var(--dither-tile-size));
+  }
+
+  #{$root}.open {
+    #{$outer} {
+      // The outline: the whole shape, black, under its inside.
+      background: var(--color-black);
+
+      #{$mask} {
+        mask-image: $eroded;
+        mask-position: $eroded-at;
+        mask-size: 100% 100%;
+        mask-repeat: no-repeat;
+        mask-composite: intersect;
+        // The dots are the open-icon fill pattern, the `halftone` system art
+        // (8 x 8, black where it is not clear), from the icon's corner.
+        background:
+          var(--classicy-art-halftone, none) left top / px(8) px(8),
+          // 1-bit: white.
+          linear-gradient(var(--color-white), var(--color-white)) left top /
+            var(--dither-tile-size) var(--dither-tile-size),
+          var(--system7-icon-open-face);
+        background-blend-mode: normal;
+        backdrop-filter: none;
+        filter: none;
+        --system7-icon-open-face: var(--color-theme-04);
+      }
+    }
+  }
+
+  #{$root}.selected.open #{$outer} #{$mask} {
+    --system7-icon-open-face: var(--color-theme-07);
+  }
+}
+
+@mixin icon {
+  @include icon-states(".classicyDesktopIcon", ".classicyDesktopIconMaskOuter", ".classicyDesktopIconMask");
+  @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask");
+}

@@ -1,0 +1,98 @@
+// The System 7 tab control (plan 0018-dbd §3.7), included by system7.scss
+// inside the package wrapper.
+//
+// INVENTED: System 7.5 had no tab control (the HIG has none; tabs came with
+// Mac OS 8's Appearance Manager). This look is built from System 7's own
+// vocabulary, not from any capture, so the Appearance Manager (a tabbed
+// panel) reads as one of its windows:
+//
+// - 1 px black lines on a white face, no bevel and no slant: each tab a box
+//   open at the bottom, its top corners cut by one pixel as QuickDraw rounded
+//   a small rectangle; neighbors share their side line.
+// - The chosen tab opens into the panel: the panel's top line runs under the
+//   other tabs only. The panel is white.
+// - Labels in the interface font (Chicago 12) at every size but large.
+// - The scroll arrows, drawn as tabs, are black triangles, dithered when
+//   there is nothing more to scroll (the dimmed ink, as dimmed labels are).
+// - Drawn the same in color: System 7 kept dialog controls black on white
+//   (HIG p.259).
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../pixel" as *;
+
+// The tab's lines: the top and sides, stopping a pixel short of the top
+// corners, each corner's pixel one in.
+$tab-lines: (
+  layout.classicy-px-rect(var(--color-black), px(2), 0, calc(100% - #{px(4)}), $px),
+  layout.classicy-px-rect(var(--color-black), $px, $px, $px, $px),
+  layout.classicy-px-rect(var(--color-black), right $px, top $px, $px, $px),
+  layout.classicy-px-rect(var(--color-black), 0, px(2), $px, 100%),
+  layout.classicy-px-rect(var(--color-black), right 0, top px(2), $px, 100%)
+);
+
+@mixin tabs {
+  .classicyButtonsHolder {
+    gap: 0;
+  }
+
+  .classicyTabButtonWrapper {
+    clip-path: none;
+    // The panel's top line, under an unchosen tab.
+    background:
+      $tab-lines,
+      layout.classicy-px-rect(var(--color-black), 0, 100%, 100%, $px),
+      var(--color-white);
+
+    & + .classicyTabButtonWrapper {
+      margin-left: calc(0% - #{$px});
+    }
+
+    &:has(.classicyTabButton.selected) {
+      position: relative;
+      background: $tab-lines, var(--color-white);
+    }
+  }
+
+  .classicyTabButton {
+    color: var(--color-black);
+
+    &:focus-visible {
+      outline: $px dotted var(--color-black);
+      outline-offset: calc(#{$px} - #{px(4)});
+    }
+  }
+
+  .classicyTabsSizeSmall .classicyTabButton {
+    font-size: var(--ui-font-size);
+  }
+
+  .classicyTabActiveContent {
+    background-color: var(--color-white);
+  }
+
+  .classicyTabScrollButtonLeft .classicyTabScrollGlyph {
+    border-inline-end-color: var(--color-black);
+  }
+
+  .classicyTabScrollButtonRight .classicyTabScrollGlyph {
+    border-inline-start-color: var(--color-black);
+  }
+
+  .classicyTabScrollButton:disabled .classicyTabScrollGlyph {
+    @include d.classicy-dither-mask;
+  }
+
+  .classicyTabScrollButtonLeft:disabled .classicyTabScrollGlyph {
+    border-inline-end-color: var(--color-theme-06);
+  }
+
+  .classicyTabScrollButtonRight:disabled .classicyTabScrollGlyph {
+    border-inline-start-color: var(--color-theme-06);
+  }
+
+  // The tab strip scrolls under its arrows; its own bar stays hidden over
+  // the desktop's (see Platinum's _Tabs.scss).
+  .classicyTabScroller {
+    scrollbar-width: none;
+  }
+}
