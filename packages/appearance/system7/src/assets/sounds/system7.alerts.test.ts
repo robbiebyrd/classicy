@@ -11,15 +11,20 @@ import {
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 
-// The placeholder pack declares no alerts, so until the System 7.5 sounds
-// land (plan 0018-dbd §4.2) it takes the default pack's: a host loading both
-// packages offers Platinum's alerts under System 7, never an empty list.
+// The pack declares its own alerts (plan 0018-dbd §4.2), so a host loading
+// both packages offers System 7's six under System 7, never Platinum's.
+
+const SIX = [
+	{ value: "ClassicyAlertDroplet", label: "Droplet" },
+	{ value: "ClassicyAlertIndigo", label: "Indigo" },
+	{ value: "ClassicyAlertQuack", label: "Quack" },
+	{ value: "ClassicyAlertSimpleBeep", label: "Simple Beep" },
+	{ value: "ClassicyAlertSosumi", label: "Sosumi" },
+	{ value: "ClassicyAlertWildEep", label: "Wild Eep" },
+];
 
 describe("System 7's alerts beside Platinum", () => {
-	it("are Platinum's, with Platinum's default, while System 7 is active", async () => {
-		const { platinumSoundPack } = await import(
-			"../../../../platinum/src/assets/sounds/platinum"
-		);
+	it("are System 7's own six, Simple Beep the default, while System 7 is active", async () => {
 		await import("../../../../platinum/src/index");
 		await import("../../index");
 		expect(getClassicyAppearancePackage("platinum")).toBeDefined();
@@ -38,9 +43,11 @@ describe("System 7's alerts beside Platinum", () => {
 			const pack = getClassicySoundPack(theme.sound.pack);
 			expect(pack?.id).toBe("system7");
 			// What the Appearance Manager's Sound tab lists, and what plays.
-			expect(classicyPackAlerts(pack)).toEqual(platinumSoundPack.alerts);
-			expect(classicyPackAlerts(pack).length).toBeGreaterThan(0);
-			expect(classicyPackDefaultAlert(pack)).toBe("ClassicyAlertSosumi");
+			expect(classicyPackAlerts(pack)).toEqual(SIX);
+			expect(classicyPackDefaultAlert(pack)).toBe("ClassicyAlertSimpleBeep");
+			expect(resolveClassicyAlertSound(pack, "ClassicyAlertTabitha")).toBe(
+				"ClassicyAlertSimpleBeep",
+			);
 			expect(resolveClassicyAlertSound(pack, "ClassicyAlertQuack")).toBe(
 				"ClassicyAlertQuack",
 			);

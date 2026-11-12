@@ -101,14 +101,17 @@ describe("the System 7 appearance package", () => {
 	// (docs/system7-reference-screenshots.md, MWD 4): the title-bar face,
 	// bevel and stripes, the boxes' ink and fills, the inactive frame and
 	// title, the windoid's dots; true gray, no dither. The slots the window
-	// chrome reads are the ones named in styles/components/_Window.scss.
+	// chrome reads are the ones named in styles/components/_Window.scss;
+	// system-01 is the scroll track and arrow-box face (#DDDDDD) and system-02
+	// the modal dialog frame's gray band (#BBBBBB), as the captures show them
+	// (plan 0018-dbd §4.2), for the looks still to come.
 	it("draws the color theme with the 7.5 Standard window colors", () => {
 		const [, color] = system7Json.presets;
 		expect(color.color.system).toEqual([
-			0xececec, 0xd8d8d8, 0xbbbbbb, 0xaaaaaa, 0x888888, 0x777777, 0x555555,
+			0xdddddd, 0xbbbbbb, 0xbbbbbb, 0xaaaaaa, 0x888888, 0x777777, 0x555555,
 		]);
 		expect(color.color.theme).toEqual([
-			0xeeeeee, 0xccccff, 0xb2b5d4, 0xa8abce, 0x333333, 0x888888, 0x333366,
+			0xeeeeee, 0xccccff, 0x9999cc, 0x666699, 0x333333, 0x888888, 0x333366,
 		]);
 		expect(color.color.window).toEqual({
 			border: BLACK,
@@ -121,6 +124,47 @@ describe("the System 7 appearance package", () => {
 		expect(color.color.highlight).toBe(BLACK);
 		expect(color.desktop.backgroundColor).toBe(0xcacaca);
 		expect(color.measurements.dither.tileSize).toBe(0);
+	});
+
+	// System 7.5's Standard color tables (System `wctb` 0 and `cctb` 0, plan
+	// 0018-dbd §4.2; docs/system7-asset-inventory.md, "Window colors"): the
+	// content, frame and text entries are the window's own slots, and the two
+	// tinges, #CCCCFF and #333366, end a lavender ramp the window and control
+	// definitions draw in thirds, which the theme holds in theme-02, -03, -04
+	// and -07 (every tinge the 256-color captures show).
+	it("takes its window slots and tinge ramp from the Standard wctb and cctb", () => {
+		const [, color] = system7Json.presets;
+		const wctb = {
+			wContentColor: WHITE,
+			wFrameColor: BLACK,
+			wTextColor: BLACK,
+			wDialogLight: 0xccccff,
+			wTingeLight: 0xccccff,
+			wTingeDark: 0x333366,
+		};
+		const cctb = { cTingeLight: 0xccccff, cTingeDark: 0x333366 };
+		expect(color.color.window.document).toBe(wctb.wContentColor);
+		expect(color.color.window.border).toBe(wctb.wFrameColor);
+		expect(color.color.window.title).toBe(wctb.wTextColor);
+		expect(color.color.window.borderOutset).toBe(wctb.wTingeLight);
+		expect(cctb.cTingeLight).toBe(wctb.wTingeLight);
+		expect(cctb.cTingeDark).toBe(wctb.wTingeDark);
+		const channels = (rgb: number) => [
+			rgb >> 16,
+			(rgb >> 8) & 0xff,
+			rgb & 0xff,
+		];
+		const third = (light: number, dark: number, n: number) =>
+			channels(light)
+				.map((c, i) => Math.round((c * (3 - n) + channels(dark)[i] * n) / 3))
+				.reduce((rgb, c) => (rgb << 8) | c, 0);
+		const ramp = [0, 1, 2, 3].map((n) =>
+			third(wctb.wTingeLight, wctb.wTingeDark, n),
+		);
+		expect(ramp).toEqual([0xccccff, 0x9999cc, 0x666699, 0x333366]);
+		const { theme } = color.color;
+		expect([theme[1], theme[2], theme[3], theme[6]]).toEqual(ramp);
+		expect(color.color.window.borderInset).toBe(ramp[1]);
 	});
 
 	// The slots the window chrome reads hold, in the 1-bit theme, the black
@@ -294,10 +338,10 @@ describe("the System 7 appearance package", () => {
 		]);
 		for (const theme of system7Json.presets)
 			expect(theme.sound.pack).toBe("system7");
-		// No alerts of its own until the System 7.5 sounds land (plan 0018-dbd
-		// §4.2): it takes the default pack's (system7.alerts.test.ts).
-		expect(system7SoundPack.alerts).toBeUndefined();
-		expect(system7SoundPack.sprite).toEqual({});
+		// System 7.5's six alerts, Simple Beep the default (plan 0018-dbd
+		// §4.2; system7.alerts.test.ts).
+		expect(system7SoundPack.alerts).toHaveLength(6);
+		expect(system7SoundPack.defaultAlert).toBe("ClassicyAlertSimpleBeep");
 	});
 
 	// Until the savers register under System 7 (plan 0018-dbd §3.8).

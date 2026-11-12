@@ -128,7 +128,8 @@ describe("the built bundle and the core's registries", () => {
 						.replaceAll('"', "'")}`,
 				);
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
-		expect(es).toContain('new URL("assets/silence.wav"');
+		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+			expect(es).toContain(`new URL("assets/system7.${ext}"`);
 		expect(es).toContain(
 			'new URL("assets/icons-color-32-system-files-document.png"',
 		);
@@ -146,7 +147,9 @@ describe("the built bundle and the core's registries", () => {
 			.filter(
 				(file) =>
 					/\.(png|svg|woff2)$/.test(file) ||
-					file === path.join("src/assets/sounds/system7/silence.wav"),
+					/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a|mp3|ac3)$/.test(
+						file,
+					),
 			);
 		const byName = new Map(
 			sources.map((file) => [system7AssetFileName(file), file]),
@@ -175,7 +178,8 @@ describe("the built bundle and the core's registries", () => {
 			).toBe(true);
 		for (const { file } of SYSTEM7_FONT_FACES)
 			expect(assets, file).toContain(`${file}.woff2`);
-		expect(assets).toContain("silence.wav");
+		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+			expect(assets).toContain(`system7.${ext}`);
 	});
 
 	it("emits the two strict-CSP stylesheets", () => {

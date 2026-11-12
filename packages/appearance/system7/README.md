@@ -6,13 +6,14 @@ built. Today it ships:
 
 - two themes, **System 7** (black and white: a black-and-white palette,
   flagged for the package's `bw` asset variant) and **System 7 Color** (the
-  Standard lavender window colors and true grays);
+  Standard lavender window colors and true grays, from System 7.5's
+  `wctb` and `cctb` color tables);
 - its layout (grow box at the bottom right, the menu bar on the screen,
   desktop icons from the top right);
 - Chicago (ChicagoFLF), Geneva and Monaco, byte-identical copies of
   Platinum's faces;
-- a placeholder sound pack with no sounds of its own, which takes the default
-  package's alerts (Platinum's, when a host also loads it);
+- System 7.5's alert sounds as its sound pack: Droplet, Indigo, Quack,
+  Simple Beep (the default), Sosumi and Wild Eep;
 - a stylesheet that draws System 7's windows (the frame and drop shadow,
   the racing stripes, the close, zoom and size boxes, inactive windows and
   the floating window's title bar) and hides the collapse box they lack, and
@@ -26,8 +27,7 @@ built. Today it ships:
 Later work adds the rest of the System 7 look element by element (dialogs,
 controls, scroll bars), System 7 period icons, art and cursors (color art,
 and 1-bit art for the black and white theme, the Apple menu's apple and the
-Help menu's balloon among them), the System 7.5 alert sounds and the screen
-savers. Until then, Classicy draws the default package's art
+Help menu's balloon among them) and the screen savers. Until then, Classicy draws the default package's art
 (Platinum's, when a host also loads Platinum) and the core's icons.
 
 The core, `@classicy/classicy`, registers no Appearance Package. Import this
@@ -60,7 +60,7 @@ them. The package ships its type declarations (`bundler`, `node16` and
   the fonts as stylesheets, for hosts whose Content-Security-Policy blocks
   inline `<style>` (below).
 
-The fonts and the placeholder sound sheet are files in `dist/assets/`,
+The fonts, the art and the sound sheet are files in `dist/assets/`,
 loaded as `new URL("assets/…", import.meta.url)`. A Vite host keeps the
 packages out of the dev server's dependency pre-bundle, which would break
 those URLs:

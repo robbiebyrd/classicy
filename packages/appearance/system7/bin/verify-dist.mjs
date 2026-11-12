@@ -16,9 +16,10 @@
 //    (src/assets/fonts), the art (src/assets/art and its variant folders,
 //    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
 //    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
-//    and the sound sheet (src/assets/sounds/system7, but its JSON and its
-//    sprites/ sources), each byte-identical to its source, so an image
-//    optimizer added to vite.config.ts fails here. Each ships under the name
+//    and the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a,mp3,ac3},
+//    not its JSON, its hash or its sprites/ WAV sources), each byte-identical
+//    to its source, so an image optimizer added to vite.config.ts fails
+//    here. Each ships under the name
 //    bin/system7AssetNames.ts gives it: its own, or, in a variant or size
 //    folder, its folders and its own (`icons-bw-16-system-files-document.png`),
 //    so no two share one. A folder the package does not have yet holds
@@ -192,9 +193,10 @@ const sources = [
 	...(await listFiles("src/assets/wallpapers", (n) =>
 		/\.(?:png|jpg)$/.test(n),
 	)),
-	// The sheet, not its JSON, its hash or its sprites/ sources.
+	// The sheet's four formats, not its JSON, its hash or its sprites/ WAV
+	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "system7"), (n) =>
-		/\.(?:ogg|m4a|mp3|ac3|wav)$/.test(n),
+		/^system7\.(?:ogg|m4a|mp3|ac3)$/.test(n),
 	)),
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);

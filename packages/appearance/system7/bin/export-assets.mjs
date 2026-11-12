@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Writes System 7's icons, system art and cursors (plan 0018-dbd §4.1) from a
-// System 7.5.5 install, so the owner can redo the export
+// Writes System 7's icons, system art and cursors (plan 0018-dbd §4.1) and
+// its alert sounds (§4.2) from a System 7.5.5 install, and prints the
+// Standard window and control color tables, so the owner can redo the export
 // (docs/system7-asset-inventory.md, "Reproducing the files"). A dev tool, not
 // shipped and not run by any build: its output is committed.
 //
@@ -18,13 +19,17 @@
 //
 // Every PNG it writes is exactly its native size, RGBA, with no color profile
 // (bin/png.mjs), and is deterministic: a rerun on the same inputs rewrites
-// the same bytes. It prints each cursor's hotspot and every file it writes.
+// the same bytes. It prints each cursor's hotspot, the System file's `wctb` 0
+// and `cctb` 0, and every file it writes. The sounds are WAV sources for the
+// audio pipeline: rebuild the sprite sheet from them with
+// `pnpm build:audio` (bin/make_audio_sprites.sh).
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit } from "node:process";
 import { inflateSync } from "node:zlib";
 import {
+	decodeClut,
 	decodeCursor,
 	decodeIcon,
 	decodeIcon8,
@@ -33,6 +38,12 @@ import {
 	readResources,
 	standardClut8,
 } from "./macResources.mjs";
+import {
+	decodeSound,
+	encodeWav,
+	renderSquareWave,
+	SQUARE_WAVE_SYNTH,
+} from "./macSound.ts";
 import { encodePng } from "./png.mjs";
 
 const [rawRoot, decodedRoot, referenceRoot, outArg] = argv.slice(2);
@@ -617,6 +628,104 @@ const diagonal = (mirror) => {
 };
 write("cursors/resize-nwse.png", diagonal(false));
 write("cursors/resize-nesw.png", diagonal(true));
+
+// --- Sounds -----------------------------------------------------------
+
+// The six alerts the Sound control panel lists, from the System file's
+// `snd ` resources, as WAV files named for their sprite ids, which
+// bin/make_audio_sprites.sh builds into the pack's sprite sheet. The five
+// sampled ones are written as stored: 8-bit unsigned mono at the header's
+// rate, Apple's 11,127.27 and 22,254.55 Hz written as 11127 and 22254 (WAV
+// rates are whole numbers), no resampling, trimming or fades. Simple Beep
+// (`snd ` 1) holds no samples: it is square-wave synthesizer commands, which
+// macSound.ts plays into 16-bit mono at 22,050 Hz.
+const ALERTS = [
+	["ClassicyAlertSimpleBeep", 1],
+	["ClassicyAlertQuack", 5],
+	["ClassicyAlertDroplet", 6],
+	["ClassicyAlertIndigo", 7],
+	["ClassicyAlertWildEep", 8],
+	["ClassicyAlertSosumi", 9],
+];
+const writeWav = (file, wav) => {
+	const path = join(out, file);
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(path, wav);
+	written.push(file);
+};
+for (const [sprite, id] of ALERTS) {
+	const sound = decodeSound(need(SYSTEM, "snd", id));
+	let wav;
+	if (sound.sampled) {
+		const { sampleRate, samples } = sound.sampled;
+		wav = encodeWav({ rate: Math.floor(sampleRate), bits: 8, samples });
+		console.log(
+			`snd ${id} -> ${sprite}: sampled, ${samples.length} samples at ${sampleRate.toFixed(2)} Hz`,
+		);
+	} else if (sound.synths.some((synth) => synth.id === SQUARE_WAVE_SYNTH)) {
+		const samples = renderSquareWave(sound.commands, 22050);
+		wav = encodeWav({ rate: 22050, bits: 16, samples });
+		console.log(
+			`snd ${id} -> ${sprite}: square-wave synthesizer, ${sound.commands.length} commands, ${samples.length} samples at 22050 Hz`,
+		);
+	} else throw new Error(`snd ${id}: neither sampled nor square-wave`);
+	writeWav(`sounds/system7/sprites/${sprite}.wav`, wav);
+	// HyperCard's `beep` plays ClassicyBeep: System 7's beep is the alert.
+	if (sprite === "ClassicyAlertSimpleBeep")
+		writeWav("sounds/system7/sprites/ClassicyBeep.wav", wav);
+}
+
+// --- Window colors ----------------------------------------------------
+
+// The Standard window and control color tables (`wctb` 0, `cctb` 0: color
+// tables whose entry values are part codes, Inside Macintosh: Macintosh
+// Toolbox Essentials, "Window Manager" and "Control Manager"), printed as
+// the high byte of each channel. The color theme's tokens are mapped from
+// them by hand (docs/system7-asset-inventory.md, "Window colors").
+const PARTS = {
+	wctb: [
+		"wContentColor",
+		"wFrameColor",
+		"wTextColor",
+		"wHiliteColor",
+		"wTitleBarColor",
+		"wHiliteColorLight",
+		"wHiliteColorDark",
+		"wTitleBarLight",
+		"wTitleBarDark",
+		"wDialogLight",
+		"wDialogDark",
+		"wTingeLight",
+		"wTingeDark",
+	],
+	cctb: [
+		"cFrameColor",
+		"cBodyColor",
+		"cTextColor",
+		"cThumbColor",
+		"cFillPatColor",
+		"cArrowsColorLight",
+		"cArrowsColorDark",
+		"cThumbLight",
+		"cThumbDark",
+		"cHiliteLight",
+		"cHiliteDark",
+		"cTitleBarLight",
+		"cTitleBarDark",
+		"cTingeLight",
+		"cTingeDark",
+	],
+};
+for (const [type, names] of Object.entries(PARTS)) {
+	const table = decodeClut(need(SYSTEM, type, 0));
+	table.forEach((rgb, part) => {
+		const hex = rgb
+			.map((c) => c.toString(16).padStart(2, "0"))
+			.join("")
+			.toUpperCase();
+		console.log(`${type} 0 part ${part} ${names[part] ?? "?"}: #${hex}`);
+	});
+}
 
 console.log(`${written.length} files written under ${out}`);
 for (const file of written.sort()) console.log(`  ${file}`);

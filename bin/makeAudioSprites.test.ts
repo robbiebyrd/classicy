@@ -30,7 +30,10 @@ afterEach(() => {
 	stubs = "";
 });
 
-const runWithStubs = (): { calls: string[]; out: string } => {
+const runWithStubs = (
+	dir = "./packages/appearance/platinum/src/assets/sounds",
+	extra: string[] = [],
+): { calls: string[]; out: string } => {
 	stubs = mkdtempSync(path.join(tmpdir(), "classicy-audio-"));
 	const log = path.join(stubs, "calls.log");
 	// Outputs go to a scratch directory: a finished run stamps its pack, and the
@@ -53,32 +56,30 @@ const runWithStubs = (): { calls: string[]; out: string } => {
 		`#!/bin/sh\n{ printf '%s' audiosprite; for a in "$@"; do printf ' %s' "$a"; done; echo; } >> "${log}"\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && mkdir -p "$(dirname "$2")"; shift; done\n`,
 	);
 	chmodSync(audiosprite, 0o755);
-	execFileSync(
-		"bash",
-		[
-			"bin/make_audio_sprites.sh",
-			"./packages/appearance/platinum/src/assets/sounds",
-			out,
-		],
-		{
-			env: {
-				...process.env,
-				PATH: `${stubs}:${process.env.PATH}`,
-				AUDIOSPRITE_BIN: audiosprite,
-			},
-			stdio: "pipe",
+	execFileSync("bash", ["bin/make_audio_sprites.sh", dir, out, ...extra], {
+		env: {
+			...process.env,
+			PATH: `${stubs}:${process.env.PATH}`,
+			AUDIOSPRITE_BIN: audiosprite,
 		},
-	);
+		stdio: "pipe",
+	});
 	return { calls: readFileSync(log, "utf8").trim().split("\n"), out };
 };
 
 describe("pnpm build:audio", () => {
-	it("is bin/make_audio_sprites.sh with its defaults, and the watcher follows the sprites", () => {
+	it("is bin/make_audio_sprites.sh with its defaults, then System 7's WAVs, and the watcher follows the sprites", () => {
 		const { scripts } = JSON.parse(readFileSync("package.json", "utf8"));
-		expect(scripts["build:audio"]).toBe("./bin/make_audio_sprites.sh");
-		expect(scripts["build:watchaudio"]).toContain(
-			'--watch "packages/appearance/platinum/src/assets/sounds/**"',
+		// System 7's pack (plan 0018-dbd §4.2) is built from WAV sources with no
+		// looping sprite: "," is a loop list with no names (an empty argument
+		// would take the script's default, Platinum's four loops).
+		expect(scripts["build:audio"]).toBe(
+			"./bin/make_audio_sprites.sh && ./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a,mp3,ac3 ,",
 		);
+		for (const pkg of ["platinum", "system7"])
+			expect(scripts["build:watchaudio"]).toContain(
+				`--watch "packages/appearance/${pkg}/src/assets/sounds/**"`,
+			);
 		expect(scripts["build:watchaudio"]).not.toMatch(/"assets\/sounds/);
 	});
 
@@ -100,6 +101,17 @@ describe("pnpm build:audio", () => {
 		expect(calls[0].endsWith(` ${dir}/platinum/sprites/*.mp3`)).toBe(true);
 		// The JSON rewrite (id, name, relative src) of the pack it wrote.
 		expect(calls[1].endsWith(` ${out}/platinum/platinum.json`)).toBe(true);
+	});
+
+	it("builds System 7's pack from its WAV sprites, with no looping sprite", () => {
+		const dir = "./packages/appearance/system7/src/assets/sounds";
+		const { calls, out } = runWithStubs(dir, ["wav", "ogg,m4a,mp3,ac3", ","]);
+		expect(calls).toHaveLength(2);
+		expect(calls[0]).toContain(` -o ${out}/system7/system7 `);
+		expect(calls[0]).toContain(" -e ogg,m4a,mp3,ac3 ");
+		expect(calls[0]).not.toContain("--loop");
+		expect(calls[0].endsWith(` ${dir}/system7/sprites/*.wav`)).toBe(true);
+		expect(calls[1].endsWith(` ${out}/system7/system7.json`)).toBe(true);
 	});
 });
 

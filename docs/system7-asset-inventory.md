@@ -13,8 +13,8 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 | Icons | 294 keys | 62 export (up to 4 PNGs each); 90 reuse and 142 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
 | System art | 41 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
-| Sounds | 6 alerts | 6 WAV exports and one copy |
-| Window colors | `wctb` and `cctb` | read the hex values; sample 6 screen colors |
+| Sounds | 6 alerts | Done: 5 sampled `snd ` written as WAV, Simple Beep rendered from its synthesizer commands, and one copy (plan 0018-dbd §4.2) |
+| Window colors | `wctb` and `cctb` | Done: both tables read, 6 screen colors sampled, the color theme's tokens mapped (plan 0018-dbd §4.2) |
 | Reference crops | 1 | one screenshot crop of the Control Strip |
 
 ## Export conventions
@@ -61,7 +61,7 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 **Sounds.** The file name is the sprite id (`ClassicyAlertSimpleBeep.wav`); the audio pipeline (`bin/make_audio_sprites.sh`) builds the sprite sheet from the folder. Each `snd ` is one of two kinds:
 
 - **Sampled** (it holds a sampled-sound buffer; most alerts): write it as WAV (PCM) at its stored depth and channel count (8-bit mono for the 7.5 alerts). A 22.254 kHz sound (Apple's rate, 22254.54 Hz) is written with a WAV rate of 22254 Hz; a 11.127 kHz one as 11127 Hz. No resampling, normalizing, trimming or fades.
-- **Synthesized** (a format 1 `snd ` with only note or square-wave commands and no sampled data; Simple Beep may be one): there is nothing to export. Play it in the emulator (the Sound control panel plays an alert when you click its name) and record the emulator's audio output as WAV at 22,050 Hz, mono, 16-bit, trimmed to the sound: cut the silence before the first and after the last non-silent sample, with no fades or normalizing.
+- **Synthesized** (a format 1 `snd ` with only note or square-wave commands and no sampled data; Simple Beep is one): there are no samples to export. The export script plays its commands through a square-wave synthesizer into WAV at 22,050 Hz, mono, 16-bit, the sound's length exactly (below, "Reproducing the files"). Recording the emulator's output at the same format, trimmed to the sound with no fades or normalizing, is the fallback.
 
 ### Decisions
 
@@ -95,16 +95,20 @@ The files were made from the owner's System 7.5.5 install (2026-11-12), with no 
      --target-type=ICN%23 --target-type=icl8 --target-type=ics%23 \
      --target-type=ics8 --target-type=ICON --target-type=CURS \
      --target-type=BNDL --target-type=FREF \
+     --target-type=snd%20 --target-type=wctb --target-type=cctb \
      <extracted archive> <raw>
    ```
 
 4. **Decode the System file's pictures** (the startup panel, `PICT` -16501 and -16503), which resource_dasm renders: `resource_dasm --index-format=as/ad --target-type=PICT "<extracted>/System Folder/System.rsrc" <decoded>`.
-5. **Run the export**: `node packages/appearance/system7/bin/export-assets.mjs "<raw>/<archive folder>" <decoded> .playwright-mcp/parity/system7/reference`. It writes every icon, the exported and cropped system art and the cursors into `packages/appearance/system7/src/assets/`, prints each cursor's hotspot, and rewrites the same bytes on a rerun. Its table (`ICONS` in the script) is each row's Source: file, resource type and ID.
+5. **Run the export**: `node packages/appearance/system7/bin/export-assets.mjs "<raw>/<archive folder>" <decoded> .playwright-mcp/parity/system7/reference`. It writes every icon, the exported and cropped system art, the cursors and the alert sounds' WAV sources into `packages/appearance/system7/src/assets/`, prints each cursor's hotspot, each sound's format, and the System file's `wctb` 0 and `cctb` 0 by part, and rewrites the same bytes on a rerun. Its tables (`ICONS`, `ALERTS` and `PARTS` in the script) are each row's Source: file, resource type and ID.
+6. **Build the sound pack's sprite sheet**: `pnpm build:audio`, whose second step is `./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a,mp3,ac3 ,` (the WAVs in `sounds/system7/sprites/`, the four formats, and `,`, a loop list naming no sprite: System 7's alerts never loop). It writes `system7.{ogg,m4a,mp3,ac3}`, `system7.json` and the `system7.sprites.sha256` stamp beside the sprites, encoding bit-exact, and skips the encode while the stamp matches. The sheet, its JSON, the stamp and the WAVs are committed, as Platinum's are.
 
 How the script decodes (`bin/macResources.mjs`, `bin/png.mjs`):
 
 - `ICN#`/`ics#`: the image, then the mask; mask 0 is transparent, image 1 black, 0 white. `icl8`/`ics8`: one byte per pixel into the standard 8-bit color table (`clut` 8, in ROM, so computed: the 6×6×6 cube from white, then the red, green, blue and gray ramps, then black), masked by the family's `ICN#`/`ics#`. Checked against resource_dasm's own decode of every System icon: identical.
 - `ICON`: 32 px 1-bit, white opaque. `CURS`: image, mask, then the hotspot as v, h; image 1 under mask 0 (the I-beam's inverting pixels) is black.
+- `snd ` (`bin/macSound.ts`, after Inside Macintosh: Sound): a format 1 resource lists its data types (synthesizer id, init option) and its commands (`cmd`, `param1`, `param2`). A sampled alert is a `bufferCmd` whose offset points at a standard sound header (`encode` 0): the samples are written as stored, 8-bit unsigned mono, at the header's rate rounded down to a whole number (11127 and 22254 Hz); checked against resource_dasm's own decode, sample for sample. Simple Beep (`snd ` 1) is the square-wave synthesizer (id 1) running `timbreCmd` 90, `ampCmd` 224, `freqCmd` 69 (A, 440 Hz), then twelve 20 ms waits (`waitCmd` 40 half-milliseconds) with the amplitude stepping down 224, 200, 192, 184, 176, 168, 160, 144, 128, 96, 64, 32 and to 0: 240 ms. The synthesizer's waveform between timbre 0 (Apple: "a clear tone") and 254 ("a buzzing tone") is not documented; the script mixes a sine and a square linearly by the timbre (90 of 254 is 35% square), its amplitude linear with 255 full scale.
+- `wctb`/`cctb`: color tables (`ColorTable`) whose entry values are part codes, read like a `clut`, printed as the high byte of each channel.
 - PNGs are 8-bit RGBA with no ancillary chunks at all (no `iCCP`, `gAMA`, `cHRM` or `sRGB`), unfiltered, so the stored values are the exact System colors.
 - Crops are read from the screenshots' raw pixels; each row's Source gives the file, the position and what is made transparent.
 - The SVGs in `art/` (the transparent stand-ins, the halftone, the menu check and dash, the dither checker) and the `.txt` pixel art in `pixelart/` are hand-written; `sad-mac.png` and the resize cursors are Platinum's files, copied by the script.
@@ -569,17 +573,17 @@ Every `ClassicyCursorRole`. One set serves both themes (the pointer stays black,
 
 ## Sounds
 
-The System 7.5 alert sounds from the System file's `snd ` resources, as the package's sound pack (pack id `system7`). Confirm the set in the Sound control panel's Alert Sounds list: if it shows more than these six, add rows. ResEdit lists `snd ` resources by name; write each ID over "ID to confirm".
+The System 7.5 alert sounds from the System file's `snd ` resources, as the package's sound pack (pack id `system7`, `src/assets/sounds/system7.ts`). The System file holds exactly these six named `snd ` resources (its other two, -16504 and -32512, are unnamed and not alerts); the pack's `alerts` list them by these names, Simple Beep the `defaultAlert`.
 
 | Done | Sprite id | Sound | Source | File | Notes |
 | --- | --- | --- | --- | --- | --- |
-| [ ] | `ClassicyAlertSimpleBeep` | Simple Beep | System, `snd ` "Simple Beep", ID to confirm | `sounds/system7/sprites/ClassicyAlertSimpleBeep.wav` | The pack's default alert |
-| [ ] | `ClassicyAlertDroplet` | Droplet | System, `snd ` "Droplet", ID to confirm | `sounds/system7/sprites/ClassicyAlertDroplet.wav` | |
-| [ ] | `ClassicyAlertIndigo` | Indigo | System, `snd ` "Indigo", ID to confirm | `sounds/system7/sprites/ClassicyAlertIndigo.wav` | |
-| [ ] | `ClassicyAlertQuack` | Quack | System, `snd ` "Quack", ID to confirm | `sounds/system7/sprites/ClassicyAlertQuack.wav` | |
-| [ ] | `ClassicyAlertSosumi` | Sosumi | System, `snd ` "Sosumi", ID to confirm | `sounds/system7/sprites/ClassicyAlertSosumi.wav` | |
-| [ ] | `ClassicyAlertWildEep` | Wild Eep | System, `snd ` "Wild Eep", ID to confirm | `sounds/system7/sprites/ClassicyAlertWildEep.wav` | |
-| [ ] | `ClassicyBeep` | Simple Beep | A byte-identical copy of `ClassicyAlertSimpleBeep.wav` | `sounds/system7/sprites/ClassicyBeep.wav` | The beep HyperCard's `beep` plays |
+| [x] | `ClassicyAlertSimpleBeep` | Simple Beep | System, `snd ` 1 "Simple Beep" (square-wave synthesizer commands, rendered) | `sounds/system7/sprites/ClassicyAlertSimpleBeep.wav` | The pack's default alert |
+| [x] | `ClassicyAlertDroplet` | Droplet | System, `snd ` 6 "Droplet" (sampled, 8-bit, 11,127 Hz) | `sounds/system7/sprites/ClassicyAlertDroplet.wav` | |
+| [x] | `ClassicyAlertIndigo` | Indigo | System, `snd ` 7 "Indigo" (sampled, 8-bit, 22,254 Hz) | `sounds/system7/sprites/ClassicyAlertIndigo.wav` | |
+| [x] | `ClassicyAlertQuack` | Quack | System, `snd ` 5 "Quack" (sampled, 8-bit, 11,127 Hz) | `sounds/system7/sprites/ClassicyAlertQuack.wav` | |
+| [x] | `ClassicyAlertSosumi` | Sosumi | System, `snd ` 9 "Sosumi" (sampled, 8-bit, 11,127 Hz) | `sounds/system7/sprites/ClassicyAlertSosumi.wav` | |
+| [x] | `ClassicyAlertWildEep` | Wild Eep | System, `snd ` 8 "Wild Eep" (sampled, 8-bit, 11,127 Hz) | `sounds/system7/sprites/ClassicyAlertWildEep.wav` | |
+| [x] | `ClassicyBeep` | Simple Beep | A byte-identical copy of `ClassicyAlertSimpleBeep.wav` | `sounds/system7/sprites/ClassicyBeep.wav` | The beep HyperCard's `beep` plays |
 
 Not exported, so a System 7-only host has no sprite for them and stays silent where they play (a host that also loads Platinum plays Platinum's):
 
@@ -592,48 +596,51 @@ Not exported, so a System 7-only host has no sprite for them and stays silent wh
 
 The color theme's window, frame-control and scroll-bar colors come from System 7.5's Standard color tables; they replace the colors measured from the HIG PDF where they differ (design 0017-6me, open question "Exact window colors").
 
-How to read them: in the Color control panel set Window color to Standard. Then open a copy of the System file and read `wctb` 0 and `cctb` 0 (ID to confirm: if those hold no tinge entries, the Color control panel's own `wctb`/`cctb` resources hold each scheme, Standard first). ResEdit shows each entry as 16-bit RGB (`$CCCC $CCCC $FFFF`); write the high byte of each channel as hex (`#CCCCFF`). The Measured column is provisional, from the HIG PDF figures.
+Read from the System file's `wctb` 0 and `cctb` 0 (they hold the tinge entries: the Standard scheme) by the export script, as the high byte of each 16-bit channel. The Measured column is provisional, from the HIG PDF figures (color-managed: every lavender there reads lighter and grayer than on screen). Theme token is the color theme's slot (`system7.json`, preset `system7-color`) that holds the part's color as System 7.5 draws it.
 
-| Done | Table | Part | Name | Colors | Measured (provisional) | System 7.5 value |
-| --- | --- | --- | --- | --- | --- | --- |
-| [ ] | `wctb` | 0 | `wContentColor` | Window content | `#FFFFFF` | |
-| [ ] | `wctb` | 1 | `wFrameColor` | Window frame | `#000000` | |
-| [ ] | `wctb` | 2 | `wTextColor` | Title text | `#000000` | |
-| [ ] | `wctb` | 3 | `wHiliteColor` | Title-bar highlight (stripes, 1-bit era) | — | |
-| [ ] | `wctb` | 4 | `wTitleBarColor` | Title-bar background | `#F5F5F5` | |
-| [ ] | `wctb` | 5 | `wHiliteColorLight` | Racing stripes, light | — | |
-| [ ] | `wctb` | 6 | `wHiliteColorDark` | Racing stripes, dark | `#A8A8A8` | |
-| [ ] | `wctb` | 7 | `wTitleBarLight` | Title-bar top-left highlight | `#D6D8EA` | |
-| [ ] | `wctb` | 8 | `wTitleBarDark` | Title-bar bottom edge | `#B2B5D4` | |
-| [ ] | `wctb` | 9 | `wDialogLight` | Dialog frame band, light | `#D6D8EA` | |
-| [ ] | `wctb` | 10 | `wDialogDark` | Dialog frame band, dark | `#898BB2` | |
-| [ ] | `wctb` | 11 | `wTingeLight` | Frame tinge, light (box and frame highlight) | `#D6D8EA` | |
-| [ ] | `wctb` | 12 | `wTingeDark` | Frame tinge, dark (box outline, scroll-arrow outline) | `#46528B` | |
-| [ ] | `cctb` | 0 | `cFrameColor` | Scroll-bar frame | `#000000` | |
-| [ ] | `cctb` | 1 | `cBodyColor` | Scroll track and arrow-box face | `#ECECEC` | |
-| [ ] | `cctb` | 2 | `cTextColor` | Control text | `#000000` | |
-| [ ] | `cctb` | 3 | `cThumbColor` | Scroll box face | `#CDCDCD` | |
-| [ ] | `cctb` | 5 | `cArrowsColorLight` | Scroll arrow fill, light | `#D6D8EA` | |
-| [ ] | `cctb` | 6 | `cArrowsColorDark` | Scroll arrow outline, dark | `#46528B` | |
-| [ ] | `cctb` | 7 | `cThumbLight` | Scroll box highlight | `#D6D8EA` | |
-| [ ] | `cctb` | 8 | `cThumbDark` | Scroll box shadow | `#46528B` | |
-| [ ] | `cctb` | 9 | `cHiliteLight` | Pressed part, light | — | |
-| [ ] | `cctb` | 10 | `cHiliteDark` | Pressed part, dark | — | |
-| [ ] | `cctb` | 11 | `cTitleBarLight` | Title-bar light (shared with the window) | — | |
-| [ ] | `cctb` | 12 | `cTitleBarDark` | Title-bar dark | — | |
-| [ ] | `cctb` | 13 | `cTingeLight` | Control tinge, light | `#D6D8EA` | |
-| [ ] | `cctb` | 14 | `cTingeDark` | Control tinge, dark | `#46528B` | |
+The tables do not hold every color on screen: their black and white entries (title bar, hilite, arrows, thumb) are the ends of ramps the window and control definitions draw between them in the 8-bit color table's grays (#EEEEEE, #DDDDDD, #BBBBBB, #AAAAAA, #888888, #777777, #555555, all multiples of #111111), and the two tinges, #CCCCFF and #333366, are the ends of a lavender ramp they draw in thirds (#CCCCFF, #9999CC, #666699, #333366: every tinge the 256-color captures show). Those computed colors are read from the captures; a row names the slot that holds them.
 
-Part codes are Apple's (`Windows.h`, `Controls.h`); if ResEdit numbers an entry differently, keep its number and name in the row. Some colors on screen are computed by the window and control definitions, not read from a table: sample those from a 1x color screenshot (Monitors at 256 colors) with a color picker that reads raw pixel values.
+| Done | Table | Part | Name | Colors | Measured (provisional) | System 7.5 value | Theme token |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [x] | `wctb` | 0 | `wContentColor` | Window content | `#FFFFFF` | `#FFFFFF` | `window.document` |
+| [x] | `wctb` | 1 | `wFrameColor` | Window frame | `#000000` | `#000000` | `window.border` |
+| [x] | `wctb` | 2 | `wTextColor` | Title text | `#000000` | `#000000` | `window.title` |
+| [x] | `wctb` | 3 | `wHiliteColor` | Title-bar highlight (stripes, 1-bit era) | — | `#000000` | — (the 1-bit stripes; in color they are computed, `system-06` #777777) |
+| [x] | `wctb` | 4 | `wTitleBarColor` | Title-bar background | `#F5F5F5` | `#FFFFFF` | — (computed: the title bar is #EEEEEE, `theme-01`) |
+| [x] | `wctb` | 5 | `wHiliteColorLight` | Racing stripes, light | — | `#FFFFFF` | — |
+| [x] | `wctb` | 6 | `wHiliteColorDark` | Racing stripes, dark | `#A8A8A8` | `#000000` | — (computed: the stripes, `system-06` #777777) |
+| [x] | `wctb` | 7 | `wTitleBarLight` | Title-bar top-left highlight | `#D6D8EA` | `#FFFFFF` | — (the title bar's highlight is the light tinge, `theme-02`) |
+| [x] | `wctb` | 8 | `wTitleBarDark` | Title-bar bottom edge | `#B2B5D4` | `#000000` | — (the title bar's bottom edge is the tinge's 2/3 step #9999CC, `window.borderInset`, `theme-03`) |
+| [x] | `wctb` | 9 | `wDialogLight` | Dialog frame band, light | `#D6D8EA` | `#CCCCFF` | `theme-02` (the dialog frame's light band; its gray band #BBBBBB is `system-02`) |
+| [x] | `wctb` | 10 | `wDialogDark` | Dialog frame band, dark | `#898BB2` | `#000000` | — (the dialog frame's dark band is the tinge's 1/3 step #666699, `theme-04`) |
+| [x] | `wctb` | 11 | `wTingeLight` | Frame tinge, light (box and frame highlight) | `#D6D8EA` | `#CCCCFF` | `theme-02`, `window.borderOutset` |
+| [x] | `wctb` | 12 | `wTingeDark` | Frame tinge, dark (box outline, scroll-arrow outline) | `#46528B` | `#333366` | `theme-07` |
+| [x] | `cctb` | 0 | `cFrameColor` | Scroll-bar frame | `#000000` | `#000000` | `window.border` |
+| [x] | `cctb` | 1 | `cBodyColor` | Scroll track and arrow-box face | `#ECECEC` | `#FFFFFF` | — (computed: the track and arrow boxes are #DDDDDD, `system-01`) |
+| [x] | `cctb` | 2 | `cTextColor` | Control text | `#000000` | `#000000` | `black` |
+| [x] | `cctb` | 3 | `cThumbColor` | Scroll box face | `#CDCDCD` | `#FFFFFF` | — (computed: the scroll box face is #AAAAAA, `system-04`) |
+| [x] | `cctb` | 4 | `cFillPatColor` | Fill pattern color | — | `#555555` | — |
+| [x] | `cctb` | 5 | `cArrowsColorLight` | Scroll arrow fill, light | `#D6D8EA` | `#FFFFFF` | — (the arrows' fill is the tinge's 2/3 step #9999CC, `theme-03`) |
+| [x] | `cctb` | 6 | `cArrowsColorDark` | Scroll arrow outline, dark | `#46528B` | `#000000` | — (the arrows' outline is the dark tinge, `theme-07`) |
+| [x] | `cctb` | 7 | `cThumbLight` | Scroll box highlight | `#D6D8EA` | `#FFFFFF` | — (the scroll box highlight is the light tinge, `theme-02`) |
+| [x] | `cctb` | 8 | `cThumbDark` | Scroll box shadow | `#46528B` | `#000000` | — (the scroll box shadow is the dark tinge, `theme-07`) |
+| [x] | `cctb` | 9 | `cHiliteLight` | Pressed part, light | — | `#FFFFFF` | — |
+| [x] | `cctb` | 10 | `cHiliteDark` | Pressed part, dark | — | `#000000` | — |
+| [x] | `cctb` | 11 | `cTitleBarLight` | Title-bar light (shared with the window) | — | `#FFFFFF` | — |
+| [x] | `cctb` | 12 | `cTitleBarDark` | Title-bar dark | — | `#000000` | — |
+| [x] | `cctb` | 13 | `cTingeLight` | Control tinge, light | `#D6D8EA` | `#CCCCFF` | `theme-02` |
+| [x] | `cctb` | 14 | `cTingeDark` | Control tinge, dark | `#46528B` | `#333366` | `theme-07` |
+
+Part codes are Apple's (`Windows.h`, `Controls.h`; `cctb` part 4, which the table holds, is `cFillPatColor`). The colors the window and control definitions compute, not read from a table, are sampled from the 1x 256-color reference captures (`color-*.png`), raw pixel values.
 
 | Done | Element | Where to sample | Measured (provisional) | Sampled value |
 | --- | --- | --- | --- | --- |
-| [ ] | Racing stripes | An active window's title bar | `#A8A8A8` | |
-| [ ] | Inactive window frame | A window behind another | `#828282` | |
-| [ ] | Inactive title text | The same window's title | `#B4B4B4` | |
-| [ ] | Scroll track dither dots | An active scroll bar's gray area | `#A8A8A8` on `#ECECEC` | |
-| [ ] | Close and zoom box face | An active window's close box | `#CDCDCD` | |
-| [ ] | Desktop | The default color desktop | `#CACACA` | |
+| [x] | Racing stripes | An active window's title bar | `#A8A8A8` | `#777777` (`system-06`) |
+| [x] | Inactive window frame | A window behind another | `#828282` | `#555555` (`system-07`) |
+| [x] | Inactive title text | The same window's title | `#B4B4B4` | `#888888` (`system-05`) |
+| [x] | Scroll track dither dots | An active scroll bar's gray area | `#A8A8A8` on `#ECECEC` | `#777777` on `#DDDDDD` (`system-01`) |
+| [x] | Close and zoom box face | An active window's close box | `#CDCDCD` | `#AAAAAA` (`system-04`) |
+| [x] | Desktop | The default color desktop | `#CACACA` | a 1 px checkerboard of `#666666` and `#AAAAAA` (the desktop pattern, not a table color; the theme keeps `#CACACA` for now) |
 
 ## Reference crops
 
