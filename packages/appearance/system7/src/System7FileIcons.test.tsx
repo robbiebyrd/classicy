@@ -2,8 +2,8 @@
 // icon on the desktop under System 7 (story 0193-801, plan 0018-dbd 6.5).
 // They hold the core's icon URLs, as every stored file system entry does,
 // and draw the active package's and theme variant's icon for each URL's key
-// (`resolveClassicyIconImage`): System 7's 1-bit art under "System 7", its
-// color art under "System 7 Color", the core's under Platinum.
+// (`resolveClassicyIconImage`): the `bw` variant tree's art under "System 7",
+// the base tree's under "System 7 Color", the core's under Platinum.
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // Platinum first, as a host loads it: the core default package beside System 7.
@@ -128,16 +128,31 @@ const shown = () => ({
 	drive: driveImage(),
 });
 
-/** The same icons as the active theme draws their keys. */
-const expected = () => ({
-	applications: drawn("system.folders.applications"),
-	app: drawn("system.files.application"),
-	documents: drawn("system.folders.directory"),
-	extensions: drawn("system.folders.extensions"),
-	modules: drawn("system.folders.controlStrip"),
-	sound: drawn("controlPanels.soundManager.app"),
-	drive: drawn("system.drives.disk"),
-});
+/** Each icon's key. */
+const KEYS = {
+	applications: "system.folders.applications",
+	app: "system.files.application",
+	documents: "system.folders.directory",
+	extensions: "system.folders.extensions",
+	modules: "system.folders.controlStrip",
+	sound: "controlPanels.soundManager.app",
+	drive: "system.drives.disk",
+};
+
+/** The same icons as a lookup draws their keys. */
+const imagesBy = (lookup: (key: string) => string) =>
+	Object.fromEntries(
+		Object.entries(KEYS).map(([name, key]) => [name, lookup(key)]),
+	);
+
+/** As the active theme draws them. */
+const expected = () => imagesBy(drawn);
+
+/** As System 7's `bw` variant tree draws them (its base tree where it has none). */
+const bwTree = () =>
+	imagesBy(
+		(key) => resolveClassicyAsset("icons", key, "system7", "bw") as string,
+	);
 
 const core = {
 	applications: ClassicyIcons.system.folders.applications,
@@ -172,18 +187,22 @@ describe("file system icons under System 7", () => {
 		expect(
 			useAppManager.getState().System.Manager.Appearance.activeTheme.id,
 		).toBe("system7");
-		const bw = expected();
+		// The 1-bit theme draws the `bw` variant tree.
+		const bw = bwTree();
 		for (const key of Object.keys(core) as (keyof typeof core)[])
 			expect(bw[key], key).not.toBe(core[key]);
 		expect(shown()).toEqual(bw);
 
-		// Same package, other variant: the art follows the theme.
+		// Same package, other variant: the art follows the theme. The color
+		// theme draws the base tree. Some System 7 images are the same file in
+		// both variants (the disk, for one: a production build inlines both as
+		// one `data:` URI), so only an icon whose variants differ, the folder,
+		// shows the switch.
 		useTheme("system7-color");
 		const color = expected();
-		for (const key of Object.keys(core) as (keyof typeof core)[]) {
+		for (const key of Object.keys(core) as (keyof typeof core)[])
 			expect(color[key], key).not.toBe(core[key]);
-			expect(color[key], key).not.toBe(bw[key]);
-		}
+		expect(color.documents).not.toBe(bw.documents);
 		expect(shown()).toEqual(color);
 
 		useTheme("system7");
