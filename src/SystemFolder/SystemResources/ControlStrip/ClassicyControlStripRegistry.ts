@@ -39,7 +39,10 @@ export type ClassicyControlStripModuleDefinition = {
 	icon: string | (() => string);
 	/**
 	 * The module file's 32 px icon in System Folder:Control Strip Modules.
-	 * Defaults to the generic module file icon.
+	 * Defaults to the core's generic module file icon. A core icon URL
+	 * (`ClassicyIcons.*`) is drawn as the active package's icon for its key
+	 * (`resolveClassicyIconImage`), so a module registered at module scope
+	 * can name one and still follow a package or theme switch.
 	 */
 	fileIcon?: string;
 	/**

@@ -1220,7 +1220,7 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
-| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
@@ -1553,6 +1553,25 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   wins (variant, then the active package, then the default package), within a
   tree the first key, with one `classicyLog` warning per such `src`.
   `ClassicyInputDialog` draws its icon at the regular 32 px, so it does not.
+- **A core icon URL stands for its key** (story 0193-801). Before picking
+  the small image, `resolveClassicyIconImage` / `useClassicyIconImage` map a
+  URL the default package registers for an icon key (the core's icons,
+  `ClassicyIcons.*`, and anything a host registers there) to the image the
+  active theme draws for that key: its variant tree, then the active
+  package's base tree, then the default package's. So every surface above
+  draws an icon held as the core's URL (a captured `ClassicyIcons.*` value, a
+  stored file-system `_icon`, a persisted desktop icon record) as the active
+  package's, and follows a package or theme switch, while the value itself
+  never changes. Under the default package with no variant every URL draws
+  as is. Another package's URL and any URL no default-package key holds draw
+  unchanged; a URL several keys share stands for the first in tree order, with
+  one `classicyLog` warning per URL when the active theme draws those keys
+  differently. Code that stores an icon stores the core's
+  (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
+  `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), so the
+  stored bytes are the same under every package; the file system does this
+  for new folders, the derived folders and the Desktop Folder's desktop icons.
+  `ClassicyTree`'s `leftIcon` is a plain `<img>` and does neither.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;
@@ -2360,7 +2379,13 @@ Modules) never journal, and their `_derived` entries never reach persistence:
 `snapshot()` (the localStorage write and every adapter snapshot, whose `tree`
 and `hash` are built from the stripped serialization) leaves them out at any
 depth, and they are rebuilt on load. So switching Appearance Packages, which renames derived
-entries, never changes persisted bytes or a snapshot hash. **Upgrading:** an
+entries, never changes persisted bytes or a snapshot hash. Their icons follow
+the active package without a rebuild: each derived folder's own icon and a
+Control Strip module file's default icon are the core's URLs (as are the
+seeded folders' and drive's, and a new folder's), which every icon surface
+draws as the active package's and theme variant's (§5, "A core icon URL
+stands for its key"); so does an app's or module's icon given as a core URL
+(the built-in modules' `fileIcon`s are). **Upgrading:** an
 adapter sees one snapshot-hash change on the first save after upgrading to a
 build with this rule, as the derived entries leave the persisted tree.
 

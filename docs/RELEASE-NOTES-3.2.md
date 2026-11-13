@@ -275,6 +275,21 @@ the ids the saver already names:
   `classicyPackAlerts` and `classicyPackDefaultAlert` instead.
 - **The Control Strip's Sound and Screen Saver modules** read their glyphs
   from the icon registry when they render, so a package's icons show there.
+- **A core icon URL draws as the active package's icon.**
+  `resolveClassicyIconImage` / `useClassicyIconImage`, which every icon
+  surface calls, now map a URL the default package registers for an icon key
+  (the core's, `ClassicyIcons.*`) to the image the active theme draws for
+  that key, variant included, before picking the small image. So the derived
+  Applications, Extensions and Control Strip Modules folders, the module
+  files, the seeded folders and Finder's drive icon on the desktop show
+  System 7's icons under System 7 (its 1-bit art under "System 7", its color
+  art under "System 7 Color"), and follow a switch, with no rebuild and no
+  change to what is stored. Under Platinum every icon draws as before.
+  Another package's URL draws unchanged. New folders, the derived folders'
+  own icons, a module file's default icon and the Desktop Folder's desktop
+  icons now hold the core's URL rather than the active package's, so the
+  stored tree is the same under every package. `iconImageByType(type,
+  packageId?)` takes an optional package (default: the active one).
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

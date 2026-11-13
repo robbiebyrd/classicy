@@ -7,7 +7,6 @@ import {
 	useSyncExternalStore,
 } from "react";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	dispatch,
 	useAppManager,
@@ -32,6 +31,7 @@ import {
 	type ClassicyControlStripModuleFile,
 	withControlStripModulesFolder,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemControlStripModules";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
@@ -139,10 +139,13 @@ export function useClassicyFileSystem(
 				id: definition.id,
 				name: classicyControlStripModuleLabel(definition, appIdentityOverrides),
 				label: definition.label,
+				// The core's generic module icon, never the active package's, so
+				// the entry keeps one URL across a package or theme switch; icon
+				// surfaces draw it, like a core `fileIcon`, as the active
+				// package's (`classicyCoreIcon`).
 				icon:
 					definition.fileIcon ??
-					resolveClassicyAsset("icons", "system.controlStrip.moduleFile") ??
-					"",
+					classicyCoreIcon("system.controlStrip.moduleFile"),
 				appId: definition.appId,
 			}),
 		),
