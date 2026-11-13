@@ -605,8 +605,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									...(placement?.top != null
 										? { top: `${Math.round(placement.top)}px` }
 										: placement?.above
-											? { bottom: `${window.innerHeight - menuRect.bottom}px` }
-											: { top: `${menuRect.top}px` }),
+											? {
+													bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
+												}
+											: { top: `${Math.round(menuRect.top)}px` }),
 									...(placement && { maxHeight: `${placement.maxHeight}px` }),
 									...scrollArrows.listStyle,
 								}}

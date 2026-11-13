@@ -91,4 +91,59 @@ describe("menus on whole pixels", () => {
 		expect(list.style.left).toBe("90px");
 		expect(Number.isInteger(Number.parseFloat(list.style.top))).toBe(true);
 	});
+
+	// A placeholder menu has no selection to align, so it grows from the
+	// button's edge: its top from the button's top, or, with more room
+	// above, its bottom from the button's bottom.
+	it("places a pop-up menu grown down from its button on whole pixels", () => {
+		fractionalButtons();
+		render(
+			<ClassicyPopUpMenu
+				id="pop"
+				placeholder="Choose"
+				options={[
+					{ value: "a", label: "One" },
+					{ value: "b", label: "Two" },
+				]}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("combobox"));
+		expect(screen.getByRole("listbox").style.top).toBe("40px");
+	});
+
+	it("places a pop-up menu grown up from its button on whole pixels", () => {
+		const innerHeight = window.innerHeight;
+		window.innerHeight = 560;
+		try {
+			// A button low on the screen, and a list taller than the room below.
+			vi.spyOn(
+				HTMLButtonElement.prototype,
+				"getBoundingClientRect",
+			).mockReturnValue(
+				DOMRect.fromRect({ x: 89.5, y: 500.25, width: 120.5, height: 20 }),
+			);
+			vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+				function (this: Element) {
+					return this.getAttribute("role") === "listbox" ? 200 : 0;
+				},
+			);
+			render(
+				<ClassicyPopUpMenu
+					id="pop"
+					placeholder="Choose"
+					options={[
+						{ value: "a", label: "One" },
+						{ value: "b", label: "Two" },
+					]}
+				/>,
+			);
+			fireEvent.click(screen.getByRole("combobox"));
+			const list = screen.getByRole("listbox");
+			expect(list.classList.contains("classicyPopUpMenuListAbove")).toBe(true);
+			// 560 − 520.25 = 39.75.
+			expect(list.style.bottom).toBe("40px");
+		} finally {
+			window.innerHeight = innerHeight;
+		}
+	});
 });
