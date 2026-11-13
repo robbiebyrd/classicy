@@ -97,6 +97,57 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
     }
   }
 
+  // The Apple and Help titles are their art at its own size,
+  // `menuBar.titleArtSize` (16): the Apple title's highlight
+  // `menuBar.appleTitleStart` (6) wide before it and `appleTitleEnd` (7)
+  // after, the art's top on the highlight's; the Help balloon's
+  // `helpTitleStart` (8) and `helpTitleEnd` (9), the art `helpTitleDrop` (1)
+  // lower (`*-menu-hierarchical-controlpanels.png`,
+  // `*-menu-help-and-selected-icon.png`).
+  :is(#{$titles}):is(.classicyDesktopMenuApple, .classicyDesktopMenuHelp) {
+    > p {
+      position: relative;
+      align-items: flex-start;
+    }
+
+    > p > img {
+      width: var(--menu-bar-title-art-size);
+      height: var(--menu-bar-title-art-size);
+      margin: 0;
+    }
+  }
+
+  :is(#{$titles}).classicyDesktopMenuApple {
+    padding: 0 var(--menu-bar-apple-title-end) 0 var(--menu-bar-apple-title-start);
+  }
+
+  :is(#{$titles}).classicyDesktopMenuHelp {
+    padding: var(--menu-bar-help-title-drop) var(--menu-bar-help-title-end) 0 var(--menu-bar-help-title-start);
+  }
+
+  // Open, a 1-bit title's art inverts with its highlight (QuickDraw inverts
+  // the title's rectangle: a white apple, a black balloon with a white rim
+  // and question mark), its clear pixels the highlight's black; a color
+  // title's art draws unchanged on the black. Over the art, a white layer
+  // its shape (the same art as a mask) in `difference`, tiled by the knob
+  // `iconSelection.invert` as a selected icon's inversion is (_Icon.scss):
+  // 1 px tiles in "System 7", none in "System 7 Color".
+  @each $title, $art in (".classicyDesktopMenuApple": "--classicy-art-apple-menu", ".classicyDesktopMenuHelp": "--classicy-art-help-menu-title") {
+    :is(#{$titles})#{$title}.open > p:has(> img)::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--menu-bar-title-art-size);
+      height: var(--menu-bar-title-art-size);
+      background: linear-gradient(var(--color-white), var(--color-white)) left top / var(--icon-selection-invert)
+        var(--icon-selection-invert);
+      mix-blend-mode: difference;
+      mask: var(#{$art}, linear-gradient(transparent, transparent)) left top / 100% 100% no-repeat;
+      pointer-events: none;
+    }
+  }
+
   // An application's titles follow the Apple menu's, each title's box over
   // its neighbor's by `menuBar.titleOverlap`.
   .classicyDesktopMenu > [data-classicy-part="app"] {

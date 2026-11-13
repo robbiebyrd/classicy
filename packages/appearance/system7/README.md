@@ -44,7 +44,9 @@ resolution).
     and size boxes (no collapse box: System 7 had none), inactive windows,
     the floating window's title bar, the Finder's window header and the
     standalone frame;
-  - menus: the white menu bar under the screen's rounded corners, pull-down,
+  - menus: the white menu bar under the screen's rounded corners, its Apple
+    and Help titles drawn as their art (inverted with an open title's
+    highlight in black and white, unchanged in color), pull-down,
     hierarchical and pop-up menus with inverted highlights, dimmed items and
     dotted or gray dividers, checkmarks, the blink of a chosen item, and a
     long pop-up's scroll triangles;

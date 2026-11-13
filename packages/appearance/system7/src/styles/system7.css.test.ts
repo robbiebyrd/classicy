@@ -446,6 +446,44 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/order: 55;/);
 		});
 
+		// The Apple and Help titles are their art, 16 px, in the highlight
+		// the captures measure (*-menu-hierarchical-controlpanels,
+		// *-menu-help-and-selected-icon).
+		it("draws the Apple and Help titles as their art at its own size", () => {
+			const both = rule(
+				`${TITLES}:is(.classicyDesktopMenuApple, .classicyDesktopMenuHelp) > p > img`,
+			);
+			expect(both).toMatch(/width: var\(--menu-bar-title-art-size\);/);
+			expect(both).toMatch(/height: var\(--menu-bar-title-art-size\);/);
+			expect(both).toMatch(/margin: 0;/);
+			expect(rule(`${TITLES}.classicyDesktopMenuApple`)).toMatch(
+				/padding: 0 var\(--menu-bar-apple-title-end\) 0 var\(--menu-bar-apple-title-start\);/,
+			);
+			expect(rule(`${TITLES}.classicyDesktopMenuHelp`)).toMatch(
+				/padding: var\(--menu-bar-help-title-drop\) var\(--menu-bar-help-title-end\) 0 var\(--menu-bar-help-title-start\);/,
+			);
+		});
+
+		// Open, the 1-bit art inverts with its highlight and the color art
+		// draws unchanged: a white layer the art's shape, in `difference`,
+		// tiled by iconSelection.invert (1 px in 1-bit, none in color).
+		it("inverts an open Apple or Help title's art in 1-bit only", () => {
+			for (const [title, art] of [
+				[".classicyDesktopMenuApple", "--classicy-art-apple-menu"],
+				[".classicyDesktopMenuHelp", "--classicy-art-help-menu-title"],
+			]) {
+				const overlay = rule(`${TITLES}${title}.open > p:has(> img)::after`);
+				expect(overlay).toMatch(/mix-blend-mode: difference;/);
+				expect(overlay).toMatch(
+					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top ?\/ ?var\(--icon-selection-invert\) var\(--icon-selection-invert\)/,
+				);
+				expect(overlay).toContain(
+					`mask: var(${art}, linear-gradient(transparent, transparent)) left top/100% 100% no-repeat;`,
+				);
+				expect(overlay).toMatch(/width: var\(--menu-bar-title-art-size\);/);
+			}
+		});
+
 		it("inverts an open pop-up's title and hides its triangle", () => {
 			expect(
 				rule(

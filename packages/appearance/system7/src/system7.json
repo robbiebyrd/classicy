@@ -110,7 +110,13 @@
 				"titlePadding": 10,
 				"titleOverlap": 5,
 				"highlightTop": 1,
-				"lineHeight": 16
+				"lineHeight": 16,
+				"titleArtSize": 16,
+				"appleTitleStart": 6,
+				"appleTitleEnd": 7,
+				"helpTitleStart": 8,
+				"helpTitleEnd": 9,
+				"helpTitleDrop": 1
 			},
 			"menuFrame": {
 				"shadowStart": 2,
@@ -328,7 +334,13 @@
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
-					"lineHeight": 16
+					"lineHeight": 16,
+					"titleArtSize": 16,
+					"appleTitleStart": 6,
+					"appleTitleEnd": 7,
+					"helpTitleStart": 8,
+					"helpTitleEnd": 9,
+					"helpTitleDrop": 1
 				},
 				"menuFrame": {
 					"shadowStart": 2,
@@ -548,7 +560,13 @@
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
-					"lineHeight": 16
+					"lineHeight": 16,
+					"titleArtSize": 16,
+					"appleTitleStart": 6,
+					"appleTitleEnd": 7,
+					"helpTitleStart": 8,
+					"helpTitleEnd": 9,
+					"helpTitleDrop": 1
 				},
 				"menuFrame": {
 					"shadowStart": 2,
