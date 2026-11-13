@@ -23,9 +23,10 @@
 
   // A menu too long for the screen scrolls (ClassicyMenu), which would clip
   // and scroll the frame's shadow pseudo-elements: they are off, and the
-  // shadow is drawn on the fixed sibling ClassicyMenu puts over the list
-  // (`.classicyMenuScrollShadow`), whose transparent border puts its padding
-  // edge where the list's is, so it lands on the same pixels, gap included.
+  // shadow is drawn on the sibling ClassicyMenu puts over the list in their
+  // wrapper (`.classicyMenuScrollShadow`), whose transparent border puts its
+  // padding edge where the list's is, so it lands on the same pixels, gap
+  // included.
   // The desktop's Firefox fallback (`scrollbar-width: auto`,
   // _Desktop.scss) is kept off the list's native bar.
   .classicyMenu.classicyMenuListScrolls,

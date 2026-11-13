@@ -29,10 +29,10 @@
 
 // The menu frame's shadow alone, drawn by ::before/::after from the padding
 // edge of a positioned element. The frame includes it; a scrolling menu's
-// list would clip it, so ClassicyMenu draws it on a fixed sibling over the
-// list (`.classicyMenuScrollShadow`) that includes this with a transparent
-// border as wide as the frame's, which puts its padding edge where the
-// list's is.
+// list would clip it, so ClassicyMenu draws it on a sibling over the list
+// in their wrapper (`.classicyMenuScrollShadow`) that includes this with a
+// transparent border as wide as the frame's, which puts its padding edge
+// where the list's is.
 @mixin platinum-menu-frame-shadow {
   // The pseudo-elements are placed from the padding edge, so the shadow's
   // outer edge sits past it by the border, the gap between border and shadow

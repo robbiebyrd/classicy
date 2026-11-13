@@ -34,7 +34,12 @@ const items = (n: number, prefix = "item") =>
 	}));
 
 // Every menu list sits 100 px down; its content is its rows; the screen is
-// 300 px tall.
+// 300 px tall. A list's padding and border (each side, from computed style)
+// and its wrapper's position are a test's to set.
+let padding = 0;
+let border = 0;
+let wrapperPosition = "relative";
+const frame = () => 2 * (padding + border);
 const scroll = new WeakMap<Element, number>();
 const originals = new Map<string, PropertyDescriptor | undefined>();
 const isList = (el: Element) => el.tagName === "UL";
@@ -58,6 +63,30 @@ let innerHeight: number;
 beforeEach(() => {
 	innerHeight = window.innerHeight;
 	window.innerHeight = 300;
+	const computed = window.getComputedStyle;
+	vi.spyOn(window, "getComputedStyle").mockImplementation(
+		(el: Element, pseudo?: string | null) => {
+			if (isList(el)) {
+				return {
+					boxSizing: "content-box",
+					paddingTop: `${padding}px`,
+					paddingBottom: `${padding}px`,
+					borderTopWidth: `${border}px`,
+					borderBottomWidth: `${border}px`,
+				} as unknown as CSSStyleDeclaration;
+			}
+			if (el.classList.contains("classicyMenuWrapper")) {
+				return {
+					// Placed fixed beside its item by ClassicyMenu (inline), else
+					// the package's.
+					position: (el as HTMLElement).style.position || wrapperPosition,
+					borderLeftWidth: "0px",
+					borderTopWidth: "0px",
+				} as unknown as CSSStyleDeclaration;
+			}
+			return computed.call(window, el, pseudo);
+		},
+	);
 	stub("scrollHeight", (el) => (isList(el) ? rowsOf(el) * ROW : 0));
 	stub("clientHeight", (el) =>
 		isList(el) ? Math.min(rowsOf(el) * ROW, capOf(el)) : 0,
@@ -99,14 +128,19 @@ beforeEach(() => {
 				if (this.classList.contains("gone")) {
 					return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
 				}
-				const top = list.getBoundingClientRect().y;
+				const listRect = list.getBoundingClientRect();
+				const top = listRect.y + padding + border;
 				const index = Array.prototype.indexOf.call(list.children, this);
 				return DOMRect.fromRect({
-					x: 40,
+					x: listRect.x,
 					y: top + index * ROW - list.scrollTop,
 					width: 160,
 					height: ROW,
 				});
+			}
+			// A wrapper sits a little up and left of its list.
+			if (this.classList.contains("classicyMenuWrapper")) {
+				return DOMRect.fromRect({ x: 30.25, y: 90, width: 200, height: 0 });
 			}
 			if (!isList(this))
 				return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
@@ -114,18 +148,38 @@ beforeEach(() => {
 			// (`data-top` on an ancestor); else it sits 100 px down.
 			const hidden = this.closest("li") && !this.closest("li.open");
 			const host = this.closest<HTMLElement>("[data-top]");
-			// A host may place it a fraction across (`data-left`); the wrapper's
-			// nudge moves it.
+			// A host may place the root list a fraction across (`data-left`). A
+			// submenu's list hangs 155 px right of its parent's, or where a
+			// fixed wrapper is put, and the wrapper's nudge moves it: `left` on
+			// a relative wrapper moves the list with it; `margin-left` moves a
+			// list anchored to the wrapper's left edge, not one anchored to
+			// its right (`data-anchor="right"`), as in a browser.
 			const across = this.closest<HTMLElement>("[data-left]");
+			const wrapper = this.parentElement as HTMLElement;
+			const parentList = wrapper.parentElement?.closest("ul");
+			const position = getComputedStyle(wrapper).position;
+			const natural =
+				position === "fixed"
+					? Number.parseFloat(wrapper.style.left) || 0
+					: parentList
+						? parentList.getBoundingClientRect().x + 155
+						: across
+							? Number(across.dataset.left)
+							: 40;
 			const nudge =
-				Number.parseFloat(
-					(this.parentElement as HTMLElement | null)?.style.marginLeft ?? "",
-				) || 0;
+				position === "relative"
+					? Number.parseFloat(wrapper.style.left) || 0
+					: 0;
+			const margin = this.closest("[data-anchor='right']")
+				? 0
+				: Number.parseFloat(wrapper.style.marginLeft) || 0;
 			return DOMRect.fromRect({
-				x: (across ? Number(across.dataset.left) : 40) + nudge,
+				x: natural + nudge + margin,
 				y: host ? Number(host.dataset.top) : 100,
 				width: 160,
-				height: hidden ? 0 : Math.min(rowsOf(this) * ROW, capOf(this)),
+				height: hidden
+					? 0
+					: Math.min(rowsOf(this) * ROW, capOf(this)) + frame(),
 			});
 		},
 	);
@@ -133,6 +187,9 @@ beforeEach(() => {
 
 afterEach(() => {
 	window.innerHeight = innerHeight;
+	padding = 0;
+	border = 0;
+	wrapperPosition = "relative";
 	for (const [key, descriptor] of originals) {
 		if (descriptor)
 			Object.defineProperty(HTMLElement.prototype, key, descriptor);
@@ -206,13 +263,15 @@ describe("ClassicyMenu scrolling", () => {
 		expect(sub.style.maxHeight).toBe("196px");
 	});
 
-	it("closes a submenu it holds open when it scrolls, and places it fixed while open", () => {
+	it("closes a submenu it holds open when it scrolls, and places it fixed while open, on the grid", () => {
 		const menuItems = [
 			{ id: "nested", title: "Nested", menuChildren: items(3, "grand") },
 			...items(29),
 		];
 		const { container } = render(
-			<ClassicyMenu name="m" menuItems={menuItems} />,
+			<div data-left={89.5}>
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
 		);
 		const list = container.querySelector("ul") as HTMLElement;
 		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
@@ -223,6 +282,16 @@ describe("ClassicyMenu scrolling", () => {
 			":scope > .classicyMenuWrapper",
 		) as HTMLElement;
 		expect(wrapper.style.position).toBe("fixed");
+		// Put beside its item at 89.5 by the item's own effect, which renders
+		// the submenu alone: the submenu nudges its wrapper by its margins
+		// (its `left` is the item's).
+		expect(wrapper.style.left).toBe("89.5px");
+		expect(wrapper.style.marginLeft).toBe("0.5px");
+		expect(wrapper.style.marginRight).toBe("-0.5px");
+		expect(
+			(container.querySelector("ul.sub") as HTMLElement).getBoundingClientRect()
+				.left,
+		).toBe(90);
 		act(() => {
 			list.scrollTop = 40;
 			fireEvent.scroll(list);
@@ -304,7 +373,7 @@ describe("ClassicyMenu scrolling", () => {
 		}
 	});
 
-	it("draws a capped list's frame shadow on a fixed sibling over the list", () => {
+	it("draws a capped list's frame shadow on a sibling over the list, placed in their wrapper", () => {
 		const { container } = render(
 			<ClassicyMenu name="m" menuItems={items(30)} />,
 		);
@@ -315,13 +384,16 @@ describe("ClassicyMenu scrolling", () => {
 		expect(shadow).not.toBeNull();
 		expect(shadow?.getAttribute("aria-hidden")).toBe("true");
 		expect(list.contains(shadow)).toBe(false);
-		expect(shadow?.style.position).toBe("fixed");
+		expect(shadow?.parentElement).toBe(list.parentElement);
+		// Absolute, from the wrapper's padding box (at 30.25, 90), so it moves
+		// with the list; its offsets keep their fractions.
+		expect(shadow?.style.position).toBe("absolute");
 		expect([
 			shadow?.style.left,
 			shadow?.style.top,
 			shadow?.style.width,
 			shadow?.style.height,
-		]).toEqual(["40px", "100px", "160px", "196px"]);
+		]).toEqual(["9.75px", "10px", "160px", "196px"]);
 	});
 
 	it("draws no shadow sibling while the list fits", () => {
@@ -375,6 +447,91 @@ describe("ClassicyMenu scrolling", () => {
 		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
 	});
 
+	// The cap is a `max-height`, which bounds the content box: a list with
+	// padding and a border (Platinum's are 1 px each) capped at the room
+	// would run its frame past the margin.
+	it("caps a list with padding and a border so its border box ends at the margin", () => {
+		padding = 1;
+		border = 1;
+		const { container } = render(
+			<ClassicyMenu name="m" menuItems={items(30)} />,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		// 196 of room, less 4 of padding and border.
+		expect(list.style.maxHeight).toBe("192px");
+		expect(list.getBoundingClientRect().bottom).toBe(300 - 4);
+		expect(
+			container.querySelector<HTMLElement>(".classicyMenuScrollShadow")?.style
+				.height,
+		).toBe("196px");
+	});
+
+	it("leaves a list alone whose rows fit the floor though its border box does not fit the room", () => {
+		padding = 2;
+		border = 1;
+		window.innerHeight = 300;
+		const THREE = items(3);
+		const { container } = render(
+			<div data-top={246}>
+				<ClassicyMenu name="m" menuItems={THREE} />
+			</div>,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		// 50 of room: the 64 px floor holds its 60 px of rows, though its 66 px
+		// border box runs past the margin.
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(false);
+		expect(list.style.maxHeight).toBe("");
+	});
+
+	// A list that fit is measured on every render, so a rebuild with more
+	// rows caps it in the effect that measures it; the rebuild effect must
+	// not then clear that cap (the two sets would cancel, and React would
+	// not commit the list capped).
+	it("caps a list that fit once more rows make it too long", () => {
+		const { container, rerender } = render(
+			<ClassicyMenu name="m" menuItems={items(3)} />,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(false);
+		rerender(<ClassicyMenu name="m" menuItems={items(30)} />);
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		expect(list.style.maxHeight).toBe("196px");
+		expect(arrow("down")).not.toBeNull();
+	});
+
+	it("forgets a saved scroll position once a rebuild makes the list fit", () => {
+		const { container, rerender } = render(
+			<div data-top={100}>
+				<ClassicyMenu name="m" menuItems={items(30)} />
+			</div>,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		act(() => {
+			list.scrollTop = 60;
+			fireEvent.scroll(list);
+		});
+		// Fewer rows, and the host moves the list up: the position is saved as
+		// the rows change (13 rows still overflow the old cap), then the list
+		// is found to fit (260 in 276 of room).
+		rerender(
+			<div data-top={20}>
+				<ClassicyMenu name="m" menuItems={items(13)} />
+			</div>,
+		);
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(false);
+		expect(list.scrollTop).toBe(0);
+		// Capped again: from the top, not where it was scrolled before.
+		rerender(
+			<div data-top={20}>
+				<ClassicyMenu name="m" menuItems={items(30)} />
+			</div>,
+		);
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		expect(list.scrollTop).toBe(0);
+		expect(arrow("up")).toBeNull();
+	});
+
 	it("puts a submenu on the pixel grid where its item leaves it a fraction across", () => {
 		const menuItems = [
 			{ id: "sub", title: "Sub", menuChildren: items(3, "child") },
@@ -387,12 +544,95 @@ describe("ClassicyMenu scrolling", () => {
 		fireEvent.click(screen.getByText("Sub"));
 		const sub = container.querySelector("ul.sub") as HTMLElement;
 		const wrapper = sub.parentElement as HTMLElement;
-		expect(wrapper.style.marginLeft).toBe("0.5px");
-		expect(sub.getBoundingClientRect().left).toBe(90);
+		// The submenu hangs at 89.5 + 155: its relative wrapper is moved by
+		// `left`, which carries a list anchored to either of its edges.
+		expect(wrapper.style.left).toBe("0.5px");
+		expect(wrapper.style.marginLeft).toBe("");
+		expect(sub.getBoundingClientRect().left).toBe(245);
 		// The root list is the host's to place: no nudge.
 		const root = container.querySelector(
 			":scope > div > .classicyMenuWrapper",
 		) as HTMLElement;
+		expect(root.style.left).toBe("");
 		expect(root.style.marginLeft).toBe("");
+	});
+
+	it("nudges an absolute wrapper by its margins, both so the box moves whole", () => {
+		wrapperPosition = "absolute";
+		const menuItems = [
+			{ id: "sub", title: "Sub", menuChildren: items(3, "child") },
+		];
+		const { container } = render(
+			<div data-left={89.5}>
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
+		);
+		fireEvent.click(screen.getByText("Sub"));
+		const sub = container.querySelector("ul.sub") as HTMLElement;
+		const wrapper = sub.parentElement as HTMLElement;
+		expect(wrapper.style.left).toBe("");
+		expect(wrapper.style.marginLeft).toBe("0.5px");
+		expect(wrapper.style.marginRight).toBe("-0.5px");
+		expect(sub.getBoundingClientRect().left).toBe(245);
+	});
+
+	// A list anchored to its wrapper's right edge (the App Switcher's
+	// pull-down, a contextual submenu) does not follow a `margin-left`. A
+	// nudge that read its natural place as the list's less the nudge would
+	// flip between the nudge and none on every render.
+	it("keeps the same nudge across renders, reading the natural place with the nudge cleared", () => {
+		const menuItems = [
+			{ id: "sub", title: "Sub", menuChildren: items(3, "child") },
+		];
+		const { container, rerender } = render(
+			<div data-left={89.5} data-anchor="right">
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
+		);
+		fireEvent.click(screen.getByText("Sub"));
+		const sub = container.querySelector("ul.sub") as HTMLElement;
+		const wrapper = sub.parentElement as HTMLElement;
+		for (let i = 0; i < 3; i++) {
+			expect(wrapper.style.left).toBe("0.5px");
+			expect(sub.getBoundingClientRect().left).toBe(245);
+			rerender(
+				<div data-left={89.5} data-anchor="right">
+					<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+				</div>,
+			);
+		}
+	});
+
+	// Layout effects run child-first: a submenu nudged from its parent's
+	// unnudged place is left off the grid once the parent moves. So a menu
+	// nudges its own wrapper, then its open descendants' in tree order.
+	it("nudges a parent before its open submenu when both open in one commit", () => {
+		const menuItems = [
+			{
+				id: "sub",
+				title: "Sub",
+				menuChildren: [
+					{ id: "grand", title: "Grand", menuChildren: items(3, "leaf") },
+				],
+			},
+		];
+		const { container } = render(
+			<div data-left={40.5}>
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
+		);
+		act(() => {
+			fireEvent.click(screen.getByText("Sub"));
+			fireEvent.click(screen.getByText("Grand"));
+		});
+		const [sub, grand] = Array.from(
+			container.querySelectorAll<HTMLElement>("ul.sub"),
+		);
+		// Sub hangs at 40.5 + 155 = 195.5, nudged to 196; Grand at 196 + 155 =
+		// 351, on the grid already: no nudge of its own.
+		expect(sub.getBoundingClientRect().left).toBe(196);
+		expect((sub.parentElement as HTMLElement).style.left).toBe("0.5px");
+		expect(grand.getBoundingClientRect().left).toBe(351);
+		expect((grand.parentElement as HTMLElement).style.left).toBe("");
 	});
 });

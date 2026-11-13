@@ -162,9 +162,44 @@ interface ClassicyMenuProps {
 	open?: boolean;
 }
 
-// A pull-down too long for the screen keeps at least this much (two rows or
-// so), as a pop-up menu does.
+// A pull-down too long for the screen keeps at least this much of its rows
+// (two or so; its content box), as a pop-up menu does.
 const MENU_MIN_SCROLL_HEIGHT = 64;
+
+const px = (value: string | undefined) => Number.parseFloat(value ?? "") || 0;
+
+/**
+ * Puts a submenu's wrapper on the pixel grid. A submenu (a pull-down, a
+ * hierarchical menu) hangs where its item is, which may be a fraction of a
+ * pixel across, so its frame and shadow would blend their one-pixel columns.
+ * The wrapper is moved by under half a pixel: a `position: relative` wrapper
+ * by `left`, which carries a list anchored to either of its edges (the App
+ * Switcher's pull-down hangs from the right one); any other, absolute or
+ * fixed beside its item, by its two margins, equal and opposite, so the box
+ * moves whole rather than shrinking from the edge a list may hang from. The
+ * natural place is read with the nudge cleared: a list that does not follow
+ * the nudge one for one would otherwise read as nudged twice, then not at
+ * all, on alternate renders.
+ */
+const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
+	const list = wrapper.querySelector<HTMLElement>(":scope > ul");
+	if (!list) return;
+	const relative = getComputedStyle(wrapper).position === "relative";
+	// `left` is the nudge's only on a relative wrapper; a fixed one's is where
+	// its item put it.
+	if (relative) wrapper.style.left = "";
+	wrapper.style.marginLeft = "";
+	wrapper.style.marginRight = "";
+	const natural = list.getBoundingClientRect().left;
+	const nudge = Math.round((Math.round(natural) - natural) * 64) / 64;
+	if (nudge === 0) return;
+	if (relative) {
+		wrapper.style.left = `${nudge}px`;
+	} else {
+		wrapper.style.marginLeft = `${nudge}px`;
+		wrapper.style.marginRight = `${-nudge}px`;
+	}
+};
 
 /**
  * Renders a Platinum menu list from `ClassicyMenuItem` data — the building
@@ -228,8 +263,9 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	const listRef = useRef<HTMLUListElement>(null);
 	const appearance = useClassicyAppearance("Menu", {}, listRef);
 
-	// The height a list too tall for the screen below it is capped at, once
-	// shown; null while it fits (and while hidden).
+	// The `max-height` a list too tall for the screen below it is capped at,
+	// once shown (its content box: its border box then ends at the screen
+	// margin); null while it fits (and while hidden).
 	const shown = open ?? true;
 	const [scrollCap, setScrollCap] = useState<number | null>(null);
 	const scrollCapRef = useRef(scrollCap);
@@ -241,12 +277,14 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	});
 	const { measure: measureScrollArrows, reset: resetScrollArrows } =
 		scrollArrows;
-	// The list's full height, measured while it is uncapped: a capped list's
-	// rows may follow its height (rows of `height: 100%`), so it is not
-	// measured again until its rows change (below).
+	// The list's full height (its border box), measured while it is uncapped:
+	// a capped list's rows may follow its height (rows of `height: 100%`), so
+	// it is not measured again until its rows change (below).
 	const fullHeightRef = useRef<number | null>(null);
-	// Where a capped list's frame shadow is drawn: a fixed sibling over the
-	// list, since the scrolling list clips its own pseudo-elements.
+	// Where a capped list's frame shadow is drawn: a sibling over the list,
+	// since the scrolling list clips its own pseudo-elements. Placed in their
+	// wrapper (the list's containing block), from its padding box, so it
+	// moves with the list.
 	const [shadowBox, setShadowBox] = useState<{
 		left: number;
 		top: number;
@@ -254,6 +292,9 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		height: number;
 	} | null>(null);
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	// The scroll position a rebuild of the rows saves for the list once it is
+	// capped again (the effect after the cap's).
+	const restoreScrollRef = useRef<number | null>(null);
 	// Placed on every render while shown, not only when it opens: the host
 	// may place the menu after it mounts (a contextual menu flipping up from
 	// the bottom of the screen, a bevel button's pop-up measured hidden
@@ -262,26 +303,39 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// finally is; an unchanged cap sets no state.
 	useLayoutEffect(() => {
 		const el = listRef.current;
-		if (!shown || !el || typeof window === "undefined") {
+		const wrapper = wrapperRef.current;
+		if (!shown || !el || !wrapper || typeof window === "undefined") {
 			fullHeightRef.current = null;
+			restoreScrollRef.current = null;
 			setScrollCap(null);
 			setShadowBox(null);
 			return;
 		}
-		// A submenu (a pull-down, a hierarchical menu) hangs where its item
-		// is, which may be a fraction of a pixel across: its wrapper is
-		// nudged onto the pixel grid (under half a pixel), so its frame and
-		// shadow draw as crisp columns in every engine.
-		const wrapper = wrapperRef.current;
-		if (open !== undefined && wrapper) {
-			const current = Number.parseFloat(wrapper.style.marginLeft) || 0;
-			const natural = el.getBoundingClientRect().left - current;
-			const nudge = Math.round((Math.round(natural) - natural) * 64) / 64;
-			const value = nudge === 0 ? "" : `${nudge}px`;
-			if (wrapper.style.marginLeft !== value) wrapper.style.marginLeft = value;
-		}
+		// Onto the pixel grid: this menu's own wrapper (a submenu's: a root
+		// list is its host's to place), then every open descendant's, in tree
+		// order. Layout effects run child-first, so a submenu nudged before its
+		// parent moved would be left off the grid; the parent's pass puts it
+		// back, and the natural place is read with the nudge cleared.
+		const wrappers: HTMLElement[] = open === undefined ? [] : [wrapper];
+		wrappers.push(
+			...el.querySelectorAll<HTMLElement>(
+				".classicyMenuItem.open > .classicyMenuWrapper",
+			),
+		);
+		for (const w of wrappers) nudgeMenuWrapperOntoGrid(w);
 		const rect = el.getBoundingClientRect();
 		if (rect.height === 0) return;
+		const style = getComputedStyle(el);
+		// The cap is a `max-height`, which bounds the content box: the list's
+		// padding and border come off the room so its border box ends at the
+		// margin (Platinum's list carries a pixel of each, a side).
+		const frame =
+			style.boxSizing === "border-box"
+				? 0
+				: px(style.paddingTop) +
+					px(style.paddingBottom) +
+					px(style.borderTopWidth) +
+					px(style.borderBottomWidth);
 		const room = window.innerHeight - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
 		if (scrollCap === null) {
 			// From the list's top to its last laid-out row's bottom (its rows
@@ -300,31 +354,39 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				bottom = box.bottom;
 				break;
 			}
-			const style = getComputedStyle(el);
 			fullHeightRef.current =
 				bottom === null
 					? rect.height
 					: bottom -
 						rect.top +
 						el.scrollTop +
-						(Number.parseFloat(style.paddingBottom) || 0) +
-						(Number.parseFloat(style.borderBottomWidth) || 0);
+						px(style.paddingBottom) +
+						px(style.borderBottomWidth);
 		}
 		const full = fullHeightRef.current ?? rect.height;
 		const cap =
-			full > room ? Math.max(Math.floor(room), MENU_MIN_SCROLL_HEIGHT) : null;
-		// A cap at or above the list's own height (the floor, on a short list
-		// low on a short screen) would only mark it scrolling.
-		setScrollCap(cap === null || cap >= full ? null : cap);
-		const box =
-			scrollCap === null
-				? null
-				: {
-						left: rect.left,
-						top: rect.top,
-						width: rect.width,
-						height: rect.height,
-					};
+			full > room
+				? Math.max(Math.floor(room) - frame, MENU_MIN_SCROLL_HEIGHT)
+				: null;
+		// A cap that holds all of the list's rows (the floor, on a short list
+		// low on a short screen) would only mark it scrolling. A list that
+		// fits forgets the scroll position a rebuild saved (below).
+		const next = cap === null || cap >= full - frame ? null : cap;
+		if (next === null) restoreScrollRef.current = null;
+		setScrollCap(next);
+		let box: typeof shadowBox = null;
+		if (scrollCap !== null) {
+			// From the wrapper's padding box, as fractions: `offsetLeft` and
+			// `offsetWidth` would round.
+			const wrapperRect = wrapper.getBoundingClientRect();
+			const wrapperStyle = getComputedStyle(wrapper);
+			box = {
+				left: rect.left - wrapperRect.left - px(wrapperStyle.borderLeftWidth),
+				top: rect.top - wrapperRect.top - px(wrapperStyle.borderTopWidth),
+				width: rect.width,
+				height: rect.height,
+			};
+		}
 		setShadowBox((prev) =>
 			prev === box ||
 			(prev &&
@@ -340,18 +402,18 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// New items. The same number of rows keeps the cap, the scroll position
 	// and the indicators (the desktop's Apple menu and the application
 	// switcher rebuild theirs whenever the apps change). Another number
-	// measures the list again, uncapped, then puts it back where it was
-	// scrolled. After the effect above, so its cap gives way to this.
+	// measures a capped list again, uncapped, then puts it back where it was
+	// scrolled. After the effect above, so its cap gives way to this. An
+	// uncapped list is measured on every render, so the effect above has
+	// just measured it; clearing its cap here would only undo the one it
+	// found (the two sets would cancel, and React would not commit).
 	const rowCountRef = useRef(menuItems?.length ?? 0);
-	const restoreScrollRef = useRef<number | null>(null);
 	useLayoutEffect(() => {
 		const count = menuItems?.length ?? 0;
 		if (count === rowCountRef.current) return;
 		rowCountRef.current = count;
-		const el = listRef.current;
-		if (el && scrollCapRef.current !== null) {
-			restoreScrollRef.current = el.scrollTop;
-		}
+		if (scrollCapRef.current === null) return;
+		restoreScrollRef.current = listRef.current?.scrollTop ?? null;
 		fullHeightRef.current = null;
 		setScrollCap(null);
 	}, [menuItems]);
@@ -443,11 +505,13 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			{scrollCap !== null && shadowBox && (
 				// The capped list's frame shadow, which the package draws on
 				// this sibling as it draws the list's own (the list clips it).
+				// Absolute in the wrapper, over the list's box, so it moves
+				// with the list, and no transformed ancestor can part them.
 				<div
 					className="classicyMenuScrollShadow"
 					aria-hidden="true"
 					style={{
-						position: "fixed",
+						position: "absolute",
 						left: `${shadowBox.left}px`,
 						top: `${shadowBox.top}px`,
 						width: `${shadowBox.width}px`,

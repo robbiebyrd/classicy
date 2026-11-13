@@ -341,9 +341,9 @@ describe("platinum.scss (compiled)", () => {
 	// triangle on the menu's face over the first or last row, and no native
 	// bar, which the desktop's Firefox fallback would otherwise show.
 	// A scrolling list clips its own shadow pseudo-elements: they are off,
-	// and the frame's shadow is drawn, as the frame draws it, on the fixed
-	// sibling ClassicyMenu puts over the list (its transparent border the
-	// frame's, so its padding edge is the list's).
+	// and the frame's shadow is drawn, as the frame draws it, on the sibling
+	// ClassicyMenu puts over the list in their wrapper (its transparent
+	// border the frame's, so its padding edge is the list's).
 	it("draws a scrolling menu's frame shadow on its sibling, as the frame draws it", () => {
 		const lists = [
 			"classicyMenu",

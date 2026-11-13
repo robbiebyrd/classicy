@@ -462,9 +462,9 @@ describe("system7.scss (compiled)", () => {
 		});
 
 		// A scrolling list clips its own shadow pseudo-elements: they are off,
-		// and the frame's shadow is drawn on the fixed sibling over the list,
-		// its border the frame's, transparent (none on top under a pull-down,
-		// which has no top line).
+		// and the frame's shadow is drawn on the sibling over the list in their
+		// wrapper, its border the frame's, transparent (none on top under a
+		// pull-down, which has no top line).
 		it("draws a scrolling menu's frame shadow on its sibling, as the frame draws it", () => {
 			expect(
 				rule(
