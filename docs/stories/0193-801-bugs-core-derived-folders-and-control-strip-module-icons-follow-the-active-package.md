@@ -3,11 +3,13 @@ id: 0193-801
 title: 'Core: derived folders and Control Strip module icons follow the active package'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: bugs
-status: pending
+status: complete
 priority: "3"
 effort: M
 created: "2026-11-12T14:12:27.378Z"
-updated: "2026-11-12T14:12:27.378Z"
+updated: "2026-11-13T20:54:31.225Z"
+started: "2026-11-13T19:01:19.107Z"
+completed: "2026-11-13T20:54:31.225Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Tests under System 7 and Platinum; parity
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Under System 7, the derived folders, module file icons and the desktop drive icon show System 7's icons.
+- [x] VERIFY: Under System 7, the derived folders, module file icons and the desktop drive icon show System 7's icons.
 
 ## Files
 
