@@ -80,19 +80,23 @@ const STRUCTURAL = new Set([
 	"-moz-appearance",
 ]);
 
-const KEPT = new Set([
-	// Visibility, not a look: the radio's mark is hidden until it is checked.
-	"opacity:0",
-	"opacity:1",
-	// The pop-up's native button chrome taken away (it draws nothing): the
-	// package paints the box around it.
-	"font:inherit",
-	"color:inherit",
-	"background:transparent",
-	"border:0",
-	// Behavior: a menu scrolls by its indicators, never by a scroll bar.
-	"scrollbar-width:none",
-]);
+// Visibility, not a look: the radio's mark is hidden until it is checked.
+const KEPT = new Set(["opacity:0", "opacity:1"]);
+
+// Exceptions that hold in one sheet only, so they never excuse the same
+// declaration in another.
+const KEPT_BY_FILE: Record<string, ReadonlySet<string>> = {
+	"SystemResources/PopUpMenu/ClassicyPopUpMenu.scss": new Set([
+		// The pop-up's native button chrome taken away (it draws nothing): the
+		// package paints the box around it.
+		"font:inherit",
+		"color:inherit",
+		"background:transparent",
+		"border:0",
+		// Behavior: a menu scrolls by its indicators, never by a scroll bar.
+		"scrollbar-width:none",
+	]),
+};
 
 const FILES = [
 	"SystemResources/RadioInput/ClassicyRadioInput.scss",
@@ -119,12 +123,20 @@ const declarations = (css: string): string[] =>
 		.filter((d) => !/^[^:]*[.#[&]/.test(d))
 		.map((d) => d.replace(/\s+/g, " "));
 
-/** The declarations that are neither structural nor a named exception. */
-const nonStructural = (css: string): string[] =>
+/**
+ * The declarations that are neither structural nor a named exception, the
+ * global ones or `file`'s own.
+ */
+const nonStructural = (css: string, file?: string): string[] =>
 	declarations(css).filter((d) => {
 		const prop = d.slice(0, d.indexOf(":")).trim();
 		if (prop.startsWith("--")) return false;
-		return !STRUCTURAL.has(prop) && !KEPT.has(d.replace(/\s*:\s*/, ":").trim());
+		const kept = d.replace(/\s*:\s*/, ":").trim();
+		return (
+			!STRUCTURAL.has(prop) &&
+			!KEPT.has(kept) &&
+			!(file !== undefined && KEPT_BY_FILE[file]?.has(kept))
+		);
 	});
 
 const compile = (file: string): string =>
@@ -135,7 +147,7 @@ const compile = (file: string): string =>
 describe("base control sheets hold only structure", () => {
 	for (const file of FILES) {
 		it(file, () => {
-			expect(nonStructural(compile(file))).toEqual([]);
+			expect(nonStructural(compile(file), file)).toEqual([]);
 		});
 	}
 
@@ -144,6 +156,18 @@ describe("base control sheets hold only structure", () => {
 		expect(nonStructural(css)).toEqual(["border-bottom-color: red"]);
 		const css2 = `${compile(FILES[3])}\n.classicyInput{filter:blur(1px);/* c */}`;
 		expect(nonStructural(css2)).toEqual(["filter:blur(1px)"]);
+	});
+
+	it("excuses a sheet's own exceptions in that sheet only", () => {
+		const reset = ".a{color: inherit;border:0;scrollbar-width:none}";
+		const popUp = "SystemResources/PopUpMenu/ClassicyPopUpMenu.scss";
+		expect(nonStructural(reset, popUp)).toEqual([]);
+		expect(nonStructural(reset, FILES[3])).toEqual([
+			"color: inherit",
+			"border:0",
+			"scrollbar-width:none",
+		]);
+		expect(nonStructural(reset)).toHaveLength(3);
 	});
 
 	it("keeps the visibility exceptions robust to whitespace", () => {
