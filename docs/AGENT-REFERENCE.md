@@ -1220,7 +1220,7 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
-| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, though it misses a later re-registration of its key, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
@@ -1552,35 +1552,63 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   sharing a `src` declare different `small` images, the most specific tree
   wins (variant, then the active package, then the default package), within a
   tree the first key, with one `classicyLog` warning per such `src`.
-  `ClassicyInputDialog` draws its icon at the regular 32 px, so it does not.
+  `ClassicyInputDialog` draws its icon at the regular 32 px, so it draws the
+  regular image.
 - **A core icon URL stands for its key** (story 0193-801). Before picking
   the small image, `resolveClassicyIconImage` / `useClassicyIconImage` map a
   URL the default package registers for an icon key (the core's icons,
   `ClassicyIcons.*`, and anything a host registers there) to the image the
   active theme draws for that key: its variant tree, then the active
-  package's base tree, then the default package's. So every surface above
+  package's base tree, then the default package's. So every icon surface
   draws an icon held as the core's URL (a captured `ClassicyIcons.*` value, a
-  stored file-system `_icon`, a persisted desktop icon record) as the active
-  package's, and follows a package or theme switch, while the value itself
-  never changes. Under the default package with no variant every URL draws
-  as is. Another package's URL and any URL no default-package key holds draw
-  unchanged; a URL several keys share stands for the first in tree order, with
-  one `classicyLog` warning per URL when the active theme draws those keys
-  differently. Code that stores an icon stores the core's
-  (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
-  `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), so the
-  stored bytes are the same under every package; the file system does this
-  for new folders, the derived folders and the Desktop Folder's desktop icons.
-  `ClassicyTree`'s `leftIcon` is a plain `<img>` and does neither.
+  stored file-system `_icon`, a persisted desktop icon record, an `icon` prop)
+  as the active package's, and follows a package or theme switch, while the
+  value itself never changes. Under the default package with no variant every
+  URL draws as is. Another package's URL and any URL no default-package key
+  holds draw unchanged; a URL several keys share stands for the first in tree
+  order, with one `classicyLog` warning per URL (naming the keys) when the
+  active theme draws those keys differently.
+  - **Store core URLs.** Code that stores an icon stores the core's
+    (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
+    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), never the
+    active package's, so the stored bytes are the same under every package
+    and nothing keeps another package's art after a switch. The file system
+    does this for new folders, the derived folders, the Desktop Folder's
+    desktop icons, and the Open and Save dialogs' volumes (their entries'
+    fallback icons, the volumes' own icons and a saved file's icon).
+  - **Opting out.** A host that wants an image drawn as is under every
+    package passes its own URL (its own file, or an icon registered under
+    its own key), not the core's: only a URL a default-package key holds
+    follows the package.
+  - **The surfaces.** `ClassicyIcon`, desktop icons, menu items, list box
+    and pop-up menu options, the file browser's list view, the
+    window title bar's proxy icon, menu bar extensions, `ClassicyControlLabel`,
+    `ClassicyBevelButton`, PDF Viewer, About This Computer and Finder
+    Preferences, and, since this story, `ClassicyTree`'s `leftIcon` and
+    `rightIcon` (the Open and Save lists), `ClassicyTabs`' tab icons,
+    `ClassicyComboBox`'s option icons, `ClassicyInputDialog`'s icon, `ClassicyAboutWindow`'s app icon,
+    `ClassicyAssistant`'s label and accessory icons and the startup screen's
+    extension parade, which drew a plain `<img>` before. Small surfaces
+    (tree rows, standard and small tabs, combo box options, the assistant's
+    label icon and `sm` accessory) draw the small image; the others draw the
+    regular image. Pictures that are not icons (a picture well, a HyperCard
+    image, Picture Viewer, the startup logo) stay plain `<img>`s, and the
+    alerts, QuickTime controls and About This Computer's logo read their art
+    from the registry at render.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;
   never mutate it.
 - **Never capture an asset in a module-scope constant**
-  (`const arrow = ClassicyIcons.system.alias`). The value is frozen at import
-  and misses later registrations and package switches. `ClassicyIcons` is only
-  the Platinum icon tree that gets registered; components read through the
-  registry.
+  (`const arrow = ClassicyIcons.system.alias`). The value is frozen at import:
+  it misses a host's later re-registration of that key under the default
+  package, and an asset that is not an icon (system art, cursors, wallpapers)
+  misses package switches too. A captured core icon URL does follow a package
+  or theme switch on the icon surfaces (above), but not where it is used as
+  anything else (a CSS `url()`, a plain `<img>`). `ClassicyIcons` is only the
+  Platinum icon tree that gets registered; components read through the
+  registry. Registration-time values such as a Control Strip module's
+  `fileIcon` may name a core icon URL.
 
 ### Migrating icon overrides (breaking change)
 

@@ -285,11 +285,23 @@ the ids the saver already names:
   System 7's icons under System 7 (its 1-bit art under "System 7", its color
   art under "System 7 Color"), and follow a switch, with no rebuild and no
   change to what is stored. Under Platinum every icon draws as before.
-  Another package's URL draws unchanged. New folders, the derived folders'
-  own icons, a module file's default icon and the Desktop Folder's desktop
-  icons now hold the core's URL rather than the active package's, so the
-  stored tree is the same under every package. `iconImageByType(type,
-  packageId?)` takes an optional package (default: the active one).
+  Another package's URL draws unchanged; a host that wants an image drawn as
+  is under every package passes its own URL rather than the core's. New
+  folders, the derived folders' own icons, a module file's default icon, the
+  Desktop Folder's desktop icons and the Open and Save dialogs' volumes now
+  hold the core's URL rather than the active package's, so the stored tree
+  is the same under every package and an open dialog never keeps another
+  package's art. `iconImageByType(type, packageId?)` takes an optional
+  package (default: the active one).
+- **More icons draw through `ClassicyIconImage`.** `ClassicyTree`'s
+  `leftIcon` and `rightIcon` (the Open and Save lists), `ClassicyTabs`' tab
+  icons, `ClassicyComboBox`'s option icons, `ClassicyInputDialog`'s icon,
+  `ClassicyAboutWindow`'s app icon, `ClassicyAssistant`'s label and accessory
+  icons and the startup screen's extension parade drew a plain `<img>`; they
+  now follow the active package as above and draw an icon's small image
+  where they are small (tree rows, standard and small tabs, combo box
+  options, the assistant's label icon and `sm` accessory). Under Platinum,
+  whose icons have no small images, they draw as before.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

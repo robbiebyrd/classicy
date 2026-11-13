@@ -42,7 +42,8 @@ export type ClassicyControlStripModuleDefinition = {
 	 * Defaults to the core's generic module file icon. A core icon URL
 	 * (`ClassicyIcons.*`) is drawn as the active package's icon for its key
 	 * (`resolveClassicyIconImage`), so a module registered at module scope
-	 * can name one and still follow a package or theme switch.
+	 * can name one and still follow a package or theme switch; being
+	 * captured, it misses a host's later re-registration of that key.
 	 */
 	fileIcon?: string;
 	/**
