@@ -372,6 +372,13 @@ describe("platinum.scss (compiled)", () => {
 			"var(--menu-frame-border-width) solid transparent",
 		);
 		expect(sibling["box-sizing"]).toBe("border-box");
+		// The frame's inner bevel over the rows, which scroll over the list's
+		// padding: the frame's own layers, less its face.
+		const frame = rule(`${P} .classicySubMenu`).props;
+		expect(frame.background.endsWith(", var(--color-system-02)")).toBe(true);
+		expect(sibling.background).toBe(
+			frame.background.slice(0, -", var(--color-system-02)".length),
+		);
 		// The frame's own shadow strips, on the sibling.
 		const frameAfter = rule(`${P} .classicySubMenu::after`).props;
 		const siblingAfter = rule(`${P} .classicyMenuScrollShadow::after`).props;
@@ -1117,6 +1124,7 @@ describe("the moved Platinum mixin files", () => {
 	it("declare only the renamed mixins", () => {
 		expect(declared("_mixins.scss")).toEqual([
 			"mixin platinum-menu-frame",
+			"function platinum-menu-frame-bevel",
 			"mixin platinum-menu-frame-shadow",
 			"mixin platinum-menu-divider",
 			"mixin platinum-window-box-shadow",

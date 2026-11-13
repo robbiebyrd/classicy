@@ -41,9 +41,13 @@
     }
   }
 
+  // The sibling also lays the frame's inner bevel over the rows, which
+  // scroll over the list's padding, where the frame draws it: a row
+  // scrolled a few pixels would otherwise show through the bevel.
   .classicyMenuScrollShadow {
     box-sizing: border-box;
     border: var(--menu-frame-border-width) solid transparent;
+    background: mixins.platinum-menu-frame-bevel();
     @include mixins.platinum-menu-frame-shadow;
   }
 

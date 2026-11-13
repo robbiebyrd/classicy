@@ -47,6 +47,13 @@ const rowsOf = (el: Element) =>
 	el.querySelectorAll(":scope > li, :scope > * > li").length;
 const capOf = (el: HTMLElement) =>
 	Number.parseFloat(el.style.maxHeight) || Number.POSITIVE_INFINITY;
+// An inline length in px, `calc(10px + 0.5px)` included (the nudge added to
+// a host's value).
+const pxOf = (value: string) =>
+	[...value.matchAll(/(-?[\d.]+)px/g)].reduce(
+		(sum, [, n]) => sum + Number(n),
+		0,
+	);
 const stub = (key: string, get: (el: HTMLElement) => number) => {
 	originals.set(
 		key,
@@ -160,19 +167,16 @@ beforeEach(() => {
 			const position = getComputedStyle(wrapper).position;
 			const natural =
 				position === "fixed"
-					? Number.parseFloat(wrapper.style.left) || 0
+					? pxOf(wrapper.style.left)
 					: parentList
 						? parentList.getBoundingClientRect().x + 155
 						: across
 							? Number(across.dataset.left)
 							: 40;
-			const nudge =
-				position === "relative"
-					? Number.parseFloat(wrapper.style.left) || 0
-					: 0;
+			const nudge = position === "relative" ? pxOf(wrapper.style.left) : 0;
 			const margin = this.closest("[data-anchor='right']")
 				? 0
-				: Number.parseFloat(wrapper.style.marginLeft) || 0;
+				: pxOf(wrapper.style.marginLeft);
 			return DOMRect.fromRect({
 				x: natural + nudge + margin,
 				y: host ? Number(host.dataset.top) : 100,
@@ -601,6 +605,53 @@ describe("ClassicyMenu scrolling", () => {
 				</div>,
 			);
 		}
+	});
+
+	// The passthrough contract: a consumer's `style` keys win. A host that
+	// shows a submenu list itself (`open`) may place its wrapper with the
+	// very properties the nudge uses.
+	it("adds its nudge to a host's own left, and keeps it across renders", () => {
+		const menu = (
+			<div data-left={89.5}>
+				<ClassicyMenu
+					name="m"
+					menuItems={items(3)}
+					open
+					style={{ left: "10px", marginLeft: "2px" }}
+				/>
+			</div>
+		);
+		const { container, rerender } = render(menu);
+		const list = container.querySelector("ul") as HTMLElement;
+		const wrapper = list.parentElement as HTMLElement;
+		for (let i = 0; i < 3; i++) {
+			// Hanging at 89.5 + 10 + 2 = 101.5: nudged to 102 over the host's
+			// own, in a `calc()` (which the engine stores simplified).
+			expect(wrapper.style.left).toMatch(/^calc\(/);
+			expect(pxOf(wrapper.style.left)).toBe(10.5);
+			expect(wrapper.style.marginLeft).toBe("2px");
+			expect(list.getBoundingClientRect().left).toBe(102);
+			rerender(menu);
+		}
+	});
+
+	it("adds its nudge to a host's own margins on an absolute wrapper", () => {
+		wrapperPosition = "absolute";
+		const { container } = render(
+			<div data-left={89.5}>
+				<ClassicyMenu
+					name="m"
+					menuItems={items(3)}
+					open
+					style={{ marginLeft: "2px", marginRight: "3px" }}
+				/>
+			</div>,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		const wrapper = list.parentElement as HTMLElement;
+		expect(pxOf(wrapper.style.marginLeft)).toBe(2.5);
+		expect(pxOf(wrapper.style.marginRight)).toBe(2.5);
+		expect(list.getBoundingClientRect().left).toBe(92);
 	});
 
 	// Layout effects run child-first: a submenu nudged from its parent's

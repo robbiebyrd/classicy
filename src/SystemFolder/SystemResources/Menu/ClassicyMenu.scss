@@ -269,4 +269,18 @@
   &::-webkit-scrollbar {
     display: none;
   }
+
+  // The capped list is a column flex box: its rows, dividers and balloon
+  // anchors would shrink toward their line boxes to fit the cap (System 7's
+  // 16 px rows to their 14 px line height); each keeps its height and
+  // scrolls instead. A row's `height: 100%` (above) would then be the cap's
+  // height: a scrolling row is as tall as its content, unless its package
+  // gives it a height.
+  > * {
+    flex-shrink: 0;
+  }
+
+  > .classicyMenuItem {
+    height: auto;
+  }
 }
