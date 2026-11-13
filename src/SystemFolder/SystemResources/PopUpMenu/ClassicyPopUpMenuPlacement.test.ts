@@ -120,6 +120,22 @@ describe("classicyPopUpMenuPlacement on whole pixels", () => {
 		});
 		expect(placement.top).toBe(101);
 	});
+
+	it("slides a fractional-height menu back on screen to a whole pixel", () => {
+		// 120.5 tall, selection low on a button near the bottom: the clamped
+		// top 800 − 4 − 120.5 = 675.5 is placed at 675, so the far edge
+		// (795.5) stays inside the 4 px margin, not half a pixel into it.
+		const placement = classicyPopUpMenuPlacement(anchor(760), 120.5, 800, {
+			offsetTop: 0,
+			height: 20,
+		});
+		expect(placement.top).toBe(675);
+		expect(placement.maxHeight).toBe(120.5);
+		expect(Number.isInteger(placement.top)).toBe(true);
+		expect((placement.top ?? 0) + placement.maxHeight).toBeLessThanOrEqual(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
 });
 
 describe("classicyPopUpMenuPlacement — aligned (selected item over the button)", () => {

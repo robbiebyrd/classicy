@@ -92,9 +92,11 @@ export const classicyPopUpMenuPlacement = (
 		const selectionCenter = selected.offsetTop + selected.height / 2;
 		let top = Math.round(anchorCenter - selectionCenter);
 
-		// …then slide the whole menu back on screen if that pushed it off an edge.
+		// …then slide the whole menu back on screen if that pushed it off an edge,
+		// again on a whole pixel: a fractional height (the measured content's)
+		// rounds the top down, so the far edge stays inside the margin.
 		if (top + maxHeight > viewportHeight - margin) {
-			top = viewportHeight - margin - maxHeight;
+			top = Math.floor(viewportHeight - margin - maxHeight);
 		}
 		if (top < margin) top = margin;
 
