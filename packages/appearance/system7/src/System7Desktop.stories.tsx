@@ -12,7 +12,9 @@ import {
 	ClassicyStartupScreen,
 	ClassicyTabs,
 	ClassicyWindow,
+	hasAppWindow,
 	resetStartupScreenSession,
+	useAppManager,
 	useAppManagerDispatch,
 	useClassicyAsset,
 } from "@classicy/classicy";
@@ -183,6 +185,64 @@ export const Tabs: Story = {
 /** The tab control under System 7 Color: drawn the same, black on white. */
 export const TabsColor: Story = {
 	render: () => themed(true, <TabsWindow />),
+};
+
+/** Each Finder window this story opens, and where (Finder's 425 x 300). */
+const FINDER_FOLDERS: [string, [number, number]][] = [
+	["Macintosh HD", [16, 40]],
+	["Macintosh HD:System Folder", [462, 40]],
+	["Macintosh HD:System Folder:Control Strip Modules", [16, 356]],
+];
+
+/**
+ * Finder windows on the startup disk, its System Folder and the Control
+ * Strip Modules folder, in icon view (story 0193-801): the derived
+ * Applications, Extensions and Control Strip Modules folders, the module
+ * files and the seeded folders, which hold the core's icons and draw the
+ * package's. The Storybook app gives the Applications folder an entry, so
+ * it is derived.
+ */
+function FinderFolderWindows() {
+	const dispatch = useAppManagerDispatch();
+	const windowsReady = useAppManager((state) =>
+		FINDER_FOLDERS.every(([path]) =>
+			hasAppWindow(state.System.Manager.Applications.apps["Finder.app"], path),
+		),
+	);
+	useEffect(() => {
+		for (const [path] of FINDER_FOLDERS) {
+			dispatch({
+				type: "ClassicyAppFinderSetFolderView",
+				path,
+				viewType: "icons",
+			});
+			dispatch({ type: "ClassicyAppFinderOpenFolder", path });
+		}
+	}, [dispatch]);
+	useEffect(() => {
+		if (!windowsReady) return;
+		for (const [path, position] of FINDER_FOLDERS)
+			dispatch({
+				type: "ClassicyWindowPosition",
+				app: { id: "Finder.app" },
+				window: { id: path },
+				position,
+			});
+	}, [dispatch, windowsReady]);
+	return <StoryApp id="storybook.app" name="Storybook" />;
+}
+
+/**
+ * The 1-bit folder and file icons in Finder windows, and Finder's disk on
+ * the desktop: the `bw` variant of System 7's icons.
+ */
+export const FinderFolders: Story = {
+	render: () => <FinderFolderWindows />,
+};
+
+/** The same windows under System 7 Color: the color icons. */
+export const FinderFoldersColor: Story = {
+	render: () => themed(true, <FinderFolderWindows />),
 };
 
 const APPEARANCE_TABS = [
