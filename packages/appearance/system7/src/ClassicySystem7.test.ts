@@ -272,6 +272,22 @@ describe("the System 7 appearance package", () => {
 		expect(color.measurements.dither.tileSize).toBe(0);
 	});
 
+	// The menu titles' art inverts open by its own knob, a 1 px tile in black
+	// and white and none in color (styles/components/_MenuBar.scss), apart
+	// from the icons' iconSelection.invert.
+	it("emits menuBar.titleArtInvert, 1 px in 1-bit and 0 in color", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (id: string) => {
+			const theme = presets.find((t) => t.id === id);
+			if (!theme) throw new Error(`no preset ${id}`);
+			return getThemeVars(theme) as Record<string, string>;
+		};
+		expect(vars("system7")["--menu-bar-title-art-invert"]).toBe("1px");
+		expect(vars("system7-color")["--menu-bar-title-art-invert"]).toBe("0px");
+	});
+
 	// The menus' knobs (styles/components/_Menu.scss, _MenuBar.scss,
 	// _PopUpMenu.scss), measured from the 7.5 menu captures, the same at both
 	// depths; and the menu bar's 20 px band, which windows keep clear of.

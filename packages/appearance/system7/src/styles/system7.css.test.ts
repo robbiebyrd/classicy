@@ -466,7 +466,8 @@ describe("system7.scss (compiled)", () => {
 
 		// Open, the 1-bit art inverts with its highlight and the color art
 		// draws unchanged: a white layer the art's shape, in `difference`,
-		// tiled by iconSelection.invert (1 px in 1-bit, none in color).
+		// tiled by its own knob, menuBar.titleArtInvert (1 px in 1-bit, none
+		// in color), not the icons' iconSelection.invert.
 		it("inverts an open Apple or Help title's art in 1-bit only", () => {
 			for (const [title, art] of [
 				[".classicyDesktopMenuApple", "--classicy-art-apple-menu"],
@@ -475,8 +476,9 @@ describe("system7.scss (compiled)", () => {
 				const overlay = rule(`${TITLES}${title}.open > p:has(> img)::after`);
 				expect(overlay).toMatch(/mix-blend-mode: difference;/);
 				expect(overlay).toMatch(
-					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top ?\/ ?var\(--icon-selection-invert\) var\(--icon-selection-invert\)/,
+					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top ?\/ ?var\(--menu-bar-title-art-invert\) var\(--menu-bar-title-art-invert\)/,
 				);
+				expect(overlay).not.toMatch(/icon-selection-invert/);
 				expect(overlay).toContain(
 					`mask: var(${art}, linear-gradient(transparent, transparent)) left top/100% 100% no-repeat;`,
 				);

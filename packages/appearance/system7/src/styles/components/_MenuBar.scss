@@ -130,8 +130,8 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   // and question mark), its clear pixels the highlight's black; a color
   // title's art draws unchanged on the black. Over the art, a white layer
   // its shape (the same art as a mask) in `difference`, tiled by the knob
-  // `iconSelection.invert` as a selected icon's inversion is (_Icon.scss):
-  // 1 px tiles in "System 7", none in "System 7 Color".
+  // `menuBar.titleArtInvert` as a selected icon's inversion is by its own
+  // (_Icon.scss): 1 px tiles in "System 7", none in "System 7 Color".
   @each $title, $art in (".classicyDesktopMenuApple": "--classicy-art-apple-menu", ".classicyDesktopMenuHelp": "--classicy-art-help-menu-title") {
     :is(#{$titles})#{$title}.open > p:has(> img)::after {
       content: "";
@@ -140,8 +140,8 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
       left: 0;
       width: var(--menu-bar-title-art-size);
       height: var(--menu-bar-title-art-size);
-      background: linear-gradient(var(--color-white), var(--color-white)) left top / var(--icon-selection-invert)
-        var(--icon-selection-invert);
+      background: linear-gradient(var(--color-white), var(--color-white)) left top / var(--menu-bar-title-art-invert)
+        var(--menu-bar-title-art-invert);
       mix-blend-mode: difference;
       mask: var(#{$art}, linear-gradient(transparent, transparent)) left top / 100% 100% no-repeat;
       pointer-events: none;

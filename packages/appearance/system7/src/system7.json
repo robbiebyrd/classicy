@@ -116,7 +116,8 @@
 				"appleTitleEnd": 7,
 				"helpTitleStart": 8,
 				"helpTitleEnd": 9,
-				"helpTitleDrop": 1
+				"helpTitleDrop": 1,
+				"titleArtInvert": 1
 			},
 			"menuFrame": {
 				"shadowStart": 2,
@@ -340,7 +341,8 @@
 					"appleTitleEnd": 7,
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
-					"helpTitleDrop": 1
+					"helpTitleDrop": 1,
+					"titleArtInvert": 1
 				},
 				"menuFrame": {
 					"shadowStart": 2,
@@ -566,7 +568,8 @@
 					"appleTitleEnd": 7,
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
-					"helpTitleDrop": 1
+					"helpTitleDrop": 1,
+					"titleArtInvert": 0
 				},
 				"menuFrame": {
 					"shadowStart": 2,
