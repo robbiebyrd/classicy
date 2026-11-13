@@ -175,9 +175,11 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		items[next].focus();
 	};
 
+	// On whole pixels: a menu's frame and shadow placed a fraction across
+	// blend their one-pixel columns (Firefox).
 	const style = {
-		left: position?.left ?? anchor.left,
-		top: position?.top ?? anchor.bottom,
+		left: Math.round(position?.left ?? anchor.left),
+		top: Math.round(position?.top ?? anchor.bottom),
 		visibility: position ? undefined : ("hidden" as const),
 		...consumerStyle,
 	};

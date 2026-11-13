@@ -108,7 +108,9 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			<div
 				ref={wrapperRef}
 				className={classNames("classicyContextMenuWrapper", className)}
-				style={{ left, top, ...style }}
+				// On whole pixels: the frame and shadow placed a fraction across
+				// blend their one-pixel columns (Firefox).
+				style={{ left: Math.round(left), top: Math.round(top), ...style }}
 			>
 				<ClassicyMenu
 					name={name}

@@ -593,7 +593,9 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 								onScroll={scrollArrows.onListScroll}
 								style={{
 									position: "fixed",
-									left: `${menuRect.left}px`,
+									// On whole pixels: the frame and shadow placed a
+									// fraction across blend their one-pixel columns.
+									left: `${Math.round(menuRect.left)}px`,
 									minWidth: `${menuRect.width}px`,
 									zIndex: 5000,
 									// Aligned placement gives an explicit top (the selected item
@@ -601,7 +603,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									// grows away from: its top to the button's top when growing
 									// down, its bottom to the button's bottom when growing up.
 									...(placement?.top != null
-										? { top: `${placement.top}px` }
+										? { top: `${Math.round(placement.top)}px` }
 										: placement?.above
 											? { bottom: `${window.innerHeight - menuRect.bottom}px` }
 											: { top: `${menuRect.top}px` }),
