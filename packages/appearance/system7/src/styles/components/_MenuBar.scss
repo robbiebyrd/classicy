@@ -87,21 +87,12 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
         left: 0;
         margin: $b 0 0;
         border-top: 0;
+      }
 
-        // Scrolling (ClassicyMenu caps it), its shadow is a box shadow
-        // (_Menu.scss). With no top line here, the right strip starts
-        // `menuFrame.shadowStart` from the top but the bottom one `$b` more
-        // from the left, which one rectangle cannot draw: the second layer is
-        // _Menu.scss's (its right strip from a pixel lower), the first only
-        // the right strip from the top it needs, ending at the bottom edge.
-        &.classicyMenuListScrolls {
-          $half: calc(var(--menu-frame-shadow-start) / 2);
-          $offset: calc(#{$b} + #{$half});
-
-          box-shadow:
-            $offset $half 0 calc(#{$half} * -1) var(--color-black),
-            $offset $offset 0 calc(#{$half} * -1) var(--color-black);
-        }
+      // A scrolling pull-down's shadow, on the sibling over it (_Menu.scss):
+      // no top line here either, so the right strip starts where it does.
+      > .classicyMenuScrollShadow {
+        border-top: 0;
       }
     }
   }

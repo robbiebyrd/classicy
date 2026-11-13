@@ -340,7 +340,11 @@ describe("platinum.scss (compiled)", () => {
 	// A long pop-up menu scrolls by its indicators (HIG7 p.78): a black
 	// triangle on the menu's face over the first or last row, and no native
 	// bar, which the desktop's Firefox fallback would otherwise show.
-	it("frames a scrolling menu with a box shadow, its pseudo-element shadows off", () => {
+	// A scrolling list clips its own shadow pseudo-elements: they are off,
+	// and the frame's shadow is drawn, as the frame draws it, on the fixed
+	// sibling ClassicyMenu puts over the list (its transparent border the
+	// frame's, so its padding edge is the list's).
+	it("draws a scrolling menu's frame shadow on its sibling, as the frame draws it", () => {
 		const lists = [
 			"classicyMenu",
 			"classicySubMenu",
@@ -350,16 +354,7 @@ describe("platinum.scss (compiled)", () => {
 		const scrolling = rule(
 			lists.map((l) => `${P} .${l}.classicyMenuListScrolls`).join(", "),
 		).props;
-		// Offset half of start + reach, spread half of reach − start: the
-		// strips the pseudo-elements draw (start 3, reach 1: 2 2 0 −1).
-		const start =
-			"calc(var(--menu-frame-border-width) + var(--menu-frame-shadow-start))";
-		const reach =
-			"calc(var(--menu-frame-shadow-gap) + var(--menu-frame-shadow-width))";
-		const offset = `calc((${start} + ${reach}) / 2)`;
-		expect(scrolling["box-shadow"]).toBe(
-			`${offset} ${offset} 0 calc((${reach} - ${start}) / 2) var(--color-system-07)`,
-		);
+		expect(scrolling["box-shadow"]).toBeUndefined();
 		expect(scrolling["scrollbar-width"]).toBe("none");
 		expect(
 			rule(
@@ -372,6 +367,18 @@ describe("platinum.scss (compiled)", () => {
 					.join(", "),
 			).props.display,
 		).toBe("none");
+		const sibling = rule(`${P} .classicyMenuScrollShadow`).props;
+		expect(sibling.border).toBe(
+			"var(--menu-frame-border-width) solid transparent",
+		);
+		expect(sibling["box-sizing"]).toBe("border-box");
+		// The frame's own shadow strips, on the sibling.
+		const frameAfter = rule(`${P} .classicySubMenu::after`).props;
+		const siblingAfter = rule(`${P} .classicyMenuScrollShadow::after`).props;
+		expect(siblingAfter).toEqual(frameAfter);
+		expect(rule(`${P} .classicyMenuScrollShadow::before`).props).toEqual(
+			rule(`${P} .classicySubMenu::before`).props,
+		);
 	});
 
 	it("draws a pop-up menu's scroll indicators on the menu's face, and no native bar", () => {
@@ -1110,6 +1117,7 @@ describe("the moved Platinum mixin files", () => {
 	it("declare only the renamed mixins", () => {
 		expect(declared("_mixins.scss")).toEqual([
 			"mixin platinum-menu-frame",
+			"mixin platinum-menu-frame-shadow",
 			"mixin platinum-menu-divider",
 			"mixin platinum-window-box-shadow",
 			"mixin platinum-box-shadow",

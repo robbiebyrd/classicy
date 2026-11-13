@@ -232,6 +232,8 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	// shown; null while it fits (and while hidden).
 	const shown = open ?? true;
 	const [scrollCap, setScrollCap] = useState<number | null>(null);
+	const scrollCapRef = useRef(scrollCap);
+	scrollCapRef.current = scrollCap;
 	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
 		rowSelector: '[role="menuitem"], [role="menuitemcheckbox"]',
 		// Over the list, in its wrapper's stacking context.
@@ -241,8 +243,17 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		scrollArrows;
 	// The list's full height, measured while it is uncapped: a capped list's
 	// rows may follow its height (rows of `height: 100%`), so it is not
-	// measured again until its items change (below).
+	// measured again until its rows change (below).
 	const fullHeightRef = useRef<number | null>(null);
+	// Where a capped list's frame shadow is drawn: a fixed sibling over the
+	// list, since the scrolling list clips its own pseudo-elements.
+	const [shadowBox, setShadowBox] = useState<{
+		left: number;
+		top: number;
+		width: number;
+		height: number;
+	} | null>(null);
+	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Placed on every render while shown, not only when it opens: the host
 	// may place the menu after it mounts (a contextual menu flipping up from
 	// the bottom of the screen, a bevel button's pop-up measured hidden
@@ -254,41 +265,107 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		if (!shown || !el || typeof window === "undefined") {
 			fullHeightRef.current = null;
 			setScrollCap(null);
+			setShadowBox(null);
 			return;
+		}
+		// A submenu (a pull-down, a hierarchical menu) hangs where its item
+		// is, which may be a fraction of a pixel across: its wrapper is
+		// nudged onto the pixel grid (under half a pixel), so its frame and
+		// shadow draw as crisp columns in every engine.
+		const wrapper = wrapperRef.current;
+		if (open !== undefined && wrapper) {
+			const current = Number.parseFloat(wrapper.style.marginLeft) || 0;
+			const natural = el.getBoundingClientRect().left - current;
+			const nudge = Math.round((Math.round(natural) - natural) * 64) / 64;
+			const value = nudge === 0 ? "" : `${nudge}px`;
+			if (wrapper.style.marginLeft !== value) wrapper.style.marginLeft = value;
 		}
 		const rect = el.getBoundingClientRect();
 		if (rect.height === 0) return;
 		const room = window.innerHeight - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
 		if (scrollCap === null) {
-			// From the list's top to its last row's bottom (its rows run down in
-			// order), then its padding and border. Not `scrollHeight`, which
+			// From the list's top to its last laid-out row's bottom (its rows
+			// run down in order; a row with no box, `display: none`, is
+			// skipped), then its padding and border. Not `scrollHeight`, which
 			// counts an open submenu hanging out of it (a menu bar's pull-down)
 			// as the list's own overflow.
-			const last = el.lastElementChild;
+			let bottom: number | null = null;
+			for (
+				let row = el.lastElementChild;
+				row;
+				row = row.previousElementSibling
+			) {
+				const box = row.getBoundingClientRect();
+				if (box.width === 0 && box.height === 0) continue;
+				bottom = box.bottom;
+				break;
+			}
 			const style = getComputedStyle(el);
-			fullHeightRef.current = last
-				? last.getBoundingClientRect().bottom -
-					rect.top +
-					el.scrollTop +
-					(Number.parseFloat(style.paddingBottom) || 0) +
-					(Number.parseFloat(style.borderBottomWidth) || 0)
-				: rect.height;
+			fullHeightRef.current =
+				bottom === null
+					? rect.height
+					: bottom -
+						rect.top +
+						el.scrollTop +
+						(Number.parseFloat(style.paddingBottom) || 0) +
+						(Number.parseFloat(style.borderBottomWidth) || 0);
 		}
 		const full = fullHeightRef.current ?? rect.height;
-		setScrollCap(
-			full > room ? Math.max(Math.floor(room), MENU_MIN_SCROLL_HEIGHT) : null,
+		const cap =
+			full > room ? Math.max(Math.floor(room), MENU_MIN_SCROLL_HEIGHT) : null;
+		// A cap at or above the list's own height (the floor, on a short list
+		// low on a short screen) would only mark it scrolling.
+		setScrollCap(cap === null || cap >= full ? null : cap);
+		const box =
+			scrollCap === null
+				? null
+				: {
+						left: rect.left,
+						top: rect.top,
+						width: rect.width,
+						height: rect.height,
+					};
+		setShadowBox((prev) =>
+			prev === box ||
+			(prev &&
+				box &&
+				prev.left === box.left &&
+				prev.top === box.top &&
+				prev.width === box.width &&
+				prev.height === box.height)
+				? prev
+				: box,
 		);
 	});
-	// New items: measure the list again, uncapped. After the effect above, so
-	// its cap gives way to this.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: menuItems is a trigger, not read: new items change the list's height
+	// New items. The same number of rows keeps the cap, the scroll position
+	// and the indicators (the desktop's Apple menu and the application
+	// switcher rebuild theirs whenever the apps change). Another number
+	// measures the list again, uncapped, then puts it back where it was
+	// scrolled. After the effect above, so its cap gives way to this.
+	const rowCountRef = useRef(menuItems?.length ?? 0);
+	const restoreScrollRef = useRef<number | null>(null);
 	useLayoutEffect(() => {
+		const count = menuItems?.length ?? 0;
+		if (count === rowCountRef.current) return;
+		rowCountRef.current = count;
+		const el = listRef.current;
+		if (el && scrollCapRef.current !== null) {
+			restoreScrollRef.current = el.scrollTop;
+		}
 		fullHeightRef.current = null;
 		setScrollCap(null);
 	}, [menuItems]);
 	useLayoutEffect(() => {
-		if (scrollCap === null) resetScrollArrows();
-		else measureScrollArrows();
+		if (scrollCap === null) {
+			resetScrollArrows();
+			return;
+		}
+		const el = listRef.current;
+		if (el && restoreScrollRef.current !== null) {
+			el.scrollTop = restoreScrollRef.current;
+			restoreScrollRef.current = null;
+		}
+		measureScrollArrows();
 	}, [scrollCap, measureScrollArrows, resetScrollArrows]);
 	const { emit } = appearance;
 	// A submenu opens by a click, Return, or hovering an active menu; it
@@ -310,7 +387,11 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 	}, [openChildId, emit]);
 
 	return menuItems && menuItems.length > 0 ? (
-		<div className={classNames("classicyMenuWrapper", className)} style={style}>
+		<div
+			ref={wrapperRef}
+			className={classNames("classicyMenuWrapper", className)}
+			style={style}
+		>
 			<ul
 				{...appearance.attrs}
 				ref={listRef}
@@ -359,6 +440,22 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				)}
 				{children}
 			</ul>
+			{scrollCap !== null && shadowBox && (
+				// The capped list's frame shadow, which the package draws on
+				// this sibling as it draws the list's own (the list clips it).
+				<div
+					className="classicyMenuScrollShadow"
+					aria-hidden="true"
+					style={{
+						position: "fixed",
+						left: `${shadowBox.left}px`,
+						top: `${shadowBox.top}px`,
+						width: `${shadowBox.width}px`,
+						height: `${shadowBox.height}px`,
+						pointerEvents: "none",
+					}}
+				/>
+			)}
 			{scrollCap !== null && scrollArrows.indicators}
 		</div>
 	) : null;

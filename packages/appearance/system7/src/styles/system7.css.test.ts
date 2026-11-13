@@ -461,42 +461,39 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
 
-		// A pull-down has no top line (the bar's is its top), so its scrolling
-		// shadow takes two layers: the right strip from shadowStart down, and
-		// the general one (the bottom strip from $b + shadowStart in).
-		it("frames a scrolling pull-down's shadow in two layers, from its top with no line", () => {
-			const pullDown = css.match(
-				/\.classicySubMenu\.classicyMenuListScrolls \{[^}]*box-shadow:([^;]*);/,
-			)?.[1];
-			expect(pullDown).toBeDefined();
-			const layers = (pullDown ?? "")
-				.split(/,(?![^(]*\))/)
-				.map((l) => l.trim());
-			expect(layers).toHaveLength(2);
-			const half = "calc(var(--menu-frame-shadow-start) / 2)";
-			const offset = `calc(var(--window-border-size) + ${half})`;
-			expect(layers[0]).toBe(
-				`${offset} ${half} 0 calc(${half} * -1) var(--color-black)`,
-			);
-			expect(layers[1]).toBe(
-				`${offset} ${offset} 0 calc(${half} * -1) var(--color-black)`,
-			);
-		});
-
-		it("frames a scrolling menu with a box shadow, its pseudo-element shadows off", () => {
-			const scrolling = rule(
-				":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls",
-			);
-			// Offset $b + half the shadow start, spread minus that half: the
-			// one-pixel strips the pseudo-elements draw (2 2 0 −1).
-			expect(scrolling).toMatch(
-				/box-shadow: calc\(var\(--window-border-size\) \+ calc\(var\(--menu-frame-shadow-start\) \/ 2\)\) calc\(var\(--window-border-size\) \+ calc\(var\(--menu-frame-shadow-start\) \/ 2\)\) 0 calc\(calc\(var\(--menu-frame-shadow-start\) \/ 2\) \* -1\) var\(--color-black\);/,
-			);
+		// A scrolling list clips its own shadow pseudo-elements: they are off,
+		// and the frame's shadow is drawn on the fixed sibling over the list,
+		// its border the frame's, transparent (none on top under a pull-down,
+		// which has no top line).
+		it("draws a scrolling menu's frame shadow on its sibling, as the frame draws it", () => {
 			expect(
 				rule(
 					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls::after",
 				),
 			).toMatch(/display: none;/);
+			expect(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu).classicyMenuListScrolls",
+				),
+			).not.toMatch(/box-shadow/);
+			const sibling = rule(".classicyMenuScrollShadow");
+			expect(sibling).toMatch(
+				/border: var\(--window-border-size\) solid transparent;/,
+			);
+			expect(sibling).toMatch(/box-sizing: border-box;/);
+			expect(rule(".classicyMenuScrollShadow::after")).toBe(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)::after",
+				),
+			);
+			expect(rule(".classicyMenuScrollShadow::before")).toBe(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)::before",
+				),
+			);
+			expect(css).toMatch(
+				/> \.classicyMenuWrapper > \.classicyMenuScrollShadow \{\s*border-top: 0;/,
+			);
 		});
 
 		// The menu's scroll indicator: the pop-up's 11 x 6 triangle on the

@@ -337,7 +337,7 @@
 		"Link": [],
 		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
-		"Menu": ["ListScrolls"],
+		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",

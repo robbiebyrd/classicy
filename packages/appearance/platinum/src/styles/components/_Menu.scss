@@ -22,25 +22,16 @@
   }
 
   // A menu too long for the screen scrolls (ClassicyMenu), which would clip
-  // and scroll the frame's shadow pseudo-elements: the shadow is a box
-  // shadow there, drawn where the pseudo-elements draw it. A box shadow is
-  // the box moved by its offset and shrunk by its (negative) spread, seen
-  // only outside the box; with the right and bottom strips `width` wide,
-  // `gap` out, and starting `border + shadowStart` from the outer corner,
-  // the spread is half of (border + start − gap − width) and the offset half
-  // of (border + start + gap + width). (A gap is filled, not left open: a
-  // box shadow is one rectangle. Platinum's is 0.) The desktop's Firefox
-  // fallback (`scrollbar-width: auto`, _Desktop.scss) is kept off its
-  // native bar.
+  // and scroll the frame's shadow pseudo-elements: they are off, and the
+  // shadow is drawn on the fixed sibling ClassicyMenu puts over the list
+  // (`.classicyMenuScrollShadow`), whose transparent border puts its padding
+  // edge where the list's is, so it lands on the same pixels, gap included.
+  // The desktop's Firefox fallback (`scrollbar-width: auto`,
+  // _Desktop.scss) is kept off the list's native bar.
   .classicyMenu.classicyMenuListScrolls,
   .classicySubMenu.classicyMenuListScrolls,
   .classicyContextMenu.classicyMenuListScrolls,
   .classicyContextSubMenu.classicyMenuListScrolls {
-    $start: calc(var(--menu-frame-border-width) + var(--menu-frame-shadow-start));
-    $reach: calc(var(--menu-frame-shadow-gap) + var(--menu-frame-shadow-width));
-    $offset: calc((#{$start} + #{$reach}) / 2);
-
-    box-shadow: $offset $offset 0 calc((#{$reach} - #{$start}) / 2) var(--color-system-07);
     scrollbar-width: none;
 
     &::before,
@@ -49,6 +40,11 @@
     }
   }
 
+  .classicyMenuScrollShadow {
+    box-sizing: border-box;
+    border: var(--menu-frame-border-width) solid transparent;
+    @include mixins.platinum-menu-frame-shadow;
+  }
 
   // Dividers in every menu (Figure 6-15).
   .classicyMenu,

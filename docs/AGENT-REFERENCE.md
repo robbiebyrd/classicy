@@ -1151,7 +1151,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped 4 px above the screen's bottom (placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls`, no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. Packages draw its frame's shadow as a box shadow there, since the list clips its pseudo-elements, at the pixels the pseudo-elements draw (offset and spread halves of the frame's border, shadow start and width; System 7's pull-down, with no top line, in two layers) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped 4 px above the screen's bottom (placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls`, no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` fixed sibling over the list's box, `.classicyMenuScrollShadow`, on which each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's. New items with the same number of rows keep the cap and the scroll position; another number measures the list again and restores its scroll position. A cap at or above the list's own height is no cap. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across), and the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?` | low-level; usually not used directly |
@@ -4852,7 +4852,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 45 sites over 13 files, the sites kept on purpose
+the list ends at these 41 sites over 10 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -4876,12 +4876,6 @@ the list ends at these 45 sites over 13 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
-- Platinum's and System 7's `_Menu.scss` and System 7's `_MenuBar.scss`,
-  the two, one and one halves of a scrolling menu's box shadow (System 7's
-  pull-down has no top line, so its own): the frame's shadow pseudo-elements would be
-  clipped by the scrolling list, so one box shadow draws them, its offset
-  and spread halves of the frame's border, shadow start, gap and width
-  (H-R21), the geometry of a single rectangle.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

@@ -21,7 +21,10 @@ vi.mock(
 );
 vi.mock("@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss", () => ({}));
 
-import { ClassicyMenu } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	ClassicyMenu,
+	type ClassicyMenuItem,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const ROW = 20;
 const items = (n: number, prefix = "item") =>
@@ -72,8 +75,14 @@ beforeEach(() => {
 	);
 	Object.defineProperty(HTMLElement.prototype, "scrollTop", {
 		configurable: true,
+		// As a browser does, a list that no longer overflows (its cap lifted)
+		// loses its scroll position for good.
 		get() {
-			return scroll.get(this) ?? 0;
+			const el = this as HTMLElement;
+			const max = rowsOf(el) * ROW - Math.min(rowsOf(el) * ROW, capOf(el));
+			const at = Math.min(scroll.get(el) ?? 0, Math.max(max, 0));
+			scroll.set(el, at);
+			return at;
 		},
 		set(value: number) {
 			const el = this as HTMLElement;
@@ -86,6 +95,10 @@ beforeEach(() => {
 			// A row: its place in its list, which may have scrolled.
 			const list = this.parentElement;
 			if (this.tagName === "LI" && list && isList(list)) {
+				// A row with no box (`display: none`).
+				if (this.classList.contains("gone")) {
+					return DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 });
+				}
 				const top = list.getBoundingClientRect().y;
 				const index = Array.prototype.indexOf.call(list.children, this);
 				return DOMRect.fromRect({
@@ -101,8 +114,15 @@ beforeEach(() => {
 			// (`data-top` on an ancestor); else it sits 100 px down.
 			const hidden = this.closest("li") && !this.closest("li.open");
 			const host = this.closest<HTMLElement>("[data-top]");
+			// A host may place it a fraction across (`data-left`); the wrapper's
+			// nudge moves it.
+			const across = this.closest<HTMLElement>("[data-left]");
+			const nudge =
+				Number.parseFloat(
+					(this.parentElement as HTMLElement | null)?.style.marginLeft ?? "",
+				) || 0;
 			return DOMRect.fromRect({
-				x: 40,
+				x: (across ? Number(across.dataset.left) : 40) + nudge,
 				y: host ? Number(host.dataset.top) : 100,
 				width: 160,
 				height: hidden ? 0 : Math.min(rowsOf(this) * ROW, capOf(this)),
@@ -282,5 +302,97 @@ describe("ClassicyMenu scrolling", () => {
 					scrollHeight,
 				);
 		}
+	});
+
+	it("draws a capped list's frame shadow on a fixed sibling over the list", () => {
+		const { container } = render(
+			<ClassicyMenu name="m" menuItems={items(30)} />,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		const shadow = container.querySelector<HTMLElement>(
+			".classicyMenuScrollShadow",
+		);
+		expect(shadow).not.toBeNull();
+		expect(shadow?.getAttribute("aria-hidden")).toBe("true");
+		expect(list.contains(shadow)).toBe(false);
+		expect(shadow?.style.position).toBe("fixed");
+		expect([
+			shadow?.style.left,
+			shadow?.style.top,
+			shadow?.style.width,
+			shadow?.style.height,
+		]).toEqual(["40px", "100px", "160px", "196px"]);
+	});
+
+	it("draws no shadow sibling while the list fits", () => {
+		const { container } = render(
+			<ClassicyMenu name="m" menuItems={items(5)} />,
+		);
+		expect(container.querySelector(".classicyMenuScrollShadow")).toBeNull();
+	});
+
+	it("keeps its scroll position when its items are rebuilt", () => {
+		const { container, rerender } = render(
+			<ClassicyMenu name="m" menuItems={items(30)} />,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		act(() => {
+			list.scrollTop = 60;
+			fireEvent.scroll(list);
+		});
+		expect(arrow("up")).not.toBeNull();
+		// The same rows, rebuilt (the desktop's Apple menu and switcher).
+		rerender(<ClassicyMenu name="m" menuItems={items(30)} />);
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		expect(list.scrollTop).toBe(60);
+		expect(arrow("up")).not.toBeNull();
+		// More rows: measured again, and put back where it was scrolled.
+		rerender(<ClassicyMenu name="m" menuItems={items(35)} />);
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		expect(list.scrollTop).toBe(60);
+		expect(arrow("up")).not.toBeNull();
+	});
+
+	it("leaves a short list alone where the floor would cap it above its height", () => {
+		window.innerHeight = 150;
+		const TWO = items(2);
+		const { container } = render(
+			<div data-top={115}>
+				<ClassicyMenu name="m" menuItems={TWO} />
+			</div>,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		// 150 − 4 − 115 = 31 of room: the 64 px floor, taller than its 40.
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(false);
+		expect(list.style.maxHeight).toBe("");
+	});
+
+	it("measures from its last laid-out row, past one with no box", () => {
+		const rows: ClassicyMenuItem[] = items(30);
+		rows[29] = { ...rows[29], className: "gone" };
+		const { container } = render(<ClassicyMenu name="m" menuItems={rows} />);
+		const list = container.querySelector("ul") as HTMLElement;
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+	});
+
+	it("puts a submenu on the pixel grid where its item leaves it a fraction across", () => {
+		const menuItems = [
+			{ id: "sub", title: "Sub", menuChildren: items(3, "child") },
+		];
+		const { container } = render(
+			<div data-left={89.5}>
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
+		);
+		fireEvent.click(screen.getByText("Sub"));
+		const sub = container.querySelector("ul.sub") as HTMLElement;
+		const wrapper = sub.parentElement as HTMLElement;
+		expect(wrapper.style.marginLeft).toBe("0.5px");
+		expect(sub.getBoundingClientRect().left).toBe(90);
+		// The root list is the host's to place: no nudge.
+		const root = container.querySelector(
+			":scope > div > .classicyMenuWrapper",
+		) as HTMLElement;
+		expect(root.style.marginLeft).toBe("");
 	});
 });
