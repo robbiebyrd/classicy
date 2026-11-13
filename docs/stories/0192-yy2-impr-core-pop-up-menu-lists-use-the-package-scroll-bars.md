@@ -3,11 +3,13 @@ id: 0192-yy2
 title: 'Core: pop-up menu lists use the package scroll bars'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:24.293Z"
-updated: "2026-11-12T14:12:24.293Z"
+updated: "2026-11-13T19:00:58.025Z"
+started: "2026-11-12T17:32:53.618Z"
+completed: "2026-11-13T19:00:58.025Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Tests and parity
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Scrolling pop-up menus draw the active package's scroll look.
+- [x] VERIFY: Scrolling pop-up menus draw the active package's scroll look.
 
 ## Files
 

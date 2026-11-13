@@ -3,11 +3,13 @@ id: 0208-m1n
 title: 'Core: scroll area internals'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:15:58.930Z"
-updated: "2026-11-12T14:15:58.930Z"
+updated: "2026-11-13T19:01:03.910Z"
+started: "2026-11-12T17:33:00.317Z"
+completed: "2026-11-13T19:01:03.910Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Fix each item with a test; Platinum parity AE 0
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Each item is fixed and tested.
+- [x] VERIFY: Each item is fixed and tested.
 
 ## Files
 

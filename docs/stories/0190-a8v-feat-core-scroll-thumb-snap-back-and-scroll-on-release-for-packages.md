@@ -3,11 +3,13 @@ id: 0190-a8v
 title: 'Core: scroll-thumb snap-back and scroll-on-release for packages'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: feat
-status: pending
+status: complete
 priority: "3"
 effort: M
 created: "2026-11-12T14:12:17.702Z"
-updated: "2026-11-12T14:12:17.702Z"
+updated: "2026-11-13T19:00:46.491Z"
+started: "2026-11-12T17:32:40.965Z"
+completed: "2026-11-13T19:00:46.491Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Implement in ClassicyScrollArea; Platinum keeps live scrolling; tests and parity
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A package can declare scroll-on-release with snap-back, System 7 declares it, and Platinum is unchanged.
+- [x] VERIFY: A package can declare scroll-on-release with snap-back, System 7 declares it, and Platinum is unchanged.
 
 ## Files
 
