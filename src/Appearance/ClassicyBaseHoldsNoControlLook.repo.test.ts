@@ -14,6 +14,7 @@ const STRUCTURAL = new Set([
 	// box model and sizes
 	"box-sizing",
 	"width",
+	"aspect-ratio",
 	"min-width",
 	"max-width",
 	"height",
@@ -72,14 +73,26 @@ const STRUCTURAL = new Set([
 	"pointer-events",
 	"user-select",
 	"-webkit-user-select",
+	"overscroll-behavior",
 	"list-style",
 	"appearance",
 	"-webkit-appearance",
 	"-moz-appearance",
 ]);
 
-// Visibility, not a look: the radio's mark is hidden until it is checked.
-const KEPT = new Set(["opacity:0", "opacity:1"]);
+const KEPT = new Set([
+	// Visibility, not a look: the radio's mark is hidden until it is checked.
+	"opacity:0",
+	"opacity:1",
+	// The pop-up's native button chrome taken away (it draws nothing): the
+	// package paints the box around it.
+	"font:inherit",
+	"color:inherit",
+	"background:transparent",
+	"border:0",
+	// Behavior: a menu scrolls by its indicators, never by a scroll bar.
+	"scrollbar-width:none",
+]);
 
 const FILES = [
 	"SystemResources/RadioInput/ClassicyRadioInput.scss",
@@ -93,6 +106,7 @@ const FILES = [
 	"SystemResources/TimePicker/ClassicyTimePicker.scss",
 	"SystemResources/ComboBox/ClassicyComboBox.scss",
 	"SystemResources/ControlGroup/ClassicyControlGroup.scss",
+	"SystemResources/PopUpMenu/ClassicyPopUpMenu.scss",
 ];
 
 /** Every `prop: value` declaration of compiled CSS, comments removed. */

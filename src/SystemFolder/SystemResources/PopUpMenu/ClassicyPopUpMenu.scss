@@ -17,10 +17,9 @@
     padding-left: 0;
   }
 
+  // Its indicator's look (no divider, no bevel) is the package's.
   .classicyPopUpMenuIndicator {
     width: 100%;
-    border-left: none;
-    box-shadow: none;
   }
 }
 
@@ -37,8 +36,7 @@
 }
 
 // ----- The control (Mac-style pop-up button) -------------------------------
-// Its bevel, and the disabled fill under the gradient, are in the Platinum
-// package.
+// Its bevel and its disabled fill are in the Platinum package.
 .classicyPopUpMenu {
   font-family: var(--ui-font), sans-serif;
   font-size: .75em;
@@ -57,7 +55,6 @@
 
   &.disabled {
     cursor: not-allowed;
-    background-image: linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%);
   }
 }
 
@@ -69,6 +66,8 @@
 }
 
 // The visible trigger: current selection on the left, indicator on the right.
+// A native button with its chrome taken away; its focus ring is the
+// package's.
 .classicyPopUpMenuButton {
   display: flex;
   align-items: center;
@@ -86,15 +85,6 @@
   background: transparent;
   border: 0;
   cursor: inherit;
-
-  &:focus {
-    border-radius: var(--window-padding-size);
-    outline: var(--color-outline) solid var(--control-frame-width);
-  }
-
-  &:focus:not(:focus-visible) {
-    outline: none;
-  }
 }
 
 .classicyPopUpMenuValue {
@@ -104,22 +94,12 @@
   white-space: nowrap;
 }
 
-// Double up/down triangle indicator (HIG pop-up marker), on a raised tab.
+// The pop-up marker at the box's right end. Its look (Platinum's double
+// arrow on a raised tab) is the package's.
 .classicyPopUpMenuIndicator {
   flex: 0 0 auto;
   align-self: stretch;
   width: var(--popup-arrow-width);
-
-  border-left: var(--window-border-size) solid var(--color-system-05);
-  border-top-right-radius: var(--window-padding-size);
-  border-bottom-right-radius: var(--window-padding-size);
-
-  // The arrows are in the Platinum package.
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 45%;
-
-  box-shadow: inset var(--control-frame-width) var(--window-border-size) 0 0 var(--color-white);
 }
 
 // ----- The floating menu ---------------------------------------------------
@@ -148,13 +128,7 @@
     display: none;
   }
 
-  color: var(--color-black);
-  background-color: var(--color-system-02);
-  border: var(--window-border-size) solid var(--color-black);
-  box-shadow:
-    inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
-    var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
-
+  // Its frame, face and ink are the package's.
   font: inherit;
 }
 
@@ -176,15 +150,12 @@
 
   padding: var(--control-padding-narrow) var(--control-padding-loose);
 
-  color: var(--color-black);
   white-space: nowrap;
   cursor: pointer;
 }
 
-.classicyPopUpMenuListItemHighlight {
-  color: var(--color-white);
-  background-color: var(--color-theme-04);
-}
+// The highlighted item (`.classicyPopUpMenuListItemHighlight`) is drawn by
+// the package.
 
 // Fixed checkmark gutter so labels align whether or not an item is current.
 .classicyPopUpMenuCheck {
@@ -205,11 +176,10 @@
   font-family: var(--ui-font);
 }
 
-// Non-selectable <optgroup>-equivalent title. Platinum menus render group
-// titles like disabled items: grayed, never highlighted, default cursor.
+// Non-selectable <optgroup>-equivalent title: never highlighted, default
+// cursor. Its ink (Platinum: grayed, like a disabled item) is the package's.
 .classicyPopUpMenuGroupHeader {
   padding: var(--control-padding-narrow) var(--control-padding-loose);
-  color: var(--color-system-05);
   font-family: var(--ui-font);
   white-space: nowrap;
   cursor: default;

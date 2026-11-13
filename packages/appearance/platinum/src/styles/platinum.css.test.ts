@@ -674,6 +674,76 @@ describe("platinum.scss (compiled)", () => {
 			"background-color": "var(--color-system-03)",
 		}));
 
+	// Story 0196-1i1: the pop-up menu's look left ClassicyPopUpMenu.scss (now
+	// pinned by ClassicyBaseHoldsNoControlLook) for this partial, value for
+	// value, so Platinum draws the same pixels.
+	describe("the pop-up menu's look, moved from the base sheet", () => {
+		it("dims a disabled box with the gradient over its fill", () =>
+			expect(rule(`${P} .classicyPopUpMenu.disabled`).props).toEqual({
+				"background-color": "var(--color-system-01)",
+				"background-image":
+					"linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%)",
+			}));
+
+		it("rings the focused button, for the keyboard only", () => {
+			expect(rule(`${P} .classicyPopUpMenuButton:focus`).props).toEqual({
+				"border-radius": "var(--window-padding-size)",
+				outline: "var(--color-outline) solid var(--control-frame-width)",
+			});
+			expect(
+				rule(`${P} .classicyPopUpMenuButton:focus:not(:focus-visible)`).props,
+			).toEqual({ outline: "none" });
+		});
+
+		it("draws the indicator's raised tab and arrows", () =>
+			expect(rule(`${P} .classicyPopUpMenuIndicator`).props).toEqual({
+				"border-left": "var(--window-border-size) solid var(--color-system-05)",
+				"border-top-right-radius": "var(--window-padding-size)",
+				"border-bottom-right-radius": "var(--window-padding-size)",
+				"background-image": "var(--classicy-art-popup-arrows)",
+				"background-repeat": "no-repeat",
+				"background-position": "center",
+				"background-size": "45%",
+				"box-shadow":
+					"inset var(--control-frame-width) var(--window-border-size) 0 0 var(--color-white)",
+			}));
+
+		it("drops the mini pop-up's divider and bevel, after the indicator", () => {
+			const mini = rule(
+				`${P} .classicyPopUpMenuSizeMini .classicyPopUpMenuIndicator`,
+			);
+			expect(mini.props).toEqual({
+				"border-left": "none",
+				"box-shadow": "none",
+			});
+			expect(mini.at).toBeGreaterThan(
+				rule(`${P} .classicyPopUpMenuIndicator`).at,
+			);
+		});
+
+		it("frames the open menu and inks its items, the highlight last", () => {
+			expect(rule(`${P} .classicyPopUpMenuList`).props).toEqual({
+				"scrollbar-width": "none",
+				color: "var(--color-black)",
+				"background-color": "var(--color-system-02)",
+				border: "var(--window-border-size) solid var(--color-black)",
+				"box-shadow":
+					"inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white), var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black)",
+			});
+			const item = rule(`${P} .classicyPopUpMenuListItem`);
+			const highlight = rule(`${P} .classicyPopUpMenuListItemHighlight`);
+			expect(item.props).toEqual({ color: "var(--color-black)" });
+			expect(highlight.props).toEqual({
+				color: "var(--color-white)",
+				"background-color": "var(--color-theme-04)",
+			});
+			expect(highlight.at).toBeGreaterThan(item.at);
+			expect(rule(`${P} .classicyPopUpMenuGroupHeader`).props).toEqual({
+				color: "var(--color-system-05)",
+			});
+		});
+	});
+
 	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
 		// Every rule whose selector list is exactly `selector`, in order: Sass
 		// emits a rule's declarations that follow a nested rule as a second rule

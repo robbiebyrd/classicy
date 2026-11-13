@@ -38,8 +38,13 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
     align-items: flex-start;
     padding: 0 0 0 var(--menu-item-text-inset);
 
+    // The keyboard focus ring, square (a pointer's focus draws none).
     &:focus {
-      border-radius: 0;
+      outline: var(--color-outline) solid var(--control-frame-width);
+    }
+
+    &:focus:not(:focus-visible) {
+      outline: none;
     }
   }
 
@@ -140,11 +145,7 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
 
   // Dimmed (HIG p.207): the box keeps its black frame, as a dimmed push
   // button does, and its text and triangle take the dimmed ink through the
-  // dither (the base sheet's dimmed gradient dropped).
-  :where(.classicyPopUpMenu).disabled {
-    background-image: none;
-  }
-
+  // dither.
   :where(.classicyPopUpMenuButton).disabled {
     .classicyPopUpMenuValue {
       @include d.classicy-dither-text("--color-theme-06");

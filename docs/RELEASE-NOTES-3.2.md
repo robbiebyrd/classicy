@@ -200,10 +200,13 @@ diverge, so a logo registered through Platinum's
 Base component SCSS is structure only, so these looks moved from the core's
 base layer into Platinum's stylesheet: radio buttons, checkboxes, little
 arrows, text inputs, list boxes and trees, the spinner, the date and time
-pickers, the combo box's indicator and the control group's frames. Platinum
-draws them exactly as before. A host that ships its own Appearance Package
-now draws them itself; until it does, they show their structure only, as
-every other component already did under a package with no look.
+pickers, the combo box's indicator, the control group's frames, and the
+pop-up menu's (the dimmed box's gradient, the button's focus ring, the
+indicator's divider, rounded corners and bevel, and the open menu's frame,
+face, items, highlight and group titles). Platinum draws them exactly as
+before. A host that ships its own Appearance Package now draws them itself;
+until it does, they show their structure only, as every other component
+already did under a package with no look.
 
 Platinum's `_scrollbars.scss` (published as
 `@classicy/appearance-platinum/scss/scrollbars`) gains the mixins that draw

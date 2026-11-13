@@ -461,6 +461,20 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
 
+		// Story 0196-1i1: the focus ring left the base sheet; System 7 keeps
+		// the one it drew, square (the base's rounding was Platinum's).
+		it("rings a pop-up focused from the keyboard, square", () => {
+			expect(rule(".classicyPopUpMenuButton:focus")).toMatch(
+				/outline: var\(--color-outline\) solid var\(--control-frame-width\);/,
+			);
+			expect(rule(".classicyPopUpMenuButton:focus")).not.toMatch(
+				/border-radius/,
+			);
+			expect(
+				rule(".classicyPopUpMenuButton:focus:not(:focus-visible)"),
+			).toMatch(/outline: none;/);
+		});
+
 		// A scrolling list clips its own shadow pseudo-elements: they are off,
 		// and the frame's shadow is drawn on the sibling over the list in their
 		// wrapper, its border the frame's, transparent (none on top under a
@@ -912,10 +926,11 @@ describe("system7.scss (compiled)", () => {
 			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
 		});
 
+		// Story 0196-1i1: the base sheet no longer dims the box with a
+		// gradient, so there is nothing to drop.
 		it("dims a pop-up's text and triangle but keeps its frame", () => {
-			expect(rule(":where(.classicyPopUpMenu).disabled")).toMatch(
-				/background-image: none;/,
-			);
+			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
+			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
 			expect(
 				dithered(
 					rule(
