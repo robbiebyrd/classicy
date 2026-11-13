@@ -1,1 +1,0 @@
-import{h as c,a1 as e,a2 as u}from"./iframe-DvwfkZms.js";const a=o=>`url("${o.replace(/["\\]/g,"\\$&")}")`,n=()=>c.useCallback(s=>{if(!s){document.body.style.cursor="";return}const t=e("cursors",s),r=u(s);document.body.style.cursor=t?`${a(t)}${r?` ${r[0]} ${r[1]}`:""}, auto`:""},[]);export{n as u};
