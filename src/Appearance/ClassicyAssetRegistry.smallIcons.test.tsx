@@ -402,6 +402,11 @@ describe("two leaves sharing one src", () => {
 		expect(resolveClassicyIconImage("/shared.png", 16)).toBe("/first-16.png");
 		resolveClassicyIconImage("/shared.png", 16);
 		expect(warnings()).toHaveLength(1);
+		// It names the keys, not the image (a production build may inline a
+		// multi-kilobyte `data:` URI).
+		expect(warnings()[0].message).toContain('"a"');
+		expect(warnings()[0].message).toContain('"b"');
+		expect(warnings()[0].message).not.toContain("/shared.png");
 	});
 
 	it("the variant tree beats the package's, which beats the default package's", () => {

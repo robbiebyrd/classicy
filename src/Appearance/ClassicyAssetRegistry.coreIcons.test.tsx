@@ -62,7 +62,10 @@ const activate = (packageId: string, assetVariant?: string) =>
 const SINK = "core-icons-test";
 let entries: ClassicyLogEntry[] = [];
 const followWarnings = () =>
-	entries.filter((e) => e.level === "warn" && /stands for/.test(e.message));
+	entries.filter(
+		(e) =>
+			e.level === "warn" && /share an image the active theme/.test(e.message),
+	);
 
 beforeEach(() => {
 	resetClassicyAssets();
@@ -185,7 +188,10 @@ describe("a core icon URL draws the active package's icon for its key", () => {
 		expect(resolveClassicyIconImage("/core/shared.png", 32)).toBe("/s7/a.png");
 		expect(resolveClassicyIconImage("/core/shared.png", 32)).toBe("/s7/a.png");
 		expect(followWarnings()).toHaveLength(1);
-		expect(followWarnings()[0].message).toContain("/core/shared.png");
+		// The keys, never the URL (a production build may inline a `data:` URI).
+		expect(followWarnings()[0].message).toContain('"shared.a"');
+		expect(followWarnings()[0].message).toContain('"shared.b"');
+		expect(followWarnings()[0].message).not.toContain("/core/shared.png");
 	});
 
 	it("does not warn for a shared URL the package draws one way", () => {

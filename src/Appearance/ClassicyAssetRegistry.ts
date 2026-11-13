@@ -596,6 +596,8 @@ const smallIndex = (): Map<string, string> => {
 	const cached = smallIndexCache.get(key);
 	if (cached && cached.version === version) return cached.value;
 	const value = new Map<string, string>();
+	// The key each small image was taken from, to name it in a warning.
+	const smallFrom = new Map<string, string>();
 	const byPackage = trees.get("icons");
 	const tiers = [
 		variantTree("icons", activeId, variant),
@@ -614,8 +616,11 @@ const smallIndex = (): Map<string, string> => {
 					tierPaths.push(path);
 					if (seenPaths.has(path) || node.small === "") continue;
 					const existing = value.get(node.src);
-					if (existing === undefined) value.set(node.src, node.small);
-					else if (existing !== node.small) warnSmallCollision(node.src);
+					if (existing === undefined) {
+						value.set(node.src, node.small);
+						smallFrom.set(node.src, path);
+					} else if (existing !== node.small)
+						warnSmallCollision(node.src, smallFrom.get(node.src) ?? "", path);
 				} else if (isTree(node)) visit(node, path);
 				else if (typeof node === "string") tierPaths.push(path);
 			}
@@ -629,13 +634,15 @@ const smallIndex = (): Map<string, string> => {
 
 const reportedSmallCollisions = new Set<string>();
 
-const warnSmallCollision = (src: string): void => {
+/** Warns once per image. Names the keys, never `src`, which a production
+ *  build may inline as a multi-kilobyte `data:` URI. */
+const warnSmallCollision = (src: string, used: string, other: string): void => {
 	if (reportedSmallCollisions.has(src)) return;
 	reportedSmallCollisions.add(src);
 	classicyLog(
 		"warn",
 		SUBSYSTEM,
-		`Icons sharing the image "${src}" declare different small images; the most specific tree's first one is used`,
+		`Icons "${used}" and "${other}" share an image but declare different small images; "${used}"'s (the most specific tree's first) is used`,
 	);
 };
 
@@ -645,6 +652,9 @@ const followIndexCache = new Map<
 >();
 
 const reportedFollowCollisions = new Set<string>();
+
+/** The follow index on the identity path: shared, never written. */
+const NO_FOLLOW: ReadonlyMap<string, string> = new Map();
 
 /**
  * Every `src` of the default package's base icon tree (the core's icons,
@@ -658,14 +668,16 @@ const reportedFollowCollisions = new Set<string>();
  * when the active theme draws those keys with different images, one
  * `classicyLog` warning per `src` and page says so.
  */
-const followIndex = (): Map<string, string> => {
+const followIndex = (): ReadonlyMap<string, string> => {
 	const activeId = getActiveClassicyAppearancePackageId();
 	const variant = activeVariantFor(activeId);
-	const value = new Map<string, string>();
-	if (activeId === DEFAULT_PACKAGE && variant === undefined) return value;
+	if (activeId === DEFAULT_PACKAGE && variant === undefined) return NO_FOLLOW;
 	const key = `${activeId}|${variant ?? ""}`;
 	const cached = followIndexCache.get(key);
 	if (cached && cached.version === version) return cached.value;
+	const value = new Map<string, string>();
+	// The key each URL stands for, to name it in a warning.
+	const keyOf = new Map<string, string>();
 	const core = trees.get("icons")?.get(DEFAULT_PACKAGE);
 	const visit = (tree: ClassicyAssetTree, trail: string) => {
 		for (const name of Object.keys(tree)) {
@@ -680,8 +692,11 @@ const followIndex = (): Map<string, string> => {
 			const drawn = resolveClassicyAsset("icons", path, activeId, variant);
 			if (drawn === undefined) continue;
 			const existing = value.get(src);
-			if (existing === undefined) value.set(src, drawn);
-			else if (existing !== drawn) warnFollowCollision(src);
+			if (existing === undefined) {
+				value.set(src, drawn);
+				keyOf.set(src, path);
+			} else if (existing !== drawn)
+				warnFollowCollision(src, keyOf.get(src) ?? "", path);
 		}
 	};
 	if (core) visit(core, "");
@@ -689,13 +704,19 @@ const followIndex = (): Map<string, string> => {
 	return value;
 };
 
-const warnFollowCollision = (src: string): void => {
+/** Warns once per URL. Names the keys, never `src`, which a production
+ *  build may inline as a multi-kilobyte `data:` URI. */
+const warnFollowCollision = (
+	src: string,
+	used: string,
+	other: string,
+): void => {
 	if (reportedFollowCollisions.has(src)) return;
 	reportedFollowCollisions.add(src);
 	classicyLog(
 		"warn",
 		SUBSYSTEM,
-		`The core icon "${src}" stands for several keys the active theme draws differently; the first key in tree order is used`,
+		`The core icons "${used}" and "${other}" share an image the active theme draws differently; "${used}"'s (the first in tree order) is drawn`,
 	);
 };
 
