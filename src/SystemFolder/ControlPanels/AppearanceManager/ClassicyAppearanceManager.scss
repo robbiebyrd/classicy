@@ -26,8 +26,12 @@
   user-select: none;
 }
 
-// The desktop has no picture: its solid color stands in.
+// The desktop has no picture: its solid color stands in. With no content of
+// its own the box takes the row's height (`height: 100%` of a row sized by
+// its contents would leave it 0 tall).
 .classicyAppearanceManagerDesktopPreviewNone {
+  align-self: stretch;
+  height: auto;
   background-color: var(--desktop-background-color);
 }
 
