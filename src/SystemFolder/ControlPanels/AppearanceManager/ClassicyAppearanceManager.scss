@@ -26,6 +26,11 @@
   user-select: none;
 }
 
+// The desktop has no picture: its solid color stands in.
+.classicyAppearanceManagerDesktopPreviewNone {
+  background-color: var(--desktop-background-color);
+}
+
 .classicyAppearanceManagerDesktopControls {
   width: 100%;
 }

@@ -310,6 +310,12 @@ the ids the saver already names:
   `--slider-vertical-min-height`, where the readout used to spill below the
   container. A vertical slider in a container with no set height draws as
   before.
+- **The Desktop tab offers None.** The Appearance Manager's Patterns pop-up
+  lists None first: it removes the desktop picture
+  (`ClassicyDesktopChangeBackground` with `""`), so the desktop shows its
+  solid color, which the Colors tab sets. A theme with no picture (most of
+  Platinum's color themes) now reads None there, where it read Default, and
+  the preview shows the desktop color in place of the default picture.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

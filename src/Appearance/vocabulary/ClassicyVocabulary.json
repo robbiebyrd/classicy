@@ -79,6 +79,7 @@
 			"DesktopOptionsColumn",
 			"DesktopOptionsRow",
 			"DesktopPreview",
+			"DesktopPreviewNone",
 			"DesktopRow",
 			"FontsColumn",
 			"FontsLabel",

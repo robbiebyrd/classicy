@@ -5,10 +5,7 @@ import {
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import {
-	defaultClassicyWallpaper,
-	resolveClassicyWallpaper,
-} from "@/Appearance/ClassicyWallpaperIndex";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -110,15 +107,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Themes hold a registered wallpaper by filename; the preview and the
-	// picker want the URL it resolves to. Only a color-only theme needs a
-	// stand-in to select. Derived from the store on every render (never
-	// seeded into local state) so a theme switch or a background change from
-	// elsewhere is reflected immediately.
-	const bg =
-		resolveClassicyWallpaper(
-			appearanceState.activeTheme.desktop.backgroundImage,
-			appearanceState.activeTheme.package,
-		) || defaultClassicyWallpaper();
+	// picker want the URL it resolves to: "" for a color-only theme, or any
+	// picture that draws none, which the picker names None. Derived from the
+	// store on every render (never seeded into local state) so a theme switch
+	// or a background change from elsewhere is reflected immediately.
+	const bg = resolveClassicyWallpaper(
+		appearanceState.activeTheme.desktop.backgroundImage,
+		appearanceState.activeTheme.package,
+	);
 
 	const packages = useClassicyAppearancePackages();
 	const activePackage = useActiveClassicyAppearancePackage();

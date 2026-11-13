@@ -34,8 +34,18 @@ export const classicyBackgroundSizeOption = (
 export const isClassicyBackgroundPictureUrl = (url: string): boolean =>
 	/^https?:\/\//i.test(url) && isSafeClassicyThemeBackgroundImage(url);
 
+/**
+ * The Patterns pop-up's first choice: no desktop picture, so the desktop is
+ * its solid color. Its value is the empty picture
+ * `ClassicyDesktopChangeBackground` stores for it.
+ */
+const NO_PICTURE_OPTION = { label: "None", value: "" };
+
 interface DesktopTabProps {
-	/** Current background image URL (resolved), or a stand-in for none. */
+	/**
+	 * Current background image URL (resolved), or `""` when the desktop has
+	 * no picture (the Patterns pop-up then reads None).
+	 */
 	bg: string;
 	/**
 	 * The edited theme's Appearance Package (default: Platinum). Options
@@ -75,15 +85,17 @@ export const useDesktopTab = ({
 	// neither the theme's package nor Platinum, or Platinum's that the
 	// theme's package shadows (its source,
 	// for one registered without a file), so the resolved `bg` is matched the
-	// same way.
+	// same way. None comes first.
 	const wallpaperOptions = useMemo(
-		() =>
-			Object.entries(wallpapers)
+		() => [
+			NO_PICTURE_OPTION,
+			...Object.entries(wallpapers)
 				.filter(([, value]) => typeof value === "string")
 				.map(([label, value]) => ({
 					label,
 					value: portableClassicyWallpaper(value as string, themePackage),
 				})),
+		],
 		[wallpapers, themePackage],
 	);
 	const selected = portableClassicyWallpaper(bg, themePackage);
@@ -93,12 +105,23 @@ export const useDesktopTab = ({
 			children: (
 				<>
 					<div className={"classicyAppearanceManagerDesktopRow"}>
-						<img
-							draggable={false}
-							src={bg}
-							className={"classicyAppearanceManagerDesktopPreview"}
-							alt={"Background"}
-						/>
+						{bg ? (
+							<img
+								draggable={false}
+								src={bg}
+								className={"classicyAppearanceManagerDesktopPreview"}
+								alt={"Background"}
+							/>
+						) : (
+							// No picture: the preview is the desktop's solid color.
+							<div
+								role={"img"}
+								aria-label={"No picture"}
+								className={
+									"classicyAppearanceManagerDesktopPreview classicyAppearanceManagerDesktopPreviewNone"
+								}
+							/>
+						)}
 						<div className={"classicyAppearanceManagerDesktopControls"}>
 							<ClassicyControlLabel label={"Patterns"} direction={"left"} />
 							<ClassicyPopUpMenu
