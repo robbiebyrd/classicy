@@ -74,6 +74,54 @@ describe("classicyPopUpMenuPlacement", () => {
 	});
 });
 
+// The list is placed on whole pixels (its `top` rounded, or its `bottom`
+// from the viewport's bottom), so the height the space allows is measured
+// from that pixel: a button a fraction down the screen must not leave the
+// list's far edge half a pixel into the 4 px margin.
+describe("classicyPopUpMenuPlacement on whole pixels", () => {
+	it("measures the space below from the rounded top", () => {
+		// Top 100.5 is placed at 101: 800 − 101 − 4 = 695 of room, not 695.5.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(100.5),
+			800,
+			800,
+			null,
+			10000,
+		);
+		expect(placement.above).toBe(false);
+		expect(placement.maxHeight).toBe(695);
+		expect(Math.round(100.5) + placement.maxHeight).toBe(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
+
+	it("measures the space above from the rounded bottom", () => {
+		// Bottom 720.25 is placed 80 from the viewport's bottom (not 79.75):
+		// 720 − 4 = 716 of room.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(700.25),
+			800,
+			800,
+			null,
+			10000,
+		);
+		expect(placement.above).toBe(true);
+		expect(placement.maxHeight).toBe(716);
+		expect(800 - Math.round(800 - 720.25) - placement.maxHeight).toBe(
+			POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
+
+	it("aligns the selection on a whole pixel", () => {
+		// Button center 110.5, selected row center 10: top 100.5, placed at 101.
+		const placement = classicyPopUpMenuPlacement(anchor(100.5), 100, 800, {
+			offsetTop: 0,
+			height: 20,
+		});
+		expect(placement.top).toBe(101);
+	});
+});
+
 describe("classicyPopUpMenuPlacement — aligned (selected item over the button)", () => {
 	it("opens the selected item centered on the button", () => {
 		// Button center 110; selected row center 50 -> menu top 60 lines them up.

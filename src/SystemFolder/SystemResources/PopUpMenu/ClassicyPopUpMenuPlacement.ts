@@ -85,10 +85,12 @@ export const classicyPopUpMenuPlacement = (
 			Math.min(contentHeight, maxHeightCap, viewportAvail),
 		);
 
-		// Put the selected row's center on the button's center…
+		// Put the selected row's center on the button's center, on a whole
+		// pixel (the list is placed on one: a top rounded later would carry
+		// the menu's far edge half a pixel into the margin)…
 		const anchorCenter = anchor.top + (anchor.bottom - anchor.top) / 2;
 		const selectionCenter = selected.offsetTop + selected.height / 2;
-		let top = anchorCenter - selectionCenter;
+		let top = Math.round(anchorCenter - selectionCenter);
 
 		// …then slide the whole menu back on screen if that pushed it off an edge.
 		if (top + maxHeight > viewportHeight - margin) {
@@ -130,9 +132,12 @@ export const classicyPopUpMenuPlacement = (
 	// --- Grow mode (unchanged historical policy) ------------------------------
 	// The two sides are measured from different edges because the menu overlaps
 	// its button: growing down starts at the button's top, growing up starts at
-	// the button's bottom.
-	const spaceBelow = viewportHeight - anchor.top - margin;
-	const spaceAbove = anchor.bottom - margin;
+	// the button's bottom. From the edge as the list is placed, on a whole
+	// pixel (its `top`, or its `bottom` from the viewport's), so the height
+	// the space allows ends at the margin, not half a pixel into it.
+	const spaceBelow = viewportHeight - Math.round(anchor.top) - margin;
+	const spaceAbove =
+		viewportHeight - Math.round(viewportHeight - anchor.bottom) - margin;
 
 	// Fit is tested against the height the menu will actually render at, not its
 	// full content height: a long list is already capped and scrolling, so using
