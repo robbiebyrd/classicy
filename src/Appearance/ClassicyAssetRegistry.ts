@@ -478,6 +478,7 @@ export const resetClassicyAssets = (): void => {
 	registeredVariants.clear();
 	reportedVariants.clear();
 	reportedSmallCollisions.clear();
+	reportedFollowCollisions.clear();
 	fontFaces.clear();
 	wallpaperFiles.clear();
 	wallpaperLegacyDigests.clear();
@@ -638,20 +639,89 @@ const warnSmallCollision = (src: string): void => {
 	);
 };
 
+const followIndexCache = new Map<
+	string,
+	{ version: number; value: Map<string, string> }
+>();
+
+const reportedFollowCollisions = new Set<string>();
+
 /**
- * The image to draw for the icon URL `src` at `px` (CSS px): its registered
- * small image when it has one and `px` is no larger than the small-icon size
- * (`CLASSICY_SMALL_ICON_SIZE`), else `src` itself. Icons travel as plain URL
- * strings (props, persisted records), so this looks `src` up in the active
- * theme's icon tree; a URL no leaf names returns unchanged. Pass `true` for
- * a surface whose size comes from CSS and is the small size.
+ * Every `src` of the default package's base icon tree (the core's icons,
+ * `ClassicyIcons.*`, and whatever else is registered under
+ * `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) to the image the active theme
+ * draws for the same key: its variant tree, then the active package's base
+ * tree, then the default package's. Empty while the default package is
+ * active with no variant, where every key draws its own `src`.
+ *
+ * A `src` several keys share stands for the first of them in tree order;
+ * when the active theme draws those keys with different images, one
+ * `classicyLog` warning per `src` and page says so.
+ */
+const followIndex = (): Map<string, string> => {
+	const activeId = getActiveClassicyAppearancePackageId();
+	const variant = activeVariantFor(activeId);
+	const value = new Map<string, string>();
+	if (activeId === DEFAULT_PACKAGE && variant === undefined) return value;
+	const key = `${activeId}|${variant ?? ""}`;
+	const cached = followIndexCache.get(key);
+	if (cached && cached.version === version) return cached.value;
+	const core = trees.get("icons")?.get(DEFAULT_PACKAGE);
+	const visit = (tree: ClassicyAssetTree, trail: string) => {
+		for (const name of Object.keys(tree)) {
+			const path = trail ? `${trail}.${name}` : name;
+			const node: Node | undefined = tree[name];
+			if (isTree(node)) {
+				visit(node, path);
+				continue;
+			}
+			const src = isStoredLeaf(node) ? node.src : node;
+			if (typeof src !== "string") continue;
+			const drawn = resolveClassicyAsset("icons", path, activeId, variant);
+			if (drawn === undefined) continue;
+			const existing = value.get(src);
+			if (existing === undefined) value.set(src, drawn);
+			else if (existing !== drawn) warnFollowCollision(src);
+		}
+	};
+	if (core) visit(core, "");
+	followIndexCache.set(key, { version, value });
+	return value;
+};
+
+const warnFollowCollision = (src: string): void => {
+	if (reportedFollowCollisions.has(src)) return;
+	reportedFollowCollisions.add(src);
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`The core icon "${src}" stands for several keys the active theme draws differently; the first key in tree order is used`,
+	);
+};
+
+/**
+ * The image to draw for the icon URL `src` at `px` (CSS px). Icons travel as
+ * plain URL strings (props, persisted records, file system entries), so this
+ * looks `src` up in the icon trees:
+ *
+ * - A URL the default package registers for a key (the core's icons,
+ *   `ClassicyIcons.*`) stands for that key, and draws the active package's
+ *   and theme variant's image for it (the default package's own when the
+ *   active package draws none). So an icon captured or stored as the core's
+ *   URL follows a package or theme switch, and nothing stored changes.
+ * - Then the image's registered small image when it has one and `px` is no
+ *   larger than the small-icon size (`CLASSICY_SMALL_ICON_SIZE`).
+ *
+ * A URL no leaf names returns unchanged. Pass `true` for a surface whose size
+ * comes from CSS and is the small size.
  */
 export const resolveClassicyIconImage = (
 	src: string,
 	px: number | true = true,
 ): string => {
-	if (px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)) return src;
-	return smallIndex().get(src) ?? src;
+	const drawn = followIndex().get(src) ?? src;
+	if (px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)) return drawn;
+	return smallIndex().get(drawn) ?? drawn;
 };
 
 /** `resolveClassicyIconImage`, re-read when the registry or the theme changes. */
