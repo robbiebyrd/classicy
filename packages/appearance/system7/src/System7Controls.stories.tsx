@@ -187,9 +187,9 @@ const controls = () => (
 			</div>
 		</div>
 		<div style={column}>
-			<div
-				style={{ ...row, alignItems: "stretch", height: 120, marginBottom: 16 }}
-			>
+			{/* The channels stay 120 tall: the track group's height holds each
+			    value readout (16) under its channel, 6 below it. */}
+			<div style={{ ...row, alignItems: "stretch", height: 142 }}>
 				<ClassicySlider
 					id="volume"
 					value={70}

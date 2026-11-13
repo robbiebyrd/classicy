@@ -851,13 +851,12 @@ describe("system7.scss (compiled)", () => {
 			expect(at(".classicySliderInputVertical")).toBeGreaterThan(
 				at(".classicySlider"),
 			);
-			// With ticks: a row again, its track layer the stack's height.
-			expect(rule(".classicySliderStackVertical")).toMatch(
-				/flex-direction: row;/,
-			);
+			// With ticks, the stack's layout is the base sheet's (story
+			// 0194-5bs): nothing to correct here.
+			expect(rule(".classicySliderStackVertical")).toBe("");
 			expect(
 				rule(".classicySliderStackVertical > .classicySliderTrackLayer"),
-			).toMatch(/height: 100%;/);
+			).toBe("");
 		});
 
 		it("draws the outline triangle on the pixel grid, turning about a whole pixel", () => {

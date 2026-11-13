@@ -82,6 +82,23 @@ export const Vertical: Story = {
 };
 
 /**
+ * A vertical slider with tick marks: the ticks run beside the track, the
+ * indicator pointing at them, and the track fills the height the slider is
+ * given (`style`), less its label above and its value readout below.
+ */
+export const TickedVertical: Story = {
+	args: {
+		id: "slider-ticked-vertical",
+		labelTitle: "Level",
+		value: 55,
+		orientation: "vertical",
+		indicatorDirection: "right",
+		tickInterval: 25,
+		style: { height: 160 },
+	},
+};
+
+/**
  * A nondirectional (unpointed) knob with a single center tick — the HIG choice
  * when direction carries no meaning, as in a balance control.
  */

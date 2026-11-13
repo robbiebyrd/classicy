@@ -302,6 +302,14 @@ the ids the saver already names:
   where they are small (tree rows, standard and small tabs, combo box
   options, the assistant's label icon and `sm` accessory). Under Platinum,
   whose icons have no small images, they draw as before.
+- **Vertical sliders with tick marks lay out.** A vertical `ClassicySlider`
+  with `tickInterval` set now draws its ticks beside the track, not under
+  it, and the track fills the height it is given rather than the viewport's.
+  A vertical slider's value readout (and its label, when it has one) now
+  fits inside that height: the track shrinks to make room, never below
+  `--slider-vertical-min-height`, where the readout used to spill below the
+  container. A vertical slider in a container with no set height draws as
+  before.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

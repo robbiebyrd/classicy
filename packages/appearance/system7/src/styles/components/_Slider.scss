@@ -197,20 +197,6 @@ $ink: var(--system7-slider-ink);
     }
   }
 
-  // With tick marks a vertical slider's input sits in a stack beside its
-  // ticks. The base sheet's later `.classicySliderStack` rule turns that
-  // stack back into a column (the ticks fall under the slider), and its
-  // track layer is only stretched, so the orthogonal input's 100% resolves
-  // against the viewport. Here the stack is a row again and the layer takes
-  // the stack's height outright.
-  .classicySliderStackVertical {
-    flex-direction: row;
-
-    > .classicySliderTrackLayer {
-      height: 100%;
-    }
-  }
-
   // Dimmed: the whole slider in the dimmed ink, through the dither.
   :where(.classicySlider).disabled {
     --system7-slider-ink: var(--color-theme-06);

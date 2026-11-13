@@ -165,62 +165,6 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   opacity: 0;
 }
 
-// ─── Vertical orientation ───────────────────────────────────────────────────────
-
-.classicySliderTrackGroupVertical {
-  flex-direction: column;
-  width: auto;
-  height: 100%;
-}
-
-.classicySliderInputVertical {
-  writing-mode: vertical-lr;
-  direction: rtl; // min at the bottom, max at the top
-  width: $thumb-h;
-  height: 100%;
-  min-height: var(--slider-vertical-min-height);
-  flex: 0 0 auto;
-}
-
-.classicySliderStackVertical {
-  flex-direction: row;
-  align-items: stretch;
-  width: auto;
-  height: 100%;
-
-  .classicySliderTrackLayer {
-    flex: 0 0 auto;
-  }
-
-  // Rail runs alongside the vertical track; ticks are placed by `top`,
-  // inverted so 0% sits at the bottom (matching direction: rtl).
-  .classicySliderTicks {
-    padding: calc(#{$thumb-h} / 2) 0;
-    width: calc(var(--slider-tick-length) + var(--window-border-size));
-    height: auto;
-  }
-
-  .classicySliderTick {
-    top: auto;
-    left: var(--window-border-size);
-    bottom: var(--classicy-tick-left);
-    width: var(--slider-tick-length);
-    height: var(--window-border-size);
-    transform: translateY(50%);
-  }
-
-  .classicySliderTickLabels {
-    width: auto;
-    height: auto;
-  }
-
-  .classicySliderTickLabel {
-    left: auto;
-    bottom: var(--classicy-tick-left);
-    transform: translateY(50%);
-  }
-}
-
 // ─── Tick marks ───────────────────────────────────────────────────────────────
 
 // Column wrapper so the tick rail sits directly under the input; takes the
@@ -283,5 +227,76 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     display: block;
     height: calc(var(--ui-font-size));
     width: auto;
+  }
+}
+
+// ─── Vertical orientation ───────────────────────────────────────────────────────
+// Last: its rules override the horizontal ones above.
+
+// Under its label (a column too), the group shrinks to fit the height the
+// slider is given; the track inside it keeps its own minimum.
+.classicySliderTrackGroupVertical {
+  flex-direction: column;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+}
+
+// The track (the input, or the stack holding it and its ticks) is the track
+// group's height, less the value readout below it: it shrinks to make room,
+// never below the minimum, so the readout stays inside a container of fixed
+// height.
+.classicySliderInputVertical {
+  writing-mode: vertical-lr;
+  direction: rtl; // min at the bottom, max at the top
+  width: $thumb-h;
+  height: 100%;
+  min-height: var(--slider-vertical-min-height);
+  flex: 0 1 auto;
+}
+
+// With ticks the input sits in a stack beside them: a row, where the
+// horizontal slider's (above) is a column. Its track layer takes the stack's
+// height outright, not only by stretching, so the orthogonal input's 100%
+// resolves against it and not the viewport.
+.classicySliderStackVertical {
+  flex-direction: row;
+  align-items: stretch;
+  flex: 0 1 auto;
+  width: auto;
+  height: 100%;
+  min-height: var(--slider-vertical-min-height);
+
+  .classicySliderTrackLayer {
+    flex: 0 0 auto;
+    height: 100%;
+  }
+
+  // Rail runs alongside the vertical track; ticks are placed by `top`,
+  // inverted so 0% sits at the bottom (matching direction: rtl).
+  .classicySliderTicks {
+    padding: calc(#{$thumb-h} / 2) 0;
+    width: calc(var(--slider-tick-length) + var(--window-border-size));
+    height: auto;
+  }
+
+  .classicySliderTick {
+    top: auto;
+    left: var(--window-border-size);
+    bottom: var(--classicy-tick-left);
+    width: var(--slider-tick-length);
+    height: var(--window-border-size);
+    transform: translateY(50%);
+  }
+
+  .classicySliderTickLabels {
+    width: auto;
+    height: auto;
+  }
+
+  .classicySliderTickLabel {
+    left: auto;
+    bottom: var(--classicy-tick-left);
+    transform: translateY(50%);
   }
 }

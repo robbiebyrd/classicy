@@ -29,3 +29,74 @@ describe("ClassicySlider value readout size", () => {
 			);
 	});
 });
+
+// Story 0194-5bs: a vertical slider's layout comes from the base sheet alone.
+// With tick marks its input sits in a stack beside them (a row, not the
+// horizontal slider's column), and the stack's track layer takes the stack's
+// height outright, so the orthogonal input's 100% resolves against it rather
+// than the viewport. The value readout below fits inside the track group's
+// height: the track (the input, or the stack) shrinks to make room for it.
+describe("ClassicySlider vertical layout", () => {
+	const SHEET = ["src/SystemFolder/SystemResources/Slider/ClassicySlider.scss"];
+	const winner = (el: Element | null, property: string) => {
+		if (!el) throw new Error("no element");
+		return classicyCascadeWinner(el, SHEET, property)?.value;
+	};
+
+	it("lays a ticked vertical slider's ticks beside it, in a row", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="v"
+				value={5}
+				orientation="vertical"
+				tickInterval={25}
+			/>,
+		);
+		const stack = container.querySelector(".classicySliderStack");
+		expect(winner(stack, "flex-direction")).toBe("row");
+		expect(
+			winner(container.querySelector(".classicySliderTrackLayer"), "height"),
+		).toBe("100%");
+	});
+
+	it("keeps a horizontal slider's ticks under it, in a column", () => {
+		const { container } = render(
+			<ClassicySlider id="h" value={5} tickInterval={25} />,
+		);
+		expect(
+			winner(container.querySelector(".classicySliderStack"), "flex-direction"),
+		).toBe("column");
+	});
+
+	it("shrinks the vertical track, never below its minimum, to fit the readout", () => {
+		const ticked = render(
+			<ClassicySlider
+				id="t"
+				value={5}
+				orientation="vertical"
+				tickInterval={25}
+			/>,
+		).container.querySelector(".classicySliderStack");
+		const plain = render(
+			<ClassicySlider id="p" value={5} orientation="vertical" />,
+		).container.querySelector("input");
+		// Under its label the track group shrinks too, so the label, the track
+		// and the readout share the height the slider is given.
+		const labeled = render(
+			<ClassicySlider
+				id="l"
+				labelTitle="Level"
+				value={5}
+				orientation="vertical"
+			/>,
+		).container.querySelector(".classicySliderTrackGroup");
+		expect(winner(labeled, "min-height")).toBe("0");
+		for (const track of [ticked, plain]) {
+			expect(winner(track, "flex")).toBe("0 1 auto");
+			expect(winner(track, "height")).toBe("100%");
+			expect(winner(track, "min-height")).toBe(
+				"var(--slider-vertical-min-height)",
+			);
+		}
+	});
+});
