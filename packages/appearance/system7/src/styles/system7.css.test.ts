@@ -888,13 +888,17 @@ describe("system7.scss (compiled)", () => {
 		});
 
 		// The horizontal slider is the thumb's box tall; the vertical one keeps
-		// the base sheet's 100%, its container's height, after it.
+		// the base sheet's length after it: the slider's minimum on its own,
+		// growing to fill its container, and its stack's height in a stack.
 		it("sizes a horizontal slider by its thumb and lets a vertical one fill its container", () => {
 			expect(rule(".classicySlider")).toMatch(
 				/height: var\(--channel-slider-thumb-across\);/,
 			);
 			const vertical = rule(".classicySliderInputVertical");
-			expect(vertical).toMatch(/height: 100%;/);
+			expect(vertical).toMatch(/height: var\(--slider-vertical-min-height\);/);
+			expect(
+				rule(".classicySliderStackVertical .classicySliderInputVertical"),
+			).toMatch(/height: 100%;/);
 			expect(vertical).toMatch(/width: var\(--channel-slider-thumb-across\);/);
 			const at = (selector: string) =>
 				css.indexOf(

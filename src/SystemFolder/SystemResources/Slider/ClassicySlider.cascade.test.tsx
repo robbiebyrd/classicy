@@ -1,3 +1,5 @@
+import path from "node:path";
+import * as sass from "sass";
 import { describe, expect, it } from "vitest";
 import { render } from "@/__tests__/test-utils";
 import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
@@ -68,7 +70,10 @@ describe("ClassicySlider vertical layout", () => {
 		).toBe("column");
 	});
 
-	it("shrinks the vertical track, never below its minimum, to fit the readout", () => {
+	// The track (the input, or the stack holding it and its ticks) is the
+	// slider's minimum length on its own (a container with no set height)
+	// and grows to fill a set height, less the readout; never shorter.
+	it("is its minimum length on its own, and grows to fill a set height", () => {
 		const ticked = render(
 			<ClassicySlider
 				id="t"
@@ -76,7 +81,7 @@ describe("ClassicySlider vertical layout", () => {
 				orientation="vertical"
 				tickInterval={25}
 			/>,
-		).container.querySelector(".classicySliderStack");
+		).container;
 		const plain = render(
 			<ClassicySlider id="p" value={5} orientation="vertical" />,
 		).container.querySelector("input");
@@ -91,12 +96,64 @@ describe("ClassicySlider vertical layout", () => {
 			/>,
 		).container.querySelector(".classicySliderTrackGroup");
 		expect(winner(labeled, "min-height")).toBe("0");
-		for (const track of [ticked, plain]) {
-			expect(winner(track, "flex")).toBe("0 1 auto");
-			expect(winner(track, "height")).toBe("100%");
+		for (const track of [ticked.querySelector(".classicySliderStack"), plain]) {
+			expect(winner(track, "flex")).toBe("1 1 auto");
+			expect(winner(track, "height")).toBe("var(--slider-vertical-min-height)");
 			expect(winner(track, "min-height")).toBe(
 				"var(--slider-vertical-min-height)",
 			);
 		}
+		// In the stack the input fills the track layer, which fills the stack.
+		const input = ticked.querySelector("input");
+		expect(winner(input, "height")).toBe("100%");
+		expect(winner(input, "flex")).toBe("0 0 auto");
+	});
+
+	// A tick label sits beside its tick: the label rail is inset along the
+	// track as the tick rail is (half the thumb at each end), not across it.
+	it("insets a vertical slider's tick labels as its ticks", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="tl"
+				value={5}
+				orientation="vertical"
+				tickInterval={25}
+				tickLabels={["Low", null, null, null, "High"]}
+			/>,
+		);
+		const ticks = winner(
+			container.querySelector(".classicySliderTicks"),
+			"padding",
+		);
+		expect(ticks).toBe("calc(var(--slider-thumb-height) / 2) 0");
+		expect(
+			winner(container.querySelector(".classicySliderTickLabels"), "padding"),
+		).toBe(ticks);
+	});
+});
+
+// The vertical track is the horizontal one's channel turned a quarter: as
+// wide as the horizontal is tall, its gradient across it left to right.
+describe("ClassicySlider vertical track", () => {
+	const css = sass.compile(
+		path.resolve(
+			process.cwd(),
+			"src/SystemFolder/SystemResources/Slider/ClassicySlider.scss",
+		),
+	).css;
+	const body = (selector: string) => {
+		const at = css.indexOf(`${selector} {`);
+		if (at < 0) throw new Error(`no rule for ${selector}`);
+		return css.slice(at, css.indexOf("}", at));
+	};
+
+	it.each([
+		"-webkit-slider-runnable-track",
+		"-moz-range-track",
+	])("draws %s as the channel, turned", (pseudo) => {
+		const track = body(`.classicySliderInputVertical::${pseudo}`);
+		expect(track).toMatch(/width: calc\(var\(--window-padding-size\)\);/);
+		expect(track).toMatch(/height: auto;/);
+		expect(track).toMatch(/linear-gradient\(to right,/);
 	});
 });

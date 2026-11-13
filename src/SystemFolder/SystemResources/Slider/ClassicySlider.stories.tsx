@@ -82,9 +82,10 @@ export const Vertical: Story = {
 };
 
 /**
- * A vertical slider with tick marks: the ticks run beside the track, the
- * indicator pointing at them, and the track fills the height the slider is
- * given (`style`), less its label above and its value readout below.
+ * A vertical slider with labeled tick marks: the ticks run beside the track,
+ * the indicator pointing at them, each label beside its tick, and the track
+ * fills the height the slider is given (`style`), less its label above and
+ * its value readout below.
  */
 export const TickedVertical: Story = {
 	args: {
@@ -94,6 +95,7 @@ export const TickedVertical: Story = {
 		orientation: "vertical",
 		indicatorDirection: "right",
 		tickInterval: 25,
+		tickLabels: ["Low", null, null, null, "High"],
 		style: { height: 160 },
 	},
 };

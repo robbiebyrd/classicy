@@ -167,12 +167,17 @@ $ink: var(--system7-slider-ink);
     }
   }
 
-  // A vertical slider: the channel runs down its writing-mode axis.
-  // Its height is the base sheet's, the container's (the horizontal one's
-  // above is only the thumb's box across).
+  // A vertical slider: the channel runs down its writing-mode axis. Its
+  // height is the base sheet's, restated over the horizontal one's above
+  // (only the thumb's box across): the slider's minimum length, which grows
+  // to fill a container's height, and its stack's height in a stack.
+  .classicySliderStackVertical .classicySliderInputVertical {
+    height: 100%;
+  }
+
   .classicySliderInputVertical {
     width: var(--channel-slider-thumb-across);
-    height: 100%;
+    height: var(--slider-vertical-min-height);
 
     &::-webkit-slider-runnable-track {
       width: var(--channel-slider-channel);

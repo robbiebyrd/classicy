@@ -4,6 +4,22 @@ $thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downwa
 $track-h:   calc(var(--window-padding-size));
 // Centers the tall thumb vertically on the track
 $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum: (6 − 21) / 2
+// A vertical slider's tick and label rails are inset along the track by
+// half the thumb, so a value lands beside the thumb's center
+$vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
+
+// The grooved channel's shading, across it: from its top edge (horizontal,
+// `to bottom`) or its left edge (vertical, `to right`).
+@function track-gradient($to) {
+  @return linear-gradient(
+    $to,
+    var(--color-system-06) 0%,
+    var(--color-system-04) 10%,
+    var(--color-system-03) 50%,
+    var(--color-system-04) 90%,
+    var(--color-system-05) 100%
+  );
+}
 
 // The indicator's look (its pentagon or nondirectional shape, border, grip
 // strikes and face, for every state, and the ghost's) is in the Platinum
@@ -37,14 +53,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     height: $track-h;
     border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
-    background: linear-gradient(
-      to bottom,
-      var(--color-system-06) 0%,
-      var(--color-system-04) 10%,
-      var(--color-system-03) 50%,
-      var(--color-system-04) 90%,
-      var(--color-system-05) 100%
-    );
+    background: track-gradient(to bottom);
     box-shadow:
       inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
@@ -53,14 +62,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     height: $track-h;
     border-radius: calc(infinity * 1px);
     border: var(--window-border-size) solid var(--color-window-border);
-    background: linear-gradient(
-      to bottom,
-      var(--color-system-06) 0%,
-      var(--color-system-04) 10%,
-      var(--color-system-03) 50%,
-      var(--color-system-04) 90%,
-      var(--color-system-05) 100%
-    );
+    background: track-gradient(to bottom);
     box-shadow:
       inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
@@ -242,17 +244,40 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   min-height: 0;
 }
 
-// The track (the input, or the stack holding it and its ticks) is the track
-// group's height, less the value readout below it: it shrinks to make room,
-// never below the minimum, so the readout stays inside a container of fixed
-// height.
+// The track (the input, or the stack holding it and its ticks) is the
+// slider's minimum length, `--slider-vertical-min-height`, on its own: in a
+// container with no set height its orthogonal input would otherwise take the
+// viewport's. Given a height, it grows to fill the track group less the value
+// readout below it, so the readout stays inside; it is never shorter.
 .classicySliderInputVertical {
   writing-mode: vertical-lr;
   direction: rtl; // min at the bottom, max at the top
   width: $thumb-h;
-  height: 100%;
+  height: var(--slider-vertical-min-height);
   min-height: var(--slider-vertical-min-height);
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+
+  // The horizontal channel turned a quarter: as wide as that one is tall,
+  // the full length, its gradient across it from left to right (the browser
+  // centers it across the input, as it does the horizontal one down it).
+  &::-webkit-slider-runnable-track {
+    width: $track-h;
+    height: auto;
+    background: track-gradient(to right);
+  }
+
+  &::-moz-range-track {
+    width: $track-h;
+    height: auto;
+    background: track-gradient(to right);
+  }
+
+  // The thumb centered across the channel, as the horizontal one is (it
+  // starts at the channel's edge).
+  &::-webkit-slider-thumb {
+    margin-top: 0;
+    margin-left: $thumb-margin-top;
+  }
 }
 
 // With ticks the input sits in a stack beside them: a row, where the
@@ -262,9 +287,9 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
 .classicySliderStackVertical {
   flex-direction: row;
   align-items: stretch;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   width: auto;
-  height: 100%;
+  height: var(--slider-vertical-min-height);
   min-height: var(--slider-vertical-min-height);
 
   .classicySliderTrackLayer {
@@ -272,10 +297,16 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     height: 100%;
   }
 
+  // The input fills its layer.
+  .classicySliderInputVertical {
+    flex: 0 0 auto;
+    height: 100%;
+  }
+
   // Rail runs alongside the vertical track; ticks are placed by `top`,
   // inverted so 0% sits at the bottom (matching direction: rtl).
   .classicySliderTicks {
-    padding: calc(#{$thumb-h} / 2) 0;
+    padding: $vertical-rail-inset;
     width: calc(var(--slider-tick-length) + var(--window-border-size));
     height: auto;
   }
@@ -289,7 +320,10 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     transform: translateY(50%);
   }
 
+  // Inset along the track as the tick rail is, so each label sits beside
+  // its tick.
   .classicySliderTickLabels {
+    padding: $vertical-rail-inset;
     width: auto;
     height: auto;
   }
