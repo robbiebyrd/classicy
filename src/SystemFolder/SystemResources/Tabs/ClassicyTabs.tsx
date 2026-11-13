@@ -16,6 +16,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 
 /**
  * Tab sizing. `medium` is the classic control-panel look and the default;
@@ -369,9 +370,14 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 										onKeyDown={handleTabKeyDown}
 									>
 										{tab.icon && (
-											<img
+											<ClassicyIconImage
 												className={"classicyTabButtonIcon"}
 												src={tab.icon}
+												// Small in the standard and small tabs; the large
+												// tabs draw it at the control row height.
+												drawnAt={
+													size === "large" ? Number.POSITIVE_INFINITY : true
+												}
 												alt={""}
 												aria-hidden={true}
 											/>

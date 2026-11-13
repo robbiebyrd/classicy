@@ -27,6 +27,7 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuEntry,
@@ -537,7 +538,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 											aria-hidden={true}
 										/>
 										{o.icon && (
-											<img
+											<ClassicyIconImage
 												className="classicyPopUpMenuListItemIcon"
 												src={o.icon}
 												alt=""

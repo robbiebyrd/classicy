@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import {
 	useFocusTrap,
@@ -188,7 +189,11 @@ export const ClassicyInputDialog: FunctionalComponent<
 					<div className="classicyInputDialogTop">
 						{icon && (
 							<div className="classicyInputDialogIcon">
-								<img src={icon} alt="" />
+								<ClassicyIconImage
+									src={icon}
+									drawnAt={Number.POSITIVE_INFINITY}
+									alt=""
+								/>
 							</div>
 						)}
 						<div className="classicyInputDialogBody">
