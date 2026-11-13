@@ -113,10 +113,16 @@ export const ModuleMenuOpen: Story = {
 		// until its menu stays open.
 		useEffect(() => {
 			let tries = 0;
+			let openTicks = 0;
 			const timer = window.setInterval(() => {
 				tries += 1;
-				if (tries > 25) window.clearInterval(timer);
-				if (document.querySelector(".classicyBevelButtonPopup")) return;
+				// Open: once it has stayed open a beat, the story is done.
+				const opened = document.querySelector(".classicyBevelButtonPopup");
+				if (tries > 25 || (opened && openTicks++ > 2)) {
+					window.clearInterval(timer);
+				}
+				if (opened) return;
+				openTicks = 0;
 				document
 					.querySelector<HTMLElement>(
 						'.classicyControlStripModule[aria-label="Screen Saver"]',
