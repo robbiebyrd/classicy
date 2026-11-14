@@ -8,7 +8,7 @@ import type {
 	PointerEvent as ReactPointerEvent,
 	SyntheticEvent,
 } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ClassicyGestureEnd } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
@@ -20,6 +20,7 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 
 export interface ClassicySliderTicks {
 	/** Tick positions as percentages (0–100) along the thumb-travel axis. */
@@ -351,6 +352,17 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const ghostFraction =
 		range > 0 ? Math.min(1, Math.max(0, (liveValue - min) / range)) : 0;
 
+	// A vertical slider is centered in its column, which may leave its track
+	// (the input, or the stack with its ticks) on a fraction of a pixel and
+	// blur its one-pixel art: after every render, nudge the track onto the
+	// grid, as a submenu's wrapper is.
+	const stackRef = useRef<HTMLDivElement>(null);
+	useLayoutEffect(() => {
+		if (!isVertical) return;
+		const track = stackRef.current ?? inputRef.current;
+		if (track) nudgeClassicyOntoPixelGrid(track);
+	});
+
 	const hasTicks = ticks.positions.length > 0;
 	const hasLabels =
 		Array.isArray(tickLabels) && tickLabels.some((l) => l != null);
@@ -449,6 +461,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		>
 			{needsStack ? (
 				<div
+					ref={stackRef}
 					className={classNames(
 						"classicySliderStack",
 						isVertical && "classicySliderStackVertical",

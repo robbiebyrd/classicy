@@ -36,6 +36,7 @@ import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/Classic
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
+import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 
 /**
  * One menu entry, shared by the menu bar, contextual menus, pop-up bevel
@@ -168,73 +169,20 @@ const MENU_MIN_SCROLL_HEIGHT = 64;
 
 const px = (value: string | undefined) => Number.parseFloat(value ?? "") || 0;
 
-type MenuNudgeProperty = "left" | "marginLeft" | "marginRight";
-const MENU_NUDGE_PROPERTIES: MenuNudgeProperty[] = [
-	"left",
-	"marginLeft",
-	"marginRight",
-];
-// What the nudge last set on each wrapper, per property, over the value it
-// found there (the host's, or a fixed wrapper's place beside its item).
-const menuNudges = new WeakMap<
-	HTMLElement,
-	Partial<Record<MenuNudgeProperty, { set: string; base: string }>>
->();
-
 /**
  * Puts a submenu's wrapper on the pixel grid. A submenu (a pull-down, a
  * hierarchical menu) hangs where its item is, which may be a fraction of a
  * pixel across, so its frame and shadow would blend their one-pixel columns.
- * The wrapper is moved by under half a pixel: a `position: relative` wrapper
- * by `left`, which carries a list anchored to either of its edges (the App
- * Switcher's pull-down hangs from the right one); any other, absolute or
- * fixed beside its item, by its two margins, equal and opposite, so the box
- * moves whole rather than shrinking from the edge a list may hang from. No
- * transform: it would make the wrapper the containing block of the fixed
- * submenu a scrolling list opens.
- *
- * A value the wrapper already carries (a host's `style`, a fixed wrapper's
- * `left` beside its item) is kept and the nudge added to it in a `calc()`,
- * so consumer `style` keys still win; the natural place is read with each
- * nudge put back to the value it was added to, since a list that does not
- * follow the nudge one for one would otherwise read as nudged twice, then
- * not at all, on alternate renders.
+ * The wrapper is moved by under half a pixel, measured by its list (a
+ * `position: relative` wrapper by `left`, which carries a list anchored to
+ * either of its edges, as the App Switcher's pull-down hangs from the right
+ * one; any other, absolute or fixed beside its item, by its two margins):
+ * `nudgeClassicyOntoPixelGrid`.
  */
 const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
 	const list = wrapper.querySelector<HTMLElement>(":scope > ul");
 	if (!list) return;
-	const applied = menuNudges.get(wrapper) ?? {};
-	// Back to the base: the value the nudge was added to, unless the host or
-	// React has set another since, which is then the base.
-	const bases = {} as Record<MenuNudgeProperty, string>;
-	for (const property of MENU_NUDGE_PROPERTIES) {
-		const current = wrapper.style[property];
-		const last = applied[property];
-		bases[property] = last && current === last.set ? last.base : current;
-		if (wrapper.style[property] !== bases[property])
-			wrapper.style[property] = bases[property];
-	}
-	const natural = list.getBoundingClientRect().left;
-	const nudge = Math.round((Math.round(natural) - natural) * 64) / 64;
-	const relative = getComputedStyle(wrapper).position === "relative";
-	const next: typeof applied = {};
-	const nudgeBy = (property: MenuNudgeProperty, by: number) => {
-		const base = bases[property];
-		wrapper.style[property] =
-			base === "" ? `${by}px` : `calc(${base} + ${by}px)`;
-		// As the engine stores it (a `calc()` is simplified), so the next pass
-		// knows the value for the nudge's and goes back to the base.
-		next[property] = { set: wrapper.style[property], base };
-	};
-	if (nudge !== 0) {
-		if (relative) {
-			nudgeBy("left", nudge);
-		} else {
-			nudgeBy("marginLeft", nudge);
-			nudgeBy("marginRight", -nudge);
-		}
-	}
-	menuNudges.set(wrapper, next);
+	nudgeClassicyOntoPixelGrid(wrapper, list);
 };
 
 /**

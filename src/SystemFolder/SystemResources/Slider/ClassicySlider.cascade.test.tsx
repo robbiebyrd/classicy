@@ -73,10 +73,11 @@ describe("ClassicySlider vertical layout", () => {
 	// The track (the input, or the stack holding it and its ticks) is the
 	// slider's minimum length on its own (a container with no set height)
 	// and grows to fill a set height, less the readout; never shorter.
-	// A vertical slider's group is as wide as its widest part, so the input
-	// starts on its container's pixel rather than centered in a wide row (a
-	// 21 px input centered in 944 px lands on a half pixel).
-	it("sizes a vertical slider's group to its contents", () => {
+	// A vertical slider's group stays as wide as its container (centered in
+	// a column, as before); its track (the input, or the stack with its
+	// ticks) is relatively positioned, so ClassicySlider can nudge it onto
+	// the pixel grid by `left` (ClassicySlider.grid.test.tsx).
+	it("keeps a vertical slider centered, its track nudgeable", () => {
 		const { container } = render(
 			<ClassicySlider
 				id="g"
@@ -87,7 +88,21 @@ describe("ClassicySlider vertical layout", () => {
 		);
 		expect(
 			winner(container.querySelector(".classicySliderTrackGroup"), "width"),
-		).toBe("fit-content");
+		).toBe("auto");
+		expect(winner(container.querySelector("input"), "position")).toBe(
+			"relative",
+		);
+		const ticked = render(
+			<ClassicySlider
+				id="gt"
+				value={5}
+				orientation="vertical"
+				tickInterval={25}
+			/>,
+		).container;
+		expect(
+			winner(ticked.querySelector(".classicySliderStack"), "position"),
+		).toBe("relative");
 	});
 
 	it("is its minimum length on its own, and grows to fill a set height", () => {

@@ -208,13 +208,13 @@ $vertical-rail-inset: $thumb-half 0;
 // Last: its rules override the horizontal ones above.
 
 // Under its label (a column too), the group shrinks to fit the height the
-// slider is given; the track inside it keeps its own minimum. It is as wide
-// as its widest part, so the input starts on its container's pixel instead of
-// being centered in a wide row (a 21 px input centered in 944 px lands on a
-// half pixel and blurs).
+// slider is given; the track inside it keeps its own minimum. Its track is
+// centered across it, and ClassicySlider nudges the track onto the pixel
+// grid (by `left`, under half a pixel) where centering leaves it on a
+// fraction of one.
 .classicySliderTrackGroupVertical {
   flex-direction: column;
-  width: fit-content;
+  width: auto;
   height: 100%;
   min-height: 0;
 }
@@ -225,6 +225,7 @@ $vertical-rail-inset: $thumb-half 0;
 // viewport's. Given a height, it grows to fill the track group less the value
 // readout below it, so the readout stays inside; it is never shorter.
 .classicySliderInputVertical {
+  position: relative; // nudged onto the pixel grid by `left`
   writing-mode: vertical-lr;
   direction: rtl; // min at the bottom, max at the top
   width: $thumb-h;
@@ -264,6 +265,7 @@ $vertical-rail-inset: $thumb-half 0;
 // height outright, not only by stretching, so the orthogonal input's 100%
 // resolves against it and not the viewport.
 .classicySliderStackVertical {
+  position: relative; // nudged onto the pixel grid by `left`
   flex-direction: row;
   align-items: stretch;
   flex: 1 1 auto;
