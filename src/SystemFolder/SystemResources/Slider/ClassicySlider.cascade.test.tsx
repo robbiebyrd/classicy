@@ -105,6 +105,22 @@ describe("ClassicySlider vertical layout", () => {
 		).toBe("relative");
 	});
 
+	// Fix round 5: the thumb overhangs the input, and the tick rail beside it
+	// is a later sibling, which painted over the overhang (a pressed point
+	// under a tick). The track layer is raised above the rail, in a stacking
+	// context the stack keeps to itself.
+	it("paints the track layer above the tick rail, inside the slider's stack", () => {
+		const { container } = render(
+			<ClassicySlider id="z" value={50} tickInterval={25} />,
+		);
+		const layer = container.querySelector(".classicySliderTrackLayer");
+		expect(winner(layer, "position")).toBe("relative");
+		expect(winner(layer, "z-index")).toBe("1");
+		expect(
+			winner(container.querySelector(".classicySliderStack"), "isolation"),
+		).toBe("isolate");
+	});
+
 	it("is its minimum length on its own, and grows to fill a set height", () => {
 		const ticked = render(
 			<ClassicySlider

@@ -108,6 +108,10 @@ const KEPT_BY_FILE: Record<string, ReadonlySet<string>> = {
 		"outline:none",
 		"border:none",
 		"border-radius:0",
+		// Behavior: the track layer (the thumb's) paints above the tick rail
+		// beside it, in a stacking context kept inside the slider's stack.
+		"z-index:1",
+		"isolation:isolate",
 	]),
 };
 

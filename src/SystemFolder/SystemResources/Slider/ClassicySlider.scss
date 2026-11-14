@@ -120,8 +120,12 @@ $vertical-rail-inset: $thumb-half 0;
 // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────────
 
 // Positions the input + ghost overlay; takes the input's place in the stack.
+// Raised above the tick rail beside it (a later sibling, which would
+// otherwise paint over the thumb where it overhangs the input): the
+// indicator is the control's foreground.
 .classicySliderTrackLayer {
   position: relative;
+  z-index: 1;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -157,6 +161,7 @@ $vertical-rail-inset: $thumb-half 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  isolation: isolate; // the track layer's z-index stays inside the slider
 }
 
 // The rail is inset by half the thumb width on each side: a native range
