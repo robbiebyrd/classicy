@@ -1,10 +1,12 @@
 // The Platinum slider (from ClassicySlider.scss), pixel for pixel from the
 // HIGOS8 figures (printed p.34): Figures 2-18 and 2-19 for the slider at
 // rest (the channel, the indicator, the tick marks), the 1996 draft's
-// Figure 13 (p.16) for the vertical slider, and Figure 2-17 ("A slider and
-// ghost indicator") for the pressed indicator and the ghost alone, since
-// its channel (eight rows, a two-pixel left cap) and indicator (seventeen
-// rows) are the at-rest figures' stretched by a row and a column:
+// Figure 13 (p.16; a four-gray screenshot whose grays are the ramp's) for
+// the vertical slider, its channel and its left-pointing indicator, and
+// Figure 2-17 ("A slider and ghost indicator") for the pressed indicator's
+// tone and the ghost. Figure 2-17 is 2-18's slider resampled a row and a
+// column larger (its channel eight rows with a two-pixel left cap, its
+// indicator seventeen rows), so only its tone is taken:
 //
 // - The channel, `slider.channel` (7) pixels across: a #AAAAAA etch row,
 //   a dark border, three flat #AAAAAA rows, a dark border, and a white
@@ -15,20 +17,20 @@
 //   three flat rows read --classicy-slider-track first, an image that
 //   replaces their fill (the color picker's channel sliders set it).
 // - The indicator, in a box `slider.thumbAlong` x `slider.thumbAcross`
-//   (15 x 17): a black outline around the theme's lavender ramp, a
-//   highlight at its top and left, a shade at its right, three grip lines,
-//   and a six-row point. At rest (Figures 2-18 and 2-19) it is sixteen rows,
-//   the box's last row clear; pressed (Figure 2-17) the ramp is a step
-//   darker and its last grip row is doubled, so it fills the box and its
-//   point reaches a pixel further. Its flat side lies `slider.thumbRise`
-//   (3) pixels past the channel's near edge and its point six past the far
-//   one (seven, pressed), whichever way it points (the base sheet turns it;
-//   Figure 13's vertical indicator points left, its flat side three past
-//   the white row and its point six past the etch). The nondirectional
-//   knob is the indicator without its point, closed by a shade row and an
-//   outline and centered on the channel, two pixels past it each side (the
-//   HIG names it but draws none). A highlighted slider's indicator is drawn
-//   pressed.
+//   (15 x 17, its last row clear): a black outline around the theme's
+//   lavender ramp, lit from the top left (the faces that look up or left
+//   highlighted, the rest shaded), three grip lines, and a six-row point.
+//   Pointing down it is Figures 2-18 and 2-19's sixteen rows; pointing
+//   left, Figure 13's; pointing up or right (which no figure draws), the
+//   same shapes lit by the same rule. Pressed, every ink is a step down the
+//   ramp (Figure 2-17's tone), the shape unchanged. Its flat side lies
+//   `slider.thumbRise` (3) pixels past the channel's near edge and its
+//   point six past the far one, whichever way it points (the base sheet
+//   turns the box; the turned art is written into it pre-turned). The
+//   nondirectional knob is the down indicator without its point, closed by
+//   a shade row and an outline and centered on the channel, two pixels
+//   past it each side (the HIG names it but draws none). A highlighted
+//   slider's indicator is drawn pressed.
 // - The ghost indicator (Figure 2-17): the indicator in grays, translucent.
 // - Tick marks (Figure 2-18): `slider.tickWidth` x `slider.tickHeight`
 //   (3 x 8), a black line with a white highlight before it and a gray
@@ -118,6 +120,7 @@ $inks: (
 // grays.
 $ghost-inks: (
   "#": "--color-system-05",
+  "W": "--color-white",
   ",": "--color-white",
   "l": "--color-white",
   "m": "--color-system-02",
@@ -148,26 +151,76 @@ $thumb: (
   "...............",
 );
 
-// Pressed (and highlighted): Figure 2-17's seventeen rows, the last grip
-// row doubled.
-$thumb-pressed: (
-  ".#############.",
-  "#lmmmmmmmmmmmn#",
-  "#mnnnnnnnnnnno#",
-  "#mnnlnlnlnnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnnqnqnqnnno#",
-  "#mnnnqnqnqnnno#",
-  ".#onnnnnnnnno#.",
-  "..#onnnnnnno#..",
-  "...#onnnnno#...",
-  "....#onnno#....",
-  ".....#ooo#.....",
+// ── The turned indicators, under the same top-left light ───────────────────
+// Pointing left (a vertical slider's default): Figure 13's vertical
+// indicator, 16 across the channel by 15 along it, as seen. It is not the
+// down indicator turned: the light stays at the top left, so the top row
+// and the upper diagonal are lit (the cell beside the point white), the
+// lower diagonal, the flat column and the bottom row shaded, and the grip
+// lines run across, each light line (white at its left end) above its dark
+// one.
+$thumb-left: (
+  "......#########.",
+  ".....#,lllllllm#",
+  "....#,mmmmmmmmn#",
+  "...#,mmmmmmmmmn#",
+  "..#,mmWlllllmmn#",
+  ".#,mmmmoooooomn#",
+  "#WmmmmWlllllmmn#",
+  "#lmmmmmoooooomn#",
+  "#lmmmmWlllllmmn#",
+  ".#nmmmmoooooomn#",
+  "..#nmmmmmmmmmmn#",
+  "...#nmmmmmmmmmn#",
+  "....#nmmmmmmmmn#",
+  ".....#nnnnnnnnn#",
+  "......#########.",
+);
+
+// Pointing right (no figure): the same shape mirrored, lit by the same
+// rule. The flat column and the top row are lit, the upper diagonal lit a
+// step less (it faces up and right), the lower diagonal, the cell beside
+// the point and the bottom row shaded; the grips as on the left one.
+$thumb-right: (
+  ".#########......",
+  "#,llllllll#.....",
+  "#lmmmmmmmml#....",
+  "#lmmmmmmmmml#...",
+  "#lmWlllllmmml#..",
+  "#lmmoooooommml#.",
+  "#lmWlllllmmmmml#",
+  "#lmmoooooommmmn#",
+  "#lmWlllllmmmmmn#",
+  "#lmmoooooommmn#.",
+  "#lmmmmmmmmmmn#..",
+  "#lmmmmmmmmmn#...",
+  "#lmmmmmmmmn#....",
+  "#mnnnnnnnn#.....",
+  ".#########......",
+);
+
+// Pointing up (no figure): the down indicator's shape turned a half, lit
+// by the same rule: both diagonals face up, the left one lit a step more
+// and the cell beside the point white, the left column lit, the right
+// column and the bottom row shaded; the grips as on the down one, their
+// light caps at the top.
+$thumb-up: (
   "......###......",
+  ".....#,Wl#.....",
+  "....#,mmml#....",
+  "...#,mmmmml#...",
+  "..#,mmmmmmml#..",
+  ".#,mmmmmmmmml#.",
+  "#,mm,m,m,mmmml#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmmomomommmn#",
+  "#lmmmmmmmmmmmn#",
+  "#mnnnnnnnnnnnn#",
+  ".#############.",
 );
 
 // The nondirectional knob: the indicator's body, its grip a row shorter,
@@ -189,20 +242,64 @@ $knob: (
   ".#############.",
 );
 
-$knob-pressed: (
-  "...............",
-  ".#############.",
-  "#lmmmmmmmmmmmn#",
-  "#mnnnnnnnnnnno#",
-  "#mnnlnlnlnnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnmqmqmqnnno#",
-  "#mnnnqnqnqnnno#",
-  "#moooooooooooo#",
-  ".#############.",
+// ── Pressed: a step darker ──────────────────────────────────────────────────
+// Figure 2-17's pressed indicator is Figure 2-18's with every ink one step
+// down the ramp (white to theme-01, theme-01 to -02, …, theme-05 to -07),
+// drawn a row and a column larger because the figure is resampled; the
+// pressed art is the rest art stepped, the same size.
+$step: (
+  "W": ",",
+  ",": "l",
+  "l": "m",
+  "m": "n",
+  "n": "o",
+  "o": "q",
 );
+
+@function step($rows) {
+  $out: ();
+  @each $row in $rows {
+    $stepped: "";
+    @for $i from 1 through string.length($row) {
+      $ink: string.slice($row, $i, $i);
+      @if map.has-key($step, $ink) {
+        $ink: map.get($step, $ink);
+      }
+      $stepped: $stepped + $ink;
+    }
+    $out: list.append($out, $stepped);
+  }
+  @return $out;
+}
+
+// ── The turned box ──────────────────────────────────────────────────────────
+// The base sheet turns the thumb's 15 x 17 box a quarter for a vertical
+// slider (clockwise pointing left, counterclockwise pointing right) and a
+// half pointing up. The turned indicators above are authored as seen;
+// this writes one back into the box as the browser must hold it before the
+// turn, its last row clear (the box's spare row, which the turn carries
+// past the point).
+@function cell($rows, $x, $y) {
+  @return string.slice(list.nth($rows, $y + 1), $x + 1, $x + 1);
+}
+
+@function before-turn($art, $turn) {
+  $box: ();
+  @for $r from 0 through 15 {
+    $row: "";
+    @for $c from 0 through 14 {
+      @if $turn == left {
+        $row: $row + cell($art, 15 - $r, $c);
+      } @else if $turn == right {
+        $row: $row + cell($art, $r, 14 - $c);
+      } @else {
+        $row: $row + cell($art, 14 - $c, 15 - $r);
+      }
+    }
+    $box: list.append($box, $row);
+  }
+  @return list.append($box, "...............");
+}
 
 // ── Tick marks (3 x 8; Figure 2-18), and turned for a vertical slider ───────
 $tick: (
@@ -344,6 +441,36 @@ $vertical-right: calc(half(calc(var(--slider-thumb-across) - var(--slider-thumb-
 $firefox-shift: calc(half(calc(var(--slider-thumb-across) - var(--slider-channel))) - var(--slider-thumb-rise));
 $firefox-shift-back: calc($firefox-shift * -1);
 
+// One indicator's art on the thumb, at rest and, pressed or highlighted,
+// a step darker, on both engines' thumbs. Each direction includes it on its
+// own class, after the down indicator's, so a turned slider's pressed and
+// highlighted rules outrank the down one's of the same weight.
+@mixin indicator($rest, $firefox-transform: null, $margin-top: null) {
+  &::-webkit-slider-thumb {
+    margin-top: $margin-top;
+    background: row-art($rest, $inks);
+  }
+
+  // Firefox: the translation above, before the base sheet's turn, which
+  // the turned indicators restate with it.
+  &::-moz-range-thumb {
+    transform: $firefox-transform;
+    background: row-art($rest, $inks);
+  }
+
+  &:active::-webkit-slider-thumb,
+  &.classicySliderHighlighted::-webkit-slider-thumb,
+  &.classicySliderHighlighted:active::-webkit-slider-thumb {
+    background: row-art(step($rest), $inks);
+  }
+
+  &:active::-moz-range-thumb,
+  &.classicySliderHighlighted::-moz-range-thumb,
+  &.classicySliderHighlighted:active::-moz-range-thumb {
+    background: row-art(step($rest), $inks);
+  }
+}
+
 @mixin slider {
   // The thumb's box the base sheet places and sizes by.
   .classicySliderTrackGroup {
@@ -365,29 +492,31 @@ $firefox-shift-back: calc($firefox-shift * -1);
     }
 
     // Down (the default): the flat side `thumbRise` above the channel.
-    &::-webkit-slider-thumb {
-      margin-top: calc(var(--slider-thumb-rise) * -1);
-      background: row-art($thumb, $inks);
-    }
-
-    // Firefox: the translation above, before the base sheet's turn.
-    &::-moz-range-thumb {
-      transform: translateY($firefox-shift);
-      background: row-art($thumb, $inks);
-    }
-
-    &:active::-webkit-slider-thumb {
-      background: row-art($thumb-pressed, $inks);
-    }
-
-    &:active::-moz-range-thumb {
-      background: row-art($thumb-pressed, $inks);
-    }
+    @include indicator($thumb, translateY($firefox-shift), calc(var(--slider-thumb-rise) * -1));
   }
 
   // Up: turned a half, its flat side `thumbRise` below the channel.
-  .classicySliderIndicatorUp::-webkit-slider-thumb {
-    margin-top: calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across));
+  .classicySliderIndicatorUp {
+    @include indicator(
+      before-turn($thumb-up, up),
+      translateY($firefox-shift-back) rotate(180deg),
+      calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across))
+    );
+  }
+
+  // Pointing left and right: Figure 13's indicator and its mirror, written
+  // into the box before the base sheet's quarter turn.
+  .classicySliderIndicatorLeft {
+    @include indicator(before-turn($thumb-left, left), translateX($firefox-shift-back) rotate(90deg));
+  }
+
+  .classicySliderIndicatorRight {
+    @include indicator(before-turn($thumb-right, right), translateX($firefox-shift) rotate(-90deg));
+  }
+
+  // Nondirectional: the knob.
+  .classicySliderIndicatorNondirectional {
+    @include indicator($knob);
   }
 
   // A vertical slider: the base sheet's length restated over the
@@ -422,53 +551,6 @@ $firefox-shift-back: calc($firefox-shift * -1);
     // Pointing right.
     &.classicySliderIndicatorRight::-webkit-slider-thumb {
       margin-left: $vertical-right;
-    }
-  }
-
-  // Firefox, turned: the translations above, before the base sheet's turn.
-  .classicySliderIndicatorUp::-moz-range-thumb {
-    transform: translateY($firefox-shift-back) rotate(180deg);
-  }
-
-  .classicySliderIndicatorLeft::-moz-range-thumb {
-    transform: translateX($firefox-shift-back) rotate(90deg);
-  }
-
-  .classicySliderIndicatorRight::-moz-range-thumb {
-    transform: translateX($firefox-shift) rotate(-90deg);
-  }
-
-  // Highlighted: the indicator drawn pressed.
-  .classicySliderHighlighted {
-    &::-webkit-slider-thumb,
-    &:active::-webkit-slider-thumb {
-      background: row-art($thumb-pressed, $inks);
-    }
-
-    &::-moz-range-thumb,
-    &:active::-moz-range-thumb {
-      background: row-art($thumb-pressed, $inks);
-    }
-  }
-
-  // Nondirectional: the knob, at rest and pressed.
-  .classicySliderIndicatorNondirectional {
-    &::-webkit-slider-thumb {
-      background: row-art($knob, $inks);
-    }
-
-    &::-moz-range-thumb {
-      background: row-art($knob, $inks);
-    }
-
-    &:active::-webkit-slider-thumb,
-    &.classicySliderHighlighted::-webkit-slider-thumb {
-      background: row-art($knob-pressed, $inks);
-    }
-
-    &:active::-moz-range-thumb,
-    &.classicySliderHighlighted::-moz-range-thumb {
-      background: row-art($knob-pressed, $inks);
     }
   }
 
@@ -533,6 +615,7 @@ $firefox-shift-back: calc($firefox-shift * -1);
 
     &.classicySliderIndicatorUp {
       margin-top: calc($px * -1);
+      background: row-art(before-turn($thumb-up, up), $ghost-inks);
     }
 
     &.classicySliderIndicatorNondirectional {

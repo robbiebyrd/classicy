@@ -326,19 +326,25 @@ the ids the saver already names:
   three flat #AAAAAA rows, a dark border and a white row, with one-pixel
   pixel-art ends, 7 px thick in every state (it was a 6 px gray cylinder).
   The indicator is their 15 x 16 pixel-art indicator in the theme's
-  lavender ramp (`--color-theme-01` to `-07`), its flat side 3 px past the
-  channel and its point 6 px past it whichever way it points (it was a
-  21 x 21 silver pentagon); pressed, it is Fig. 2-17's 15 x 17 indicator,
-  a step darker, its point reaching a pixel further. The nondirectional
-  knob is the same indicator without its point, centered on the channel,
-  the highlighted one is drawn pressed, and the ghost indicator is the
-  indicator in grays. Tick marks are Figure 2-18's 3 x 8 etched marks, the
-  row after the indicator's point. A vertical slider is the same art
-  turned, as the 1996 draft's Figure 13 draws it (the etch on its left,
-  the indicator pointing left). A horizontal slider's input is now 19 px
-  tall (it was 21), and a vertical one 19 px wide. Firefox's thumb corner
+  lavender ramp (`--color-theme-01` to `-07`), lit from the top left, its
+  flat side 3 px past the channel and its point 6 px past it whichever way
+  it points (it was a 21 x 21 silver pentagon); pressed, the same art with
+  every ink a step down the ramp, Fig. 2-17's tone (that figure is 2-18's
+  slider resampled a row and a column larger, so only its tone is taken).
+  The nondirectional knob is the same indicator without its point,
+  centered on the channel, the highlighted one is drawn pressed, and the
+  ghost indicator is the indicator in grays. Tick marks are Figure 2-18's
+  3 x 8 etched marks, the row after the indicator's point. A vertical
+  slider's channel is the same art turned, as the 1996 draft's Figure 13
+  draws it (the etch on its left), and its left-pointing indicator is
+  Figure 13's, lit from the top left like the down one rather than turned
+  with it; the up- and right-pointing indicators, which no figure draws,
+  follow the same lighting. A horizontal slider's input is now 19 px tall
+  (it was 21), and a vertical one 19 px wide. Firefox's thumb corner
   radius (its UA sheet's 0.5em, which clipped the art round) is reset in
-  the base sheet, for every package. Every Platinum slider looks
+  the base sheet, for every package, and the base sheet now paints the
+  thumb above the tick rail (it used to paint under a tick where it
+  overhung the input). Every Platinum slider looks
   different, including the Appearance Manager's Sound tab and the color
   picker's channel sliders, which keep their own fills
   (`--classicy-slider-track`). The new knobs are the `slider` family

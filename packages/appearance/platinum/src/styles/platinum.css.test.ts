@@ -851,8 +851,20 @@ describe("platinum.scss (compiled)", () => {
 			"......###......",
 			"...............",
 		];
-		// Pressed: Figure 2-17's indicator (17 rows: the last grip row
-		// doubled), as extracted from the PDF.
+		// Pressed (fix round 5): Figure 2-17's indicator is 2-18's with every
+		// ink a step down the ramp, resampled a row and a column larger; the
+		// pressed art is the rest art stepped, the shape unchanged. These are
+		// 2-17's rows as extracted from the PDF less its doubled grip row.
+		const STEP: Record<string, string> = {
+			W: ",",
+			",": "l",
+			l: "m",
+			m: "n",
+			n: "o",
+			o: "q",
+		};
+		const step = (rows: string[]) =>
+			rows.map((r) => [...r].map((c) => STEP[c] ?? c).join(""));
 		const PRESSED = [
 			".#############.",
 			"#lmmmmmmmmmmmn#",
@@ -864,33 +876,152 @@ describe("platinum.scss (compiled)", () => {
 			"#mnnmqmqmqnnno#",
 			"#mnnmqmqmqnnno#",
 			"#mnnnqnqnqnnno#",
-			"#mnnnqnqnqnnno#",
 			".#onnnnnnnnno#.",
 			"..#onnnnnnno#..",
 			"...#onnnnno#...",
 			"....#onnno#....",
 			".....#ooo#.....",
 			"......###......",
+			"...............",
 		];
+		// The pressed and highlighted rules of a slider class, one group.
+		const pressedRule = (cls: string, pseudo: string) =>
+			rule(
+				`${P} ${cls}:active${pseudo}, ${P} ${cls}.classicySliderHighlighted${pseudo}, ${P} ${cls}.classicySliderHighlighted:active${pseudo}`,
+			);
 
 		it("draws the indicator at rest and pressed, pixel for pixel", () => {
+			expect(step(AT_REST)).toEqual(PRESSED);
 			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
 			expect(decode(thumb.background, 15, 17)).toEqual(AT_REST);
-			expect(
-				decode(
-					rule(`${P} .classicySlider:active::-webkit-slider-thumb`).props
-						.background,
-					15,
-					17,
-				),
-			).toEqual(PRESSED);
+			const pressed = pressedRule(".classicySlider", "::-webkit-slider-thumb");
+			expect(decode(pressed.props.background, 15, 17)).toEqual(PRESSED);
+			expect(pressed.at).toBeGreaterThan(
+				rule(`${P} .classicySlider::-webkit-slider-thumb`).at,
+			);
 			// Firefox draws the same.
 			expect(
 				rule(`${P} .classicySlider::-moz-range-thumb`).props.background,
 			).toBe(thumb.background);
+			expect(
+				pressedRule(".classicySlider", "::-moz-range-thumb").props.background,
+			).toBe(pressed.props.background);
 			// No old art: the pentagon clip and the registered thumb images.
 			expect(thumb["clip-path"]).toBeUndefined();
 			expect(thumb.background).not.toMatch(/--classicy-art-/);
+		});
+
+		// Fix round 5: the turned indicators are lit from the top left like
+		// the down one, not the down one turned. Pointing left is the 1996
+		// draft's Figure 13 (a four-gray screenshot: F1F1F1 theme-01, E4E4E4
+		// theme-02, B8B8B8 theme-03, 8A8A8A theme-04, 686868 theme-05, white
+		// and black), as extracted from the PDF; pointing right and up have no
+		// figure and follow the same rule. The base sheet turns the 15 x 17
+		// box (90deg pointing left, -90deg right, 180deg up), so the box is
+		// decoded and turned here, as the browser does, and compared as seen.
+		const FIG13_LEFT = [
+			"......#########.",
+			".....#,lllllllm#",
+			"....#,mmmmmmmmn#",
+			"...#,mmmmmmmmmn#",
+			"..#,mmWlllllmmn#",
+			".#,mmmmoooooomn#",
+			"#WmmmmWlllllmmn#",
+			"#lmmmmmoooooomn#",
+			"#lmmmmWlllllmmn#",
+			".#nmmmmoooooomn#",
+			"..#nmmmmmmmmmmn#",
+			"...#nmmmmmmmmmn#",
+			"....#nmmmmmmmmn#",
+			".....#nnnnnnnnn#",
+			"......#########.",
+		];
+		const RIGHT = [
+			".#########......",
+			"#,llllllll#.....",
+			"#lmmmmmmmml#....",
+			"#lmmmmmmmmml#...",
+			"#lmWlllllmmml#..",
+			"#lmmoooooommml#.",
+			"#lmWlllllmmmmml#",
+			"#lmmoooooommmmn#",
+			"#lmWlllllmmmmmn#",
+			"#lmmoooooommmn#.",
+			"#lmmmmmmmmmmn#..",
+			"#lmmmmmmmmmn#...",
+			"#lmmmmmmmmn#....",
+			"#mnnnnnnnn#.....",
+			".#########......",
+		];
+		const UP = [
+			"......###......",
+			".....#,Wl#.....",
+			"....#,mmml#....",
+			"...#,mmmmml#...",
+			"..#,mmmmmmml#..",
+			".#,mmmmmmmmml#.",
+			"#,mm,m,m,mmmml#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmmomomommmn#",
+			"#lmmmmmmmmmmmn#",
+			"#mnnnnnnnnnnnn#",
+			".#############.",
+		];
+		// The box as the browser shows it after the base sheet's turn: a
+		// quarter clockwise (left), counterclockwise (right) or a half (up),
+		// the box's clear spare row (carried past the point) dropped.
+		const turned = (box: string[], turn: "left" | "right" | "up") => {
+			const at = (x: number, y: number) =>
+				turn === "left"
+					? box[16 - x][y]
+					: turn === "right"
+						? box[x][14 - y]
+						: box[16 - y][14 - x];
+			if (turn === "up")
+				return Array.from({ length: 16 }, (_, y) =>
+					Array.from({ length: 15 }, (_, x) => at(x, y + 1)).join(""),
+				);
+			const from = turn === "left" ? 1 : 0;
+			return Array.from({ length: 15 }, (_, y) =>
+				Array.from({ length: 16 }, (_, x) => at(x + from, y)).join(""),
+			);
+		};
+
+		it("lights the turned indicators from the top left: Figure 13 pointing left", () => {
+			for (const [cls, turn, art] of [
+				[".classicySliderIndicatorLeft", "left", FIG13_LEFT],
+				[".classicySliderIndicatorRight", "right", RIGHT],
+				[".classicySliderIndicatorUp", "up", UP],
+			] as const) {
+				const rest = rule(`${P} ${cls}::-webkit-slider-thumb`);
+				expect(rest.at).toBeGreaterThan(
+					pressedRule(".classicySlider", "::-webkit-slider-thumb").at,
+				);
+				const box = decode(rest.props.background, 15, 17);
+				expect(turned(box, turn)).toEqual(art);
+				expect(rule(`${P} ${cls}::-moz-range-thumb`).props.background).toBe(
+					rest.props.background,
+				);
+				// Pressed and highlighted: the same art a step darker.
+				const pressed = pressedRule(cls, "::-webkit-slider-thumb");
+				expect(turned(decode(pressed.props.background, 15, 17), turn)).toEqual(
+					step(art),
+				);
+				expect(pressedRule(cls, "::-moz-range-thumb").props.background).toBe(
+					pressed.props.background,
+				);
+			}
+			// The left art is the down art's shape turned, relit: the same
+			// outline cells.
+			const outline = (rows: string[]) =>
+				rows.map((r) => r.replace(/[^#.]/g, "m"));
+			expect(outline(turned(AT_REST, "left"))).toEqual(outline(FIG13_LEFT));
+			expect(outline(turned(AT_REST, "right"))).toEqual(outline(RIGHT));
+			expect(outline(turned(AT_REST, "up"))).toEqual(outline(UP));
 		});
 
 		// Fix round 4: every placement is derived from the knobs (the vertical
@@ -1077,40 +1208,44 @@ describe("platinum.scss (compiled)", () => {
 			expect(turned.top).toBe("auto");
 		});
 
-		it("draws the knob and the highlighted indicator over the plain one", () => {
+		it("draws the knob over the plain indicator, pressed a step darker", () => {
+			const KNOB = [
+				"...............",
+				".#############.",
+				"#,lllllllllllm#",
+				"#lmmmmmmmmmmmn#",
+				"#lmm,m,m,mmmmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmmomomommmn#",
+				"#lnnnnnnnnnnnn#",
+				".#############.",
+				"...............",
+				"...............",
+				"...............",
+				"...............",
+				"...............",
+			];
 			for (const pseudo of ["::-webkit-slider-thumb", "::-moz-range-thumb"]) {
-				const plain = rule(`${P} .classicySlider${pseudo}`);
 				const knob = rule(
 					`${P} .classicySliderIndicatorNondirectional${pseudo}`,
 				);
-				expect(knob.at).toBeGreaterThan(plain.at);
+				// After the down indicator's pressed rule, which it outranks
+				// when pressed through its own.
+				expect(knob.at).toBeGreaterThan(
+					pressedRule(".classicySlider", pseudo).at,
+				);
 				// Eleven rows, one down in the box: two past the seven-row
 				// channel each side.
-				expect(decode(knob.props.background, 15, 17)).toEqual([
-					"...............",
-					".#############.",
-					"#,lllllllllllm#",
-					"#lmmmmmmmmmmmn#",
-					"#lmm,m,m,mmmmn#",
-					"#lmmlololommmn#",
-					"#lmmlololommmn#",
-					"#lmmlololommmn#",
-					"#lmmlololommmn#",
-					"#lmmmomomommmn#",
-					"#lnnnnnnnnnnnn#",
-					".#############.",
-					"...............",
-					"...............",
-					"...............",
-					"...............",
-					"...............",
-				]);
-				const active = pseudo.replace("::", ":active::");
-				const highlighted = rule(
-					`${P} .classicySliderHighlighted${pseudo}, ${P} .classicySliderHighlighted${active}`,
+				expect(decode(knob.props.background, 15, 17)).toEqual(KNOB);
+				const pressed = pressedRule(
+					".classicySliderIndicatorNondirectional",
+					pseudo,
 				);
-				expect(highlighted.at).toBeGreaterThan(plain.at);
-				expect(decode(highlighted.props.background, 15, 17)).toEqual(PRESSED);
+				expect(pressed.at).toBeGreaterThan(knob.at);
+				expect(decode(pressed.props.background, 15, 17)).toEqual(step(KNOB));
 			}
 		});
 
@@ -1119,6 +1254,25 @@ describe("platinum.scss (compiled)", () => {
 			expect(ghost.props.opacity).toBe("0.75");
 			expect(ghost.props.transition).toBe("opacity 0.1s linear");
 			expect(ghost.props.background).toContain("var(--color-system-05)");
+			// Turned up, the up indicator's art (lit from the top left), not
+			// the down one's turned.
+			const up = rule(`${P} .classicySliderGhost.classicySliderIndicatorUp`);
+			expect(up.props.background).toBe(
+				rule(
+					`${P} .classicySliderIndicatorUp::-webkit-slider-thumb`,
+				).props.background.replace(
+					/var\(--color-[\w-]+\)/g,
+					(token) =>
+						({
+							"var(--color-black)": "var(--color-system-05)",
+							"var(--color-theme-01)": "var(--color-white)",
+							"var(--color-theme-02)": "var(--color-white)",
+							"var(--color-theme-03)": "var(--color-system-02)",
+							"var(--color-theme-04)": "var(--color-system-03)",
+							"var(--color-theme-05)": "var(--color-system-04)",
+						})[token] ?? token,
+				),
+			);
 			const hidden = rule(`${P} .classicySliderGhostHidden`);
 			expect(hidden.props).toEqual({ opacity: "0" });
 			expect(hidden.at).toBeGreaterThan(ghost.at);
