@@ -3,11 +3,13 @@ id: 0194-5bs
 title: 'Core: ticked vertical slider layout'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: bugs
-status: pending
+status: complete
 priority: "3"
 effort: S
 created: "2026-11-12T14:12:30.755Z"
-updated: "2026-11-12T14:12:30.755Z"
+updated: "2026-11-14T05:51:11.899Z"
+started: "2026-11-13T20:54:53.945Z"
+completed: "2026-11-14T05:51:11.899Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Add a Platinum story for a ticked vertical slider; re-baseline only that new sho
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A ticked vertical slider lays out correctly under Platinum and System 7, and every existing Platinum shot stays AE 0.
+- [x] VERIFY: A ticked vertical slider lays out correctly under Platinum and System 7, and every existing Platinum shot stays AE 0.
 
 ## Files
 

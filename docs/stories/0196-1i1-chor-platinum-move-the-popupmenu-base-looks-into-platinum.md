@@ -3,11 +3,13 @@ id: 0196-1i1
 title: 'Platinum: move the PopUpMenu base looks into Platinum'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: chor
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:37.314Z"
-updated: "2026-11-12T14:12:37.314Z"
+updated: "2026-11-14T05:51:23.405Z"
+started: "2026-11-13T20:55:06.806Z"
+completed: "2026-11-14T05:51:23.405Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Add the file to ClassicyBaseHoldsNoControlLook.repo.test.ts; Platinum parity AE 
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Base PopUpMenu SCSS holds no look, and Platinum is pixel-identical.
+- [x] VERIFY: Base PopUpMenu SCSS holds no look, and Platinum is pixel-identical.
 
 ## Files
 

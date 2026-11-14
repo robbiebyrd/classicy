@@ -3,11 +3,13 @@ id: 0195-wuo
 title: 'Core: Desktop tab offers no picture'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: feat
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:34.156Z"
-updated: "2026-11-12T14:12:34.156Z"
+updated: "2026-11-14T05:51:17.465Z"
+started: "2026-11-13T20:55:00.393Z"
+completed: "2026-11-14T05:51:17.465Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Tests; parity
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The Desktop tab can remove the picture, and the desktop then shows the theme's solid color.
+- [x] VERIFY: The Desktop tab can remove the picture, and the desktop then shows the theme's solid color.
 
 ## Files
 
