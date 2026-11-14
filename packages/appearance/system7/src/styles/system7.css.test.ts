@@ -1028,8 +1028,11 @@ describe("system7.scss (compiled)", () => {
 		it("draws the channel slider: its caps, runs and checker, and a capsule thumb", () => {
 			const track = rule(".classicySlider::-webkit-slider-runnable-track");
 			expect(track).toMatch(/height: var\(--channel-slider-channel\);/);
-			// Both caps (10 rectangles each), four runs, seven checker columns.
-			expect(layersOf(track, "var(--system7-slider-ink)")).toBe(10 + 10 + 4);
+			// Both caps (10 rectangles each), the far cap's five checker
+			// pixels, four runs, seven checker columns.
+			expect(layersOf(track, "var(--system7-slider-ink)")).toBe(
+				10 + 10 + 5 + 4,
+			);
 			expect(track.split("repeating-linear-gradient(").length - 1).toBe(7);
 			const thumb = rule(".classicySlider::-webkit-slider-thumb");
 			expect(layersOf(thumb, "var(--system7-slider-ink)")).toBe(10);
@@ -1047,6 +1050,224 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicySlider::-moz-range-thumb")).not.toMatch(
 				/border-radius/,
 			);
+		});
+
+		// Story 0198-0kv: the Sound control panel's slider
+		// (`*-controlpanel-sound-slider.png`) at any length. These decode the
+		// compiled layers into rows of pixels ("#" ink) and compare them with
+		// the capture's.
+		describe("the channel slider, pixel for pixel", () => {
+			const INK = "var(--system7-slider-ink)";
+			// A length in grid pixels; `100%` is the box's `full` side.
+			const length = (value: string, full: number): number => {
+				const v = value.trim();
+				if (v === "0") return 0;
+				if (v === "var(--window-box-pixel)") return 1;
+				if (v === "var(--channel-slider-thumb-stop)") return 5;
+				let m = /^calc\(var\(--window-box-pixel\) \* (\d+)\)$/.exec(v);
+				if (m) return Number(m[1]);
+				m = /^calc\(100% - (.*)\)$/.exec(v);
+				if (m) return full - length(m[1], full);
+				m = /^calc\((.*) \+ var\(--channel-slider-thumb-stop\)\)$/.exec(v);
+				if (m) return length(m[1], full) + 5;
+				throw new Error(`not a grid length: ${v}`);
+			};
+			// Space-separated tokens outside parentheses.
+			const tokens = (text: string) => {
+				const out = [""];
+				let depth = 0;
+				for (const c of text.trim()) {
+					if (c === "(") depth++;
+					if (c === ")") depth--;
+					if (c === " " && depth === 0) out.push("");
+					else out[out.length - 1] += c;
+				}
+				return out.filter(Boolean);
+			};
+			// The rows a `w` x `h` box's background draws.
+			const decode = (declarations: string, w: number, h: number) => {
+				const background =
+					/(?:^|\n)\s*background: ([^;]*);/.exec(declarations)?.[1] ?? "";
+				const rows = Array.from({ length: h }, () => Array(w).fill("."));
+				for (const layer of splitSelectors(background)) {
+					// The gradient's arguments run to its matching parenthesis.
+					const open = layer.indexOf("(");
+					let close = open;
+					for (let depth = 0; close < layer.length; close++) {
+						if (layer[close] === "(") depth++;
+						if (layer[close] === ")" && --depth === 0) break;
+					}
+					const m = /^(repeating-)?linear-gradient$/.test(layer.slice(0, open))
+						? /^ (.*)\/(.*) no-repeat$/.exec(layer.slice(close + 1))
+						: null;
+					if (!m) throw new Error(`not a pixel layer: ${layer}`);
+					const repeating = layer.startsWith("repeating-");
+					const args = layer.slice(open + 1, close);
+					const place = tokens(m[1]);
+					const edge = (side: string, size: number, full: number) => {
+						const i = place.indexOf(side);
+						return i < 0 ? undefined : full - size - length(place[i + 1], full);
+					};
+					const [lw, lh] = tokens(m[2]);
+					const sw = length(lw, w);
+					const sh = length(lh, h);
+					const left = place.indexOf("left");
+					const top = place.indexOf("top");
+					const x =
+						left >= 0
+							? length(place[left + 1], w)
+							: (edge("right", sw, w) ?? 0);
+					const y =
+						top >= 0 ? length(place[top + 1], h) : (edge("bottom", sh, h) ?? 0);
+					const across = args.startsWith("to right");
+					if (!args.includes(INK) && !args.includes("--color-white"))
+						throw new Error(`unknown ink: ${args}`);
+					for (let j = y; j < y + sh; j++)
+						for (let i = x; i < x + sw; i++) {
+							// A repeating gradient inks its first pixel of every two.
+							if (repeating && (across ? i - x : j - y) % 2 === 1) continue;
+							rows[j][i] = args.includes(INK) ? "#" : "W";
+						}
+				}
+				return rows.map((r) => r.join(""));
+			};
+			const turn = (rows: string[]) =>
+				Array.from({ length: rows[0].length }, (_, x) =>
+					rows.map((r) => r[x]).join(""),
+				);
+
+			// The capture's channel, read from its far (bottom) end; its near end
+			// lies under the thumb, and is the art's own (the same curve, its
+			// checker starting a column over).
+			const FAR = [
+				"....#####....",
+				"..##.....##..",
+				".#...###...#.",
+				".#.###.###.#.",
+				"#..##.#.##..#",
+				"#.##.#.#.##.#",
+			];
+			const NEAR = [
+				"....#####....",
+				"..##.....##..",
+				".#...###...#.",
+				".#.##.#.##.#.",
+				"#..#.#.#.#..#",
+				"#.#.#.#.#.#.#",
+			];
+			const vertical = (length: number) =>
+				decode(
+					rule(".classicySliderInputVertical::-webkit-slider-runnable-track"),
+					13,
+					length,
+				);
+
+			it("ends the checker at the far cap as the capture does, at any length", () => {
+				for (const length of [40, 41, 120, 121]) {
+					const rows = vertical(length);
+					expect(rows.slice(0, 6), `${length}`).toEqual(NEAR);
+					// The cap's five rows are fixed art; the sixth is the checker's
+					// own, in step with the capture on an even length.
+					expect(rows.slice(-5).reverse(), `${length}`).toEqual(
+						FAR.slice(0, 5),
+					);
+					if (length % 2 === 0)
+						expect(rows.slice(-6).reverse(), `${length}`).toEqual(FAR);
+					// Between the caps, a 50% checker.
+					for (let y = 6; y < length - 6; y++)
+						expect(rows[y], `${length}:${y}`).toBe(
+							y % 2 === 0 ? "#.##.#.#.##.#" : "#.#.#.#.#.#.#",
+						);
+				}
+			});
+
+			it("draws the horizontal channel as the vertical one turned", () => {
+				const horizontal = decode(
+					rule(".classicySlider::-webkit-slider-runnable-track"),
+					40,
+					13,
+				);
+				expect(turn(horizontal)).toEqual(vertical(40));
+			});
+
+			// HIG figure 7-15: the thumb stops `channelSlider.thumbStop` (5)
+			// pixels from each end, where the caps' curve ends. The thumb's box
+			// is the capsule and that stop each side along the channel, so the
+			// browser's travel ends there; nothing turns it.
+			// The capsule lying across a vertical channel, as captured ("W" its
+			// white inside).
+			const LYING = [
+				"..###################..",
+				".#WWWWWWWWWWWWWWWWWWW#.",
+				".#####################.",
+				"#WWWWWWWWWWWWWWWWWWWWW#",
+				"#WWWWWWWWWWWWWWWWWWWWW#",
+				"#WWWWWWWWWWWWWWWWWWWWW#",
+				"#WWWWWWWWWWWWWWWWWWWWW#",
+				"#WWWWWWWWWWWWWWWWWWWWW#",
+				".#####################.",
+				".#WWWWWWWWWWWWWWWWWWW#.",
+				"..###################..",
+			];
+			it("stops the thumb five pixels from each end, in both orientations", () => {
+				const group = rule(".classicySliderTrackGroup");
+				expect(group).toMatch(
+					/--slider-thumb-width: calc\(var\(--channel-slider-thumb-along\) \+ var\(--channel-slider-thumb-stop\) \+ var\(--channel-slider-thumb-stop\)\);/,
+				);
+				expect(group).toMatch(
+					/--slider-thumb-height: var\(--channel-slider-thumb-across\);/,
+				);
+				const verticalGroup = rule(".classicySliderTrackGroupVertical");
+				expect(verticalGroup).toMatch(
+					/--slider-thumb-width: var\(--channel-slider-thumb-across\);/,
+				);
+				expect(verticalGroup).toMatch(
+					/--slider-thumb-height: calc\(var\(--channel-slider-thumb-along\) \+ var\(--channel-slider-thumb-stop\) \+ var\(--channel-slider-thumb-stop\)\);/,
+				);
+				for (const pseudo of ["::-webkit-slider-thumb", "::-moz-range-thumb"]) {
+					// Horizontal: 21 along x 23 across, the capsule upright in
+					// columns 5 to 15.
+					const upright = decode(rule(`.classicySlider${pseudo}`), 21, 23);
+					expect(upright.map((r) => r.slice(0, 5)).join("")).toMatch(/^\.+$/);
+					expect(upright.map((r) => r.slice(16)).join("")).toMatch(/^\.+$/);
+					expect(upright.map((r) => r.slice(5, 16))).toEqual(turn(LYING));
+					// Vertical: 23 across x 21 along, the capsule lying in rows 5
+					// to 15.
+					const lying = decode(
+						rule(`.classicySliderInputVertical${pseudo}`),
+						23,
+						21,
+					);
+					expect(lying.slice(0, 5).join("")).toMatch(/^\.+$/);
+					expect(lying.slice(16).join("")).toMatch(/^\.+$/);
+					expect(lying.slice(5, 16)).toEqual(LYING);
+					// Drawn as seen: the base sheet's turns are undone.
+					expect(rule(`.classicySlider${pseudo}`)).toMatch(/transform: none;/);
+				}
+				// Centered across the channel: the box overhangs it each side.
+				expect(
+					rule(".classicySliderInputVertical::-webkit-slider-thumb"),
+				).toMatch(
+					/margin: 0 0 0 calc\(var\(--channel-slider-thumb-overhang\) \* -1\);/,
+				);
+			});
+
+			// The ticks start at the channel's edge, past its outer line (Sound:
+			// the line and five pixels), not past the thumb's overhang.
+			it("hangs the ticks from the channel's edge", () => {
+				expect(rule(".classicySliderTick")).toMatch(
+					/top: calc\(var\(--channel-slider-thumb-overhang\) \* -1\);/,
+				);
+				const vertical = rule(
+					".classicySliderStackVertical .classicySliderTick",
+				);
+				expect(vertical).toMatch(
+					/left: calc\(var\(--channel-slider-thumb-overhang\) \* -1\);/,
+				);
+				// A vertical tick is placed up its rail by `bottom` (the base
+				// sheet's): the horizontal one's `top` is undone.
+				expect(vertical).toMatch(/top: auto;/);
+			});
 		});
 
 		// Fix round 2: the ticks' and their labels' ink left the base sheet;

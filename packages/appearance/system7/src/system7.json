@@ -195,7 +195,8 @@
 				"channel": 13,
 				"thumbAlong": 11,
 				"thumbAcross": 23,
-				"thumbOverhang": 5
+				"thumbOverhang": 5,
+				"thumbStop": 5
 			},
 			"scrollBar": {
 				"boxLength": 16,
@@ -421,7 +422,8 @@
 					"channel": 13,
 					"thumbAlong": 11,
 					"thumbAcross": 23,
-					"thumbOverhang": 5
+					"thumbOverhang": 5,
+					"thumbStop": 5
 				},
 				"scrollBar": {
 					"boxLength": 16,
@@ -649,7 +651,8 @@
 					"channel": 13,
 					"thumbAlong": 11,
 					"thumbAcross": 23,
-					"thumbOverhang": 5
+					"thumbOverhang": 5,
+					"thumbStop": 5
 				},
 				"scrollBar": {
 					"boxLength": 16,

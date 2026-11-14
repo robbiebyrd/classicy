@@ -392,6 +392,7 @@ describe("the System 7 appearance package", () => {
 				"--channel-slider-thumb-along": "11px",
 				"--channel-slider-thumb-across": "23px",
 				"--channel-slider-thumb-overhang": "5px",
+				"--channel-slider-thumb-stop": "5px",
 				// The text field and the progress bar (the Copy dialog's) are
 				// the core's derivations: 22 and 11 pixels.
 				"--edit-field-height": "22px",

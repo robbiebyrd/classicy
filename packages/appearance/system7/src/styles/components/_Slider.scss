@@ -9,15 +9,18 @@
 //   rounded over five rows;
 // - the indicator, a capsule 23 x 11 across the channel: a black outline
 //   whose middle five rows bulge one pixel further out, an inner line one
-//   pixel in at the top and bottom, white inside.
+//   pixel in at the top and bottom, white inside. It stops `thumbStop` (5)
+//   pixels from each end, where the caps' curve ends;
+// - tick marks hanging from the channel's edge, past its outer line.
 //
 // Both are pixel art on the native range input's track and thumb. The art is
 // written as (across, along) pairs, `across` the channel's 13 columns and
 // `along` its length from an end, and laid out for each orientation. The
-// thumb's base box (11 x 23) points along a horizontal channel; the base
-// sheet turns it a quarter for a vertical slider (its left indicator), and
-// since the capsule is symmetric every direction draws the same shape.
-// Dimmed, the whole slider takes the dimmed ink through the dither.
+// capsule is symmetric, so every direction draws the same shape: it is drawn
+// as seen, upright on a horizontal channel and lying on a vertical one, in
+// a box that runs `thumbStop` past it at each end along the channel (the
+// browser's travel ends with the box), and the base sheet's turns are
+// undone. Dimmed, the whole slider takes the dimmed ink through the dither.
 @use "sass:list";
 @use "pkg:@classicy/classicy/scss/dither" as d;
 @use "pkg:@classicy/classicy/scss/layout";
@@ -32,13 +35,18 @@ $cap: (4 0 5 1) (2 1 2 1) (9 1 2 1) (1 2 1 2) (11 2 1 2) (5 2 3 1) (3 3 2 1) (8 
 $runs: (0 4) (12 4) (2 5) (10 5);
 
 // The checker's band, between the inner lines (columns 3 to 9), from row 3
-// of each end (the cap's lines cover its corners): one dotted line a
-// column, each a pixel out of step with the last.
+// of the near end (the cap's lines cover its corners): one dotted line a
+// column, each a pixel out of step with the last. Every column stops at row
+// 5 of the far end, whose rows 3 and 4 are the cap's (`$far-band`), so the
+// far cap is the capture's at any length; on an odd length the checker
+// runs a row out of step into it.
 $band: 3 4 5 6 7 8 9;
 $band-from: 3;
+$band-far: 5;
+$far-band: (5 3) (7 3) (4 4) (6 4) (8 4);
 
-// The indicator (along x across, 11 x 23 for a horizontal channel): its
-// outline, then its white inside.
+// The indicator (along x across, 11 x 23 upright on a horizontal channel):
+// its outline, then its white inside.
 $thumb: (0 2 1 19) (10 2 1 19) (1 1 1 1) (1 21 1 1) (9 1 1 1) (9 21 1 1) (2 1 1 21) (8 1 1 21) (3 0 5 1)
   (3 22 5 1);
 $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
@@ -77,6 +85,9 @@ $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
       $layers: list.append($layers, rect($ink, $r, $horizontal, $far), $separator: comma);
     }
   }
+  @each $r in $far-band {
+    $layers: list.append($layers, rect($ink, $r, $horizontal, true), $separator: comma);
+  }
   @each $run in $runs {
     $across: px(list.nth($run, 1));
     $from: px(list.nth($run, 2));
@@ -90,7 +101,7 @@ $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
   @each $across in $band {
     // Every other column starts a pixel further along: a 50% checker.
     $from: $band-from + ($across % 2);
-    $length: calc(100% - #{px($from + $from)});
+    $length: calc(100% - #{px($from + $band-far)});
     @if $horizontal {
       $layers: list.append(
         $layers,
@@ -110,13 +121,31 @@ $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
   @return $layers;
 }
 
-// The indicator's art (its base box, 11 x 23).
-@function art($rects, $ink) {
+// The indicator's art, `thumbStop` along from its box's start: upright
+// (11 x 23) on a horizontal channel, lying (23 x 11) on a vertical one.
+$stop: var(--channel-slider-thumb-stop);
+
+@function art($rects, $ink, $horizontal) {
   $layers: ();
   @each $r in $rects {
-    $layers: list.append($layers, rect($ink, $r, false), $separator: comma);
+    $along: $stop;
+    @if list.nth($r, 1) != 0 {
+      $along: calc(#{px(list.nth($r, 1))} + #{$stop});
+    }
+    $across: px(list.nth($r, 2));
+    $w: px(list.nth($r, 3));
+    $h: px(list.nth($r, 4));
+    @if $horizontal {
+      $layers: list.append($layers, layout.classicy-px-rect($ink, left $along, top $across, $w, $h), $separator: comma);
+    } @else {
+      $layers: list.append($layers, layout.classicy-px-rect($ink, left $across, top $along, $h, $w), $separator: comma);
+    }
   }
   @return $layers;
+}
+
+@function thumb($horizontal) {
+  @return list.join(art($thumb, $ink, $horizontal), art($thumb-face, var(--color-white), $horizontal), comma);
 }
 
 // The ink every part of the slider is drawn in: black, or the dimmed ink.
@@ -132,10 +161,19 @@ $ink: var(--system7-slider-ink);
 @mixin slider {
   // The channel and the thumb's box (`channelSlider`): the thumb is
   // `thumbAlong` (11) long down the channel and `thumbAcross` (23) across it,
-  // overhanging the channel (`channel`, 13) by `thumbOverhang` (5) each side.
+  // overhanging the channel (`channel`, 13) by `thumbOverhang` (5) each side;
+  // its box runs `thumbStop` (5) past it at each end along the channel. The
+  // base sheet sizes the box `--slider-thumb-width` wide and
+  // `--slider-thumb-height` tall, so a vertical slider's are the other way
+  // round.
   .classicySliderTrackGroup {
-    --slider-thumb-width: var(--channel-slider-thumb-along);
+    --slider-thumb-width: calc(var(--channel-slider-thumb-along) + var(--channel-slider-thumb-stop) + var(--channel-slider-thumb-stop));
     --slider-thumb-height: var(--channel-slider-thumb-across);
+  }
+
+  .classicySliderTrackGroupVertical {
+    --slider-thumb-width: var(--channel-slider-thumb-across);
+    --slider-thumb-height: calc(var(--channel-slider-thumb-along) + var(--channel-slider-thumb-stop) + var(--channel-slider-thumb-stop));
   }
 
   .classicySlider {
@@ -153,17 +191,19 @@ $ink: var(--system7-slider-ink);
       @include channel-track(true);
     }
 
-    // Centered across the channel.
+    // Centered across the channel, drawn as seen whichever way it points.
     &::-webkit-slider-thumb {
       margin-top: calc(var(--channel-slider-thumb-overhang) * -1);
       clip-path: none;
-      background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
+      transform: none;
+      background: thumb(true);
     }
 
     &::-moz-range-thumb {
       margin-top: calc(var(--channel-slider-thumb-overhang) * -1);
       clip-path: none;
-      background: list.join(art($thumb, $ink), art($thumb-face, var(--color-white)), comma);
+      transform: none;
+      background: thumb(true);
     }
   }
 
@@ -191,14 +231,17 @@ $ink: var(--system7-slider-ink);
       @include channel-track(false);
     }
 
-    // The thumb's box starts at the channel's edge, across it: a pixel in
-    // centers the turned capsule on the channel; nothing moves it along.
+    // The capsule lying across the channel. Chromium places the thumb's box
+    // from the channel's edge, so it starts the overhang before it; Firefox
+    // centers it. Nothing moves it along.
     &::-webkit-slider-thumb {
-      margin: 0 0 0 $px;
+      margin: 0 0 0 calc(var(--channel-slider-thumb-overhang) * -1);
+      background: thumb(false);
     }
 
     &::-moz-range-thumb {
-      margin: 0 0 0 $px;
+      margin: 0 0 0 calc(var(--channel-slider-thumb-overhang) * -1);
+      background: thumb(false);
     }
   }
 
@@ -210,14 +253,23 @@ $ink: var(--system7-slider-ink);
   }
 
   // Tick marks on whole pixels: black one-pixel lines, never moved by a
-  // half pixel (a 1 px line centered on its value blurs over two).
+  // half pixel (a 1 px line centered on its value blurs over two). They
+  // hang from the channel's edge, as Sound's do: each starts just past the
+  // channel's outer line, back across the thumb's overhang (which the thumb
+  // paints over).
   .classicySliderTick,
   .classicySliderStackVertical .classicySliderTick {
     transform: none;
   }
 
   .classicySliderTick {
+    top: calc(var(--channel-slider-thumb-overhang) * -1);
     background: var(--color-black);
+  }
+
+  .classicySliderStackVertical .classicySliderTick {
+    top: auto;
+    left: calc(var(--channel-slider-thumb-overhang) * -1);
   }
 
   // Dimmed ticks in the dimmed ink through the dither, as the slider.
