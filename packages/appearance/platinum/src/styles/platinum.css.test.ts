@@ -813,6 +813,20 @@ describe("platinum.scss (compiled)", () => {
 		});
 	});
 
+	// Fix round 2: the Desktop tab's preview, picture or None alike, sits in
+	// Platinum's recessed content frame (the window's content well: a 1 px
+	// border etched into the face), so a None preview whose desktop color
+	// matches the panel still shows its edge.
+	it("frames the Appearance Manager's desktop preview", () =>
+		expect(rule(`${P} .classicyAppearanceManagerDesktopPreview`).props).toEqual(
+			{
+				"box-sizing": "border-box",
+				border: "var(--window-border-size) solid var(--color-window-border)",
+				"box-shadow":
+					"calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), var(--window-border-size) var(--window-border-size) var(--color-window-border-outset)",
+			},
+		));
+
 	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
 		// Every rule whose selector list is exactly `selector`, in order: Sass
 		// emits a rule's declarations that follow a nested rule as a second rule

@@ -99,7 +99,7 @@ export const expectDesktopTabNoPicture = async (
 	await waitFor(() =>
 		expect(appearance().activeTheme.desktop.backgroundImage).toBe(""),
 	);
-	expect(drawn().image).toBe('url("")');
+	expect(drawn().image).toBe("none");
 	expect(patterns()).toHaveTextContent(/^None$/);
 	expect(panel.getByRole("img", { name: "No picture" })).toBeInTheDocument();
 	expect(panel.queryByAltText("Background")).toBeNull();
@@ -112,7 +112,7 @@ export const expectDesktopTabNoPicture = async (
 		});
 	});
 	const hex = `#${color.toString(16).padStart(6, "0")}`;
-	expect(drawn()).toEqual({ image: 'url("")', color: hex });
+	expect(drawn()).toEqual({ image: "none", color: hex });
 	// The edits went to the package's Custom theme; the built-in is untouched.
 	expect(appearance().activeTheme.id).not.toBe(themeId);
 

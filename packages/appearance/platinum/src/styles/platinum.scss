@@ -42,6 +42,7 @@
 @use "components/Placard";
 @use "components/SplitView";
 @use "components/WindowFrame";
+@use "components/AppearanceManager";
 @use "screenSavers";
 
 @include package.classicy-package("platinum") {
@@ -86,6 +87,7 @@
   @include Placard.placard;
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
+  @include AppearanceManager.appearanceManager;
   // The screen savers (plan 0016-vbq §2.1): in the package layer, but at its
   // root, outside the package scope, keyed on their own classes (see
   // _screenSavers.scss).

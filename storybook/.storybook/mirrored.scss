@@ -53,6 +53,7 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/Placard";
 @use "pkg:@classicy/appearance-platinum/scss/components/SplitView";
 @use "pkg:@classicy/appearance-platinum/scss/components/WindowFrame";
+@use "pkg:@classicy/appearance-platinum/scss/components/AppearanceManager";
 
 @include package.classicy-package("mirrored") {
   @include assets.platinum-root-properties;
@@ -91,6 +92,7 @@
   @include Placard.placard;
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
+  @include AppearanceManager.appearanceManager;
 
   // ── Flips ────────────────────────────────────────────────────────────────
 

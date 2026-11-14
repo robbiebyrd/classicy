@@ -97,7 +97,7 @@ describe("System 7's desktop picture", () => {
 				color: 0x336699,
 			});
 			const vars = getThemeVars(active(ds));
-			expect(vars["--desktop-background-image"]).toBe('url("")');
+			expect(vars["--desktop-background-image"]).toBe("none");
 			expect(vars["--desktop-background-color"]).toBe("#336699");
 			// The built-in theme is untouched.
 			run(ds, { type: "ClassicyDesktopChangeTheme", activeTheme: theme });

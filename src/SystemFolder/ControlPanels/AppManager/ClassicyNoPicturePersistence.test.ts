@@ -69,7 +69,7 @@ describe("None across a save and a load", () => {
 			second.appearance.getThemeVars(second.active())[
 				"--desktop-background-image"
 			],
-		).toBe('url("")');
+		).toBe("none");
 		const customs = second.store.useAppManager.getState().System.Manager
 			.Appearance.customThemes as ClassicyTheme[];
 		expect(

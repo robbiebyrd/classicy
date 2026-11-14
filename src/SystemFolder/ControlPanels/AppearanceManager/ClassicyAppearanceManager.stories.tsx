@@ -20,10 +20,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import {
-	defaultClassicyWallpaper,
-	resolveClassicyWallpaper,
-} from "@/Appearance/ClassicyWallpaperIndex";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { useColorsTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
@@ -283,9 +280,9 @@ const DesktopTabStory = () => {
 	const { desktop } = useAppearance().activeTheme;
 	const dispatch = useAppManagerDispatch();
 	const tab = useDesktopTab({
-		bg:
-			resolveClassicyWallpaper(desktop.backgroundImage) ||
-			defaultClassicyWallpaper(),
+		// As the Appearance Manager does: "" for no picture (the picker reads
+		// None).
+		bg: resolveClassicyWallpaper(desktop.backgroundImage),
 		bgPosition: desktop.backgroundPosition,
 		bgRepeat: desktop.backgroundRepeat,
 		bgSize: desktop.backgroundSize,

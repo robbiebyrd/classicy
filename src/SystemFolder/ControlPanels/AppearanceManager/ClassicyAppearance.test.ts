@@ -867,3 +867,29 @@ describe("classicyMeasurementVars — name collisions", () => {
 		}
 	});
 });
+
+// Story 0195-wuo, fix round 2: a theme with no picture (the Desktop tab's
+// None, or a color theme) draws none: `none`, not `url("")`, which resolves
+// to the page's own URL and asks the browser to load it as an image.
+describe("getThemeVars: no desktop picture", () => {
+	it("emits none for an empty picture, and url() for a picture", () => {
+		const base = getTheme("default");
+		const none = {
+			...structuredClone(base),
+			desktop: { ...base.desktop, backgroundImage: "" },
+		};
+		expect(getThemeVars(none)["--desktop-background-image"]).toBe("none");
+		expect(getThemeVars(base)["--desktop-background-image"]).toMatch(
+			/^url\("[^"]+"\)$/,
+		);
+	});
+
+	it("emits none for a picture that resolves to nothing", () => {
+		const base = getTheme("default");
+		const unknown = {
+			...structuredClone(base),
+			desktop: { ...base.desktop, backgroundImage: "not-registered.png" },
+		};
+		expect(getThemeVars(unknown)["--desktop-background-image"]).toBe("none");
+	});
+});

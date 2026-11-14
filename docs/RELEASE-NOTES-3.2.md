@@ -330,6 +330,10 @@ the ids the saver already names:
   solid color, which the Colors tab sets. A theme with no picture (most of
   Platinum's color themes) now reads None there, where it read Default, and
   the preview shows the desktop color in place of the default picture.
+  Platinum frames the preview, picture or color, in its recessed content
+  frame. `getThemeVars` emits `--desktop-background-image: none` for a
+  theme with no picture, or one that resolves to none, where it emitted
+  `url("")`, which a browser resolves to the page's own URL.
 - **Aligned pop-up menus stay on whole pixels.** An open pop-up slid back
   above the screen's bottom margin is placed on a whole pixel even when its
   measured height is fractional, its top rounded down so the far edge stays
