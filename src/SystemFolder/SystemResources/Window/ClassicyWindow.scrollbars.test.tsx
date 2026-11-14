@@ -1,12 +1,20 @@
 // A scrollable window draws its scroll bars only while its content overflows.
-// The contents box is `overflow: scroll` (both bars) while it overflows on
-// either axis and `overflow: auto` (no bars) otherwise, switched by the
-// classicyWindowScrollBarsHidden class that ClassicyWindow sets from a
-// measurement of the box. jsdom lays nothing out, so the extents are stubbed
+// The contents are a ClassicyScrollArea: both of Classicy's bars are drawn
+// while the content overflows on either axis and none otherwise (the window
+// then has the classicyWindowScrollBarsHidden class), from a measurement of
+// the scrolling viewport. jsdom lays nothing out, so the extents are stubbed
 // on the element.
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { act, render } from "@/__tests__/test-utils";
 import { windowsRecord } from "@/__tests__/windowsRecord";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 vi.mock(
@@ -105,7 +113,7 @@ for (const key of [
 	Object.defineProperty(HTMLElement.prototype, key, {
 		configurable: true,
 		get() {
-			if (!(this as Element).classList.contains("classicyWindowContents")) {
+			if (!(this as Element).classList.contains("classicyScrollAreaViewport")) {
 				return 0;
 			}
 			return (extents.get(this as Element) ?? defaultExtent)[key];
@@ -116,6 +124,9 @@ for (const key of [
 afterEach(() => {
 	defaultExtent = FITS;
 });
+
+const nextFrame = () =>
+	new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 const renderWindow = (
 	extent: Extent,
@@ -129,13 +140,20 @@ const renderWindow = (
 	);
 	const root = container.querySelector(".classicyWindow") as HTMLElement;
 	const contents = container.querySelector(
-		".classicyWindowContents",
+		".classicyWindowContents .classicyScrollAreaViewport",
 	) as HTMLElement;
 	return { container, root, contents };
 };
 
-const barsHidden = (root: HTMLElement) =>
-	root.classList.contains("classicyWindowScrollBarsHidden");
+// Hidden: the window says so, and no bar is drawn. Shown: both bars.
+const barsHidden = (root: HTMLElement) => {
+	const bars = root.querySelectorAll(
+		'.classicyWindowContents [data-classicy-part="scrollbar"]',
+	);
+	const hidden = root.classList.contains("classicyWindowScrollBarsHidden");
+	expect(bars.length).toBe(hidden ? 0 : 2);
+	return hidden;
+};
 
 describe("ClassicyWindow scroll bars appear only on overflow", () => {
 	it("hides the bars while the content fits", () => {
@@ -166,15 +184,15 @@ describe("ClassicyWindow scroll bars appear only on overflow", () => {
 		extents.set(contents, OVERFLOWS_TALL);
 		await act(async () => {
 			contents.querySelector("p")?.append(document.createElement("span"));
-			// MutationObserver callbacks run as a microtask.
-			await Promise.resolve();
+			// The scroll area measures a content change in the next frame.
+			await nextFrame();
 		});
 		expect(barsHidden(root)).toBe(false);
 
 		extents.set(contents, FITS);
 		await act(async () => {
 			contents.querySelector("span")?.remove();
-			await Promise.resolve();
+			await nextFrame();
 		});
 		expect(barsHidden(root)).toBe(true);
 	});
@@ -184,9 +202,139 @@ describe("ClassicyWindow scroll bars appear only on overflow", () => {
 		expect(barsHidden(root)).toBe(false);
 	});
 
-	it("never marks a scrollable={false} window", () => {
-		const { root } = renderWindow(FITS, { scrollable: false });
-		expect(barsHidden(root)).toBe(false);
+	it("never marks a scrollable={false} window, and draws no bars", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL, { scrollable: false });
+		expect(root.classList.contains("classicyWindowScrollBarsHidden")).toBe(
+			false,
+		);
 		expect(root.classList.contains("classicyWindowNoScroll")).toBe(true);
+		expect(root.querySelector('[data-classicy-part="scrollbar"]')).toBeNull();
+		expect(
+			root
+				.querySelector(".classicyScrollAreaViewport")
+				?.classList.contains("classicyScrollAreaViewportClipped"),
+		).toBe(true);
+	});
+
+	it("draws the axis that fits as an empty track", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		const horizontal = root.querySelector(".classicyScrollBarHorizontal");
+		const vertical = root.querySelector(".classicyScrollBarVertical");
+		expect(horizontal?.classList.contains("fits")).toBe(true);
+		expect(vertical?.classList.contains("fits")).toBe(false);
+	});
+
+	it("draws its bars inactive while the window is inactive", () => {
+		// The mocked store's window is not focused.
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("inactive")).toBe(true);
+		}
+	});
+
+	it("keeps no content observer of its own: the scroll area's tells it", () => {
+		const options: MutationObserverInit[] = [];
+		const Native = globalThis.MutationObserver;
+		vi.stubGlobal(
+			"MutationObserver",
+			class extends Native {
+				observe(target: Node, init?: MutationObserverInit) {
+					options.push(init ?? {});
+					super.observe(target, init);
+				}
+			},
+		);
+		try {
+			renderWindow(OVERFLOWS_TALL);
+			// Every observer watching the contents filters its attributes.
+			expect(options.length).toBeGreaterThan(0);
+			for (const init of options) expect(init.attributeFilter).toBeDefined();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("draws a utility window's bars active: a windoid is always active", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL, { windowType: "utility" });
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("inactive")).toBe(false);
+		}
+	});
+});
+
+// A package whose layout keeps the bars in the fits state (System 7, HIG
+// p.160): a document window with a size box draws both bars whether or not
+// its content overflows.
+describe("ClassicyWindow scroll bars under a package that keeps them while the content fits", () => {
+	beforeEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage({
+			id: "test-fits-bars",
+			name: "Fits Bars",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-fits-bars-default",
+				package: "test-fits-bars",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				scrollBar: { fitsBars: "shown" },
+			},
+		});
+	});
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	it("draws both bars, each fits, while the content fits", () => {
+		const { root } = renderWindow(FITS);
+		expect(barsHidden(root)).toBe(false);
+		for (const bar of root.querySelectorAll(
+			'[data-classicy-part="scrollbar"]',
+		)) {
+			expect(bar.classList.contains("fits")).toBe(true);
+		}
+		// Both bars: the corner where they meet, under the size box.
+		expect(
+			root.querySelector('[data-classicy-part="scroll-corner"]'),
+		).not.toBeNull();
+	});
+
+	it("keeps drawing them when the content overflows", () => {
+		const { root } = renderWindow(OVERFLOWS_TALL);
+		expect(barsHidden(root)).toBe(false);
+	});
+
+	it("leaves a window with no size box (not a document window) bare", () => {
+		const { root } = renderWindow(FITS, { resizable: false });
+		expect(barsHidden(root)).toBe(true);
+	});
+
+	it("leaves a utility window bare", () => {
+		const { root } = renderWindow(FITS, { windowType: "utility" });
+		expect(barsHidden(root)).toBe(true);
+	});
+
+	it("leaves a window that says fitsScrollBars={false} bare (a movie, a card)", () => {
+		const { root } = renderWindow(FITS, { fitsScrollBars: false });
+		expect(barsHidden(root)).toBe(true);
+		// Its bars still come when the content overflows.
+		const tall = renderWindow(OVERFLOWS_TALL, { fitsScrollBars: false });
+		expect(barsHidden(tall.root)).toBe(false);
+	});
+
+	it("draws none in a scrollable={false} window", () => {
+		const { root } = renderWindow(FITS, { scrollable: false });
+		expect(root.querySelector('[data-classicy-part="scrollbar"]')).toBeNull();
+	});
+});
+
+describe("ClassicyWindow fitsScrollBars without a package that keeps the bars", () => {
+	it("keeps them when the window asks", () => {
+		const { root } = renderWindow(FITS, { fitsScrollBars: true });
+		expect(barsHidden(root)).toBe(false);
 	});
 });

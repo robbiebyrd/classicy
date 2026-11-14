@@ -1,0 +1,107 @@
+// The System 7 little arrows (plan 0018-dbd §3.5), included by system7.scss
+// inside the package wrapper. Measured from the Date & Time captures
+// (`*-littlearrows.png`, `*-littlearrows-up-pressed.png`) and the HIG
+// (printed pp.216-217, figure 7-17): an 11 x 18 box in a one-pixel black
+// frame with corners rounded by one pixel, white inside, a solid black
+// arrow (a 7-pixel head on a 3 x 2 stem) in each half and no line between
+// them. The half being pressed inverts (HIG p.216; the arrow turns white).
+// The same in both themes. The field beside the arrows is a text field
+// (_TextField.scss), the arrows centered on it `littleArrows.gap` (5) pixels
+// to its right.
+@use "sass:list";
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+// The up arrow in its half (9 x 8, the half's top row under the frame's
+// corner): a head of 1, 3, 5 and 7 pixels over a 3 x 2 stem.
+$up: (4 1) (3 2 3 1) (2 3 5 1) (1 4 7 1) (3 5 3 2);
+// The down arrow in its half: the stem, then the head.
+$down: (3 1 3 2) (1 3 7 1) (2 4 5 1) (3 5 3 1) (4 6);
+
+@mixin little-arrows {
+  .classicyLittleArrows {
+    width: var(--little-arrows-width);
+    height: var(--little-arrows-height);
+    padding: $px;
+    border-width: 0;
+    box-shadow: none;
+    // FrameRoundRect's frame, its corners one pixel in, over the white
+    // inside.
+    background: list.join(
+      round-frame(var(--color-black), 2, 1, ((1 1 1 1),)),
+      round-fill(var(--color-white), (2 1) (1 2)),
+      comma
+    );
+
+    .classicyLittleArrowsButton {
+      min-height: 0;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      background: pixel-art(var(--color-black), $up);
+
+      // The native arrow image: the arrow is drawn on the half itself.
+      img {
+        visibility: hidden;
+      }
+
+      &:focus {
+        outline: none;
+      }
+
+      &:focus-visible {
+        outline: $px solid var(--color-black);
+        outline-offset: calc(#{$px} * -1);
+      }
+
+      // Pressed: the half inverts, its arrow white (the corners it covers
+      // are the frame's own black).
+      &:active:not(:disabled) {
+        background: pixel-art(var(--color-white), $up), var(--color-black);
+      }
+
+      &:disabled {
+        background: pixel-art(var(--color-theme-06), $up);
+        @include d.classicy-dither-mask;
+      }
+    }
+
+    .classicyLittleArrowsButtonDown {
+      background: pixel-art(var(--color-black), $down);
+
+      &:active:not(:disabled) {
+        background: pixel-art(var(--color-white), $down), var(--color-black);
+      }
+
+      &:disabled {
+        background: pixel-art(var(--color-theme-06), $down);
+      }
+    }
+
+    // Dimmed altogether: the frame too.
+    &:not(:has(> .classicyLittleArrowsButton:enabled)) {
+      background: list.join(
+        round-frame(var(--color-theme-06), 2, 1, ((1 1 1 1),)),
+        round-fill(var(--color-white), (2 1) (1 2)),
+        comma
+      );
+      @include d.classicy-dither-mask;
+    }
+  }
+
+  // A field and its arrows: no ring around the pair, the arrows centered
+  // on the field (Date & Time).
+  .classicyLittleArrowsGroup {
+    gap: var(--little-arrows-gap);
+    align-items: center;
+
+    > .classicyLittleArrows {
+      align-self: center;
+    }
+
+    &:focus-within {
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
+}

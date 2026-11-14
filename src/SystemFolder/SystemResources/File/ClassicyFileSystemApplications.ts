@@ -3,7 +3,6 @@ import {
 	type ClassicyAppIdentityOverrides,
 	classicyAppIdentityFrom,
 } from "@/Appearance/ClassicyAppIdentity";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemDesktopManagerIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopManager";
 import {
 	resetClassicyDerivedEntryNameWarnings,
@@ -13,6 +12,7 @@ import {
 	classicyDerivedFolderReservedNames,
 	classicyFreeDerivedEntryName,
 } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -118,7 +118,7 @@ export const buildApplicationsFolder = (
 ): ClassicyFileSystemEntry => {
 	const folder: ClassicyFileSystemEntry = {
 		_type: ClassicyFileSystemEntryFileType.Directory,
-		_icon: ClassicyIcons.system.folders.applications,
+		_icon: classicyCoreIcon("system.folders.applications"),
 		_readOnly: true,
 	};
 

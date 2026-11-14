@@ -25,6 +25,8 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
@@ -200,6 +202,16 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	// A long list scrolls by its indicators (HIG7 p.83: a pop-up menu
+	// "scrolls like other menus"), never by a scroll bar.
+	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
+		rowSelector: '[role="option"]',
+		// Over the list (5000) in the portal they share.
+		zIndex: 5001,
+	});
+	const resetScrollArrows = scrollArrows.reset;
+	const measureScrollArrows = scrollArrows.measure;
+	const scrollArrowsContain = scrollArrows.contains;
 	const typeaheadBufferRef = useRef("");
 	const typeaheadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reactId = useId();
@@ -265,7 +277,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		setHighlight(-1);
 		setMenuRect(null);
 		setPlacement(null);
-	}, []);
+		resetScrollArrows();
+	}, [resetScrollArrows]);
 
 	const openMenu = useCallback(() => {
 		if (disabled) return;
@@ -331,14 +344,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			const target = e.target as Node;
 			if (
 				!wrapperRef.current?.contains(target) &&
-				!listRef.current?.contains(target)
+				!listRef.current?.contains(target) &&
+				!scrollArrowsContain(target)
 			) {
 				closeMenu();
 			}
 		};
 		document.addEventListener("mousedown", onPointerDown);
 		return () => document.removeEventListener("mousedown", onPointerDown);
-	}, [open, closeMenu]);
+	}, [open, closeMenu, scrollArrowsContain]);
 
 	// A fixed-position portal can't follow its button, so dismiss on scroll/
 	// resize. `capture: true` catches scrolls in any ancestor, not just window.
@@ -412,7 +426,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		if (!open || !placement) return;
 		const el = listRef.current;
 		if (el) el.scrollTop = placement.scrollTop;
-	}, [open, placement]);
+		measureScrollArrows();
+	}, [open, placement, measureScrollArrows]);
 
 	// Keyboard navigation moves a highlight, not focus (focus stays on the
 	// button for the combobox pattern), so nothing scrolls the active option
@@ -504,10 +519,14 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			)}
 		>
 			{label && (
+				// `open` reaches the label and the indicator too: System 7
+				// inverts the pop-up's title and hides its triangle while the
+				// menu is open (HIG p.87).
 				<ClassicyControlLabel
 					label={label}
 					labelFor={id}
 					labelSize={controlLabelSize}
+					className={classicyStateClasses({ open })}
 				></ClassicyControlLabel>
 			)}
 			<div
@@ -549,96 +568,111 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					onKeyDown={onButtonKeyDown}
 				>
 					<span className="classicyPopUpMenuValue">{currentLabel}</span>
-					<span className="classicyPopUpMenuIndicator" aria-hidden={true} />
+					<span
+						className={classNames(
+							"classicyPopUpMenuIndicator",
+							classicyStateClasses({ open }),
+						)}
+						aria-hidden={true}
+					/>
 				</button>
 
 				{open &&
 					menuRect &&
 					createPortal(
-						<div
-							ref={listRef}
-							id={listId}
-							role="listbox"
-							aria-label={label ?? currentLabel}
-							className={classNames(
-								"classicyPopUpMenuList",
-								placement?.above && "classicyPopUpMenuListAbove",
-							)}
-							style={{
-								position: "fixed",
-								left: `${menuRect.left}px`,
-								minWidth: `${menuRect.width}px`,
-								zIndex: 5000,
-								// Aligned placement gives an explicit top (the selected item
-								// sits over the button). Otherwise anchor the edge the menu
-								// grows away from: its top to the button's top when growing
-								// down, its bottom to the button's bottom when growing up.
-								...(placement?.top != null
-									? { top: `${placement.top}px` }
-									: placement?.above
-										? { bottom: `${window.innerHeight - menuRect.bottom}px` }
-										: { top: `${menuRect.top}px` }),
-								...(placement && { maxHeight: `${placement.maxHeight}px` }),
-							}}
-						>
-							{rows.map((row, rowIndex) => {
-								if (row.kind === "header") {
+						<>
+							<div
+								ref={listRef}
+								id={listId}
+								role="listbox"
+								aria-label={label ?? currentLabel}
+								className={classNames(
+									"classicyPopUpMenuList",
+									placement?.above && "classicyPopUpMenuListAbove",
+								)}
+								onScroll={scrollArrows.onListScroll}
+								style={{
+									position: "fixed",
+									// On whole pixels: the frame and shadow placed a
+									// fraction across blend their one-pixel columns.
+									left: `${Math.round(menuRect.left)}px`,
+									minWidth: `${menuRect.width}px`,
+									zIndex: 5000,
+									// Aligned placement gives an explicit top (the selected item
+									// sits over the button). Otherwise anchor the edge the menu
+									// grows away from: its top to the button's top when growing
+									// down, its bottom to the button's bottom when growing up.
+									...(placement?.top != null
+										? { top: `${Math.round(placement.top)}px` }
+										: placement?.above
+											? {
+													bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
+												}
+											: { top: `${Math.round(menuRect.top)}px` }),
+									...(placement && { maxHeight: `${placement.maxHeight}px` }),
+									...scrollArrows.listStyle,
+								}}
+							>
+								{rows.map((row, rowIndex) => {
+									if (row.kind === "header") {
+										return (
+											<div
+												// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the options prop; the index disambiguates duplicate group labels and rows never reorder independently
+												key={`${id}-group-${row.label}-${rowIndex}`}
+												role="presentation"
+												className="classicyPopUpMenuGroupHeader"
+											>
+												{row.label}
+											</div>
+										);
+									}
+									const { option: o, flatIndex: index, grouped } = row;
+									const isSelected = o.value === selectedItem;
 									return (
 										<div
-											// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the options prop; the index disambiguates duplicate group labels and rows never reorder independently
-											key={`${id}-group-${row.label}-${rowIndex}`}
-											role="presentation"
-											className="classicyPopUpMenuGroupHeader"
+											key={id + o.value}
+											id={optionId(index)}
+											role="option"
+											tabIndex={-1}
+											aria-selected={isSelected}
+											className={classNames(
+												"classicyPopUpMenuListItem",
+												grouped && "classicyPopUpMenuListItemGrouped",
+												index === highlight &&
+													"classicyPopUpMenuListItemHighlight",
+											)}
+											onMouseEnter={() => setHighlight(index)}
+											onClick={() => commitIndex(index)}
+											onKeyDown={(e) => {
+												if (e.key === "Enter" || e.key === " ") {
+													e.preventDefault();
+													commitIndex(index);
+												}
+											}}
 										>
-											{row.label}
+											<span
+												className={classNames(
+													"classicyPopUpMenuCheck",
+													classicyStateClasses({ checked: isSelected }),
+												)}
+												aria-hidden={true}
+											/>
+											{o.icon && (
+												<ClassicyIconImage
+													className="classicyPopUpMenuListItemIcon"
+													src={o.icon}
+													alt=""
+												/>
+											)}
+											<span className="classicyPopUpMenuListItemLabel">
+												{o.label}
+											</span>
 										</div>
 									);
-								}
-								const { option: o, flatIndex: index, grouped } = row;
-								const isSelected = o.value === selectedItem;
-								return (
-									<div
-										key={id + o.value}
-										id={optionId(index)}
-										role="option"
-										tabIndex={-1}
-										aria-selected={isSelected}
-										className={classNames(
-											"classicyPopUpMenuListItem",
-											grouped && "classicyPopUpMenuListItemGrouped",
-											index === highlight &&
-												"classicyPopUpMenuListItemHighlight",
-										)}
-										onMouseEnter={() => setHighlight(index)}
-										onClick={() => commitIndex(index)}
-										onKeyDown={(e) => {
-											if (e.key === "Enter" || e.key === " ") {
-												e.preventDefault();
-												commitIndex(index);
-											}
-										}}
-									>
-										<span
-											className={classNames(
-												"classicyPopUpMenuCheck",
-												classicyStateClasses({ checked: isSelected }),
-											)}
-											aria-hidden={true}
-										/>
-										{o.icon && (
-											<img
-												className="classicyPopUpMenuListItemIcon"
-												src={o.icon}
-												alt=""
-											/>
-										)}
-										<span className="classicyPopUpMenuListItemLabel">
-											{o.label}
-										</span>
-									</div>
-								);
-							})}
-						</div>,
+								})}
+							</div>
+							{scrollArrows.indicators}
+						</>,
 						document.getElementById("classicyDesktop") ?? document.body,
 					)}
 			</div>

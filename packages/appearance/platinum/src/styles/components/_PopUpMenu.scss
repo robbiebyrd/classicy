@@ -1,6 +1,7 @@
 // The Platinum pop-up menu look (from ClassicyPopUpMenu.scss): the raised
-// control, its double-arrow indicator, and the checkmark against the current
-// item of the open menu (ComboBox shares it). The disabled fill follows the
+// control, its focus ring, its double-arrow indicator, and the open menu's
+// frame, items, highlight and the checkmark against the current item
+// (ComboBox shares the indicator and the menu). The disabled fill follows the
 // undepressable face it overrides.
 @use "sass:string";
 @use "../mixins";
@@ -11,6 +12,19 @@
 
     &.disabled {
       background-color: var(--color-system-01);
+      background-image: linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%);
+    }
+  }
+
+  // The keyboard focus ring (a pointer's focus draws none).
+  .classicyPopUpMenuButton {
+    &:focus {
+      border-radius: var(--window-padding-size);
+      outline: var(--color-outline) solid var(--control-frame-width);
+    }
+
+    &:focus:not(:focus-visible) {
+      outline: none;
     }
   }
 
@@ -18,10 +32,67 @@
   // and the control-box dither (ruling E21). A mask over --color-black does
   // not reproduce the raster exactly at every tile size (the ComboBox's
   // 9x10.8 px arrow), and an image layer leaves the indicator's border,
-  // corners and bevel untouched. Base keeps the no-repeat / center / 45%
-  // geometry.
+  // corners and bevel untouched. The raised tab: a divider at its left, the
+  // box's rounded right corners and a white bevel.
   .classicyPopUpMenuIndicator {
+    border-left: var(--window-border-size) solid var(--color-system-05);
+    border-top-right-radius: var(--window-padding-size);
+    border-bottom-right-radius: var(--window-padding-size);
     background-image: var(--classicy-art-popup-arrows);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 45%;
+    box-shadow: inset var(--control-frame-width) var(--window-border-size) 0 0 var(--color-white);
+  }
+
+  // The mini pop-up is all indicator: no divider, no bevel.
+  .classicyPopUpMenuSizeMini .classicyPopUpMenuIndicator {
+    border-left: none;
+    box-shadow: none;
+  }
+
+  // A long open menu scrolls by its indicators (HIG7 p.78; ClassicyPopUpMenu
+  // places them over the first or last row): a black triangle on the menu's
+  // face. The list's native bar stays hidden: the desktop's Firefox fallback
+  // (`scrollbar-width: auto` on `& *`, _Desktop.scss) would show it from this
+  // layer over the base sheet's `none`; one class more wins.
+  // The open menu's frame: a black border, a white bevel and a drop shadow.
+  .classicyPopUpMenuList {
+    scrollbar-width: none;
+    color: var(--color-black);
+    background-color: var(--color-system-02);
+    border: var(--window-border-size) solid var(--color-black);
+    box-shadow:
+      inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
+      var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black);
+  }
+
+  .classicyPopUpMenuListItem {
+    color: var(--color-black);
+  }
+
+  .classicyPopUpMenuListItemHighlight {
+    color: var(--color-white);
+    background-color: var(--color-theme-04);
+  }
+
+  // A group's title is grayed like a disabled item.
+  .classicyPopUpMenuGroupHeader {
+    color: var(--color-system-05);
+  }
+
+  .classicyPopUpMenuScrollArrow {
+    color: var(--color-black);
+    background-color: var(--color-system-02);
+    font-size: var(--ui-font-size-small);
+  }
+
+  .classicyPopUpMenuScrollArrowUp::before {
+    content: string.unquote('"\\25B2"'); // ▲
+  }
+
+  .classicyPopUpMenuScrollArrowDown::before {
+    content: string.unquote('"\\25BC"'); // ▼
   }
 
   // The HIG checkmark against the current selection, a font glyph in the

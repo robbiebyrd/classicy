@@ -1,0 +1,129 @@
+// The System 7 push button (plan 0018-dbd §3.4), included by system7.scss
+// inside the package wrapper. Measured from the System 7.5 captures
+// (docs/system7-reference-screenshots.md: the alerts, Standard File and the
+// pressed buttons) and the System 7 HIG (printed pp.205-207): a rounded
+// rectangle, a one-pixel black frame on a white face, Chicago 12; the
+// default button ringed three pixels black, one white pixel out; pressed, the
+// whole shape inverts; dimmed, only the label dims (dithered in 1-bit, true
+// gray in color) and a dimmed default button's ring dithers at both depths.
+// Black on white in both themes (HIG p.259, figure 9-2).
+//
+// QuickDraw's round rectangles are drawn as pixel art, not `border-radius`,
+// which anti-aliases its curve: the frame and the face are the button's
+// background layers, the ring its `::after`. A dimmed label is inked by two
+// more layers clipped to the glyphs (`background-clip: text`), since a mask
+// would dim the frame with it.
+@use "sass:list";
+@use "../pixel" as *;
+
+// The button's corner, from FrameRoundRect with an 8 x 8 oval: the frame's
+// sides stop three pixels short, and two pixels round the corner.
+$frame-corner: (1 1 2 1) (1 2 1 1);
+
+// The face inside that frame, as three overlapping rectangles' insets.
+$face-insets: (3 1) (2 2) (1 3);
+
+// The default ring's corner (a three-pixel pen, a 16 x 16 oval): the ring's
+// sides stop six pixels short of each corner.
+$ring-corner: (5 0 1 1) (3 1 3 1) (2 2 4 1) (1 3 5 1) (1 4 3 1) (0 5 4 1);
+
+// The ring's reach out from the button: one white pixel, then the ring.
+$ring-reach: calc(#{$px} + var(--button-default-ring));
+
+// The frame over a face of `$fill`.
+@function face($fill) {
+  @return list.join(round-frame(var(--color-black), 3, 1, $frame-corner), round-fill($fill, $face-insets), comma);
+}
+
+// A dimmed label's ink, clipped to the glyphs: the dimmed ink under the
+// white cells of the 1-bit checker (`dither.tileSize`, 0 in color, where
+// the ink is plain gray).
+$dimmed-label:
+  conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top /
+    var(--dither-tile-size) var(--dither-tile-size),
+  linear-gradient(var(--color-theme-06), var(--color-theme-06));
+
+// `background-clip` for the dimmed button's layers: the label's two clipped
+// to the text, the face's to the box.
+@function dimmed-clip() {
+  $clip: (text, text);
+  @for $i from 1 through list.length(face(var(--color-white))) {
+    $clip: list.append($clip, border-box, $separator: comma);
+  }
+  @return $clip;
+}
+
+@mixin button {
+  .classicyButton {
+    position: relative;
+    isolation: isolate;
+    min-height: var(--button-height);
+    // The label's line box sits one pixel below the frame, so the caps
+    // start five rows down, as QuickDraw centered Chicago's ascent.
+    padding-top: 0;
+    padding-bottom: var(--push-button-text-lift);
+    border: none;
+    border-radius: 0;
+    background: face(var(--color-white));
+    color: var(--color-black);
+    line-height: var(--push-button-line-height);
+
+    &:focus {
+      outline: none;
+    }
+
+    // System 7 marks no focused button. A keyboard user still sees which one
+    // has the focus (`:focus-visible` only, so a pointer press draws
+    // nothing): a two-pixel black rectangle a pixel out, borrowed from the
+    // mark the HIG gives an active scrolling list (p.198). Around the
+    // default button it falls a pixel outside the ring, which keeps its
+    // pixels.
+    &:focus-visible {
+      outline: px(2) solid var(--color-black);
+      outline-offset: $px;
+    }
+  }
+
+  :where(.classicyButton).default:focus-visible {
+    outline-offset: calc(#{$ring-reach} + #{$px});
+  }
+
+  // The default button's ring (HIG p.206), behind the button.
+  :where(.classicyButton).default::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: calc(#{$ring-reach} * -1);
+    pointer-events: none;
+    background: round-frame(var(--color-black), 6, 3, $ring-corner);
+  }
+
+  // Pressed (HIG p.205): the whole shape inverts, ring and gap kept.
+  .classicyButton:active:not(:disabled),
+  :where(.classicyButton).pressed {
+    background: face(var(--color-black));
+    color: var(--color-white);
+  }
+
+  // Dimmed (HIG p.207; Standard File's Eject and Create in the captures):
+  // the frame stays black and the label takes the dimmed ink, plain where
+  // a browser cannot clip a background to text (no dither then, but no
+  // label layers painted over the frame either).
+  .classicyButton:disabled {
+    color: var(--color-theme-06);
+  }
+
+  @supports (background-clip: text) {
+    .classicyButton:disabled {
+      background: list.join($dimmed-label, face(var(--color-white)), comma);
+      background-clip: dimmed-clip();
+      color: transparent;
+    }
+  }
+
+  // A dimmed default button's ring dithers, black, at both depths (the
+  // Chooser's OK in the 256-color capture).
+  :where(.classicyButton).default:disabled::after {
+    mask: var(--classicy-art-dither-checker) 0 0 / px(2) px(2) repeat;
+  }
+}

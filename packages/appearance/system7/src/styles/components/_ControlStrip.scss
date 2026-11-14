@@ -1,0 +1,110 @@
+// The System 7 Control Strip (plan 0018-dbd §3.7), included by system7.scss
+// inside the package wrapper. System 7.5 shipped Control Strip 1.3.1, the
+// strip Mac OS 8 kept, so its cells, separators and glyph positions are the
+// base sheet's (HIGOS8 Figure 6-15): only the look differs. No capture of the
+// strip was made; the look is the 7.5 Control Strip control panel's own art,
+// decoded from its resources and written by bin/export-pixel-art.mjs
+// (docs/system7-asset-inventory.md, "Desktop pattern and Control Strip"):
+//
+// - Color (PICT -4044, the panel's picture of the strip's end): a #CCCCCC
+//   face, a white highlight one pixel in on the top and left, #AAAAAA then
+//   #888888 on the bottom and right; a disabled scroll arrow's cell recessed,
+//   #888888 on the top and left and white on the bottom and right. Drawn in
+//   the System 7 Color tokens nearest those grays: the face
+//   `--color-system-02` (#BBBBBB), the shadows `--color-system-04` and
+//   `--color-system-05` (#AAAAAA and #888888, exact).
+// - 1-bit (PICT -4043): white cells in their black lines, no bevel. The
+//   bevels' width is the knob `controlStrip.bevelWidth`, 1 in color and 0 in
+//   1-bit, where the face tokens are white.
+// - The glyphs (collapse box, scroll arrows, tab, pop-up slider) are the
+//   panel's own bitmaps, registered as pixel art per theme (system7Assets.ts).
+//
+// A pressed cell (a module with its menu open) has no picture in the panel;
+// it is drawn as Platinum draws it, two dark pixels on the top and left and
+// two light on the bottom and right on a darker face, in the same tokens.
+//
+// A module's pop-up surface (the Sound module's slider) is every bevel
+// button's pop-up panel, drawn in _FlatControls.scss.
+@use "pkg:@classicy/classicy/scss/layout";
+
+$b: var(--control-strip-bevel-width);
+
+@mixin raised {
+  background:
+    layout.classicy-px-rect(var(--color-white), $b, $b, calc(100% - #{$b} - #{$b} - #{$b}), $b),
+    layout.classicy-px-rect(var(--color-white), $b, $b, $b, calc(100% - #{$b} - #{$b} - #{$b})),
+    layout.classicy-px-rect(
+      var(--color-system-04),
+      calc(100% - #{$b}),
+      calc(#{$b} + #{$b}),
+      $b,
+      calc(100% - #{$b} - #{$b} - #{$b} - #{$b})
+    ),
+    layout.classicy-px-rect(
+      var(--color-system-04),
+      calc(#{$b} + #{$b}),
+      calc(100% - #{$b}),
+      calc(100% - #{$b} - #{$b} - #{$b}),
+      $b
+    ),
+    layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
+    var(--color-system-02);
+}
+
+@mixin recessed {
+  background:
+    layout.classicy-px-rect(var(--color-system-05), 0, 0, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - #{$b}), $b),
+    layout.classicy-px-rect(var(--color-white), 100%, $b, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-white), $b, 100%, calc(100% - #{$b}), $b),
+    var(--color-system-02);
+}
+
+@mixin pressed {
+  background:
+    layout.classicy-px-rect(var(--color-system-06), 0, 0, calc(100% - #{$b}), $b),
+    layout.classicy-px-rect(var(--color-system-06), 0, $b, calc(100% - #{$b} - #{$b}), $b),
+    layout.classicy-px-rect(var(--color-system-06), 0, 0, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-system-06), $b, 0, $b, calc(100% - #{$b} - #{$b})),
+    layout.classicy-px-rect(var(--color-system-02), 100%, $b, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-system-02), calc(100% - #{$b}), $b, $b, calc(100% - #{$b})),
+    layout.classicy-px-rect(var(--color-system-02), $b, calc(100% - #{$b}), calc(100% - #{$b}), $b),
+    layout.classicy-px-rect(var(--color-system-02), $b, 100%, calc(100% - #{$b}), $b),
+    var(--color-system-04);
+}
+
+@mixin control-strip {
+  // The pixel-art token `n`, "the slider track's dark inner line" (the core
+  // maps it to a darkened theme-05, Platinum's #313163): System 7's pop-up
+  // slider rows use it for the same line, #333366 in the panel's picture,
+  // which is System 7 Color's `--color-theme-07` (black in 1-bit, whose rows
+  // do not use it).
+  .classicyPixeln {
+    fill: var(--color-theme-07);
+  }
+
+  // The collapse box and scroll arrows.
+  .classicyControlStripCell {
+    @include raised;
+
+    &:active:not(:disabled) {
+      @include pressed;
+    }
+  }
+
+  .classicyControlStripScroll:disabled {
+    @include recessed;
+  }
+
+  // Each module is a pop-up bevel button; the strip's bevel replaces its face
+  // (System 7's flat bevel button look skips the strip's, _FlatControls.scss).
+  .classicyControlStrip .classicyBevelButton.classicyControlStripModule {
+    @include raised;
+
+    &.pressed,
+    &.open {
+      @include pressed;
+    }
+  }
+}

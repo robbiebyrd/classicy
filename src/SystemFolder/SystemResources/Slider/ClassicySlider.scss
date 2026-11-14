@@ -2,12 +2,19 @@
 $thumb-w:   var(--slider-thumb-width);   // 1:1 aspect ratio with $thumb-h
 $thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downward triangle (62–100%)
 $track-h:   calc(var(--window-padding-size));
+$thumb-half: calc(#{$thumb-h} / 2);  // 10.5 px under Platinum
+$track-half: calc(#{$track-h} / 2);  // 3 px under Platinum
 // Centers the tall thumb vertically on the track
-$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum: (6 − 21) / 2
+$thumb-margin-top: calc(#{$track-half} - #{$thumb-half});  // −7.5 px under Platinum: 3 − 10.5
+// A vertical slider's tick and label rails are inset along the track by
+// half the thumb, so a value lands beside the thumb's center
+$vertical-rail-inset: $thumb-half 0;
 
-// The indicator's look (its pentagon or nondirectional shape, border, grip
-// strikes and face, for every state, and the ghost's) is in the Platinum
-// package; this sheet sizes and places it.
+// The look (the channel's border, shading and bevel; the indicator's
+// pentagon or nondirectional shape, border, grip strikes and face, for every
+// state; the ghost's; the dimmed filter; the ticks' and their labels' ink) is
+// the Appearance Package's (Platinum: _Slider.scss); this sheet sizes and
+// places it.
 
 // ─── Track ────────────────────────────────────────────────────────────────────
 
@@ -32,37 +39,13 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   cursor: pointer;
   overflow: visible; // allows the bottom point of the thumb to paint below the track
 
-  // Grooved cylinder track
+  // The channel (the package draws it)
   &::-webkit-slider-runnable-track {
     height: $track-h;
-    border-radius: calc(infinity * 1px);
-    border: var(--window-border-size) solid var(--color-window-border);
-    background: linear-gradient(
-      to bottom,
-      var(--color-system-06) 0%,
-      var(--color-system-04) 10%,
-      var(--color-system-03) 50%,
-      var(--color-system-04) 90%,
-      var(--color-system-05) 100%
-    );
-    box-shadow:
-      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
 
   &::-moz-range-track {
     height: $track-h;
-    border-radius: calc(infinity * 1px);
-    border: var(--window-border-size) solid var(--color-window-border);
-    background: linear-gradient(
-      to bottom,
-      var(--color-system-06) 0%,
-      var(--color-system-04) 10%,
-      var(--color-system-03) 50%,
-      var(--color-system-04) 90%,
-      var(--color-system-05) 100%
-    );
-    box-shadow:
-      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
 
   // The thumb's box (its images 1–3 are in the Platinum package)
@@ -75,19 +58,21 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
     cursor: pointer;
   }
 
+  // Firefox's UA sheet gives the thumb a border and a 0.5em corner radius,
+  // which would clip a package's pixel art round: both are reset here.
   &::-moz-range-thumb {
     width: $thumb-w;
     height: $thumb-h;
     border: none;
+    border-radius: 0;
     cursor: pointer;
   }
 }
 
-// ─── Disabled variant (Image 1 at 50% contrast) ───────────────────────────────
+// ─── Disabled variant (the package dims it) ───────────────────────────────────
 
 :where(.classicySlider).disabled {
   cursor: not-allowed;
-  filter: contrast(0.5);
 
   &::-webkit-slider-thumb {
     cursor: not-allowed;
@@ -135,8 +120,12 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
 // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────────
 
 // Positions the input + ghost overlay; takes the input's place in the stack.
+// Raised above the tick rail beside it (a later sibling, which would
+// otherwise paint over the thumb where it overhangs the input): the
+// indicator is the control's foreground.
 .classicySliderTrackLayer {
   position: relative;
+  z-index: 1;
   display: flex;
   flex: 1;
   min-width: 0;
@@ -149,8 +138,6 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   height: $thumb-h;
   margin-top: $thumb-margin-top;
   pointer-events: none;
-  opacity: 0.4;
-  transition: opacity 0.1s linear;
   transform: translateX(-50%);
   // Center travels from thumb-width/2 to width − thumb-width/2, matching the
   // native thumb, so the ghost lands exactly beneath the real indicator.
@@ -165,62 +152,6 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   opacity: 0;
 }
 
-// ─── Vertical orientation ───────────────────────────────────────────────────────
-
-.classicySliderTrackGroupVertical {
-  flex-direction: column;
-  width: auto;
-  height: 100%;
-}
-
-.classicySliderInputVertical {
-  writing-mode: vertical-lr;
-  direction: rtl; // min at the bottom, max at the top
-  width: $thumb-h;
-  height: 100%;
-  min-height: var(--slider-vertical-min-height);
-  flex: 0 0 auto;
-}
-
-.classicySliderStackVertical {
-  flex-direction: row;
-  align-items: stretch;
-  width: auto;
-  height: 100%;
-
-  .classicySliderTrackLayer {
-    flex: 0 0 auto;
-  }
-
-  // Rail runs alongside the vertical track; ticks are placed by `top`,
-  // inverted so 0% sits at the bottom (matching direction: rtl).
-  .classicySliderTicks {
-    padding: calc(#{$thumb-h} / 2) 0;
-    width: calc(var(--slider-tick-length) + var(--window-border-size));
-    height: auto;
-  }
-
-  .classicySliderTick {
-    top: auto;
-    left: var(--window-border-size);
-    bottom: var(--classicy-tick-left);
-    width: var(--slider-tick-length);
-    height: var(--window-border-size);
-    transform: translateY(50%);
-  }
-
-  .classicySliderTickLabels {
-    width: auto;
-    height: auto;
-  }
-
-  .classicySliderTickLabel {
-    left: auto;
-    bottom: var(--classicy-tick-left);
-    transform: translateY(50%);
-  }
-}
-
 // ─── Tick marks ───────────────────────────────────────────────────────────────
 
 // Column wrapper so the tick rail sits directly under the input; takes the
@@ -230,6 +161,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   min-width: 0;
   display: flex;
   flex-direction: column;
+  isolation: isolate; // the track layer's z-index stays inside the slider
 }
 
 // The rail is inset by half the thumb width on each side: a native range
@@ -252,12 +184,7 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   top: var(--window-border-size);
   width: var(--window-border-size);
   height: var(--slider-tick-length);
-  background: var(--color-black);
   transform: translateX(-50%);
-}
-
-:where(.classicySliderTicks).disabled {
-  filter: contrast(0.5);
 }
 
 // ─── Tick-mark labels (direction-of-increase captions) ──────────────────────────
@@ -277,11 +204,123 @@ $thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum
   font-size: var(--ui-font-size-small);
   line-height: 1;
   white-space: nowrap;
-  color: var(--color-black);
 
   img {
     display: block;
     height: calc(var(--ui-font-size));
     width: auto;
+  }
+}
+
+// ─── Vertical orientation ───────────────────────────────────────────────────────
+// Last: its rules override the horizontal ones above.
+
+// Under its label (a column too), the group shrinks to fit the height the
+// slider is given; the track inside it keeps its own minimum. Its track is
+// centered across it, and ClassicySlider nudges the track onto the pixel
+// grid (by `left`, under half a pixel) where centering leaves it on a
+// fraction of one.
+.classicySliderTrackGroupVertical {
+  flex-direction: column;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+}
+
+// The track (the input, or the stack holding it and its ticks) is the
+// slider's minimum length, `--slider-vertical-min-height`, on its own: in a
+// container with no set height its orthogonal input would otherwise take the
+// viewport's. Given a height, it grows to fill the track group less the value
+// readout below it, so the readout stays inside; it is never shorter.
+.classicySliderInputVertical {
+  position: relative; // nudged onto the pixel grid by `left`
+  writing-mode: vertical-lr;
+  direction: rtl; // min at the bottom, max at the top
+  width: $thumb-h;
+  height: var(--slider-vertical-min-height);
+  min-height: var(--slider-vertical-min-height);
+  flex: 1 1 auto;
+
+  // The horizontal channel turned a quarter: as wide as that one is tall,
+  // the full length (the browser centers it across the input, as it does
+  // the horizontal one down it).
+  &::-webkit-slider-runnable-track {
+    width: $track-h;
+    height: auto;
+  }
+
+  &::-moz-range-track {
+    width: $track-h;
+    height: auto;
+  }
+
+  // The thumb centered across the channel. Chromium places a vertical thumb
+  // from the channel's center line, not its edge as a horizontal one, so its
+  // offset is the horizontal centering offset less half the channel: minus
+  // half the thumb, rounded up to a whole pixel. A thumb box on a half pixel
+  // (an odd thumb across an even channel) would be resampled differently by
+  // each pointing direction's quarter turn; on a whole pixel either turn is
+  // exact, and both directions sit the same. A package that places its
+  // thumb by its own knobs (Platinum: its indicator's flat side three pixels
+  // past the channel, its point six past) sets its own margin over this.
+  &::-webkit-slider-thumb {
+    margin-top: 0;
+    margin-left: round(up, calc(#{$thumb-margin-top} - #{$track-half}), var(--window-border-size));
+  }
+}
+
+// With ticks the input sits in a stack beside them: a row, where the
+// horizontal slider's (above) is a column. Its track layer takes the stack's
+// height outright, not only by stretching, so the orthogonal input's 100%
+// resolves against it and not the viewport.
+.classicySliderStackVertical {
+  position: relative; // nudged onto the pixel grid by `left`
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1 1 auto;
+  width: auto;
+  height: var(--slider-vertical-min-height);
+  min-height: var(--slider-vertical-min-height);
+
+  .classicySliderTrackLayer {
+    flex: 0 0 auto;
+    height: 100%;
+  }
+
+  // The input fills its layer.
+  .classicySliderInputVertical {
+    flex: 0 0 auto;
+    height: 100%;
+  }
+
+  // Rail runs alongside the vertical track; ticks are placed by `top`,
+  // inverted so 0% sits at the bottom (matching direction: rtl).
+  .classicySliderTicks {
+    padding: $vertical-rail-inset;
+    width: calc(var(--slider-tick-length) + var(--window-border-size));
+    height: auto;
+  }
+
+  .classicySliderTick {
+    top: auto;
+    left: var(--window-border-size);
+    bottom: var(--classicy-tick-left);
+    width: var(--slider-tick-length);
+    height: var(--window-border-size);
+    transform: translateY(50%);
+  }
+
+  // Inset along the track as the tick rail is, so each label sits beside
+  // its tick.
+  .classicySliderTickLabels {
+    padding: $vertical-rail-inset;
+    width: auto;
+    height: auto;
+  }
+
+  .classicySliderTickLabel {
+    left: auto;
+    bottom: var(--classicy-tick-left);
+    transform: translateY(50%);
   }
 }

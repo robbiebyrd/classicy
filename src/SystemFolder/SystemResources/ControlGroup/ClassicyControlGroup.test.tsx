@@ -79,12 +79,14 @@ describe("ClassicyControlGroup", () => {
 		);
 	});
 
-	it("gives the legend the default theme background color", () => {
+	// The face behind the title is the package's (Platinum's partial), so a
+	// package that draws another face can paint it: no inline color.
+	it("leaves the legend's background to the package by default", () => {
 		render(
 			<ClassicyControlGroup label="Settings">{null}</ClassicyControlGroup>,
 		);
 		const legend = screen.getByText("Settings") as HTMLElement;
-		expect(legend.style.backgroundColor).toBe("var(--color-system-03)");
+		expect(legend.style.backgroundColor).toBe("");
 	});
 
 	it("gives the legend a custom background color when the prop is provided", () => {

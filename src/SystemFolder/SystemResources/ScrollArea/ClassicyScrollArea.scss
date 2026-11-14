@@ -1,0 +1,167 @@
+@use "../../../Appearance/vocabulary/layout";
+
+// ClassicyScrollArea's structure: where the viewport, bars, arrows, track,
+// thumb and corner go and how big they are. Every look (borders, bevels,
+// arrow glyphs, the thumb's grip) is an Appearance Package's, on the parts'
+// classes and `data-classicy-part` attributes.
+//
+// The root is a column: the body (viewport and vertical bar side by side)
+// over the foot (horizontal bar and corner), so the bars take their room
+// from the viewport as a browser's scroll bars take it from the padding box,
+// whether the root's height is fixed, capped by max-height or its content's.
+
+// No specificity, so a caller's class on the root (a list box's height
+// limits, a window's contents) wins wherever its stylesheet is bundled.
+:where(.classicyScrollArea) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+// The area's background color is the viewport's, as a scroll container
+// paints its own beneath its scrolling content (the browser rasterizes the
+// content over it; over a transparent scroller its text antialiases a level
+// lighter).
+:where(.classicyScrollAreaBody, .classicyScrollAreaViewport) {
+  background-color: inherit;
+}
+
+.classicyScrollAreaBody {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+// The scroller. The browser's own bars are hidden (`scrollbar-width` for
+// Firefox and Chromium, the pseudo-element for Safari before 18.2).
+.classicyScrollAreaViewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.classicyScrollAreaViewportClipped {
+  overflow: hidden;
+}
+
+.classicyScrollAreaFoot {
+  display: flex;
+  flex: none;
+}
+
+// A bar and the corner sit on the device-pixel grid, as a browser's own
+// bars do: ClassicyScrollArea measures each one's fraction of a pixel and
+// sets the nudge (snapClassicyScrollPart).
+.classicyScrollBar,
+.classicyScrollAreaCorner {
+  position: relative;
+  top: var(--classicy-scroll-snap-y, 0);
+  left: var(--classicy-scroll-snap-x, 0);
+}
+
+.classicyScrollBar {
+  display: flex;
+  flex: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  @include layout.classicy-no-select;
+}
+
+.classicyScrollBarVertical {
+  flex-direction: column;
+  width: var(--window-scrollbar-size);
+}
+
+.classicyScrollBarHorizontal {
+  flex: 1 1 auto;
+  flex-direction: row;
+  min-width: 0;
+  height: var(--window-scrollbar-size);
+}
+
+// Arrangement: the arrows at either end of the track (the browser's split
+// arrows). A package groups them by reordering.
+[data-classicy-part="scroll-arrow-start"] {
+  order: 10;
+}
+
+[data-classicy-part="scroll-track"] {
+  order: 20;
+}
+
+[data-classicy-part="scroll-arrow-end"] {
+  order: 30;
+}
+
+.classicyScrollBarArrow {
+  flex: none;
+  box-sizing: border-box;
+  width: var(--window-scrollbar-size);
+  height: var(--window-scrollbar-size);
+}
+
+.classicyScrollBarTrack {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+}
+
+// The thumb lies over the track: offset from the bar's start and sized by
+// ClassicyScrollArea (whole pixels, as a browser's thumb).
+.classicyScrollBarThumb {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.classicyScrollBarVertical .classicyScrollBarThumb {
+  top: var(--classicy-scroll-thumb-offset);
+  right: 0;
+  left: 0;
+  height: var(--classicy-scroll-thumb-length);
+}
+
+.classicyScrollBarHorizontal .classicyScrollBarThumb {
+  top: 0;
+  bottom: 0;
+  left: var(--classicy-scroll-thumb-offset);
+  width: var(--classicy-scroll-thumb-length);
+}
+
+// An on-release drag's outline (a package's `layout.scrollBar.thumbDrag`):
+// over the track like the thumb, offset and sized by ClassicyScrollArea, and
+// drawn above the thumb it leaves in place. The package draws it.
+.classicyScrollBarDragOutline {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.classicyScrollBarVertical .classicyScrollBarDragOutline {
+  top: var(--classicy-scroll-outline-offset);
+  right: 0;
+  left: 0;
+  height: var(--classicy-scroll-outline-length);
+}
+
+.classicyScrollBarHorizontal .classicyScrollBarDragOutline {
+  top: 0;
+  bottom: 0;
+  left: var(--classicy-scroll-outline-offset);
+  width: var(--classicy-scroll-outline-length);
+}
+
+.classicyScrollAreaCorner {
+  flex: none;
+  box-sizing: border-box;
+  width: var(--window-scrollbar-size);
+  height: var(--window-scrollbar-size);
+}

@@ -1,0 +1,39 @@
+// The System 7 control labels and links (plan 0018-dbd §3.5), included by
+// system7.scss inside the package wrapper.
+//
+// - A dimmed control's label is drawn in the dimmed ink through the dither:
+//   50% gray in 1-bit, true gray in color (HIG p.207; Standard File's dimmed
+//   items).
+// - System 7 had no links. A link is the text's own black, underlined, in
+//   both themes (the HIG keeps controls black on white, p.259, and warns
+//   against blue for text, p.265); pressed, it inverts like a selection, and
+//   dimmed, it takes the dimmed ink.
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+@mixin label {
+  :where(.classicyControlLabel).disabled {
+    @include d.classicy-dither-text("--color-theme-06");
+  }
+
+  .classicyLink {
+    color: var(--color-black);
+
+    &:hover {
+      color: var(--color-black);
+    }
+
+    &:active {
+      color: var(--color-white);
+      background-color: var(--color-highlight);
+    }
+
+    &:focus-visible {
+      outline: $px dotted var(--color-black);
+    }
+  }
+
+  :where(.classicyLink).disabled {
+    @include d.classicy-dither-text("--color-theme-06");
+  }
+}

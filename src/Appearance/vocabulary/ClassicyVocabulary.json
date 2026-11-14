@@ -73,11 +73,13 @@
 			"ColorsGrid",
 			"ColorsGroup",
 			"ColorsScroll",
+			"ColorsScrollViewport",
 			"Content",
 			"DesktopControls",
 			"DesktopOptionsColumn",
 			"DesktopOptionsRow",
 			"DesktopPreview",
+			"DesktopPreviewNone",
 			"DesktopRow",
 			"FontsColumn",
 			"FontsLabel",
@@ -94,6 +96,7 @@
 			"AccessoryIconMd",
 			"AccessoryIconSm",
 			"Body",
+			"BodyViewport",
 			"Footer",
 			"FooterButtons",
 			"Header",
@@ -162,6 +165,7 @@
 			"DialogFooter",
 			"ModeList",
 			"ModeListItem",
+			"ModeListViewport",
 			"Preview",
 			"Slider",
 			"SliderBlack",
@@ -278,7 +282,7 @@
 			"Native",
 			"RemoveGlyph"
 		],
-		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
+		"FileOpenDialog": ["Actions", "Body", "Footer", "Well", "WellViewport"],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -300,6 +304,7 @@
 			"InspectorField",
 			"InspectorRow",
 			"LockedField",
+			"LockedFieldText",
 			"MissingPart",
 			"Palette",
 			"PaletteEntry",
@@ -331,9 +336,9 @@
 			"Prompt"
 		],
 		"Link": [],
-		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
+		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
-		"Menu": [],
+		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",
@@ -382,6 +387,9 @@
 			"ListItemHighlight",
 			"ListItemIcon",
 			"ListItemLabel",
+			"ScrollArrow",
+			"ScrollArrowDown",
+			"ScrollArrowUp",
 			"SizeLarge",
 			"SizeMedium",
 			"SizeMini",
@@ -404,6 +412,17 @@
 			"ManagerContent",
 			"Overlay",
 			"OverlayTransparent"
+		],
+		"ScrollArea": ["Body", "Corner", "Foot", "Viewport", "ViewportClipped"],
+		"ScrollBar": [
+			"Arrow",
+			"ArrowEnd",
+			"ArrowStart",
+			"DragOutline",
+			"Horizontal",
+			"Thumb",
+			"Track",
+			"Vertical"
 		],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
@@ -449,7 +468,10 @@
 		],
 		"Tabs": [],
 		"TextEditor": [
+			"Area",
+			"AreaAutoHeight",
 			"AutoHeight",
+			"Bevel",
 			"Border",
 			"Holder",
 			"SizeLarge",
@@ -486,6 +508,7 @@
 			"ContentsModal",
 			"ContentsModalInner",
 			"ContentsNotDimmed",
+			"ContentsSelfPadded",
 			"ContentsWithHeader",
 			"ControlBox",
 			"Document",
@@ -500,6 +523,7 @@
 			"Menu",
 			"MenuBar",
 			"Modal",
+			"ModalFixed",
 			"ModalFront",
 			"ModalScrim",
 			"ModalScrimError",
@@ -538,7 +562,8 @@
 		"default",
 		"checked",
 		"mixed",
-		"expanded"
+		"expanded",
+		"fits"
 	],
 	"attributes": {
 		"data-classicy-control": ["close", "zoom", "collapse"],
@@ -554,7 +579,16 @@
 			"modifier-control",
 			"modifier-option",
 			"modifier-shift",
-			"modifier-command"
+			"modifier-command",
+			"scrollbar",
+			"scroll-arrow-start",
+			"scroll-track",
+			"scroll-arrow-end",
+			"scroll-thumb",
+			"scroll-corner",
+			"scroll-drag-outline",
+			"menu-scroll-up",
+			"menu-scroll-down"
 		]
 	}
 }

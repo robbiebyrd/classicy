@@ -1,0 +1,111 @@
+// The System 7 package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="system7"]`. The
+// look is built element by element (plan 0018-dbd Phase 3), each element a
+// components/_<Name>.scss partial exposing one mixin, included inside the
+// wrapper below: so far the windows (§3.2), the menus and menu bar (§3.3),
+// the dialogs, alerts and push buttons (§3.4), the controls (§3.5), the
+// scroll bars (§3.6), the desktop, its icons, the Control Strip and the tab
+// control (§3.7), and the arrangement System 7 shares with no other package;
+// then, at the block's root, the screen savers (§3.8, _screenSavers.scss).
+@use "pkg:@classicy/classicy/scss/package";
+@use "components/Window";
+@use "components/Menu";
+@use "components/MenuBar";
+@use "components/PopUpMenu";
+@use "components/Dialog";
+@use "components/Alert";
+@use "components/Button";
+@use "components/Label";
+@use "components/Checkbox";
+@use "components/LittleArrows";
+@use "components/Slider";
+@use "components/Triangle";
+@use "components/TextField";
+@use "components/ListBox";
+@use "components/ControlGroup";
+@use "components/ProgressBar";
+@use "components/FlatControls";
+@use "components/ScrollBar";
+@use "components/Desktop";
+@use "components/Icon";
+@use "components/ControlStrip";
+@use "components/Tabs";
+@use "components/AppearanceManager";
+@use "screenSavers";
+
+@include package.classicy-package("system7") {
+  @include Window.window;
+  @include Menu.menu;
+  @include MenuBar.menu-bar;
+  @include PopUpMenu.pop-up-menu;
+  @include Dialog.dialog;
+  @include Alert.alert;
+  @include Button.button;
+  @include Label.label;
+  @include Checkbox.checkbox;
+  @include LittleArrows.little-arrows;
+  @include Slider.slider;
+  @include Triangle.triangle;
+  @include TextField.text-field;
+  @include ListBox.list-box;
+  @include ControlGroup.control-group;
+  @include ProgressBar.progress-bar;
+  @include FlatControls.flat-controls;
+  @include ScrollBar.scroll-bar;
+  @include Desktop.desktop;
+  @include Icon.icon;
+  @include ControlStrip.control-strip;
+  @include Tabs.tabs;
+  @include AppearanceManager.appearance-manager;
+
+  // The browser's own controls take black, not the base sheet's accent
+  // (`--color-theme-04`, the Standard window color's #666699 in color):
+  // System 7 drew every control black on white (HIG p.259).
+  &,
+  * {
+    accent-color: var(--color-black);
+  }
+
+  // List markers take their text's color, not the base sheet's
+  // `--color-theme-02` (white in 1-bit), so they stay visible on inverted
+  // text too.
+  *::marker {
+    color: currentColor;
+  }
+
+  // Selected text inverts in both themes: white on the highlight color,
+  // black in both (System 7.5's default "Black & White", HIG p.260), where
+  // the base sheet paints `--color-theme-02` (white in 1-bit, lavender in
+  // color).
+  *::selection {
+    color: var(--color-white);
+    background: var(--color-highlight);
+  }
+
+  // System 7 windows have no collapse box: WindowShade's box is Mac OS 8's
+  // (HIGOS8 p.103); the System 7 HIG has a close box (p.152) and a zoom box
+  // (p.168) only.
+  // A package may hide a part but never remove it, so the collapse behavior
+  // stays reachable from code.
+  .classicyWindowTitleBar [data-classicy-control="collapse"] {
+    display: none;
+  }
+
+  // The dither vocabulary's checker tile (`ditherChecker`,
+  // `@classicy/classicy/scss/dither`): a 2 x 2 tile, its upper right and
+  // lower left cells opaque, so the ink falls on the other two. Drawn here
+  // from CSS, pixel-exact at 1x (ruling of plan 0018-dbd Phase 3); a
+  // registered `ditherChecker` file, which the desktop root sets inline,
+  // takes its place. The 1-bit theme sizes it (`dither.tileSize` 2); the
+  // color theme's 0 draws plain ink.
+  --classicy-art-dither-checker: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0);
+
+  // The screen savers (§3.8): in the package layer, but at its root, outside
+  // the package scope, keyed on their own classes, as in Platinum's sheet
+  // (see _screenSavers.scss). Last, so the reduced-motion pause that ends
+  // them is the sheet's last rule.
+  @at-root {
+    @include screenSavers.screenSavers;
+  }
+}

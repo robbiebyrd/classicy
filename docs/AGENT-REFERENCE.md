@@ -50,6 +50,16 @@ import '@classicy/appearance-platinum'
 import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
 ```
 
+The System 7 package, `@classicy/appearance-system7` (§8, "System 7"), is
+installed and imported the same way, alone or beside Platinum
+(`pnpm add @classicy/classicy @classicy/appearance-system7`;
+`import '@classicy/appearance-system7'`). A host lists every package it loads
+at one version and bumps them together; mixing versions of the two
+Appearance Packages is unsupported. Everything below that names Platinum's
+files has a System 7 twin: `classicy-system7.css`,
+`classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
+its own `dist/assets/`.
+
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
 nothing else), `classicy.base` gives `html`, `body` and those elements
@@ -138,7 +148,8 @@ sound sprites are files in `@classicy/appearance-platinum`'s `dist/assets/`,
 referenced as `new URL("assets/…", import.meta.url)`. Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which rewrites those
 URLs, so they would come back as the SPA fallback page. Keep both packages out
-of the pre-bundle:
+of the pre-bundle (and `@classicy/appearance-system7`, when the host loads
+it):
 
 ```ts
 // vite.config.ts
@@ -277,7 +288,7 @@ Package `exports` map:
 | `@classicy/classicy/dist/classicy.css` | The stylesheet the bundle injects; link it yourself only under a strict CSP |
 | `@classicy/classicy/fonts` | Deprecated no-op kept so existing `import '@classicy/classicy/fonts'` lines keep resolving |
 | `@classicy/classicy/dist/*` | Anything in dist (the bundles, `classicy.css`, `types/`; no package's files) |
-| `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers") |
+| `@classicy/classicy/scss/*` | Raw SCSS partials (the Classicy vocabulary: states, layout helpers, classicy-package): `@classicy/classicy/scss/vocabulary` (`$classicy-states`, `classicy-state()`; §4.0.1), `@classicy/classicy/scss/layout` (`classicy-px-rect()`, `classicy-no-select`), `@classicy/classicy/scss/package` (`classicy-package($id)`, §8), `@classicy/classicy/scss/color` (`classicy-tint()`, `classicy-shade()`, `classicy-alpha()`; §8, "Color helpers"), `@classicy/classicy/scss/dither` (`classicy-dither-mask`, `classicy-dither-text()`, `classicy-dither-line()`; §8, "Dither vocabulary") |
 
 `@classicy/appearance-platinum`'s `exports` map (3.0; the core's 2.x
 `@classicy/classicy/appearance/platinum` and
@@ -639,7 +650,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Help menu is when the active package registers the `helpMenuTitle` system art; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -687,6 +698,7 @@ instead:
 | `<img>` (droppable image slot) | `ClassicyImageWell` | plain static images: keep raw `<img>` |
 | `<img>` + caption (icon with label) | `ClassicyIcon` / `ClassicyDesktopIcon` | |
 | `<nav>` (top-level chrome) | `ClassicyDesktopMenuBar` | mounted automatically by `ClassicyDesktop` |
+| a `<div>` with `overflow: auto` (a scrolling region) | `ClassicyScrollArea` | the content scrolls natively; Classicy draws the bars (the package's look, in every browser). A raw scroller still gets the package's native-bar styling where the browser allows it (Platinum: WebKit and Chromium only) |
 
 **Classicy-only components with no HTML counterpart** (the desktop metaphor —
 there is no raw element to replace): `ClassicyDesktop`, `ClassicyApp`,
@@ -711,12 +723,13 @@ Classicy from outside (host CSS, appearance packages, end-to-end tests). They
 are generated from `src/Appearance/vocabulary/ClassicyVocabulary.json` into
 `ClassicyVocabulary.ts` and `_vocabulary.scss`; never hand-edit those two.
 
-**State classes.** State is one of 15 bare classes set *beside* the
+**State classes.** State is one of 16 bare classes set *beside* the
 component's root class, never folded into a longer class name and never in a
 `data-state` attribute (Classicy emits no `data-state` anywhere):
 
 `active` `inactive` `disabled` `selected` `pressed` `focused` `hover`
 `collapsed` `open` `dragging` `error` `default` `checked` `mixed` `expanded`
+`fits`
 
 ```css
 .classicyButton.pressed { … }           /* not .classicyButtonPressed */
@@ -737,16 +750,19 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyMenu` items | `disabled`, `open` |
 | `ClassicyTabs` tab buttons; `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
-| `ClassicyPopUpMenu` | `open`, `disabled` |
+| `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
+| `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb |
 
 Not every declared state has a component row above:
 
-- `active` and `inactive` are set only by `ClassicyWindow`, from the window
+- `active` and `inactive` are set by `ClassicyWindow`, from the window
   manager's focus rather than a prop: the focused window (and every modal) is
-  `active`, every other open window `inactive`. No other component sets them.
+  `active`, every other open window `inactive`. `ClassicyScrollArea` sets
+  `inactive` on its root and bars from the window it is drawn in (through
+  `ClassicyWindowActiveContext`), unless its `inactive` prop says otherwise.
 - `hover`, `focused` and `expanded` are declared for appearance packages and
   hosts, but no Classicy component sets them and no Classicy rule reads them
   yet. Classicy styles hover and focus with the `:hover` and `:focus-visible`
@@ -801,7 +817,7 @@ on Classicy's internal class names carry one of three attributes
 |---|---|---|
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); and each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -810,7 +826,10 @@ document.querySelector('[data-classicy-part="clock"]')
 ```
 
 These parts are flex items in explicit `order`, so an Appearance Package
-rearranges them with CSS `order` alone; see "Layout declarations" in §8.
+rearranges them with CSS `order` alone; see "Layout declarations" in §8. A
+scroll bar's arrows and track are ordered 10, 20 and 30 (an arrow at either
+end); Platinum orders the start arrow 25 to group both at the end (Mac OS 8's
+Smart Scrolling), and back to 10 under `.classicyDesktopSplitArrows`.
 
 **`className` and `style` passthrough.** Every exported component that
 renders an element of its own takes `className` and `style` and applies them
@@ -885,7 +904,8 @@ and icon states own:
   only transient alerts (`ClassicyOpenUrlController`,
   `DriveSetupController`); and the components that render a run of sibling
   elements into their parent (`QuickTimeSeekBar`, `QuickTimeVolumeControl`,
-  `ClassicySchemaForm`, `ClassicyScreenSaverConfigForm`). Style the elements
+  `ClassicySchemaForm`, `ClassicyScreenSaverConfigForm`,
+  `ClassicyWindowSelfPadding`). Style the elements
   those produce
   (windows, desktop icons, controls) instead.
 
@@ -921,7 +941,9 @@ manager. Must be a descendant of `ClassicyApp`.
 | `title` | `string` | `""` |
 | `icon` / `hideIcon` | `string` / `boolean` | file icon / `false` |
 | `closable` / `zoomable` / `collapsable` / `resizable` / `scrollable` | `boolean` | all `true` |
+| `fitsScrollBars` | `boolean` | the package's `layout.scrollBar.fitsBars` for a resizable, non-utility window, else `false`: keep both bars (`fits`) while the content fits |
 | `modal` | `boolean` | `false` |
+| `movable` | `boolean` | `true` (modal only) |
 | `defaultWindow` | `boolean` | `false` |
 | `initialSize` / `minimumSize` | `[w, h]`, each `number \| "\${number}%"` | `[350, 0]` / `[300, 0]` (0 = auto) |
 | `initialPosition` | `[x, y]` — x: `number \| "left" \| "center" \| "right"`, y: `number \| "top" \| "center" \| "bottom"` | `[110, 110]` |
@@ -964,12 +986,63 @@ content-box size of the zoomed ("standard") state for `zoomMode="full"`
 store record's `closed` flag wins. `growable` stretches the content area to the
 window's full height instead of sizing it to its content. `type="error"` on a
 `modal` window makes a fixed alert: it cannot be dragged, beeps when it opens,
-and stacks in the red error band above other modals.
+and stacks in the red error band above other modals. `movable={false}` on a
+`modal` window makes a fixed modal that is not an alert (HIGOS8 p.60's
+non-movable modal dialog box; System 7's Standard File, Print, Page Setup):
+it cannot be dragged, but it does not beep when it opens, draws the ordinary
+modal scrim and stacks in the modal-front band with the other dialogs. An error
+modal is fixed whatever `movable` says, and `movable` does nothing on a
+non-modal window (a development build logs a `Window` warning, once per
+window). The name is the HIG's: a modal is a "movable modal dialog
+box" unless it says otherwise, and `ClassicyAlert`'s `movable` reads the same
+way (an alert is fixed unless `movable`). Both fixed kinds carry
+`classicyWindowModalFixed` on the root (a fixed modal dialog box, which in
+System 7 has no title bar, HIG p.190); a movable modal does not, so a package
+can drop the title bar of the fixed one only. Both packages drop it for a
+`movable={false}` modal: Platinum draws HIGOS8's figure 3-3 (p.60), no title
+bar (the drag affordance of a movable modal, p.59) and the items on one
+placard-like face inside the window's frame and bevel, with no line across
+the top and no second bevel on the contents
+(`.classicyWindowModalFixed:not(.classicyWindowRed)`). Platinum's fixed
+alert keeps its red title bar. With no title bar, such a modal has no close
+or collapse box to show, so pass `closable={false}` (Escape then beeps) and
+`collapsable={false}`, and dismiss it with its own buttons.
+
+A modal's inner area (`.classicyWindowContentsModalInner`) carries
+`classicyWindowContentsSelfPadded` while its content root lays itself out
+from the window's edge, padding its own root: `ClassicyAlert`,
+`ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog` and
+`ClassicyForm layout="dialog"`. They say so through a context: content calls
+`useClassicyWindowSelfPadding(enabled?, rootRef?)`, or a component that
+renders the window itself wraps the content it passes in
+`<ClassicyWindowSelfPadding rootRef={…}>` (no DOM of its own). With
+`rootRef`, the element that pads itself, the claim holds only while that
+element is the window's content root, a direct child of its inner area
+(`.classicyWindowContentsInner`), the element the old `:has(> …)` matched:
+nested deeper among other content, or rendered through a portal, it does not
+claim and the window keeps the package's inset. The four dialogs pass their
+root. Without `rootRef` the window cannot tell where the claimant is, so the
+claim covers its whole content wherever in the tree (portals included) the
+caller renders; claim that way only from the content root. Only the nearest
+window is marked, only while it is modal, and only while a claimant is
+mounted. A package that insets dialog items itself skips those (System 7
+does, below); Platinum does not read the class. A host's own self-padding
+dialog content claims it the same way.
 
 A scrollable window draws its scroll bars only while its content overflows
 (or it has a `placard`, which lives in the bottom gutter), and then draws both
-bars, as Mac OS 8 does — the non-scrolling axis shows an empty track so the
-grow box keeps its corner. Content that fills the window and scrolls itself (a
+bars, as Mac OS 8 does — the non-scrolling axis shows an empty track (`fits`)
+so the grow box keeps its corner. `fitsScrollBars` keeps both bars drawn
+always, each in the `fits` state while its axis has nothing to scroll. It
+defaults to the package's `layout.scrollBar.fitsBars` (`"shown"` under
+System 7, HIG p.160) for a document window, one with a size box
+(`resizable`) that is not a utility window, else `false`. A window whose
+content is not a document passes `false`: the bundled Movie Player, Picture
+Viewer and HyperCard card windows do. Which bars the window needs comes
+from its `ClassicyScrollArea`'s `onOverflowChange`; the window observes
+nothing itself. Its contents are a `ClassicyScrollArea`
+(§4.4): the bars are Classicy's own, drawn by the Appearance Package, and
+`inactive` while the window is. Content that fills the window and scrolls itself (a
 full-window `<textarea>`, `ClassicySplitView` panes, a pan surface) must pass
 `scrollable={false}`, or its inner scrolling counts as overflow and the window
 shows a second set of bars beside the inner ones.
@@ -1036,22 +1109,22 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
-| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is rounded with `"nondirectional"`; `highlighted` fills the thumb with the theme accent; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label |
-| `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?` | plain textarea |
+| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
+| `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?`, `fitsScrollBars? (false)` | plain textarea. `fitsScrollBars` keeps both bars drawn (`fits`) while the text fits, for a document editor that fills its window; SimpleText passes the package's declaration (`useClassicyFitsScrollBars()`), so its plain-text window keeps its bars under System 7 |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
-| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs |
-| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard |
-| `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic; focus stays in the input (`aria-activedescendant`) |
+| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
+| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
+| `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic and its scroll indicators; focus stays in the input (`aria-activedescendant`) |
 
 ### 4.4 Labels, grouping, display
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
 | `ClassicyControlLabel` | `label?`, `labelFor?`, `id?` (the `<label>`'s id, for `aria-labelledby`), `labelSize?`, `icon?`, `direction?`, `disabled?`, `onClickFunc?` | renders nothing when label empty; the row is a focusable `role="button"` only with `onClickFunc` |
-| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
+| `ClassicyControlGroup` | `children` *, `label?`, `title?` (`ReactNode`; overrides `label`), `backgroundColor?` (painted behind the title so it masks the frame line; match the surface the group sits on; default: the package's window face, Platinum `var(--color-system-03)`), `variant? ("primary"\|"secondary")`, `checkboxTitle?`, `popUpMenuTitle?`, `columns?`, `layout? ("default"\|"form")` | fieldset-style group; title can be a checkbox or popup. `layout="form"` is the HIG two-column label/control grid (labels 5px from fields, rows 6px apart; give controls `labelPosition="left"`) |
 | `ClassicyControlGroupFormRow` | `children` *, `justify? ("start"\|"end")` | full-width row inside a `layout="form"` group for anything that is not a label/control pair (checkbox, push button, text); `end` puts a button at the group's lower right |
 | `ClassicyControlGroupStack` | `children` *, `className?` | column of group boxes 12px frame to frame (`--group-box-gap`); the content of a control panel that is a stack of groups |
 | `ClassicySchemaForm` | `schema` * (a zod object), `values` *, `onChange(path, value)` *, `idPrefix` *, `path?` | the rows of a `ClassicyControlGroup layout="form"`, derived from a zod object: number → spinner, boolean → checkbox, enum → pop-up menu, string → text field (label above), a nested object → a titled group on a full-width row laying out its own fields; other types render nothing. A field's label is its `.describe()` text, else the humanized key (`speedSeconds` → "Speed seconds", `classicySchemaFieldLabel`); control ids are `<idPrefix>_<key>` for a top-level key and `<idPrefix>_<path…>.<key>` for a nested one, each segment with `%` and `.` percent-encoded so a key such as `a_b` can never take a nested field's id (`classicySchemaFieldId`); `unwrapClassicySchemaField(field)` peels `.optional()`/`.default()`/`.nullable()`/`.readonly()` and returns `{ schema, description }`, the outermost `.describe()` text winning, which is how the form reads a field's kind and label; `onChange` gets the field's full path. A number field reports its entry clamped to `.min()`/`.max()` (no `.min()`: 0, so a negative entry reports 0) and rounded for `.int()`; an empty or non-numeric entry reports nothing. Display gap (the shared spinner): an `.int()` field keeps showing the fraction typed, and an emptied field shows its minimum, until the next edit or a new value re-syncs it. No root of its own, so no `className`/`style`. The Screen Saver options and the Appearance Manager's Options tab use it |
@@ -1066,9 +1139,10 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
+| `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
 (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
@@ -1077,7 +1151,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` * | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?` | low-level; usually not used directly |
@@ -1146,7 +1220,7 @@ plain integers (`0xRRGGBB`).
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
 | `ClassicyDesktopMenuWidgetSound` | `hide?` | **deprecated** — menu-bar mute toggle, no longer mounted. Use the Control Strip's built-in Sound module (`classicy-sound`, registered by `ClassicySoundManagerProvider`). Still exported; logs a one-time `classicyLog` warning in dev builds when mounted. It no longer floats right: the menu bar places its clusters by flex `order`, so mounted in a container that is not a flex row it floats left |
 | `ClassicyControlStrip` | `disabledModules?` (module ids), `defaultCollapsed?`, `defaultWidth?`, `className?` | Mac OS 8 Control Strip (HIGOS8 p.125, Figure 6-15): floating strip at the desktop's lower left — collapse box, scroll arrows, modules, draggable tab; widths snap to whole modules. Control-dragging the collapse box moves it up or down and docks it to the left or right edge (the pointer's half of the desktop; mirrored when docked right), stored as `edge`/`bottom` via `ClassicyDesktopControlStripSetPosition {edge: "left"\|"right", bottom}` (px above the desktop's bottom; `computeClassicyControlStripPosition` is the pure placement). `ClassicyDesktop` mounts it (`controlStrip` prop: its props, or `false` to hide). Shows every registered module (below) not in `disabledModules` and not hidden by the user. Collapsed state, width, user-hidden ids and user order persist in `System.Manager.Desktop.controlStrip` (`ClassicyDesktopControlStripSetVisible {visible}`, `…SetCollapsed {collapsed}`, `…SetWidth {width\|null}`, `…SetModuleHidden {moduleId, hidden}`, `…SetModuleOrder {moduleOrder}`); the defaults apply until the user changes them. Its contextual menu: Hide Control Strip, Open Control Strip Control Panel |
-| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
+| `registerClassicyControlStripModule(def)` | `id` *, `label` *, `icon` * (string or hook), `appId?`, `order? (100)`, `menuItems?` (array or hook), `content?` (component), `fileIcon?` (its file's 32 px icon; default the core's generic module file icon; a core icon URL, `ClassicyIcons.*`, draws as the active package's, though it misses a later re-registration of its key, §5) | adds a module; call at module scope. Live (`useSyncExternalStore`). Same `appId` re-registering replaces; another `appId` is ignored with a warning. With `appId`, shown only while that `ClassicyApp` is mounted (`useClassicyMountedApps`). Each module also appears as a file in `System Folder:Control Strip Modules`. A module with `appId` is shown by that app's display name when the active package renames the app (`classicyControlStripModuleLabel(module, overrides)`: the button's `aria-label`, the Control Strip control panel and the module's file name), else by its `label`. Also `unregisterClassicyControlStripModule(id)`, `getClassicyControlStripModule(id)`, `listClassicyControlStripModules()`, `arrangeClassicyControlStripModules(registrations, {disabledModules?, moduleOrder?, mountedApps})`, `classicyControlStripOpenControlPanelItem(dispatch, panelName, app)` (HIG p.125 "Open … Control Panel"). Built-in ids: `CLASSICY_CONTROL_STRIP_MODULE_IDS` (`sound` → `classicy-sound`, order 10; `screenSaver` → `classicy-screen-saver`, order 20, owned by `ScreenSaver.app`) |
 | `ClassicyControlStripManager` | none | the Control Strip control panel (`ControlStripManager.app`, in `ClassicyControlPanels`): show/hide the strip; show/hide and reorder each module the host has not disabled |
 | `ClassicyPopUpSlider` | `value` *, `onChange(value)` *, `ariaLabel` *, `min? (0)`, `max? (100)`, `step? (1)`, `disabled?` | HIGOS8 Figure 2-16's vertical slider (17 × 73) for a bevel button's `popupContent`; drag/click, arrows, Page Up/Down, Home/End |
 | `ClassicyPixelArt` | `rows` (`string[]` of palette tokens, `.` transparent) **or** `art` (a `ClassicySystemArtKey` holding pixel art, read from the active package at render time), `className?`, `style?` | themed, pixel-exact inline-SVG art (tokens `K W 1–7 b c d m n` map to theme colors). `useClassicyPixelArtRows(key)` returns a key's rows; a package registers rows as system art with `encodeClassicyPixelArtRows(rows)` (a `data:text/x-classicy-pixel-art,…` source, `CLASSICY_PIXEL_ART_MIME`), and `decodeClassicyPixelArtRows(src)` reads one back outside React |
@@ -1316,12 +1390,12 @@ existing asset with an empty namespace.
 
 ```ts
 import {
-    registerClassicyAssets,   // (kind, packageId, tree) — the primitive
+    registerClassicyAssets,   // (kind, packageId, tree, options?: { variant? }) — the primitive
     registerClassicyIcons,    // <T extends ClassicyAssetTree>(icons: T, packageId = "platinum"): T
-    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>)
+    registerClassicyCursors,  // (packageId, Partial<Record<ClassicyCursorRole, ClassicyAssetSource | { src, hotspot: [x, y] }>>, options?)
     registerClassicyWallpapers, // (packageId, Array<{ name: string; src: ClassicyAssetSource; file?: string; legacyDigests?: string[] }>)
     registerClassicyFonts,    // (packageId, ClassicyFontFace[])
-    registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>)
+    registerClassicySystemArt, // (packageId, Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>, options?)
 } from '@classicy/classicy'
 
 // ClassicyFontFace = { family: string; src: ClassicyAssetSource | ClassicyAssetSource[];
@@ -1330,7 +1404,7 @@ import {
 // Module scope in your entry file, before the first render:
 export const AppIcons = registerClassicyIcons({ myApp: { app: tvIcon } })  // returns its argument, typed
 registerClassicySystemArt('platinum', { aliasBadge: myAliasArrow })       // replaces ONE key, nothing else
-registerClassicyCursors('platinum', { hand: myHand })
+registerClassicyCursors('platinum', { hand: myHand, ibeam: { src: myIBeam, hotspot: [7, 4] } })
 registerClassicyWallpapers('platinum', [{ name: 'Bubbles', file: 'bubbles.png', src: bubblesPng }])
 registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
 ```
@@ -1437,19 +1511,104 @@ const url = resolveClassicyAsset('cursors', 'hand')   // string | undefined
 const wallpapers = useClassicyAssetTree('wallpapers')
 ```
 
-- `resolveClassicyAsset(kind, dottedPath, packageId?)` returns the leaf from the
-  given (or active) package, then the default package's
-  (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`, `"platinum"`, where the core's
-  icon tree registers), else `undefined`. Components use `?? ""`.
+- `resolveClassicyAsset(kind, dottedPath, packageId?, variant?)` returns the
+  leaf from the given (or active) package's variant tree, then its base tree,
+  then the default package's (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`,
+  `"platinum"`, where the core's icon tree registers), else `undefined`.
+  Components use `?? ""`.
+- **Per-theme variants**: `registerClassicyAssets(kind, packageId, tree, {
+  variant: "bw" })` (and `registerClassicyCursors`/`registerClassicySystemArt`
+  with the same last argument) registers an extra tree for a named variant of
+  the package (`CLASSICY_ASSET_VARIANT_NAME`: a letter or digit, then letters,
+  digits, `_` or `-`, at most 64), deep-merged like the base tree. A theme
+  selects it with `assetVariant: "bw"`, which the schema, theme files,
+  persistence and custom-theme forks keep. The variant applies only while the
+  active theme belongs to the drawn package; `variant` defaults to that
+  theme's, and every reader (`useClassicyAsset`, `useClassicyAssetTree`,
+  `resolveClassicyAsset`, the published `--classicy-art-*` /
+  `--classicy-cursor-*`) follows a theme switch. A variant the package never
+  registered draws the base tree, with one `classicyLog` warning per package
+  and variant per page (checked after the current task, so trees registered
+  in the same module evaluation never warn). Wallpapers vary by name only
+  (`registerClassicyWallpapers` registers the base tree); a theme picks its
+  wallpaper with `desktop.backgroundImage` anyway.
+- **Small icon images**: an `icons` leaf may be `{ src, small? }` as well as a
+  string (base and variant trees alike). `resolveClassicyAsset` and
+  `useClassicyAsset` still return the `src` string, so every `icon={…}` prop
+  and persisted URL is unchanged; `resolveClassicyIcon(path)` returns both
+  images. Small renders look the URL up: `resolveClassicyIconImage(src, px |
+  true)` / `useClassicyIconImage` return the leaf's `small` when `px` is at
+  most `CLASSICY_SMALL_ICON_SIZE` (16; `true` for a CSS-sized small surface),
+  else `src`. `ClassicyIcon` (`size`), menu item icons, `ClassicyControlLabel`
+  (`iconSize="sm"`), the file browser's list view, Control Strip modules
+  (`ClassicyBevelButton` `iconSmall`) and the 16 px icons in PDF Viewer, About
+  This Computer and Finder Preferences do this; a leaf with no `small`
+  scales as before. A string registered over a leaf replaces it (no `small`).
+  List box and pop-up menu option icons, the window title bar's proxy icon and
+  menu bar extension icons draw small too; `ClassicyIcon` and desktop icons
+  draw small when `size` (or, without it, the theme's `desktop.iconSize`) is
+  16 or less. A small image belongs to its `src` image: a leaf with no `small`
+  that shares a `src` with a leaf that has one draws that `small`. If leaves
+  sharing a `src` declare different `small` images, the most specific tree
+  wins (variant, then the active package, then the default package), within a
+  tree the first key, with one `classicyLog` warning per such `src`.
+  `ClassicyInputDialog` draws its icon at the regular 32 px, so it draws the
+  regular image.
+- **A core icon URL stands for its key** (story 0193-801). Before picking
+  the small image, `resolveClassicyIconImage` / `useClassicyIconImage` map a
+  URL the default package registers for an icon key (the core's icons,
+  `ClassicyIcons.*`, and anything a host registers there) to the image the
+  active theme draws for that key: its variant tree, then the active
+  package's base tree, then the default package's. So every icon surface
+  draws an icon held as the core's URL (a captured `ClassicyIcons.*` value, a
+  stored file-system `_icon`, a persisted desktop icon record, an `icon` prop)
+  as the active package's, and follows a package or theme switch, while the
+  value itself never changes. Under the default package with no variant every
+  URL draws as is. Another package's URL and any URL no default-package key
+  holds draw unchanged; a URL several keys share stands for the first in tree
+  order, with one `classicyLog` warning per URL (naming the keys) when the
+  active theme draws those keys differently.
+  - **Store core URLs.** Code that stores an icon stores the core's
+    (`resolveClassicyAsset("icons", path, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`,
+    `iconImageByType(type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)`), never the
+    active package's, so the stored bytes are the same under every package
+    and nothing keeps another package's art after a switch. The file system
+    does this for new folders, the derived folders, the Desktop Folder's
+    desktop icons, and the Open and Save dialogs' volumes (their entries'
+    fallback icons, the volumes' own icons and a saved file's icon).
+  - **Opting out.** A host that wants an image drawn as is under every
+    package passes its own URL (its own file, or an icon registered under
+    its own key), not the core's: only a URL a default-package key holds
+    follows the package.
+  - **The surfaces.** `ClassicyIcon`, desktop icons, menu items, list box
+    and pop-up menu options, the file browser's list view, the
+    window title bar's proxy icon, menu bar extensions, `ClassicyControlLabel`,
+    `ClassicyBevelButton`, PDF Viewer, About This Computer and Finder
+    Preferences, and, since this story, `ClassicyTree`'s `leftIcon` and
+    `rightIcon` (the Open and Save lists), `ClassicyTabs`' tab icons,
+    `ClassicyComboBox`'s option icons, `ClassicyInputDialog`'s icon, `ClassicyAboutWindow`'s app icon,
+    `ClassicyAssistant`'s label and accessory icons and the startup screen's
+    extension parade, which drew a plain `<img>` before. Small surfaces
+    (tree rows, standard and small tabs, combo box options, the assistant's
+    label icon and `sm` accessory) draw the small image; the others draw the
+    regular image. Pictures that are not icons (a picture well, a HyperCard
+    image, Picture Viewer, the startup logo) stay plain `<img>`s, and the
+    alerts, QuickTime controls and About This Computer's logo read their art
+    from the registry at render.
 - `useClassicyAsset(kind, path)` and `useClassicyAssetTree(kind)` subscribe via
   `useSyncExternalStore` (`subscribeClassicyAssets(listener)` is the raw
   subscription). The tree is a copy, stable until the next registration;
   never mutate it.
 - **Never capture an asset in a module-scope constant**
-  (`const arrow = ClassicyIcons.system.alias`). The value is frozen at import
-  and misses later registrations and package switches. `ClassicyIcons` is only
-  the Platinum icon tree that gets registered; components read through the
-  registry.
+  (`const arrow = ClassicyIcons.system.alias`). The value is frozen at import:
+  it misses a host's later re-registration of that key under the default
+  package, and an asset that is not an icon (system art, cursors, wallpapers)
+  misses package switches too. A captured core icon URL does follow a package
+  or theme switch on the icon surfaces (above), but not where it is used as
+  anything else (a CSS `url()`, a plain `<img>`). `ClassicyIcons` is only the
+  Platinum icon tree that gets registered; components read through the
+  registry. Registration-time values such as a Control Strip module's
+  `fileIcon` may name a core icon URL.
 
 ### Migrating icon overrides (breaking change)
 
@@ -1927,7 +2086,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 39 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 41 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -1947,9 +2106,13 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (3 keys): `aboutBackground` (no Platinum art), and
+Unregistered by Platinum (5 keys): `aboutBackground` (no Platinum art),
 `menuCheck`, `menuDash` (the menu check and dash are `::before` glyphs in
-Platinum's menu partial).
+Platinum's menu partial), `ditherChecker` (the dither vocabulary's checker
+tile, a mask, §8 "Dither vocabulary"; Platinum draws no dithers) and
+`helpMenuTitle` (the menu bar draws it in place of the Help menu's title
+text when the active package registers it, else the word "Help", which
+stays the image's `alt`; Platinum titles its Help menu with the word).
 
 The window, menu, pop-up, slider, tab and QuickTime art is drawn as **image layers**,
 never masks, so it shows the colors the file holds (`currentColor` draws black
@@ -2043,10 +2206,24 @@ changes. Use them in your own SCSS inside the desktop, with a fallback because
 an undefined variable voids the whole declaration:
 
 ```scss
-.myDivider { cursor: var(--classicy-cursor-resize-lr, url('data:,')) 8 8, col-resize; }
+.myDivider {
+  cursor: var(--classicy-cursor-resize-lr, url('data:,'))
+    var(--classicy-cursor-resize-lr-hotspot, 8 8), col-resize;
+}
 ```
 
-`ClassicySplitView` and the PDF viewer's pan tool use exactly this form. The
+A cursor registered as `{ src, hotspot: [x, y] }` (whole numbers, 0–127) also
+defines `--classicy-cursor-<role>-hotspot` (`"x y"`); the hotspot belongs to
+the image, so a role reads it from whichever tree its image resolves from.
+`useClassicyCursor` sets it too, and `resolveClassicyCursorHotspot(role)`
+returns it. Without one, the stylesheet's fallback applies (`8 8` above).
+Because the hotspot is stored with the image, never hotspot an image another
+package shares, such as the core's own cursor images: the hotspot would
+follow that image into every package that draws it. Register a file of your
+own with the hotspot, or leave the shared image without one (System 7 keeps
+the core's hand that way, unhotspotted).
+`ClassicySplitView`, the window's grow box and the PDF viewer's pan tool use
+exactly this form. The
 variables are scoped to the desktop root, so they do not exist outside it.
 
 Platinum draws all of its window, menu, pop-up, slider and tab art from these
@@ -2230,7 +2407,13 @@ Modules) never journal, and their `_derived` entries never reach persistence:
 `snapshot()` (the localStorage write and every adapter snapshot, whose `tree`
 and `hash` are built from the stripped serialization) leaves them out at any
 depth, and they are rebuilt on load. So switching Appearance Packages, which renames derived
-entries, never changes persisted bytes or a snapshot hash. **Upgrading:** an
+entries, never changes persisted bytes or a snapshot hash. Their icons follow
+the active package without a rebuild: each derived folder's own icon and a
+Control Strip module file's default icon are the core's URLs (as are the
+seeded folders' and drive's, and a new folder's), which every icon surface
+draws as the active package's and theme variant's (§5, "A core icon URL
+stands for its key"); so does an app's or module's icon given as a core URL
+(the built-in modules' `fileIcon`s are). **Upgrading:** an
 adapter sees one snapshot-hash change on the first save after upgrading to a
 build with this rule, as the derived entries leave the persisted tree.
 
@@ -2530,11 +2713,13 @@ registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships one, Platinum, as its own
-package, `@classicy/appearance-platinum` (`packages/appearance/platinum/` in
-the repository), which the core neither imports nor exports: a host imports it
-at its entry (`import '@classicy/appearance-platinum'`), and the desktop draws
-only the stop screen until some package registers. Themes are presets of a
+sound packs and hooks that go with it. Classicy ships two, each its own npm
+package, which the core neither imports nor exports: Platinum,
+`@classicy/appearance-platinum` (`packages/appearance/platinum/` in the
+repository), and System 7, `@classicy/appearance-system7`
+(`packages/appearance/system7/`; "System 7", below). A host imports one or
+both at its entry (`import '@classicy/appearance-platinum'`), and the desktop
+draws only the stop screen until some package registers. Themes are presets of a
 package, and every theme names its package in `theme.package`.
 
 ```ts
@@ -2568,7 +2753,7 @@ registerClassicyAppearancePackage({
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
-| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
+| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin, scrollBar? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
@@ -3455,6 +3640,90 @@ dividers their full width; story 0088-sz9), and package-owned art and glyphs
 check) are absent by design: they are Platinum's look, not the component's
 (ruling E23).
 
+#### System 7
+
+`@classicy/appearance-system7` (`packages/appearance/system7/`) is the second
+Appearance Package: System 7.5 in black and white and in color. It is built
+the way a third-party package would be (it reaches the core only as
+`@classicy/classicy`; `System7SourceImports.test.ts`), and it is the worked
+example of the capabilities 3.2 added for it. Install and import it like
+Platinum (§1); its README lists what it ships.
+
+- **Themes.** `system7` ("System 7", the package's defaults: every color
+  black or white, `assetVariant: "bw"`, `dither.tileSize: 2`) and
+  `system7-color` ("System 7 Color": the Standard window colors from System
+  7.5's `wctb`/`cctb` tables, no variant, `dither.tileSize: 0`). Both set
+  `sound.pack: "system7"` and the optional knob `menuBar.bandHeight: 20`
+  ("Package knob families"). Layout: grow box bottom right, menu bar on the
+  screen, icon grid from the top right.
+- **Per-theme variants** (§5). Icons and system art register a color base
+  tree and a `bw` variant tree under `system7`; the 1-bit theme selects
+  `bw`, and a key the variant lacks falls back to the base. Cursors are one
+  set for both themes, with hotspots (`{ src, hotspot }`, §5 "CSS
+  variables").
+- **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
+  image, and the 16 px one where System 7 had both sizes.
+- **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
+  Indigo, Quack, Simple Beep, Sosumi, Wild Eep) with `defaultAlert:
+  "ClassicyAlertSimpleBeep"`, so the Sound tab lists those six under System 7.
+- **Dither vocabulary** ("Dither vocabulary", below): dimmed menu items,
+  labels and controls, and menu dividers, through
+  `@classicy/classicy/scss/dither`, in a dedicated dim ink
+  (`--color-theme-06`: black in the 1-bit theme, gray in color).
+- **Scroll bars** (§4.0.1): it draws `ClassicyScrollArea`'s parts, and fixes
+  the scroll box's length (equal `min-*`/`max-*` lengths along the bar). Its
+  layout declares `scrollBar.thumbDrag: "onRelease"`: a dragged box stays
+  put while its outline follows the pointer (a black ring under the
+  track's dots, matching `*-scrollbox-dragging.png`), snapping back past
+  `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
+  box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
+  list boxes keep their bars, hollow, while the content fits (HIG p.160).
+- **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
+  fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
+  inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),
+  whose content pads itself: alerts, the input and keyboard-equivalent
+  dialogs and dialog-layout forms. Keyed on the class, not `:has()`, so
+  Firefox 113–120 gives them one inset too.
+- **Small structural hooks**: `classicyWindowModalFixed` (a fixed modal has
+  no title bar; the FixedModal story is a `modal movable={false}` window,
+  Standard File's Open dialog, so it neither beeps nor takes the error
+  scrim), the pop-up's `open` state (the triangle hides and the label
+  inverts while the menu is open) and the `helpMenuTitle` art (the Help menu
+  is System 7's balloon glyph).
+- **Hooks**: `system7AppearanceHooks` decorates a pressed menu item with
+  `classicyMenuItemFlash` (the blink) and plays no sound: System 7 had no
+  interface feedback sounds.
+- **Screen savers.** Platinum's twelve, offered under both packages
+  (`packages: ["platinum", "system7"]`), Bouncing Ball by default (§11).
+- **Tabs.** System 7.5 had no tab control; System 7's tabs are drawn from
+  its own vocabulary (1 px black lines on white), not copied from an
+  original.
+
+**The Platinum boundary.** The saver source stays in Platinum's
+`src/screenSavers/`. The design's rule, "the only Platinum path System 7 may
+import is the saver registration module", covers that module and its SCSS
+index together: System 7's `src/index.ts` imports
+`../../platinum/src/screenSavers/platinumScreenSavers` (for its side effect;
+nothing of it is re-exported, so System 7's declarations never reference
+Platinum's files), and its `src/styles/_screenSavers.scss` loads
+`screenSavers/_platinumScreenSavers.scss`, the index that lists the twelve
+saver partials once, then adds System 7's own reduced-motion pause rule.
+Nothing else of Platinum's is reachable: not its mixins, its hooks, its logo
+registry module on its own, a saver partial on its own, or
+`pkg:@classicy/appearance-platinum/scss/*`; `System7SourceImports.test.ts`
+pins both halves. Because the partials ship in neither tarball,
+`@classicy/appearance-system7/scss/system7` is not for host compilation; the
+sheet ships compiled.
+
+**Beside Platinum.** A host may load both. Both bundles evaluate the saver
+registration module, so the twelve ids register twice with equal
+definitions (the registry replaces each in place), and the Logo saver's
+image registry keeps its state on `globalThis`
+(`Symbol.for("@classicy/screen-saver-logos@1")`), so both copies share one
+list. Mixing versions of the two Appearance Packages is unsupported: an
+older Platinum can re-register the savers under `platinum` only, or keep its
+own logo registry, which then diverges from System 7's.
+
 ### Layout declarations
 
 A package's **arrangement** (where the parts of a surface go, as opposed to
@@ -3464,15 +3733,22 @@ how they look) has two halves:
    attribute or part class (table below). The base stylesheet gives each
    part an explicit `order`; a package overrides the numbers in its own CSS.
    Which parts exist is behavior and never changes: a package may only
-   reorder or hide them.
+   reorder or hide them, except through the `scrollBar` group below, which
+   keeps scroll bars drawn while the content fits (`fitsBars`) and adds a
+   drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
-   JavaScript as well as CSS.
+   JavaScript as well as CSS, and the optional `scrollBar` group, which
+   declares behavior rather than arrangement. The group and each of its
+   keys are optional, so a package that leaves one out (Platinum leaves out
+   all) keeps Mac OS 8's behavior.
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
+| `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
+| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 20; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") outside the bar's box on any side, the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
@@ -3546,7 +3822,8 @@ window placement `ClassicyDesktop` sets `--menu-bar-height: 0px` on its root
 (`classicyLayoutThemeVars(layout)`, spread after the theme's variables and
 before the host's `style`, which still wins), so windows are placed, zoomed,
 dragged and resized up to the screen's top edge. In screen placement the
-band is the theme's `--menu-bar-height` (30 px under Platinum).
+band is the theme's `--menu-bar-height` (30 px under Platinum; 20 under
+System 7, whose themes set the optional knob `menuBar.bandHeight`).
 
 `ClassicyDesktopMenuBar`'s `placement` prop affects only that bar; windows
 follow the package layout, never the prop. `placement="window"` under
@@ -3780,11 +4057,11 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Themes | `useThemesTab({ packageIcon?, packageName, themesList, switchTheme, activeThemeId, smartScrolling, toggleSmartScrolling, doubleClickTitleToCollapse, toggleDoubleClickTitleToCollapse, saveTheme, loadThemeFile })` | "The current Appearance Package is <name>" with `packageIcon` (the active package's `icon`, from `useActiveClassicyAppearancePackage().icon`), else the generic package glyph (the icon tree's `system.extension`); the theme pop-up, `listClassicyPackageThemes` for the active package plus the active theme when it is not among them, so the pop-up is never blank (`ClassicyDesktopChangeTheme`); Save Theme… / Load Theme… (above); the scrolling and collapse checkboxes |
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
-| Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`) |
+| Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
-| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost) |
+| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.2) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
 the shared notice string (Colors passes "a color", Metrics "a metric",
@@ -3854,7 +4131,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 21 families of its own (95 keys)
+**Package knob families.** Platinum adds 23 families of its own (103 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -3869,7 +4146,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 15 families are emitted and editable in
+  groups under Platinum. The other 17 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -3879,17 +4156,34 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 84 of the 95 are
+  overriding the knob's value, never the base CSS. 85 of the 103 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). The other 11 are
+  table, so the floor and the column cannot drift). The other 18 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`), they are not in the floor and come only from
+  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
   Platinum's `platinum.json`. A package with stylesheets of its own may
   ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
   and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
   `defaults.measurements`.
+- **Optional knobs.** A third kind of knob is read by a core derivation but
+  has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
+  `menuBar.bandHeight` when a theme sets it to a finite number, else
+  `window.controlSize × 2.5` (`ClassicyThemeDerivations.ts`). It cannot be
+  structural, since a floor value would freeze Platinum's band, which must
+  keep following the editable control size (H-R25); a package whose band
+  does not follow its control size sets it instead (System 7: 20, with its
+  11 px window boxes). Like any package knob it is also emitted as its own
+  variable (`--menu-bar-band-height`), and it is not in the table below,
+  which lists Platinum's knobs. Use this pattern when a derivation needs a
+  package escape hatch from its formula: read the knob first, fall back to
+  the formula, and give the knob no core default. Component code reads one
+  more, `scrollBar.snapBack` (`--scroll-bar-snap-back`), with no floor value
+  either: a `ClassicyScrollArea` under a package whose layout declares
+  `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
+  theme that does not emit it snaps back at the bar's own thickness, "the
+  width of the scroll box" (System 7 sets 20, "a little more").
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -4005,6 +4299,14 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
+| `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
+| `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 7 | — | no | _Slider.scss |
+| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
+| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
+| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
+| `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
+| `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
@@ -4012,6 +4314,31 @@ dialog or core family fits (the core `control` family is a persisted
 contract). It sizes `ClassicyFileInput`'s visually hidden native input, off
 the border metric (H-R29b), so the input never collapses to 0×0, which some
 screen readers skip, when Border is 0.
+
+The `slider` family is Platinum's slider drawn from the HIGOS8 figures
+(Platinum's `_Slider.scss`; Figures 2-18 and 2-19 at rest, the 1996 draft's
+Figure 13 for the vertical, 2-17's tone pressed): the art's grid pixel
+(`pixel`), the channel's thickness (`channel`, 7), the indicator's box
+(`thumbAlong` x `thumbAcross`, 15 x 17: the 16-row indicator and a spare
+row, which the base sheet's turn carries past the point; Platinum sets them
+as `--slider-thumb-width`/`-height` on the track group, so the base sheet
+sizes and places the native thumb by them, and writes the turned
+indicators' art into the box pre-turned), how far its flat side lies past
+the channel (`thumbRise`), and the tick marks' size (`tickWidth` x
+`tickHeight`). The input's thickness (`thumbAcross - pixel + thumbRise`,
+19, odd like the channel so the centered channel sits on a whole pixel),
+the thumb's margins on a vertical channel (`channel + thumbRise -
+(thumbAcross + thumbAlong) / 2` pointing left, `(thumbAcross - thumbAlong)
+/ 2 - thumbRise` pointing right) and Firefox's translations of its centered
+thumb (`(thumbAcross - channel) / 2 - thumbRise`, and its negation) are
+derived from them. All look-only: only Platinum reads them.
+
+`dither.tileSize` is the switch of the dither vocabulary
+(`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
+checker tile its mixins mask with, in px. It is 0 in the core floor and in
+Platinum, which draws no dithers, so the mixins draw plain ink; a 1-bit
+theme sets it to its tile's size (2 for a 2 × 2 checker). It is structural
+because the core's vocabulary reads it, so every package emits it.
 
 `--progress-bar-stripe-period` is not a knob: it is the derivation
 `progressBar.stripeWidth × 2` (H-R27b), so the band and its period never
@@ -4115,7 +4442,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
 | `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss |
 | `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindowTitleBar.scss |
-| `--menu-bar-height` | `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
+| `--menu-bar-height` | `menuBar.bandHeight`, else `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
 | `--menu-min-width` | `controlSize × 15` | 180 | ClassicyMenu.scss |
 | `--menu-item-icon-size` | `controlSize × 1.25` | 15 | ClassicyMenu.scss |
 | `--menu-item-icon-gap` | `controlSize × 0.5` | 6 | ClassicyMenu.scss |
@@ -4131,7 +4458,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss |
 | `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
-| `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | ClassicyCheckbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
+| `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | _Checkbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
 | `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |
 | `--ui-font-size-mini` | `uiSize / 1.5` | 9.333333333333334 (unrounded) | ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyPlacard.scss |
 | `--ui-font-size-large` | `uiSize × 1.5` | 21 (unrounded) | ClassicyTabs.scss |
@@ -4164,8 +4491,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
-| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | ClassicyCheckbox.scss |
-| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | ClassicyCheckbox.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | _Checkbox.scss |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | _Checkbox.scss |
 | `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
 | `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
 | `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |
@@ -4175,7 +4502,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--finder-about-heading-font-size` | `uiSize × 1.0714` | 14.9996 (unrounded) | FinderAboutThisComputer.scss |
 | `--finder-about-copyright-font-size` | `uiSize × 0.7857` | 10.9998 (unrounded) | FinderAboutThisComputer.scss |
 | `--menu-item-padding-inline` | `paddingSize × 1.25` | 7.5 | ClassicyMenu.scss |
-| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | _Slider.scss |
+| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.2 (Platinum's knob is pixel art); kept for hosts |
 | `--tab-scroll-arrow-size` | `controlSize / 3` | 4 | ClassicyTabs.scss |
 | `--tab-scroll-arrow-size-large` | `controlSize / 2.25` | 5.333 | ClassicyTabs.scss |
 | `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
@@ -4424,6 +4751,60 @@ skips:
   skipped: a property rule such as `color: #c00` in a package partial is
   still a hit.
 
+**Dither vocabulary.** System 7 draws dimmed text and dimmed controls
+through a 50% checker, and its menu dividers as dotted rules, on 1-bit
+screens, and in plain gray on color ones (HIG p.60, p.62).
+`src/Appearance/vocabulary/_dither.scss`
+(`@use "@classicy/classicy/scss/dither" as d;`) holds the mixins; the theme
+switches them, never the stylesheet:
+
+| Mixin | Draws |
+|---|---|
+| `classicy-dither-mask` | the element through the checker (a dimmed control) |
+| `classicy-dither-text($on)` | `color: var($on)`, through the checker |
+| `classicy-dither-line($on)` | `background-color: var($on)`, through the checker; the element's size is the rule's (a 1 px height for a dotted rule) |
+
+The ink `$on` is one token for every theme, because it is fixed when the
+stylesheet compiles: name a theme token whose *value* is black in the 1-bit
+theme and the dim gray in the color theme (a system-palette entry, such as
+`--color-system-05`, that the black-and-white theme sets to black), e.g.
+`@include d.classicy-dither-text("--color-system-05")`. Never
+`--color-black`, which is black in every theme. `$on` is a token name,
+checked like the color helpers' (`classicy-token`).
+
+The mask is a full cover with the checker tile excluded
+(`mask-composite: exclude`), the tile sized square by the theme knob
+`dither.tileSize` (`--dither-tile-size` for both dimensions, §8 "Package knob
+families", so art without an intrinsic size draws too). At 0 (the core
+floor's value, and Platinum's) the tile draws nothing and the ink is plain,
+so a color theme dims and draws rules solid, in its gray value of `$on`; a
+1-bit theme sets the tile's size (2 for a 2 × 2 checker) and the ink shows
+where the tile is transparent. The tile is the active package's
+`ditherChecker` system art (`--classicy-art-dither-checker`), best a raster
+mask as Platinum's `halftone` is (a gradient is pixel-exact at 1x but smears
+at fractional zoom); with none registered the mask drops out and the ink is
+plain. A package may also declare the tile itself, as a custom property on
+its package root (any image value, a CSS gradient included): it serves while
+no art is registered, and a registered `ditherChecker`, which
+`ClassicyDesktop` publishes inline on the same root, takes its place. System
+7 does both: it registers a 2 × 2 SVG tile, imported `?inline` (a mask
+fetched by URL is a CORS request, as for Platinum's `halftone`; it is the one
+`data:` URI System 7's `verify:dist` allows), and declares the same checker
+as a `conic-gradient` on its package root. Its 1-bit theme sets
+`dither.tileSize` to 2, its color theme to 0. Platinum registers no tile.
+
+Limits of the mask:
+
+- It covers the whole element, so include a mixin on an element that holds
+  only the ink (a label, a rule), not on one that also paints a face.
+- It clips to the border box: anything painted outside it (an `outline`, a
+  `box-shadow` default-button ring) is hidden.
+- It replaces the element's own `mask-image`, so it is not for icons
+  (`ClassicyIcon.scss` masks their shape) or any other masked element.
+- The checker's phase starts at each element's own corner, not at the
+  window's origin as QuickDraw's patterns did, so adjacent dithered elements
+  need not line up.
+
 **Reading a metric from JS.** Code that needs a theme size in pixels reads
 the variable instead of hard-coding the number:
 `readClassicyThemeVar(name, fallback?, el?)` (`ClassicyThemeMetricReader.ts`).
@@ -4549,7 +4930,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 40 sites over 9 files, the sites kept on purpose
+the list ends at these 43 sites over 11 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -4564,6 +4945,25 @@ the list ends at these 40 sites over 9 files, the sites kept on purpose
   (`× 2`, `× 3`, `× 4`, alone or as `100% - …`): positions on the Control
   Strip art's bevel-pixel grid inside `classicy-px-rect` (H-R7), not theme
   proportions.
+- System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
+  helper: the pressed close and zoom boxes' starburst, the windoid close
+  box's cross, the menu bar's screen corners, the menu checkmark, the
+  menu and pop-up triangles, the push buttons' rounded corners and
+  default ring, and the controls' art (the checkbox's X, the radio
+  button's circle and dot, the little arrows, the slider, the outline
+  triangle, the dotted group box and separator), one-pixel rectangles on
+  the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
+  Strip's.
+- Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
+  helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
+  2-17 (the channel and its caps, the indicator, the knob, the ghost, the
+  tick marks and the ticks' half-width shift), one-pixel rectangles on the
+  art's grid inside `classicy-px-rect` (H-R7), as System 7's; and the one
+  `/ 2` in its `half()` helper: the thumb's centering across the channel
+  (Chromium places a vertical thumb's box from the channel's edge and the
+  quarter turn swings it about its center, so its margin is the knobs' sum
+  or difference halved; Firefox centers the box, so its translation is half
+  the box's overhang of the channel), geometry, not a role (H-R21).
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
@@ -4689,8 +5089,25 @@ mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
 the sound `ClassicySoundPlayError` plays — play at system volume × alert
 volume (set on that Howler sound id only); every other sound plays at the
 system volume.
-Alert sound options: `CLASSICY_ALERT_SOUNDS` (Bonk, Growl, Indigo, Quack,
-Sosumi, Tabitha, Wild Eep); default `DEFAULT_ALERT_SOUND = "ClassicyAlertSosumi"`.
+**Alert sounds come from the sound pack.** A pack lists the alerts the user
+may pick, with display names, in `alerts` (`{ value, label }[]`, each
+`value` a sprite id of the pack), and names the one played by default in
+`defaultAlert`. A pack without `alerts` takes the default pack's
+(Platinum's), as it takes its other sprites; `alerts: []` means none, and
+alerts play nothing. Platinum's pack declares Bonk, Growl, Indigo, Quack,
+Sosumi, Tabitha and Wild Eep, Sosumi by default; System 7's declares
+Droplet, Indigo, Quack, Simple Beep, Sosumi and Wild Eep, Simple Beep by
+default. The alert played is the stored `Appearance.alertSound` when the
+active pack offers it, else the pack's default; the stored choice is never
+rewritten, so switching packs and back restores it. The default state seeds
+no `alertSound`, so a first session plays the active pack's default. The
+store-free readers are `classicyPackAlerts(pack)`,
+`classicyPackDefaultAlert(pack)` (`defaultAlert` when it is one of the
+alerts, else the first) and `resolveClassicyAlertSound(pack, stored)` (the
+stored choice or Platinum's default when no pack is known).
+`CLASSICY_ALERT_SOUNDS` (Platinum's seven) and `DEFAULT_ALERT_SOUND`
+(`"ClassicyAlertSosumi"`) are deprecated: they are Platinum's values, kept
+for existing imports; read the active pack instead.
 
 **Sound packs**: a sound pack is one Howler audiosprite sheet registered under
 a kebab-case id; a theme selects one with `sound.pack`. The earlier theme field
@@ -4714,7 +5131,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 })
 ```
 
-- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite }`
+- `ClassicySoundPack` is `{ id, name, packageId?, src: string[], sprite, alerts?, defaultAlert? }`
   (`ClassicySoundPackSchema` validates it; an invalid pack is rejected with a
   `classicyLog` warning). `sprite` is `Record<string, [offsetMs, durationMs, loop?]>`.
   `src` entries must be resolvable by the page: `http(s)` URLs or `data:`
@@ -4737,7 +5154,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   which its build emits in `dist/assets/`.
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
-  (registration order), `subscribeClassicySoundPacks(listener)` and the live
+  (registration order), `playingClassicySoundPack(packs, themePackId)` (the
+  pack that plays: the theme's, else the default pack), `subscribeClassicySoundPacks(listener)` and the live
   hook `useClassicySoundPacks()`. The stock `"platinum"` pack registers itself
   from `packages/appearance/platinum/src/assets/sounds/platinum.ts`. Re-registering the
   id of the pack that is currently active updates the registry but does not
@@ -4749,7 +5167,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   logs a `warn` (`Sound pack is missing sprites; falling back to platinum`, with
   the missing ids) and plays those sprites from the Platinum pack when it is
   registered (the warning reads `…; they play nothing` when it is not); a
-  sprite missing from both is not played.
+  sprite missing from both is not played. A pack that declares its own
+  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`), only the
+  alerts it declares (`classicySoundPackMissingSprites(pack)`).
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
@@ -4775,7 +5195,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   Howls through `ClassicySoundLoad` (which calls `createSoundPlayer`).
 - `pnpm build:audio` (`bin/make_audio_sprites.sh`) runs audiosprite over each
   `packages/appearance/platinum/src/assets/sounds/<name>/sprites/` directory (the
-  default; the core ships no sprites) and writes `<name>.json` plus the
+  default; the core ships no sprites), then over System 7's
+  `packages/appearance/system7/src/assets/sounds/system7/sprites/` (WAV
+  sources, no looping sprite), and writes `<name>.json` plus the
   encoded files next to it; the JSON carries `id` (the directory name), `name`,
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
   `src` is resolved. The encode is deterministic (ffmpeg runs bit-exact) and
@@ -4828,7 +5250,10 @@ The core ships no saver: they come with an Appearance Package. Platinum
 (`@classicy/appearance-platinum`) registers twelve After Dark-style savers
 when imported (ids: `bouncing-ball`, `fade-out`, `fish`, `flying-toasters`,
 `globe`, `hard-rain`, `logo`, `messages`, `messages2`, `rainstorm`,
-`spotlight`, `warp`), offered under `platinum`, and exports their components,
+`spotlight`, `warp`), offered under `platinum` and `system7`. System 7
+(`@classicy/appearance-system7`) bundles the same registration module, so a
+host loading System 7 alone gets them too (§8, "System 7"); both packages
+name `defaultScreenSaver: "bouncing-ball"`. Platinum exports their components,
 config schemas and options UIs under the names `@classicy/classicy` exported
 them by in 3.0 (import them from the Platinum package now). The "Screen
 Saver" control panel (part of `ClassicyControlPanels`) exposes saver choice,
@@ -4870,7 +5295,7 @@ the panel says "This appearance has no screen savers.", Test and the Control
 Strip's Sleep Now are disabled and the overlay never activates.
 `ClassicyAppScreenSaverSetSaver` and `SetConfig` accept any registered saver,
 including one only another package offers. To offer a Platinum saver under
-your package too, re-register it with both ids, from the registered
+your package too, re-register it with your id added to its `packages`, from the registered
 definition (after `import '@classicy/appearance-platinum'`) or from the
 exported parts (`ClassicyScreenSaverFish`, `FishConfigSchema`, …):
 
@@ -4879,8 +5304,13 @@ import { getClassicyScreenSaver, registerClassicyScreenSaver } from '@classicy/c
 import '@classicy/appearance-platinum'
 
 const fish = getClassicyScreenSaver('fish')
-if (fish) registerClassicyScreenSaver({ ...fish, packages: ['platinum', 'acme'] })
+if (fish) registerClassicyScreenSaver({ ...fish, packages: [...(fish.packages ?? []), 'acme'] })
 ```
+
+Keep the ids it already names (`platinum` and `system7`): a list of only
+`['platinum', 'acme']` would stop offering it under System 7. Register it
+after both packages' imports, since each package's bundle registers its
+built-ins when it loads, replacing an earlier registration of the same id.
 
 Options UI is two-tier: a saver's `configComponent` wins; otherwise a form is
 derived from `configSchema` (number → spinner, boolean → checkbox, enum →
@@ -4932,7 +5362,8 @@ never persists — a reload always wakes up.
 
 **Logo saver images.** The `logo` saver bounces one of a registry of images,
 chosen in its options pop-up (config `{ logo: <id> }`). The registry, like
-the saver, is `@classicy/appearance-platinum`'s. Three ship built in
+the saver, is `@classicy/appearance-platinum`'s; its state lives on
+`globalThis`, so the copy System 7's bundle carries shares it. Three ship built in
 (`CLASSICY_SCREEN_SAVER_LOGO_IDS`): `berkeley-systems` (the After Dark mark,
 default), `classicy` (the Classicy wordmark) and `startup-screen` (the mark
 the startup screen shows). Add your own at module scope; the pop-up is live,

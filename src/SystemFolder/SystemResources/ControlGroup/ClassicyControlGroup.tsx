@@ -52,8 +52,9 @@ type ClassicyControlGroupProps = {
 	layout?: "default" | "form";
 	/**
 	 * Background painted behind the title so it masks the frame line. Match it
-	 * to the surface the group sits on. Defaults to `var(--color-system-03)`
-	 * (the window face).
+	 * to the surface the group sits on. Without it the active Appearance
+	 * Package paints the window's face there (Platinum
+	 * `var(--color-system-03)`).
 	 */
 	backgroundColor?: string;
 	/** The grouped controls. */
@@ -94,7 +95,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 	popUpMenuTitle,
 	columns = false,
 	layout = "default",
-	backgroundColor = "var(--color-system-03)",
+	backgroundColor,
 	children,
 	className,
 	style,
@@ -132,7 +133,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 			{hasLegend && (
 				<legend
 					className={"classicyControlGroupLegend"}
-					style={{ backgroundColor }}
+					style={backgroundColor ? { backgroundColor } : undefined}
 				>
 					{legendContent}
 				</legend>

@@ -13,7 +13,9 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyPager } from "@/SystemFolder/SystemResources/Pager/ClassicyPager";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 const MAX_FOOTER_BUTTONS = 3;
 
@@ -208,7 +210,7 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 				aria-label={activePage.title}
 			>
 				{activePage.labelIcon && (
-					<img
+					<ClassicyIconImage
 						className={"classicyAssistantHeaderLabelIcon"}
 						src={activePage.labelIcon}
 						alt={""}
@@ -219,24 +221,31 @@ export const ClassicyAssistant: FunctionalComponent<ClassicyAssistantProps> = ({
 					{activePage.title}
 				</span>
 				{activePage.accessoryIcon && (
-					<img
+					<ClassicyIconImage
 						className={`classicyAssistantAccessoryIcon ${
 							accessorySizeClass[activePage.accessoryIconSize ?? "sm"]
 						}`}
 						src={activePage.accessoryIcon}
+						// Small at "sm" (the control glyph size), else its image.
+						drawnAt={
+							(activePage.accessoryIconSize ?? "sm") === "sm"
+								? true
+								: Number.POSITIVE_INFINITY
+						}
 						alt={""}
 						aria-hidden={true}
 					/>
 				)}
 			</section>
-			{/* biome-ignore lint/a11y/useSemanticElements: group of arbitrary step content, not a form fieldset */}
-			<div
+			{/* A group of arbitrary step content, not a form fieldset. */}
+			<ClassicyScrollArea
 				className={"classicyAssistantBody"}
+				viewportClassName={"classicyAssistantBodyViewport"}
 				role="group"
 				aria-label={activePage.title}
 			>
 				{activePage.content}
-			</div>
+			</ClassicyScrollArea>
 			<div className={"classicyAssistantFooter"}>
 				<div className={"classicyAssistantFooterButtons"}>
 					{resolvedButtons.map((btn, i) => (

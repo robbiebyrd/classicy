@@ -31,6 +31,9 @@
 			"@classicy/appearance-platinum": [
 				"../packages/appearance/platinum/src/index.ts"
 			],
+			"@classicy/appearance-system7": [
+				"../packages/appearance/system7/src/index.ts"
+			],
 			"@/*": ["../src/*"],
 			"@img/*": ["../assets/img/*"],
 			"@vid/*": ["../assets/vid/*"]
@@ -40,6 +43,7 @@
 		".storybook/**/*",
 		"../src/**/*.stories.tsx",
 		"../packages/appearance/platinum/src/**/*.stories.tsx",
+		"../packages/appearance/system7/src/**/*.stories.tsx",
 		"../src/custom.d.ts"
 	]
 }

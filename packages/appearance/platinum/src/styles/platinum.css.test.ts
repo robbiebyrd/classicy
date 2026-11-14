@@ -115,6 +115,36 @@ const SAMPLE = compileString(
 	LOAD,
 ).css;
 
+/**
+ * A fixed modal holding a window of its own, under the `id` package root:
+ * each rule a fixed modal keys on must reach its own title bar and contents
+ * only (child combinators), never a window nested in its content.
+ */
+const nestedWindowInFixedModal = (id: string) => {
+	document.body.innerHTML = `
+<div class="classicyDesktop" data-classicy-appearance="${id}">
+  <div class="classicyWindow classicyWindowModal classicyWindowModalFixed">
+    <div class="classicyWindowTitleBar" id="ownBar"></div>
+    <div class="classicyWindowContentsModal" id="ownContents">
+      <div class="classicyWindowContentsInner classicyWindowContentsModalInner">
+        <div class="classicyWindow classicyWindowModal">
+          <div class="classicyWindowTitleBar" id="nestedBar"></div>
+          <div class="classicyWindowContentsModal" id="nestedContents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+	const el = (elementId: string) =>
+		document.getElementById(elementId) as HTMLElement;
+	return {
+		ownBar: el("ownBar"),
+		ownContents: el("ownContents"),
+		nestedBar: el("nestedBar"),
+		nestedContents: el("nestedContents"),
+	};
+};
+
 describe("specificity (this file's helper)", () => {
 	it("weighs classes, attributes, pseudo-classes, pseudo-elements and :where", () => {
 		const P = ".classicyDesktop[data-classicy-appearance=platinum]";
@@ -248,6 +278,50 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
+	// HIGOS8 p.60, figure 3-3: a (non-movable) modal dialog box has no title
+	// bar, the drag affordance of a movable one (p.59), and shows its items
+	// on one placard-like face inside the window's frame. The fixed alert
+	// (`classicyWindowRed`) keeps its red bar, unchanged.
+	it("draws a fixed modal that is not an alert as figure 3-3: no title bar, one face", () => {
+		const fixed = `${P} .classicyWindow.classicyWindowModalFixed:not(.classicyWindowRed)`;
+		expect(rule(`${fixed} > .classicyWindowTitleBar`).props).toEqual({
+			display: "none",
+		});
+		const contents = rule(`${fixed} > .classicyWindowContentsModal`);
+		// The contents fill the window, with no line across the top; they
+		// keep the modal contents' bevel (the face's light and shaded edges).
+		expect(contents.props).toEqual({
+			height:
+				"calc(100% - var(--control-padding-tight) - var(--control-padding-tight))",
+			"border-top": "none",
+		});
+		expect(
+			rule(`${P} .classicyWindow .classicyWindowContentsModal`).props[
+				"box-shadow"
+			],
+		).toBeDefined();
+		// After the modal contents' bevel.
+		expect(contents.at).toBeGreaterThan(
+			rule(`${P} .classicyWindow .classicyWindowContentsModal`).at,
+		);
+		// Its own title bar and contents only: a window nested in its content
+		// keeps its bar and its contents' layout.
+		const fixedRules = scanSelectors(css).selectors.filter((selector) =>
+			selector.includes("classicyWindowModalFixed"),
+		);
+		const dom = nestedWindowInFixedModal("platinum");
+		const matched = (el: HTMLElement) =>
+			fixedRules.filter((selector) => el.matches(selector));
+		expect(matched(dom.ownBar)).not.toEqual([]);
+		expect(matched(dom.ownContents)).not.toEqual([]);
+		expect(matched(dom.nestedBar)).toEqual([]);
+		expect(matched(dom.nestedContents)).toEqual([]);
+		// No rule hides the fixed alert's (red) title bar.
+		expect(flat).not.toMatch(
+			/classicyWindowModalFixed(?!:not\(\.classicyWindowRed\))[^{,]*classicyWindowTitleBar/,
+		);
+	});
+
 	// Part E 2.2: the submenu triangle (ruling E24) and the pop-up double
 	// arrow (ruling E21) are their boxes' own images, like the grow-box grip.
 	it("draws the menu and pop-up arrows from registered art", () => {
@@ -263,6 +337,66 @@ describe("platinum.scss (compiled)", () => {
 		).toBe("var(--classicy-art-popup-arrows)");
 	});
 
+	// A long pop-up menu scrolls by its indicators (HIG7 p.78): a black
+	// triangle on the menu's face over the first or last row, and no native
+	// bar, which the desktop's Firefox fallback would otherwise show.
+	// A scrolling list clips its own shadow pseudo-elements: they are off,
+	// and the frame's shadow is drawn, as the frame draws it, on the sibling
+	// ClassicyMenu puts over the list in their wrapper (its transparent
+	// border the frame's, so its padding edge is the list's).
+	it("draws a scrolling menu's frame shadow on its sibling, as the frame draws it", () => {
+		const lists = [
+			"classicyMenu",
+			"classicySubMenu",
+			"classicyContextMenu",
+			"classicyContextSubMenu",
+		];
+		const scrolling = rule(
+			lists.map((l) => `${P} .${l}.classicyMenuListScrolls`).join(", "),
+		).props;
+		expect(scrolling["box-shadow"]).toBeUndefined();
+		expect(scrolling["scrollbar-width"]).toBe("none");
+		expect(
+			rule(
+				lists
+					.flatMap((l) =>
+						["before", "after"].map(
+							(p) => `${P} .${l}.classicyMenuListScrolls::${p}`,
+						),
+					)
+					.join(", "),
+			).props.display,
+		).toBe("none");
+		const sibling = rule(`${P} .classicyMenuScrollShadow`).props;
+		expect(sibling.border).toBe(
+			"var(--menu-frame-border-width) solid transparent",
+		);
+		expect(sibling["box-sizing"]).toBe("border-box");
+		// The frame's inner bevel over the rows, which scroll over the list's
+		// padding: the frame's own layers, less its face.
+		const frame = rule(`${P} .classicySubMenu`).props;
+		expect(frame.background.endsWith(", var(--color-system-02)")).toBe(true);
+		expect(sibling.background).toBe(
+			frame.background.slice(0, -", var(--color-system-02)".length),
+		);
+		// The frame's own shadow strips, on the sibling.
+		const frameAfter = rule(`${P} .classicySubMenu::after`).props;
+		const siblingAfter = rule(`${P} .classicyMenuScrollShadow::after`).props;
+		expect(siblingAfter).toEqual(frameAfter);
+		expect(rule(`${P} .classicyMenuScrollShadow::before`).props).toEqual(
+			rule(`${P} .classicySubMenu::before`).props,
+		);
+	});
+
+	it("draws a pop-up menu's scroll indicators on the menu's face, and no native bar", () => {
+		const arrow = rule(`${P} .classicyPopUpMenuScrollArrow`).props;
+		expect(arrow["background-color"]).toBe("var(--color-system-02)");
+		expect(arrow.color).toBe("var(--color-black)");
+		expect(rule(`${P} .classicyPopUpMenuList`).props["scrollbar-width"]).toBe(
+			"none",
+		);
+	});
+
 	// Part E 5.1: the text glyphs are package look, drawn as `::before`
 	// content on the state or variant class. Escapes, so the Sass output stays
 	// ASCII: no `@charset` (or BOM) ahead of the layer block. This guards the
@@ -273,6 +407,8 @@ describe("platinum.scss (compiled)", () => {
 			[".classicyMenuItemCheck.checked::before", '"\\2713"'],
 			[".classicyMenuItemCheck.mixed::before", '"\\2013"'],
 			[".classicyPopUpMenuCheck.checked::before", '"\\2713"'],
+			[".classicyPopUpMenuScrollArrowUp::before", '"\\25B2"'],
+			[".classicyPopUpMenuScrollArrowDown::before", '"\\25BC"'],
 			[".classicyBevelButtonArrowHorizontal::before", '"\\25B8"'],
 			[".classicyBevelButtonArrowVertical::before", '"\\25BE"'],
 			[".classicyPlacardArrow::before", '"\\25BE"'],
@@ -530,6 +666,645 @@ describe("platinum.scss (compiled)", () => {
 		expect(flat.indexOf(`\n${tabs.selector} {`)).toBeGreaterThan(fallback);
 	});
 
+	// Plan 0018-dbd §3.5: the group box's title face left ClassicyControlGroup's
+	// inline default (`var(--color-system-03)`) for this partial, so another
+	// package can paint its own; a host's `backgroundColor` prop still wins.
+	it("paints the window face behind a group box's title", () =>
+		expect(rule(`${P} .classicyControlGroupLegend`).props).toEqual({
+			"background-color": "var(--color-system-03)",
+		}));
+
+	// Story 0196-1i1: the pop-up menu's look left ClassicyPopUpMenu.scss (now
+	// pinned by ClassicyBaseHoldsNoControlLook) for this partial, value for
+	// value, so Platinum draws the same pixels.
+	describe("the pop-up menu's look, moved from the base sheet", () => {
+		it("dims a disabled box with the gradient over its fill", () =>
+			expect(rule(`${P} .classicyPopUpMenu.disabled`).props).toEqual({
+				"background-color": "var(--color-system-01)",
+				"background-image":
+					"linear-gradient(to top, var(--color-system-02), var(--color-system-01) 33%)",
+			}));
+
+		it("rings the focused button, for the keyboard only", () => {
+			expect(rule(`${P} .classicyPopUpMenuButton:focus`).props).toEqual({
+				"border-radius": "var(--window-padding-size)",
+				outline: "var(--color-outline) solid var(--control-frame-width)",
+			});
+			expect(
+				rule(`${P} .classicyPopUpMenuButton:focus:not(:focus-visible)`).props,
+			).toEqual({ outline: "none" });
+		});
+
+		it("draws the indicator's raised tab and arrows", () =>
+			expect(rule(`${P} .classicyPopUpMenuIndicator`).props).toEqual({
+				"border-left": "var(--window-border-size) solid var(--color-system-05)",
+				"border-top-right-radius": "var(--window-padding-size)",
+				"border-bottom-right-radius": "var(--window-padding-size)",
+				"background-image": "var(--classicy-art-popup-arrows)",
+				"background-repeat": "no-repeat",
+				"background-position": "center",
+				"background-size": "45%",
+				"box-shadow":
+					"inset var(--control-frame-width) var(--window-border-size) 0 0 var(--color-white)",
+			}));
+
+		it("drops the mini pop-up's divider and bevel, after the indicator", () => {
+			const mini = rule(
+				`${P} .classicyPopUpMenuSizeMini .classicyPopUpMenuIndicator`,
+			);
+			expect(mini.props).toEqual({
+				"border-left": "none",
+				"box-shadow": "none",
+			});
+			expect(mini.at).toBeGreaterThan(
+				rule(`${P} .classicyPopUpMenuIndicator`).at,
+			);
+		});
+
+		it("frames the open menu and inks its items, the highlight last", () => {
+			expect(rule(`${P} .classicyPopUpMenuList`).props).toEqual({
+				"scrollbar-width": "none",
+				color: "var(--color-black)",
+				"background-color": "var(--color-system-02)",
+				border: "var(--window-border-size) solid var(--color-black)",
+				"box-shadow":
+					"inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white), var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-black)",
+			});
+			const item = rule(`${P} .classicyPopUpMenuListItem`);
+			const highlight = rule(`${P} .classicyPopUpMenuListItemHighlight`);
+			expect(item.props).toEqual({ color: "var(--color-black)" });
+			expect(highlight.props).toEqual({
+				color: "var(--color-white)",
+				"background-color": "var(--color-theme-04)",
+			});
+			expect(highlight.at).toBeGreaterThan(item.at);
+			expect(rule(`${P} .classicyPopUpMenuGroupHeader`).props).toEqual({
+				color: "var(--color-system-05)",
+			});
+		});
+	});
+
+	// Story 0194-5bs, fix rounds 3 and 4: Platinum's slider drawn pixel for
+	// pixel from HIGOS8 Figures 2-18 and 2-19 (the slider at rest: the
+	// channel, the indicator, the tick marks), the 1996 draft's Figure 13
+	// (the vertical slider) and Figure 2-17 (the pressed indicator and the
+	// ghost). Every part is pixel art, one px-rect layer per run of one ink
+	// in a row; these tests decode the compiled layers back into rows and
+	// compare them with the figures'.
+	describe("the slider, drawn from HIGOS8 Figures 2-18 and 2-17", () => {
+		// Grid pixels of a `--slider-pixel` length: 0, the pixel, or a multiple.
+		const grid = (length: string): number => {
+			if (length === "0") return 0;
+			if (length === "var(--slider-pixel)") return 1;
+			const m = /^calc\(var\(--slider-pixel\) \* (-?[\d.]+)\)$/.exec(length);
+			if (!m) throw new Error(`not a grid length: ${length}`);
+			return Number(m[1]);
+		};
+		// Splits a background on its top-level commas.
+		const layers = (background: string): string[] => {
+			const out: string[] = [];
+			let depth = 0;
+			let from = 0;
+			for (let i = 0; i < background.length; i++) {
+				const c = background[i];
+				if (c === "(") depth++;
+				else if (c === ")") depth--;
+				else if (c === "," && depth === 0) {
+					out.push(background.slice(from, i).trim());
+					from = i + 1;
+				}
+			}
+			out.push(background.slice(from).trim());
+			return out;
+		};
+		const INK: Record<string, string> = {
+			"--color-black": "#",
+			"--color-theme-01": ",",
+			"--color-theme-02": "l",
+			"--color-theme-03": "m",
+			"--color-theme-04": "n",
+			"--color-theme-05": "o",
+			"--color-theme-07": "q",
+			"--color-system-04": "a",
+			"--color-system-07": "K",
+			"--color-white": "W",
+			"--color-system-05": "8",
+		};
+		// Space-separated tokens at parenthesis depth 0.
+		const tokens = (text: string): string[] => {
+			const out: string[] = [];
+			let depth = 0;
+			let current = "";
+			for (const c of text.trim()) {
+				if (c === "(") depth++;
+				if (c === ")") depth--;
+				if (c === " " && depth === 0) {
+					if (current) out.push(current);
+					current = "";
+				} else current += c;
+			}
+			if (current) out.push(current);
+			return out;
+		};
+		// The rows a box of `w` x `h` grid pixels draws: each layer is
+		// `linear-gradient(var(--ink), var(--ink)) [left] X [top] Y/W H
+		// no-repeat`.
+		const decode = (background: string, w: number, h: number): string[] => {
+			const rows = Array.from({ length: h }, () => Array(w).fill("."));
+			for (const layer of layers(background)) {
+				const m =
+					/^linear-gradient\(var\((--[\w-]+)\), var\(\1\)\) (.*) no-repeat$/.exec(
+						layer,
+					);
+				if (!m) throw new Error(`not a pixel layer: ${layer}`);
+				const slash = m[2].lastIndexOf("/");
+				const place = tokens(m[2].slice(0, slash)).filter(
+					(t) => t !== "left" && t !== "top",
+				);
+				const [x, y, lw, lh] = [...place, ...tokens(m[2].slice(slash + 1))].map(
+					grid,
+				);
+				for (let j = y; j < y + lh; j++)
+					for (let i = x; i < x + lw; i++) rows[j][i] = INK[m[1]] ?? "?";
+			}
+			return rows.map((r) => r.join(""));
+		};
+
+		// At rest: Figure 2-18's indicator (16 rows, as extracted from the
+		// PDF; Figure 2-19 draws the same), the box's last row clear.
+		const AT_REST = [
+			".#############.",
+			"#,lllllllllllm#",
+			"#lmmmmmmmmmmmn#",
+			"#lmm,m,m,mmmmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmmomomommmn#",
+			".#nmmmmmmmmmn#.",
+			"..#nmmmmmmmn#..",
+			"...#nmmmmmn#...",
+			"....#nmmmn#....",
+			".....#nnn#.....",
+			"......###......",
+			"...............",
+		];
+		// Pressed (fix round 5): Figure 2-17's indicator is 2-18's with every
+		// ink a step down the ramp, resampled a row and a column larger; the
+		// pressed art is the rest art stepped, the shape unchanged. These are
+		// 2-17's rows as extracted from the PDF less its doubled grip row.
+		const STEP: Record<string, string> = {
+			W: ",",
+			",": "l",
+			l: "m",
+			m: "n",
+			n: "o",
+			o: "q",
+		};
+		const step = (rows: string[]) =>
+			rows.map((r) => [...r].map((c) => STEP[c] ?? c).join(""));
+		const PRESSED = [
+			".#############.",
+			"#lmmmmmmmmmmmn#",
+			"#mnnnnnnnnnnno#",
+			"#mnnlnlnlnnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnnqnqnqnnno#",
+			".#onnnnnnnnno#.",
+			"..#onnnnnnno#..",
+			"...#onnnnno#...",
+			"....#onnno#....",
+			".....#ooo#.....",
+			"......###......",
+			"...............",
+		];
+		// The pressed and highlighted rules of a slider class, one group.
+		const pressedRule = (cls: string, pseudo: string) =>
+			rule(
+				`${P} ${cls}:active${pseudo}, ${P} ${cls}.classicySliderHighlighted${pseudo}, ${P} ${cls}.classicySliderHighlighted:active${pseudo}`,
+			);
+
+		it("draws the indicator at rest and pressed, pixel for pixel", () => {
+			expect(step(AT_REST)).toEqual(PRESSED);
+			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
+			expect(decode(thumb.background, 15, 17)).toEqual(AT_REST);
+			const pressed = pressedRule(".classicySlider", "::-webkit-slider-thumb");
+			expect(decode(pressed.props.background, 15, 17)).toEqual(PRESSED);
+			expect(pressed.at).toBeGreaterThan(
+				rule(`${P} .classicySlider::-webkit-slider-thumb`).at,
+			);
+			// Firefox draws the same.
+			expect(
+				rule(`${P} .classicySlider::-moz-range-thumb`).props.background,
+			).toBe(thumb.background);
+			expect(
+				pressedRule(".classicySlider", "::-moz-range-thumb").props.background,
+			).toBe(pressed.props.background);
+			// No old art: the pentagon clip and the registered thumb images.
+			expect(thumb["clip-path"]).toBeUndefined();
+			expect(thumb.background).not.toMatch(/--classicy-art-/);
+		});
+
+		// Fix round 5: the turned indicators are lit from the top left like
+		// the down one, not the down one turned. Pointing left is the 1996
+		// draft's Figure 13 (a four-gray screenshot: F1F1F1 theme-01, E4E4E4
+		// theme-02, B8B8B8 theme-03, 8A8A8A theme-04, 686868 theme-05, white
+		// and black), as extracted from the PDF; pointing right and up have no
+		// figure and follow the same rule. The base sheet turns the 15 x 17
+		// box (90deg pointing left, -90deg right, 180deg up), so the box is
+		// decoded and turned here, as the browser does, and compared as seen.
+		const FIG13_LEFT = [
+			"......#########.",
+			".....#,lllllllm#",
+			"....#,mmmmmmmmn#",
+			"...#,mmmmmmmmmn#",
+			"..#,mmWlllllmmn#",
+			".#,mmmmoooooomn#",
+			"#WmmmmWlllllmmn#",
+			"#lmmmmmoooooomn#",
+			"#lmmmmWlllllmmn#",
+			".#nmmmmoooooomn#",
+			"..#nmmmmmmmmmmn#",
+			"...#nmmmmmmmmmn#",
+			"....#nmmmmmmmmn#",
+			".....#nnnnnnnnn#",
+			"......#########.",
+		];
+		const RIGHT = [
+			".#########......",
+			"#,llllllll#.....",
+			"#lmmmmmmmml#....",
+			"#lmmmmmmmmml#...",
+			"#lmWlllllmmml#..",
+			"#lmmoooooommml#.",
+			"#lmWlllllmmmmml#",
+			"#lmmoooooommmmn#",
+			"#lmWlllllmmmmmn#",
+			"#lmmoooooommmn#.",
+			"#lmmmmmmmmmmn#..",
+			"#lmmmmmmmmmn#...",
+			"#lmmmmmmmmn#....",
+			"#mnnnnnnnn#.....",
+			".#########......",
+		];
+		const UP = [
+			"......###......",
+			".....#,Wl#.....",
+			"....#,mmml#....",
+			"...#,mmmmml#...",
+			"..#,mmmmmmml#..",
+			".#,mmmmmmmmml#.",
+			"#,mm,m,m,mmmml#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmmomomommmn#",
+			"#lmmmmmmmmmmmn#",
+			"#mnnnnnnnnnnnn#",
+			".#############.",
+		];
+		// The box as the browser shows it after the base sheet's turn: a
+		// quarter clockwise (left), counterclockwise (right) or a half (up),
+		// the box's clear spare row (carried past the point) dropped.
+		const turned = (box: string[], turn: "left" | "right" | "up") => {
+			const at = (x: number, y: number) =>
+				turn === "left"
+					? box[16 - x][y]
+					: turn === "right"
+						? box[x][14 - y]
+						: box[16 - y][14 - x];
+			if (turn === "up")
+				return Array.from({ length: 16 }, (_, y) =>
+					Array.from({ length: 15 }, (_, x) => at(x, y + 1)).join(""),
+				);
+			const from = turn === "left" ? 1 : 0;
+			return Array.from({ length: 15 }, (_, y) =>
+				Array.from({ length: 16 }, (_, x) => at(x + from, y)).join(""),
+			);
+		};
+
+		it("lights the turned indicators from the top left: Figure 13 pointing left", () => {
+			for (const [cls, turn, art] of [
+				[".classicySliderIndicatorLeft", "left", FIG13_LEFT],
+				[".classicySliderIndicatorRight", "right", RIGHT],
+				[".classicySliderIndicatorUp", "up", UP],
+			] as const) {
+				const rest = rule(`${P} ${cls}::-webkit-slider-thumb`);
+				expect(rest.at).toBeGreaterThan(
+					pressedRule(".classicySlider", "::-webkit-slider-thumb").at,
+				);
+				const box = decode(rest.props.background, 15, 17);
+				expect(turned(box, turn)).toEqual(art);
+				expect(rule(`${P} ${cls}::-moz-range-thumb`).props.background).toBe(
+					rest.props.background,
+				);
+				// Pressed and highlighted: the same art a step darker.
+				const pressed = pressedRule(cls, "::-webkit-slider-thumb");
+				expect(turned(decode(pressed.props.background, 15, 17), turn)).toEqual(
+					step(art),
+				);
+				expect(pressedRule(cls, "::-moz-range-thumb").props.background).toBe(
+					pressed.props.background,
+				);
+			}
+			// The left art is the down art's shape turned, relit: the same
+			// outline cells.
+			const outline = (rows: string[]) =>
+				rows.map((r) => r.replace(/[^#.]/g, "m"));
+			expect(outline(turned(AT_REST, "left"))).toEqual(outline(FIG13_LEFT));
+			expect(outline(turned(AT_REST, "right"))).toEqual(outline(RIGHT));
+			expect(outline(turned(AT_REST, "up"))).toEqual(outline(UP));
+		});
+
+		// Fix round 4: every placement is derived from the knobs (the vertical
+		// margins were measured at the defaults). Under Platinum's defaults
+		// (channel 7, along 15, across 17, rise 3): the vertical thumb pointing
+		// left -6, pointing right -2; Firefox's shift 2, back -2.
+		it("places the indicator's flat side three pixels past the channel, from the knobs", () => {
+			expect(
+				rule(`${P} .classicySlider::-webkit-slider-thumb`).props["margin-top"],
+			).toBe("calc(var(--slider-thumb-rise) * -1)");
+			expect(
+				rule(`${P} .classicySliderIndicatorUp::-webkit-slider-thumb`).props[
+					"margin-top"
+				],
+			).toBe(
+				"calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across))",
+			);
+			// A vertical thumb's box lies from the channel's edge and turns
+			// about its center: (channel + rise) - (across + along) / 2, and
+			// (across - along) / 2 - rise.
+			expect(
+				rule(`${P} .classicySliderInputVertical::-webkit-slider-thumb`).props,
+			).toEqual({
+				"margin-top": "0",
+				"margin-left":
+					"calc(var(--slider-channel) + var(--slider-thumb-rise) - (var(--slider-thumb-across) + var(--slider-thumb-along)) / 2)",
+			});
+			expect(
+				rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorRight::-webkit-slider-thumb`,
+				).props["margin-left"],
+			).toBe(
+				"calc((var(--slider-thumb-across) - var(--slider-thumb-along)) / 2 - var(--slider-thumb-rise))",
+			);
+			// Firefox centers its own thumb on the channel: the same places by
+			// a translation of (across - channel) / 2 - rise, down the channel
+			// or back up it, before the base sheet's turn.
+			const shift =
+				"calc((var(--slider-thumb-across) - var(--slider-channel)) / 2 - var(--slider-thumb-rise))";
+			const back =
+				"calc(((var(--slider-thumb-across) - var(--slider-channel)) / 2 - var(--slider-thumb-rise)) * -1)";
+			expect(
+				rule(`${P} .classicySlider::-moz-range-thumb`).props.transform,
+			).toBe(`translateY(${shift})`);
+			expect(
+				rule(`${P} .classicySliderIndicatorUp::-moz-range-thumb`).props
+					.transform,
+			).toBe(`translateY(${back}) rotate(180deg)`);
+			expect(
+				rule(`${P} .classicySliderIndicatorLeft::-moz-range-thumb`).props
+					.transform,
+			).toBe(`translateX(${back}) rotate(90deg)`);
+			expect(
+				rule(`${P} .classicySliderIndicatorRight::-moz-range-thumb`).props
+					.transform,
+			).toBe(`translateX(${shift}) rotate(-90deg)`);
+		});
+
+		// The input is the indicator at rest (its box less the pressed one's
+		// extra row) plus its rise (19): odd like the channel, so the centered
+		// channel sits on a whole pixel, the point's six rows above and below
+		// it, and the rest indicator's point ends on the input's edge.
+		it("sizes the thumb's box, the input and the channel by the slider knobs", () => {
+			expect(rule(`${P} .classicySliderTrackGroup`).props).toEqual({
+				"--slider-thumb-width": "var(--slider-thumb-along)",
+				"--slider-thumb-height": "var(--slider-thumb-across)",
+			});
+			const thickness =
+				"calc(var(--slider-thumb-across) - var(--slider-pixel) + var(--slider-thumb-rise))";
+			expect(rule(`${P} .classicySlider`).props.height).toBe(thickness);
+			expect(rule(`${P} .classicySliderInputVertical`).props.width).toBe(
+				thickness,
+			);
+			// The ghost's box where the indicator's lies: the channel's room
+			// above it (the point's rows) less the rise; turned up, a pixel
+			// above the input.
+			expect(rule(`${P} .classicySliderGhost`).props["margin-top"]).toBe(
+				"calc(var(--slider-thumb-across) - var(--slider-pixel) - var(--slider-thumb-rise) - var(--slider-channel) - var(--slider-thumb-rise))",
+			);
+			expect(
+				rule(`${P} .classicySliderGhost.classicySliderIndicatorUp`).props[
+					"margin-top"
+				],
+			).toBe("calc(var(--slider-pixel) * -1)");
+		});
+
+		// The channel's caps and runs, decoded on a 40-pixel channel: Figure
+		// 2-18's left end (a one-pixel cap), straight run and right end, the
+		// three flat rows reading --classicy-slider-track first.
+		it("draws the channel, and the same art turned for a vertical slider", () => {
+			const horizontal = rule(
+				`${P} .classicySlider::-webkit-slider-runnable-track`,
+			).props;
+			expect(horizontal.height).toBe("var(--slider-channel)");
+			const fill =
+				"var(--classicy-slider-track, linear-gradient(var(--color-system-04), var(--color-system-04)))";
+			// The channel's layers at a length of 40 grid pixels: a `100% - n`
+			// size becomes 40 - n, a place from the far end (`right` or
+			// `bottom` X) becomes 40 - X - its size, and the fill a plain
+			// #AAAAAA layer.
+			const at40 = (background: string, vertical: boolean) =>
+				decode(
+					layers(background)
+						.map((l) => {
+							const flat = l.replace(
+								fill,
+								"linear-gradient(var(--color-system-04), var(--color-system-04))",
+							);
+							const m =
+								/^(linear-gradient\([^)]*\)[^)]*\)\)) (.*) no-repeat$/.exec(
+									flat,
+								);
+							if (!m) throw new Error(`not a channel layer: ${l}`);
+							const slash = m[2].lastIndexOf("/");
+							const place = tokens(m[2].slice(0, slash));
+							const size = tokens(m[2].slice(slash + 1)).map((t) => {
+								const rest = /^calc\(100% - (.*)\)$/.exec(t);
+								return rest
+									? `calc(var(--slider-pixel) * ${40 - grid(rest[1])})`
+									: t;
+							});
+							const along = vertical ? 1 : 0;
+							const keyword = place[along * 2];
+							let at = grid(place[along * 2 + 1]);
+							if (keyword === "right" || keyword === "bottom")
+								at = 40 - at - grid(size[along]);
+							const across = grid(place[(1 - along) * 2 + 1]);
+							const [x, y] = vertical ? [across, at] : [at, across];
+							return `${m[1]} left calc(var(--slider-pixel) * ${x}) top calc(var(--slider-pixel) * ${y})/${size[0]} ${size[1]} no-repeat`;
+						})
+						.join(", "),
+					vertical ? 7 : 40,
+					vertical ? 40 : 7,
+				);
+			const rows = at40(horizontal.background, false);
+			expect(rows).toEqual([
+				".aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..",
+				"aaKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKW.",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				".WKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKWW",
+				"..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+			]);
+			expect(horizontal.background).toContain(fill);
+			const vertical = rule(
+				`${P} .classicySliderInputVertical::-webkit-slider-runnable-track`,
+			);
+			expect(vertical.at).toBeGreaterThan(
+				rule(`${P} .classicySlider::-webkit-slider-runnable-track`).at,
+			);
+			// Turned (the 1996 draft's Figure 13: the etch on the left, the
+			// white row on the right, the start cap at the top): column c of
+			// the vertical is row c of the horizontal.
+			const turned = at40(vertical.props.background, true);
+			expect(
+				Array.from({ length: 7 }, (_, c) => turned.map((r) => r[c]).join("")),
+			).toEqual(rows);
+		});
+
+		it("draws Figure 2-18's tick mark, and turned for a vertical slider", () => {
+			const tick = rule(`${P} .classicySliderTick`).props;
+			expect(decode(tick.background, 3, 8)).toEqual([
+				"WW.",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				".88",
+			]);
+			// Shifted by a margin, not a transform, so it lands on a pixel.
+			expect(tick.transform).toBe("none");
+			expect(tick["margin-left"]).toBe("calc(var(--slider-pixel) * -1.5)");
+			const turned = rule(
+				`${P} .classicySliderStackVertical .classicySliderTick`,
+			).props;
+			expect(decode(turned.background, 8, 3)).toEqual([
+				"WWWWWWW.",
+				"W######8",
+				".8888888",
+			]);
+			expect(turned.top).toBe("auto");
+		});
+
+		it("draws the knob over the plain indicator, pressed a step darker", () => {
+			const KNOB = [
+				"...............",
+				".#############.",
+				"#,lllllllllllm#",
+				"#lmmmmmmmmmmmn#",
+				"#lmm,m,m,mmmmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmlololommmn#",
+				"#lmmmomomommmn#",
+				"#lnnnnnnnnnnnn#",
+				".#############.",
+				"...............",
+				"...............",
+				"...............",
+				"...............",
+				"...............",
+			];
+			for (const pseudo of ["::-webkit-slider-thumb", "::-moz-range-thumb"]) {
+				const knob = rule(
+					`${P} .classicySliderIndicatorNondirectional${pseudo}`,
+				);
+				// After the down indicator's pressed rule, which it outranks
+				// when pressed through its own.
+				expect(knob.at).toBeGreaterThan(
+					pressedRule(".classicySlider", pseudo).at,
+				);
+				// Eleven rows, one down in the box: two past the seven-row
+				// channel each side.
+				expect(decode(knob.props.background, 15, 17)).toEqual(KNOB);
+				const pressed = pressedRule(
+					".classicySliderIndicatorNondirectional",
+					pseudo,
+				);
+				expect(pressed.at).toBeGreaterThan(knob.at);
+				expect(decode(pressed.props.background, 15, 17)).toEqual(step(KNOB));
+			}
+		});
+
+		it("draws the ghost in grays, translucent, and none while hidden", () => {
+			const ghost = rule(`${P} .classicySliderGhost`);
+			expect(ghost.props.opacity).toBe("0.75");
+			expect(ghost.props.transition).toBe("opacity 0.1s linear");
+			expect(ghost.props.background).toContain("var(--color-system-05)");
+			// Turned up, the up indicator's art (lit from the top left), not
+			// the down one's turned.
+			const up = rule(`${P} .classicySliderGhost.classicySliderIndicatorUp`);
+			expect(up.props.background).toBe(
+				rule(
+					`${P} .classicySliderIndicatorUp::-webkit-slider-thumb`,
+				).props.background.replace(
+					/var\(--color-[\w-]+\)/g,
+					(token) =>
+						({
+							"var(--color-black)": "var(--color-system-05)",
+							"var(--color-theme-01)": "var(--color-white)",
+							"var(--color-theme-02)": "var(--color-white)",
+							"var(--color-theme-03)": "var(--color-system-02)",
+							"var(--color-theme-04)": "var(--color-system-03)",
+							"var(--color-theme-05)": "var(--color-system-04)",
+						})[token] ?? token,
+				),
+			);
+			const hidden = rule(`${P} .classicySliderGhostHidden`);
+			expect(hidden.props).toEqual({ opacity: "0" });
+			expect(hidden.at).toBeGreaterThan(ghost.at);
+		});
+
+		it("dims a slider and its ticks, and inks the tick labels", () => {
+			expect(rule(`${P} :where(.classicySlider).disabled`).props).toEqual({
+				filter: "contrast(0.5)",
+			});
+			expect(rule(`${P} :where(.classicySliderTicks).disabled`).props).toEqual({
+				filter: "contrast(0.5)",
+			});
+			expect(rule(`${P} .classicySliderTickLabel`).props).toEqual({
+				color: "var(--color-black)",
+			});
+		});
+	});
+
+	// Fix round 2: the Desktop tab's preview, picture or None alike, sits in
+	// Platinum's recessed content frame (the window's content well: a 1 px
+	// border etched into the face), so a None preview whose desktop color
+	// matches the panel still shows its edge.
+	it("frames the Appearance Manager's desktop preview", () =>
+		expect(rule(`${P} .classicyAppearanceManagerDesktopPreview`).props).toEqual(
+			{
+				"box-sizing": "border-box",
+				border: "var(--window-border-size) solid var(--color-window-border)",
+				"box-shadow":
+					"calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) var(--color-system-05), var(--window-border-size) var(--window-border-size) var(--color-window-border-outset)",
+			},
+		));
+
 	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
 		// Every rule whose selector list is exactly `selector`, in order: Sass
 		// emits a rule's declarations that follow a nested rule as a second rule
@@ -559,20 +1334,6 @@ describe("platinum.scss (compiled)", () => {
 			if (!found.length) throw new Error(`no rule for ${selector}`);
 			return found;
 		};
-		// `winner` sets `prop` to `value` after the last rule for `loser`.
-		const winsOver = (
-			winner: string,
-			loser: string,
-			prop: string,
-			value: string,
-		) => {
-			const w = rules(`${P} ${winner}`).at(-1);
-			expect(w?.props[prop], winner).toBe(value);
-			expect(w?.at, `${winner} follows ${loser}`).toBeGreaterThan(
-				rule(`${P} ${loser}`).at,
-			);
-		};
-
 		it("scopes the assistant header bevel", () => {
 			const header = rule(`${P} .classicyAssistantHeader`).props;
 			expect(header.border).toBe(
@@ -658,49 +1419,9 @@ describe("platinum.scss (compiled)", () => {
 			).toBeUndefined();
 		});
 
-		// P9: the nondirectional knob overrides the pentagon thumb's clip-path
-		// and background, so it follows it in the package too.
-		it("scopes the slider thumb, with the nondirectional knob over it (P9)", () => {
-			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
-			expect(thumb["clip-path"]).toBe(
-				"polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%)",
-			);
-			// The grip strikes are the registered package art (E 3.1).
-			expect(thumb.background).toContain(
-				"var(--classicy-art-slider-strikes) center 30%",
-			);
-			for (const pseudo of [
-				"::-webkit-slider-thumb",
-				"::-moz-range-thumb",
-				":active::-webkit-slider-thumb",
-				":active::-moz-range-thumb",
-			]) {
-				winsOver(
-					`.classicySliderIndicatorNondirectional${pseudo}`,
-					`.classicySlider${pseudo}`,
-					"clip-path",
-					"inset(0 round var(--slider-thumb-corner-radius))",
-				);
-				winsOver(
-					`.classicySliderIndicatorNondirectional${pseudo}`,
-					`.classicySliderHighlighted${pseudo}`,
-					"clip-path",
-					"inset(0 round var(--slider-thumb-corner-radius))",
-				);
-				expect(
-					rule(`${P} .classicySliderHighlighted${pseudo}`).at,
-				).toBeGreaterThan(rule(`${P} .classicySlider${pseudo}`).at);
-			}
-			winsOver(
-				".classicySliderGhost.classicySliderIndicatorNondirectional",
-				".classicySliderGhost",
-				"clip-path",
-				"inset(0 round var(--slider-thumb-corner-radius))",
-			);
-			expect(rule(`${P} .classicySliderGhost`).props["clip-path"]).toBe(
-				thumb["clip-path"],
-			);
-		});
+		// P9 (the nondirectional knob and the highlighted indicator follow
+		// the plain one they override) is now in "the slider, drawn from
+		// HIGOS8 Figure 2-17", above.
 
 		it("scopes the icon halftones", () => {
 			for (const mask of [".classicyDesktopIconMask", ".classicyIconMask"]) {
@@ -980,6 +1701,8 @@ describe("the moved Platinum mixin files", () => {
 	it("declare only the renamed mixins", () => {
 		expect(declared("_mixins.scss")).toEqual([
 			"mixin platinum-menu-frame",
+			"function platinum-menu-frame-bevel",
+			"mixin platinum-menu-frame-shadow",
 			"mixin platinum-menu-divider",
 			"mixin platinum-window-box-shadow",
 			"mixin platinum-box-shadow",
@@ -1008,8 +1731,20 @@ describe("the moved Platinum mixin files", () => {
 			"mixin platinum-scrollbar-button-box",
 			"mixin platinum-scrollbar-button-pressed",
 			"mixin platinum-scrollbars",
+			"mixin platinum-scroll-track-box",
+			"mixin platinum-scroll-track-bevel-vertical",
+			"mixin platinum-scroll-track-bevel-horizontal",
+			"mixin platinum-scroll-corner",
 			"mixin platinum-scrollbars-split-arrows",
 			"mixin platinum-scrollbars-themed",
+			"mixin platinum-scroll-thumb-box",
+			"mixin platinum-scroll-thumb-grip-vertical",
+			"mixin platinum-scroll-thumb-grip-horizontal",
+			// Classicy's own scroll bars (ClassicyScrollArea), the same look.
+			"mixin platinum-scroll-bar-parts",
+			"mixin platinum-scroll-bar-parts-split-arrows",
+			"mixin platinum-scroll-thumb-vertical",
+			"mixin platinum-scroll-thumb-horizontal",
 		]);
 		expect(declared("_assets.scss")).toEqual([
 			"mixin platinum-root-properties",

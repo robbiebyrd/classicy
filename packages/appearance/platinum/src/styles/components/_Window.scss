@@ -73,6 +73,26 @@
     @include mixins.platinum-window-box-shadow;
   }
 
+  // A modal dialog box the user cannot move (`movable={false}`; HIGOS8 p.60,
+  // figure 3-3) has no title bar, the drag affordance of a movable one
+  // (p.59), and shows its items on one placard-like face inside the black
+  // frame: no line across the top, and the contents, which fill the modal
+  // window (it has no padding) now that the base's chrome height (a title
+  // bar's) no longer applies, keep the bevel above (light top and left,
+  // shaded bottom and right; its one-pixel shadow falls on the window's own
+  // border). The fixed alert keeps its red title bar. Child combinators, so
+  // a window nested in the dialog's content keeps its own bar and contents.
+  .classicyWindow.classicyWindowModalFixed:not(.classicyWindowRed) {
+    > .classicyWindowTitleBar {
+      display: none;
+    }
+
+    > .classicyWindowContentsModal {
+      height: calc(100% - var(--control-padding-tight) - var(--control-padding-tight));
+      border-top: none;
+    }
+  }
+
   // The windoid's title-bar pattern: the registered texture (two radial
   // gradients over the frame gray) tiled 4px x 3px on the center band, and no
   // side bands. Named down to `.classicyWindowTitle` so it outranks the active

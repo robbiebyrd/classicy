@@ -1,0 +1,115 @@
+// The controls System 7 never had, drawn flat in its terms (plan 0018-dbd
+// §3.5), included by system7.scss inside the package wrapper: the bevel
+// button, the placard and the image well are Mac OS 8's, beveled gray in
+// Platinum. Under System 7 they are white faces in a one-pixel black frame
+// with no bevel, at both depths (HIG p.263: "keep black-and-white designs
+// two-dimensional"; p.259: controls stay black on white in color). Pressed
+// or on, a face inverts, as a push button does; dimmed, the frame and label
+// take the dimmed ink through the dither. The Control Strip's bevel buttons
+// are left to the strip.
+//
+// A bevel button's pop-up panel (`popupContent`: a surface that is not a
+// menu, such as the Control Strip Sound module's slider, or a host's) has
+// one System 7 look, taken from the one such panel 7.5 drew, the Control
+// Strip's pop-up slider (its panel's pictures of it, PICT -4046 and -4048;
+// docs/system7-asset-inventory.md, "Desktop pattern and Control Strip"):
+// the menu frame (_Menu.scss) around a `--color-system-02` face with a white
+// top row and left column, #BBBBBB in color for the panel's #CCCCCC, white
+// all over in 1-bit.
+@use "sass:string";
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../pixel" as *;
+@use "Menu";
+
+@mixin face {
+  border: $px solid var(--color-black);
+  border-radius: 0;
+  color: var(--color-black);
+  background-color: var(--color-white);
+  box-shadow: none;
+}
+
+@mixin inverted {
+  color: var(--color-white);
+  background-color: var(--color-black);
+  box-shadow: none;
+}
+
+@mixin dimmed {
+  border-color: var(--color-theme-06);
+  color: var(--color-theme-06);
+  background-color: var(--color-white);
+  box-shadow: none;
+  @include d.classicy-dither-mask;
+}
+
+@mixin flat-controls {
+  // The Control Strip's modules are bevel buttons with a look of their own
+  // (the Control Strip's, §3.7).
+  .classicyBevelButton:not(.classicyControlStrip *) {
+    @include face;
+
+    &.checked,
+    &.pressed,
+    &.mixed {
+      @include inverted;
+    }
+
+    &.disabled,
+    &.disabled.checked {
+      @include dimmed;
+    }
+
+    &:focus-visible {
+      outline: px(2) solid var(--color-black);
+    }
+  }
+
+  // The pop-up arrow (Platinum's partial draws it): a font glyph pointing
+  // where the surface opens, as an escape so the CSS stays ASCII.
+  .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
+    @include Menu.menu-frame;
+    background:
+      layout.classicy-px-rect(var(--color-white), 0, 0, 100%, $px),
+      layout.classicy-px-rect(var(--color-white), 0, 0, $px, 100%),
+      var(--color-system-02);
+  }
+
+  .classicyBevelButtonArrowHorizontal::before {
+    content: string.unquote('"\\25B8"');
+  }
+
+  .classicyBevelButtonArrowVertical::before {
+    content: string.unquote('"\\25BE"');
+  }
+
+  .classicyPlacard {
+    @include face;
+
+    &.pressed {
+      @include inverted;
+    }
+
+    &.disabled {
+      @include dimmed;
+    }
+
+    &:focus-visible {
+      outline: px(2) solid var(--color-black);
+    }
+  }
+
+  .classicyPlacardMenu {
+    border: $px solid var(--color-black);
+    background-color: var(--color-white);
+  }
+
+  .classicyImageWell {
+    @include face;
+  }
+
+  :where(.classicyImageWell).disabled {
+    @include dimmed;
+  }
+}

@@ -1,7 +1,9 @@
 // The screen savers Platinum ships (../screenSavers/, plan 0016-vbq §2.1):
-// each saver's stylesheet, in the order its module is registered. platinum.scss
-// includes the mixin inside its `classicy.package` layer block but at the root
-// of it (`@at-root`), outside the package scope: the rules are keyed on the
+// their stylesheets, loaded through the savers' one index,
+// ../screenSavers/_platinumScreenSavers.scss, which System 7's sheet loads
+// too (plan 0018-dbd §3.8). platinum.scss includes the mixin inside its
+// `classicy.package` layer block but at the root of it (`@at-root`), outside
+// the package scope: the rules are keyed on the
 // savers' own classes and `classicySaver*` keyframes, so a saver another
 // package names renders the same there (design "Saver styles stay keyed on
 // the saver").
@@ -21,18 +23,7 @@
 @use "sass:meta";
 
 @mixin screenSavers {
-  @include meta.load-css("../screenSavers/BouncingBall/ClassicyScreenSaverBouncingBall");
-  @include meta.load-css("../screenSavers/FadeOut/ClassicyScreenSaverFadeOut");
-  @include meta.load-css("../screenSavers/Fish/ClassicyScreenSaverFish");
-  @include meta.load-css("../screenSavers/FlyingToasters/ClassicyScreenSaverFlyingToasters");
-  @include meta.load-css("../screenSavers/Globe/ClassicyScreenSaverGlobe");
-  @include meta.load-css("../screenSavers/HardRain/ClassicyScreenSaverHardRain");
-  @include meta.load-css("../screenSavers/Logo/ClassicyScreenSaverLogo");
-  @include meta.load-css("../screenSavers/Messages/ClassicyScreenSaverMessages");
-  @include meta.load-css("../screenSavers/Messages2/ClassicyScreenSaverMessages2");
-  @include meta.load-css("../screenSavers/Rainstorm/ClassicyScreenSaverRainstorm");
-  @include meta.load-css("../screenSavers/Spotlight/ClassicyScreenSaverSpotlight");
-  @include meta.load-css("../screenSavers/Warp/ClassicyScreenSaverWarp");
+  @include meta.load-css("../screenSavers/platinumScreenSavers");
 
   // After every saver, in the same layer: the id outranks their class-based
   // `animation:` shorthands, and it comes last besides.

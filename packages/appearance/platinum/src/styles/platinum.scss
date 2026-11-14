@@ -14,6 +14,14 @@
 @use "components/Window";
 @use "components/Slider";
 @use "components/Checkbox";
+@use "components/RadioInput";
+@use "components/Input";
+@use "components/LittleArrows";
+@use "components/ListBox";
+@use "components/Spinner";
+@use "components/DateTimePicker";
+@use "components/ComboBox";
+@use "components/ControlGroup";
 @use "components/PopUpMenu";
 @use "components/DriveSetupList";
 @use "components/Assistant";
@@ -25,6 +33,7 @@
 @use "components/ControlStrip";
 @use "components/Desktop";
 @use "components/Tabs";
+@use "components/ScrollArea";
 @use "components/DesktopIcon";
 @use "components/HyperCard";
 @use "components/FileInput";
@@ -33,6 +42,7 @@
 @use "components/Placard";
 @use "components/SplitView";
 @use "components/WindowFrame";
+@use "components/AppearanceManager";
 @use "screenSavers";
 
 @include package.classicy-package("platinum") {
@@ -45,6 +55,14 @@
   @include Window.window;
   @include Slider.slider;
   @include Checkbox.checkbox;
+  @include RadioInput.radioInput;
+  @include Input.input;
+  @include LittleArrows.littleArrows;
+  @include ListBox.listBox;
+  @include Spinner.spinner;
+  @include DateTimePicker.dateTimePicker;
+  @include ComboBox.comboBox;
+  @include ControlGroup.controlGroup;
   @include PopUpMenu.popUpMenu;
   @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;
@@ -58,6 +76,9 @@
   // Out of bundle order (ClassicyTabs.scss bundles before ClassicyDesktop.scss):
   // the tab scroller re-asserts its hidden scroll bar after the desktop's.
   @include Tabs.tabs;
+  // Classicy's own scroll bars, after the desktop's native ones: the
+  // viewport re-asserts its hidden native bar over the desktop's fallback.
+  @include ScrollArea.scrollArea;
   @include DesktopIcon.desktopIcon;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;
@@ -66,6 +87,7 @@
   @include Placard.placard;
   @include SplitView.splitView;
   @include WindowFrame.windowFrame;
+  @include AppearanceManager.appearanceManager;
   // The screen savers (plan 0016-vbq §2.1): in the package layer, but at its
   // root, outside the package scope, keyed on their own classes (see
   // _screenSavers.scss).

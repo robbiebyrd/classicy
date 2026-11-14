@@ -20,10 +20,7 @@ import {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import {
-	defaultClassicyWallpaper,
-	resolveClassicyWallpaper,
-} from "@/Appearance/ClassicyWallpaperIndex";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import type { ClassicyThemeTypography } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyAppearanceManager } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager";
 import { useColorsTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
@@ -53,7 +50,10 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import {
+	CLASSICY_ALERT_SOUNDS,
+	DEFAULT_ALERT_SOUND,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
@@ -280,9 +280,9 @@ const DesktopTabStory = () => {
 	const { desktop } = useAppearance().activeTheme;
 	const dispatch = useAppManagerDispatch();
 	const tab = useDesktopTab({
-		bg:
-			resolveClassicyWallpaper(desktop.backgroundImage) ||
-			defaultClassicyWallpaper(),
+		// As the Appearance Manager does: "" for no picture (the picker reads
+		// None).
+		bg: resolveClassicyWallpaper(desktop.backgroundImage),
 		bgPosition: desktop.backgroundPosition,
 		bgRepeat: desktop.backgroundRepeat,
 		bgSize: desktop.backgroundSize,
@@ -398,6 +398,7 @@ const SoundTabStory = () => {
 				path: "sound.pack",
 				value: e.target.value,
 			}),
+		alerts: CLASSICY_ALERT_SOUNDS,
 		alertSound: appearance.alertSound ?? DEFAULT_ALERT_SOUND,
 		changeAlertSound: (e) => {
 			dispatch({

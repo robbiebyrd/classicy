@@ -197,7 +197,20 @@ export type ClassicyTheme = {
 	measurements: ClassicyThemeMeasurements;
 	desktop: ClassicyThemeDesktop;
 	sound: ClassicyThemeSound;
+	/**
+	 * The variant of its package's assets this theme draws with
+	 * (`registerClassicyAssets(kind, package, tree, { variant })`): icons,
+	 * system art, cursors and wallpapers by name resolve the variant's tree,
+	 * then the package's base tree, then the default package's. Absent, the
+	 * base tree; a variant the package never registered draws the base tree
+	 * too, with one warning.
+	 */
+	assetVariant?: string;
 };
+
+/** A resolved desktop picture as a CSS image: `url("…")`, or `none`. */
+const classicyDesktopPictureVar = (src: string): string =>
+	src ? `url("${src}")` : "none";
 
 export const getThemeVars = (theme: ClassicyTheme) => {
 	// Completed first, key by key, from the theme's package defaults over
@@ -265,7 +278,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-highlight": intToHex(theme.color.highlight),
 		// Themes hold a registered wallpaper by filename; resolved here, at
 		// render, through the asset registry (the theme's own package first).
-		"--desktop-background-image": `url("${resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package)}")`,
+		// No picture is `none`: `url("")` resolves to the page's own URL.
+		"--desktop-background-image": classicyDesktopPictureVar(
+			resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package),
+		),
 		"--desktop-background-color": intToHex(theme.desktop.backgroundColor),
 		"--desktop-background-repeat": theme.desktop.backgroundRepeat,
 		"--desktop-background-position": theme.desktop.backgroundPosition,

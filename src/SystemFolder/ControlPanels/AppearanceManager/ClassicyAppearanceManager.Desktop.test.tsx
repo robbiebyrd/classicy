@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, renderHook, screen, userEvent } from "@/__tests__/test-utils";
 import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
+import { classicyCascadeWinner } from "@/Appearance/__tests__/classicyCascadeWinner";
 import { registerClassicyWallpapers } from "@/Appearance/ClassicyAssetRegistry";
 import { defaultClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
@@ -70,8 +71,9 @@ describe("useDesktopTab — Patterns", () => {
 		const user = userEvent.setup();
 		render(<Host />);
 		await user.click(patternsMenu());
+		// None, then every wallpaper.
 		expect(screen.getAllByRole("option")).toHaveLength(
-			PLATINUM_WALLPAPERS.length,
+			PLATINUM_WALLPAPERS.length + 1,
 		);
 		expect(
 			screen.getByRole("option", { name: "Default Photo" }),
@@ -111,6 +113,44 @@ describe("useDesktopTab — Patterns", () => {
 		expect(screen.getByAltText("Background")).toHaveAttribute(
 			"src",
 			wallpaper("Rio Azul").value,
+		);
+	});
+
+	// Story 0195-wuo: a choice that removes the picture, so the desktop is
+	// its solid color (ClassicyDesktopChangeBackground with "").
+	it("offers None first, and passes an empty picture for it", async () => {
+		const changeBackground = vi.fn();
+		const user = userEvent.setup();
+		render(<Host changeBackground={changeBackground} />);
+		await user.click(patternsMenu());
+		expect(screen.getAllByRole("option")[0]).toHaveTextContent(/^None$/);
+		await user.click(screen.getByRole("option", { name: "None" }));
+		expect(changeBackground).toHaveBeenCalledOnce();
+		expect(changeBackground.mock.calls[0][0].target.value).toBe("");
+	});
+
+	it("names None, and previews no picture, when the desktop has none", () => {
+		render(<Host bg={""} />);
+		expect(patternsMenu()).toHaveTextContent(/^None$/);
+		expect(screen.queryByAltText("Background")).toBeNull();
+		expect(screen.getByRole("img", { name: "No picture" })).toHaveClass(
+			"classicyAppearanceManagerDesktopPreview",
+			"classicyAppearanceManagerDesktopPreviewNone",
+		);
+	});
+
+	// Its box has no content of its own: `height: 100%` of the row (whose
+	// height is its contents') would leave it 0 tall, so it stretches to the
+	// row instead, in either stylesheet order.
+	it("draws the no-picture preview the row's height", () => {
+		render(<Host bg={""} />);
+		const none = screen.getByRole("img", { name: "No picture" });
+		const sheet = [
+			"src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.scss",
+		];
+		expect(classicyCascadeWinner(none, sheet, "height")?.value).toBe("auto");
+		expect(classicyCascadeWinner(none, sheet, "align-self")?.value).toBe(
+			"stretch",
 		);
 	});
 

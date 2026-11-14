@@ -21,6 +21,36 @@
     @include mixins.platinum-menu-frame;
   }
 
+  // A menu too long for the screen scrolls (ClassicyMenu), which would clip
+  // and scroll the frame's shadow pseudo-elements: they are off, and the
+  // shadow is drawn on the sibling ClassicyMenu puts over the list in their
+  // wrapper (`.classicyMenuScrollShadow`), whose transparent border puts its
+  // padding edge where the list's is, so it lands on the same pixels, gap
+  // included.
+  // The desktop's Firefox fallback (`scrollbar-width: auto`,
+  // _Desktop.scss) is kept off the list's native bar.
+  .classicyMenu.classicyMenuListScrolls,
+  .classicySubMenu.classicyMenuListScrolls,
+  .classicyContextMenu.classicyMenuListScrolls,
+  .classicyContextSubMenu.classicyMenuListScrolls {
+    scrollbar-width: none;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  // The sibling also lays the frame's inner bevel over the rows, which
+  // scroll over the list's padding, where the frame draws it: a row
+  // scrolled a few pixels would otherwise show through the bevel.
+  .classicyMenuScrollShadow {
+    box-sizing: border-box;
+    border: var(--menu-frame-border-width) solid transparent;
+    background: mixins.platinum-menu-frame-bevel();
+    @include mixins.platinum-menu-frame-shadow;
+  }
+
   // Dividers in every menu (Figure 6-15).
   .classicyMenu,
   .classicySubMenu,

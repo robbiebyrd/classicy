@@ -43,12 +43,15 @@ const PLATINUM = "platinum";
  * icon-tree files, because the core draws them too (the screen saver's logos,
  * the pre-boot screen).
  *
- * Not registered (Platinum registers 36 of the 39 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 36 of the 41 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `menuCheck` and `menuDash` are `::before`
  * glyphs in the Platinum package, so those keys have no file at all;
- * `aboutBackground` has no Platinum art. `triangle` and `downArrow` are
- * aliases of `submenuArrow` and `popupArrows`: `registerClassicySystemArt`
- * registers each with its key, so they are not listed here.
+ * `aboutBackground` has no Platinum art; Platinum draws no dithers, so it has
+ * no `ditherChecker`, and its Help menu title is the word, so it has no
+ * `helpMenuTitle` (registering one would change its menu bar). `triangle`
+ * and `downArrow` are aliases of `submenuArrow` and `popupArrows`:
+ * `registerClassicySystemArt` registers each with its key, so they are not
+ * listed here.
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu,

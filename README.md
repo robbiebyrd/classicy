@@ -16,9 +16,10 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ## Using Classicy in a Vite app
 
-Classicy is two packages: `@classicy/classicy`, the framework, and
-`@classicy/appearance-platinum`, the Platinum look. Install both, at the same
-version:
+Classicy is a framework, `@classicy/classicy`, and the looks it draws, its
+Appearance Packages: `@classicy/appearance-platinum`, the Platinum look (Mac
+OS 8), and `@classicy/appearance-system7`, System 7 (below). Install the
+framework and a package, at the same version:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-platinum
@@ -61,6 +62,8 @@ and icon art go missing.
 
 **Upgrading from 3.0.x?** [`docs/RELEASE-NOTES-3.1.md`](docs/RELEASE-NOTES-3.1.md): the screen savers (and their logo registry) now ship with `@classicy/appearance-platinum`; a host importing one from `@classicy/classicy` changes the import specifier.
 
+**Upgrading from 3.1.x?** [`docs/RELEASE-NOTES-3.2.md`](docs/RELEASE-NOTES-3.2.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
+
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
 and rewrite every specifier, strings included: `from "classicy"`, deep paths
@@ -75,7 +78,7 @@ wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
 file URLs (they return the SPA fallback page). Exclude both packages from
-the pre-bundle:
+the pre-bundle (and `@classicy/appearance-system7`, when you load it):
 
 ```ts
 // vite.config.ts
@@ -388,6 +391,30 @@ the theme (`--<family>-<key>`) instead of `Npx` literals.
 
 Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
 pixel-literal purge (Part H)", and §8, "Package knob families".
+
+## System 7
+
+`@classicy/appearance-system7` draws System 7.5, in black and white
+("System 7") and in color ("System 7 Color"), with System 7.5's own icons,
+art, cursors, desktop pattern and alert sounds, and the same twelve screen
+savers. Use it alone or beside Platinum; the Appearance Manager switches
+between them. Install every package you load at one version, and bump them
+together:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-system7
+# or, with both looks:
+pnpm add @classicy/classicy @classicy/appearance-platinum @classicy/appearance-system7
+```
+
+```tsx
+import "@classicy/appearance-platinum"; // optional
+import "@classicy/appearance-system7";
+```
+
+A Vite host lists it in `optimizeDeps.exclude` too (above). Its README,
+[`packages/appearance/system7/README.md`](packages/appearance/system7/README.md),
+has its exports and its strict-CSP stylesheets.
 
 ## Building and running on localhost
 

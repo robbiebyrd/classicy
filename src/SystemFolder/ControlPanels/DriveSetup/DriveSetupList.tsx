@@ -3,6 +3,7 @@ import classNames from "classnames";
 import type { CSSProperties, FC } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
 
 type DriveSetupListProps = {
@@ -28,7 +29,7 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 			style={style}
 		>
 			<ClassicyControlLabel label="List of Drives" />
-			<div className="classicyDriveSetupListTable">
+			<ClassicyScrollArea className="classicyDriveSetupListTable">
 				<table className="classicyDriveSetupListGrid">
 					<thead className="classicyDriveSetupListHead">
 						<tr>
@@ -59,7 +60,7 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 						))}
 					</tbody>
 				</table>
-			</div>
+			</ClassicyScrollArea>
 		</div>
 	);
 };

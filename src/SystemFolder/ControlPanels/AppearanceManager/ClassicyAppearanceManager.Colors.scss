@@ -9,12 +9,20 @@
 }
 
 .classicyAppearanceManagerColorsScroll {
+  // The cap is the content's, as it was when the box scrolled itself: the
+  // viewport's top and bottom padding come on top.
+  max-height: calc(
+    var(--control-panel-colors-scroll-max-height) + var(--layout-item-gap) +
+      var(--layout-item-gap)
+  );
+}
+
+// The groups wrap in the scroll area's viewport.
+.classicyAppearanceManagerColorsScrollViewport {
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
   gap: var(--layout-focus-gap) 0;
-  max-height: var(--control-panel-colors-scroll-max-height);
-  overflow-y: auto;
   // Room for the swatch bevel and the scroll bar to sit clear of the groups.
   padding: var(--layout-item-gap) var(--layout-item-gap) var(--layout-item-gap) 0;
 }

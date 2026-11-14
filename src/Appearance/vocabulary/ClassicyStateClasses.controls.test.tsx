@@ -155,6 +155,36 @@ describe("shared bare state classes on controls, lists and menus", () => {
 		expect(root).not.toHaveClass("classicyPopUpMenuOpen");
 	});
 
+	// System 7 (HIG p.87) inverts the pop-up's title and hides its triangle
+	// while the menu is open: the state reaches the label's root and the
+	// indicator, which sit outside and inside the button.
+	it("ClassicyPopUpMenu: its label and indicator carry open while it is open, only", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<ClassicyPopUpMenu
+				id="pm"
+				label="Speed"
+				options={[{ value: "a", label: "A" }]}
+				selected="a"
+			/>,
+		);
+		const label = () =>
+			container.querySelector(".classicyControlLabelHolder") as HTMLElement;
+		const indicator = () =>
+			container.querySelector(".classicyPopUpMenuIndicator") as HTMLElement;
+		expect(label()).not.toHaveClass("open");
+		expect(indicator()).not.toHaveClass("open");
+		await user.click(screen.getByRole("combobox"));
+		expect(label()).toHaveClass("open");
+		expect(indicator()).toHaveClass("open");
+		expect(container.querySelector(".classicyPopUpMenuValue")).not.toHaveClass(
+			"open",
+		);
+		await user.keyboard("{Escape}");
+		expect(label()).not.toHaveClass("open");
+		expect(indicator()).not.toHaveClass("open");
+	});
+
 	it("ClassicyListBox: selected option → selected; disabled option → disabled", () => {
 		render(
 			<ClassicyListBox
@@ -415,8 +445,12 @@ describe("compiled SCSS of the touched components", () => {
 			"Yellow",
 			"Black",
 		]) {
-			expect(css).toContain(
-				`.classicyColorPickerSlider${part} .classicySlider::`,
+			// The part class fills its slider's channel through the custom
+			// property the Appearance Package's channel reads (story 0194-5bs).
+			expect(css).toMatch(
+				new RegExp(
+					`\\.classicyColorPickerSlider${part} \\{\\s*--classicy-slider-track: linear-gradient\\(to right,`,
+				),
 			);
 		}
 	});

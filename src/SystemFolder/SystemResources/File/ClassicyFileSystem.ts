@@ -1,6 +1,5 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	type ClassicyFileSystemJournalEntry,
 	type ClassicyFileSystemSnapshot,
@@ -11,6 +10,7 @@ import {
 	registerClassicyFileSystemPendingFlush,
 	unregisterClassicyFileSystemPendingFlush,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -872,10 +872,12 @@ export class ClassicyFileSystem {
 		const parts = this.pathArray(path);
 		if (parts === null) return;
 
+		// The core's folder icon, never the active package's, so the stored
+		// tree is the same under every package (`classicyCoreIcon`).
 		const newDirectoryObject = () => {
 			return {
 				_type: "directory",
-				_icon: resolveClassicyAsset("icons", "system.folders.directory") ?? "",
+				_icon: classicyCoreIcon("system.folders.directory"),
 			} as ClassicyFileSystemEntry;
 		};
 

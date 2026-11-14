@@ -59,6 +59,9 @@ const PLATINUM_REGISTERS: Record<ClassicySystemArtKey, boolean> = {
 	menuDash: false,
 	triangle: true,
 	downArrow: true,
+	// Platinum draws no dithers and titles its Help menu with the word.
+	ditherChecker: false,
+	helpMenuTitle: false,
 };
 
 const entries = Object.entries(PLATINUM_REGISTERS) as [
@@ -79,9 +82,9 @@ describe("Platinum system art", () => {
 		expect(resolveClassicyAsset("systemArt", key)).toBeUndefined();
 	});
 
-	it("registers 36 of the 39 keys", () => {
+	it("registers 36 of the 41 keys", () => {
 		expect(REGISTERED).toHaveLength(36);
-		expect(UNREGISTERED).toHaveLength(3);
+		expect(UNREGISTERED).toHaveLength(5);
 	});
 
 	it("draws the Apple menu, trash, alias badge and help button from its own src/assets/art", () => {

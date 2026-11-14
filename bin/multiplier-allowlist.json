@@ -11,6 +11,22 @@
 			"reason": "Pixel-grid multiples of the one bevel knob (--control-strip-bevel-width x 2, x 3, x 4) inside classicy-px-rect: coordinates on the Control Strip art's bevel-pixel grid, not theme proportions (H-R7)."
 		}
 	],
+	"packages/appearance/platinum/src/styles/components/_Slider.scss": [
+		{
+			"count": 1,
+			"reason": "Platinum's slider, pixel for pixel from HIGOS8 Figures 2-18 and 2-17: the channel and its caps, the indicator, the knob, the ghost and the tick marks are one-pixel rectangles placed in multiples of the one grid knob (--slider-pixel x n, one site in the px() helper), as is the ticks' half-width shift; coordinates in the art, not theme proportions (H-R7, as System 7's)."
+		},
+		{
+			"count": 1,
+			"reason": "The thumb's centering across the channel (one site in the half() helper): Chromium places a vertical thumb's box from the channel's edge and the quarter turn swings it about its center, so its margin is the knobs' sum or difference halved ((across +/- along) / 2); Firefox centers the box, so its translation is half the box's overhang of the channel; geometry, not a role (H-R21)."
+		}
+	],
+	"packages/appearance/system7/src/styles/_pixel.scss": [
+		{
+			"count": 1,
+			"reason": "System 7's pixel-grid art: the pressed close and zoom boxes' starburst, the windoid close box's cross, the menu bar's screen corners, the menu checkmark, the menu and pop-up triangles, the push buttons' rounded corners and default ring, and the controls' art (the checkbox's X, the radio button's circle and dot, the little arrows, the slider's channel and thumb, the outline triangle, the dotted group box and separator) are one-pixel rectangles placed in multiples of the one grid knob (--window-box-pixel x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as the Control Strip's)."
+		}
+	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [
 		{
 			"count": 12,

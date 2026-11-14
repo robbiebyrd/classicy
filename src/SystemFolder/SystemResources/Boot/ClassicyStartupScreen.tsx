@@ -18,6 +18,7 @@ import {
 	hasShownStartupScreenThisSession,
 	markStartupScreenShownThisSession,
 } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 
 interface ClassicyStartupScreenProps {
@@ -166,9 +167,10 @@ export const ClassicyStartupScreen: FunctionalComponent<
 			{visibleParadeEntries.length > 0 && (
 				<div className="classicyStartupScreenExtensions">
 					{visibleParadeEntries.map((entry) => (
-						<img
+						<ClassicyIconImage
 							key={entry.key}
 							src={entry.icon}
+							drawnAt={Number.POSITIVE_INFINITY}
 							alt={entry.name}
 							title={entry.name}
 						/>

@@ -1,0 +1,177 @@
+// The System 7 checkbox and radio button (plan 0018-dbd §3.5), included by
+// system7.scss inside the package wrapper. Measured from the System 7.5
+// captures (docs/system7-reference-screenshots.md: the Views control panel,
+// Standard File and the pressed captures) and the HIG (printed pp.210-213):
+// a 12 x 12 box or circle in a one-pixel black frame on white, the same in
+// both themes (HIG p.259, figure 9-2).
+//
+// - Checkbox: on, two one-pixel diagonals across the 10 x 10 inside, corner
+//   to corner (an X, not a check glyph); pressed, the frame doubles inward
+//   (the Control Manager's highlight, `*-checkbox-pressed.png`).
+// - Radio button: the circle QuickDraw drew for a 12 x 12 oval; on, a 6 x 6
+//   dot three pixels in; pressed, a two-pixel ring (`*-radio-pressed.png`).
+// - Dimmed: the whole control and its label in the dimmed ink through the
+//   dither (HIG p.207: 50% gray in 1-bit, true gray in color).
+//
+// Every shape is pixel art (`classicy-px-rect` layers), never a radius,
+// which anti-aliases. The mixed state has no System 7 look (the System 7
+// Toolbox had none): a dash, as Mac OS 8 drew it, in the same ink.
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+// The checkbox's X: the two diagonals of the 10 x 10 inside, crossing on
+// its middle two rows.
+$x-mark: (0 0) (9 0) (1 1) (8 1) (2 2) (7 2) (3 3) (6 3) (4 4 2 1) (4 5 2 1) (3 6) (6 6) (2 7) (7 7)
+  (1 8) (8 8) (0 9) (9 9);
+
+// The mixed state's dash, across the inside's middle.
+$dash: ((2 4 6 2),);
+
+// The radio button's circle (12 x 12), its pressed two-pixel ring, and the
+// dot (6 x 6) set three pixels in.
+$circle: (4 0 4 1) (2 1 2 1) (8 1 2 1) (1 2 1 2) (10 2 1 2) (0 4 1 4) (11 4 1 4) (1 8 1 2) (10 8 1 2)
+  (2 10 2 1) (8 10 2 1) (4 11 4 1);
+$circle-pressed: (4 0 4 1) (2 1 8 1) (1 2 3 1) (8 2 3 1) (1 3 2 1) (9 3 2 1) (0 4 2 4) (10 4 2 4)
+  (1 8 2 1) (9 8 2 1) (1 9 3 1) (8 9 3 1) (2 10 8 1) (4 11 4 1);
+$circle-face: (4 1 4 1) (2 2 8 2) (1 4 10 4) (2 8 8 2) (4 10 4 1);
+$dot: (4 3 4 1) (3 4 6 4) (4 8 4 1);
+$radio-dash: ((3 5 6 2),);
+
+// The focus mark a keyboard user sees, as on the push buttons (_Button.scss).
+@mixin focus-mark {
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: px(2) solid var(--color-black);
+    outline-offset: $px;
+  }
+}
+
+@mixin checkbox {
+  // The label `checkBox.labelGap` (4) pixels after the box or circle, whose
+  // top is a pixel above the label's caps (Standard File, Date & Time).
+  .classicyCheckboxHolder {
+    gap: 0;
+  }
+
+  .classicyCheckboxHolder > .classicyControlLabelHolder > .classicyControlLabel,
+  .classicyRadioInputMargin > .classicyControlLabelHolder > .classicyControlLabel {
+    margin-left: var(--check-box-label-gap);
+  }
+
+  .classicyCheckbox {
+    position: relative;
+    top: $px;
+    box-sizing: border-box;
+    margin: 0;
+    width: var(--check-box-size);
+    height: var(--check-box-size);
+    border: $px solid var(--color-black);
+    border-radius: 0;
+    background: var(--color-white);
+    box-shadow: none;
+    @include focus-mark;
+
+    &:checked {
+      background: pixel-art(var(--color-black), $x-mark), var(--color-white);
+    }
+
+    // Pressed (`*-checkbox-pressed.png`): a second line inside the frame,
+    // over the X's ends.
+    &:active:not(:disabled) {
+      box-shadow: inset 0 0 0 $px var(--color-black);
+    }
+  }
+
+  // Dimmed (HIG p.207): the frame and the mark in the dimmed ink, through
+  // the dither; the face stays white.
+  .classicyCheckbox:disabled {
+    border-color: var(--color-theme-06);
+    @include d.classicy-dither-mask;
+
+    &:checked {
+      background: pixel-art(var(--color-theme-06), $x-mark), var(--color-white);
+    }
+  }
+
+  // Mixed is a third state: its dash shows whether or not the box is also
+  // checked. Each rule matches its checked counterpart's specificity and
+  // follows it, so the dash wins dimmed or not.
+  .classicyCheckbox.mixed {
+    background: pixel-art(var(--color-black), $dash), var(--color-white);
+  }
+
+  .classicyCheckbox.mixed:disabled {
+    background: pixel-art(var(--color-theme-06), $dash), var(--color-white);
+  }
+
+  // The radio button: the wrapper draws the circle, the native input over
+  // it (its whole 12 x 12 hit area) the dot. The base sheet shows the input
+  // only while it is on.
+  .classicyRadioInputWrapper {
+    position: relative;
+    top: $px;
+    align-self: center;
+    box-sizing: border-box;
+    margin: 0;
+    width: var(--radio-button-size);
+    height: var(--radio-button-size);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: pixel-art(var(--color-black), $circle), pixel-art(var(--color-white), $circle-face);
+
+    // Pressed, on the button or its label (whose control it is).
+    &:has(> .classicyRadioInput:active) {
+      background: pixel-art(var(--color-black), $circle-pressed), pixel-art(var(--color-white), $circle-face);
+    }
+  }
+
+  .classicyRadioInput {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: pixel-art(var(--color-black), $dot);
+    @include focus-mark;
+
+    // Its focus mark shows while the dot is hidden, too.
+    &:focus-visible {
+      opacity: 1;
+      background: none;
+    }
+
+    &:checked:focus-visible {
+      background: pixel-art(var(--color-black), $dot);
+    }
+  }
+
+  :where(.classicyRadioInput).mixed {
+    position: absolute;
+    width: auto;
+    height: auto;
+    margin: 0;
+    border: 0;
+    background: pixel-art(var(--color-black), $radio-dash);
+  }
+
+  // Dimmed: the circle and the dot in the dimmed ink, through the dither.
+  :where(.classicyRadioInputWrapper).disabled {
+    background: pixel-art(var(--color-theme-06), $circle), pixel-art(var(--color-white), $circle-face);
+    @include d.classicy-dither-mask;
+
+    .classicyRadioInput {
+      background: pixel-art(var(--color-theme-06), $dot);
+    }
+
+    .classicyRadioInput.mixed {
+      background: pixel-art(var(--color-theme-06), $radio-dash);
+    }
+  }
+}

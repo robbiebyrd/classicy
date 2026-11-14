@@ -12,6 +12,7 @@ import {
 import { ClassicyColorPicker } from "@/SystemFolder/SystemResources/ColorPicker/ClassicyColorPicker";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 interface ColorsTabProps {
@@ -51,7 +52,10 @@ export const useColorsTab = ({
 							"a color",
 						)}
 					/>
-					<div className={"classicyAppearanceManagerColorsScroll"}>
+					<ClassicyScrollArea
+						className={"classicyAppearanceManagerColorsScroll"}
+						viewportClassName={"classicyAppearanceManagerColorsScrollViewport"}
+					>
 						{CLASSICY_THEME_COLOR_GROUPS.map((group) => (
 							<div
 								key={group.id}
@@ -82,7 +86,7 @@ export const useColorsTab = ({
 								</ClassicyControlGroup>
 							</div>
 						))}
-					</div>
+					</ClassicyScrollArea>
 				</div>
 			),
 		}),

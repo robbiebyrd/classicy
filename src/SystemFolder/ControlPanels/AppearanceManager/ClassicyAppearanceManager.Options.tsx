@@ -31,6 +31,7 @@ import {
 	classicySchemaFieldId,
 	classicySchemaFieldLabel,
 } from "@/SystemFolder/SystemResources/SchemaForm/ClassicySchemaFormFields";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 interface OptionsTabProps {
@@ -195,7 +196,12 @@ export const useOptionsTab = ({
 								"an option",
 							)}
 						/>
-						<div className={"classicyAppearanceManagerColorsScroll"}>
+						<ClassicyScrollArea
+							className={"classicyAppearanceManagerColorsScroll"}
+							viewportClassName={
+								"classicyAppearanceManagerColorsScrollViewport"
+							}
+						>
 							{families.map(({ family, knobs, schema }) => (
 								<div
 									key={family}
@@ -217,7 +223,7 @@ export const useOptionsTab = ({
 									</ClassicyControlGroup>
 								</div>
 							))}
-						</div>
+						</ClassicyScrollArea>
 					</div>
 				),
 		}),

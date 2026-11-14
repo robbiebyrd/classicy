@@ -41,6 +41,14 @@ const padding = (i: ClassicyThemeDerivationInputs): number =>
 const border = (i: ClassicyThemeDerivationInputs): number =>
 	i.measurements.window.borderSize;
 const ui = (i: ClassicyThemeDerivationInputs): number => i.typography.uiSize;
+// An optional package knob, not a structural one: the core floor has no
+// value, because Platinum's band must keep following `window.controlSize`
+// (an editable metric; H-R25). A theme without it, or with a value that is
+// not a finite number, derives the band from the control size.
+const menuBarBand = (i: ClassicyThemeDerivationInputs): number | undefined => {
+	const band = i.measurements.menuBar?.bandHeight;
+	return typeof band === "number" && Number.isFinite(band) ? band : undefined;
+};
 // A structural knob, not a core input: `getThemeVars` heals the theme from
 // the package floor before deriving, so the core floor's band is the fallback
 // for a caller that derives from unhealed measurements.
@@ -107,9 +115,9 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	},
 	{
 		cssVar: "--menu-bar-height",
-		formula: "window.controlSize * 2.5",
-		doc: "Height of the screen menu bar, which windows may not be dragged or zoomed under (ClassicyWindow.tsx).",
-		compute: (i) => control(i) * 2.5,
+		formula: "menuBar.bandHeight, else window.controlSize * 2.5",
+		doc: "Height of the screen menu bar, which windows may not be dragged or zoomed under (ClassicyWindow.tsx). A package whose bar does not follow its control size sets the knob `menuBar.bandHeight` (System 7: 20, with 11 px window boxes); Platinum sets none, so its bar scales with the Metrics tab's control size.",
+		compute: (i) => menuBarBand(i) ?? control(i) * 2.5,
 	},
 	{
 		cssVar: "--menu-min-width",
@@ -408,14 +416,14 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--checkbox-x-mark-font-size",
 		formula: "typography.uiSize * 1.25",
-		doc: "Size of the localized checkbox's X mark glyph (ClassicyCheckbox.scss).",
+		doc: "Size of the localized checkbox's X mark glyph (_Checkbox.scss).",
 		compute: (i) => ui(i) * 1.25,
 		unrounded: true,
 	},
 	{
 		cssVar: "--checkbox-x-mark-line-height",
 		formula: "typography.uiSize * 0.65",
-		doc: "Line height that seats the localized checkbox's X mark in the box (ClassicyCheckbox.scss).",
+		doc: "Line height that seats the localized checkbox's X mark in the box (_Checkbox.scss).",
 		compute: (i) => ui(i) * 0.65,
 		unrounded: true,
 	},
@@ -482,7 +490,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--slider-thumb-corner-radius",
 		formula: "window.borderSize * 1.5",
-		doc: "Corner radius of the nondirectional (rounded-rectangle) slider thumb (Platinum _Slider.scss).",
+		doc: "Corner radius of a rounded-rectangle slider knob. Platinum's knob was one until 3.2, when its slider became pixel art (HIGOS8 Figure 2-17); no stylesheet reads it now, and it is kept for hosts that do.",
 		compute: (i) => border(i) * 1.5,
 	},
 	{

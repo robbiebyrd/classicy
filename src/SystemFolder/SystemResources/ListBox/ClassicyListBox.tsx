@@ -18,7 +18,10 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { useClassicyFitsBarPolicy } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 
 /** One row of a `ClassicyListBox`. */
 export type ClassicyListBoxOption = {
@@ -125,6 +128,9 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 
 	const rootRef = useRef<HTMLDivElement>(null);
 	const appearance = useClassicyAppearance("ListBox", { disabled }, rootRef);
+	// A package that keeps the bars in the fits state keeps the list's
+	// vertical bar while its rows fit (System 7's Standard File list).
+	const verticalPolicy = useClassicyFitsBarPolicy();
 	// Focus moving between rows stays inside the list: only focus entering
 	// from, or leaving to, outside the list is a focus or blur of the list.
 	const isInsideList = (target: EventTarget | null) =>
@@ -212,10 +218,15 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 		}
 	};
 
+	// The list scrolls in a ClassicyScrollArea (Classicy's own scroll bars);
+	// the root keeps the listbox role and the keyboard, the rows scroll in
+	// its viewport.
 	const listbox = (
-		<div
+		<ClassicyScrollArea
 			{...appearance.attrs}
 			ref={rootRef}
+			vertical={verticalPolicy}
+			viewportClassName="classicyListBoxViewport"
 			id={id}
 			role="listbox"
 			aria-multiselectable={selectionMode === "multi" || undefined}
@@ -270,7 +281,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 						onFocus={() => setActiveId(o.value)}
 					>
 						{o.icon && (
-							<img
+							<ClassicyIconImage
 								className="classicyListBoxOptionIcon"
 								src={o.icon}
 								alt=""
@@ -281,7 +292,7 @@ export const ClassicyListBox: FunctionalComponent<ClassicyListBoxProps> = ({
 					</div>
 				);
 			})}
-		</div>
+		</ClassicyScrollArea>
 	);
 
 	if (!label) return listbox;

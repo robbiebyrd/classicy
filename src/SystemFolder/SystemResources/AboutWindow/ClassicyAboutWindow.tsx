@@ -10,6 +10,7 @@ import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -109,7 +110,11 @@ export const ClassicyAboutWindow: FunctionalComponent<
 			appMenu={appMenu}
 		>
 			<div ref={contentRef} className={"aboutWindow"}>
-				<img src={identity.icon} alt="About" />
+				<ClassicyIconImage
+					src={identity.icon}
+					drawnAt={Number.POSITIVE_INFINITY}
+					alt="About"
+				/>
 				<h1>{identity.name}</h1>
 				<h5>Not Copyright &copy; 1997 Apple Computer, Inc.</h5>
 				<ClassicyButton

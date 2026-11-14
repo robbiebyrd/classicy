@@ -1,0 +1,28 @@
+// The Appearance Manager under System 7 (plan 0018-dbd §3.7), included by
+// system7.scss inside the package wrapper. The panel is Mac OS 8's (7.5 had
+// none), drawn in System 7's controls and tab control; here only what reads
+// wrong in them:
+//
+// - Its content area is the window's white, as every System 7 window's is
+//   (HIG p.259), not the gray its own sheet paints.
+// - The Desktop tab's preview shows the desktop itself, in a one-pixel black
+//   frame: its picture as the desktop draws it (an 8 × 8 desktop pattern
+//   repeated at its own size, not one tile stretched over the preview), or
+//   its flat color when it has none (where the preview would show the
+//   default package's stand-in picture). The preview's own image is moved
+//   out of its box (`object-position`), leaving its background.
+@use "Desktop";
+
+@mixin appearance-manager {
+  .classicyAppearanceManagerContent {
+    background-color: var(--color-window-document);
+  }
+
+  .classicyAppearanceManagerDesktopPreview {
+    box-sizing: border-box;
+    border: var(--window-border-size) solid var(--color-black);
+    object-fit: none;
+    object-position: -200vw 0;
+    @include Desktop.desktop-background;
+  }
+}

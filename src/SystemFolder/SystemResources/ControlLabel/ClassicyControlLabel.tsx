@@ -8,6 +8,7 @@ import type {
 	ReactNode,
 } from "react";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 
 type ClassicyControlLabelDirections = "left" | "right";
 export type ClassicyControlLabelSize = "small" | "medium" | "large";
@@ -172,7 +173,14 @@ export const ClassicyControlLabel: FunctionalComponent<
 			)}
 			style={style}
 		>
-			{icon && <img src={icon} width={imageSize(iconSize)} alt={label} />}
+			{icon && (
+				<ClassicyIconImage
+					src={icon}
+					drawnAt={Number.parseInt(imageSize(iconSize), 10)}
+					width={imageSize(iconSize)}
+					alt={label}
+				/>
+			)}
 
 			{isLeftOrBottom && children}
 

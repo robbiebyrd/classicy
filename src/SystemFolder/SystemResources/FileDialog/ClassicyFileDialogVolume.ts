@@ -1,6 +1,7 @@
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
 export type ClassicyFileDialogEntry = {
@@ -103,7 +104,10 @@ function listFsChildren(
 					| "folder"
 					| "file",
 				fileType: value._type as string,
-				icon: (value._icon as string) ?? iconImageByType(value._type),
+				// The core's icon, drawn as the active package's by the list.
+				icon:
+					(value._icon as string) ??
+					iconImageByType(value._type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 				meta: { classicyPath: path },
 			};
 		})
@@ -141,7 +145,10 @@ function writeFsFile(
 	}
 	const wrote = fs.writeFile(fullPath, file.data, {
 		_type: file.fileType as ClassicyFileSystemEntryFileType,
-		_icon: file.icon ?? iconImageByType(file.fileType),
+		// The core's icon, so the stored file is the same under every package.
+		_icon:
+			file.icon ??
+			iconImageByType(file.fileType, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 	});
 	if (!wrote) {
 		// writeFile() refused the path (empty name, or a prototype-pollution-
@@ -183,7 +190,7 @@ export function desktopVolume(
 	return {
 		id: "desktop",
 		label: "Desktop",
-		icon: resolveClassicyAsset("icons", "system.mac") ?? "",
+		icon: classicyCoreIcon("system.mac"),
 		list: (path) => Promise.resolve(listFsChildren(fs, path)),
 		write: async (path, name, file, options) => {
 			writeFsFile(fs, path, name, file, options?.overwrite ?? true);
@@ -205,8 +212,7 @@ export function fileSystemVolume(
 		label: drive,
 		icon:
 			(fs.resolve(drive)?._icon as string) ??
-			resolveClassicyAsset("icons", "system.drives.disk") ??
-			"",
+			classicyCoreIcon("system.drives.disk"),
 		list: (path) => Promise.resolve(listFsChildren(fs, [drive, ...path])),
 		write: async (path, name, file, options) => {
 			writeFsFile(fs, [drive, ...path], name, file, options?.overwrite ?? true);

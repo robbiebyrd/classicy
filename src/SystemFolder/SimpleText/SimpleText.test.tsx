@@ -2,6 +2,7 @@
 import "@/__tests__/withPlatinum";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { produce } from "immer";
 import { beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
@@ -55,6 +56,28 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		localStorage.clear();
 		sessionStorage.clear();
 		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	// System 7 keeps a document's bars while it fits (layout.scrollBar.fitsBars):
+	// the plain-text editor fills the window and draws them itself.
+	it("keeps its text area's bars while the text fits under System 7", async () => {
+		await import("@classicy/appearance-system7");
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Appearance.packageId = "system7";
+			}),
+			true,
+		);
+		renderDesktop();
+		openSimpleText();
+		await waitFor(() => {
+			expect(screen.getByText("Untitled")).toBeInTheDocument();
+		});
+		const editor = document.querySelector(
+			".classicyTextEditorArea",
+		) as HTMLElement;
+		const bars = editor.querySelectorAll('[data-classicy-part="scrollbar"]');
+		expect(bars).toHaveLength(2);
 	});
 
 	// Regression test for a dispatch loop (7687143): the default window passes an

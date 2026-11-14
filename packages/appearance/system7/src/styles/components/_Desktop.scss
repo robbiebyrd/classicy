@@ -1,0 +1,47 @@
+// The System 7 desktop (plan 0018-dbd §3.7), included by system7.scss inside
+// the package wrapper, whose root is the desktop itself (`&`).
+//
+// The desktop pattern is each theme's desktop picture, drawn by the core
+// from the theme's `desktop` data like any wallpaper: System `ppat` 16, the
+// 7.5 default, a 50% checker as an 8 × 8 tile (`desktop-gray-bw.png`, black
+// and white, for "System 7"; `desktop-gray.png`, #666666 and #AAAAAA as a
+// 256-color screen draws it, for "System 7 Color"; registered with
+// `registerClassicyWallpapers`, assets/system7Assets.ts), repeated from the
+// top left, so its dark cells fall where x + y is even, as in the captures.
+// A user keeps it, picks another picture in the Appearance Manager's Desktop
+// tab, or picks none and gets the flat desktop color (`desktop.backgroundColor`:
+// white in "System 7", #AAAAAA in "System 7 Color", the pattern's light
+// cell).
+//
+// This partial adds only:
+// - the picture drawn whole pixels at any zoom: `image-rendering: pixelated`
+//   on the desktop, so a fractional zoom (125%, 150%) repeats the tile's
+//   pixels instead of blending them, and `auto` again for everything in it,
+//   which sets its own (desktop icons are pixelated by the base sheet);
+// - the desktop under the startup screen ("Welcome to Mac OS"), which 7.5
+//   drew on the desktop pattern, not on a flat color.
+
+// The desktop's background, as the base sheet draws it from the theme's
+// `desktop` variables.
+@mixin desktop-background {
+  background-color: var(--desktop-background-color);
+  background-image: var(--desktop-background-image);
+  background-repeat: var(--desktop-background-repeat);
+  background-position: var(--desktop-background-position);
+  background-size: var(--desktop-background-size);
+  image-rendering: pixelated;
+}
+
+@mixin desktop {
+  & {
+    image-rendering: pixelated;
+  }
+
+  & > * {
+    image-rendering: auto;
+  }
+
+  .classicyStartupScreen {
+    @include desktop-background;
+  }
+}

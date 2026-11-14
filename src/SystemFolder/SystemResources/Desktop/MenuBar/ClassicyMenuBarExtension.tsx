@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenu";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 export interface ClassicyMenuBarExtensionProps {
@@ -118,7 +119,8 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 				aria-label={title}
 				onClick={activate}
 			>
-				{children ?? (icon ? <img src={icon} alt={title ?? ""} /> : null)}
+				{children ??
+					(icon ? <ClassicyIconImage src={icon} alt={title ?? ""} /> : null)}
 			</button>
 		</li>
 	);

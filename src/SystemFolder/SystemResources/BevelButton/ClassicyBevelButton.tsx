@@ -27,6 +27,7 @@ import type {
 } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButtonPopupPlacement";
 import { ClassicyButtonToolbarContext } from "@/SystemFolder/SystemResources/ButtonToolbar/ClassicyButtonToolbarContext";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 /** HIG bevel widths: small = 2px, medium = 3px, large = 4px. */
@@ -94,6 +95,11 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 * and the pop-up surface's label.
 	 */
 	iconAlt?: string;
+	/**
+	 * The icon is drawn at the small-icon size (a Control Strip module's is):
+	 * an icon registered with its own small image uses it. Defaults to `false`.
+	 */
+	iconSmall?: boolean;
 	/**
 	 * On-state for `toggle`/`radio` modes. Seeds the button's own state and
 	 * re-syncs it whenever the prop changes; the button still flips itself on
@@ -254,6 +260,7 @@ export const ClassicyBevelButton: FunctionalComponent<
 	mode = "push",
 	icon,
 	iconAlt = "",
+	iconSmall = false,
 	on,
 	square,
 	mixed = false,
@@ -622,9 +629,10 @@ export const ClassicyBevelButton: FunctionalComponent<
 				onMouseLeave={() => setPressed(false)}
 			>
 				{icon && (
-					<img
+					<ClassicyIconImage
 						className="classicyBevelButtonIcon"
 						src={icon}
+						drawnAt={iconSmall ? true : Number.POSITIVE_INFINITY}
 						alt={iconAlt}
 						draggable={false}
 					/>

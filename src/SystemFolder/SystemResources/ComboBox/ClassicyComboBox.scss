@@ -11,19 +11,18 @@
   }
 }
 
-// Neutralize the native button chrome; the PopUpMenu indicator class paints
+// The indicator's rule, face and the no-matches gray are the Platinum
+// package's (_ComboBox.scss). Neutralize the native button chrome; the PopUpMenu indicator class paints
 // the arrow and the raised tab.
 .classicyComboBoxIndicator {
   margin: 0;
   padding: 0;
-  border: 0;
-  border-left: var(--window-border-size) solid var(--color-system-05);
-  background-color: var(--color-system-03);
+  border-width: 0;
+  border-left-width: var(--window-border-size);
   cursor: pointer;
 
   &:disabled {
     cursor: default;
-    background-color: var(--color-system-02);
   }
 }
 
@@ -31,6 +30,5 @@
 // classes so its gray and arrow beat .classicyPopUpMenuListItem's whichever
 // stylesheet loads first.
 .classicyComboBoxNoMatches.classicyPopUpMenuListItem {
-  color: var(--color-system-05);
   cursor: default;
 }

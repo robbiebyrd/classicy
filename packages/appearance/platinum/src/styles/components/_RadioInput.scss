@@ -1,0 +1,84 @@
+// The Platinum radio button look (from ClassicyRadioInput.scss): the circle's
+// border and face, the checked dot, the focus ring, the mixed bar and the
+// disabled and default colors, in their original order. The sizes and the
+// checked mark's visibility stay in the base sheet.
+@mixin radioInput {
+  .classicyRadioInputWrapper {
+    border-style: solid;
+    border-color: var(--color-system-07);
+    border-radius: 50%;
+
+    background: radial-gradient(
+                    at left top,
+                    var(--color-system-02),
+                    var(--color-system-01) 40%,
+                    var(--color-system-05) 100%
+    );
+    box-shadow: 0 0 var(--control-frame-width) var(--color-system-07);
+  }
+
+  :where(.classicyRadioInputWrapper).checked {
+    background: radial-gradient(
+                    at left top,
+                    var(--color-system-07) 10%,
+                    var(--color-system-05) 20%,
+                    var(--color-system-02) 85%,
+                    var(--color-system-01) 100%
+    );
+
+    &:active {
+      background: radial-gradient(
+                      at left top,
+                      var(--color-system-05) 20%,
+                      var(--color-system-01) 85%,
+                      var(--color-system-02) 100%
+      );
+    }
+  }
+
+  // `:active` matches the checked wrapper's pressed rule above, so a disabled
+  // wrapper stays flat while pressed.
+  :where(.classicyRadioInputWrapper).disabled,
+  :where(.classicyRadioInputWrapper).disabled:active {
+    border: calc(var(--window-border-size)) solid var(--color-system-05);
+    background: var(--color-system-02);
+  }
+
+  .classicyRadioInput {
+    border-style: solid;
+    border-radius: 50%;
+
+    &:focus {
+      outline: var(--window-border-size) solid var(--color-system-05);
+    }
+
+    &:checked {
+      border-color: var(--color-window-border);
+    }
+  }
+
+  :where(.classicyRadioInput):disabled:checked {
+    border-style: solid;
+    border-color: var(--color-system-05);
+  }
+
+  :where(.classicyRadioInput).mixed {
+    border-style: solid;
+    border-radius: 0;
+    background: var(--color-window-border);
+  }
+
+  :where(.classicyRadioInput.mixed):disabled:checked {
+    border-color: var(--color-system-05);
+    background: var(--color-system-05);
+  }
+
+  // Last, at the disabled `:checked` rules' specificity: a default radio
+  // button keeps its accent border, disabled or not.
+  :where(.classicyRadioInput).default {
+    &:checked,
+    &:active {
+      border-color: var(--color-theme-06);
+    }
+  }
+}

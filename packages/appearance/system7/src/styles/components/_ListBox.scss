@@ -1,0 +1,79 @@
+// The System 7 scrolling list (plan 0018-dbd §3.5), included by system7.scss
+// inside the package wrapper. Measured from Standard File and the Sound
+// control panel (`*-dialog-standardfile-open.png`,
+// `*-controlpanel-sound-slider.png`) and the HIG (printed pp.220-221, figure
+// 7-20): a one-pixel black frame, no bevel, Chicago 12 rows on a 16-pixel
+// pitch (`listBox.rowHeight`, the Sound panel's list; Standard File's rows,
+// with their 16-pixel icons, are 18); the selected row inverted, black
+// with white text, in both themes (the highlight color, black by default,
+// HIG p.260). Dimmed rows take the dimmed ink through the dither. The
+// list's scroll bar is the scroll bars' (§3.6).
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+@mixin list-box {
+  .classicyListBox {
+    --classicy-listbox-row-height: var(--list-box-row-height);
+
+    border: $px solid var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyListBoxViewport {
+    box-shadow: none;
+  }
+
+  // The list's scroll bar shares the list's frame on the top, right and
+  // bottom (Standard File's list, `*-dialog-standardfile-open.png`).
+  .classicyListBox > .classicyScrollAreaBody > .classicyScrollBarVertical {
+    margin: calc(#{$px} * -1) calc(#{$px} * -1) calc(#{$px} * -1) 0;
+  }
+
+  // Standard File's own list (ClassicyFileDialog's well) is the same list:
+  // a black frame, no bevel, its scroll bar on the frame.
+  .classicyFileOpenDialogWell {
+    border: $px solid var(--color-black);
+  }
+
+  .classicyFileOpenDialogWellViewport {
+    box-shadow: none;
+  }
+
+  .classicyFileOpenDialogWell > .classicyScrollAreaBody > .classicyScrollBarVertical {
+    margin: calc(#{$px} * -1) calc(#{$px} * -1) calc(#{$px} * -1) 0;
+  }
+
+  .classicyListBoxOption {
+    color: var(--color-black);
+    outline: none;
+  }
+
+  :where(.classicyListBoxOption).selected {
+    color: var(--color-white);
+    background-color: var(--color-highlight);
+  }
+
+  :where(.classicyListBoxOption).disabled .classicyListBoxOptionLabel,
+  :where(.classicyListBox).disabled .classicyListBoxOptionLabel {
+    @include d.classicy-dither-text("--color-theme-06");
+  }
+
+  // The framed list and tree: the same one-pixel frame.
+  .classicyListBoxFrame,
+  .classicyTreeFramed {
+    border: $px solid var(--color-black);
+    background: var(--color-white);
+  }
+
+  :where(.classicyTreeNodeLabelHolder).selected {
+    background: var(--color-highlight);
+
+    .classicyTreeNodeLabel {
+      color: var(--color-white);
+    }
+  }
+
+  :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
+    @include d.classicy-dither-text("--color-theme-06");
+  }
+}

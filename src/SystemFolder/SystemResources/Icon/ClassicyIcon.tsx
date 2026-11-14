@@ -10,8 +10,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -290,16 +292,26 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		</p>
 	);
 
+	// Without `size` the icon draws at the theme's desktop icon size
+	// (`--desktop-icon-size`). Rendered at the small-icon size or less, it
+	// draws the icon's own small image when it has one; larger draws `icon`.
+	const themeIconSize = useAppManager(
+		(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
+	);
+	const iconUrl = useClassicyIconImage(
+		icon,
+		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
+	);
 	const iconEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
 			)}
-			style={{ "--classicy-icon-mask": `url("${icon}")` } as CSSProperties}
+			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={icon} alt={name} />
+				<img src={iconUrl} alt={name} />
 			</div>
 		</div>
 	);

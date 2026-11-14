@@ -28,17 +28,20 @@ const PLATINUM_SAVER_IDS = [
 ];
 
 describe("Platinum's screen savers", () => {
-	it("Platinum registers the twelve savers under platinum, with bouncing-ball as its default", () => {
+	// Offered under Platinum and System 7, which bundles this same module
+	// (design 0017-6me, "Screen savers"; plan 0018-dbd §3.8).
+	it("Platinum registers the twelve savers under platinum and system7, with bouncing-ball as its default", () => {
 		const savers = listClassicyScreenSaversInRegistrationOrder();
 		expect(savers.map((saver) => saver.id)).toEqual(PLATINUM_SAVER_IDS);
 		for (const saver of savers)
-			expect(saver.packages, saver.id).toEqual(["platinum"]);
+			expect(saver.packages, saver.id).toEqual(["platinum", "system7"]);
 		expect(getClassicyAppearancePackage("platinum")?.defaultScreenSaver).toBe(
 			"bouncing-ball",
 		);
 		expect(resolveClassicyScreenSaverFor("platinum")?.id).toBe("bouncing-ball");
 		expect(listClassicyScreenSaversFor("platinum")).toHaveLength(12);
-		// Offered under Platinum only.
+		// System 7 offers them too, before it registers; no other package does.
+		expect(listClassicyScreenSaversFor("system7")).toHaveLength(12);
 		expect(listClassicyScreenSaversFor("another-package")).toEqual([]);
 	});
 

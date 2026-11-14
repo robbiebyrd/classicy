@@ -1,0 +1,72 @@
+// The System 7 progress bar and meter (plan 0018-dbd §3.5), included by
+// system7.scss inside the package wrapper. Measured from the Finder's Copy
+// dialog (`*-dialog-movablemodal-copy-progress*.png`): a bar
+// `--progress-height` (11) pixels tall in a one-pixel black frame, flat, the
+// done part filled solid from the left.
+//
+//   part     System 7 Color                       System 7 (1-bit)
+//   track    #CCCCFF (`--color-theme-02`)         white
+//   fill     #444444 (`--color-theme-05` and      black
+//            `--color-system-07`, half and half)
+//
+// An indeterminate bar slides diagonal stripes of the fill over the track,
+// with no shading; the chasing arrows are black. A meter is drawn as the
+// bar, its zone colors kept for the fill outside the optimal range.
+@use "../pixel" as *;
+
+// The fill: #444444 in color, from the two tokens either side of it (#333333
+// and #555555); black in 1-bit, where both are black.
+$fill: color-mix(in srgb, var(--color-theme-05), var(--color-system-07));
+
+@mixin progress-bar {
+  .classicyProgress {
+    progress[value] {
+      box-sizing: border-box;
+      height: var(--progress-height);
+      padding: 0;
+      border: $px solid var(--color-black);
+      background: var(--color-theme-02);
+
+      &::-webkit-progress-bar {
+        border: 0;
+        box-shadow: none;
+        background: var(--color-theme-02);
+      }
+
+      &::-webkit-progress-value {
+        background: $fill;
+      }
+
+      &::-moz-progress-bar {
+        background: $fill;
+      }
+    }
+  }
+
+  .classicyProgressIndeterminate progress[value]::-webkit-progress-value {
+    background-color: var(--color-theme-02);
+    background-image: repeating-linear-gradient(
+      45deg,
+      $fill var(--slide-var),
+      $fill calc(var(--slide-var) + var(--progress-bar-stripe-width)),
+      var(--color-theme-02) calc(var(--slide-var) + var(--progress-bar-stripe-width)),
+      var(--color-theme-02) calc(var(--slide-var) + var(--progress-bar-stripe-period))
+    );
+    mask: none;
+  }
+
+  .classicyProgressChasingArrows {
+    color: var(--color-black);
+  }
+
+  .classicyMeter {
+    box-sizing: border-box;
+    border: $px solid var(--color-black);
+    box-shadow: none;
+    background: var(--color-theme-02);
+  }
+
+  .classicyMeterOptimal {
+    --classicy-meter-fill: #{$fill};
+  }
+}

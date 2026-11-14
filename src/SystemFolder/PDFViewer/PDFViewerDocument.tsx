@@ -19,6 +19,8 @@ import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 // pdfjs-dist's canvas module references the browser-only `DOMMatrix` global
@@ -341,7 +343,11 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					depressed={activeTool === "pan"}
 					onClickFunc={() => setActiveTool("pan")}
 				>
-					<img src={panToolIcon} alt="" className="pdfViewerDocumentToolIcon" />
+					<ClassicyIconImage
+						src={panToolIcon}
+						alt=""
+						className="pdfViewerDocumentToolIcon"
+					/>
 				</ClassicyButton>
 				<ClassicyButton
 					buttonSize="small"
@@ -350,7 +356,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					depressed={activeTool === "zoom"}
 					onClickFunc={() => setActiveTool("zoom")}
 				>
-					<img
+					<ClassicyIconImage
 						src={zoomToolIcon}
 						alt=""
 						className="pdfViewerDocumentToolIcon"
@@ -358,22 +364,24 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				</ClassicyButton>
 			</div>
 			{/* Pointer-only tools on the page surface: the Zoom In / Zoom Out
-			    buttons above and the window's scrollbars are their keyboard paths. */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: see above */}
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents: see above */}
-			<div
-				ref={wrapperRef}
-				className={classNames(
+			    buttons above and the scroll bars are their keyboard paths. The
+			    page scrolls in a ClassicyScrollArea's viewport, the wrapper. */}
+			<ClassicyScrollArea
+				className="pdfViewerDocumentCanvasArea"
+				viewportRef={wrapperRef}
+				viewportClassName={classNames(
 					"pdfViewerDocumentCanvasWrapper",
 					activeTool === "pan"
 						? "pdfViewerDocumentToolPan"
 						: "pdfViewerDocumentToolZoom",
 				)}
-				onPointerDown={handleWrapperPointerDown}
-				onPointerMove={handleWrapperPointerMove}
-				onPointerUp={endPanDrag}
-				onPointerCancel={endPanDrag}
-				onClick={handleWrapperClick}
+				viewportProps={{
+					onPointerDown: handleWrapperPointerDown,
+					onPointerMove: handleWrapperPointerMove,
+					onPointerUp: endPanDrag,
+					onPointerCancel: endPanDrag,
+					onClick: handleWrapperClick,
+				}}
 			>
 				{pageError ? (
 					<p className="pdfViewerDocumentPageError">
@@ -385,7 +393,7 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 					className="pdfViewerDocumentCanvas"
 					hidden={pageError}
 				/>
-			</div>
+			</ClassicyScrollArea>
 		</div>
 	);
 };

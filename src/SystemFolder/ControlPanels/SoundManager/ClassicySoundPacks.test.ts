@@ -12,6 +12,7 @@ import {
 } from "./ClassicyAlertSounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 import {
+	CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
 	CLASSICY_SOUND_SPRITE_IDS,
 	ClassicySoundPackSchema,
 	classicySoundPackMissingSprites,
@@ -175,5 +176,14 @@ describe("ClassicySoundPacks", () => {
 		expect(absolute.success).toBe(true);
 		if (relative.success && absolute.success)
 			expect(absolute.data.id).toBe(relative.data.id);
+	});
+});
+
+describe("CLASSICY_CONTRACT_ALERT_SPRITE_IDS", () => {
+	it("is a subset of the sprite contract", () => {
+		const contract: readonly string[] = CLASSICY_SOUND_SPRITE_IDS;
+		for (const id of CLASSICY_CONTRACT_ALERT_SPRITE_IDS)
+			expect(contract).toContain(id);
+		expect(CLASSICY_CONTRACT_ALERT_SPRITE_IDS).toHaveLength(7);
 	});
 });

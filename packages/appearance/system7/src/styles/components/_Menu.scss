@@ -1,0 +1,325 @@
+// The System 7 menu look (plan 0018-dbd §3.3), included by system7.scss
+// inside the package wrapper. Measured from the System 7.5 captures
+// (docs/system7-reference-screenshots.md: `*-menu-pulldown-*.png`,
+// `*-menu-hierarchical-controlpanels.png`) and the System 7 HIG (printed
+// pp.56-82): a white menu in a 1 px black frame with a 1 px black shadow on
+// its right and bottom that starts three pixels in from the frame's corner;
+// Chicago 12 items on a 16 px pitch, their text 15 px inside the frame (the
+// mark column), Command-key equivalents in a column at the right; the
+// tracked item inverted (black, white text) in both themes; dimmed items in
+// the dimmed ink, dithered in 1-bit and true gray in color, never
+// highlighted; dividers that take a whole item slot, a line of the dimmed
+// ink across the menu's inner width at its middle row (dotted in 1-bit, solid
+// gray in color); a solid triangle for a submenu, which overlaps its parent's
+// right edge.
+//
+//   token                 System 7 Color   System 7 (1-bit)
+//   --color-black         #000000          black   frame, shadow, ink, the
+//                                                  highlight's fill
+//   --color-white         #FFFFFF          white   face, highlighted text
+//   --color-theme-06      #888888          black   the dimmed ink (dimmed
+//                                                  items and dividers),
+//                                                  through the dither
+//
+// `--color-theme-06` is System 7's dimmed ink and nothing else: it is the
+// one palette slot no System 7 look draws a bevel or face with, so a theme
+// can set the dimmed gray without moving any other part. The 1-bit theme
+// sets it to black and its `dither.tileSize` to 2, so the vocabulary's mixins
+// draw it through the 50% checker; the color theme draws it plain.
+@use "sass:string";
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+$b: var(--window-border-size);
+
+// The menus the frame and the item rules apply to: the menu bar's
+// pull-downs and their submenus, a standalone menu, and the contextual menus.
+$menus: ".classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu";
+
+// The submenu triangle (6 x 11, HIG p.79): columns of 11, 9, 7, 5, 3 and 1
+// pixels, pointing right.
+$submenu-arrow: (0 0 1 11) (1 1 1 9) (2 2 1 7) (3 3 1 5) (4 4 1 3) (5 5 1 1);
+
+// Chicago 12's checkmark (9 x 8), from `color-menu-pulldown-checkmark-outline-sizes.png`.
+$checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2 1) (1 6 3 1) (2 7);
+
+// The menu frame: a 1 px black border around a white face, no bevel, and a
+// 1 px black shadow on the right and bottom, drawn by ::before/::after from
+// the padding edge so it starts `menuFrame.shadowStart` (2) pixels in, three
+// from the frame's outer corner (MWD 8). The element must be positioned.
+@mixin menu-frame {
+  padding: 0;
+  border: $b solid var(--color-black);
+  color: var(--color-black);
+  background: var(--color-white);
+  box-shadow: none;
+
+  @include menu-frame-shadow;
+}
+
+// The frame's shadow alone, from the padding edge of a positioned element.
+// A scrolling menu's list would clip it, so ClassicyMenu draws it on a
+// sibling over the list in their wrapper (`.classicyMenuScrollShadow`) whose
+// transparent border is the frame's, which puts its padding edge where the
+// list's is.
+@mixin menu-frame-shadow {
+  $shadow-reach: calc((#{$b} + #{$b}) * -1);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background-color: var(--color-black);
+    pointer-events: none;
+  }
+
+  &::after {
+    top: var(--menu-frame-shadow-start);
+    right: $shadow-reach;
+    bottom: $shadow-reach;
+    width: $b;
+  }
+
+  &::before {
+    left: var(--menu-frame-shadow-start);
+    right: $shadow-reach;
+    bottom: $shadow-reach;
+    height: $b;
+  }
+}
+
+// The same frame for a box that scrolls its contents (the open pop-up
+// menu), which would clip the pseudo-elements: a 1 px box shadow, clipped to
+// the same L by a polygon of horizontal and vertical edges. The polygon's
+// top and left edges lie a pixel outside the box, where nothing is drawn, so
+// a box at a fractional x keeps a crisp left side; only the two notches can
+// then fall across a pixel.
+@mixin menu-frame-clipped {
+  $in: calc(var(--menu-frame-shadow-start) + #{$b});
+  $out: calc(100% + #{$b});
+  $before: calc(#{$b} * -1);
+
+  padding: 0;
+  border: $b solid var(--color-black);
+  color: var(--color-black);
+  background: var(--color-white);
+  box-shadow: $b $b 0 0 var(--color-black);
+  clip-path: polygon($before $before, 100% $before, 100% $in, $out $in, $out $out, $in $out, $in 100%, $before 100%);
+}
+
+@mixin menu {
+  :is(#{$menus}) {
+    @include menu-frame;
+    // As wide as its widest item, as the Menu Manager sizes a menu.
+    min-width: 0;
+  }
+
+  // A menu too long for the screen scrolls (ClassicyMenu), which would clip
+  // and scroll the frame's shadow pseudo-elements: they are off, and the
+  // shadow is drawn on the sibling ClassicyMenu puts over the list in their
+  // wrapper (`.classicyMenuScrollShadow`, its border the frame's,
+  // transparent), so it lands on the same pixels. (No clip-path, which would
+  // clip the fixed submenu an item opens beside it.) Its indicators are the
+  // pop-up menu's triangles (_PopUpMenu.scss).
+  :is(#{$menus}).classicyMenuListScrolls {
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  .classicyMenuScrollShadow {
+    box-sizing: border-box;
+    border: $b solid transparent;
+    @include menu-frame-shadow;
+  }
+
+  :is(#{$menus}) .classicyMenuItem {
+    position: relative;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    height: var(--menu-item-height);
+    // `menuItem.textInset` (14) and the face's 1 px side bearing put the
+    // glyphs 15 px inside the frame, past the mark column.
+    padding: 0 0 0 var(--menu-item-text-inset);
+    // A line box `menuItem.lineHeight` (14) tall at the item's top puts the
+    // baseline 12 rows down, as the bitmap Chicago's.
+    line-height: var(--menu-item-line-height);
+    color: var(--color-black);
+    background-color: transparent;
+    white-space: nowrap;
+
+    &:hover,
+    &.open {
+      color: var(--color-white);
+      background-color: var(--color-black);
+    }
+
+    // The title, `menuItem.textEnd` (14) clear of the frame or the
+    // Command-key column, so the widest title sizes the menu.
+    > p {
+      height: auto;
+      padding-right: var(--menu-item-text-end);
+    }
+
+    // A small icon before the title, `menuItem.imagePad` (1) clear of the
+    // item's top and bottom (the Apple menu's 18 px rows), the title
+    // `menuItem.imageGap` (4) after it.
+    img {
+      width: var(--menu-item-image-size);
+      height: var(--menu-item-image-size);
+      margin-right: var(--menu-item-image-gap);
+    }
+
+    &:has(> p > img) {
+      height: calc(var(--menu-item-image-size) + var(--menu-item-image-pad) + var(--menu-item-image-pad));
+      padding-top: var(--menu-item-image-pad);
+
+      > p {
+        align-items: flex-start;
+      }
+
+      &.classicyMenuItemChildMenuIndicator::after {
+        top: calc(var(--menu-item-arrow-top) + var(--menu-item-image-pad));
+      }
+    }
+  }
+
+  // A dimmed item: the dimmed ink, dithered in 1-bit; it never highlights
+  // (HIG p.60).
+  :is(#{$menus}) .classicyMenuItem.disabled {
+    &:hover {
+      color: var(--color-black);
+      background-color: transparent;
+    }
+
+    // The text's checker runs a pixel out of step with the dividers', as the
+    // 7.5 captures show (the title starts an even `menuItem.textInset` from
+    // the divider's origin, so the shift puts it in the other phase).
+    > p,
+    > kbd {
+      @include d.classicy-dither-text("--color-theme-06");
+      mask-position: px(1) 0, 0 0;
+    }
+  }
+
+  // The Command-key column: Chicago 12 as the title, the ⌘ at a fixed place
+  // `menuItem.shortcutWidth` (22) pixels inside the frame, its key after it.
+  :is(#{$menus}) .classicyMenuItem .classicyMenuItemKeyboardShortcut {
+    flex: none;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    min-width: var(--menu-item-shortcut-width);
+    padding: 0;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  // The mark column (HIG p.64): the check or dash sits in the item's left
+  // margin, `menuItem.markInset` (3) inside the frame, so every title in the
+  // menu starts at the same place whether or not it is marked. The check is
+  // Chicago's, drawn on the pixel grid in the item's ink, its bottom row on
+  // the baseline (`menuItem.markTop`, 4, from the item's top); the dash is
+  // the font's (an escape kept by `string.unquote`, so the Sass output stays
+  // ASCII).
+  :is(#{$menus}) .classicyMenuItemCheck {
+    position: absolute;
+    top: 0;
+    left: var(--menu-item-mark-inset);
+    width: auto;
+    margin: 0;
+  }
+
+  .classicyMenuItemCheck.checked::before {
+    content: "";
+    position: absolute;
+    top: var(--menu-item-mark-top);
+    left: 0;
+    width: px(9);
+    height: px(8);
+    background: pixel-art(currentColor, $checkmark);
+  }
+
+  .classicyMenuItemCheck.mixed::before {
+    content: string.unquote('"\\2013"'); // –
+  }
+
+  // A divider takes a whole item slot, its line of the dimmed ink at the
+  // middle row (`menuItem.dividerTop`, 8) across the menu's inner width
+  // (HIG p.62): dotted in 1-bit, a gray line in color.
+  :is(#{$menus}) .classicySeparatorHorizontal {
+    height: $b;
+    margin: var(--menu-item-divider-top) 0 calc(var(--menu-item-height) - var(--menu-item-divider-top) - #{$b});
+    border: 0;
+    // Not a dialog separator's gray pair (_ControlGroup.scss).
+    background-image: none;
+    @include d.classicy-dither-line("--color-theme-06");
+  }
+
+  // The submenu triangle, `menuItem.arrowInset` (8) pixels inside the
+  // frame's right side, in the item's ink (white while it is highlighted).
+  // It takes the Command-key column, which its item keeps clear.
+  :is(#{$menus}) .classicyMenuItemChildMenuIndicator {
+    padding-right: var(--menu-item-shortcut-width);
+  }
+
+  :is(#{$menus}) .classicyMenuItemChildMenuIndicator::after {
+    top: var(--menu-item-arrow-top);
+    right: var(--menu-item-arrow-inset);
+    width: px(6);
+    height: px(11);
+    background: pixel-art(currentColor, $submenu-arrow);
+  }
+
+  // A submenu beside its parent item (HIG p.79): its first item level with
+  // the parent, its frame over the parent menu's right side by
+  // `menuFrame.submenuOverlap` (5) pixels; flipped left when the screen has
+  // no room on the right.
+  :is(#{$menus}) .classicyMenuItem > .classicyMenuWrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+  }
+
+  :is(#{$menus}) .classicyMenuWrapper > :is(.classicySubMenu, .classicyContextSubMenu) {
+    top: 0;
+    left: 100%;
+    margin: calc(#{$b} * -1) 0 0 calc(var(--menu-frame-submenu-overlap) * -1);
+
+    &.classicySubMenuFlipLeft {
+      left: auto;
+      right: 100%;
+      margin: calc(#{$b} * -1) calc(var(--menu-frame-submenu-overlap) * -1) 0 0;
+    }
+  }
+
+  // The blink of a chosen item (HIG p.56), applied by the MenuItem press hook
+  // (../../hooks.ts) and cleared by its release: the inverted item turns
+  // back and forth, white and black, and its animationend runs the action.
+  .classicyMenuItemFlash {
+    animation-name: classicySystem7MenuItemFlash;
+    animation-duration: .25s;
+    animation-iteration-count: 1;
+    animation-timing-function: steps(1, end);
+  }
+
+  @keyframes classicySystem7MenuItemFlash {
+    0%,
+    40%,
+    80% {
+      color: var(--color-white);
+      background-color: var(--color-black);
+    }
+
+    20%,
+    60%,
+    100% {
+      color: var(--color-black);
+      background-color: var(--color-white);
+    }
+  }
+}

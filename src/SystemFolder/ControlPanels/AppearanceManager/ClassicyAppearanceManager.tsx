@@ -5,10 +5,7 @@ import {
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
-import {
-	defaultClassicyWallpaper,
-	resolveClassicyWallpaper,
-} from "@/Appearance/ClassicyWallpaperIndex";
+import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import "./ClassicyAppearanceManager.scss";
 import {
 	type ChangeEvent,
@@ -41,9 +38,15 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import {
+	classicyPackAlerts,
+	resolveClassicyAlertSound,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
-import { useClassicySoundPacks } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import {
+	playingClassicySoundPack,
+	useClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
@@ -104,15 +107,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	const windowClose = useClassicyWindowClose(APP_ID);
 	const editMenu = useClassicyEditMenu(APP_ID);
 	// Themes hold a registered wallpaper by filename; the preview and the
-	// picker want the URL it resolves to. Only a color-only theme needs a
-	// stand-in to select. Derived from the store on every render (never
-	// seeded into local state) so a theme switch or a background change from
-	// elsewhere is reflected immediately.
-	const bg =
-		resolveClassicyWallpaper(
-			appearanceState.activeTheme.desktop.backgroundImage,
-			appearanceState.activeTheme.package,
-		) || defaultClassicyWallpaper();
+	// picker want the URL it resolves to: "" for a color-only theme, or any
+	// picture that draws none, which the picker names None. Derived from the
+	// store on every render (never seeded into local state) so a theme switch
+	// or a background change from elsewhere is reflected immediately.
+	const bg = resolveClassicyWallpaper(
+		appearanceState.activeTheme.desktop.backgroundImage,
+		appearanceState.activeTheme.package,
+	);
 
 	const packages = useClassicyAppearancePackages();
 	const activePackage = useActiveClassicyAppearancePackage();
@@ -546,11 +548,27 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		changeMetric,
 	});
 
+	// The pack that plays: the theme's, else the default one the provider
+	// falls back to. `registeredSoundPacks` is a dependency so a pack that
+	// registers late (or the default an alert-less pack inherits from) shows.
+	const activeSoundPack = playingClassicySoundPack(
+		registeredSoundPacks,
+		currentSoundPack,
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `registeredSoundPacks` re-reads the default pack's alerts an alert-less pack inherits.
+	const packAlerts = useMemo(
+		() => [...classicyPackAlerts(activeSoundPack)],
+		[activeSoundPack, registeredSoundPacks],
+	);
 	const soundTab = useSoundTab({
 		soundPacks,
 		soundPack: currentSoundPack,
 		changeSoundPack,
-		alertSound: appearanceState.alertSound ?? DEFAULT_ALERT_SOUND,
+		alerts: packAlerts,
+		alertSound:
+			(activeSoundPack
+				? resolveClassicyAlertSound(activeSoundPack, appearanceState.alertSound)
+				: appearanceState.alertSound) ?? "",
 		changeAlertSound,
 		alertVolume: appearanceState.alertVolume ?? 100,
 		changeAlertVolume,

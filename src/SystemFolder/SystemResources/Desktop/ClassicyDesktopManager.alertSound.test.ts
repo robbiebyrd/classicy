@@ -33,10 +33,10 @@ describe("classicyDesktopEventHandler — ClassicyDesktopChangeAlertSound", () =
 		expect(ds.System.Manager.Appearance.alertSound).toBe("ClassicyAlertSosumi");
 	});
 
-	it("seeds the default alert sound in the initial store", () => {
-		expect(DefaultAppManagerState.System.Manager.Appearance.alertSound).toBe(
-			"ClassicyAlertSosumi",
-		);
+	it("leaves the alert sound unset in the initial store, so the active sound pack's default applies", () => {
+		expect(
+			DefaultAppManagerState.System.Manager.Appearance.alertSound,
+		).toBeUndefined();
 	});
 });
 

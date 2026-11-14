@@ -1,8 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-// getTheme/getAllThemes serve the registered packages' themes: Platinum's.
+// getTheme/getAllThemes serve the registered packages' themes: Platinum's
+// and System 7's.
 import "@classicy/appearance-platinum";
+import "@classicy/appearance-system7";
+import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	getTheme,
 	getThemeVars,
@@ -79,9 +82,37 @@ const sheets = scssFiles.map((full) =>
 	blankClassicyScssComments(readFileSync(full, "utf8")),
 );
 
+// A workspace Appearance Package's sheet may also read what its own themes
+// emit beyond the default theme's: the knob families only it declares
+// (System 7's `titleBar`, `windowBox`, `growBox`). Keyed by package id.
+const PACKAGE_SHEET = /^packages\/appearance\/([^/]+)\/src\//;
+const packageOf = (full: string): string | undefined =>
+	PACKAGE_SHEET.exec(repoPath(full))?.[1];
+const packageThemeVars = new Map<string, Set<string>>();
+const themeVarsOfPackage = (id: string): Set<string> => {
+	let vars = packageThemeVars.get(id);
+	if (!vars) {
+		const pkg = getClassicyAppearancePackage(id);
+		vars = new Set(
+			[pkg?.defaults, ...(pkg?.presets ?? [])].flatMap((theme) =>
+				theme ? Object.keys(getThemeVars(theme)) : [],
+			),
+		);
+		packageThemeVars.set(id, vars);
+	}
+	return vars;
+};
+
 describe("theme variable coverage (H 6.1)", () => {
 	it("every var(--…) read in src's and the packages' SCSS is emitted, declared or set from TSX", () => {
-		const reads = new Set(sheets.flatMap((sheet) => matchesIn(sheet, READ)));
+		const reads = new Set(
+			sheets.flatMap((sheet, index) =>
+				matchesIn(sheet, READ).filter(
+					(name) =>
+						!themeVarsOfPackage(packageOf(scssFiles[index]) ?? "").has(name),
+				),
+			),
+		);
 		const allowed = new Set([
 			...Object.keys(getThemeVars(getTheme("default"))),
 			...sheets.flatMap((sheet) => matchesIn(sheet, DECLARED)),

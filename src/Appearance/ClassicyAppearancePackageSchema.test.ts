@@ -52,6 +52,61 @@ describe("ClassicyAppearancePackageSchema", () => {
 		);
 	});
 
+	it("takes an optional scrollBar group whose keys are optional", () => {
+		for (const scrollBar of [
+			undefined,
+			{},
+			{ thumbDrag: "live" },
+			{ fitsBars: "hidden" },
+		]) {
+			const input = platinumShaped();
+			(input.layout as Record<string, unknown>).scrollBar = scrollBar;
+			expect(
+				ClassicyAppearancePackageSchema.safeParse(input).success,
+				JSON.stringify(scrollBar),
+			).toBe(true);
+		}
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).scrollBar = {
+			thumbDrag: "onRelease",
+			fitsBars: "shown",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(true);
+		expect(result.data?.layout.scrollBar).toEqual({
+			thumbDrag: "onRelease",
+			fitsBars: "shown",
+		});
+	});
+
+	it("rejects an unknown fitsBars", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).scrollBar = {
+			fitsBars: "always",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"scrollBar",
+			"fitsBars",
+		]);
+	});
+
+	it("rejects an unknown thumbDrag", () => {
+		const input = platinumShaped();
+		(input.layout as Record<string, unknown>).scrollBar = {
+			thumbDrag: "sometimes",
+		};
+		const result = ClassicyAppearancePackageSchema.safeParse(input);
+		expect(result.success).toBe(false);
+		expect(result.error?.issues.map((i) => i.path)).toContainEqual([
+			"layout",
+			"scrollBar",
+			"thumbDrag",
+		]);
+	});
+
 	it("rejects defaults that belong to another package", () => {
 		const result = ClassicyAppearancePackageSchema.safeParse({
 			...platinumShaped(),

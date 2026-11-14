@@ -15,6 +15,35 @@
 // drawn by ::before/::after, so the element must be positioned (menus are
 // absolute; give a static one `relative`).
 @mixin platinum-menu-frame {
+  border: var(--menu-frame-border-width) solid var(--color-black);
+  box-shadow: none;
+  background: list.join(platinum-menu-frame-bevel(), (var(--color-system-02),));
+
+  @include platinum-menu-frame-shadow;
+}
+
+// The frame's inner bevel, as background layers inside the padding edge:
+// white along the top and left, system-04 along the right and bottom. The
+// frame lays them over its face; a scrolling menu's rows scroll over its
+// padding, where the bevel is, so ClassicyMenu's sibling over the list
+// (`.classicyMenuScrollShadow`, _Menu.scss) lays the same layers, and no
+// face, over the rows.
+@function platinum-menu-frame-bevel() {
+  @return (
+    layout.classicy-px-rect(var(--color-white), 0, 0, calc(100% - var(--menu-frame-bevel-width)), var(--menu-frame-bevel-width)),
+    layout.classicy-px-rect(var(--color-white), 0, 0, var(--menu-frame-bevel-width), calc(100% - var(--menu-frame-bevel-width))),
+    layout.classicy-px-rect(var(--color-system-04), 100%, var(--menu-frame-bevel-width), var(--menu-frame-bevel-width), calc(100% - var(--menu-frame-bevel-width))),
+    layout.classicy-px-rect(var(--color-system-04), var(--menu-frame-bevel-width), 100%, calc(100% - var(--menu-frame-bevel-width)), var(--menu-frame-bevel-width))
+  );
+}
+
+// The menu frame's shadow alone, drawn by ::before/::after from the padding
+// edge of a positioned element. The frame includes it; a scrolling menu's
+// list would clip it, so ClassicyMenu draws it on a sibling over the list
+// in their wrapper (`.classicyMenuScrollShadow`) that includes this with a
+// transparent border as wide as the frame's, which puts its padding edge
+// where the list's is.
+@mixin platinum-menu-frame-shadow {
   // The pseudo-elements are placed from the padding edge, so the shadow's
   // outer edge sits past it by the border, the gap between border and shadow
   // (0 in Figure 6-15) and the shadow itself: a thicker border pushes the
@@ -22,15 +51,6 @@
   $shadow-reach: calc(
     (var(--menu-frame-border-width) + var(--menu-frame-shadow-gap) + var(--menu-frame-shadow-width)) * -1
   );
-
-  border: var(--menu-frame-border-width) solid var(--color-black);
-  box-shadow: none;
-  background:
-    layout.classicy-px-rect(var(--color-white), 0, 0, calc(100% - var(--menu-frame-bevel-width)), var(--menu-frame-bevel-width)),
-    layout.classicy-px-rect(var(--color-white), 0, 0, var(--menu-frame-bevel-width), calc(100% - var(--menu-frame-bevel-width))),
-    layout.classicy-px-rect(var(--color-system-04), 100%, var(--menu-frame-bevel-width), var(--menu-frame-bevel-width), calc(100% - var(--menu-frame-bevel-width))),
-    layout.classicy-px-rect(var(--color-system-04), var(--menu-frame-bevel-width), 100%, calc(100% - var(--menu-frame-bevel-width)), var(--menu-frame-bevel-width)),
-    var(--color-system-02);
 
   &::before,
   &::after {

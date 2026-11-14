@@ -1,0 +1,18 @@
+// The Platinum combo box look (from ClassicyComboBox.scss): the indicator's
+// divider and faces, and the gray "No matches" row.
+@mixin comboBox {
+  .classicyComboBoxIndicator {
+    border-left-style: solid;
+    border-left-color: var(--color-system-05);
+    background-color: var(--color-system-03);
+
+    &:disabled {
+      background-color: var(--color-system-02);
+    }
+  }
+
+  // Both classes so its gray beats .classicyPopUpMenuListItem's.
+  .classicyComboBoxNoMatches.classicyPopUpMenuListItem {
+    color: var(--color-system-05);
+  }
+}

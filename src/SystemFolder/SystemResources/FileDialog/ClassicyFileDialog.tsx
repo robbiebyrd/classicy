@@ -15,6 +15,8 @@ import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInpu
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { useClassicyFitsBarPolicy } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import {
 	ClassicyTree,
 	type ClassicyTreeNode,
@@ -164,6 +166,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const formats = props.mode === "save" ? props.formats : [];
 
 	const [activeVolumeId, setActiveVolumeId] = useState(volumes[0]?.id);
+	// The file list keeps its vertical bar while its items fit under a
+	// package that keeps the bars (System 7's Standard File, HIG7 p.160).
+	const wellVerticalPolicy = useClassicyFitsBarPolicy();
 	const [folders, setFolders] = useState<Map<string, FolderState>>(new Map());
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [filterIndex, setFilterIndex] = useState(0);
@@ -539,7 +544,11 @@ export const ClassicyFileDialog: FunctionalComponent<
 							}
 						}}
 					/>
-					<div className={"classicyFileOpenDialogWell"}>
+					<ClassicyScrollArea
+						className={"classicyFileOpenDialogWell"}
+						viewportClassName={"classicyFileOpenDialogWellViewport"}
+						vertical={wellVerticalPolicy}
+					>
 						<ClassicyTree
 							nodes={nodes}
 							selectionMode={selectionMode === "multi" ? "multi" : "single"}
@@ -550,7 +559,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 							}
 							onToggleNode={handleFolderToggle}
 						/>
-					</div>
+					</ClassicyScrollArea>
 					{mode === "save" && activeFormat && (
 						<div className={"classicyFileDialogNameRow"}>
 							<ClassicyInput

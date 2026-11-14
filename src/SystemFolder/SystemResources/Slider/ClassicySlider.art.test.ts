@@ -7,16 +7,17 @@ import {
 } from "@/__tests__/compiledCss";
 
 /**
- * The Platinum slider thumb (Part E 3.1) draws its outline, its rounded-knob
- * outline and its grip strikes from registered package art
- * (`--classicy-art-slider-thumb`, `-thumb-rect`, `-strikes`), not from SVGs
- * baked into the stylesheet or the external `slider-strikes.svg`. They stay
- * image layers of the thumb's `background`, not masks: a native range thumb
- * has no pseudo-elements, so a mask on it would clip the body gradient too.
- * Every layer keeps its position, size and repeat.
+ * The Platinum slider (story 0194-5bs, HIGOS8 Figure 2-17) is pixel art drawn
+ * in theme tokens: every layer of the channel, the indicator, the knob, the
+ * ghost and the ticks is a one-pixel-grid `linear-gradient` of one token, so
+ * a theme's colors reach it. It reads no registered image (the pre-3.2
+ * pentagon art, `--classicy-art-slider-thumb`, `-thumb-rect` and `-strikes`,
+ * stays registered for hosts and for the deprecated `platinum-slider-thumb`
+ * mixin) and no SVG baked into the stylesheet. The art test of each part is
+ * in platinum.css.test.ts, "the slider, drawn from HIGOS8 Figure 2-17".
  *
  * The look lives in the Platinum package (ruling E4), so this compiles
- * `platinum.scss`. Sass prints `a / b` in a background layer as `a/b`.
+ * `platinum.scss`.
  */
 
 const css = compile(`${PLATINUM_STYLES_DIR}/platinum.scss`, {
@@ -36,27 +37,35 @@ const sliderCss = parseCssRules(css)
 	.map((r) => r.body)
 	.join("\n");
 
-describe("slider thumb art (Platinum package)", () => {
-	it("thumb layers come from the package art variables", () => {
+describe("slider art (Platinum package)", () => {
+	it("draws in theme tokens, from no registered or embedded image", () => {
 		expect(sliderCss).toMatch(
-			/var\(--classicy-art-slider-thumb\) 0 0 ?\/ ?100% 100% no-repeat/,
+			/linear-gradient\(var\(--color-theme-03\), var\(--color-theme-03\)\)/,
 		);
-		expect(sliderCss).toMatch(
-			/var\(--classicy-art-slider-strikes\) center 30% ?\/ ?45% 35% no-repeat/,
-		);
-		expect(sliderCss).toMatch(
-			/var\(--classicy-art-slider-thumb-rect\) 0 0 ?\/ ?100% 100% no-repeat/,
-		);
-		expect(sliderCss).not.toMatch(/data:image|slider-strikes\.svg/);
-	});
-
-	it("the nondirectional knob keeps its strikes centered at 50%", () => {
-		expect(sliderCss).toMatch(
-			/var\(--classicy-art-slider-strikes\) center 50% ?\/ ?45% 35% no-repeat/,
+		expect(sliderCss).not.toMatch(
+			/--classicy-art-slider|data:image|slider-strikes\.svg|#[0-9a-f]{3,6}\b/i,
 		);
 	});
 
 	it("the base sheet embeds no thumb art", () => {
 		expect(base).not.toMatch(/data:image|slider-strikes\.svg|classicy-art/);
+	});
+
+	// Fix round 4: Firefox's UA sheet gives ::-moz-range-thumb a border and a
+	// 0.5em corner radius, which clipped the 15 x 17 pixel-art indicator
+	// round at every corner (and System 7's capsule). The base sheet resets
+	// both, and no package rule sets a radius back on the thumb.
+	it("resets Firefox's thumb border and corner radius, which no package restores", () => {
+		const mozThumb = parseCssRules(base).filter((r) =>
+			r.selectors.some((s) => s === ".classicySlider::-moz-range-thumb"),
+		);
+		expect(mozThumb).toHaveLength(1);
+		expect(mozThumb[0].body).toMatch(/border:\s*none/);
+		expect(mozThumb[0].body).toMatch(/border-radius:\s*0\s*(;|$)/m);
+		const packageThumbs = parseCssRules(css)
+			.filter((r) => r.selectors.some((s) => s.includes("::-moz-range-thumb")))
+			.map((r) => r.body)
+			.join("\n");
+		expect(packageThumbs).not.toMatch(/border-radius/);
 	});
 });

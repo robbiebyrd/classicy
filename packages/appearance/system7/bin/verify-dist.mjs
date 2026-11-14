@@ -1,0 +1,460 @@
+#!/usr/bin/env node
+// The dist check for @classicy/appearance-system7 (plan 0018-dbd §2.2), run
+// by its `build` script after `vite build`, from the package folder: the
+// invariants Platinum's bin/verify-dist.mjs holds for Platinum, held for
+// System 7. The helpers are the core's bin/ modules, shared by every check.
+//
+// 1. THE CORE IS AN IMPORT, NOT A COPY. Both bundles import
+//    `@classicy/classicy` (the ES bundle with `import`, the UMD bundle with
+//    `require`), externalize nothing but the core and React, and carry none
+//    of the core's registry code: a bundle that carried its own copy would
+//    register System 7 into registries nothing reads (design 0014-ahm,
+//    anti-goal "Two copies of the registries"). No external specifier
+//    carries a Vite query (the core's invariant 1).
+//
+// 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
+//    (src/assets/fonts), the art (src/assets/art and its variant folders,
+//    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
+//    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
+//    the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a,mp3,ac3},
+//    not its JSON, its hash or its sprites/ WAV sources) and the screen
+//    savers' art, which stays in Platinum's source
+//    (../platinum/src/screenSavers/<Saver>/*.webp; plan 0018-dbd §3.8), each
+//    byte-identical to its source, so an image optimizer added to
+//    vite.config.ts fails here. Each ships under the name
+//    bin/system7AssetNames.ts gives it: its own, or, in a variant or size
+//    folder, its folders and its own (`icons-bw-16-system-files-document.png`),
+//    so no two share one. A folder the package does not have yet holds
+//    nothing. dist/ itself holds only the two bundles and their maps, the two
+//    strict-CSP stylesheets, assets/ and types/.
+//
+// 3. NOTHING IS INLINED BUT THE DITHER CHECKER. The only `data:` URI in
+//    either bundle is src/assets/art/dither-checker.svg, the dither
+//    vocabulary's mask, which a `mask-image` URL would fetch in CORS mode
+//    (Platinum's halftone, ruling E17). The ES bundle's
+//    `new URL("assets/…", import.meta.url)` references each name a file in
+//    dist/assets, and every file there is referenced.
+//
+// 4. THE LOOK SHIPS IN BOTH BUNDLES AND AS dist/classicy-system7.css. Each
+//    bundle carries the package stylesheet (`system7.scss?inline`) as exactly
+//    one non-empty `@layer classicy.package` block scoped under
+//    `[data-classicy-appearance=…]`, never nested in `classicy.base`; and
+//    dist/classicy-system7.css, which strict-CSP hosts link after the core's
+//    classicy.css, opens with the layer order and is that block, byte for byte.
+//
+// 5. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`
+//    (the core's invariant 9): a linked file served without an HTTP charset
+//    takes a non-UTF-8 page's encoding.
+//
+// 6. THE FONTS SHIP AS A STYLESHEET TOO. dist/classicy-system7.fonts.css holds
+//    only unlayered `@font-face` rules, exactly one per face the runtime
+//    registers (SYSTEM7_FONT_FACES), each the rule the runtime writes, and
+//    every url() names the face's own file in dist/assets.
+//
+// 7. DIST/TYPES DECLARES THE PACKAGE. dist/types/index.d.ts (the `types`
+//    export) exists, and no declaration is for a test, a test helper, a story,
+//    a build script or an imported JSON file (system7Json is typed
+//    System7Json, on the core's types). Every relative specifier in a
+//    declaration carries its extension (`./assets/sounds/system7.js`): the
+//    package is `"type": "module"`, so a host on `moduleResolution: node16`
+//    or `nodenext` resolves no other. And none references Platinum: no
+//    declaration of a Platinum module (the bundled savers), no relative
+//    specifier out of dist/types, no `@classicy/appearance-*` import, so a
+//    host that installs only System 7 resolves every type (plan 0018-dbd
+//    §3.8).
+//
+// 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
+//    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
+//    build-machine path in a fileName option (the screen savers bring JSX,
+//    plan 0018-dbd §3.8).
+
+import { readdir, readFile } from "node:fs/promises";
+import { basename, join, posix, sep } from "node:path";
+import { exit } from "node:process";
+import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
+import {
+	findClassicyBareSpecifiers,
+	findClassicyExtensionlessSpecifiers,
+	findClassicyRelativeSpecifiers,
+} from "../../../../bin/classicyDeclarationSpecifiers.ts";
+import {
+	compareClassicyAssetNames,
+	findClassicyStrayAssetUrls,
+} from "../../../../bin/classicyDistAssets.ts";
+import { findClassicyCssCharsetProblem } from "../../../../bin/classicyDistCharset.ts";
+import { findClassicyDevJsxProblems } from "../../../../bin/classicyDistJsx.ts";
+import {
+	findClassicyBuildScriptDeclarations,
+	findClassicyJsonDeclarations,
+	findClassicyTestDeclarations,
+} from "../../../../bin/classicyDistTypes.ts";
+import {
+	classicyFontStylesheetFile,
+	findClassicyFontStylesheetProblems,
+} from "../../../../bin/classicyFontStylesheet.ts";
+import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
+import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
+import { SYSTEM7_FONT_FACES } from "../src/assets/system7Fonts.internal.ts";
+import { system7AssetFileName } from "./system7AssetNames.ts";
+
+const DIST = "dist";
+const ES = join(DIST, "appearance-system7.es.js");
+const UMD = join(DIST, "appearance-system7.umd.js");
+const BUNDLES = [ES, UMD];
+const STYLESHEET = join(DIST, "classicy-system7.css");
+const FONT_STYLESHEET = join(DIST, classicyFontStylesheetFile("system7"));
+const TYPES = join(DIST, "types");
+
+let failed = false;
+const report = (problems, ok) => {
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else console.log(ok);
+};
+const read = (file) => readFile(file, "utf8").catch(() => null);
+const bundles = await Promise.all(
+	BUNDLES.map(async (file) => ({ file, source: (await read(file)) ?? "" })),
+);
+
+// Invariant 1: the core is an import, not a copy.
+const EXTERNAL = [
+	"@classicy/classicy",
+	"react",
+	"react-dom",
+	"react/jsx-runtime",
+];
+// Vite's UMD output resolves an asset's URL with
+// `require("url").pathToFileURL(__dirname + "/assets/…")` when there is no
+// document (Node), so the UMD bundle may name Node's own `url` too.
+const UMD_ONLY_EXTERNAL = ["url"];
+// Strings only the core's registries hold (their log messages): a bundle that
+// carried its own copy of a registry would carry its messages too
+// (verify-dist.test.ts checks each is still in the core).
+const CORE_REGISTRY_MARKERS = [
+	"was not registered: ",
+	"cannot be unregistered; register a package with its id to replace it.",
+	"Ignored forbidden key",
+	"Rejected sound pack",
+];
+{
+	const problems = [];
+	for (const { file, source } of bundles) {
+		const specifiers = classicyBundleSpecifiers(source);
+		for (const specifier of new Set(specifiers)) {
+			if (specifier.includes("?"))
+				problems.push(
+					`${file}: externalizes "${specifier}", which carries a Vite query -> an asset import must stay bundled.`,
+				);
+			else if (
+				!EXTERNAL.includes(specifier) &&
+				!(file === UMD && UMD_ONLY_EXTERNAL.includes(specifier))
+			)
+				problems.push(
+					`${file}: externalizes "${specifier}", which is not the core or React -> check \`external\` in vite.config.ts.`,
+				);
+		}
+		if (!specifiers.includes("@classicy/classicy"))
+			problems.push(
+				`${file}: does not import @classicy/classicy -> the core must stay external (a peer dependency), or System 7 registers into a copy of the registries nothing reads.`,
+			);
+		for (const marker of CORE_REGISTRY_MARKERS)
+			if (source.includes(marker))
+				problems.push(
+					`${file}: carries the core's registry code (${JSON.stringify(marker)}) -> @classicy/classicy must stay external.`,
+				);
+	}
+	report(
+		problems,
+		`${BUNDLES.join(", ")}: import @classicy/classicy, externalize only it and React, carry none of it`,
+	);
+}
+
+// Invariant 2: dist/assets holds every package file, byte for byte.
+const listFiles = async (dir, accept = () => true) =>
+	(await readdir(dir, { withFileTypes: true }).catch(() => []))
+		.filter((entry) => entry.isFile() && accept(entry.name))
+		.map((entry) => join(dir, entry.name));
+// The art's folders: src/assets/art and each variant folder in it
+// (art/bw, art/color, …), and every icons/<variant>/<size> folder.
+const subfolders = async (dir) =>
+	(await readdir(dir, { withFileTypes: true }).catch(() => []))
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => join(dir, entry.name));
+const artDirs = [
+	join("src", "assets", "art"),
+	...(await subfolders(join("src", "assets", "art"))),
+];
+const iconDirs = (
+	await Promise.all(
+		(await subfolders(join("src", "assets", "icons"))).map(subfolders),
+	)
+).flat();
+const IMAGE = /\.(?:svg|png)$/;
+// The screen savers' folders in Platinum's source, one per saver, each
+// holding its art: System 7 bundles the savers' registration module.
+const SAVERS = join("..", "platinum", "src", "screenSavers");
+const saverDirs = await subfolders(SAVERS);
+const sources = [
+	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
+	...(
+		await Promise.all(
+			[...artDirs, ...iconDirs].map((dir) =>
+				listFiles(dir, (n) => IMAGE.test(n)),
+			),
+		)
+	).flat(),
+	...(await listFiles("src/assets/cursors", (n) => IMAGE.test(n))),
+	...(await listFiles("src/assets/wallpapers", (n) =>
+		/\.(?:png|jpg)$/.test(n),
+	)),
+	// The sheet's four formats, not its JSON, its hash or its sprites/ WAV
+	// sources.
+	...(await listFiles(join("src", "assets", "sounds", "system7"), (n) =>
+		/^system7\.(?:ogg|m4a|mp3|ac3)$/.test(n),
+	)),
+	...(
+		await Promise.all(
+			saverDirs.map((dir) => listFiles(dir, (n) => n.endsWith(".webp"))),
+		)
+	).flat(),
+];
+const shipped = await readdir(join(DIST, "assets")).catch(() => []);
+{
+	const problems = [];
+	const sourceOf = new Map();
+	for (const source of sources) {
+		const name = system7AssetFileName(source);
+		if (sourceOf.has(name))
+			problems.push(
+				`${source}: shares its name with ${sourceOf.get(name)} -> both would ship as dist/assets/${name}; rename one.`,
+			);
+		sourceOf.set(name, source);
+	}
+	// The build emits byte-identical files once (an alert icon is the same
+	// 1-bit image in icons/color/32 and icons/bw/32), under the name of
+	// whichever is imported first: each set of identical sources ships as
+	// exactly one of its names.
+	const twins = new Map();
+	for (const [name, source] of sourceOf) {
+		const bytes = (
+			await readFile(source).catch(() => Buffer.alloc(0))
+		).toString("base64");
+		twins.set(bytes, [...(twins.get(bytes) ?? []), name]);
+	}
+	const shippedSet = new Set(shipped);
+	const missing = [];
+	for (const names of twins.values()) {
+		const present = names.filter((name) => shippedSet.has(name));
+		if (present.length === 0) missing.push(names.sort().join(" or "));
+		else if (present.length > 1)
+			problems.push(
+				`${join(DIST, "assets")}: ships the same file as ${present.sort().join(" and ")} -> identical sources ship once.`,
+			);
+	}
+	missing.sort();
+	const { extra } = compareClassicyAssetNames([...sourceOf.keys()], shipped);
+	if (missing.length || extra.length)
+		problems.push(
+			`${join(DIST, "assets")}: missing ${missing.join(", ") || "none"}; extra ${extra.join(", ") || "none"} -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
+		);
+	for (const name of shipped) {
+		const source = sourceOf.get(name);
+		if (!source) continue;
+		const [authored, emitted] = await Promise.all([
+			readFile(source).catch(() => null),
+			readFile(join(DIST, "assets", name)),
+		]);
+		if (authored === null || !authored.equals(emitted))
+			problems.push(
+				`${join(DIST, "assets", name)}: differs from ${source} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
+			);
+	}
+	const top = new Set([
+		"appearance-system7.es.js",
+		"appearance-system7.es.js.map",
+		"appearance-system7.umd.js",
+		"appearance-system7.umd.js.map",
+		basename(STYLESHEET),
+		basename(FONT_STYLESHEET),
+		"assets",
+		"types",
+	]);
+	for (const name of (await readdir(DIST).catch(() => [])).sort())
+		if (!top.has(name))
+			problems.push(
+				`${join(DIST, name)}: not a file the package ships -> the package's dist holds its two bundles and their maps, ${basename(STYLESHEET)}, ${basename(FONT_STYLESHEET)}, assets/ and types/.`,
+			);
+	report(
+		problems,
+		`${join(DIST, "assets")}: ${shipped.length} file(s), exactly the package's, each byte-identical to its source`,
+	);
+}
+
+// Invariant 3: nothing but the dither checker is inlined; the files are
+// referenced from the ES bundle.
+const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
+{
+	const problems = [];
+	const checker = ((await read(DITHER_CHECKER)) ?? "").trim();
+	for (const { file, source } of bundles) {
+		const uris = new Set(
+			[...source.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]([^"`\s]*)/g)].map(
+				(m) => `${m[1]},${m[2]}`,
+			),
+		);
+		for (const uri of [...uris].sort()) {
+			const [type, ...rest] = uri.split(",");
+			const body = rest.join(",");
+			let decoded = "";
+			try {
+				decoded = decodeURIComponent(body).replaceAll("'", '"');
+			} catch {}
+			if (type === "image/svg+xml" && checker && decoded === checker) continue;
+			problems.push(
+				`${file}: inlines ${type} -> System 7 inlines only the dither checker (${DITHER_CHECKER}); check noInlineAppearanceAssetsPlugin.`,
+			);
+		}
+	}
+	const es = bundles.find(({ file }) => file === ES)?.source ?? "";
+	const { refs, stray } = findClassicyStrayAssetUrls(es, shipped);
+	if (stray.length)
+		problems.push(
+			`${ES}: new URL() names no file in dist/assets: ${stray.join(", ")}`,
+		);
+	const referenced = new Set(refs.map((ref) => ref.slice("assets/".length)));
+	for (const name of shipped.filter((n) => !referenced.has(n)).sort())
+		problems.push(
+			`${ES}: references no new URL() for ${name} in dist/assets -> nothing loads it.`,
+		);
+	report(
+		problems,
+		`${BUNDLES.join(", ")}: inline only the dither checker; ${refs.length} file reference(s), one per file in dist/assets`,
+	);
+}
+
+// Invariant 4: the package stylesheet, in both bundles and as a file.
+{
+	const css = await read(STYLESHEET);
+	report(
+		findClassicyPackageCssProblems({
+			layerOrder: CLASSICY_LAYER_ORDER,
+			bundles,
+			baseStylesheets: [],
+			packageStylesheets: css === null ? [] : [{ file: STYLESHEET, css }],
+			requiredBundles: BUNDLES,
+			requiredPackageStylesheets: [STYLESHEET],
+		}),
+		`${STYLESHEET}: the package stylesheet both bundles inject, after the layer order`,
+	);
+}
+
+// Invariant 5: every stylesheet decodes the same under any page encoding.
+{
+	const problems = [];
+	const cssFiles = (await readdir(DIST).catch(() => []))
+		.filter((f) => f.endsWith(".css"))
+		.sort()
+		.map((f) => join(DIST, f));
+	for (const file of cssFiles) {
+		const problem = findClassicyCssCharsetProblem(file, await readFile(file));
+		if (problem) problems.push(problem);
+	}
+	report(
+		problems,
+		`stylesheet charset: ${cssFiles.length} .css file(s), each ASCII only or opening with @charset "UTF-8"`,
+	);
+}
+
+// Invariant 6: the font stylesheet.
+{
+	const css = await read(FONT_STYLESHEET);
+	const assets = new Set(shipped);
+	report(
+		findClassicyFontStylesheetProblems(
+			FONT_STYLESHEET,
+			css,
+			SYSTEM7_FONT_FACES,
+			(url) => url.startsWith("assets/") && assets.has(url.slice(7)),
+		),
+		`${FONT_STYLESHEET}: the ${SYSTEM7_FONT_FACES.length} @font-face rules the runtime writes, unlayered, each url() its own file in assets/`,
+	);
+}
+
+// Invariant 7: the type declarations.
+{
+	const problems = [];
+	const declarations = (
+		await readdir(TYPES, { recursive: true }).catch(() => [])
+	).map(String);
+	if (!declarations.includes("index.d.ts"))
+		problems.push(
+			`${join(TYPES, "index.d.ts")}: missing -> the package's \`types\` export points at it; check dts in vite.config.ts.`,
+		);
+	const tests = findClassicyTestDeclarations(declarations);
+	if (tests.length)
+		problems.push(
+			`${TYPES}: ${tests.length} declaration(s) of tests, test helpers or stories (${tests.slice(0, 5).join(", ")}) -> check the dts exclude in vite.config.ts.`,
+		);
+	for (const declaration of declarations
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()) {
+		const file = join(TYPES, declaration);
+		const bare = findClassicyExtensionlessSpecifiers((await read(file)) ?? "");
+		if (bare.length)
+			problems.push(
+				`${file}: relative specifier(s) without an extension (${bare.map((s) => JSON.stringify(s)).join(", ")}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
+			);
+	}
+	const platinum = declarations.filter(
+		(file) =>
+			file.endsWith(".d.ts") &&
+			/(?:^|[\\/])(?:screenSavers|platinum)[\\/]/i.test(file),
+	);
+	if (platinum.length)
+		problems.push(
+			`${TYPES}: ${platinum.length} declaration(s) of Platinum's modules (${platinum.slice(0, 5).join(", ")}) -> System 7 re-exports nothing of the savers; check index.ts and the dts include in vite.config.ts.`,
+		);
+	for (const declaration of declarations
+		.filter((file) => file.endsWith(".d.ts"))
+		.sort()) {
+		const file = join(TYPES, declaration);
+		const code = (await read(file)) ?? "";
+		const from = posix.dirname(declaration.split(sep).join("/"));
+		const outside = [
+			...findClassicyRelativeSpecifiers(code).filter((specifier) =>
+				posix.join(from, specifier).startsWith(".."),
+			),
+			...findClassicyBareSpecifiers(code).filter((specifier) =>
+				specifier.startsWith("@classicy/appearance-"),
+			),
+		];
+		if (outside.length)
+			problems.push(
+				`${file}: references Platinum or a file outside ${TYPES} (${outside.map((s) => JSON.stringify(s)).join(", ")}) -> a host that installs only System 7 resolves none of it; re-export nothing of the savers.`,
+			);
+	}
+	const json = findClassicyJsonDeclarations(declarations);
+	if (json.length)
+		problems.push(
+			`${TYPES}: ${json.length} declaration(s) of imported JSON (${json.slice(0, 5).join(", ")}) -> check the dts exclude in vite.config.ts.`,
+		);
+	const scripts = findClassicyBuildScriptDeclarations(declarations);
+	if (scripts.length)
+		problems.push(
+			`${TYPES}: ${scripts.length} declaration(s) of build scripts or configs (${scripts.slice(0, 5).join(", ")}) -> check the dts include in vite.config.ts.`,
+		);
+	report(
+		problems,
+		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file, none referencing Platinum`,
+	);
+}
+
+// Invariant 8: the production JSX runtime, with no build-machine paths.
+report(
+	bundles.flatMap(({ file, source }) =>
+		findClassicyDevJsxProblems(file, source, process.cwd()),
+	),
+	`${BUNDLES.join(", ")}: production JSX runtime, no build-machine paths`,
+);
+
+if (failed) exit(1);

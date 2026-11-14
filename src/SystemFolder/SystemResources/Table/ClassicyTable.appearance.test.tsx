@@ -130,7 +130,10 @@ describe("ClassicyTable appearance", () => {
 		const el = root(container);
 		expect(el.hasAttribute("data-probe-state")).toBe(false);
 		expect(el.hasAttribute("style")).toBe(false);
-		expect(el.getAttribute("class")).toBe("classicyTableContainer");
+		// The root is a ClassicyScrollArea (Classicy's own scroll bars).
+		expect(el.getAttribute("class")).toBe(
+			"classicyScrollArea classicyTableContainer",
+		);
 	});
 
 	it("emits the drags a cell reports through emitDrag, from its root", () => {

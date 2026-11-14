@@ -1,9 +1,9 @@
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { warnClassicyDerivedEntryNameFallback } from "@/SystemFolder/SystemResources/File/ClassicyDerivedEntryNameWarnings.internal";
 import {
 	classicyDerivedFolderReservedNames,
 	classicyFreeDerivedEntryName,
 } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -53,7 +53,7 @@ export const buildControlStripModulesFolder = (
 ): ClassicyFileSystemEntry => {
 	const folder: ClassicyFileSystemEntry = {
 		_type: ClassicyFileSystemEntryFileType.Directory,
-		_icon: ClassicyIcons.system.folders.controlStrip,
+		_icon: classicyCoreIcon("system.folders.controlStrip"),
 		_readOnly: true,
 	};
 	const reserved = new Set(reservedNames);

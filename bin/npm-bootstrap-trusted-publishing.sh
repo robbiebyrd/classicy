@@ -7,7 +7,7 @@
 # that already exists on the registry (`npm help trust`, "Package must
 # exist"). A package push.yml has never published therefore needs one publish
 # by hand first (story 0156-tx7). For each package.json given (default: the
-# core's and Platinum's) this:
+# core's, Platinum's and System 7's) this:
 #   1. publishes a placeholder, <name>@0.0.0, under the `bootstrap` dist-tag,
 #      unless the name is on npm already;
 #   2. deprecates <name>@0.0.0, naming the first real release, so nobody
@@ -53,8 +53,14 @@ if ! [[ "$PUBLISH_WAIT_SECONDS" =~ ^[0-9]+$ && "$PUBLISH_POLL_SECONDS" =~ ^[1-9]
 	echo "CLASSICY_BOOTSTRAP_WAIT_SECONDS must be a whole number and CLASSICY_BOOTSTRAP_POLL_SECONDS a positive one." >&2
 	exit 1
 fi
-# The release the placeholder makes way for, named in its deprecation.
-FIRST_RELEASE="3.0.0"
+# The release the placeholder makes way for, named in its deprecation. It is
+# per package: the core and Platinum first shipped in 3.0.0, System 7 in 3.2.0.
+first_release_for() {
+	case "$1" in
+	@classicy/appearance-system7) echo "3.2.0" ;;
+	*) echo "3.0.0" ;;
+	esac
+}
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PUBLISH=0
@@ -74,7 +80,7 @@ for arg in "$@"; do
 	esac
 done
 if [ "${#MANIFESTS[@]}" -eq 0 ]; then
-	MANIFESTS=("$ROOT/package.json" "$ROOT/packages/appearance/platinum/package.json")
+	MANIFESTS=("$ROOT/package.json" "$ROOT/packages/appearance/platinum/package.json" "$ROOT/packages/appearance/system7/package.json")
 fi
 
 NPM_VERSION="$(npm --version)"
@@ -130,7 +136,22 @@ classify_trust() {
 	' "$REPOSITORY" "$WORKFLOW"
 }
 
-DEPRECATION_FOR() { echo "Placeholder with no code; install $1@$FIRST_RELEASE or later."; }
+DEPRECATION_FOR() { echo "Placeholder with no code; install $1@$(first_release_for "$1") or later."; }
+
+# The package name in the manifest file at path $1.
+manifest_name() { node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$1"; }
+
+# The distinct first releases of the packages given, oldest first, for the
+# closing notes ("3.0.0" or "3.0.0 and 3.2.0").
+RELEASES=""
+for MANIFEST in "${MANIFESTS[@]}"; do
+	RELEASES="$RELEASES$(first_release_for "$(manifest_name "$MANIFEST")")"$'\n'
+done
+RELEASES="$(sort -uV <<<"$RELEASES" | sed '/^$/d' | paste -sd, - | sed 's/,/ and /g')"
+case "$RELEASES" in
+*" and "*) RELEASE_PHRASE="the $RELEASES releases" ;;
+*) RELEASE_PHRASE="the $RELEASES release" ;;
+esac
 
 # npm's error output for the deprecation lookup (a small file left in $TMPDIR).
 VIEW_ERR="$(mktemp "${TMPDIR:-/tmp}/classicy-bootstrap-view.XXXXXX")"
@@ -138,7 +159,7 @@ VIEW_ERR="$(mktemp "${TMPDIR:-/tmp}/classicy-bootstrap-view.XXXXXX")"
 # Each step checks what is already on the registry, so a run that stopped
 # partway (a mistyped one-time password, a dropped connection) can be re-run.
 for MANIFEST in "${MANIFESTS[@]}"; do
-	NAME="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$MANIFEST")"
+	NAME="$(manifest_name "$MANIFEST")"
 	DEPRECATION="$(DEPRECATION_FOR "$NAME")"
 	echo
 	echo "== $NAME"
@@ -268,13 +289,13 @@ done
 echo
 echo "Placeholders go out under the \`$PLACEHOLDER_TAG\` dist-tag. If the registry also"
 echo "points \`latest\` at a new package's first version (npm's docs do not say), then"
-echo "\`latest\` reads $PLACEHOLDER_VERSION until the $FIRST_RELEASE release. A \`latest\` tag"
-echo "cannot be removed once set, so leave it: the $FIRST_RELEASE release takes \`latest\`"
+echo "\`latest\` reads $PLACEHOLDER_VERSION until $RELEASE_PHRASE. A \`latest\` tag"
+echo "cannot be removed once set, so leave it: a package's first release takes \`latest\`"
 echo "either way, and until then the deprecation is the guard (installs warn, naming"
-echo "$FIRST_RELEASE). Otherwise \`latest\` stays unset until then."
+echo "$RELEASES). Otherwise \`latest\` stays unset until then."
 echo "A few minutes after --publish, check each package with \`npm dist-tag ls <name>\`:"
 for MANIFEST in "${MANIFESTS[@]}"; do
-	echo "  npm dist-tag ls $(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$MANIFEST")"
+	echo "  npm dist-tag ls $(manifest_name "$MANIFEST")"
 done
 echo "If the script stopped partway, re-running it is safe: it skips what is done."
 echo

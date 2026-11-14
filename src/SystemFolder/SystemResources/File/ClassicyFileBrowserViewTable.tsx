@@ -36,6 +36,7 @@ import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	ClassicyTable,
 	type ClassicyTableCellContext,
@@ -354,8 +355,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										</span>
 									)}
 								</span>
-								<img
+								<ClassicyIconImage
 									src={row._icon || iconImageByType(row._type)}
+									drawnAt={iconSize}
 									width={iconSize}
 									alt={row._path}
 									className={"classicyFileBrowserViewTableRowIcon"}
@@ -492,6 +494,9 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 					selected={selectedPaths}
 					onSelectionChange={trackSelection}
 					containerRef={focusTargetRef}
+					// The window is the list's only scroller (#271; see the
+					// stylesheet).
+					scrollable={false}
 				/>
 			);
 		},

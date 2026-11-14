@@ -1,0 +1,123 @@
+// System 7's modal dialog windows (plan 0018-dbd §3.4), included by
+// system7.scss inside the package wrapper, after the windows. Measured from
+// the System 7.5 captures (docs/system7-reference-screenshots.md: Standard
+// File, the Finder's Copy dialog and the alerts) and the System 7 HIG
+// (printed pp.185-193). A modeless dialog is a document window without a
+// size or zoom box (HIG p.178), so the windows' look already draws it.
+//
+// The double frame of a modal dialog (HIG p.190), from the outside in: the
+// window's one-pixel black border; a bevel `dialogFrame.bevel` wide (light
+// at the top and left, dark at the bottom and right); a band
+// `dialogFrame.band` wide; a second bevel the other way round; and a black
+// line `dialogFrame.line` wide around the white contents. No drop shadow.
+//
+//   token                   System 7 Color      System 7 (1-bit)
+//   --color-theme-02        #CCCCFF light       (no bevel: bevel 0)
+//   --color-system-02       #BBBBBB band        white, band 2
+//   --color-theme-04        #666699 dark        (no bevel: bevel 0)
+//   inner line              1 px black          2 px black
+//
+// so 1, 2 and 2 pixels of black, white and black in 1-bit, as the HIG gives
+// it, and five rings in color, each bevel taking two of its corners (upper
+// right, lower left) to its dark side, as the captures show.
+//
+// A fixed modal (`classicyWindowModalFixed`: an alert, or a modal window
+// with `movable={false}` such as Standard File) has no title bar (HIG p.190,
+// p.193). A movable modal
+// (HIG p.186) keeps the striped title bar, with no boxes, over the full
+// width; the frame's sides and bottom continue below it, and the inner bevel
+// and line run under it. System 7 has no movable alert and no red title bar
+// (HIG p.193): Classicy's movable alert is drawn as a movable modal.
+@use "Window";
+
+$b: var(--window-border-size);
+$bevel: var(--dialog-frame-bevel);
+$line: var(--dialog-frame-line);
+
+// The window's frame between its border and the contents' line: the outer
+// bevel, the band and the inner bevel.
+$frame: calc(#{$bevel} + var(--dialog-frame-band) + #{$bevel});
+
+// The title bar's height inside the frame, which a modal's has no line below.
+$bar: calc(var(--window-title-bar-height) - #{$b} - #{$b});
+
+@mixin dialog {
+  // The outer bevel over the band, the bevel's dark side on top so it takes
+  // the off corners. Inset shadows on the window, under its children: a
+  // movable modal's title bar covers their top.
+  .classicyWindow.classicyWindowModal {
+    padding: 0;
+    background-color: var(--color-window-document);
+    box-shadow:
+      inset calc(#{$bevel} * -1) calc(#{$bevel} * -1) 0 0 var(--color-theme-04),
+      inset $bevel $bevel 0 0 var(--color-theme-02),
+      inset 0 0 0 calc(#{$bevel} + var(--dialog-frame-band)) var(--color-system-02);
+  }
+
+  // The move outline (the windows' dotted rectangle) wins over the frame.
+  .classicyWindow.classicyWindowModal.dragging {
+    box-shadow: none;
+  }
+
+  // The contents inside the inner bevel and line. The bevel is the
+  // contents' own shadow, light at the bottom and right (three layers, so
+  // the light side reaches its own corner and no other) over a dark ring.
+  .classicyWindow .classicyWindowContentsModal {
+    box-sizing: border-box;
+    width: auto;
+    height: calc(100% - #{$bar} - #{$bevel} - #{$frame});
+    margin: $bevel $frame $frame;
+    padding: 0;
+    border: $line solid var(--color-black);
+    background-color: var(--classicy-window-contents-bg, var(--color-window-document));
+    box-shadow:
+      $bevel 0 0 0 var(--color-theme-02),
+      0 $bevel 0 0 var(--color-theme-02),
+      $bevel $bevel 0 0 var(--color-theme-02),
+      0 0 0 $bevel var(--color-theme-04);
+  }
+
+  // A dialog's items start `dialogFrame.inset` (13) white pixels inside the
+  // inner line (HIG p.196, figure 6-21), the chrome's padding for every
+  // modal. The dialogs that lay themselves out from the line (an alert, the
+  // input and keyboard-equivalent dialogs, a dialog-layout form) pad their
+  // own root, so the chrome gives them none: the core marks their inner
+  // area `classicyWindowContentsSelfPadded` (useClassicyWindowSelfPadding),
+  // a class, so browsers without `:has()` get one inset too.
+  .classicyWindowContentsModalInner {
+    box-sizing: border-box;
+    padding: var(--dialog-frame-inset);
+
+    &.classicyWindowContentsSelfPadded {
+      padding: 0;
+    }
+  }
+
+  // A movable modal's title bar: the windows' bar, its line below given up
+  // to the inner bevel and line, its stripes `titleBar.modalStripeInset`
+  // inside its bevel, across the whole bar (no boxes to break them).
+  .classicyWindow .classicyWindowTitleBarModal {
+    border-bottom: none;
+
+    .classicyWindowTitle {
+      width: auto;
+    }
+  }
+
+  .classicyWindow.active .classicyWindowTitleBarModal {
+    @include Window.title-bar-stripes(var(--title-bar-modal-stripe-inset));
+  }
+
+  // A fixed modal has no title bar: the frame closes over the contents.
+  // Child combinators, so a window nested in its content keeps its own.
+  .classicyWindow.classicyWindowModalFixed {
+    > .classicyWindowTitleBar {
+      display: none;
+    }
+
+    > .classicyWindowContentsModal {
+      height: calc(100% - #{$frame} - #{$frame});
+      margin: $frame;
+    }
+  }
+}

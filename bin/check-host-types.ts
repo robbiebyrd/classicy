@@ -13,7 +13,8 @@
 // whose types are a devDependency (`howler` without `@types/howler`) resolves
 // to nothing there, an `any` under `skipLibCheck` and an error without it.
 //
-// The check packs both packages (`pnpm pack`, as 4.1 publishes them), extracts
+// The check packs the packages (`pnpm pack`, as 4.1 publishes them: the core,
+// Platinum and System 7, plan 0018-dbd §2.2), extracts
 // the tarballs into a scratch host's node_modules beside links, from this
 // checkout, to the packages' dependencies and peer dependencies and nothing
 // else (an `@types/…` package only when it is itself one of them). It fails
@@ -21,7 +22,7 @@
 // declare, then runs `tsc --noEmit` on a host file under each mode in
 // CLASSICY_HOST_MODES: `skipLibCheck` as most hosts set it, and once
 // (`bundler-lib-check`) without it, so every declaration is checked. Run
-// after both builds (the end of `build:source`):
+// after the builds (the end of `build:source`):
 //
 //   node bin/check-host-types.ts      exit 1 if any import or mode fails
 //
@@ -82,11 +83,12 @@ export type ClassicyHostManifest = {
 
 /**
  * The host file: a core type, a core function, Platinum's hooks and its
- * theme data, and a Platinum preset handed back to the core as a
- * `ClassicyTheme`. Under a resolution that misses either package's exports,
- * an import or the assignment fails.
+ * theme data, System 7's sound pack and theme data, and a preset of each
+ * handed back to the core as a `ClassicyTheme`. Under a resolution that
+ * misses any package's exports, an import or an assignment fails.
  */
 export const CLASSICY_HOST_SOURCE = `import {
+	type ClassicySoundPack,
 	type ClassicyTheme,
 	registerClassicyAppearancePackage,
 } from "@classicy/classicy";
@@ -94,11 +96,16 @@ import {
 	platinumAppearanceHooks,
 	platinumJson,
 } from "@classicy/appearance-platinum";
+import { system7Json, system7SoundPack } from "@classicy/appearance-system7";
 
 const theme: ClassicyTheme = platinumJson.presets[0];
+const system7Theme: ClassicyTheme = system7Json.presets[0];
+const sounds: ClassicySoundPack = system7SoundPack;
 
 export const host = {
 	theme,
+	system7Theme,
+	sounds,
 	register: registerClassicyAppearancePackage,
 	hooks: platinumAppearanceHooks,
 };
@@ -295,6 +302,7 @@ if (
 ) {
 	const root = fileURLToPath(new URL("..", import.meta.url));
 	const platinum = join(root, "packages/appearance/platinum");
+	const system7 = join(root, "packages/appearance/system7");
 	const scratch = mkdtempSync(join(tmpdir(), "classicy-host-types-"));
 	let failed = false;
 	try {
@@ -305,6 +313,10 @@ if (
 				host,
 				"node_modules/@classicy/appearance-platinum",
 			),
+			"@classicy/appearance-system7": join(
+				host,
+				"node_modules/@classicy/appearance-system7",
+			),
 		};
 		extract(
 			pack(root, join(scratch, "pack-core")),
@@ -313,6 +325,10 @@ if (
 		extract(
 			pack(platinum, join(scratch, "pack-platinum")),
 			packed["@classicy/appearance-platinum"],
+		);
+		extract(
+			pack(system7, join(scratch, "pack-system7")),
+			packed["@classicy/appearance-system7"],
 		);
 		// The packed manifests: what a host's install reads (workspace ranges
 		// already replaced by versions).
@@ -349,7 +365,7 @@ if (
 			join(root, "node_modules/typescript/bin/tsc"),
 		)) {
 			if (status === 0) {
-				console.log(`host types (${mode}): both packed packages type-check`);
+				console.log(`host types (${mode}): the packed packages type-check`);
 				continue;
 			}
 			failed = true;

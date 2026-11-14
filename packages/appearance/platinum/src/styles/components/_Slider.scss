@@ -1,156 +1,630 @@
-// The Platinum slider look (from ClassicySlider.scss): the indicator's shape,
-// border, grip and face, for the native thumb in each state, the highlighted
-// and nondirectional variants, and the ghost indicator that tracks a drag.
-// The thumb's size, its rotation for each pointing direction and the ghost's
-// position stay in the base sheet. The nondirectional rules override the
-// pentagon thumb's clip-path and background, so they come with it, after it.
-
-// Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
-$thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
-
-// ── Thumb border art ──────────────────────────────────────────────────────────
-// `border`, `box-shadow`, and `filter: drop-shadow` all fail on
-// ::webkit-slider-thumb: border/shadow paint before clip-path (rectangle-clipped),
-// and filter is not applied to this pseudo-element by the browser.
+// The Platinum slider (from ClassicySlider.scss), pixel for pixel from the
+// HIGOS8 figures (printed p.34): Figures 2-18 and 2-19 for the slider at
+// rest (the channel, the indicator, the tick marks), the 1996 draft's
+// Figure 13 (p.16; a four-gray screenshot whose grays are the ramp's) for
+// the vertical slider, its channel and its left-pointing indicator, and
+// Figure 2-17 ("A slider and ghost indicator") for the pressed indicator's
+// tone and the ghost. Figure 2-17 is 2-18's slider resampled a row and a
+// column larger (its channel eight rows with a two-pixel left cap, its
+// indicator seventeen rows), so only its tone is taken:
 //
-// Solution: an image layer draws a 4px stroke on the same pentagon path used by
-// clip-path. The stroke is centered on the path so its outer 2px are cropped by
-// clip-path, leaving a clean 2px border (= --window-border-size × 2) that
-// follows every edge exactly — including the diagonal lower sides.
+// - The channel, `slider.channel` (7) pixels across: a #AAAAAA etch row,
+//   a dark border, three flat #AAAAAA rows, a dark border, and a white
+//   row; its ends are one-pixel pixel-art caps, the same art turned a
+//   quarter for a vertical slider (Figure 13: the etch on its left, the
+//   white row on its right, the start cap at its top). It is the same in
+//   every state: the text says nothing of it changing when pressed. Its
+//   three flat rows read --classicy-slider-track first, an image that
+//   replaces their fill (the color picker's channel sliders set it).
+// - The indicator, in a box `slider.thumbAlong` x `slider.thumbAcross`
+//   (15 x 17, its last row clear): a black outline around the theme's
+//   lavender ramp, lit from the top left (the faces that look up or left
+//   highlighted, the rest shaded), three grip lines, and a six-row point.
+//   Pointing down it is Figures 2-18 and 2-19's sixteen rows; pointing
+//   left, Figure 13's; pointing up or right (which no figure draws), the
+//   same shapes lit by the same rule. Pressed, every ink is a step down the
+//   ramp (Figure 2-17's tone), the shape unchanged. Its flat side lies
+//   `slider.thumbRise` (3) pixels past the channel's near edge and its
+//   point six past the far one, whichever way it points (the base sheet
+//   turns the box; the turned art is written into it pre-turned). The
+//   nondirectional knob is the down indicator without its point, closed by
+//   a shade row and an outline and centered on the channel, two pixels
+//   past it each side (the HIG names it but draws none). A highlighted
+//   slider's indicator is drawn pressed.
+// - The ghost indicator (Figure 2-17): the indicator in grays, translucent.
+// - Tick marks (Figure 2-18): `slider.tickWidth` x `slider.tickHeight`
+//   (3 x 8), a black line with a white highlight before it and a gray
+//   shadow after it, hanging from the slider's bottom edge (its right edge
+//   on a vertical slider), the row after the indicator's point.
+// - Dimmed: the slider and its ticks at 50% contrast (the HIG draws none).
 //
-// The art is the registered system art `sliderThumb` (Platinum:
-// assets/art/slider-thumb.svg, viewBox 21 × 21 = the thumb's width × height,
-// points = $thumb-shape in px). It stays an image layer, not a mask: the thumb
-// has no pseudo-elements, so a mask would clip the body gradient too. Its
-// `currentColor` stroke draws black in an image.
-$_thumb-border-svg: var(--classicy-art-slider-thumb);
+// Everything is pixel art: one `classicy-px-rect` layer per run of one ink
+// in a row, on a grid of `slider.pixel` (1) pixels, every ink a theme token.
+// The sizes the base sheet places by (the thumb's box, the channel's and the
+// input's thickness, the ticks') and the thumb's placement on a channel are
+// derived from the knobs above; positions inside the art are art
+// coordinates, in grid pixels.
+@use "sass:list";
+@use "sass:map";
+@use "sass:string";
+@use "pkg:@classicy/classicy/scss/layout";
 
-// ── Thumb grip strikes art ────────────────────────────────────────────────────
-// Three vertical lines centered in the thumb body to indicate draggability:
-// the registered system art `sliderStrikes` (Platinum:
-// assets/art/slider-strikes.svg, its two-tone grays the art).
-$_thumb-strikes-svg: var(--classicy-art-slider-strikes);
+// One grid pixel, and `$n` of them (the file's first multiplier site).
+$px: var(--slider-pixel);
 
-// ── Nondirectional thumb (unpointed knob) ─────────────────────────────────────
-// A plain rounded-rectangle indicator for sliders where the pointed edge would
-// carry no meaning. Same 2px-cropped-stroke trick as the pentagon border, from
-// the registered system art `sliderThumbRect` (Platinum:
-// assets/art/slider-thumb-rect.svg).
-$_thumb-rect-svg: var(--classicy-art-slider-thumb-rect);
-$_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
+@function px($n) {
+  @if $n == 0 {
+    @return 0;
+  }
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
 
-// ── Thumb appearance mixin ────────────────────────────────────────────────────
-@mixin platinum-slider-thumb(
-  $body-gradient,
-) {
-  clip-path: $thumb-shape;
+// Half a length (the file's second multiplier site): the thumb's centering
+// across the channel, below.
+@function half($length) {
+  @return calc($length / 2);
+}
+
+// ── Pixel art from rows of characters ───────────────────────────────────────
+// Each row is a string, one character a pixel, "." clear; `$palette` maps a
+// character to the theme token it is drawn in. One layer per run of one
+// character in a row, placed from the box's top left.
+@function row-art($rows, $palette) {
+  $layers: ();
+  $y: 0;
+  @each $row in $rows {
+    $length: string.length($row);
+    $x: 0;
+    @while $x < $length {
+      $ink: string.slice($row, $x + 1, $x + 1);
+      $run: 1;
+      @while $x + $run < $length and string.slice($row, $x + $run + 1, $x + $run + 1) == $ink {
+        $run: $run + 1;
+      }
+      @if $ink != "." {
+        $layers: list.append(
+          $layers,
+          layout.classicy-px-rect(var(#{map.get($palette, $ink)}), px($x), px($y), px($run), $px),
+          $separator: comma
+        );
+      }
+      $x: $x + $run;
+    }
+    $y: $y + 1;
+  }
+  @return $layers;
+}
+
+// The art's inks. The indicator's lavender ramp is the theme's (theme-01 to
+// -07: #EEEEEE, #CCCCFF, #9999FF, #6666CC, #333399, …, #000055 in Default);
+// the channel's border is system-07 (#202020; the figures' #222222), its
+// fill and etch system-04 (#AAAAAA).
+$inks: (
+  "#": "--color-black",
+  ",": "--color-theme-01",
+  "l": "--color-theme-02",
+  "m": "--color-theme-03",
+  "n": "--color-theme-04",
+  "o": "--color-theme-05",
+  "q": "--color-theme-07",
+  "a": "--color-system-04",
+  "K": "--color-system-07",
+  "W": "--color-white",
+  "8": "--color-system-05",
+);
+
+// The ghost: the indicator's outline in gray, its faces white and light
+// grays.
+$ghost-inks: (
+  "#": "--color-system-05",
+  "W": "--color-white",
+  ",": "--color-white",
+  "l": "--color-white",
+  "m": "--color-system-02",
+  "n": "--color-system-03",
+  "o": "--color-system-04",
+);
+
+// ── The indicator (15 x 17; Figures 2-18 and 2-17) ──────────────────────────
+// At rest: Figure 2-18's sixteen rows (Figure 2-19 draws the same), the
+// box's last row clear.
+$thumb: (
+  ".#############.",
+  "#,lllllllllllm#",
+  "#lmmmmmmmmmmmn#",
+  "#lmm,m,m,mmmmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmmomomommmn#",
+  ".#nmmmmmmmmmn#.",
+  "..#nmmmmmmmn#..",
+  "...#nmmmmmn#...",
+  "....#nmmmn#....",
+  ".....#nnn#.....",
+  "......###......",
+  "...............",
+);
+
+// ── The turned indicators, under the same top-left light ───────────────────
+// Pointing left (a vertical slider's default): Figure 13's vertical
+// indicator, 16 across the channel by 15 along it, as seen. It is not the
+// down indicator turned: the light stays at the top left, so the top row
+// and the upper diagonal are lit (the cell beside the point white), the
+// lower diagonal, the flat column and the bottom row shaded, and the grip
+// lines run across, each light line (white at its left end) above its dark
+// one.
+$thumb-left: (
+  "......#########.",
+  ".....#,lllllllm#",
+  "....#,mmmmmmmmn#",
+  "...#,mmmmmmmmmn#",
+  "..#,mmWlllllmmn#",
+  ".#,mmmmoooooomn#",
+  "#WmmmmWlllllmmn#",
+  "#lmmmmmoooooomn#",
+  "#lmmmmWlllllmmn#",
+  ".#nmmmmoooooomn#",
+  "..#nmmmmmmmmmmn#",
+  "...#nmmmmmmmmmn#",
+  "....#nmmmmmmmmn#",
+  ".....#nnnnnnnnn#",
+  "......#########.",
+);
+
+// Pointing right (no figure): the same shape mirrored, lit by the same
+// rule. The flat column and the top row are lit, the upper diagonal lit a
+// step less (it faces up and right), the lower diagonal, the cell beside
+// the point and the bottom row shaded; the grips as on the left one.
+$thumb-right: (
+  ".#########......",
+  "#,llllllll#.....",
+  "#lmmmmmmmml#....",
+  "#lmmmmmmmmml#...",
+  "#lmWlllllmmml#..",
+  "#lmmoooooommml#.",
+  "#lmWlllllmmmmml#",
+  "#lmmoooooommmmn#",
+  "#lmWlllllmmmmmn#",
+  "#lmmoooooommmn#.",
+  "#lmmmmmmmmmmn#..",
+  "#lmmmmmmmmmn#...",
+  "#lmmmmmmmmn#....",
+  "#mnnnnnnnn#.....",
+  ".#########......",
+);
+
+// Pointing up (no figure): the down indicator's shape turned a half, lit
+// by the same rule: both diagonals face up, the left one lit a step more
+// and the cell beside the point white, the left column lit, the right
+// column and the bottom row shaded; the grips as on the down one, their
+// light caps at the top.
+$thumb-up: (
+  "......###......",
+  ".....#,Wl#.....",
+  "....#,mmml#....",
+  "...#,mmmmml#...",
+  "..#,mmmmmmml#..",
+  ".#,mmmmmmmmml#.",
+  "#,mm,m,m,mmmml#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmmomomommmn#",
+  "#lmmmmmmmmmmmn#",
+  "#mnnnnnnnnnnnn#",
+  ".#############.",
+);
+
+// The nondirectional knob: the indicator's body, its grip a row shorter,
+// closed off below by a shade row and an outline: eleven rows, one row down
+// in the indicator's box, so it lies two rows past the seven-row channel on
+// each side.
+$knob: (
+  "...............",
+  ".#############.",
+  "#,lllllllllllm#",
+  "#lmmmmmmmmmmmn#",
+  "#lmm,m,m,mmmmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmlololommmn#",
+  "#lmmmomomommmn#",
+  "#lnnnnnnnnnnnn#",
+  ".#############.",
+);
+
+// ── Pressed: a step darker ──────────────────────────────────────────────────
+// Figure 2-17's pressed indicator is Figure 2-18's with every ink one step
+// down the ramp (white to theme-01, theme-01 to -02, …, theme-05 to -07),
+// drawn a row and a column larger because the figure is resampled; the
+// pressed art is the rest art stepped, the same size.
+$step: (
+  "W": ",",
+  ",": "l",
+  "l": "m",
+  "m": "n",
+  "n": "o",
+  "o": "q",
+);
+
+@function step($rows) {
+  $out: ();
+  @each $row in $rows {
+    $stepped: "";
+    @for $i from 1 through string.length($row) {
+      $ink: string.slice($row, $i, $i);
+      @if map.has-key($step, $ink) {
+        $ink: map.get($step, $ink);
+      }
+      $stepped: $stepped + $ink;
+    }
+    $out: list.append($out, $stepped);
+  }
+  @return $out;
+}
+
+// ── The turned box ──────────────────────────────────────────────────────────
+// The base sheet turns the thumb's 15 x 17 box a quarter for a vertical
+// slider (clockwise pointing left, counterclockwise pointing right) and a
+// half pointing up. The turned indicators above are authored as seen;
+// this writes one back into the box as the browser must hold it before the
+// turn, its last row clear (the box's spare row, which the turn carries
+// past the point).
+@function cell($rows, $x, $y) {
+  @return string.slice(list.nth($rows, $y + 1), $x + 1, $x + 1);
+}
+
+@function before-turn($art, $turn) {
+  $box: ();
+  @for $r from 0 through 15 {
+    $row: "";
+    @for $c from 0 through 14 {
+      @if $turn == left {
+        $row: $row + cell($art, 15 - $r, $c);
+      } @else if $turn == right {
+        $row: $row + cell($art, $r, 14 - $c);
+      } @else {
+        $row: $row + cell($art, 14 - $c, 15 - $r);
+      }
+    }
+    $box: list.append($box, $row);
+  }
+  @return list.append($box, "...............");
+}
+
+// ── Tick marks (3 x 8; Figure 2-18), and turned for a vertical slider ───────
+$tick: (
+  "WW.",
+  "W#8",
+  "W#8",
+  "W#8",
+  "W#8",
+  "W#8",
+  "W#8",
+  ".88",
+);
+
+$tick-turned: (
+  "WWWWWWW.",
+  "W######8",
+  ".8888888",
+);
+
+// ── The channel (Figures 2-18 and 2-19) ────────────────────────────────────
+// Rectangles as (ink, across, across-size, end, along, along-size): `across`
+// from the channel's etched edge (its top, or a vertical channel's left),
+// `along` from its start (`start`) or from its end (`end`) edge, and an
+// along-size of (rest n) the channel's length less n pixels. "fill" is the
+// three flat rows, which --classicy-slider-track may replace. The runs
+// span the channel's second pixel to its second last (the etch starts a
+// pixel earlier); the start cap is the etch's turn down the border's side
+// and the border's turn across, the end cap the border's turn across and
+// the white row's turn up.
+$channel: (
+  ("a", 0, 1, start, 1, (rest 3)),
+  ("a", 1, 4, start, 0, 1),
+  ("a", 1, 1, start, 1, 1),
+  ("K", 2, 3, start, 1, 1),
+  ("W", 5, 1, start, 1, 1),
+  ("K", 1, 1, start, 2, (rest 4)),
+  ("fill", 2, 3, start, 2, (rest 4)),
+  ("K", 5, 1, start, 2, (rest 4)),
+  ("W", 6, 1, start, 2, (rest 4)),
+  ("W", 1, 1, end, 1, 1),
+  ("K", 2, 3, end, 1, 1),
+  ("W", 5, 2, end, 1, 1),
+  ("W", 2, 4, end, 0, 1)
+);
+
+@function along-size($size) {
+  @if list.length($size) == 2 and list.nth($size, 1) == rest {
+    @return calc(100% - #{px(list.nth($size, 2))});
+  }
+  @return px($size);
+}
+
+// The channel's layers, for a horizontal (`$vertical: false`) or a vertical
+// channel (the same art turned a quarter: across runs left to right).
+@function channel-art($vertical) {
+  $layers: ();
+  @each $rect in $channel {
+    $ink: list.nth($rect, 1);
+    $across: px(list.nth($rect, 2));
+    $across-size: px(list.nth($rect, 3));
+    $along: px(list.nth($rect, 5));
+    $along-size: along-size(list.nth($rect, 6));
+    $from-end: list.nth($rect, 4) == end;
+    $x: left $across;
+    $y: top $along;
+    $w: $across-size;
+    $h: $along-size;
+    @if $vertical {
+      @if $from-end {
+        $y: bottom $along;
+      }
+    } @else {
+      $x: left $along;
+      $y: top $across;
+      $w: $along-size;
+      $h: $across-size;
+      @if $from-end {
+        $x: right $along;
+      }
+    }
+    @if $ink == "fill" {
+      $layers: list.append(
+        $layers,
+        var(--classicy-slider-track, linear-gradient(var(--color-system-04), var(--color-system-04)))
+          #{$x} #{$y} / #{$w} #{$h} no-repeat,
+        $separator: comma
+      );
+    } @else {
+      $layers: list.append(
+        $layers,
+        layout.classicy-px-rect(var(#{map.get($inks, $ink)}), $x, $y, $w, $h),
+        $separator: comma
+      );
+    }
+  }
+  @return $layers;
+}
+
+// ── Deprecated: the pre-3.2 thumb ───────────────────────────────────────────
+// The indicator Platinum drew before 3.2: a pentagon clipped from the
+// registered art `sliderThumb` with the `sliderStrikes` grip over
+// `$body-gradient`. Platinum no longer uses it; it stays for hosts that
+// `@use` this partial's mixin.
+@mixin platinum-slider-thumb($body-gradient) {
+  clip-path: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
   background:
-    $_thumb-border-svg 0 0 / 100% 100% no-repeat,
-    $_thumb-strikes-svg center 30% / 45% 35% no-repeat,
+    var(--classicy-art-slider-thumb) 0 0 / 100% 100% no-repeat,
+    var(--classicy-art-slider-strikes) center 30% / 45% 35% no-repeat,
     $body-gradient;
 }
 
+// ── Placement, from the knobs ───────────────────────────────────────────────
+// The input's thickness: the indicator at rest (its box less the pressed
+// one's extra row) plus its rise (19). The browser centers the channel in
+// it, `$channel-top` in: the point's rows, so the indicator's flat side, its
+// rise past the channel, lies `$channel-top - rise` from the input's edge,
+// and its point at rest ends on the far edge, where the ticks hang (the
+// pressed point reaches a pixel past it).
+$input-thickness: calc(var(--slider-thumb-across) - $px + var(--slider-thumb-rise));
+$channel-top: calc(var(--slider-thumb-across) - $px - var(--slider-thumb-rise) - var(--slider-channel));
+
+// Chromium places a horizontal thumb's box from the channel's top, and a
+// vertical one's (15 across the channel, 17 along it, before the base sheet
+// turns it a quarter about its center) from the channel's left edge, so the
+// turned indicator overhangs the box by half the difference of its two
+// sides, each way. Pointing left (Figure 13), the point lies six pixels left
+// of the channel and the flat side three right of it; pointing right, the
+// flat side three left and the point six right.
+$vertical-left: calc(
+  var(--slider-channel) + var(--slider-thumb-rise) - half(calc(var(--slider-thumb-across) + var(--slider-thumb-along)))
+);
+$vertical-right: calc(half(calc(var(--slider-thumb-across) - var(--slider-thumb-along))) - var(--slider-thumb-rise));
+
+// Firefox centers its thumb's box on the channel and takes no margin: the
+// same places by a translation before the base sheet's turn, half the box's
+// overhang of the channel less the rise (2), down the channel for the down
+// and right-pointing indicators and back up it for the up and left-pointing
+// ones.
+$firefox-shift: calc(half(calc(var(--slider-thumb-across) - var(--slider-channel))) - var(--slider-thumb-rise));
+$firefox-shift-back: calc($firefox-shift * -1);
+
+// One indicator's art on the thumb, at rest and, pressed or highlighted,
+// a step darker, on both engines' thumbs. Each direction includes it on its
+// own class, after the down indicator's, so a turned slider's pressed and
+// highlighted rules outrank the down one's of the same weight.
+@mixin indicator($rest, $firefox-transform: null, $margin-top: null) {
+  &::-webkit-slider-thumb {
+    margin-top: $margin-top;
+    background: row-art($rest, $inks);
+  }
+
+  // Firefox: the translation above, before the base sheet's turn, which
+  // the turned indicators restate with it.
+  &::-moz-range-thumb {
+    transform: $firefox-transform;
+    background: row-art($rest, $inks);
+  }
+
+  &:active::-webkit-slider-thumb,
+  &.classicySliderHighlighted::-webkit-slider-thumb,
+  &.classicySliderHighlighted:active::-webkit-slider-thumb {
+    background: row-art(step($rest), $inks);
+  }
+
+  &:active::-moz-range-thumb,
+  &.classicySliderHighlighted::-moz-range-thumb,
+  &.classicySliderHighlighted:active::-moz-range-thumb {
+    background: row-art(step($rest), $inks);
+  }
+}
+
 @mixin slider {
+  // The thumb's box the base sheet places and sizes by.
+  .classicySliderTrackGroup {
+    --slider-thumb-width: var(--slider-thumb-along);
+    --slider-thumb-height: var(--slider-thumb-across);
+  }
+
   .classicySlider {
-    // Image 1 — normal (raised Platinum silver)
-    &::-webkit-slider-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
-      );
+    height: $input-thickness;
+
+    &::-webkit-slider-runnable-track {
+      height: var(--slider-channel);
+      background: channel-art(false);
     }
 
-    &::-moz-range-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04))
-      );
+    &::-moz-range-track {
+      height: var(--slider-channel);
+      background: channel-art(false);
     }
 
-    // Image 2 — depressed / dragging (inverted gradient, reversed glint)
-    &:active::-webkit-slider-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-      );
-    }
-
-    &:active::-moz-range-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-      );
-    }
+    // Down (the default): the flat side `thumbRise` above the channel.
+    @include indicator($thumb, translateY($firefox-shift), calc(var(--slider-thumb-rise) * -1));
   }
 
-  // ─── Highlighted variant (Image 3) — theme blue ─────────────────────────────
-
-  .classicySliderHighlighted {
-    &::-webkit-slider-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04))
-      );
-    }
-
-    &::-moz-range-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-03), var(--color-theme-04), var(--color-theme-03))    );
-    }
-
-    &:active::-webkit-slider-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))
-      );
-    }
-
-    &:active::-moz-range-thumb {
-      @include platinum-slider-thumb(
-        linear-gradient(to bottom, var(--color-theme-06), var(--color-theme-05), var(--color-theme-06))    );
-    }
+  // Up: turned a half, its flat side `thumbRise` below the channel.
+  .classicySliderIndicatorUp {
+    @include indicator(
+      before-turn($thumb-up, up),
+      translateY($firefox-shift-back) rotate(180deg),
+      calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across))
+    );
   }
 
-  // ─── Nondirectional indicator: a rounded-rectangle knob with no point ───────
+  // Pointing left and right: Figure 13's indicator and its mirror, written
+  // into the box before the base sheet's quarter turn.
+  .classicySliderIndicatorLeft {
+    @include indicator(before-turn($thumb-left, left), translateX($firefox-shift-back) rotate(90deg));
+  }
 
+  .classicySliderIndicatorRight {
+    @include indicator(before-turn($thumb-right, right), translateX($firefox-shift) rotate(-90deg));
+  }
+
+  // Nondirectional: the knob.
   .classicySliderIndicatorNondirectional {
+    @include indicator($knob);
+  }
+
+  // A vertical slider: the base sheet's length restated over the
+  // horizontal one's thickness above, the input as thick as a horizontal
+  // one is tall, and the channel turned a quarter.
+  .classicySliderStackVertical .classicySliderInputVertical {
+    height: 100%;
+  }
+
+  .classicySliderInputVertical {
+    width: $input-thickness;
+    height: var(--slider-vertical-min-height);
+
+    &::-webkit-slider-runnable-track {
+      width: var(--slider-channel);
+      height: auto;
+      background: channel-art(true);
+    }
+
+    &::-moz-range-track {
+      width: var(--slider-channel);
+      height: auto;
+      background: channel-art(true);
+    }
+
+    // Pointing left (the default).
     &::-webkit-slider-thumb {
-      clip-path: $_thumb-rect-shape;
-      background:
-        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
+      margin-top: 0;
+      margin-left: $vertical-left;
     }
-    &::-moz-range-thumb {
-      clip-path: $_thumb-rect-shape;
-      background:
-        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-        linear-gradient(to bottom, var(--color-system-01), var(--color-system-04));
-    }
-    &:active::-webkit-slider-thumb {
-      clip-path: $_thumb-rect-shape;
-      background:
-        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
-    }
-    &:active::-moz-range-thumb {
-      clip-path: $_thumb-rect-shape;
-      background:
-        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-        $_thumb-strikes-svg center 50% / 45% 35% no-repeat,
-        linear-gradient(to bottom, var(--color-theme-04), var(--color-theme-03), var(--color-theme-04));
+
+    // Pointing right.
+    &.classicySliderIndicatorRight::-webkit-slider-thumb {
+      margin-left: $vertical-right;
     }
   }
 
-  // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────
+  // Dimmed: the slider and its ticks at 50% contrast.
+  :where(.classicySlider).disabled {
+    filter: contrast(0.5);
+  }
 
+  :where(.classicySliderTicks).disabled {
+    filter: contrast(0.5);
+  }
+
+  // Tick marks, hanging from the input's bottom edge, their line centered on
+  // its value as the indicator is: shifted back by half the tick's three
+  // pixels by a margin, not the base sheet's transform, so the box lands on
+  // a whole pixel wherever the indicator does (a translated box is drawn at
+  // its untranslated, fractional place, and blurs).
+  .classicySliderTicks {
+    height: var(--slider-tick-height);
+  }
+
+  .classicySliderTick {
+    top: 0;
+    width: var(--slider-tick-width);
+    height: var(--slider-tick-height);
+    margin-left: px(-1.5);
+    transform: none;
+    background: row-art($tick, $inks);
+  }
+
+  // Turned for a vertical slider: hanging from the input's right edge.
+  .classicySliderStackVertical .classicySliderTicks {
+    width: var(--slider-tick-height);
+    height: auto;
+  }
+
+  .classicySliderStackVertical .classicySliderTick {
+    top: auto;
+    left: 0;
+    width: var(--slider-tick-height);
+    height: var(--slider-tick-width);
+    margin-left: 0;
+    margin-bottom: px(-1.5);
+    background: row-art($tick-turned, $inks);
+  }
+
+  .classicySliderTickLabel {
+    color: var(--color-black);
+  }
+
+  // ─── Ghost indicator (Figure 2-17: the indicator in grays, see-through) ─────
+
+  // Its box where the indicator's lies: its flat side the rise past the
+  // channel, from the input's top edge; turned up, its box starts a pixel
+  // above the input (the point's rows end on its edge, the pressed row
+  // past it).
   .classicySliderGhost {
-    clip-path: $thumb-shape;
-    background:
-      $_thumb-border-svg 0 0 / 100% 100% no-repeat,
-      linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+    margin-top: calc($channel-top - var(--slider-thumb-rise));
+    opacity: 0.75;
+    transition: opacity 0.1s linear;
+    background: row-art($thumb, $ghost-inks);
+
+    &.classicySliderIndicatorUp {
+      margin-top: calc($px * -1);
+      background: row-art(before-turn($thumb-up, up), $ghost-inks);
+    }
 
     &.classicySliderIndicatorNondirectional {
-      clip-path: $_thumb-rect-shape;
-      background:
-        $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
-        linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
+      background: row-art($knob, $ghost-inks);
     }
+  }
+
+  // Hidden between drags: after the ghost's translucency, which it overrides.
+  .classicySliderGhostHidden {
+    opacity: 0;
   }
 }

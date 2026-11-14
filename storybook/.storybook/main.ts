@@ -10,6 +10,9 @@ import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 // Platinum's source, the workspace package @classicy/appearance-platinum.
 const platinumSrc = path.join(repoRoot, "packages/appearance/platinum/src");
+// System 7's source, the workspace package @classicy/appearance-system7,
+// registered only in the iframes of its own stories (./system7.ts).
+const system7Src = path.join(repoRoot, "packages/appearance/system7/src");
 
 const config: StorybookConfig = {
 	framework: "@storybook/react-vite",
@@ -19,6 +22,8 @@ const config: StorybookConfig = {
 		"../../src/**/*.stories.@(ts|tsx)",
 		// Platinum's own stories (its screen savers, plan 0016-vbq §2.1).
 		"../../packages/appearance/platinum/src/**/*.stories.@(ts|tsx)",
+		// System 7's own stories (plan 0018-dbd §2.2).
+		"../../packages/appearance/system7/src/**/*.stories.@(ts|tsx)",
 	],
 	addons: ["@storybook/addon-docs"],
 	staticDirs: [{ from: "../../assets", to: "/assets" }],
@@ -61,6 +66,10 @@ const config: StorybookConfig = {
 					{
 						find: /^@classicy\/appearance-platinum$/,
 						replacement: path.join(platinumSrc, "index.ts"),
+					},
+					{
+						find: /^@classicy\/appearance-system7$/,
+						replacement: path.join(system7Src, "index.ts"),
 					},
 					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
 					{ find: "@", replacement: path.join(repoRoot, "src") },

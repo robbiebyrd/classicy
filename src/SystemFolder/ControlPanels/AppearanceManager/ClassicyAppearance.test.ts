@@ -46,7 +46,11 @@ import {
 // dialog.alertLabelOffset and dialog.fileInputHiddenSize, 1px each, in the
 // knob region, and the latter moved to the new formControl family as
 // formControl.fileInputHiddenSize, --form-control-file-input-hidden-size, in
-// the same place (every other key and value unchanged each time).
+// the same place; plan 0018-dbd §1.4 added the dither vocabulary's switch,
+// dither.tileSize (--dither-tile-size, 0px), after the knob region; story
+// 0194-5bs added Platinum's slider family's seven knobs (--slider-pixel to
+// --slider-tick-height) before it (every other key and value unchanged each
+// time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -65,8 +69,11 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // under H-R25; the final review's H-R29b gave the alert label nudge and the
 // file input's hidden size dialog knobs of their own, off the border metric;
 // the hidden size then moved to the formControl family, for form-control
-// parts outside dialogs, which made 21 families with the same 95 keys).
-const PLATINUM_KNOB_COUNT = 95;
+// parts outside dialogs, which made 21 families with the same 95 keys; plan
+// 0018-dbd §1.4's dither.tileSize, the dither vocabulary's switch, made 22
+// families and 96 keys; story 0194-5bs's slider family, Platinum's slider
+// drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys).
+const PLATINUM_KNOB_COUNT = 103;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
@@ -565,7 +572,7 @@ describe("classicyMeasurementVars", () => {
 	it("the walker reproduces every input variable byte-identically", () => {
 		// The 20 inputs getThemeVars emitted one by one before the walker:
 		// window 6, control 3, button 3, groupBox 5, layout 3. They come
-		// first; Platinum's knob variables (21 families, H 2.1) follow.
+		// first; Platinum's knob variables (22 families, H 2.1) follow.
 		const vars = classicyMeasurementVars(getTheme("default").measurements);
 		expect(Object.keys(vars)).toHaveLength(20 + PLATINUM_KNOB_COUNT);
 		expect(Object.fromEntries(Object.entries(vars).slice(0, 20))).toEqual({
@@ -861,5 +868,31 @@ describe("classicyMeasurementVars — name collisions", () => {
 			);
 			expect(unreserved, theme.id).toEqual([]);
 		}
+	});
+});
+
+// Story 0195-wuo, fix round 2: a theme with no picture (the Desktop tab's
+// None, or a color theme) draws none: `none`, not `url("")`, which resolves
+// to the page's own URL and asks the browser to load it as an image.
+describe("getThemeVars: no desktop picture", () => {
+	it("emits none for an empty picture, and url() for a picture", () => {
+		const base = getTheme("default");
+		const none = {
+			...structuredClone(base),
+			desktop: { ...base.desktop, backgroundImage: "" },
+		};
+		expect(getThemeVars(none)["--desktop-background-image"]).toBe("none");
+		expect(getThemeVars(base)["--desktop-background-image"]).toMatch(
+			/^url\("[^"]+"\)$/,
+		);
+	});
+
+	it("emits none for a picture that resolves to nothing", () => {
+		const base = getTheme("default");
+		const unknown = {
+			...structuredClone(base),
+			desktop: { ...base.desktop, backgroundImage: "not-registered.png" },
+		};
+		expect(getThemeVars(unknown)["--desktop-background-image"]).toBe("none");
 	});
 });

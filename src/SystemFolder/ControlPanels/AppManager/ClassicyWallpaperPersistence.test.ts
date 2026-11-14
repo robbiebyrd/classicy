@@ -321,9 +321,7 @@ describe("a package that registers before its wallpapers", () => {
 		});
 		expect(getClassicyAppearancePackage("late-walls")).toBeDefined();
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-		expect(getThemeVars(defaults)["--desktop-background-image"]).toBe(
-			'url("")',
-		);
+		expect(getThemeVars(defaults)["--desktop-background-image"]).toBe("none");
 		warn.mockRestore();
 		registerClassicyWallpapers("late-walls", [
 			{ name: "Late Wall", file: "late_wall.png", src: "/late/wall.png" },

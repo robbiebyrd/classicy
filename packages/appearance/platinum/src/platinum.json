@@ -209,6 +209,18 @@
 			},
 			"stripMenu": {
 				"overlap": 3
+			},
+			"slider": {
+				"pixel": 1,
+				"channel": 7,
+				"thumbAlong": 15,
+				"thumbAcross": 17,
+				"thumbRise": 3,
+				"tickWidth": 3,
+				"tickHeight": 8
+			},
+			"dither": {
+				"tileSize": 0
 			}
 		},
 		"desktop": {
