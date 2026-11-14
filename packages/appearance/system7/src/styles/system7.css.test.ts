@@ -903,6 +903,107 @@ describe("system7.scss (compiled)", () => {
 			expect(dithered(label)).toBe(true);
 		});
 
+		// The checker keeps the pixels whose x + y is even, from the box's
+		// border edge: all of the X's falling diagonal and none of its rising
+		// one, which a dimmed checked box lost (story 0198-0kv). Simulated
+		// here on the compiled mask: in 1-bit (a 2 px tile) each diagonal
+		// keeps every other pixel; in color (no tile) the whole X shows.
+		it("keeps both of a dimmed checked box's diagonals, each dotted, through the dither", () => {
+			const declared = (rules: string, property: string) =>
+				splitSelectors(
+					new RegExp(`(?:^|\\n)\\s*${property}: ([^;]*);`).exec(rules)?.[1] ??
+						"",
+				);
+			const masked = rule(".classicyCheckbox:disabled:checked:not(.mixed)");
+			const images = declared(masked, "mask-image");
+			const positions = declared(masked, "mask-position");
+			const sizes = declared(masked, "mask-size");
+			const repeats = declared(masked, "mask-repeat");
+			const composites = declared(masked, "mask-composite");
+			expect(images.length).toBe(12);
+			for (const list of [positions, sizes, repeats])
+				expect(list.length).toBe(images.length);
+			// A length in grid pixels, with the theme's tile (2 or 0).
+			const length = (value: string, tile: number): number => {
+				if (value === "0") return 0;
+				if (value === "var(--window-box-pixel)") return 1;
+				if (value === "var(--dither-tile-size)") return tile;
+				if (value === "min(var(--dither-tile-size), var(--window-box-pixel))")
+					return Math.min(tile, 1);
+				const m = /^calc\(var\(--window-box-pixel\) \* (\d+)\)$/.exec(value);
+				if (!m) throw new Error(`not a grid length: ${value}`);
+				return Number(m[1]);
+			};
+			// Space-separated values outside parentheses.
+			const pair = (value: string) => {
+				const out = [""];
+				let depth = 0;
+				for (const c of value) {
+					if (c === "(") depth++;
+					if (c === ")") depth--;
+					if (c === " " && depth === 0) out.push("");
+					else out[out.length - 1] += c;
+				}
+				return out.filter(Boolean);
+			};
+			// The 12 x 12 box's mask, pixel by pixel, composited bottom up.
+			const mask = (tile: number) => {
+				let result = new Set<string>();
+				for (let i = images.length - 1; i >= 0; i--) {
+					const [x, y] = pair(positions[i]).map((v) => length(v, tile));
+					const [w, h] =
+						sizes[i] === "auto"
+							? [12, 12]
+							: pair(sizes[i]).map((v) => length(v, tile));
+					const layer = new Set<string>();
+					for (let py = 0; py < 12; py++)
+						for (let px = 0; px < 12; px++) {
+							if (images[i] === "var(--classicy-art-dither-checker)") {
+								// The tile is opaque where x + y is odd (art/dither-checker.svg).
+								if (w > 0 && (px + py) % 2 === 1 && repeats[i] === "repeat")
+									layer.add(`${px},${py}`);
+							} else if (px >= x && px < x + w && py >= y && py < y + h)
+								layer.add(`${px},${py}`);
+						}
+					if (i === images.length - 1) result = layer;
+					else {
+						const op = composites[i] ?? composites.at(-1);
+						const next = new Set<string>();
+						const all = new Set([...layer, ...result]);
+						// The layer (source) over the mask below it (destination),
+						// as CSS Masking defines each operator.
+						for (const key of all) {
+							const a = layer.has(key);
+							const b = result.has(key);
+							if (
+								(op === "add" && (a || b)) ||
+								(op === "subtract" && a && !b) ||
+								(op === "intersect" && a && b) ||
+								(op === "exclude" && a !== b)
+							)
+								next.add(key);
+						}
+						result = next;
+					}
+				}
+				return result;
+			};
+			// The X, from the box's border edge (one pixel of frame).
+			const falling = Array.from({ length: 10 }, (_, i) => `${i + 1},${i + 1}`);
+			const rising = Array.from({ length: 10 }, (_, i) => `${10 - i},${i + 1}`);
+			const shown = (tile: number, diagonal: string[]) =>
+				diagonal.filter((key) => mask(tile).has(key));
+			expect(shown(2, falling)).toEqual(["1,1", "3,3", "5,5", "7,7", "9,9"]);
+			expect(shown(2, rising)).toEqual(["10,1", "8,3", "6,5", "4,7", "2,9"]);
+			expect(shown(0, falling)).toEqual(falling);
+			expect(shown(0, rising)).toEqual(rising);
+			// The frame stays dithered: its pixels are the checker's.
+			expect(mask(2).has("0,0")).toBe(true);
+			expect(mask(2).has("1,0")).toBe(false);
+			// Mixed dims its dash through the plain dither.
+			expect(rule(".classicyCheckbox.mixed:disabled")).not.toMatch(/mask/);
+		});
+
 		it("draws the little arrows in a round-cornered frame, the pressed half inverted", () => {
 			const box = rule(".classicyLittleArrows");
 			expect(box).toMatch(/width: var\(--little-arrows-width\);/);

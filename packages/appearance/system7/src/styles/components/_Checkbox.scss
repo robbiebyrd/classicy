@@ -16,6 +16,7 @@
 // Every shape is pixel art (`classicy-px-rect` layers), never a radius,
 // which anti-aliases. The mixed state has no System 7 look (the System 7
 // Toolbox had none): a dash, as Mac OS 8 drew it, in the same ink.
+@use "sass:list";
 @use "pkg:@classicy/classicy/scss/dither" as d;
 @use "../pixel" as *;
 
@@ -23,6 +24,15 @@
 // its middle two rows.
 $x-mark: (0 0) (9 0) (1 1) (8 1) (2 2) (7 2) (3 3) (6 3) (4 4 2 1) (4 5 2 1) (3 6) (6 6) (2 7) (7 7)
   (1 8) (8 8) (0 9) (9 9);
+
+// The dimmed X's dither (HIG p.207: dimmed is 50% gray, and the box stays
+// an X). The checker keeps the pixels whose x + y is even, counted from the
+// box's border edge, which holds every pixel of the X's falling diagonal and
+// none of its rising one, so a whole diagonal would vanish. These pixels,
+// from the border edge, put each diagonal at 50%: every other pixel of the
+// falling one taken away, every other one of the rising one let through.
+$x-dimmed-off: (2 2) (4 4) (6 6) (8 8) (10 10);
+$x-dimmed-on: (10 1) (8 3) (6 5) (4 7) (2 9);
 
 // The mixed state's dash, across the inside's middle.
 $dash: ((2 4 6 2),);
@@ -36,6 +46,34 @@ $circle-pressed: (4 0 4 1) (2 1 8 1) (1 2 3 1) (8 2 3 1) (1 3 2 1) (9 3 2 1) (0 
 $circle-face: (4 1 4 1) (2 2 8 2) (1 4 10 4) (2 8 8 2) (4 10 4 1);
 $dot: (4 3 4 1) (3 4 6 4) (4 8 4 1);
 $radio-dash: ((3 5 6 2),);
+
+// The dither's mask (the core's `classicy-dither-mask`: the checker
+// excluded from a full layer) with the pixels above added and taken away.
+// A pixel taken away is the theme's dither pixel square, none in color
+// (`--dither-tile-size` 0), where nothing is dithered and the whole X shows.
+@mixin x-dimmed-mask {
+  $mark: linear-gradient(var(--color-black), var(--color-black));
+  $dither-pixel: min(var(--dither-tile-size), #{$px});
+  $images: ();
+  $positions: ();
+  $sizes: ();
+  $repeats: ();
+  $composites: ();
+  @each $pixels, $size, $composite in ($x-dimmed-off, $dither-pixel, exclude), ($x-dimmed-on, $px, add) {
+    @each $p in $pixels {
+      $images: list.append($images, $mark, $separator: comma);
+      $positions: list.append($positions, px(list.nth($p, 1)) px(list.nth($p, 2)), $separator: comma);
+      $sizes: list.append($sizes, $size $size, $separator: comma);
+      $repeats: list.append($repeats, no-repeat, $separator: comma);
+      $composites: list.append($composites, $composite, $separator: comma);
+    }
+  }
+  mask-image: list.join($images, (var(--classicy-art-dither-checker), $mark), comma);
+  mask-position: list.join($positions, (0 0, 0 0), comma);
+  mask-size: list.join($sizes, (var(--dither-tile-size) var(--dither-tile-size), auto), comma);
+  mask-repeat: list.join($repeats, (repeat, no-repeat), comma);
+  mask-composite: list.append($composites, exclude, $separator: comma);
+}
 
 // The focus mark a keyboard user sees, as on the push buttons (_Button.scss).
 @mixin focus-mark {
@@ -93,6 +131,12 @@ $radio-dash: ((3 5 6 2),);
 
     &:checked {
       background: pixel-art(var(--color-theme-06), $x-mark), var(--color-white);
+    }
+
+    // Checked, its X keeps both diagonals (the mixed dash, a third state,
+    // keeps the plain dither).
+    &:checked:not(.mixed) {
+      @include x-dimmed-mask;
     }
   }
 
