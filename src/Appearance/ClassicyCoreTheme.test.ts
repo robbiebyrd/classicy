@@ -42,6 +42,14 @@ const LOOK_ONLY = [
 	"utilityTitleBar.textureWidth",
 	"utilityTitleBar.textureHeight",
 	"quickTime.captionShadowBlur",
+	// Platinum's slider, drawn from HIGOS8 Figure 2-17 (_Slider.scss).
+	"slider.pixel",
+	"slider.channel",
+	"slider.thumbAlong",
+	"slider.thumbAcross",
+	"slider.thumbRise",
+	"slider.tickWidth",
+	"slider.tickHeight",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -103,7 +111,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(96);
+		expect(documented.size).toBe(103);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)

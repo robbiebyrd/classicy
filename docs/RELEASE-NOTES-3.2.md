@@ -316,14 +316,29 @@ the ids the saver already names:
   its label, when it has one) now fits inside that height, where the readout
   used to spill below the container. With `tickInterval` set its ticks run
   beside the track, not under it, and `tickLabels` sit beside their ticks.
-  A vertical slider's track group is as wide as its widest part
-  (`width: fit-content`), so in a wide container it starts at the
-  container's edge rather than centered in it, on a whole pixel. Under
-  Platinum the vertical track is now the horizontal one's 6 px channel
-  turned a quarter, where it was drawn as wide as the input, with the thumb
-  centered across it on a whole pixel, 7 px past the channel on either
-  side whichever way it points, as the horizontal thumb is. Its ticks are
-  on whole pixels.
+  A vertical slider stays centered in its container, and its track is
+  nudged onto the pixel grid (by under half a pixel, as a submenu is) where
+  centering leaves it on a fraction of one.
+- **Visual fix: Platinum's slider now matches HIGOS8 Fig. 2-17.** The
+  channel is the figure's: an etched #AAAAAA row, a dark border
+  (`--color-system-07`), three flat #AAAAAA rows, a dark border and two
+  white rows, with pixel-art ends, 8 px thick (it was a 6 px gray
+  cylinder). The indicator is the figure's 15 x 17 pixel-art indicator in
+  the theme's lavender ramp (`--color-theme-01` to `-07`), a step darker
+  while pressed, its flat side 3 px past the channel whichever way it
+  points (it was a 21 x 21 silver pentagon); the nondirectional knob is
+  the same indicator without its point, the highlighted one is drawn
+  pressed, and the ghost indicator is the indicator in grays. Tick marks
+  are Figure 2-18's 3 x 8 etched marks. A vertical slider is the same art
+  turned. A horizontal slider's input is now 20 px tall (it was 21), and a
+  vertical one 20 px wide. Every Platinum slider looks different,
+  including the Appearance Manager's Sound tab and the color picker's
+  channel sliders, which keep their own fills (`--classicy-slider-track`).
+  The new knobs are the `slider` family (AGENT-REFERENCE §8, "Package knob
+  families"). The pre-3.2 thumb's art keys (`sliderThumb`,
+  `sliderThumbRect`, `sliderStrikes`) stay registered, and the
+  `platinum-slider-thumb` mixin stays in Platinum's `_Slider.scss` for
+  hosts that `@use` it; Platinum no longer draws with them.
 - **The Desktop tab offers None.** The Appearance Manager's Patterns pop-up
   lists None first: it removes the desktop picture
   (`ClassicyDesktopChangeBackground` with `""`), so the desktop shows its

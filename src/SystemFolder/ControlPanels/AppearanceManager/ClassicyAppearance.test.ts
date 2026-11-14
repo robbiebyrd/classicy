@@ -47,8 +47,10 @@ import {
 // knob region, and the latter moved to the new formControl family as
 // formControl.fileInputHiddenSize, --form-control-file-input-hidden-size, in
 // the same place; plan 0018-dbd §1.4 added the dither vocabulary's switch,
-// dither.tileSize (--dither-tile-size, 0px), after the knob region (every
-// other key and value unchanged each time).
+// dither.tileSize (--dither-tile-size, 0px), after the knob region; story
+// 0194-5bs added Platinum's slider family's seven knobs (--slider-pixel to
+// --slider-tick-height) before it (every other key and value unchanged each
+// time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -69,8 +71,9 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // the hidden size then moved to the formControl family, for form-control
 // parts outside dialogs, which made 21 families with the same 95 keys; plan
 // 0018-dbd §1.4's dither.tileSize, the dither vocabulary's switch, made 22
-// families and 96 keys).
-const PLATINUM_KNOB_COUNT = 96;
+// families and 96 keys; story 0194-5bs's slider family, Platinum's slider
+// drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys).
+const PLATINUM_KNOB_COUNT = 103;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

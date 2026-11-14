@@ -490,7 +490,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--slider-thumb-corner-radius",
 		formula: "window.borderSize * 1.5",
-		doc: "Corner radius of the nondirectional (rounded-rectangle) slider thumb (Platinum _Slider.scss).",
+		doc: "Corner radius of a rounded-rectangle slider knob. Platinum's knob was one until 3.2, when its slider became pixel art (HIGOS8 Figure 2-17); no stylesheet reads it now, and it is kept for hosts that do.",
 		compute: (i) => border(i) * 1.5,
 	},
 	{

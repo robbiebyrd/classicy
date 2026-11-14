@@ -172,6 +172,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"menu",
 	"table",
 	"stripMenu",
+	"slider",
 	"dither",
 ];
 

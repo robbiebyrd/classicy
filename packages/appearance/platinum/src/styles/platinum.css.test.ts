@@ -744,71 +744,343 @@ describe("platinum.scss (compiled)", () => {
 		});
 	});
 
-	// Story 0194-5bs, fix round 2: the slider's channel, dimming, ghost and
-	// tick inks left ClassicySlider.scss (now pinned by
-	// ClassicyBaseHoldsNoControlLook) for this partial, value for value. The
-	// channel's fill reads --classicy-slider-track first, so the color
-	// picker's channel gradients (set in its base sheet) still show.
-	describe("the slider's look, moved from the base sheet", () => {
-		const shade = (to: string) =>
-			`var(--classicy-slider-track, linear-gradient(${to}, var(--color-system-06) 0%, var(--color-system-04) 10%, var(--color-system-03) 50%, var(--color-system-04) 90%, var(--color-system-05) 100%))`;
+	// Story 0194-5bs, fix round 3: Platinum's slider drawn pixel for pixel
+	// from HIGOS8 Figure 2-17 (the channel, the pressed indicator), 2-18 (the
+	// indicator at rest, the tick marks). Every part is pixel art, one
+	// px-rect layer per run of one ink in a row; these tests decode the
+	// compiled layers back into rows and compare them with the figures'.
+	describe("the slider, drawn from HIGOS8 Figure 2-17", () => {
+		// Grid pixels of a `--slider-pixel` length: 0, the pixel, or a multiple.
+		const grid = (length: string): number => {
+			if (length === "0") return 0;
+			if (length === "var(--slider-pixel)") return 1;
+			const m = /^calc\(var\(--slider-pixel\) \* (-?[\d.]+)\)$/.exec(length);
+			if (!m) throw new Error(`not a grid length: ${length}`);
+			return Number(m[1]);
+		};
+		// Splits a background on its top-level commas.
+		const layers = (background: string): string[] => {
+			const out: string[] = [];
+			let depth = 0;
+			let from = 0;
+			for (let i = 0; i < background.length; i++) {
+				const c = background[i];
+				if (c === "(") depth++;
+				else if (c === ")") depth--;
+				else if (c === "," && depth === 0) {
+					out.push(background.slice(from, i).trim());
+					from = i + 1;
+				}
+			}
+			out.push(background.slice(from).trim());
+			return out;
+		};
+		const INK: Record<string, string> = {
+			"--color-black": "#",
+			"--color-theme-01": ",",
+			"--color-theme-02": "l",
+			"--color-theme-03": "m",
+			"--color-theme-04": "n",
+			"--color-theme-05": "o",
+			"--color-theme-07": "q",
+			"--color-system-04": "a",
+			"--color-system-07": "K",
+			"--color-white": "W",
+			"--color-system-05": "8",
+		};
+		// Space-separated tokens at parenthesis depth 0.
+		const tokens = (text: string): string[] => {
+			const out: string[] = [];
+			let depth = 0;
+			let current = "";
+			for (const c of text.trim()) {
+				if (c === "(") depth++;
+				if (c === ")") depth--;
+				if (c === " " && depth === 0) {
+					if (current) out.push(current);
+					current = "";
+				} else current += c;
+			}
+			if (current) out.push(current);
+			return out;
+		};
+		// The rows a box of `w` x `h` grid pixels draws: each layer is
+		// `linear-gradient(var(--ink), var(--ink)) [left] X [top] Y/W H
+		// no-repeat`.
+		const decode = (background: string, w: number, h: number): string[] => {
+			const rows = Array.from({ length: h }, () => Array(w).fill("."));
+			for (const layer of layers(background)) {
+				const m =
+					/^linear-gradient\(var\((--[\w-]+)\), var\(\1\)\) (.*) no-repeat$/.exec(
+						layer,
+					);
+				if (!m) throw new Error(`not a pixel layer: ${layer}`);
+				const slash = m[2].lastIndexOf("/");
+				const place = tokens(m[2].slice(0, slash)).filter(
+					(t) => t !== "left" && t !== "top",
+				);
+				const [x, y, lw, lh] = [...place, ...tokens(m[2].slice(slash + 1))].map(
+					grid,
+				);
+				for (let j = y; j < y + lh; j++)
+					for (let i = x; i < x + lw; i++) rows[j][i] = INK[m[1]] ?? "?";
+			}
+			return rows.map((r) => r.join(""));
+		};
 
-		it.each([
-			"-webkit-slider-runnable-track",
-			"-moz-range-track",
-		])("draws the grooved channel on %s, turned for a vertical slider", (pseudo) => {
-			expect(rule(`${P} .classicySlider::${pseudo}`).props).toEqual({
-				"border-radius": "calc(infinity * 1px)",
-				border: "var(--window-border-size) solid var(--color-window-border)",
-				background: shade("to bottom"),
-				"box-shadow":
-					"inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
+		// At rest: Figure 2-18's indicator (16 rows), its grip run down a row
+		// to Figure 2-17's 17.
+		const AT_REST = [
+			".#############.",
+			"#,lllllllllllm#",
+			"#lmmmmmmmmmmmn#",
+			"#lmm,m,m,mmmmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmlololommmn#",
+			"#lmmmomomommmn#",
+			"#lmmmomomommmn#",
+			".#nmmmmmmmmmn#.",
+			"..#nmmmmmmmn#..",
+			"...#nmmmmmn#...",
+			"....#nmmmn#....",
+			".....#nnn#.....",
+			"......###......",
+		];
+		// Pressed: Figure 2-17's indicator, as extracted from the PDF.
+		const PRESSED = [
+			".#############.",
+			"#lmmmmmmmmmmmn#",
+			"#mnnnnnnnnnnno#",
+			"#mnnlnlnlnnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnmqmqmqnnno#",
+			"#mnnnqnqnqnnno#",
+			"#mnnnqnqnqnnno#",
+			".#onnnnnnnnno#.",
+			"..#onnnnnnno#..",
+			"...#onnnnno#...",
+			"....#onnno#....",
+			".....#ooo#.....",
+			"......###......",
+		];
+
+		it("draws the indicator at rest and pressed, pixel for pixel", () => {
+			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
+			expect(decode(thumb.background, 15, 17)).toEqual(AT_REST);
+			expect(
+				decode(
+					rule(`${P} .classicySlider:active::-webkit-slider-thumb`).props
+						.background,
+					15,
+					17,
+				),
+			).toEqual(PRESSED);
+			// Firefox draws the same.
+			expect(
+				rule(`${P} .classicySlider::-moz-range-thumb`).props.background,
+			).toBe(thumb.background);
+			// No old art: the pentagon clip and the registered thumb images.
+			expect(thumb["clip-path"]).toBeUndefined();
+			expect(thumb.background).not.toMatch(/--classicy-art-/);
+		});
+
+		it("places the indicator's flat side three pixels past the channel", () => {
+			expect(
+				rule(`${P} .classicySlider::-webkit-slider-thumb`).props["margin-top"],
+			).toBe("calc(var(--slider-thumb-rise) * -1)");
+			expect(
+				rule(`${P} .classicySliderIndicatorUp::-webkit-slider-thumb`).props[
+					"margin-top"
+				],
+			).toBe(
+				"calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across))",
+			);
+			expect(
+				rule(`${P} .classicySliderInputVertical::-webkit-slider-thumb`).props,
+			).toEqual({
+				"margin-top": "0",
+				"margin-left": "calc(var(--slider-pixel) * -5)",
 			});
-			const vertical = rule(`${P} .classicySliderInputVertical::${pseudo}`);
-			expect(vertical.props).toEqual({ background: shade("to right") });
-			expect(vertical.at).toBeGreaterThan(
-				rule(`${P} .classicySlider::${pseudo}`).at,
+			expect(
+				rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorRight::-webkit-slider-thumb`,
+				).props["margin-left"],
+			).toBe("calc(var(--slider-pixel) * -2)");
+			// Firefox centers its own thumb: the same places by translation.
+			expect(
+				rule(`${P} .classicySliderIndicatorLeft::-moz-range-thumb`).props
+					.transform,
+			).toBe("translateX(calc(var(--slider-pixel) * -2)) rotate(90deg)");
+		});
+
+		it("sizes the thumb's box, the input and the channel by the slider knobs", () => {
+			expect(rule(`${P} .classicySliderTrackGroup`).props).toEqual({
+				"--slider-thumb-width": "var(--slider-thumb-along)",
+				"--slider-thumb-height": "var(--slider-thumb-across)",
+			});
+			expect(rule(`${P} .classicySlider`).props.height).toBe(
+				"calc(var(--slider-thumb-across) + var(--slider-thumb-rise))",
+			);
+			expect(rule(`${P} .classicySliderInputVertical`).props.width).toBe(
+				"calc(var(--slider-thumb-across) + var(--slider-thumb-rise))",
 			);
 		});
 
-		it("dims a slider and its ticks, and inks the ticks and their labels", () => {
+		// The channel's caps and runs, decoded on a 40-pixel channel: Figure
+		// 2-17's left end (its border two pixels wide), straight run and right
+		// end, the three flat rows reading --classicy-slider-track first.
+		it("draws the channel, and the same art turned for a vertical slider", () => {
+			const horizontal = rule(
+				`${P} .classicySlider::-webkit-slider-runnable-track`,
+			).props;
+			expect(horizontal.height).toBe("var(--slider-channel)");
+			const fill =
+				"var(--classicy-slider-track, linear-gradient(var(--color-system-04), var(--color-system-04)))";
+			// The channel's layers at a length of 40 grid pixels: a `100% - n`
+			// size becomes 40 - n, a place from the far end (`right` or
+			// `bottom` X) becomes 40 - X - its size, and the fill a plain
+			// #AAAAAA layer.
+			const at40 = (background: string, vertical: boolean) =>
+				decode(
+					layers(background)
+						.map((l) => {
+							const flat = l.replace(
+								fill,
+								"linear-gradient(var(--color-system-04), var(--color-system-04))",
+							);
+							const m =
+								/^(linear-gradient\([^)]*\)[^)]*\)\)) (.*) no-repeat$/.exec(
+									flat,
+								);
+							if (!m) throw new Error(`not a channel layer: ${l}`);
+							const slash = m[2].lastIndexOf("/");
+							const place = tokens(m[2].slice(0, slash));
+							const size = tokens(m[2].slice(slash + 1)).map((t) => {
+								const rest = /^calc\(100% - (.*)\)$/.exec(t);
+								return rest
+									? `calc(var(--slider-pixel) * ${40 - grid(rest[1])})`
+									: t;
+							});
+							const along = vertical ? 1 : 0;
+							const keyword = place[along * 2];
+							let at = grid(place[along * 2 + 1]);
+							if (keyword === "right" || keyword === "bottom")
+								at = 40 - at - grid(size[along]);
+							const across = grid(place[(1 - along) * 2 + 1]);
+							const [x, y] = vertical ? [across, at] : [at, across];
+							return `${m[1]} left calc(var(--slider-pixel) * ${x}) top calc(var(--slider-pixel) * ${y})/${size[0]} ${size[1]} no-repeat`;
+						})
+						.join(", "),
+					vertical ? 8 : 40,
+					vertical ? 40 : 8,
+				);
+			const rows = at40(horizontal.background, false);
+			expect(rows).toEqual([
+				".aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..",
+				"aaaKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKa.",
+				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				".WWKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKWW",
+				"...WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+				"...WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+			]);
+			expect(horizontal.background).toContain(fill);
+			const vertical = rule(
+				`${P} .classicySliderInputVertical::-webkit-slider-runnable-track`,
+			);
+			expect(vertical.at).toBeGreaterThan(
+				rule(`${P} .classicySlider::-webkit-slider-runnable-track`).at,
+			);
+			// Turned: column c of the vertical is row c of the horizontal.
+			const turned = at40(vertical.props.background, true);
+			expect(
+				Array.from({ length: 8 }, (_, c) => turned.map((r) => r[c]).join("")),
+			).toEqual(rows);
+		});
+
+		it("draws Figure 2-18's tick mark, and turned for a vertical slider", () => {
+			const tick = rule(`${P} .classicySliderTick`).props;
+			expect(decode(tick.background, 3, 8)).toEqual([
+				"WW.",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				"W#8",
+				".88",
+			]);
+			// Shifted by a margin, not a transform, so it lands on a pixel.
+			expect(tick.transform).toBe("none");
+			expect(tick["margin-left"]).toBe("calc(var(--slider-pixel) * -1.5)");
+			const turned = rule(
+				`${P} .classicySliderStackVertical .classicySliderTick`,
+			).props;
+			expect(decode(turned.background, 8, 3)).toEqual([
+				"WWWWWWW.",
+				"W######8",
+				".8888888",
+			]);
+			expect(turned.top).toBe("auto");
+		});
+
+		it("draws the knob and the highlighted indicator over the plain one", () => {
+			for (const pseudo of ["::-webkit-slider-thumb", "::-moz-range-thumb"]) {
+				const plain = rule(`${P} .classicySlider${pseudo}`);
+				const knob = rule(
+					`${P} .classicySliderIndicatorNondirectional${pseudo}`,
+				);
+				expect(knob.at).toBeGreaterThan(plain.at);
+				expect(decode(knob.props.background, 15, 17).slice(0, 13)).toEqual([
+					"...............",
+					".#############.",
+					"#,lllllllllllm#",
+					"#lmmmmmmmmmmmn#",
+					"#lmm,m,m,mmmmn#",
+					"#lmmlololommmn#",
+					"#lmmlololommmn#",
+					"#lmmlololommmn#",
+					"#lmmlololommmn#",
+					"#lmmlololommmn#",
+					"#lmmmomomommmn#",
+					"#lnnnnnnnnnnnn#",
+					".#############.",
+				]);
+				const active = pseudo.replace("::", ":active::");
+				const highlighted = rule(
+					`${P} .classicySliderHighlighted${pseudo}, ${P} .classicySliderHighlighted${active}`,
+				);
+				expect(highlighted.at).toBeGreaterThan(plain.at);
+				expect(decode(highlighted.props.background, 15, 17)).toEqual(PRESSED);
+			}
+		});
+
+		it("draws the ghost in grays, translucent, and none while hidden", () => {
+			const ghost = rule(`${P} .classicySliderGhost`);
+			expect(ghost.props.opacity).toBe("0.75");
+			expect(ghost.props.transition).toBe("opacity 0.1s linear");
+			expect(ghost.props.background).toContain("var(--color-system-05)");
+			const hidden = rule(`${P} .classicySliderGhostHidden`);
+			expect(hidden.props).toEqual({ opacity: "0" });
+			expect(hidden.at).toBeGreaterThan(ghost.at);
+		});
+
+		it("dims a slider and its ticks, and inks the tick labels", () => {
 			expect(rule(`${P} :where(.classicySlider).disabled`).props).toEqual({
 				filter: "contrast(0.5)",
 			});
 			expect(rule(`${P} :where(.classicySliderTicks).disabled`).props).toEqual({
 				filter: "contrast(0.5)",
 			});
-			expect(rule(`${P} .classicySliderTick`).props).toEqual({
-				background: "var(--color-black)",
-			});
 			expect(rule(`${P} .classicySliderTickLabel`).props).toEqual({
 				color: "var(--color-black)",
-			});
-		});
-
-		it("draws the ghost translucent, and none while hidden", () => {
-			const ghost = rule(`${P} .classicySliderGhost`);
-			expect(ghost.props.opacity).toBe("0.4");
-			expect(ghost.props.transition).toBe("opacity 0.1s linear");
-			const hidden = rule(`${P} .classicySliderGhostHidden`);
-			expect(hidden.props).toEqual({ opacity: "0" });
-			expect(hidden.at).toBeGreaterThan(ghost.at);
-		});
-
-		// Fix round 2, item 4: a vertical slider's ticks on whole pixels, their
-		// length and their offset along the rail rounded to the pixel.
-		it("puts a vertical slider's ticks on whole pixels", () => {
-			expect(
-				rule(`${P} .classicySliderStackVertical .classicySliderTick`).props,
-			).toEqual({
-				width: "round(var(--slider-tick-length), var(--window-border-size))",
-				bottom: "round(var(--classicy-tick-left), var(--window-border-size))",
-			});
-			expect(
-				rule(`${P} .classicySliderStackVertical .classicySliderTicks`).props,
-			).toEqual({
-				width:
-					"calc(round(var(--slider-tick-length), var(--window-border-size)) + var(--window-border-size))",
 			});
 		});
 	});
@@ -856,20 +1128,6 @@ describe("platinum.scss (compiled)", () => {
 			if (!found.length) throw new Error(`no rule for ${selector}`);
 			return found;
 		};
-		// `winner` sets `prop` to `value` after the last rule for `loser`.
-		const winsOver = (
-			winner: string,
-			loser: string,
-			prop: string,
-			value: string,
-		) => {
-			const w = rules(`${P} ${winner}`).at(-1);
-			expect(w?.props[prop], winner).toBe(value);
-			expect(w?.at, `${winner} follows ${loser}`).toBeGreaterThan(
-				rule(`${P} ${loser}`).at,
-			);
-		};
-
 		it("scopes the assistant header bevel", () => {
 			const header = rule(`${P} .classicyAssistantHeader`).props;
 			expect(header.border).toBe(
@@ -955,49 +1213,9 @@ describe("platinum.scss (compiled)", () => {
 			).toBeUndefined();
 		});
 
-		// P9: the nondirectional knob overrides the pentagon thumb's clip-path
-		// and background, so it follows it in the package too.
-		it("scopes the slider thumb, with the nondirectional knob over it (P9)", () => {
-			const thumb = rule(`${P} .classicySlider::-webkit-slider-thumb`).props;
-			expect(thumb["clip-path"]).toBe(
-				"polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%)",
-			);
-			// The grip strikes are the registered package art (E 3.1).
-			expect(thumb.background).toContain(
-				"var(--classicy-art-slider-strikes) center 30%",
-			);
-			for (const pseudo of [
-				"::-webkit-slider-thumb",
-				"::-moz-range-thumb",
-				":active::-webkit-slider-thumb",
-				":active::-moz-range-thumb",
-			]) {
-				winsOver(
-					`.classicySliderIndicatorNondirectional${pseudo}`,
-					`.classicySlider${pseudo}`,
-					"clip-path",
-					"inset(0 round var(--slider-thumb-corner-radius))",
-				);
-				winsOver(
-					`.classicySliderIndicatorNondirectional${pseudo}`,
-					`.classicySliderHighlighted${pseudo}`,
-					"clip-path",
-					"inset(0 round var(--slider-thumb-corner-radius))",
-				);
-				expect(
-					rule(`${P} .classicySliderHighlighted${pseudo}`).at,
-				).toBeGreaterThan(rule(`${P} .classicySlider${pseudo}`).at);
-			}
-			winsOver(
-				".classicySliderGhost.classicySliderIndicatorNondirectional",
-				".classicySliderGhost",
-				"clip-path",
-				"inset(0 round var(--slider-thumb-corner-radius))",
-			);
-			expect(rule(`${P} .classicySliderGhost`).props["clip-path"]).toBe(
-				thumb["clip-path"],
-			);
-		});
+		// P9 (the nondirectional knob and the highlighted indicator follow
+		// the plain one they override) is now in "the slider, drawn from
+		// HIGOS8 Figure 2-17", above.
 
 		it("scopes the icon halftones", () => {
 			for (const mask of [".classicyDesktopIconMask", ".classicyIconMask"]) {

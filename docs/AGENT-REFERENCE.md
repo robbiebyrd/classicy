@@ -1109,7 +1109,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
-| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is rounded with `"nondirectional"`; `highlighted` fills the thumb with the theme accent; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; its track group is as wide as its widest part (`width: fit-content`). With ticks they run beside the track, and tick labels beside their ticks. The channel's look is the package's; Platinum's reads `--classicy-slider-track` (an image, e.g. a `linear-gradient`) before its own shading, which the color picker sets on its channel sliders |
+| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws HIGOS8 Figure 2-17 pixel for pixel (an 8 px etched channel with pixel-art ends, a 15 × 17 pixel-art indicator in the theme's lavender ramp, darker while pressed or highlighted, a pointless knob, a gray ghost, Figure 2-18's 3 × 8 tick marks; the `slider` knob family), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders |
 | `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?`, `fitsScrollBars? (false)` | plain textarea. `fitsScrollBars` keeps both bars drawn (`fits`) while the text fits, for a document editor that fills its window; SimpleText passes the package's declaration (`useClassicyFitsScrollBars()`), so its plain-text window keeps its bars under System 7 |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
@@ -4131,7 +4131,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 22 families of its own (96 keys)
+**Package knob families.** Platinum adds 23 families of its own (103 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4146,7 +4146,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 16 families are emitted and editable in
+  groups under Platinum. The other 17 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -4156,12 +4156,12 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 96 are
+  overriding the knob's value, never the base CSS. 85 of the 103 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). The other 11 are
+  table, so the floor and the column cannot drift). The other 18 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`), they are not in the floor and come only from
+  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
   Platinum's `platinum.json`. A package with stylesheets of its own may
   ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
@@ -4300,6 +4300,13 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
+| `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 8 | — | no | _Slider.scss |
+| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
+| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
+| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
+| `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
+| `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
@@ -4307,6 +4314,14 @@ dialog or core family fits (the core `control` family is a persisted
 contract). It sizes `ClassicyFileInput`'s visually hidden native input, off
 the border metric (H-R29b), so the input never collapses to 0×0, which some
 screen readers skip, when Border is 0.
+
+The `slider` family is Platinum's slider drawn from HIGOS8 Figure 2-17
+(Platinum's `_Slider.scss`): the art's grid pixel (`pixel`), the channel's
+thickness (`channel`), the indicator's box (`thumbAlong` x `thumbAcross`,
+which Platinum sets as `--slider-thumb-width`/`-height` on the track
+group, so the base sheet sizes and places the native thumb by them), how far
+its flat side lies past the channel (`thumbRise`), and the tick marks'
+size (`tickWidth` x `tickHeight`). All look-only: only Platinum reads them.
 
 `dither.tileSize` is the switch of the dither vocabulary
 (`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
@@ -4477,7 +4492,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--finder-about-heading-font-size` | `uiSize × 1.0714` | 14.9996 (unrounded) | FinderAboutThisComputer.scss |
 | `--finder-about-copyright-font-size` | `uiSize × 0.7857` | 10.9998 (unrounded) | FinderAboutThisComputer.scss |
 | `--menu-item-padding-inline` | `paddingSize × 1.25` | 7.5 | ClassicyMenu.scss |
-| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | _Slider.scss |
+| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.2 (Platinum's knob is pixel art); kept for hosts |
 | `--tab-scroll-arrow-size` | `controlSize / 3` | 4 | ClassicyTabs.scss |
 | `--tab-scroll-arrow-size-large` | `controlSize / 2.25` | 5.333 | ClassicyTabs.scss |
 | `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
@@ -4905,7 +4920,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 41 sites over 10 files, the sites kept on purpose
+the list ends at these 42 sites over 11 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -4929,6 +4944,12 @@ the list ends at these 41 sites over 10 files, the sites kept on purpose
   triangle, the dotted group box and separator), one-pixel rectangles on
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
+- Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
+  helper: the slider drawn pixel for pixel from HIGOS8 Figure 2-17 (the
+  channel and its caps, the indicator, the knob, the ghost, the tick marks,
+  the indicator's place on a vertical channel and the ticks' half-width
+  shift), one-pixel rectangles on the art's grid inside `classicy-px-rect`
+  (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
