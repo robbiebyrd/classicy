@@ -445,8 +445,12 @@ describe("compiled SCSS of the touched components", () => {
 			"Yellow",
 			"Black",
 		]) {
-			expect(css).toContain(
-				`.classicyColorPickerSlider${part} .classicySlider::`,
+			// The part class fills its slider's channel through the custom
+			// property the Appearance Package's channel reads (story 0194-5bs).
+			expect(css).toMatch(
+				new RegExp(
+					`\\.classicyColorPickerSlider${part} \\{\\s*--classicy-slider-track: linear-gradient\\(to right,`,
+				),
 			);
 		}
 	});

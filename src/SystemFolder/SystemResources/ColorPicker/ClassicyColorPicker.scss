@@ -250,12 +250,13 @@ $cp-crayon-tip: 0.31;
 }
 
 // ── RGB / CMYK slider tracks ─────────────────────────────────────────────────
-// These wrapper classes override the default gray gradient track from
-// ClassicySlider.scss using higher-specificity descendant selectors.
+// These wrapper classes fill the slider's channel with the color range it
+// sets, through --classicy-slider-track, which the Appearance Package's
+// channel reads before its own shading (a rule here would lose to the
+// package's, a later cascade layer).
 
 @mixin color-track($from, $to) {
-  .classicySlider::-webkit-slider-runnable-track { background: linear-gradient(to right, $from, $to); }
-  .classicySlider::-moz-range-track               { background: linear-gradient(to right, $from, $to); }
+  --classicy-slider-track: linear-gradient(to right, #{$from}, #{$to});
 }
 
 .classicyColorPickerSliderRed     { @include color-track(#000000, #ff0000); }
@@ -382,10 +383,5 @@ $cp-crayon-tip: 0.31;
 .classicyColorPickerValueSlider {
   padding-top: var(--window-padding-size);
 
-  .classicySlider::-webkit-slider-runnable-track {
-    background: linear-gradient(to right, var(--classicy-slider-track-from, #000), var(--classicy-slider-track-to, #fff));
-  }
-  .classicySlider::-moz-range-track {
-    background: linear-gradient(to right, var(--classicy-slider-track-from, #000), var(--classicy-slider-track-to, #fff));
-  }
+  --classicy-slider-track: linear-gradient(to right, var(--classicy-slider-track-from, #000), var(--classicy-slider-track-to, #fff));
 }

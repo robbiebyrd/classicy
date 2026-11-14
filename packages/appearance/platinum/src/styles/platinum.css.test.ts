@@ -744,6 +744,75 @@ describe("platinum.scss (compiled)", () => {
 		});
 	});
 
+	// Story 0194-5bs, fix round 2: the slider's channel, dimming, ghost and
+	// tick inks left ClassicySlider.scss (now pinned by
+	// ClassicyBaseHoldsNoControlLook) for this partial, value for value. The
+	// channel's fill reads --classicy-slider-track first, so the color
+	// picker's channel gradients (set in its base sheet) still show.
+	describe("the slider's look, moved from the base sheet", () => {
+		const shade = (to: string) =>
+			`var(--classicy-slider-track, linear-gradient(${to}, var(--color-system-06) 0%, var(--color-system-04) 10%, var(--color-system-03) 50%, var(--color-system-04) 90%, var(--color-system-05) 100%))`;
+
+		it.each([
+			"-webkit-slider-runnable-track",
+			"-moz-range-track",
+		])("draws the grooved channel on %s, turned for a vertical slider", (pseudo) => {
+			expect(rule(`${P} .classicySlider::${pseudo}`).props).toEqual({
+				"border-radius": "calc(infinity * 1px)",
+				border: "var(--window-border-size) solid var(--color-window-border)",
+				background: shade("to bottom"),
+				"box-shadow":
+					"inset var(--window-border-size) var(--window-border-size) var(--color-system-05)",
+			});
+			const vertical = rule(`${P} .classicySliderInputVertical::${pseudo}`);
+			expect(vertical.props).toEqual({ background: shade("to right") });
+			expect(vertical.at).toBeGreaterThan(
+				rule(`${P} .classicySlider::${pseudo}`).at,
+			);
+		});
+
+		it("dims a slider and its ticks, and inks the ticks and their labels", () => {
+			expect(rule(`${P} :where(.classicySlider).disabled`).props).toEqual({
+				filter: "contrast(0.5)",
+			});
+			expect(rule(`${P} :where(.classicySliderTicks).disabled`).props).toEqual({
+				filter: "contrast(0.5)",
+			});
+			expect(rule(`${P} .classicySliderTick`).props).toEqual({
+				background: "var(--color-black)",
+			});
+			expect(rule(`${P} .classicySliderTickLabel`).props).toEqual({
+				color: "var(--color-black)",
+			});
+		});
+
+		it("draws the ghost translucent, and none while hidden", () => {
+			const ghost = rule(`${P} .classicySliderGhost`);
+			expect(ghost.props.opacity).toBe("0.4");
+			expect(ghost.props.transition).toBe("opacity 0.1s linear");
+			const hidden = rule(`${P} .classicySliderGhostHidden`);
+			expect(hidden.props).toEqual({ opacity: "0" });
+			expect(hidden.at).toBeGreaterThan(ghost.at);
+		});
+
+		// Fix round 2, item 4: a vertical slider's ticks on whole pixels, their
+		// length and their offset along the rail rounded to the pixel.
+		it("puts a vertical slider's ticks on whole pixels", () => {
+			expect(
+				rule(`${P} .classicySliderStackVertical .classicySliderTick`).props,
+			).toEqual({
+				width: "round(var(--slider-tick-length), var(--window-border-size))",
+				bottom: "round(var(--classicy-tick-left), var(--window-border-size))",
+			});
+			expect(
+				rule(`${P} .classicySliderStackVertical .classicySliderTicks`).props,
+			).toEqual({
+				width:
+					"calc(round(var(--slider-tick-length), var(--window-border-size)) + var(--window-border-size))",
+			});
+		});
+	});
+
 	describe("4.3b: the assistant, startup screen, QuickTime, Control Strip, slider, icon and tab-scroller looks", () => {
 		// Every rule whose selector list is exactly `selector`, in order: Sass
 		// emits a rule's declarations that follow a nested rule as a second rule

@@ -887,6 +887,25 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(":where(.classicySlider).disabled")).toMatch(
 				/--system7-slider-ink: var\(--color-theme-06\);/,
 			);
+			// The base sheet no longer dims by a filter (it is Platinum's).
+			expect(rule(":where(.classicySlider).disabled")).not.toMatch(/filter/);
+		});
+
+		// Fix round 2: the ticks' and their labels' ink left the base sheet;
+		// System 7 draws its own, black, dimmed through the dither.
+		it("inks its ticks and their labels black, and dims ticks through the dither", () => {
+			expect(rule(".classicySliderTick")).toMatch(
+				/background: var\(--color-black\);/,
+			);
+			expect(rule(".classicySliderTickLabel")).toMatch(
+				/color: var\(--color-black\);/,
+			);
+			expect(
+				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
+			).toMatch(/background: var\(--color-theme-06\);/);
+			expect(dithered(rule(":where(.classicySliderTicks).disabled"))).toBe(
+				true,
+			);
 		});
 
 		// The horizontal slider is the thumb's box tall; the vertical one keeps

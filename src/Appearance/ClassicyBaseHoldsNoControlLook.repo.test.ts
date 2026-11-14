@@ -74,6 +74,9 @@ const STRUCTURAL = new Set([
 	"user-select",
 	"-webkit-user-select",
 	"overscroll-behavior",
+	// a vertical slider's axis
+	"writing-mode",
+	"direction",
 	"list-style",
 	"appearance",
 	"-webkit-appearance",
@@ -96,6 +99,14 @@ const KEPT_BY_FILE: Record<string, ReadonlySet<string>> = {
 		// Behavior: a menu scrolls by its indicators, never by a scroll bar.
 		"scrollbar-width:none",
 	]),
+	"SystemResources/Slider/ClassicySlider.scss": new Set([
+		// The native range input's chrome taken away (it draws nothing): its
+		// face, its focus outline and Firefox's thumb border. The package
+		// draws the channel and the thumb.
+		"background:transparent",
+		"outline:none",
+		"border:none",
+	]),
 };
 
 const FILES = [
@@ -111,6 +122,7 @@ const FILES = [
 	"SystemResources/ComboBox/ClassicyComboBox.scss",
 	"SystemResources/ControlGroup/ClassicyControlGroup.scss",
 	"SystemResources/PopUpMenu/ClassicyPopUpMenu.scss",
+	"SystemResources/Slider/ClassicySlider.scss",
 ];
 
 /** Every `prop: value` declaration of compiled CSS, comments removed. */

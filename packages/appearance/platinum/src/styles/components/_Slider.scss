@@ -1,9 +1,11 @@
-// The Platinum slider look (from ClassicySlider.scss): the indicator's shape,
-// border, grip and face, for the native thumb in each state, the highlighted
-// and nondirectional variants, and the ghost indicator that tracks a drag.
-// The thumb's size, its rotation for each pointing direction and the ghost's
-// position stay in the base sheet. The nondirectional rules override the
-// pentagon thumb's clip-path and background, so they come with it, after it.
+// The Platinum slider look (from ClassicySlider.scss): the grooved channel,
+// the indicator's shape, border, grip and face, for the native thumb in each
+// state, the highlighted and nondirectional variants, the ghost indicator
+// that tracks a drag, the dimmed filter, and the ticks' and their labels'
+// ink. The channel's and thumb's sizes, the thumb's rotation for each
+// pointing direction and the ghost's position stay in the base sheet. The
+// nondirectional rules override the pentagon thumb's clip-path and
+// background, so they come with it, after it.
 
 // Pentagon: flat top + right/left sides down to 62%, then arrow-point to 100%
 $thumb-shape: polygon(9% 2%, 92% 2%, 92% 56.6%, 50% 95%, 9% 56.6%);
@@ -39,6 +41,33 @@ $_thumb-strikes-svg: var(--classicy-art-slider-strikes);
 $_thumb-rect-svg: var(--classicy-art-slider-thumb-rect);
 $_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
 
+// ── The grooved channel ───────────────────────────────────────────────────────
+// Its shading runs across it: from its top edge on a horizontal slider
+// (`to bottom`), from its left on a vertical one (`to right`). A host or a
+// control that fills the channel with its own gradient (the color picker's
+// channel sliders) sets --classicy-slider-track, which this reads first.
+@function track-fill($to) {
+  @return var(
+    --classicy-slider-track,
+    linear-gradient(
+      $to,
+      var(--color-system-06) 0%,
+      var(--color-system-04) 10%,
+      var(--color-system-03) 50%,
+      var(--color-system-04) 90%,
+      var(--color-system-05) 100%
+    )
+  );
+}
+
+@mixin platinum-slider-channel {
+  border-radius: calc(infinity * 1px);
+  border: var(--window-border-size) solid var(--color-window-border);
+  background: track-fill(to bottom);
+  box-shadow:
+    inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
+}
+
 // ── Thumb appearance mixin ────────────────────────────────────────────────────
 @mixin platinum-slider-thumb(
   $body-gradient,
@@ -51,6 +80,59 @@ $_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
 }
 
 @mixin slider {
+  // The channel, then a vertical slider's turned a quarter (one class each,
+  // so the vertical rule follows the horizontal one it overrides).
+  .classicySlider {
+    &::-webkit-slider-runnable-track {
+      @include platinum-slider-channel;
+    }
+
+    &::-moz-range-track {
+      @include platinum-slider-channel;
+    }
+  }
+
+  .classicySliderInputVertical {
+    &::-webkit-slider-runnable-track {
+      background: track-fill(to right);
+    }
+
+    &::-moz-range-track {
+      background: track-fill(to right);
+    }
+  }
+
+  // Dimmed: Image 1 at 50% contrast, and its ticks with it.
+  :where(.classicySlider).disabled {
+    filter: contrast(0.5);
+  }
+
+  :where(.classicySliderTicks).disabled {
+    filter: contrast(0.5);
+  }
+
+  .classicySliderTick {
+    background: var(--color-black);
+  }
+
+  // A vertical slider's ticks on whole pixels: their length, and their
+  // offset along the rail, rounded to the pixel (a 4.5 px tick at a
+  // fractional offset blurs over two columns).
+  .classicySliderStackVertical .classicySliderTick {
+    width: round(var(--slider-tick-length), var(--window-border-size));
+    bottom: round(var(--classicy-tick-left), var(--window-border-size));
+  }
+
+  // Its rail, the rounded tick plus the border it hangs from, so the labels
+  // beside it start on a whole pixel too.
+  .classicySliderStackVertical .classicySliderTicks {
+    width: calc(round(var(--slider-tick-length), var(--window-border-size)) + var(--window-border-size));
+  }
+
+  .classicySliderTickLabel {
+    color: var(--color-black);
+  }
+
   .classicySlider {
     // Image 1 — normal (raised Platinum silver)
     &::-webkit-slider-thumb {
@@ -141,6 +223,8 @@ $_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
   // ─── Ghost indicator (shadow copy tracking the pointer during drag) ─────────
 
   .classicySliderGhost {
+    opacity: 0.4;
+    transition: opacity 0.1s linear;
     clip-path: $thumb-shape;
     background:
       $_thumb-border-svg 0 0 / 100% 100% no-repeat,
@@ -152,5 +236,10 @@ $_thumb-rect-shape: inset(0 round var(--slider-thumb-corner-radius));
         $_thumb-rect-svg 0 0 / 100% 100% no-repeat,
         linear-gradient(to bottom, var(--color-system-02), var(--color-system-05));
     }
+  }
+
+  // Hidden between drags: after the ghost's translucency, which it overrides.
+  .classicySliderGhostHidden {
+    opacity: 0;
   }
 }

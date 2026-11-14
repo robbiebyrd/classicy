@@ -203,8 +203,12 @@ arrows, text inputs, list boxes and trees, the spinner, the date and time
 pickers, the combo box's indicator, the control group's frames, and the
 pop-up menu's (the dimmed box's gradient, the button's focus ring, the
 indicator's divider, rounded corners and bevel, and the open menu's frame,
-face, items, highlight and group titles). Platinum draws them exactly as
-before. A host that ships its own Appearance Package now draws them itself;
+face, items, highlight and group titles), and the slider's (the channel's
+border, shading and bevel, the dimmed filter, the ghost's translucency, and
+the ticks' and their labels' ink). Platinum draws them exactly as before.
+The Platinum channel reads the new `--classicy-slider-track` first, an image
+that replaces its shading: the color picker sets it on its channel sliders,
+and a host may set it on a slider or an ancestor. A host that ships its own Appearance Package now draws them itself;
 until it does, they show their structure only, as every other component
 already did under a package with no look.
 
@@ -312,9 +316,14 @@ the ids the saver already names:
   its label, when it has one) now fits inside that height, where the readout
   used to spill below the container. With `tickInterval` set its ticks run
   beside the track, not under it, and `tickLabels` sit beside their ticks.
-  Under Platinum the vertical track is now the horizontal one's 6 px channel
-  turned a quarter, centered under the thumb, where it was drawn as wide as
-  the input.
+  A vertical slider's track group is as wide as its widest part
+  (`width: fit-content`), so in a wide container it starts at the
+  container's edge rather than centered in it, on a whole pixel. Under
+  Platinum the vertical track is now the horizontal one's 6 px channel
+  turned a quarter, where it was drawn as wide as the input, with the thumb
+  across it on a whole pixel: the point 7 px past the channel and the flat
+  side 8 px from it, whichever way the thumb points (a 21 px thumb on a 6 px
+  channel cannot sit exactly centered). Its ticks are on whole pixels.
 - **The Desktop tab offers None.** The Appearance Manager's Patterns pop-up
   lists None first: it removes the desktop picture
   (`ClassicyDesktopChangeBackground` with `""`), so the desktop shows its

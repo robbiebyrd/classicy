@@ -206,7 +206,6 @@ $ink: var(--system7-slider-ink);
   :where(.classicySlider).disabled {
     --system7-slider-ink: var(--color-theme-06);
 
-    filter: none;
     @include d.classicy-dither-mask;
   }
 
@@ -215,5 +214,22 @@ $ink: var(--system7-slider-ink);
   .classicySliderTick,
   .classicySliderStackVertical .classicySliderTick {
     transform: none;
+  }
+
+  .classicySliderTick {
+    background: var(--color-black);
+  }
+
+  // Dimmed ticks in the dimmed ink through the dither, as the slider.
+  :where(.classicySliderTicks).disabled {
+    @include d.classicy-dither-mask;
+
+    .classicySliderTick {
+      background: var(--color-theme-06);
+    }
+  }
+
+  .classicySliderTickLabel {
+    color: var(--color-black);
   }
 }

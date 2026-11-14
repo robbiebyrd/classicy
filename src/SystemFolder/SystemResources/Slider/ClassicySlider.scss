@@ -2,28 +2,19 @@
 $thumb-w:   var(--slider-thumb-width);   // 1:1 aspect ratio with $thumb-h
 $thumb-h:   var(--slider-thumb-height);   // rectangular body (0–62%) + downward triangle (62–100%)
 $track-h:   calc(var(--window-padding-size));
+$thumb-half: calc(#{$thumb-h} / 2);  // 10.5 px under Platinum
+$track-half: calc(#{$track-h} / 2);  // 3 px under Platinum
 // Centers the tall thumb vertically on the track
-$thumb-margin-top: calc(($track-h - $thumb-h) / 2);  // −7.5 px under Platinum: (6 − 21) / 2
+$thumb-margin-top: calc(#{$track-half} - #{$thumb-half});  // −7.5 px under Platinum: 3 − 10.5
 // A vertical slider's tick and label rails are inset along the track by
 // half the thumb, so a value lands beside the thumb's center
-$vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
+$vertical-rail-inset: $thumb-half 0;
 
-// The grooved channel's shading, across it: from its top edge (horizontal,
-// `to bottom`) or its left edge (vertical, `to right`).
-@function track-gradient($to) {
-  @return linear-gradient(
-    $to,
-    var(--color-system-06) 0%,
-    var(--color-system-04) 10%,
-    var(--color-system-03) 50%,
-    var(--color-system-04) 90%,
-    var(--color-system-05) 100%
-  );
-}
-
-// The indicator's look (its pentagon or nondirectional shape, border, grip
-// strikes and face, for every state, and the ghost's) is in the Platinum
-// package; this sheet sizes and places it.
+// The look (the channel's border, shading and bevel; the indicator's
+// pentagon or nondirectional shape, border, grip strikes and face, for every
+// state; the ghost's; the dimmed filter; the ticks' and their labels' ink) is
+// the Appearance Package's (Platinum: _Slider.scss); this sheet sizes and
+// places it.
 
 // ─── Track ────────────────────────────────────────────────────────────────────
 
@@ -48,23 +39,13 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   cursor: pointer;
   overflow: visible; // allows the bottom point of the thumb to paint below the track
 
-  // Grooved cylinder track
+  // The channel (the package draws it)
   &::-webkit-slider-runnable-track {
     height: $track-h;
-    border-radius: calc(infinity * 1px);
-    border: var(--window-border-size) solid var(--color-window-border);
-    background: track-gradient(to bottom);
-    box-shadow:
-      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
 
   &::-moz-range-track {
     height: $track-h;
-    border-radius: calc(infinity * 1px);
-    border: var(--window-border-size) solid var(--color-window-border);
-    background: track-gradient(to bottom);
-    box-shadow:
-      inset var(--window-border-size) var(--window-border-size) var(--color-system-05);
   }
 
   // The thumb's box (its images 1–3 are in the Platinum package)
@@ -85,11 +66,10 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   }
 }
 
-// ─── Disabled variant (Image 1 at 50% contrast) ───────────────────────────────
+// ─── Disabled variant (the package dims it) ───────────────────────────────────
 
 :where(.classicySlider).disabled {
   cursor: not-allowed;
-  filter: contrast(0.5);
 
   &::-webkit-slider-thumb {
     cursor: not-allowed;
@@ -151,8 +131,6 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   height: $thumb-h;
   margin-top: $thumb-margin-top;
   pointer-events: none;
-  opacity: 0.4;
-  transition: opacity 0.1s linear;
   transform: translateX(-50%);
   // Center travels from thumb-width/2 to width − thumb-width/2, matching the
   // native thumb, so the ghost lands exactly beneath the real indicator.
@@ -198,12 +176,7 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   top: var(--window-border-size);
   width: var(--window-border-size);
   height: var(--slider-tick-length);
-  background: var(--color-black);
   transform: translateX(-50%);
-}
-
-:where(.classicySliderTicks).disabled {
-  filter: contrast(0.5);
 }
 
 // ─── Tick-mark labels (direction-of-increase captions) ──────────────────────────
@@ -223,7 +196,6 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   font-size: var(--ui-font-size-small);
   line-height: 1;
   white-space: nowrap;
-  color: var(--color-black);
 
   img {
     display: block;
@@ -236,10 +208,13 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
 // Last: its rules override the horizontal ones above.
 
 // Under its label (a column too), the group shrinks to fit the height the
-// slider is given; the track inside it keeps its own minimum.
+// slider is given; the track inside it keeps its own minimum. It is as wide
+// as its widest part, so the input starts on its container's pixel instead of
+// being centered in a wide row (a 21 px input centered in 944 px lands on a
+// half pixel and blurs).
 .classicySliderTrackGroupVertical {
   flex-direction: column;
-  width: auto;
+  width: fit-content;
   height: 100%;
   min-height: 0;
 }
@@ -258,25 +233,29 @@ $vertical-rail-inset: calc(#{$thumb-h} / 2) 0;
   flex: 1 1 auto;
 
   // The horizontal channel turned a quarter: as wide as that one is tall,
-  // the full length, its gradient across it from left to right (the browser
-  // centers it across the input, as it does the horizontal one down it).
+  // the full length (the browser centers it across the input, as it does
+  // the horizontal one down it).
   &::-webkit-slider-runnable-track {
     width: $track-h;
     height: auto;
-    background: track-gradient(to right);
   }
 
   &::-moz-range-track {
     width: $track-h;
     height: auto;
-    background: track-gradient(to right);
   }
 
-  // The thumb centered across the channel, as the horizontal one is (it
-  // starts at the channel's edge).
+  // The thumb centered across the channel. Chromium places a vertical thumb
+  // from the channel's center line, not its edge as a horizontal one, so its
+  // offset is the horizontal centering offset less half the channel: minus
+  // half the thumb, rounded up to a whole pixel. A thumb box on a half pixel
+  // (an odd thumb across an even channel) would be resampled differently by
+  // each pointing direction's quarter turn; on a whole pixel either turn is
+  // exact, and both directions sit the same, the point 7 px past the channel
+  // and the flat side 8 px from it under Platinum.
   &::-webkit-slider-thumb {
     margin-top: 0;
-    margin-left: $thumb-margin-top;
+    margin-left: round(up, calc(#{$thumb-margin-top} - #{$track-half}), var(--window-border-size));
   }
 }
 

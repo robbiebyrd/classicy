@@ -73,6 +73,23 @@ describe("ClassicySlider vertical layout", () => {
 	// The track (the input, or the stack holding it and its ticks) is the
 	// slider's minimum length on its own (a container with no set height)
 	// and grows to fill a set height, less the readout; never shorter.
+	// A vertical slider's group is as wide as its widest part, so the input
+	// starts on its container's pixel rather than centered in a wide row (a
+	// 21 px input centered in 944 px lands on a half pixel).
+	it("sizes a vertical slider's group to its contents", () => {
+		const { container } = render(
+			<ClassicySlider
+				id="g"
+				labelTitle="Level"
+				value={5}
+				orientation="vertical"
+			/>,
+		);
+		expect(
+			winner(container.querySelector(".classicySliderTrackGroup"), "width"),
+		).toBe("fit-content");
+	});
+
 	it("is its minimum length on its own, and grows to fill a set height", () => {
 		const ticked = render(
 			<ClassicySlider
@@ -147,13 +164,36 @@ describe("ClassicySlider vertical track", () => {
 		return css.slice(at, css.indexOf("}", at));
 	};
 
+	// The channel's look (its border, shading and bevel) is the package's;
+	// the base sheet sizes it: as wide as the horizontal one is tall.
 	it.each([
 		"-webkit-slider-runnable-track",
 		"-moz-range-track",
-	])("draws %s as the channel, turned", (pseudo) => {
+	])("sizes %s as the channel, turned, and draws none of it", (pseudo) => {
 		const track = body(`.classicySliderInputVertical::${pseudo}`);
 		expect(track).toMatch(/width: calc\(var\(--window-padding-size\)\);/);
 		expect(track).toMatch(/height: auto;/);
-		expect(track).toMatch(/linear-gradient\(to right,/);
+		expect(css).not.toMatch(/linear-gradient/);
+		expect(css).not.toMatch(/box-shadow/);
+	});
+
+	// Chromium places a vertical thumb from the channel's center line, not
+	// its edge: the thumb's margin across it is minus half the thumb, which
+	// is the horizontal centering offset less half the channel, rounded up to
+	// a whole pixel so either pointing direction's quarter turn is exact.
+	it("centers a vertical thumb on the channel, on a whole pixel", () => {
+		const thumb = body(".classicySliderInputVertical::-webkit-slider-thumb");
+		expect(thumb).toMatch(/margin-top: 0;/);
+		const half = (v: string) => `calc(${v} / 2)`;
+		const thumbHalf = half("var(--slider-thumb-height)");
+		const trackHalf = half("calc(var(--window-padding-size))");
+		expect(thumb).toContain(
+			`margin-left: round(up, calc(${trackHalf} - ${thumbHalf}) - ${trackHalf}, var(--window-border-size));`,
+		);
+		// The horizontal thumb's margin-top is the same offset, unchanged:
+		// (6 - 21) / 2 under Platinum, as half the channel less half the thumb.
+		expect(body(".classicySlider::-webkit-slider-thumb")).toContain(
+			`margin-top: calc(${trackHalf} - ${thumbHalf});`,
+		);
 	});
 });
