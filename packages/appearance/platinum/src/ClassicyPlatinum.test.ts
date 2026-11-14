@@ -103,7 +103,11 @@ describe("the Platinum appearance package", () => {
 		// The defaults are the `default` preset itself.
 		expect(pkg?.defaults).toBe(getTheme("default"));
 		expect(pkg?.defaults).toBe(pkg?.presets?.[0]);
-		expect(pkg?.layout).toEqual(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout);
+		// The core's arrangement, and Platinum's ghost drag on release.
+		expect(pkg?.layout).toEqual({
+			...CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout,
+			slider: { thumbDrag: "onRelease" },
+		});
 	});
 
 	it("completes each preset: wallpaper by filename, every knob family filled", async () => {
@@ -191,6 +195,9 @@ describe("the Platinum appearance package", () => {
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
+			// HIGOS8 p.34, Figure 2-17: a slider's indicator stays put while its
+			// ghost follows the pointer, and the value changes on release.
+			slider: { thumbDrag: "onRelease" },
 		}));
 
 	// H-R4 (owner ruling): knob metadata only for the six contract families;

@@ -108,6 +108,7 @@ describe("ClassicyDesktop layout", () => {
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
+			slider: { thumbDrag: "onRelease" },
 		});
 		expect(getClassicyAppearancePackage(PLATINUM_APPEARANCE_PACKAGE_ID)).toBe(
 			platinum,

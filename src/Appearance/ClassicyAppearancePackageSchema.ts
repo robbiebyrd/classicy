@@ -12,7 +12,7 @@ import type {
 
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`), each key of which is optional too.
+ * behavior groups (`scrollBar`, `slider`), each key of which is optional too.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -38,6 +38,9 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			thumbDrag: z.enum(["live", "onRelease"]).optional(),
 			fitsBars: z.enum(["hidden", "shown"]).optional(),
 		})
+		.optional(),
+	slider: z
+		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 

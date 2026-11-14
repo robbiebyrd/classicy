@@ -618,8 +618,37 @@ $firefox-shift-back: calc($firefox-shift * -1);
       background: row-art(before-turn($thumb-up, up), $ghost-inks);
     }
 
+    &.classicySliderIndicatorLeft {
+      background: row-art(before-turn($thumb-left, left), $ghost-inks);
+    }
+
+    &.classicySliderIndicatorRight {
+      background: row-art(before-turn($thumb-right, right), $ghost-inks);
+    }
+
     &.classicySliderIndicatorNondirectional {
       background: row-art($knob, $ghost-inks);
+    }
+  }
+
+  // On a vertical slider the base sheet moves the ghost up the track,
+  // centered on the input, and this puts it across the channel where the
+  // indicator lies: a turned box's center sits the thumb's margin from the
+  // channel's edge plus half the box's overhang of the channel off its
+  // center line (two pixels toward the point), the knob's on it.
+  .classicySliderStackVertical .classicySliderGhost {
+    margin-top: 0;
+
+    &.classicySliderIndicatorLeft {
+      margin-left: calc(#{$vertical-left} + #{half(calc(var(--slider-thumb-along) - var(--slider-channel)))});
+    }
+
+    &.classicySliderIndicatorRight {
+      margin-left: calc(#{$vertical-right} + #{half(calc(var(--slider-thumb-along) - var(--slider-channel)))});
+    }
+
+    &.classicySliderIndicatorNondirectional {
+      margin-left: 0;
     }
   }
 

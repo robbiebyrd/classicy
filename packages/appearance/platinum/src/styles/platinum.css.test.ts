@@ -1273,9 +1273,62 @@ describe("platinum.scss (compiled)", () => {
 						})[token] ?? token,
 				),
 			);
+			// Every direction's ghost is that indicator's art in grays, lit from
+			// the top left as it is: pointing left and right too (story
+			// 0198-0kv: they were the down art turned, lit from the top right),
+			// and the knob.
+			const gray = (background: string) =>
+				background.replace(
+					/var\(--color-[\w-]+\)/g,
+					(token) =>
+						({
+							"var(--color-black)": "var(--color-system-05)",
+							"var(--color-theme-01)": "var(--color-white)",
+							"var(--color-theme-02)": "var(--color-white)",
+							"var(--color-theme-03)": "var(--color-system-02)",
+							"var(--color-theme-04)": "var(--color-system-03)",
+							"var(--color-theme-05)": "var(--color-system-04)",
+						})[token] ?? token,
+				);
+			for (const [ghostClass, thumbClass] of [
+				[".classicySliderIndicatorLeft", ".classicySliderIndicatorLeft"],
+				[".classicySliderIndicatorRight", ".classicySliderIndicatorRight"],
+				[
+					".classicySliderIndicatorNondirectional",
+					".classicySliderIndicatorNondirectional",
+				],
+			] as const)
+				expect(
+					rule(`${P} .classicySliderGhost${ghostClass}`).props.background,
+					ghostClass,
+				).toBe(
+					gray(
+						rule(`${P} ${thumbClass}::-webkit-slider-thumb`).props.background,
+					),
+				);
 			const hidden = rule(`${P} .classicySliderGhostHidden`);
 			expect(hidden.props).toEqual({ opacity: "0" });
 			expect(hidden.at).toBeGreaterThan(ghost.at);
+		});
+
+		// The vertical ghost lies where the indicator does across the channel
+		// (the base sheet centers it on the input and moves it up the track):
+		// pointing left its turned box is centered two pixels left of the
+		// channel's center line, pointing right two right, the knob on it.
+		it("places the vertical ghost across the channel where its indicator lies", () => {
+			const vertical = (cls = "") =>
+				rule(`${P} .classicySliderStackVertical .classicySliderGhost${cls}`)
+					.props;
+			expect(vertical()["margin-top"]).toBe("0");
+			expect(vertical(".classicySliderIndicatorLeft")["margin-left"]).toBe(
+				"calc(calc(var(--slider-channel) + var(--slider-thumb-rise) - (var(--slider-thumb-across) + var(--slider-thumb-along)) / 2) + calc((var(--slider-thumb-along) - var(--slider-channel)) / 2))",
+			);
+			expect(vertical(".classicySliderIndicatorRight")["margin-left"]).toBe(
+				"calc(calc((var(--slider-thumb-across) - var(--slider-thumb-along)) / 2 - var(--slider-thumb-rise)) + calc((var(--slider-thumb-along) - var(--slider-channel)) / 2))",
+			);
+			expect(
+				vertical(".classicySliderIndicatorNondirectional")["margin-left"],
+			).toBe("0");
 		});
 
 		it("dims a slider and its ticks, and inks the tick labels", () => {

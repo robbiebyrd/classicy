@@ -140,8 +140,9 @@ $vertical-rail-inset: $thumb-half 0;
   pointer-events: none;
   transform: translateX(-50%);
   // Center travels from thumb-width/2 to width − thumb-width/2, matching the
-  // native thumb, so the ghost lands exactly beneath the real indicator.
-  left: calc(#{$thumb-w} / 2 + (100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0));
+  // native thumb, so the ghost lands exactly beneath the real indicator; its
+  // travel is rounded to a whole pixel, so its pixel art is drawn sharp.
+  left: calc(#{$thumb-w} / 2 + round((100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0), var(--window-border-size)));
 
   &.classicySliderIndicatorUp { transform: translateX(-50%) rotate(180deg); }
   &.classicySliderIndicatorLeft { transform: translateX(-50%) rotate(90deg); }
@@ -322,5 +323,22 @@ $vertical-rail-inset: $thumb-half 0;
     left: auto;
     bottom: var(--classicy-tick-left);
     transform: translateY(50%);
+  }
+
+  // The ghost travels up the track as the native thumb does, its center
+  // from half the thumb's box above the bottom to half below the top (the
+  // box's height is its side along a vertical track), by whole pixels, and
+  // is centered across it; a package moves it across where it places its
+  // thumb.
+  .classicySliderGhost {
+    top: auto;
+    left: 50%;
+    bottom: calc(#{$thumb-half} + round((100% - #{$thumb-h}) * var(--classicy-ghost-pos, 0), var(--window-border-size)));
+    margin-top: 0;
+    transform: translate(-50%, 50%);
+
+    &.classicySliderIndicatorUp { transform: translate(-50%, 50%) rotate(180deg); }
+    &.classicySliderIndicatorLeft { transform: translate(-50%, 50%) rotate(90deg); }
+    &.classicySliderIndicatorRight { transform: translate(-50%, 50%) rotate(-90deg); }
   }
 }

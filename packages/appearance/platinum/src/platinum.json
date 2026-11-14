@@ -2013,6 +2013,9 @@
 		},
 		"desktop": {
 			"iconGridOrigin": "top-right"
+		},
+		"slider": {
+			"thumbDrag": "onRelease"
 		}
 	},
 	"knobs": {

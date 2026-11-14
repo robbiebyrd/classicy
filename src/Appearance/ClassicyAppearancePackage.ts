@@ -81,6 +81,22 @@ export type ClassicyAppearanceLayout = {
 		 */
 		fitsBars?: "hidden" | "shown";
 	};
+	/**
+	 * How a slider with a ghost indicator (`ClassicySlider`'s `ghost`)
+	 * drags. Optional, as is each key: a package that leaves one out keeps
+	 * live dragging.
+	 */
+	slider?: {
+		/**
+		 * `"live"` (the default): the indicator follows the pointer and the
+		 * value changes as it goes, the ghost with it. `"onRelease"`
+		 * (Platinum, HIGOS8 p.34, Figure 2-17): the indicator stays where it
+		 * was while the ghost follows the pointer, and the value changes, once,
+		 * when the button comes up; a lost pointer stream drops it. A slider
+		 * without a ghost drags live under either (the HIG's "live feedback").
+		 */
+		thumbDrag?: "live" | "onRelease";
+	};
 };
 
 /**

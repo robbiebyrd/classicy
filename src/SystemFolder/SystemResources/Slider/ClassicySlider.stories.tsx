@@ -124,7 +124,12 @@ export const UpwardIndicator: Story = {
 	},
 };
 
-/** `ghost`: drag the thumb to see a translucent copy trail the pointer (the Mac OS 8 ghost indicator). */
+/**
+ * `ghost`: drag the thumb to see the Mac OS 8 ghost indicator, a translucent
+ * copy that follows the pointer. Under Platinum (`layout.slider.thumbDrag:
+ * "onRelease"`) the indicator stays put meanwhile and the value changes on
+ * release; under a package that drags live, both follow the pointer.
+ */
 export const GhostIndicator: Story = {
 	args: {
 		id: "slider-ghost",
