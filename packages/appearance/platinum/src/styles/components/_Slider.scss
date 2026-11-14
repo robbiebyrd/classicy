@@ -242,6 +242,38 @@ $knob: (
   ".#############.",
 );
 
+// The knob on a vertical channel: the knob turned about its top-left to
+// bottom-right diagonal, which keeps the light at the top left (its top
+// row becomes its left column) and runs its grips across the channel, each
+// light line above its dark one, as Figure 13's are. Fifteen rows down the
+// channel, written into the 15 x 17 box as seen (nothing turns it), two
+// columns in and a row down, so it lies two pixels past the channel on each
+// side, as the horizontal knob does.
+@function transposed($rows) {
+  $out: ();
+  @for $x from 1 through string.length(list.nth($rows, 1)) {
+    $row: "";
+    @each $r in $rows {
+      $row: $row + string.slice($r, $x, $x);
+    }
+    $out: list.append($out, $row);
+  }
+  @return $out;
+}
+
+@function knob-vertical() {
+  // The knob's own rows, less the box's clear first one.
+  $rows: ();
+  @for $i from 2 through list.length($knob) {
+    $rows: list.append($rows, list.nth($knob, $i));
+  }
+  $box: ("...............",);
+  @each $row in transposed($rows) {
+    $box: list.append($box, ".." + $row + ".");
+  }
+  @return list.append($box, "...............");
+}
+
 // ── Pressed: a step darker ──────────────────────────────────────────────────
 // Figure 2-17's pressed indicator is Figure 2-18's with every ink one step
 // down the ramp (white to theme-01, theme-01 to -02, …, theme-05 to -07),
@@ -445,9 +477,10 @@ $firefox-shift-back: calc($firefox-shift * -1);
 // a step darker, on both engines' thumbs. Each direction includes it on its
 // own class, after the down indicator's, so a turned slider's pressed and
 // highlighted rules outrank the down one's of the same weight.
-@mixin indicator($rest, $firefox-transform: null, $margin-top: null) {
+@mixin indicator($rest, $firefox-transform: null, $margin-top: null, $margin-left: null) {
   &::-webkit-slider-thumb {
     margin-top: $margin-top;
+    margin-left: $margin-left;
     background: row-art($rest, $inks);
   }
 
@@ -517,6 +550,17 @@ $firefox-shift-back: calc($firefox-shift * -1);
   // Nondirectional: the knob.
   .classicySliderIndicatorNondirectional {
     @include indicator($knob);
+  }
+
+  // On a vertical channel, the knob turned, centered on the channel by the
+  // box's own overhang (Chromium places it from the channel's edge, Firefox
+  // centers it, so neither is translated).
+  .classicySliderInputVertical.classicySliderIndicatorNondirectional {
+    @include indicator(
+      knob-vertical(),
+      none,
+      $margin-left: half(calc(var(--slider-channel) - var(--slider-thumb-along)))
+    );
   }
 
   // A vertical slider: the base sheet's length restated over the
@@ -649,6 +693,7 @@ $firefox-shift-back: calc($firefox-shift * -1);
 
     &.classicySliderIndicatorNondirectional {
       margin-left: 0;
+      background: row-art(knob-vertical(), $ghost-inks);
     }
   }
 

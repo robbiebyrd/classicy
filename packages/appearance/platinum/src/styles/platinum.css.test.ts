@@ -1249,6 +1249,57 @@ describe("platinum.scss (compiled)", () => {
 			}
 		});
 
+		// The knob on a vertical channel (story 0198-0kv): the horizontal one
+		// turned about its top-left to bottom-right diagonal, which keeps the
+		// light at the top left, its grips across the channel, each light line
+		// above its dark one; written into the 15 x 17 box as seen (nothing
+		// turns it), two columns in, so it lies two pixels past the channel on
+		// each side, as the horizontal one does, a row clear at each end.
+		it("turns the knob on a vertical channel, lit from the top left", () => {
+			const TURNED = [
+				"...............",
+				"...#########...",
+				"..#,llllllll#..",
+				"..#lmmmmmmmn#..",
+				"..#lmmmmmmmn#..",
+				"..#lm,llllmn#..",
+				"..#lmmooooon#..",
+				"..#lm,llllmn#..",
+				"..#lmmooooon#..",
+				"..#lm,llllmn#..",
+				"..#lmmooooon#..",
+				"..#lmmmmmmmn#..",
+				"..#lmmmmmmmn#..",
+				"..#lmmmmmmmn#..",
+				"..#mnnnnnnnn#..",
+				"...#########...",
+				"...............",
+			];
+			for (const pseudo of ["::-webkit-slider-thumb", "::-moz-range-thumb"]) {
+				const knob = rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional${pseudo}`,
+				);
+				expect(decode(knob.props.background, 15, 17), pseudo).toEqual(TURNED);
+				const pressed = pressedRule(
+					".classicySliderInputVertical.classicySliderIndicatorNondirectional",
+					pseudo,
+				);
+				expect(decode(pressed.props.background, 15, 17)).toEqual(step(TURNED));
+			}
+			// Centered on the channel, untranslated: Chromium places the box
+			// from the channel's edge, Firefox centers it.
+			expect(
+				rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional::-webkit-slider-thumb`,
+				).props["margin-left"],
+			).toBe("calc((var(--slider-channel) - var(--slider-thumb-along)) / 2)");
+			expect(
+				rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional::-moz-range-thumb`,
+				).props.transform,
+			).toBe("none");
+		});
+
 		it("draws the ghost in grays, translucent, and none while hidden", () => {
 			const ghost = rule(`${P} .classicySliderGhost`);
 			expect(ghost.props.opacity).toBe("0.75");
@@ -1276,7 +1327,7 @@ describe("platinum.scss (compiled)", () => {
 			// Every direction's ghost is that indicator's art in grays, lit from
 			// the top left as it is: pointing left and right too (story
 			// 0198-0kv: they were the down art turned, lit from the top right),
-			// and the knob.
+			// and the knob, on either channel.
 			const gray = (background: string) =>
 				background.replace(
 					/var\(--color-[\w-]+\)/g,
@@ -1306,6 +1357,17 @@ describe("platinum.scss (compiled)", () => {
 						rule(`${P} ${thumbClass}::-webkit-slider-thumb`).props.background,
 					),
 				);
+			expect(
+				rule(
+					`${P} .classicySliderStackVertical .classicySliderGhost.classicySliderIndicatorNondirectional`,
+				).props.background,
+			).toBe(
+				gray(
+					rule(
+						`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional::-webkit-slider-thumb`,
+					).props.background,
+				),
+			);
 			const hidden = rule(`${P} .classicySliderGhostHidden`);
 			expect(hidden.props).toEqual({ opacity: "0" });
 			expect(hidden.at).toBeGreaterThan(ghost.at);

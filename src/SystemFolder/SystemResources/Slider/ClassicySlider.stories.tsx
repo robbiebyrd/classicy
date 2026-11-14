@@ -114,6 +114,22 @@ export const NondirectionalKnob: Story = {
 	},
 };
 
+/**
+ * The nondirectional knob on a vertical slider, turned to lie across its
+ * track, with its center tick beside it.
+ */
+export const NondirectionalVertical: Story = {
+	args: {
+		id: "slider-nondirectional-vertical",
+		labelTitle: "Fade",
+		value: 50,
+		orientation: "vertical",
+		indicatorDirection: "nondirectional",
+		tickInterval: "center",
+		style: { height: 160 },
+	},
+};
+
 /** `indicatorDirection` overrides which way the thumb points. */
 export const UpwardIndicator: Story = {
 	args: {
