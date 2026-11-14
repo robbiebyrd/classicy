@@ -45,6 +45,12 @@ are `@classicy/appearance-system7/classicy-system7.css` and
 core's like Platinum's. A Vite host adds it to `optimizeDeps.exclude`. See
 [its README](../packages/appearance/system7/README.md).
 
+System 7 arranges an alert's buttons as its HIG does (p.201): a button that
+is neither the default nor Cancel, such as Don't Save, stands at the left,
+under the message text, apart from Cancel and the default button at the
+lower right. Hosts keep listing the buttons in any order; Platinum still
+draws them in the list's order.
+
 **Mixing versions of the two Appearance Packages is unsupported.** Install
 `@classicy/classicy`, `@classicy/appearance-platinum` and
 `@classicy/appearance-system7` at one version and bump them together. Both
@@ -152,6 +158,13 @@ diverge, so a logo registered through Platinum's
   scrollers. `ClassicyTextEditor` gains `fitsScrollBars` (default `false`)
   for a document editor that fills its window; SimpleText's plain-text
   window passes the declaration.
+- **Packages may center windows on whole pixels.** The package `layout`
+  gains an optional `window.centering`: `"exact"`, the default, centers a
+  window opened at a symbolic `"center"` (an alert, a dialog) at half the
+  free space, on a half pixel when that space is odd, as before;
+  `"wholePixel"` rounds it, on first paint and on every re-center.
+  `resolvePosition` takes it as an optional fourth argument. System 7 sets
+  it; Platinum does not, so its windows land where they did.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it, else `window.controlSize × 2.5` as before; it
   has no floor value, so Platinum's band still follows its control size.

@@ -701,6 +701,37 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/margin: 0;/);
 		});
 
+		// HIG p.201: "Place the Save button in the lower-right corner with the
+		// Cancel button to its left. Place the Don't Save button left-aligned
+		// with the message text." Arranged with `order` on the buttons' roles
+		// (CLAUDE.md, Arrangement): every other button (Don't Save) before the
+		// cancel and default ones, the first of them `alertLayout.
+		// otherButtonInset` (73) from the inner line, as in SimpleText's
+		// save-changes alert, the last pushing the safe buttons right.
+		it("puts Don't Save at the left, under the message text, away from Save and Cancel", () => {
+			const other =
+				".classicyAlert .classicyAlertButtons .classicyButton[data-classicy-role=other]";
+			expect(rule(other)).toMatch(/order: -1;/);
+			expect(
+				rule(
+					`${other}:nth-child(1 of .classicyButton[data-classicy-role=other])`,
+				),
+			).toMatch(
+				/margin-left: calc\(var\(--alert-layout-other-button-inset\) - var\(--alert-layout-icon-inset\)\);/,
+			);
+			expect(
+				rule(
+					`${other}:nth-last-child(1 of .classicyButton[data-classicy-role=other])`,
+				),
+			).toMatch(/margin-right: auto;/);
+			// The safe buttons keep the list's order, default last, and the
+			// help button its own place.
+			expect(css).not.toMatch(
+				/\[data-classicy-role="?(default|cancel)"?\][^{]*\{[^}]*order:/,
+			);
+			expect(css).not.toMatch(/classicyAlertHelpButton[^{]*\{[^}]*order:/);
+		});
+
 		// FrameRoundRect's corners: four sides and two rectangles a corner for
 		// the button, four sides and six rectangles a corner for the ring.
 		it("draws the push button and its default ring as pixel art, not a radius", () => {

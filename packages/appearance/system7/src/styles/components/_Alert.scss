@@ -10,7 +10,8 @@
 // one-pixel side bearing); the buttons `alertLayout.edge` (13) from the
 // right and bottom, from each other and from the text. One text style,
 // Chicago 12 on 16-pixel lines (HIG figs 6-18 to 6-20): the label is not
-// bold and the message is not smaller.
+// bold and the message is not smaller. A button that is neither the default
+// nor Cancel (Don't Save) stands apart at the left, under the text (p.201).
 @mixin alert {
   .classicyAlert {
     gap: var(--alert-layout-edge);
@@ -42,6 +43,25 @@
 
       .classicyButton {
         margin: 0;
+      }
+
+      // HIG p.201: "Place the Save button in the lower-right corner with the
+      // Cancel button to its left. Place the Don't Save button left-aligned
+      // with the message text", so a click cannot land on it by accident.
+      // Every other button goes before the safe ones, the first
+      // `alertLayout.otherButtonInset` (73) from the inner line, where
+      // SimpleText's save-changes alert draws its frame (three pixels left
+      // of the text's line), and the last takes the room between them.
+      .classicyButton[data-classicy-role="other"] {
+        order: -1;
+      }
+
+      .classicyButton[data-classicy-role="other"]:nth-child(1 of .classicyButton[data-classicy-role="other"]) {
+        margin-left: calc(var(--alert-layout-other-button-inset) - var(--alert-layout-icon-inset));
+      }
+
+      .classicyButton[data-classicy-role="other"]:nth-last-child(1 of .classicyButton[data-classicy-role="other"]) {
+        margin-right: auto;
       }
     }
   }

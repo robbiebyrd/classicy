@@ -185,11 +185,27 @@ export function classicyWindowChromeSize(el: HTMLElement): [number, number] {
 	];
 }
 
+/**
+ * Where a window at a symbolic `"center"` lands: the active package's
+ * `layout.window.centering` (`"exact"` unless it says `"wholePixel"`).
+ */
+export type ClassicyWindowCentering = NonNullable<
+	ClassicyAppearanceLayout["window"]["centering"]
+>;
+
+/**
+ * A window's opening position, `pos` resolved against the viewport. A
+ * `"center"` axis is centered exactly (on a half pixel when the free space
+ * is odd), or, with `centering` `"wholePixel"`, rounded to a whole pixel.
+ */
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	centering: ClassicyWindowCentering = "exact",
 ): [number, number] {
+	const center = (free: number) =>
+		centering === "wholePixel" ? Math.round(free / 2) : free / 2;
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -201,7 +217,7 @@ export function resolvePosition(
 	} else if (pos[0] === "right") {
 		x = Math.max(0, vw - windowSize[0]);
 	} else {
-		x = Math.max(0, (vw - windowSize[0]) / 2);
+		x = Math.max(0, center(vw - windowSize[0]));
 	}
 
 	let y: number;
@@ -212,7 +228,7 @@ export function resolvePosition(
 	} else if (pos[1] === "bottom") {
 		y = Math.max(menuBarHeight, vh - windowSize[1]);
 	} else {
-		y = Math.max(menuBarHeight, (vh - windowSize[1]) / 2);
+		y = Math.max(menuBarHeight, center(vh - windowSize[1]));
 	}
 
 	return [x, y];
@@ -631,6 +647,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
 	const layout = useClassicyAppearanceLayout();
+	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 
 	// `--menu-bar-height`, read once per theme and menu-bar placement instead
 	// of on every render: a drag re-renders on each mousemove, and a read
@@ -830,11 +847,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// resizable window's real size can already differ from its initial
 			// default by the time this runs.
 			clampWindowPositionToViewport(
-				resolvePosition(initialPosition, resolvedSize, menuBarHeight),
+				resolvePosition(
+					initialPosition,
+					resolvedSize,
+					menuBarHeight,
+					centering,
+				),
 				size,
 				menuBarHeight,
 			),
-		[initialPosition, resolvedSize, size, menuBarHeight],
+		[initialPosition, resolvedSize, size, menuBarHeight, centering],
 	);
 
 	// #248: only a symbolic position (e.g. "center") should ever re-center as
@@ -923,7 +945,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const rect = el.getBoundingClientRect();
 		const measuredSize: [number, number] = [rect.width, rect.height];
 		const recentered = clampWindowPositionToViewport(
-			resolvePosition(initialPosition, measuredSize, menuBarHeight),
+			resolvePosition(initialPosition, measuredSize, menuBarHeight, centering),
 			measuredSize,
 			menuBarHeight,
 		);

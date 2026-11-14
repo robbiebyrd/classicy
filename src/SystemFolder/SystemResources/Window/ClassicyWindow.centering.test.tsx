@@ -15,6 +15,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render } from "@/__tests__/test-utils";
 import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
+// Registers Platinum's sound pack, which the default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
 	ClassicyWindow,
 	clampWindowPositionToViewport,
 	resolvePosition,
@@ -314,5 +322,106 @@ describe("ClassicyWindow content-resize re-centering (#248)", () => {
 		MockResizeObserver.watching(el).callback();
 
 		expect(moveDispatches()).toHaveLength(0);
+	});
+});
+
+// Plan 0018-dbd: a package may center windows on whole pixels
+// (`layout.window.centering: "wholePixel"`, System 7). The core's default,
+// `"exact"`, keeps a centered window on a half pixel when the free space is
+// odd, so no other package's pixels move.
+const WHOLE_PIXEL_PACKAGE = "test-whole-pixel";
+const registerWholePixelPackage = () =>
+	registerClassicyAppearancePackage({
+		id: WHOLE_PIXEL_PACKAGE,
+		name: "Whole Pixel",
+		css: "",
+		defaults: {
+			...getTheme("default"),
+			id: "test-whole-pixel-default",
+			package: WHOLE_PIXEL_PACKAGE,
+		},
+		layout: {
+			...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
+		},
+	});
+
+describe("resolvePosition centering", () => {
+	afterEach(resetViewport);
+
+	it("centers exactly by default, on a half pixel when the free space is odd", () => {
+		setViewport(800, 600);
+		expect(resolvePosition(["center", "center"], [101, 51], 20)).toEqual([
+			349.5, 274.5,
+		]);
+		expect(
+			resolvePosition(["center", "center"], [101, 51], 20, "exact"),
+		).toEqual([349.5, 274.5]);
+	});
+
+	it("rounds a centered axis to a whole pixel when asked, and only a centered one", () => {
+		setViewport(800, 600);
+		expect(
+			resolvePosition(["center", "center"], [101, 51], 20, "wholePixel"),
+		).toEqual([350, 275]);
+		expect(
+			resolvePosition([10.5, "center"], [101, 51], 20, "wholePixel"),
+		).toEqual([10.5, 275]);
+		expect(
+			resolvePosition(["right", "bottom"], [100.5, 50.5], 20, "wholePixel"),
+		).toEqual([699.5, 549.5]);
+	});
+});
+
+describe("ClassicyWindow whole-pixel centering (a package's layout)", () => {
+	beforeEach(() => {
+		mockDispatch.mockClear();
+		MockResizeObserver.instances = [];
+		vi.stubGlobal("ResizeObserver", MockResizeObserver);
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		resetViewport();
+		resetClassicyAppearancePackagesForTests();
+	});
+
+	const openedAt = () =>
+		(
+			mockDispatch.mock.calls.find(
+				(call) => (call[0] as { type: string }).type === "ClassicyWindowOpen",
+			)?.[0] as { window: { position: [number, number] } }
+		).window.position;
+
+	const renderCentered = () =>
+		render(
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Test"
+				initialSize={[101, 51]}
+				initialPosition={["center", "center"]}
+			>
+				<p>content</p>
+			</ClassicyWindow>,
+		);
+
+	it("opens and re-centers a centered window on whole pixels under a package that asks", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerWholePixelPackage();
+		setViewport(800, 600);
+		const { container } = renderCentered();
+		expect(openedAt()).toEqual([350, 275]);
+
+		const el = container.querySelector("#TestApp_TestWindow") as HTMLElement;
+		vi.spyOn(el, "getBoundingClientRect").mockReturnValue(mockRect(301, 201));
+		mockDispatch.mockClear();
+		MockResizeObserver.watching(el).callback();
+		expect(moveDispatches()[0]?.position).toEqual([250, 200]);
+	});
+
+	it("keeps the exact half pixel under a package that does not", () => {
+		setViewport(800, 600);
+		renderCentered();
+		expect(openedAt()).toEqual([349.5, 274.5]);
 	});
 });

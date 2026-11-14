@@ -348,6 +348,7 @@ describe("the System 7 appearance package", () => {
 				"--alert-layout-text-gap": "21px",
 				"--alert-layout-edge": "13px",
 				"--alert-layout-line-height": "16px",
+				"--alert-layout-other-button-inset": "73px",
 				"--push-button-line-height": "16px",
 				"--push-button-text-lift": "2px",
 				"--window-header-height": "17px",
@@ -530,7 +531,9 @@ describe("the System 7 appearance package", () => {
 	it("lays out as the HIG does: grow box bottom right, menu bar on the screen, icons from the top right", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("system7")?.layout).toEqual({
-			window: { growBoxCorner: "bottom-right" },
+			// A centered window (an alert, a dialog) on whole pixels, so its
+			// one-pixel frame and Chicago text are never resampled.
+			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
 			// The scroll box stays put, an outline follows the pointer and the

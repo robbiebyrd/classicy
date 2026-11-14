@@ -2753,7 +2753,7 @@ registerClassicyAppearancePackage({
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
-| `layout` | `{ window.growBoxCorner, menuBar.placement, desktop.iconGridOrigin, scrollBar? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
+| `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
@@ -3655,7 +3655,8 @@ Platinum (§1); its README lists what it ships.
   7.5's `wctb`/`cctb` tables, no variant, `dither.tileSize: 0`). Both set
   `sound.pack: "system7"` and the optional knob `menuBar.bandHeight: 20`
   ("Package knob families"). Layout: grow box bottom right, menu bar on the
-  screen, icon grid from the top right.
+  screen, icon grid from the top right, and `window.centering:
+  "wholePixel"`, so a centered alert or dialog lands on whole pixels.
 - **Per-theme variants** (§5). Icons and system art register a color base
   tree and a `bw` variant tree under `system7`; the 1-bit theme selects
   `bw`, and a key the variant lacks falls back to the base. Cursors are one
@@ -3678,6 +3679,11 @@ Platinum (§1); its README lists what it ships.
   `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
   box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
   list boxes keep their bars, hollow, while the content fits (HIG p.160).
+- **Alerts** (HIG p.201). The buttons that are neither the default nor
+  Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
+  other]`, the first `alertLayout.otherButtonInset` (73 px) from the inner
+  line, under the message text, and the last takes the free room, so Cancel
+  and the default button stay at the lower right, apart from it.
 - **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
   fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
   inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),
@@ -3737,13 +3743,14 @@ how they look) has two halves:
    keeps scroll bars drawn while the content fits (`fitsBars`) and adds a
    drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
-   JavaScript as well as CSS, and the optional `scrollBar` group, which
-   declares behavior rather than arrangement. The group and each of its
-   keys are optional, so a package that leaves one out (Platinum leaves out
-   all) keeps Mac OS 8's behavior.
+   JavaScript as well as CSS, the optional `window.centering`, and the
+   optional `scrollBar` group, which declares behavior rather than
+   arrangement. The group and each of its keys are optional, so a package
+   that leaves one out (Platinum leaves out all) keeps Mac OS 8's behavior.
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
+| `window.centering` (optional) | `exact`, `wholePixel` | where `ClassicyWindow` puts a window opened at a symbolic `"center"` (an alert, a dialog), on first paint and on each re-center as its content resizes (`resolvePosition(pos, size, menuBarHeight?, centering?)`). `exact` (Mac OS 8): half the free space, on a half pixel when that space is odd, which a browser may resample. `wholePixel` (System 7): rounded to a whole pixel (`Math.round`), so one-pixel lines and bitmap text stay crisp. Other positions are never rounded |
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |

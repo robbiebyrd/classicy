@@ -22,6 +22,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			"top-right",
 			"top-left",
 		]),
+		centering: z.enum(["exact", "wholePixel"]).optional(),
 	}),
 	menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
 	desktop: z.object({

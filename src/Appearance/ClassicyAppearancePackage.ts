@@ -40,6 +40,14 @@ export {
 export type ClassicyAppearanceLayout = {
 	window: {
 		growBoxCorner: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+		/**
+		 * Where a window opened at a symbolic `"center"` position lands.
+		 * Optional. `"exact"` (the default, Mac OS 8): at exactly half the free
+		 * space, on a half pixel when that space is odd. `"wholePixel"`
+		 * (System 7): rounded to a whole pixel, so a centered alert or dialog
+		 * draws its one-pixel lines and text crisp in every engine.
+		 */
+		centering?: "exact" | "wholePixel";
 	};
 	menuBar: { placement: "screen" | "window" };
 	desktop: {
