@@ -3697,8 +3697,10 @@ Platinum (§1); its README lists what it ships.
   inverts while the menu is open) and the `helpMenuTitle` art (the Help menu
   is System 7's balloon glyph).
 - **Hooks**: `system7AppearanceHooks` decorates a pressed menu item with
-  `classicyMenuItemFlash` (the blink) and plays no sound: System 7 had no
-  interface feedback sounds.
+  `classicyMenuItemFlash` and an inline `animationIterationCount: 3` (the
+  blink: three cycles of 40 ms back to black on white and 40 ms inverted,
+  240 ms in all, System 7's default count, General Controls' Menu Blinking)
+  and plays no sound: System 7 had no interface feedback sounds.
 - **Screen savers.** Platinum's twelve, offered under both packages
   (`packages: ["platinum", "system7"]`), Bouncing Ball by default (§11).
 - **Tabs.** System 7.5 had no tab control; System 7's tabs are drawn from

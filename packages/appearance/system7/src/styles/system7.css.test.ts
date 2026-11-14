@@ -411,11 +411,32 @@ describe("system7.scss (compiled)", () => {
 				/margin: calc\(var\(--window-border-size\) \* -1\) 0 0 calc\(var\(--menu-frame-submenu-overlap\) \* -1\);/,
 			));
 
-		it("blinks a chosen item black and white", () => {
-			expect(rule(".classicyMenuItemFlash")).toMatch(
-				/animation-name: classicySystem7MenuItemFlash;/,
+		// One blink a cycle: the chosen item turns back to black on white for
+		// half of it, then inverts again. The hook (hooks.ts) sets how many
+		// cycles run, three, System 7's default (General Controls' Menu
+		// Blinking, HIG figure 7-9), as an inline animation-iteration-count.
+		it("blinks a chosen item black and white, one blink a cycle", () => {
+			const flash = rule(".classicyMenuItemFlash");
+			expect(flash).toMatch(/animation-name: classicySystem7MenuItemFlash;/);
+			// 40 ms off and 40 ms on: three blinks in 240 ms, inside the core's
+			// 400 ms fallback with room for a slow engine's start.
+			expect(flash).toMatch(/animation-duration: 0?\.08s;/);
+			expect(flash).toMatch(/animation-timing-function: steps\(1, end\);/);
+			const keyframes =
+				/@keyframes classicySystem7MenuItemFlash \{([\s\S]*?)\n {2}\}/.exec(
+					css,
+				)?.[1] ?? "";
+			const step = (at: string) =>
+				new RegExp(`(?:^|\\n)\\s*${at} \\{([^}]*)\\}`).exec(keyframes)?.[1] ??
+				"";
+			// Off (unhighlighted) for the first half, on (inverted) after.
+			expect(step("0%")).toMatch(/color: var\(--color-black\);/);
+			expect(step("0%")).toMatch(/background-color: var\(--color-white\);/);
+			expect(step("50%, 100%")).toMatch(/color: var\(--color-white\);/);
+			expect(step("50%, 100%")).toMatch(
+				/background-color: var\(--color-black\);/,
 			);
-			expect(css).toMatch(/@keyframes classicySystem7MenuItemFlash \{/);
+			expect(keyframes.match(/\{/g)).toHaveLength(2);
 		});
 
 		it("draws the bar white over its black line, under the screen's rounded corners", () => {

@@ -17,16 +17,27 @@ const deepFreeze = <T extends object>(value: T): DeepReadonly<T> => {
 };
 
 /**
+ * How many times a chosen menu item blinks: System 7's default, three
+ * (HIG figure 7-9: General Controls' Menu Blinking, Off, 1, 2 or 3). Each
+ * blink is one cycle of the `classicySystem7MenuItemFlash` keyframes.
+ */
+const MENU_BLINKS = 3;
+
+/**
  * The System 7 Appearance Package's hooks (`hooks` in its registration):
  * a menu item's press decorates it with the blink (`classicyMenuItemFlash`,
- * styled in styles/components/_Menu.scss), whose animationend runs the
- * item's action, and its release clears it. Deeply frozen, as Platinum's.
+ * styled in styles/components/_Menu.scss, run `MENU_BLINKS` times), whose
+ * animationend runs the item's action, and its release clears it. Deeply
+ * frozen, as Platinum's.
  */
 export const system7AppearanceHooks: DeepReadonly<ClassicyAppearanceHooks> =
 	deepFreeze<ClassicyAppearanceHooks>({
 		on: {
 			MenuItem: {
-				press: () => ({ className: "classicyMenuItemFlash" }),
+				press: () => ({
+					className: "classicyMenuItemFlash",
+					style: { animationIterationCount: MENU_BLINKS },
+				}),
 				release: () => ({}),
 			},
 		},

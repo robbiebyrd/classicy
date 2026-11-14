@@ -593,8 +593,11 @@ describe("the System 7 appearance package", () => {
 			event: "press",
 			detail: { itemId: "x" },
 		} as never;
+		// Three blinks, System 7's default (HIG figure 7-9, General Controls'
+		// Menu Blinking: Off, 1, 2, 3), each one cycle of the keyframes.
 		expect(menuItem.press?.(ctx)).toEqual({
 			className: "classicyMenuItemFlash",
+			style: { animationIterationCount: 3 },
 		});
 		expect(menuItem.release?.(ctx)).toEqual({});
 		expect(play).not.toHaveBeenCalled();

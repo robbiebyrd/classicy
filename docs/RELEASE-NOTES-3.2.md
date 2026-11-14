@@ -49,7 +49,9 @@ System 7 arranges an alert's buttons as its HIG does (p.201): a button that
 is neither the default nor Cancel, such as Don't Save, stands at the left,
 under the message text, apart from Cancel and the default button at the
 lower right. Hosts keep listing the buttons in any order; Platinum still
-draws them in the list's order.
+draws them in the list's order. A chosen menu item blinks three times,
+System 7's default (`system7AppearanceHooks` sets the count), where
+Platinum's flashes twice.
 
 **Mixing versions of the two Appearance Packages is unsupported.** Install
 `@classicy/classicy`, `@classicy/appearance-platinum` and
