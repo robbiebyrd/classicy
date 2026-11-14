@@ -212,7 +212,7 @@
 			},
 			"slider": {
 				"pixel": 1,
-				"channel": 8,
+				"channel": 7,
 				"thumbAlong": 15,
 				"thumbAcross": 17,
 				"thumbRise": 3,

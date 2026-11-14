@@ -205,7 +205,8 @@ pop-up menu's (the dimmed box's gradient, the button's focus ring, the
 indicator's divider, rounded corners and bevel, and the open menu's frame,
 face, items, highlight and group titles), and the slider's (the channel's
 border, shading and bevel, the dimmed filter, the ghost's translucency, and
-the ticks' and their labels' ink). Platinum draws them exactly as before.
+the ticks' and their labels' ink). Platinum draws them exactly as before
+(the slider's then redrawn, below).
 The Platinum channel reads the new `--classicy-slider-track` first, an image
 that replaces its shading: the color picker sets it on its channel sliders,
 and a host may set it on a slider or an ancestor. A host that ships its own Appearance Package now draws them itself;
@@ -319,23 +320,30 @@ the ids the saver already names:
   A vertical slider stays centered in its container, and its track is
   nudged onto the pixel grid (by under half a pixel, as a submenu is) where
   centering leaves it on a fraction of one.
-- **Visual fix: Platinum's slider now matches HIGOS8 Fig. 2-17.** The
-  channel is the figure's: an etched #AAAAAA row, a dark border
-  (`--color-system-07`), three flat #AAAAAA rows, a dark border and two
-  white rows, with pixel-art ends, 8 px thick (it was a 6 px gray
-  cylinder). The indicator is the figure's 15 x 17 pixel-art indicator in
-  the theme's lavender ramp (`--color-theme-01` to `-07`), a step darker
-  while pressed, its flat side 3 px past the channel whichever way it
-  points (it was a 21 x 21 silver pentagon); the nondirectional knob is
-  the same indicator without its point, the highlighted one is drawn
-  pressed, and the ghost indicator is the indicator in grays. Tick marks
-  are Figure 2-18's 3 x 8 etched marks. A vertical slider is the same art
-  turned. A horizontal slider's input is now 20 px tall (it was 21), and a
-  vertical one 20 px wide. Every Platinum slider looks different,
-  including the Appearance Manager's Sound tab and the color picker's
-  channel sliders, which keep their own fills (`--classicy-slider-track`).
-  The new knobs are the `slider` family (AGENT-REFERENCE §8, "Package knob
-  families"). The pre-3.2 thumb's art keys (`sliderThumb`,
+- **Visual fix: Platinum's slider now matches the HIGOS8 figures: Figs.
+  2-18 and 2-19 at rest, Fig. 2-17 pressed.** The channel is the at-rest
+  figures': an etched #AAAAAA row, a dark border (`--color-system-07`),
+  three flat #AAAAAA rows, a dark border and a white row, with one-pixel
+  pixel-art ends, 7 px thick in every state (it was a 6 px gray cylinder).
+  The indicator is their 15 x 16 pixel-art indicator in the theme's
+  lavender ramp (`--color-theme-01` to `-07`), its flat side 3 px past the
+  channel and its point 6 px past it whichever way it points (it was a
+  21 x 21 silver pentagon); pressed, it is Fig. 2-17's 15 x 17 indicator,
+  a step darker, its point reaching a pixel further. The nondirectional
+  knob is the same indicator without its point, centered on the channel,
+  the highlighted one is drawn pressed, and the ghost indicator is the
+  indicator in grays. Tick marks are Figure 2-18's 3 x 8 etched marks, the
+  row after the indicator's point. A vertical slider is the same art
+  turned, as the 1996 draft's Figure 13 draws it (the etch on its left,
+  the indicator pointing left). A horizontal slider's input is now 19 px
+  tall (it was 21), and a vertical one 19 px wide. Firefox's thumb corner
+  radius (its UA sheet's 0.5em, which clipped the art round) is reset in
+  the base sheet, for every package. Every Platinum slider looks
+  different, including the Appearance Manager's Sound tab and the color
+  picker's channel sliders, which keep their own fills
+  (`--classicy-slider-track`). The new knobs are the `slider` family
+  (AGENT-REFERENCE §8, "Package knob families"), and every placement is
+  derived from them. The pre-3.2 thumb's art keys (`sliderThumb`,
   `sliderThumbRect`, `sliderStrikes`) stay registered, and the
   `platinum-slider-thumb` mixin stays in Platinum's `_Slider.scss` for
   hosts that `@use` it; Platinum no longer draws with them.

@@ -1109,7 +1109,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
-| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws HIGOS8 Figure 2-17 pixel for pixel (an 8 px etched channel with pixel-art ends, a 15 × 17 pixel-art indicator in the theme's lavender ramp, darker while pressed or highlighted, a pointless knob, a gray ghost, Figure 2-18's 3 × 8 tick marks; the `slider` knob family), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders |
+| `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; Figure 2-17 pressed or highlighted: the 15 × 17 indicator, darker, its point a pixel further; a pointless knob centered on the channel; a gray ghost; the 1996 draft's Figure 13 for the vertical slider; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round |
 | `ClassicyTextEditor` | `content?`, `prefillValue?`, `onChangeFunc?`, `autoHeight?`, `border?`, `labelTitle?`, `fitsScrollBars? (false)` | plain textarea. `fitsScrollBars` keeps both bars drawn (`fits`) while the text fits, for a document editor that fills its window; SimpleText passes the package's declaration (`useClassicyFitsScrollBars()`), so its plain-text window keeps its bars under System 7 |
 | `ClassicyRichTextEditor` | `content` *, `onChangeFunc?(markdown)`, `editorRef?` | MDXEditor-backed markdown |
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
@@ -4301,7 +4301,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
 | `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
-| `slider.channel` | `--slider-channel` | 8 | — | no | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 7 | — | no | _Slider.scss |
 | `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
 | `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
 | `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
@@ -4315,13 +4315,21 @@ contract). It sizes `ClassicyFileInput`'s visually hidden native input, off
 the border metric (H-R29b), so the input never collapses to 0×0, which some
 screen readers skip, when Border is 0.
 
-The `slider` family is Platinum's slider drawn from HIGOS8 Figure 2-17
-(Platinum's `_Slider.scss`): the art's grid pixel (`pixel`), the channel's
-thickness (`channel`), the indicator's box (`thumbAlong` x `thumbAcross`,
-which Platinum sets as `--slider-thumb-width`/`-height` on the track
-group, so the base sheet sizes and places the native thumb by them), how far
-its flat side lies past the channel (`thumbRise`), and the tick marks'
-size (`tickWidth` x `tickHeight`). All look-only: only Platinum reads them.
+The `slider` family is Platinum's slider drawn from the HIGOS8 figures
+(Platinum's `_Slider.scss`; Figures 2-18 and 2-19 at rest, 2-17 pressed):
+the art's grid pixel (`pixel`), the channel's thickness (`channel`, 7), the
+indicator's box (`thumbAlong` x `thumbAcross`, 15 x 17: the pressed
+indicator's rows; at rest it draws 16, the box's last row clear; Platinum
+sets them as `--slider-thumb-width`/`-height` on the track group, so the
+base sheet sizes and places the native thumb by them), how far its flat
+side lies past the channel (`thumbRise`), and the tick marks' size
+(`tickWidth` x `tickHeight`). The input's thickness (`thumbAcross - pixel +
+thumbRise`, 19, odd like the channel so the centered channel sits on a whole
+pixel), the thumb's margins on a vertical channel (`channel + thumbRise -
+(thumbAcross + thumbAlong) / 2` pointing left, `(thumbAcross - thumbAlong)
+/ 2 - thumbRise` pointing right) and Firefox's translations of its centered
+thumb (`(thumbAcross - channel) / 2 - thumbRise`, and its negation) are
+derived from them. All look-only: only Platinum reads them.
 
 `dither.tileSize` is the switch of the dither vocabulary
 (`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
@@ -4920,7 +4928,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 42 sites over 11 files, the sites kept on purpose
+the list ends at these 43 sites over 11 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -4945,11 +4953,15 @@ the list ends at these 42 sites over 11 files, the sites kept on purpose
   the art's pixel grid inside `classicy-px-rect` (H-R7), as the Control
   Strip's.
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
-  helper: the slider drawn pixel for pixel from HIGOS8 Figure 2-17 (the
-  channel and its caps, the indicator, the knob, the ghost, the tick marks,
-  the indicator's place on a vertical channel and the ticks' half-width
-  shift), one-pixel rectangles on the art's grid inside `classicy-px-rect`
-  (H-R7), as System 7's.
+  helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
+  2-17 (the channel and its caps, the indicator, the knob, the ghost, the
+  tick marks and the ticks' half-width shift), one-pixel rectangles on the
+  art's grid inside `classicy-px-rect` (H-R7), as System 7's; and the one
+  `/ 2` in its `half()` helper: the thumb's centering across the channel
+  (Chromium places a vertical thumb's box from the channel's edge and the
+  quarter turn swings it about its center, so its margin is the knobs' sum
+  or difference halved; Firefox centers the box, so its translation is half
+  the box's overhang of the channel), geometry, not a role (H-R21).
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle

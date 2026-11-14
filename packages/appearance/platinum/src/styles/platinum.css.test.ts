@@ -744,12 +744,14 @@ describe("platinum.scss (compiled)", () => {
 		});
 	});
 
-	// Story 0194-5bs, fix round 3: Platinum's slider drawn pixel for pixel
-	// from HIGOS8 Figure 2-17 (the channel, the pressed indicator), 2-18 (the
-	// indicator at rest, the tick marks). Every part is pixel art, one
-	// px-rect layer per run of one ink in a row; these tests decode the
-	// compiled layers back into rows and compare them with the figures'.
-	describe("the slider, drawn from HIGOS8 Figure 2-17", () => {
+	// Story 0194-5bs, fix rounds 3 and 4: Platinum's slider drawn pixel for
+	// pixel from HIGOS8 Figures 2-18 and 2-19 (the slider at rest: the
+	// channel, the indicator, the tick marks), the 1996 draft's Figure 13
+	// (the vertical slider) and Figure 2-17 (the pressed indicator and the
+	// ghost). Every part is pixel art, one px-rect layer per run of one ink
+	// in a row; these tests decode the compiled layers back into rows and
+	// compare them with the figures'.
+	describe("the slider, drawn from HIGOS8 Figures 2-18 and 2-17", () => {
 		// Grid pixels of a `--slider-pixel` length: 0, the pixel, or a multiple.
 		const grid = (length: string): number => {
 			if (length === "0") return 0;
@@ -828,8 +830,8 @@ describe("platinum.scss (compiled)", () => {
 			return rows.map((r) => r.join(""));
 		};
 
-		// At rest: Figure 2-18's indicator (16 rows), its grip run down a row
-		// to Figure 2-17's 17.
+		// At rest: Figure 2-18's indicator (16 rows, as extracted from the
+		// PDF; Figure 2-19 draws the same), the box's last row clear.
 		const AT_REST = [
 			".#############.",
 			"#,lllllllllllm#",
@@ -841,15 +843,16 @@ describe("platinum.scss (compiled)", () => {
 			"#lmmlololommmn#",
 			"#lmmlololommmn#",
 			"#lmmmomomommmn#",
-			"#lmmmomomommmn#",
 			".#nmmmmmmmmmn#.",
 			"..#nmmmmmmmn#..",
 			"...#nmmmmmn#...",
 			"....#nmmmn#....",
 			".....#nnn#.....",
 			"......###......",
+			"...............",
 		];
-		// Pressed: Figure 2-17's indicator, as extracted from the PDF.
+		// Pressed: Figure 2-17's indicator (17 rows: the last grip row
+		// doubled), as extracted from the PDF.
 		const PRESSED = [
 			".#############.",
 			"#lmmmmmmmmmmmn#",
@@ -890,7 +893,11 @@ describe("platinum.scss (compiled)", () => {
 			expect(thumb.background).not.toMatch(/--classicy-art-/);
 		});
 
-		it("places the indicator's flat side three pixels past the channel", () => {
+		// Fix round 4: every placement is derived from the knobs (the vertical
+		// margins were measured at the defaults). Under Platinum's defaults
+		// (channel 7, along 15, across 17, rise 3): the vertical thumb pointing
+		// left -6, pointing right -2; Firefox's shift 2, back -2.
+		it("places the indicator's flat side three pixels past the channel, from the knobs", () => {
 			expect(
 				rule(`${P} .classicySlider::-webkit-slider-thumb`).props["margin-top"],
 			).toBe("calc(var(--slider-thumb-rise) * -1)");
@@ -901,40 +908,78 @@ describe("platinum.scss (compiled)", () => {
 			).toBe(
 				"calc(var(--slider-channel) + var(--slider-thumb-rise) - var(--slider-thumb-across))",
 			);
+			// A vertical thumb's box lies from the channel's edge and turns
+			// about its center: (channel + rise) - (across + along) / 2, and
+			// (across - along) / 2 - rise.
 			expect(
 				rule(`${P} .classicySliderInputVertical::-webkit-slider-thumb`).props,
 			).toEqual({
 				"margin-top": "0",
-				"margin-left": "calc(var(--slider-pixel) * -5)",
+				"margin-left":
+					"calc(var(--slider-channel) + var(--slider-thumb-rise) - (var(--slider-thumb-across) + var(--slider-thumb-along)) / 2)",
 			});
 			expect(
 				rule(
 					`${P} .classicySliderInputVertical.classicySliderIndicatorRight::-webkit-slider-thumb`,
 				).props["margin-left"],
-			).toBe("calc(var(--slider-pixel) * -2)");
-			// Firefox centers its own thumb: the same places by translation.
+			).toBe(
+				"calc((var(--slider-thumb-across) - var(--slider-thumb-along)) / 2 - var(--slider-thumb-rise))",
+			);
+			// Firefox centers its own thumb on the channel: the same places by
+			// a translation of (across - channel) / 2 - rise, down the channel
+			// or back up it, before the base sheet's turn.
+			const shift =
+				"calc((var(--slider-thumb-across) - var(--slider-channel)) / 2 - var(--slider-thumb-rise))";
+			const back =
+				"calc(((var(--slider-thumb-across) - var(--slider-channel)) / 2 - var(--slider-thumb-rise)) * -1)";
+			expect(
+				rule(`${P} .classicySlider::-moz-range-thumb`).props.transform,
+			).toBe(`translateY(${shift})`);
+			expect(
+				rule(`${P} .classicySliderIndicatorUp::-moz-range-thumb`).props
+					.transform,
+			).toBe(`translateY(${back}) rotate(180deg)`);
 			expect(
 				rule(`${P} .classicySliderIndicatorLeft::-moz-range-thumb`).props
 					.transform,
-			).toBe("translateX(calc(var(--slider-pixel) * -2)) rotate(90deg)");
+			).toBe(`translateX(${back}) rotate(90deg)`);
+			expect(
+				rule(`${P} .classicySliderIndicatorRight::-moz-range-thumb`).props
+					.transform,
+			).toBe(`translateX(${shift}) rotate(-90deg)`);
 		});
 
+		// The input is the indicator at rest (its box less the pressed one's
+		// extra row) plus its rise (19): odd like the channel, so the centered
+		// channel sits on a whole pixel, the point's six rows above and below
+		// it, and the rest indicator's point ends on the input's edge.
 		it("sizes the thumb's box, the input and the channel by the slider knobs", () => {
 			expect(rule(`${P} .classicySliderTrackGroup`).props).toEqual({
 				"--slider-thumb-width": "var(--slider-thumb-along)",
 				"--slider-thumb-height": "var(--slider-thumb-across)",
 			});
-			expect(rule(`${P} .classicySlider`).props.height).toBe(
-				"calc(var(--slider-thumb-across) + var(--slider-thumb-rise))",
-			);
+			const thickness =
+				"calc(var(--slider-thumb-across) - var(--slider-pixel) + var(--slider-thumb-rise))";
+			expect(rule(`${P} .classicySlider`).props.height).toBe(thickness);
 			expect(rule(`${P} .classicySliderInputVertical`).props.width).toBe(
-				"calc(var(--slider-thumb-across) + var(--slider-thumb-rise))",
+				thickness,
 			);
+			// The ghost's box where the indicator's lies: the channel's room
+			// above it (the point's rows) less the rise; turned up, a pixel
+			// above the input.
+			expect(rule(`${P} .classicySliderGhost`).props["margin-top"]).toBe(
+				"calc(var(--slider-thumb-across) - var(--slider-pixel) - var(--slider-thumb-rise) - var(--slider-channel) - var(--slider-thumb-rise))",
+			);
+			expect(
+				rule(`${P} .classicySliderGhost.classicySliderIndicatorUp`).props[
+					"margin-top"
+				],
+			).toBe("calc(var(--slider-pixel) * -1)");
 		});
 
 		// The channel's caps and runs, decoded on a 40-pixel channel: Figure
-		// 2-17's left end (its border two pixels wide), straight run and right
-		// end, the three flat rows reading --classicy-slider-track first.
+		// 2-18's left end (a one-pixel cap), straight run and right end, the
+		// three flat rows reading --classicy-slider-track first.
 		it("draws the channel, and the same art turned for a vertical slider", () => {
 			const horizontal = rule(
 				`${P} .classicySlider::-webkit-slider-runnable-track`,
@@ -977,19 +1022,18 @@ describe("platinum.scss (compiled)", () => {
 							return `${m[1]} left calc(var(--slider-pixel) * ${x}) top calc(var(--slider-pixel) * ${y})/${size[0]} ${size[1]} no-repeat`;
 						})
 						.join(", "),
-					vertical ? 8 : 40,
-					vertical ? 40 : 8,
+					vertical ? 7 : 40,
+					vertical ? 40 : 7,
 				);
 			const rows = at40(horizontal.background, false);
 			expect(rows).toEqual([
 				".aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..",
-				"aaaKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKa.",
-				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
-				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
-				"aKKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
-				".WWKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKWW",
-				"...WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
-				"...WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+				"aaKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKW.",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				"aKaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaKW",
+				".WKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKWW",
+				"..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
 			]);
 			expect(horizontal.background).toContain(fill);
 			const vertical = rule(
@@ -998,10 +1042,12 @@ describe("platinum.scss (compiled)", () => {
 			expect(vertical.at).toBeGreaterThan(
 				rule(`${P} .classicySlider::-webkit-slider-runnable-track`).at,
 			);
-			// Turned: column c of the vertical is row c of the horizontal.
+			// Turned (the 1996 draft's Figure 13: the etch on the left, the
+			// white row on the right, the start cap at the top): column c of
+			// the vertical is row c of the horizontal.
 			const turned = at40(vertical.props.background, true);
 			expect(
-				Array.from({ length: 8 }, (_, c) => turned.map((r) => r[c]).join("")),
+				Array.from({ length: 7 }, (_, c) => turned.map((r) => r[c]).join("")),
 			).toEqual(rows);
 		});
 
@@ -1038,7 +1084,9 @@ describe("platinum.scss (compiled)", () => {
 					`${P} .classicySliderIndicatorNondirectional${pseudo}`,
 				);
 				expect(knob.at).toBeGreaterThan(plain.at);
-				expect(decode(knob.props.background, 15, 17).slice(0, 13)).toEqual([
+				// Eleven rows, one down in the box: two past the seven-row
+				// channel each side.
+				expect(decode(knob.props.background, 15, 17)).toEqual([
 					"...............",
 					".#############.",
 					"#,lllllllllllm#",
@@ -1048,10 +1096,14 @@ describe("platinum.scss (compiled)", () => {
 					"#lmmlololommmn#",
 					"#lmmlololommmn#",
 					"#lmmlololommmn#",
-					"#lmmlololommmn#",
 					"#lmmmomomommmn#",
 					"#lnnnnnnnnnnnn#",
 					".#############.",
+					"...............",
+					"...............",
+					"...............",
+					"...............",
+					"...............",
 				]);
 				const active = pseudo.replace("::", ":active::");
 				const highlighted = rule(
