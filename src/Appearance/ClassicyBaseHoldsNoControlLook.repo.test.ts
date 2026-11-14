@@ -101,11 +101,13 @@ const KEPT_BY_FILE: Record<string, ReadonlySet<string>> = {
 	]),
 	"SystemResources/Slider/ClassicySlider.scss": new Set([
 		// The native range input's chrome taken away (it draws nothing): its
-		// face, its focus outline and Firefox's thumb border. The package
-		// draws the channel and the thumb.
+		// face, its focus outline, and Firefox's thumb border and 0.5em corner
+		// radius (which would clip a package's pixel-art thumb round). The
+		// package draws the channel and the thumb.
 		"background:transparent",
 		"outline:none",
 		"border:none",
+		"border-radius:0",
 	]),
 };
 

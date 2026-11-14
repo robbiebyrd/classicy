@@ -889,6 +889,11 @@ describe("system7.scss (compiled)", () => {
 			);
 			// The base sheet no longer dims by a filter (it is Platinum's).
 			expect(rule(":where(.classicySlider).disabled")).not.toMatch(/filter/);
+			// The base sheet resets Firefox's 0.5em thumb corner radius, which
+			// clipped the capsule's corners; System 7 sets none back.
+			expect(rule(".classicySlider::-moz-range-thumb")).not.toMatch(
+				/border-radius/,
+			);
 		});
 
 		// Fix round 2: the ticks' and their labels' ink left the base sheet;

@@ -50,4 +50,22 @@ describe("slider art (Platinum package)", () => {
 	it("the base sheet embeds no thumb art", () => {
 		expect(base).not.toMatch(/data:image|slider-strikes\.svg|classicy-art/);
 	});
+
+	// Fix round 4: Firefox's UA sheet gives ::-moz-range-thumb a border and a
+	// 0.5em corner radius, which clipped the 15 x 17 pixel-art indicator
+	// round at every corner (and System 7's capsule). The base sheet resets
+	// both, and no package rule sets a radius back on the thumb.
+	it("resets Firefox's thumb border and corner radius, which no package restores", () => {
+		const mozThumb = parseCssRules(base).filter((r) =>
+			r.selectors.some((s) => s === ".classicySlider::-moz-range-thumb"),
+		);
+		expect(mozThumb).toHaveLength(1);
+		expect(mozThumb[0].body).toMatch(/border:\s*none/);
+		expect(mozThumb[0].body).toMatch(/border-radius:\s*0\s*(;|$)/m);
+		const packageThumbs = parseCssRules(css)
+			.filter((r) => r.selectors.some((s) => s.includes("::-moz-range-thumb")))
+			.map((r) => r.body)
+			.join("\n");
+		expect(packageThumbs).not.toMatch(/border-radius/);
+	});
 });

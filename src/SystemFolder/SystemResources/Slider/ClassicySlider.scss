@@ -58,10 +58,13 @@ $vertical-rail-inset: $thumb-half 0;
     cursor: pointer;
   }
 
+  // Firefox's UA sheet gives the thumb a border and a 0.5em corner radius,
+  // which would clip a package's pixel art round: both are reset here.
   &::-moz-range-thumb {
     width: $thumb-w;
     height: $thumb-h;
     border: none;
+    border-radius: 0;
     cursor: pointer;
   }
 }
@@ -252,8 +255,9 @@ $vertical-rail-inset: $thumb-half 0;
   // half the thumb, rounded up to a whole pixel. A thumb box on a half pixel
   // (an odd thumb across an even channel) would be resampled differently by
   // each pointing direction's quarter turn; on a whole pixel either turn is
-  // exact, and both directions sit the same, the point 7 px past the channel
-  // and the flat side 8 px from it under Platinum.
+  // exact, and both directions sit the same. A package that places its
+  // thumb by its own knobs (Platinum: its indicator's flat side three pixels
+  // past the channel, its point six past) sets its own margin over this.
   &::-webkit-slider-thumb {
     margin-top: 0;
     margin-left: round(up, calc(#{$thumb-margin-top} - #{$track-half}), var(--window-border-size));
