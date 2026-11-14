@@ -321,9 +321,9 @@ the ids the saver already names:
   container's edge rather than centered in it, on a whole pixel. Under
   Platinum the vertical track is now the horizontal one's 6 px channel
   turned a quarter, where it was drawn as wide as the input, with the thumb
-  across it on a whole pixel: the point 7 px past the channel and the flat
-  side 8 px from it, whichever way the thumb points (a 21 px thumb on a 6 px
-  channel cannot sit exactly centered). Its ticks are on whole pixels.
+  centered across it on a whole pixel, 7 px past the channel on either
+  side whichever way it points, as the horizontal thumb is. Its ticks are
+  on whole pixels.
 - **The Desktop tab offers None.** The Appearance Manager's Patterns pop-up
   lists None first: it removes the desktop picture
   (`ClassicyDesktopChangeBackground` with `""`), so the desktop shows its
