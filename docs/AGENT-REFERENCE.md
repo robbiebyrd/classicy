@@ -471,7 +471,7 @@ Common built-in actions:
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
-| `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` | Set one theme color (forks a built-in into "Custom"; see §8) |
+| `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
 | `ClassicyDesktopChangeMetric` | `{ metricKey, value }` or `{ family, key, value }` | Set one core layout metric, or one knob of the active package (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopChangeAppearanceOption` | `{ path, value }` | Set one other theme value by allowlisted dotted path, e.g. `"sound.pack"` (forks a built-in into "Custom"; see §8) |
 | `ClassicyDesktopLoadThemes` | `{ availableThemes: ClassicyTheme[] }` | Replace the theme list. Each entry is validated against `ClassicyThemeSchema` like an import (`readClassicyLoadedThemes`; see §8 "Theme files"): missing metric groups are filled, a missing `package` becomes `"platinum"`, undeclared keys are stripped and a registered wallpaper is held by its filename. An invalid entry (a font size outside 8–72, a bad color, an unsafe `backgroundImage`, a non-object) is dropped with a `ClassicyDesktopManager` warning naming its id or index and its first issue; if no entry is valid, the list is left unchanged (one more warning). A theme for an unregistered package is kept |
@@ -1554,6 +1554,20 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   tree the first key, with one `classicyLog` warning per such `src`.
   `ClassicyInputDialog` draws its icon at the regular 32 px, so it draws the
   regular image.
+- **Selected icon images** (3.2, story 0197-s0z):
+  `registerClassicySelectedIconImages(packageId, { [image]: selectedImage },
+  { variant? })` gives, for an icon image's URL (full-size or small, as drawn),
+  the image a selected icon draws instead, for the package's base look or,
+  with `variant`, that variant's. `resolveClassicyIconImage(src, px, true)` /
+  `useClassicyIconImage(src, px, true)` return it while that look is active
+  (after the follow and small steps below), else the image unchanged. A
+  selected `ClassicyIcon` or desktop icon draws it and adds the `SelectedImage`
+  part class to its mask pair (`classicyIconSelectedImage`,
+  `classicyDesktopIconSelectedImage`), so the package's stylesheet can leave
+  out its own selected look there; the mask keeps the plain image's shape.
+  System 7 registers every color icon's pre-rendered selected rendering for
+  System 7 Color (7.5 darkened through the 8-bit color table, which no CSS
+  filter matches; `docs/system7-asset-inventory.md`, "Selected color icons").
 - **A core icon URL stands for its key** (story 0193-801). Before picking
   the small image, `resolveClassicyIconImage` / `useClassicyIconImage` map a
   URL the default package registers for an icon key (the core's icons,
@@ -2591,6 +2605,8 @@ and `classicyCustomThemeSlotId(packageId)`.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'select', color: 0x3366cc })
 // Palettes: index 0–6 maps to --color-system-01 … -07 / --color-theme-01 … -07.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'theme', index: 2, color: 0x9999ff })
+// A package color (3.2): one the active package declares in `colorFamilies`.
+dispatch({ type: 'ClassicyDesktopChangeColor', family: 'grayRamp', key: 'step2', color: 0x222222 })
 ```
 
 | `colorKey` | CSS variable |
@@ -4074,7 +4090,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Packages | `usePackagesTab({ packages, activePackageId, changePackage })` | A `ClassicyRadioInput` (`name="appearance_package"`, input ids `appearancePackageInputId(id)` → `appearance_package_<id>`) titled "Appearance Package" (which names its `radiogroup`) and listing every registered package as "<name> (<n> themes)" ("(1 theme)" for one), counting its selectable built-ins (`listClassicyPackageBuiltInThemes`: its defaults and presets, once per id), the active one on, and under it each package's seven `defaults.color.theme` swatches (`li[data-package-id]`, `aria-label` "<name> colors"); in the Colors tab's 210 px scroll region. Picking one dispatches `ClassicyDesktopChangeAppearancePackage { packageId }`, which keeps `customThemes` |
 | Options | `useOptionsTab({ pkg, theme, editingCustomTheme, changeMetric })` | The active package's `knobs`: one group per family (humanized family name), one spinner per knob (its `label`), showing `measurements.<family>.<key>`, or, when the theme lacks it, the value `getThemeVars` draws (`classicyThemeMeasurementDefaults(theme.package)`, the package's defaults over the core floor; H-R29c), and the knob's `default` only when neither has the key; ids `appearanceOptionInputId({ family, key })` → `appearance_option_measurements_<family>_<key>`. Built with `ClassicySchemaForm`; entries are whole pixels clamped to `getThemeMetricFamilyBounds` and dispatched as `ClassicyDesktopChangeMetric { family, key, value }` (never `ChangeAppearanceOption`). Carries the fork notice ("Changing an option creates a Custom theme from “<name>”." / "Editing the “<name>” theme."). Knobs the reducer would refuse are left out: a family or key failing `isThemeMetricFamilyTarget` (a core group such as `window`, a name that is not lower camel case, or a pair making a reserved variable such as `menu.minWidth` → `--menu-min-width`) or bounds that are `undefined`; the left-out knobs are reported in one `ClassicyAppearance` warning per package. A package with no editable knob shows "The <name> package has no options." Under Platinum the tab shows six groups, "Control strip", "Menu frame", "Pager", "Balloon help", "Pop up slider" and "Scrollbar" (42 knobs; "Package knob families" below) |
 | Desktop | `useDesktopTab({ bg, themePackage?, bgPosition, bgRepeat, bgSize, changeBackground, setBackgroundURL, alignBackground, repeatBackground, backgroundSize })` | The wallpaper picker (None first, which stores `""`: no picture, the desktop's solid color; then the wallpaper registry, §5), a picture URL field, and position, tiling and size (`ClassicyDesktopChangeBackground*`). `bg` is the resolved picture, `""` for none (the picker reads None and the preview shows the desktop color) |
-| Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), dispatching `ClassicyDesktopChangeColor`, with the fork notice |
+| Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
 | Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.2) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
@@ -4112,7 +4128,80 @@ Theme-driven variables (values change per theme):
 | Window chrome | `--color-window-border`, `--color-window-border-outset`, `--color-window-border-inset`, `--color-window-frame`, `--color-window-title`, `--color-window-document` |
 | Window metrics | `--window-control-size`, `--window-border-size`, `--window-padding-size`, `--window-scrollbar-size`, `--window-scrollbar-arrow-size` |
 | Typography | `--header-font`/`--header-font-size`, `--body-font`/`--body-font-size`, `--ui-font`/`--ui-font-size`, `--mono-font`/`--mono-font-size`, `--digital-font`/`--digital-font-size` |
+| Package colors | `--package-color-<family>-<key>`: the active theme's `color.families` ("Package color families" below), e.g. Platinum's `--package-color-gray-ramp-step2` |
 | Desktop | `--desktop-icon-size`, `--desktop-icon-font-size`, `--desktop-background-image`, `--desktop-background-color`, `--desktop-background-repeat`, `--desktop-background-position`, `--desktop-background-size`; fixed: `--icon-small-size` (16px), `--icon-size-regular` (32px) |
+
+**Package color families.** An Appearance Package may declare colors of its
+own beside the 28 core colors (`CLASSICY_THEME_COLOR_TARGETS`, which do not
+change), the way it declares measurement families. They are additive, 3.2.
+
+- **Theme data.** `color.families.<family>.<key>`, a 24-bit RGB integer
+  (`ClassicyThemeColors.families?`, `ClassicyThemeColorFamilies`). Family and
+  key names are lowercase-first camelCase (`CLASSICY_MEASUREMENT_NAME`;
+  `constructor` and `prototype` refused). `families` sits under `color` so a
+  theme's colors stay in one place, and no core color key is or will be
+  named `families`.
+- **Variables.** Each leaf is emitted by `getThemeVars` as
+  `--package-color-<family>-<key>`, kebab-cased (`classicyColorFamilyVars`,
+  `classicyColorFamilyVarName`, `ClassicyThemeColorFamilies.ts`):
+  `grayRamp.step2` → `--package-color-gray-ramp-step2`, `stepA` →
+  `--package-color-gray-ramp-step-a`. The `--package-color-` prefix
+  (`CLASSICY_PACKAGE_COLOR_VAR_PREFIX`) is the packages' namespace: no core
+  variable has it, and it is reserved whole (`isReservedClassicyThemeVar`),
+  so no measurement family (`packageColor`, say) can make one; the walker
+  skips such a measurement with one warning. `--color-*` stays the core's
+  (H-R16). Two leaves that kebab-case to one variable (`grayRamp.stepA`,
+  `gray.rampStepA`): the first in key order wins, one `ClassicyAppearance`
+  warning. A leaf that is not a 24-bit color, or a bad name, emits nothing.
+  Read them from a package's own stylesheet only: no base stylesheet reads
+  one (the core floor holds none), and the var-coverage test checks each
+  package sheet against its own themes' emitted variables.
+- **Package metadata.** `ClassicyAppearancePackage.colorFamilies`
+  (`ClassicyAppearanceColorFamilies`): family → `{ label, colors: key →
+  { label } }`, like `knobs`. The package schema refuses a declared color
+  that `defaults.color.families` holds no value for.
+- **Completion.** `classicyThemeColorFamilyDefaults(packageId)` is the
+  registered package's `defaults.color.families` (a missing id the default
+  package's; an unregistered id `undefined`: never another package's, since a
+  package's colors are its own look). `withDefaultThemeColorFamilies(theme,
+  defaults)` fills a theme saved before a family existed key by key
+  (copy-on-write; present valid colors win, unknown families and keys are
+  kept). `getThemeVars`, the Colors tab, theme export, host-loaded themes
+  (`readClassicyLoadedThemes`) and package activation complete; a theme of an
+  unregistered package is left whole.
+- **Editing.** The Colors tab adds one group per declared family after the
+  core groups (the family's `label`; a swatch per color, labeled by its
+  `label`; id `appearance_color_family_<family>_<key>`). An edit dispatches
+  the family form `ClassicyDesktopChangeColor { family, key, color }`
+  (`ClassicyThemeColorFamilyChange`, predicate `hasThemeColorFamilyChange`,
+  which requires no `colorKey`). The reducer accepts only a color the active
+  package declares (`isDeclaredThemeColorFamily`, resolved as for the metric
+  family form; others are refused with a warning) and writes through
+  `editActiveClassicyTheme`, so the first edit forks a built-in into its
+  package's Custom theme, as every color edit does (`setThemeColorFamily`
+  creates the family when the theme lacks it). The `{ colorKey, index?,
+  color }` form is unchanged.
+- **Persistence.** Built-ins persist as references, as before. Every other
+  theme of a registered package is stored without the family colors equal
+  to its package's defaults (`withoutDefaultThemeColorFamilies`, as
+  measurements are, H-R17), so a later fix to a package's color reaches
+  every theme that never changed it; a theme of an unregistered package is
+  stored whole.
+- **Theme files.** `ClassicyThemeSchema` keeps `color.families` (each leaf a
+  color, names as above), optional, so a file without it loads. Export
+  writes every family color, completed. A build without the capability
+  strips the unknown key, so a file with families still loads there in its
+  core colors; a theme whose package is not registered is refused as
+  before.
+- **Platinum** declares `grayRamp`, HIGOS8's 16-step gray ramp in 0x11
+  steps, `step1` (#111111) to `stepE` (#EEEEEE) (0 and F are black and
+  white), labeled "Gray Ramp" "1" … "E", in `platinum.json`
+  `defaults.color.families` only (the presets are filled when it
+  registers). Its slider reads them (the channel's #222222 border and
+  #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
+  it draws HIGOS8 Figs. 2-17 to 2-19 exactly. **System 7** declares
+  `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
+  `controlStrip.face` / `darkEdge` (#CCCCCC / #444444, white / black).
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,

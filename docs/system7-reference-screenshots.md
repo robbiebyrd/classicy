@@ -184,10 +184,11 @@ question n in the Open questions of
 | `bw-controlpanel-monitors-bw.png` | Monitors after switching to Black & White | 1-bit | Monitors | same | — |
 
 Disclosure triangles: the color triangle's checker fill is `#9999FF` in these
-captures. No System 7 Color token holds that value, so the package draws the
-checker in `--color-theme-03` (`#9999CC`, the Standard wctb's tinge, white in
-1-bit). Against the disclosure captures a color triangle is AE 10 (its ten
-checker pixels) and a 1-bit one AE 0 (plan 0018-dbd §3.5; `_Triangle.scss`).
+captures, which no palette slot holds (theme-03 is the Standard wctb's tinge,
+`#9999CC`). The package draws it in its own color `outlineTriangle.checker`
+(`--package-color-outline-triangle-checker`, `#9999FF` in color, white in
+1-bit; plan 0018-dbd Batch F-b), so against the disclosure captures a
+triangle is AE 0 at both depths (`_Triangle.scss`).
 
 ## What the captures settle
 

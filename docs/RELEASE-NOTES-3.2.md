@@ -13,9 +13,11 @@ color, with System 7.5's own icons, art, cursors, desktop pattern and alert
 sounds, and the same twelve screen savers as Platinum. To draw it, the core
 gained per-theme asset variants, 16 px icon images, alert sounds chosen by
 the sound pack, a dither vocabulary, its own scroll bars and a few small
-structural hooks. Platinum looks the same: several looks that sat in the
-core's base layer moved into Platinum's stylesheet, and one inline color
-left `ClassicyControlGroup` (see "Behavior change", below).
+structural hooks, and packages may now declare colors of their own.
+Platinum looks the same but for its slider, whose grays are now HIGOS8's
+own (below): several looks that sat in the core's base layer moved into
+Platinum's stylesheet, and one inline color left `ClassicyControlGroup`
+(see "Behavior change", below).
 
 ## New: the System 7 Appearance Package
 
@@ -64,6 +66,34 @@ diverge, so a logo registered through Platinum's
 
 ## New in the core
 
+- **Package color families.** A package may declare colors beyond the 28
+  core colors, which do not change: values in its themes under
+  `color.families.<family>.<key>` (24-bit integers), labels in its
+  `colorFamilies` metadata (`ClassicyAppearanceColorFamilies`, like
+  `knobs`). Each is emitted as `--package-color-<family>-<key>`
+  (`classicyColorFamilyVars`; the prefix is reserved, so no measurement can
+  make one). A theme saved before a family existed is completed from its
+  package's defaults (`withDefaultThemeColorFamilies`,
+  `classicyThemeColorFamilyDefaults`); a theme of an unregistered package is
+  kept whole. The Appearance Manager's Colors tab lists the active package's
+  families after the core groups, and `ClassicyDesktopChangeColor` takes a
+  second form, `{ family, key, color }`, for a declared color (it forks a
+  built-in into its Custom theme, as color edits do). Persistence stores a
+  theme without the family colors equal to its package's defaults, as it
+  does knob values; theme files keep them (`ClassicyThemeSchema`
+  `color.families`), and a 3.1 host loading such a file drops them.
+  `AGENT-REFERENCE.md` §8, "Package color families".
+- **Selected icon images.** `registerClassicySelectedIconImages(packageId,
+  { [image]: selectedImage }, { variant? })` registers the image a selected
+  icon draws in place of an icon image while the package's base look (or,
+  with `variant`, that variant's) is active.
+  `resolveClassicyIconImage` and `useClassicyIconImage` take a third
+  argument, `selected`. A selected `ClassicyIcon` or desktop icon draws the
+  registered image and marks its mask pair with the new `SelectedImage`
+  part class (`classicyIconSelectedImage`,
+  `classicyDesktopIconSelectedImage`) so the package can drop its own
+  selected look; without an entry nothing changes. System 7 uses it for its
+  color icons.
 - **Per-theme asset variants.** `registerClassicyAssets(kind, packageId,
   tree, { variant })`, and `registerClassicyCursors` and
   `registerClassicySystemArt` with the same last argument
@@ -295,6 +325,16 @@ the ids the saver already names:
 
 ## Other changes you may notice
 
+- **Platinum's slider draws HIGOS8's grays.** Platinum declares the HIG's
+  16-step gray ramp as a package color family, `grayRamp` (the Colors tab's
+  new "Gray Ramp" group, 14 swatches). The slider's channel border is
+  #222222 (was #202020, `--color-system-07`), its etch and fill the ramp's
+  #AAAAAA (unchanged), the tick mark's shadow #888888 (was #808080), and the
+  ghost indicator is Figure 2-17's: opaque, in the ramp's grays (an #888888
+  outline, white, #DDDDDD and #BBBBBB faces; over the channel's border rows
+  #444444 to #DDDDDD, the channel showing through), where it was the
+  indicator in system grays at 75% opacity. A host that styled the ghost's
+  opacity sets it on `.classicySliderGhost` again.
 - **Scroll bars are drawn in every browser.** Firefox now shows Platinum's
   full bars (arrows, track and thumb) instead of the thin `scrollbar-color`
   fallback. The scrolling element of a window's contents, a list box or a

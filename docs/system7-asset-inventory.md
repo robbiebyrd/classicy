@@ -153,16 +153,26 @@ An outline pixel is `#000000`, `#212121` or `#222222`. `control-strip-module-arr
 | --- | --- | --- | --- |
 | `#000000` | outlines, the tab's lines | `K` | `#000000` |
 | `#FFFFFF` | highlights | `W` | `#FFFFFF` |
-| `#CCCCCC`, `#CECECE` | the face | `2` (system-02) | `#BBBBBB` |
+| `#CCCCCC`, `#CECECE` | the face | `2`: System 7's sheet sets it to `controlStrip.face` in the strip and a module's pop-up | `#CCCCCC` |
 | `#DDDDDD` | the dimmed arrows' fill | `1` (system-01) | `#DDDDDD` |
 | `#AAAAAA`, `#ADADAD` | the slider's channel and shadow | `4` (system-04) | `#AAAAAA` |
 | `#888888` | the arrows' fill, the tab's lower edge | `5` (system-05) | `#888888` |
-| `#555555`, `#444444` | the dimmed arrows' outline, the collapse box, the tab's dots and lowest row | `7` (system-07) | `#555555` |
+| `#555555` | the dimmed arrows' outline, the collapse box, the tab's dots | `7` (system-07) | `#555555` |
+| `#444444` | the tab's lowest row | `m`: System 7's sheet sets it to `controlStrip.darkEdge` in the strip | `#444444` |
 | `#CCCCFF`, `#CECEFF` | the collapse box's and the slider's highlight | `b` (theme-02) | `#CCCCFF` |
 | `#222222`, `#212121` | the slider's outline | `K` | `#000000` |
 | `#313163` | the slider track's inner ring (`#333366` on a 256-color screen) | `n` | `#333366`: System 7's sheet sets `n` to theme-07 |
 
-The script stops on any other color. Compared with the strip as drawn (shots of `Appearance/System 7/Desktop`): the 1-bit cell, tab and slider match the pictures exactly (AE 0); in color the face (`#BBBBBB` for `#CCCCCC`), the tab's lowest row (`#555555` for `#444444`) and the slider's 16-bit values differ.
+The script stops on any other color. The face and the tab's lowest row are System 7's own colors (package color families, plan 0018-dbd Batch F-b): no System 7 Color palette slot holds `#CCCCCC` or `#444444`, so the strip drew them `#BBBBBB` and `#555555` before. Compared with the strip as drawn (shots of `Appearance/System 7/Desktop`): the 1-bit cell, tab and slider match the pictures exactly (AE 0); in color only the slider's 16-bit values differ (the pictures hold `#CECECE` for the screen's `#CCCCCC`, and so on). The `m` row was set by hand in `control-strip-tab.txt` from this table (the script's table now maps `#444444` to `m`, so a rerun writes the same row); the decoded pictures were not at hand to rerun it.
+
+### Selected color icons
+
+A selected color icon is drawn the way System 7.5 drew it, through a darkened copy of its color table in the 256-color screen's colors (story 0197-s0z), which no CSS filter reproduces, so each one is pre-rendered: `icons/selected/<16|32>/<stem>.png` beside every `icons/color/<16|32>/<stem>.png`, written by `packages/appearance/system7/bin/selectedIcons.mjs` (run directly, from the committed color icons; `export-assets.mjs`'s icon export calls the same transform). The rule:
+
+1. Darken (IconUtils.c, `MakeClut` and `Darken`): every 16-bit component halved; unless the color is gray (components within 512 of each other), the smallest component and the smaller of the other two halved again, so the value halves and the saturation stays. Apple's IconDimming sample (`DimColor`) describes the same rule.
+2. Draw in the screen's color (the Color Manager's inverse table, resolution 4 bits a component): the 8-bit system table's entry whose cell (each component's top four bits) is nearest the darkened color's cell, the lower index on a tie. So `#CCCCFF` darkens to `#3333/#3333/#7FFF`, cell 3, 3, 7, and draws `#333366` (cell 3, 3, 6), not the RGB-nearer `#333399`.
+
+Checked against every color pair the captures show both ways: the Sound control panel's twelve colors (`color-menu-help-and-selected-icon.png`, its icon at 280, 123) and AppleShare's six (`color-chooser-dimmed-default-button.png`, 132, 93); the Sound icon's file is AE 0 against the capture. The package registers each pair for its base look (System 7 Color) with `registerClassicySelectedIconImages` (`SYSTEM7_SELECTED_ICON_IMAGES`, `assets/system7Assets.ts`), and its stylesheet drops the half-black overlay over them; the 1-bit theme (the `bw` variant) registers none, so its icons invert, as before.
 
 To find an ID: the script `bundleIcons` (in `bin/macResources.mjs`) lists a file's `BNDL` as file type → icon ID, which is how every "ID to confirm" was settled.
 
