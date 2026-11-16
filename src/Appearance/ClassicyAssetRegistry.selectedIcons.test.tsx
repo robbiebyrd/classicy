@@ -212,6 +212,37 @@ describe("selected icon images", () => {
 		);
 	});
 
+	// Bounded: one Image per distinct selected source, cached for the page,
+	// however many icons draw it and however often they mount.
+	it("preloads one image per distinct selected source, once", () => {
+		registerClassicyAssets("icons", "sys7", { doc: { src: "/doc.png" } });
+		registerClassicySelectedIconImages("sys7", {
+			"/doc.png": "/doc-selected.png",
+		});
+		const icons = (n: number, icon: string) =>
+			Array.from({ length: n }, (_, i) => `${icon}-${i}`).map((appId) => (
+				<ClassicyIcon
+					key={appId}
+					appId={appId}
+					name="Icon"
+					icon={icon}
+					size={32}
+				/>
+			));
+		const first = render(
+			<div>
+				{icons(5, "/folder.png")}
+				{icons(3, "/doc.png")}
+			</div>,
+		);
+		expect(pendingLoads).toHaveLength(2);
+		loadImages();
+		first.unmount();
+		render(<div>{icons(4, "/folder.png")}</div>);
+		// Loaded already: no new image.
+		expect(pendingLoads).toHaveLength(0);
+	});
+
 	it("is drawn by ClassicyIconImage only when asked for", () => {
 		const { container, rerender } = render(
 			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" />,
