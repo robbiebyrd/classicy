@@ -37,6 +37,7 @@ import {
 	listClassicyPackageThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { withPrimaryFontFamily } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyFontStack";
+import type { ClassicyThemeColorFamilyChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	downloadClassicyTheme,
@@ -319,7 +320,7 @@ const ColorsTabStory = () => {
 	const appearance = useAppearance();
 	const dispatch = useAppManagerDispatch();
 	const changeColor = useCallback(
-		(change: ClassicyThemeColorChange) =>
+		(change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange) =>
 			dispatch({ type: "ClassicyDesktopChangeColor", ...change }),
 		[dispatch],
 	);
@@ -328,6 +329,7 @@ const ColorsTabStory = () => {
 		editingCustomTheme: isCustomThemeActive(appearance),
 		changeColor,
 		appId: TAB_STORY_APP_ID,
+		colorFamilies: useActiveClassicyAppearancePackage().colorFamilies,
 	});
 	return <AppearanceTabWindow id="colors" tab={tab} />;
 };

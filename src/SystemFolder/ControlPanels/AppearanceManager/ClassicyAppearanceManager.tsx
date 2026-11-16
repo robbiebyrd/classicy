@@ -24,6 +24,7 @@ import {
 	isCustomThemeActive,
 	listClassicyPackageThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import type { ClassicyThemeColorFamilyChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import type { ClassicyThemeColorChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	downloadClassicyTheme,
@@ -348,7 +349,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 	);
 
 	const changeColor = useCallback(
-		(change: ClassicyThemeColorChange) => {
+		(change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange) => {
 			startTransition(() => {
 				desktopEventDispatch({ type: "ClassicyDesktopChangeColor", ...change });
 			});
@@ -534,6 +535,7 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeColor,
 		appId: APP_ID,
+		colorFamilies: activePackage.colorFamilies,
 	});
 
 	const fontsTab = useFontsTab({

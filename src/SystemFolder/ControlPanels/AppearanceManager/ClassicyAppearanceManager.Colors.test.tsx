@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 // getTheme serves the registered packages' themes: Platinum's.
 import "@classicy/appearance-platinum";
 import { fireEvent, render, renderHook, screen } from "@/__tests__/test-utils";
+import type { ClassicyAppearanceColorFamilies } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	type ClassicyTheme,
 	getTheme,
@@ -10,6 +11,7 @@ import {
 	appearanceColorPickerId,
 	useColorsTab,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Colors";
+import type { ClassicyThemeColorFamilyChange } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import {
 	CLASSICY_THEME_COLOR_TARGETS,
 	type ClassicyThemeColorChange,
@@ -54,16 +56,21 @@ const Host = ({
 	changeColor = vi.fn(),
 	editingCustomTheme = false,
 	activeTheme = theme,
+	colorFamilies,
 }: {
-	changeColor?: (change: ClassicyThemeColorChange) => void;
+	changeColor?: (
+		change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange,
+	) => void;
 	editingCustomTheme?: boolean;
 	activeTheme?: ClassicyTheme;
+	colorFamilies?: ClassicyAppearanceColorFamilies;
 }) => {
 	const tab = useColorsTab({
 		theme: activeTheme,
 		editingCustomTheme,
 		changeColor,
 		appId: "AppearanceManager.app",
+		colorFamilies,
 	});
 	return <div>{tab.children}</div>;
 };
@@ -171,5 +178,63 @@ describe("useColorsTab", () => {
 		expect(
 			document.getElementById("appearance_color_system_3")?.dataset.value,
 		).toBe(String(0x010203));
+	});
+});
+
+// Package color families (plan 0018-dbd, Batch F-b): the active package's
+// declared colors, after the core groups, one group per family.
+describe("useColorsTab: package color families", () => {
+	const colorFamilies: ClassicyAppearanceColorFamilies = {
+		ink: {
+			label: "Package Ink",
+			colors: { triangle: { label: "Triangle" }, face: { label: "Face" } },
+		},
+	};
+	const withFamilies = (): ClassicyTheme => {
+		const t = structuredClone(theme);
+		t.color.families = { ink: { triangle: 0x9999ff, face: 0xcccccc } };
+		return t;
+	};
+
+	it("adds one labeled group per declared family, after the 28 core colors", () => {
+		render(<Host activeTheme={withFamilies()} colorFamilies={colorFamilies} />);
+		const pickers = screen.getAllByTestId("colors-tab-picker");
+		expect(pickers).toHaveLength(30);
+		expect(screen.getByText("Package Ink")).toBeInTheDocument();
+		expect(pickers.slice(28).map((p) => p.textContent)).toEqual([
+			"Triangle",
+			"Face",
+		]);
+		expect(
+			document.getElementById("appearance_color_family_ink_triangle")?.dataset
+				.value,
+		).toBe(String(0x9999ff));
+		expect(new Set(pickers.map((p) => p.id)).size).toBe(30);
+	});
+
+	it("dispatches the family form", () => {
+		const changeColor = vi.fn();
+		render(
+			<Host
+				activeTheme={withFamilies()}
+				colorFamilies={colorFamilies}
+				changeColor={changeColor}
+			/>,
+		);
+		fireEvent.click(
+			document.getElementById(
+				"appearance_color_family_ink_face",
+			) as HTMLElement,
+		);
+		expect(changeColor).toHaveBeenCalledWith({
+			family: "ink",
+			key: "face",
+			color: 0xabcdef,
+		});
+	});
+
+	it("lists only the 28 core colors for a package that declares none", () => {
+		render(<Host activeTheme={withFamilies()} />);
+		expect(screen.getAllByTestId("colors-tab-picker")).toHaveLength(28);
 	});
 });

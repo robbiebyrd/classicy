@@ -15,6 +15,10 @@ import {
 	listClassicyPackageBuiltInThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
+	classicyThemeColorFamilyDefaults,
+	withDefaultThemeColorFamilies,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
+import {
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
@@ -68,7 +72,8 @@ export const knownClassicyThemePackage = (
  * One of a package's own themes (its defaults or a preset) as the theme a
  * switch or ChangeTheme activates: a copy, completed as built-in and loaded
  * themes are. The registry keeps a package as passed, so a JS-authored one
- * may lack metric groups, or hold a registered wallpaper's URL where themes
+ * may lack metric groups or package colors, or hold a registered
+ * wallpaper's URL where themes
  * keep its filename; `package` is the package's own id (its registration
  * guarantees its themes name no other).
  */
@@ -76,9 +81,12 @@ export const activatableClassicyPackageTheme = (
 	pkg: ClassicyAppearancePackage,
 	packageTheme: ClassicyTheme,
 ): ClassicyTheme => {
-	const theme = withDefaultThemeMetrics(
-		cloneClassicyTheme(packageTheme),
-		classicyThemeMeasurementDefaults(pkg.id),
+	const theme = withDefaultThemeColorFamilies(
+		withDefaultThemeMetrics(
+			cloneClassicyTheme(packageTheme),
+			classicyThemeMeasurementDefaults(pkg.id),
+		),
+		classicyThemeColorFamilyDefaults(pkg.id),
 	);
 	return {
 		...theme,

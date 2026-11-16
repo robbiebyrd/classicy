@@ -111,6 +111,19 @@ export type ClassicyAppearanceKnobs = Record<
 >;
 
 /**
+ * A package's own named colors, as UI metadata: family → `{ label, colors:
+ * key → { label } }`. The values themselves are theme data, under
+ * `defaults.color.families.<family>.<key>` (every declared key must have
+ * one), emitted as `--package-color-<family>-<key>`; the Appearance
+ * Manager's Colors tab lists the declared ones under each family's label,
+ * and `ClassicyDesktopChangeColor { family, key, color }` edits only those.
+ */
+export type ClassicyAppearanceColorFamilies = Record<
+	string,
+	{ label: string; colors: Record<string, { label: string }> }
+>;
+
+/**
  * Every event a component may emit to a package (`ClassicyAppearanceEvent`),
  * in the contract's order. Frozen.
  */
@@ -277,6 +290,8 @@ export type ClassicyAppearancePackage = {
 	presets?: ClassicyTheme[];
 	/** UI metadata per measurements family/key. */
 	knobs?: ClassicyAppearanceKnobs;
+	/** UI metadata per color family/key (`defaults.color.families`). */
+	colorFamilies?: ClassicyAppearanceColorFamilies;
 	/** Built from `knobs` by `classicyKnobsToSchema(knobs)`. */
 	// biome-ignore lint/suspicious/noExplicitAny: the contract's type; each package's knobs give the shape.
 	options?: z.ZodObject<any>;

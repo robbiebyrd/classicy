@@ -17,6 +17,10 @@ import {
 	listClassicyPackageBuiltInThemes,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import {
+	isDeclaredThemeColorFamily,
+	setThemeColorFamily,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	readClassicyLoadedThemes,
@@ -62,6 +66,7 @@ import {
 	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
+	hasThemeColorFamilyChange,
 	hasThemeMetricChange,
 	hasThemeMetricFamilyChange,
 	hasVisible,
@@ -418,12 +423,35 @@ export const classicyDesktopEventHandler = (
 		// Every theme edit below goes through editActiveClassicyTheme: the first
 		// edit made on a built-in forks it into the "Custom" theme (built-ins are
 		// never mutated), later edits modify the active custom theme in place.
+		// Two forms: `{ colorKey, index?, color }` for the 28 core colors, and
+		// `{ family, key, color }` for a package color, validated against the
+		// `colorFamilies` the active Appearance Package declares (resolved as
+		// for the metric family form below).
 		case "ClassicyDesktopChangeColor": {
-			if (!hasThemeColorChange(action)) break;
+			const appearance = ds.System.Manager.Appearance;
+			if (hasThemeColorChange(action)) {
+				const target = action;
+				editActiveClassicyTheme(appearance, (theme) =>
+					setThemeColor(theme, target, target.color),
+				);
+				break;
+			}
+			if (!hasThemeColorFamilyChange(action)) break;
 			const target = action;
-			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
-				setThemeColor(theme, target, target.color),
-			);
+			const declared = getRegisteredClassicyAppearancePackageOrDefault(
+				appearance.packageId,
+			)?.colorFamilies;
+			if (!isDeclaredThemeColorFamily(declared, target)) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeColor rejected: "${target.family}.${target.key}" is not a color of the active package ("${appearance.packageId}")`,
+				);
+				break;
+			}
+			editActiveClassicyTheme(appearance, (theme) => {
+				setThemeColorFamily(theme, target, target.color);
+			});
 			break;
 		}
 		// Same fork-on-first-edit semantics for the layout metrics

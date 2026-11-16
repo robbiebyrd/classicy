@@ -171,6 +171,19 @@ export const ClassicyThemeSchema = z.object({
 			title: color,
 			document: color,
 		}),
+		// An Appearance Package's own colors (`--package-color-<family>-<key>`):
+		// family and key names the walker emits, every leaf a color. Optional,
+		// so a file without them loads; a build that predates them strips the
+		// key, so a file with them still loads there, in the core colors.
+		families: z
+			.record(
+				z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
+				z.record(
+					z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
+					color,
+				),
+			)
+			.optional(),
 	}),
 	typography: z.object({
 		ui: fontStack,

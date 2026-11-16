@@ -8,6 +8,11 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import {
+	classicyColorFamilyVars,
+	classicyThemeColorFamilyDefaults,
+	withDefaultThemeColorFamilies,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
 	classicyMeasurementVars,
@@ -89,7 +94,20 @@ export type ClassicyThemeColors = {
 	system: ClassicyThemeColorPalette;
 	theme: ClassicyThemeColorPalette;
 	window: ClassicyThemeColorsWindow;
+	/**
+	 * An Appearance Package's own named colors, beside the 28 core colors:
+	 * family → key → 24-bit RGB integer. Optional (a theme saved before its
+	 * package declared one is completed from the package's
+	 * `defaults.color.families`, `withDefaultThemeColorFamilies`). Every leaf
+	 * becomes `--package-color-<family>-<key>` (kebab-case) on the desktop
+	 * root (`classicyColorFamilyVars`).
+	 */
+	families?: ClassicyThemeColorFamilies;
 };
+
+/** Package color families: family → key → 24-bit RGB integer
+ * (`ClassicyThemeColors.families`). */
+export type ClassicyThemeColorFamilies = Record<string, Record<string, number>>;
 
 export type ClassicyThemeTypography = {
 	ui: string;
@@ -249,6 +267,15 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-theme-05": intToHex(theme.color.theme[4]),
 		"--color-theme-06": intToHex(theme.color.theme[5]),
 		"--color-theme-07": intToHex(theme.color.theme[6]),
+		// --- Package colors: every leaf under `color.families` as
+		// `--package-color-<family>-<key>`, completed from the theme's own
+		// registered package. A namespace no other variable takes.
+		...classicyColorFamilyVars(
+			withDefaultThemeColorFamilies(
+				theme,
+				classicyThemeColorFamilyDefaults(theme.package),
+			).color.families,
+		),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
 		"--window-scrollbar-arrow-size": intToPx(m.window.scrollbarSize / 4),
 		// Classic Mac OS small-icon (SICN) size.

@@ -1,7 +1,14 @@
 import "./ClassicyAppearanceManager.Colors.scss";
 import { useMemo } from "react";
+import type { ClassicyAppearanceColorFamilies } from "@/Appearance/ClassicyAppearancePackage";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { appearanceThemeEditNotice } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Metrics";
+import {
+	type ClassicyThemeColorFamilyChange,
+	classicyThemeColorFamilyDefaults,
+	getThemeColorFamily,
+	withDefaultThemeColorFamilies,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import {
 	CLASSICY_THEME_COLOR_GROUPS,
 	CLASSICY_THEME_COLOR_TARGETS,
@@ -21,9 +28,16 @@ interface ColorsTabProps {
 	/** True when the active theme is a custom theme (edits apply in place);
 	 * false when it is a built-in (the first edit forks it into "Custom"). */
 	editingCustomTheme: boolean;
-	changeColor: (change: ClassicyThemeColorChange) => void;
+	changeColor: (
+		change: ClassicyThemeColorChange | ClassicyThemeColorFamilyChange,
+	) => void;
 	/** App the color-picker dialog windows register under. */
 	appId: string;
+	/**
+	 * The active Appearance Package's own colors (`colorFamilies`): one group
+	 * per family after the core groups, edited with the family form.
+	 */
+	colorFamilies?: ClassicyAppearanceColorFamilies;
 }
 
 /** DOM id of the swatch for a color target, e.g. `appearance_color_system_3`. */
@@ -34,14 +48,28 @@ export const appearanceColorPickerId = (
 		? `appearance_color_${target.colorKey}`
 		: `appearance_color_${target.colorKey}_${target.index + 1}`;
 
+/** DOM id of the swatch for a package color, e.g.
+ * `appearance_color_family_grayRamp_step2`. */
+export const appearanceColorFamilyPickerId = (
+	family: string,
+	key: string,
+): string => `appearance_color_family_${family}_${key}`;
+
 export const useColorsTab = ({
 	theme,
 	editingCustomTheme,
 	changeColor,
 	appId,
+	colorFamilies,
 }: ColorsTabProps): TabIndividual =>
-	useMemo(
-		() => ({
+	useMemo(() => {
+		// A stored theme keeps only the package colors it changed: the rest
+		// come from its package's defaults, as getThemeVars draws them.
+		const complete = withDefaultThemeColorFamilies(
+			theme,
+			classicyThemeColorFamilyDefaults(theme.package),
+		);
+		return {
 			title: "Colors",
 			children: (
 				<div className={"classicyAppearanceManagerColors"}>
@@ -86,9 +114,36 @@ export const useColorsTab = ({
 								</ClassicyControlGroup>
 							</div>
 						))}
+						{Object.entries(colorFamilies ?? {}).map(([family, declared]) => (
+							<div
+								key={`family-${family}`}
+								className={"classicyAppearanceManagerColorsGroup"}
+							>
+								<ClassicyControlGroup label={declared.label}>
+									<div className={"classicyAppearanceManagerColorsGrid"}>
+										{Object.entries(declared.colors).map(([key, color]) => {
+											const id = appearanceColorFamilyPickerId(family, key);
+											return (
+												<ClassicyColorPicker
+													key={id}
+													id={id}
+													appId={appId}
+													value={getThemeColorFamily(complete, { family, key })}
+													labelTitle={color.label}
+													labelPosition={"above"}
+													labelSize={"small"}
+													onChangeFunc={(value) =>
+														changeColor({ family, key, color: value })
+													}
+												/>
+											);
+										})}
+									</div>
+								</ClassicyControlGroup>
+							</div>
+						))}
 					</ClassicyScrollArea>
 				</div>
 			),
-		}),
-		[theme, editingCustomTheme, changeColor, appId],
-	);
+		};
+	}, [theme, editingCustomTheme, changeColor, appId, colorFamilies]);

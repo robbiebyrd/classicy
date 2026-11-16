@@ -38,3 +38,36 @@ export const setClassicyPackageMeasurementsLookup = (
 export const getClassicyPackageMeasurements = (
 	packageId: string | undefined,
 ): unknown => lookup(packageId);
+
+// The same for a package's `defaults.color.families`
+// (`classicyThemeColorFamilyDefaults`), set by the registry too. Unlike the
+// measurements' lookup it never falls back to another package: a package's
+// colors are its own look, and no base stylesheet reads one.
+
+/** A registered package's `defaults.color.families`, by package id (the
+ * default package's for a missing id); `undefined` for an unregistered id. */
+export type ClassicyPackageColorFamiliesLookup = (
+	packageId: string | undefined,
+) => unknown;
+
+let colorFamiliesLookup: ClassicyPackageColorFamiliesLookup = () => undefined;
+
+/**
+ * Sets the color families lookup. Called once, by
+ * ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyPackageColorFamiliesLookup = (
+	next: ClassicyPackageColorFamiliesLookup,
+): void => {
+	colorFamiliesLookup = next;
+};
+
+/**
+ * The registered package's `defaults.color.families` for `packageId`, or
+ * `undefined` while that package is not registered.
+ * @internal
+ */
+export const getClassicyPackageColorFamilies = (
+	packageId: string | undefined,
+): unknown => colorFamiliesLookup(packageId);

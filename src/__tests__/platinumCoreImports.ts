@@ -22,6 +22,7 @@ export {
 } from "@/Appearance/ClassicyAssetRegistry";
 export { encodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 export { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+export { withDefaultThemeColorFamilies } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 export { withDefaultThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 export {
 	ClassicySoundPackSchema,

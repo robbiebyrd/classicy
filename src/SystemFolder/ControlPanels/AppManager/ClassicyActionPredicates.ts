@@ -14,6 +14,10 @@
 
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
+	type ClassicyThemeColorFamilyChange,
+	isThemeColorFamilyTarget,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
+import {
 	type ClassicyThemeColorChange,
 	isThemeColorTarget,
 	isValidThemeColor,
@@ -251,6 +255,22 @@ export function hasThemeColorChange(
 	m: Msg,
 ): m is Msg & ClassicyThemeColorChange {
 	return isThemeColorTarget(m) && isValidThemeColor(m.color);
+}
+
+/**
+ * Action has the family form of `ClassicyDesktopChangeColor`: no `colorKey`,
+ * `family` and `key` are package color names (`isThemeColorFamilyTarget`)
+ * and `color` is a 24-bit RGB integer. Whether the active package declares
+ * the color is checked against its `colorFamilies` in the reducer.
+ */
+export function hasThemeColorFamilyChange(
+	m: Msg,
+): m is Msg & ClassicyThemeColorFamilyChange {
+	return (
+		m.colorKey === undefined &&
+		isThemeColorFamilyTarget(m) &&
+		isValidThemeColor(m.color)
+	);
 }
 
 /**

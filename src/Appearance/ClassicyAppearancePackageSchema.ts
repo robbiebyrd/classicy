@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type {
@@ -83,6 +84,26 @@ const knob = z
 	.refine((k) => k.min <= k.default && k.default <= k.max, {
 		error: "must satisfy min <= default <= max",
 	});
+
+// A package color family's metadata (`colorFamilies`): names that become a
+// `--package-color-<family>-<key>` variable, and a label for each.
+const colorFamilyName = z
+	.string()
+	.regex(
+		CLASSICY_MEASUREMENT_NAME,
+		"must be a camelCase name starting with a lowercase letter",
+	)
+	.refine((name) => !["constructor", "prototype"].includes(name), {
+		error: "must not be constructor or prototype",
+	});
+const colorFamilyLabel = z.string().trim().min(1).max(64);
+const colorFamilies = z.record(
+	colorFamilyName,
+	z.object({
+		label: colorFamilyLabel,
+		colors: z.record(colorFamilyName, z.object({ label: colorFamilyLabel })),
+	}),
+);
 
 // Keys that would reach Object.prototype through a plain-object lookup. The
 // registry stores the package object as given (its `apps` as a frozen copy of
@@ -235,6 +256,11 @@ export const ClassicyAppearancePackageSchema = z
 		defaults: ClassicyPackageThemeSchema,
 		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
+		colorFamilies: colorFamilies
+			.optional()
+			.describe(
+				"Labels for the package's own colors (defaults.color.families), which the Appearance Manager's Colors tab edits.",
+			),
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
@@ -256,6 +282,28 @@ export const ClassicyAppearancePackageSchema = z
 	// names another package would make ChangeAppearancePackage re-clone it on
 	// every switch and leave the active theme claiming the wrong package.
 	// (Presets are not checked here: preset lists belong to part J.)
+	// Every declared color needs a value in the defaults: the Colors tab
+	// shows it, and themes are completed from it.
+	.check((ctx) => {
+		const families = ctx.value.defaults.color.families ?? {};
+		for (const [family, { colors }] of Object.entries(
+			ctx.value.colorFamilies ?? {},
+		)) {
+			for (const key of Object.keys(colors)) {
+				const values = Object.hasOwn(families, family)
+					? families[family]
+					: undefined;
+				if (!values || !Object.hasOwn(values, key)) {
+					ctx.issues.push({
+						code: "custom",
+						input: key,
+						path: ["colorFamilies", family, "colors", key],
+						message: `has no value in defaults.color.families.${family}`,
+					});
+				}
+			}
+		}
+	})
 	.check((ctx) => {
 		const { id, defaults } = ctx.value;
 		if (defaults.package !== id) {
