@@ -225,8 +225,9 @@ diverge, so a logo registered through Platinum's
   `resolvePosition` takes it as an optional fourth argument. System 7 sets
   it; Platinum does not, so its windows land where they did.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
-  knob when a theme sets it, else `window.controlSize × 2.5` as before; it
-  has no floor value, so Platinum's band still follows its control size.
+  knob when a theme sets it to zero or more (a negative band is ignored),
+  else `window.controlSize × 2.5` as before; it has no floor value, so
+  Platinum's band still follows its control size.
 - **Cursor hotspots.** `registerClassicyCursors` accepts `{ src, hotspot:
   [x, y] }` (whole numbers, 0–127), published as
   `--classicy-cursor-<role>-hotspot` and returned by
@@ -265,7 +266,10 @@ diverge, so a logo registered through Platinum's
   key `helpMenuTitle`, which, when registered, draws the menu bar's Help
   title as an image; and `ClassicyMenuItem.imageAlt`, the alt text of an
   item drawn as its image alone (it keeps "Help" as that title's accessible
-  name).
+  name, and the Apple menu's art is now named "Apple"). An item with no
+  `title` carries its `imageAlt` as the `title` of its analytics events, so
+  the Apple menu's and the art Help menu's `hover` and `selected` events
+  name them, where their `title` was undefined.
 
 ## Base looks moved into Platinum
 

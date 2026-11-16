@@ -470,4 +470,12 @@ describe("--menu-bar-height follows menuBar.bandHeight when a theme sets it", ()
 		expect(band(withMenuBar({ inset: 9 }, 11))).toBe("27.5px");
 		expect(band(withMenuBar({ bandHeight: Number.NaN }, 11))).toBe("27.5px");
 	});
+
+	it("is controlSize × 2.5 for a negative band", () => {
+		expect(band(withMenuBar({ bandHeight: -1 }, 11))).toBe("27.5px");
+		expect(band(withMenuBar({ bandHeight: -0.001 }, 12))).toBe("30px");
+		expect(
+			band(withMenuBar({ bandHeight: Number.NEGATIVE_INFINITY }, 12)),
+		).toBe("30px");
+	});
 });

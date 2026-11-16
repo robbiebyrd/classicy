@@ -346,6 +346,8 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			appleMenuItem: {
 				id: "apple-menu",
 				image: appleMenuIcon,
+				// The art is the title: its accessible name.
+				imageAlt: "Apple",
 				menuChildren,
 				className: "classicyDesktopMenuApple",
 				part: "apple",

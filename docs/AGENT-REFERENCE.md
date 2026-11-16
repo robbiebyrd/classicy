@@ -650,7 +650,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Help menu is when the active package registers the `helpMenuTitle` system art; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -4289,7 +4289,8 @@ literals.
   `defaults.measurements`.
 - **Optional knobs.** A third kind of knob is read by a core derivation but
   has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
-  `menuBar.bandHeight` when a theme sets it to a finite number, else
+  `menuBar.bandHeight` when a theme sets it to a finite number of zero or
+  more (a negative band is ignored), else
   `window.controlSize × 2.5` (`ClassicyThemeDerivations.ts`). It cannot be
   structural, since a floor value would freeze Platinum's band, which must
   keep following the editable control size (H-R25); a package whose band
@@ -4562,7 +4563,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--window-resize-inset` | `max(0, paddingSize - borderSize)` | 5 | ClassicyWindow.tsx |
 | `--window-header-font-size` | `uiSize × 0.865` | 12.11 (unrounded) | ClassicyWindow.scss |
 | `--window-title-stripe-height` | `controlSize × 1.25` | 15 | ClassicyWindowTitleBar.scss |
-| `--menu-bar-height` | `menuBar.bandHeight`, else `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
+| `--menu-bar-height` | `menuBar.bandHeight` (when 0 or more), else `controlSize × 2.5` | 30 | ClassicyWindow.tsx |
 | `--menu-min-width` | `controlSize × 15` | 180 | ClassicyMenu.scss |
 | `--menu-item-icon-size` | `controlSize × 1.25` | 15 | ClassicyMenu.scss |
 | `--menu-item-icon-gap` | `controlSize × 0.5` | 6 | ClassicyMenu.scss |

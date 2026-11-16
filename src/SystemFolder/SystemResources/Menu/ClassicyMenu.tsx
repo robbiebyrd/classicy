@@ -52,7 +52,8 @@ export interface ClassicyMenuItem {
 	image?: string;
 	/**
 	 * The image's alternative text, for an item drawn as its image alone (no
-	 * `title`, the image standing in for it). Defaults to `title`.
+	 * `title`, the image standing in for it). Defaults to `title`. With no
+	 * `title`, the item's analytics events carry it as their `title`.
 	 */
 	imageAlt?: string;
 	/** Dim the item; it cannot be chosen and its keyboard equivalent does not fire. */
@@ -565,7 +566,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const analyticsArgs = useMemo(
 		() => ({
 			id: menuItem.id,
-			title: menuItem.title,
+			// An image-only title (the Apple menu, System 7's Help balloon) is
+			// tracked by its accessible name.
+			title: menuItem.title ?? menuItem.imageAlt,
 			image: menuItem.image,
 			disabled: menuItem.disabled,
 			icon: menuItem.icon,
