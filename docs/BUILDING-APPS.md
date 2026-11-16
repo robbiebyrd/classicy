@@ -1068,7 +1068,10 @@ any path containing `__proto__`, `constructor`, or `prototype`.
 `"merge"` deep-merges onto the library's default tree; `"exclusive"` replaces it.
 Both are seed-only — they apply when nothing is stored under
 `localStorage["classicyStorage"]`. `defaultFileSystemSeedMigrations` applies
-one-time corrections to a **returning** visitor's persisted tree. The live
+corrections to a **returning** visitor's persisted tree, after the library's
+own (`DefaultFSSeedMigrations`, skipped in `"exclusive"` mode). Give a
+migration an `id` to run it only once per visitor, which every `add` needs:
+otherwise an entry the visitor deletes comes back on the next boot. The live
 tree is a deep copy of the seed, so your `defaultFileSystem` object (and the
 library's `DefaultFSContent`) is never changed.
 

@@ -47,6 +47,7 @@ import {
 	getRegisteredStacks,
 } from "@/SystemFolder/HyperCard/HyperCardPlugins";
 import { evaluateScriptEffect } from "@/SystemFolder/HyperCard/HyperCardScriptEffects";
+import { readHyperCardStackFileText } from "@/SystemFolder/HyperCard/HyperCardStackFile";
 import { HyperCardTransition } from "@/SystemFolder/HyperCard/HyperCardTransition";
 import {
 	getCard,
@@ -63,14 +64,12 @@ import {
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
-import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
 import { useClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContext";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 // Side-effect import: registers the ClassicyAppHyperCard* reducer.
 import "./HyperCardContext";
@@ -518,24 +517,13 @@ export const HyperCard: FunctionalComponent = () => {
 					message,
 				});
 			};
-			let source: ReturnType<typeof resolveFileSystemEntrySource>;
+			let entry: Parameters<typeof readHyperCardStackFileText>[0];
 			try {
-				source = resolveFileSystemEntrySource(fs.resolve(path));
+				entry = fs.resolve(path);
 			} catch {
-				source = { kind: "none" };
+				entry = undefined; // reported as "the file has no content"
 			}
-			const textPromise: Promise<string> =
-				source.kind === "url"
-					? fetch(source.url).then((r) => {
-							if (!r.ok) throw new Error(`HTTP ${r.status}`);
-							return r.text();
-						})
-					: source.kind === "data"
-						? decompressFromBase64(source.data).then((bytes) =>
-								new TextDecoder().decode(bytes),
-							)
-						: Promise.reject(new Error("the file has no content"));
-			textPromise
+			readHyperCardStackFileText(entry)
 				.then((text) => {
 					const result = validateStack(JSON.parse(text));
 					if (result.ok === false) {

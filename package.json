@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.1.1",
-	"release": "LU1",
+	"version": "3.2.0",
+	"release": "Sforzando",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
