@@ -809,12 +809,41 @@ describe("platinum.scss (compiled)", () => {
 			if (current) out.push(current);
 			return out;
 		};
+		// Every gray-ramp read falls back to the core token the slider drew
+		// with before 3.2 (a theme of another package emits no ramp), here
+		// checked and then dropped, so the decoders read the ramp's name.
+		const RAMP_FALLBACK: Record<string, string> = {
+			"--package-color-gray-ramp-step2": "--color-system-07",
+			"--package-color-gray-ramp-step4": "--color-system-06",
+			"--package-color-gray-ramp-step6": "--color-system-05",
+			"--package-color-gray-ramp-step8": "--color-system-05",
+			"--package-color-gray-ramp-step-a": "--color-system-04",
+			"--package-color-gray-ramp-step-b": "--color-system-03",
+			"--package-color-gray-ramp-step-d": "--color-system-02",
+		};
+		const withoutFallbacks = (background: string): string =>
+			background.replace(
+				/var\((--package-color-[\w-]+), var\((--color-[\w-]+)\)\)/g,
+				(_all, name: string, fallback: string) => {
+					expect(fallback, name).toBe(RAMP_FALLBACK[name]);
+					return `var(${name})`;
+				},
+			);
+
+		it("reads every gray-ramp step with its pre-3.2 core token as fallback", () => {
+			const reads = [...css.matchAll(/var\((--package-color-[\w-]+)([,)])/g)];
+			expect(reads.length).toBeGreaterThan(0);
+			expect(reads.filter(([, , next]) => next !== ",")).toEqual([]);
+			for (const [, name] of reads)
+				expect(RAMP_FALLBACK, name).toHaveProperty(name);
+			withoutFallbacks(css);
+		});
 		// The rows a box of `w` x `h` grid pixels draws: each layer is
 		// `linear-gradient(var(--ink), var(--ink)) [left] X [top] Y/W H
 		// no-repeat`.
 		const decode = (background: string, w: number, h: number): string[] => {
 			const rows = Array.from({ length: h }, () => Array(w).fill("."));
-			for (const layer of layers(background)) {
+			for (const layer of layers(withoutFallbacks(background))) {
 				const m =
 					/^linear-gradient\(var\((--[\w-]+)\), var\(\1\)\) (.*) no-repeat$/.exec(
 						layer,
@@ -1127,7 +1156,7 @@ describe("platinum.scss (compiled)", () => {
 			// #AAAAAA layer.
 			const at40 = (background: string, vertical: boolean) =>
 				decode(
-					layers(background)
+					layers(withoutFallbacks(background))
 						.map((l) => {
 							const flat = l.replace(
 								fill,
@@ -1169,7 +1198,7 @@ describe("platinum.scss (compiled)", () => {
 				".WKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKWW",
 				"..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.",
 			]);
-			expect(horizontal.background).toContain(fill);
+			expect(withoutFallbacks(horizontal.background)).toContain(fill);
 			const vertical = rule(
 				`${P} .classicySliderInputVertical::-webkit-slider-runnable-track`,
 			);
@@ -1442,6 +1471,48 @@ describe("platinum.scss (compiled)", () => {
 					),
 				).slice(1),
 			).toEqual(ghostOf(columns(knob).slice(1)).map((c) => c));
+		});
+
+		// Figure 2-17 draws the pressed indicator over the ghost and the ghost
+		// over the channel. With a ghost, the channel moves onto the track
+		// layer (a stacking context) under the ghost, the track is left clear
+		// and the ghost goes under the input, whose thumb paints over it.
+		it("layers the channel, the ghost and the indicator as Figure 2-17 does", () => {
+			const LAYER = ".classicySliderTrackLayer:has(> .classicySliderGhost)";
+			const before = rule(`${P} ${LAYER}::before`).props;
+			expect(before.position).toBe("absolute");
+			expect(before["z-index"]).toBe("-2");
+			expect(before.top).toBe(
+				"calc(var(--slider-thumb-across) - var(--slider-pixel) - var(--slider-thumb-rise) - var(--slider-channel))",
+			);
+			expect(before.height).toBe("var(--slider-channel)");
+			expect(before.background).toBe(
+				rule(`${P} .classicySlider::-webkit-slider-runnable-track`).props
+					.background,
+			);
+			expect(rule(`${P} ${LAYER} > .classicySliderGhost`).props).toEqual({
+				"z-index": "-1",
+			});
+			for (const track of [
+				"::-webkit-slider-runnable-track",
+				"::-moz-range-track",
+			])
+				expect(rule(`${P} ${LAYER} > .classicySlider${track}`).props).toEqual({
+					background: "none",
+				});
+			const vertical = rule(
+				`${P} .classicySliderStackVertical ${LAYER}::before`,
+			).props;
+			expect(vertical.background).toBe(
+				rule(`${P} .classicySliderInputVertical::-webkit-slider-runnable-track`)
+					.props.background,
+			);
+			expect(vertical.width).toBe("var(--slider-channel)");
+			expect(
+				rule(
+					`${P} .classicySliderTrackLayer:has(> .classicySlider.disabled)::before`,
+				).props,
+			).toEqual({ filter: "contrast(0.5)" });
 		});
 
 		// The vertical ghost lies where the indicator does across the channel

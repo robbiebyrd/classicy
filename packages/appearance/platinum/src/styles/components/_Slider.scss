@@ -75,6 +75,31 @@ $px: var(--slider-pixel);
   @return calc($length / 2);
 }
 
+// ── Inks ────────────────────────────────────────────────────────────────────
+// The gray ramp is Platinum's own color family, which only Platinum's
+// themes emit. A theme of another package drawn under Platinum (a host's,
+// or one a dropped package left) emits none, so every ramp read falls back
+// to the core palette token the slider drew with before 3.2, and the slider
+// still draws.
+$ramp-fallbacks: (
+  "--package-color-gray-ramp-step2": "--color-system-07",
+  "--package-color-gray-ramp-step4": "--color-system-06",
+  "--package-color-gray-ramp-step6": "--color-system-05",
+  "--package-color-gray-ramp-step8": "--color-system-05",
+  "--package-color-gray-ramp-step-a": "--color-system-04",
+  "--package-color-gray-ramp-step-b": "--color-system-03",
+  "--package-color-gray-ramp-step-d": "--color-system-02",
+);
+
+// A variable's value: a ramp step with its core fallback, anything else as
+// it is.
+@function ink($name) {
+  @if map.has-key($ramp-fallbacks, $name) {
+    @return var(#{$name}, var(#{map.get($ramp-fallbacks, $name)}));
+  }
+  @return var(#{$name});
+}
+
 // ── Pixel art from rows of characters ───────────────────────────────────────
 // Each row is a string, one character a pixel, "." clear; `$palette` maps a
 // character to the theme token it is drawn in. One layer per run of one
@@ -94,7 +119,7 @@ $px: var(--slider-pixel);
       @if $ink != "." {
         $layers: list.append(
           $layers,
-          layout.classicy-px-rect(var(#{map.get($palette, $ink)}), px($x), px($y), px($run), $px),
+          layout.classicy-px-rect(ink(map.get($palette, $ink)), px($x), px($y), px($run), $px),
           $separator: comma
         );
       }
@@ -468,7 +493,7 @@ $channel: (
         $layers,
         var(
             --classicy-slider-track,
-            linear-gradient(var(--package-color-gray-ramp-step-a), var(--package-color-gray-ramp-step-a))
+            linear-gradient(ink("--package-color-gray-ramp-step-a"), ink("--package-color-gray-ramp-step-a"))
           )
           #{$x} #{$y} / #{$w} #{$h} no-repeat,
         $separator: comma
@@ -476,7 +501,7 @@ $channel: (
     } @else {
       $layers: list.append(
         $layers,
-        layout.classicy-px-rect(var(#{map.get($inks, $ink)}), $x, $y, $w, $h),
+        layout.classicy-px-rect(ink(map.get($inks, $ink)), $x, $y, $w, $h),
         $separator: comma
       );
     }
@@ -752,8 +777,57 @@ $firefox-shift-back: calc($firefox-shift * -1);
     }
   }
 
-  // Hidden between drags: after the ghost's translucency, which it overrides.
+  // Hidden between drags.
   .classicySliderGhostHidden {
     opacity: 0;
+  }
+
+  // ── Layering (Figure 2-17: the channel, then the ghost, then the pressed
+  // indicator over both) ───────────────────────────────────────────────────
+  // The opaque ghost would hide the indicator it starts on: Platinum drags on
+  // release, so at the press the ghost lies exactly over it. A range input
+  // paints its track and thumb as one, so nothing can go between them: with
+  // a ghost, the channel is drawn on the track layer (a stacking context,
+  // the base sheet's) under the ghost, the track itself left clear, and the
+  // ghost under the input, so the indicator paints over it. Without `:has()`
+  // the rules drop and the ghost draws over the indicator, as before.
+  .classicySliderTrackLayer:has(> .classicySliderGhost) {
+    &::before {
+      content: "";
+      position: absolute;
+      z-index: -2;
+      top: $channel-top;
+      left: 0;
+      width: 100%;
+      height: var(--slider-channel);
+      pointer-events: none;
+      background: channel-art(false);
+    }
+
+    > .classicySliderGhost {
+      z-index: -1;
+    }
+
+    > .classicySlider::-webkit-slider-runnable-track {
+      background: none;
+    }
+
+    > .classicySlider::-moz-range-track {
+      background: none;
+    }
+  }
+
+  // The vertical channel, across from the input's left edge.
+  .classicySliderStackVertical .classicySliderTrackLayer:has(> .classicySliderGhost)::before {
+    top: 0;
+    left: $channel-top;
+    width: var(--slider-channel);
+    height: 100%;
+    background: channel-art(true);
+  }
+
+  // Dimmed with its input.
+  .classicySliderTrackLayer:has(> .classicySlider.disabled)::before {
+    filter: contrast(0.5);
   }
 }
