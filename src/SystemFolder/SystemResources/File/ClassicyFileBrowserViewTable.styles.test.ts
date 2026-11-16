@@ -76,3 +76,19 @@ describe("Finder list view container styles (#271)", () => {
 		).toBeDefined();
 	});
 });
+
+// Story 0197-s0z, fix round 3: a selected item's icon darkens by a filter
+// unless it draws the active package's own selected image (System 7's),
+// which ClassicyIconImage marks `classicyIconSelectedImage`.
+describe("the Finder list view's selected icon", () => {
+	it("darkens only an icon that draws no selected image", () => {
+		expect(
+			rule(
+				":where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
+			),
+		).toEqual({ filter: "contrast(0.75) brightness(0.5)" });
+		expect(css).not.toMatch(
+			/\.selected \.classicyFileBrowserViewTableRowIcon \{/,
+		);
+	});
+});

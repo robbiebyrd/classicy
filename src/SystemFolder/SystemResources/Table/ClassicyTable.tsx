@@ -48,6 +48,13 @@ export type ClassicyTableCellContext = {
 	/** Expand or collapse the row (fires `onToggleRow`). */
 	toggle: () => void;
 	/**
+	 * Whether the row is selected, for a cell that draws its own selected
+	 * look (the file browser's list view draws a selected item's icon
+	 * selected). Always set by `ClassicyTable`; optional so a context built
+	 * by hand need not supply it.
+	 */
+	selected?: boolean;
+	/**
 	 * Reports a drag the cell starts (the file browser's list view drags rows
 	 * as Finder items) to the active Appearance Package: the table emits
 	 * `dragStart` or `dragEnd` with `detail` from its own root. Pair every
@@ -648,6 +655,7 @@ export function ClassicyTable<T>({
 											canExpand: row.getCanExpand(),
 											isExpanded: row.getIsExpanded(),
 											toggle: () => toggleRow(row.id),
+											selected: effectiveSelected.includes(row.id),
 											emitDrag: appearance.emit,
 										})
 									) : (

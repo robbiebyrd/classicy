@@ -355,12 +355,17 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 										</span>
 									)}
 								</span>
+								{/* The Finder draws a selected item's icon selected: the
+									active package's selected image when it has one,
+									else the stylesheet's darkening. */}
 								<ClassicyIconImage
 									src={row._icon || iconImageByType(row._type)}
 									drawnAt={iconSize}
 									width={iconSize}
 									alt={row._path}
 									className={"classicyFileBrowserViewTableRowIcon"}
+									selectable
+									selected={expansion.selected === true}
 								/>
 								<span className={"classicyFileBrowserViewTableRowIconLabel"}>
 									{row._name}

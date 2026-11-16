@@ -34,8 +34,9 @@ interface ColorsTabProps {
 	/** App the color-picker dialog windows register under. */
 	appId: string;
 	/**
-	 * The active Appearance Package's own colors (`colorFamilies`): one group
-	 * per family after the core groups, edited with the family form.
+	 * The active theme's own package's colors (`colorFamilies`, by
+	 * `theme.package`, as the reducer validates them): one group per family
+	 * after the core groups, edited with the family form.
 	 */
 	colorFamilies?: ClassicyAppearanceColorFamilies;
 }

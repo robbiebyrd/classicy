@@ -14,27 +14,46 @@ type ClassicyIconImageProps = Omit<
 	 */
 	drawnAt?: number | true;
 	/**
-	 * Draw the active package's selected image for the icon
-	 * (`registerClassicySelectedIconImages`) once it has loaded. For a
-	 * surface that draws a selected icon as icons are drawn selected; no
-	 * list passes it, since System 7.5 drew a selected list row inverted and
-	 * its icon as it is (Standard File's list, `color-dialog-standardfile-
-	 * open.png`).
+	 * The surface can draw this icon selected (the file browser's list view):
+	 * the icon's selected image (`registerClassicySelectedIconImages`) is
+	 * preloaded, and drawn while `selected` once it has loaded, the `<img>`
+	 * then marked `classicyIconSelectedImage` so the surface's own selected
+	 * look stands down. Other surfaces (menus, title bars, tabs, lists that
+	 * invert a selected row and keep its icon, as System 7.5's Standard File
+	 * list does) leave it off and load nothing more.
 	 */
+	selectable?: boolean;
+	/** The icon is drawn selected (only with `selectable`). */
 	selected?: boolean;
 };
 
 /** An `<img>` of an icon that picks the leaf's small image at small sizes,
- * and its selected image when `selected`. */
+ * and, on a selectable surface, its selected image when `selected`. */
 export const ClassicyIconImage = ({
 	src,
 	drawnAt = true,
+	selectable = false,
 	selected = false,
 	alt,
+	className,
 	...rest
 }: ClassicyIconImageProps) => {
-	const { image } = useClassicySelectedIconImage(src ?? "", drawnAt, selected);
+	const { image, drawsSelectedImage } = useClassicySelectedIconImage(
+		src ?? "",
+		drawnAt,
+		selectable && selected,
+		selectable,
+	);
 	return (
-		<img {...rest} src={src === undefined ? undefined : image} alt={alt} />
+		<img
+			{...rest}
+			className={
+				[className, drawsSelectedImage && "classicyIconSelectedImage"]
+					.filter(Boolean)
+					.join(" ") || undefined
+			}
+			src={src === undefined ? undefined : image}
+			alt={alt}
+		/>
 	);
 };

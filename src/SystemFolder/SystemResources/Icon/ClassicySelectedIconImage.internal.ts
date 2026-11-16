@@ -15,6 +15,9 @@ import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 
 const loaded = new Set<string>();
 const pending = new Set<string>();
+// Failed once this page: never retried, so remounts cannot loop on a
+// missing file (a reload tries again).
+const failed = new Set<string>();
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void): (() => void) => {
@@ -26,7 +29,12 @@ const subscribe = (listener: () => void): (() => void) => {
 
 /** Starts loading `url` once per page; listeners hear when it has loaded. */
 const preload = (url: string): void => {
-	if (loaded.has(url) || pending.has(url) || typeof Image === "undefined")
+	if (
+		loaded.has(url) ||
+		pending.has(url) ||
+		failed.has(url) ||
+		typeof Image === "undefined"
+	)
 		return;
 	pending.add(url);
 	const image = new Image();
@@ -37,6 +45,7 @@ const preload = (url: string): void => {
 	};
 	image.onerror = () => {
 		pending.delete(url);
+		failed.add(url);
 	};
 	image.src = url;
 };
@@ -45,6 +54,7 @@ const preload = (url: string): void => {
 export const resetClassicySelectedIconImagesForTests = (): void => {
 	loaded.clear();
 	pending.clear();
+	failed.clear();
 };
 
 /**
@@ -52,16 +62,18 @@ export const resetClassicySelectedIconImagesForTests = (): void => {
  * `resolveClassicyIconImage(src, px, true)`) while `selected` and once that
  * image has loaded, else its plain image. `drawsSelectedImage` says which,
  * for the `SelectedImage` part class. `plain` is the plain image, for the
- * icon's mask.
+ * icon's mask. `selectable: false` (a surface that never draws the icon
+ * selected) preloads nothing and draws the plain image.
  */
 export const useClassicySelectedIconImage = (
 	src: string,
 	px: number | true,
 	selected: boolean,
+	selectable = true,
 ): { image: string; plain: string; drawsSelectedImage: boolean } => {
 	const plain = useClassicyIconImage(src, px);
 	const selectedImage = useClassicyIconImage(src, px, true);
-	const hasSelectedImage = selectedImage !== plain;
+	const hasSelectedImage = selectable && selectedImage !== plain;
 	useEffect(() => {
 		if (hasSelectedImage) preload(selectedImage);
 	}, [hasSelectedImage, selectedImage]);

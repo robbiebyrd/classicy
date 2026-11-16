@@ -1,9 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	registerClassicySelectedIconImages,
+	resetClassicyAssets,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { resetClassicySelectedIconImagesForTests } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 
 function deferred<T>() {
 	let resolve!: (value: T) => void;
@@ -640,5 +645,65 @@ describe("ClassicyFileBrowserViewTable configurable columns", () => {
 		expect(screen.queryByText("Version")).not.toBeInTheDocument();
 		// Filename, Size, Kind — no more, no fewer.
 		expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+	});
+});
+
+// Story 0197-s0z, fix round 3: the Finder list view draws a selected item's
+// icon selected: the active package's selected image when it registers one
+// (once loaded), marked so the stylesheet's darkening stands down.
+describe("ClassicyFileBrowserViewTable selected icon", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		resetClassicySelectedIconImagesForTests();
+		resetClassicyAssets();
+	});
+
+	it("draws a selected row's icon as its selected image, marked, and the others plain", async () => {
+		vi.stubGlobal(
+			"Image",
+			class {
+				onload: (() => void) | null = null;
+				set src(_value: string) {
+					queueMicrotask(() => this.onload?.());
+				}
+			},
+		);
+		registerClassicySelectedIconImages("platinum", {
+			"/doc.png": "/doc-selected.png",
+		});
+		const cfs = new ClassicyFileSystem("test-table-selected-icon", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"a.txt": {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_icon: "/doc.png",
+				},
+				"b.txt": {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_icon: "/doc.png",
+				},
+			},
+		});
+		vi.spyOn(cfs, "size").mockResolvedValue(1);
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				selectedPaths={["Documents:a.txt"]}
+			/>,
+		);
+		const icon = (alt: string) => screen.getByAltText(alt) as HTMLImageElement;
+		await waitFor(() =>
+			expect(icon("Documents:a.txt").getAttribute("src")).toBe(
+				"/doc-selected.png",
+			),
+		);
+		expect(icon("Documents:a.txt")).toHaveClass("classicyIconSelectedImage");
+		expect(icon("Documents:b.txt").getAttribute("src")).toBe("/doc.png");
+		expect(icon("Documents:b.txt")).not.toHaveClass(
+			"classicyIconSelectedImage",
+		);
 	});
 });

@@ -63,7 +63,11 @@
   background: var(--color-system-07);
 }
 
-:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIcon {
+// A selected item's icon darkens, unless it draws the active package's own
+// selected image (`registerClassicySelectedIconImages`; `ClassicyIconImage`
+// marks it `classicyIconSelectedImage`).
+:where(.classicyFileBrowserViewTableRow).selected
+  .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
   filter: contrast(0.75) brightness(0.5);
 }
 

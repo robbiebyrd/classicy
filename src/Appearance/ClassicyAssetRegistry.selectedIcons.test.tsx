@@ -62,11 +62,13 @@ const activate = (packageId: string, assetVariant?: string) =>
 
 // jsdom loads no image: this one "loads" when the test says so.
 const pendingLoads: Array<() => void> = [];
+const failingLoads: Array<() => void> = [];
 class FakeImage {
 	onload: (() => void) | null = null;
 	onerror: (() => void) | null = null;
 	set src(_value: string) {
 		pendingLoads.push(() => this.onload?.());
+		failingLoads.push(() => this.onerror?.());
 	}
 }
 const loadImages = () =>
@@ -80,6 +82,7 @@ let entries: ClassicyLogEntry[] = [];
 beforeEach(() => {
 	vi.stubGlobal("Image", FakeImage);
 	pendingLoads.length = 0;
+	failingLoads.length = 0;
 	resetClassicySelectedIconImagesForTests();
 	resetClassicyAssets();
 	resetClassicyAppearancePackagesForTests();
@@ -243,20 +246,58 @@ describe("selected icon images", () => {
 		expect(pendingLoads).toHaveLength(0);
 	});
 
-	it("is drawn by ClassicyIconImage only when asked for", () => {
+	it("is drawn by ClassicyIconImage only on a selectable surface, marked", () => {
 		const { container, rerender } = render(
-			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" />,
+			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" selectable />,
 		);
 		loadImages();
+		const img = () => container.querySelector("img") as HTMLImageElement;
+		expect(img().getAttribute("src")).toBe("/folder.png");
+		rerender(
+			<ClassicyIconImage
+				src="/folder.png"
+				drawnAt={32}
+				alt=""
+				className="row"
+				selectable
+				selected
+			/>,
+		);
+		expect(img().getAttribute("src")).toBe("/folder-selected.png");
+		expect(img().className).toBe("row classicyIconSelectedImage");
+	});
+
+	// A menu, title bar or tab never draws an icon selected: nothing more is
+	// loaded for it, and `selected` alone draws nothing.
+	it("preloads nothing for an icon on a surface that is not selectable", () => {
+		const { container } = render(
+			<ClassicyIconImage src="/folder.png" drawnAt={16} alt="" selected />,
+		);
+		expect(pendingLoads).toHaveLength(0);
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/folder-16.png",
+		);
+	});
+
+	// A failed preload is remembered for the page: later mounts never retry
+	// it (a reload does), and the icon keeps the package's own look.
+	it("never retries a failed preload on this page", () => {
+		const first = render(
+			<ClassicyIcon appId="a" name="Folder" icon="/folder.png" size={32} />,
+		);
+		expect(failingLoads).toHaveLength(1);
+		act(() => {
+			for (const fail of failingLoads.splice(0)) fail();
+		});
+		pendingLoads.length = 0;
+		first.unmount();
+		const { container } = render(
+			<ClassicyIcon appId="b" name="Folder" icon="/folder.png" size={32} />,
+		);
+		expect(failingLoads).toHaveLength(0);
+		fireEvent.click(container.querySelector('[role="button"]') as HTMLElement);
 		expect(container.querySelector("img")?.getAttribute("src")).toBe(
 			"/folder.png",
-		);
-		rerender(
-			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" selected />,
-		);
-		loadImages();
-		expect(container.querySelector("img")?.getAttribute("src")).toBe(
-			"/folder-selected.png",
 		);
 	});
 });

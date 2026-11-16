@@ -245,6 +245,73 @@ export const FinderFoldersColor: Story = {
 	render: () => themed(true, <FinderFolderWindows />),
 };
 
+/** The list-view window, and the item the story selects in it. */
+const FINDER_LIST_FOLDER = "Macintosh HD:System Folder";
+const FINDER_LIST_SELECTED = "Control Panels";
+
+/**
+ * A Finder window in list view with one item selected (story 0197-s0z):
+ * the Finder draws a selected item's small icon selected, System 7 Color's
+ * through its color table (the package's pre-rendered selected images), and
+ * its name inverted.
+ */
+function FinderListWindow() {
+	const dispatch = useAppManagerDispatch();
+	const windowReady = useAppManager((state) =>
+		hasAppWindow(
+			state.System.Manager.Applications.apps["Finder.app"],
+			FINDER_LIST_FOLDER,
+		),
+	);
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyAppFinderSetFolderView",
+			path: FINDER_LIST_FOLDER,
+			viewType: "list",
+		});
+		dispatch({ type: "ClassicyAppFinderOpenFolder", path: FINDER_LIST_FOLDER });
+	}, [dispatch]);
+	useEffect(() => {
+		if (!windowReady) return;
+		dispatch({
+			type: "ClassicyWindowPosition",
+			app: { id: "Finder.app" },
+			window: { id: FINDER_LIST_FOLDER },
+			position: [16, 40],
+		});
+	}, [dispatch, windowReady]);
+	return <StoryApp id="storybook.app" name="Storybook" />;
+}
+
+/** Selects the list's item `name` with a click, as the user does. */
+const selectListItem = (name: string) =>
+	waitFor(
+		() => {
+			const row = [
+				...document.querySelectorAll<HTMLElement>(
+					".classicyFileBrowserViewTableRow",
+				),
+			].find((r) => r.textContent?.includes(name));
+			if (!row) throw new Error(`no ${name} row yet`);
+			if (row.classList.contains("selected")) return;
+			fireEvent.click(row);
+			throw new Error(`${name} is not selected yet`);
+		},
+		{ timeout: 10000 },
+	);
+
+/** A Finder list view, an item selected: the 1-bit icons. */
+export const FinderListSelected: Story = {
+	render: () => <FinderListWindow />,
+	play: () => selectListItem(FINDER_LIST_SELECTED),
+};
+
+/** The same list under System 7 Color: the selected item's color icon. */
+export const FinderListSelectedColor: Story = {
+	render: () => themed(true, <FinderListWindow />),
+	play: () => selectListItem(FINDER_LIST_SELECTED),
+};
+
 const APPEARANCE_TABS = [
 	"Themes",
 	"Packages",
