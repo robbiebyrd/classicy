@@ -60,6 +60,8 @@
 		"Alert": [
 			"Body",
 			"Buttons",
+			"ButtonsHaveHelp",
+			"ButtonsHaveOther",
 			"Fixed",
 			"HelpButton",
 			"Icon",

@@ -3686,7 +3686,9 @@ Platinum (§1); its README lists what it ships.
   and the default button stay at the lower right, apart from it. A help
   button (System 7's alerts had none) is kept, pinned at the far left
   (`order: -2`); beside a Don't Save it takes no room and Don't Save follows
-  it (`:has()`, Firefox 121 and later).
+  it, keyed on the button row's `classicyAlertButtonsHaveHelp` and
+  `classicyAlertButtonsHaveOther`, which `ClassicyAlert` sets from its
+  buttons (no `:has()`, so Firefox 113 and later).
 - **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
   fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
   inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),

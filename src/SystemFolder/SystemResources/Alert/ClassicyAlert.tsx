@@ -228,6 +228,15 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 		return fallback ?? resolvedButtons[resolvedButtons.length - 1];
 	}, [resolvedButtons, defaultButtonId]);
 
+	// What the button row holds, as classes on it, so a package can arrange a
+	// help button beside the others with plain class selectors (System 7
+	// pins it before Don't Save; `:has()` would leave out Firefox 113-120).
+	const hasHelpButton = resolvedButtons.some((b) => b.role === "help");
+	const hasOtherButton = resolvedButtons.some(
+		(b) =>
+			b.role !== "help" && alertButtonRole(b, defaultButton?.id) === "other",
+	);
+
 	const cancelButton = useMemo(
 		() => resolvedButtons.find((b) => b.role === "cancel"),
 		[resolvedButtons],
@@ -326,7 +335,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 							)}
 						</div>
 					</div>
-					<div className={"classicyAlertButtons"}>
+					<div
+						className={classNames(
+							"classicyAlertButtons",
+							hasHelpButton && "classicyAlertButtonsHaveHelp",
+							hasOtherButton && "classicyAlertButtonsHaveOther",
+						)}
+					>
 						{resolvedButtons.map((button) =>
 							button.role === "help" ? (
 								// HIGOS8 p.86: alert boxes place the Help button lower left

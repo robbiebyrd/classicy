@@ -8,6 +8,10 @@ import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppe
 // Registers Platinum's sound pack, which the default theme names.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	ClassicyContextualMenuProvider,
+	useClassicyContextualMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 
 // A pointer press on the slider is the slider's own (story 0198-0kv): the
@@ -184,6 +188,38 @@ describe("ClassicySlider pointer drag and the page", () => {
 		document.removeEventListener("mousedown", listen);
 		document.removeEventListener("mouseup", listen);
 		expect(seen).toEqual(["mousedown", "mouseup"]);
+	});
+
+	// The page's outside-press closers listen for a document mousedown, which
+	// a browser fires only when the pointerdown was not default-prevented;
+	// the press here follows that rule, as the engines do.
+	it("closes an open contextual menu when the slider is pressed", () => {
+		const Opener = () => {
+			const { showContextMenu } = useClassicyContextualMenu();
+			return (
+				<button
+					type="button"
+					onClick={() => showContextMenu([{ id: "a", title: "Alpha" }], [5, 5])}
+				>
+					open
+				</button>
+			);
+		};
+		const { container, getByText, queryByText } = render(
+			<ClassicyContextualMenuProvider>
+				<Opener />
+				<ClassicySlider id="s" value={40} />
+			</ClassicyContextualMenuProvider>,
+		);
+		const input = place(
+			container.querySelector(".classicySlider") as HTMLInputElement,
+			false,
+		);
+		fireEvent.click(getByText("open"));
+		expect(queryByText("Alpha")).toBeInTheDocument();
+		const point = at(false, centerOf(false, 40));
+		if (fireEvent.pointerDown(input, point)) fireEvent.mouseDown(input, point);
+		expect(queryByText("Alpha")).not.toBeInTheDocument();
 	});
 
 	it("leaves a touch's mousedown to the browser", () => {

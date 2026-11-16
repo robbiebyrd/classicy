@@ -80,6 +80,58 @@ describe("ClassicyAlert arrangement", () => {
 		}
 	});
 
+	// Fix round 2: what the button row holds, as classes on it, so a package
+	// arranges a help button beside an `other` one with plain class
+	// selectors (no `:has()`, which Firefox 113-120 lacks).
+	it.each([
+		[
+			"help and other",
+			[
+				{ id: "dont", label: "Don't Save", role: "normal" as const },
+				{ id: "cancel", label: "Cancel", role: "cancel" as const },
+				{ id: "save", label: "Save", role: "default" as const },
+				{ id: "help", label: "?", role: "help" as const },
+			],
+			true,
+			true,
+		],
+		[
+			"help only",
+			[
+				{ id: "ok", label: "OK", role: "default" as const },
+				{ id: "help", label: "?", role: "help" as const },
+			],
+			true,
+			false,
+		],
+		[
+			"other only",
+			[
+				{ id: "dont", label: "Don't Save" },
+				{ id: "cancel", label: "Cancel", role: "cancel" as const },
+				{ id: "save", label: "Save", role: "default" as const },
+			],
+			false,
+			true,
+		],
+		[
+			"the last unroled button, which is the default",
+			[
+				{ id: "cancel", label: "Cancel", role: "cancel" as const },
+				{ id: "go", label: "Go" },
+			],
+			false,
+			false,
+		],
+	])("marks a button row with %s", (_name, buttons, help, other) => {
+		render(<ClassicyAlert alertType="caution" label="?" buttons={buttons} />);
+		const row = document.querySelector(".classicyAlertButtons");
+		expect(row?.classList.contains("classicyAlertButtonsHaveHelp")).toBe(help);
+		expect(row?.classList.contains("classicyAlertButtonsHaveOther")).toBe(
+			other,
+		);
+	});
+
 	it("orders the icon and body explicitly, with no floats", () => {
 		expect(rule(".classicyAlert .classicyAlertIcon").order).toBe("10");
 		expect(rule(".classicyAlert .classicyAlertBody").order).toBe("20");

@@ -70,15 +70,17 @@
       // Save it takes no room, which stays between Don't Save and the safe
       // buttons (two auto margins would split it), and Don't Save follows it
       // rather than its inset; alone, it keeps the base sheet's auto margin.
+      // Keyed on the row's classes, which ClassicyAlert sets from its buttons
+      // (`:has()` would leave out Firefox 113-120).
       .classicyAlertHelpButton {
         order: -2;
       }
 
-      &:has(> .classicyButton[data-classicy-role="other"]) > .classicyAlertHelpButton {
+      &.classicyAlertButtonsHaveOther > .classicyAlertHelpButton {
         margin-right: 0;
       }
 
-      &:has(> .classicyAlertHelpButton)
+      &.classicyAlertButtonsHaveHelp
         > .classicyButton[data-classicy-role="other"]:nth-child(1 of .classicyButton[data-classicy-role="other"]) {
         margin-left: 0;
       }

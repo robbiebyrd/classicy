@@ -761,16 +761,19 @@ describe("system7.scss (compiled)", () => {
 		it("pins a help button at the far left, Don't Save after it, the room after both", () => {
 			const buttons = ".classicyAlert .classicyAlertButtons";
 			expect(rule(`${buttons} .classicyAlertHelpButton`)).toMatch(/order: -2;/);
+			// Keyed on the row's own classes (ClassicyAlert sets them from its
+			// buttons), not `:has()`, which Firefox 113-120 lacks.
 			expect(
 				rule(
-					`${buttons}:has(> .classicyButton[data-classicy-role=other]) > .classicyAlertHelpButton`,
+					`${buttons}.classicyAlertButtonsHaveOther > .classicyAlertHelpButton`,
 				),
 			).toMatch(/margin-right: 0;/);
 			expect(
 				rule(
-					`${buttons}:has(> .classicyAlertHelpButton) > .classicyButton[data-classicy-role=other]:nth-child(1 of .classicyButton[data-classicy-role=other])`,
+					`${buttons}.classicyAlertButtonsHaveHelp > .classicyButton[data-classicy-role=other]:nth-child(1 of .classicyButton[data-classicy-role=other])`,
 				),
 			).toMatch(/margin-left: 0;/);
+			expect(css).not.toMatch(/classicyAlertButtons[^{]*:has\(/);
 		});
 
 		// FrameRoundRect's corners: four sides and two rectangles a corner for
