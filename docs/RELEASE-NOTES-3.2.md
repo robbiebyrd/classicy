@@ -455,9 +455,12 @@ the ids the saver already names:
   measured height is fractional, its top rounded down so the far edge stays
   inside the margin.
 - **Platinum's sound sprites are re-encoded.** `platinum.ogg`, `platinum.m4a`
-  and `platinum.mp3` are now the bit-exact encode of the same sources, so a
-  forced rebuild (`CLASSICY_AUDIO_FORCE=1 pnpm build:audio`, ffmpeg 8.0.1)
-  reproduces them byte for byte. Their sprite map (`platinum.json`) and
+  and `platinum.mp3` are now the bit-exact encode of the same sources by
+  mise's ffmpeg 8.0.1 as built on Linux against the distro's libvorbis and
+  libmp3lame, where a forced rebuild (`CLASSICY_AUDIO_FORCE=1 pnpm
+  build:audio`) reproduces them byte for byte. A build linked against other
+  encoder libraries (Homebrew's on macOS) may encode the ogg and mp3
+  differently, and the stamp keeps an unforced build from rewriting them. Their sprite map (`platinum.json`) and
   `platinum.ac3` are unchanged; every sound starts and lasts as before, and
   sounds the same (the m4a decodes to the same samples, the ogg and mp3 differ
   by encoder rounding, about -79 and -55 dBFS RMS). A host bundler that

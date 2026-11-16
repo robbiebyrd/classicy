@@ -5323,8 +5323,11 @@ registerClassicySoundPack({            // module scope, like the other registrie
   `src` is resolved. The encode is deterministic (ffmpeg runs bit-exact) and
   skipped when `<name>.sprites.sha256` still matches the sources, so an unchanged
   sound keeps its sprite bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway. Both
-  packs' committed sprites are that encode under the pinned ffmpeg (mise's
-  8.0.1), so a forced rebuild with it reproduces every file byte for byte.
+  packs' committed sprites are the bit-exact encode of mise's ffmpeg 8.0.1 as
+  built on Linux against the distro's libvorbis and libmp3lame, where a forced
+  rebuild reproduces every file byte for byte. A build linked against other
+  encoder libraries (Homebrew's on macOS) may encode the ogg and mp3
+  differently; the stamp keeps an unforced build from rewriting them.
   The script and its ffmpeg shim run under bash 3.2 (macOS's `/bin/bash`) and
   later; `bin/makeAudioSprites.test.ts` refuses constructs newer than 3.2.
 

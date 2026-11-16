@@ -271,9 +271,9 @@ describe("runs under macOS's bash 3.2", () => {
 		["coproc", /\bcoproc\b/, "coproc cat"],
 		["test -v", /(?:\[\[|\btest|\[)\s+-v\b/, "[[ -v name ]]"],
 		[
-			"nameref or global",
-			/\b(?:declare|local|typeset)\s+-\w*[ng]/,
-			"local -n ref=x",
+			"nameref, global or case attribute",
+			/\b(?:declare|local|typeset)\s+-\w*[nglcu]/,
+			"declare -l x",
 		],
 		[
 			"parameter transform",
@@ -287,7 +287,8 @@ describe("runs under macOS's bash 3.2", () => {
 			/\{-?\d+\.\.-?\d+\.\.-?\d+\}|\{0\d*\.\.\d+\}/,
 			"echo {01..10}",
 		],
-		["fd variable", /\{\w+\}[<>]/, "exec {fd}>log"],
+		["fd variable", /(?<!\$)\{\w+\}[<>]/, "exec {fd}>log"],
+		["\\u escape", /\$'[^']*\\[uU][0-9a-fA-F]/, "echo $'\\u00e9'"],
 		[
 			"shopt added in 4",
 			/\bshopt\s+-s\s+(?:globstar|lastpipe|autocd|checkjobs|direxpand|dirspell|globasciiranges|compat\d+)/,
@@ -314,6 +315,14 @@ describe("runs under macOS's bash 3.2", () => {
 
 	it.each(NEWER_THAN_3_2)("recognizes %s", (name, _re, sample) => {
 		expect(newerThan32(sample)).toContain(name);
+	});
+
+	it.each([
+		["an expansion followed by a redirect", `echo x \${out}>file`],
+		["a read-only declare", "declare -r x=1"],
+		["a plain $'…' escape", "echo $'\\t'"],
+	])("does not flag %s", (_label, sample) => {
+		expect(newerThan32(sample)).toEqual([]);
 	});
 
 	it("uses none of them, in the script or its ffmpeg shim", () => {
