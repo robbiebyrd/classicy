@@ -3,11 +3,13 @@ id: 0198-0kv
 title: 'System 7: HIG details left open'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: impr
-status: pending
+status: complete
 priority: "5"
 effort: S
 created: "2026-11-12T14:12:43.661Z"
-updated: "2026-11-12T14:12:43.661Z"
+updated: "2026-11-16T16:33:54.621Z"
+started: "2026-11-14T05:51:50.531Z"
+completed: "2026-11-16T16:33:54.621Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Triage each item; fix where it needs no Platinum pixel change, record the rest
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Each item is fixed or recorded as accepted.
+- [x] VERIFY: Each item is fixed or recorded as accepted.
 
 ## Files
 
