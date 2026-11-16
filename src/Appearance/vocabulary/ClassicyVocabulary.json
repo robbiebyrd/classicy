@@ -437,6 +437,7 @@
 		"Slider": [
 			"Ghost",
 			"GhostHidden",
+			"HasGhost",
 			"Highlighted",
 			"IndicatorDown",
 			"IndicatorLeft",

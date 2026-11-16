@@ -626,7 +626,15 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 						isVertical && "classicySliderStackVertical",
 					)}
 				>
-					<div className="classicySliderTrackLayer">
+					<div
+						className={classNames(
+							"classicySliderTrackLayer",
+							// A package that draws the channel on the layer (under
+							// the ghost, Platinum) keys it on these, not `:has()`.
+							ghost && "classicySliderHasGhost",
+							classicyStateClasses({ disabled }),
+						)}
+					>
 						{rangeInput}
 						{ghostEl}
 					</div>

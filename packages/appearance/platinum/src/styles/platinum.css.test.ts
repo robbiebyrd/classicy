@@ -1477,8 +1477,8 @@ describe("platinum.scss (compiled)", () => {
 		// over the channel. With a ghost, the channel moves onto the track
 		// layer (a stacking context) under the ghost, the track is left clear
 		// and the ghost goes under the input, whose thumb paints over it.
-		it("layers the channel, the ghost and the indicator as Figure 2-17 does", () => {
-			const LAYER = ".classicySliderTrackLayer:has(> .classicySliderGhost)";
+		it("layers the channel, the ghost and the indicator as Figure 2-17 does, keyed on the ghost's class", () => {
+			const LAYER = ".classicySliderTrackLayer.classicySliderHasGhost";
 			const before = rule(`${P} ${LAYER}::before`).props;
 			expect(before.position).toBe("absolute");
 			expect(before["z-index"]).toBe("-2");
@@ -1508,11 +1508,11 @@ describe("platinum.scss (compiled)", () => {
 					.props.background,
 			);
 			expect(vertical.width).toBe("var(--slider-channel)");
-			expect(
-				rule(
-					`${P} .classicySliderTrackLayer:has(> .classicySlider.disabled)::before`,
-				).props,
-			).toEqual({ filter: "contrast(0.5)" });
+			expect(rule(`${P} :where(${LAYER}).disabled::before`).props).toEqual({
+				filter: "contrast(0.5)",
+			});
+			// No `:has()`: Firefox before 121 lacks it.
+			expect(css).not.toMatch(/classicySlider[\w-]*:has\(/);
 		});
 
 		// The vertical ghost lies where the indicator does across the channel

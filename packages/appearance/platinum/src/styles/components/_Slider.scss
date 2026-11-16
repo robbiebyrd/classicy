@@ -789,9 +789,10 @@ $firefox-shift-back: calc($firefox-shift * -1);
   // paints its track and thumb as one, so nothing can go between them: with
   // a ghost, the channel is drawn on the track layer (a stacking context,
   // the base sheet's) under the ghost, the track itself left clear, and the
-  // ghost under the input, so the indicator paints over it. Without `:has()`
-  // the rules drop and the ghost draws over the indicator, as before.
-  .classicySliderTrackLayer:has(> .classicySliderGhost) {
+  // ghost under the input, so the indicator paints over it. The slider marks
+  // a layer holding a ghost `classicySliderHasGhost`, so no selector needs
+  // `:has()`, which Firefox before 121 lacks.
+  .classicySliderTrackLayer.classicySliderHasGhost {
     &::before {
       content: "";
       position: absolute;
@@ -818,7 +819,7 @@ $firefox-shift-back: calc($firefox-shift * -1);
   }
 
   // The vertical channel, across from the input's left edge.
-  .classicySliderStackVertical .classicySliderTrackLayer:has(> .classicySliderGhost)::before {
+  .classicySliderStackVertical .classicySliderTrackLayer.classicySliderHasGhost::before {
     top: 0;
     left: $channel-top;
     width: var(--slider-channel);
@@ -826,8 +827,8 @@ $firefox-shift-back: calc($firefox-shift * -1);
     background: channel-art(true);
   }
 
-  // Dimmed with its input.
-  .classicySliderTrackLayer:has(> .classicySlider.disabled)::before {
+  // Dimmed with its input (the layer carries its `disabled` state).
+  :where(.classicySliderTrackLayer.classicySliderHasGhost).disabled::before {
     filter: contrast(0.5);
   }
 }

@@ -299,6 +299,23 @@ describe("ClassicySlider", () => {
 		expect(ghost).toHaveClass("classicySliderGhostHidden");
 	});
 
+	// A package layers the channel, the ghost and the indicator by this class
+	// (Platinum, Fig. 2-17), not by `:has()`, which Firefox before 121 lacks.
+	it("marks the track layer when it holds a ghost, and only then", () => {
+		const layer = (ghost: boolean) =>
+			render(
+				<ClassicySlider id="test" value={40} ghost={ghost} tickInterval={25} />,
+			).container.querySelector(".classicySliderTrackLayer");
+		expect(layer(true)).toHaveClass("classicySliderHasGhost");
+		expect(layer(false)).toBeInTheDocument();
+		expect(layer(false)).not.toHaveClass("classicySliderHasGhost");
+		expect(
+			render(
+				<ClassicySlider id="test" value={40} ghost disabled />,
+			).container.querySelector(".classicySliderTrackLayer"),
+		).toHaveClass("disabled");
+	});
+
 	it("reveals the ghost on pointer down and positions it by value", () => {
 		const { container } = render(
 			<ClassicySlider id="test" value={25} min={0} max={100} ghost={true} />,
