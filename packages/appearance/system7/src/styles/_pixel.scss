@@ -3,12 +3,12 @@
 // layers), for the parts QuickDraw drew pixel by pixel (the pressed boxes'
 // starburst, the menu bar's screen corners, the menu and pop-up triangles,
 // the push buttons' rounded corners and default ring).
-// One grid pixel is `--window-box-pixel` (1); the multiplier allowlist names
+// One grid pixel is `--box-pixel` (1); the multiplier allowlist names
 // this file's one site, the `px()` helper.
 @use "sass:list";
 @use "pkg:@classicy/classicy/scss/layout";
 
-$px: var(--window-box-pixel);
+$px: var(--box-pixel);
 
 // A length of `$n` grid pixels.
 @function px($n) {

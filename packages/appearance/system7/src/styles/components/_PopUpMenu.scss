@@ -70,13 +70,6 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
     background-color: var(--color-black);
   }
 
-  // The open menu.
-  .classicyPopUpMenuList {
-    @include Menu.menu-frame-clipped;
-    font-size: var(--ui-font-size);
-    line-height: var(--menu-item-line-height);
-  }
-
   .classicyPopUpMenuListItem,
   .classicyPopUpMenuGroupHeader {
     position: relative;
@@ -87,16 +80,32 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
     color: var(--color-black);
   }
 
-  // The open menu is as wide as the closed box, frame included (HIG p.89):
+  // The open menu, as wide as the closed box, frame included (HIG p.89):
   // the core sets its min-width to the box's and its max-height to its
   // measured contents, so its frame is an inset shadow inside its edge (an
   // outline would not snap to the pixel grid) and its rows keep clear of it
-  // by margins (_Menu.scss, `menu-frame-clipped`).
+  // by margins. It scrolls its contents, which would clip the menu frame's
+  // shadow pseudo-elements (_Menu.scss), so its 1 px drop shadow is a box
+  // shadow, clipped to the L the frame's draws by a polygon of horizontal
+  // and vertical edges. The polygon's top and left edges lie a pixel outside
+  // the box, where nothing is drawn, so a box at a fractional x keeps a
+  // crisp left side; only the two notches can then fall across a pixel.
   .classicyPopUpMenuList {
+    $b: var(--window-border-size);
+    $in: calc(var(--menu-frame-shadow-start) + #{$b});
+    $out: calc(100% + #{$b});
+    $before: calc(#{$b} * -1);
+
+    padding: 0;
     border: 0;
+    color: var(--color-black);
+    background: var(--color-white);
     box-shadow:
-      inset 0 0 0 var(--window-border-size) var(--color-black),
-      var(--window-border-size) var(--window-border-size) 0 0 var(--color-black);
+      inset 0 0 0 $b var(--color-black),
+      $b $b 0 0 var(--color-black);
+    clip-path: polygon($before $before, 100% $before, 100% $in, $out $in, $out $out, $in $out, $in 100%, $before 100%);
+    font-size: var(--ui-font-size);
+    line-height: var(--menu-item-line-height);
 
     > * {
       margin: 0 var(--window-border-size);

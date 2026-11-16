@@ -49,6 +49,12 @@ interface ClassicyScreenSaverLogoRegistryState {
 	readonly registry: Map<string, ClassicyScreenSaverLogoDefinition>;
 	readonly listeners: Set<() => void>;
 	snapshot: readonly ClassicyScreenSaverLogoDefinition[];
+	/**
+	 * The stock logos whose missing icon has been logged, so either copy
+	 * logs each once. Optional: a copy that predates it left a state
+	 * without it, and the first copy to need it adds it.
+	 */
+	warnedMissingIcons?: Set<string>;
 }
 
 // One registry per page, whichever bundle evaluates this module. Platinum's
@@ -58,8 +64,9 @@ interface ClassicyScreenSaverLogoRegistryState {
 // core is a peer); this one has no core home, so its state lives on
 // `globalThis` under a registered symbol, and the second copy joins the
 // first: a logo registered through Platinum's export is the one the Logo
-// saver draws and offers, whichever bundle registered that saver last. The
-// key carries the state's shape version.
+// saver draws and offers, whichever bundle registered that saver last, and a
+// stock logo's missing icon is logged once, whichever copy draws it. The key
+// carries the state's shape version.
 const STATE_KEY = Symbol.for("@classicy/screen-saver-logos@1");
 const holder = globalThis as unknown as Record<
 	symbol,
@@ -137,7 +144,8 @@ export const resolveClassicyScreenSaverLogo = (
 	(typeof id === "string" ? registry.get(id) : undefined) ??
 	registry.get(CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID);
 
-const warnedMissingIcons = new Set<string>();
+state.warnedMissingIcons ??= new Set();
+const warnedMissingIcons = state.warnedMissingIcons;
 
 /**
  * A stock logo's icon from the active package, or the Berkeley Systems mark

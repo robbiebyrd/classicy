@@ -4,7 +4,8 @@
 // (printed pp.52-55): a white bar `menuBar.bandHeight` (20) pixels tall, its
 // last row a black line, under the screen's black rounded corners (runs of
 // 5, 3, 2, 1 and 1 pixels, MWD 11); Chicago 12 titles from
-// `menuBar.inset` (9) pixels in, each title `menuBar.titlePadding` (10)
+// `menuBar.inset` (9) pixels in from the left and `menuBar.endInset` (11)
+// from the right, each title `menuBar.titlePadding` (10)
 // pixels either side of its text, neighbors overlapping by
 // `menuBar.titleOverlap` (5); an open title inverted, a black block over
 // the bar's rows but its first (`menuBar.highlightTop`); the pull-down
@@ -32,7 +33,7 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   .classicyDesktopMenu {
     box-sizing: border-box;
     height: var(--menu-bar-height);
-    padding: 0 var(--window-control-size) 0 var(--menu-bar-inset);
+    padding: 0 var(--menu-bar-end-inset) 0 var(--menu-bar-inset);
     border-radius: 0;
     border-bottom: $b solid var(--color-black);
     box-shadow: none;

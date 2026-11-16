@@ -86,15 +86,13 @@
 			},
 			"titleBar": {
 				"stripeInset": 1,
-				"stripeHeight": 1,
-				"stripePeriod": 2,
 				"boxMargin": 8,
 				"boxGap": 1,
 				"titleGap": 6,
 				"titleTop": 2,
 				"modalStripeInset": 2
 			},
-			"windowBox": {
+			"box": {
 				"pixel": 1,
 				"bevel": 0,
 				"zoomGlyph": 7
@@ -116,6 +114,7 @@
 			"menuBar": {
 				"bandHeight": 20,
 				"inset": 9,
+				"endInset": 11,
 				"titlePadding": 10,
 				"titleOverlap": 5,
 				"highlightTop": 1,
@@ -171,7 +170,7 @@
 				"lineHeight": 16,
 				"textLift": 2
 			},
-			"windowHeader": {
+			"headerStrip": {
 				"height": 17,
 				"rule": 3
 			},
@@ -322,15 +321,13 @@
 				},
 				"titleBar": {
 					"stripeInset": 1,
-					"stripeHeight": 1,
-					"stripePeriod": 2,
 					"boxMargin": 8,
 					"boxGap": 1,
 					"titleGap": 6,
 					"titleTop": 2,
 					"modalStripeInset": 2
 				},
-				"windowBox": {
+				"box": {
 					"pixel": 1,
 					"bevel": 0,
 					"zoomGlyph": 7
@@ -352,6 +349,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
+					"endInset": 11,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -407,7 +405,7 @@
 					"lineHeight": 16,
 					"textLift": 2
 				},
-				"windowHeader": {
+				"headerStrip": {
 					"height": 17,
 					"rule": 3
 				},
@@ -560,15 +558,13 @@
 				},
 				"titleBar": {
 					"stripeInset": 1,
-					"stripeHeight": 1,
-					"stripePeriod": 2,
 					"boxMargin": 8,
 					"boxGap": 1,
 					"titleGap": 6,
 					"titleTop": 2,
 					"modalStripeInset": 2
 				},
-				"windowBox": {
+				"box": {
 					"pixel": 1,
 					"bevel": 1,
 					"zoomGlyph": 7
@@ -590,6 +586,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
+					"endInset": 11,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -645,7 +642,7 @@
 					"lineHeight": 16,
 					"textLift": 2
 				},
-				"windowHeader": {
+				"headerStrip": {
 					"height": 17,
 					"rule": 3
 				},

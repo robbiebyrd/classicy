@@ -3757,7 +3757,8 @@ registration module, so the twelve ids register twice with equal
 definitions (the registry replaces each in place), and the Logo saver's
 image registry keeps its state on `globalThis`
 (`Symbol.for("@classicy/screen-saver-logos@1")`), so both copies share one
-list. Mixing versions of the two Appearance Packages is unsupported: an
+list, and one record of the stock logos whose missing icon was logged, so
+each warning shows once. Mixing versions of the two Appearance Packages is unsupported: an
 older Platinum can re-register the savers under `platinum` only, or keep its
 own logo registry, which then diverges from System 7's.
 
@@ -5068,7 +5069,7 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   (`× 2`, `× 3`, `× 4`, alone or as `100% - …`): positions on the Control
   Strip art's bevel-pixel grid inside `classicy-px-rect` (H-R7), not theme
   proportions.
-- System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
+- System 7's `_pixel.scss`, the one `box-pixel × n` in its `px()`
   helper: the pressed close and zoom boxes' starburst, the windoid close
   box's cross, the menu bar's screen corners, the menu checkmark, the
   menu and pop-up triangles, the push buttons' rounded corners and

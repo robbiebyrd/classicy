@@ -327,6 +327,10 @@ the ids the saver already names:
 
 ## Other changes you may notice
 
+- **One Logo saver warning, whichever package logs it.** With Platinum and
+  System 7 both loaded, a stock Logo saver logo whose icon no package
+  registers logs its warning once, not once per package's copy of the
+  registry: the copies share the record of what they warned about.
 - **Platinum's slider draws HIGOS8's grays.** Platinum declares the HIG's
   16-step gray ramp as a package color family, `grayRamp` (the Colors tab's
   new "Gray Ramp" group, 14 swatches). The slider's channel border is

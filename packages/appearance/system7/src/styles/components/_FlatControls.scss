@@ -66,8 +66,9 @@
     }
   }
 
-  // The pop-up arrow (Platinum's partial draws it): a font glyph pointing
-  // where the surface opens, as an escape so the CSS stays ASCII.
+  // A bevel button's pop-up panel (`popupContent`, the Control Strip's
+  // sound slider among them): the menu frame around the strip's face, with
+  // a white highlight along its top and left.
   .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
     @include Menu.menu-frame;
     background:
@@ -76,6 +77,8 @@
       var(--package-color-control-strip-face, var(--color-system-02));
   }
 
+  // The pop-up arrow (Platinum's partial draws it): a font glyph pointing
+  // where the surface opens, as an escape so the CSS stays ASCII.
   .classicyBevelButtonArrowHorizontal::before {
     content: string.unquote('"\\25B8"');
   }

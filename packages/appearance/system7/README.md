@@ -65,7 +65,7 @@ resolution).
   - the desktop: icons with opaque Geneva labels that invert when selected,
     the desktop pattern, the startup screen, the Control Strip in the 7.5
     Control Strip panel's own art, and the Appearance Manager's panel.
-- **Icons, system art and cursors** from System 7.5: 62 icons exported, in
+- **Icons, system art and cursors** from System 7.5: 63 icons exported, in
   color and in 1-bit, at 32 and 16 px where System 7 had both, every system
   art key and every cursor role, so a host that loads System 7 alone draws no
   blank art. Where System 7 had no icon for something, the key reuses the

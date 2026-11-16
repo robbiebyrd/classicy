@@ -234,14 +234,12 @@ describe("the System 7 appearance package", () => {
 		for (const theme of [bw, color])
 			expect(vars(theme)).toMatchObject({
 				"--title-bar-stripe-inset": "1px",
-				"--title-bar-stripe-height": "1px",
-				"--title-bar-stripe-period": "2px",
 				"--title-bar-box-margin": "8px",
 				"--title-bar-box-gap": "1px",
 				"--title-bar-title-gap": "6px",
 				"--title-bar-title-top": "2px",
-				"--window-box-pixel": "1px",
-				"--window-box-zoom-glyph": "7px",
+				"--box-pixel": "1px",
+				"--box-zoom-glyph": "7px",
 				"--grow-box-small-offset": "2px",
 				"--grow-box-large-size": "9px",
 				"--utility-title-bar-box-margin": "3px",
@@ -250,15 +248,35 @@ describe("the System 7 appearance package", () => {
 				"--window-utility-control-box-size": "9px",
 			});
 		expect(vars(bw)).toMatchObject({
-			"--window-box-bevel": "0px",
+			"--box-bevel": "0px",
 			"--grow-box-small-size": "7px",
 			"--grow-box-large-offset": "4px",
 		});
 		expect(vars(color)).toMatchObject({
-			"--window-box-bevel": "1px",
+			"--box-bevel": "1px",
 			"--grow-box-small-size": "6px",
 			"--grow-box-large-offset": "3px",
 		});
+	});
+
+	// A family's knobs emit as `--<family>-<key>`: a family named
+	// `window…` would emit inside the core `window` family's names, where a
+	// core key added later (`window.boxBevel`, say) would take the name and
+	// win (core inputs beat package families). So System 7's own families
+	// keep out of every core family's namespace but `controlStrip`, the
+	// Control Strip's, which the core floor declares itself.
+	it("keeps its own knob families out of the core families' names", () => {
+		const kebab = (name: string) =>
+			name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+		const core = ["window", "control", "button", "groupBox", "layout"];
+		for (const theme of [system7Json.defaults, ...system7Json.presets])
+			for (const family of Object.keys(theme.measurements ?? {})) {
+				if (core.includes(family) || family === "controlStrip") continue;
+				for (const owner of core)
+					expect(kebab(family).startsWith(`${kebab(owner)}-`), family).toBe(
+						false,
+					);
+			}
 	});
 
 	// The dimmed ink (styles/components/_Menu.scss): theme-06, the one slot
@@ -298,6 +316,7 @@ describe("the System 7 appearance package", () => {
 			expect(getThemeVars(theme)).toMatchObject({
 				"--menu-bar-height": "20px",
 				"--menu-bar-inset": "9px",
+				"--menu-bar-end-inset": "11px",
 				"--menu-bar-title-padding": "10px",
 				"--menu-bar-title-overlap": "5px",
 				"--menu-bar-highlight-top": "1px",
@@ -351,8 +370,8 @@ describe("the System 7 appearance package", () => {
 				"--alert-layout-other-button-inset": "73px",
 				"--push-button-line-height": "16px",
 				"--push-button-text-lift": "2px",
-				"--window-header-height": "17px",
-				"--window-header-rule": "3px",
+				"--header-strip-height": "17px",
+				"--header-strip-rule": "3px",
 				"--button-default-ring": "3px",
 			});
 		expect(getThemeVars(bw)).toMatchObject({
@@ -579,10 +598,8 @@ describe("the System 7 appearance package", () => {
 	});
 
 	// System 7 had no interface feedback sounds: its one hook blinks a chosen
-	// menu item (HIG p.56) and plays nothing.
-	it("hooks only the menu item's blink, and plays no sound", async () => {
-		const core = await import("@classicy/classicy");
-		const play = vi.spyOn(core, "playClassicyAppearanceSound");
+	// menu item (HIG p.56); hooks.test.ts proves it plays nothing.
+	it("hooks only the menu item's blink", async () => {
 		const { system7AppearanceHooks } = await import("./index");
 		const pkg = getClassicyAppearancePackage("system7");
 		expect(pkg?.hooks).toBe(system7AppearanceHooks);
@@ -601,7 +618,6 @@ describe("the System 7 appearance package", () => {
 			style: { animationIterationCount: 3 },
 		});
 		expect(menuItem.release?.(ctx)).toEqual({});
-		expect(play).not.toHaveBeenCalled();
 		expect(Object.isFrozen(system7AppearanceHooks.on)).toBe(true);
 	});
 

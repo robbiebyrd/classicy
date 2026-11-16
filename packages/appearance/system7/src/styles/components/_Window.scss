@@ -28,14 +28,13 @@
 //   --color-system-07             #555555          black (inactive frame)
 //   --color-theme-05              #333333          black (windoid dots)
 //
-// and the knobs `windowBox.bevel` (1 in color, 0 in 1-bit: the boxes' and
+// and the knobs `box.bevel` (1 in color, 0 in 1-bit: the boxes' and
 // size box's inner bevel) and the `growBox` squares, which differ by a pixel
 // between the depths.
 //
 // The pressed boxes' starburst and the windoid box's cross are art on a
 // pixel grid: one-pixel rectangles (`classicy-px-rect` layers) placed in
-// multiples of `--window-box-pixel` (`px()` and `pixel-art()`, ../_pixel.scss).
-@use "sass:list";
+// multiples of `--box-pixel` (`px()` and `pixel-art()`, ../_pixel.scss).
 @use "pkg:@classicy/classicy/scss/layout";
 @use "../pixel" as *;
 
@@ -49,7 +48,7 @@ $starburst: (5 1 1 3) (5 7 1 3) (1 5 3 1) (7 5 3 1) (2 2) (3 3) (8 2) (7 3) (2 8
 $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
 
 // A box's face: a one-pixel ring, dark at the top and left and light at the
-// bottom and right, then an inner bevel of `--window-box-bevel` (light at the
+// bottom and right, then an inner bevel of `--box-bevel` (light at the
 // top and left, dark at the bottom and right; none in 1-bit) around the
 // fill. Inset shadows, so they paint over the background's glyph layers; the
 // first listed is on top, which gives the ring's off corners to its dark side.
@@ -57,9 +56,9 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   box-shadow:
     inset $b $b 0 0 var(--color-theme-07),
     inset calc(#{$b} * -1) calc(#{$b} * -1) 0 0 var(--color-window-border-outset),
-    inset calc(#{$b} + var(--window-box-bevel)) calc(#{$b} + var(--window-box-bevel)) 0 0
+    inset calc(#{$b} + var(--box-bevel)) calc(#{$b} + var(--box-bevel)) 0 0
       var(--color-window-border-outset),
-    inset calc((#{$b} + var(--window-box-bevel)) * -1) calc((#{$b} + var(--window-box-bevel)) * -1) 0 0
+    inset calc((#{$b} + var(--box-bevel)) * -1) calc((#{$b} + var(--box-bevel)) * -1) 0 0
       var(--color-theme-07);
 }
 
@@ -84,7 +83,7 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
 // bottom sides as QuickDraw drew them.
 @function grow-square($o, $s, $fill) {
   $in: calc(#{$o} + #{$px});
-  $bevel: var(--window-box-bevel);
+  $bevel: var(--box-bevel);
   @return layout.classicy-px-rect(var(--color-window-border-outset), $in, $in, calc(#{$s} - #{$px}), $bevel),
     layout.classicy-px-rect(var(--color-window-border-outset), $in, $in, $bevel, calc(#{$s} - #{$px})),
     layout.classicy-px-rect($fill, $in, $in, calc(#{$s} - #{$px} - #{$px}), calc(#{$s} - #{$px} - #{$px})),
@@ -93,15 +92,28 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
 
 // The active title bar's face and its six stripes on alternate rows,
 // `--window-control-size` tall and centered like the boxes, running `$inset`
-// inside the bar's bevel at both ends.
+// inside the bar's bevel at both ends. The stripes are the `windowStripes`
+// art (the capture's ink alone, 16 x 15, its rows 2 to 12 the stripes, from
+// the bar's second row) masking a layer of the stripe token behind the
+// bar's parts, drawn with nearest-neighbor scaling: a pixel of art stays a
+// whole device pixel at any zoom or device-pixel ratio, where a gradient's
+// edges would blend at 125%, and the color stays the theme's. The layer
+// fills the bar's height, so its top and bottom edges, which a fractional
+// ratio leaves across a device pixel, fall on rows the art leaves clear.
 @mixin title-bar-stripes($inset) {
-  background:
-    repeating-linear-gradient(
-        var(--color-system-06) 0 var(--title-bar-stripe-height),
-        transparent var(--title-bar-stripe-height) var(--title-bar-stripe-period)
-      )
-      $inset center / calc(100% - #{$inset} - #{$inset}) var(--window-control-size) no-repeat,
-    var(--color-theme-01);
+  isolation: isolate;
+  background: var(--color-theme-01);
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 $inset;
+    background-color: var(--color-system-06);
+    mask: var(--classicy-art-window-stripes) left $px / auto repeat-x;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
 }
 
 // The title bar's title area: no proxy icon (System 7 titles carry none;
@@ -130,6 +142,31 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       height: auto;
       padding: var(--title-bar-title-top) var(--title-bar-title-gap) 0;
     }
+  }
+}
+
+// The contents' heights in a window `$root` that holds its own menu bar:
+// each of the four below (document or utility, with or without a header)
+// less the bar's height, which the base sheet reads the same way (a host's
+// or package's `--classicy-window-menu-bar-height`, else the theme's).
+@mixin with-menu-bar($root) {
+  $bar: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
+  $header: calc(var(--header-strip-height) + var(--header-strip-rule));
+
+  #{$root} .classicyWindowContents {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - #{$bar});
+  }
+
+  #{$root} .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - #{$header} - #{$bar});
+  }
+
+  #{$root}.classicyWindowUtility .classicyWindowContents {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - #{$bar});
+  }
+
+  #{$root}.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - #{$header} - #{$bar});
   }
 }
 
@@ -220,22 +257,22 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       }
 
       // The zoom box's glyph: the right and bottom sides of a smaller square
-      // in its upper left (`windowBox.zoomGlyph` on a side, the box's ring
+      // in its upper left (`box.zoomGlyph` on a side, the box's ring
       // its other two); the bevel paints over the pixels it shares.
       .classicyWindowZoomBox {
         background:
           layout.classicy-px-rect(
             var(--color-theme-07),
-            calc(var(--window-box-zoom-glyph) - #{$px}),
+            calc(var(--box-zoom-glyph) - #{$px}),
             $px,
             $px,
-            calc(var(--window-box-zoom-glyph) - #{$px})
+            calc(var(--box-zoom-glyph) - #{$px})
           ),
           layout.classicy-px-rect(
             var(--color-theme-07),
             $px,
-            calc(var(--window-box-zoom-glyph) - #{$px}),
-            calc(var(--window-box-zoom-glyph) - #{$px}),
+            calc(var(--box-zoom-glyph) - #{$px}),
+            calc(var(--box-zoom-glyph) - #{$px}),
             $px
           ),
           var(--color-system-04);
@@ -377,6 +414,11 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
 
     @include bar-bevel;
 
+    // No racing stripes (the active bar's layer, above): the dots instead.
+    &::before {
+      content: none;
+    }
+
     .classicyWindowControlBox {
       width: auto;
       height: auto;
@@ -404,14 +446,30 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     }
 
     .classicyWindowTitle .classicyWindowTitleCenter {
+      position: relative;
+      isolation: isolate;
       align-self: stretch;
       margin: 0 var(--utility-title-bar-dot-inset);
-      padding: var(--utility-title-bar-dot-inset) 0;
-      // One dot in the upper left of each tile, over the content box only,
-      // so the rows stop `dotInset` short of the bar's top and bottom.
-      background: conic-gradient(from 270deg at $px $px, var(--color-theme-05) 25%, transparent 0) repeat
-        content-box;
-      background-size: var(--utility-title-bar-texture-width) var(--utility-title-bar-texture-height);
+
+      // One dot in the upper left of each tile (`windowUtilityTexture`,
+      // its dot alone, masking the dot token), stopping `dotInset` short of
+      // the bar's top and bottom; nearest-neighbor, as the stripes. The
+      // layer starts a pixel above the first row of dots and left of the
+      // first column, the tile moved a pixel in, so its top and left edges
+      // fall on the clear part of a tile, and ends a pixel below the last
+      // row of dots, on another clear row.
+      &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: calc(var(--utility-title-bar-dot-inset) - #{$px}) 0 calc(var(--utility-title-bar-dot-inset) - #{$px})
+          px(-1);
+        background-color: var(--color-theme-05);
+        mask: var(--classicy-art-window-utility-texture) $px $px / var(--utility-title-bar-texture-width)
+          var(--utility-title-bar-texture-height) repeat;
+        image-rendering: pixelated;
+        pointer-events: none;
+      }
     }
   }
 
@@ -420,13 +478,13 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   }
 
   // A window header (the Finder's item count and disk space): a white strip
-  // `windowHeader.height` (17) rows tall over a double rule, two black lines
-  // a white row apart (`windowHeader.rule`, 3), meeting the frame at both
+  // `headerStrip.height` (17) rows tall over a double rule, two black lines
+  // a white row apart (`headerStrip.rule`, 3), meeting the frame at both
   // ends; its text Geneva 9, the Finder's views font
   // (`*-finder-window-fits-active.png`).
   .classicyWindow .classicyWindowHeader {
-    height: var(--window-header-height);
-    border-bottom: var(--window-header-rule) double var(--color-black);
+    height: var(--header-strip-height);
+    border-bottom: var(--header-strip-rule) double var(--color-black);
     background: var(--color-window-document);
     font-family: var(--body-font), sans-serif;
     font-size: var(--body-font-size);
@@ -437,14 +495,24 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
   // layer).
   .classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader {
     height: calc(
-      100% - var(--window-title-bar-height) + #{$b} - var(--window-header-height) - var(--window-header-rule)
+      100% - var(--window-title-bar-height) + #{$b} - var(--header-strip-height) - var(--header-strip-rule)
     );
   }
 
   .classicyWindow.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
     height: calc(
-      100% - var(--window-utility-title-bar-height) - #{$b} - var(--window-header-height) - var(--window-header-rule)
+      100% - var(--window-utility-title-bar-height) - #{$b} - var(--header-strip-height) - var(--header-strip-rule)
     );
+  }
+
+  // A window holding its own menu bar (menu-bar placement `window`, which
+  // System 7's layout never asks for, but a host may place a bar): the
+  // contents give up the bar's height too, as the base sheet's
+  // (ClassicyWindowMenuBar.scss) do, which the rules above outrank. Keyed
+  // twice, in separate rules, as there: a browser that cannot parse :has()
+  // drops only those.
+  @each $root in (".classicyWindow.classicyWindowWithMenuBar", ".classicyWindow:has(> .classicyWindowMenuBar)") {
+    @include with-menu-bar($root);
   }
 
   // A resizable windoid's size box: its narrower scroll-bar cell (the base

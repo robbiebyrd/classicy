@@ -151,6 +151,21 @@ describe("system7.scss (compiled)", () => {
 	const layersOf = (declarations: string, ink: string) =>
 		declarations.split(`linear-gradient(${ink}, ${ink})`).length - 1;
 
+	// The stripes are raster art masking the token (story 0211-4pl): a
+	// gradient's edges blend at 125% and 150%, a nearest-neighbor mask's
+	// do not, and the ink stays the theme's.
+	const STRIPES =
+		/mask: var\(--classicy-art-window-stripes\) left var\(--box-pixel\) ?\/ ?auto repeat-x;/;
+	const stripesOf = (bar: string) => {
+		const layer = rule(`${bar}::before`);
+		expect(layer, bar).toMatch(STRIPES);
+		expect(layer, bar).toMatch(/background-color: var\(--color-system-06\);/);
+		expect(layer, bar).toMatch(/image-rendering: pixelated;/);
+		expect(layer, bar).toMatch(/z-index: -1;/);
+		expect(rule(bar), bar).toMatch(/isolation: isolate;/);
+		return layer;
+	};
+
 	// Plan 0018-dbd §3.2: the window chrome, from the 7.5 captures.
 	describe("windows", () => {
 		it("frames a window in one pixel with a one-pixel drop shadow and no frame ring", () => {
@@ -165,12 +180,38 @@ describe("system7.scss (compiled)", () => {
 		});
 
 		it("draws the racing stripes on the active title bar only", () => {
-			expect(rule(".classicyWindow.active .classicyWindowTitleBar")).toMatch(
-				/repeating-linear-gradient\(var\(--color-system-06\) 0 var\(--title-bar-stripe-height\)/,
-			);
+			expect(
+				stripesOf(".classicyWindow.active .classicyWindowTitleBar"),
+			).toMatch(/inset: 0 var\(--title-bar-stripe-inset\);/);
 			const bar = rule(".classicyWindow .classicyWindowTitleBar");
 			expect(bar).toMatch(/border-bottom: var\(--window-border-size\) solid/);
 			expect(bar).not.toContain("gradient");
+			expect(css).not.toContain("--title-bar-stripe-height");
+			expect(rule(".classicyWindow .classicyWindowTitleBar::before")).toBe("");
+		});
+
+		it("dots the windoid's drag bar with its raster tile, nearest-neighbor", () => {
+			const center =
+				".classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter";
+			expect(rule(center)).toMatch(/isolation: isolate;/);
+			expect(rule(center)).not.toContain("gradient");
+			const dots = rule(`${center}::before`);
+			expect(dots).toMatch(
+				/mask: var\(--classicy-art-window-utility-texture\) var\(--box-pixel\) var\(--box-pixel\) ?\/ ?var\(--utility-title-bar-texture-width\) var\(--utility-title-bar-texture-height\) repeat;/,
+			);
+			expect(dots).toMatch(/background-color: var\(--color-theme-05\);/);
+			// A pixel out above, below and to the left, on clear rows and
+			// columns of the tile.
+			expect(dots).toMatch(
+				/inset: calc\(var\(--utility-title-bar-dot-inset\) - var\(--box-pixel\)\) 0 calc\(var\(--utility-title-bar-dot-inset\) - var\(--box-pixel\)\) calc\(var\(--box-pixel\) \* -1\);/,
+			);
+			expect(dots).toMatch(/image-rendering: pixelated;/);
+			// And no racing stripes: the active bar's layer is off.
+			expect(
+				rule(
+					".classicyWindow.classicyWindowUtility .classicyWindowTitleBar::before",
+				),
+			).toMatch(/content: none;/);
 		});
 
 		it("grays an inactive window's frame and drops the base sheet's dimming filter", () => {
@@ -243,9 +284,9 @@ describe("system7.scss (compiled)", () => {
 		// strip of whole pixels over a double rule, which the contents give up.
 		it("draws a window header as a white strip over a double rule, which the contents give up", () => {
 			const header = rule(".classicyWindow .classicyWindowHeader");
-			expect(header).toMatch(/height: var\(--window-header-height\);/);
+			expect(header).toMatch(/height: var\(--header-strip-height\);/);
 			expect(header).toMatch(
-				/border-bottom: var\(--window-header-rule\) double var\(--color-black\);/,
+				/border-bottom: var\(--header-strip-rule\) double var\(--color-black\);/,
 			);
 			expect(header).toMatch(/background: var\(--color-window-document\);/);
 			expect(
@@ -253,8 +294,45 @@ describe("system7.scss (compiled)", () => {
 					".classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader",
 				),
 			).toMatch(
-				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--window-header-height\) - var\(--window-header-rule\)\);/,
+				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--header-strip-height\) - var\(--header-strip-rule\)\);/,
 			);
+		});
+
+		// Story 0211-4pl: the rules above outrank the base sheet's, so a
+		// window holding its own menu bar (ClassicyWindowMenuBar.scss) must
+		// give up the bar's height here too, header or not, windoid or not.
+		it("gives up a window's own menu bar too, under a header and in a windoid", () => {
+			const bar =
+				"var(--classicy-window-menu-bar-height, var(--window-menu-bar-height))";
+			for (const root of [
+				".classicyWindow.classicyWindowWithMenuBar",
+				".classicyWindow:has(> .classicyWindowMenuBar)",
+			]) {
+				const height = (rest: string) =>
+					/height: (calc\(.*\));/.exec(rule(`${root}${rest}`))?.[1] ?? "";
+				const plain = height(" .classicyWindowContents");
+				const header = height(
+					" .classicyWindowContents.classicyWindowContentsWithHeader",
+				);
+				const windoid = height(
+					".classicyWindowUtility .classicyWindowContents",
+				);
+				const windoidHeader = height(
+					".classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader",
+				);
+				for (const h of [plain, header, windoid, windoidHeader])
+					expect(h, root).toContain(`- ${bar})`);
+				for (const h of [plain, header])
+					expect(h, root).toContain("--window-title-bar-height");
+				for (const h of [windoid, windoidHeader])
+					expect(h, root).toContain("--window-utility-title-bar-height");
+				for (const h of [header, windoidHeader]) {
+					expect(h, root).toContain("--header-strip-height");
+					expect(h, root).toContain("--header-strip-rule");
+				}
+				for (const h of [plain, windoid])
+					expect(h, root).not.toContain("--header-strip");
+			}
 		});
 
 		it("draws the standalone frame as an active document window's chrome", () => {
@@ -262,9 +340,7 @@ describe("system7.scss (compiled)", () => {
 				/box-shadow: var\(--window-border-size\) var\(--window-border-size\) 0 0 var\(--color-black\);/,
 			);
 			const bar = rule(".classicyWindowFrame > .classicyWindowTitleBar");
-			expect(bar).toMatch(
-				/repeating-linear-gradient\(var\(--color-system-06\) 0 var\(--title-bar-stripe-height\)/,
-			);
+			stripesOf(".classicyWindowFrame > .classicyWindowTitleBar");
 			expect(bar).toMatch(/inset .* var\(--color-theme-02\);/);
 			expect(bar).toMatch(/padding: 0;/);
 			expect(
@@ -446,6 +522,10 @@ describe("system7.scss (compiled)", () => {
 				/border-bottom: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
 			expect(bar).toMatch(/border-radius: 0;/);
+			// Its own insets at both ends, no window knob borrowed.
+			expect(bar).toMatch(
+				/padding: 0 var\(--menu-bar-end-inset\) 0 var\(--menu-bar-inset\);/,
+			);
 			// Four rows a corner (runs of 5, 3, 2 and 1 x 2), both corners.
 			expect(layersOf(bar, "var(--color-black)")).toBe(8);
 			const title = rule(TITLES);
@@ -522,6 +602,19 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyPopUpMenuList")).toMatch(/clip-path: polygon\(/);
 		});
 
+		// The open pop-up's frame is declared once: no declaration of it is
+		// overridden by a later one (story 0211-4pl, a frame mixin whose
+		// border and shadow a later rule replaced).
+		it("declares each of the open pop-up's properties once", () => {
+			const properties = [
+				...rule(".classicyPopUpMenuList").matchAll(/^\s*([a-z-]+):/gm),
+			].map(([, property]) => property);
+			expect(properties.length).toBeGreaterThan(5);
+			expect(properties.filter((p, i) => properties.indexOf(p) !== i)).toEqual(
+				[],
+			);
+		});
+
 		// Story 0196-1i1: the focus ring left the base sheet; System 7 keeps
 		// the one it drew, square (the base's rounding was Platinum's).
 		it("rings a pop-up focused from the keyboard, square", () => {
@@ -579,8 +672,8 @@ describe("system7.scss (compiled)", () => {
 			expect(arrow).toMatch(/background: var\(--color-white\);/);
 			expect(arrow).toMatch(/justify-content: flex-start;/);
 			const box = rule(".classicyPopUpMenuScrollArrow::before");
-			expect(box).toMatch(/width: calc\(var\(--window-box-pixel\) \* 11\);/);
-			expect(box).toMatch(/height: calc\(var\(--window-box-pixel\) \* 6\);/);
+			expect(box).toMatch(/width: calc\(var\(--box-pixel\) \* 11\);/);
+			expect(box).toMatch(/height: calc\(var\(--box-pixel\) \* 6\);/);
 			for (const direction of ["Up", "Down"]) {
 				const glyph = rule(`.classicyPopUpMenuScrollArrow${direction}::before`);
 				expect(layersOf(glyph, "var(--color-black)"), direction).toBe(6);
@@ -662,10 +755,8 @@ describe("system7.scss (compiled)", () => {
 				/border-bottom: none;/,
 			);
 			expect(
-				rule(".classicyWindow.active .classicyWindowTitleBarModal"),
-			).toMatch(
-				/var\(--title-bar-modal-stripe-inset\) center\/calc\(100% - var\(--title-bar-modal-stripe-inset\) - var\(--title-bar-modal-stripe-inset\)\)/,
-			);
+				stripesOf(".classicyWindow.active .classicyWindowTitleBarModal"),
+			).toMatch(/inset: 0 var\(--title-bar-modal-stripe-inset\);/);
 		});
 
 		// The dialogs that pad themselves are named by the class the core sets
@@ -791,7 +882,7 @@ describe("system7.scss (compiled)", () => {
 				),
 			).toBe(4 + 4 * 6);
 			expect(rule(":where(.classicyButton).default::after")).toMatch(
-				/inset: calc\(calc\(var\(--window-box-pixel\) \+ var\(--button-default-ring\)\) \* -1\);/,
+				/inset: calc\(calc\(var\(--box-pixel\) \+ var\(--button-default-ring\)\) \* -1\);/,
 			);
 		});
 
@@ -837,11 +928,11 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyButton:focus")).toMatch(/outline: none;/);
 			const mark = rule(".classicyButton:focus-visible");
 			expect(mark).toMatch(
-				/outline: calc\(var\(--window-box-pixel\) \* 2\) solid var\(--color-black\);/,
+				/outline: calc\(var\(--box-pixel\) \* 2\) solid var\(--color-black\);/,
 			);
-			expect(mark).toMatch(/outline-offset: var\(--window-box-pixel\);/);
+			expect(mark).toMatch(/outline-offset: var\(--box-pixel\);/);
 			expect(rule(":where(.classicyButton).default:focus-visible")).toMatch(
-				/outline-offset: calc\(calc\(var\(--window-box-pixel\) \+ var\(--button-default-ring\)\) \+ var\(--window-box-pixel\)\);/,
+				/outline-offset: calc\(calc\(var\(--box-pixel\) \+ var\(--button-default-ring\)\) \+ var\(--box-pixel\)\);/,
 			);
 		});
 	});
@@ -870,12 +961,12 @@ describe("system7.scss (compiled)", () => {
 			const box = rule(".classicyCheckbox");
 			expect(box).toMatch(/width: var\(--check-box-size\);/);
 			expect(box).toMatch(
-				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(box).toMatch(/border-radius: 0;/);
 			expect(layersOf(rule(".classicyCheckbox:checked"), BLACK)).toBe(18);
 			expect(rule(".classicyCheckbox:active:not(:disabled)")).toMatch(
-				/box-shadow: inset 0 0 0 var\(--window-box-pixel\) var\(--color-black\);/,
+				/box-shadow: inset 0 0 0 var\(--box-pixel\) var\(--color-black\);/,
 			);
 			expect(layersOf(rule(".classicyCheckbox.mixed"), BLACK)).toBe(1);
 		});
@@ -949,11 +1040,11 @@ describe("system7.scss (compiled)", () => {
 			// A length in grid pixels, with the theme's tile (2 or 0).
 			const length = (value: string, tile: number): number => {
 				if (value === "0") return 0;
-				if (value === "var(--window-box-pixel)") return 1;
+				if (value === "var(--box-pixel)") return 1;
 				if (value === "var(--dither-tile-size)") return tile;
-				if (value === "min(var(--dither-tile-size), var(--window-box-pixel))")
+				if (value === "min(var(--dither-tile-size), var(--box-pixel))")
 					return Math.min(tile, 1);
-				const m = /^calc\(var\(--window-box-pixel\) \* (\d+)\)$/.exec(value);
+				const m = /^calc\(var\(--box-pixel\) \* (\d+)\)$/.exec(value);
 				if (!m) throw new Error(`not a grid length: ${value}`);
 				return Number(m[1]);
 			};
@@ -1085,9 +1176,9 @@ describe("system7.scss (compiled)", () => {
 			const length = (value: string, full: number): number => {
 				const v = value.trim();
 				if (v === "0") return 0;
-				if (v === "var(--window-box-pixel)") return 1;
+				if (v === "var(--box-pixel)") return 1;
 				if (v === "var(--channel-slider-thumb-stop)") return 5;
-				let m = /^calc\(var\(--window-box-pixel\) \* (\d+)\)$/.exec(v);
+				let m = /^calc\(var\(--box-pixel\) \* (\d+)\)$/.exec(v);
 				if (m) return Number(m[1]);
 				m = /^calc\(100% - (.*)\)$/.exec(v);
 				if (m) return full - length(m[1], full);
@@ -1343,7 +1434,7 @@ describe("system7.scss (compiled)", () => {
 			expect(triangle).toMatch(/width: var\(--outline-triangle-size\);/);
 			expect(triangle).toMatch(/transform-box: border-box;/);
 			expect(triangle).toMatch(
-				/transform-origin: calc\(var\(--window-box-pixel\) \* 6\) calc\(var\(--window-box-pixel\) \* 5\);/,
+				/transform-origin: calc\(var\(--box-pixel\) \* 6\) calc\(var\(--box-pixel\) \* 5\);/,
 			);
 			expect(layersOf(triangle, BLACK)).toBe(10);
 			// The checker is System 7's own color, #9999FF in color (the 7.5
@@ -1367,7 +1458,7 @@ describe("system7.scss (compiled)", () => {
 				/height: var\(--edit-field-height\);/,
 			);
 			expect(field).toMatch(
-				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(field).toMatch(/box-shadow: none;/);
 			expect(field).toMatch(/height: var\(--edit-field-height\);/);
@@ -1393,7 +1484,7 @@ describe("system7.scss (compiled)", () => {
 				/--classicy-listbox-row-height: var\(--list-box-row-height\);/,
 			);
 			expect(list).toMatch(
-				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(rule(".classicyListBoxViewport")).toMatch(/box-shadow: none;/);
 			const selected = rule(":where(.classicyListBoxOption).selected");
@@ -1440,7 +1531,7 @@ describe("system7.scss (compiled)", () => {
 			// Color's gray pair, sized away in 1-bit; 1-bit's dots, sized
 			// away in color.
 			expect(separator).toMatch(
-				/var\(--color-theme-06\) 50%, var\(--color-system-06\) 0\) left top ?\/ ?calc\(calc\(var\(--window-box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				/var\(--color-theme-06\) 50%, var\(--color-system-06\) 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
 			);
 			expect(separator).toMatch(
 				/transparent 50%, var\(--color-system-06\) 0\) left top ?\/ ?var\(--dither-tile-size\)/,
@@ -1451,7 +1542,7 @@ describe("system7.scss (compiled)", () => {
 			const bar = rule(".classicyProgress progress[value]");
 			expect(bar).toMatch(/height: var\(--progress-height\);/);
 			expect(bar).toMatch(
-				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(bar).toMatch(/background: var\(--color-theme-02\);/);
 			expect(
@@ -1519,16 +1610,14 @@ describe("system7.scss (compiled)", () => {
 
 		it("outlines a bar in four black layers over a white face, the sides on a window's frame left out", () => {
 			const bar = rule(".classicyScrollBar");
-			expect(bar).toMatch(
-				/border: var\(--window-box-pixel\) solid transparent;/,
-			);
+			expect(bar).toMatch(/border: var\(--box-pixel\) solid transparent;/);
 			expect(layersOf(bar, BLACK)).toBe(4);
 			expect(count(bar, "no-repeat border-box")).toBe(4);
 			expect(bar).toMatch(/var\(--color-window-document\) padding-box;/);
 			for (const side of ["top", "right", "bottom", "left"])
 				expect(bar).toMatch(
 					new RegExp(
-						`--system7-bar-off-${side}: calc\\(var\\(--window-box-pixel\\) - var\\(--window-box-pixel\\)\\);`,
+						`--system7-bar-off-${side}: calc\\(var\\(--box-pixel\\) - var\\(--box-pixel\\)\\);`,
 					),
 				);
 			// The vertical bar lies on the line above it and the frame at its
@@ -1557,12 +1646,12 @@ describe("system7.scss (compiled)", () => {
 					".classicyListBox > .classicyScrollAreaBody > .classicyScrollBarVertical",
 				),
 			).toMatch(
-				/margin: calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) 0;/,
+				/margin: calc\(var\(--box-pixel\) \* -1\) calc\(var\(--box-pixel\) \* -1\) calc\(var\(--box-pixel\) \* -1\) 0;/,
 			));
 
 		it("draws Standard File's own list as the list: black frame, no bevel, its bar on the frame", () => {
 			expect(rule(".classicyFileOpenDialogWell")).toMatch(
-				/border: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(rule(".classicyFileOpenDialogWellViewport")).toMatch(
 				/box-shadow: none;/,
@@ -1572,7 +1661,7 @@ describe("system7.scss (compiled)", () => {
 					".classicyFileOpenDialogWell > .classicyScrollAreaBody > .classicyScrollBarVertical",
 				),
 			).toMatch(
-				/margin: calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) calc\(var\(--window-box-pixel\) \* -1\) 0;/,
+				/margin: calc\(var\(--box-pixel\) \* -1\) calc\(var\(--box-pixel\) \* -1\) calc\(var\(--box-pixel\) \* -1\) 0;/,
 			);
 		});
 
@@ -1608,7 +1697,7 @@ describe("system7.scss (compiled)", () => {
 			expect(
 				rule(".classicyScrollBarVertical .classicyScrollBarArrow"),
 			).toMatch(
-				/height: calc\(var\(--window-scrollbar-size\) - var\(--window-box-pixel\)\);/,
+				/height: calc\(var\(--window-scrollbar-size\) - var\(--box-pixel\)\);/,
 			);
 		});
 
@@ -1626,7 +1715,7 @@ describe("system7.scss (compiled)", () => {
 			expect(
 				rule(".classicyScrollBarVertical .classicyScrollBarArrowStart"),
 			).toMatch(
-				/border-bottom: var\(--window-box-pixel\) solid var\(--system7-scroll-line\);/,
+				/border-bottom: var\(--box-pixel\) solid var\(--system7-scroll-line\);/,
 			);
 		});
 
@@ -1695,7 +1784,7 @@ describe("system7.scss (compiled)", () => {
 			expect(dots.match(/conic-gradient/g)).toHaveLength(2);
 			expect(dots.match(/ fixed/g)).toHaveLength(2);
 			expect(dots).toMatch(/mask-composite: exclude;/);
-			expect(dots).toMatch(/padding: var\(--window-box-pixel\);/);
+			expect(dots).toMatch(/padding: var\(--box-pixel\);/);
 			expect(rule(".classicyScrollBar .classicyScrollBarThumb.dragging")).toBe(
 				"",
 			);
@@ -1708,9 +1797,7 @@ describe("system7.scss (compiled)", () => {
 			expect(fits).toMatch(/--system7-arrow-face: var\(--color-theme-01\);/);
 			expect(fits).toMatch(/--system7-arrow-light: var\(--color-theme-01\);/);
 			expect(fits).toMatch(/--system7-arrow-bevel: 0;/);
-			expect(fits).toMatch(
-				/--system7-arrow-spread: var\(--window-box-pixel\);/,
-			);
+			expect(fits).toMatch(/--system7-arrow-spread: var\(--box-pixel\);/);
 			expect(fits).toMatch(/--system7-scroll-line: var\(--color-system-06\);/);
 			expect(rule(".classicyScrollBar.fits .classicyScrollBarTrack")).toMatch(
 				/background: var\(--color-theme-01\);/,
@@ -1730,10 +1817,10 @@ describe("system7.scss (compiled)", () => {
 		it("draws the corner cell's outer lines, leaving them to a window's frame", () => {
 			const corner = rule(".classicyScrollAreaCorner");
 			expect(corner).toMatch(
-				/border-right: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border-right: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(corner).toMatch(
-				/border-bottom: var\(--window-box-pixel\) solid var\(--color-black\);/,
+				/border-bottom: var\(--box-pixel\) solid var\(--color-black\);/,
 			);
 			expect(corner).toMatch(
 				/background: var\(--color-window-document\) padding-box;/,
@@ -1787,7 +1874,11 @@ describe("system7.scss (compiled)", () => {
 			expect(preview).toMatch(
 				/border: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
-			expect(preview).toMatch(/object-position: -200vw 0;/);
+			// The image starts past the box's right and bottom edges, so no
+			// picture, however large, reaches into it (story 0211-4pl: a
+			// negative offset left a wide picture's right end inside).
+			expect(preview).toMatch(/object-fit: none;/);
+			expect(preview).toMatch(/object-position: 100vw 100vh;/);
 			expect(rule(".classicyAppearanceManagerContent")).toMatch(
 				/background-color: var\(--color-window-document\);/,
 			);
@@ -1844,7 +1935,7 @@ describe("system7.scss (compiled)", () => {
 					/color-mix\(in srgb, var\(--color-black\) 50%, transparent\)/,
 				);
 				expect(darken).toMatch(
-					/left top\/calc\(var\(--window-box-pixel\) - var\(--icon-selection-invert\)\)/,
+					/left top\/calc\(var\(--box-pixel\) - var\(--icon-selection-invert\)\)/,
 				);
 				expect(rule(`${root}.selected ${outer} img`)).toMatch(/filter: none;/);
 				// A color icon draws its pre-rendered selected image instead
@@ -1866,11 +1957,11 @@ describe("system7.scss (compiled)", () => {
 				const inside = rule(`${root}.open ${outer} ${mask}`);
 				expect(inside.split("var(--classicy-icon-mask)").length - 1).toBe(5);
 				expect(inside).toMatch(
-					/mask-position: 0 0, var\(--window-box-pixel\) 0, calc\(0% - var\(--window-box-pixel\)\) 0, 0 var\(--window-box-pixel\), 0 calc\(0% - var\(--window-box-pixel\)\);/,
+					/mask-position: 0 0, var\(--box-pixel\) 0, calc\(0% - var\(--box-pixel\)\) 0, 0 var\(--box-pixel\), 0 calc\(0% - var\(--box-pixel\)\);/,
 				);
 				expect(inside).toMatch(/mask-composite: intersect;/);
 				expect(inside).toMatch(
-					/var\(--classicy-art-halftone, none\) left top\/calc\(var\(--window-box-pixel\) \* 8\) calc\(var\(--window-box-pixel\) \* 8\)/,
+					/var\(--classicy-art-halftone, none\) left top\/calc\(var\(--box-pixel\) \* 8\) calc\(var\(--box-pixel\) \* 8\)/,
 				);
 				expect(inside).toMatch(
 					/--system7-icon-open-face: var\(--color-theme-04\);/,
@@ -1957,7 +2048,7 @@ describe("system7.scss (compiled)", () => {
 			expect(tab).toMatch(/clip-path: none;/);
 			// Top, two corner pixels, two sides, and the panel's line under it.
 			expect(layersOf(tab, BLACK)).toBe(6);
-			expect(tab).toMatch(/0 100%\/100% var\(--window-box-pixel\)/);
+			expect(tab).toMatch(/0 100%\/100% var\(--box-pixel\)/);
 			const chosen = rule(
 				".classicyTabButtonWrapper:has(.classicyTabButton.selected)",
 			);
@@ -1965,7 +2056,7 @@ describe("system7.scss (compiled)", () => {
 			expect(chosen).not.toMatch(/0 100%\/100%/);
 			expect(
 				rule(".classicyTabButtonWrapper + .classicyTabButtonWrapper"),
-			).toMatch(/margin-left: calc\(0% - var\(--window-box-pixel\)\);/);
+			).toMatch(/margin-left: calc\(0% - var\(--box-pixel\)\);/);
 			expect(rule(".classicyTabsSizeSmall .classicyTabButton")).toMatch(
 				/font-size: var\(--ui-font-size\);/,
 			);

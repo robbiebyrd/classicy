@@ -145,6 +145,39 @@ describe("System 7 asset inventory", () => {
 			expect([...read].filter((key) => !listed.includes(key))).toEqual([]);
 		});
 
+		// A key built at run time (`system.extensions.${name}`) reads some
+		// leaf under its fixed prefix: the prefix must be a branch of the
+		// icon tree, every leaf of which the first test above holds listed.
+		it("reads every templated icon key under a branch of the icon tree", () => {
+			const prefixes = new Set<string>();
+			for (const file of globSync(
+				["src/**/*.{ts,tsx}", "packages/appearance/*/src/**/*.{ts,tsx}"],
+				{ cwd: REPO_ROOT },
+			).filter(
+				(file) =>
+					!/\.(test|stories)\.tsx?$/.test(file) && !file.includes("__tests__"),
+			)) {
+				const text = readFileSync(path.join(REPO_ROOT, file), "utf8");
+				for (const m of text.matchAll(
+					/(?:useClassicyAsset|resolveClassicyAsset)\(\s*"icons",\s*`([^`$]*)\$\{/g,
+				))
+					prefixes.add(m[1] ?? "");
+			}
+			expect(prefixes.size).toBeGreaterThan(0);
+			const listed = keysOf(rows(), "Key");
+			for (const prefix of prefixes) {
+				expect(prefix, prefix).toMatch(/^[a-zA-Z]+(\.[a-zA-Z0-9]+)*\.$/);
+				expect(
+					treeKeys.filter((key) => key.startsWith(prefix)).length,
+					prefix,
+				).toBeGreaterThan(0);
+				expect(
+					listed.filter((key) => key.startsWith(prefix)),
+					prefix,
+				).toEqual(treeKeys.filter((key) => key.startsWith(prefix)));
+			}
+		});
+
 		it("gives every key a decision, a file name for exports and an exported target for reuses", () => {
 			const all = rows();
 			const exported = all
@@ -202,6 +235,21 @@ describe("System 7 asset inventory", () => {
 				}
 			}
 		});
+
+		// A reuse names a key that draws something itself, never another
+		// reuse: a chain would hang on the order the package registers in.
+		it("reuses only keys that are not reuses themselves", () => {
+			const all = rows();
+			const decisionOf = new Map(
+				all.map((row) => [code(row.Key), row.Decision ?? ""]),
+			);
+			const reuses = all.filter((row) => row.Decision === "reuse");
+			expect(reuses.length).toBeGreaterThan(0);
+			for (const row of reuses)
+				expect(decisionOf.get(code(row.Source)), code(row.Key)).not.toBe(
+					"reuse",
+				);
+		});
 	});
 
 	describe("cursors", () => {
@@ -245,6 +293,40 @@ describe("System 7 asset inventory", () => {
 			expect(defaults.map((row) => code(row["Sprite id"]))).toEqual([
 				"ClassicyAlertSimpleBeep",
 			]);
+		});
+
+		// Each row names its sound as the pack lists it (the Sound control
+		// panel's names), and its WAV is there.
+		it("names each sound as the pack does, beside its WAV", () => {
+			const rows = tableRows(section(doc, "Sounds"), "Sprite id");
+			const pack = readFileSync(
+				path.join(
+					REPO_ROOT,
+					"packages/appearance/system7/src/assets/sounds/system7.ts",
+				),
+				"utf8",
+			);
+			const labels = new Map(
+				[...pack.matchAll(/\{ value: "([^"]+)", label: "([^"]+)" \}/g)].map(
+					(m) => [m[1], m[2]],
+				),
+			);
+			expect(labels.size).toBe(6);
+			for (const row of rows) {
+				const id = code(row["Sprite id"]);
+				const expected = id === "ClassicyBeep" ? "Simple Beep" : labels.get(id);
+				expect(row.Sound, id).toBe(expected);
+				expect(
+					existsSync(
+						path.join(
+							REPO_ROOT,
+							"packages/appearance/system7/src/assets",
+							code(row.File),
+						),
+					),
+					id,
+				).toBe(true);
+			}
 		});
 	});
 
