@@ -3,11 +3,13 @@ id: 0197-s0z
 title: 'System 7: color fidelity follow-ups'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-12T14:12:40.404Z"
-updated: "2026-11-12T14:12:40.404Z"
+updated: "2026-11-16T21:29:39.871Z"
+started: "2026-11-16T16:34:28.814Z"
+completed: "2026-11-16T21:29:39.871Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Compare against the captures; tests
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Each item is either AE 0 against its capture or recorded as accepted with a reason.
+- [x] VERIFY: Each item is either AE 0 against its capture or recorded as accepted with a reason.
 
 ## Files
 
