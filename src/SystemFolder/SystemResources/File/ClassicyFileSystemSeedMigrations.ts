@@ -13,13 +13,21 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
  * Every op is guarded so it can never clobber a visitor's own changes or
  * double-apply: rename/add refuse to touch an already-occupied destination,
  * replace/delete only fire when the current `_data` exactly matches the
- * known-old value they're correcting.
+ * known-old value they're correcting (delete may guard on `_url` instead).
+ *
+ * A migration without an `id` runs on every boot, kept harmless by those
+ * guards. One with an `id` runs at most once per storage key: ClassicyFileSystem
+ * records it under `localStorage["<storageKey>:seedMigrations"]`, and a fresh
+ * visitor's seed records it without running it, since the seed is current.
+ * Give an `add` an id, or a visitor who deletes the added entry gets it back on
+ * the next boot.
  */
-export type ClassicyFileSystemSeedMigration =
+export type ClassicyFileSystemSeedMigration = (
 	| { op: "rename"; from: string; to: string }
 	| { op: "replace"; path: string; ifData: string; data: string }
-	| { op: "delete"; path: string; ifData?: string }
-	| { op: "add"; path: string; entry: ClassicyFileSystemEntry };
+	| { op: "delete"; path: string; ifData?: string; ifUrl?: string }
+	| { op: "add"; path: string; entry: ClassicyFileSystemEntry }
+) & { id?: string };
 
 // Mirrors ClassicyFileSystem's own FORBIDDEN_PATH_SEGMENTS chokepoint. Kept
 // as a local literal (rather than imported) because this module operates on
@@ -123,9 +131,12 @@ function applyDelete(
 	const ref = resolveParent(tree, segments);
 	if (!ref || !Object.hasOwn(ref.parent, ref.key)) return;
 
-	if (migration.ifData !== undefined) {
-		const entry = ref.parent[ref.key];
-		if (!entry || entry._data !== migration.ifData) return;
+	const entry = ref.parent[ref.key];
+	if (migration.ifData !== undefined && entry?._data !== migration.ifData) {
+		return;
+	}
+	if (migration.ifUrl !== undefined && entry?._url !== migration.ifUrl) {
+		return;
 	}
 
 	delete ref.parent[ref.key];
@@ -161,15 +172,24 @@ function applyAdd(
  * Applies each migration, in order, directly against `tree`. Safe to call on
  * every boot: every op is a guarded no-op once it no longer applies (already
  * fixed, source missing, or a visitor's own edit shadows it).
+ *
+ * With `applied`, a migration whose `id` is in it is skipped, and the id of
+ * each one that runs is added to it, whether or not its guard let it change
+ * anything: an id'd migration gets one chance.
  */
 export function applyClassicyFileSystemSeedMigrations(
 	// biome-ignore lint/suspicious/noExplicitAny: mirrors ClassicyFileSystem's own defaultFS param — fixture/default trees don't conform to ClassicyFileSystemEntry's strict _type at every literal call site
 	tree: any,
 	migrations: ClassicyFileSystemSeedMigration[] | undefined,
 	separator: string = ":",
+	applied?: Set<string>,
 ): void {
 	if (!migrations || migrations.length === 0) return;
 	for (const migration of migrations) {
+		if (migration.id !== undefined) {
+			if (applied?.has(migration.id)) continue;
+			applied?.add(migration.id);
+		}
 		switch (migration.op) {
 			case "rename":
 				applyRename(tree, migration, separator);

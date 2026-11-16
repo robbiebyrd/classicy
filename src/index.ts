@@ -102,6 +102,7 @@ export * from "./SystemFolder/HyperCard/HyperCardExpression";
 export * from "./SystemFolder/HyperCard/HyperCardModel";
 export * from "./SystemFolder/HyperCard/HyperCardPlugins";
 export * from "./SystemFolder/HyperCard/HyperCardScriptEffects";
+export * from "./SystemFolder/HyperCard/HyperCardStackFile";
 export * from "./SystemFolder/HyperCard/HyperCardTransition";
 export * from "./SystemFolder/HyperCard/HyperCardUtils";
 export * from "./SystemFolder/HyperCard/Editor/HyperCardEditorCanvas";

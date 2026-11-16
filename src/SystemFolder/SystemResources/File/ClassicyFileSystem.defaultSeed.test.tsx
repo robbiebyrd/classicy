@@ -44,7 +44,7 @@ const editDefaults = (fs: ClassicyFileSystem) => {
 	fs.writeFile("Macintosh HD:Documents:Mine.txt", "mine");
 	fs.setMetadata("Macintosh HD:Documents:Read Me.txt", { _label: "edited" });
 	fs.setMetadata("Macintosh HD:Applications:Calculator", { _data: "my sums" });
-	fs.rmDir("Macintosh HD:Documents:Release Notes.md");
+	fs.rmDir("Macintosh HD:Documents:The Oregon Trail.stack");
 	fs.move("Macintosh HD:Users:Guest", "Macintosh HD:Documents");
 };
 

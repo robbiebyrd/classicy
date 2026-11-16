@@ -35,7 +35,10 @@ import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFi
 import { withExtensionsFolder } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemExtensions";
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
-import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
+import {
+	DefaultFSContent,
+	DefaultFSSeedMigrations,
+} from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 export type ClassicyDefaultFileSystemMode = "merge" | "exclusive";
@@ -83,6 +86,21 @@ export function resolveDefaultFileSystem(
 }
 
 /**
+ * The seed migrations for the tree `resolveDefaultFileSystem` seeds: the
+ * core's own (`DefaultFSSeedMigrations`) then the host's, or only the host's
+ * when its tree replaces the core's, since the core's paths were never seeded
+ * there.
+ */
+export function resolveSeedMigrations(
+	defaultFileSystem: ClassicyFileSystemTree | undefined,
+	mode: ClassicyDefaultFileSystemMode,
+	seedMigrations: ClassicyFileSystemSeedMigration[] | undefined,
+): ClassicyFileSystemSeedMigration[] {
+	if (defaultFileSystem && mode === "exclusive") return seedMigrations ?? [];
+	return [...DefaultFSSeedMigrations, ...(seedMigrations ?? [])];
+}
+
+/**
  * Constructs a ClassicyFileSystem seeded from the nearest
  * ClassicyAppManagerProvider's defaultFileSystem/defaultFileSystemMode props,
  * falling back to DefaultFSContent when no provider (or no override) is
@@ -101,6 +119,10 @@ export function useClassicyFileSystem(
 ): ClassicyFileSystem {
 	const { defaultFileSystem, mode, seedMigrations } = useContext(
 		ClassicyDefaultFileSystemContext,
+	);
+	const migrations = useMemo(
+		() => resolveSeedMigrations(defaultFileSystem, mode, seedMigrations),
+		[defaultFileSystem, mode, seedMigrations],
 	);
 
 	// Stable key over the app-shortcut icon set so the file system is only
@@ -178,7 +200,7 @@ export function useClassicyFileSystem(
 			storageKey,
 			resolved,
 			separator,
-			seedMigrations,
+			migrations,
 			fsVersion,
 		);
 		// Overlay the derived Applications folder after construction so it is
@@ -219,7 +241,7 @@ export function useClassicyFileSystem(
 		controlStripModulesKey,
 		defaultFileSystem,
 		mode,
-		seedMigrations,
+		migrations,
 		storageKey,
 		separator,
 		appShortcutsKey,
@@ -269,6 +291,10 @@ export function useClassicyFileSystemAccessor(
 	const { defaultFileSystem, mode, seedMigrations } = useContext(
 		ClassicyDefaultFileSystemContext,
 	);
+	const migrations = useMemo(
+		() => resolveSeedMigrations(defaultFileSystem, mode, seedMigrations),
+		[defaultFileSystem, mode, seedMigrations],
+	);
 	const fsVersion = useAppManager(
 		(s) => s.System.Manager.Desktop.fsVersion ?? 0,
 	);
@@ -278,9 +304,9 @@ export function useClassicyFileSystemAccessor(
 				storageKey,
 				resolveDefaultFileSystem(defaultFileSystem, mode),
 				separator,
-				seedMigrations,
+				migrations,
 				fsVersion,
 			),
-		[defaultFileSystem, mode, seedMigrations, storageKey, separator, fsVersion],
+		[defaultFileSystem, mode, migrations, storageKey, separator, fsVersion],
 	);
 }

@@ -214,14 +214,60 @@ export class ClassicyFileSystem {
 
 		// A reload replaces the tree in place, so instances already holding this
 		// record see the reloaded tree too.
-		const tree = this.readStoredTree() ?? copyClassicyFileSystemSeed(defaultFS);
+		const stored = this.readStoredTree();
+		const tree = stored ?? copyClassicyFileSystemSeed(defaultFS);
 		this.shared = existing ?? { tree, version: 0 };
 		this.shared.epoch = epoch;
 		sharedTrees.set(storageKey, this.shared);
 		this.fs = tree;
 
-		applyClassicyFileSystemSeedMigrations(this.fs, seedMigrations, separator);
+		// Run-once migrations (those with an `id`): a fresh seed is already
+		// current, so it records them without running them.
+		const applied = this.readAppliedSeedMigrations();
+		const appliedBefore = applied.size;
+		if (!stored) {
+			for (const migration of seedMigrations) {
+				if (migration.id !== undefined) applied.add(migration.id);
+			}
+		}
+		applyClassicyFileSystemSeedMigrations(
+			this.fs,
+			seedMigrations,
+			separator,
+			applied,
+		);
+		if (applied.size !== appliedBefore) {
+			this.writeAppliedSeedMigrations(applied);
+		}
 		this.persist();
+	}
+
+	/** Ids of the run-once seed migrations already applied under this key. */
+	private readAppliedSeedMigrations(): Set<string> {
+		try {
+			const parsed: unknown = JSON.parse(
+				localStorage.getItem(`${this.storageKey}:seedMigrations`) ?? "[]",
+			);
+			return new Set(
+				Array.isArray(parsed)
+					? parsed.filter((id): id is string => typeof id === "string")
+					: [],
+			);
+		} catch {
+			// no localStorage, or an unreadable value: nothing recorded
+			return new Set();
+		}
+	}
+
+	private writeAppliedSeedMigrations(applied: Set<string>): void {
+		try {
+			localStorage.setItem(
+				`${this.storageKey}:seedMigrations`,
+				JSON.stringify([...applied]),
+			);
+		} catch {
+			// non-browser environment, or storage full: ids stay unrecorded
+		}
 	}
 
 	/**
