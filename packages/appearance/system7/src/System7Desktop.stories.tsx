@@ -247,7 +247,7 @@ export const FinderFoldersColor: Story = {
 
 /** The list-view window, and the item the story selects in it. */
 const FINDER_LIST_FOLDER = "Macintosh HD:System Folder";
-const FINDER_LIST_SELECTED = "Control Panels";
+const FINDER_LIST_SELECTED = "Extensions";
 
 /**
  * A Finder window in list view with one item selected (story 0197-s0z):
