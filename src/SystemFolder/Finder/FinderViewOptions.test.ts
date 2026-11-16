@@ -4,6 +4,7 @@ import {
 	finderEntryComparator,
 	formatFinderDate,
 	iconViewIconSize,
+	LIST_VIEW_ICON_SIZE_VARS,
 	listViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
 
@@ -29,6 +30,25 @@ describe("icon sizing", () => {
 
 	it("tracks a different theme base", () => {
 		expect(listViewIconSize(32, "medium")).toBe(12);
+	});
+
+	// An Appearance Package's own size for a step (System 7's 16 px small
+	// icons) replaces the scaled one; none, 0 or a non-number leaves it.
+	it("takes a package's size for the step over the scaled one", () => {
+		expect(listViewIconSize(32, "medium", 16)).toBe(16);
+		expect(listViewIconSize(THEME_BASE, "large", 40)).toBe(40);
+		expect(listViewIconSize(THEME_BASE, "medium", 0)).toBe(18);
+		expect(listViewIconSize(THEME_BASE, "medium", undefined)).toBe(18);
+		expect(listViewIconSize(THEME_BASE, "medium", Number.NaN)).toBe(18);
+		expect(listViewIconSize(THEME_BASE, "medium", -4)).toBe(18);
+	});
+
+	it("names one variable per list-view step", () => {
+		expect(LIST_VIEW_ICON_SIZE_VARS).toEqual({
+			small: "--file-browser-list-small-icon-size",
+			medium: "--file-browser-list-medium-icon-size",
+			large: "--file-browser-list-large-icon-size",
+		});
 	});
 });
 

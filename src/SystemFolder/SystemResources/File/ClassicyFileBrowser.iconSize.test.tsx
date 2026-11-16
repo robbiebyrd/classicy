@@ -68,4 +68,28 @@ describe("ClassicyFileBrowser list-view icon base", () => {
 		// round(64 * 0.667) = 43.
 		expect(await rowIconWidth(container)).toBe("43");
 	});
+
+	// An Appearance Package may give a step its own size (the measurement
+	// family `fileBrowserList`, emitted on the desktop): System 7 draws its
+	// 16 px small icons at 16, which no scale of its 32 px base gives.
+	it("draws the step at the package's own size when the desktop carries one", async () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--file-browser-list-large-icon-size", "30px");
+		document.body.append(desktop);
+		const { container } = renderList("test-browser-list-package-size");
+		expect(await rowIconWidth(container)).toBe("30");
+	});
+
+	it("keeps the scaled size for a step the package gives no size, or 0", async () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--file-browser-list-medium-icon-size", "16px");
+		desktop.style.setProperty("--file-browser-list-large-icon-size", "0px");
+		document.body.append(desktop);
+		const { container } = renderList("test-browser-list-other-step");
+		expect(await rowIconWidth(container)).toBe("43");
+	});
 });

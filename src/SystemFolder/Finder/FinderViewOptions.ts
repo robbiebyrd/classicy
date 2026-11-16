@@ -28,10 +28,31 @@ export const iconViewIconSize = (
 	step: FinderIconSize,
 ): number => Math.round(themeBase * ICON_VIEW_SCALES[step]);
 
+/**
+ * The theme variable holding an Appearance Package's own size, in px, for
+ * each list-view step: the optional measurement family `fileBrowserList`
+ * (`smallIconSize`, `mediumIconSize`, `largeIconSize`). The core's themes
+ * set none, so every step is scaled from the desktop icon size.
+ */
+export const LIST_VIEW_ICON_SIZE_VARS: Record<FinderIconSize, string> = {
+	small: "--file-browser-list-small-icon-size",
+	medium: "--file-browser-list-medium-icon-size",
+	large: "--file-browser-list-large-icon-size",
+};
+
+/**
+ * The list view's icon size for `step`: `packageSize` (the step's
+ * `LIST_VIEW_ICON_SIZE_VARS` value) when the active look gives one above 0,
+ * else `themeBase` scaled.
+ */
 export const listViewIconSize = (
 	themeBase: number,
 	step: FinderIconSize,
-): number => Math.round(themeBase * LIST_VIEW_SCALES[step]);
+	packageSize?: number,
+): number =>
+	packageSize !== undefined && Number.isFinite(packageSize) && packageSize > 0
+		? packageSize
+		: Math.round(themeBase * LIST_VIEW_SCALES[step]);
 
 /**
  * The subset of file-system metadata the six Mac OS 8 sort keys need, named

@@ -18,7 +18,10 @@ import type {
 	FinderIconViewOptions,
 	FinderListViewOptions,
 } from "@/SystemFolder/Finder/FinderContext";
-import { listViewIconSize } from "@/SystemFolder/Finder/FinderViewOptions";
+import {
+	LIST_VIEW_ICON_SIZE_VARS,
+	listViewIconSize,
+} from "@/SystemFolder/Finder/FinderViewOptions";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
 	type ClassicyFileBrowserMoveItems,
@@ -250,11 +253,28 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	const [desktopIconSize, setDesktopIconSize] = useState(() =>
 		readClassicyThemeVar("--desktop-icon-size", themeIconSize),
 	);
+	// An Appearance Package's own size for the chosen step, 0 for none (the
+	// optional `fileBrowserList` measurements; System 7 draws its 16 px small
+	// icons at 16). Read with the base, and again whenever the theme changes:
+	// two themes of one icon size may differ in it.
+	const activeTheme = useAppManager(
+		(s) => s.System.Manager.Appearance.activeTheme,
+	);
+	const listIconStep = listViewOptions?.iconSize;
+	const readPackageListIconSize = () =>
+		listIconStep
+			? readClassicyThemeVar(LIST_VIEW_ICON_SIZE_VARS[listIconStep], 0)
+			: 0;
+	const [packageListIconSize, setPackageListIconSize] = useState(
+		readPackageListIconSize,
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: activeTheme is the trigger (its variables are read from the desktop, not from it); the reader closes over listIconStep only
 	useLayoutEffect(() => {
 		setDesktopIconSize(
 			readClassicyThemeVar("--desktop-icon-size", themeIconSize),
 		);
-	}, [themeIconSize]);
+		setPackageListIconSize(readPackageListIconSize());
+	}, [themeIconSize, activeTheme, listIconStep]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
@@ -279,7 +299,11 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					// theme ever ships a different base.
 					iconSize={
 						listViewOptions
-							? listViewIconSize(desktopIconSize, listViewOptions.iconSize)
+							? listViewIconSize(
+									desktopIconSize,
+									listViewOptions.iconSize,
+									packageListIconSize,
+								)
 							: 18
 					}
 					holderRef={holderRef}
