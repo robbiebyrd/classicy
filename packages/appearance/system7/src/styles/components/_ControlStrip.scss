@@ -21,8 +21,15 @@
 //   the cells flat). The checker is a white one laid over the cell's
 //   layers, sized by the theme's dither tile (`dither.tileSize`, 0 in color,
 //   where it draws nothing), so the 1-bit grays, black, keep one pixel in
-//   two, black where the cell's own x + y is even, as the captures' cells
-//   (each starting on an even x + y of the screen) do.
+//   two. Its phase is the screen's, as QuickDraw's patterns are: black where
+//   the screen's x + y is even, whatever the cell's origin (the captures'
+//   cells start at x 29, 60 and 91, a pitch of 31, so every other cell
+//   starts on an odd x + y). So the layer is fixed to the viewport
+//   (`background-attachment: fixed`), the desktop's origin, as the scroll
+//   bars' track dots are (_ScrollBar.scss, which names that choice's
+//   limits: a fixed layer stays put while a host page scrolls, and iOS
+//   Safari anchors it to the cell instead), and a strip moved by an odd
+//   offset or docked right keeps the phase too.
 // - The glyphs (collapse box, scroll arrows, tab, pop-up slider) are the
 //   panel's own bitmaps, registered as pixel art per theme (system7Assets.ts).
 //
@@ -48,9 +55,11 @@
 
 $b: var(--control-strip-bevel-width);
 
-// The 1-bit checker over a cell's layers (none in color, tile 0).
+// The 1-bit checker over a cell's layers (none in color, tile 0), in the
+// screen's phase (fixed: the tile's transparent corner, black beneath, at
+// the viewport's even x + y).
 $checker: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top /
-  var(--dither-tile-size) var(--dither-tile-size);
+  var(--dither-tile-size) var(--dither-tile-size) fixed;
 
 // Every package color read falls back to the core token it was drawn in
 // before 3.2, for a theme of another package drawn under System 7.

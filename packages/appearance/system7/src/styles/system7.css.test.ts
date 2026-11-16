@@ -1981,9 +1981,10 @@ describe("system7.scss (compiled)", () => {
 		// (`*-controlstrip*.png`, story 0212-rce): in 1-bit every gray of a
 		// cell's bevel (the shadows, a recessed cell's dark side, a pressed
 		// cell's dark edge) is the screen's 50% checker; the face, highlight
-		// and pressed fill white.
+		// and pressed fill white. The checker is fixed to the screen, so its
+		// phase is the screen's, not the cell's.
 		const CHECKER =
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--dither-tile-size) var(--dither-tile-size)";
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--dither-tile-size) var(--dither-tile-size) fixed";
 		const SHADOW =
 			"var(--package-color-control-strip-shadow, var(--color-system-04))";
 		// 7.5.5's Finder list view (`*-finder-list-row-selected.png`, story
@@ -2079,6 +2080,36 @@ describe("system7.scss (compiled)", () => {
 					),
 					state,
 				).toBe(pressed);
+		});
+
+		// 7.5.5 draws the strip's checker in the screen's phase, black where
+		// the screen's x + y is even, as QuickDraw's patterns are: the cells
+		// start at x 29, 60 and 91 (`bw-755-controlstrip.png`), so a checker
+		// anchored to each cell would flip phase from one cell to the next.
+		// Only the checker is fixed; every bevel layer moves with its cell.
+		it("fixes the strip's checker to the screen, and only the checker", () => {
+			const looks = [
+				".classicyControlStripCell",
+				".classicyControlStripCell:active:not(:disabled)",
+				".classicyControlStripScroll:disabled",
+				".classicyControlStripCollapseBox",
+				".classicyControlStripCollapseBox:active:not(:disabled)",
+				".classicyControlStripRight .classicyControlStripCollapseBox",
+				".classicyControlStripRight .classicyControlStripCollapseBox:active:not(:disabled)",
+				".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
+				".classicyControlStrip .classicyBevelButton.classicyControlStripModule.pressed",
+			];
+			for (const selector of looks) {
+				const look = rule(selector);
+				expect(look, selector).toContain(CHECKER);
+				expect(look.match(/ fixed\b/g), selector).toHaveLength(1);
+				// Its transparent quarters (top left and bottom right of the
+				// 2 x 2 tile, the layers beneath showing through) fall on the
+				// viewport's even x + y.
+				expect(look, selector).toMatch(
+					/conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) left top\//,
+				);
+			}
 		});
 
 		it("draws the pixel-art token n, the slider's inner ring, in theme-07", () =>
