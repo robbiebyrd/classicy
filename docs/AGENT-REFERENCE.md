@@ -5325,6 +5325,8 @@ registerClassicySoundPack({            // module scope, like the other registrie
   sound keeps its sprite bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway. Both
   packs' committed sprites are that encode under the pinned ffmpeg (mise's
   8.0.1), so a forced rebuild with it reproduces every file byte for byte.
+  The script and its ffmpeg shim run under bash 3.2 (macOS's `/bin/bash`) and
+  later; `bin/makeAudioSprites.test.ts` refuses constructs newer than 3.2.
 
 ---
 
