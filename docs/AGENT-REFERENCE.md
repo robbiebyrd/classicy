@@ -1561,10 +1561,15 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   with `variant`, that variant's. `resolveClassicyIconImage(src, px, true)` /
   `useClassicyIconImage(src, px, true)` return it while that look is active
   (after the follow and small steps below), else the image unchanged. A
-  selected `ClassicyIcon` or desktop icon draws it and adds the `SelectedImage`
-  part class to its mask pair (`classicyIconSelectedImage`,
+  selected `ClassicyIcon` or desktop icon draws it once it has loaded (each
+  icon preloads it when it mounts; until then it keeps its plain image, so
+  the package's own selected look never drops before the image arrives) and
+  adds the `SelectedImage` part class to its mask pair (`classicyIconSelectedImage`,
   `classicyDesktopIconSelectedImage`), so the package's stylesheet can leave
   out its own selected look there; the mask keeps the plain image's shape.
+  The small-icon `<img>` surfaces take it only when asked
+  (`ClassicyIconImage`'s `selected`): no list passes it, since 7.5 drew a
+  selected list row inverted with its icon as it is (Standard File's list).
   System 7 registers every color icon's pre-rendered selected rendering for
   System 7 Color (7.5 darkened through the 8-bit color table, which no CSS
   filter matches; `docs/system7-asset-inventory.md`, "Selected color icons").
@@ -4153,9 +4158,16 @@ change), the way it declares measurement families. They are additive, 3.2.
   (H-R16). Two leaves that kebab-case to one variable (`grayRamp.stepA`,
   `gray.rampStepA`): the first in key order wins, one `ClassicyAppearance`
   warning. A leaf that is not a 24-bit color, or a bad name, emits nothing.
-  Read them from a package's own stylesheet only: no base stylesheet reads
-  one (the core floor holds none), and the var-coverage test checks each
-  package sheet against its own themes' emitted variables.
+  Read them from a package's own stylesheet only, and always with a core
+  token as fallback (`var(--package-color-gray-ramp-step2,
+  var(--color-system-07))`): a theme of another package drawn under the
+  package (a host-loaded theme, one a dropped package left) emits none, and
+  a read without a fallback would be an invalid declaration. No base
+  stylesheet reads one (the core floor holds none); the var-coverage test
+  checks each package sheet against its own themes' emitted variables and
+  requires the fallback. Collisions resolve the declared families first
+  (the theme's package's `defaults.color.families`), so a family a theme
+  file adds never shadows one the package declares.
 - **Package metadata.** `ClassicyAppearancePackage.colorFamilies`
   (`ClassicyAppearanceColorFamilies`): family → `{ label, colors: key →
   { label } }`, like `knobs`. The package schema refuses a declared color
@@ -4174,9 +4186,11 @@ change), the way it declares measurement families. They are additive, 3.2.
   `label`; id `appearance_color_family_<family>_<key>`). An edit dispatches
   the family form `ClassicyDesktopChangeColor { family, key, color }`
   (`ClassicyThemeColorFamilyChange`, predicate `hasThemeColorFamilyChange`,
-  which requires no `colorKey`). The reducer accepts only a color the active
-  package declares (`isDeclaredThemeColorFamily`, resolved as for the metric
-  family form; others are refused with a warning) and writes through
+  which requires no `colorKey`). The tab lists, and the reducer accepts,
+  only the colors the active theme's own package declares
+  (`isDeclaredThemeColorFamily`; an unregistered package declares none,
+  others are refused with a warning), so an edit never writes a family the
+  theme's package does not draw and writes through
   `editActiveClassicyTheme`, so the first edit forks a built-in into its
   package's Custom theme, as every color edit does (`setThemeColorFamily`
   creates the family when the theme lacks it). The `{ colorKey, index?,
@@ -4188,7 +4202,8 @@ change), the way it declares measurement families. They are additive, 3.2.
   every theme that never changed it; a theme of an unregistered package is
   stored whole.
 - **Theme files.** `ClassicyThemeSchema` keeps `color.families` (each leaf a
-  color, names as above), optional, so a file without it loads. Export
+  color, names as above, `constructor` and `prototype` refused), optional,
+  so a file without it loads. Export
   writes every family color, completed. A build without the capability
   strips the unknown key, so a file with families still loads there in its
   core colors; a theme whose package is not registered is refused as

@@ -72,7 +72,9 @@ diverge, so a logo registered through Platinum's
   `colorFamilies` metadata (`ClassicyAppearanceColorFamilies`, like
   `knobs`). Each is emitted as `--package-color-<family>-<key>`
   (`classicyColorFamilyVars`; the prefix is reserved, so no measurement can
-  make one). A theme saved before a family existed is completed from its
+  make one). A stylesheet reads one with a core color as fallback
+  (`var(--package-color-…, var(--color-…))`), for a theme of another
+  package, which emits none. A theme saved before a family existed is completed from its
   package's defaults (`withDefaultThemeColorFamilies`,
   `classicyThemeColorFamilyDefaults`); a theme of an unregistered package is
   kept whole. The Appearance Manager's Colors tab lists the active package's
@@ -332,9 +334,13 @@ the ids the saver already names:
   #AAAAAA (unchanged), the tick mark's shadow #888888 (was #808080), and the
   ghost indicator is Figure 2-17's: opaque, in the ramp's grays (an #888888
   outline, white, #DDDDDD and #BBBBBB faces; over the channel's border rows
-  #444444 to #DDDDDD, the channel showing through), where it was the
-  indicator in system grays at 75% opacity. A host that styled the ghost's
-  opacity sets it on `.classicySliderGhost` again.
+  #444444 to #DDDDDD, the channel showing through), drawn under the
+  indicator as Figure 2-17 draws it (where `:has()` is supported: with a
+  ghost, the channel is drawn on `.classicySliderTrackLayer::before` and the
+  ghost at `z-index: -1` there), where it was the indicator in system grays
+  at 75% opacity over everything. A host that styled the ghost's opacity
+  sets it on `.classicySliderGhost` again. Under a theme of another package
+  the slider draws its pre-3.2 grays.
 - **Scroll bars are drawn in every browser.** Firefox now shows Platinum's
   full bars (arrows, track and thumb) instead of the thin `scrollbar-color`
   fallback. The scrolling element of a window's contents, a list box or a
