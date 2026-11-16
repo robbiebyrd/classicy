@@ -1350,9 +1350,13 @@ describe("system7.scss (compiled)", () => {
 			// Finder's), white in 1-bit: the package color
 			// outlineTriangle.checker, not theme-03 (#9999CC).
 			expect(
-				layersOf(triangle, "var(--package-color-outline-triangle-checker)"),
+				layersOf(
+					triangle,
+					"var(--package-color-outline-triangle-checker, var(--color-theme-03))",
+				),
 			).toBe(10);
 			expect(layersOf(triangle, "var(--color-theme-03)")).toBe(0);
+			// …falling back to theme-03 for a theme of another package.
 			expect(rule(".classicyTriangle polygon")).toMatch(/display: none;/);
 			expect(layersOf(rule(":active > .classicyTriangle"), BLACK)).toBe(6);
 		});
@@ -1886,7 +1890,9 @@ describe("system7.scss (compiled)", () => {
 			const raised = rule(".classicyControlStripCell");
 			// The face is the panel's #CCCCCC (white in 1-bit), the package
 			// color controlStrip.face, not system-02 (#BBBBBB).
-			expect(raised).toMatch(/, var\(--package-color-control-strip-face\);$/m);
+			expect(raised).toMatch(
+				/, var\(--package-color-control-strip-face, var\(--color-system-02\)\);$/m,
+			);
 			expect(layersOf(raised, "var(--color-white)")).toBe(2);
 			expect(layersOf(raised, "var(--color-system-04)")).toBe(2);
 			expect(layersOf(raised, "var(--color-system-05)")).toBe(2);
@@ -1901,7 +1907,7 @@ describe("system7.scss (compiled)", () => {
 			expect(layersOf(recessed, "var(--color-system-05)")).toBe(2);
 			expect(layersOf(recessed, "var(--color-white)")).toBe(2);
 			expect(recessed).toMatch(
-				/, var\(--package-color-control-strip-face\);$/m,
+				/, var\(--package-color-control-strip-face, var\(--color-system-02\)\);$/m,
 			);
 			const pressed = rule(".classicyControlStripCell:active:not(:disabled)");
 			expect(layersOf(pressed, "var(--color-system-06)")).toBe(4);
@@ -1922,10 +1928,10 @@ describe("system7.scss (compiled)", () => {
 				".classicyBevelButtonPopupPanel .classicyPixel2",
 			])
 				expect(rule(selector), selector).toMatch(
-					/fill: var\(--package-color-control-strip-face\);/,
+					/fill: var\(--package-color-control-strip-face, var\(--color-system-02\)\);/,
 				);
 			expect(rule(".classicyControlStrip .classicyPixelm")).toMatch(
-				/fill: var\(--package-color-control-strip-dark-edge\);/,
+				/fill: var\(--package-color-control-strip-dark-edge, var\(--color-system-07\)\);/,
 			);
 		});
 
@@ -1937,7 +1943,9 @@ describe("system7.scss (compiled)", () => {
 				/border: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
 			expect(layersOf(panel, "var(--color-white)")).toBe(2);
-			expect(panel).toMatch(/var\(--package-color-control-strip-face\);/);
+			expect(panel).toMatch(
+				/var\(--package-color-control-strip-face, var\(--color-system-02\)\);/,
+			);
 			expect(
 				rule(".classicyBevelButtonPopup.classicyBevelButtonPopupPanel::after"),
 			).toMatch(/top: var\(--menu-frame-shadow-start\);/);

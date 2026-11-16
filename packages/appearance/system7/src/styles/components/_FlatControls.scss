@@ -73,7 +73,7 @@
     background:
       layout.classicy-px-rect(var(--color-white), 0, 0, 100%, $px),
       layout.classicy-px-rect(var(--color-white), 0, 0, $px, 100%),
-      var(--package-color-control-strip-face);
+      var(--package-color-control-strip-face, var(--color-system-02));
   }
 
   .classicyBevelButtonArrowHorizontal::before {

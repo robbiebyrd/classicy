@@ -50,7 +50,7 @@ $b: var(--control-strip-bevel-width);
     ),
     layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
-    var(--package-color-control-strip-face);
+    var(--package-color-control-strip-face, var(--color-system-02));
 }
 
 @mixin recessed {
@@ -59,7 +59,7 @@ $b: var(--control-strip-bevel-width);
     layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - #{$b}), $b),
     layout.classicy-px-rect(var(--color-white), 100%, $b, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-white), $b, 100%, calc(100% - #{$b}), $b),
-    var(--package-color-control-strip-face);
+    var(--package-color-control-strip-face, var(--color-system-02));
 }
 
 @mixin pressed {
@@ -89,14 +89,16 @@ $b: var(--control-strip-bevel-width);
   // token): `2`, the face, #CCCCCC (in a module's pop-up too, whose slider
   // thumb is drawn on the same face), and `m`, the tab's lowest row,
   // #444444 (`controlStrip.darkEdge`), which the core's tokens hold
-  // neither of.
+  // neither of. Every package color read falls back to the core token it
+  // was drawn in before 3.2, for a theme of another package drawn under
+  // System 7, which emits none.
   .classicyControlStrip .classicyPixel2,
   .classicyBevelButtonPopupPanel .classicyPixel2 {
-    fill: var(--package-color-control-strip-face);
+    fill: var(--package-color-control-strip-face, var(--color-system-02));
   }
 
   .classicyControlStrip .classicyPixelm {
-    fill: var(--package-color-control-strip-dark-edge);
+    fill: var(--package-color-control-strip-dark-edge, var(--color-system-07));
   }
 
   // The collapse box and scroll arrows.
