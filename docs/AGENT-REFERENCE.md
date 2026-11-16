@@ -1567,9 +1567,14 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   adds the `SelectedImage` part class to its mask pair (`classicyIconSelectedImage`,
   `classicyDesktopIconSelectedImage`), so the package's stylesheet can leave
   out its own selected look there; the mask keeps the plain image's shape.
-  The small-icon `<img>` surfaces take it only when asked
-  (`ClassicyIconImage`'s `selected`): no list passes it, since 7.5 drew a
-  selected list row inverted with its icon as it is (Standard File's list).
+  The small-icon `<img>` surfaces take it only when they can draw an icon
+  selected (`ClassicyIconImage`'s `selectable` and `selected`; without
+  `selectable` nothing is preloaded): the Finder list view does, for a
+  selected row's icon (the table's cell context carries `selected`; the
+  base sheet's darkening filter stands down over a selected image, marked
+  `classicyIconSelectedImage`). Menus, title bars, tabs and list boxes do
+  not: 7.5 drew a selected Standard File row inverted with its icon as it
+  is. A failed preload is not retried on the page.
   System 7 registers every color icon's pre-rendered selected rendering for
   System 7 Color (7.5 darkened through the 8-bit color table, which no CSS
   filter matches; `docs/system7-asset-inventory.md`, "Selected color icons").
