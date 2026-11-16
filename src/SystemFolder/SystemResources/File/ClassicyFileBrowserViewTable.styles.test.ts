@@ -92,3 +92,21 @@ describe("the Finder list view's selected icon", () => {
 		);
 	});
 });
+
+// The row pitch: a theme's optional `fileBrowserList.rowPadding` is the
+// space above and below a row's icon and label (Platinum: 1, HIGOS8
+// Fig. 2-24's 18 px rows around 16 px icons); without it the icon spacing
+// stays all round, as before.
+describe("the Finder list view's row pitch", () => {
+	const SPACING = "var(--file-browser-list-icon-spacing)";
+	const BLOCK = `var(--file-browser-list-row-padding, ${SPACING})`;
+
+	it("pads a row's icon and label above and below by the theme's row padding, else the icon spacing", () => {
+		expect(rule(".classicyFileBrowserViewTableRowIcon").margin).toBe(
+			`${BLOCK} ${SPACING}`,
+		);
+		expect(rule(".classicyFileBrowserViewTableRowIconLabel").padding).toBe(
+			`${BLOCK} ${SPACING}`,
+		);
+	});
+});

@@ -46,13 +46,19 @@
   background: var(--color-system-01);
 }
 
+// The space above and below a row's icon and label is the theme's optional
+// `fileBrowserList.rowPadding`, which sets the row pitch apart from the
+// space beside them (Platinum: 1, HIGOS8 Fig. 2-24's 18 px rows around
+// 16 px icons); a theme without it keeps the icon spacing all round.
 .classicyFileBrowserViewTableRowIcon {
-  margin: var(--file-browser-list-icon-spacing);
+  margin: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing))
+    var(--file-browser-list-icon-spacing);
   flex-shrink: 0;
 }
 
 .classicyFileBrowserViewTableRowIconLabel {
-  padding: var(--file-browser-list-icon-spacing);
+  padding: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing))
+    var(--file-browser-list-icon-spacing);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

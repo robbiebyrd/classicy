@@ -260,11 +260,10 @@ export const ClassicyFileBrowser: FunctionalComponent<
 	const activeTheme = useAppManager(
 		(s) => s.System.Manager.Appearance.activeTheme,
 	);
-	const listIconStep = listViewOptions?.iconSize;
+	// A list with no options draws the medium step, the Finder's default.
+	const listIconStep = listViewOptions?.iconSize ?? "medium";
 	const readPackageListIconSize = () =>
-		listIconStep
-			? readClassicyThemeVar(LIST_VIEW_ICON_SIZE_VARS[listIconStep], 0)
-			: 0;
+		readClassicyThemeVar(LIST_VIEW_ICON_SIZE_VARS[listIconStep], 0);
 	const [packageListIconSize, setPackageListIconSize] = useState(
 		readPackageListIconSize,
 	);
@@ -295,8 +294,8 @@ export const ClassicyFileBrowser: FunctionalComponent<
 					path={path}
 					appId={appId}
 					// The literal `18` fallback is deliberate: with no options passed
-					// the component must render exactly as it does today, even if a
-					// theme ever ships a different base.
+					// the component renders as it always has (whatever the theme's
+					// base), unless the look gives the medium step its own size.
 					iconSize={
 						listViewOptions
 							? listViewIconSize(
@@ -304,7 +303,9 @@ export const ClassicyFileBrowser: FunctionalComponent<
 									listViewOptions.iconSize,
 									packageListIconSize,
 								)
-							: 18
+							: packageListIconSize > 0
+								? packageListIconSize
+								: 18
 					}
 					holderRef={holderRef}
 					hideFilesCreatedAfter={hideFilesCreatedAfter}
