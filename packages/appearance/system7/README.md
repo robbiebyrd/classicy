@@ -177,6 +177,12 @@ waveform and each file's source resource, are in
 [`docs/system7-asset-inventory.md`](../../../docs/system7-asset-inventory.md)
 in the repository.
 
+The reference screenshots the looks were measured against are System 7.5
+and 7.5.5 running on [Infinite Mac](https://infinitemac.org);
+`bin/capture-references.mjs` replays the capture recipe (and records Simple
+Beep to check the render against), indexed in
+[`docs/system7-reference-screenshots.md`](../../../docs/system7-reference-screenshots.md).
+
 ## Developing
 
 This package lives in the Classicy repository, at
