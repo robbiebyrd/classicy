@@ -460,8 +460,9 @@ the ids the saver already names:
   reproduces them byte for byte. Their sprite map (`platinum.json`) and
   `platinum.ac3` are unchanged; every sound starts and lasts as before, and
   sounds the same (the m4a decodes to the same samples, the ogg and mp3 differ
-  by encoder rounding, about -79 and -55 dBFS RMS). A host build gives the
-  three files new hashed URLs, so a browser fetches them once.
+  by encoder rounding, about -79 and -55 dBFS RMS). A host bundler that
+  names assets by content hash gives the three files new URLs, so a browser
+  fetches them once.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 
