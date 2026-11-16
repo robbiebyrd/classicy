@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.1.1",
+	"version": "3.2.0",
 	"release": "LU1",
 	"repository": {
 		"type": "git",
