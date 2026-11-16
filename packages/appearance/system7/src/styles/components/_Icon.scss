@@ -47,9 +47,12 @@
 //   follows the same knob through its `filter`: inverted in 1-bit, as the
 //   desktop's is, and in color the base sheet's darkening, unchanged. The
 //   knob is a length, so `tan(atan2(knob, one pixel))` makes the number a
-//   filter takes: 1 in 1-bit, 0 in color. A browser without the functions
-//   (before Chrome 111, Firefox 108, Safari 15.4) drops the declaration and
-//   keeps the base sheet's darkening. An icon drawing its pre-rendered
+//   filter takes: 1 in 1-bit, 0 in color. The rule sits in an `@supports`
+//   test of the functions: without it a browser that lacks them (before
+//   Chrome 111, Firefox 108, Safari 15.4) would still take the declaration,
+//   whose `var()` hides the unknown functions until computed-value time,
+//   and compute `filter: none`, no highlight at all; guarded, it keeps the
+//   base sheet's darkening. An icon drawing its pre-rendered
 //   selected image takes no filter, as in the base sheet. The list draws
 //   its icons at 16 px (`fileBrowserList.mediumIconSize`), the size of the
 //   small icons (`ics#`, `ics8`; HIG printed p.234).
@@ -175,8 +178,11 @@ $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
 $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
 
 @mixin icon {
-  .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
-    filter: invert($invert) contrast(max(0.75, #{$invert})) brightness(max(0.5, #{$invert}));
+  // Interpolated, so that Sass does not work the test's functions out.
+  @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {
+    .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
+      filter: invert($invert) contrast(max(0.75, #{$invert})) brightness(max(0.5, #{$invert}));
+    }
   }
 
   @include icon-states(

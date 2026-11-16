@@ -1882,6 +1882,28 @@ describe("system7.scss (compiled)", () => {
 			expect(filtered).toHaveLength(1);
 		});
 
+		// The declaration's `var()` hides `tan()` and `atan2()` from a browser
+		// without them until computed-value time, where the filter would
+		// become `none` over the base sheet's darkening: no highlight. So the
+		// rule, and only it, sits in an `@supports` test of the functions
+		// themselves (no `var()`), and such a browser keeps the darkening.
+		it("guards the list-view icon's filter with @supports for tan() and atan2()", () => {
+			const guarded = [
+				...css.matchAll(
+					/@supports \(filter: invert\(tan\(atan2\(1em, 1em\)\)\)\) \{\s*([^{}]+)\{([^{}]*)\}\s*\}/g,
+				),
+			];
+			expect(guarded).toHaveLength(1);
+			const [, header, declarations] = guarded[0];
+			expect(header.trim()).toBe(
+				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
+			);
+			expect(declarations).toMatch(/filter: invert\(tan\(atan2\(/);
+			// Nothing outside the guard uses the functions.
+			const outside = css.replace(guarded[0][0], "");
+			expect(outside).not.toMatch(/atan2\(|tan\(/);
+		});
+
 		it("draws an opened icon's shape outlined in black, its inside eroded a pixel and dotted 25%", () => {
 			for (const [root, outer, mask] of FAMILIES) {
 				expect(rule(`${root}.open ${outer}`)).toMatch(
