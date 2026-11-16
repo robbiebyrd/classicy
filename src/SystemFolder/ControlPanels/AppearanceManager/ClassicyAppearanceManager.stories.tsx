@@ -329,7 +329,9 @@ const ColorsTabStory = () => {
 		editingCustomTheme: isCustomThemeActive(appearance),
 		changeColor,
 		appId: TAB_STORY_APP_ID,
-		colorFamilies: useActiveClassicyAppearancePackage().colorFamilies,
+		colorFamilies: useClassicyAppearancePackages().find(
+			(pkg) => pkg.id === (appearance.activeTheme.package ?? "platinum"),
+		)?.colorFamilies,
 	});
 	return <AppearanceTabWindow id="colors" tab={tab} />;
 };

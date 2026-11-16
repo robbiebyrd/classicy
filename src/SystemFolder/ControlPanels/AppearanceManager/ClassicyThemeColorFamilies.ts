@@ -60,16 +60,27 @@ const reportedCollisions = new Set<string>();
  * persisted state, and a name becomes part of a CSS declaration), as
  * `--package-color-<family>-<key>` in `#rrggbb`. Anything else emits
  * nothing. When kebab-casing maps two leaves to one variable
- * (`grayRamp.stepA`, `gray.rampStepA`), the first in key order wins, logged
- * once.
+ * (`grayRamp.stepA`, `gray.rampStepA`), the first wins, logged once: the
+ * families `declared` names come first (the theme's package's own,
+ * `classicyThemeColorFamilyDefaults`), so a family a theme file adds can
+ * never shadow one the package declares; then the rest in key order.
  */
 export function classicyColorFamilyVars(
 	families: unknown,
+	declared?: Readonly<ClassicyThemeColorFamilies>,
 ): Record<string, string> {
 	const vars: Record<string, string> = {};
 	if (!isClassicyPlainObject(families)) return vars;
 	const sources = new Map<string, string>();
-	for (const [family, keys] of Object.entries(families)) {
+	const first = Object.keys(declared ?? {}).filter((family) =>
+		Object.hasOwn(families, family),
+	);
+	const order = [
+		...first,
+		...Object.keys(families).filter((family) => !first.includes(family)),
+	];
+	for (const family of order) {
+		const keys = families[family];
 		if (!isColorFamilyName(family) || !isClassicyPlainObject(keys)) continue;
 		for (const [key, value] of Object.entries(keys)) {
 			if (!isColorFamilyName(key) || !isValidThemeColor(value)) continue;

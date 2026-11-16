@@ -114,7 +114,12 @@ describe("theme variable coverage (H 6.1)", () => {
 			),
 		);
 		const allowed = new Set([
-			...Object.keys(getThemeVars(getTheme("default"))),
+			// The default theme's variables, but not Platinum's own colors: a
+			// package color is emitted only by its own package's themes, so a
+			// sheet that reads one must be that package's (above).
+			...Object.keys(getThemeVars(getTheme("default"))).filter(
+				(name) => !name.startsWith("--package-color-"),
+			),
 			...sheets.flatMap((sheet) => matchesIn(sheet, DECLARED)),
 			...SOURCE_ROOTS.flatMap(listLibraryScripts).flatMap((full) =>
 				matchesIn(readFileSync(full, "utf8"), SET_FROM_SCRIPT),
@@ -125,6 +130,23 @@ describe("theme variable coverage (H 6.1)", () => {
 			[...reads]
 				.filter((name) => !allowed.has(name) && !DESKTOP_ROOT_PREFIX.test(name))
 				.sort(),
+		).toEqual([]);
+	});
+
+	// A package color is emitted only by its own package's themes, so a
+	// theme of another package drawn under it emits none: every read carries
+	// a core palette token as its fallback (plan 0018-dbd, Batch F-b).
+	it("reads every package color with a core color fallback", () => {
+		const reads = sheets.flatMap((sheet) => [
+			...sheet.matchAll(
+				/var\(\s*(--package-color-[a-zA-Z0-9-]+)\s*([,)])\s*(var\(\s*--color-)?/g,
+			),
+		]);
+		expect(reads.length).toBeGreaterThan(0);
+		expect(
+			reads
+				.filter(([, , next, fallback]) => next !== "," || !fallback)
+				.map(([read]) => read),
 		).toEqual([]);
 	});
 

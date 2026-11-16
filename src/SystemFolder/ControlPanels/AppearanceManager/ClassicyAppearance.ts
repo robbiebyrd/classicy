@@ -241,6 +241,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		classicyThemeMeasurementDefaults(theme.package),
 	).measurements;
 	const border = m.window.borderSize;
+	const colorFamilyDefaults = classicyThemeColorFamilyDefaults(theme.package);
 	return {
 		// --- Layout metrics: every theme input under `measurements.<family>`
 		// as `--<family>-<key>` (the core families' Platinum defaults are Mac
@@ -271,10 +272,8 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		// `--package-color-<family>-<key>`, completed from the theme's own
 		// registered package. A namespace no other variable takes.
 		...classicyColorFamilyVars(
-			withDefaultThemeColorFamilies(
-				theme,
-				classicyThemeColorFamilyDefaults(theme.package),
-			).color.families,
+			withDefaultThemeColorFamilies(theme, colorFamilyDefaults).color.families,
+			colorFamilyDefaults,
 		),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
 		"--window-scrollbar-arrow-size": intToPx(m.window.scrollbarSize / 4),

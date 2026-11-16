@@ -425,8 +425,9 @@ export const classicyDesktopEventHandler = (
 		// never mutated), later edits modify the active custom theme in place.
 		// Two forms: `{ colorKey, index?, color }` for the 28 core colors, and
 		// `{ family, key, color }` for a package color, validated against the
-		// `colorFamilies` the active Appearance Package declares (resolved as
-		// for the metric family form below).
+		// `colorFamilies` the active theme's own package declares (the theme
+		// is what is written, and the Colors tab lists that package's colors;
+		// an unregistered package declares none).
 		case "ClassicyDesktopChangeColor": {
 			const appearance = ds.System.Manager.Appearance;
 			if (hasThemeColorChange(action)) {
@@ -438,14 +439,16 @@ export const classicyDesktopEventHandler = (
 			}
 			if (!hasThemeColorFamilyChange(action)) break;
 			const target = action;
-			const declared = getRegisteredClassicyAppearancePackageOrDefault(
-				appearance.packageId,
-			)?.colorFamilies;
+			const themePackage =
+				appearance.activeTheme.package ??
+				CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+			const declared =
+				getClassicyAppearancePackage(themePackage)?.colorFamilies;
 			if (!isDeclaredThemeColorFamily(declared, target)) {
 				classicyLog(
 					"warn",
 					"ClassicyDesktopManager",
-					`ClassicyDesktopChangeColor rejected: "${target.family}.${target.key}" is not a color of the active package ("${appearance.packageId}")`,
+					`ClassicyDesktopChangeColor rejected: "${target.family}.${target.key}" is not a color of the active theme's package ("${themePackage}")`,
 				);
 				break;
 			}

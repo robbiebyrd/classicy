@@ -163,18 +163,46 @@ describe("classicyColorFamilyVars", () => {
 		});
 	});
 
+	it("walks the declared families first, so an added family never shadows one", () => {
+		const families = {
+			gray: { rampStepA: 0x222222 },
+			grayRamp: { stepA: 0x111111 },
+		};
+		expect(
+			classicyColorFamilyVars(families, { grayRamp: { stepA: 0x111111 } }),
+		).toEqual({ "--package-color-gray-ramp-step-a": "#111111" });
+		// Undeclared, the first in key order.
+		expect(classicyColorFamilyVars(families)).toEqual({
+			"--package-color-gray-ramp-step-a": "#222222",
+		});
+	});
+
+	it("draws a theme file's added family under the package's declared one in getThemeVars", () => {
+		registerClassicyAppearancePackage(familyPack());
+		const theme = baseTheme();
+		theme.color.families = {
+			gray: { rampStep2: 0x010101 },
+			grayRamp: { step2: 0x222222 },
+		};
+		expect(
+			(getThemeVars(theme) as Record<string, string>)[
+				"--package-color-gray-ramp-step2"
+			],
+		).toBe("#222222");
+	});
+
 	it("keeps the first of two leaves that make one variable, and logs it once", () => {
 		const entries = captureLog();
 		const families = {
-			grayRamp: { stepA: 0x111111 },
-			gray: { rampStepA: 0x222222 },
+			tintRamp: { stepA: 0x111111 },
+			tint: { rampStepA: 0x222222 },
 		};
 		expect(classicyColorFamilyVars(families)).toEqual({
-			"--package-color-gray-ramp-step-a": "#111111",
+			"--package-color-tint-ramp-step-a": "#111111",
 		});
 		classicyColorFamilyVars(families);
 		expect(
-			entries.filter((e) => e.message.includes("--package-color-gray-ramp")),
+			entries.filter((e) => e.message.includes("--package-color-tint-ramp")),
 		).toHaveLength(1);
 	});
 });

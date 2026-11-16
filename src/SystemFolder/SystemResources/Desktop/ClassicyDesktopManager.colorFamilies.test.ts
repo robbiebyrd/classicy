@@ -170,6 +170,34 @@ describe("ClassicyDesktopChangeColor family form", () => {
 		expect(logged).toHaveLength(2);
 	});
 
+	// The colors are the active theme's package's, whatever package the
+	// desktop draws: the Colors tab lists them by theme.package too, so an
+	// edit never writes a family the theme's package does not draw.
+	it("validates against the active theme's package, not the drawn one", () => {
+		const logged = warnings();
+		const ds = makeStore();
+		ds.System.Manager.Appearance.packageId = "platinum";
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			family: "ink",
+			key: "triangle",
+			color: 0x123456,
+		});
+		expect(
+			ds.System.Manager.Appearance.activeTheme.color.families?.ink.triangle,
+		).toBe(0x123456);
+		// Platinum's gray ramp is not this theme's package's color.
+		const before = JSON.stringify(ds.System.Manager.Appearance);
+		run(ds, {
+			type: "ClassicyDesktopChangeColor",
+			family: "grayRamp",
+			key: "step4",
+			color: 0x123456,
+		});
+		expect(JSON.stringify(ds.System.Manager.Appearance)).toBe(before);
+		expect(logged).toHaveLength(1);
+	});
+
 	it("keeps the core form exactly as it was", () => {
 		const ds = makeStore();
 		run(ds, {
@@ -269,6 +297,20 @@ describe("theme files", () => {
 		const badName = structuredClone(theme) as ClassicyTheme;
 		badName.color.families = { "bad name": { triangle: 0 } };
 		expect(parseClassicyThemeFile(file(badName)).ok).toBe(false);
+		// The prototype keys, refused as the package schema refuses them.
+		for (const families of <Record<string, Record<string, number>>[]>[
+			{ constructor: { triangle: 0 } },
+			{ prototype: { triangle: 0 } },
+			{ ink: { constructor: 0 } },
+			{ ink: { prototype: 0 } },
+		]) {
+			const reserved = structuredClone(theme) as ClassicyTheme;
+			reserved.color.families = families;
+			expect(
+				parseClassicyThemeFile(file(reserved)).ok,
+				JSON.stringify(families),
+			).toBe(false);
+		}
 	});
 
 	it("completes a host-loaded theme of a registered package", () => {

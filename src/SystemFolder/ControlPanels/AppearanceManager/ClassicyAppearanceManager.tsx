@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	useActiveClassicyAppearancePackage,
 	useClassicyAppearancePackages,
@@ -535,7 +536,14 @@ export const ClassicyAppearanceManager: FunctionalComponent = () => {
 		editingCustomTheme: isCustomThemeActive(appearanceState),
 		changeColor,
 		appId: APP_ID,
-		colorFamilies: activePackage.colorFamilies,
+		// The active theme's own package's colors, as the reducer validates
+		// them (a theme of another package draws that package's, or none).
+		colorFamilies: packages.find(
+			(pkg) =>
+				pkg.id ===
+				(appearanceState.activeTheme.package ??
+					CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
+		)?.colorFamilies,
 	});
 
 	const fontsTab = useFontsTab({

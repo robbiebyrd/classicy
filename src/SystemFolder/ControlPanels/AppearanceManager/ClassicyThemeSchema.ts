@@ -84,6 +84,16 @@ const packageMeasurements = z
 
 const CORE_MEASUREMENT_FAMILIES: readonly string[] = Object.keys(METRICS);
 
+/** A package color family or key name: a measurement name, never
+ * `constructor` or `prototype` (`__proto__` fails the pattern), as the
+ * package schema's `colorFamilies` requires. */
+const colorFamilyName = z
+	.string()
+	.regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR)
+	.refine((name) => name !== "constructor" && name !== "prototype", {
+		error: "must not be constructor or prototype",
+	});
+
 /** A CSS font stack: family names, quotes, commas — no syntax that could
  * close the declaration or pull in a resource. */
 const fontStack = z
@@ -176,13 +186,7 @@ export const ClassicyThemeSchema = z.object({
 		// so a file without them loads; a build that predates them strips the
 		// key, so a file with them still loads there, in the core colors.
 		families: z
-			.record(
-				z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
-				z.record(
-					z.string().regex(CLASSICY_MEASUREMENT_NAME, NAME_ERROR),
-					color,
-				),
-			)
+			.record(colorFamilyName, z.record(colorFamilyName, color))
 			.optional(),
 	}),
 	typography: z.object({
