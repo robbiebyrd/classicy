@@ -30,7 +30,9 @@
 				},
 				"controlStrip": {
 					"face": 16777215,
-					"darkEdge": 0
+					"darkEdge": 0,
+					"shadow": 0,
+					"pressedFace": 16777215
 				}
 			}
 		},
@@ -211,10 +213,11 @@
 				"bevel": 0,
 				"arrowSpread": 1,
 				"grip": 0,
-				"snapBack": 20
+				"snapBack": 24
 			},
 			"controlStrip": {
-				"bevelWidth": 0
+				"bevelWidth": 1,
+				"shadowTop": 1
 			},
 			"iconLabel": {
 				"height": 12,
@@ -265,7 +268,9 @@
 					},
 					"controlStrip": {
 						"face": 16777215,
-						"darkEdge": 0
+						"darkEdge": 0,
+						"shadow": 0,
+						"pressedFace": 16777215
 					}
 				}
 			},
@@ -446,10 +451,11 @@
 					"bevel": 0,
 					"arrowSpread": 1,
 					"grip": 0,
-					"snapBack": 20
+					"snapBack": 24
 				},
 				"controlStrip": {
-					"bevelWidth": 0
+					"bevelWidth": 1,
+					"shadowTop": 1
 				},
 				"iconLabel": {
 					"height": 12,
@@ -502,7 +508,9 @@
 					},
 					"controlStrip": {
 						"face": 13421772,
-						"darkEdge": 4473924
+						"darkEdge": 4473924,
+						"shadow": 11184810,
+						"pressedFace": 8947848
 					}
 				}
 			},
@@ -683,10 +691,11 @@
 					"bevel": 1,
 					"arrowSpread": 0,
 					"grip": 6,
-					"snapBack": 20
+					"snapBack": 24
 				},
 				"controlStrip": {
-					"bevelWidth": 1
+					"bevelWidth": 1,
+					"shadowTop": 2
 				},
 				"iconLabel": {
 					"height": 12,
@@ -742,6 +751,12 @@
 				},
 				"darkEdge": {
 					"label": "Dark Edge"
+				},
+				"shadow": {
+					"label": "Shadow"
+				},
+				"pressedFace": {
+					"label": "Pressed Face"
 				}
 			}
 		}

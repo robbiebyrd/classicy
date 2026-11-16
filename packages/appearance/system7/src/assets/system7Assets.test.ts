@@ -267,6 +267,19 @@ describe("System 7's assets", () => {
 			expect(rows("control-strip-tab").slice(0, 22).join("")).not.toContain(
 				"m",
 			);
+			// The collapse box's inner square is shaded in the dark edge too,
+			// as the running strip draws it (`color-controlstrip.png`), its
+			// outer square the panel's #555555 (token 7).
+			expect(rows("control-strip-collapse")).toEqual([
+				"77777777",
+				"7bbbbbbb",
+				"7b5555mW",
+				"7b5555mW",
+				"7b5555mW",
+				"7b5555mW",
+				"7bmmmmmW",
+				"7bWWWWWW",
+			]);
 			// The 1-bit slider's channel is the 50% checker.
 			expect(rows("popup-slider-track-bw")[10]).toBe("KWKWKWKWK.");
 			expect(rows("popup-slider-track-bw")[11]).toBe("KWKKWKKWK.");

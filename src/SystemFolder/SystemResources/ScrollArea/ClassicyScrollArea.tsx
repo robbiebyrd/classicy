@@ -865,14 +865,18 @@ const ClassicyScrollBar = ({
 		const snapBack = onRelease
 			? readClassicyThemeVar(SNAP_BACK_VAR, thickness, barEl)
 			: Number.POSITIVE_INFINITY;
+		// Within `snapBack` pixels of the bar's own on every side: its box
+		// grown by that much, its right and bottom edges counted out, as
+		// QuickDraw's PtInRect did (the pointer at a pixel's column is
+		// `clientX`, and the bar's last column is its right edge less one).
 		const nearBar = (ev: MouseEvent) => {
 			if (!barEl || !onRelease) return true;
 			const r = barEl.getBoundingClientRect();
 			return (
 				ev.clientX >= r.left - snapBack &&
-				ev.clientX <= r.right + snapBack &&
+				ev.clientX < r.right + snapBack &&
 				ev.clientY >= r.top - snapBack &&
-				ev.clientY <= r.bottom + snapBack
+				ev.clientY < r.bottom + snapBack
 			);
 		};
 		// Where an on-release drag would scroll to if released now; null

@@ -1963,8 +1963,9 @@ describe("system7.scss (compiled)", () => {
 				expect(inside).toMatch(
 					/var\(--classicy-art-halftone, none\) left top\/calc\(var\(--box-pixel\) \* 8\) calc\(var\(--box-pixel\) \* 8\)/,
 				);
+				// #CCCCFF, 7.5.5's opened, unselected disk (story 0212-rce).
 				expect(inside).toMatch(
-					/--system7-icon-open-face: var\(--color-theme-04\);/,
+					/--system7-icon-open-face: var\(--color-theme-02\);/,
 				);
 				expect(inside).toMatch(
 					/left top\/var\(--icon-selection-invert\) var\(--icon-selection-invert\)/,
@@ -1976,6 +1977,25 @@ describe("system7.scss (compiled)", () => {
 			}
 		});
 
+		// Measured from Control Strip 1.3.1 running in System 7.5.5
+		// (`*-controlstrip*.png`, story 0212-rce): in 1-bit every gray of a
+		// cell's bevel (the shadows, a recessed cell's dark side, a pressed
+		// cell's dark edge) is the screen's 50% checker; the face, highlight
+		// and pressed fill white.
+		const CHECKER =
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--dither-tile-size) var(--dither-tile-size)";
+		const SHADOW =
+			"var(--package-color-control-strip-shadow, var(--color-system-04))";
+		// 7.5.5's Finder list view (`*-finder-list-row-selected.png`, story
+		// 0212-rce): the selected item's name white on black in both themes.
+		it("inverts a selected list-view item's name, white on black", () => {
+			const label = rule(
+				":where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel",
+			);
+			expect(label).toMatch(/color: var\(--color-white\);/);
+			expect(label).toMatch(/background: var\(--color-black\);/);
+		});
+
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
 			const BEVEL = "var(--control-strip-bevel-width)";
 			const raised = rule(".classicyControlStripCell");
@@ -1984,8 +2004,11 @@ describe("system7.scss (compiled)", () => {
 			expect(raised).toMatch(
 				/, var\(--package-color-control-strip-face, var\(--color-system-02\)\);$/m,
 			);
+			expect(raised).toContain(`background: ${CHECKER},`);
 			expect(layersOf(raised, "var(--color-white)")).toBe(2);
-			expect(layersOf(raised, "var(--color-system-04)")).toBe(2);
+			expect(layersOf(raised, SHADOW)).toBe(2);
+			// The inner shadow's column starts `controlStrip.shadowTop` in.
+			expect(raised).toContain("var(--control-strip-shadow-top)");
 			expect(layersOf(raised, "var(--color-system-05)")).toBe(2);
 			expect(raised).toContain(BEVEL);
 			expect(raised).not.toMatch(/\* [0-9]/);
@@ -1995,14 +2018,67 @@ describe("system7.scss (compiled)", () => {
 				),
 			).toBe(raised);
 			const recessed = rule(".classicyControlStripScroll:disabled");
+			expect(recessed).toContain(`background: ${CHECKER},`);
 			expect(layersOf(recessed, "var(--color-system-05)")).toBe(2);
 			expect(layersOf(recessed, "var(--color-white)")).toBe(2);
 			expect(recessed).toMatch(
 				/, var\(--package-color-control-strip-face, var\(--color-system-02\)\);$/m,
 			);
+		});
+
+		// The strip's outer lower corner, rounded off in the collapse box:
+		// three black pixels over its look, raised or pressed, at the left
+		// end, or the right end on a strip docked right.
+		it("rounds the strip's outer lower corner in the collapse box", () => {
+			const black = "var(--color-black)";
+			for (const root of ["", ".classicyControlStripRight "]) {
+				const raised = rule(`${root}.classicyControlStripCollapseBox`);
+				const pressed = rule(
+					`${root}.classicyControlStripCollapseBox:active:not(:disabled)`,
+				);
+				for (const look of [raised, pressed]) {
+					expect(layersOf(look, black), root).toBe(2);
+					expect(look, root).toMatch(
+						root
+							? /var\(--color-black\)\) 100% 100%/
+							: /var\(--color-black\)\) 0 100%/,
+					);
+				}
+				expect(raised).toContain(SHADOW);
+				expect(pressed).toContain(
+					"var(--package-color-control-strip-pressed-face, var(--color-system-04))",
+				);
+			}
+		});
+
+		// A pressed cell (a module with its menu held open, or the collapse
+		// box held): two pixels of the dark edge on the top and left, two of
+		// the face on the bottom and right, around the pressed face.
+		it("presses a cell into the dark edge, the face and the pressed face", () => {
 			const pressed = rule(".classicyControlStripCell:active:not(:disabled)");
-			expect(layersOf(pressed, "var(--color-system-06)")).toBe(4);
-			expect(pressed).toMatch(/, var\(--color-system-04\);$/m);
+			expect(pressed).toContain(`background: ${CHECKER},`);
+			expect(
+				layersOf(
+					pressed,
+					"var(--package-color-control-strip-dark-edge, var(--color-system-07))",
+				),
+			).toBe(4);
+			expect(
+				layersOf(
+					pressed,
+					"var(--package-color-control-strip-face, var(--color-system-02))",
+				),
+			).toBe(4);
+			expect(pressed).toMatch(
+				/, var\(--package-color-control-strip-pressed-face, var\(--color-system-04\)\);$/m,
+			);
+			for (const state of [".pressed", ".open"])
+				expect(
+					rule(
+						`.classicyControlStrip .classicyBevelButton.classicyControlStripModule${state}`,
+					),
+					state,
+				).toBe(pressed);
 		});
 
 		it("draws the pixel-art token n, the slider's inner ring, in theme-07", () =>

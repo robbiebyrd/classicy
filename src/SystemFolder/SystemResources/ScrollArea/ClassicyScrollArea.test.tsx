@@ -1072,13 +1072,15 @@ describe("ClassicyScrollArea thumb drag on release", () => {
 			clientY: 30,
 		});
 		const outline = part(container, "scroll-drag-outline");
-		// 20 px right of the bar's right edge (117) still follows.
-		fireEvent.mouseMove(document, { clientX: 137, clientY: 96.5 });
+		// 20 px right of the bar's last column (116; its box's right edge is
+		// 117) still follows, as QuickDraw's PtInRect counts a rect's right
+		// and bottom edges out.
+		fireEvent.mouseMove(document, { clientX: 136, clientY: 96.5 });
 		expect(outlineStyle(outline).offset).toBe("84px");
 		// One more pixel out: back over the box.
-		fireEvent.mouseMove(document, { clientX: 138, clientY: 96.5 });
+		fireEvent.mouseMove(document, { clientX: 137, clientY: 96.5 });
 		expect(outlineStyle(outline).offset).toBe("17px");
-		fireEvent.mouseUp(document, { clientX: 138, clientY: 96.5 });
+		fireEvent.mouseUp(document, { clientX: 137, clientY: 96.5 });
 		expect(viewport.scrollTop).toBe(0);
 		expect(part(container, "scroll-drag-outline")).toBeUndefined();
 	});
@@ -1097,15 +1099,19 @@ describe("ClassicyScrollArea thumb drag on release", () => {
 			[79, 96.5, "17px"],
 			[108, -20, "17px"],
 			[108, -21, "17px"],
-			[108, 220, "150px"],
-			[108, 221, "17px"],
+			// 20 px below the bar's last row (199) follows, as 20 px left
+			// of its first column does.
+			[108, 219, "150px"],
+			[108, 220, "17px"],
+			[136, 96.5, "84px"],
+			[137, 96.5, "17px"],
 		] as const) {
 			fireEvent.mouseMove(document, { clientX, clientY });
 			expect(outlineStyle(outline).offset, `${clientX},${clientY}`).toBe(
 				offset,
 			);
 		}
-		fireEvent.mouseUp(document, { clientX: 108, clientY: 221 });
+		fireEvent.mouseUp(document, { clientX: 108, clientY: 220 });
 	});
 
 	it("scrolls to where the button comes up, not to the last move", () => {
@@ -1175,12 +1181,12 @@ describe("ClassicyScrollArea thumb drag on release", () => {
 		});
 		const outline = part(container, "scroll-drag-outline");
 		// The bar is 17 wide ("the width of the scroll box", HIG p.165):
-		// 17 px right of its right edge (117) still follows, 18 does not.
-		fireEvent.mouseMove(document, { clientX: 134, clientY: 96.5 });
+		// 17 px right of its last column (116) still follows, 18 does not.
+		fireEvent.mouseMove(document, { clientX: 133, clientY: 96.5 });
 		expect(outlineStyle(outline).offset).toBe("84px");
-		fireEvent.mouseMove(document, { clientX: 135, clientY: 96.5 });
+		fireEvent.mouseMove(document, { clientX: 134, clientY: 96.5 });
 		expect(outlineStyle(outline).offset).toBe("17px");
-		fireEvent.mouseUp(document, { clientX: 135, clientY: 96.5 });
+		fireEvent.mouseUp(document, { clientX: 134, clientY: 96.5 });
 		expect(viewport.scrollTop).toBe(0);
 	});
 

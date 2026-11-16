@@ -279,6 +279,35 @@ describe("the System 7 appearance package", () => {
 			}
 	});
 
+	// The Control Strip's own colors, measured from Control Strip 1.3.1 in
+	// System 7.5.5 (`*-controlstrip*.png`): the face and the shadow below a
+	// cell, and a pressed cell's dark edge and face; white or black in 1-bit,
+	// where the grays draw through the 50% checker (_ControlStrip.scss).
+	it("colors the Control Strip as 7.5.5's, white and black in 1-bit", () => {
+		const strip = (theme: (typeof system7Json.presets)[number]) =>
+			theme.color.families.controlStrip;
+		const [bw, color] = system7Json.presets;
+		expect(strip(color)).toEqual({
+			face: 0xcccccc,
+			darkEdge: 0x444444,
+			shadow: 0xaaaaaa,
+			pressedFace: 0x888888,
+		});
+		expect(strip(bw)).toEqual({
+			face: WHITE,
+			darkEdge: BLACK,
+			shadow: BLACK,
+			pressedFace: WHITE,
+		});
+		expect(strip(system7Json.defaults)).toEqual(strip(bw));
+		expect(Object.keys(system7Json.colorFamilies.controlStrip.colors)).toEqual([
+			"face",
+			"darkEdge",
+			"shadow",
+			"pressedFace",
+		]);
+	});
+
 	// The dimmed ink (styles/components/_Menu.scss): theme-06, the one slot
 	// System 7 draws nothing else with, is the 7.5 dimmed menu text's #888888
 	// in color and black in 1-bit, where the dither draws it at 50%.
@@ -433,7 +462,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "0px",
 			"--scroll-bar-arrow-spread": "1px",
 			"--scroll-bar-grip": "0px",
-			"--scroll-bar-snap-back": "20px",
+			"--scroll-bar-snap-back": "24px",
 			"--window-scrollbar-size": "16px",
 		});
 		expect(vars(color)).toMatchObject({
@@ -441,7 +470,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "1px",
 			"--scroll-bar-arrow-spread": "0px",
 			"--scroll-bar-grip": "6px",
-			"--scroll-bar-snap-back": "20px",
+			"--scroll-bar-snap-back": "24px",
 			"--window-scrollbar-size": "16px",
 		});
 		// The defaults are the 1-bit theme's.
@@ -450,7 +479,7 @@ describe("the System 7 appearance package", () => {
 		);
 	});
 
-	it("emits the Control Strip's bevel (color only), the icon labels' knobs and the 1-bit icon switch", async () => {
+	it("emits the Control Strip's bevel, the icon labels' knobs and the 1-bit icon switch", async () => {
 		await import("./index");
 		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
 			[]) as ClassicyTheme[];
@@ -462,20 +491,24 @@ describe("the System 7 appearance package", () => {
 			"--icon-label-text-top": "2px",
 			"--desktop-icon-font-size": "9px",
 		};
+		// The 1-bit strip bevels too: its grays are the 50% checker
+		// (`bw-controlstrip.png`).
 		expect(vars(bw)).toMatchObject({
-			"--control-strip-bevel-width": "0px",
+			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-top": "1px",
 			"--icon-selection-invert": "1px",
 			...labels,
 		});
 		expect(vars(color)).toMatchObject({
 			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-top": "2px",
 			"--icon-selection-invert": "0px",
 			...labels,
 		});
 		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
 		// the strip Mac OS 8 kept), System 7 adds only the bevel.
 		expect(Object.keys(system7Json.defaults.measurements.controlStrip)).toEqual(
-			["bevelWidth"],
+			["bevelWidth", "shadowTop"],
 		);
 		expect(system7Json.defaults.measurements.iconLabel).toEqual(
 			system7Json.presets[0].measurements.iconLabel,

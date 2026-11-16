@@ -3700,8 +3700,9 @@ Platinum (§1); its README lists what it ships.
   layout declares `scrollBar.thumbDrag: "onRelease"`: a dragged box stays
   put while its outline follows the pointer (a black ring under the
   track's dots, matching `*-scrollbox-dragging.png`), snapping back past
-  `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
-  box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
+  `scrollBar.snapBack` (24 px past the bar's own pixels on any side, as
+  7.5.5's scroll bars were measured; HIG p.165 gives "a little more than
+  the width of the scroll box"), and `scrollBar.fitsBars: "shown"`: document windows and
   list boxes keep their bars, hollow, while the content fits (HIG p.160).
 - **Alerts** (HIG p.201). The buttons that are neither the default nor
   Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
@@ -3789,7 +3790,7 @@ how they look) has two halves:
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
-| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 20; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") outside the bar's box on any side, the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
+| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
@@ -4220,7 +4221,9 @@ change), the way it declares measurement families. They are additive, 3.2.
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
   it draws HIGOS8 Figs. 2-17 to 2-19 exactly. **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
-  `controlStrip.face` / `darkEdge` (#CCCCCC / #444444, white / black).
+  `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
+  #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
+  strip drawing its grays through the 50% checker).
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
@@ -4307,7 +4310,7 @@ literals.
   either: a `ClassicyScrollArea` under a package whose layout declares
   `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
   theme that does not emit it snaps back at the bar's own thickness, "the
-  width of the scroll box" (System 7 sets 20, "a little more").
+  width of the scroll box" (System 7 sets 24, measured on 7.5.5).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
