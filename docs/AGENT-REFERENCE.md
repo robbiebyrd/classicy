@@ -3683,7 +3683,10 @@ Platinum (§1); its README lists what it ships.
   Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
   other]`, the first `alertLayout.otherButtonInset` (73 px) from the inner
   line, under the message text, and the last takes the free room, so Cancel
-  and the default button stay at the lower right, apart from it.
+  and the default button stay at the lower right, apart from it. A help
+  button (System 7's alerts had none) is kept, pinned at the far left
+  (`order: -2`); beside a Don't Save it takes no room and Don't Save follows
+  it (`:has()`, Firefox 121 and later).
 - **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
   fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
   inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),

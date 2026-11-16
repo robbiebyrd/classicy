@@ -745,12 +745,32 @@ describe("system7.scss (compiled)", () => {
 					`${other}:nth-last-child(1 of .classicyButton[data-classicy-role=other])`,
 				),
 			).toMatch(/margin-right: auto;/);
-			// The safe buttons keep the list's order, default last, and the
-			// help button its own place.
+			// The safe buttons keep the list's order, default last.
 			expect(css).not.toMatch(
 				/\[data-classicy-role="?(default|cancel)"?\][^{]*\{[^}]*order:/,
 			);
-			expect(css).not.toMatch(/classicyAlertHelpButton[^{]*\{[^}]*order:/);
+		});
+
+		// A help button (HIGOS8 p.86; System 7's alerts had none, its help was
+		// Balloon Help) is pinned at the far left, before Don't Save, and
+		// takes no room when Don't Save is there: one auto margin, Don't
+		// Save's, so the free space stays between it and the safe buttons
+		// (fix round 1; two auto margins split it). Without a Don't Save, the
+		// help button keeps the base sheet's auto margin; with one, Don't Save
+		// follows it rather than its 73 px inset.
+		it("pins a help button at the far left, Don't Save after it, the room after both", () => {
+			const buttons = ".classicyAlert .classicyAlertButtons";
+			expect(rule(`${buttons} .classicyAlertHelpButton`)).toMatch(/order: -2;/);
+			expect(
+				rule(
+					`${buttons}:has(> .classicyButton[data-classicy-role=other]) > .classicyAlertHelpButton`,
+				),
+			).toMatch(/margin-right: 0;/);
+			expect(
+				rule(
+					`${buttons}:has(> .classicyAlertHelpButton) > .classicyButton[data-classicy-role=other]:nth-child(1 of .classicyButton[data-classicy-role=other])`,
+				),
+			).toMatch(/margin-left: 0;/);
 		});
 
 		// FrameRoundRect's corners: four sides and two rectangles a corner for
