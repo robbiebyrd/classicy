@@ -495,20 +495,20 @@ describe("the System 7 appearance package", () => {
 		// (`bw-controlstrip.png`).
 		expect(vars(bw)).toMatchObject({
 			"--control-strip-bevel-width": "1px",
-			"--control-strip-shadow-top": "1px",
+			"--control-strip-shadow-start": "1px",
 			"--icon-selection-invert": "1px",
 			...labels,
 		});
 		expect(vars(color)).toMatchObject({
 			"--control-strip-bevel-width": "1px",
-			"--control-strip-shadow-top": "2px",
+			"--control-strip-shadow-start": "2px",
 			"--icon-selection-invert": "0px",
 			...labels,
 		});
 		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
 		// the strip Mac OS 8 kept), System 7 adds only the bevel.
 		expect(Object.keys(system7Json.defaults.measurements.controlStrip)).toEqual(
-			["bevelWidth", "shadowTop"],
+			["bevelWidth", "shadowStart"],
 		);
 		expect(system7Json.defaults.measurements.iconLabel).toEqual(
 			system7Json.presets[0].measurements.iconLabel,

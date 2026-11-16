@@ -44,9 +44,13 @@
 // The strip's outer lower corner is rounded off by three black pixels in the
 // collapse box's corner (`*-controlstrip*.png`), at the strip's left end
 // (mirrored, at its right end, on a strip docked right, which no capture
-// shows). And the 1-bit strip starts a cell's inner shadow a row higher than
-// the color one, at the outer shadow's top (`controlStrip.shadowTop`, 2 in
-// color and 1 in 1-bit, the row in from the cell's top).
+// shows). And the 1-bit strip starts a cell's inner shadow a pixel sooner
+// than the color one, at the outer shadow's start: its right column a row
+// higher, at the cell's second row, and its bottom row a column further
+// left, at the cell's second column (`controlStrip.shadowStart`, 2 in color
+// and 1 in 1-bit, the pixels in from the cell's top and left edges; the
+// bottom row's first pixel shows only on a cell starting on an even x, at
+// x 60 in `bw-755-controlstrip.png`, where the checker keeps it black).
 //
 // A module's pop-up surface (the Sound module's slider) is every bevel
 // button's pop-up panel, drawn in _FlatControls.scss.
@@ -84,15 +88,15 @@ $line: var(--window-border-size);
 
 // Each look's layers, under any `$over` (the corner).
 @mixin raised($over: ()) {
-  $shadow-top: var(--control-strip-shadow-top);
+  $shadow-start: var(--control-strip-shadow-start);
   background: list.join(
     $over,
     (
       $checker,
       layout.classicy-px-rect(var(--color-white), $b, $b, calc(100% - #{$b} - #{$b} - #{$b}), $b),
       layout.classicy-px-rect(var(--color-white), $b, $b, $b, calc(100% - #{$b} - #{$b} - #{$b})),
-      layout.classicy-px-rect($shadow, calc(100% - #{$b}), $shadow-top, $b, calc(100% - #{$shadow-top} - #{$b} - #{$b})),
-      layout.classicy-px-rect($shadow, calc(#{$b} + #{$b}), calc(100% - #{$b}), calc(100% - #{$b} - #{$b} - #{$b}), $b),
+      layout.classicy-px-rect($shadow, calc(100% - #{$b}), $shadow-start, $b, calc(100% - #{$shadow-start} - #{$b} - #{$b})),
+      layout.classicy-px-rect($shadow, $shadow-start, calc(100% - #{$b}), calc(100% - #{$shadow-start} - #{$b}), $b),
       layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
       layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
       $face

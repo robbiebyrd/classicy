@@ -309,12 +309,16 @@ Measured from the framebuffer files (exact pixels).
   bottom and right, a #888888 fill, the two off corners the fill; in 1-bit
   the dark edge is the 50% checker and the rest white. At rest, the 1-bit
   strip's shadows (#AAAAAA and #888888 in color) and a dimmed arrow's dark
-  side are the checker too, its inner shadow starting a row higher than in
-  color; the strip's outer lower corner is rounded off by three black
-  pixels; and the collapse box's inner square is shaded #444444. The
-  checker is in the screen's phase, black where the screen's x + y is even,
-  not each cell's: the cells start at x 29, 60 and 91 (a pitch of 31), so
-  every other cell starts on an odd x + y.
+  side are the checker too, its inner shadow starting a pixel sooner than in
+  color (its right column a row higher, its bottom row a column further
+  left, seen where a cell starts on an even x, at x 60); the strip's outer
+  lower corner is rounded off by three black pixels; and the collapse box's
+  inner square is shaded #444444. The checker is in the screen's phase,
+  black where the screen's x + y is even, not each cell's: the cells start
+  at x 29, 60 and 91 (a pitch of 31), so every other cell starts on an odd
+  x + y. A pressed collapse box also redraws its glyph a pixel down and
+  right, darkened in color and inverted in 1-bit (a black square), which
+  the package does not draw yet.
 - **Opened icon, unselected** (`*-755-icon-opened-unselected.png`): the
   outline and the 25% pattern as selected, the fill #CCCCFF (the window
   color's light lavender) in color, white in 1-bit.

@@ -217,7 +217,7 @@
 			},
 			"controlStrip": {
 				"bevelWidth": 1,
-				"shadowTop": 1
+				"shadowStart": 1
 			},
 			"iconLabel": {
 				"height": 12,
@@ -455,7 +455,7 @@
 				},
 				"controlStrip": {
 					"bevelWidth": 1,
-					"shadowTop": 1
+					"shadowStart": 1
 				},
 				"iconLabel": {
 					"height": 12,
@@ -695,7 +695,7 @@
 				},
 				"controlStrip": {
 					"bevelWidth": 1,
-					"shadowTop": 2
+					"shadowStart": 2
 				},
 				"iconLabel": {
 					"height": 12,

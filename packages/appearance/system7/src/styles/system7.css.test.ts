@@ -2008,8 +2008,14 @@ describe("system7.scss (compiled)", () => {
 			expect(raised).toContain(`background: ${CHECKER},`);
 			expect(layersOf(raised, "var(--color-white)")).toBe(2);
 			expect(layersOf(raised, SHADOW)).toBe(2);
-			// The inner shadow's column starts `controlStrip.shadowTop` in.
-			expect(raised).toContain("var(--control-strip-shadow-top)");
+			// The inner shadow's column and row start `controlStrip.shadowStart`
+			// in from the cell's top and left.
+			expect(raised).toContain(
+				`${SHADOW}) calc(100% - var(--control-strip-bevel-width)) var(--control-strip-shadow-start)`,
+			);
+			expect(raised).toContain(
+				`${SHADOW}) var(--control-strip-shadow-start) calc(100% - var(--control-strip-bevel-width))`,
+			);
 			expect(layersOf(raised, "var(--color-system-05)")).toBe(2);
 			expect(raised).toContain(BEVEL);
 			expect(raised).not.toMatch(/\* [0-9]/);
