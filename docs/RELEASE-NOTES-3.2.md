@@ -464,6 +464,19 @@ the ids the saver already names:
   above the screen's bottom margin is placed on a whole pixel even when its
   measured height is fractional, its top rounded down so the far edge stays
   inside the margin.
+- **Fonts are written once when both packages load.** `ClassicyFontFace`
+  takes an optional `file`; faces of two packages with the same family,
+  weight, style and `file` share one `@font-face` rule, written in the
+  element of the package that registered it first. Platinum and System 7
+  name theirs, so a host loading both writes System 7's five faces (copies
+  of Platinum's) once: `<style id="classicy-fonts-system7">` is empty when
+  Platinum registered first, and Platinum's element lacks those five when
+  System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
+  leave System 7's out.
+- **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
+  the knob when a theme sets it to a positive number, else
+  `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
+  themes set 9, so its small text is Geneva 9, not 9.6 px.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

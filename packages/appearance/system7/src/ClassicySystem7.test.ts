@@ -329,6 +329,22 @@ describe("the System 7 appearance package", () => {
 			});
 	});
 
+	// Small UI text is Geneva 9 (HIG p.12), set by the optional knob
+	// uiText.smallFontSize: uiSize × 0.8 would be 9.6 px (story 0210-aal).
+	it("draws small UI text at 9 px in both themes and the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const themes = [pkg?.defaults, ...(pkg?.presets ?? [])] as ClassicyTheme[];
+		expect(themes).toHaveLength(3);
+		for (const theme of themes) {
+			expect(theme.typography.uiSize).toBe(12);
+			expect(getThemeVars(theme)).toMatchObject({
+				"--ui-font-size-small": "9px",
+				"--ui-font-size": "12px",
+			});
+		}
+	});
+
 	// The dialogs', alerts' and push buttons' knobs (styles/components/
 	// _Dialog.scss, _Alert.scss, _Button.scss and the window header in
 	// _Window.scss), measured from the 7.5 captures. The modal frame differs

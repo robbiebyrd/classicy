@@ -118,6 +118,8 @@ const fontModules = import.meta.glob("./fonts/*.woff2", {
 /**
  * Platinum's thirteen bundled faces, woff2 only (baseline in every supported
  * browser), from the list dist/classicy-platinum.fonts.css is built from.
+ * Each names its `file`, so another package shipping the same file (System
+ * 7's five faces) shares its rule rather than writing it again.
  */
 registerClassicyFonts(
 	PLATINUM,
@@ -127,6 +129,7 @@ registerClassicyFonts(
 			src: fontModules[`./fonts/${file}.woff2`] ?? "",
 			weight,
 			style,
+			file,
 		}),
 	),
 );

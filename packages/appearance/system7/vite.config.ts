@@ -52,15 +52,18 @@ const system7Config = (mode: string): UserConfig => ({
 	// build (verify-dist invariant 5).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.mp3", "**/*.ac3", "**/*.wav"],
+	// The sound sheet's ac3 file is the one asset type Vite does not know
+	// (its ogg, m4a and mp3 siblings are Vite's own).
+	assetsInclude: ["**/*.ac3"],
 	css: {
 		preprocessorOptions: {
 			// The vocabulary is `pkg:@classicy/classicy/scss/<module>`.
 			scss: { importers: [new NodePackageImporter()] },
 		},
 	},
-	// Every asset in the package ships as a file in dist/assets (its fonts and
-	// its sound sheet today), nothing inlined.
+	// Every asset in the package ships as a file in dist/assets (its fonts,
+	// art, icons, cursors, wallpapers, saver art and sound sheet), nothing
+	// inlined.
 	plugins: [
 		noInlineAppearanceAssetsPlugin(),
 		// dist/classicy-system7.css and dist/classicy-system7.fonts.css, the

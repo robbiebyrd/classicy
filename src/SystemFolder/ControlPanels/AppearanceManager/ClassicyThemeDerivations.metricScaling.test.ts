@@ -479,3 +479,53 @@ describe("--menu-bar-height follows menuBar.bandHeight when a theme sets it", ()
 		).toBe("30px");
 	});
 });
+
+// Story 0210-aal: System 7's small UI text is Geneva 9 (HIG p.12), not
+// uiSize × 0.8 (9.6 px at its 12 px uiSize). A package sets the optional knob
+// uiText.smallFontSize; without it the size still follows uiSize, so
+// Platinum's follows the Fonts tab.
+describe("--ui-font-size-small follows uiText.smallFontSize when a theme sets it", () => {
+	const withUiText = (
+		uiText: Record<string, number> | undefined,
+		uiSize = 12,
+	): ClassicyTheme => {
+		const theme = getTheme("default");
+		const measurements: ClassicyTheme["measurements"] = {
+			...theme.measurements,
+		};
+		if (uiText) measurements.uiText = uiText;
+		return {
+			...theme,
+			typography: { ...theme.typography, uiSize },
+			measurements,
+		};
+	};
+	const small = (theme: ClassicyTheme) =>
+		(getThemeVars(theme) as Record<string, string>)["--ui-font-size-small"];
+
+	it("is the knob, whatever the UI size", () => {
+		expect(small(withUiText({ smallFontSize: 9 }, 12))).toBe("9px");
+		expect(small(withUiText({ smallFontSize: 9 }, 20))).toBe("9px");
+		expect(small(withUiText({ smallFontSize: 10.5 }, 12))).toBe("10.5px");
+	});
+
+	it("is uiSize × 0.8 without the knob, or with one that is not a positive finite number", () => {
+		expect(small(withUiText(undefined, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText(undefined, 14))).toBe(`${14 * 0.8}px`);
+		expect(small(withUiText({ other: 9 }, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText({ smallFontSize: Number.NaN }, 12))).toBe(
+			`${12 * 0.8}px`,
+		);
+		expect(small(withUiText({ smallFontSize: 0 }, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText({ smallFontSize: -9 }, 12))).toBe(`${12 * 0.8}px`);
+	});
+
+	it("leaves the other UI text sizes on uiSize", () => {
+		const vars = getThemeVars(withUiText({ smallFontSize: 9 }, 12)) as Record<
+			string,
+			string
+		>;
+		expect(vars["--ui-font-size-caption"]).toBe(`${12 * 0.75}px`);
+		expect(vars["--ui-font-size"]).toBe("12px");
+	});
+});

@@ -128,6 +128,9 @@
 				"helpTitleDrop": 1,
 				"titleArtInvert": 1
 			},
+			"uiText": {
+				"smallFontSize": 9
+			},
 			"menuFrame": {
 				"shadowStart": 2,
 				"submenuOverlap": 5
@@ -363,6 +366,9 @@
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
 					"titleArtInvert": 1
+				},
+				"uiText": {
+					"smallFontSize": 9
 				},
 				"menuFrame": {
 					"shadowStart": 2,
@@ -601,6 +607,9 @@
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
 					"titleArtInvert": 0
+				},
+				"uiText": {
+					"smallFontSize": 9
 				},
 				"menuFrame": {
 					"shadowStart": 2,

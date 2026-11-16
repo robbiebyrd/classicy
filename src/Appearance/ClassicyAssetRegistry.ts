@@ -148,6 +148,15 @@ export type ClassicyFontFace = {
 	src: ClassicyAssetSource | ClassicyAssetSource[];
 	weight?: string;
 	style?: string;
+	/**
+	 * The face's file, for a face several packages ship as the same file
+	 * (System 7's faces are copies of Platinum's): any name for it, such as
+	 * its basename. Faces of two packages with the same family, weight, style
+	 * and file share one `@font-face` rule, written by the package whose
+	 * first `registerClassicyFonts` call came first; the others write none.
+	 * Without it a face is never shared.
+	 */
+	file?: string;
 };
 
 type StoredFontFace = {
@@ -155,6 +164,8 @@ type StoredFontFace = {
 	sources: ClassicyAssetSource[];
 	weight: string;
 	style: string;
+	/** What faces of other packages share it by (`ClassicyFontFace.file`). */
+	shareKey?: string;
 };
 
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
@@ -1274,7 +1285,24 @@ connectClassicyWallpaperSource({
 const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
 const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
 
-/** Rewrites `<style id="classicy-fonts-<packageId>">` from that package's faces. */
+/**
+ * The share keys an earlier package (in first-registration order) than
+ * `packageId` writes: its own faces with those keys are written there.
+ */
+const fontShareKeysBefore = (packageId: string): Set<string> => {
+	const keys = new Set<string>();
+	for (const [id, faces] of fontFaces) {
+		if (id === packageId) break;
+		for (const face of faces.values())
+			if (face.shareKey !== undefined) keys.add(face.shareKey);
+	}
+	return keys;
+};
+
+/**
+ * Rewrites `<style id="classicy-fonts-<packageId>">` from that package's
+ * faces, less those an earlier package shares and writes.
+ */
 const writeClassicyFontFaces = (packageId: string): void => {
 	if (typeof document === "undefined") return;
 	const id = `classicy-fonts-${packageId}`;
@@ -1290,14 +1318,18 @@ const writeClassicyFontFaces = (packageId: string): void => {
 		if (base) base.after(style);
 		else document.head.prepend(style);
 	}
+	const shared = fontShareKeysBefore(packageId);
 	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
+		.filter((face) => face.shareKey === undefined || !shared.has(face.shareKey))
 		.map(classicyFontFaceRule)
 		.join("\n");
 };
 
 /**
  * Registers font faces under `fonts.<family>.<weight>-<style>` and writes their
- * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`. A face
+ * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`, except a
+ * face with a `file` that a package registered earlier shares (same family,
+ * weight, style and file): that package's element holds its one rule. A face
  * with an unsafe family, descriptor or source is skipped with a warning.
  */
 export const registerClassicyFonts = (
@@ -1329,6 +1361,14 @@ export const registerClassicyFonts = (
 			continue;
 		}
 		const key = `${weight}-${style}`;
+		const { file } = font;
+		const shareable = typeof file === "string" && file !== "";
+		if (file !== undefined && !shareable)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored the file of font face "${font.family}" ${weight} ${style}: not a non-empty string; the face is not shared`,
+			);
 		const family = Object.hasOwn(tree, font.family)
 			? (tree[font.family] as ClassicyAssetTree)
 			: {};
@@ -1339,8 +1379,11 @@ export const registerClassicyFonts = (
 			sources,
 			weight,
 			style,
+			...(shareable ? { shareKey: `${font.family}|${key}|${file}` } : {}),
 		});
 	}
 	registerClassicyAssets("fonts", packageId, tree);
-	writeClassicyFontFaces(packageId);
+	// Every package's element: this registration may take a shared face over
+	// from a later package, or hand one back.
+	for (const id of fontFaces.keys()) writeClassicyFontFaces(id);
 };

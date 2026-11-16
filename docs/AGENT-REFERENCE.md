@@ -1432,6 +1432,14 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   after `classicy-styles`) and registers each face's primary source in the
   tree. A face with an unsafe family, descriptor or source is skipped with a
   warning. Platinum's thirteen faces are `.woff2` files in `dist/assets/`.
+  A face may name its `file` (any non-empty name for its bytes, such as the
+  basename): faces of two packages with the same family, weight, style and
+  `file` share one rule, in the element of the package whose first
+  `registerClassicyFonts` call came first (a re-registration that changes
+  that package's file hands the face back), so a host loading Platinum and
+  System 7, whose five faces are copies of Platinum's, writes each face
+  once. Each package's asset tree still names its own source. A face with
+  no `file` (or one that is not a non-empty string, warned) is never shared.
 - **Wallpapers** register as `wallpapers.<name>`; the Appearance Manager's
   Desktop tab lists the merged tree. **Fonts** feed its Fonts tab the same way.
   A wallpaper's `file` (a plain filename, holding no `|`; anything else is
@@ -3687,8 +3695,9 @@ Platinum (§1); its README lists what it ships.
   black or white, `assetVariant: "bw"`, `dither.tileSize: 2`) and
   `system7-color` ("System 7 Color": the Standard window colors from System
   7.5's `wctb`/`cctb` tables, no variant, `dither.tileSize: 0`). Both set
-  `sound.pack: "system7"` and the optional knob `menuBar.bandHeight: 20`
-  ("Package knob families"). Layout: grow box bottom right, menu bar on the
+  `sound.pack: "system7"` and the optional knobs `menuBar.bandHeight: 20`
+  and `uiText.smallFontSize: 9` (Geneva 9 small text; "Package knob
+  families"). Layout: grow box bottom right, menu bar on the
   screen, icon grid from the top right, and `window.centering:
   "wholePixel"`, so a centered alert or dialog lands on whole pixels.
 - **Per-theme variants** (§5). Icons and system art register a color base
@@ -4312,7 +4321,14 @@ literals.
   variable (`--menu-bar-band-height`), and it is not in the table below,
   which lists Platinum's knobs. Use this pattern when a derivation needs a
   package escape hatch from its formula: read the knob first, fall back to
-  the formula, and give the knob no core default. Component code reads one
+  the formula, and give the knob no core default. A second one is
+  `uiText.smallFontSize`: `--ui-font-size-small` is the knob when a theme
+  sets it to a positive finite number, else `typography.uiSize × 0.8`, so
+  Platinum's small text keeps following the Fonts tab while System 7's is
+  Geneva 9 (`uiText.smallFontSize: 9`; `× 0.8` of its 12 px UI size would be
+  9.6 px). Its key names a font size, so the theme schema and the load-time
+  heal hold it to 8–72 px; it is emitted as `--ui-text-small-font-size` too.
+  Component code reads one
   more, `scrollBar.snapBack` (`--scroll-bar-snap-back`), with no floor value
   either: a `ClassicyScrollArea` under a package whose layout declares
   `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
@@ -4591,7 +4607,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--control-padding-narrow` | `paddingSize / 3` | 2 | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss |
-| `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
+| `--ui-font-size-small` | `uiText.smallFontSize`, else `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
 | `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | _Checkbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
 | `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |
 | `--ui-font-size-mini` | `uiSize / 1.5` | 9.333333333333334 (unrounded) | ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyPlacard.scss |
