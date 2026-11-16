@@ -234,6 +234,8 @@ Every file is the full 640 x 480 frame.
 | `*-755-scrapbook-zoombox-pressed.png` | Its zoom box pressed | both | Scrapbook | box 389,47,11,11 | MWD 2 |
 | `*-755-scrapbook-inactive.png` | Scrapbook inactive: its scroll bar dimmed | both | Scrapbook | 18,42,392,306 | CIC "inactive scroll bars" |
 | `*-755-menu-pulldown-label-alldimmed.png` | Label menu with its title and items dimmed (General Controls in front) | both | General Controls | 157,0,100,130 | — (color dimmed Label menu) |
+| `*-755-getinfo-locked-running-app.png` | Get Info on SimpleText, locked, while it runs: the Locked box checked and enabled, the Comments box dotted (locked), the memory sizes read-only | both | Finder, Apple Extras > SimpleText | 8,27,243,313 | — (dimmed checked checkbox: not dimmed here) |
+| `*-755-getinfo-locked-in-trash.png` | Get Info on CPU Energy Saver, locked, in the Trash: the Locked box checked and enabled | both | Finder, Trash | 648,27,243,281 | — (dimmed checked checkbox: not dimmed here) |
 | `*-755-dialog-standardfile-layout.png` | Standard File Open box: the folder pop-up over the list, the disk's name and icon at the top right, the button column Eject (dimmed), Desktop, a line, Cancel, Open (default ring); QuickTime's Show Preview checkbox and dimmed Create button | both | SimpleText > Open… | dialog 88,88,465,200 | — (Standard File layout) |
 | `color-755-window-tint-<tint>.png` | An active document window and the Color control panel in each Window color: `gold`, `green`, `turquoise`, `red`, `pink`, `blue`, `gray`, `black-and-white` | color | Color control panel | window 191,172,251,159 | MWD 12 |
 | `755-depth-<depth>.png` | An active Finder window at `4-grays`, `4-colors`, `16-grays`, `16-colors`, `256-grays`, `256-colors` and `thousands` (switched from Black & White; the palette of a return to 256 colors differs from a fresh boot's) | each | Finder | window 191,172,251,159 | CIC "4-bit color variant" |
@@ -309,7 +311,10 @@ Measured from the framebuffer files (exact pixels).
   strip's shadows (#AAAAAA and #888888 in color) and a dimmed arrow's dark
   side are the checker too, its inner shadow starting a row higher than in
   color; the strip's outer lower corner is rounded off by three black
-  pixels; and the collapse box's inner square is shaded #444444.
+  pixels; and the collapse box's inner square is shaded #444444. The
+  checker is in the screen's phase, black where the screen's x + y is even,
+  not each cell's: the cells start at x 29, 60 and 91 (a pitch of 31), so
+  every other cell starts on an odd x + y.
 - **Opened icon, unselected** (`*-755-icon-opened-unselected.png`): the
   outline and the 25% pattern as selected, the fill #CCCCFF (the window
   color's light lavender) in color, white in 1-bit.
@@ -342,6 +347,10 @@ Measured from the framebuffer files (exact pixels).
   times as current hour" box, checked, reads unchecked once "Chime on the
   hour" is cleared); General Controls, Easy Access, Memory, Get Info (the
   System file's, the Finder's) and Energy Saver dim none that is checked.
+  Nor does Get Info on a locked application while it runs (SimpleText) or
+  on a locked item in the Trash (CPU Energy Saver): both draw the Locked box
+  checked and enabled, in black, at both depths
+  (`*-755-getinfo-locked-*.png`, the script's `lockedgetinfo` scene).
   The package's dotted dimmed X rests on the HIG's "dithered to 50 percent
   gray" (p.207).
 - Menu blinking (MWD 10) at its own rate: the emulator posts a frame every
