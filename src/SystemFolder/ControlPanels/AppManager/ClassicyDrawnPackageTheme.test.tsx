@@ -790,9 +790,18 @@ describe("a host defaultState's theme tweaks persist (0148-wf3)", () => {
 		expect(b.active().id).toBe("custom");
 		expect(b.active().package).toBe("platinum");
 		expect(b.active().desktop.iconSize).toBe(64);
-		expect(strip(b.active().color)).toEqual(
-			strip(b.appearance.getTheme("default").color),
+		// Platinum's own colors (its gray ramp) come from its defaults when
+		// the theme is drawn, as a stored theme's do: the fork carries the 28
+		// core colors.
+		const { families: _ramp, ...core } = strip(
+			b.appearance.getTheme("default").color,
 		);
+		expect(strip(b.active().color)).toEqual(core);
+		expect(
+			(b.appearance.getThemeVars(b.active()) as Record<string, string>)[
+				"--package-color-gray-ramp-step2"
+			],
+		).toBe("#222222");
 	});
 
 	it("follows a stored packageId change, both ways", async () => {

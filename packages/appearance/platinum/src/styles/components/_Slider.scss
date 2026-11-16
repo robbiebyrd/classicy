@@ -31,11 +31,18 @@
 //   a shade row and an outline and centered on the channel, two pixels
 //   past it each side (the HIG names it but draws none). A highlighted
 //   slider's indicator is drawn pressed.
-// - The ghost indicator (Figure 2-17): the indicator in grays, translucent.
+// - The ghost indicator (Figure 2-17): the indicator in grays, opaque; over
+//   the channel's border rows the figure draws the channel showing through
+//   it, a step lighter, and so does the art.
 // - Tick marks (Figure 2-18): `slider.tickWidth` x `slider.tickHeight`
-//   (3 x 8), a black line with a white highlight before it and a gray
+//   (3 x 8), a black line with a white highlight before it and a #888888
 //   shadow after it, hanging from the slider's bottom edge (its right edge
 //   on a vertical slider), the row after the indicator's point.
+//
+// The grays are HIGOS8's 16-step gray ramp (0x11 steps), Platinum's
+// `grayRamp` color family (`--package-color-gray-ramp-step<n>`), so every
+// gray is the figures' own: the channel's #222222 border and #AAAAAA etch
+// and fill, the tick's #888888 shadow, the ghost's seven grays.
 // - Dimmed: the slider and its ticks at 50% contrast (the HIG draws none).
 //
 // Everything is pixel art: one `classicy-px-rect` layer per run of one ink
@@ -100,8 +107,8 @@ $px: var(--slider-pixel);
 
 // The art's inks. The indicator's lavender ramp is the theme's (theme-01 to
 // -07: #EEEEEE, #CCCCFF, #9999FF, #6666CC, #333399, …, #000055 in Default);
-// the channel's border is system-07 (#202020; the figures' #222222), its
-// fill and etch system-04 (#AAAAAA).
+// the channel's border (#222222), its fill and etch (#AAAAAA) and the
+// tick's shadow (#888888) are the gray ramp's.
 $inks: (
   "#": "--color-black",
   ",": "--color-theme-01",
@@ -110,23 +117,67 @@ $inks: (
   "n": "--color-theme-04",
   "o": "--color-theme-05",
   "q": "--color-theme-07",
-  "a": "--color-system-04",
-  "K": "--color-system-07",
+  "a": "--package-color-gray-ramp-step-a",
+  "K": "--package-color-gray-ramp-step2",
   "W": "--color-white",
-  "8": "--color-system-05",
+  "8": "--package-color-gray-ramp-step8",
 );
 
-// The ghost: the indicator's outline in gray, its faces white and light
-// grays.
+// ── The ghost (Figure 2-17) ─────────────────────────────────────────────────
+// The indicator's art in the ramp's grays, opaque. Figure 2-17 shows it
+// partly, right of the pressed indicator: an #888888 outline, white,
+// #DDDDDD and #BBBBBB faces and, over the channel, the channel showing
+// through. The ghost lies where the indicator does across the channel
+// (its flat side `thumbRise`, 3, past the channel's near edge, whichever
+// way it points), so in the art as the box holds it before the base
+// sheet's turn its row k lies k pixels from the flat side: rows 4 and 8 on
+// the channel's two #222222 border rows, drawn a step lighter (an #444444
+// outline, #DDDDDD, #AAAAAA, #888888 and #666666 grip shades), rows 5 to 7
+// on its #AAAAAA flat rows (the grip shades #AAAAAA, as the channel), and
+// elsewhere the grip shades white, as over the channel's white row.
+$ghost-light: ("#": "8", "W": "W", ",": "W", "l": "W", "m": "D", "n": "B", "o": "W");
+$ghost-fill: map.merge($ghost-light, ("o": "A"));
+$ghost-dark: ("#": "4", "W": "D", ",": "D", "l": "D", "m": "A", "n": "8", "o": "6");
+
 $ghost-inks: (
-  "#": "--color-system-05",
   "W": "--color-white",
-  ",": "--color-white",
-  "l": "--color-white",
-  "m": "--color-system-02",
-  "n": "--color-system-03",
-  "o": "--color-system-04",
+  "4": "--package-color-gray-ramp-step4",
+  "6": "--package-color-gray-ramp-step6",
+  "8": "--package-color-gray-ramp-step8",
+  "A": "--package-color-gray-ramp-step-a",
+  "B": "--package-color-gray-ramp-step-b",
+  "D": "--package-color-gray-ramp-step-d",
 );
+
+// An indicator's rows, as the box holds them before the turn, in the
+// ghost's inks.
+@function ghost-rows($rows) {
+  $out: ();
+  $k: 0;
+  @each $row in $rows {
+    $map: $ghost-light;
+    @if $k == 4 or $k == 8 {
+      $map: $ghost-dark;
+    } @else if $k >= 5 and $k <= 7 {
+      $map: $ghost-fill;
+    }
+    $ghost: "";
+    @for $i from 1 through string.length($row) {
+      $ink: string.slice($row, $i, $i);
+      @if map.has-key($map, $ink) {
+        $ink: map.get($map, $ink);
+      }
+      $ghost: $ghost + $ink;
+    }
+    $out: list.append($out, $ghost);
+    $k: $k + 1;
+  }
+  @return $out;
+}
+
+@function ghost-art($rows) {
+  @return row-art(ghost-rows($rows), $ghost-inks);
+}
 
 // ── The indicator (15 x 17; Figures 2-18 and 2-17) ──────────────────────────
 // At rest: Figure 2-18's sixteen rows (Figure 2-19 draws the same), the
@@ -261,11 +312,11 @@ $knob: (
   @return $out;
 }
 
-@function knob-vertical() {
+@function knob-vertical($knob-rows: $knob) {
   // The knob's own rows, less the box's clear first one.
   $rows: ();
-  @for $i from 2 through list.length($knob) {
-    $rows: list.append($rows, list.nth($knob, $i));
+  @for $i from 2 through list.length($knob-rows) {
+    $rows: list.append($rows, list.nth($knob-rows, $i));
   }
   $box: ("...............",);
   @each $row in transposed($rows) {
@@ -415,7 +466,10 @@ $channel: (
     @if $ink == "fill" {
       $layers: list.append(
         $layers,
-        var(--classicy-slider-track, linear-gradient(var(--color-system-04), var(--color-system-04)))
+        var(
+            --classicy-slider-track,
+            linear-gradient(var(--package-color-gray-ramp-step-a), var(--package-color-gray-ramp-step-a))
+          )
           #{$x} #{$y} / #{$w} #{$h} no-repeat,
         $separator: comma
       );
@@ -645,33 +699,32 @@ $firefox-shift-back: calc($firefox-shift * -1);
     color: var(--color-black);
   }
 
-  // ─── Ghost indicator (Figure 2-17: the indicator in grays, see-through) ─────
+  // ─── Ghost indicator (Figure 2-17: the indicator in grays) ───────────────────
 
   // Its box where the indicator's lies: its flat side the rise past the
   // channel, from the input's top edge; turned up, its box starts a pixel
   // above the input (the point's rows end on its edge, the pressed row
-  // past it).
+  // past it). Opaque: the channel shows through it in its own art.
   .classicySliderGhost {
     margin-top: calc($channel-top - var(--slider-thumb-rise));
-    opacity: 0.75;
     transition: opacity 0.1s linear;
-    background: row-art($thumb, $ghost-inks);
+    background: ghost-art($thumb);
 
     &.classicySliderIndicatorUp {
       margin-top: calc($px * -1);
-      background: row-art(before-turn($thumb-up, up), $ghost-inks);
+      background: ghost-art(before-turn($thumb-up, up));
     }
 
     &.classicySliderIndicatorLeft {
-      background: row-art(before-turn($thumb-left, left), $ghost-inks);
+      background: ghost-art(before-turn($thumb-left, left));
     }
 
     &.classicySliderIndicatorRight {
-      background: row-art(before-turn($thumb-right, right), $ghost-inks);
+      background: ghost-art(before-turn($thumb-right, right));
     }
 
     &.classicySliderIndicatorNondirectional {
-      background: row-art($knob, $ghost-inks);
+      background: ghost-art($knob);
     }
   }
 
@@ -691,9 +744,11 @@ $firefox-shift-back: calc($firefox-shift * -1);
       margin-left: calc(#{$vertical-right} + #{half(calc(var(--slider-thumb-along) - var(--slider-channel)))});
     }
 
+    // The knob's rows in the ghost's inks first, then turned: its rows 4
+    // and 8 become the columns that lie on the channel's border columns.
     &.classicySliderIndicatorNondirectional {
       margin-left: 0;
-      background: row-art(knob-vertical(), $ghost-inks);
+      background: row-art(knob-vertical(ghost-rows($knob)), $ghost-inks);
     }
   }
 

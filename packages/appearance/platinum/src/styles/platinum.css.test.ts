@@ -785,10 +785,13 @@ describe("platinum.scss (compiled)", () => {
 			"--color-theme-04": "n",
 			"--color-theme-05": "o",
 			"--color-theme-07": "q",
-			"--color-system-04": "a",
-			"--color-system-07": "K",
 			"--color-white": "W",
-			"--color-system-05": "8",
+			// The channel's and the tick's grays are HIGOS8's 16-step gray
+			// ramp (Platinum's `grayRamp` color family): the figures' own
+			// #AAAAAA, #222222 and #888888.
+			"--package-color-gray-ramp-step-a": "a",
+			"--package-color-gray-ramp-step2": "K",
+			"--package-color-gray-ramp-step8": "8",
 		};
 		// Space-separated tokens at parenthesis depth 0.
 		const tokens = (text: string): string[] => {
@@ -1117,7 +1120,7 @@ describe("platinum.scss (compiled)", () => {
 			).props;
 			expect(horizontal.height).toBe("var(--slider-channel)");
 			const fill =
-				"var(--classicy-slider-track, linear-gradient(var(--color-system-04), var(--color-system-04)))";
+				"var(--classicy-slider-track, linear-gradient(var(--package-color-gray-ramp-step-a), var(--package-color-gray-ramp-step-a)))";
 			// The channel's layers at a length of 40 grid pixels: a `100% - n`
 			// size becomes 40 - n, a place from the far end (`right` or
 			// `bottom` X) becomes 40 - X - its size, and the fill a plain
@@ -1128,7 +1131,7 @@ describe("platinum.scss (compiled)", () => {
 						.map((l) => {
 							const flat = l.replace(
 								fill,
-								"linear-gradient(var(--color-system-04), var(--color-system-04))",
+								"linear-gradient(var(--package-color-gray-ramp-step-a), var(--package-color-gray-ramp-step-a))",
 							);
 							const m =
 								/^(linear-gradient\([^)]*\)[^)]*\)\)) (.*) no-repeat$/.exec(
@@ -1300,77 +1303,145 @@ describe("platinum.scss (compiled)", () => {
 			).toBe("none");
 		});
 
-		it("draws the ghost in grays, translucent, and none while hidden", () => {
+		// Figure 2-17's ghost, opaque, in the gray ramp: its outline #888888,
+		// its faces white, #DDDDDD and #BBBBBB; where it lies over the
+		// channel's two dark border rows (its rows 4 and 8 from its flat side,
+		// whichever way it points) the figure draws the channel showing
+		// through, a step lighter (#DDDDDD, #AAAAAA, #888888, #666666 and a
+		// #444444 outline), and its grip shades #AAAAAA over the three flat
+		// rows, white over the white row.
+		const GHOST_INK: Record<string, string> = {
+			"--color-white": "W",
+			"--package-color-gray-ramp-step4": "4",
+			"--package-color-gray-ramp-step6": "6",
+			"--package-color-gray-ramp-step8": "8",
+			"--package-color-gray-ramp-step-a": "A",
+			"--package-color-gray-ramp-step-b": "B",
+			"--package-color-gray-ramp-step-d": "D",
+		};
+		const decodeGhost = (background: string, w: number, h: number) => {
+			const saved = { ...INK };
+			for (const key of Object.keys(INK)) delete INK[key];
+			Object.assign(INK, GHOST_INK);
+			try {
+				return decode(background, w, h);
+			} finally {
+				for (const key of Object.keys(INK)) delete INK[key];
+				Object.assign(INK, saved);
+			}
+		};
+		const GHOST_DOWN = [
+			".8888888888888.",
+			"8WWWWWWWWWWWWD8",
+			"8WDDDDDDDDDDDB8",
+			"8WDDWDWDWDDDDB8",
+			"4DAAD6D6D6AAA84",
+			"8WDDWAWAWADDDB8",
+			"8WDDWAWAWADDDB8",
+			"8WDDWAWAWADDDB8",
+			"4DAAD6D6D6AAA84",
+			"8WDDDWDWDWDDDB8",
+			".8BDDDDDDDDDB8.",
+			"..8BDDDDDDDB8..",
+			"...8BDDDDDB8...",
+			"....8BDDDB8....",
+			".....8BBB8.....",
+			"......888......",
+			"...............",
+		];
+
+		it("draws Figure 2-17's ghost, opaque, in the gray ramp, and none while hidden", () => {
 			const ghost = rule(`${P} .classicySliderGhost`);
-			expect(ghost.props.opacity).toBe("0.75");
+			expect(ghost.props).not.toHaveProperty("opacity");
 			expect(ghost.props.transition).toBe("opacity 0.1s linear");
-			expect(ghost.props.background).toContain("var(--color-system-05)");
-			// Turned up, the up indicator's art (lit from the top left), not
-			// the down one's turned.
-			const up = rule(`${P} .classicySliderGhost.classicySliderIndicatorUp`);
-			expect(up.props.background).toBe(
-				rule(
-					`${P} .classicySliderIndicatorUp::-webkit-slider-thumb`,
-				).props.background.replace(
-					/var\(--color-[\w-]+\)/g,
-					(token) =>
-						({
-							"var(--color-black)": "var(--color-system-05)",
-							"var(--color-theme-01)": "var(--color-white)",
-							"var(--color-theme-02)": "var(--color-white)",
-							"var(--color-theme-03)": "var(--color-system-02)",
-							"var(--color-theme-04)": "var(--color-system-03)",
-							"var(--color-theme-05)": "var(--color-system-04)",
-						})[token] ?? token,
-				),
-			);
-			// Every direction's ghost is that indicator's art in grays, lit from
-			// the top left as it is: pointing left and right too (story
-			// 0198-0kv: they were the down art turned, lit from the top right),
-			// and the knob, on either channel.
-			const gray = (background: string) =>
-				background.replace(
-					/var\(--color-[\w-]+\)/g,
-					(token) =>
-						({
-							"var(--color-black)": "var(--color-system-05)",
-							"var(--color-theme-01)": "var(--color-white)",
-							"var(--color-theme-02)": "var(--color-white)",
-							"var(--color-theme-03)": "var(--color-system-02)",
-							"var(--color-theme-04)": "var(--color-system-03)",
-							"var(--color-theme-05)": "var(--color-system-04)",
-						})[token] ?? token,
-				);
-			for (const [ghostClass, thumbClass] of [
-				[".classicySliderIndicatorLeft", ".classicySliderIndicatorLeft"],
-				[".classicySliderIndicatorRight", ".classicySliderIndicatorRight"],
-				[
-					".classicySliderIndicatorNondirectional",
-					".classicySliderIndicatorNondirectional",
-				],
-			] as const)
-				expect(
-					rule(`${P} .classicySliderGhost${ghostClass}`).props.background,
-					ghostClass,
-				).toBe(
-					gray(
-						rule(`${P} ${thumbClass}::-webkit-slider-thumb`).props.background,
-					),
-				);
-			expect(
-				rule(
-					`${P} .classicySliderStackVertical .classicySliderGhost.classicySliderIndicatorNondirectional`,
-				).props.background,
-			).toBe(
-				gray(
-					rule(
-						`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional::-webkit-slider-thumb`,
-					).props.background,
-				),
-			);
+			expect(decodeGhost(ghost.props.background, 15, 17)).toEqual(GHOST_DOWN);
 			const hidden = rule(`${P} .classicySliderGhostHidden`);
 			expect(hidden.props).toEqual({ opacity: "0" });
 			expect(hidden.at).toBeGreaterThan(ghost.at);
+		});
+
+		it("draws every direction's ghost from its own indicator, the dark rows 4 and 8 from its flat side", () => {
+			// The ghost's inks for an indicator ink on a row of the art as the
+			// box holds it before the base sheet's turn (its row k lies k
+			// pixels from the flat side): rows 4 and 8 lie on the channel's
+			// border rows, 5 to 7 on its flat rows.
+			const LIGHT: Record<string, string> = {
+				"#": "8",
+				W: "W",
+				",": "W",
+				l: "W",
+				m: "D",
+				n: "B",
+				o: "W",
+				".": ".",
+			};
+			const DARK: Record<string, string> = {
+				...LIGHT,
+				"#": "4",
+				W: "D",
+				",": "D",
+				l: "D",
+				m: "A",
+				n: "8",
+				o: "6",
+			};
+			const FILL: Record<string, string> = { ...LIGHT, o: "A" };
+			const ghostOf = (rows: string[]) =>
+				rows.map((row, k) =>
+					[...row]
+						.map(
+							(c) =>
+								(k === 4 || k === 8 ? DARK : k >= 5 && k <= 7 ? FILL : LIGHT)[
+									c
+								] ?? "?",
+						)
+						.join(""),
+				);
+			expect(ghostOf(AT_REST)).toEqual(GHOST_DOWN);
+			for (const cls of [
+				".classicySliderIndicatorUp",
+				".classicySliderIndicatorLeft",
+				".classicySliderIndicatorRight",
+				".classicySliderIndicatorNondirectional",
+			]) {
+				const thumb = decode(
+					rule(`${P} ${cls}::-webkit-slider-thumb`).props.background,
+					15,
+					17,
+				);
+				expect(
+					decodeGhost(
+						rule(`${P} .classicySliderGhost${cls}`).props.background,
+						15,
+						17,
+					),
+					cls,
+				).toEqual(ghostOf(thumb));
+			}
+			// The vertical knob is written as seen (nothing turns it): the
+			// channel's border columns are its columns 5 and 9.
+			const knob = decode(
+				rule(
+					`${P} .classicySliderInputVertical.classicySliderIndicatorNondirectional::-webkit-slider-thumb`,
+				).props.background,
+				15,
+				17,
+			);
+			const columns = (rows: string[]) =>
+				Array.from({ length: rows[0].length }, (_, c) =>
+					rows.map((r) => r[c]).join(""),
+				);
+			expect(
+				columns(
+					decodeGhost(
+						rule(
+							`${P} .classicySliderStackVertical .classicySliderGhost.classicySliderIndicatorNondirectional`,
+						).props.background,
+						15,
+						17,
+					),
+				).slice(1),
+			).toEqual(ghostOf(columns(knob).slice(1)).map((c) => c));
 		});
 
 		// The vertical ghost lies where the indicator does across the channel

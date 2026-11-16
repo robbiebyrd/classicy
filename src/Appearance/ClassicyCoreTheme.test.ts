@@ -147,12 +147,16 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 });
 
 describe("CLASSICY_CORE_DEFAULT_THEME", () => {
-	it("is Platinum's defaults without the wallpaper and the look-only knobs", () => {
+	it("is Platinum's defaults without the wallpaper, the look-only knobs and Platinum's own colors", () => {
 		const expected = structuredClone(platinumJson.defaults) as unknown as {
+			color: { families?: unknown };
 			desktop: { backgroundImage: string };
 			measurements: Record<string, Record<string, number>>;
 		};
 		expected.desktop.backgroundImage = "";
+		// Package colors (the gray ramp) are a package's look alone: no base
+		// stylesheet reads one, so the core holds none.
+		delete expected.color.families;
 		for (const path of LOOK_ONLY) {
 			const [family, key] = path.split(".");
 			delete expected.measurements[family][key];
@@ -212,7 +216,7 @@ describe("themes with no package registered", () => {
 		expect(getTheme("bondi")).toBe(CLASSICY_CORE_DEFAULT_THEME);
 	});
 
-	it("getThemeVars emits what Platinum's default emits, but the look-only knobs", () => {
+	it("getThemeVars emits what Platinum's default emits, but the look-only knobs and package colors", () => {
 		const today = getThemeVars(getTheme("default")) as Record<string, string>;
 		resetClassicyAppearancePackagesForTests();
 		const floor = getThemeVars(getTheme("default") as ClassicyTheme) as Record<
@@ -227,9 +231,12 @@ describe("themes with no package registered", () => {
 		const expected = Object.fromEntries(
 			Object.entries(today).filter(
 				([name]) =>
-					!lookOnly.includes(name) && name !== "--desktop-background-image",
+					!lookOnly.includes(name) &&
+					!name.startsWith("--package-color-") &&
+					name !== "--desktop-background-image",
 			),
 		);
+		expect(today).toHaveProperty("--package-color-gray-ramp-step2");
 		const { "--desktop-background-image": _wallpaper, ...rest } = floor;
 		expect(rest).toEqual(expected);
 		for (const name of lookOnly) expect(floor).not.toHaveProperty(name);

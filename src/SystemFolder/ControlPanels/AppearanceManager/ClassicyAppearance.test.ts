@@ -49,8 +49,10 @@ import {
 // the same place; plan 0018-dbd §1.4 added the dither vocabulary's switch,
 // dither.tileSize (--dither-tile-size, 0px), after the knob region; story
 // 0194-5bs added Platinum's slider family's seven knobs (--slider-pixel to
-// --slider-tick-height) before it (every other key and value unchanged each
-// time).
+// --slider-tick-height) before it; plan 0018-dbd Batch F-b added Platinum's
+// gray ramp, its first package color family, as the 14
+// --package-color-gray-ramp-step* variables after --color-theme-07 (every
+// other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",

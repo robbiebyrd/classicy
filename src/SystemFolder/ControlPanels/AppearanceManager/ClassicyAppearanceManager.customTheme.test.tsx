@@ -138,16 +138,22 @@ describe("Appearance Manager — Colors tab and Custom theme", {
 		expect(gap).toHaveValue(builtInGap + 7);
 	});
 
-	it("shows 28 swatches carrying the active theme's colors", async () => {
+	it("shows the 28 core swatches, then Platinum's gray ramp, carrying the active theme's colors", async () => {
 		const win = await openAppearanceManager();
 		showTab(win, "Colors");
 		const panel = within(win).getByRole("tabpanel");
 		const swatches = within(panel).getAllByTestId("color-picker-swatch");
-		expect(swatches).toHaveLength(28);
+		expect(swatches).toHaveLength(28 + 14);
 		const select = panel.querySelector("#appearance_color_select");
 		expect(select?.getAttribute("aria-label")).toBe(
 			"Color: #dddddd. Click to open color picker.",
 		);
+		expect(within(panel).getByText("Gray Ramp")).toBeInTheDocument();
+		expect(
+			panel
+				.querySelector("#appearance_color_family_grayRamp_step2")
+				?.getAttribute("aria-label"),
+		).toBe("Color: #222222. Click to open color picker.");
 	});
 
 	it("picking a color forks Custom and lists it on the Themes tab", async () => {

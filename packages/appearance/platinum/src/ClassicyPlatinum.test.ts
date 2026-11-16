@@ -141,11 +141,23 @@ describe("the Platinum appearance package", () => {
 
 	// H-R8: Platinum's knob families live in `defaults` only; the presets
 	// carry the core five and are filled from the defaults at load.
-	it("defaults equals the Default preset, plus the knob families", () => {
-		const { measurements, ...rest } = platinumJson.defaults;
-		const { measurements: presetMeasurements, ...presetRest } =
-			platinumJson.presets[0];
+	it("defaults equals the Default preset, plus the knob and color families", () => {
+		const {
+			measurements,
+			color: { families, ...color },
+			...rest
+		} = platinumJson.defaults;
+		const {
+			measurements: presetMeasurements,
+			color: presetColor,
+			...presetRest
+		} = platinumJson.presets[0];
 		expect(rest).toEqual(presetRest);
+		expect(color).toEqual(presetColor);
+		expect(Object.keys(families ?? {})).toEqual(["grayRamp"]);
+		for (const preset of platinumJson.presets) {
+			expect(preset.color, preset.id).not.toHaveProperty("families");
+		}
 		const { window, control, button, groupBox, layout } = measurements;
 		expect(presetMeasurements).toEqual({
 			window,
@@ -168,6 +180,32 @@ describe("the Platinum appearance package", () => {
 			platinumJson.defaults.measurements;
 		expect({ window, control, button, groupBox, layout }).toEqual(
 			CLASSICY_DEFAULT_THEME_METRICS,
+		);
+	});
+
+	// HIGOS8's 16-step gray ramp (0x11 steps), steps 1 to E (0 and F are
+	// black and white): the slider's grays, Platinum's color family.
+	it("declares the gray ramp, and fills every built-in theme with it", () => {
+		const ramp = platinumJson.defaults.color.families?.grayRamp ?? {};
+		const steps = [..."123456789ABCDE"];
+		expect(ramp).toEqual(
+			Object.fromEntries(
+				steps.map((c) => [`step${c}`, Number.parseInt(c, 16) * 0x111111]),
+			),
+		);
+		expect(platinumJson.colorFamilies).toEqual({
+			grayRamp: {
+				label: "Gray Ramp",
+				colors: Object.fromEntries(
+					steps.map((c) => [`step${c}`, { label: c }]),
+				),
+			},
+		});
+		for (const theme of getAllThemes()) {
+			expect(theme.color.families?.grayRamp, theme.id).toEqual(ramp);
+		}
+		expect(getClassicyAppearancePackage("platinum")?.colorFamilies).toEqual(
+			platinumJson.colorFamilies,
 		);
 	});
 
