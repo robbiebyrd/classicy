@@ -335,9 +335,10 @@ the ids the saver already names:
   ghost indicator is Figure 2-17's: opaque, in the ramp's grays (an #888888
   outline, white, #DDDDDD and #BBBBBB faces; over the channel's border rows
   #444444 to #DDDDDD, the channel showing through), drawn under the
-  indicator as Figure 2-17 draws it (where `:has()` is supported: with a
-  ghost, the channel is drawn on `.classicySliderTrackLayer::before` and the
-  ghost at `z-index: -1` there), where it was the indicator in system grays
+  indicator as Figure 2-17 draws it (with a ghost, the slider marks its
+  track layer `classicySliderHasGhost`, and Platinum draws the channel on
+  `.classicySliderTrackLayer::before` and the ghost at `z-index: -1`
+  there), where it was the indicator in system grays
   at 75% opacity over everything. A host that styled the ghost's opacity
   sets it on `.classicySliderGhost` again. Under a theme of another package
   the slider draws its pre-3.2 grays.
