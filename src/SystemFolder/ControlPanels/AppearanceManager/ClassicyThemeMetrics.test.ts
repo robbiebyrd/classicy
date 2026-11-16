@@ -158,6 +158,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"popUpSlider",
 	"scrollbar",
 	"hyperCard",
+	"fileBrowserList",
 	"finder",
 	"appleGuide",
 	"picker",

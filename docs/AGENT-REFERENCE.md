@@ -4259,7 +4259,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 23 families of its own (103 keys)
+**Package knob families.** Platinum adds 24 families of its own (105 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4274,7 +4274,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 17 families are emitted and editable in
+  groups under Platinum. The other 18 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -4284,9 +4284,10 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 103 are
+  overriding the knob's value, never the base CSS. 85 of the 105 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). The other 18 are
+  table, so the floor and the column cannot drift). Two of the rest are
+  the optional `fileBrowserList` knobs (below). The other 18 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
   `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
@@ -4312,13 +4313,23 @@ literals.
   `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
   theme that does not emit it snaps back at the bar's own thickness, "the
   width of the scroll box" (System 7 sets 20, "a little more"). The file
-  browser's list view reads three more the same way, the family
+  browser's list view reads four more the same way, the family
   `fileBrowserList`: `smallIconSize`, `mediumIconSize` and `largeIconSize`
   (`--file-browser-list-<step>-icon-size`, `LIST_VIEW_ICON_SIZE_VARS`), a
-  step's icon size in px. A step the theme gives no size above 0 keeps
-  `desktop.iconSize` scaled (`listViewIconSize`: 0.25, 0.375, 0.667), as
-  under Platinum, which sets none (System 7 sets `mediumIconSize: 16`, so
-  its 16 px small icons draw unscaled; 0.375 × 32 is 12).
+  step's icon size in px, and `rowPadding`
+  (`--file-browser-list-row-padding`), the space above and below a row's
+  icon and label. A step the theme gives no size above 0 keeps
+  `desktop.iconSize` scaled (`listViewIconSize`: 0.25, 0.375, 0.667), and a
+  theme with no `rowPadding` keeps `--file-browser-list-icon-spacing` all
+  round. A list with no `listViewOptions` draws the medium step's size
+  when the theme gives one, else 18 px as before. Platinum sets
+  `mediumIconSize: 16` and `rowPadding: 1`, HIGOS8 Figures 2-24 and 2-43:
+  16 px small icons in 18 px rows a 1 px line apart, a 19 px pitch (its
+  small and large steps stay scaled, 12 and 32). System 7 sets
+  `mediumIconSize: 16` alone, so its 16 px small icons draw unscaled
+  (0.375 × 32 is 12). Platinum's two are in the table below as not
+  structural: they have no floor value, so a package that sets neither is
+  not sized by Platinum's.
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their
@@ -4442,6 +4453,8 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
 | `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
 | `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
+| `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
+| `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no

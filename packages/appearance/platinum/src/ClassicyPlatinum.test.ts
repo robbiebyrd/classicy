@@ -9,6 +9,7 @@ import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	getAllThemes,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { isThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
@@ -220,6 +221,27 @@ describe("the Platinum appearance package", () => {
 				);
 			}
 		}
+	});
+
+	// Owner decision, 2026-11-16: the list view matches HIGOS8 Fig. 2-24
+	// (p.38) and Fig. 2-43 (p.51), 16 px small icons in 18 px rows a 1 px
+	// line apart. The default (medium) step draws at 16, not 0.375 x 48 = 18,
+	// with 1 px above and below; the other steps stay scaled.
+	it("draws the list view's default step at 16 px in 18 px rows, in every theme", async () => {
+		await import("./index");
+		const themes = getAllThemes();
+		expect(themes).toHaveLength(21);
+		for (const theme of themes) {
+			const vars = getThemeVars(theme) as Record<string, string>;
+			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
+			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
+			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
+			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+		}
+		expect(platinumJson.defaults.measurements.fileBrowserList).toEqual({
+			mediumIconSize: 16,
+			rowPadding: 1,
+		});
 	});
 
 	it("every preset carries package platinum", () => {

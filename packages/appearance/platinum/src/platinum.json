@@ -151,6 +151,10 @@
 				"paletteMaxWidth": 220,
 				"indent": 12
 			},
+			"fileBrowserList": {
+				"mediumIconSize": 16,
+				"rowPadding": 1
+			},
 			"finder": {
 				"padding": 8,
 				"aboutBannerWidth": 260,

@@ -28,8 +28,8 @@ import {
 
 const CORE_FIVE = ["window", "control", "button", "groupBox", "layout"];
 
-// The knobs only Platinum's own partials read (AGENT-REFERENCE §8,
-// "Structural: no"): Platinum's look, never the core's.
+// The knobs only Platinum's own partials read, and its optional ones
+// (AGENT-REFERENCE §8, "Structural: no"): Platinum's look, never the core's.
 const LOOK_ONLY = [
 	"controlStrip.bevelWidth",
 	"menuFrame.borderWidth",
@@ -50,6 +50,10 @@ const LOOK_ONLY = [
 	"slider.thumbRise",
 	"slider.tickWidth",
 	"slider.tickHeight",
+	// Optional knobs the file browser's list view reads with a fallback
+	// (HIGOS8 Figure 2-24): a floor value would size every package's list.
+	"fileBrowserList.mediumIconSize",
+	"fileBrowserList.rowPadding",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -111,7 +115,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(103);
+		expect(documented.size).toBe(105);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)

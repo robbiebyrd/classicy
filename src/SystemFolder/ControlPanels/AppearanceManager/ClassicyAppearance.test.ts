@@ -74,8 +74,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // parts outside dialogs, which made 21 families with the same 95 keys; plan
 // 0018-dbd §1.4's dither.tileSize, the dither vocabulary's switch, made 22
 // families and 96 keys; story 0194-5bs's slider family, Platinum's slider
-// drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys).
-const PLATINUM_KNOB_COUNT = 103;
+// drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys; the list
+// view's HIGOS8 Figure 2-24 icon size and row padding, the optional
+// fileBrowserList family, made 24 families and 105 keys).
+const PLATINUM_KNOB_COUNT = 105;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {
