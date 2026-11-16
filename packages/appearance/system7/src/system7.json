@@ -224,6 +224,9 @@
 			},
 			"iconSelection": {
 				"invert": 1
+			},
+			"fileBrowserList": {
+				"mediumIconSize": 16
 			}
 		},
 		"desktop": {
@@ -460,6 +463,9 @@
 				},
 				"iconSelection": {
 					"invert": 1
+				},
+				"fileBrowserList": {
+					"mediumIconSize": 16
 				}
 			},
 			"desktop": {
@@ -698,6 +704,9 @@
 				},
 				"iconSelection": {
 					"invert": 0
+				},
+				"fileBrowserList": {
+					"mediumIconSize": 16
 				}
 			},
 			"desktop": {

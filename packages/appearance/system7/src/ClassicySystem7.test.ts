@@ -466,6 +466,25 @@ describe("the System 7 appearance package", () => {
 		);
 	});
 
+	// Story 0197-s0z: the Finder list view draws System 7's small icons
+	// (`ics#`, `ics8`; HIG p.234) at their own 16 px, which no scale of the
+	// 32 px desktop icon gives (0.375 x 32 = 12). The other steps stay scaled.
+	it("draws the list view's icons at 16 px in both themes", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		expect(presets).toHaveLength(2);
+		for (const theme of presets) {
+			const vars = getThemeVars(theme) as Record<string, string>;
+			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
+			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
+			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+		}
+		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
+			mediumIconSize: 16,
+		});
+	});
+
 	// The slider's thumb overhangs its channel the same on both sides
 	// (_Slider.scss centers it by the overhang).
 	it("centers the slider's thumb across its channel", () => {

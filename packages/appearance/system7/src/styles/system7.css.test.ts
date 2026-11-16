@@ -1858,6 +1858,30 @@ describe("system7.scss (compiled)", () => {
 			expect(css).not.toMatch(/dither-tile-size\)[^;]*\n?[^;]*difference/);
 		});
 
+		// Story 0197-s0z: a Finder list view's selected small icon is an
+		// `<img>`, so the same knob drives its filter: tan(atan2(knob, 1 px))
+		// is 1 in 1-bit (inverted, no darkening) and 0 in color (the base
+		// sheet's contrast(0.75) brightness(0.5), unchanged).
+		it("inverts a selected list-view icon in 1-bit by the same knob, and never one drawing its selected image", () => {
+			const N =
+				"tan(atan2(var(--icon-selection-invert), var(--window-box-pixel)))";
+			expect(
+				rule(
+					".classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
+				).trim(),
+			).toBe(
+				`filter: invert(${N}) contrast(max(0.75, ${N})) brightness(max(0.5, ${N}));`,
+			);
+			// No other rule filters the row's icon: one drawing its
+			// pre-rendered selected image keeps it as drawn.
+			const filtered = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
+				([, header, declarations]) =>
+					header.includes("classicyFileBrowserViewTableRowIcon") &&
+					/filter:/.test(declarations),
+			);
+			expect(filtered).toHaveLength(1);
+		});
+
 		it("draws an opened icon's shape outlined in black, its inside eroded a pixel and dotted 25%", () => {
 			for (const [root, outer, mask] of FAMILIES) {
 				expect(rule(`${root}.open ${outer}`)).toMatch(

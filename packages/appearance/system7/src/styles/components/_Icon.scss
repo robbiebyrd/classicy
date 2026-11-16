@@ -43,6 +43,16 @@
 //   color table) and uninverted.
 // - The alias badge's size and place and the italic alias label stay as the
 //   base sheet draws them.
+// - A Finder list view's selected small icon (an `<img>`, no mask pair)
+//   follows the same knob through its `filter`: inverted in 1-bit, as the
+//   desktop's is, and in color the base sheet's darkening, unchanged. The
+//   knob is a length, so `tan(atan2(knob, one pixel))` makes the number a
+//   filter takes: 1 in 1-bit, 0 in color. A browser without the functions
+//   (before Chrome 111, Firefox 108, Safari 15.4) drops the declaration and
+//   keeps the base sheet's darkening. An icon drawing its pre-rendered
+//   selected image takes no filter, as in the base sheet. The list draws
+//   its icons at 16 px (`fileBrowserList.mediumIconSize`), the size of the
+//   small icons (`ics#`, `ics8`; HIG printed p.234).
 @use "pkg:@classicy/classicy/scss/color" as c;
 @use "../pixel" as *;
 
@@ -161,7 +171,14 @@ $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
   }
 }
 
+// `iconSelection.invert` as a number: 1 (1-bit) or 0 (color).
+$invert: tan(atan2(var(--icon-selection-invert), #{$px}));
+
 @mixin icon {
+  .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
+    filter: invert($invert) contrast(max(0.75, #{$invert})) brightness(max(0.5, #{$invert}));
+  }
+
   @include icon-states(
     ".classicyDesktopIcon",
     ".classicyDesktopIconMaskOuter",
