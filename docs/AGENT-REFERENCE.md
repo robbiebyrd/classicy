@@ -335,7 +335,7 @@ All optional:
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
-| `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | One-time corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`) |
+| `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer` | `boolean` | `false` | Turn off individual built-in apps |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
 

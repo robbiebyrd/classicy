@@ -269,3 +269,102 @@ describe("applyClassicyFileSystemSeedMigrations — misc", () => {
 		expect(JSON.stringify(fs)).toBe(before);
 	});
 });
+
+describe("applyClassicyFileSystemSeedMigrations — delete ifUrl", () => {
+	const urlTree = () => {
+		const fs = tree();
+		fs["Macintosh HD"].Documents["Sample.pdf"] = {
+			_type: "pdf",
+			_url: "https://example.com/old.pdf",
+		};
+		return fs;
+	};
+
+	it("removes the entry when its _url matches ifUrl", () => {
+		const fs = urlTree();
+
+		applyClassicyFileSystemSeedMigrations(fs, [
+			{
+				op: "delete",
+				path: "Macintosh HD:Documents:Sample.pdf",
+				ifUrl: "https://example.com/old.pdf",
+			},
+		]);
+
+		expect(fs["Macintosh HD"].Documents["Sample.pdf"]).toBeUndefined();
+	});
+
+	it("keeps the entry when its _url differs (the visitor replaced it)", () => {
+		const fs = urlTree();
+		fs["Macintosh HD"].Documents["Sample.pdf"]._url =
+			"https://example.com/mine.pdf";
+
+		applyClassicyFileSystemSeedMigrations(fs, [
+			{
+				op: "delete",
+				path: "Macintosh HD:Documents:Sample.pdf",
+				ifUrl: "https://example.com/old.pdf",
+			},
+		]);
+
+		expect(fs["Macintosh HD"].Documents["Sample.pdf"]._url).toBe(
+			"https://example.com/mine.pdf",
+		);
+	});
+});
+
+describe("applyClassicyFileSystemSeedMigrations — run-once ids", () => {
+	const addNote = (id?: string): ClassicyFileSystemSeedMigration => ({
+		id,
+		op: "add",
+		path: "Macintosh HD:Documents:Note.txt",
+		entry: { _type: ClassicyFileSystemEntryFileType.TextFile, _data: "note" },
+	});
+
+	it("skips a migration whose id is already applied", () => {
+		const fs = tree();
+
+		applyClassicyFileSystemSeedMigrations(
+			fs,
+			[addNote("note")],
+			":",
+			new Set(["note"]),
+		);
+
+		expect(fs["Macintosh HD"].Documents["Note.txt"]).toBeUndefined();
+	});
+
+	it("records the id of a migration it runs, even when its guard changes nothing", () => {
+		const fs = tree();
+		const applied = new Set<string>();
+
+		applyClassicyFileSystemSeedMigrations(
+			fs,
+			[
+				addNote("note"),
+				{
+					id: "stale-delete",
+					op: "delete",
+					path: "Macintosh HD:Documents:Read Me.txt",
+					ifData: "not what is there",
+				},
+			],
+			":",
+			applied,
+		);
+
+		expect(fs["Macintosh HD"].Documents["Note.txt"]._data).toBe("note");
+		expect(fs["Macintosh HD"].Documents["Read Me.txt"]).toBeDefined();
+		expect([...applied].sort()).toEqual(["note", "stale-delete"]);
+	});
+
+	it("always runs a migration without an id", () => {
+		const fs = tree();
+		const applied = new Set<string>();
+
+		applyClassicyFileSystemSeedMigrations(fs, [addNote()], ":", applied);
+
+		expect(fs["Macintosh HD"].Documents["Note.txt"]).toBeDefined();
+		expect(applied.size).toBe(0);
+	});
+});
