@@ -1346,7 +1346,13 @@ describe("system7.scss (compiled)", () => {
 				/transform-origin: calc\(var\(--window-box-pixel\) \* 6\) calc\(var\(--window-box-pixel\) \* 5\);/,
 			);
 			expect(layersOf(triangle, BLACK)).toBe(10);
-			expect(layersOf(triangle, "var(--color-theme-03)")).toBe(10);
+			// The checker is System 7's own color, #9999FF in color (the 7.5
+			// Finder's), white in 1-bit: the package color
+			// outlineTriangle.checker, not theme-03 (#9999CC).
+			expect(
+				layersOf(triangle, "var(--package-color-outline-triangle-checker)"),
+			).toBe(10);
+			expect(layersOf(triangle, "var(--color-theme-03)")).toBe(0);
 			expect(rule(".classicyTriangle polygon")).toMatch(/display: none;/);
 			expect(layersOf(rule(":active > .classicyTriangle"), BLACK)).toBe(6);
 		});
@@ -1837,6 +1843,11 @@ describe("system7.scss (compiled)", () => {
 					/left top\/calc\(var\(--window-box-pixel\) - var\(--icon-selection-invert\)\)/,
 				);
 				expect(rule(`${root}.selected ${outer} img`)).toMatch(/filter: none;/);
+				// A color icon draws its pre-rendered selected image instead
+				// (story 0197-s0z), so the half-black layer stands down over it.
+				const part = `${outer.replace("MaskOuter", "SelectedImage")}`;
+				const own = rule(`${root}.selected:not(.open) ${outer}${part}::before`);
+				expect(own).toMatch(/background: none;/);
 				// The overlays exist on every mask pair, the alias badge's too.
 				expect(rule(`${root} ${outer}::after`)).toMatch(/content: "";/);
 			}
@@ -1873,7 +1884,9 @@ describe("system7.scss (compiled)", () => {
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
 			const BEVEL = "var(--control-strip-bevel-width)";
 			const raised = rule(".classicyControlStripCell");
-			expect(raised).toMatch(/, var\(--color-system-02\);$/m);
+			// The face is the panel's #CCCCCC (white in 1-bit), the package
+			// color controlStrip.face, not system-02 (#BBBBBB).
+			expect(raised).toMatch(/, var\(--package-color-control-strip-face\);$/m);
 			expect(layersOf(raised, "var(--color-white)")).toBe(2);
 			expect(layersOf(raised, "var(--color-system-04)")).toBe(2);
 			expect(layersOf(raised, "var(--color-system-05)")).toBe(2);
@@ -1887,6 +1900,9 @@ describe("system7.scss (compiled)", () => {
 			const recessed = rule(".classicyControlStripScroll:disabled");
 			expect(layersOf(recessed, "var(--color-system-05)")).toBe(2);
 			expect(layersOf(recessed, "var(--color-white)")).toBe(2);
+			expect(recessed).toMatch(
+				/, var\(--package-color-control-strip-face\);$/m,
+			);
 			const pressed = rule(".classicyControlStripCell:active:not(:disabled)");
 			expect(layersOf(pressed, "var(--color-system-06)")).toBe(4);
 			expect(pressed).toMatch(/, var\(--color-system-04\);$/m);
@@ -1897,6 +1913,22 @@ describe("system7.scss (compiled)", () => {
 				/fill: var\(--color-theme-07\);/,
 			));
 
+		// The strip's art draws the panel's own grays: its face (token 2,
+		// #CCCCCC) in the strip and in a module's pop-up, and the tab's
+		// lowest row (token m, #444444) in the strip.
+		it("draws the strip art's face and dark edge in the strip's package colors", () => {
+			for (const selector of [
+				".classicyControlStrip .classicyPixel2",
+				".classicyBevelButtonPopupPanel .classicyPixel2",
+			])
+				expect(rule(selector), selector).toMatch(
+					/fill: var\(--package-color-control-strip-face\);/,
+				);
+			expect(rule(".classicyControlStrip .classicyPixelm")).toMatch(
+				/fill: var\(--package-color-control-strip-dark-edge\);/,
+			);
+		});
+
 		it("frames a module's pop-up as a menu, its face the strip's with a white top and left", () => {
 			const panel = rule(
 				".classicyBevelButtonPopup.classicyBevelButtonPopupPanel",
@@ -1905,7 +1937,7 @@ describe("system7.scss (compiled)", () => {
 				/border: var\(--window-border-size\) solid var\(--color-black\);/,
 			);
 			expect(layersOf(panel, "var(--color-white)")).toBe(2);
-			expect(panel).toMatch(/var\(--color-system-02\);/);
+			expect(panel).toMatch(/var\(--package-color-control-strip-face\);/);
 			expect(
 				rule(".classicyBevelButtonPopup.classicyBevelButtonPopupPanel::after"),
 			).toMatch(/top: var\(--menu-frame-shadow-start\);/);

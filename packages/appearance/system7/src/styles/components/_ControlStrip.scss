@@ -9,13 +9,14 @@
 // - Color (PICT -4044, the panel's picture of the strip's end): a #CCCCCC
 //   face, a white highlight one pixel in on the top and left, #AAAAAA then
 //   #888888 on the bottom and right; a disabled scroll arrow's cell recessed,
-//   #888888 on the top and left and white on the bottom and right. Drawn in
-//   the System 7 Color tokens nearest those grays: the face
-//   `--color-system-02` (#BBBBBB), the shadows `--color-system-04` and
-//   `--color-system-05` (#AAAAAA and #888888, exact).
+//   #888888 on the top and left and white on the bottom and right. The face
+//   is System 7's own color `controlStrip.face`
+//   (`--package-color-control-strip-face`, #CCCCCC, which no palette slot
+//   holds), the shadows `--color-system-04` and `--color-system-05`
+//   (#AAAAAA and #888888).
 // - 1-bit (PICT -4043): white cells in their black lines, no bevel. The
 //   bevels' width is the knob `controlStrip.bevelWidth`, 1 in color and 0 in
-//   1-bit, where the face tokens are white.
+//   1-bit, where the face color is white.
 // - The glyphs (collapse box, scroll arrows, tab, pop-up slider) are the
 //   panel's own bitmaps, registered as pixel art per theme (system7Assets.ts).
 //
@@ -49,7 +50,7 @@ $b: var(--control-strip-bevel-width);
     ),
     layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
-    var(--color-system-02);
+    var(--package-color-control-strip-face);
 }
 
 @mixin recessed {
@@ -58,7 +59,7 @@ $b: var(--control-strip-bevel-width);
     layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - #{$b}), $b),
     layout.classicy-px-rect(var(--color-white), 100%, $b, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-white), $b, 100%, calc(100% - #{$b}), $b),
-    var(--color-system-02);
+    var(--package-color-control-strip-face);
 }
 
 @mixin pressed {
@@ -82,6 +83,20 @@ $b: var(--control-strip-bevel-width);
   // do not use it).
   .classicyPixeln {
     fill: var(--color-theme-07);
+  }
+
+  // The strip's art in the panel's own grays (`*-bw` art draws neither
+  // token): `2`, the face, #CCCCCC (in a module's pop-up too, whose slider
+  // thumb is drawn on the same face), and `m`, the tab's lowest row,
+  // #444444 (`controlStrip.darkEdge`), which the core's tokens hold
+  // neither of.
+  .classicyControlStrip .classicyPixel2,
+  .classicyBevelButtonPopupPanel .classicyPixel2 {
+    fill: var(--package-color-control-strip-face);
+  }
+
+  .classicyControlStrip .classicyPixelm {
+    fill: var(--package-color-control-strip-dark-edge);
   }
 
   // The collapse box and scroll arrows.

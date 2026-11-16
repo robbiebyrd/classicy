@@ -91,10 +91,13 @@ for (const [file, tile] of [
 
 // --- Control Strip ----------------------------------------------------------
 
-// The panel's colors, as their pixel-art tokens (ClassicyPixelArt): System 7
-// Color's nearest. The slider's pictures hold the 16-bit-derived values
-// (#CECECE, #ADADAD, #CECEFF, #212121, #313163) of the same grays. `n` is
-// remapped to `--color-theme-07` (#333366) by System 7's stylesheet.
+// The panel's colors, as their pixel-art tokens (ClassicyPixelArt). The
+// slider's pictures hold the 16-bit-derived values (#CECECE, #ADADAD,
+// #CECEFF, #212121, #313163) of the same grays. System 7's stylesheet
+// remaps three tokens to its own colors: `n` to `--color-theme-07`
+// (#333366), and in the strip `2` to the face, #CCCCCC, and `m` to the
+// tab's lowest row, #444444 (its package colors `controlStrip.face` and
+// `controlStrip.darkEdge`), which no palette slot holds.
 const COLOR = {
 	"000000": "K",
 	FFFFFF: "W",
@@ -105,7 +108,7 @@ const COLOR = {
 	ADADAD: "4",
 	888888: "5",
 	555555: "7",
-	444444: "7",
+	444444: "m",
 	CCCCFF: "b",
 	CECEFF: "b",
 	222222: "K",

@@ -14,7 +14,10 @@ import { decodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource"
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import "../index";
 import system7Json from "../system7.json";
-import { SYSTEM7_BW_VARIANT } from "./system7Assets";
+import {
+	SYSTEM7_BW_VARIANT,
+	SYSTEM7_SELECTED_ICON_IMAGES,
+} from "./system7Assets";
 import { SYSTEM7_ICON_FILES, SYSTEM7_ICON_REUSE } from "./system7Icons";
 
 // System 7's icons, system art and cursors (plan 0018-dbd §4.1), registered
@@ -251,13 +254,19 @@ describe("System 7's assets", () => {
 				expect(drawn(key, BW), key).toEqual(rows(bw));
 				// Black and white only in 1-bit; System 7 Color's tokens in color.
 				expect(rows(bw).join(""), key).toMatch(/^[KW.]+$/);
-				expect(rows(color).join(""), key).toMatch(/^[KW12457bn.]+$/);
+				expect(rows(color).join(""), key).toMatch(/^[KW12457bmn.]+$/);
 				// Each theme's glyph is the same shape.
 				const shape = (r: string[]) =>
 					r.map((row) => row.replace(/[^.]/g, "#"));
 				if (key !== "popUpSliderTrack")
 					expect(shape(rows(bw)), key).toEqual(shape(rows(color)));
 			}
+			// The tab's lowest row is the panel's #444444 (token m, drawn in
+			// System 7's controlStrip.darkEdge), the dots above it #555555.
+			expect(rows("control-strip-tab")[22]).toBe("K5mmmmmmKK.......");
+			expect(rows("control-strip-tab").slice(0, 22).join("")).not.toContain(
+				"m",
+			);
 			// The 1-bit slider's channel is the 50% checker.
 			expect(rows("popup-slider-track-bw")[10]).toBe("KWKWKWKWK.");
 			expect(rows("popup-slider-track-bw")[11]).toBe("KWKKWKKWK.");
@@ -327,6 +336,30 @@ describe("System 7's assets", () => {
 	describe("icons", () => {
 		const exported = Object.keys(SYSTEM7_ICON_FILES);
 		const reused = Object.keys(SYSTEM7_ICON_REUSE);
+
+		// Story 0197-s0z: every color icon image has its pre-rendered selected
+		// rendering, icons/selected/<size>/<stem>.png, registered for it; the
+		// 1-bit images (which invert) have none.
+		it("registers every color icon image's selected rendering, and no 1-bit one's", () => {
+			const pairs = Object.entries(SYSTEM7_SELECTED_ICON_IMAGES);
+			const colorFiles = ["16", "32"].flatMap(
+				(size) => readdirSync(path.join(assets, "icons", "color", size)).length,
+			);
+			expect(pairs).toHaveLength(colorFiles.reduce((a, b) => a + b, 0));
+			for (const [image, selected] of pairs) {
+				expect(image).toMatch(/icons\/color\/\d+\//);
+				expect(selected).toBe(
+					image.replace("/icons/color/", "/icons/selected/"),
+				);
+			}
+			for (const key of Object.keys(SYSTEM7_ICON_FILES)) {
+				const leaf = resolveClassicyIcon(key, SYSTEM7);
+				if (!leaf) continue;
+				for (const src of [leaf.src, leaf.small])
+					if (src?.includes("/icons/color/"))
+						expect(SYSTEM7_SELECTED_ICON_IMAGES[src], key).toBeDefined();
+			}
+		});
 
 		it("names only keys of the core icon tree, each once", () => {
 			expect(

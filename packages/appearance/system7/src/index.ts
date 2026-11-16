@@ -11,6 +11,7 @@
 // Hand-written. Its exports are the package's public API.
 
 import {
+	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
@@ -61,6 +62,8 @@ export type System7Json = {
 	readonly presets: ReadonlyArray<Readonly<ClassicyTheme>>;
 	readonly layout: Readonly<ClassicyAppearanceLayout>;
 	readonly knobs: Readonly<ClassicyAppearanceKnobs>;
+	/** Labels for System 7's own colors (`outlineTriangle`, `controlStrip`). */
+	readonly colorFamilies: Readonly<ClassicyAppearanceColorFamilies>;
 };
 
 /**
@@ -110,6 +113,11 @@ registerClassicyAppearancePackage({
 	presets: system7Presets,
 	css: system7Css,
 	knobs: system7JsonSource.knobs,
+	// System 7's own colors, which no palette slot holds: the disclosure
+	// triangle's #9999FF checker and the Control Strip's #CCCCCC face and
+	// #444444 edge (white, white and black in 1-bit). Every theme carries
+	// them, as it carries its measurements.
+	colorFamilies: system7JsonSource.colorFamilies,
 	options: classicyKnobsToSchema(system7JsonSource.knobs),
 	layout: system7JsonSource.layout as ClassicyAppearanceLayout,
 	hooks: system7AppearanceHooks,

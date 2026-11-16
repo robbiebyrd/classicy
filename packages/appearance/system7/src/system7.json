@@ -23,7 +23,16 @@
 			"alert": 0,
 			"error": 0,
 			"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
-			"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0]
+			"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0],
+			"families": {
+				"outlineTriangle": {
+					"checker": 16777215
+				},
+				"controlStrip": {
+					"face": 16777215,
+					"darkEdge": 0
+				}
+			}
 		},
 		"sound": {
 			"pack": "system7",
@@ -250,7 +259,16 @@
 				"alert": 0,
 				"error": 0,
 				"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
-				"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0]
+				"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0],
+				"families": {
+					"outlineTriangle": {
+						"checker": 16777215
+					},
+					"controlStrip": {
+						"face": 16777215,
+						"darkEdge": 0
+					}
+				}
 			},
 			"sound": {
 				"pack": "system7",
@@ -479,7 +497,16 @@
 				],
 				"theme": [
 					15658734, 13421823, 10066380, 6710937, 3355443, 8947848, 3355494
-				]
+				],
+				"families": {
+					"outlineTriangle": {
+						"checker": 10066431
+					},
+					"controlStrip": {
+						"face": 13421772,
+						"darkEdge": 4473924
+					}
+				}
 			},
 			"sound": {
 				"pack": "system7",
@@ -700,5 +727,26 @@
 			"fitsBars": "shown"
 		}
 	},
-	"knobs": {}
+	"knobs": {},
+	"colorFamilies": {
+		"outlineTriangle": {
+			"label": "Disclosure Triangle",
+			"colors": {
+				"checker": {
+					"label": "Checker"
+				}
+			}
+		},
+		"controlStrip": {
+			"label": "Control Strip",
+			"colors": {
+				"face": {
+					"label": "Face"
+				},
+				"darkEdge": {
+					"label": "Dark Edge"
+				}
+			}
+		}
+	}
 }
