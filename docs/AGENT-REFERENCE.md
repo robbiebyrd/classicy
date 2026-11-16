@@ -2150,9 +2150,14 @@ guaranteed. Both draw masks from `file:` pages, and a background image always
 loads. So Platinum's art is safe when a host serves `dist/assets/` from a CDN
 or packages the app for `file:`. Platinum's one mask art, the open icon's
 halftone (below), is registered as an inline `data:` URI, so it needs no fetch
-at all. The masks that remain are the icons' `--classicy-icon-mask` (the
-icon's own image, any URL the host gives, and the alias badge): a host serving
-those from another origin must send CORS headers, in every engine.
+at all. System 7 does the same for its masks: the dither checker (below)
+and the art its title bars mask a token layer with, `windowStripes` (the
+racing stripes) and `windowUtilityTexture` (the windoid's drag-bar dots),
+all registered as inline `data:` URIs (their files still ship in
+`dist/assets/`, and its `verify:dist` allows exactly these). The masks that
+remain are the icons' `--classicy-icon-mask` (the icon's own image, any URL
+the host gives, and the alias badge): a host serving those from another
+origin must send CORS headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -4915,8 +4920,9 @@ its package root (any image value, a CSS gradient included): it serves while
 no art is registered, and a registered `ditherChecker`, which
 `ClassicyDesktop` publishes inline on the same root, takes its place. System
 7 does both: it registers a 2 × 2 SVG tile, imported `?inline` (a mask
-fetched by URL is a CORS request, as for Platinum's `halftone`; it is the one
-`data:` URI System 7's `verify:dist` allows), and declares the same checker
+fetched by URL is a CORS request, as for Platinum's `halftone`; with the
+title-bar stripe and drag-bar dot PNGs, also masks, it is one of the
+`data:` URIs System 7's `verify:dist` allows), and declares the same checker
 as a `conic-gradient` on its package root. Its 1-bit theme sets
 `dither.tileSize` to 2, its color theme to 0. Platinum registers no tile.
 

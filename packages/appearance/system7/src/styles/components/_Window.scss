@@ -100,6 +100,8 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
 // edges would blend at 125%, and the color stays the theme's. The layer
 // fills the bar's height, so its top and bottom edges, which a fractional
 // ratio leaves across a device pixel, fall on rows the art leaves clear.
+// The art (and the windoid's dots below) is registered inline, a `data:`
+// URI, since a mask URL is a CORS fetch (system7Assets.ts).
 @mixin title-bar-stripes($inset) {
   isolation: isolate;
   background: var(--color-theme-01);

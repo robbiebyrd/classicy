@@ -45,6 +45,14 @@ const unionMembers = (typeName: string): string[] => {
 	return [...(match?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "");
 };
 
+// The system art the bundles inline, beside the dither checker: masks,
+// which a `mask-image` URL would fetch in CORS mode.
+const MASK_FILES: Readonly<Record<string, string>> = {
+	windowStripes: "window-stripes",
+	windowStripesRed: "window-stripes",
+	windowUtilityTexture: "window-utility-texture",
+};
+
 const iconLeaves = (tree: ClassicyAssetTree, trail = ""): string[] =>
 	Object.entries(tree).flatMap(([key, value]) => {
 		const keyPath = trail ? `${trail}.${key}` : key;
@@ -223,6 +231,7 @@ describe("System 7's assets", () => {
 				].sort(),
 			);
 			for (const key of differs) {
+				if (key in MASK_FILES) continue;
 				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW)).toMatch(
 					/\/art\/bw\//,
 				);
@@ -230,6 +239,23 @@ describe("System 7's assets", () => {
 					/\/art\/color\//,
 				);
 			}
+		});
+
+		// The title bar's stripes and the windoid's dots are masks too
+		// (_Window.scss), fetched in CORS mode as URLs, so each is registered
+		// as its file's own bytes, inline, per theme (verify-dist holds the
+		// build to it).
+		it("registers the stripe and dot masks inline, each its theme's file", () => {
+			for (const [key, file] of Object.entries(MASK_FILES))
+				for (const variant of [BW, BASE]) {
+					const bytes = readFileSync(
+						path.join(assets, "art", variant, `${file}.png`),
+					);
+					expect(
+						resolveClassicyAsset("systemArt", key, SYSTEM7, variant),
+						`${key} ${variant}`,
+					).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+				}
 		});
 
 		// Plan 0018-dbd §3.7: the Control Strip's art is the 7.5 Control Strip
@@ -286,7 +312,7 @@ describe("System 7's assets", () => {
 		});
 
 		// verify-dist holds the build to it: the dither checker is the one
-		// file the bundles inline (a mask, fetched in CORS mode as a URL).
+		// SVG the bundles inline (a mask, fetched in CORS mode as a URL).
 		it("registers the dither checker inline, a currentColor checker", () => {
 			const checker = resolveClassicyAsset(
 				"systemArt",

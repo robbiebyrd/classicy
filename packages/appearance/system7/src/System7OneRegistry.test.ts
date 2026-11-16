@@ -135,19 +135,31 @@ describe("the built bundle and the core's registries", () => {
 		}
 	});
 
-	it("ships its files as files: only the dither checker is inlined", () => {
-		for (const bundle of [es, umd])
-			for (const [uri] of bundle.matchAll(
-				/data:[a-z]+\/[a-z0-9.+-]+[;,][^"`\s]*/g,
-			))
-				expect(decodeURIComponent(uri)).toBe(
-					`data:image/svg+xml,${readFileSync(
-						path.join(packageDir, "src/assets/art/dither-checker.svg"),
-						"utf8",
-					)
-						.trim()
-						.replaceAll('"', "'")}`,
-				);
+	it("ships its files as files: only the masks are inlined", () => {
+		const masks = new Set([
+			`data:image/svg+xml,${readFileSync(
+				path.join(packageDir, "src/assets/art/dither-checker.svg"),
+				"utf8",
+			)
+				.trim()
+				.replaceAll('"', "'")}`,
+			...["color", "bw"].flatMap((variant) =>
+				["window-stripes.png", "window-utility-texture.png"].map(
+					(name) =>
+						`data:image/png;base64,${readFileSync(
+							path.join(packageDir, "src/assets/art", variant, name),
+						).toString("base64")}`,
+				),
+			),
+		]);
+		for (const bundle of [es, umd]) {
+			const inlined = new Set(
+				[...bundle.matchAll(/data:[a-z]+\/[a-z0-9.+-]+[;,][^"`\s]*/g)].map(
+					([uri]) => decodeURIComponent(uri),
+				),
+			);
+			expect(inlined).toEqual(masks);
+		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
 		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
 			expect(es).toContain(`new URL("assets/system7.${ext}"`);
