@@ -454,6 +454,14 @@ the ids the saver already names:
   above the screen's bottom margin is placed on a whole pixel even when its
   measured height is fractional, its top rounded down so the far edge stays
   inside the margin.
+- **Platinum's sound sprites are re-encoded.** `platinum.ogg`, `platinum.m4a`
+  and `platinum.mp3` are now the bit-exact encode of the same sources, so a
+  forced rebuild (`CLASSICY_AUDIO_FORCE=1 pnpm build:audio`, ffmpeg 8.0.1)
+  reproduces them byte for byte. Their sprite map (`platinum.json`) and
+  `platinum.ac3` are unchanged; every sound starts and lasts as before, and
+  sounds the same (the m4a decodes to the same samples, the ogg and mp3 differ
+  by encoder rounding, about -79 and -55 dBFS RMS). A host build gives the
+  three files new hashed URLs, so a browser fetches them once.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

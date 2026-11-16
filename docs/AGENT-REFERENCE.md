@@ -5322,7 +5322,9 @@ registerClassicySoundPack({            // module scope, like the other registrie
   relative `src` and `sprite`, ready to feed `registerClassicySoundPack` once
   `src` is resolved. The encode is deterministic (ffmpeg runs bit-exact) and
   skipped when `<name>.sprites.sha256` still matches the sources, so an unchanged
-  sound keeps its sprite bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway.
+  sound keeps its sprite bytes; `CLASSICY_AUDIO_FORCE=1` encodes anyway. Both
+  packs' committed sprites are that encode under the pinned ffmpeg (mise's
+  8.0.1), so a forced rebuild with it reproduces every file byte for byte.
 
 ---
 
