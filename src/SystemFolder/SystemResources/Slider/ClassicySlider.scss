@@ -138,15 +138,16 @@ $vertical-rail-inset: $thumb-half 0;
   height: $thumb-h;
   margin-top: $thumb-margin-top;
   pointer-events: none;
-  transform: translateX(-50%);
-  // Center travels from thumb-width/2 to width − thumb-width/2, matching the
-  // native thumb, so the ghost lands exactly beneath the real indicator; its
-  // travel is rounded to a whole pixel, so its pixel art is drawn sharp.
-  left: calc(#{$thumb-w} / 2 + round((100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0), var(--window-border-size)));
+  // Its box travels as the native thumb's does, the input's length less its
+  // own, so it lands beneath the real indicator; the travel is rounded to a
+  // whole pixel and the box is placed in layout, never translated (Chromium
+  // paints a layout offset and a transform apart and resamples between
+  // them), so its pixel art is drawn sharp. Only its turns are transforms.
+  left: round((100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0), var(--window-border-size));
 
-  &.classicySliderIndicatorUp { transform: translateX(-50%) rotate(180deg); }
-  &.classicySliderIndicatorLeft { transform: translateX(-50%) rotate(90deg); }
-  &.classicySliderIndicatorRight { transform: translateX(-50%) rotate(-90deg); }
+  &.classicySliderIndicatorUp { transform: rotate(180deg); }
+  &.classicySliderIndicatorLeft { transform: rotate(90deg); }
+  &.classicySliderIndicatorRight { transform: rotate(-90deg); }
 }
 
 .classicySliderGhostHidden {
@@ -325,20 +326,19 @@ $vertical-rail-inset: $thumb-half 0;
     transform: translateY(50%);
   }
 
-  // The ghost travels up the track as the native thumb does, its center
-  // from half the thumb's box above the bottom to half below the top (the
-  // box's height is its side along a vertical track), by whole pixels, and
-  // is centered across it; a package moves it across where it places its
-  // thumb.
+  // The ghost travels up the track as the native thumb does, by whole
+  // pixels (the box's height is its side along a vertical track), and is
+  // centered across it in layout; a package moves it across where it places
+  // its thumb.
   .classicySliderGhost {
     top: auto;
-    left: 50%;
-    bottom: calc(#{$thumb-half} + round((100% - #{$thumb-h}) * var(--classicy-ghost-pos, 0), var(--window-border-size)));
+    left: calc(50% - #{$thumb-w} / 2);
+    bottom: round((100% - #{$thumb-h}) * var(--classicy-ghost-pos, 0), var(--window-border-size));
     margin-top: 0;
-    transform: translate(-50%, 50%);
+    transform: none;
 
-    &.classicySliderIndicatorUp { transform: translate(-50%, 50%) rotate(180deg); }
-    &.classicySliderIndicatorLeft { transform: translate(-50%, 50%) rotate(90deg); }
-    &.classicySliderIndicatorRight { transform: translate(-50%, 50%) rotate(-90deg); }
+    &.classicySliderIndicatorUp { transform: rotate(180deg); }
+    &.classicySliderIndicatorLeft { transform: rotate(90deg); }
+    &.classicySliderIndicatorRight { transform: rotate(-90deg); }
   }
 }

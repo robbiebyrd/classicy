@@ -4,6 +4,7 @@ import type {
 	ChangeEventHandler,
 	CSSProperties,
 	FC as FunctionalComponent,
+	MouseEvent as ReactMouseEvent,
 	ReactNode,
 	PointerEvent as ReactPointerEvent,
 	SyntheticEvent,
@@ -24,6 +25,7 @@ import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 import {
 	classicySliderPosition,
+	classicySliderThumbSide,
 	classicySliderTrack,
 	classicySliderValueAt,
 } from "./ClassicySliderDrag.internal";
@@ -82,6 +84,8 @@ const setClassicySliderValue = (input: HTMLInputElement, value: number) => {
 /** A pointer drag the slider runs itself (see `handlePointerDown`). */
 type ClassicySliderDrag = {
 	pointerId: number;
+	/** The thumb's side along the track, read once at the press. */
+	thumb: number;
 	/** The pointer's offset from the thumb's center when it pressed. */
 	grab: number;
 	/** The value when the press began. */
@@ -332,6 +336,9 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// as a release would, the way a window's move or a split view's divider
 	// ends where it is. Read through a ref by the document listener, so the
 	// latest onCommitFunc is the one called.
+	// A drag of the slider's own also ends this way when the input loses the
+	// pointer (`lostpointercapture`) or a move arrives with the button up:
+	// either way its release will never reach the input.
 	const loseDrag = () => {
 		// The ghost's value is dropped: the indicator never left the value.
 		dragRef.current = null;
@@ -347,14 +354,18 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	loseDragRef.current = loseDrag;
 
 	// A press of the first button of a mouse or pen is the slider's own: the
-	// browser's default is prevented (Firefox would move the thumb to the
-	// pointer even on a press on the thumb) and the value follows the
-	// pointer's travel from where it pressed, read from the track's geometry
-	// (ClassicySliderDrag.internal.ts). A press on the thumb grabs it where it
-	// is, so a press that never moves changes nothing; a press on the track
-	// puts the thumb's center under the pointer, as Chromium does. The input
-	// takes the pointer, so the release reaches it wherever it lands. A touch
-	// stays the browser's, as does a slider not laid out yet.
+	// browser's range drag is stopped (Firefox would move the thumb to the
+	// pointer even on a press on the thumb) by preventing the press's
+	// mousedown, whose default action starts it (handleMouseDown), and the
+	// value follows the pointer's travel from where it pressed, read from the
+	// track's geometry (ClassicySliderDrag.internal.ts). The pointerdown
+	// itself is left alone, so the press's mousedown and mouseup still reach
+	// the page (the pop-up, combo box and contextual menu closers listen for
+	// them). A press on the thumb grabs it where it is, so a press that never
+	// moves changes nothing; a press on the track puts the thumb's center
+	// under the pointer, as Chromium does. The input takes the pointer, so
+	// the release reaches it wherever it lands. A touch stays the browser's,
+	// as does a slider not laid out yet.
 	const dragRef = useRef<ClassicySliderDrag | null>(null);
 	const along = (e: { clientX: number; clientY: number }) =>
 		isVertical ? e.clientY : e.clientX;
@@ -363,10 +374,14 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	): ClassicySliderDrag | null => {
 		if (e.button !== 0 || e.pointerType === "touch") return null;
 		const input = e.currentTarget;
-		const track = classicySliderTrack(input, isVertical);
+		const track = classicySliderTrack(
+			input,
+			isVertical,
+			classicySliderThumbSide(input, isVertical),
+		);
 		if (track.travel <= 0) return null;
-		e.preventDefault();
-		input.focus();
+		// The prevented mousedown no longer focuses the input.
+		input.focus({ preventScroll: true });
 		try {
 			input.setPointerCapture(e.pointerId);
 		} catch {
@@ -378,6 +393,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		const onThumb = Math.abs(along(e) - center) <= track.thumb / 2;
 		return {
 			pointerId: e.pointerId,
+			thumb: track.thumb,
 			grab: onThumb ? along(e) - center : 0,
 			start,
 			value: onThumb
@@ -398,8 +414,15 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		if (!pointerDragRef.current) {
 			pointerDragRef.current = true;
 			// The guard in finishPointerDrag keeps it to one dragEnd when the
-			// input saw the release too.
-			const listener = () => finishPointerDrag(false);
+			// input saw the release too. A release only the document saw also
+			// ends the slider's own drag, so no later hover moves the value.
+			const listener = () => {
+				if (dragRef.current) {
+					dragRef.current = null;
+					setDragging(false);
+				}
+				finishPointerDrag(false);
+			};
 			document.addEventListener("pointerup", listener);
 			const stopWatchingPointerStream = onClassicyPointerStreamLost(() =>
 				loseDragRef.current(),
@@ -420,7 +443,14 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	const handlePointerMove = (e: ReactPointerEvent<HTMLInputElement>) => {
 		const drag = dragRef.current;
 		if (!drag || e.pointerId !== drag.pointerId) return;
-		const track = classicySliderTrack(e.currentTarget, isVertical);
+		// The button came up where the input never heard it.
+		if ((e.buttons & 1) === 0) {
+			loseDragRef.current();
+			return;
+		}
+		// The input's box is read again (a readout beside it may resize it as
+		// the value changes); the thumb's side is the press's.
+		const track = classicySliderTrack(e.currentTarget, isVertical, drag.thumb);
 		const value = classicySliderValueAt(
 			track,
 			along(e) - drag.grab,
@@ -432,6 +462,17 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 		drag.value = value;
 		if (onRelease) setLiveValue(value);
 		else setClassicySliderValue(e.currentTarget, value);
+	};
+
+	// The press's mousedown starts the browser's own range drag: a press the
+	// slider drags itself prevents it (see startDrag).
+	const handleMouseDown = (e: ReactMouseEvent<HTMLInputElement>) => {
+		if (dragRef.current) e.preventDefault();
+	};
+
+	// The input lost the pointer mid-drag: it ends where it is.
+	const handleLostPointerCapture = (e: ReactPointerEvent<HTMLInputElement>) => {
+		if (dragRef.current?.pointerId === e.pointerId) loseDragRef.current();
 	};
 
 	const endDrag = (e: SyntheticEvent<HTMLInputElement>) => {
@@ -506,8 +547,10 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 			disabled={disabled}
 			onChange={handleChange}
 			onPointerDown={handlePointerDown}
+			onMouseDown={handleMouseDown}
 			onPointerMove={handlePointerMove}
 			onPointerUp={endDrag}
+			onLostPointerCapture={handleLostPointerCapture}
 			onKeyUp={onCommitFunc ? handleCommit : undefined}
 		/>
 	);

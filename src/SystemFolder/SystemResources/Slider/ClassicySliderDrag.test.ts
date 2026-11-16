@@ -90,6 +90,29 @@ describe("classicySliderTrack", () => {
 		group.remove();
 	});
 
+	// Under a scaled ancestor (a CSS `zoom` or `scale()`), the input's box
+	// on screen is the scale times its layout size; a plain length is a
+	// layout length and is scaled with it, as the probe's box is already.
+	it("scales a plain box side by the input's scale on screen", () => {
+		const el = input(
+			DOMRect.fromRect({ x: 40, y: 10, width: 230, height: 38 }),
+			{
+				width: 15,
+				height: 17,
+			},
+		);
+		Object.defineProperty(el, "offsetWidth", { value: 115 });
+		Object.defineProperty(el, "offsetHeight", { value: 19 });
+		expect(classicySliderTrack(el, false)).toEqual({
+			origin: 55,
+			travel: 200,
+			direction: 1,
+			thumb: 30,
+		});
+		// A side read once (at a drag's start) is used as given.
+		expect(classicySliderTrack(el, false, 30).thumb).toBe(30);
+	});
+
 	it("never travels a negative length", () => {
 		const el = input(DOMRect.fromRect({ x: 0, y: 0, width: 0, height: 0 }), {
 			width: 15,

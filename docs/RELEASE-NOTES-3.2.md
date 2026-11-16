@@ -172,14 +172,19 @@ diverge, so a logo registered through Platinum's
   top) and is lit like its indicator, and on either it moves by whole
   pixels, so its art is never resampled.
 - **A press on a slider's thumb never moves it.** A mouse or pen press on
-  `ClassicySlider` is now the slider's own: the browser's default is
-  prevented and the value follows the pointer's travel from where it
-  pressed. In Firefox a press anywhere on the thumb used to move it under
-  the pointer, so pressing a vertical slider's thumb could change the value
-  by a step. A press on the track still puts the thumb under the pointer.
-  The input captures the pointer, the browser's `change` event still fires
-  on a release that moved the value, and touch, the keyboard and the wheel
-  stay the browser's.
+  `ClassicySlider` is now the slider's own: the browser's range drag is
+  stopped (the press's `mousedown` default is prevented; its `pointerdown`,
+  `mousedown` and `mouseup` still reach the page, so open menus close) and
+  the value follows the pointer's travel from where it pressed. In Firefox
+  a press anywhere on the thumb used to move it under the pointer, so
+  pressing a vertical slider's thumb could change the value by a step. A
+  press on the track still puts the thumb under the pointer. The input
+  captures the pointer; a drag that loses it, or sees a move with the
+  button up, ends where it is. During a mouse or pen drag `onChangeFunc`
+  receives a synthetic `input` event (the value is set through the
+  input's prototype setter), and the `change` event on a release that moved
+  the value is dispatched by hand. Touch, the keyboard and the wheel stay
+  the browser's.
 - **Packages may center windows on whole pixels.** The package `layout`
   gains an optional `window.centering`: `"exact"`, the default, centers a
   window opened at a symbolic `"center"` (an alert, a dialog) at half the

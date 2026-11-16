@@ -22,14 +22,32 @@ export type ClassicySliderTrack = {
 };
 
 /**
- * The length `name` (a thumb box side) holds where `input` is, in px. A
- * plain length is read as is; anything else (a package's `calc()`, which an
- * unregistered custom property keeps unresolved) is resolved by the layout
- * of a hidden probe beside the input. Unset or unresolvable: 0.
+ * The thumb's box side along the track of `input`, in client px (the
+ * pointer's space): `--slider-thumb-width`, or a vertical slider's
+ * `--slider-thumb-height`. A plain length is a layout length, so it is
+ * scaled by the input's own scale on screen (an ancestor's `zoom` or
+ * `scale()`: its box over its layout size); anything else (a package's
+ * `calc()`, which an unregistered custom property keeps unresolved) is
+ * resolved by the box of a hidden probe beside the input, already on
+ * screen. Unset or unresolvable: 0. It reads the computed style, and may
+ * lay out a probe: read it once a drag.
  */
-const thumbSide = (input: HTMLElement, name: string): number => {
+export const classicySliderThumbSide = (
+	input: HTMLElement,
+	vertical: boolean,
+): number => {
+	const name = vertical ? "--slider-thumb-height" : "--slider-thumb-width";
 	const value = getComputedStyle(input).getPropertyValue(name).trim();
-	if (/^\d+(\.\d+)?px$/.test(value)) return Number.parseFloat(value);
+	if (/^\d+(\.\d+)?px$/.test(value)) {
+		const rect = input.getBoundingClientRect();
+		const layout = vertical ? input.offsetHeight : input.offsetWidth;
+		const onScreen = vertical ? rect.height : rect.width;
+		// offsetWidth/Height round to whole pixels: within a pixel of the
+		// box, the input is unscaled.
+		const scale =
+			layout > 0 && Math.abs(onScreen - layout) >= 1 ? onScreen / layout : 1;
+		return Number.parseFloat(value) * scale;
+	}
 	if (!value || !input.parentElement) return 0;
 	const probe = document.createElement("span");
 	probe.style.cssText = `position: absolute; visibility: hidden; pointer-events: none; width: var(${name}); height: 0`;
@@ -39,16 +57,17 @@ const thumbSide = (input: HTMLElement, name: string): number => {
 	return side;
 };
 
-/** The track of `input`, a horizontal or vertical range input. */
+/**
+ * The track of `input`, a horizontal or vertical range input, from its box
+ * on screen and its thumb's side (`classicySliderThumbSide`, read here
+ * unless a drag passes the one it read at its start).
+ */
 export const classicySliderTrack = (
 	input: HTMLElement,
 	vertical: boolean,
+	thumb: number = classicySliderThumbSide(input, vertical),
 ): ClassicySliderTrack => {
 	const rect = input.getBoundingClientRect();
-	const thumb = thumbSide(
-		input,
-		vertical ? "--slider-thumb-height" : "--slider-thumb-width",
-	);
 	return vertical
 		? {
 				origin: rect.bottom - thumb / 2,

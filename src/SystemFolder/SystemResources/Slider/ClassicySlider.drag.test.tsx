@@ -38,6 +38,7 @@ const at = (vertical: boolean, along: number, pointerId = 1) =>
 				pointerId,
 				button: 0,
 				pointerType: "mouse",
+				buttons: 1,
 				clientX: 49,
 				clientY: along,
 			}
@@ -45,6 +46,7 @@ const at = (vertical: boolean, along: number, pointerId = 1) =>
 				pointerId,
 				button: 0,
 				pointerType: "mouse",
+				buttons: 1,
 				clientX: along,
 				clientY: 19,
 			};
@@ -87,13 +89,13 @@ describe.each([
 	it("never changes the value for a press on the thumb that does not move", () => {
 		for (const offset of [-7, -3, 0, 2, 7]) {
 			const { input, onChange, onCommit } = slider({ orientation });
-			const down = fireEvent.pointerDown(
-				input,
-				at(vertical, centerOf(vertical, 40) + offset),
-			);
-			// The browser's own press (Firefox's jump to the pointer) is
-			// prevented, and the input keeps the pointer for the release.
-			expect(down).toBe(false);
+			const point = at(vertical, centerOf(vertical, 40) + offset);
+			// The pointerdown is left alone, so the press's compatibility
+			// mouse events still reach the page; its mousedown's default, the
+			// browser's own range drag (Firefox's jump to the pointer), is
+			// prevented. The input keeps the pointer for the release.
+			expect(fireEvent.pointerDown(input, point)).toBe(true);
+			expect(fireEvent.mouseDown(input, point)).toBe(false);
 			expect(input.setPointerCapture).toHaveBeenCalledWith(1);
 			fireEvent.pointerUp(input, at(vertical, centerOf(vertical, 40) + offset));
 			expect(input.value, `${offset}`).toBe("40");
@@ -141,11 +143,12 @@ describe("ClassicySlider pointer drag, left to the browser", () => {
 	it("leaves a touch, and any button but the first, to the browser", () => {
 		const { input } = slider();
 		const touch = { ...at(false, 120), pointerType: "touch" };
-		expect(fireEvent.pointerDown(input, touch)).toBe(true);
+		fireEvent.pointerDown(input, touch);
+		expect(fireEvent.mouseDown(input, touch)).toBe(true);
 		fireEvent.pointerUp(input, touch);
-		expect(fireEvent.pointerDown(input, { ...at(false, 120), button: 2 })).toBe(
-			true,
-		);
+		const right = { ...at(false, 120), button: 2 };
+		fireEvent.pointerDown(input, right);
+		expect(fireEvent.mouseDown(input, right)).toBe(true);
 		expect(input.value).toBe("40");
 	});
 
@@ -160,6 +163,84 @@ describe("ClassicySlider pointer drag, left to the browser", () => {
 		const { input } = slider({ disabled: true });
 		fireEvent.pointerDown(input, at(false, centerOf(false, 80)));
 		expect(input.value).toBe("40");
+	});
+});
+
+// The slider's drag never hides a press from the rest of the page: a
+// document `mousedown` listener (the pop-up, combo box and contextual menu
+// closers) sees it, and a drag that loses its pointer ends (fix round 1).
+describe("ClassicySlider pointer drag and the page", () => {
+	it("lets a document mousedown and mouseup listener see the press", () => {
+		const seen: string[] = [];
+		const listen = (e: Event) => seen.push(e.type);
+		document.addEventListener("mousedown", listen);
+		document.addEventListener("mouseup", listen);
+		const { input } = slider();
+		const point = at(false, centerOf(false, 40));
+		fireEvent.pointerDown(input, point);
+		fireEvent.mouseDown(input, point);
+		fireEvent.pointerUp(input, { ...point, buttons: 0 });
+		fireEvent.mouseUp(input, { ...point, buttons: 0 });
+		document.removeEventListener("mousedown", listen);
+		document.removeEventListener("mouseup", listen);
+		expect(seen).toEqual(["mousedown", "mouseup"]);
+	});
+
+	it("leaves a touch's mousedown to the browser", () => {
+		const { input } = slider();
+		const touch = { ...at(false, 120), pointerType: "touch" };
+		fireEvent.pointerDown(input, touch);
+		expect(fireEvent.mouseDown(input, touch)).toBe(true);
+	});
+
+	it("ends a drag whose pointer capture is lost, where it is", () => {
+		const { input, onCommit } = slider();
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerMove(input, at(false, centerOf(false, 50)));
+		fireEvent.lostPointerCapture(input, { pointerId: 1 });
+		expect(onCommit.mock.calls).toEqual([[50, { lost: true }]]);
+		fireEvent.pointerMove(input, at(false, centerOf(false, 67)));
+		expect(input.value).toBe("50");
+	});
+
+	it("ignores another pointer's lost capture", () => {
+		const { input } = slider();
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.lostPointerCapture(input, { pointerId: 2 });
+		fireEvent.pointerMove(input, at(false, centerOf(false, 55)));
+		expect(input.value).toBe("55");
+	});
+
+	it("ends a drag when a move comes with the button up", () => {
+		const { input, onCommit } = slider();
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerMove(input, {
+			...at(false, centerOf(false, 67)),
+			buttons: 0,
+		});
+		expect(input.value).toBe("40");
+		expect(onCommit.mock.calls).toEqual([[40, { lost: true }]]);
+		fireEvent.pointerMove(input, at(false, centerOf(false, 70)));
+		expect(input.value).toBe("40");
+	});
+
+	it("ends a drag released off the input, so a later hover moves nothing", () => {
+		const { input, onChange } = slider();
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		fireEvent.pointerUp(document.body, {
+			...at(false, centerOf(false, 40)),
+			buttons: 0,
+		});
+		fireEvent.pointerMove(input, at(false, centerOf(false, 67)));
+		expect(input.value).toBe("40");
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it("focuses the input without scrolling it into view", () => {
+		const { input } = slider();
+		const focus = vi.spyOn(input, "focus");
+		fireEvent.pointerDown(input, at(false, centerOf(false, 40)));
+		expect(focus).toHaveBeenCalledWith({ preventScroll: true });
 	});
 });
 
