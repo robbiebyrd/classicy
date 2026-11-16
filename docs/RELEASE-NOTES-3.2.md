@@ -125,9 +125,14 @@ diverge, so a logo registered through Platinum's
   its own icon size per step, the optional measurements
   `fileBrowserList.smallIconSize`, `mediumIconSize` and `largeIconSize`
   (px; `LIST_VIEW_ICON_SIZE_VARS` names their variables, and
-  `listViewIconSize` takes the size as a third argument). A step with none
-  keeps `desktop.iconSize` scaled, so Platinum is unchanged. System 7 sets
-  `mediumIconSize: 16`: its list view draws the 16 px small icons unscaled.
+  `listViewIconSize` takes the size as a third argument), and its own row
+  pitch, `fileBrowserList.rowPadding` (the space above and below a row's
+  icon and label). A step with no size keeps `desktop.iconSize` scaled, and
+  a theme with no `rowPadding` keeps the icon spacing all round. A list
+  with no `listViewOptions` draws the medium step's size when the theme
+  gives one, else 18 px as before. System 7 sets `mediumIconSize: 16`: its
+  list view draws the 16 px small icons unscaled. Platinum sets both (see
+  "Other changes you may notice").
 - **Alert sounds come from the sound pack.** `ClassicySoundPack` gains
   `alerts` (`{ value, label }[]`, the alerts the Sound tab lists) and
   `defaultAlert`. A pack without `alerts` takes the default pack's
@@ -349,6 +354,16 @@ the ids the saver already names:
   at 75% opacity over everything. A host that styled the ghost's opacity
   sets it on `.classicySliderGhost` again. Under a theme of another package
   the slider draws its pre-3.2 grays.
+- **Platinum's list view matches HIGOS8.** The Finder list view (and any
+  `ClassicyFileBrowser` in `display="list"`) draws its default icon step at
+  16 px, the small icon's own size, in 18 px rows a 1 px line apart, as
+  HIGOS8 Figure 2-24 (p.38) and Figure 2-43 (p.51) show: a 19 px row pitch.
+  It was an 18 px icon (0.375 × the 48 px desktop icon) on a 25 px pitch.
+  The Small and Large steps keep their icon sizes (12 and 32 px); Small
+  keeps its 19 px pitch, and Large's goes from 39 to 35. Both are theme
+  data, `fileBrowserList.mediumIconSize` and `fileBrowserList.rowPadding`:
+  a theme file that sets them to 18 and 3 draws the old list. A host that
+  sized list rows from the old pitch should measure again.
 - **Scroll bars are drawn in every browser.** Firefox now shows Platinum's
   full bars (arrows, track and thumb) instead of the thin `scrollbar-color`
   fallback. The scrolling element of a window's contents, a list box or a
