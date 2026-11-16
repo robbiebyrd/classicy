@@ -35,6 +35,7 @@ import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 import { ClassicyMenuBarExtension } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 import { ClassicyListBox } from "@/SystemFolder/SystemResources/ListBox/ClassicyListBox";
@@ -207,6 +208,26 @@ describe("icon leaves with a small image", () => {
 		expect(entries.filter((e) => e.level === "warn")).toHaveLength(2);
 	});
 
+	it("reads an icon namespace holding only src and small as one leaf", () => {
+		// The `{ src, small? }` form is recognized by its keys alone, so an
+		// icon namespace whose only icons are named `src` (and `small`) is a
+		// leaf; one more key keeps it a namespace.
+		registerClassicyAssets("icons", "sys7", {
+			lone: { src: "/lone.png" },
+			pair: { src: "/pair.png", small: "/pair-16.png" },
+			ns: { src: "/ns-src.png", other: "/ns-other.png" },
+		});
+		expect(resolveClassicyIcon("lone")).toEqual({ src: "/lone.png" });
+		expect(resolveClassicyAsset("icons", "lone.src")).toBeUndefined();
+		expect(resolveClassicyIcon("pair")).toEqual({
+			src: "/pair.png",
+			small: "/pair-16.png",
+		});
+		expect(resolveClassicyAsset("icons", "ns")).toBeUndefined();
+		expect(resolveClassicyAsset("icons", "ns.src")).toBe("/ns-src.png");
+		expect(resolveClassicyAsset("icons", "ns.other")).toBe("/ns-other.png");
+	});
+
 	it("takes the object form for icons only", () => {
 		registerClassicyAssets("systemArt", "sys7", {
 			x: { src: "/art.png" },
@@ -300,6 +321,25 @@ describe("components draw the right image", () => {
 });
 
 describe("bevel button icons", () => {
+	it("iconSmall picks the image only: it never sizes the icon", () => {
+		const { container, rerender } = render(
+			<ClassicyBevelButton icon="/folder.png" iconSmall />,
+		);
+		const icon = () =>
+			container.querySelector(".classicyBevelButtonIcon") as HTMLElement;
+		const drawn = () => ({
+			className: icon().className,
+			style: icon().getAttribute("style"),
+			width: icon().getAttribute("width"),
+			height: icon().getAttribute("height"),
+			root: container.firstElementChild?.className,
+		});
+		const small = drawn();
+		rerender(<ClassicyBevelButton icon="/folder.png" />);
+		expect(drawn()).toEqual(small);
+		expect(small.style).toBeNull();
+	});
+
 	it("draw small only when the surface says it is small", () => {
 		const { container, rerender } = render(
 			<ClassicyBevelButton icon="/folder.png" iconSmall />,
@@ -377,6 +417,63 @@ describe("other small surfaces", () => {
 		expect(screen.getByRole("img").getAttribute("src")).toBe("/folder.png");
 		setDesktopIconSize(16);
 		expect(screen.getByRole("img").getAttribute("src")).toBe("/folder-16.png");
+	});
+});
+
+describe("desktop icons", () => {
+	const setDesktopIconSize = (n: number) =>
+		act(() => {
+			useAppManager.setState((state) =>
+				produce(state, (draft) => {
+					draft.System.Manager.Appearance.activeTheme.desktop.iconSize = n;
+				}),
+			);
+		});
+	const image = () =>
+		document.querySelector(".classicyDesktopIconMask img") as HTMLElement;
+	const mask = () =>
+		(
+			document.querySelector(".classicyDesktopIconMaskOuter") as HTMLElement
+		).style.getPropertyValue("--classicy-icon-mask");
+
+	it("draw the small image at a theme icon size of 16 px or less", () => {
+		setDesktopIconSize(16);
+		render(
+			<ClassicyDesktopIcon
+				appId="Folder.app"
+				appName="Folder"
+				icon="/folder.png"
+			/>,
+		);
+		expect(image().getAttribute("src")).toBe("/folder-16.png");
+		expect(mask()).toBe('url("/folder-16.png")');
+		setDesktopIconSize(12);
+		expect(image().getAttribute("src")).toBe("/folder-16.png");
+	});
+
+	it("draw src above 16 px, and follow a size change", () => {
+		render(
+			<ClassicyDesktopIcon
+				appId="Folder.app"
+				appName="Folder"
+				icon="/folder.png"
+			/>,
+		);
+		expect(image().getAttribute("src")).toBe("/folder.png");
+		expect(mask()).toBe('url("/folder.png")');
+		setDesktopIconSize(17);
+		expect(image().getAttribute("src")).toBe("/folder.png");
+		setDesktopIconSize(16);
+		expect(image().getAttribute("src")).toBe("/folder-16.png");
+		expect(mask()).toBe('url("/folder-16.png")');
+	});
+
+	it("scale a plain-string leaf at 16 px", () => {
+		setDesktopIconSize(16);
+		render(
+			<ClassicyDesktopIcon appId="Doc.app" appName="Doc" icon="/doc.png" />,
+		);
+		expect(image().getAttribute("src")).toBe("/doc.png");
 	});
 });
 

@@ -96,8 +96,12 @@ type ClassicyBevelButtonProps = PropsWithChildren<{
 	 */
 	iconAlt?: string;
 	/**
-	 * The icon is drawn at the small-icon size (a Control Strip module's is):
-	 * an icon registered with its own small image uses it. Defaults to `false`.
+	 * Tells the button that its surface's stylesheet draws the icon at the
+	 * small-icon size (`--icon-small-size`, 16 px), as the Control Strip's
+	 * does for its modules: an icon registered with its own small image then
+	 * uses it. It picks the image only and never sizes the icon (the button's
+	 * own stylesheet does not draw it small), so set it only on a surface
+	 * that does. Defaults to `false`.
 	 */
 	iconSmall?: boolean;
 	/**

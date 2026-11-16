@@ -107,8 +107,12 @@ diverge, so a logo registered through Platinum's
   from the package's base tree, then the default package's. The variant
   applies only while the active theme belongs to the drawn package, and
   readers re-render on a theme switch. `resolveClassicyAsset(kind, path,
-  packageId?, variant?)` takes an explicit variant. A variant the package
-  never registers is warned about once per page and draws the base tree.
+  packageId?, variant?)` takes an explicit variant (`""` for the base tree
+  alone); `resolveClassicyThemeAsset(kind, path, theme)` resolves for a
+  theme that need not be the active one, such as a preview, at its own
+  variant. A variant the package never registers is warned about once per
+  page and draws the base tree; a variant registration none of whose leaves
+  is accepted registers nothing.
   Wallpapers, fonts and `registerClassicyIcons` take no variant.
 - **Icons with their own 16 px image.** An `icons` leaf may be `{ src,
   small? }` as well as a URL. `resolveClassicyAsset` and `useClassicyAsset`
@@ -118,7 +122,9 @@ diverge, so a logo registered through Platinum's
   return the leaf's `small` when drawn at `CLASSICY_SMALL_ICON_SIZE` (16) or
   less. Menu items, list boxes, pop-up menus, the file browser's list view,
   the window title bar's proxy icon, menu bar extensions, Control Strip
-  modules (the new `ClassicyBevelButton` prop `iconSmall`), `ClassicyIcon`
+  modules (the new `ClassicyBevelButton` prop `iconSmall`, for a surface
+  whose stylesheet draws the icon at 16 px: it picks the image and never
+  sizes the icon), `ClassicyIcon`
   and desktop icons at 16 px or less draw it. A leaf without `small` scales
   as before.
 - **Alert sounds come from the sound pack.** `ClassicySoundPack` gains

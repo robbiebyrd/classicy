@@ -1515,7 +1515,12 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   leaf from the given (or active) package's variant tree, then its base tree,
   then the default package's (`CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`,
   `"platinum"`, where the core's icon tree registers), else `undefined`.
-  Components use `?? ""`.
+  Components use `?? ""`. `variant` defaults to the active theme's when that
+  theme belongs to the package, even when `packageId` is given; `""` reads
+  the base tree alone. `resolveClassicyThemeAsset(kind, dottedPath, theme)`
+  resolves for a theme that need not be active (a preview of a sibling
+  theme): `theme.package` (Platinum when absent) at `theme.assetVariant`,
+  else its base tree, never the active theme's variant, with no warning.
 - **Per-theme variants**: `registerClassicyAssets(kind, packageId, tree, {
   variant: "bw" })` (and `registerClassicyCursors`/`registerClassicySystemArt`
   with the same last argument) registers an extra tree for a named variant of
@@ -1529,7 +1534,10 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   `--classicy-cursor-*`) follows a theme switch. A variant the package never
   registered draws the base tree, with one `classicyLog` warning per package
   and variant per page (checked after the current task, so trees registered
-  in the same module evaluation never warn). Wallpapers vary by name only
+  in the same module evaluation never warn). A variant is registered by its
+  first accepted leaf: a variant registration whose every leaf is dropped
+  (or that holds none) registers nothing, so a theme naming it is still
+  warned. Wallpapers vary by name only
   (`registerClassicyWallpapers` registers the base tree); a theme picks its
   wallpaper with `desktop.backgroundImage` anyway.
 - **Small icon images**: an `icons` leaf may be `{ src, small? }` as well as a
@@ -1541,9 +1549,14 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   most `CLASSICY_SMALL_ICON_SIZE` (16; `true` for a CSS-sized small surface),
   else `src`. `ClassicyIcon` (`size`), menu item icons, `ClassicyControlLabel`
   (`iconSize="sm"`), the file browser's list view, Control Strip modules
-  (`ClassicyBevelButton` `iconSmall`) and the 16 px icons in PDF Viewer, About
+  (`ClassicyBevelButton` `iconSmall`, which picks the image only: it is for
+  a surface whose stylesheet draws the button's icon at 16 px, as the
+  Control Strip's does, and never sizes the icon) and the 16 px icons in PDF Viewer, About
   This Computer and Finder Preferences do this; a leaf with no `small`
   scales as before. A string registered over a leaf replaces it (no `small`).
+  The keys decide the form: an object whose keys are `src` and optionally
+  `small`, and nothing else, is a leaf, so a namespace whose only icons are
+  named `src` (and `small`) registers as one; name such icons otherwise.
   List box and pop-up menu option icons, the window title bar's proxy icon and
   menu bar extension icons draw small too; `ClassicyIcon` and desktop icons
   draw small when `size` (or, without it, the theme's `desktop.iconSize`) is
