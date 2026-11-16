@@ -19,9 +19,14 @@
 //   by the knob `iconSelection.invert` (1 in "System 7", 0 in "System 7
 //   Color"): it sizes the tile of a white layer over the image whose
 //   `difference` inverts it, and one pixel less, the tile of a half-black
-//   one that darkens it, so only one of them draws. 7.5 darkened through the
-//   256-color table, which a filter cannot match pixel for pixel; half black
-//   is its measure (#DDDDDD to about #666666). The alias badge (blank in
+//   one that darkens it, so only one of them draws. 7.5 darkened a color
+//   icon through its color table, in the 256-color screen's colors, which no
+//   filter matches pixel for pixel: System 7's own color icons draw their
+//   pre-rendered selected images instead (`registerClassicySelectedIconImages`,
+//   bin/selectedIcons.mjs; the component marks the mask pair with the
+//   `SelectedImage` part), and the half-black layer stands down over them.
+//   It still darkens any other image (a host's, or a core glyph System 7
+//   has none of): #DDDDDD to about #666666. The alias badge (blank in
 //   System 7, a host's art otherwise) inverts and darkens with its icon.
 // - Opened (its window open), the image gives way to its shape: outlined in
 //   black, its inside (the pixels whose four neighbors are all in the
@@ -47,7 +52,7 @@ $eroded: var(--classicy-icon-mask), var(--classicy-icon-mask), var(--classicy-ic
   var(--classicy-icon-mask), var(--classicy-icon-mask);
 $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
 
-@mixin icon-states($root, $outer, $mask) {
+@mixin icon-states($root, $outer, $mask, $selected-image) {
   #{$root} {
     // The box, exactly the icon's, holding the overlays below.
     #{$outer}:not(.classicyDesktopIconAliasBadge) {
@@ -119,6 +124,11 @@ $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
       calc(#{$px} - var(--icon-selection-invert)) calc(#{$px} - var(--icon-selection-invert));
   }
 
+  // Unless the icon draws its pre-rendered selected image.
+  #{$root}.selected:not(.open) #{$outer}#{$selected-image}::before {
+    background: none;
+  }
+
   #{$root}.open {
     #{$outer} {
       // The outline: the whole shape, black, under its inside.
@@ -152,6 +162,11 @@ $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
 }
 
 @mixin icon {
-  @include icon-states(".classicyDesktopIcon", ".classicyDesktopIconMaskOuter", ".classicyDesktopIconMask");
-  @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask");
+  @include icon-states(
+    ".classicyDesktopIcon",
+    ".classicyDesktopIconMaskOuter",
+    ".classicyDesktopIconMask",
+    ".classicyDesktopIconSelectedImage"
+  );
+  @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask", ".classicyIconSelectedImage");
 }

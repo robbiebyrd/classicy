@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import {
+	registerClassicySelectedIconImages,
 	registerClassicySystemArt,
 	resolveClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
@@ -8,6 +9,7 @@ import "../../../../packages/appearance/platinum/src/assets/platinumAssets";
 import { ClassicyContextualMenuProvider } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
+const mockSelection = vi.hoisted(() => ({ icons: [] as string[] }));
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils",
@@ -17,7 +19,7 @@ vi.mock(
 				System: {
 					Manager: {
 						Desktop: {
-							selectedIcons: [] as string[],
+							selectedIcons: mockSelection.icons,
 							icons: [{ appId: "TestApp", location: [100, 200] }],
 						},
 						Applications: {
@@ -269,5 +271,39 @@ describe("ClassicyDesktopIcon consumer style", () => {
 		const icon = container.querySelector("#TestApp\\.shortcut") as HTMLElement;
 		expect(icon.style.zIndex).toBe("");
 		expect(icon.style.opacity).toBe("0.5");
+	});
+});
+
+// Story 0197-s0z: a selected icon draws the active package's selected image
+// for it, when the package registers one (System 7's color icons).
+describe("ClassicyDesktopIcon selected image", () => {
+	afterEach(() => {
+		mockSelection.icons = [];
+	});
+
+	it("draws the registered selected image only while selected, marked", () => {
+		registerClassicySelectedIconImages("platinum", {
+			"/icons/test.png": "/icons/test-selected.png",
+		});
+		const outer = (c: HTMLElement) =>
+			c.querySelector(
+				".classicyDesktopIconImage > .classicyDesktopIconMaskOuter",
+			) as HTMLElement;
+		const plain = render(<ClassicyDesktopIcon {...defaultProps} />);
+		expect(outer(plain.container).querySelector("img")).toHaveAttribute(
+			"src",
+			"/icons/test.png",
+		);
+		expect(outer(plain.container)).not.toHaveClass(
+			"classicyDesktopIconSelectedImage",
+		);
+		plain.unmount();
+		mockSelection.icons = ["TestApp"];
+		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+		expect(outer(container).querySelector("img")).toHaveAttribute(
+			"src",
+			"/icons/test-selected.png",
+		);
+		expect(outer(container)).toHaveClass("classicyDesktopIconSelectedImage");
 	});
 });

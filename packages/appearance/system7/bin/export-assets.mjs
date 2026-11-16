@@ -27,7 +27,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit } from "node:process";
-import { inflateSync } from "node:zlib";
 import { readBmp } from "./bmp.mjs";
 import {
 	decodeClut,
@@ -45,7 +44,8 @@ import {
 	renderSquareWave,
 	SQUARE_WAVE_SYNTH,
 } from "./macSound.ts";
-import { encodePng } from "./png.mjs";
+import { encodePng, readPng } from "./png.mjs";
+import { selectedIcon } from "./selectedIcons.mjs";
 
 const [rawRoot, decodedRoot, referenceRoot, outArg] = argv.slice(2);
 if (!rawRoot || !decodedRoot || !referenceRoot) {
@@ -172,6 +172,9 @@ const write = (file, img) => {
 	mkdirSync(dirname(path), { recursive: true });
 	writeFileSync(path, encodePng(img));
 	written.push(file);
+	// Every color icon's selected rendering beside it (bin/selectedIcons.mjs).
+	if (file.startsWith("icons/color/"))
+		write(file.replace("icons/color/", "icons/selected/"), selectedIcon(img));
 };
 /**
  * A PNG copied with only the chunks that hold its pixels (`IHDR`, `PLTE`,
@@ -216,79 +219,6 @@ const blank = (width, height) => ({
 	height,
 	pixels: Buffer.alloc(width * height * 4),
 });
-
-/**
- * A PNG's pixels: 8-bit, non-interlaced RGB or RGBA (the screenshots) or
- * gray or gray with alpha (Platinum's resize cursors).
- */
-const readPng = (file) => {
-	const bytes = readFileSync(file);
-	let at = 8;
-	let width = 0;
-	let height = 0;
-	let channels = 0;
-	let colorType = 0;
-	const idat = [];
-	while (at < bytes.length) {
-		const length = bytes.readUInt32BE(at);
-		const type = bytes.toString("latin1", at + 4, at + 8);
-		const data = bytes.subarray(at + 8, at + 8 + length);
-		if (type === "IHDR") {
-			width = data.readUInt32BE(0);
-			height = data.readUInt32BE(4);
-			if (data[8] !== 8 || data[12] !== 0)
-				throw new Error(`${file}: not 8-bit, non-interlaced`);
-			colorType = data[9];
-			channels = { 0: 1, 2: 3, 4: 2, 6: 4 }[colorType];
-			if (!channels) throw new Error(`${file}: not gray, RGB or their alpha`);
-		} else if (type === "IDAT") idat.push(data);
-		at += 12 + length;
-	}
-	const raw = inflateSync(Buffer.concat(idat));
-	const stride = width * channels;
-	const rows = Buffer.alloc(height * stride);
-	for (let y = 0; y < height; y++) {
-		const filter = raw[y * (stride + 1)];
-		for (let x = 0; x < stride; x++) {
-			const value = raw[y * (stride + 1) + 1 + x];
-			const a = x >= channels ? rows[y * stride + x - channels] : 0;
-			const b = y > 0 ? rows[(y - 1) * stride + x] : 0;
-			const c =
-				x >= channels && y > 0 ? rows[(y - 1) * stride + x - channels] : 0;
-			const p = a + b - c;
-			const predictor = [
-				0,
-				a,
-				b,
-				(a + b) >> 1,
-				Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c)
-					? a
-					: Math.abs(p - b) <= Math.abs(p - c)
-						? b
-						: c,
-			][filter];
-			rows[y * stride + x] = (value + predictor) & 0xff;
-		}
-	}
-	const img = blank(width, height);
-	for (let i = 0; i < width * height; i++) {
-		const at = i * channels;
-		const gray = colorType === 0 || colorType === 4;
-		img.pixels.set(
-			[
-				rows[at],
-				rows[gray ? at : at + 1],
-				rows[gray ? at : at + 2],
-				colorType === 4 ? rows[at + 1] : colorType === 6 ? rows[at + 3] : 255,
-			],
-			i * 4,
-		);
-		// A transparent pixel is 0,0,0,0 whatever color it stored, as in
-		// every file the export decodes.
-		if (img.pixels[i * 4 + 3] === 0) img.pixels.fill(0, i * 4, i * 4 + 4);
-	}
-	return img;
-};
 
 const pixel = (img, x, y) => [
 	...img.pixels.subarray((y * img.width + x) * 4, (y * img.width + x) * 4 + 4),

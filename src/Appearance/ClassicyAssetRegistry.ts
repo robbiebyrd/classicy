@@ -482,6 +482,7 @@ export const resetClassicyAssets = (): void => {
 	fontFaces.clear();
 	wallpaperFiles.clear();
 	wallpaperLegacyDigests.clear();
+	selectedIconImages.clear();
 	notify();
 };
 
@@ -720,6 +721,53 @@ const warnFollowCollision = (
 	);
 };
 
+// ─── Selected icon images ──────────────────────────────────────────────────
+
+// Per package and variant (`<package>|<variant>`, the base tree's with an
+// empty variant): an icon image's URL to the image its selected icon draws.
+const selectedIconImages = new Map<string, Map<string, string>>();
+
+/**
+ * Registers, for `packageId`, the image a selected icon draws in place of
+ * each icon image: `{ [image]: selectedImage }`, by the image's own URL (an
+ * icon's full-size or small image, as `resolveClassicyIconImage` draws it).
+ * For a look no CSS draws exactly: System 7 darkens a selected color icon
+ * through the 8-bit color table, so it registers each color icon's
+ * pre-rendered selected rendering. While the package is active, a selected
+ * `ClassicyIcon` or `ClassicyDesktopIcon` draws the registered image and
+ * marks its mask with the `SelectedImage` part class
+ * (`classicyIconSelectedImage`, `classicyDesktopIconSelectedImage`), so the
+ * package's stylesheet leaves out whatever selected look it draws itself; an
+ * image with no entry keeps that look. Like an asset tree, the images
+ * belong to the package's base look, or, with `{ variant }`, to that
+ * variant's: they apply while the active theme draws that look (System 7's
+ * 1-bit theme, its `bw` variant, inverts a selected icon and registers
+ * none). Merges into the look's earlier registrations; an entry whose image
+ * or selected image is not a safe asset source (`isClassicyAssetSource`) is
+ * dropped with a warning.
+ */
+export const registerClassicySelectedIconImages = (
+	packageId: string,
+	images: Readonly<Record<string, ClassicyAssetSource>>,
+	{ variant }: ClassicyAssetRegistrationOptions = {},
+): void => {
+	const look = `${packageId}|${variant ?? ""}`;
+	const map = selectedIconImages.get(look) ?? new Map<string, string>();
+	for (const [image, selected] of Object.entries(images)) {
+		if (!isClassicyAssetSource(image) || !isClassicyAssetSource(selected)) {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored a selected icon image for package "${packageId}": not a safe asset source`,
+			);
+			continue;
+		}
+		map.set(image, selected);
+	}
+	selectedIconImages.set(look, map);
+	notify();
+};
+
 /**
  * The image to draw for the icon URL `src` at `px` (CSS px). Icons travel as
  * plain URL strings (props, persisted records, file system entries), so this
@@ -733,24 +781,39 @@ const warnFollowCollision = (
  * - Then the image's registered small image when it has one and `px` is no
  *   larger than the small-icon size (`CLASSICY_SMALL_ICON_SIZE`).
  *
+ * - Then, when `selected`, the image the active package's look (its base
+ *   tree's, or the active theme's variant's) draws for it selected
+ *   (`registerClassicySelectedIconImages`), when it registers one.
+ *
  * A URL no leaf names returns unchanged. Pass `true` for a surface whose size
  * comes from CSS and is the small size.
  */
 export const resolveClassicyIconImage = (
 	src: string,
 	px: number | true = true,
+	selected = false,
 ): string => {
 	const drawn = followIndex().get(src) ?? src;
-	if (px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)) return drawn;
-	return smallIndex().get(drawn) ?? drawn;
+	const image =
+		px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)
+			? drawn
+			: (smallIndex().get(drawn) ?? drawn);
+	if (!selected) return image;
+	const activeId = getActiveClassicyAppearancePackageId();
+	return (
+		selectedIconImages
+			.get(`${activeId}|${activeVariantFor(activeId) ?? ""}`)
+			?.get(image) ?? image
+	);
 };
 
 /** `resolveClassicyIconImage`, re-read when the registry or the theme changes. */
 export const useClassicyIconImage = (
 	src: string,
 	px: number | true = true,
+	selected = false,
 ): string => {
-	const getSnapshot = () => resolveClassicyIconImage(src, px);
+	const getSnapshot = () => resolveClassicyIconImage(src, px, selected);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,

@@ -9,6 +9,7 @@ import {
 	registerClassicyAssets,
 	registerClassicyCursors,
 	registerClassicyFonts,
+	registerClassicySelectedIconImages,
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@classicy/classicy";
@@ -110,6 +111,25 @@ registerClassicyAssets("icons", SYSTEM7, iconTree("color"));
 registerClassicyAssets("icons", SYSTEM7, iconTree("bw"), {
 	variant: SYSTEM7_BW_VARIANT,
 });
+
+/**
+ * Every color icon image's selected rendering (story 0197-s0z): System 7
+ * drew a selected color icon through a darkened copy of its color table, in
+ * the 8-bit screen's colors (bin/selectedIcons.mjs), which no CSS filter
+ * draws exactly, so each is pre-rendered, `icons/selected/<size>/<stem>.png`
+ * beside `icons/color/<size>/<stem>.png`. The 1-bit icons invert instead
+ * (the stylesheet), and have none.
+ */
+export const SYSTEM7_SELECTED_ICON_IMAGES: Readonly<Record<string, string>> =
+	Object.fromEntries(
+		Object.entries(iconFiles).flatMap(([file, url]) => {
+			const match = /^\.\/icons\/color\/(\d+)\/(.+)$/.exec(file);
+			const selected =
+				match && iconFiles[`./icons/selected/${match[1]}/${match[2]}`];
+			return selected ? [[url, selected]] : [];
+		}),
+	);
+registerClassicySelectedIconImages(SYSTEM7, SYSTEM7_SELECTED_ICON_IMAGES);
 
 /**
  * The emitted URL of a file in art/ (`"sad-mac.png"`) or one of its variant

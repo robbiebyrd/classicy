@@ -248,7 +248,14 @@
 			"SplitArrows",
 			"State"
 		],
-		"DesktopIcon": ["Alias", "AliasBadge", "Image", "Mask", "MaskOuter"],
+		"DesktopIcon": [
+			"Alias",
+			"AliasBadge",
+			"Image",
+			"Mask",
+			"MaskOuter",
+			"SelectedImage"
+		],
 		"DesktopMenu": [
 			"AppSwitcher",
 			"Apple",
@@ -324,7 +331,7 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["Invisible", "Mask", "MaskOuter"],
+		"Icon": ["Invisible", "Mask", "MaskOuter", "SelectedImage"],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],

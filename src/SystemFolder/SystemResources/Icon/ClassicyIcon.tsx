@@ -298,20 +298,25 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const themeIconSize = useAppManager(
 		(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
 	);
-	const iconUrl = useClassicyIconImage(
-		icon,
-		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
-	);
+	const iconPx = size ?? themeIconSize ?? Number.POSITIVE_INFINITY;
+	const iconUrl = useClassicyIconImage(icon, iconPx);
+	// Selected, the image the active package draws for it selected, when it
+	// registers one (`registerClassicySelectedIconImages`), marked so its
+	// stylesheet draws no selected look of its own over it. The mask keeps
+	// the plain image's shape.
+	const selectedUrl = useClassicyIconImage(icon, iconPx, true);
+	const drawsSelectedImage = active && selectedUrl !== iconUrl;
 	const iconEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
+				drawsSelectedImage && "classicyIconSelectedImage",
 			)}
 			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={iconUrl} alt={name} />
+				<img src={drawsSelectedImage ? selectedUrl : iconUrl} alt={name} />
 			</div>
 		</div>
 	);

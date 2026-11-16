@@ -229,6 +229,14 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
 			);
+			// Selected, the image the active package draws for it selected, as
+			// ClassicyIcon does (`registerClassicySelectedIconImages`).
+			const selectedUrl = useClassicyIconImage(
+				identity.icon,
+				desktopIconSize ?? Number.POSITIVE_INFINITY,
+				true,
+			);
+			const drawsSelectedImage = isSelected && selectedUrl !== iconUrl;
 			// A click on a selected icon still changes the selection when it
 			// collapses a multiple selection down to this icon.
 			const isMultipleSelection = useAppManager(
@@ -602,7 +610,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				>
 					<div className={"classicyDesktopIconImage"}>
 						<div
-							className={"classicyDesktopIconMaskOuter"}
+							className={classNames(
+								"classicyDesktopIconMaskOuter",
+								drawsSelectedImage && "classicyDesktopIconSelectedImage",
+							)}
 							style={
 								{
 									"--classicy-icon-mask": `url("${iconUrl}")`,
@@ -610,7 +621,10 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={iconUrl} alt={identity.name} />
+								<img
+									src={drawsSelectedImage ? selectedUrl : iconUrl}
+									alt={identity.name}
+								/>
 							</div>
 						</div>
 						{isAlias && (
