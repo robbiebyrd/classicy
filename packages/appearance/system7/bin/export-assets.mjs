@@ -547,7 +547,8 @@ write("cursors/resize-nesw.png", diagonal(true));
 // rate, Apple's 11,127.27 and 22,254.55 Hz written as 11127 and 22254 (WAV
 // rates are whole numbers), no resampling, trimming or fades. Simple Beep
 // (`snd ` 1) holds no samples: it is square-wave synthesizer commands, which
-// macSound.ts plays into 16-bit mono at 22,050 Hz.
+// macSound.ts plays into 8-bit unsigned mono at 22,050 Hz, the waveform the
+// Sound Manager was recorded drawing (`squareWaveSample`).
 const ALERTS = [
 	["ClassicyAlertSimpleBeep", 1],
 	["ClassicyAlertQuack", 5],
@@ -573,7 +574,7 @@ for (const [sprite, id] of ALERTS) {
 		);
 	} else if (sound.synths.some((synth) => synth.id === SQUARE_WAVE_SYNTH)) {
 		const samples = renderSquareWave(sound.commands, 22050);
-		wav = encodeWav({ rate: 22050, bits: 16, samples });
+		wav = encodeWav({ rate: 22050, bits: 8, samples });
 		console.log(
 			`snd ${id} -> ${sprite}: square-wave synthesizer, ${sound.commands.length} commands, ${samples.length} samples at 22050 Hz`,
 		);

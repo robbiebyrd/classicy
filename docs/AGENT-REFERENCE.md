@@ -3688,6 +3688,9 @@ Platinum (§1); its README lists what it ships.
 - **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
   Indigo, Quack, Simple Beep, Sosumi, Wild Eep) with `defaultAlert:
   "ClassicyAlertSimpleBeep"`, so the Sound tab lists those six under System 7.
+  Simple Beep is rendered from its square-wave synthesizer commands in the
+  waveform the 7.5.5 Sound Manager was recorded playing (an 8-bit square),
+  8-bit at 22,050 Hz.
 - **Dither vocabulary** ("Dither vocabulary", below): dimmed menu items,
   labels and controls, and menu dividers, through
   `@classicy/classicy/scss/dither`, in a dedicated dim ink
