@@ -83,8 +83,8 @@ resolution).
 - **Fonts.** Chicago (ChicagoFLF), Geneva (regular, bold and italic) and
   Monaco: byte-identical copies of the vector faces Platinum ships. A host
   that loads both packages writes each of these faces once, in the element
-  of whichever package registered it first. Small interface text is Geneva
-  9 (`--ui-font-size-small: 9px`, the theme knob `uiText.smallFontSize`).
+  of whichever package registered it first. Small interface text is 9 px
+  (`--ui-font-size-small: 9px`, the theme knob `uiText.smallFontSize`).
 
 ## Exports
 

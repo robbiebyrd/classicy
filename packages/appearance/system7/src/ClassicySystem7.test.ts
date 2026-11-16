@@ -329,7 +329,7 @@ describe("the System 7 appearance package", () => {
 			});
 	});
 
-	// Small UI text is Geneva 9 (HIG p.12), set by the optional knob
+	// Small UI text is 9 px, System 7's small size, set by the optional knob
 	// uiText.smallFontSize: uiSize × 0.8 would be 9.6 px (story 0210-aal).
 	it("draws small UI text at 9 px in both themes and the defaults", async () => {
 		await import("./index");

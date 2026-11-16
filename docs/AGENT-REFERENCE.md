@@ -3696,8 +3696,8 @@ Platinum (§1); its README lists what it ships.
   `system7-color` ("System 7 Color": the Standard window colors from System
   7.5's `wctb`/`cctb` tables, no variant, `dither.tileSize: 0`). Both set
   `sound.pack: "system7"` and the optional knobs `menuBar.bandHeight: 20`
-  and `uiText.smallFontSize: 9` (Geneva 9 small text; "Package knob
-  families"). Layout: grow box bottom right, menu bar on the
+  and `uiText.smallFontSize: 9` (9 px small text, System 7's small size;
+  "Package knob families"). Layout: grow box bottom right, menu bar on the
   screen, icon grid from the top right, and `window.centering:
   "wholePixel"`, so a centered alert or dialog lands on whole pixels.
 - **Per-theme variants** (§5). Icons and system art register a color base
@@ -4325,8 +4325,9 @@ literals.
   `uiText.smallFontSize`: `--ui-font-size-small` is the knob when a theme
   sets it to a positive finite number, else `typography.uiSize × 0.8`, so
   Platinum's small text keeps following the Fonts tab while System 7's is
-  Geneva 9 (`uiText.smallFontSize: 9`; `× 0.8` of its 12 px UI size would be
-  9.6 px). Its key names a font size, so the theme schema and the load-time
+  9 px, a whole size (`uiText.smallFontSize: 9`; `× 0.8` of its 12 px UI size
+  would be 9.6 px). It sets the size only: small text keeps its own family
+  (the UI font at most sites). Its key names a font size, so the theme schema and the load-time
   heal hold it to 8–72 px; it is emitted as `--ui-text-small-font-size` too.
   Component code reads one
   more, `scrollBar.snapBack` (`--scroll-bar-snap-back`), with no floor value

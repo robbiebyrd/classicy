@@ -480,7 +480,7 @@ describe("--menu-bar-height follows menuBar.bandHeight when a theme sets it", ()
 	});
 });
 
-// Story 0210-aal: System 7's small UI text is Geneva 9 (HIG p.12), not
+// Story 0210-aal: System 7's small UI text is 9 px, a whole size, not
 // uiSize × 0.8 (9.6 px at its 12 px uiSize). A package sets the optional knob
 // uiText.smallFontSize; without it the size still follows uiSize, so
 // Platinum's follows the Fonts tab.

@@ -476,7 +476,8 @@ the ids the saver already names:
 - **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
   the knob when a theme sets it to a positive number, else
   `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
-  themes set 9, so its small text is Geneva 9, not 9.6 px.
+  themes set 9, so its small text is 9 px, not 9.6 px (the size only: the
+  family is unchanged).
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

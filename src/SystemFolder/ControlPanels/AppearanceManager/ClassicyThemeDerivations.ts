@@ -52,7 +52,7 @@ const menuBarBand = (i: ClassicyThemeDerivationInputs): number | undefined => {
 		: undefined;
 };
 // The same kind of optional package knob: a package whose small UI text is
-// not uiSize × 0.8 (System 7: Geneva 9 under a 12 px uiSize) sets
+// not uiSize × 0.8 (System 7: 9 px under a 12 px uiSize) sets
 // `uiText.smallFontSize`. Without it, or with a value that is not a positive
 // finite number, the size follows uiSize, so Platinum's follows the Fonts tab.
 const uiTextSmall = (i: ClassicyThemeDerivationInputs): number | undefined => {
@@ -219,7 +219,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--ui-font-size-small",
 		formula: "uiText.smallFontSize, else typography.uiSize * 0.8",
-		doc: "Small UI text, such as labels and table cells (ClassicyControlGroup.scss, ClassicyTable.scss, ClassicyPopUpMenu.scss). A package whose small text does not follow its UI size sets the knob `uiText.smallFontSize` (System 7: 9, Geneva 9 under a 12 px UI size); Platinum sets none, so its small text scales with the Fonts tab's UI size.",
+		doc: "Small UI text, such as labels and table cells (ClassicyControlGroup.scss, ClassicyTable.scss, ClassicyPopUpMenu.scss). A package whose small text does not follow its UI size sets the knob `uiText.smallFontSize` (System 7: 9, under a 12 px UI size); Platinum sets none, so its small text scales with the Fonts tab's UI size.",
 		compute: (i) => uiTextSmall(i) ?? ui(i) * 0.8,
 		unrounded: true,
 	},
