@@ -1572,7 +1572,10 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   `selectable` nothing is preloaded): the Finder list view does, for a
   selected row's icon (the table's cell context carries `selected`; the
   base sheet's darkening filter stands down over a selected image, marked
-  `classicyIconSelectedImage`). Menus, title bars, tabs and list boxes do
+  `classicyIconSelectedImage`; System 7 replaces that filter with one keyed
+  on `iconSelection.invert`, which inverts the icon in its 1-bit theme, as
+  a selected desktop icon, and darkens it as the base sheet does in
+  color). Menus, title bars, tabs and list boxes do
   not: 7.5 drew a selected Standard File row inverted with its icon as it
   is. A failed preload is not retried on the page.
   System 7 registers every color icon's pre-rendered selected rendering for
@@ -4308,7 +4311,14 @@ literals.
   either: a `ClassicyScrollArea` under a package whose layout declares
   `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
   theme that does not emit it snaps back at the bar's own thickness, "the
-  width of the scroll box" (System 7 sets 20, "a little more").
+  width of the scroll box" (System 7 sets 20, "a little more"). The file
+  browser's list view reads three more the same way, the family
+  `fileBrowserList`: `smallIconSize`, `mediumIconSize` and `largeIconSize`
+  (`--file-browser-list-<step>-icon-size`, `LIST_VIEW_ICON_SIZE_VARS`), a
+  step's icon size in px. A step the theme gives no size above 0 keeps
+  `desktop.iconSize` scaled (`listViewIconSize`: 0.25, 0.375, 0.667), as
+  under Platinum, which sets none (System 7 sets `mediumIconSize: 16`, so
+  its 16 px small icons draw unscaled; 0.375 × 32 is 12).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their

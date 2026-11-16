@@ -121,6 +121,13 @@ diverge, so a logo registered through Platinum's
   modules (the new `ClassicyBevelButton` prop `iconSmall`), `ClassicyIcon`
   and desktop icons at 16 px or less draw it. A leaf without `small` scales
   as before.
+- **List-view icon sizes.** A theme may give the file browser's list view
+  its own icon size per step, the optional measurements
+  `fileBrowserList.smallIconSize`, `mediumIconSize` and `largeIconSize`
+  (px; `LIST_VIEW_ICON_SIZE_VARS` names their variables, and
+  `listViewIconSize` takes the size as a third argument). A step with none
+  keeps `desktop.iconSize` scaled, so Platinum is unchanged. System 7 sets
+  `mediumIconSize: 16`: its list view draws the 16 px small icons unscaled.
 - **Alert sounds come from the sound pack.** `ClassicySoundPack` gains
   `alerts` (`{ value, label }[]`, the alerts the Sound tab lists) and
   `defaultAlert`. A pack without `alerts` takes the default pack's
