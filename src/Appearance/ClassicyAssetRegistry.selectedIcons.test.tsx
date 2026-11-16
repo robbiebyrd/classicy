@@ -24,6 +24,8 @@ import {
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { resetClassicySelectedIconImagesForTests } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import {
 	type ClassicyLogEntry,
 	registerClassicyLogSink,
@@ -58,10 +60,27 @@ const activate = (packageId: string, assetVariant?: string) =>
 		);
 	});
 
+// jsdom loads no image: this one "loads" when the test says so.
+const pendingLoads: Array<() => void> = [];
+class FakeImage {
+	onload: (() => void) | null = null;
+	onerror: (() => void) | null = null;
+	set src(_value: string) {
+		pendingLoads.push(() => this.onload?.());
+	}
+}
+const loadImages = () =>
+	act(() => {
+		for (const load of pendingLoads.splice(0)) load();
+	});
+
 const SINK = "selected-icons-test";
 let entries: ClassicyLogEntry[] = [];
 
 beforeEach(() => {
+	vi.stubGlobal("Image", FakeImage);
+	pendingLoads.length = 0;
+	resetClassicySelectedIconImagesForTests();
 	resetClassicyAssets();
 	resetClassicyAppearancePackagesForTests();
 	useAppManager.setState(DefaultAppManagerState, true);
@@ -84,6 +103,7 @@ afterEach(() => {
 	cleanup();
 	unregisterClassicyLogSink(SINK);
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 	resetClassicyAssets();
 	resetClassicyAppearancePackagesForTests();
 });
@@ -165,13 +185,47 @@ describe("selected icon images", () => {
 			container.querySelector(".classicyIconMaskOuter") as HTMLElement;
 		expect(img().getAttribute("src")).toBe("/folder.png");
 		expect(outer().classList.contains("classicyIconSelectedImage")).toBe(false);
-		// A click selects it.
+		// A click selects it. Until its selected image has loaded it keeps the
+		// plain one, unmarked, so the package's own selected look stays: no
+		// flash on the first selection.
 		fireEvent.click(container.querySelector('[role="button"]') as HTMLElement);
+		expect(img().getAttribute("src")).toBe("/folder.png");
+		expect(outer().classList.contains("classicyIconSelectedImage")).toBe(false);
+		loadImages();
 		expect(img().getAttribute("src")).toBe("/folder-selected.png");
 		expect(outer().classList.contains("classicyIconSelectedImage")).toBe(true);
 		// The mask keeps the plain image's shape.
 		expect(outer().style.getPropertyValue("--classicy-icon-mask")).toBe(
 			'url("/folder.png")',
+		);
+	});
+
+	it("is preloaded when the icon mounts, so a later selection draws it at once", () => {
+		const { container } = render(
+			<ClassicyIcon appId="a" name="Folder" icon="/folder.png" size={32} />,
+		);
+		expect(pendingLoads).toHaveLength(1);
+		loadImages();
+		fireEvent.click(container.querySelector('[role="button"]') as HTMLElement);
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/folder-selected.png",
+		);
+	});
+
+	it("is drawn by ClassicyIconImage only when asked for", () => {
+		const { container, rerender } = render(
+			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" />,
+		);
+		loadImages();
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/folder.png",
+		);
+		rerender(
+			<ClassicyIconImage src="/folder.png" drawnAt={32} alt="" selected />,
+		);
+		loadImages();
+		expect(container.querySelector("img")?.getAttribute("src")).toBe(
+			"/folder-selected.png",
 		);
 	});
 });

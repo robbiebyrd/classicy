@@ -10,7 +10,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
@@ -30,6 +29,7 @@ import {
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 interface ClassicyIconProps {
@@ -298,14 +298,19 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const themeIconSize = useAppManager(
 		(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
 	);
-	const iconPx = size ?? themeIconSize ?? Number.POSITIVE_INFINITY;
-	const iconUrl = useClassicyIconImage(icon, iconPx);
 	// Selected, the image the active package draws for it selected, when it
-	// registers one (`registerClassicySelectedIconImages`), marked so its
-	// stylesheet draws no selected look of its own over it. The mask keeps
-	// the plain image's shape.
-	const selectedUrl = useClassicyIconImage(icon, iconPx, true);
-	const drawsSelectedImage = active && selectedUrl !== iconUrl;
+	// registers one (`registerClassicySelectedIconImages`) and once it has
+	// loaded, marked so its stylesheet draws no selected look of its own over
+	// it. The mask keeps the plain image's shape.
+	const {
+		image,
+		plain: iconUrl,
+		drawsSelectedImage,
+	} = useClassicySelectedIconImage(
+		icon,
+		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
+		active,
+	);
 	const iconEl = (
 		<div
 			className={classNames(
@@ -316,7 +321,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={drawsSelectedImage ? selectedUrl : iconUrl} alt={name} />
+				<img src={image} alt={name} />
 			</div>
 		</div>
 	);

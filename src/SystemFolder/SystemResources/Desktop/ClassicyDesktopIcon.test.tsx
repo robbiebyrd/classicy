@@ -281,7 +281,19 @@ describe("ClassicyDesktopIcon selected image", () => {
 		mockSelection.icons = [];
 	});
 
-	it("draws the registered selected image only while selected, marked", () => {
+	it("draws the registered selected image only while selected and loaded, marked", () => {
+		// jsdom loads no image: this one loads when the test says so.
+		const loads: Array<() => void> = [];
+		vi.stubGlobal(
+			"Image",
+			class {
+				onload: (() => void) | null = null;
+				onerror: (() => void) | null = null;
+				set src(_value: string) {
+					loads.push(() => this.onload?.());
+				}
+			},
+		);
 		registerClassicySelectedIconImages("platinum", {
 			"/icons/test.png": "/icons/test-selected.png",
 		});
@@ -300,10 +312,19 @@ describe("ClassicyDesktopIcon selected image", () => {
 		plain.unmount();
 		mockSelection.icons = ["TestApp"];
 		const { container } = render(<ClassicyDesktopIcon {...defaultProps} />);
+		// Not loaded yet: the plain image, unmarked.
+		expect(outer(container).querySelector("img")).toHaveAttribute(
+			"src",
+			"/icons/test.png",
+		);
+		act(() => {
+			for (const load of loads.splice(0)) load();
+		});
 		expect(outer(container).querySelector("img")).toHaveAttribute(
 			"src",
 			"/icons/test-selected.png",
 		);
 		expect(outer(container)).toHaveClass("classicyDesktopIconSelectedImage");
+		vi.unstubAllGlobals();
 	});
 });

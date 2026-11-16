@@ -1,8 +1,5 @@
 import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
-import {
-	useClassicyAsset,
-	useClassicyIconImage,
-} from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import {
@@ -11,6 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
 import {
@@ -222,21 +220,20 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const [dragging, setDragging] = useState<boolean>(false);
 			const didDragRef = useRef(false);
 
-			const iconUrl = useClassicyIconImage(
-				identity.icon,
-				desktopIconSize ?? Number.POSITIVE_INFINITY,
-			);
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
 			);
 			// Selected, the image the active package draws for it selected, as
 			// ClassicyIcon does (`registerClassicySelectedIconImages`).
-			const selectedUrl = useClassicyIconImage(
+			const {
+				image: iconImage,
+				plain: iconUrl,
+				drawsSelectedImage,
+			} = useClassicySelectedIconImage(
 				identity.icon,
 				desktopIconSize ?? Number.POSITIVE_INFINITY,
-				true,
+				isSelected,
 			);
-			const drawsSelectedImage = isSelected && selectedUrl !== iconUrl;
 			// A click on a selected icon still changes the selection when it
 			// collapses a multiple selection down to this icon.
 			const isMultipleSelection = useAppManager(
@@ -621,10 +618,7 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img
-									src={drawsSelectedImage ? selectedUrl : iconUrl}
-									alt={identity.name}
-								/>
+								<img src={iconImage} alt={identity.name} />
 							</div>
 						</div>
 						{isAlias && (

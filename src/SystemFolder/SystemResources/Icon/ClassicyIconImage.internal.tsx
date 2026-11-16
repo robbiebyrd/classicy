@@ -1,5 +1,5 @@
 import type { ImgHTMLAttributes } from "react";
-import { useClassicyIconImage } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 
 type ClassicyIconImageProps = Omit<
 	ImgHTMLAttributes<HTMLImageElement>,
@@ -13,16 +13,27 @@ type ClassicyIconImageProps = Omit<
 	 * size or less uses its own small image when its leaf has one.
 	 */
 	drawnAt?: number | true;
+	/**
+	 * Draw the active package's selected image for the icon
+	 * (`registerClassicySelectedIconImages`) once it has loaded. For a
+	 * surface that draws a selected icon as icons are drawn selected; no
+	 * list passes it, since System 7.5 drew a selected list row inverted and
+	 * its icon as it is (Standard File's list, `color-dialog-standardfile-
+	 * open.png`).
+	 */
+	selected?: boolean;
 };
 
-/** An `<img>` of an icon that picks the leaf's small image at small sizes. */
+/** An `<img>` of an icon that picks the leaf's small image at small sizes,
+ * and its selected image when `selected`. */
 export const ClassicyIconImage = ({
 	src,
 	drawnAt = true,
+	selected = false,
 	alt,
 	...rest
 }: ClassicyIconImageProps) => {
-	const image = useClassicyIconImage(src ?? "", drawnAt);
+	const { image } = useClassicySelectedIconImage(src ?? "", drawnAt, selected);
 	return (
 		<img {...rest} src={src === undefined ? undefined : image} alt={alt} />
 	);
