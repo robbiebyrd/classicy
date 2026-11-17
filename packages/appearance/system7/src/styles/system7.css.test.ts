@@ -1224,9 +1224,6 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicySliderTrackGroup")).toMatch(
 				/--slider-thumb-height: var\(--channel-slider-thumb-across\);/,
 			);
-			expect(rule(":where(.classicySlider).disabled")).toMatch(
-				/--system7-slider-ink: var\(--color-theme-06\);/,
-			);
 			// The base sheet no longer dims by a filter (it is Platinum's).
 			expect(rule(":where(.classicySlider).disabled")).not.toMatch(/filter/);
 			// The base sheet resets Firefox's 0.5em thumb corner radius, which
@@ -1234,6 +1231,64 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicySlider::-moz-range-thumb")).not.toMatch(
 				/border-radius/,
 			);
+		});
+
+		// Story 0218-ll9: 7.5.5's only dimmed slider, Memory's RAM Disk
+		// slider (`*-755-controlpanel-memory.png`), keeps its outline and its
+		// indicator in black 50% dots, its channel empty, and is the same at
+		// both depths: the slider's art is black and white in color too.
+		it("dims a slider to its outline and indicator, black through a 50% checker at both depths", () => {
+			const dimmed = rule(":where(.classicySlider).disabled");
+			// Black, not the dimmed ink.
+			expect(dimmed).not.toMatch(/--system7-slider-ink/);
+			// A 2 x 2 checker in both themes, not the theme's dither tile.
+			expect(dimmed).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\), linear-gradient/,
+			);
+			expect(dimmed).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
+			expect(dimmed).toMatch(/mask-composite: exclude;/);
+			// The channel loses its checker band: both caps and the four
+			// runs, no far-cap checker pixels and no dotted columns.
+			for (const selector of [
+				":where(.classicySlider).disabled::-webkit-slider-runnable-track",
+				":where(.classicySlider).disabled::-moz-range-track",
+				":where(.classicySliderInputVertical).disabled::-webkit-slider-runnable-track",
+				":where(.classicySliderInputVertical).disabled::-moz-range-track",
+			]) {
+				const track = rule(selector);
+				expect(layersOf(track, "var(--system7-slider-ink)"), selector).toBe(
+					10 + 10 + 4,
+				);
+				expect(track, selector).not.toMatch(/repeating-linear-gradient/);
+			}
+			// A dimmed vertical slider's track follows a dimmed horizontal
+			// one's, which it also matches, at the same specificity.
+			const at = (selector: string) =>
+				css.indexOf(
+					`.classicyDesktop[data-classicy-appearance=system7] ${selector} {`,
+				);
+			expect(
+				at(
+					":where(.classicySliderInputVertical).disabled::-webkit-slider-runnable-track",
+				),
+			).toBeGreaterThan(
+				at(":where(.classicySlider).disabled::-webkit-slider-runnable-track"),
+			);
+			expect(
+				at(":where(.classicySlider).disabled::-webkit-slider-runnable-track"),
+			).toBeGreaterThan(
+				at(".classicySliderInputVertical::-webkit-slider-runnable-track"),
+			);
+			// Its ticks the same: black through the same checker.
+			const ticks = rule(":where(.classicySliderTicks).disabled");
+			expect(ticks).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
+			expect(
+				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
+			).toBe("");
 		});
 
 		// Story 0198-0kv: the Sound control panel's slider
@@ -1456,18 +1511,14 @@ describe("system7.scss (compiled)", () => {
 
 		// Fix round 2: the ticks' and their labels' ink left the base sheet;
 		// System 7 draws its own, black, dimmed through the dither.
-		it("inks its ticks and their labels black, and dims ticks through the dither", () => {
+		// Dimmed, they stay black and go through the slider's checker (the
+		// dimmed slider's test, above).
+		it("inks its ticks and their labels black", () => {
 			expect(rule(".classicySliderTick")).toMatch(
 				/background: var\(--color-black\);/,
 			);
 			expect(rule(".classicySliderTickLabel")).toMatch(
 				/color: var\(--color-black\);/,
-			);
-			expect(
-				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
-			).toMatch(/background: var\(--color-theme-06\);/);
-			expect(dithered(rule(":where(.classicySliderTicks).disabled"))).toBe(
-				true,
 			);
 		});
 
