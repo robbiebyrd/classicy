@@ -560,8 +560,15 @@ describe("system7.scss (compiled)", () => {
 			);
 			// A hidden application's icon in the menu is dimmed, through the
 			// checker (review r0 Minor).
-			expect(rule(".classicyDesktopMenuAppHidden > p > img")).toContain(
+			const hidden = rule(".classicyDesktopMenuAppHidden > p > img");
+			expect(hidden).toContain(
 				"mask-image: var(--classicy-art-dither-checker)",
+			);
+			expect(hidden).toContain(
+				"mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;",
+			);
+			expect(css).toContain(
+				"opacity: tan(atan2(var(--menu-item-hidden-icon-opacity), var(--menu-item-hidden-icon-opacity-scale)));",
 			);
 			const img = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p > img`);
 			expect(img).toMatch(/width: var\(--menu-bar-title-art-size\);/);
@@ -2013,16 +2020,20 @@ describe("system7.scss (compiled)", () => {
 					/@supports \(filter: invert\(tan\(atan2\(1em, 1em\)\)\)\) \{\s*([^{}]+)\{([^{}]*)\}\s*\}/g,
 				),
 			];
-			// The list view's selected icon, and the open Application menu
-			// title's icon (review r1 item 1).
+			// The open Application menu title's icon (review r1 item 1), a
+			// hidden application's icon's opacity (item 2) and the list view's
+			// selected icon.
 			expect(guarded.map(([, header]) => header.trim())).toEqual([
+				expect.stringContaining(".classicyDesktopMenuAppHidden > p > img"),
 				expect.stringContaining(
 					".classicyDesktopMenuAppSwitcher.open > p > img",
 				),
 				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
 			]);
 			for (const [, , declarations] of guarded)
-				expect(declarations).toMatch(/filter: invert\(tan\(atan2\(/);
+				expect(declarations).toMatch(
+					/(filter: invert\(|opacity: )tan\(atan2\(/,
+				);
 			// Nothing outside the guards uses the functions.
 			let outside = css;
 			for (const [block] of guarded) outside = outside.replace(block, "");

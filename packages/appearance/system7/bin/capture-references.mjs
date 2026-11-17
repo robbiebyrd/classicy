@@ -257,6 +257,13 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 	// Boot ends when Infinite Mac's welcome notes are up (Stickies, the
 	// yellow note's face at 500,80); quit Stickies, then wait for the note
 	// to go.
+	// Mac OS 8 (Platinum's references, story 0214-c61) shows its welcome
+	// notes elsewhere: it is given time to boot and its notes are left up.
+	if (/^Mac OS 8/.test(disk ?? "")) {
+		await sleep(60_000);
+		await emulator.step(["move", 630, 300]);
+		return emulator;
+	}
 	await emulator.waitFor(500, 80, yellow, 90_000);
 	await sleep(3_000);
 	await emulator.step(["quitStickies"]);
@@ -319,6 +326,17 @@ const controlPanel = (y) => [
 	["move", 250, y, 4],
 	["up"],
 	["wait", 3_000],
+];
+/** Chooses the item at y in the menu whose title is at x (top of the bar). */
+const menuItem = (x, y) => [
+	["move", x, 10],
+	["down"],
+	["wait", 900],
+	["move", x - 26, 30, 6],
+	["move", x - 26, y, 4],
+	["wait", 400],
+	["up"],
+	["wait", 2_000],
 ];
 /** Holds the menu at x, y open, the pointer off it, and shoots it. */
 const heldMenu = (x, y, name) => [
@@ -426,6 +444,21 @@ export const SCENES = {
 		PARK,
 		["shot", `${d}-755-controlstrip-right`],
 		...optionDragTab(494, 2),
+		PARK,
+	],
+	// A hidden application (story 0214-c61): Scrapbook in front, Hide
+	// Others (the Finder hidden), the Application menu held open, then Show
+	// All and Scrapbook closed.
+	appmenuhidden: (d) => [
+		...appleMenu(276),
+		...menuItem(616, 44),
+		PARK,
+		...heldMenu(616, 10, `${d}-755-appmenu-hidden-app`),
+		...menuItem(616, 60),
+		["click", 200, 50],
+		["wait", 800],
+		["key", "Meta+w"],
+		["wait", 1_500],
 		PARK,
 	],
 	// Macintosh HD opened, then the window and its list view.

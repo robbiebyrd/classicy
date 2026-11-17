@@ -312,3 +312,34 @@ export const ApplicationMenuOpenFinderAlone: Story = {
 export const ApplicationMenuOpenFinderAloneColor = inColor(
 	applicationMenuScene(true, true),
 );
+
+/**
+ * Brings the Storybook app to the front, hides the others (the Finder), then
+ * opens the Application menu: the Finder's icon dimmed, as
+ * `*-755-appmenu-hidden-app.png` draws a hidden application (there with
+ * Scrapbook in front).
+ */
+function HiddenAppSwitcherOpen() {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "storybook.app" } });
+			dispatch({ type: "ClassicyAppHideOthers", app: { id: "storybook.app" } });
+			window.setTimeout(
+				() => document.querySelector<HTMLElement>("#app-switcher > p")?.click(),
+				100,
+			);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [dispatch]);
+	return null;
+}
+
+const hiddenAppScene = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<HiddenAppSwitcherOpen />
+	</StoryApp>
+);
+
+export const ApplicationMenuHiddenApp: Story = { render: hiddenAppScene };
+export const ApplicationMenuHiddenAppColor = inColor(hiddenAppScene);

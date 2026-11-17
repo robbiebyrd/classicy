@@ -155,7 +155,9 @@
 				"dividerTop": 8,
 				"imageSize": 16,
 				"imagePad": 1,
-				"imageGap": 4
+				"imageGap": 4,
+				"hiddenIconOpacity": 100,
+				"hiddenIconOpacityScale": 100
 			},
 			"popUpMenu": {
 				"height": 18,
@@ -463,7 +465,9 @@
 					"dividerTop": 8,
 					"imageSize": 16,
 					"imagePad": 1,
-					"imageGap": 4
+					"imageGap": 4,
+					"hiddenIconOpacity": 100,
+					"hiddenIconOpacityScale": 100
 				},
 				"popUpMenu": {
 					"height": 18,
@@ -773,7 +777,9 @@
 					"dividerTop": 8,
 					"imageSize": 16,
 					"imagePad": 1,
-					"imageGap": 4
+					"imageGap": 4,
+					"hiddenIconOpacity": 53,
+					"hiddenIconOpacityScale": 100
 				},
 				"popUpMenu": {
 					"height": 18,
