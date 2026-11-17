@@ -15,6 +15,7 @@ import {
 	useContext,
 	useEffect,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -24,6 +25,10 @@ import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceMan
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicyPressRepeat } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
+import {
+	ClassicyScrollAreaHeadContext,
+	type ClassicyScrollAreaHeadSlot,
+} from "./ClassicyScrollAreaHead.internal";
 import {
 	type ClassicyScrollAxisMetrics,
 	type ClassicyScrollBarPolicy,
@@ -98,6 +103,17 @@ export interface ClassicyScrollAreaProps
 	 * `children`, `viewportClassName` and `viewportProps` are not used.
 	 */
 	renderViewport?: (viewport: ClassicyScrollAreaViewportProps) => ReactNode;
+	/**
+	 * Content above the viewport and the vertical bar, the area's full
+	 * width (over the bar's column), scrolled sideways with the viewport:
+	 * the head (`classicyScrollAreaHead`), which the vertical bar starts
+	 * under. A list's column titles, as a package that draws them above the
+	 * list places them. The area also draws a head while a descendant asks
+	 * for one, to portal into. None by default.
+	 */
+	head?: ReactNode;
+	/** Called with whether the area draws a head, once and on each change. */
+	onHeadChange?: (present: boolean) => void;
 }
 
 /** What `renderViewport` puts on its scroller. */
@@ -268,6 +284,8 @@ export const ClassicyScrollArea = forwardRef<
 		onScroll,
 		onOverflowChange,
 		renderViewport,
+		head,
+		onHeadChange,
 		className,
 		style,
 		...rootProps
@@ -331,11 +349,43 @@ export const ClassicyScrollArea = forwardRef<
 	onOverflowChangeRef.current = onOverflowChange;
 	const overflowRef = useRef<ClassicyScrollBarsShown | null>(null);
 
+	// The head: drawn when given, or while a descendant asks for one
+	// (useClassicyScrollAreaHead), which portals into it.
+	const [headRequests, setHeadRequests] = useState(0);
+	const [headEl, setHeadEl] = useState<HTMLDivElement | null>(null);
+	const headElRef = useRef<HTMLDivElement | null>(null);
+	const headRefCallback = useCallback((el: HTMLDivElement | null) => {
+		headElRef.current = el;
+		setHeadEl(el);
+		// Where the viewport already is, sideways.
+		const viewport = viewportElRef.current;
+		if (el && viewport) el.scrollLeft = viewport.scrollLeft;
+	}, []);
+	const requestHead = useCallback(() => {
+		setHeadRequests((n) => n + 1);
+		return () => setHeadRequests((n) => n - 1);
+	}, []);
+	const headSlot = useMemo<ClassicyScrollAreaHeadSlot>(
+		() => ({ element: headEl, request: requestHead }),
+		[headEl, requestHead],
+	);
+	const showHead = head !== undefined || headRequests > 0;
+	const onHeadChangeRef = useRef(onHeadChange);
+	onHeadChangeRef.current = onHeadChange;
+	useEffect(() => {
+		onHeadChangeRef.current?.(showHead);
+	}, [showHead]);
+
 	// Measure the viewport: which bars it needs, and where each thumb sits.
 	// Runs on every layout change and scroll; sets state only on a change.
 	const update = useCallback(() => {
 		const el = viewportElRef.current;
 		if (!el) return;
+		// The head scrolls sideways with the viewport.
+		const headNow = headElRef.current;
+		if (headNow && headNow.scrollLeft !== el.scrollLeft) {
+			headNow.scrollLeft = el.scrollLeft;
+		}
 		const refs = barRefsRef.current;
 		const current = shownRef.current;
 		const vBar = refs.vertical.bar.current;
@@ -571,69 +621,76 @@ export const ClassicyScrollArea = forwardRef<
 	);
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: the keys only reach a root its caller made focusable (with its role); the area adds none
-		<div
-			{...rootProps}
-			ref={ref}
-			onKeyDown={onRootKeyDown}
-			className={classNames(
-				"classicyScrollArea",
-				classicyStateClasses({ inactive: isInactive }),
-				className,
-			)}
-			style={style}
-		>
-			<div className="classicyScrollAreaBody">
-				{renderViewport ? (
-					renderViewport({
-						ref: viewportRefCallback,
-						className: classNames(
-							"classicyScrollAreaViewport",
-							scrollable ? "" : "classicyScrollAreaViewportClipped",
-						),
-						onScroll: (e) => {
-							update();
-							onScroll?.(e as UIEvent<HTMLDivElement>);
-						},
-					})
-				) : (
-					<div
-						{...viewportProps}
-						ref={viewportRefCallback}
-						className={classNames(
-							"classicyScrollAreaViewport",
-							scrollable ? "" : "classicyScrollAreaViewportClipped",
-							viewportClassName,
-							viewportProps?.className,
-						)}
-						onScroll={(e) => {
-							update();
-							onScroll?.(e);
-							viewportProps?.onScroll?.(e);
-						}}
-					>
-						{children}
+		<ClassicyScrollAreaHeadContext.Provider value={headSlot}>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: the keys only reach a root its caller made focusable (with its role); the area adds none */}
+			<div
+				{...rootProps}
+				ref={ref}
+				onKeyDown={onRootKeyDown}
+				className={classNames(
+					"classicyScrollArea",
+					classicyStateClasses({ inactive: isInactive }),
+					className,
+				)}
+				style={style}
+			>
+				{showHead && (
+					<div ref={headRefCallback} className="classicyScrollAreaHead">
+						{head}
 					</div>
 				)}
-				{shown.vertical && bar("vertical")}
-			</div>
-			{shown.horizontal && (
-				<div className="classicyScrollAreaFoot">
-					{bar("horizontal")}
-					{shown.vertical && (
+				<div className="classicyScrollAreaBody">
+					{renderViewport ? (
+						renderViewport({
+							ref: viewportRefCallback,
+							className: classNames(
+								"classicyScrollAreaViewport",
+								scrollable ? "" : "classicyScrollAreaViewportClipped",
+							),
+							onScroll: (e) => {
+								update();
+								onScroll?.(e as UIEvent<HTMLDivElement>);
+							},
+						})
+					) : (
 						<div
-							ref={cornerRef}
+							{...viewportProps}
+							ref={viewportRefCallback}
 							className={classNames(
-								"classicyScrollAreaCorner",
-								classicyStateClasses({ inactive: isInactive }),
+								"classicyScrollAreaViewport",
+								scrollable ? "" : "classicyScrollAreaViewportClipped",
+								viewportClassName,
+								viewportProps?.className,
 							)}
-							data-classicy-part="scroll-corner"
-							aria-hidden="true"
-						/>
+							onScroll={(e) => {
+								update();
+								onScroll?.(e);
+								viewportProps?.onScroll?.(e);
+							}}
+						>
+							{children}
+						</div>
 					)}
+					{shown.vertical && bar("vertical")}
 				</div>
-			)}
-		</div>
+				{shown.horizontal && (
+					<div className="classicyScrollAreaFoot">
+						{bar("horizontal")}
+						{shown.vertical && (
+							<div
+								ref={cornerRef}
+								className={classNames(
+									"classicyScrollAreaCorner",
+									classicyStateClasses({ inactive: isInactive }),
+								)}
+								data-classicy-part="scroll-corner"
+								aria-hidden="true"
+							/>
+						)}
+					</div>
+				)}
+			</div>
+		</ClassicyScrollAreaHeadContext.Provider>
 	);
 });
 

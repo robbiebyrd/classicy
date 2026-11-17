@@ -9,6 +9,8 @@
 // over the foot (horizontal bar and corner), so the bars take their room
 // from the viewport as a browser's scroll bars take it from the padding box,
 // whether the root's height is fixed, capped by max-height or its content's.
+// A head, when drawn, sits over the body, the root's full width; the
+// component scrolls it sideways with the viewport.
 
 // No specificity, so a caller's class on the root (a list box's height
 // limits, a window's contents) wins wherever its stylesheet is bundled.
@@ -23,8 +25,14 @@
 // paints its own beneath its scrolling content (the browser rasterizes the
 // content over it; over a transparent scroller its text antialiases a level
 // lighter).
-:where(.classicyScrollAreaBody, .classicyScrollAreaViewport) {
+:where(.classicyScrollAreaHead, .classicyScrollAreaBody, .classicyScrollAreaViewport) {
   background-color: inherit;
+}
+
+.classicyScrollAreaHead {
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .classicyScrollAreaBody {

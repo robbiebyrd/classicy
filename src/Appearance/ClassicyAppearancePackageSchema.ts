@@ -13,8 +13,8 @@ import type {
 
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`, `slider`, `fileDialog`), each key of which is
- * optional too.
+ * behavior groups (`scrollBar`, `slider`, `fileDialog`, `fileBrowser`), each
+ * key of which is optional too.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -48,6 +48,11 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			frame: z.enum(["movable", "fixed"]).optional(),
 			navigation: z.enum(["tree", "flat"]).optional(),
+		})
+		.optional(),
+	fileBrowser: z
+		.object({
+			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
 		})
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;

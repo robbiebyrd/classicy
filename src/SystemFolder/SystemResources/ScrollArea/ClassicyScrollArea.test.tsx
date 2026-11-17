@@ -20,6 +20,7 @@ import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyScrollArea } from "./ClassicyScrollArea";
+import { useClassicyScrollAreaHead } from "./ClassicyScrollAreaHead.internal";
 
 type Box = {
 	scrollWidth: number;
@@ -684,6 +685,91 @@ describe("ClassicyScrollArea", () => {
 		expect(ref.current).toBe(viewport);
 		expect(viewport.classList.contains("mine")).toBe(true);
 		expect(viewport.getAttribute("role")).toBe("region");
+	});
+});
+
+// Story 0216-1im F9: a head above the viewport and the vertical bar, the
+// area's full width (a list's column titles under System 7, HIG p.218: the
+// bar starts under them), scrolled sideways with the viewport.
+describe("ClassicyScrollArea's head", () => {
+	const headOf = (container: HTMLElement) =>
+		container.querySelector<HTMLElement>(".classicyScrollAreaHead");
+
+	it("draws no head unless one is given or asked for", () => {
+		const { container } = renderTall();
+		expect(headOf(container)).toBeNull();
+	});
+
+	it("draws a given head first, above the body, and says so", () => {
+		const onHeadChange = vi.fn();
+		const { container } = renderTall({
+			head: <span>Titles</span>,
+			onHeadChange,
+		});
+		const root = container.querySelector(".classicyScrollArea") as HTMLElement;
+		const head = headOf(container) as HTMLElement;
+		expect(root.firstElementChild).toBe(head);
+		expect(
+			head.nextElementSibling?.classList.contains("classicyScrollAreaBody"),
+		).toBe(true);
+		expect(head.textContent).toBe("Titles");
+		expect(onHeadChange).toHaveBeenLastCalledWith(true);
+	});
+
+	it("scrolls the head sideways with the viewport", () => {
+		viewportBox = {
+			scrollWidth: 900,
+			scrollHeight: 1000,
+			clientWidth: 300,
+			clientHeight: 200,
+		};
+		const { container } = render(
+			<ClassicyScrollArea head={<span>Titles</span>}>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		const viewport = viewportOf(container);
+		act(() => {
+			viewport.scrollLeft = 120;
+			fireEvent.scroll(viewport);
+		});
+		expect((headOf(container) as HTMLElement).scrollLeft).toBe(120);
+	});
+
+	it("lends its head to a descendant that asks for one, until it lets go", () => {
+		const onHeadChange = vi.fn();
+		const seen: (HTMLElement | null)[] = [];
+		const Asker = ({ ask }: { ask: boolean }) => {
+			seen.push(useClassicyScrollAreaHead(ask));
+			return null;
+		};
+		const { container, rerender } = render(
+			<ClassicyScrollArea onHeadChange={onHeadChange}>
+				<Asker ask={true} />
+			</ClassicyScrollArea>,
+		);
+		const head = headOf(container);
+		expect(head).not.toBeNull();
+		expect(seen.at(-1)).toBe(head);
+		expect(onHeadChange).toHaveBeenLastCalledWith(true);
+		rerender(
+			<ClassicyScrollArea onHeadChange={onHeadChange}>
+				<Asker ask={false} />
+			</ClassicyScrollArea>,
+		);
+		expect(headOf(container)).toBeNull();
+		expect(seen.at(-1)).toBeNull();
+		expect(onHeadChange).toHaveBeenLastCalledWith(false);
+	});
+
+	it("lends no head outside a scroll area", () => {
+		let seen: HTMLElement | null | undefined;
+		const Asker = () => {
+			seen = useClassicyScrollAreaHead(true);
+			return null;
+		};
+		render(<Asker />);
+		expect(seen).toBeNull();
 	});
 });
 

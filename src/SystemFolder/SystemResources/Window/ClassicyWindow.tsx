@@ -984,6 +984,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// overflow through `onOverflowChange`, so the window keeps no observer of
 	// its own.
 	const [contentOverflows, setContentOverflows] = useState(false);
+	// Whether the contents' scroll area draws a head (a list's column titles
+	// above its scrolling region, `classicyScrollAreaHead`), which then takes
+	// over the header's bottom edge: the header is marked
+	// `classicyWindowHeaderAboveHead` meanwhile.
+	const [contentsHasHead, setContentsHasHead] = useState(false);
 	const onContentOverflow = useCallback(
 		(overflow: { vertical: boolean; horizontal: boolean }) =>
 			setContentOverflows(overflow.vertical || overflow.horizontal),
@@ -2083,6 +2088,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					className={classNames(
 						"classicyWindowHeader",
 						headerVariant === "list" ? "classicyWindowHeaderList" : "",
+						contentsHasHead ? "classicyWindowHeaderAboveHead" : "",
 						isActive() ? "" : "classicyWindowHeaderDimmed",
 					)}
 				>
@@ -2110,6 +2116,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 						vertical={showScrollBars ? "always" : "never"}
 						horizontal={showScrollBars ? "always" : "never"}
 						onOverflowChange={onContentOverflow}
+						onHeadChange={setContentsHasHead}
 					>
 						{contentsInner}
 					</ClassicyScrollArea>

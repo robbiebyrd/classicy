@@ -120,6 +120,24 @@ export type ClassicyAppearanceLayout = {
 		 */
 		navigation?: "tree" | "flat";
 	};
+	/**
+	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)
+	 * draws its list view. Optional, as is each key.
+	 */
+	fileBrowser?: {
+		/**
+		 * Where the list view's column titles go. `"inList"` (the default, Mac
+		 * OS 8): the list's first row, pinned while it scrolls, beside the
+		 * vertical bar. `"aboveList"` (System 7, HIG p.218,
+		 * `*-755-finder-list-row-selected.png`): above the list's scrolling
+		 * region, in its scroll area's head (`classicyScrollAreaHead`), the
+		 * window's full width, so the vertical bar starts under them; they
+		 * scroll sideways with the rows (`ClassicyTable`'s `headerPlacement`).
+		 * The window's header, when it has one, is marked
+		 * `classicyWindowHeaderAboveHead` meanwhile.
+		 */
+		listColumnTitles?: "inList" | "aboveList";
+	};
 };
 
 /**

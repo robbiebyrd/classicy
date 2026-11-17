@@ -632,6 +632,22 @@ the ids the saver already names:
   Platinum registered first, and Platinum's element lacks those five when
   System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
   leave System 7's out.
+- **Column titles above a list: layout `fileBrowser.listColumnTitles`.** A
+  package may declare `"aboveList"` (System 7; the default `"inList"` is
+  Mac OS 8's, so Platinum is unchanged) to draw the file browser's list-view
+  column titles above the list's scrolling region, over the window's
+  vertical bar, which starts under them. It rests on three additions:
+  `ClassicyScrollArea`'s `head` and `onHeadChange` props (a head part,
+  `classicyScrollAreaHead`, the area's full width, scrolled sideways with
+  the viewport, which the area also draws while a descendant asks for one),
+  `ClassicyTable`'s `headerPlacement` prop (`"aboveList"` draws an
+  `aria-hidden` copy of the header row, `classicyTableDetachedHeader`, in
+  that head, and keeps the table's own header row for assistive technology,
+  laid out with no height, `classicyTableHeaderHidden`), and the window
+  header's `classicyWindowHeaderAboveHead` mark while its contents draw a
+  head. The Finder's list publishes its icon size as
+  `--classicy-file-browser-icon-size` on the table, for a package placing
+  the name column's title over the names.
 - **Optional core knobs `desktopIconGrid.rowGap` and `desktopIconGrid.top`.**
   The desktop's Clean Up and icon placement step rows by
   `desktop.iconSize` plus `rowGap` and start the first row at `top` when a
