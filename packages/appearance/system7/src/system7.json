@@ -46,6 +46,7 @@
 		"typography": {
 			"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 			"uiSize": 12,
+			"uiSmall": "\"Geneva\", sans-serif",
 			"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 			"headerSize": 12,
 			"body": "\"Geneva\", sans-serif",
@@ -119,7 +120,7 @@
 			"menuBar": {
 				"bandHeight": 20,
 				"inset": 9,
-				"endInset": 11,
+				"endInset": 6,
 				"titlePadding": 10,
 				"titleOverlap": 5,
 				"highlightTop": 1,
@@ -130,6 +131,8 @@
 				"helpTitleStart": 8,
 				"helpTitleEnd": 9,
 				"helpTitleDrop": 1,
+				"switcherTitleStart": 9,
+				"switcherTitleEnd": 9,
 				"titleArtInvert": 1
 			},
 			"uiText": {
@@ -152,12 +155,17 @@
 				"dividerTop": 8,
 				"imageSize": 16,
 				"imagePad": 1,
-				"imageGap": 4
+				"imageGap": 4,
+				"hiddenIconOpacity": 100,
+				"hiddenIconOpacityScale": 100
 			},
 			"popUpMenu": {
 				"height": 18,
 				"arrowTop": 5,
-				"arrowInset": 5
+				"arrowInset": 5,
+				"valueIconTop": 0,
+				"valueIconGap": 4,
+				"valueIconInset": 3
 			},
 			"dialogFrame": {
 				"bevel": 0,
@@ -234,7 +242,63 @@
 				"invert": 1
 			},
 			"fileBrowserList": {
-				"mediumIconSize": 16
+				"mediumIconSize": 16,
+				"rowPadding": 1
+			},
+			"fileDialog": {
+				"width": 355,
+				"height": 195,
+				"popUpTop": 9,
+				"popUpTail": 17,
+				"volumeLeft": 237,
+				"volumeTop": 9,
+				"volumeGap": 4,
+				"volumeIconDrop": 2,
+				"volumeLineHeight": 18,
+				"listLeft": 15,
+				"listTop": 32,
+				"listWidth": 218,
+				"listHeight": 128,
+				"listRowHeight": 18,
+				"listRowInset": 2,
+				"listIconGap": 4,
+				"filterLeft": 15,
+				"filterTop": 165,
+				"buttonsLeft": 252,
+				"buttonWidth": 80,
+				"ejectTop": 35,
+				"desktopTop": 63,
+				"dividerLeft": 251,
+				"dividerTop": 94,
+				"dividerWidth": 82,
+				"cancelTop": 107,
+				"openTop": 138,
+				"saveWidth": 358,
+				"saveHeight": 252,
+				"savePopUpTop": 9,
+				"savePopUpTail": 17,
+				"saveVolumeLeft": 238,
+				"saveVolumeTop": 9,
+				"saveListLeft": 15,
+				"saveListTop": 32,
+				"saveListWidth": 218,
+				"saveListHeight": 146,
+				"saveNameTop": 191,
+				"saveNameWidth": 202,
+				"saveNameGap": 2,
+				"saveFilterLeft": 235,
+				"saveFilterTop": 209,
+				"saveButtonsLeft": 255,
+				"saveEjectTop": 35,
+				"saveDesktopTop": 63,
+				"saveNewTop": 90,
+				"newGlyphGap": 11,
+				"newGlyphRaise": 1,
+				"saveDividerLeft": 253,
+				"saveDividerTop": 120,
+				"saveDividerWidth": 84,
+				"saveCancelTop": 133,
+				"saveOpenTop": 164
 			}
 		},
 		"desktop": {
@@ -293,6 +357,7 @@
 			"typography": {
 				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
 				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"headerSize": 12,
 				"body": "\"Geneva\", sans-serif",
@@ -366,7 +431,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
-					"endInset": 11,
+					"endInset": 6,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -377,6 +442,8 @@
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
 					"titleArtInvert": 1
 				},
 				"uiText": {
@@ -399,12 +466,17 @@
 					"dividerTop": 8,
 					"imageSize": 16,
 					"imagePad": 1,
-					"imageGap": 4
+					"imageGap": 4,
+					"hiddenIconOpacity": 100,
+					"hiddenIconOpacityScale": 100
 				},
 				"popUpMenu": {
 					"height": 18,
 					"arrowTop": 5,
-					"arrowInset": 5
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 4,
+					"valueIconInset": 3
 				},
 				"dialogFrame": {
 					"bevel": 0,
@@ -481,7 +553,63 @@
 					"invert": 1
 				},
 				"fileBrowserList": {
-					"mediumIconSize": 16
+					"mediumIconSize": 16,
+					"rowPadding": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpTop": 9,
+					"popUpTail": 17,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 4,
+					"volumeIconDrop": 2,
+					"volumeLineHeight": 18,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerLeft": 251,
+					"dividerTop": 94,
+					"dividerWidth": 82,
+					"cancelTop": 107,
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"savePopUpTail": 17,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 2,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"newGlyphGap": 11,
+					"newGlyphRaise": 1,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
 				}
 			},
 			"desktop": {
@@ -542,6 +670,7 @@
 			"typography": {
 				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
 				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"headerSize": 12,
 				"body": "\"Geneva\", sans-serif",
@@ -615,7 +744,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
-					"endInset": 11,
+					"endInset": 6,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -626,6 +755,8 @@
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
 					"titleArtInvert": 0
 				},
 				"uiText": {
@@ -648,12 +779,17 @@
 					"dividerTop": 8,
 					"imageSize": 16,
 					"imagePad": 1,
-					"imageGap": 4
+					"imageGap": 4,
+					"hiddenIconOpacity": 53,
+					"hiddenIconOpacityScale": 100
 				},
 				"popUpMenu": {
 					"height": 18,
 					"arrowTop": 5,
-					"arrowInset": 5
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 4,
+					"valueIconInset": 3
 				},
 				"dialogFrame": {
 					"bevel": 1,
@@ -730,7 +866,63 @@
 					"invert": 0
 				},
 				"fileBrowserList": {
-					"mediumIconSize": 16
+					"mediumIconSize": 16,
+					"rowPadding": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpTop": 9,
+					"popUpTail": 17,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 4,
+					"volumeIconDrop": 2,
+					"volumeLineHeight": 18,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerLeft": 251,
+					"dividerTop": 94,
+					"dividerWidth": 82,
+					"cancelTop": 107,
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"savePopUpTail": 17,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 2,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"newGlyphGap": 11,
+					"newGlyphRaise": 1,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
 				}
 			},
 			"desktop": {
@@ -758,6 +950,10 @@
 		"scrollBar": {
 			"thumbDrag": "onRelease",
 			"fitsBars": "shown"
+		},
+		"fileDialog": {
+			"frame": "fixed",
+			"navigation": "flat"
 		}
 	},
 	"knobs": {},

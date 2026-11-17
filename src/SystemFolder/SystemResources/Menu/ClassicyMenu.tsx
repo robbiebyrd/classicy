@@ -62,7 +62,8 @@ export interface ClassicyMenuItem {
 	 * When defined, this item is a checkable menu item: it renders a Mac OS 8
 	 * checkmark (✓) in the left icon gutter when true, a dash (–) when "mixed",
 	 * and an empty (but reserved) gutter when false — keeping siblings aligned.
-	 * A checkable item never also shows an icon/image (the mark wins).
+	 * A checkable item with an icon/image draws both, the mark first (the
+	 * Application menu's front application, HIG7 p.127).
 	 *
 	 * `"mixed"` is the HIG dash (HIGOS7 "Checkmarks and Dashes in Menus"): use it
 	 * when an accumulating attribute applies to only PART of the selection (vs. a
@@ -71,6 +72,11 @@ export interface ClassicyMenuItem {
 	checked?: boolean | "mixed";
 	/** Icon drawn before the title. */
 	icon?: string;
+	/**
+	 * Draw the image or icon dimmed by the active package's rule (a hidden
+	 * application's, HIG7 p.127; `ClassicyIconImage`'s `dimmed`).
+	 */
+	imageDimmed?: boolean;
 	/**
 	 * Keyboard equivalent, in any `parseKeyboardShortcut` spelling (`"⌘S"`,
 	 * `"Cmd+Shift+S"`, `"F1"`), drawn right-aligned in glyph form. Items of the
@@ -784,7 +790,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			style={appearance.style}
 		>
 			<p>
-				{menuItem.checked !== undefined ? (
+				{menuItem.checked !== undefined && (
 					<span
 						className={classNames(
 							"classicyMenuItemCheck",
@@ -795,13 +801,21 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						)}
 						aria-hidden={"true"}
 					/>
-				) : menuItem.image ? (
+				)}
+				{/* A mark and an image both draw: the Application menu's front
+				    application is checked beside its icon (HIG7 p.127). */}
+				{menuItem.image ? (
 					<ClassicyIconImage
 						src={menuItem.image}
 						alt={menuItem.imageAlt ?? menuItem.title}
+						dimmed={menuItem.imageDimmed}
 					/>
 				) : menuItem.icon ? (
-					<ClassicyIconImage src={menuItem.icon} alt={menuItem.title} />
+					<ClassicyIconImage
+						src={menuItem.icon}
+						alt={menuItem.title}
+						dimmed={menuItem.imageDimmed}
+					/>
 				) : null}
 				{menuItem.title &&
 					(widthSamples.length > 0 ? (

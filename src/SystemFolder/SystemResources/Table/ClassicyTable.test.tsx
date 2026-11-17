@@ -794,3 +794,88 @@ describe("ClassicyTable column resize when the pointer stream is lost", () => {
 		expect(consoleError).not.toHaveBeenCalled();
 	});
 });
+
+// Story 0214-c61: HIGOS8 Figs. 2-24 and 2-43 draw the sorted column's cells
+// a step darker, down to the list's bottom. The table marks the sorted
+// column's cells with the part class `classicyTableCellSorted` and publishes
+// the sorted header's place on its container (`--classicy-table-sorted-start`
+// and `--classicy-table-sorted-width`, 0 when nothing is sorted), so a
+// package can draw the column below the last row too.
+describe("ClassicyTable's sorted column", () => {
+	const sortedCells = (container: HTMLElement) =>
+		[...container.querySelectorAll("tbody td.classicyTableCellSorted")].map(
+			(td) => td.textContent,
+		);
+	const listBox = (container: HTMLElement) =>
+		container.querySelector(".classicyTableContainer") as HTMLElement;
+
+	it("marks the sorted column's cells, and follows a new sort", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				defaultSort={{ columnId: "title" }}
+			/>,
+		);
+		expect(sortedCells(container)).toEqual([
+			"Abbey Road",
+			"Rubber Soul",
+			"Sgt. Pepper",
+		]);
+		fireEvent.click(screen.getByText("Year").closest("th") as HTMLElement);
+		expect(sortedCells(container)).toEqual(["1965", "1967", "1969"]);
+	});
+
+	it("marks no cell when nothing is sorted, and publishes a zero width", () => {
+		const { container } = render(
+			<ClassicyTable columns={columns} rows={albums} getRowId={(a) => a.id} />,
+		);
+		expect(sortedCells(container)).toEqual([]);
+		const style = listBox(container).style;
+		expect(style.getPropertyValue("--classicy-table-sorted-start")).toBe("0px");
+		expect(style.getPropertyValue("--classicy-table-sorted-width")).toBe("0px");
+	});
+
+	it("publishes the sorted header's place, from the container's left edge", () => {
+		const rect = (left: number, width: number) =>
+			({
+				left,
+				width,
+				right: left + width,
+				top: 0,
+				bottom: 0,
+				height: 0,
+				x: left,
+				y: 0,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		const spy = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				if (this.classList.contains("classicyTableContainer"))
+					return rect(100, 300);
+				if (this.getAttribute("aria-sort")) return rect(220, 80);
+				return rect(0, 0);
+			});
+		try {
+			const { container } = render(
+				<ClassicyTable
+					columns={columns}
+					rows={albums}
+					getRowId={(a) => a.id}
+					defaultSort={{ columnId: "year" }}
+				/>,
+			);
+			const style = listBox(container).style;
+			expect(style.getPropertyValue("--classicy-table-sorted-start")).toBe(
+				"120px",
+			);
+			expect(style.getPropertyValue("--classicy-table-sorted-width")).toBe(
+				"80px",
+			);
+		} finally {
+			spy.mockRestore();
+		}
+	});
+});

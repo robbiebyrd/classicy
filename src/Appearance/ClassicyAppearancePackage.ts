@@ -6,6 +6,7 @@ import type {
 	ClassicyAssetTree,
 } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import type { ClassicyIconDimming } from "@/Appearance/ClassicyIconDimming";
 import type {
 	ClassicyComponentName,
 	ClassicyState,
@@ -96,6 +97,28 @@ export type ClassicyAppearanceLayout = {
 		 * without a ghost drags live under either (the HIG's "live feedback").
 		 */
 		thumbDrag?: "live" | "onRelease";
+	};
+	/**
+	 * How the file dialog (`ClassicyFileDialog`, Standard File) is framed.
+	 * Optional, as is each key.
+	 */
+	fileDialog?: {
+		/**
+		 * `"movable"` (the default, Mac OS 8, HIGOS8 p.59): a movable modal
+		 * window with a title bar. `"fixed"` (System 7, `*-755-dialog-
+		 * standardfile-layout.png`): a fixed modal dialog box, the double frame
+		 * alone, no title bar.
+		 */
+		frame?: "movable" | "fixed";
+		/**
+		 * `"tree"` (the default, Mac OS 8): folders expand in place under
+		 * disclosure triangles. `"flat"` (System 7.5's Standard File): the
+		 * list shows one folder's contents, every row by its small icon, a
+		 * folder entered by a double-click or Open, and the pop-up lists the
+		 * folder's path upward (each level by its small icon), then the other
+		 * volumes.
+		 */
+		navigation?: "tree" | "flat";
 	};
 };
 
@@ -309,6 +332,13 @@ export type ClassicyAppearancePackage = {
 	 * ignored.
 	 */
 	defaultScreenSaver?: string;
+	/**
+	 * How the package dims an icon per pixel (a hidden application's icon in
+	 * the Application menu), drawn on a canvas by the core
+	 * (`ClassicyIconDimming.ts`); without a rule, or for an icon a canvas
+	 * cannot read, the package's stylesheet dims it.
+	 */
+	iconDimming?: ClassicyIconDimming;
 	hooks?: ClassicyAppearanceHooks;
 };
 

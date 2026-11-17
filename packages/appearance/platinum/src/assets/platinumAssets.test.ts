@@ -5,6 +5,7 @@ import {
 	type ClassicyCursorRole,
 	type ClassicySystemArtKey,
 	resolveClassicyAsset,
+	resolveClassicyIconImage,
 } from "@/Appearance/ClassicyAssetRegistry";
 import "./platinumAssets";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
@@ -47,6 +48,11 @@ const PLATINUM_REGISTERS: Record<ClassicySystemArtKey, boolean> = {
 	quickTimeThumbSlider: true,
 	quickTimeVolumeSlider: true,
 	controlStripTab: true,
+	// Platinum mirrors its left tab docked right, labels New Folder in words
+	// and draws the folder pop-up's current level as a folder (story 0214-c61).
+	controlStripTabRight: false,
+	newFolderGlyph: false,
+	openFolderIcon: false,
 	controlStripCollapse: true,
 	controlStripScrollLeft: true,
 	controlStripScrollLeftDisabled: true,
@@ -82,9 +88,9 @@ describe("Platinum system art", () => {
 		expect(resolveClassicyAsset("systemArt", key)).toBeUndefined();
 	});
 
-	it("registers 36 of the 41 keys", () => {
+	it("registers 36 of the 44 keys", () => {
 		expect(REGISTERED).toHaveLength(36);
-		expect(UNREGISTERED).toHaveLength(5);
+		expect(UNREGISTERED).toHaveLength(8);
 	});
 
 	it("draws the Apple menu, trash, alias badge and help button from its own src/assets/art", () => {
@@ -172,6 +178,28 @@ describe("Platinum cursors", () => {
 	it("still reads the hand from the core's icon tree (the PDF viewer draws it)", () => {
 		expect(resolveClassicyAsset("cursors", "hand")).toBe(
 			ClassicyIcons.ui.cursors.hand,
+		);
+	});
+});
+
+// Story 0214-c61: HIGOS8 Fig. 2-24 (p.38) and Fig. 2-43 (p.51) draw the list
+// view's folders as a 16 px small icon of their own, not the 32 px folder
+// scaled. Platinum registers it, cut pixel for pixel from Fig. 2-24, as the
+// generic folder's small image; the 32 px image stays the core's.
+describe("Platinum small icons", () => {
+	const DIRECTORY = ClassicyIcons.system.folders.directory;
+
+	it("draws the folder's own 16 px image at the small size", () => {
+		expect(fileOf(resolveClassicyIconImage(DIRECTORY, 16))).toBe(
+			path.join(PACKAGE, "src/assets/art/folder-small.png"),
+		);
+	});
+
+	it("keeps the core's 32 px folder at every larger size", () => {
+		expect(resolveClassicyIconImage(DIRECTORY, 17)).toBe(DIRECTORY);
+		expect(resolveClassicyIconImage(DIRECTORY, 32)).toBe(DIRECTORY);
+		expect(resolveClassicyAsset("icons", "system.folders.directory")).toBe(
+			DIRECTORY,
 		);
 	});
 });

@@ -227,7 +227,8 @@
 			"Scroll",
 			"ScrollStart",
 			"Status",
-			"Tab"
+			"Tab",
+			"TabRight"
 		],
 		"CrashScreen": [],
 		"DateAndTimeManager": [
@@ -257,6 +258,7 @@
 			"SelectedImage"
 		],
 		"DesktopMenu": [
+			"AppHidden",
 			"AppSwitcher",
 			"Apple",
 			"Extension",
@@ -281,7 +283,7 @@
 			"ViewTableRowIcon",
 			"ViewTableRowIconLabel"
 		],
-		"FileDialog": ["Extension", "NameRow"],
+		"FileDialog": ["Extension", "NameRow", "NewGlyph", "NewNoun", "SaveBody"],
 		"FileInput": [
 			"Body",
 			"Holder",
@@ -291,7 +293,17 @@
 			"Native",
 			"RemoveGlyph"
 		],
-		"FileOpenDialog": ["Actions", "Body", "Footer", "Well", "WellViewport"],
+		"FileOpenDialog": [
+			"Actions",
+			"Body",
+			"Desktop",
+			"Divider",
+			"Eject",
+			"Footer",
+			"Volume",
+			"Well",
+			"WellViewport"
+		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -331,7 +343,7 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["Invisible", "Mask", "MaskOuter", "SelectedImage"],
+		"Icon": ["DimmedImage", "Invisible", "Mask", "MaskOuter", "SelectedImage"],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
@@ -404,6 +416,7 @@
 			"SizeMini",
 			"SizeSmall",
 			"Value",
+			"ValueIcon",
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],
@@ -465,6 +478,7 @@
 		"SubMenu": ["FlipLeft"],
 		"Table": [
 			"Cell",
+			"CellSorted",
 			"ColumnHeader",
 			"Container",
 			"Content",

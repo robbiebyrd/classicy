@@ -2,7 +2,28 @@
 // bevel and the sorted column's pressed-in header.
 @use "../mixins";
 
+$sorted: var(--color-system-02);
+
 @mixin table {
+  // The Finder's list view (ClassicyFileBrowser's table) draws its sorted
+  // column a step darker, its cells and the list below the last row, a white
+  // line still between rows (HIGOS8 Fig. 2-24, p.38, and Fig. 2-43, p.51,
+  // both Finder list views; story 0214-c61, ruling R3): the table publishes
+  // the sorted header's place on its root (0 wide with nothing sorted). The
+  // root scrolls with its window's contents, so the stripe stays under the
+  // column. Generic tables keep one face.
+  .classicyFileBrowserViewTableContainer.classicyTableContainer {
+    background-color: var(--color-system-01);
+    background-image: linear-gradient($sorted, $sorted);
+    background-repeat: no-repeat;
+    background-position: var(--classicy-table-sorted-start) top;
+    background-size: var(--classicy-table-sorted-width) 100%;
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyTableCellSorted {
+    background: $sorted;
+  }
+
   .classicyTableColumnHeader {
     @include mixins.platinum-window-box-shadow;
   }

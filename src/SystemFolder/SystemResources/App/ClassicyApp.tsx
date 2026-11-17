@@ -361,8 +361,14 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 
 	return (
 		<ClassicyAppIdContext.Provider value={id}>
+			{/* A hidden app (the Application menu's Hide commands, HIG7 p.127)
+			    keeps its windows mounted, out of sight. */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: application container captures focus for the app; keyboard users interact with child windows directly */}
-			<div role="application" onClick={onFocus}>
+			<div
+				role="application"
+				onClick={onFocus}
+				hidden={appContext?.hidden === true}
+			>
 				{isAppOpen() && (
 					<>
 						{children}

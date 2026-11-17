@@ -28,6 +28,22 @@ export function deFocusApps(ds: ClassicyStore) {
 	return ds;
 }
 
+/**
+ * Marks `appId` the focused app: every other app and window unfocused, the
+ * app focused, stamped and recorded as `focusedAppId`, and shown when it was
+ * hidden (an app that takes focus is shown, HIG7 p.127). Every path that
+ * gives an app the menu bar goes through here.
+ */
+export function markAppFocused(ds: ClassicyStore, appId: string) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app) return;
+	deFocusApps(ds);
+	app.focused = true;
+	app.lastFocusedAt = Date.now();
+	if (app.hidden) app.hidden = false;
+	ds.System.Manager.Applications.focusedAppId = appId;
+}
+
 export function focusWindow(
 	ds: ClassicyStore,
 	appId: string,
@@ -36,10 +52,7 @@ export function focusWindow(
 ) {
 	const app = ds.System.Manager.Applications.apps[appId];
 	if (!app) return ds;
-	deFocusApps(ds);
-	app.focused = true;
-	app.lastFocusedAt = Date.now();
-	ds.System.Manager.Applications.focusedAppId = appId;
+	markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
@@ -105,10 +118,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
 	} else {
-		deFocusApps(ds);
-		app.focused = true;
-		app.lastFocusedAt = Date.now();
-		ds.System.Manager.Applications.focusedAppId = appId;
+		markAppFocused(ds, appId);
 	}
 }
 
@@ -137,6 +147,66 @@ export function pickSuccessorApp(
 		(b.lastFocusedAt ?? 0) > (a.lastFocusedAt ?? 0) ? b : a,
 	);
 	return best.id;
+}
+
+/** The open apps the Application menu lists: every one but extensions. */
+const applicationMenuApps = (ds: ClassicyStore) =>
+	Object.values(ds.System.Manager.Applications.apps).filter(
+		(app) => app.open && app.extension !== true,
+	);
+
+/**
+ * The open, shown app other than `appId` that takes the menu bar when
+ * `appId` is hidden: the most recently focused one, Finder only when no
+ * other is shown. `undefined` when every other app is hidden or none is
+ * open, so `appId` stays shown (the Application menu dims Hide then).
+ */
+export function pickShownSuccessorApp(
+	ds: ClassicyStore,
+	appId: string,
+): string | undefined {
+	const shown = applicationMenuApps(ds).filter(
+		(app) => app.id !== appId && app.hidden !== true,
+	);
+	const peers = shown.filter((app) => app.id !== "Finder.app");
+	if (peers.length > 0)
+		return peers.reduce((a, b) =>
+			(b.lastFocusedAt ?? 0) > (a.lastFocusedAt ?? 0) ? b : a,
+		).id;
+	return shown[0]?.id;
+}
+
+/**
+ * Hides `appId` (the Application menu's Hide <app>): its windows go out of
+ * sight while it stays open, and, when it held the menu bar, the next shown
+ * app takes it (`pickShownSuccessorApp`). Nothing happens to an extension, a
+ * closed app, or the last shown app.
+ */
+export function hideApp(ds: ClassicyStore, appId: string) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app?.open || app.extension === true || app.hidden === true) return;
+	const successor = pickShownSuccessorApp(ds, appId);
+	if (!successor) return;
+	app.hidden = true;
+	if (app.focused) focusApp(ds, successor);
+}
+
+/**
+ * Hides every open app but `appId` (Hide Others), which takes the menu bar
+ * when it did not hold it.
+ */
+export function hideOtherApps(ds: ClassicyStore, appId: string) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app?.open || app.extension === true) return;
+	if (!app.focused) focusApp(ds, appId);
+	for (const other of applicationMenuApps(ds))
+		if (other.id !== appId) other.hidden = true;
+}
+
+/** Shows every hidden app (Show All); the menu bar stays where it is. */
+export function showAllApps(ds: ClassicyStore) {
+	for (const app of Object.values(ds.System.Manager.Applications.apps))
+		if (app.hidden) app.hidden = false;
 }
 
 export function openApp(
@@ -217,6 +287,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
+		delete findApp.hidden;
 		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
 		}

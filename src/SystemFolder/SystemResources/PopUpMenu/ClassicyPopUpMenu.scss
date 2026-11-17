@@ -191,3 +191,10 @@
 .classicyPopUpMenuListItemGrouped {
   padding-left: var(--control-padding-wide);
 }
+
+// The selected option's icon in the closed control: a part a package may
+// show (System 7's Standard File folder pop-up, story 0214-c61); Mac OS 8's
+// pop-ups draw the label alone.
+.classicyPopUpMenuButton > .classicyPopUpMenuValueIcon {
+  display: none;
+}

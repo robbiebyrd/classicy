@@ -10,6 +10,7 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	getClassicySoundPack,
@@ -358,7 +359,11 @@ describe("the System 7 appearance package", () => {
 			expect(getThemeVars(theme)).toMatchObject({
 				"--menu-bar-height": "20px",
 				"--menu-bar-inset": "9px",
-				"--menu-bar-end-inset": "11px",
+				// The Application menu's title ends 6 px from the screen's
+				// right edge (`*-755-appmenu-closed.png`, story 0214-c61).
+				"--menu-bar-end-inset": "6px",
+				"--menu-bar-switcher-title-start": "9px",
+				"--menu-bar-switcher-title-end": "9px",
 				"--menu-bar-title-padding": "10px",
 				"--menu-bar-title-overlap": "5px",
 				"--menu-bar-highlight-top": "1px",
@@ -404,6 +409,21 @@ describe("the System 7 appearance package", () => {
 				"--ui-font-size": "12px",
 			});
 		}
+	});
+
+	// 7.5.5 draws its small UI text in Geneva 9 under Chicago 12 (the Memory
+	// control panel's slider ticks and labels, `*-755-slider-dragging.png`):
+	// the optional `typography.uiSmall` (story 0214-c61).
+	it("draws small UI text in Geneva in both themes and the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const themes = [pkg?.defaults, ...(pkg?.presets ?? [])] as ClassicyTheme[];
+		expect(themes).toHaveLength(3);
+		for (const theme of themes)
+			expect(getThemeVars(theme)).toMatchObject({
+				"--ui-font": '"ChicagoFLF", "Geneva", sans-serif',
+				"--ui-font-small": '"Geneva", sans-serif',
+			});
 	});
 
 	// The dialogs', alerts' and push buttons' knobs (styles/components/
@@ -560,9 +580,14 @@ describe("the System 7 appearance package", () => {
 			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
 			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
 			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+			// 7.5.5's rows are 18 px apart (`*-755-finder-list-row-selected.png`,
+			// story 0214-c61): the 16 px icon and 1 px above and below, with
+			// no line between rows (_Icon.scss).
+			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
+			rowPadding: 1,
 		});
 	});
 
@@ -629,6 +654,16 @@ describe("the System 7 appearance package", () => {
 		expect(floor.dither.tileSize).toBe(2);
 	});
 
+	// 7.5.5's Application menu title is the Finder's small icon, the System
+	// file's Macintosh (`system.mac`): the 16 px image found at AE 0 in
+	// `*-755-appmenu-closed.png` (review r0 Important 7).
+	it("shows the Finder by the Macintosh icon", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.apps).toEqual({
+			"Finder.app": { icon: ClassicyIcons.system.mac },
+		});
+	});
+
 	it("lays out as the HIG does: grow box bottom right, menu bar on the screen, icons from the top right", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("system7")?.layout).toEqual({
@@ -641,6 +676,10 @@ describe("the System 7 appearance package", () => {
 			// content scrolls on release (HIG p.165); a document window keeps
 			// its bars, inactive, while its document fits (p.160).
 			scrollBar: { thumbDrag: "onRelease", fitsBars: "shown" },
+			// Standard File is a fixed modal dialog box
+			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
+			// and browses one folder at a time (fix round 1, ruling R4).
+			fileDialog: { frame: "fixed", navigation: "flat" },
 		});
 	});
 

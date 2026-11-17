@@ -260,6 +260,36 @@ describe("registerClassicyFonts with shared files", () => {
 		expect(styleCss("system7")).toContain("s/g.woff2");
 	});
 
+	it("writes no element for a package whose every face an earlier package writes", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "Geneva" },
+		]);
+		registerClassicyFonts("system7", [
+			{ family: "Geneva", src: "s/g.woff2", file: "Geneva" },
+		]);
+		expect(document.getElementById("classicy-fonts-system7")).toBeNull();
+		expect(document.querySelectorAll("style")).toHaveLength(1);
+	});
+
+	it("removes a package's element once an earlier package takes its last face over", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Charcoal", src: "p/c.woff2", file: "Charcoal" },
+		]);
+		registerClassicyFonts("system7", [
+			{ family: "Geneva", src: "s/g.woff2", file: "Geneva" },
+		]);
+		expect(rules("system7")).toHaveLength(1);
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "Geneva" },
+		]);
+		expect(document.getElementById("classicy-fonts-system7")).toBeNull();
+		// Handed back, the element is written again.
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g2.woff2", file: "Geneva-2" },
+		]);
+		expect(rules("system7")).toHaveLength(1);
+	});
+
 	it("ignores a file that is not a non-empty string, keeping the face unshared", () => {
 		registerClassicyFonts("platinum", [
 			{ family: "Geneva", src: "p/g.woff2", file: "" },

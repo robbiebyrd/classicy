@@ -671,3 +671,39 @@ describe("ClassicyPopUpMenu label size (#305)", () => {
 		expect(labelClass(container)).toContain("classicyControlLabelSizeSmall");
 	});
 });
+
+// Story 0214-c61 fix round 1 (ruling R4): the closed pop-up draws the
+// selected option's icon as the part `classicyPopUpMenuValueIcon`, which the
+// base sheet hides and a package may show (System 7's Standard File folder
+// pop-up); an option without an icon draws none.
+describe("ClassicyPopUpMenu — the selected option's icon", () => {
+	it("draws the selected option's icon before its label", () => {
+		render(
+			<ClassicyPopUpMenu
+				id="folder"
+				options={[
+					{ value: "a", label: "Apple Extras", icon: "folder.png" },
+					{ value: "b", label: "Macintosh HD", icon: "disk.png" },
+				]}
+				selected="b"
+			/>,
+		);
+		const icon = document.querySelector(
+			"#folder .classicyPopUpMenuValueIcon",
+		) as HTMLImageElement;
+		expect(icon).not.toBeNull();
+		expect(icon.getAttribute("src")).toBe("disk.png");
+		expect(icon.nextElementSibling).toHaveClass("classicyPopUpMenuValue");
+	});
+
+	it("draws none for an option without an icon", () => {
+		render(
+			<ClassicyPopUpMenu
+				id="plain"
+				options={[{ value: "a", label: "A" }]}
+				selected="a"
+			/>,
+		);
+		expect(document.querySelector(".classicyPopUpMenuValueIcon")).toBeNull();
+	});
+});

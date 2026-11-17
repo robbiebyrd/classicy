@@ -1,0 +1,267 @@
+// System 7.5's Standard File box (story 0214-c61), included by system7.scss
+// inside the package wrapper: Open as `*-755-dialog-standardfile-layout.png`
+// draws it, a fixed modal dialog box (the package's layout,
+// `fileDialog.frame: "fixed"`) its size `fileDialog.width` x `height`, its
+// parts placed from the inside of its inner line by the `fileDialog`
+// knobs: the folder pop-up (no label) centered over the list, the disk's
+// small icon and name at the top right, the list, and the button column at
+// the right, Eject (dimmed), Desktop, a dotted line (gray in color, as a
+// menu's divider), Cancel and the default Open. QuickTime's Preview area,
+// at the left in 7.5.5, is not drawn: the box keeps as much white left of
+// the list as right of the buttons. The Save box keeps the base layout.
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+// The Open box and the Save box (7.5's `*-dialog-standardfile-save.png`:
+// the list, "Save this document as:" and its field under it, the same
+// button column with New between Desktop and the line), each placed by its
+// own knobs: `fileDialog.<part>` for Open, `fileDialog.save<Part>` for Save.
+$open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
+$save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
+
+@mixin place($left, $top) {
+  position: absolute;
+  top: $top;
+  left: $left;
+  margin: 0;
+}
+
+// One box's layout: `$box` its body, `$k` its knobs' prefix.
+@mixin box($box, $k) {
+  // The parts are placed from the inner line, over the chrome's inset: the
+  // body fills the modal's inner area (positioned, ClassicyWindow.scss) to
+  // its padding edge.
+  #{$box} {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+  }
+
+  // The folder pop-up, as wide as its contents, centered over the list (no
+  // label: its name is the control's `aria-label`).
+  #{$box} > .classicyPopUpMenuWrapper {
+    @include place(var(--#{$k}list-left), var(--#{$k}pop-up-top));
+
+    display: flex;
+    justify-content: center;
+    width: var(--#{$k}list-width);
+
+    > .classicyControlLabelHolder {
+      display: none;
+    }
+
+    > .classicyPopUpMenu {
+      flex: none;
+      width: auto;
+    }
+
+    // Sized to its contents as 7.5's: the folder's icon
+    // `popUpMenu.valueIconInset` (3) inside the frame, its name
+    // `popUpMenu.valueIconGap` (4) after it, `fileDialog.popUpTail` (17)
+    // before the triangle, and the triangle `popUpMenu.arrowInset` (5) inside
+    // the frame.
+    .classicyPopUpMenuButton {
+      gap: 0;
+      width: auto;
+      padding-right: var(--pop-up-menu-arrow-inset);
+    }
+
+    .classicyPopUpMenuIndicator {
+      margin-right: 0;
+      margin-left: var(--#{$k}pop-up-tail);
+    }
+
+    .classicyPopUpMenuValueIcon {
+      margin-left: calc(var(--pop-up-menu-value-icon-inset) - var(--menu-item-text-inset));
+    }
+
+    .classicyPopUpMenuValue {
+      flex: none;
+    }
+  }
+
+  #{$box} > .classicyFileOpenDialogVolume {
+    @include place(var(--#{$k}volume-left), var(--#{$k}volume-top));
+
+    display: flex;
+    align-items: flex-start;
+    gap: var(--file-dialog-volume-gap);
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    line-height: var(--file-dialog-volume-line-height);
+    white-space: nowrap;
+
+    > img {
+      margin-top: var(--file-dialog-volume-icon-drop);
+    }
+  }
+
+  #{$box} > .classicyFileOpenDialogWell {
+    @include place(var(--#{$k}list-left), var(--#{$k}list-top));
+
+    box-sizing: border-box;
+    width: var(--#{$k}list-width);
+    height: var(--#{$k}list-height);
+    min-height: 0;
+  }
+
+  #{$box} > .classicyFileOpenDialogFooter {
+    display: contents;
+  }
+
+  // The Open box's Show pop-up (file type filters) and the Save box's
+  // Format pop-up, under the list where 7.5.5 draws QuickTime's Show Preview
+  // and SimpleText its document kinds.
+  #{$box} > .classicyFileOpenDialogFooter > .classicyPopUpMenuWrapper {
+    @include place(var(--#{$k}filter-left), var(--#{$k}filter-top));
+
+    display: flex;
+    align-items: center;
+
+    > .classicyPopUpMenu {
+      flex: none;
+      width: auto;
+    }
+
+    .classicyPopUpMenuButton {
+      gap: 0;
+      width: auto;
+      padding-right: var(--pop-up-menu-arrow-inset);
+    }
+
+    .classicyPopUpMenuIndicator {
+      margin-right: 0;
+      margin-left: var(--#{$k}pop-up-tail);
+    }
+
+    .classicyPopUpMenuValue {
+      flex: none;
+    }
+  }
+
+  #{$box} .classicyFileOpenDialogActions {
+    display: contents;
+
+    > .classicyButton {
+      width: var(--file-dialog-button-width);
+    }
+  }
+
+  #{$box} .classicyFileOpenDialogActions > .classicyFileOpenDialogEject {
+    @include place(var(--#{$k}buttons-left), var(--#{$k}eject-top));
+
+    display: block;
+  }
+
+  #{$box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDesktop {
+    @include place(var(--#{$k}buttons-left), var(--#{$k}desktop-top));
+
+    display: block;
+  }
+
+  #{$box} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(2) {
+    @include place(var(--#{$k}buttons-left), var(--#{$k}cancel-top));
+  }
+
+  #{$box} .classicyFileOpenDialogActions > .classicyButton:last-child {
+    @include place(var(--#{$k}buttons-left), var(--#{$k}open-top));
+  }
+
+  // The line under Desktop (under New in Save), from a pixel left of the
+  // column: in color #888888 and #777777 alternating (`--color-theme-06`,
+  // `--color-system-06`, the first at its left end), in 1-bit the dimmed ink
+  // through the checker a pixel along, black on every other pixel from the
+  // column's first (`*-755-dialog-standardfile-layout.png`,
+  // `*-dialog-standardfile-save.png`).
+  #{$box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider {
+    @include place(var(--#{$k}divider-left), var(--#{$k}divider-top));
+
+    display: block;
+    width: var(--#{$k}divider-width);
+    height: $px;
+    border: 0;
+    background: linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / px(2) 100%
+      repeat-x;
+    @include d.classicy-dither-mask;
+    mask-position: $px 0, 0 0;
+  }
+}
+
+@mixin file-dialog {
+  @include box($open, "file-dialog-");
+  @include box($save, "file-dialog-save-");
+
+  // Save's New (folder) button, between Desktop and the line: "New" and a
+  // folder `fileDialog.newGlyphGap` (11) after it, as 7.5 draws it (the
+  // noun hidden; its accessible name stays "New Folder").
+  #{$save} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3) {
+    @include place(var(--file-dialog-save-buttons-left), var(--file-dialog-save-new-top));
+
+    white-space: nowrap;
+  }
+
+  #{$save} .classicyFileDialogNewNoun {
+    display: none;
+  }
+
+  #{$save} .classicyFileDialogNewGlyph {
+    position: relative;
+    bottom: var(--file-dialog-new-glyph-raise);
+    display: inline-flex;
+    margin-left: var(--file-dialog-new-glyph-gap);
+    vertical-align: middle;
+  }
+
+  // "Save As:" over its field, under the list.
+  #{$save} > .classicyFileDialogNameRow {
+    @include place(var(--file-dialog-save-list-left), var(--file-dialog-save-name-top));
+
+    display: block;
+    width: var(--file-dialog-save-name-width);
+
+    .classicyInputHolder {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--file-dialog-save-name-gap);
+    }
+  }
+
+  // The list as 7.5's Standard File draws it (`fileDialog.navigation:
+  // "flat"`): rows `fileDialog.listRowHeight` (18) apart, each a 16 px small
+  // icon `listRowInset` (2) inside the frame and its name `listIconGap` (4)
+  // after it, whole; no disclosure triangles; the selection bar across the
+  // whole row.
+  .classicyFileOpenDialogWell .classicyTree {
+    padding: 0;
+  }
+
+  .classicyFileOpenDialogWell .classicyTreeNodeRow {
+    min-height: 0;
+    height: var(--file-dialog-list-row-height);
+    gap: 0;
+  }
+
+  .classicyFileOpenDialogWell .classicyTreeNodeDisclosure {
+    display: none;
+  }
+
+  .classicyFileOpenDialogWell .classicyTreeNodeLabelHolder {
+    flex: 1;
+    align-self: stretch;
+    gap: var(--file-dialog-list-icon-gap);
+    padding-left: var(--file-dialog-list-row-inset);
+  }
+
+  .classicyFileOpenDialogWell .classicyTreeNodeIcon {
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+  }
+
+  .classicyFileOpenDialogWell .classicyTreeNodeLabel {
+    overflow: visible;
+    text-overflow: clip;
+    line-height: var(--file-dialog-list-row-height);
+  }
+}

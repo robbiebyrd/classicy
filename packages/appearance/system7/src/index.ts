@@ -14,11 +14,13 @@ import {
 	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
+	ClassicyIcons,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
 	registerClassicyAppearancePackage,
 	withDefaultThemeMetrics,
 } from "@classicy/classicy";
+import { SYSTEM7_ICON_DIMMING } from "./system7IconDimming";
 // Both register at module load: the fonts, and the sound pack, which must be
 // registered before the registration below, since the package is validated
 // and a theme's `sound.pack` must name a registered pack. The package lists
@@ -118,4 +120,9 @@ registerClassicyAppearancePackage({
 	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
 	defaultScreenSaver: "bouncing-ball",
+	// The Finder is shown by the System file's Macintosh, its small icon
+	// the Application menu's title (`*-755-appmenu-closed.png`). The core's
+	// URL follows to the active theme's image (color, or the `bw` variant).
+	apps: { "Finder.app": { icon: ClassicyIcons.system.mac } },
+	iconDimming: SYSTEM7_ICON_DIMMING,
 });

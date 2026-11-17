@@ -84,15 +84,16 @@ $vertical-rail-inset: $thumb-half 0;
 }
 
 .classicySliderValue {
-  font-family: var(--ui-font);
   text-align: center;
 }
 
-// The readout is drawn at the small size whatever labelSize says (bf10949e5),
+// The readout is drawn at the small size, in the small UI family
+// (`typography.uiSmall`, the UI family without it), whatever labelSize says (bf10949e5),
 // though it also carries its labelSize class (classicyControlLabelSize*,
 // sizeClassMap in ClassicySlider.tsx). Named under its track group so it
 // outranks those one-class rules whichever stylesheet loads first.
 .classicySliderTrackGroup > .classicySliderValue {
+  font-family: var(--ui-font-small, var(--ui-font));
   font-size: var(--ui-font-size-small);
 }
 
@@ -202,7 +203,7 @@ $vertical-rail-inset: $thumb-half 0;
   position: absolute;
   left: var(--classicy-tick-left);
   transform: translateX(-50%);
-  font-family: var(--ui-font), sans-serif;
+  font-family: var(--ui-font-small, var(--ui-font)), sans-serif;
   font-size: var(--ui-font-size-small);
   line-height: 1;
   white-space: nowrap;

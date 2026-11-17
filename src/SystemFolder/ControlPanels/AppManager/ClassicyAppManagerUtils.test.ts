@@ -1161,3 +1161,31 @@ describe("mergeClassicyState with window overrides", () => {
 		expect(windows.a).toMatchObject({ id: "a", closed: true, size: [1, 1] });
 	});
 });
+
+// Story 0214-c61 fix round 1 (ruling R2): a hidden app is session state, as
+// Mac OS restores none; after a reload every app is shown.
+describe("sanitizeStateForPersistence — hidden apps", () => {
+	it("strips every app's hidden flag", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			hidden: true,
+			data: {},
+			windows: {},
+		};
+		const out = sanitizeStateForPersistence(state);
+		expect(out.System.Manager.Applications.apps["X.app"]).not.toHaveProperty(
+			"hidden",
+		);
+		expect(state.System.Manager.Applications.apps["X.app"].hidden).toBe(true);
+	});
+});

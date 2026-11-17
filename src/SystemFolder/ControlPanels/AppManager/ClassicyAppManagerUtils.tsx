@@ -829,6 +829,9 @@ export function sanitizeStateForPersistence(
 		// if dragged (preventDefault on mousemove, the resizing class) until
 		// its first click.
 		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
+			// Hidden by the Application menu's Hide commands: session state, as
+			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
+			delete app.hidden;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
 				delete w.resizing;

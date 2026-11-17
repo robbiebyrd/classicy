@@ -71,13 +71,13 @@ import {
 	hasThemeMetricFamilyChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import { markAppFocused } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
@@ -288,12 +288,7 @@ export const classicyDesktopEventHandler = (
 				hasMouseEvent(action) &&
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
-				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
-					app.focused = false;
-					for (const w of listAppWindows(app)) w.focused = false;
-				}
-
-				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+				markAppFocused(ds, "Finder.app");
 				ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
@@ -613,6 +608,8 @@ export const classicyDesktopEventHandler = (
 					case "header":
 					case "mono":
 					case "digital":
+					// The small UI text's family (optional; System 7's Geneva).
+					case "uiSmall":
 						theme.typography[action.fontType] = action.font;
 						break;
 				}

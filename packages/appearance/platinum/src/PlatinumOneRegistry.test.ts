@@ -144,6 +144,8 @@ describe("the built bundle and the core's registries", () => {
 				"trash-empty.png",
 				"trash-full.png",
 				"help-button.png",
+				// The list view's 16 px folder (HIGOS8 Fig. 2-24, story 0214-c61).
+				"folder-small.png",
 				"cursor-watch.png",
 				...["lr", "ud", "u", "d", "l", "r"].map(
 					(dir) => `cursor-resize-${dir}.png`,
@@ -158,9 +160,9 @@ describe("the built bundle and the core's registries", () => {
 				"stars4.webp",
 			]),
 		);
-		// Nothing else is in dist/assets: the fonts, the package's art and the
-		// savers' 23 images.
-		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12 + 23);
+		// Nothing else is in dist/assets: the fonts, the package's art (the
+		// small folder its last), and the savers' 23 images.
+		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12 + 1 + 23);
 		// The sprites are the files bin/make_audio_sprites.sh wrote, byte for byte.
 		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
 			expect(

@@ -47,3 +47,14 @@
 	white-space: nowrap;
 	user-select: none;
 }
+
+// System 7.5's Standard File parts (`*-755-dialog-standardfile-layout.png`):
+// the volume's name and icon, Eject, Desktop and the line under them. Mac OS
+// 8's file dialog has none, so they draw only where a package shows them.
+.classicyFileOpenDialogBody > .classicyFileOpenDialogVolume,
+.classicyFileOpenDialogActions > .classicyFileOpenDialogEject,
+.classicyFileOpenDialogActions > .classicyFileOpenDialogDesktop,
+.classicyFileOpenDialogActions > .classicyFileOpenDialogDivider,
+.classicyFileDialogNewGlyph {
+	display: none;
+}

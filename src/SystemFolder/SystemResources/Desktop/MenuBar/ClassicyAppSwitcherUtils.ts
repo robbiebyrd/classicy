@@ -12,6 +12,8 @@ export type ClassicyAppSwitcherEntry = {
 	icon: string;
 	focused?: boolean;
 	open: boolean;
+	/** Hidden by the Application menu's Hide commands. */
+	hidden?: boolean;
 };
 
 /**
@@ -35,6 +37,7 @@ export function appSwitcherAppsFrom(
 				icon,
 				focused: a.focused,
 				open: a.open,
+				...(a.hidden ? { hidden: true } : {}),
 			};
 		});
 }

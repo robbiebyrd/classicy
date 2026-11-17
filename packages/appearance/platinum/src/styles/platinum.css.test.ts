@@ -236,6 +236,18 @@ describe("platinum.scss (compiled)", () => {
 		expect(selectors.length).toBeGreaterThan(unscoped.length);
 	});
 
+	// Story 0214-c61 fix round 3: a hidden application's icon is drawn by
+	// the core with Platinum's dimming rule (`iconDimming`); the opacity is
+	// the fallback for an icon a canvas cannot read, so it stands down over
+	// the dimmed image (`classicyIconDimmedImage`). 0.46 puts black at #777777
+	// on the menu's #DDDDDD, as the rule does.
+	it("dims a hidden application's icon by opacity only when the core drew no dimmed image", () => {
+		expect(css).toMatch(
+			/\.classicyDesktopMenuAppHidden > p > img:not\(\.classicyIconDimmedImage\) \{\s*opacity: 0\.46;\s*\}/,
+		);
+		expect(css).not.toMatch(/\.classicyDesktopMenuAppHidden > p > img \{/);
+	});
+
 	it("contains no platinumCamelCase mixin name", () =>
 		expect(css).not.toMatch(/platinum[A-Z]/));
 

@@ -14,6 +14,7 @@
 @use "components/MenuBar";
 @use "components/PopUpMenu";
 @use "components/Dialog";
+@use "components/FileDialog";
 @use "components/Alert";
 @use "components/Button";
 @use "components/Label";
@@ -49,6 +50,7 @@
   @include Triangle.triangle;
   @include TextField.text-field;
   @include ListBox.list-box;
+  @include FileDialog.file-dialog;
   @include ControlGroup.control-group;
   @include ProgressBar.progress-bar;
   @include FlatControls.flat-controls;

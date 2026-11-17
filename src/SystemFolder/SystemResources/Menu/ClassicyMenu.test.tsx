@@ -261,15 +261,21 @@ describe("ClassicyMenu", () => {
 		expect(container.querySelector(".classicyMenuItemCheck")).toBeNull();
 	});
 
-	it("never renders both an icon and a checkmark (checkmark wins)", () => {
+	// Story 0214-c61: the Application menu checks the front application
+	// beside its small icon (HIG7 p.127, 7.5.5's `*-755-appmenu-open.png`).
+	it("renders the checkmark, then the icon, for an item with both", () => {
 		const items = [
 			{ id: "tools", title: "Tools", checked: true, icon: "tool.png" },
 		];
 		const { container } = render(
 			<ClassicyMenu name="test-menu" menuItems={items} />,
 		);
-		expect(container.querySelector(".classicyMenuItemCheck")).not.toBeNull();
-		expect(container.querySelector("img")).toBeNull();
+		const p = container.querySelector("#tools > p") as HTMLElement;
+		expect(
+			[...p.children].map((child) =>
+				child.tagName === "IMG" ? "img" : child.className,
+			),
+		).toEqual(["classicyMenuItemCheck checked", "img"]);
 	});
 });
 

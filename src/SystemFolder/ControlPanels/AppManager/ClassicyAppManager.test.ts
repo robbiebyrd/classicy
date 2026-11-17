@@ -2060,3 +2060,171 @@ describe("DefaultAppManagerState without the Platinum package module", () => {
 		expect(activeTheme.desktop.backgroundImage).toBe("");
 	});
 });
+
+// Story 0214-c61: the Application menu's Hide <app>, Hide Others and Show All
+// (HIG7 p.127: "hide the open windows of the active application or any other
+// open applications"; 7.5.5's `*-755-appmenu-open.png`). A hidden app
+// stays open, with its windows out of sight, until it is shown or focused.
+describe("ClassicyAppHide, ClassicyAppHideOthers and ClassicyAppShowAll", () => {
+	const withNotes = (focused: "Notes.app" | "Finder.app" = "Notes.app") => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			windows: {},
+			data: {},
+		};
+		focusApp(ds, focused);
+		return ds;
+	};
+	const apps = (ds: ClassicyStore) => ds.System.Manager.Applications.apps;
+
+	it("hides the app and hands the menu bar to a visible one", () => {
+		const ds = withNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Notes.app"].hidden).toBe(true);
+		expect(apps(ds)["Notes.app"].open).toBe(true);
+		expect(apps(ds)["Notes.app"].focused).toBe(false);
+		expect(apps(ds)["Finder.app"].focused).toBe(true);
+		expect(ds.System.Manager.Applications.focusedAppId).toBe("Finder.app");
+	});
+
+	it("hides nothing when no other app is visible", () => {
+		const ds = withNotes();
+		apps(ds)["Finder.app"].hidden = true;
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Notes.app"].hidden).not.toBe(true);
+		expect(apps(ds)["Notes.app"].focused).toBe(true);
+	});
+
+	it("never hides an extension or a closed app", () => {
+		const ds = withNotes("Finder.app");
+		apps(ds)["Notes.app"].extension = true;
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Notes.app"].hidden).not.toBe(true);
+		apps(ds)["Notes.app"].extension = false;
+		apps(ds)["Notes.app"].open = false;
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Notes.app"].hidden).not.toBe(true);
+	});
+
+	it("hides every other open app, the app keeping (or taking) the menu bar", () => {
+		const ds = withNotes("Finder.app");
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHideOthers",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Finder.app"].hidden).toBe(true);
+		expect(apps(ds)["Notes.app"].hidden).not.toBe(true);
+		expect(apps(ds)["Notes.app"].focused).toBe(true);
+	});
+
+	it("shows every hidden app", () => {
+		const ds = withNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		classicyDesktopStateEventReducer(ds, { type: "ClassicyAppShowAll" });
+		expect(apps(ds)["Notes.app"].hidden).toBe(false);
+		expect(apps(ds)["Finder.app"].focused).toBe(true);
+	});
+
+	it("shows a hidden app that takes focus", () => {
+		const ds = withNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppHide",
+			app: { id: "Notes.app" },
+		});
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppFocus",
+			app: { id: "Notes.app" },
+		});
+		expect(apps(ds)["Notes.app"].hidden).toBe(false);
+		expect(apps(ds)["Notes.app"].focused).toBe(true);
+	});
+});
+
+// Review r0 Critical 2: every way an app takes focus shows it, not only
+// focusApp: a window opening or taking focus, and the desktop's focusing the
+// Finder.
+describe("a hidden app that takes focus is shown", () => {
+	const hiddenNotes = () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			hidden: true,
+			windows: windowsRecord({
+				id: "note",
+				closed: false,
+				focused: false,
+			} as ClassicyStoreSystemAppWindow),
+			data: {},
+		};
+		return ds;
+	};
+	const notes = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Notes.app"];
+
+	it("on ClassicyWindowOpen", () => {
+		const ds = hiddenNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "Notes.app" },
+			window: { id: "other", size: [100, 100], position: [0, 0] },
+		});
+		expect(notes(ds).focused).toBe(true);
+		expect(notes(ds).hidden).toBe(false);
+	});
+
+	it("on ClassicyWindowFocus", () => {
+		const ds = hiddenNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyWindowFocus",
+			app: { id: "Notes.app" },
+			window: { id: "note" },
+		});
+		expect(notes(ds).focused).toBe(true);
+		expect(notes(ds).hidden).toBe(false);
+	});
+
+	it("on the desktop's focusing the Finder (ClassicyDesktopIconFocus)", () => {
+		const ds = hiddenNotes();
+		ds.System.Manager.Applications.apps["Finder.app"].hidden = true;
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopIconFocus",
+			iconId: "Finder.app",
+		});
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].hidden).toBe(
+			false,
+		);
+	});
+
+	it("and a closed app is never left hidden", () => {
+		const ds = hiddenNotes();
+		closeApp(ds, "Notes.app");
+		expect(notes(ds).hidden).not.toBe(true);
+	});
+});

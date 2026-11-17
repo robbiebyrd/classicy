@@ -21,7 +21,11 @@ import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
 // The renaming tests switch back to Platinum, which must be registered.
 import "@classicy/appearance-platinum";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { registerClassicyAssets } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	registerClassicyAssets,
+	registerClassicySystemArt,
+} from "@/Appearance/ClassicyAssetRegistry";
+import { encodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ActionMessage,
@@ -1445,5 +1449,176 @@ describe("Control Strip tab when the pointer stream is lost", () => {
 		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// Story 0214-c61 fix round 1 (review r0 Important 5): 7.5.5 docks its strip
+// right with a tab of its own (not the left one mirrored), and aligns the
+// 1-bit checker to the strip's own origin.
+describe("ClassicyControlStrip — docked right, 7.5.5's way", () => {
+	const strip = () => screen.getByRole("toolbar", { name: "Control Strip" });
+	const tab = () =>
+		strip().querySelector(".classicyControlStripTab") as HTMLElement;
+	const dockRight = () =>
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 0,
+		});
+
+	it("draws the mirrored left tab when the package has no right tab art", () => {
+		register(...testModules());
+		dockRight();
+		renderStrip();
+		expect(tab()).not.toHaveClass("classicyControlStripTabRight");
+	});
+
+	it("draws the package's right tab art, unflipped, when it registers one", () => {
+		register(...testModules());
+		registerClassicySystemArt("platinum", {
+			controlStripTabRight: encodeClassicyPixelArtRows(["KK", "WK"]),
+		});
+		dockRight();
+		renderStrip();
+		expect(tab()).toHaveClass("classicyControlStripTabRight");
+	});
+
+	it("publishes whether its origin falls on an odd pixel, for a package's checker", () => {
+		register(...testModules());
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: HTMLElement) {
+				const odd = this.classList.contains("classicyControlStrip");
+				return {
+					left: odd ? 901 : 0,
+					top: odd ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			},
+		);
+		dockRight();
+		renderStrip();
+		expect(
+			strip().style.getPropertyValue("--classicy-control-strip-phase"),
+		).toBe("1px");
+	});
+
+	// Review r1 item 7: the desktop may move or resize with no window
+	// resize; the strip measures again when its desktop root resizes.
+	it("measures its origin again when the desktop resizes", () => {
+		register(...testModules());
+		const observed: { cb: ResizeObserverCallback; els: Element[] }[] = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				els: Element[] = [];
+				constructor(cb: ResizeObserverCallback) {
+					observed.push({ cb, els: this.els });
+				}
+				observe(el: Element) {
+					this.els.push(el);
+				}
+				unobserve() {}
+				disconnect() {}
+			},
+		);
+		let left = 900;
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: HTMLElement) {
+				const isStrip = this.classList.contains("classicyControlStrip");
+				return {
+					left: isStrip ? left : 0,
+					top: isStrip ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			},
+		);
+		const desktop = document.createElement("div");
+		desktop.className = "classicyDesktop";
+		document.body.append(desktop);
+		try {
+			dockRight();
+			renderWithProviders(
+				<ClassicyControlStrip disabledModules={BUILT_INS} />,
+				{ container: desktop },
+			);
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("");
+			// jsdom lays nothing out, so the strip's positioned ancestor is its
+			// parent here.
+			const watcher = observed.find(({ els }) =>
+				els.includes(strip().parentElement as Element),
+			);
+			expect(watcher).toBeDefined();
+			left = 901;
+			act(() => watcher?.cb([], {} as ResizeObserver));
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("1px");
+		} finally {
+			desktop.remove();
+			vi.unstubAllGlobals();
+		}
+	});
+	// Review r2 Minor: the capture-phase scroll listener hears every scroll
+	// in the page; it reads the strip's box once per animation frame.
+	it("measures once per animation frame however many scrolls arrive", () => {
+		register(...testModules());
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		vi.stubGlobal("cancelAnimationFrame", () => {});
+		let left = 900;
+		const box = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				const isStrip = this.classList.contains("classicyControlStrip");
+				return {
+					left: isStrip ? left : 0,
+					top: isStrip ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			});
+		try {
+			dockRight();
+			renderStrip();
+			const reads = () =>
+				box.mock.contexts.filter((el) =>
+					(el as HTMLElement).classList.contains("classicyControlStrip"),
+				).length;
+			const before = reads();
+			const pendingBefore = frames.length;
+			left = 901;
+			for (let i = 0; i < 5; i++) window.dispatchEvent(new Event("scroll"));
+			expect(reads()).toBe(before);
+			expect(frames.length).toBe(pendingBefore + 1);
+			act(() => frames.at(-1)?.(0));
+			expect(reads()).toBe(before + 1);
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("1px");
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 });

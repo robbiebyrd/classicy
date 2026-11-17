@@ -15,6 +15,7 @@ import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
+	cloneElement,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type ReactNode,
@@ -2149,6 +2150,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// unmounted) must drop the scrim too — otherwise the input-blocking backdrop
 	// outlives the window and locks the whole page.
 	if (modal && desktopRoot && !ws.closed) {
+		// A hidden app's modal (the Application menu's Hide commands) is
+		// portaled outside the app's hidden container, so it and its scrim
+		// hide themselves, kept mounted, as the app's other windows are.
+		const appHidden = currentApp?.hidden === true;
 		// #197: modal windows render an input-blocking scrim; clicking it beeps.
 		const modalScrim = (
 			// biome-ignore lint/a11y/noStaticElementInteractions: scrim is a mouse-only backdrop
@@ -2157,6 +2162,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					"classicyWindowModalScrim",
 					modal && type === "error" ? "classicyWindowModalScrimError" : "",
 				)}
+				style={appHidden ? { display: "none" } : undefined}
 				role="presentation"
 				onMouseDown={onModalScrimClick}
 			></div>
@@ -2164,7 +2170,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return createPortal(
 			<>
 				{modalScrim}
-				{windowContent}
+				{appHidden && windowContent
+					? cloneElement(windowContent, {
+							style: {
+								...(windowContent.props as { style?: CSSProperties }).style,
+								display: "none",
+							},
+						} as { style: CSSProperties })
+					: windowContent}
 			</>,
 			desktopRoot,
 		);

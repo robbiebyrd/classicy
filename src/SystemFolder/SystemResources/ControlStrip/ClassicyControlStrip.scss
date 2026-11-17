@@ -40,7 +40,13 @@
 // --classicy-control-strip-bottom to the stored height above the desktop's
 // bottom edge and --classicy-control-strip-top-inset to the menu bar's depth,
 // so a shrunken desktop caps the strip just under the menu bar.
+//
+// --classicy-control-strip-phase is 1px while the strip's origin (left plus
+// top, in viewport pixels) is odd, which the component sets; a package
+// shifts a screen-fixed pattern by it to align the pattern to the strip.
 .classicyControlStrip {
+  --classicy-control-strip-phase: 0px;
+
   position: absolute;
   left: 0;
   bottom: max(
@@ -78,10 +84,12 @@
 
   .classicyControlStripTab {
     order: -1;
+  }
 
-    svg {
-      transform: scaleX(-1);
-    }
+  // The left tab mirrored, unless the package draws a right tab of its own
+  // (`controlStripTabRight`, which marks the tab `classicyControlStripTabRight`).
+  .classicyControlStripTab:not(.classicyControlStripTabRight) svg {
+    transform: scaleX(-1);
   }
 
   .classicyControlStripCollapseBox {

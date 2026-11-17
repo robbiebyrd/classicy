@@ -163,6 +163,12 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 					return;
 				case "key":
 					return page.keyboard.press(args[0]);
+				// A modifier held across other steps (Option-dragging the
+				// Control Strip's tab).
+				case "keyDown":
+					return page.keyboard.down(args[0]);
+				case "keyUp":
+					return page.keyboard.up(args[0]);
 				case "type":
 					return page.keyboard.type(args[0], { delay: 60 });
 				case "wait":
@@ -251,6 +257,21 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 	// Boot ends when Infinite Mac's welcome notes are up (Stickies, the
 	// yellow note's face at 500,80); quit Stickies, then wait for the note
 	// to go.
+	// Mac OS 8 (Platinum's references, story 0214-c61) shows its welcome
+	// notes elsewhere, and they are left up: boot ends when the Finder's
+	// Platinum menu bar is drawn, its face (#E7E7E7 on screen, the emulator
+	// showing #DDDDDD through its display gamma) above its black bottom edge
+	// (row 19), which no startup screen draws there.
+	if (/^Mac OS 8/.test(disk ?? "")) {
+		const face = ([r, g, b]) => r === 0xe7 && g === 0xe7 && b === 0xe7;
+		const black = ([r, g, b]) => r === 0 && g === 0 && b === 0;
+		await emulator.waitFor(100, 10, face, 180_000);
+		await emulator.waitFor(100, 19, black, 30_000);
+		// The Finder draws its desktop and the welcome notes after the bar.
+		await sleep(5_000);
+		await emulator.step(["move", 630, 300]);
+		return emulator;
+	}
 	await emulator.waitFor(500, 80, yellow, 90_000);
 	await sleep(3_000);
 	await emulator.step(["quitStickies"]);
@@ -314,6 +335,17 @@ const controlPanel = (y) => [
 	["up"],
 	["wait", 3_000],
 ];
+/** Chooses the item at y in the menu whose title is at x (top of the bar). */
+const menuItem = (x, y) => [
+	["move", x, 10],
+	["down"],
+	["wait", 900],
+	["move", x - 26, 30, 6],
+	["move", x - 26, y, 4],
+	["wait", 400],
+	["up"],
+	["wait", 2_000],
+];
 /** Holds the menu at x, y open, the pointer off it, and shoots it. */
 const heldMenu = (x, y, name) => [
 	["move", x, y],
@@ -333,6 +365,20 @@ const pressed = (x, y, name) => [
 	["move", 400, 300, 8],
 	["up"],
 	["wait", 600],
+];
+/** Option-drags the Control Strip's tab, at `from` on the strip's row, to `to`. */
+const optionDragTab = (from, to) => [
+	["keyDown", "Alt"],
+	["move", from, 467],
+	["down"],
+	["wait", 600],
+	["move", 300, 467, 8],
+	["move", to < 300 ? 100 : 500, 467, 8],
+	["move", to, 467, 8],
+	["wait", 600],
+	["up"],
+	["keyUp", "Alt"],
+	["wait", 1_500],
 ];
 /** The Control Strip's Monitor module's depths, by their item's y. */
 export const DEPTHS = {
@@ -395,6 +441,32 @@ export const SCENES = {
 		["shot", `${d}-755-controlstrip`],
 		...heldMenu(120, 477, `${d}-755-controlstrip-module-pressed`),
 		...pressed(12, 478, `${d}-755-controlstrip-collapse-pressed`),
+		PARK,
+	],
+	// The Control Strip docked at the right edge, Option-dragging its tab
+	// there (Control Strip 1.3's own move), then back at the left (story
+	// 0214-c61).
+	controlstripright: (d) => [
+		PARK,
+		...optionDragTab(146, 636),
+		PARK,
+		["shot", `${d}-755-controlstrip-right`],
+		...optionDragTab(494, 2),
+		PARK,
+	],
+	// A hidden application (story 0214-c61): Scrapbook in front, Hide
+	// Others (the Finder hidden), the Application menu held open, then Show
+	// All and Scrapbook closed.
+	appmenuhidden: (d) => [
+		...appleMenu(276),
+		...menuItem(616, 44),
+		PARK,
+		...heldMenu(616, 10, `${d}-755-appmenu-hidden-app`),
+		...menuItem(616, 60),
+		["click", 200, 50],
+		["wait", 800],
+		["key", "Meta+w"],
+		["wait", 1_500],
 		PARK,
 	],
 	// Macintosh HD opened, then the window and its list view.

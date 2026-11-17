@@ -538,6 +538,46 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/border-top: 0;/);
 		});
 
+		// 7.5.5's Application menu title is the front application's small
+		// icon alone, in a title 34 px wide (`*-755-appmenu-closed.png`,
+		// story 0214-c61): the name is kept for screen readers, at no size.
+		it("draws the Application menu's title as the front app's icon alone", () => {
+			const switcher = rule(`${TITLES}.classicyDesktopMenuAppSwitcher`);
+			expect(switcher).toMatch(
+				/padding: 0 var\(--menu-bar-switcher-title-end\) 0 var\(--menu-bar-switcher-title-start\);/,
+			);
+			const p = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p`);
+			expect(p).toMatch(/font-size: 0;/);
+			const menu = rule(
+				`${TITLES}.classicyDesktopMenuAppSwitcher > .classicyMenuWrapper > .classicySubMenu`,
+			);
+			expect(menu).toMatch(/right: 0;/);
+			expect(menu).toMatch(/left: auto;/);
+			// Open, its icon inverts with the highlight in 1-bit, by
+			// menuBar.titleArtInvert as a number (review r1 item 1).
+			expect(css).toContain(
+				"filter: invert(tan(atan2(var(--menu-bar-title-art-invert), var(--box-pixel))));",
+			);
+			// A hidden application's icon in the menu is dimmed, through the
+			// checker (review r0 Minor), unless the core drew it dimmed by the
+			// package's rule (review r2 §3: `classicyIconDimmedImage`).
+			const hidden = rule(
+				".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)",
+			);
+			expect(hidden).toContain(
+				"mask-image: var(--classicy-art-dither-checker)",
+			);
+			expect(hidden).toContain(
+				"mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;",
+			);
+			expect(css).toContain(
+				"opacity: tan(atan2(var(--menu-item-hidden-icon-opacity), var(--menu-item-hidden-icon-opacity-scale)));",
+			);
+			const img = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p > img`);
+			expect(img).toMatch(/width: var\(--menu-bar-title-art-size\);/);
+			expect(img).toMatch(/margin: 0;/);
+		});
+
 		it("puts Help between the clock and the Application menu", () => {
 			expect(rule(".classicyDesktopMenu > [data-classicy-part=help]")).toMatch(
 				/order: 55;/,
@@ -1977,20 +2017,31 @@ describe("system7.scss (compiled)", () => {
 		// become `none` over the base sheet's darkening: no highlight. So the
 		// rule, and only it, sits in an `@supports` test of the functions
 		// themselves (no `var()`), and such a browser keeps the darkening.
-		it("guards the list-view icon's filter with @supports for tan() and atan2()", () => {
+		it("guards each icon filter with @supports for tan() and atan2()", () => {
 			const guarded = [
 				...css.matchAll(
 					/@supports \(filter: invert\(tan\(atan2\(1em, 1em\)\)\)\) \{\s*([^{}]+)\{([^{}]*)\}\s*\}/g,
 				),
 			];
-			expect(guarded).toHaveLength(1);
-			const [, header, declarations] = guarded[0];
-			expect(header.trim()).toBe(
+			// The open Application menu title's icon (review r1 item 1), a
+			// hidden application's icon's opacity (item 2) and the list view's
+			// selected icon.
+			expect(guarded.map(([, header]) => header.trim())).toEqual([
+				expect.stringContaining(
+					".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)",
+				),
+				expect.stringContaining(
+					".classicyDesktopMenuAppSwitcher.open > p > img",
+				),
 				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
-			);
-			expect(declarations).toMatch(/filter: invert\(tan\(atan2\(/);
-			// Nothing outside the guard uses the functions.
-			const outside = css.replace(guarded[0][0], "");
+			]);
+			for (const [, , declarations] of guarded)
+				expect(declarations).toMatch(
+					/(filter: invert\(|opacity: )tan\(atan2\(/,
+				);
+			// Nothing outside the guards uses the functions.
+			let outside = css;
+			for (const [block] of guarded) outside = outside.replace(block, "");
 			expect(outside).not.toMatch(/atan2\(|tan\(/);
 		});
 
@@ -2029,7 +2080,7 @@ describe("system7.scss (compiled)", () => {
 		// and pressed fill white. The checker is fixed to the screen, so its
 		// phase is the screen's, not the cell's.
 		const CHECKER =
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--dither-tile-size) var(--dither-tile-size) fixed";
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-control-strip-phase) top/var(--dither-tile-size) var(--dither-tile-size) fixed";
 		const SHADOW =
 			"var(--package-color-control-strip-shadow, var(--color-system-04))";
 		// 7.5.5's Finder list view (`*-finder-list-row-selected.png`, story
@@ -2040,6 +2091,124 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(label).toMatch(/color: var\(--color-white\);/);
 			expect(label).toMatch(/background: var\(--color-black\);/);
+		});
+
+		// 7.5.5's list rows are white and drawn with no line between them, an
+		// 18 px pitch: a 16 px icon and `fileBrowserList.rowPadding` (1)
+		// above and below (story 0214-c61).
+		it("draws list-view rows white with no line between them", () => {
+			const row = rule(
+				".classicyFileBrowserViewTableContainer .classicyTableRow",
+			);
+			expect(row).toMatch(/border-top-width: 0;/);
+			expect(row).toMatch(/border-bottom-width: 0;/);
+			expect(row).toMatch(/background: var\(--color-white\);/);
+			expect(
+				rule(".classicyFileBrowserViewTableContainer.classicyTableContainer"),
+			).toMatch(/background: var\(--color-white\);/);
+		});
+
+		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,
+		// 7.5's `*-dialog-standardfile-save.png`; story 0214-c61): each box's
+		// parts placed from the inner line by its own knobs.
+		it("lays Standard File's Open and Save boxes out as 7.5 does", () => {
+			const OPEN =
+				".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
+			const SAVE = ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
+			for (const [box, k] of [
+				[OPEN, "file-dialog-"],
+				[SAVE, "file-dialog-save-"],
+			] as const) {
+				expect(rule(box)).toMatch(/position: absolute;\s+inset: 0;/);
+				const placed = (part: string, left: string, top: string) => {
+					const declarations = rule(`${box} ${part}`);
+					expect(declarations, `${box} ${part}`).toMatch(/position: absolute;/);
+					expect(declarations, part).toContain(`top: var(--${k}${top});`);
+					expect(declarations, part).toContain(`left: var(--${k}${left});`);
+				};
+				placed("> .classicyPopUpMenuWrapper", "list-left", "pop-up-top");
+				placed("> .classicyFileOpenDialogVolume", "volume-left", "volume-top");
+				placed("> .classicyFileOpenDialogWell", "list-left", "list-top");
+				placed(
+					"> .classicyFileOpenDialogFooter > .classicyPopUpMenuWrapper",
+					"filter-left",
+					"filter-top",
+				);
+				for (const [part, top] of [
+					["Eject", "eject-top"],
+					["Desktop", "desktop-top"],
+				])
+					placed(
+						`.classicyFileOpenDialogActions > .classicyFileOpenDialog${part}`,
+						"buttons-left",
+						top,
+					);
+				placed(
+					".classicyFileOpenDialogActions > .classicyFileOpenDialogDivider",
+					"divider-left",
+					"divider-top",
+				);
+				placed(
+					".classicyFileOpenDialogActions > .classicyButton:nth-last-child(2)",
+					"buttons-left",
+					"cancel-top",
+				);
+				placed(
+					".classicyFileOpenDialogActions > .classicyButton:last-child",
+					"buttons-left",
+					"open-top",
+				);
+				expect(
+					rule(
+						`${box} > .classicyPopUpMenuWrapper > .classicyControlLabelHolder`,
+					),
+				).toMatch(/display: none;/);
+				// The line: in color #888888 and #777777 alternating (theme-06,
+				// system-06), in 1-bit the checker a pixel along.
+				const divider = rule(
+					`${box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
+				);
+				expect(divider).toContain(
+					"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)",
+				);
+				expect(divider).toContain("mask-position: var(--box-pixel) 0, 0 0;");
+			}
+			expect(rule(`${OPEN} > .classicyFileOpenDialogVolume > img`)).toContain(
+				"margin-top: var(--file-dialog-volume-icon-drop);",
+			);
+			expect(
+				rule(
+					`${SAVE} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3)`,
+				),
+			).toContain("top: var(--file-dialog-save-new-top);");
+			// "New" and a folder (review r1 item 4).
+			expect(rule(`${SAVE} .classicyFileDialogNewNoun`)).toMatch(
+				/display: none;/,
+			);
+			expect(rule(`${SAVE} .classicyFileDialogNewGlyph`)).toContain(
+				"margin-left: var(--file-dialog-new-glyph-gap);",
+			);
+			expect(rule(`${SAVE} > .classicyFileDialogNameRow`)).toContain(
+				"top: var(--file-dialog-save-name-top);",
+			);
+			// The flat list: 16 px icons on the row pitch, no triangles, the
+			// selection across the row, whole names.
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeRow"),
+			).toContain("height: var(--file-dialog-list-row-height);");
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeDisclosure"),
+			).toMatch(/display: none;/);
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeIcon"),
+			).toContain("width: var(--icon-small-size);");
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeLabel"),
+			).toMatch(/text-overflow: clip;/);
+			// The closed pop-up's icon part, shown.
+			expect(
+				rule(".classicyPopUpMenuButton > .classicyPopUpMenuValueIcon"),
+			).toMatch(/display: block;/);
 		});
 
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
@@ -2089,7 +2258,10 @@ describe("system7.scss (compiled)", () => {
 					`${root}.classicyControlStripCollapseBox:active:not(:disabled)`,
 				);
 				for (const look of [raised, pressed]) {
-					expect(layersOf(look, black), root).toBe(2);
+					// Docked right, one pixel inside the frame: the frame and the
+					// black line past it are the corner's other two (story
+					// 0214-c61, `*-755-controlstrip-right.png`).
+					expect(layersOf(look, black), root).toBe(root ? 1 : 2);
 					expect(look, root).toMatch(
 						root
 							? /var\(--color-black\)\) 100% 100%/
@@ -2101,6 +2273,13 @@ describe("system7.scss (compiled)", () => {
 					"var(--package-color-control-strip-pressed-face, var(--color-system-04))",
 				);
 			}
+			const right = rule(
+				".classicyControlStripRight .classicyControlStripCollapseBox",
+			);
+			expect(right).toMatch(/margin-right: var\(--window-border-size\);/);
+			expect(right).toMatch(
+				/box-shadow: var\(--window-border-size\) 0 0 var\(--color-black\);/,
+			);
 		});
 
 		// A pressed cell (a module with its menu held open, or the collapse
@@ -2171,9 +2350,10 @@ describe("system7.scss (compiled)", () => {
 				expect(look.match(/ fixed\b/g), selector).toHaveLength(1);
 				// Its transparent quarters (top left and bottom right of the
 				// 2 x 2 tile, the layers beneath showing through) fall on the
-				// viewport's even x + y.
+				// viewport's even x + y, a pixel along while the strip's origin
+				// is odd (the core's --classicy-control-strip-phase).
 				expect(look, selector).toMatch(
-					/conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) left top\//,
+					/conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-control-strip-phase\) top\//,
 				);
 			}
 		});
