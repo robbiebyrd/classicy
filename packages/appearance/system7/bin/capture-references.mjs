@@ -258,9 +258,17 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 	// yellow note's face at 500,80); quit Stickies, then wait for the note
 	// to go.
 	// Mac OS 8 (Platinum's references, story 0214-c61) shows its welcome
-	// notes elsewhere: it is given time to boot and its notes are left up.
+	// notes elsewhere, and they are left up: boot ends when the Finder's
+	// Platinum menu bar is drawn, its face (#E7E7E7 on screen, the emulator
+	// showing #DDDDDD through its display gamma) above its black bottom edge
+	// (row 19), which no startup screen draws there.
 	if (/^Mac OS 8/.test(disk ?? "")) {
-		await sleep(60_000);
+		const face = ([r, g, b]) => r === 0xe7 && g === 0xe7 && b === 0xe7;
+		const black = ([r, g, b]) => r === 0 && g === 0 && b === 0;
+		await emulator.waitFor(100, 10, face, 180_000);
+		await emulator.waitFor(100, 19, black, 30_000);
+		// The Finder draws its desktop and the welcome notes after the bar.
+		await sleep(5_000);
 		await emulator.step(["move", 630, 300]);
 		return emulator;
 	}
