@@ -4528,10 +4528,15 @@ literals.
   row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
   edited icon size; the metrics' `rowPitch`), and `top`, the first row's
   top for a top origin and the highest a bottom origin's row goes (the
-  metrics' `top`). Each counts when a theme sets it to a finite number of
-  zero or more; unset, rows step by `cell + padding` from `4 × padding`, as
-  columns always do, so Platinum, which sets neither, lays its desktop out
-  as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
+  metrics' `top`). Each is read from the theme completed by its package's
+  defaults (`withDefaultThemeMetrics(theme,
+  classicyThemeMeasurementDefaults(theme.package))`, as `getThemeVars`
+  reads every knob), so a saved Custom theme, which persistence stores
+  without the values equal to those defaults, keeps its package's rows.
+  Each counts when that value is a finite number of zero or more; unset in
+  the theme and in its package, rows step by `cell + padding` from
+  `4 × padding`, as columns always do, so Platinum, which sets neither,
+  lays its desktop out as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
   tops at y 60, 112, 164, 216 under its 20 px bar, a 52 px pitch for its
   32 px icons; `*-desktop-menubar-icons.png`).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose

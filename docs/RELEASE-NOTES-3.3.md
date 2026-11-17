@@ -651,8 +651,10 @@ the ids the saver already names:
 - **Optional core knobs `desktopIconGrid.rowGap` and `desktopIconGrid.top`.**
   The desktop's Clean Up and icon placement step rows by
   `desktop.iconSize` plus `rowGap` and start the first row at `top` when a
-  theme sets them to zero or more, else by `cell + padding` from
-  `4 × padding` as before (columns are unchanged). `ClassicyDesktopIconMetrics`
+  theme, completed by its package's defaults as `getThemeVars` completes
+  it, sets them to zero or more (so a saved Custom theme keeps its
+  package's rows), else by `cell + padding` from `4 × padding` as before
+  (columns are unchanged). `ClassicyDesktopIconMetrics`
   gains the optional `rowPitch` and `top` they make. Platinum sets neither,
   so its desktop lays out as before; System 7 sets 20 and 28, 7.5's rows.
 - **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is

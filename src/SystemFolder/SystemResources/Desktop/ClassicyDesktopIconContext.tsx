@@ -6,6 +6,10 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
 import {
+	classicyThemeMeasurementDefaults,
+	withDefaultThemeMetrics,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import {
 	hasApp,
 	hasDesktopAppRef,
 	hasIconAddFields,
@@ -58,12 +62,19 @@ export type ClassicyDesktopIconMetrics = {
 
 // An optional package knob of the `desktopIconGrid` family, not a structural
 // one: the core floor has none, so Platinum's grid keeps following its
-// formula. A value that is not a finite number of zero or more is ignored.
+// formula. Read from the theme completed by its package's defaults, as
+// getThemeVars reads it: persistence stores a theme without the knob values
+// equal to those defaults (H-R17) and the load path refills only the core
+// five families, so a saved Custom theme of the package has no family of its
+// own. A value that is not a finite number of zero or more is ignored.
 const desktopIconGridKnob = (
 	theme: ClassicyTheme,
 	key: "rowGap" | "top",
 ): number | undefined => {
-	const value = theme.measurements?.desktopIconGrid?.[key];
+	const value = withDefaultThemeMetrics(
+		theme,
+		classicyThemeMeasurementDefaults(theme.package),
+	).measurements?.desktopIconGrid?.[key];
 	return typeof value === "number" && Number.isFinite(value) && value >= 0
 		? value
 		: undefined;

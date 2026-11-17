@@ -1,3 +1,4 @@
+import { castDraft, produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
 import {
 	getClassicyAppearancePackage,
@@ -12,6 +13,9 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import {
 	getClassicySoundPack,
 	listClassicySoundPacks,
@@ -636,6 +640,43 @@ describe("the System 7 appearance package", () => {
 		}
 		expect(system7Json.defaults.measurements.desktopIconGrid).toEqual({
 			rowGap: 20,
+			top: 28,
+		});
+	});
+
+	// A forked (Custom) System 7 theme is persisted without the knob values
+	// equal to its package's defaults (H-R17), and the load path refills the
+	// core five families only, so the knobs must come from the package's
+	// defaults when the theme lacks them, as getThemeVars reads them.
+	it("keeps 7.5's rows for a Custom theme as it is persisted", async () => {
+		await import("./index");
+		const preset = (getClassicyAppearancePackage("system7")?.presets ??
+			[])[0] as ClassicyTheme;
+		const custom = {
+			...preset,
+			id: "custom-system7",
+			name: "Custom",
+		} as ClassicyTheme;
+		const state = produce(DefaultAppManagerState, (draft) => {
+			draft.System.Manager.Appearance.packageId = "system7";
+			draft.System.Manager.Appearance.activeTheme = castDraft(custom);
+			draft.System.Manager.Appearance.customThemes = castDraft([custom]);
+		});
+		const stored =
+			sanitizeStateForPersistence(state).System.Manager.Appearance.activeTheme;
+		// Stripped the way persistence strips it.
+		expect(stored.measurements.desktopIconGrid).toBeUndefined();
+		expect(classicyDesktopIconMetrics(stored)).toMatchObject({
+			size: 32,
+			rowPitch: 52,
+			top: 28,
+		});
+		// And once the load path's migration has run over it.
+		const loaded = migrateClassicyState(
+			JSON.parse(JSON.stringify(sanitizeStateForPersistence(state))),
+		).System.Manager.Appearance.activeTheme;
+		expect(classicyDesktopIconMetrics(loaded)).toMatchObject({
+			rowPitch: 52,
 			top: 28,
 		});
 	});
