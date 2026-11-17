@@ -3,11 +3,13 @@ id: 0199-chr
 title: 'Storybook: share the System 7 story helpers'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: chor
-status: pending
+status: complete
 priority: "5"
 effort: S
 created: "2026-11-12T14:12:47.028Z"
-updated: "2026-11-12T14:12:47.028Z"
+updated: "2026-11-17T00:29:27.045Z"
+started: "2026-11-17T00:29:16.521Z"
+completed: "2026-11-17T00:29:27.045Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Move them into @sb/system7 (storybook/.storybook/system7.ts) and import them
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: One definition, used by every System 7 story file.
+- [x] VERIFY: One definition, used by every System 7 story file.
 
 ## Files
 

@@ -3,11 +3,13 @@ id: 0211-4pl
 title: 'System 7: package code tidy'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: chor
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-12T14:16:08.708Z"
-updated: "2026-11-12T14:16:08.708Z"
+updated: "2026-11-17T00:35:29.068Z"
+started: "2026-11-17T00:35:18.671Z"
+completed: "2026-11-17T00:35:29.068Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Fix each item; tests; System 7 references re-checked where pixels change
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Each item is fixed or shown not to apply, with tests.
+- [x] VERIFY: Each item is fixed or shown not to apply, with tests.
 
 ## Files
 

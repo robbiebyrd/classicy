@@ -3,11 +3,13 @@ id: 0202-x7e
 title: 'Platinum: sound sprites rebuild byte-identically'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: chor
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:56.587Z"
-updated: "2026-11-12T14:12:56.587Z"
+updated: "2026-11-17T00:30:18.766Z"
+started: "2026-11-17T00:30:08.343Z"
+completed: "2026-11-17T00:30:18.766Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Confirm a second forced re-encode is byte-identical
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: A forced Platinum audio rebuild reproduces every committed sprite file byte for byte.
+- [x] VERIFY: A forced Platinum audio rebuild reproduces every committed sprite file byte for byte.
 
 ## Files
 

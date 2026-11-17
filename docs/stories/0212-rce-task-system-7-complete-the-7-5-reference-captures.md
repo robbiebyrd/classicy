@@ -3,11 +3,13 @@ id: 0212-rce
 title: 'System 7: complete the 7.5 reference captures'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: task
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-12T14:16:11.782Z"
-updated: "2026-11-12T14:16:11.782Z"
+updated: "2026-11-17T00:36:20.636Z"
+started: "2026-11-17T00:36:10.282Z"
+completed: "2026-11-17T00:36:20.636Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -58,7 +60,7 @@ Clean up the index
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Every System 7 look the package draws has a capture or a HIG figure, and inferred looks match their new captures.
+- [x] VERIFY: Every System 7 look the package draws has a capture or a HIG figure, and inferred looks match their new captures.
 
 ## Files
 

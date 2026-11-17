@@ -3,11 +3,13 @@ id: 0213-tdy
 title: 'System 7: Simple Beep rendered by the real square-wave synthesizer'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: impr
-status: pending
+status: complete
 priority: "5"
 effort: S
 created: "2026-11-12T14:16:14.607Z"
-updated: "2026-11-12T14:16:14.607Z"
+updated: "2026-11-17T00:37:12.617Z"
+started: "2026-11-17T00:37:02.045Z"
+completed: "2026-11-17T00:37:12.616Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Render Simple Beep with it and compare against an emulator recording
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Simple Beep matches an emulator recording of the original within a stated tolerance, or the source of the waveform is documented.
+- [x] VERIFY: Simple Beep matches an emulator recording of the original within a stated tolerance, or the source of the waveform is documented.
 
 ## Files
 

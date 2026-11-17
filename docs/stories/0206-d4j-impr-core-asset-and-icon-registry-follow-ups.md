@@ -3,11 +3,13 @@ id: 0206-d4j
 title: 'Core: asset and icon registry follow-ups'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:15:52.252Z"
-updated: "2026-11-12T14:15:52.252Z"
+updated: "2026-11-17T00:32:02.239Z"
+started: "2026-11-17T00:31:51.869Z"
+completed: "2026-11-17T00:32:02.239Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -52,7 +54,7 @@ Stable getSnapshot; iconSmall documented or moved to context; comment; small-siz
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Each item is fixed and tested; Platinum parity AE 0.
+- [x] VERIFY: Each item is fixed and tested; Platinum parity AE 0.
 
 ## Files
 

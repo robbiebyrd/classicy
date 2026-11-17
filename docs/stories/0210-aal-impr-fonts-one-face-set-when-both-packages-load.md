@@ -3,11 +3,13 @@ id: 0210-aal
 title: 'Fonts: one face set when both packages load'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:16:05.500Z"
-updated: "2026-11-12T14:16:05.500Z"
+updated: "2026-11-17T00:34:37.426Z"
+started: "2026-11-17T00:34:26.984Z"
+completed: "2026-11-17T00:34:37.426Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -52,7 +54,7 @@ Remove the carry-over config
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Both packages loaded inject each face once; System 7's small size is 9 px; config clean; Platinum parity AE 0.
+- [x] VERIFY: Both packages loaded inject each face once; System 7's small size is 9 px; config clean; Platinum parity AE 0.
 
 ## Files
 

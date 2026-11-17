@@ -3,11 +3,13 @@ id: 0209-2zg
 title: 'Repo gate: base-look pinning parser'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: bugs
-status: pending
+status: complete
 priority: "5"
 effort: XS
 created: "2026-11-12T14:16:02.093Z"
-updated: "2026-11-12T14:16:02.093Z"
+updated: "2026-11-17T00:33:45.870Z"
+started: "2026-11-17T00:33:35.395Z"
+completed: "2026-11-17T00:33:45.870Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Parse selectors and data URLs correctly; add cases
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The parser handles both cases, with tests.
+- [x] VERIFY: The parser handles both cases, with tests.
 
 ## Files
 

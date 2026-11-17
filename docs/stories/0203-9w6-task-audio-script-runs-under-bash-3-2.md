@@ -3,11 +3,13 @@ id: 0203-9w6
 title: Audio script runs under bash 3.2
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package).
 type: task
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:12:59.945Z"
-updated: "2026-11-12T14:12:59.945Z"
+updated: "2026-11-17T00:31:10.607Z"
+started: "2026-11-17T00:31:00.102Z"
+completed: "2026-11-17T00:31:10.607Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -46,7 +48,7 @@ Run the script's loop-list and guarded expansions (and a full System 7 encode in
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: The audio script runs to completion under bash 3.2 for both packages.
+- [x] VERIFY: The audio script runs to completion under bash 3.2 for both packages.
 
 ## Files
 

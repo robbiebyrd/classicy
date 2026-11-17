@@ -3,11 +3,13 @@ id: 0207-726
 title: 'Core: menu bar and Help menu details'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6.
 type: bugs
-status: pending
+status: complete
 priority: "4"
 effort: S
 created: "2026-11-12T14:15:55.574Z"
-updated: "2026-11-12T14:15:55.574Z"
+updated: "2026-11-17T00:32:54.092Z"
+started: "2026-11-17T00:32:43.586Z"
+completed: "2026-11-17T00:32:54.092Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -40,7 +42,7 @@ Fix each item with a test
 
 ## Acceptance Criteria
 
-- [ ] VERIFY: Help analytics carry a title, the Apple menu image has alt text, the test restores the core tree, and a negative band falls back.
+- [x] VERIFY: Help analytics carry a title, the Apple menu image has alt text, the test restores the core tree, and a negative band falls back.
 
 ## Files
 
