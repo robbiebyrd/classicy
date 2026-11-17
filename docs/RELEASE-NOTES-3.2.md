@@ -301,6 +301,23 @@ diverge, so a logo registered through Platinum's
   The flag is session state: it is not persisted. A menu item that is both `checked` and
   has an `icon`/`image` now draws both, the mark first (before, the mark
   replaced the icon).
+- **Icon dimming** (AGENT-REFERENCE §8, "Icon dimming"). A hidden
+  application's icon in the Application menu is dimmed per pixel by the
+  active package's new `iconDimming` declaration (`hiddenApp`: blend toward
+  a color, keep the top bits of each channel, then the nearest entry of a
+  palette, judged over all three channels at once), drawn on a canvas and
+  cached per icon and rule; the alpha mask is kept. New `ClassicyMenuItem`
+  field `imageDimmed`, part class `classicyIconDimmedImage`, and exports
+  `ClassicyIconDimming`, `ClassicyIconDimmingRule`,
+  `useClassicyDimmedIconImage`, `resolveClassicyIconDimmingRule`,
+  `dimClassicyIconPixels` and `classicyDimmedIconSource`. **Limit:** an
+  icon served cross-origin without CORS headers taints a canvas, so its
+  pixels cannot be read; it is dimmed by the package's stylesheet instead
+  (an opacity, which only approximates the rule). Serve icons from the
+  page's origin, as `data:` URLs, or with CORS. Platinum and System 7 both
+  declare Mac OS's rule (halfway to white, 4 bits, the 8-bit system
+  palette), measured from 7.5.5 and 8.1; Platinum's fallback opacity is
+  0.46.
 - **Standard File parts.** `ClassicyFileOpenDialog` and
   `ClassicyFileSaveDialog` always render System 7.5's extra parts: the
   volume's small icon and name (`classicyFileOpenDialogVolume`), Eject
@@ -323,7 +340,9 @@ diverge, so a logo registered through Platinum's
   the base sheet), its accessible name "New Folder"; the flat pop-up draws
   the `openFolderIcon` system art for the folder shown when a package
   registers it; and in flat Save, a selected folder turns Save into Open,
-  which enters it, as Enter does.
+  which enters it, as Enter does, until the name field takes focus or
+  changes, which deselects the list so Enter saves (7.5's behavior).
+  `ClassicyInput` takes a new optional `onFocusFunc`.
 - **The small UI text's family.** A theme may name it in the optional
   `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
   only when set. Small control labels and the slider's readout and tick

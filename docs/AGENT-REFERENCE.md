@@ -1109,7 +1109,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
+| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
 | `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
@@ -3311,6 +3311,50 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
   reducer creates one; on a close with invalid `data`, it replaces `data` with
   `{ openFiles: [] }`.
 
+#### Icon dimming
+
+A package's optional `iconDimming` declares how it dims an icon, per pixel;
+the core draws the result on a canvas (`ClassicyIconDimming.ts`). One
+surface reads it today: `hiddenApp`, a hidden application's icon in the
+Application menu (HIG7 p.127). A rule is data, validated at registration:
+
+```ts
+iconDimming: {
+    hiddenApp: {
+        blend: { color: '#FFFFFF', amount: 0.5 }, // each channel halfway to white, rounded down
+        bits: 4,                                  // keep 4 bits per channel, widened by repeating them (0x7 -> 0x77)
+        palette: ['#FFFFFF', '#FFFFCC', /* … */], // then the nearest entry over all three channels (ties: the earlier)
+    },
+    variants: { bw: { hiddenApp: null } },        // under a theme's assetVariant; null: no rule
+}
+```
+
+Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
+pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
+is a `data:` URL, cached per source, rule and size for the page, and the
+`<img>` drawing it carries the part class `classicyIconDimmedImage`
+(`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), so the package's stylesheet dimming
+stands down: write that dimming as the fallback,
+`.classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)`.
+The fallback draws when the package declares no rule (or `null` under the
+variant), before the image is ready, and for an icon a canvas cannot read:
+**a cross-origin icon served without CORS** taints the canvas, so its pixels
+cannot be read (the core loads icons with `crossOrigin = "anonymous"`, so a
+cross-origin host that sends CORS headers is read; one that does not fails
+that load and is logged once at `info`). This is a browser limit, not a
+choice: serve icons from the page's origin, as `data:` URLs, or with CORS.
+
+System 7 and Platinum declare the same rule (`system7IconDimming.ts`,
+`platinumIconDimming.ts`): blend halfway to white, 4 bits, the Macintosh
+8-bit system palette (the 6x6x6 cube, then the red, green, blue and gray
+ramps). It reproduces 7.5.5's dimmed Finder icon and 8.1's dimmed Stickies
+icon pixel for pixel. System 7's `bw` variant declares none: 1-bit dims
+through the 50% checker. Components draw an icon dimmed with
+`ClassicyMenuItem.imageDimmed` (the App Switcher sets it on a hidden app's
+row); `useClassicyDimmedIconImage(src, dimmed)` and
+`resolveClassicyIconDimmingRule(purpose, packageId?, variant?)` are the
+hook and the store-free reader.
+
 #### Package hooks
 
 A package's `hooks` are its behavior: what it adds to a component's root
@@ -3752,9 +3796,10 @@ Platinum (§1); its README lists what it ships.
   Application menu's title is the front app's small icon alone
   (`menuBar.switcherTitleStart`/`End` 9, `menuBar.endInset` 6), inverted
   while open in 1-bit (`menuBar.titleArtInvert`), its menu right-aligned
-  under it, a hidden application's icon dimmed (the checker in 1-bit,
-  `menuItem.hiddenIconOpacity`/`hiddenIconOpacityScale` in color; Platinum
-  at 0.35 opacity, as Mac OS 8.1); list rows are white, 18 px apart
+  under it, a hidden application's icon dimmed (the checker in 1-bit; in
+  color by the package's `iconDimming` rule, §8 "Icon dimming", with
+  `menuItem.hiddenIconOpacity`/`hiddenIconOpacityScale` as the fallback
+  opacity; Platinum declares the same rule, its fallback 0.46 opacity); list rows are white, 18 px apart
   (`fileBrowserList.rowPadding` 1, no row lines); small text is Geneva
   (`typography.uiSmall`).
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
@@ -3862,7 +3907,7 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
-| `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open, Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
+| `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open, Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
