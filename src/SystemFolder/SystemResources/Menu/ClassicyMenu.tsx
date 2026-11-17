@@ -73,6 +73,11 @@ export interface ClassicyMenuItem {
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
+	 * Draw the image or icon dimmed by the active package's rule (a hidden
+	 * application's, HIG7 p.127; `ClassicyIconImage`'s `dimmed`).
+	 */
+	imageDimmed?: boolean;
+	/**
 	 * Keyboard equivalent, in any `parseKeyboardShortcut` spelling (`"⌘S"`,
 	 * `"Cmd+Shift+S"`, `"F1"`), drawn right-aligned in glyph form. Items of the
 	 * menu bar's menus fire on the chord app-wide; a standalone menu only
@@ -803,9 +808,14 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					<ClassicyIconImage
 						src={menuItem.image}
 						alt={menuItem.imageAlt ?? menuItem.title}
+						dimmed={menuItem.imageDimmed}
 					/>
 				) : menuItem.icon ? (
-					<ClassicyIconImage src={menuItem.icon} alt={menuItem.title} />
+					<ClassicyIconImage
+						src={menuItem.icon}
+						alt={menuItem.title}
+						dimmed={menuItem.imageDimmed}
+					/>
 				) : null}
 				{menuItem.title &&
 					(widthSamples.length > 0 ? (

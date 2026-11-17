@@ -247,6 +247,31 @@ const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
  * `hooks` (code and compiled CSS, which no schema can vouch for). Unknown
  * keys, those three included, are stripped from the parsed output.
  */
+const dimmingColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "must be #RRGGBB");
+
+const iconDimmingRule = z
+	.object({
+		blend: z.object({
+			color: dimmingColor,
+			amount: z.number().min(0).max(1),
+		}),
+		bits: z.number().int().min(1).max(8).optional(),
+		palette: z.array(dimmingColor).min(1).max(256).optional(),
+	})
+	.strict();
+
+const iconDimming = z
+	.object({
+		hiddenApp: iconDimmingRule.optional(),
+		variants: z
+			.record(
+				z.string(),
+				z.object({ hiddenApp: iconDimmingRule.nullable().optional() }).strict(),
+			)
+			.optional(),
+	})
+	.strict();
+
 export const ClassicyAppearancePackageSchema = z
 	.object({
 		id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
@@ -283,6 +308,11 @@ export const ClassicyAppearancePackageSchema = z
 			.optional()
 			.describe(
 				"Per-app display overrides keyed by app id (\"MoviePlayer.app\"): a name, icon or balloon description shown in place of the app's own. Display only; the app's id, action types and saved state keep its own identity.",
+			),
+		iconDimming: iconDimming
+			.optional()
+			.describe(
+				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
 			),
 	})
 	// The defaults are the theme a switch to this package activates; one that

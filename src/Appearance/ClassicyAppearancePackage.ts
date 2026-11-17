@@ -6,6 +6,7 @@ import type {
 	ClassicyAssetTree,
 } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import type { ClassicyIconDimming } from "@/Appearance/ClassicyIconDimming";
 import type {
 	ClassicyComponentName,
 	ClassicyState,
@@ -331,6 +332,13 @@ export type ClassicyAppearancePackage = {
 	 * ignored.
 	 */
 	defaultScreenSaver?: string;
+	/**
+	 * How the package dims an icon per pixel (a hidden application's icon in
+	 * the Application menu), drawn on a canvas by the core
+	 * (`ClassicyIconDimming.ts`); without a rule, or for an icon a canvas
+	 * cannot read, the package's stylesheet dims it.
+	 */
+	iconDimming?: ClassicyIconDimming;
 	hooks?: ClassicyAppearanceHooks;
 };
 

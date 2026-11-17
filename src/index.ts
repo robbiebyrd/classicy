@@ -12,6 +12,7 @@ export * from "./Appearance/ClassicyAppearanceStyles";
 export * from "./Appearance/ClassicyAssetRegistry";
 export * from "./Appearance/ClassicyAssetSource";
 export * from "./Appearance/ClassicyCoreTheme";
+export * from "./Appearance/ClassicyIconDimming";
 export * from "./Appearance/ClassicyPixelArtSource";
 export * from "./Appearance/ClassicyWallpaperIndex";
 export * from "./Appearance/useClassicyAppearance";

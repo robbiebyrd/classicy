@@ -1,4 +1,8 @@
 import type { ImgHTMLAttributes } from "react";
+import {
+	CLASSICY_ICON_DIMMED_IMAGE_CLASS,
+	useClassicyDimmedIconImage,
+} from "@/Appearance/ClassicyIconDimming";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 
 type ClassicyIconImageProps = Omit<
@@ -25,6 +29,15 @@ type ClassicyIconImageProps = Omit<
 	selectable?: boolean;
 	/** The icon is drawn selected (only with `selectable`). */
 	selected?: boolean;
+	/**
+	 * The icon is drawn dimmed (a hidden application's, HIG7 p.127): the
+	 * active package's `iconDimming.hiddenApp` rule is applied on a canvas,
+	 * and the result drawn once ready, the `<img>` then marked
+	 * `classicyIconDimmedImage` so the package's stylesheet dimming stands
+	 * down. Without a rule, or for an icon a canvas cannot read (cross-origin
+	 * without CORS), the stylesheet's dimming applies.
+	 */
+	dimmed?: boolean;
 };
 
 /** An `<img>` of an icon that picks the leaf's small image at small sizes,
@@ -34,6 +47,7 @@ export const ClassicyIconImage = ({
 	drawnAt = true,
 	selectable = false,
 	selected = false,
+	dimmed = false,
 	alt,
 	className,
 	...rest
@@ -44,15 +58,28 @@ export const ClassicyIconImage = ({
 		selectable && selected,
 		selectable,
 	);
+	// Dimmed at the size it is drawn when that is given, else at the
+	// image's own size (the small image, at the small-icon size, where its
+	// leaf has one), and scaled by the surface's CSS like the plain image.
+	const { image: drawn, drawsDimmedImage } = useClassicyDimmedIconImage(
+		image,
+		dimmed,
+		"hiddenApp",
+		drawnAt === true ? undefined : drawnAt,
+	);
 	return (
 		<img
 			{...rest}
 			className={
-				[className, drawsSelectedImage && "classicyIconSelectedImage"]
+				[
+					className,
+					drawsSelectedImage && "classicyIconSelectedImage",
+					drawsDimmedImage && CLASSICY_ICON_DIMMED_IMAGE_CLASS,
+				]
 					.filter(Boolean)
 					.join(" ") || undefined
 			}
-			src={src === undefined ? undefined : image}
+			src={src === undefined ? undefined : drawn}
 			alt={alt}
 		/>
 	);

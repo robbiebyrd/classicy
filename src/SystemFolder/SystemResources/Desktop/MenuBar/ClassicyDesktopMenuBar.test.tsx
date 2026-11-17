@@ -1,6 +1,14 @@
-import { act, fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { produce } from "immer";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the test package's theme names.
+import "../../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming";
+import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,
 	type ClassicyStoreSystemApp,
@@ -563,5 +571,100 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			"Hide Others",
 			true,
 		]);
+	});
+});
+
+// Story 0214-c61 fix round 3: a hidden application's icon is drawn with the
+// active package's dimming rule (`iconDimming.hiddenApp`), on a canvas.
+describe("ClassicyDesktopMenuBar — a hidden application's dimmed icon", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+		resetClassicyAppearancePackagesForTests();
+		resetClassicyDimmedIconsForTests();
+	});
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		resetClassicyDimmedIconsForTests();
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it("draws only the hidden application's icon dimmed", async () => {
+		registerClassicyAppearancePackage({
+			id: "platinum",
+			name: "Test",
+			css: "",
+			defaults: { ...getTheme("default"), package: "platinum" },
+			layout: {
+				window: { growBoxCorner: "bottom-right" },
+				menuBar: { placement: "screen" },
+				desktop: { iconGridOrigin: "top-right" },
+			},
+			iconDimming: {
+				hiddenApp: { blend: { color: "#FFFFFF", amount: 0.5 }, bits: 4 },
+			},
+		});
+		// A constructor (\`new Image()\`): an <img> that loads at once.
+		vi.stubGlobal(
+			"Image",
+			class {
+				constructor() {
+					const img = document.createElement("img");
+					Object.defineProperty(img, "naturalWidth", { value: 16 });
+					Object.defineProperty(img, "naturalHeight", { value: 16 });
+					queueMicrotask(() => img.onload?.(new Event("load")));
+					// biome-ignore lint/correctness/noConstructorReturn: stands in for an HTMLImageElement
+					return img;
+				}
+			},
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+			() =>
+				({
+					drawImage: vi.fn(),
+					getImageData: vi.fn(() => ({
+						data: new Uint8ClampedArray(16 * 16 * 4),
+					})),
+					putImageData: vi.fn(),
+				}) as unknown as CanvasRenderingContext2D,
+		);
+		vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
+			"data:image/png;base64,DIMMED",
+		);
+		const base = { windows: {}, open: true, data: {} };
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": {
+					...base,
+					id: "Finder.app",
+					name: "Finder",
+					icon: "/icons/Finder.png",
+					focused: true,
+				},
+				"Notes.app": {
+					...base,
+					id: "Notes.app",
+					name: "Notes",
+					icon: "/icons/Notes.png",
+					focused: false,
+					hidden: true,
+				},
+			};
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+		});
+		render(<ClassicyDesktopMenuBar />);
+		const switcher = document.querySelector("#app-switcher") as HTMLElement;
+		fireEvent.click(switcher.querySelector("p") ?? switcher);
+		const img = (id: string) =>
+			switcher.querySelector(`[id="${id}"] > p > img`) as HTMLImageElement;
+		await waitFor(() =>
+			expect(img("Notes.app").getAttribute("src")).toBe(
+				"data:image/png;base64,DIMMED",
+			),
+		);
+		expect(img("Notes.app").classList).toContain("classicyIconDimmedImage");
+		expect(img("Finder.app").getAttribute("src")).not.toBe(
+			"data:image/png;base64,DIMMED",
+		);
 	});
 });

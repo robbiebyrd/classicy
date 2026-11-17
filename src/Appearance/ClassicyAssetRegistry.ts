@@ -859,6 +859,13 @@ export const resolveClassicyIconImage = (
 	);
 };
 
+/**
+ * The active theme's asset variant for the active package (`ClassicyTheme.assetVariant`),
+ * or `undefined`. Store-free, read at call time.
+ */
+export const getActiveClassicyAssetVariant = (): string | undefined =>
+	activeVariantFor(getActiveClassicyAppearancePackageId());
+
 /** `resolveClassicyIconImage`, re-read when the registry or the theme changes. */
 export const useClassicyIconImage = (
 	src: string,

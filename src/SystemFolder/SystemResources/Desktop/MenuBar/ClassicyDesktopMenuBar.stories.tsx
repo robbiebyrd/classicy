@@ -141,9 +141,9 @@ const HiddenSwitcherOpen = () => {
 
 /**
  * The App Switcher after Hide Others: Show All enabled, and the hidden
- * Storybook app's icon dimmed toward the menu's face, as Mac OS 8.1 draws a
- * hidden application (the capture script's `platinum-81-appmenu-hidden-app`
- * on Infinite Mac).
+ * Storybook app's icon dimmed by Platinum's `iconDimming` rule, as Mac OS
+ * 8.1 draws a hidden application (the capture script's
+ * `platinum-81-appmenu-hidden-app` on Infinite Mac).
  */
 export const AppSwitcherHiddenApp: Story = {
 	parameters: desktopParameters,

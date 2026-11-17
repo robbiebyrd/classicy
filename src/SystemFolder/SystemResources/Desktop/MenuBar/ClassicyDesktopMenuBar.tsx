@@ -277,9 +277,13 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					icon: app.icon,
 					title: app.name,
 					// The front application is checked, beside its icon; a hidden
-					// one's icon is dimmed (`classicyDesktopMenuAppHidden`).
+					// one's icon is dimmed: by the package's rule on a canvas
+					// (`imageDimmed`), else by its stylesheet
+					// (`classicyDesktopMenuAppHidden`).
 					checked: app.id === focusedApp?.id,
-					...(app.hidden ? { className: "classicyDesktopMenuAppHidden" } : {}),
+					...(app.hidden
+						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
+						: {}),
 					onClickFunc: () => {
 						setActiveApp(app.id);
 					},

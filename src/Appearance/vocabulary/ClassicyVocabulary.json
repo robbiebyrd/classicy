@@ -343,7 +343,7 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["Invisible", "Mask", "MaskOuter", "SelectedImage"],
+		"Icon": ["DimmedImage", "Invisible", "Mask", "MaskOuter", "SelectedImage"],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
