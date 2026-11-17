@@ -93,14 +93,48 @@ export const publishClassicyScrollPatternOrigin = (
 	);
 };
 
+/** Events after which a bar may have moved against its origin. */
+const SETTLE_EVENTS = [
+	"scroll",
+	"transitionend",
+	"transitioncancel",
+	"animationend",
+	"animationcancel",
+];
+
+/** Events after which a stylesheet's `:hover`, `:active` or `:focus` rule
+ * may lay a bar out anew: read a frame later, once the state has applied. */
+const STATE_EVENTS = [
+	"pointerover",
+	"pointerout",
+	"pointerdown",
+	"pointerup",
+	"focusin",
+	"focusout",
+];
+
 /**
  * While `enabled`, keeps a bar's and its track's published origin current:
- * before the first paint, and again whenever the bar, the window or any
- * element between them changes size (a resize moves the far bars against
- * the origin; a part above a bar growing moves it down), a font finishes
- * loading (text reflowing above a bar), or anything in the window scrolls
- * (a bar inside scrolled content moves with it). Disabled or unmounted, the
- * properties are removed.
+ * before the first paint, and again whenever something can have moved the
+ * bar against the origin:
+ * - the bar, the window, its title bar or any element between them changes
+ *   size (a resize moves the far bars; a part above a bar growing moves it
+ *   down);
+ * - the DOM inside the window changes (content inserted above a bar inside
+ *   a container whose box stays put, a class or style moving a part), the
+ *   desktop's attributes change (a theme's variables, the package) or a
+ *   stylesheet is added, removed or edited;
+ * - anything scrolls: inside a window, its own content (a bar inside
+ *   scrolled content moves with it); outside one, any container or the
+ *   document, since the origin (the desktop's corner, else the viewport's)
+ *   does not scroll with the bar;
+ * - a transition or an animation ends, a font finishes loading (text
+ *   reflowing above a bar) or the viewport resizes (a media query);
+ * - the pointer or the focus moves, a frame later (a rule keyed on a
+ *   pseudo-class state lays out with no attribute changing).
+ * Publishing writes only changed values, so the mutation it makes itself
+ * settles after one more read. Disabled or unmounted, the properties are
+ * removed.
  */
 export const useClassicyScrollPatternOrigin = (
 	bar: RefObject<HTMLElement | null>,
@@ -111,26 +145,72 @@ export const useClassicyScrollPatternOrigin = (
 		const barEl = bar.current;
 		if (!enabled || !barEl) return;
 		const trackEl = track.current;
+		const doc = barEl.ownerDocument;
+		const view = doc.defaultView;
 		const publish = () => publishClassicyScrollPatternOrigin(barEl, trackEl);
 		publish();
+		let frame = 0;
+		const publishNextFrame = () => {
+			if (!view || frame) return;
+			frame = view.requestAnimationFrame(() => {
+				frame = 0;
+				publish();
+			});
+		};
 		const win = barEl.closest<HTMLElement>(".classicyWindow");
-		const observer =
+		const desktop = barEl.closest<HTMLElement>(".classicyDesktop");
+		const resizes =
 			typeof ResizeObserver === "undefined"
 				? null
 				: new ResizeObserver(publish);
 		for (
 			let el: HTMLElement | null = barEl;
-			el && observer;
+			el && resizes;
 			el = el === win ? null : el.parentElement
 		)
-			observer.observe(el);
-		win?.addEventListener("scroll", publish, true);
-		const fonts = barEl.ownerDocument.fonts;
+			resizes.observe(el);
+		const titleBar = win?.querySelector(":scope > .classicyWindowTitleBar");
+		if (titleBar) resizes?.observe(titleBar);
+		const mutations =
+			typeof MutationObserver === "undefined"
+				? null
+				: new MutationObserver(publish);
+		const scope = win ?? desktop ?? doc.body;
+		if (scope)
+			mutations?.observe(scope, {
+				subtree: true,
+				childList: true,
+				attributes: true,
+				characterData: true,
+			});
+		if (desktop && desktop !== scope)
+			mutations?.observe(desktop, { attributes: true });
+		if (doc.head)
+			mutations?.observe(doc.head, {
+				subtree: true,
+				childList: true,
+				characterData: true,
+			});
+		// Inside a window, only the window's own events move a bar against
+		// its origin; outside one, the whole document's.
+		const events: EventTarget = win ?? doc;
+		for (const type of SETTLE_EVENTS)
+			events.addEventListener(type, publish, true);
+		for (const type of STATE_EVENTS)
+			events.addEventListener(type, publishNextFrame, true);
+		view?.addEventListener("resize", publish);
+		const fonts = doc.fonts;
 		fonts?.addEventListener?.("loadingdone", publish);
 		return () => {
-			observer?.disconnect();
-			win?.removeEventListener("scroll", publish, true);
+			resizes?.disconnect();
+			mutations?.disconnect();
+			for (const type of SETTLE_EVENTS)
+				events.removeEventListener(type, publish, true);
+			for (const type of STATE_EVENTS)
+				events.removeEventListener(type, publishNextFrame, true);
+			view?.removeEventListener("resize", publish);
 			fonts?.removeEventListener?.("loadingdone", publish);
+			if (frame) view?.cancelAnimationFrame(frame);
 			for (const el of [barEl, trackEl]) {
 				el?.style.removeProperty(CLASSICY_SCROLL_ORIGIN_X);
 				el?.style.removeProperty(CLASSICY_SCROLL_ORIGIN_Y);
