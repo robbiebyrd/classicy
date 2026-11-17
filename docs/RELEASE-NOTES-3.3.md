@@ -1,8 +1,8 @@
-# Release notes: 3.2
+# Release notes: 3.3
 
 A second Appearance Package, System 7, ships beside Platinum, with the core
 capabilities it needed. These notes list every change a host can see,
-measured from 3.1.x, with the step each change needs. The API is described in
+measured from 3.2.x, with the step each change needs. The API is described in
 [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§5 "Asset registries", §8
 "Theming" and its "System 7" section, §10 "Sound").
 
@@ -83,7 +83,7 @@ diverge, so a logo registered through Platinum's
   built-in into its Custom theme, as color edits do). Persistence stores a
   theme without the family colors equal to its package's defaults, as it
   does knob values; theme files keep them (`ClassicyThemeSchema`
-  `color.families`), and a 3.1 host loading such a file drops them.
+  `color.families`), and a 3.2 host loading such a file drops them.
   `AGENT-REFERENCE.md` §8, "Package color families".
 - **Selected icon images.** `registerClassicySelectedIconImages(packageId,
   { [image]: selectedImage }, { variant? })` registers the image a selected
@@ -150,7 +150,8 @@ diverge, so a logo registered through Platinum's
   `resolveClassicyAlertSound` and `playingClassicySoundPack` (the pack that
   plays for a theme's `sound.pack`: that pack, else the default). A pack
   that declares `alerts` need not define the contract's alert ids, only its
-  own (`classicySoundPackMissingSprites`).
+  own (`classicySoundPackMissingSprites`); the contract's seven are exported
+  as `CLASSICY_CONTRACT_ALERT_SPRITE_IDS`.
 - **The dither vocabulary**, `@classicy/classicy/scss/dither`:
   `classicy-dither-mask`, `classicy-dither-text($on)` and
   `classicy-dither-line($on)` draw dimmed text, dimmed controls and dotted
@@ -173,7 +174,10 @@ diverge, so a logo registered through Platinum's
   it. Windows, list boxes, tables (new prop `ClassicyTable.scrollable`),
   text editors, split-view panes, the Assistant, file dialogs, the color
   picker and other scrolling surfaces use it. The thumb and bar math is
-  exported (`computeClassicyScrollThumb`, `computeClassicyScrollBars`).
+  exported (`computeClassicyScrollThumb`, `computeClassicyScrollBars`,
+  `classicyScrollPositionForThumb`, `classicyScrollAxisFits`, and the types
+  `ClassicyScrollAxisMetrics`, `ClassicyScrollThumb`, `ClassicyScrollBarsShown`,
+  `ClassicyScrollBarPolicy` and `ClassicyScrollBarsInput`).
 - **Packages declare scroll-on-release.** The package `layout` gains an
   optional `scrollBar` group (optional keys, so existing packages validate
   unchanged). `scrollBar.thumbDrag: "onRelease"` leaves a dragged thumb in
@@ -445,7 +449,7 @@ the ids the saver already names:
   there), where it was the indicator in system grays
   at 75% opacity over everything. A host that styled the ghost's opacity
   sets it on `.classicySliderGhost` again. Under a theme of another package
-  the slider draws its pre-3.2 grays.
+  the slider draws its pre-3.3 grays.
 - **Platinum's list view matches HIGOS8.** The Finder list view (and any
   `ClassicyFileBrowser` in `display="list"`) draws its default icon step at
   16 px, the small icon's own size, in 18 px rows a 1 px line apart, as
@@ -522,7 +526,7 @@ the ids the saver already names:
   nudged onto the pixel grid (by under half a pixel, as a submenu is) where
   centering leaves it on a fraction of one.
 - **Visual fix: Platinum's slider now matches the HIGOS8 figures: Figs.
-  2-18 and 2-19 at rest, Fig. 2-17 pressed.** The channel is the at-rest
+  2-18 and 2-19 at rest, a ramp step down pressed (Fig. 2-17's tone).** The channel is the at-rest
   figures': an etched #AAAAAA row, a dark border (`--color-system-07`),
   three flat #AAAAAA rows, a dark border and a white row, with one-pixel
   pixel-art ends, 7 px thick in every state (it was a 6 px gray cylinder).
@@ -530,8 +534,9 @@ the ids the saver already names:
   lavender ramp (`--color-theme-01` to `-07`), lit from the top left, its
   flat side 3 px past the channel and its point 6 px past it whichever way
   it points (it was a 21 x 21 silver pentagon); pressed, the same art with
-  every ink a step down the ramp, Fig. 2-17's tone (that figure is 2-18's
-  slider resampled a row and a column larger, so only its tone is taken).
+  every ink a step down the ramp, which is Fig. 2-17 less its doubled row
+  (that figure is 2-18's slider resampled a row and a column larger, so only
+  its tone is taken).
   The nondirectional knob is the same indicator without its point,
   centered on the channel, the highlighted one is drawn pressed, and the
   ghost indicator is the indicator in grays. Tick marks are Figure 2-18's
@@ -550,7 +555,7 @@ the ids the saver already names:
   picker's channel sliders, which keep their own fills
   (`--classicy-slider-track`). The new knobs are the `slider` family
   (AGENT-REFERENCE §8, "Package knob families"), and every placement is
-  derived from them. The pre-3.2 thumb's art keys (`sliderThumb`,
+  derived from them. The pre-3.3 thumb's art keys (`sliderThumb`,
   `sliderThumbRect`, `sliderStrikes`) stay registered, and the
   `platinum-slider-thumb` mixin stays in Platinum's `_Slider.scss` for
   hosts that `@use` it; Platinum no longer draws with them.
@@ -627,8 +632,9 @@ the ids the saver already names:
 
 ## Upgrade
 
-1. Bump `@classicy/classicy` and `@classicy/appearance-platinum` together to
-   3.2.0. To use System 7, add `@classicy/appearance-system7` at 3.2.0 and
+1. Upgrading from 3.2.x (or 3.1.x), bump `@classicy/classicy` and
+   `@classicy/appearance-platinum` together to
+   3.3.0. To use System 7, add `@classicy/appearance-system7` at 3.3.0 and
    import it at your entry; keep every Classicy package at one version.
 2. With a Vite dev server, add `@classicy/appearance-system7` to
    `optimizeDeps.exclude` when you load it. Under a strict CSP, link its two

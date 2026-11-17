@@ -19,7 +19,8 @@ import "@classicy/appearance-platinum";
 pnpm add @classicy/classicy @classicy/appearance-platinum
 ```
 
-A host that auto-bumps its dependencies lists both names and moves them
+A host that auto-bumps its dependencies lists every Classicy package it loads
+(the core, this package and, with System 7, `@classicy/appearance-system7`) and moves them
 together. The package ships its type declarations (`bundler`, `node16` and `nodenext`
 resolution), so a named import type-checks:
 

@@ -304,7 +304,7 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 			expect(r.calls.some((c) => c.startsWith("dist-tag"))).toBe(false);
 			expect(r.out).toMatch(/`bootstrap` dist-tag/);
 			expect(r.out).toMatch(
-				/`latest` reads 0\.0\.0 until the 3\.0\.0 and 3\.2\.0 releases/,
+				/`latest` reads 0\.0\.0 until the 3\.0\.0 and 3\.3\.0 releases/,
 			);
 			expect(r.out).toMatch(/`latest` stays unset until/);
 			expect(r.out).toContain("npm dist-tag ls <name>");
@@ -389,8 +389,8 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 
 	// Controller ruling (plan 0018-dbd, task 2.3): each package's deprecation
 	// names its own first release. The core and Platinum shipped in 3.0.0, so
-	// they exist on npm and are skipped; System 7 is new and first ships in 3.2.0.
-	it("names each package's own first release: 3.0.0 for the core and Platinum, 3.2.0 for System 7", () => {
+	// they exist on npm and are skipped; System 7 is new and first ships in 3.3.0.
+	it("names each package's own first release: 3.0.0 for the core and Platinum, 3.3.0 for System 7", () => {
 		const r = run(["--publish"], {
 			existing: ["@classicy/classicy", "@classicy/appearance-platinum"],
 			trustList: {
@@ -408,13 +408,13 @@ describe("bin/npm-bootstrap-trusted-publishing.sh", () => {
 				/^deprecate @classicy\/appearance-platinum@0\.0\.0 .*install @classicy\/appearance-platinum@3\.0\.0 or later/,
 			),
 			expect.stringMatching(
-				/^deprecate @classicy\/appearance-system7@0\.0\.0 .*install @classicy\/appearance-system7@3\.2\.0 or later/,
+				/^deprecate @classicy\/appearance-system7@0\.0\.0 .*install @classicy\/appearance-system7@3\.3\.0 or later/,
 			),
 		]);
 		// System 7 alone: the closing notes name only its release.
 		const alone = run(["--publish", SYSTEM7]);
 		expect(alone.status, alone.out).toBe(0);
-		expect(alone.out).toMatch(/until the 3\.2\.0 release/);
+		expect(alone.out).toMatch(/until the 3\.3\.0 release/);
 		expect(alone.out).not.toContain("3.0.0");
 		expect(alone.placeholders["@classicy/appearance-system7"]).toMatchObject({
 			name: "@classicy/appearance-system7",

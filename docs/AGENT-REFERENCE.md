@@ -1154,7 +1154,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?` | low-level; usually not used directly |
@@ -1580,7 +1580,7 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   regular image. Platinum registers one small image of its own, the list
   view's 16 px folder (`system.folders.directory`, `art/folder-small.png`,
   cut pixel for pixel from HIGOS8 Fig. 2-24), over the core's 32 px folder.
-- **Selected icon images** (3.2, story 0197-s0z):
+- **Selected icon images** (3.3, story 0197-s0z):
   `registerClassicySelectedIconImages(packageId, { [image]: selectedImage },
   { variant? })` gives, for an icon image's URL (full-size or small, as drawn),
   the image a selected icon draws instead, for the package's base look or,
@@ -2662,7 +2662,7 @@ and `classicyCustomThemeSlotId(packageId)`.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'select', color: 0x3366cc })
 // Palettes: index 0–6 maps to --color-system-01 … -07 / --color-theme-01 … -07.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'theme', index: 2, color: 0x9999ff })
-// A package color (3.2): one the active package declares in `colorFamilies`.
+// A package color (3.3): one the active package declares in `colorFamilies`.
 dispatch({ type: 'ClassicyDesktopChangeColor', family: 'grayRamp', key: 'step2', color: 0x222222 })
 ```
 
@@ -3341,7 +3341,7 @@ variant), before the image is ready, and for an icon a canvas cannot read:
 **a cross-origin icon served without CORS** taints the canvas, so its pixels
 cannot be read (the core loads icons with `crossOrigin = "anonymous"`, so a
 cross-origin host that sends CORS headers is read; one that does not fails
-that load and is logged once at `info`). This is a browser limit, not a
+that load and is logged once per source at `warn`). This is a browser limit, not a
 choice: serve icons from the page's origin, as `data:` URLs, or with CORS.
 
 System 7 and Platinum declare the same rule (`system7IconDimming.ts`,
@@ -3766,7 +3766,7 @@ check) are absent by design: they are Platinum's look, not the component's
 Appearance Package: System 7.5 in black and white and in color. It is built
 the way a third-party package would be (it reaches the core only as
 `@classicy/classicy`; `System7SourceImports.test.ts`), and it is the worked
-example of the capabilities 3.2 added for it. Install and import it like
+example of the capabilities 3.3 added for it. Install and import it like
 Platinum (§1); its README lists what it ships.
 
 - **Themes.** `system7` ("System 7", the package's defaults: every color
@@ -4224,7 +4224,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
-| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.2) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
+| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.3, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
 the shared notice string (Colors passes "a color", Metrics "a metric",
@@ -4264,7 +4264,7 @@ Theme-driven variables (values change per theme):
 
 **Package color families.** An Appearance Package may declare colors of its
 own beside the 28 core colors (`CLASSICY_THEME_COLOR_TARGETS`, which do not
-change), the way it declares measurement families. They are additive, 3.2.
+change), the way it declares measurement families. They are additive, 3.3.
 
 - **Theme data.** `color.families.<family>.<key>`, a 24-bit RGB integer
   (`ClassicyThemeColors.families?`, `ClassicyThemeColorFamilies`). Family and
@@ -4610,7 +4610,8 @@ screen readers skip, when Border is 0.
 
 The `slider` family is Platinum's slider drawn from the HIGOS8 figures
 (Platinum's `_Slider.scss`; Figures 2-18 and 2-19 at rest, the 1996 draft's
-Figure 13 for the vertical, 2-17's tone pressed): the art's grid pixel
+Figure 13 for the vertical; pressed is the at-rest art a step down the
+ramp, Fig. 2-17 less its doubled row): the art's grid pixel
 (`pixel`), the channel's thickness (`channel`, 7), the indicator's box
 (`thumbAlong` x `thumbAcross`, 15 x 17: the 16-row indicator and a spare
 row, which the base sheet's turn carries past the point; Platinum sets them
@@ -4795,7 +4796,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--finder-about-heading-font-size` | `uiSize × 1.0714` | 14.9996 (unrounded) | FinderAboutThisComputer.scss |
 | `--finder-about-copyright-font-size` | `uiSize × 0.7857` | 10.9998 (unrounded) | FinderAboutThisComputer.scss |
 | `--menu-item-padding-inline` | `paddingSize × 1.25` | 7.5 | ClassicyMenu.scss |
-| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.2 (Platinum's knob is pixel art); kept for hosts |
+| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.3 (Platinum's knob is pixel art); kept for hosts |
 | `--tab-scroll-arrow-size` | `controlSize / 3` | 4 | ClassicyTabs.scss |
 | `--tab-scroll-arrow-size-large` | `controlSize / 2.25` | 5.333 | ClassicyTabs.scss |
 | `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
@@ -5250,8 +5251,9 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   Strip's.
 - Platinum's `_Slider.scss`, the one `slider-pixel × n` in its `px()`
   helper: the slider drawn pixel for pixel from HIGOS8 Figures 2-18 and
-  2-17 (the channel and its caps, the indicator, the knob, the ghost, the
-  tick marks and the ticks' half-width shift), one-pixel rectangles on the
+  2-19 at rest (the channel and its caps, the indicator, the knob, the
+  ghost, the tick marks and the ticks' half-width shift), pressed being the
+  at-rest art a ramp step down (Fig. 2-17 less its doubled row), one-pixel rectangles on the
   art's grid inside `classicy-px-rect` (H-R7), as System 7's; and the one
   `/ 2` in its `half()` helper: the thumb's centering across the channel
   (Chromium places a vertical thumb's box from the channel's edge and the
@@ -5462,8 +5464,14 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the missing ids) and plays those sprites from the Platinum pack when it is
   registered (the warning reads `…; they play nothing` when it is not); a
   sprite missing from both is not played. A pack that declares its own
-  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`), only the
+  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`, new in 3.3), only the
   alerts it declares (`classicySoundPackMissingSprites(pack)`).
+  `CLASSICY_CONTRACT_ALERT_SPRITE_IDS` is the exported, `as const` list of
+  Platinum's seven alert sprite ids (`ClassicyAlertBonk`, `ClassicyAlertGrowl`,
+  `ClassicyAlertIndigo`, `ClassicyAlertQuack`, `ClassicyAlertSosumi`,
+  `ClassicyAlertTabitha`, `ClassicyAlertWildEep`), the first seven entries of
+  `CLASSICY_SOUND_SPRITE_IDS`; a pack that declares no `alerts` should define
+  them.
 - **Single source of truth**: the active theme's `sound.pack` decides which
   pack plays. A host switches packs with `ClassicyDesktopChangeAppearanceOption
   { path: "sound.pack", value: "<pack id>" }` (the Sound tab's action: the pack
