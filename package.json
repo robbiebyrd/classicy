@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.4.2",
+	"version": "3.4.3",
 	"release": "Cadenza",
 	"repository": {
 		"type": "git",
