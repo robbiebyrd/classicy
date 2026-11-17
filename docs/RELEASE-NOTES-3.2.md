@@ -289,6 +289,42 @@ diverge, so a logo registered through Platinum's
   the Apple menu's and the art Help menu's `hover` and `selected` events
   name them, where their `title` was undefined.
 
+- **The Application menu's Hide commands** (HIG7 p.127). The App Switcher
+  lists Hide <app>, Hide Others and Show All, each dimmed when it would do
+  nothing, a divider, then each open application by its small icon, the
+  front one checked beside its icon. New actions `ClassicyAppHide` and
+  `ClassicyAppHideOthers` (`{ app: { id } }`) and `ClassicyAppShowAll` set
+  an app's new `hidden` flag: its `ClassicyApp` container is `hidden`, its
+  windows stay mounted, and the next shown app takes the menu bar; an app
+  that takes focus is shown again. A menu item that is both `checked` and
+  has an `icon`/`image` now draws both, the mark first (before, the mark
+  replaced the icon).
+- **Standard File parts.** `ClassicyFileOpenDialog` and
+  `ClassicyFileSaveDialog` always render System 7.5's extra parts: the
+  volume's small icon and name (`classicyFileOpenDialogVolume`), Eject
+  (always dimmed), Desktop (goes to the volume with id `"desktop"`, as
+  `desktopVolume(fs)` builds) and a line (`<hr
+  class="classicyFileOpenDialogDivider">`). The base sheet hides all four,
+  so Platinum's dialog is unchanged; a package shows and places them. A
+  package's new optional `layout.fileDialog.frame: "fixed"` draws the box as
+  a fixed modal dialog, and the optional theme knobs `fileDialog.width` and
+  `height` size it (else 440 x 400). A save box's body also carries
+  `classicyFileDialogSaveBody`.
+- **The small UI text's family.** A theme may name it in the optional
+  `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
+  only when set. Small control labels and the slider's readout and tick
+  labels read `var(--ui-font-small, var(--ui-font))`; a theme without it
+  keeps the UI family.
+- **A table's sorted column.** `ClassicyTable` marks the sorted column's
+  body cells `classicyTableCellSorted` and publishes the sorted header's
+  place on its root as `--classicy-table-sorted-start` and
+  `--classicy-table-sorted-width` (`0px` with nothing sorted). The root now
+  always carries those two inline custom properties.
+- **No empty font element.** A package whose every font face an earlier
+  package shares and writes (System 7 registered after Platinum) no longer
+  leaves an empty `<style id="classicy-fonts-<id>">`; one written before is
+  removed when its last face is taken over.
+
 ## Base looks moved into Platinum
 
 Base component SCSS is structure only, so these looks moved from the core's
@@ -518,6 +554,28 @@ the ids the saver already names:
   family is unchanged).
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
+
+- **Platinum's list view per HIGOS8 Figs. 2-24 and 2-43.** The sorted
+  column of a list (the Finder's list view and every `ClassicyTable`) is a
+  step darker, `--color-system-02`, in its cells and below the last row, a
+  white line still between rows; a selected row of a generic table keeps its
+  highlight across it. Folders in a list draw Platinum's own 16 px small
+  folder, cut pixel for pixel from Fig. 2-24, where the 32 px folder was
+  scaled. Host stylesheets that set a table container's `background` see
+  the stripe through `background-image`.
+- **System 7, from new 7.5.5 captures.** Standard File is the fixed modal
+  box 7.5.5 draws (`*-755-dialog-standardfile-layout.png`): the folder
+  pop-up with no label over the list, the disk's icon and name at the top
+  right, and the button column Eject, Desktop, a dotted line, Cancel and
+  Open, placed by the new `fileDialog` knobs (QuickTime's Preview area is not
+  drawn). The Application menu's title is the front application's small icon
+  alone, 34 px wide and 6 px from the screen's edge (`menuBar.endInset` 6,
+  `switcherTitleStart`/`End` 9), its menu right-aligned under it. The Finder
+  list view's rows are white with no line between them, 18 px apart
+  (`fileBrowserList.rowPadding` 1). Small control labels and the slider's
+  ticks and readout draw in Geneva (`typography.uiSmall`). The Control Strip
+  docked right is a pixel wider, as 7.5.5 draws it
+  (`*-755-controlstrip-right.png`).
 
 ## Upgrade
 

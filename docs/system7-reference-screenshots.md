@@ -213,6 +213,7 @@ Every file is the full 640 x 480 frame.
 | `*-755-controlstrip.png` | Control Strip at rest: collapse box, scroll arrows (left dimmed), Monitor depth, resolution and Sound modules, tab | both | Control Strip 1.3.1 | 0,456,160,24 | — (Control Strip) |
 | `*-755-controlstrip-module-pressed.png` | Sound module pressed, its menu held open (pointer moved off) | both | Control Strip | cell 91,457,31,22; menu 92,333,44,124 | — (pressed strip cell, inferred before) |
 | `*-755-controlstrip-collapse-pressed.png` | Collapse box pressed (pointer on its lower right corner) | both | Control Strip | 1,457,13,22 | — (pressed strip cell) |
+| `*-755-controlstrip-right.png` | Control Strip docked at the right edge (its tab Option-dragged there, the `controlstripright` scene): the tab at its left end, the collapse box at its right | both | Control Strip | 487,456,153,24 | — (strip docked right, inferred before) |
 | `*-755-icon-opened-unselected.png` | Macintosh HD opened and deselected (its window open, inactive, behind) | both | Finder | icon 584,36,32,32; window 191,172,251,159 | CIC "opened-icon pattern" (unselected, inferred before) |
 | `*-755-menu-pulldown-view-checkmark.png` | View menu, a checkmark against "by Icon" | both | Finder | 107,19,115,114 | — (1-bit checkmark menu) |
 | `*-755-finder-list-row-selected.png` | List view, Apple Extras selected: icon darkened (inverted in 1-bit), name inverted | both | Finder, Macintosh HD by Name | row 196,246,130,18 | — (Finder list selected row, inferred before) |
@@ -304,6 +305,13 @@ Measured from the framebuffer files (exact pixels).
 - **Note alert (HIG p.194):** Energy Saver on a machine it does not
   support puts up a note alert (`*-755-alert-note-energysaver.png`): the
   talking-face icon in the stop and caution alerts' frame and layout.
+- **Control Strip docked right** (`*-755-controlstrip-right.png`): Control
+  Strip 1.3.1 moves to the right edge when its tab is Option-dragged there.
+  Its parts keep their own art and light (top left), in reverse order: the
+  tab, slanted the other way, at the left end, the collapse box at the
+  right. The strip is a pixel wider than docked left: a black line past the
+  collapse box's frame, at the screen's last column, and the rounded corner
+  counted from that line (the frame's lowest two pixels and one inside it).
 - **Pressed Control Strip cell** (`*-755-controlstrip-*-pressed.png`): two
   pixels of #444444 on the top and left, two of the face (#CCCCCC) on the
   bottom and right, a #888888 fill, the two off corners the fill; in 1-bit

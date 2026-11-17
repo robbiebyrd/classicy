@@ -340,6 +340,20 @@ const pressed = (x, y, name) => [
 	["up"],
 	["wait", 600],
 ];
+/** Option-drags the Control Strip's tab, at `from` on the strip's row, to `to`. */
+const optionDragTab = (from, to) => [
+	["keyDown", "Alt"],
+	["move", from, 467],
+	["down"],
+	["wait", 600],
+	["move", 300, 467, 8],
+	["move", to < 300 ? 100 : 500, 467, 8],
+	["move", to, 467, 8],
+	["wait", 600],
+	["up"],
+	["keyUp", "Alt"],
+	["wait", 1_500],
+];
 /** The Control Strip's Monitor module's depths, by their item's y. */
 export const DEPTHS = {
 	"black-and-white": 347,
@@ -401,6 +415,17 @@ export const SCENES = {
 		["shot", `${d}-755-controlstrip`],
 		...heldMenu(120, 477, `${d}-755-controlstrip-module-pressed`),
 		...pressed(12, 478, `${d}-755-controlstrip-collapse-pressed`),
+		PARK,
+	],
+	// The Control Strip docked at the right edge, Option-dragging its tab
+	// there (Control Strip 1.3's own move), then back at the left (story
+	// 0214-c61).
+	controlstripright: (d) => [
+		PARK,
+		...optionDragTab(146, 636),
+		PARK,
+		["shot", `${d}-755-controlstrip-right`],
+		...optionDragTab(494, 2),
 		PARK,
 	],
 	// Macintosh HD opened, then the window and its list view.
