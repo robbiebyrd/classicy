@@ -14,6 +14,7 @@ import {
 	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
+	ClassicyIcons,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
 	registerClassicyAppearancePackage,
@@ -118,4 +119,8 @@ registerClassicyAppearancePackage({
 	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
 	defaultScreenSaver: "bouncing-ball",
+	// The Finder is shown by the System file's Macintosh, its small icon
+	// the Application menu's title (`*-755-appmenu-closed.png`). The core's
+	// URL follows to the active theme's image (color, or the `bw` variant).
+	apps: { "Finder.app": { icon: ClassicyIcons.system.mac } },
 });

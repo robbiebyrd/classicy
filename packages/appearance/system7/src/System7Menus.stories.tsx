@@ -249,11 +249,22 @@ const lowMenusScene = () => (
 export const LowMenus: Story = { render: lowMenusScene };
 export const LowMenusColor = inColor(lowMenusScene);
 
-/** Brings the Finder to the front, then opens the Application menu. */
-function FinderFrontSwitcherOpen({ open }: { open: boolean }) {
+/**
+ * Brings the Finder to the front (quitting the Storybook app when `alone`,
+ * so the Finder is the only application), then opens the Application menu.
+ */
+function FinderFrontSwitcherOpen({
+	open,
+	alone = false,
+}: {
+	open: boolean;
+	alone?: boolean;
+}) {
 	const dispatch = useAppManagerDispatch();
 	useEffect(() => {
 		const timer = window.setTimeout(() => {
+			if (alone)
+				dispatch({ type: "ClassicyAppClose", app: { id: "storybook.app" } });
 			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
 			if (open)
 				window.setTimeout(
@@ -263,7 +274,7 @@ function FinderFrontSwitcherOpen({ open }: { open: boolean }) {
 				);
 		}, 300);
 		return () => window.clearTimeout(timer);
-	}, [dispatch, open]);
+	}, [dispatch, open, alone]);
 	return null;
 }
 
@@ -275,11 +286,13 @@ function FinderFrontSwitcherOpen({ open }: { open: boolean }) {
  * checked (`*-755-appmenu-open.png`, where the Finder alone is open, so its
  * commands are dimmed; here the Storybook app is open too).
  */
-const applicationMenuScene = (open: boolean) => () => (
-	<StoryApp id="storybook.app" name="Storybook">
-		<FinderFrontSwitcherOpen open={open} />
-	</StoryApp>
-);
+const applicationMenuScene =
+	(open: boolean, alone = false) =>
+	() => (
+		<StoryApp id="storybook.app" name="Storybook">
+			<FinderFrontSwitcherOpen open={open} alone={alone} />
+		</StoryApp>
+	);
 
 export const ApplicationMenu: Story = { render: applicationMenuScene(false) };
 export const ApplicationMenuColor = inColor(applicationMenuScene(false));
@@ -287,3 +300,15 @@ export const ApplicationMenuOpen: Story = {
 	render: applicationMenuScene(true),
 };
 export const ApplicationMenuOpenColor = inColor(applicationMenuScene(true));
+
+/**
+ * The Application menu with the Finder alone running, as
+ * `*-755-appmenu-open.png` captures it: Hide Finder, Hide Others and Show All
+ * all dimmed, then the Finder, checked.
+ */
+export const ApplicationMenuOpenFinderAlone: Story = {
+	render: applicationMenuScene(true, true),
+};
+export const ApplicationMenuOpenFinderAloneColor = inColor(
+	applicationMenuScene(true, true),
+);

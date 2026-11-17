@@ -491,6 +491,9 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 						li.classList.contains("disabled"),
 						li.querySelector(".classicyMenuItemCheck.checked") !== null,
 						li.querySelector("p > img") !== null,
+						...(li.classList.contains("classicyDesktopMenuAppHidden")
+							? ["hidden"]
+							: []),
 					]
 				: ["divider"],
 		);
@@ -532,7 +535,33 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			["divider"],
 			["Finder.app", "Finder", false, false, true],
 			["SimpleText.app", "SimpleText", false, true, true],
-			["Notes.app", "Notes", false, false, true],
+			["Notes.app", "Notes", false, false, true, "hidden"],
+		]);
+	});
+
+	it("dims Hide and Hide Others while an extension holds focus (no front app)", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder"),
+				"SimpleText.app": app("SimpleText.app", "SimpleText"),
+				"Guide.app": app("Guide.app", "Guide", {
+					focused: true,
+					extension: true,
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Guide.app";
+		});
+		render(<ClassicyDesktopMenuBar />);
+		const [hide, hideOthers] = items();
+		expect(hide.slice(0, 3)).toEqual([
+			"app-switcher_hide",
+			"Hide Finder",
+			true,
+		]);
+		expect(hideOthers.slice(0, 3)).toEqual([
+			"app-switcher_hide-others",
+			"Hide Others",
+			true,
 		]);
 	});
 });

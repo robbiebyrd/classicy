@@ -260,7 +260,8 @@
 				"ejectTop": 35,
 				"desktopTop": 63,
 				"dividerTop": 94,
-				"dividerWidth": 81,
+				"dividerLeft": 251,
+				"dividerWidth": 82,
 				"cancelTop": 107,
 				"openTop": 138
 			}
@@ -535,7 +536,8 @@
 					"ejectTop": 35,
 					"desktopTop": 63,
 					"dividerTop": 94,
-					"dividerWidth": 81,
+					"dividerLeft": 251,
+					"dividerWidth": 82,
 					"cancelTop": 107,
 					"openTop": 138
 				}
@@ -812,7 +814,8 @@
 					"ejectTop": 35,
 					"desktopTop": 63,
 					"dividerTop": 94,
-					"dividerWidth": 81,
+					"dividerLeft": 251,
+					"dividerWidth": 82,
 					"cancelTop": 107,
 					"openTop": 138
 				}

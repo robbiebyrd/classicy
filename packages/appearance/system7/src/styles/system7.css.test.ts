@@ -553,6 +553,11 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(menu).toMatch(/right: 0;/);
 			expect(menu).toMatch(/left: auto;/);
+			// A hidden application's icon in the menu is dimmed, through the
+			// checker (review r0 Minor).
+			expect(rule(".classicyDesktopMenuAppHidden > p > img")).toContain(
+				"mask-image: var(--classicy-art-dither-checker)",
+			);
 			const img = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p > img`);
 			expect(img).toMatch(/width: var\(--menu-bar-title-art-size\);/);
 			expect(img).toMatch(/margin: 0;/);
@@ -2123,11 +2128,17 @@ describe("system7.scss (compiled)", () => {
 					`${OPEN} > .classicyPopUpMenuWrapper > .classicyControlLabelHolder`,
 				),
 			).toMatch(/display: none;/);
-			expect(
-				rule(
-					`${OPEN} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
-				),
-			).toContain("var(--color-theme-06)");
+			// The line, 82 px from a pixel left of the column: in color #888888
+			// and #777777 alternating (theme-06, system-06), in 1-bit the checker
+			// a pixel along, black on every other pixel from the column's first.
+			const divider = rule(
+				`${OPEN} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
+			);
+			expect(divider).toContain(
+				"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)",
+			);
+			expect(divider).toContain("left: var(--file-dialog-divider-left);");
+			expect(divider).toContain("mask-position: var(--box-pixel) 0, 0 0;");
 		});
 
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {

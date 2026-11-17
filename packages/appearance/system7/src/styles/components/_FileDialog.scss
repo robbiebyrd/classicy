@@ -100,13 +100,20 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
     @include place(var(--file-dialog-buttons-left), var(--file-dialog-open-top));
   }
 
-  // The line between Desktop and Cancel, across the column and a pixel
-  // more: the dimmed ink as a menu's divider draws it (_Menu.scss), dotted in
-  // 1-bit, gray in color.
+  // The line between Desktop and Cancel, from a pixel left of the column
+  // to a pixel past it: in color #888888 and #777777 alternating
+  // (`--color-theme-06`, `--color-system-06`, the first at its left end), in
+  // 1-bit the dimmed ink through the checker, a pixel along, so it is black
+  // on every other pixel from the column's first
+  // (`*-755-dialog-standardfile-layout.png`).
   #{$open} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider {
+    left: var(--file-dialog-divider-left);
     width: var(--file-dialog-divider-width);
     height: $px;
     border: 0;
-    @include d.classicy-dither-line("--color-theme-06");
+    background: linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / px(2) 100%
+      repeat-x;
+    @include d.classicy-dither-mask;
+    mask-position: $px 0, 0 0;
   }
 }

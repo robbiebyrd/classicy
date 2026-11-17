@@ -10,6 +10,7 @@ import {
 	getTheme,
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	getClassicySoundPack,
@@ -651,6 +652,16 @@ describe("the System 7 appearance package", () => {
 		// The package's defaults win over the core floor's.
 		expect(floor.window.scrollbarSize).toBe(16);
 		expect(floor.dither.tileSize).toBe(2);
+	});
+
+	// 7.5.5's Application menu title is the Finder's small icon, the System
+	// file's Macintosh (`system.mac`): the 16 px image found at AE 0 in
+	// `*-755-appmenu-closed.png` (review r0 Important 7).
+	it("shows the Finder by the Macintosh icon", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.apps).toEqual({
+			"Finder.app": { icon: ClassicyIcons.system.mac },
+		});
 	});
 
 	it("lays out as the HIG does: grow box bottom right, menu bar on the screen, icons from the top right", async () => {

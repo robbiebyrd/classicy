@@ -3,6 +3,7 @@ import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useMemo } from "react";
 import { fn } from "storybook/test";
+import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -92,6 +93,33 @@ const AppMenuWindow = () => {
 export const WithAppMenu: Story = {
 	parameters: desktopParameters,
 	render: () => <AppMenuWindow />,
+};
+
+/** Brings the Finder to the front and opens the App Switcher. */
+const SwitcherOpen = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
+			window.setTimeout(
+				() => document.querySelector<HTMLElement>("#app-switcher > p")?.click(),
+				100,
+			);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [dispatch]);
+	return <StoryApp id="storybook.app" name="Storybook" />;
+};
+
+/**
+ * The App Switcher (Mac OS 8's Application menu) open with the Finder in
+ * front and the Storybook app running: Hide Finder, Hide Others, Show All
+ * (dimmed: nothing is hidden), a divider, then each application by its small
+ * icon, the Finder checked (HIG7 p.127; HIGOS8 has no figure of the menu).
+ */
+export const AppSwitcherOpen: Story = {
+	parameters: desktopParameters,
+	render: () => <SwitcherOpen />,
 };
 
 // Enough rows to run past the bottom of a 768 px screen.

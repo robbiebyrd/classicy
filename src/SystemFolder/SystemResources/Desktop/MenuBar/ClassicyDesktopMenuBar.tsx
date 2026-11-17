@@ -228,8 +228,12 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		const openApps = appSwitcherData.filter((a) => a.open);
 		// The Application menu's commands (HIG7 p.127): each dimmed when it
 		// would do nothing, as 7.5.5 draws them (`*-755-appmenu-open.png`).
-		const frontId = focusedApp?.id ?? "Finder.app";
-		const othersShown = openApps.some((a) => a.id !== frontId && !a.hidden);
+		// The front application: none while an extension holds focus, when
+		// Hide and Hide Others have no app to act on.
+		const frontId = focusedApp?.id;
+		const othersShown =
+			frontId !== undefined &&
+			openApps.some((a) => a.id !== frontId && !a.hidden);
 		const anyHidden = openApps.some((a) => a.hidden);
 		const commands: ClassicyMenuItem[] = [
 			{
@@ -237,14 +241,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				title: `Hide ${focusedApp?.name || finderName}`,
 				disabled: !othersShown,
 				event: "ClassicyAppHide",
-				eventData: { app: { id: frontId } },
+				eventData: { app: { id: frontId ?? "" } },
 			},
 			{
 				id: "app-switcher_hide-others",
 				title: "Hide Others",
 				disabled: !othersShown,
 				event: "ClassicyAppHideOthers",
-				eventData: { app: { id: frontId } },
+				eventData: { app: { id: frontId ?? "" } },
 			},
 			{
 				id: "app-switcher_show-all",
@@ -272,8 +276,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					id: app.id,
 					icon: app.icon,
 					title: app.name,
-					// The front application is checked, beside its icon.
+					// The front application is checked, beside its icon; a hidden
+					// one's icon is dimmed (`classicyDesktopMenuAppHidden`).
 					checked: app.id === focusedApp?.id,
+					...(app.hidden ? { className: "classicyDesktopMenuAppHidden" } : {}),
 					onClickFunc: () => {
 						setActiveApp(app.id);
 					},

@@ -257,6 +257,7 @@
 			"SelectedImage"
 		],
 		"DesktopMenu": [
+			"AppHidden",
 			"AppSwitcher",
 			"Apple",
 			"Extension",
