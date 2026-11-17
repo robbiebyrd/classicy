@@ -19,9 +19,9 @@ import {
 	useClassicyAsset,
 } from "@classicy/classicy";
 import { StoryApp } from "@sb/helpers";
-import { system7Parameters } from "@sb/system7";
+import { system7Parameters, WithTheme } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactElement, type ReactNode, useEffect } from "react";
+import { type ReactElement, useEffect } from "react";
 import { fireEvent, waitFor } from "storybook/test";
 
 const meta = {
@@ -31,15 +31,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-/** Activates one of the package's themes once the desktop has mounted. */
-function WithTheme({ id, children }: { id: string; children: ReactNode }) {
-	const dispatch = useAppManagerDispatch();
-	useEffect(() => {
-		dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: id });
-	}, [dispatch, id]);
-	return children;
-}
 
 /** The color theme around a story, or the 1-bit defaults as they are. */
 const themed = (color: boolean, children: ReactElement): ReactElement =>

@@ -28,12 +28,11 @@ import {
 	ClassicyTextEditor,
 	ClassicyTriangle,
 	ClassicyWindow,
-	useAppManagerDispatch,
 } from "@classicy/classicy";
 import { SB_ICON, StoryApp } from "@sb/helpers";
-import { system7Parameters } from "@sb/system7";
+import { inColor, system7Parameters } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ComponentProps, type ReactNode, useEffect } from "react";
+import type { ComponentProps } from "react";
 import { fn } from "storybook/test";
 
 const meta = {
@@ -43,20 +42,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-/** Activates one of the package's themes once the desktop has mounted. */
-function WithTheme({ id, children }: { id: string; children: ReactNode }) {
-	const dispatch = useAppManagerDispatch();
-	useEffect(() => {
-		dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: id });
-	}, [dispatch, id]);
-	return children;
-}
-
-/** The color theme's story of a scene (the black-and-white one is the defaults'). */
-const inColor = (scene: () => ReactNode): Story => ({
-	render: () => <WithTheme id="system7-color">{scene()}</WithTheme>,
-});
 
 /** A window of the Storybook app holding a scene's controls. */
 const Panel = ({

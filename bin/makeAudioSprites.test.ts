@@ -246,3 +246,88 @@ echo '{"src":["x/tone.ogg"],"sprite":{}}' > "$out.json"
 		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(4);
 	});
 });
+
+describe("runs under macOS's bash 3.2", () => {
+	// macOS ships /bin/bash 3.2, and both the script and its ffmpeg shim run
+	// under `#!/bin/bash`. The script was run to completion under a GNU bash
+	// 3.2.57 build for both packs (story 0203-9w6); this check needs no bash
+	// 3.2: it refuses the constructs bash added after 3.2, so a later edit
+	// that relies on one fails here rather than on a Mac.
+	const NEWER_THAN_3_2: [string, RegExp, string][] = [
+		[
+			"associative array",
+			/\b(?:declare|local|typeset)\s+-\w*A/,
+			"declare -A m",
+		],
+		["mapfile/readarray", /\b(?:mapfile|readarray)\b/, "mapfile -t lines < f"],
+		[
+			"case modification",
+			/\$\{\w+(?:\[[^\]]*\])?(?:,,?|\^\^?)\}/,
+			`echo "\${x,,}"`,
+		],
+		["negative subscript", /\$\{\w+\[-\d+\]\}/, `echo "\${a[-1]}"`],
+		["case fall-through", /;;&|;&/, "a) echo ;;&"],
+		["|& and &>>", /\|&|&>>/, "cmd |& tee log"],
+		["coproc", /\bcoproc\b/, "coproc cat"],
+		["test -v", /(?:\[\[|\btest|\[)\s+-v\b/, "[[ -v name ]]"],
+		[
+			"nameref, global or case attribute",
+			/\b(?:declare|local|typeset)\s+-\w*[nglcu]/,
+			"declare -l x",
+		],
+		[
+			"parameter transform",
+			/\$\{\w+(?:\[[^\]]*\])?@[QEPAaKkUuL]\}/,
+			`echo "\${x@Q}"`,
+		],
+		["printf %(…)T", /%\([^)]*\)T/, "printf '%(%F)T'"],
+		["read -N", /\bread\s+(?:-\w+\s+)*-\w*N/, "read -N 1 c"],
+		[
+			"brace step or padding",
+			/\{-?\d+\.\.-?\d+\.\.-?\d+\}|\{0\d*\.\.\d+\}/,
+			"echo {01..10}",
+		],
+		["fd variable", /(?<!\$)\{\w+\}[<>]/, "exec {fd}>log"],
+		["\\u escape", /\$'[^']*\\[uU][0-9a-fA-F]/, "echo $'\\u00e9'"],
+		[
+			"shopt added in 4",
+			/\bshopt\s+-s\s+(?:globstar|lastpipe|autocd|checkjobs|direxpand|dirspell|globasciiranges|compat\d+)/,
+			"shopt -s globstar",
+		],
+		["wait -n", /\bwait\s+-n\b/, "wait -n"],
+		[
+			"bash 4 variables",
+			/\$\{?(?:EPOCHSECONDS|EPOCHREALTIME|BASHPID|BASH_ARGV0|SRANDOM)\b/,
+			"echo $BASHPID",
+		],
+	];
+
+	/** The constructs `code` uses that bash 3.2 lacks, by name. */
+	const newerThan32 = (code: string): string[] => {
+		const lines = code
+			.split("\n")
+			.filter((line) => !line.trim().startsWith("#"))
+			.join("\n");
+		return NEWER_THAN_3_2.filter(([, re]) => re.test(lines)).map(
+			([name]) => name,
+		);
+	};
+
+	it.each(NEWER_THAN_3_2)("recognizes %s", (name, _re, sample) => {
+		expect(newerThan32(sample)).toContain(name);
+	});
+
+	it.each([
+		["an expansion followed by a redirect", `echo x \${out}>file`],
+		["a read-only declare", "declare -r x=1"],
+		["a plain $'…' escape", "echo $'\\t'"],
+	])("does not flag %s", (_label, sample) => {
+		expect(newerThan32(sample)).toEqual([]);
+	});
+
+	it("uses none of them, in the script or its ffmpeg shim", () => {
+		expect(
+			newerThan32(readFileSync("bin/make_audio_sprites.sh", "utf8")),
+		).toEqual([]);
+	});
+});

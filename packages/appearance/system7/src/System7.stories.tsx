@@ -7,12 +7,10 @@ import {
 	ClassicyButton,
 	ClassicyCheckbox,
 	ClassicyWindow,
-	useAppManagerDispatch,
 } from "@classicy/classicy";
 import { StoryApp } from "@sb/helpers";
-import { system7Parameters } from "@sb/system7";
+import { system7Parameters, WithTheme } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, useEffect } from "react";
 
 const meta = {
 	title: "Appearance/System 7",
@@ -21,15 +19,6 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-/** Activates one of the package's themes once the desktop has mounted. */
-function WithTheme({ id, children }: { id: string; children: ReactNode }) {
-	const dispatch = useAppManagerDispatch();
-	useEffect(() => {
-		dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: id });
-	}, [dispatch, id]);
-	return children;
-}
 
 function System7Window() {
 	return (
