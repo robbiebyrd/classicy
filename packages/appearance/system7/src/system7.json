@@ -133,6 +133,7 @@
 				"helpTitleDrop": 1,
 				"switcherTitleStart": 9,
 				"switcherTitleEnd": 9,
+				"clockEnd": 1,
 				"titleArtInvert": 1
 			},
 			"uiText": {
@@ -444,6 +445,7 @@
 					"helpTitleDrop": 1,
 					"switcherTitleStart": 9,
 					"switcherTitleEnd": 9,
+					"clockEnd": 1,
 					"titleArtInvert": 1
 				},
 				"uiText": {
@@ -757,6 +759,7 @@
 					"helpTitleDrop": 1,
 					"switcherTitleStart": 9,
 					"switcherTitleEnd": 9,
+					"clockEnd": 1,
 					"titleArtInvert": 0
 				},
 				"uiText": {

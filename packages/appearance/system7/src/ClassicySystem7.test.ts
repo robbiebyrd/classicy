@@ -374,6 +374,10 @@ describe("the System 7 appearance package", () => {
 				"--menu-bar-help-title-start": "8px",
 				"--menu-bar-help-title-end": "9px",
 				"--menu-bar-help-title-drop": "1px",
+				// The clock's padding before the Help title: its last ink two
+				// pixels before Help's box (`*-755-appmenu-closed.png`, story
+				// 0216-1im F2).
+				"--menu-bar-clock-end": "1px",
 				"--menu-frame-shadow-start": "2px",
 				"--menu-frame-submenu-overlap": "5px",
 				"--menu-item-height": "16px",

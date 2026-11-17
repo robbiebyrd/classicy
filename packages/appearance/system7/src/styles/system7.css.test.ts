@@ -587,6 +587,33 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/order: 55;/);
 		});
 
+		// 7.5's Help title overlaps the Application title as the
+		// application's titles overlap each other: its box ends 5 px into the
+		// Application title's (`*-755-appmenu-closed.png`, Help x 572-604,
+		// the Application title from x 600; story 0216-1im F1). Both forms,
+		// as for the order.
+		it("overlaps the Help title with the Application title", () => {
+			for (const selector of [
+				".classicyDesktopMenu > [data-classicy-part=help]",
+				".classicyDesktopMenu > :has(> [data-classicy-part=help])",
+			])
+				expect(rule(selector), selector).toMatch(
+					/margin-right: calc\(var\(--menu-bar-title-overlap\) \* -1\);/,
+				);
+		});
+
+		// The clock's last ink sits two pixels before the Help title's box
+		// (`*-755-appmenu-closed.png`: ink to x 569, Help from 572): no
+		// margin after it, and `menuBar.clockEnd` (1) for its padding, in
+		// place of a title's (story 0216-1im F2).
+		it("ends the clock a pixel from the Help title", () => {
+			const clock = rule(
+				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime",
+			);
+			expect(clock).toMatch(/margin-right: 0;/);
+			expect(clock).toMatch(/padding-right: var\(--menu-bar-clock-end\);/);
+		});
+
 		// The Apple and Help titles are their art, 16 px, in the highlight
 		// the captures measure (*-menu-hierarchical-controlpanels,
 		// *-menu-help-and-selected-icon).
