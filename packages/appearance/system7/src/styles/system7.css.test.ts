@@ -2042,6 +2042,18 @@ describe("system7.scss (compiled)", () => {
 			expect(label).toMatch(/background: var\(--color-black\);/);
 		});
 
+		// 7.5.5's list rows are white and drawn with no line between them, an
+		// 18 px pitch: a 16 px icon and `fileBrowserList.rowPadding` (1)
+		// above and below (story 0214-c61).
+		it("draws list-view rows white with no line between them", () => {
+			const row = rule(
+				".classicyFileBrowserViewTableContainer .classicyTableRow",
+			);
+			expect(row).toMatch(/border-top-width: 0;/);
+			expect(row).toMatch(/border-bottom-width: 0;/);
+			expect(row).toMatch(/background: var\(--color-white\);/);
+		});
+
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
 			const BEVEL = "var(--control-strip-bevel-width)";
 			const raised = rule(".classicyControlStripCell");

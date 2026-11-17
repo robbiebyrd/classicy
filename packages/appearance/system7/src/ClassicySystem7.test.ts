@@ -575,9 +575,14 @@ describe("the System 7 appearance package", () => {
 			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
 			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
 			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+			// 7.5.5's rows are 18 px apart (`*-755-finder-list-row-selected.png`,
+			// story 0214-c61): the 16 px icon and 1 px above and below, with
+			// no line between rows (_Icon.scss).
+			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
+			rowPadding: 1,
 		});
 	});
 

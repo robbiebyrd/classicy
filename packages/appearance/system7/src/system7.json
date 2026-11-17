@@ -235,7 +235,8 @@
 				"invert": 1
 			},
 			"fileBrowserList": {
-				"mediumIconSize": 16
+				"mediumIconSize": 16,
+				"rowPadding": 1
 			}
 		},
 		"desktop": {
@@ -483,7 +484,8 @@
 					"invert": 1
 				},
 				"fileBrowserList": {
-					"mediumIconSize": 16
+					"mediumIconSize": 16,
+					"rowPadding": 1
 				}
 			},
 			"desktop": {
@@ -733,7 +735,8 @@
 					"invert": 0
 				},
 				"fileBrowserList": {
-					"mediumIconSize": 16
+					"mediumIconSize": 16,
+					"rowPadding": 1
 				}
 			},
 			"desktop": {
