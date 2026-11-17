@@ -33,8 +33,9 @@
 //    in CORS mode (Platinum's halftone, ruling E17): src/assets/art/
 //    dither-checker.svg, the dither vocabulary's mask, and the title bar's
 //    racing stripes and the windoid's drag-bar dots, art/{color,bw}/
-//    window-stripes.png and window-utility-texture.png, each byte for byte
-//    its file (base64). The ES bundle's
+//    window-stripes.png and window-utility-texture.png, and the 1-bit open
+//    Apple and Help titles' inversion masks, art/bw/apple-menu.png and
+//    help-button.png, each byte for byte its file (base64). The ES bundle's
 //    `new URL("assets/…", import.meta.url)` references each name a file in
 //    dist/assets, and every file there is referenced.
 //
@@ -296,11 +297,16 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 // Invariant 3: nothing but the masks is inlined; the files are referenced
 // from the ES bundle.
 const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
-const PNG_MASKS = ["color", "bw"].flatMap((variant) =>
-	["window-stripes.png", "window-utility-texture.png"].map((name) =>
-		join("src", "assets", "art", variant, name),
+const PNG_MASKS = [
+	...["color", "bw"].flatMap((variant) =>
+		["window-stripes.png", "window-utility-texture.png"].map((name) =>
+			join("src", "assets", "art", variant, name),
+		),
 	),
-);
+	...["apple-menu.png", "help-button.png"].map((name) =>
+		join("src", "assets", "art", "bw", name),
+	),
+];
 {
 	const problems = [];
 	const checker = ((await read(DITHER_CHECKER)) ?? "").trim();

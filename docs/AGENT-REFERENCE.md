@@ -2150,14 +2150,19 @@ guaranteed. Both draw masks from `file:` pages, and a background image always
 loads. So Platinum's art is safe when a host serves `dist/assets/` from a CDN
 or packages the app for `file:`. Platinum's one mask art, the open icon's
 halftone (below), is registered as an inline `data:` URI, so it needs no fetch
-at all. System 7 does the same for its masks: the dither checker (below)
-and the art its title bars mask a token layer with, `windowStripes` (the
+at all. System 7 does the same for its masks: the dither checker (below),
+the art its title bars mask a token layer with, `windowStripes` (the
 racing stripes) and `windowUtilityTexture` (the windoid's drag-bar dots),
-all registered as inline `data:` URIs (their files still ship in
-`dist/assets/`, and its `verify:dist` allows exactly these). The masks that
-remain are the icons' `--classicy-icon-mask` (the icon's own image, any URL
-the host gives, and the alias badge): a host serving those from another
-origin must send CORS headers, in every engine.
+and the 1-bit `appleMenu` and `helpMenuTitle` art, which masks an open
+Apple or Help title's inversion layer, all registered as inline `data:`
+URIs (their files still ship in `dist/assets/`, and its `verify:dist`
+allows exactly these). Its color `appleMenu` and `helpMenuTitle` art stays
+a file: the same mask is fetched there, but the layer it masks draws
+nothing in color (`menuBar.titleArtInvert` is 0), so a mask dropped there
+changes no pixel. The masks that remain are the icons'
+`--classicy-icon-mask` (the icon's own image, any URL the host gives, and
+the alias badge): a host serving those from another origin must send CORS
+headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -4228,7 +4233,10 @@ change), the way it declares measurement families. They are additive, 3.2.
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
-  strip drawing its grays through the 50% checker).
+  strip drawing its grays through the 50% checker), and
+  `controlStrip.pressedGlyphInk` / `pressedGlyphLight` / `pressedGlyphDark`
+  (black / #777777 / #222222; white / black / black), a pressed collapse
+  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it.
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,

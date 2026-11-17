@@ -132,7 +132,10 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   // title's art draws unchanged on the black. Over the art, a white layer
   // its shape (the same art as a mask) in `difference`, tiled by the knob
   // `menuBar.titleArtInvert` as a selected icon's inversion is by its own
-  // (_Icon.scss): 1 px tiles in "System 7", none in "System 7 Color".
+  // (_Icon.scss): 1 px tiles in "System 7", none in "System 7 Color". The
+  // 1-bit titles' art is registered inline (system7Assets.ts), so the mask
+  // needs no CORS fetch; the color titles' is a file, but their layer draws
+  // nothing.
   @each $title, $art in (".classicyDesktopMenuApple": "--classicy-art-apple-menu", ".classicyDesktopMenuHelp": "--classicy-art-help-menu-title") {
     :is(#{$titles})#{$title}.open > p:has(> img)::after {
       content: "";

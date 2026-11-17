@@ -38,7 +38,8 @@ const PACKAGE =
 const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"system7\"] .classicyWindow{border:1px solid}}"`;
 // The masks, the files the bundles inline: the dither checker (as Vite
 // writes an SVG `data:` URI: single quotes, the rest percent-encoded), and
-// the stripe and dot PNGs (base64), whose files ship too.
+// the stripe and dot PNGs and the 1-bit Apple and Help titles' art (base64),
+// whose files ship too.
 const DITHER_CHECKER =
 	'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="1" width="1" height="1"/></svg>';
 const DITHER_URI = `data:image/svg+xml,${encodeURIComponent(DITHER_CHECKER.replaceAll('"', "'")).replaceAll("%27", "'")}`;
@@ -49,6 +50,8 @@ const PNG_MASKS: Record<string, Buffer> = {
 	"src/assets/art/bw/window-stripes.png": bytes(81, 82),
 	"src/assets/art/color/window-utility-texture.png": bytes(82, 73),
 	"src/assets/art/bw/window-utility-texture.png": bytes(83, 73),
+	"src/assets/art/bw/apple-menu.png": bytes(84, 60),
+	"src/assets/art/bw/help-button.png": bytes(85, 61),
 };
 const pngUri = (file: string) =>
 	`data:image/png;base64,${PNG_MASKS[file]?.toString("base64")}`;
@@ -56,7 +59,7 @@ const MASK_URIS = Object.keys(PNG_MASKS)
 	.map((file, i) => `const m${i}="${pngUri(file)}";`)
 	.join("");
 const MASKS_NAMED =
-	"src/assets/art/dither-checker.svg, src/assets/art/color/window-stripes.png, src/assets/art/color/window-utility-texture.png, src/assets/art/bw/window-stripes.png, src/assets/art/bw/window-utility-texture.png";
+	"src/assets/art/dither-checker.svg, src/assets/art/color/window-stripes.png, src/assets/art/color/window-utility-texture.png, src/assets/art/bw/window-stripes.png, src/assets/art/bw/window-utility-texture.png, src/assets/art/bw/apple-menu.png, src/assets/art/bw/help-button.png";
 
 // Source file → its bytes. Every one ships in dist/assets under its name,
 // except the wallpaper photos, which nothing imports.
@@ -399,12 +402,15 @@ describe("bin/verify-dist.mjs", () => {
 				`dist/appearance-system7.es.js: inlines image/svg+xml -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
 			));
 
-		it("fails a stripe mask inlined when its source changed", () =>
+		it.each([
+			["a stripe mask", "src/assets/art/bw/window-stripes.png"],
+			["a 1-bit title's mask", "src/assets/art/bw/apple-menu.png"],
+		])("fails %s inlined when its source changed", (_kind, file) =>
 			expect(
 				verify(
 					{},
 					{
-						"src/assets/art/bw/window-stripes.png": bytes(90, 82),
+						[file]: bytes(90, 82),
 					},
 				).stderr.split("\n"),
 			).toEqual(

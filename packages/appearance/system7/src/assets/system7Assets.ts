@@ -13,12 +13,17 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@classicy/classicy";
-// The masks: the dither checker (`classicy-dither`, HIG p.60), and the
-// title bar's racing stripes and the windoid's drag-bar dots, each the mask
-// of a token layer (_Window.scss). `mask-image` URLs are fetched in CORS
-// mode, so a host serving dist/assets from another origin without CORS
-// headers would lose them: as `data:` URIs they need no fetch, as Platinum's
-// halftone (ruling E17). The files are still emitted by the art glob below.
+// The masks: the dither checker (`classicy-dither`, HIG p.60), the title
+// bar's racing stripes and the windoid's drag-bar dots, each the mask of a
+// token layer (_Window.scss), and the 1-bit Apple and Help titles' art, the
+// mask of an open title's inversion layer (_MenuBar.scss; the color titles'
+// layer draws nothing, so their art stays a file). `mask-image` URLs are
+// fetched in CORS mode, so a host serving dist/assets from another origin
+// without CORS headers would lose them: as `data:` URIs they need no fetch,
+// as Platinum's halftone (ruling E17). The files are still emitted by the
+// art glob below.
+import appleMenuBw from "./art/bw/apple-menu.png?inline";
+import helpMenuTitleBw from "./art/bw/help-button.png?inline";
 import windowStripesBw from "./art/bw/window-stripes.png?inline";
 import windowUtilityTextureBw from "./art/bw/window-utility-texture.png?inline";
 import windowStripes from "./art/color/window-stripes.png?inline";
@@ -227,12 +232,12 @@ const SYSTEM7_ART: Readonly<
 const SYSTEM7_BW_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
 > = {
-	appleMenu: art("bw/apple-menu.png"),
+	appleMenu: appleMenuBw,
 	startupLogo: art("bw/startup-logo.png"),
 	trashEmpty: art("bw/trash-empty.png"),
 	trashFull: art("bw/trash-full.png"),
 	helpButton: art("bw/help-button.png"),
-	helpMenuTitle: art("bw/help-button.png"),
+	helpMenuTitle: helpMenuTitleBw,
 	windowStripes: windowStripesBw,
 	windowStripesRed: windowStripesBw,
 	windowUtilityTexture: windowUtilityTextureBw,

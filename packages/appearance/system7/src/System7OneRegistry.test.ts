@@ -151,6 +151,12 @@ describe("the built bundle and the core's registries", () => {
 						).toString("base64")}`,
 				),
 			),
+			...["apple-menu.png", "help-button.png"].map(
+				(name) =>
+					`data:image/png;base64,${readFileSync(
+						path.join(packageDir, "src/assets/art/bw", name),
+					).toString("base64")}`,
+			),
 		]);
 		for (const bundle of [es, umd]) {
 			const inlined = new Set(

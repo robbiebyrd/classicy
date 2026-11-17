@@ -52,6 +52,13 @@ const MASK_FILES: Readonly<Record<string, string>> = {
 	windowStripesRed: "window-stripes",
 	windowUtilityTexture: "window-utility-texture",
 };
+// And the 1-bit Apple and Help titles' art, the mask of an open title's
+// inversion layer (_MenuBar.scss), inline in 1-bit only: the color titles'
+// layer draws nothing.
+const BW_MASK_FILES: Readonly<Record<string, string>> = {
+	appleMenu: "apple-menu",
+	helpMenuTitle: "help-button",
+};
 
 const iconLeaves = (tree: ClassicyAssetTree, trail = ""): string[] =>
 	Object.entries(tree).flatMap(([key, value]) => {
@@ -232,9 +239,10 @@ describe("System 7's assets", () => {
 			);
 			for (const key of differs) {
 				if (key in MASK_FILES) continue;
-				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW)).toMatch(
-					/\/art\/bw\//,
-				);
+				if (!(key in BW_MASK_FILES))
+					expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW)).toMatch(
+						/\/art\/bw\//,
+					);
 				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BASE)).toMatch(
 					/\/art\/color\//,
 				);
@@ -243,9 +251,10 @@ describe("System 7's assets", () => {
 
 		// The title bar's stripes and the windoid's dots are masks too
 		// (_Window.scss), fetched in CORS mode as URLs, so each is registered
-		// as its file's own bytes, inline, per theme (verify-dist holds the
-		// build to it).
-		it("registers the stripe and dot masks inline, each its theme's file", () => {
+		// as its file's own bytes, inline, per theme, and so are the 1-bit
+		// Apple and Help titles' art (_MenuBar.scss), in 1-bit (verify-dist
+		// holds the build to it).
+		it("registers the stripe, dot and 1-bit title masks inline, each its theme's file", () => {
 			for (const [key, file] of Object.entries(MASK_FILES))
 				for (const variant of [BW, BASE]) {
 					const bytes = readFileSync(
@@ -256,6 +265,16 @@ describe("System 7's assets", () => {
 						`${key} ${variant}`,
 					).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
 				}
+			for (const [key, file] of Object.entries(BW_MASK_FILES)) {
+				const bytes = readFileSync(path.join(assets, "art", BW, `${file}.png`));
+				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW), key).toBe(
+					`data:image/png;base64,${bytes.toString("base64")}`,
+				);
+				expect(
+					resolveClassicyAsset("systemArt", key, SYSTEM7, BASE),
+					key,
+				).toMatch(/\/art\/color\//);
+			}
 		});
 
 		// Plan 0018-dbd §3.7: the Control Strip's art is the 7.5 Control Strip
