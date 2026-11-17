@@ -73,12 +73,21 @@ $fields: ".classicyInput, .classicySpinner";
   // columns inside the frame, the text white on it; a tail inverts from its
   // first character (`--classicy-input-selection-start`, the core's offset
   // from the text's left edge), the text before it on the field's own
-  // ground. After the rules above, which it outranks or follows.
+  // ground. TextEdit's whole line starts a pixel left of the text's pen
+  // position, a tail at its first character's pen position, a pixel further
+  // right (`*-755-textfield-tail-selection*.png`: the highlight on the
+  // column after the caret's), so a start past the text's left edge adds a
+  // pixel (`min(start, 1 px)`; one scrolled off, left of it, stays covered
+  // from the inset). After the rules above, which it outranks or follows.
   .classicyInput.selected {
     background-image: linear-gradient(var(--color-highlight), var(--color-highlight));
     background-repeat: no-repeat;
     background-position: right top;
-    background-size: calc(100% - var(--text-field-inset) + #{$px} - var(--classicy-input-selection-start)) 100%;
+    background-size: calc(
+        100% - var(--text-field-inset) + #{$px} - var(--classicy-input-selection-start) -
+          min(var(--classicy-input-selection-start), #{$px})
+      )
+      100%;
     box-shadow: inset 0 0 0 calc(var(--text-field-inset) - #{$px}) var(--color-white);
   }
 
