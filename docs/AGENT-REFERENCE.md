@@ -3826,8 +3826,12 @@ Platinum (§1); its README lists what it ships.
   color by the package's `iconDimming` rule, §8 "Icon dimming", with
   `menuItem.hiddenIconOpacity`/`hiddenIconOpacityScale` as the fallback
   opacity; Platinum declares the same rule, its fallback 0.46 opacity); list rows are white, 18 px apart
-  (`fileBrowserList.rowPadding` 1, no row lines); small text is Geneva
-  (`typography.uiSmall`).
+  (`fileBrowserList.rowPadding` 1, no row lines), each row's parts placed
+  by System 7's own `fileBrowserList` knobs, read only by its stylesheet
+  (`disclosureWidth` 15 and `disclosureTop` 4, the triangle's gutter;
+  `iconStart` 7 and `iconEnd` 10, either side of the icon), the name in the
+  desktop label's 12-row box (`iconLabel.height`, `textTop`, `pad`); small
+  text is Geneva (`typography.uiSmall`).
 - **The desktop and the menu bar** (story 0216-1im). The desktop icons sit
   on 7.5's rows (the optional knobs `desktopIconGrid.rowGap: 20` and
   `top: 28`, "Package knob families"); the screen's bottom corners are
