@@ -5,6 +5,13 @@ import {
 	getActiveClassicyAssetVariant,
 	subscribeClassicyAssets,
 } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	dimmedSources,
+	reportedSources,
+	retryKeys,
+	settled,
+	settledListeners,
+} from "@/Appearance/ClassicyIconDimming.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -135,16 +142,6 @@ export const dimClassicyIconPixels = (
 	}
 };
 
-const dimmedSources = new Map<string, Promise<string | undefined>>();
-// Sources already reported, so a source that cannot be read logs once however
-// many sizes or mounts ask for it.
-const reportedSources = new Set<string>();
-// Cache keys whose load failed: the failure may be transient (a network
-// error), so the next request for one draws again instead of keeping it.
-const retryKeys = new Set<string>();
-const settled = new Map<string, string | undefined>();
-const settledListeners = new Set<() => void>();
-
 const loadImage = (src: string): Promise<HTMLImageElement | undefined> =>
 	new Promise((resolve) => {
 		const image = new Image();
@@ -238,18 +235,6 @@ export const classicyDimmedIconSource = (
 		dimmedSources.set(key, pending);
 	}
 	return pending;
-};
-
-/** Test-only: how many components listen for a dimmed image to settle. */
-export const classicyDimmedIconListenerCountForTests = (): number =>
-	settledListeners.size;
-
-/** Test-only: forgets every dimmed image. */
-export const resetClassicyDimmedIconsForTests = (): void => {
-	dimmedSources.clear();
-	settled.clear();
-	reportedSources.clear();
-	retryKeys.clear();
 };
 
 /**

@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { useClassicyDimmedIconImage } from "@/Appearance/ClassicyIconDimming";
 import {
 	classicyDimmedIconListenerCountForTests,
 	resetClassicyDimmedIconsForTests,
-	useClassicyDimmedIconImage,
-} from "@/Appearance/ClassicyIconDimming";
+} from "@/Appearance/ClassicyIconDimming.internal";
 
 // Review of Batch F-c (r3, Minors): an icon that is not dimmed, which is
 // nearly every one, subscribes to no store through the dimming hook.

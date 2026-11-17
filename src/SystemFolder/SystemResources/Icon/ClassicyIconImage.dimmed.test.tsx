@@ -6,10 +6,8 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
-import {
-	CLASSICY_ICON_DIMMED_IMAGE_CLASS,
-	resetClassicyDimmedIconsForTests,
-} from "@/Appearance/ClassicyIconDimming";
+import { CLASSICY_ICON_DIMMED_IMAGE_CLASS } from "@/Appearance/ClassicyIconDimming";
+import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 

@@ -495,7 +495,7 @@ the ids the saver already names:
   native scroll bars or set their `overflow` targets the viewport, or the
   parts above. Surfaces that name their own viewport carry a class on it:
   `classicyListBoxViewport`, `classicyFileOpenDialogWellViewport`,
-  `classicyAppearanceManagerColorsScrollViewport` (the Colors and Metrics tabs),
+  `classicyAppearanceManagerColorsScrollViewport` (the Colors, Metrics, Options and Packages tabs),
   `classicyColorPickerModeListViewport`, `classicyAssistantBodyViewport` and
   `classicyHyperCardLockedFieldText` (a locked field's text viewport); a
   `ClassicyScrollArea` with `scrollable={false}` marks its viewport
@@ -648,9 +648,7 @@ the ids the saver already names:
   `ClassicyIconLeaf`, `getActiveClassicyAssetVariant()` (the variant the
   active theme draws) and the type `ClassicyIconDimmingPurpose`. Scroll
   areas: the types `ClassicyScrollAreaProps`, `ClassicyScrollAreaViewportProps`
-  and `ClassicyScrollBarOrientation`. Sound: the type
-  `ClassicyAlertSoundOption` (`{ value, label }`, an alert the Sound tab
-  lists).
+  and `ClassicyScrollBarOrientation`.
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 
