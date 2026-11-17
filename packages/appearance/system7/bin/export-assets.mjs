@@ -77,6 +77,9 @@ const ICONS = [
 	["applications-stickies-app", `${AMI}/Stickies.rsrc`, 128],
 	["applications-stickies-notes", `${AMI}/Stickies.rsrc`, 129],
 	["applications-simpletext-app", "Apple Extras/SimpleText.rsrc", 128],
+	// A desk accessory's own resources are numbered from -16000: its BNDL
+	// gives `dfil`, the DA file, ICN# -16000.
+	["applications-calculator-app", `${AMI}/Calculator.rsrc`, -16000],
 	["control-panels-appearance-manager-app", `${CP}/Color.rsrc`, -4064],
 	[
 		"control-panels-control-strip-manager-app",
