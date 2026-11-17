@@ -18,7 +18,8 @@
 //   window's own), and the first item's submenu in it;
 // - its first pop-up menu, combo box and pop-up bevel button, each moved to
 //   the desktop's bottom-right corner first, so it opens against both edges;
-// - the desktop's contextual menu, right-clicked at its bottom-right corner.
+// - the desktop's contextual menu, right-clicked at its bottom-right corner,
+//   and any its story opened, with the first submenu in each.
 //
 // It measures as a browser paints (each list's border box, outer
 // box-shadow and absolutely placed ::before/::after, a scrolling list's
@@ -51,6 +52,9 @@ const DEFAULT_STORIES = [
 	"desktop-desktop--default",
 	"desktop-menubar--scrolling-menu",
 	"desktop-menubar--with-app-menu",
+	// A window's own menu bar (the mirrored package), a contextual submenu.
+	"desktop-desktop--mirrored",
+	"controls-contextualmenu--with-submenu",
 	"controls-popupmenu--default",
 	"controls-combobox--starts-with",
 	"controls-bevelbutton--popup-vertical",
@@ -422,6 +426,28 @@ const checkContextual = async (page: Page): Promise<Measured[]> => {
 				ink,
 				bounds: b,
 				inside: h.inside(ink, b),
+			});
+			// And its first submenu.
+			const parent = list.querySelector<HTMLElement>(
+				":scope > .classicyMenuItem.classicyMenuItemChildMenuIndicator:not(.disabled), :scope > * > .classicyMenuItem.classicyMenuItemChildMenuIndicator:not(.disabled)",
+			);
+			if (!parent) continue;
+			parent.click();
+			await h.frame();
+			const sub = parent.querySelector(":scope > .classicyMenuWrapper > ul");
+			if (!sub || !parent.classList.contains("open")) {
+				found.push({
+					what: `contextual submenu > ${parent.id}`,
+					missing: true,
+				});
+				continue;
+			}
+			const subInk = h.menuInk(sub);
+			found.push({
+				what: `contextual submenu > ${parent.id}`,
+				ink: subInk,
+				bounds: b,
+				inside: h.inside(subInk, b),
 			});
 		}
 		await h.close();
