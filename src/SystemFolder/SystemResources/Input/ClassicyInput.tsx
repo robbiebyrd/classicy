@@ -15,12 +15,64 @@ import {
 	forwardRef,
 	type KeyboardEventHandler,
 	useEffect,
+	useLayoutEffect,
+	useRef,
 	useState,
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { useClassicyMergedRef } from "@/Appearance/useClassicyMergedRef.internal";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+
+// The characters a password field draws in place of its text: Blink and
+// WebKit draw a bullet (U+2022), Gecko a black circle (U+25CF).
+const classicyPasswordMask = (el: HTMLInputElement) =>
+	"MozAppearance" in el.style ? "\u25cf" : "\u2022";
+
+/**
+ * The width `text` takes in `el`'s font, as the field draws its first
+ * characters: measured on a hidden probe in the field's own text style (a
+ * password field's text masked as the browser masks it).
+ */
+const classicyInputTextWidth = (el: HTMLInputElement, text: string): number => {
+	if (!text) return 0;
+	const doc = el.ownerDocument;
+	const view = doc.defaultView;
+	if (!view || !doc.body) return 0;
+	const cs = view.getComputedStyle(el);
+	const probe = doc.createElement("span");
+	const style = probe.style;
+	for (const name of [
+		"font-family",
+		"font-size",
+		"font-weight",
+		"font-style",
+		"font-stretch",
+		"font-variant",
+		"font-kerning",
+		"font-feature-settings",
+		"font-variation-settings",
+		"letter-spacing",
+		"word-spacing",
+		"text-transform",
+		"text-rendering",
+	])
+		style.setProperty(name, cs.getPropertyValue(name));
+	style.position = "fixed";
+	style.left = "0";
+	style.top = "0";
+	style.visibility = "hidden";
+	style.pointerEvents = "none";
+	style.whiteSpace = "pre";
+	probe.textContent =
+		el.type === "password"
+			? classicyPasswordMask(el).repeat([...text].length)
+			: text;
+	doc.body.appendChild(probe);
+	const width = probe.getBoundingClientRect().width;
+	probe.remove();
+	return width;
+};
 
 interface ClassicyInputProps {
 	/** Id (and `name`) of the native `<input>`; also links the label to it. */
@@ -126,42 +178,91 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// The root element for the appearance hook, merged with the forwarded
 		// ref so callers keep receiving the <input>.
 		const [inputRef, setInputRef] = useClassicyMergedRef<HTMLInputElement>(ref);
-		// The field's one state class: `selected` while it has focus and its
-		// whole text is selected (System 7 then highlights the field's whole
-		// line, as TextEdit did). `isDefault` keeps its deprecated modifier
-		// class below.
-		const [wholeTextSelected, setWholeTextSelected] = useState(false);
+		// The field's one state class: `selected` while it has focus and a
+		// selection that runs to its text's end (the whole text, or its tail).
+		// TextEdit highlighted such a selection to the field's right edge,
+		// from where it starts, which the field publishes as
+		// `--classicy-input-selection-start` (px from its content box's left
+		// edge, its own scrolling included) while the state is set.
+		// `isDefault` keeps its deprecated modifier class below.
+		const [selection, setSelection] = useState<{ start: number } | null>(null);
+		const readSelectionRef = useRef<() => void>(() => {});
 		// Read again on every event that can change the selection or the
 		// focus: `select` (a script's `select()`, a drag), `selectionchange`
-		// where a browser fires it at the field, the keys and the pointer
-		// moving the caret, typing, and focus itself.
+		// at the field and at its document (Chrome before 127 and Safari 16
+		// fire it at the document only), the keys moving the caret, typing,
+		// the field's own scrolling and focus itself. A pointer release is
+		// read when it lands, on the click that follows it (the click is what
+		// collapses a selection into a caret) and a frame later (a release no
+		// click follows); a new value is read once it is committed.
 		useEffect(() => {
 			const el = inputRef.current;
 			if (!el) return;
-			const read = () =>
-				setWholeTextSelected(
-					el.ownerDocument.activeElement === el &&
-						el.value.length > 0 &&
-						el.selectionStart === 0 &&
-						el.selectionEnd === el.value.length,
+			const doc = el.ownerDocument;
+			const view = doc.defaultView;
+			let frame = 0;
+			const read = () => {
+				const start = el.selectionStart;
+				const end = el.selectionEnd;
+				const runsToEnd =
+					doc.activeElement === el &&
+					el.value.length > 0 &&
+					start !== null &&
+					end !== null &&
+					start < end &&
+					end === el.value.length;
+				if (!runsToEnd) {
+					setSelection((prev) => (prev === null ? prev : null));
+					return;
+				}
+				const x = Math.round(
+					classicyInputTextWidth(el, el.value.slice(0, start)) - el.scrollLeft,
 				);
+				setSelection((prev) => (prev?.start === x ? prev : { start: x }));
+			};
+			readSelectionRef.current = read;
+			const readNextFrame = () => {
+				if (!view) return;
+				if (frame) view.cancelAnimationFrame(frame);
+				frame = view.requestAnimationFrame(() => {
+					frame = 0;
+					read();
+				});
+			};
+			const readOnRelease = () => {
+				read();
+				readNextFrame();
+			};
 			const events = [
 				"select",
 				"selectionchange",
+				"keydown",
 				"keyup",
-				"mouseup",
+				"click",
 				"input",
+				"scroll",
 				"focus",
 				"blur",
 			];
 			for (const type of events) el.addEventListener(type, read);
+			el.addEventListener("mouseup", readOnRelease);
+			doc.addEventListener("selectionchange", read);
 			return () => {
 				for (const type of events) el.removeEventListener(type, read);
+				el.removeEventListener("mouseup", readOnRelease);
+				doc.removeEventListener("selectionchange", read);
+				if (frame) view?.cancelAnimationFrame(frame);
+				readSelectionRef.current = () => {};
 			};
 		}, [inputRef]);
+		// Setting the value moves the selection and fires nothing.
+		useLayoutEffect(() => {
+			void value;
+			readSelectionRef.current();
+		}, [value]);
 		const appearance = useClassicyAppearance(
 			"Input",
-			{ selected: wholeTextSelected },
+			{ selected: selection !== null },
 			inputRef,
 		);
 
@@ -218,10 +319,13 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 						isDefault ? "classicyInputDefault" : "",
 					)}
 					style={
-						backgroundColor || appearance.style
+						backgroundColor || appearance.style || selection
 							? ({
 									...(backgroundColor && {
 										"--classicy-input-background": backgroundColor,
+									}),
+									...(selection && {
+										"--classicy-input-selection-start": `${selection.start}px`,
 									}),
 									...appearance.style,
 								} as CSSProperties)

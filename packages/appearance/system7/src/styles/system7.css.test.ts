@@ -970,10 +970,15 @@ describe("system7.scss (compiled)", () => {
 		// Story 0217-etx: QuickDraw centered a label on whole pixels, an odd
 		// pixel of room on its right (SimpleText's 60-pixel Cancel and Save);
 		// the indent's percentage keeps a label-sized button's width.
-		it("centers a push button's label with its odd pixel of room on the right", () =>
+		it("centers a push button's label with its odd pixel of room on the right", () => {
 			expect(rule(".classicyButton")).toMatch(
 				/text-indent: max\(var\(--box-pixel\) \* -1, -100000%\);/,
-			));
+			);
+			// Review M-2: the indent inherits, so a block or inline-block
+			// child of a button (an icon-and-label wrapper) would indent its
+			// own first line again; the button's children take none.
+			expect(rule(".classicyButton > *")).toMatch(/text-indent: 0;/);
+		});
 
 		it("draws the push button and its default ring as pixel art, not a radius", () => {
 			const button = rule(".classicyButton");
@@ -1584,12 +1589,23 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
-		// Story 0217-etx: a field whose whole text is selected (the core's
-		// `selected` state) highlights its whole line, as TextEdit did (the
-		// Save box's name as it opens): black from three pixels in.
-		it("highlights a field's whole line while its whole text is selected", () => {
+		// Story 0217-etx: a field whose selection runs to its text's end (the
+		// core's `selected` state) highlights its line to the right edge from
+		// where the selection starts, as TextEdit did (the Save box's name as
+		// it opens, its whole text: black from three pixels in). Review M-1:
+		// the start is the core's `--classicy-input-selection-start`, so a
+		// tail selection highlights from its first character.
+		it("highlights a field's line to its right edge from the selection's start", () => {
 			const selected = rule(".classicyInput.selected");
-			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
+			expect(selected).not.toMatch(/background-color:/);
+			expect(selected).toMatch(
+				/background-image: linear-gradient\(var\(--color-highlight\), var\(--color-highlight\)\);/,
+			);
+			expect(selected).toMatch(/background-repeat: no-repeat;/);
+			expect(selected).toMatch(/background-position: right top;/);
+			expect(selected).toMatch(
+				/background-size: calc\(100% - var\(--text-field-inset\) \+ var\(--box-pixel\) - var\(--classicy-input-selection-start\)\) 100%;/,
+			);
 			expect(selected).toMatch(
 				/box-shadow: inset 0 0 0 calc\(var\(--text-field-inset\) - var\(--box-pixel\)\) var\(--color-white\);/,
 			);

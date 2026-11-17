@@ -174,14 +174,157 @@ describe("ClassicyInput's selected state", () => {
 		);
 	});
 
-	it("is not set for part of the text, or an empty field", async () => {
+	it("is not set for a selection short of the text's end, or an empty field", async () => {
 		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
 		field().focus();
 		field().setSelectionRange(0, 4);
 		field().dispatchEvent(new Event("select"));
 		expect(field().classList.contains("selected")).toBe(false);
+		field().setSelectionRange(2, 6);
+		expect(field().classList.contains("selected")).toBe(false);
 		field().value = "";
 		field().select();
 		expect(field().classList.contains("selected")).toBe(false);
+	});
+
+	// Review I-1: Chrome before 127 and Safari 16.2 (both on the browser
+	// floor) dispatch `selectionchange` at the document only, and a caret
+	// collapse fires no `select`. These stop every selection event aimed at
+	// the field itself, so only the document hears of the change.
+	const muteFieldSelectionEvents = () => {
+		const stop = (e: Event) => {
+			if (e.target === field()) e.stopImmediatePropagation();
+		};
+		for (const type of ["select", "selectionchange"])
+			window.addEventListener(type, stop, true);
+		return () => {
+			for (const type of ["select", "selectionchange"])
+				window.removeEventListener(type, stop, true);
+		};
+	};
+	const isSelected = () => field().classList.contains("selected");
+
+	it("clears when the selection collapses with no event at the field (selectionchange at the document)", async () => {
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		field().focus();
+		field().select();
+		await vi.waitFor(() => expect(isSelected()).toBe(true));
+		const unmute = muteFieldSelectionEvents();
+		try {
+			field().setSelectionRange(10, 10);
+			expect(isSelected()).toBe(true);
+			document.dispatchEvent(new Event("selectionchange"));
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
+	it("reads again on the click that follows a pointer release", async () => {
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		field().focus();
+		field().select();
+		await vi.waitFor(() => expect(isSelected()).toBe(true));
+		const unmute = muteFieldSelectionEvents();
+		try {
+			// The release is read before the click collapses the selection.
+			field().dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+			field().setSelectionRange(10, 10);
+			field().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
+	it("reads again a frame after a pointer release that no click follows", async () => {
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		field().focus();
+		field().select();
+		await vi.waitFor(() => expect(isSelected()).toBe(true));
+		const unmute = muteFieldSelectionEvents();
+		try {
+			field().dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+			field().setSelectionRange(10, 10);
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
+	it("reads again when its value changes while focused", async () => {
+		const { rerender } = render(
+			<ClassicyInput id="name" prefillValue="untitled 1" />,
+		);
+		field().focus();
+		field().select();
+		await vi.waitFor(() => expect(isSelected()).toBe(true));
+		const unmute = muteFieldSelectionEvents();
+		try {
+			// Setting the value puts the caret at its end, firing nothing.
+			rerender(<ClassicyInput id="name" prefillValue="untitled 2" />);
+			expect(field().value).toBe("untitled 2");
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
+	// Review M-1: a selection that runs to the text's end is highlighted to
+	// the field's right edge by TextEdit, from where it starts. The field
+	// publishes that start, from its content box's left edge and with its
+	// own scrolling, as `--classicy-input-selection-start`.
+	it("is set for a selection that runs to the end, publishing where it starts", async () => {
+		// jsdom lays nothing out: a probe's width is 7 px per character.
+		const rect = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				const width =
+					this.tagName === "SPAN" ? (this.textContent ?? "").length * 7 : 0;
+				return new DOMRect(0, 0, width, 0);
+			});
+		try {
+			render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+			const start = () =>
+				field().style.getPropertyValue("--classicy-input-selection-start");
+			field().focus();
+			field().select();
+			await vi.waitFor(() => expect(isSelected()).toBe(true));
+			expect(start()).toBe("0px");
+			field().setSelectionRange(4, 10);
+			await vi.waitFor(() => expect(start()).toBe("28px"));
+			expect(isSelected()).toBe(true);
+			Object.defineProperty(field(), "scrollLeft", {
+				configurable: true,
+				value: 5,
+			});
+			field().setSelectionRange(9, 10);
+			await vi.waitFor(() => expect(start()).toBe("58px"));
+			field().setSelectionRange(10, 10);
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+			expect(start()).toBe("");
+		} finally {
+			rect.mockRestore();
+		}
+	});
+
+	it("measures a password field's selection start over its masked text", async () => {
+		const measured: string[] = [];
+		const rect = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				if (this.tagName === "SPAN") measured.push(this.textContent ?? "");
+				return new DOMRect(0, 0, 0, 0);
+			});
+		try {
+			render(<ClassicyInput id="name" type="password" prefillValue="secret" />);
+			field().focus();
+			field().setSelectionRange(3, 6);
+			await vi.waitFor(() => expect(isSelected()).toBe(true));
+			expect(measured.at(-1)).toMatch(/^[\u2022\u25cf]{3}$/);
+			expect(measured).not.toContain("sec");
+		} finally {
+			rect.mockRestore();
+		}
 	});
 });

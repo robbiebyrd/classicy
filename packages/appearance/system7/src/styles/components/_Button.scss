@@ -76,6 +76,13 @@ $dimmed-label:
     // button's width (Don't Save stays 85).
     text-indent: max(calc(#{$px} * -1), -100000%);
 
+    // The indent inherits: a block or inline-block child (an icon-and-label
+    // wrapper) would indent its own first line again. An inline child rides
+    // the button's indented line.
+    > * {
+      text-indent: 0;
+    }
+
     &:focus {
       outline: none;
     }
