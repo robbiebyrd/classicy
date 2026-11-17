@@ -133,6 +133,7 @@
 				"helpTitleDrop": 1,
 				"switcherTitleStart": 9,
 				"switcherTitleEnd": 9,
+				"clockEnd": 1,
 				"titleArtInvert": 1
 			},
 			"uiText": {
@@ -188,7 +189,10 @@
 			},
 			"headerStrip": {
 				"height": 17,
-				"rule": 3
+				"rule": 3,
+				"titleDrop": 1,
+				"underlineTop": 12,
+				"underline": 1
 			},
 			"checkBox": {
 				"size": 12,
@@ -241,9 +245,18 @@
 			"iconSelection": {
 				"invert": 1
 			},
+			"desktopIconGrid": {
+				"rowGap": 20,
+				"top": 28
+			},
 			"fileBrowserList": {
 				"mediumIconSize": 16,
-				"rowPadding": 1
+				"rowPadding": 1,
+				"disclosureWidth": 15,
+				"disclosureTop": 4,
+				"iconStart": 7,
+				"iconEnd": 10,
+				"titleInset": 1
 			},
 			"fileDialog": {
 				"width": 355,
@@ -444,6 +457,7 @@
 					"helpTitleDrop": 1,
 					"switcherTitleStart": 9,
 					"switcherTitleEnd": 9,
+					"clockEnd": 1,
 					"titleArtInvert": 1
 				},
 				"uiText": {
@@ -499,7 +513,10 @@
 				},
 				"headerStrip": {
 					"height": 17,
-					"rule": 3
+					"rule": 3,
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
 				},
 				"checkBox": {
 					"size": 12,
@@ -552,9 +569,18 @@
 				"iconSelection": {
 					"invert": 1
 				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
+				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,
-					"rowPadding": 1
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10,
+					"titleInset": 1
 				},
 				"fileDialog": {
 					"width": 355,
@@ -757,6 +783,7 @@
 					"helpTitleDrop": 1,
 					"switcherTitleStart": 9,
 					"switcherTitleEnd": 9,
+					"clockEnd": 1,
 					"titleArtInvert": 0
 				},
 				"uiText": {
@@ -812,7 +839,10 @@
 				},
 				"headerStrip": {
 					"height": 17,
-					"rule": 3
+					"rule": 3,
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
 				},
 				"checkBox": {
 					"size": 12,
@@ -865,9 +895,18 @@
 				"iconSelection": {
 					"invert": 0
 				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
+				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,
-					"rowPadding": 1
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10,
+					"titleInset": 1
 				},
 				"fileDialog": {
 					"width": 355,
@@ -954,6 +993,9 @@
 		"fileDialog": {
 			"frame": "fixed",
 			"navigation": "flat"
+		},
+		"fileBrowser": {
+			"listColumnTitles": "aboveList"
 		}
 	},
 	"knobs": {},

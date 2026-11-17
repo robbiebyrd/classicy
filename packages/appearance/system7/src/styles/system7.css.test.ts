@@ -478,6 +478,42 @@ describe("system7.scss (compiled)", () => {
 			).toBe(6);
 		});
 
+		// In an 18-row item with a small icon (the Application menu's), 7.5
+		// draws the icon from the item's top and the mark a row lower than in
+		// a 16-row item, on the title's baseline
+		// (`*-755-appmenu-open.png`, the Finder row: icon art rows 85-99, the
+		// check 89-96; story 0216-1im F6).
+		it("puts a small icon at its item's top and the mark on the title's baseline", () => {
+			const imageRow = `${MENUS} .classicyMenuItem:has(> p > img)`;
+			expect(rule(`${imageRow} > p > img`)).toMatch(
+				/margin-top: calc\(var\(--menu-item-image-pad\) \* -1\);/,
+			);
+			expect(rule(`${imageRow} > p > .classicyMenuItemCheck`)).toMatch(
+				/top: var\(--menu-item-image-pad\);/,
+			);
+		});
+
+		// System 7 menus never drew a focus ring: an item the keyboard makes
+		// current is inverted, as the pointer tracks one (story 0216-1im F8),
+		// not Chromium's rounded, anti-aliased `outline: auto`. A dimmed item
+		// never highlights; and while the pointer is over the menu, it tracks
+		// the item under it alone.
+		it("highlights a keyboard-current menu item as a tracked one, with no ring", () => {
+			expect(rule(`${MENUS} .classicyMenuItem:focus-visible`)).toMatch(
+				/outline: none;/,
+			);
+			const current = rule(
+				`${MENUS} .classicyMenuItem:not(.disabled):focus-visible`,
+			);
+			expect(current).toMatch(/color: var\(--color-white\);/);
+			expect(current).toMatch(/background-color: var\(--color-black\);/);
+			const pointer = rule(
+				`${MENUS}:hover .classicyMenuItem:not(:hover, .open):focus-visible`,
+			);
+			expect(pointer).toMatch(/color: var\(--color-black\);/);
+			expect(pointer).toMatch(/background-color: transparent;/);
+		});
+
 		it("overlaps a submenu on its parent menu's right side", () =>
 			expect(
 				rule(
@@ -585,6 +621,33 @@ describe("system7.scss (compiled)", () => {
 			expect(
 				rule(".classicyDesktopMenu > :has(> [data-classicy-part=help])"),
 			).toMatch(/order: 55;/);
+		});
+
+		// 7.5's Help title overlaps the Application title as the
+		// application's titles overlap each other: its box ends 5 px into the
+		// Application title's (`*-755-appmenu-closed.png`, Help x 572-604,
+		// the Application title from x 600; story 0216-1im F1). Both forms,
+		// as for the order.
+		it("overlaps the Help title with the Application title", () => {
+			for (const selector of [
+				".classicyDesktopMenu > [data-classicy-part=help]",
+				".classicyDesktopMenu > :has(> [data-classicy-part=help])",
+			])
+				expect(rule(selector), selector).toMatch(
+					/margin-right: calc\(var\(--menu-bar-title-overlap\) \* -1\);/,
+				);
+		});
+
+		// The clock's last ink sits two pixels before the Help title's box
+		// (`*-755-appmenu-closed.png`: ink to x 569, Help from 572): no
+		// margin after it, and `menuBar.clockEnd` (1) for its padding, in
+		// place of a title's (story 0216-1im F2).
+		it("ends the clock a pixel from the Help title", () => {
+			const clock = rule(
+				".classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime",
+			);
+			expect(clock).toMatch(/margin-right: 0;/);
+			expect(clock).toMatch(/padding-right: var\(--menu-bar-clock-end\);/);
 		});
 
 		// The Apple and Help titles are their art, 16 px, in the highlight
@@ -1901,6 +1964,38 @@ describe("system7.scss (compiled)", () => {
 			expect(rule("> *")).toMatch(/image-rendering: auto;/);
 		});
 
+		// The screen's bottom corners, rounded in black as its top ones are
+		// (runs of 5, 3, 2, 1 and 1 pixels; `*-755-controlstrip.png` bottom
+		// right, `*-755-controlstrip-right.png` bottom left; story 0216-1im
+		// F11): a layer over everything on the desktop, windows, menus and
+		// the Control Strip included, that takes no pointer events.
+		it("rounds the screen's bottom corners over everything on the desktop", () => {
+			const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
+			const corners = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+				.filter(([, header]) => header.trim() === `${ROOT}::after`)
+				.map(([, , declarations]) => declarations)
+				.join("\n");
+			expect(corners).toMatch(/content: "";/);
+			expect(corners).toMatch(/position: absolute;/);
+			expect(corners).toMatch(/inset: 0;/);
+			expect(corners).toMatch(/pointer-events: none;/);
+			expect(corners).toMatch(/z-index: 99999;/);
+			// Four rectangles a corner, each anchored to its bottom corner.
+			expect(layersOf(corners, "var(--color-black)")).toBe(8);
+			for (const side of ["left", "right"]) {
+				expect(corners).toMatch(
+					new RegExp(
+						`var\\(--color-black\\)\\) ${side} 0 bottom 0/calc\\(var\\(--box-pixel\\) \\* 5\\) var\\(--box-pixel\\)`,
+					),
+				);
+				expect(corners).toMatch(
+					new RegExp(
+						`var\\(--color-black\\)\\) ${side} 0 bottom calc\\(var\\(--box-pixel\\) \\* 3\\)/var\\(--box-pixel\\) calc\\(var\\(--box-pixel\\) \\* 2\\)`,
+					),
+				);
+			}
+		});
+
 		it("draws the desktop under the startup screen", () => {
 			const startup = rule(".classicyStartupScreen");
 			for (const declaration of CORE_BACKGROUND)
@@ -2108,6 +2203,143 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/background: var\(--color-white\);/);
 		});
 
+		// Its column titles are on white, the sorted one too, at both depths
+		// (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name"
+		// and "Size"), where the base sheet's band is the system gray and a
+		// sorted title a lighter one (story 0216-1im F8b).
+		it("draws the list view's column titles on white, the sorted one too", () => {
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer .classicyTableHeaderGroup",
+				),
+			).toMatch(/background: var\(--color-white\);/);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected",
+				),
+			).toMatch(/background-color: transparent;/);
+		});
+
+		// A list row's parts where 7.5.5 draws them, from the window's inner
+		// edge (`*-755-finder-list-row-selected.png`, story 0216-1im F10): the
+		// triangle's ink 6 px in and 4 rows down (its 11 px box in a gutter
+		// `fileBrowserList.disclosureWidth` (15) wide, `disclosureTop` (4)
+		// down), the 16 px icon from 22 (`iconStart`, 7, after the gutter),
+		// the name's box from 48 (`iconEnd`, 10, after the icon) and 12 rows
+		// tall, the desktop label's box (`iconLabel.height`, its text
+		// `iconLabel.textTop` down and `iconLabel.pad` in).
+		it("places a list row's triangle, icon and name as 7.5.5 does", () => {
+			const gutter = rule(
+				".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableDisclosure",
+			);
+			expect(gutter).toMatch(
+				/flex: 0 0 var\(--file-browser-list-disclosure-width\);/,
+			);
+			expect(gutter).toMatch(/align-self: stretch;/);
+			expect(gutter).toMatch(/align-items: flex-start;/);
+			expect(gutter).toMatch(
+				/padding-top: var\(--file-browser-list-disclosure-top\);/,
+			);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIcon",
+				),
+			).toMatch(
+				/margin: var\(--file-browser-list-row-padding\) var\(--file-browser-list-icon-end\) var\(--file-browser-list-row-padding\) var\(--file-browser-list-icon-start\);/,
+			);
+			const label = rule(
+				".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIconLabel",
+			);
+			expect(label).toMatch(/box-sizing: border-box;/);
+			expect(label).toMatch(/height: var\(--icon-label-height\);/);
+			expect(label).toMatch(
+				/padding: var\(--icon-label-text-top\) var\(--icon-label-pad\) 0;/,
+			);
+			expect(label).toMatch(
+				/line-height: calc\(var\(--icon-label-height\) - var\(--icon-label-text-top\)\);/,
+			);
+		});
+
+		// The list view's column titles sit above the list, over the window's
+		// scroll bar, its double rule under them, the window header's rule
+		// gone (`*-755-finder-list-row-selected.png`: "Name" rows 195-201 in
+		// the 17 header rows 190-206, the rule 207-209, the bar from 210;
+		// layout `fileBrowser.listColumnTitles: "aboveList"`). The sorted
+		// title is underlined (row 203), with no triangle; the name column's
+		// title starts over the names. Story 0216-1im F9.
+		it("draws the list view's titles above the list, the sorted one underlined", () => {
+			const head = rule(".classicyScrollAreaHead");
+			expect(head).toMatch(/background: var\(--color-white\);/);
+			expect(head).toMatch(
+				/border-bottom: var\(--header-strip-rule\) double var\(--color-black\);/,
+			);
+			expect(
+				rule(
+					".classicyWindow .classicyWindowHeader.classicyWindowHeaderAboveHead",
+				),
+			).toMatch(/border-bottom: 0;/);
+			expect(
+				rule(
+					".classicyWindow .classicyWindowHeaderAboveHead + .classicyWindowContents.classicyWindowContentsWithHeader",
+				),
+			).toMatch(
+				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--header-strip-height\)\);/,
+			);
+			// The titles look the same above the list and, where nothing
+			// above the list scrolls to hold them (a modal's contents), in
+			// it: its own header row, unless that row is the hidden one the
+			// detached copy stands in for (review r0, issue 2).
+			for (const TITLES of [
+				".classicyTableDetachedHeader",
+				".classicyFileBrowserViewTableContainer .classicyTableHeader:not(.classicyTableHeaderHidden)",
+			]) {
+				const title = rule(`${TITLES} .classicyTableColumnHeader`);
+				expect(title, TITLES).toMatch(/height: var\(--header-strip-height\);/);
+				expect(title, TITLES).toMatch(
+					/line-height: var\(--header-strip-height\);/,
+				);
+				expect(title, TITLES).toMatch(/background: transparent;/);
+				expect(rule(`${TITLES} .classicyTableSortArrow`), TITLES).toMatch(
+					/display: none;/,
+				);
+				// The underline is a box pinned to the title's 17-row line
+				// box, not the engine's text-decoration (review r0, issue 5).
+				const SORTED = `${TITLES} :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span`;
+				expect(rule(SORTED), TITLES).toMatch(/position: relative;/);
+				expect(rule(SORTED), TITLES).not.toMatch(/text-decoration/);
+				const underline = rule(`${SORTED}::after`);
+				expect(underline, TITLES).toMatch(/content: "";/);
+				expect(underline, TITLES).toMatch(/position: absolute;/);
+				expect(underline, TITLES).toMatch(/left: 0;/);
+				expect(underline, TITLES).toMatch(/right: 0;/);
+				expect(underline, TITLES).toMatch(
+					/top: var\(--header-strip-underline-top\);/,
+				);
+				expect(underline, TITLES).toMatch(
+					/height: var\(--header-strip-underline\);/,
+				);
+				expect(underline, TITLES).toMatch(/background: currentColor;/);
+				expect(
+					rule(`${TITLES} .classicyTableColumnHeader:first-child`),
+					TITLES,
+				).toMatch(
+					/padding-left: calc\(var\(--file-browser-list-disclosure-width\) \+ var\(--file-browser-list-icon-start\) \+ var\(--classicy-file-browser-icon-size\) \+ var\(--file-browser-list-icon-end\) \+ var\(--file-browser-list-title-inset\)\);/,
+				);
+				const content = rule(`${TITLES} .classicyTableHeaderCellContent`);
+				expect(content, TITLES).toMatch(/position: relative;/);
+				expect(content, TITLES).toMatch(
+					/top: var\(--header-strip-title-drop\);/,
+				);
+			}
+			expect(
+				rule(".classicyTableDetachedHeader .classicyTableHeaderGroup"),
+			).toMatch(/background: var\(--color-white\);/);
+			// No rule sizes the hidden header row: it stays at no height.
+			expect(css).not.toMatch(
+				/\.classicyFileBrowserViewTableContainer \.classicyTableColumnHeader \{[^}]*height/,
+			);
+		});
+
 		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,
 		// 7.5's `*-dialog-standardfile-save.png`; story 0214-c61): each box's
 		// parts placed from the inner line by its own knobs.
@@ -2281,6 +2513,15 @@ describe("system7.scss (compiled)", () => {
 				/box-shadow: var\(--window-border-size\) 0 0 var\(--color-black\);/,
 			);
 		});
+
+		// Docked right, the tab's own art draws the black line between it and
+		// the first scroll arrow (`classicyControlStripTabRight`): one pixel,
+		// as 7.5.5's (`*-755-controlstrip-right.png`, x 503), so the base
+		// sheet's line on the arrow cell stands down (story 0216-1im F5).
+		it("draws one line between a right-docked strip's tab and its arrows", () =>
+			expect(
+				rule(".classicyControlStripRight .classicyControlStripScrollStart"),
+			).toMatch(/border-left-width: 0;/));
 
 		// A pressed cell (a module with its menu held open, or the collapse
 		// box held): two pixels of the dark edge on the top and left, two of

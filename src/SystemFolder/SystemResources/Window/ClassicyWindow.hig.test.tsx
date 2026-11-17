@@ -6,6 +6,7 @@ import {
 	registerClassicyLogSink,
 	unregisterClassicyLogSink,
 } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { useClassicyScrollAreaHead } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollAreaHead.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const mockDispatch = vi.hoisted(() => vi.fn());
@@ -408,5 +409,40 @@ describe("ClassicyWindow HIG dialog behaviors", () => {
 			header: <span>Columns</span>,
 		});
 		expect(container.querySelector(".classicyWindowHeaderList")).not.toBeNull();
+	});
+
+	// Story 0216-1im F9: list titles drawn above the contents' scrolling
+	// region (the contents' scroll area's head) take over the header's
+	// bottom edge, so the header is marked while its contents have a head.
+	it("marks the header while the contents draw a head", () => {
+		const AskForHead = ({ ask }: { ask: boolean }) => {
+			useClassicyScrollAreaHead(ask);
+			return null;
+		};
+		const view = (ask: boolean) => (
+			<ClassicyWindow
+				id="TestWindow"
+				appId="TestApp"
+				title="Test"
+				header={<span>4 items</span>}
+			>
+				<AskForHead ask={ask} />
+			</ClassicyWindow>
+		);
+		const { container, rerender } = render(view(false));
+		const header = () =>
+			container.querySelector(".classicyWindowHeader") as HTMLElement;
+		expect(header().classList.contains("classicyWindowHeaderAboveHead")).toBe(
+			false,
+		);
+		rerender(view(true));
+		expect(container.querySelector(".classicyScrollAreaHead")).not.toBeNull();
+		expect(header().classList.contains("classicyWindowHeaderAboveHead")).toBe(
+			true,
+		);
+		rerender(view(false));
+		expect(header().classList.contains("classicyWindowHeaderAboveHead")).toBe(
+			false,
+		);
 	});
 });

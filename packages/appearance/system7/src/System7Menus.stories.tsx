@@ -41,6 +41,33 @@ function OpenOnMount({ selectors }: { selectors: string[] }) {
 	return null;
 }
 
+/**
+ * Presses the element `selector` names with the mouse once the desktop has
+ * settled, as the user would: a press and a quick release, then the click.
+ * A pop-up bevel button left open by such a click focuses nothing, where
+ * `element.click()` (no pointer, detail 0) is the keyboard's Enter or Space
+ * and focuses the menu's first item (ClassicyBevelButton).
+ */
+function PressOnMount({ selector }: { selector: string }) {
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			const target = document.querySelector<HTMLElement>(selector);
+			if (!target) return;
+			for (const type of ["mousedown", "mouseup", "click"])
+				target.dispatchEvent(
+					new MouseEvent(type, {
+						bubbles: true,
+						cancelable: true,
+						button: 0,
+						detail: 1,
+					}),
+				);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [selector]);
+	return null;
+}
+
 const item = (
 	id: string,
 	title: string,
@@ -224,7 +251,9 @@ export const PopUpOpenColor = inColor(popUpScene(true));
  * opened near the bottom flips up above the point, and the Control Strip's
  * Screen Saver menu, placed below its module first, flips up above the
  * strip. Each menu's scroll cap follows it to its final place, so all of its
- * items show, with no scroll indicators.
+ * items show, with no scroll indicators. The module is pressed with the
+ * mouse, as in `*-755-controlstrip-module-pressed.png`, so no item is
+ * current.
  */
 const lowMenusScene = () => (
 	<StoryApp id="storybook.app" name="Storybook">
@@ -240,8 +269,8 @@ const lowMenusScene = () => (
 			]}
 			onClose={fn()}
 		/>
-		<OpenOnMount
-			selectors={['.classicyControlStripModule[aria-label="Screen Saver"]']}
+		<PressOnMount
+			selector={'.classicyControlStripModule[aria-label="Screen Saver"]'}
 		/>
 	</StoryApp>
 );

@@ -1,4 +1,4 @@
-import { createRef } from "react";
+import { type CSSProperties, createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	losePointerStream,
@@ -6,6 +6,7 @@ import {
 	trackPointerStreamListeners,
 } from "@/__tests__/losePointerStream";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import {
 	ClassicyTable,
 	type ClassicyTableColumn,
@@ -877,5 +878,232 @@ describe("ClassicyTable's sorted column", () => {
 		} finally {
 			spy.mockRestore();
 		}
+	});
+});
+
+// Story 0216-1im F9: column titles above the list, in the scroll area's head
+// (System 7's Finder list view, HIG p.218), the vertical bar starting under
+// them. A table that leaves the scrolling to an ancestor portals them into
+// that ancestor's head; one that scrolls itself puts them in its own.
+describe("ClassicyTable's titles above the list", () => {
+	const headOf = (container: HTMLElement) =>
+		container.querySelector<HTMLElement>(".classicyScrollAreaHead");
+
+	it("keeps its titles in the list by default", () => {
+		const { container } = render(
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={columns}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+				/>
+			</ClassicyScrollArea>,
+		);
+		expect(headOf(container)).toBeNull();
+		expect(container.querySelector(".classicyTableDetachedHeader")).toBeNull();
+		expect(
+			container
+				.querySelector("thead")
+				?.classList.contains("classicyTableHeaderSticky"),
+		).toBe(true);
+	});
+
+	it("puts its titles in the scrolling ancestor's head, the list's own titles kept for assistive technology", () => {
+		const { container } = render(
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={columns}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+					headerPlacement="aboveList"
+				/>
+			</ClassicyScrollArea>,
+		);
+		const head = headOf(container) as HTMLElement;
+		const detached = head.querySelector(
+			":scope > .classicyTableDetachedHeader",
+		) as HTMLElement;
+		expect(detached).not.toBeNull();
+		expect(detached.getAttribute("aria-hidden")).toBe("true");
+		expect(
+			[...detached.querySelectorAll("th")].map((th) => th.textContent),
+		).toEqual(["Title", "Year"]);
+		const own = container.querySelector(
+			".classicyTableContainer thead",
+		) as HTMLElement;
+		expect(own.classList.contains("classicyTableHeaderHidden")).toBe(true);
+		expect(own.classList.contains("classicyTableHeaderSticky")).toBe(false);
+		expect(own.getAttribute("aria-hidden")).toBeNull();
+	});
+
+	it("sorts from a title above the list", () => {
+		const { container } = render(
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={columns}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+					headerPlacement="aboveList"
+				/>
+			</ClassicyScrollArea>,
+		);
+		const year = [
+			...(headOf(container) as HTMLElement).querySelectorAll("th"),
+		].find((th) => th.textContent === "Year") as HTMLElement;
+		fireEvent.click(year);
+		fireEvent.click(year);
+		expect(rowTitles(container)).toEqual([
+			"Abbey Road",
+			"Sgt. Pepper",
+			"Rubber Soul",
+		]);
+		expect(year.classList.contains("selected")).toBe(true);
+		expect(
+			container
+				.querySelector(".classicyTableContainer thead th[aria-sort]")
+				?.getAttribute("aria-sort"),
+		).toBe("descending");
+	});
+
+	it("puts its titles in its own head when it scrolls itself", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				headerPlacement="aboveList"
+			/>,
+		);
+		const root = container.querySelector(
+			".classicyTableContainer",
+		) as HTMLElement;
+		expect(root.classList.contains("classicyScrollArea")).toBe(true);
+		const head = root.querySelector(":scope > .classicyScrollAreaHead");
+		expect(head).not.toBeNull();
+		expect(
+			(head as Element).querySelector(".classicyTableDetachedHeader th"),
+		).not.toBeNull();
+	});
+
+	it("keeps its titles in the list with no scroll area to put them above", () => {
+		const { container } = render(
+			<ClassicyTable
+				columns={columns}
+				rows={albums}
+				getRowId={(a) => a.id}
+				scrollable={false}
+				headerPlacement="aboveList"
+			/>,
+		);
+		expect(container.querySelector(".classicyTableDetachedHeader")).toBeNull();
+		expect(
+			container
+				.querySelector("thead")
+				?.classList.contains("classicyTableHeaderHidden"),
+		).toBe(false);
+	});
+});
+
+// Review r0 issue 3: the detached titles are fitted to the list by one
+// ResizeObserver, built when the copy mounts or its columns change, not on
+// every render (each selection change or sort).
+describe("ClassicyTable's detached titles' fitting", () => {
+	type Observed = { targets: Element[]; disconnected: boolean };
+	let observers: Observed[] = [];
+	beforeEach(() => {
+		observers = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				record: Observed = { targets: [], disconnected: false };
+				constructor() {
+					observers.push(this.record);
+				}
+				observe(el: Element) {
+					this.record.targets.push(el);
+				}
+				unobserve() {}
+				disconnect() {
+					this.record.disconnected = true;
+				}
+			},
+		);
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	// The fitting's observers: the ones watching the head (the sorted
+	// column's measure watches the list alone).
+	const listObservers = (container: HTMLElement) => {
+		const head = container.querySelector(".classicyScrollAreaHead");
+		return observers.filter((o) => head && o.targets.includes(head));
+	};
+
+	it("keeps one observer across renders, and re-observes when the columns change", () => {
+		const view = (cols: ClassicyTableColumn<Album>[]) => (
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={cols}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+					headerPlacement="aboveList"
+				/>
+			</ClassicyScrollArea>
+		);
+		const { container, rerender } = render(view(columns));
+		const first = listObservers(container);
+		expect(first).toHaveLength(1);
+		const cell = container.querySelector("tbody td") as HTMLElement;
+		fireEvent.click(cell);
+		const sorter = container.querySelector(
+			".classicyTableDetachedHeader th",
+		) as HTMLElement;
+		fireEvent.click(sorter);
+		expect(listObservers(container)).toEqual(first);
+		expect(first[0].disconnected).toBe(false);
+		// A new column's header cell is observed too.
+		rerender(
+			view([
+				...columns,
+				{ id: "decade", title: "Decade", accessor: (a) => a.year - 5 },
+			]),
+		);
+		expect(first[0].disconnected).toBe(true);
+		const live = listObservers(container).filter((o) => !o.disconnected);
+		expect(live).toHaveLength(1);
+		expect(live[0].targets.filter((el) => el.tagName === "TH")).toHaveLength(3);
+	});
+});
+
+describe("ClassicyTable's detached titles' style", () => {
+	it("takes the container's custom properties, not its other styles", () => {
+		const { container } = render(
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={columns}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+					headerPlacement="aboveList"
+					style={
+						{
+							"--album-art-size": "16px",
+							height: "40px",
+						} as CSSProperties
+					}
+				/>
+			</ClassicyScrollArea>,
+		);
+		const detached = container.querySelector(
+			".classicyTableDetachedHeader",
+		) as HTMLElement;
+		expect(detached.style.getPropertyValue("--album-art-size")).toBe("16px");
+		expect(
+			detached.style.getPropertyValue("--classicy-table-sorted-width"),
+		).not.toBe("");
+		expect(detached.style.height).toBe("");
 	});
 });

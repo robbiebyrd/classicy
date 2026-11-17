@@ -24,8 +24,11 @@ $px: var(--box-pixel);
 // One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
 // `(x y)` is one pixel), inked in `$ink`. With `$from: right` the x of each
 // rectangle is its distance from the right edge to the rectangle's right
-// side, so the art is anchored to the element's right edge.
-@function pixel-art($ink, $rects, $from: left) {
+// side, so the art is anchored to the element's right edge; with
+// `$up: bottom` the y is its distance from the bottom edge to the
+// rectangle's bottom side, anchoring the art to the bottom edge (the art
+// mirrored top to bottom).
+@function pixel-art($ink, $rects, $from: left, $up: top) {
   $layers: ();
   @each $rect in $rects {
     $w: 1;
@@ -36,9 +39,9 @@ $px: var(--box-pixel);
     }
     $x: px(list.nth($rect, 1));
     $y: px(list.nth($rect, 2));
-    @if $from == right {
-      $x: right $x;
-      $y: top $y;
+    @if $from == right or $up == bottom {
+      $x: $from $x;
+      $y: $up $y;
     }
     $layers: list.append(
       $layers,

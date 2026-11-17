@@ -632,6 +632,31 @@ the ids the saver already names:
   Platinum registered first, and Platinum's element lacks those five when
   System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
   leave System 7's out.
+- **Column titles above a list: layout `fileBrowser.listColumnTitles`.** A
+  package may declare `"aboveList"` (System 7; the default `"inList"` is
+  Mac OS 8's, so Platinum is unchanged) to draw the file browser's list-view
+  column titles above the list's scrolling region, over the window's
+  vertical bar, which starts under them. It rests on three additions:
+  `ClassicyScrollArea`'s `head` and `onHeadChange` props (a head part,
+  `classicyScrollAreaHead`, the area's full width, scrolled sideways with
+  the viewport, which the area also draws while a descendant asks for one),
+  `ClassicyTable`'s `headerPlacement` prop (`"aboveList"` draws an
+  `aria-hidden` copy of the header row, `classicyTableDetachedHeader`, in
+  that head, and keeps the table's own header row for assistive technology,
+  laid out with no height, `classicyTableHeaderHidden`), and the window
+  header's `classicyWindowHeaderAboveHead` mark while its contents draw a
+  head. The Finder's list publishes its icon size as
+  `--classicy-file-browser-icon-size` on the table, for a package placing
+  the name column's title over the names.
+- **Optional core knobs `desktopIconGrid.rowGap` and `desktopIconGrid.top`.**
+  The desktop's Clean Up and icon placement step rows by
+  `desktop.iconSize` plus `rowGap` and start the first row at `top` when a
+  theme, completed by its package's defaults as `getThemeVars` completes
+  it, sets them to zero or more (so a saved Custom theme keeps its
+  package's rows), else by `cell + padding` from `4 × padding` as before
+  (columns are unchanged). `ClassicyDesktopIconMetrics`
+  gains the optional `rowPitch` and `top` they make. Platinum sets neither,
+  so its desktop lays out as before; System 7 sets 20 and 28, 7.5's rows.
 - **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
   the knob when a theme sets it to a positive number, else
   `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
@@ -679,6 +704,30 @@ the ids the saver already names:
   ticks and readout draw in Geneva (`typography.uiSmall`). The Control Strip
   docked right is a pixel wider, as 7.5.5 draws it
   (`*-755-controlstrip-right.png`).
+- **System 7, matched part by part to the 7.5 captures** (story 0216-1im).
+  New System 7 knobs: `menuBar.clockEnd` (1), the room after the clock's
+  last ink, which drops the core's margin after it; `headerStrip.titleDrop`
+  (1), `headerStrip.underlineTop` (12) and `headerStrip.underline` (1), the
+  list's column titles a row below their band's middle and the sorted
+  one's underline, a box 12 rows below its title's top, so no engine's
+  underline metrics move it; and `fileBrowserList.disclosureWidth` (15),
+  `disclosureTop` (4), `iconStart` (7), `iconEnd` (10) and `titleInset`
+  (1), a list row's triangle, icon and name, and the name column's title
+  over the names. It also sets the core's new `desktopIconGrid.rowGap` (20)
+  and `top` (28) and declares `fileBrowser.listColumnTitles: "aboveList"`.
+  Look fixes: the Help title overlaps the Application title by
+  `menuBar.titleOverlap`, and the clock ends two pixels before it; desktop
+  icons sit on 7.5's 52 px rows from y 28, a saved Custom theme's too; the
+  Finder list's column titles are white and sit above the list, over the
+  window's scroll bar, its double rule under them and the vertical bar
+  starting under the rule, the sorted title underlined with no triangle (in
+  a list with nothing scrolling above it as well); the list rows' triangle,
+  icon and name sit where 7.5.5 draws them, the name in the desktop label's
+  12-row box; the Application menu's image rows draw their icon at the
+  item's top and the check a row down; a keyboard-current menu item is
+  inverted with no focus ring; the right-docked Control Strip's tab meets
+  its first arrow cell on one black line; and the screen's bottom corners
+  are rounded in black like its top ones.
 
 ## Upgrade
 

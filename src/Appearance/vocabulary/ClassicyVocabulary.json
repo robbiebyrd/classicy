@@ -435,7 +435,14 @@
 			"Overlay",
 			"OverlayTransparent"
 		],
-		"ScrollArea": ["Body", "Corner", "Foot", "Viewport", "ViewportClipped"],
+		"ScrollArea": [
+			"Body",
+			"Corner",
+			"Foot",
+			"Head",
+			"Viewport",
+			"ViewportClipped"
+		],
 		"ScrollBar": [
 			"Arrow",
 			"ArrowEnd",
@@ -482,9 +489,11 @@
 			"ColumnHeader",
 			"Container",
 			"Content",
+			"DetachedHeader",
 			"Header",
 			"HeaderCellContent",
 			"HeaderGroup",
+			"HeaderHidden",
 			"HeaderSticky",
 			"Row",
 			"SortArrow",
@@ -541,6 +550,7 @@
 			"FrameBody",
 			"FrameEdge",
 			"Header",
+			"HeaderAboveHead",
 			"HeaderDimmed",
 			"HeaderList",
 			"Icon",

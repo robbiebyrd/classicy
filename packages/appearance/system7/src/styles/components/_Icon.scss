@@ -213,4 +213,120 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
     border-bottom-width: 0;
     background: var(--color-white);
   }
+
+  // A row's parts where 7.5.5 draws them, from the window's inner edge
+  // (`*-755-finder-list-row-selected.png`): the disclosure triangle's ink 6
+  // px in and 4 rows down, its 11 px box (_Triangle.scss) in a gutter
+  // `fileBrowserList.disclosureWidth` (15) wide, `disclosureTop` (4) from
+  // the row's top; the 16 px icon from 22, `iconStart` (7) after the gutter;
+  // the name's box from 48, `iconEnd` (10) after the icon. The name's box is
+  // the desktop label's, `iconLabel.height` (12) rows, its text
+  // `iconLabel.textTop` (2) down and `iconLabel.pad` (2) in, centered in the
+  // 18-row row, so rows 3 to 14 as 7.5.5's inverted name.
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableDisclosure {
+    flex: 0 0 var(--file-browser-list-disclosure-width);
+    align-self: stretch;
+    align-items: flex-start;
+    box-sizing: border-box;
+    padding-top: var(--file-browser-list-disclosure-top);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIcon {
+    margin: var(--file-browser-list-row-padding) var(--file-browser-list-icon-end) var(--file-browser-list-row-padding)
+      var(--file-browser-list-icon-start);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIconLabel {
+    box-sizing: border-box;
+    height: var(--icon-label-height);
+    padding: var(--icon-label-text-top) var(--icon-label-pad) 0;
+    line-height: calc(var(--icon-label-height) - var(--icon-label-text-top));
+  }
+
+  // Its column titles are on white, the sorted one too, at both depths
+  // (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name" and
+  // "Size"), where the base sheet's band is the system gray and a sorted
+  // title a lighter one.
+  .classicyFileBrowserViewTableContainer .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  .classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected {
+    background-color: transparent;
+  }
+
+  // The list's column titles sit above it, over the window's scroll bar
+  // (layout `fileBrowser.listColumnTitles: "aboveList"`; the scroll area's
+  // head holds their detached copy): a white band as tall as a header strip
+  // (`headerStrip.height`, 17) over the double rule (`headerStrip.rule`, 3),
+  // the vertical bar starting under it (`*-755-finder-list-row-selected.png`:
+  // the titles in rows 190-206, the rule 207-209, the bar from 210). Their
+  // text is Geneva 9, the list's. The sorted title is underlined, with no
+  // triangle (row 203 under "Name"), and the name column's title starts over
+  // the names' boxes: past the triangle's gutter, the icon (the rows' size,
+  // which the list publishes as `--classicy-file-browser-icon-size`) and the
+  // space either side of it, then `fileBrowserList.titleInset` (1) into the
+  // name's box ("Name" at x 240, the selected name's box from 239). The
+  // title and its underline sit `headerStrip.titleDrop` (1) below the
+  // band's middle ("Name" rows 195-201, the underline 203).
+  .classicyScrollAreaHead {
+    border-bottom: var(--header-strip-rule) double var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyTableDetachedHeader .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  // The titles look the same where nothing above the list scrolls to hold
+  // them (a modal's contents): there they stay in the list, in its own
+  // header row, unless that row is the hidden one the detached copy stands
+  // in for (`classicyTableHeaderHidden`, laid out at no height).
+  .classicyTableDetachedHeader,
+  .classicyFileBrowserViewTableContainer .classicyTableHeader:not(.classicyTableHeaderHidden) {
+    .classicyTableColumnHeader {
+      box-sizing: border-box;
+      height: var(--header-strip-height);
+      padding-top: 0;
+      padding-bottom: 0;
+      line-height: var(--header-strip-height);
+      color: var(--color-black);
+      background: transparent;
+    }
+
+    .classicyTableColumnHeader:first-child {
+      padding-left: calc(
+        var(--file-browser-list-disclosure-width) + var(--file-browser-list-icon-start) +
+          var(--classicy-file-browser-icon-size) + var(--file-browser-list-icon-end) + var(--file-browser-list-title-inset)
+      );
+    }
+
+    .classicyTableHeaderCellContent {
+      position: relative;
+      top: var(--header-strip-title-drop);
+    }
+
+    .classicyTableSortArrow {
+      display: none;
+    }
+
+    // The underline is a box, `headerStrip.underline` (1) thick and
+    // `headerStrip.underlineTop` (12) below the top of its title's line box
+    // (the header strip's height, so the same in every engine), where a
+    // text-decoration would sit by each engine's reading of the font's
+    // underline metrics. It spans the title's advance, as an underline does.
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span {
+      position: relative;
+    }
+
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: var(--header-strip-underline-top);
+      height: var(--header-strip-underline);
+      background: currentColor;
+    }
+  }
 }

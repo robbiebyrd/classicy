@@ -162,14 +162,31 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
     margin-left: calc(var(--menu-bar-title-overlap) * -1);
   }
 
-  // Help between the clock and the Application menu. Two rules, plain
+  // Help between the clock and the Application menu, its box over the
+  // Application title's by `menuBar.titleOverlap`, as the application's
+  // titles overlap (`*-755-appmenu-closed.png`: Help x 572-604, the
+  // Application title from 600). The Application title, after it in flex
+  // order, paints over Help's open highlight there, clear but for its icon,
+  // as 7.5's (`*-menu-help-and-selected-icon.png`). Two rules, plain
   // first: a browser without :has() drops the whole second one.
   .classicyDesktopMenu > [data-classicy-part="help"] {
     order: 55;
+    margin-right: calc(var(--menu-bar-title-overlap) * -1);
   }
 
   .classicyDesktopMenu > :has(> [data-classicy-part="help"]) {
     order: 55;
+    margin-right: calc(var(--menu-bar-title-overlap) * -1);
+  }
+
+  // The clock, a title too (ClassicyDesktopMenuWidgetTime), ends its last
+  // ink two pixels before the Help title's box (`*-755-appmenu-closed.png`:
+  // ink to x 569, Help from 572): no margin after it (the base sheet's is a
+  // control's width) and `menuBar.clockEnd` (1) of padding, in place of a
+  // title's, the face's side bearing the other.
+  .classicyDesktopMenu > .classicyMenuItem.classicyDesktopMenuTime {
+    margin-right: 0;
+    padding-right: var(--menu-bar-clock-end);
   }
 
   // A hidden application's icon in the Application menu is dimmed, as

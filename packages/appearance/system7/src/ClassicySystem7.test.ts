@@ -1,3 +1,4 @@
+import { castDraft, produce } from "immer";
 import { describe, expect, it, vi } from "vitest";
 import {
 	getClassicyAppearancePackage,
@@ -12,10 +13,14 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import {
 	getClassicySoundPack,
 	listClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { classicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import system7Json from "./system7.json";
 
@@ -374,6 +379,10 @@ describe("the System 7 appearance package", () => {
 				"--menu-bar-help-title-start": "8px",
 				"--menu-bar-help-title-end": "9px",
 				"--menu-bar-help-title-drop": "1px",
+				// The clock's padding before the Help title: its last ink two
+				// pixels before Help's box (`*-755-appmenu-closed.png`, story
+				// 0216-1im F2).
+				"--menu-bar-clock-end": "1px",
 				"--menu-frame-shadow-start": "2px",
 				"--menu-frame-submenu-overlap": "5px",
 				"--menu-item-height": "16px",
@@ -584,10 +593,96 @@ describe("the System 7 appearance package", () => {
 			// story 0214-c61): the 16 px icon and 1 px above and below, with
 			// no line between rows (_Icon.scss).
 			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
+			// A row's parts from the window's inner edge, as 7.5.5 draws them
+			// (story 0216-1im F10): the triangle's 11 px box in a 15 px gutter,
+			// 4 rows down; the icon 7 px after it; the name 10 px after that.
+			expect(vars["--file-browser-list-disclosure-width"]).toBe("15px");
+			expect(vars["--file-browser-list-disclosure-top"]).toBe("4px");
+			expect(vars["--file-browser-list-icon-start"]).toBe("7px");
+			expect(vars["--file-browser-list-icon-end"]).toBe("10px");
+			// The column titles above the list (story 0216-1im F9): the name
+			// column's a pixel into the names' boxes, and a row below the
+			// band's middle.
+			expect(vars["--file-browser-list-title-inset"]).toBe("1px");
+			expect(vars["--header-strip-title-drop"]).toBe("1px");
+			// The sorted title's underline, a pixel thick 12 rows below its
+			// title's top (row 203 of the band from 190, the title a row
+			// down), drawn as a box so no engine's underline metrics move it.
+			expect(vars["--header-strip-underline-top"]).toBe("12px");
+			expect(vars["--header-strip-underline"]).toBe("1px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
 			rowPadding: 1,
+			disclosureWidth: 15,
+			disclosureTop: 4,
+			iconStart: 7,
+			iconEnd: 10,
+			titleInset: 1,
+		});
+	});
+
+	// 7.5's desktop icons (`*-desktop-menubar-icons.png`, story 0216-1im
+	// F3): label tops at y 60, 112, 164, 216, so 32 px icon boxes from y 28
+	// on a 52 px pitch, the icon, its 12-row label and 8 px below. The
+	// optional knobs `desktopIconGrid.rowGap` (20, added to the icon size,
+	// so the pitch follows an edited one) and `top` (28) declare it.
+	it("lays desktop icons out on 7.5's rows in both themes", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		expect(presets).toHaveLength(2);
+		for (const theme of presets) {
+			expect(theme.measurements.desktopIconGrid).toEqual({
+				rowGap: 20,
+				top: 28,
+			});
+			expect(classicyDesktopIconMetrics(theme)).toMatchObject({
+				size: 32,
+				rowPitch: 52,
+				top: 28,
+			});
+		}
+		expect(system7Json.defaults.measurements.desktopIconGrid).toEqual({
+			rowGap: 20,
+			top: 28,
+		});
+	});
+
+	// A forked (Custom) System 7 theme is persisted without the knob values
+	// equal to its package's defaults (H-R17), and the load path refills the
+	// core five families only, so the knobs must come from the package's
+	// defaults when the theme lacks them, as getThemeVars reads them.
+	it("keeps 7.5's rows for a Custom theme as it is persisted", async () => {
+		await import("./index");
+		const preset = (getClassicyAppearancePackage("system7")?.presets ??
+			[])[0] as ClassicyTheme;
+		const custom = {
+			...preset,
+			id: "custom-system7",
+			name: "Custom",
+		} as ClassicyTheme;
+		const state = produce(DefaultAppManagerState, (draft) => {
+			draft.System.Manager.Appearance.packageId = "system7";
+			draft.System.Manager.Appearance.activeTheme = castDraft(custom);
+			draft.System.Manager.Appearance.customThemes = castDraft([custom]);
+		});
+		const stored =
+			sanitizeStateForPersistence(state).System.Manager.Appearance.activeTheme;
+		// Stripped the way persistence strips it.
+		expect(stored.measurements.desktopIconGrid).toBeUndefined();
+		expect(classicyDesktopIconMetrics(stored)).toMatchObject({
+			size: 32,
+			rowPitch: 52,
+			top: 28,
+		});
+		// And once the load path's migration has run over it.
+		const loaded = migrateClassicyState(
+			JSON.parse(JSON.stringify(sanitizeStateForPersistence(state))),
+		).System.Manager.Appearance.activeTheme;
+		expect(classicyDesktopIconMetrics(loaded)).toMatchObject({
+			rowPitch: 52,
+			top: 28,
 		});
 	});
 
@@ -680,6 +775,10 @@ describe("the System 7 appearance package", () => {
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
 			// and browses one folder at a time (fix round 1, ruling R4).
 			fileDialog: { frame: "fixed", navigation: "flat" },
+			// The Finder's list view titles sit above the list, over the
+			// scroll bar (`*-755-finder-list-row-selected.png`, story
+			// 0216-1im F9).
+			fileBrowser: { listColumnTitles: "aboveList" },
 		});
 	});
 

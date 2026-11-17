@@ -16,6 +16,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import type { FinderListViewOptions } from "@/SystemFolder/Finder/FinderContext";
 import {
 	asFinderDate,
@@ -188,6 +189,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			);
 			// Derive the effective options once, so an omitted prop reproduces
 			// today's rendering — three columns, sizes computed, no dates.
+			// Where the package draws the column titles: in the list (Mac OS 8)
+			// or above it, over the window's scroll bar (System 7).
+			const headerPlacement =
+				useClassicyAppearanceLayout().fileBrowser?.listColumnTitles ?? "inList";
 			const columnFlags = listViewOptions?.columns ?? DEFAULT_LIST_COLUMN_FLAGS;
 			const computeFolderSizes = listViewOptions?.calculateFolderSizes ?? true;
 			const relativeDates = listViewOptions?.useRelativeDate ?? true;
@@ -476,7 +481,14 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						"classicyFileBrowserViewTableContainer",
 						className,
 					)}
-					style={style}
+					// The rows' icon size, for a package that places the name
+					// column's title over the names (System 7's, above the list).
+					style={
+						{
+							"--classicy-file-browser-icon-size": `${iconSize}px`,
+							...style,
+						} as CSSProperties
+					}
 					columns={columns}
 					rows={data}
 					getRowId={(row) => row._path ?? ""}
@@ -491,6 +503,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						)
 					}
 					defaultSort={{ columnId: "_name" }}
+					headerPlacement={headerPlacement}
 					onActivateRow={(_, row) => openFileOrFolder(row, row._path ?? "")}
 					// ClassicyTable puts `selected` on a selected row itself.
 					rowClassName={() => "classicyFileBrowserViewTableRow"}
