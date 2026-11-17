@@ -190,10 +190,13 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
 
   // The line under Desktop (under New in Save), from a pixel left of the
   // column: in color #888888 and #777777 alternating (`--color-theme-06`,
-  // `--color-system-06`, the first at its left end), in 1-bit the dimmed ink
-  // through the checker a pixel along, black on every other pixel from the
-  // column's first (`*-755-dialog-standardfile-layout.png`,
-  // `*-dialog-standardfile-save.png`).
+  // `--color-system-06`), in 1-bit the dimmed ink through the checker, the
+  // #777777 and the black where x + y is even from the window's content
+  // origin, which the core publishes on the line (system7.json
+  // `patternOrigin.elements`), a dotted rule's phase (_pixel.scss;
+  // `*-755-dialog-standardfile-layout.png`, `*-dialog-standardfile-save.png`):
+  // along the line, at `x + y` from the origin, which the mask's tile
+  // starts at, the gradient's a pixel after.
   #{$box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider {
     @include place(var(--#{$k}divider-left), var(--#{$k}divider-top));
 
@@ -201,10 +204,10 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
     width: var(--#{$k}divider-width);
     height: $px;
     border: 0;
-    background: linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / px(2) 100%
-      repeat-x;
-    @include d.classicy-dither-mask;
-    mask-position: $px 0, 0 0;
+    $along: calc(#{$pattern-origin-x} + #{$pattern-origin-y});
+    background: linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)
+      calc(#{$along} + #{$px}) top / px(2) 100% repeat-x;
+    @include d.classicy-dither-mask($along, 0);
   }
 }
 

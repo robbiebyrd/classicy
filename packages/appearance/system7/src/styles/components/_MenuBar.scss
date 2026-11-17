@@ -70,8 +70,7 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
     // A menu whose every item is unavailable has its title dimmed (HIG
     // p.54), in the dimmed ink as a dimmed item's (_Menu.scss).
     &.disabled > p {
-      @include d.classicy-dither-text("--color-theme-06");
-      mask-position: px(1) 0, 0 0;
+      @include d.classicy-dither-text("--color-theme-06", $dim-x, $dim-y);
     }
 
     // The pull-down hangs from the bar's bottom line, its left side under
@@ -198,10 +197,7 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   // toward the menu's white, `menuItem.hiddenIconOpacity` of
   // `hiddenIconOpacityScale` (53 of 100; 100 in 1-bit).
   .classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage) {
-    mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
-    mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;
-    mask-repeat: repeat, no-repeat;
-    mask-composite: exclude;
+    @include d.classicy-dither-mask($dim-x, $dim-y);
   }
 
   @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {

@@ -79,7 +79,7 @@ $tab-lines: (
   }
 
   .classicyTabScrollButton:disabled .classicyTabScrollGlyph {
-    @include d.classicy-dither-mask;
+    @include d.classicy-dither-mask($dim-x, $dim-y);
   }
 
   .classicyTabScrollButtonLeft:disabled .classicyTabScrollGlyph {

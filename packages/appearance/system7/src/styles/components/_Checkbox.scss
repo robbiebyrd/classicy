@@ -56,7 +56,10 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
 
 // A dimmed mark's mask: the dither's (the core's `classicy-dither-mask`: the
 // checker excluded from a full layer) with the pixels `$off` taken away and
-// `$on` added, under the frame's four sides. A pixel taken away is the
+// `$on` added, under the frame's four sides. Its checker stays at the box's
+// corner, not the window's origin: HIG p.207 dots both of the X's
+// diagonals, which no fixed phase does (through one, a diagonal is whole or
+// gone), and no 7.5 capture shows a dimmed checked box. A pixel taken away is the
 // theme's dither pixel square, none in color (`--dither-tile-size` 0), where
 // nothing is dithered and the whole mark shows.
 @mixin dimmed-mark-mask($off: (), $on: ()) {
@@ -225,7 +228,7 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
   :where(.classicyRadioInputWrapper).disabled {
     .classicyRadioInput {
       background: pixel-art(var(--color-theme-06), $dot);
-      @include d.classicy-dither-mask;
+      @include d.classicy-dither-mask($dim-x, $dim-y);
     }
 
     .classicyRadioInput.mixed {

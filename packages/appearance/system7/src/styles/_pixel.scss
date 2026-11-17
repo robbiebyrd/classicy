@@ -120,23 +120,39 @@ $px: var(--box-pixel);
 $color-only: calc(#{px(2)} - var(--dither-tile-size));
 
 // The origin a dithered part's pattern is laid from, from the element's
-// padding-box corner: the desktop's corner, the screen's, which the core
-// publishes on the parts the package lays from it (layout `patternOrigin`:
-// the group box, the pop-up menu, the slider). System 7 laid its 1-bit
-// patterns from the screen's corner, not the part's or the window's: the
-// 50% dots of Memory's dimmed pop-up and slider, of the Views control
-// panel's and Clock Options' group boxes and of Standard File's separator
-// all fall where x + y is odd on the screen, while those windows' content
-// origins lie in both phases. So a part keeps that phase wherever it and
-// its window sit.
+// padding-box corner: the window's content origin (outside a window, the
+// desktop's corner, the screen's), which the core publishes on the parts
+// the package names (layout `patternOrigin`: its components, and its
+// `elements` by selector). System 7 laid its patterns from the window's
+// port, so a part keeps the window's phase wherever it sits. The 7.5
+// captures give two phases from that origin:
+// - a dimmed part's 50% dots (its text, its frame, its indicator, a
+//   dimmed control drawn through the gray) where x + y is odd: Memory's
+//   pop-up and slider, Clock Options' and Standard File's dimmed text, the
+//   dimmed menu titles, items and hidden application's icon, the Chooser's
+//   dimmed OK ring, in ports whose origins lie in both phases;
+// - a dotted rule's (a group box, a separator, a menu divider) where x + y
+//   is even: the Views and Sound panels' group boxes, Date & Time's and
+//   Standard File's separators, the menus' dividers (the Chooser's color
+//   divider and Clock Options' group boxes, drawn by their own code, are
+//   the other way).
 $pattern-origin-x: var(--classicy-pattern-origin-x);
 $pattern-origin-y: var(--classicy-pattern-origin-y);
+
+// The core's dither mask (`classicy-dither-mask`, its ink where the 2 x 2
+// tile is clear: (0, 0) and (1, 1)) placed for a dimmed part, the ink
+// where x + y is odd from the origin, and for a dotted rule, where it is
+// even.
+$dim-x: calc(#{$pattern-origin-x} + #{$px});
+$dim-y: $pattern-origin-y;
+$rule-x: $pattern-origin-x;
+$rule-y: $pattern-origin-y;
 
 // The dimmed ink as a pattern, for a dimmed part whose shape is a mask
 // (a dithering mask would leave no room for it), laid from `$x`, `$y` (the
 // origin above, from the painted box's corner), from the top layer down:
 // - color: #777777 (`--color-system-06`) on each pixel whose x and y are
-//   both even from the origin, over #888888 (`--color-theme-06`), as 7.5.5
+//   both odd from the origin, over #888888 (`--color-theme-06`), as 7.5.5
 //   draws a dimmed pop-up's frame, shadow and triangle
 //   (`color-755-dialog-clockoptions.png`; its 1-bit capture thresholds the
 //   same dots to black);
@@ -146,7 +162,7 @@ $pattern-origin-y: var(--classicy-pattern-origin-y);
 // after it.
 @function dimmed-pattern($x: $pattern-origin-x, $y: $pattern-origin-y) {
   @return (
-    conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transparent 0) $x $y,
+    conic-gradient(from 90deg at $px $px, var(--color-system-06) 25%, transparent 0) $x $y,
     linear-gradient(var(--color-theme-06), var(--color-theme-06)) $x $y,
     conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) $x $y
   );

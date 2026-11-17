@@ -1013,9 +1013,66 @@
 			"patternOrigin": "window"
 		},
 		"patternOrigin": {
-			"ControlGroup": "desktop",
-			"PopUpMenu": "desktop",
-			"Slider": "desktop"
+			"ControlGroup": "window",
+			"PopUpMenu": "window",
+			"Separator": "window",
+			"Slider": "window",
+			"elements": [
+				{ "selector": ".classicyMenuItem.disabled > p", "origin": "window" },
+				{ "selector": ".classicyMenuItem.disabled > kbd", "origin": "window" },
+				{
+					"selector": ".classicyDesktopMenuAppHidden > p > img",
+					"origin": "window"
+				},
+				{ "selector": ".classicyPopUpMenuGroupHeader", "origin": "window" },
+				{
+					"selector": ".classicyPopUpMenuButton.disabled .classicyPopUpMenuValue",
+					"origin": "window"
+				},
+				{ "selector": ".classicyButton:disabled", "origin": "window" },
+				{ "selector": ".classicyControlLabel.disabled", "origin": "window" },
+				{ "selector": ".classicyLink.disabled", "origin": "window" },
+				{
+					"selector": ".classicyRadioInputWrapper.disabled .classicyRadioInput",
+					"origin": "window"
+				},
+				{ "selector": ".classicyLittleArrows", "origin": "window" },
+				{
+					"selector": ".classicyLittleArrowsButton:disabled",
+					"origin": "window"
+				},
+				{ "selector": ".classicyInput:disabled", "origin": "window" },
+				{ "selector": ".classicySpinner:disabled", "origin": "window" },
+				{
+					"selector": ".classicyComboBoxIndicator:disabled",
+					"origin": "window"
+				},
+				{ "selector": ".classicyComboBoxNoMatches", "origin": "window" },
+				{
+					"selector": ".classicyListBox.disabled .classicyListBoxOptionLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyListBoxOption.disabled .classicyListBoxOptionLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeIcon",
+					"origin": "window"
+				},
+				{ "selector": ".classicyFileOpenDialogDivider", "origin": "window" },
+				{ "selector": ".classicyBevelButton.disabled", "origin": "window" },
+				{ "selector": ".classicyPlacard.disabled", "origin": "window" },
+				{ "selector": ".classicyImageWell.disabled", "origin": "window" },
+				{
+					"selector": ".classicyTabScrollButton:disabled .classicyTabScrollGlyph",
+					"origin": "window"
+				}
+			]
 		},
 		"fileDialog": {
 			"frame": "fixed",

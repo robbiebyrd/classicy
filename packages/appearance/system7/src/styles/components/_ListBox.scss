@@ -63,7 +63,7 @@
 
   :where(.classicyListBoxOption).disabled .classicyListBoxOptionLabel,
   :where(.classicyListBox).disabled .classicyListBoxOptionLabel {
-    @include d.classicy-dither-text("--color-theme-06");
+    @include d.classicy-dither-text("--color-theme-06", $dim-x, $dim-y);
   }
 
   // The framed list and tree: the same one-pixel frame.
@@ -82,7 +82,7 @@
   }
 
   :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
-    @include d.classicy-dither-text("--color-theme-06");
+    @include d.classicy-dither-text("--color-theme-06", $dim-x, $dim-y);
   }
 
   // A row that cannot be chosen dims its icon too (the files of Standard
@@ -95,7 +95,7 @@
   // Application menu's hidden icons (`menuItem.hiddenIconOpacity` of
   // `hiddenIconOpacityScale`).
   :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage) {
-    @include d.classicy-dither-mask;
+    @include d.classicy-dither-mask($dim-x, $dim-y);
   }
 
   @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {

@@ -41,7 +41,7 @@
   color: var(--color-theme-06);
   background-color: var(--color-white);
   box-shadow: none;
-  @include d.classicy-dither-mask;
+  @include d.classicy-dither-mask($dim-x, $dim-y);
 }
 
 @mixin flat-controls {
