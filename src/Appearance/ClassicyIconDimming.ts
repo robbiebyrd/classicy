@@ -270,6 +270,10 @@ export const resolveClassicyIconDimmingRule = (
 	return dimming[purpose];
 };
 
+// What an icon that is not dimmed subscribes with: nothing, so the many icons
+// that never dim hold no listener on the asset registry or the settled set.
+const subscribeNothing = (): (() => void) => () => {};
+
 const subscribeSettled = (listener: () => void): (() => void) => {
 	settledListeners.add(listener);
 	return () => {
@@ -292,14 +296,18 @@ export const useClassicyDimmedIconImage = (
 		() => (dimmed ? resolveClassicyIconDimmingRule(purpose) : undefined),
 		[dimmed, purpose],
 	);
-	const rule = useSyncExternalStore(subscribeClassicyAssets, getRule, getRule);
+	const rule = useSyncExternalStore(
+		dimmed ? subscribeClassicyAssets : subscribeNothing,
+		getRule,
+		getRule,
+	);
 	const key = rule && src ? `${parse(rule).key}|${size ?? ""}|${src}` : "";
 	useEffect(() => {
 		// Settling notifies `subscribeSettled`, which re-reads below.
 		if (rule && src) void classicyDimmedIconSource(src, rule, size);
 	}, [rule, src, size]);
 	const dimmedImage = useSyncExternalStore(
-		subscribeSettled,
+		dimmed ? subscribeSettled : subscribeNothing,
 		() => (key ? settled.get(key) : undefined),
 		() => undefined,
 	);
