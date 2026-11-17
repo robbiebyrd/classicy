@@ -17,6 +17,7 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -259,6 +260,15 @@ export function ClassicyTable<T>({
 	);
 	// The container had no state class; `selected` stays on rows and headers.
 	const appearance = useClassicyAppearance("Table", {}, containerRef);
+	const tableRef = useRef<HTMLTableElement>(null);
+	// The sorted column's header, from the container's left edge: its start
+	// and width in px, both 0 with no sorted column. Published on the
+	// container as `--classicy-table-sorted-start` / `-width`, so a package
+	// can draw the sorted column below the last row as well (HIGOS8 Figs.
+	// 2-24 and 2-43), where its cells carry `classicyTableCellSorted`.
+	const [sortedPlace, setSortedPlace] = useState<readonly [number, number]>([
+		0, 0,
+	]);
 	const typeBuffer = useRef("");
 	const typeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
@@ -532,8 +542,43 @@ export function ClassicyTable<T>({
 		}
 	};
 
+	const sortedColumnId = sorting[0]?.id;
+	const columnSizing = table.getState().columnSizing;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the sort and the column sizes are what move the sorted header; the measure reads the DOM
+	useLayoutEffect(() => {
+		const measure = () => {
+			const container = containerRef.current;
+			const th = tableRef.current?.tHead?.querySelector<HTMLElement>(
+				":scope > tr > th[aria-sort]",
+			);
+			let next: readonly [number, number] = [0, 0];
+			if (container && th) {
+				const box = th.getBoundingClientRect();
+				next = [
+					Math.round(box.left - container.getBoundingClientRect().left),
+					Math.round(box.width),
+				];
+			}
+			setSortedPlace((prev) =>
+				prev[0] === next[0] && prev[1] === next[1] ? prev : next,
+			);
+		};
+		measure();
+		const tableEl = tableRef.current;
+		if (!tableEl || typeof ResizeObserver === "undefined") return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(tableEl);
+		return () => observer.disconnect();
+	}, [sortedColumnId, columnSizing]);
+	const containerStyle: CSSProperties = {
+		"--classicy-table-sorted-start": `${sortedPlace[0]}px`,
+		"--classicy-table-sorted-width": `${sortedPlace[1]}px`,
+		...appearance.style,
+		...style,
+	} as CSSProperties;
+
 	const tableElement = (
-		<table className="classicyTable">
+		<table ref={tableRef} className="classicyTable">
 			<thead
 				className={classNames(
 					"classicyTableHeader",
@@ -643,7 +688,11 @@ export function ClassicyTable<T>({
 							return (
 								<td
 									key={cell.id}
-									className="classicyTableCell"
+									className={classNames(
+										"classicyTableCell",
+										cell.column.id === sortedColumnId &&
+											"classicyTableCellSorted",
+									)}
 									style={{
 										width: cell.column.getSize(),
 										textAlign: column?.align ?? "left",
@@ -687,7 +736,7 @@ export function ClassicyTable<T>({
 					appearance.className,
 					className,
 				)}
-				style={appearance.style ? { ...appearance.style, ...style } : style}
+				style={containerStyle}
 			>
 				{tableElement}
 			</div>
@@ -701,7 +750,7 @@ export function ClassicyTable<T>({
 				appearance.className,
 				className,
 			)}
-			style={appearance.style ? { ...appearance.style, ...style } : style}
+			style={containerStyle}
 			ref={setContainerRef}
 			tabIndex={tabIndex}
 			onKeyDown={handleKeyDown}

@@ -203,7 +203,11 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
   // Its rows are white with no line between them, 18 px apart: the 16 px
   // icon and `fileBrowserList.rowPadding` (1) above and below
   // (`*-755-finder-list-row-selected.png`), where the base sheet's are the
-  // system gray a white line apart.
+  // system gray a white line apart; the list below them white too.
+  .classicyFileBrowserViewTableContainer.classicyTableContainer {
+    background: var(--color-white);
+  }
+
   .classicyFileBrowserViewTableContainer .classicyTableRow {
     border-top-width: 0;
     border-bottom-width: 0;

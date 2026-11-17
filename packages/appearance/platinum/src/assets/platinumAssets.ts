@@ -1,6 +1,8 @@
 import {
+	type ClassicyAssetTree,
 	type ClassicyFontFace,
 	ClassicyIcons,
+	registerClassicyAssets,
 	registerClassicyCursors,
 	registerClassicyFonts,
 	registerClassicySystemArt,
@@ -8,6 +10,7 @@ import {
 } from "@classicy/classicy";
 import aliasBadge from "./art/alias.png";
 import appleMenu from "./art/apple.png";
+import folderSmall from "./art/folder-small.png";
 import helpButton from "./art/help-button.png";
 import { platinumArt as art, PLATINUM_SYSTEM_ART } from "./art/platinumArt";
 import trashEmpty from "./art/trash-empty.png";
@@ -74,6 +77,20 @@ registerClassicySystemArt(PLATINUM, {
 	...PLATINUM_SYSTEM_ART,
 	...PLATINUM_PIXEL_ART,
 });
+
+/**
+ * The list view's 16 px folder (HIGOS8 Fig. 2-24, p.38, and Fig. 2-43, p.51),
+ * cut pixel for pixel from Fig. 2-24, as the generic folder's own small
+ * image: drawn at 16 px and under (`resolveClassicyIconImage`), where the
+ * core's 32 px folder, which stays the leaf's image, would be scaled.
+ */
+registerClassicyAssets("icons", PLATINUM, {
+	system: {
+		folders: {
+			directory: { src: ClassicyIcons.system.folders.directory, small: folderSmall },
+		},
+	},
+} as ClassicyAssetTree);
 
 /**
  * Platinum's cursors by role. `ibeam`, `crosshair`, `resizeNwse` and

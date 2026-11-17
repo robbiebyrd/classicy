@@ -465,6 +465,7 @@
 		"SubMenu": ["FlipLeft"],
 		"Table": [
 			"Cell",
+			"CellSorted",
 			"ColumnHeader",
 			"Container",
 			"Content",

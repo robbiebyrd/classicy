@@ -2,7 +2,26 @@
 // bevel and the sorted column's pressed-in header.
 @use "../mixins";
 
+$sorted: var(--color-system-02);
+
 @mixin table {
+  // The sorted column is a step darker than the others, its cells and the
+  // list below the last row, a white line still between rows (HIGOS8
+  // Fig. 2-24, p.38, and Fig. 2-43, p.51): the table publishes the sorted
+  // header's place on its container (0 wide with nothing sorted).
+  .classicyTableContainer {
+    background: linear-gradient($sorted, $sorted) var(--classicy-table-sorted-start) 0 /
+        var(--classicy-table-sorted-width) 100% no-repeat,
+      var(--color-system-01);
+  }
+
+  // A generic table's selected row keeps its highlight across the column;
+  // the Finder's highlights only the name (ClassicyFileBrowserViewTable.scss).
+  .classicyTableRow:not(.selected) > .classicyTableCellSorted,
+  .classicyFileBrowserViewTableContainer .classicyTableCellSorted {
+    background: $sorted;
+  }
+
   .classicyTableColumnHeader {
     @include mixins.platinum-window-box-shadow;
   }

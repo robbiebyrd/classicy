@@ -2052,6 +2052,11 @@ describe("system7.scss (compiled)", () => {
 			expect(row).toMatch(/border-top-width: 0;/);
 			expect(row).toMatch(/border-bottom-width: 0;/);
 			expect(row).toMatch(/background: var\(--color-white\);/);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer.classicyTableContainer",
+				),
+			).toMatch(/background: var\(--color-white\);/);
 		});
 
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
