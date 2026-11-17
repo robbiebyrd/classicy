@@ -18,6 +18,7 @@ import { QuickTimePictureViewer } from "@/SystemFolder/QuickTime/PictureViewer/P
 import { SimpleText } from "@/SystemFolder/SimpleText/SimpleText";
 import { getClassicyAboutWindow } from "@/SystemFolder/SystemResources/AboutWindow/ClassicyAboutWindowUtils";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
+import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
 import { ClassicyBootSequence } from "@/SystemFolder/SystemResources/Boot/ClassicyBootSequence";
 import { resetStartupScreenSession } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupScreenSession";
 import {
@@ -81,6 +82,10 @@ import {
 	nearestIconInDirection,
 	typeaheadMatch,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopKeyNav";
+import {
+	classicyDisabledDefaultAppCleanup,
+	classicyDisabledDefaultAppIds,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDisabledDefaultApps";
 import { ClassicyNoAppearancePackage } from "@/SystemFolder/SystemResources/Desktop/ClassicyNoAppearancePackage";
 import { ClassicyOpenUrlController } from "@/SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 import {
@@ -241,6 +246,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	);
 	const desktopEventDispatch = useAppManagerDispatch();
 
+	const defaultApps = useContext(ClassicyDefaultAppsContext);
 	const {
 		disableSimpleText,
 		disablePDFViewer,
@@ -249,7 +255,22 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disableHyperCard,
 		disableWebViewer,
 		disableCalculator,
-	} = useContext(ClassicyDefaultAppsContext);
+	} = defaultApps;
+
+	// A disabled default app never mounts, so nothing it saved in an earlier
+	// visit (its Apple-menu entry, its Applications listing, an open record)
+	// would otherwise go away. Runs after the children's effects, so an app
+	// the host renders itself is already marked mounted and kept.
+	const disabledAppsKey = classicyDisabledDefaultAppIds(defaultApps).join("|");
+	useEffect(() => {
+		if (!disabledAppsKey) return;
+		for (const action of classicyDisabledDefaultAppCleanup(
+			disabledAppsKey.split("|"),
+			useAppManager.getState(),
+			isClassicyAppMounted,
+		))
+			desktopEventDispatch(action);
+	}, [disabledAppsKey, desktopEventDispatch]);
 
 	// Special ▸ Reset PRAM: forget every saved setting and start over.
 	const resetPram = useCallback(() => {

@@ -2,12 +2,15 @@
 import "@/__tests__/withPlatinum";
 import {
 	act,
+	cleanup,
 	fireEvent,
 	render,
 	screen,
 	waitFor,
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Calculator } from "@/SystemFolder/Calculator/Calculator";
+import { CALCULATOR_APP_ID } from "@/SystemFolder/Calculator/CalculatorManifest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -15,6 +18,11 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import {
+	CLASSICY_DEFAULT_APP_IDS,
+	classicyDisabledDefaultAppIds,
+} from "@/SystemFolder/SystemResources/Desktop/ClassicyDisabledDefaultApps";
+import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 
 // The bundled apps pass showDesktopIcon={false}, so they register HIDDEN
 // app-shortcut icons: present in the store (which is what the derived
@@ -73,6 +81,74 @@ describe("ClassicyDesktop default apps", () => {
 		expect(iconFor("PDFViewer.app")).toBeDefined();
 		expect(iconFor("MoviePlayer.app")).toBeUndefined();
 		expect(iconFor("PictureViewer.app")).toBeUndefined();
+	});
+
+	const appleMenuHas = (appId: string) =>
+		useAppManager
+			.getState()
+			.System.Manager.Desktop.systemMenu.some(
+				(item) => item?.id === `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}`,
+			);
+
+	it("clears what a disabled app saved on an earlier visit", () => {
+		// First visit: every app mounts and saves its records; the Calculator
+		// is left open.
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		act(() => {
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: CALCULATOR_APP_ID, name: "Calculator", icon: "" },
+			});
+		});
+		expect(appleMenuHas(CALCULATOR_APP_ID)).toBe(true);
+		expect(iconFor(CALCULATOR_APP_ID)).toBeDefined();
+		cleanup();
+
+		// Next visit, with the saved state: the host has disabled two apps.
+		render(
+			<ClassicyAppManagerProvider disableCalculator disableMoviePlayer>
+				<ClassicyDesktop />
+			</ClassicyAppManagerProvider>,
+		);
+		const apps = useAppManager.getState().System.Manager.Applications.apps;
+		expect(appleMenuHas(CALCULATOR_APP_ID)).toBe(false);
+		expect(iconFor(CALCULATOR_APP_ID)).toBeUndefined();
+		expect(apps[CALCULATOR_APP_ID]?.open).not.toBe(true);
+		expect(iconFor("MoviePlayer.app")).toBeUndefined();
+		// The others are untouched.
+		expect(iconFor("SimpleText.app")).toBeDefined();
+		expect(appleMenuHas("AppearanceManager.app")).toBe(true);
+	});
+
+	it("keeps a disabled app the host renders itself", () => {
+		render(
+			<ClassicyAppManagerProvider disableCalculator>
+				<ClassicyDesktop>
+					<Calculator />
+				</ClassicyDesktop>
+			</ClassicyAppManagerProvider>,
+		);
+		expect(appleMenuHas(CALCULATOR_APP_ID)).toBe(true);
+		expect(iconFor(CALCULATOR_APP_ID)).toBeDefined();
+	});
+
+	it("maps every disableX flag to its app", () => {
+		expect(
+			classicyDisabledDefaultAppIds({
+				disableSimpleText: true,
+				disablePDFViewer: false,
+				disableMoviePlayer: false,
+				disablePictureViewer: false,
+				disableHyperCard: false,
+				disableWebViewer: false,
+				disableCalculator: true,
+			}),
+		).toEqual(["SimpleText.app", CALCULATOR_APP_ID]);
+		expect(new Set(Object.values(CLASSICY_DEFAULT_APP_IDS)).size).toBe(7);
 	});
 
 	it("shows the Sad Mac crash screen when a child app throws during render", () => {
