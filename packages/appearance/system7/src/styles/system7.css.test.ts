@@ -2220,6 +2220,46 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/background-color: transparent;/);
 		});
 
+		// A list row's parts where 7.5.5 draws them, from the window's inner
+		// edge (`*-755-finder-list-row-selected.png`, story 0216-1im F10): the
+		// triangle's ink 6 px in and 4 rows down (its 11 px box in a gutter
+		// `fileBrowserList.disclosureWidth` (15) wide, `disclosureTop` (4)
+		// down), the 16 px icon from 22 (`iconStart`, 7, after the gutter),
+		// the name's box from 48 (`iconEnd`, 10, after the icon) and 12 rows
+		// tall, the desktop label's box (`iconLabel.height`, its text
+		// `iconLabel.textTop` down and `iconLabel.pad` in).
+		it("places a list row's triangle, icon and name as 7.5.5 does", () => {
+			const gutter = rule(
+				".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableDisclosure",
+			);
+			expect(gutter).toMatch(
+				/flex: 0 0 var\(--file-browser-list-disclosure-width\);/,
+			);
+			expect(gutter).toMatch(/align-self: stretch;/);
+			expect(gutter).toMatch(/align-items: flex-start;/);
+			expect(gutter).toMatch(
+				/padding-top: var\(--file-browser-list-disclosure-top\);/,
+			);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIcon",
+				),
+			).toMatch(
+				/margin: var\(--file-browser-list-row-padding\) var\(--file-browser-list-icon-end\) var\(--file-browser-list-row-padding\) var\(--file-browser-list-icon-start\);/,
+			);
+			const label = rule(
+				".classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIconLabel",
+			);
+			expect(label).toMatch(/box-sizing: border-box;/);
+			expect(label).toMatch(/height: var\(--icon-label-height\);/);
+			expect(label).toMatch(
+				/padding: var\(--icon-label-text-top\) var\(--icon-label-pad\) 0;/,
+			);
+			expect(label).toMatch(
+				/line-height: calc\(var\(--icon-label-height\) - var\(--icon-label-text-top\)\);/,
+			);
+		});
+
 		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,
 		// 7.5's `*-dialog-standardfile-save.png`; story 0214-c61): each box's
 		// parts placed from the inner line by its own knobs.

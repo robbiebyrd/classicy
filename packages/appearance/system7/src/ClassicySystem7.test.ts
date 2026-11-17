@@ -589,10 +589,21 @@ describe("the System 7 appearance package", () => {
 			// story 0214-c61): the 16 px icon and 1 px above and below, with
 			// no line between rows (_Icon.scss).
 			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
+			// A row's parts from the window's inner edge, as 7.5.5 draws them
+			// (story 0216-1im F10): the triangle's 11 px box in a 15 px gutter,
+			// 4 rows down; the icon 7 px after it; the name 10 px after that.
+			expect(vars["--file-browser-list-disclosure-width"]).toBe("15px");
+			expect(vars["--file-browser-list-disclosure-top"]).toBe("4px");
+			expect(vars["--file-browser-list-icon-start"]).toBe("7px");
+			expect(vars["--file-browser-list-icon-end"]).toBe("10px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
 			rowPadding: 1,
+			disclosureWidth: 15,
+			disclosureTop: 4,
+			iconStart: 7,
+			iconEnd: 10,
 		});
 	});
 

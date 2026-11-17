@@ -214,6 +214,35 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
     background: var(--color-white);
   }
 
+  // A row's parts where 7.5.5 draws them, from the window's inner edge
+  // (`*-755-finder-list-row-selected.png`): the disclosure triangle's ink 6
+  // px in and 4 rows down, its 11 px box (_Triangle.scss) in a gutter
+  // `fileBrowserList.disclosureWidth` (15) wide, `disclosureTop` (4) from
+  // the row's top; the 16 px icon from 22, `iconStart` (7) after the gutter;
+  // the name's box from 48, `iconEnd` (10) after the icon. The name's box is
+  // the desktop label's, `iconLabel.height` (12) rows, its text
+  // `iconLabel.textTop` (2) down and `iconLabel.pad` (2) in, centered in the
+  // 18-row row, so rows 3 to 14 as 7.5.5's inverted name.
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableDisclosure {
+    flex: 0 0 var(--file-browser-list-disclosure-width);
+    align-self: stretch;
+    align-items: flex-start;
+    box-sizing: border-box;
+    padding-top: var(--file-browser-list-disclosure-top);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIcon {
+    margin: var(--file-browser-list-row-padding) var(--file-browser-list-icon-end) var(--file-browser-list-row-padding)
+      var(--file-browser-list-icon-start);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIconLabel {
+    box-sizing: border-box;
+    height: var(--icon-label-height);
+    padding: var(--icon-label-text-top) var(--icon-label-pad) 0;
+    line-height: calc(var(--icon-label-height) - var(--icon-label-text-top));
+  }
+
   // Its column titles are on white, the sorted one too, at both depths
   // (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name" and
   // "Size"), where the base sheet's band is the system gray and a sorted

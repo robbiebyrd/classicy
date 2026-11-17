@@ -248,7 +248,11 @@
 			},
 			"fileBrowserList": {
 				"mediumIconSize": 16,
-				"rowPadding": 1
+				"rowPadding": 1,
+				"disclosureWidth": 15,
+				"disclosureTop": 4,
+				"iconStart": 7,
+				"iconEnd": 10
 			},
 			"fileDialog": {
 				"width": 355,
@@ -564,7 +568,11 @@
 				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,
-					"rowPadding": 1
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10
 				},
 				"fileDialog": {
 					"width": 355,
@@ -882,7 +890,11 @@
 				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,
-					"rowPadding": 1
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10
 				},
 				"fileDialog": {
 					"width": 355,
