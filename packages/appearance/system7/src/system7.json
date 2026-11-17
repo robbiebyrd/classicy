@@ -239,6 +239,29 @@
 			"fileBrowserList": {
 				"mediumIconSize": 16,
 				"rowPadding": 1
+			},
+			"fileDialog": {
+				"width": 355,
+				"height": 195,
+				"popUpLeft": 57,
+				"popUpTop": 9,
+				"popUpWidth": 133,
+				"volumeLeft": 237,
+				"volumeTop": 9,
+				"volumeGap": 4,
+				"volumeLineHeight": 18,
+				"listLeft": 15,
+				"listTop": 32,
+				"listWidth": 218,
+				"listHeight": 128,
+				"buttonsLeft": 252,
+				"buttonWidth": 80,
+				"ejectTop": 35,
+				"desktopTop": 63,
+				"dividerTop": 94,
+				"dividerWidth": 81,
+				"cancelTop": 107,
+				"openTop": 138
 			}
 		},
 		"desktop": {
@@ -490,6 +513,29 @@
 				"fileBrowserList": {
 					"mediumIconSize": 16,
 					"rowPadding": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpLeft": 57,
+					"popUpTop": 9,
+					"popUpWidth": 133,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 4,
+					"volumeLineHeight": 18,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerTop": 94,
+					"dividerWidth": 81,
+					"cancelTop": 107,
+					"openTop": 138
 				}
 			},
 			"desktop": {
@@ -743,6 +789,29 @@
 				"fileBrowserList": {
 					"mediumIconSize": 16,
 					"rowPadding": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpLeft": 57,
+					"popUpTop": 9,
+					"popUpWidth": 133,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 4,
+					"volumeLineHeight": 18,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerTop": 94,
+					"dividerWidth": 81,
+					"cancelTop": 107,
+					"openTop": 138
 				}
 			},
 			"desktop": {
@@ -770,6 +839,9 @@
 		"scrollBar": {
 			"thumbDrag": "onRelease",
 			"fitsBars": "shown"
+		},
+		"fileDialog": {
+			"frame": "fixed"
 		}
 	},
 	"knobs": {},

@@ -1,0 +1,108 @@
+// System 7.5's Standard File box (story 0214-c61), included by system7.scss
+// inside the package wrapper: Open as `*-755-dialog-standardfile-layout.png`
+// draws it, a fixed modal dialog box (the package's layout,
+// `fileDialog.frame: "fixed"`) its size `fileDialog.width` x `height`, its
+// parts placed from the inside of its inner line by the `fileDialog`
+// knobs: the folder pop-up (no label) centered over the list, the disk's
+// small icon and name at the top right, the list, and the button column at
+// the right, Eject (dimmed), Desktop, a dotted line (gray in color, as a
+// menu's divider), Cancel and the default Open. QuickTime's Preview area,
+// at the left in 7.5.5, is not drawn: the box keeps as much white left of
+// the list as right of the buttons. The Save box keeps the base layout.
+@use "pkg:@classicy/classicy/scss/dither" as d;
+@use "../pixel" as *;
+
+$open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
+
+@mixin place($left, $top) {
+  position: absolute;
+  top: var(--file-dialog-#{$top});
+  left: var(--file-dialog-#{$left});
+  margin: 0;
+}
+
+@mixin file-dialog {
+  // The parts are placed from the inner line, over the chrome's inset: the
+  // body fills the modal's inner area (positioned, ClassicyWindow.scss) to
+  // its padding edge.
+  #{$open} {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+  }
+
+  #{$open} > .classicyPopUpMenuWrapper {
+    @include place(pop-up-left, pop-up-top);
+
+    display: flex;
+    width: var(--file-dialog-pop-up-width);
+
+    > .classicyControlLabelHolder {
+      display: none;
+    }
+
+    > .classicyPopUpMenu {
+      flex: 1;
+    }
+  }
+
+  #{$open} > .classicyFileOpenDialogVolume {
+    @include place(volume-left, volume-top);
+
+    display: flex;
+    align-items: flex-start;
+    gap: var(--file-dialog-volume-gap);
+    font-family: var(--ui-font);
+    font-size: var(--ui-font-size);
+    line-height: var(--file-dialog-volume-line-height);
+    white-space: nowrap;
+  }
+
+  #{$open} > .classicyFileOpenDialogWell {
+    @include place(list-left, list-top);
+
+    box-sizing: border-box;
+    width: var(--file-dialog-list-width);
+    height: var(--file-dialog-list-height);
+    min-height: 0;
+  }
+
+  #{$open} > .classicyFileOpenDialogFooter {
+    display: contents;
+  }
+
+  #{$open} .classicyFileOpenDialogActions {
+    display: contents;
+
+    > .classicyButton {
+      width: var(--file-dialog-button-width);
+    }
+  }
+
+  @each $part, $top in (Eject: eject-top, Desktop: desktop-top, Divider: divider-top) {
+    #{$open} .classicyFileOpenDialogActions > .classicyFileOpenDialog#{$part} {
+      @include place(buttons-left, $top);
+
+      display: block;
+    }
+  }
+
+  #{$open} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(2) {
+    @include place(buttons-left, cancel-top);
+  }
+
+  #{$open} .classicyFileOpenDialogActions > .classicyButton:last-child {
+    @include place(buttons-left, open-top);
+  }
+
+  // The line between Desktop and Cancel, across the column and a pixel
+  // more: the dimmed ink as a menu's divider draws it (_Menu.scss), dotted in
+  // 1-bit, gray in color.
+  #{$open} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider {
+    width: var(--file-dialog-divider-width);
+    height: $px;
+    border: 0;
+    @include d.classicy-dither-line("--color-theme-06");
+  }
+}

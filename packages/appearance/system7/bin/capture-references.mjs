@@ -163,6 +163,12 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 					return;
 				case "key":
 					return page.keyboard.press(args[0]);
+				// A modifier held across other steps (Option-dragging the
+				// Control Strip's tab).
+				case "keyDown":
+					return page.keyboard.down(args[0]);
+				case "keyUp":
+					return page.keyboard.up(args[0]);
 				case "type":
 					return page.keyboard.type(args[0], { delay: 60 });
 				case "wait":

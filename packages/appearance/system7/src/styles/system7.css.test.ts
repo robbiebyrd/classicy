@@ -548,6 +548,11 @@ describe("system7.scss (compiled)", () => {
 			);
 			const p = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p`);
 			expect(p).toMatch(/font-size: 0;/);
+			const menu = rule(
+				`${TITLES}.classicyDesktopMenuAppSwitcher > .classicyMenuWrapper > .classicySubMenu`,
+			);
+			expect(menu).toMatch(/right: 0;/);
+			expect(menu).toMatch(/left: auto;/);
 			const img = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p > img`);
 			expect(img).toMatch(/width: var\(--menu-bar-title-art-size\);/);
 			expect(img).toMatch(/margin: 0;/);
@@ -2072,6 +2077,56 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/background: var\(--color-white\);/);
 		});
 
+		// 7.5.5's Standard File box (`*-755-dialog-standardfile-layout.png`,
+		// story 0214-c61): the open box's parts placed by the `fileDialog`
+		// knobs from the inner line; the save box keeps the base layout.
+		it("lays Standard File's open box out as 7.5.5 does", () => {
+			const OPEN =
+				".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
+			expect(rule(OPEN)).toMatch(/position: absolute;\s+inset: 0;/);
+			const placed = (part: string, left: string, top: string) => {
+				const declarations = rule(`${OPEN} ${part}`);
+				expect(declarations, part).toMatch(/position: absolute;/);
+				expect(declarations, part).toContain(`top: var(--file-dialog-${top});`);
+				expect(declarations, part).toContain(
+					`left: var(--file-dialog-${left});`,
+				);
+			};
+			placed("> .classicyPopUpMenuWrapper", "pop-up-left", "pop-up-top");
+			placed("> .classicyFileOpenDialogVolume", "volume-left", "volume-top");
+			placed("> .classicyFileOpenDialogWell", "list-left", "list-top");
+			for (const [part, top] of [
+				["Eject", "eject-top"],
+				["Desktop", "desktop-top"],
+				["Divider", "divider-top"],
+			])
+				placed(
+					`.classicyFileOpenDialogActions > .classicyFileOpenDialog${part}`,
+					"buttons-left",
+					top,
+				);
+			placed(
+				".classicyFileOpenDialogActions > .classicyButton:nth-last-child(2)",
+				"buttons-left",
+				"cancel-top",
+			);
+			placed(
+				".classicyFileOpenDialogActions > .classicyButton:last-child",
+				"buttons-left",
+				"open-top",
+			);
+			expect(
+				rule(
+					`${OPEN} > .classicyPopUpMenuWrapper > .classicyControlLabelHolder`,
+				),
+			).toMatch(/display: none;/);
+			expect(
+				rule(
+					`${OPEN} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
+				),
+			).toContain("var(--color-theme-06)");
+		});
+
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
 			const BEVEL = "var(--control-strip-bevel-width)";
 			const raised = rule(".classicyControlStripCell");
@@ -2119,7 +2174,10 @@ describe("system7.scss (compiled)", () => {
 					`${root}.classicyControlStripCollapseBox:active:not(:disabled)`,
 				);
 				for (const look of [raised, pressed]) {
-					expect(layersOf(look, black), root).toBe(2);
+					// Docked right, one pixel inside the frame: the frame and the
+					// black line past it are the corner's other two (story
+					// 0214-c61, `*-755-controlstrip-right.png`).
+					expect(layersOf(look, black), root).toBe(root ? 1 : 2);
 					expect(look, root).toMatch(
 						root
 							? /var\(--color-black\)\) 100% 100%/
@@ -2131,6 +2189,13 @@ describe("system7.scss (compiled)", () => {
 					"var(--package-color-control-strip-pressed-face, var(--color-system-04))",
 				);
 			}
+			const right = rule(
+				".classicyControlStripRight .classicyControlStripCollapseBox",
+			);
+			expect(right).toMatch(/margin-right: var\(--window-border-size\);/);
+			expect(right).toMatch(
+				/box-shadow: var\(--window-border-size\) 0 0 var\(--color-black\);/,
+			);
 		});
 
 		// A pressed cell (a module with its menu held open, or the collapse

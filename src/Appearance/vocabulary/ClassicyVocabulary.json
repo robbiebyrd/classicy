@@ -281,7 +281,7 @@
 			"ViewTableRowIcon",
 			"ViewTableRowIconLabel"
 		],
-		"FileDialog": ["Extension", "NameRow"],
+		"FileDialog": ["Extension", "NameRow", "SaveBody"],
 		"FileInput": [
 			"Body",
 			"Holder",
@@ -291,7 +291,17 @@
 			"Native",
 			"RemoveGlyph"
 		],
-		"FileOpenDialog": ["Actions", "Body", "Footer", "Well", "WellViewport"],
+		"FileOpenDialog": [
+			"Actions",
+			"Body",
+			"Desktop",
+			"Divider",
+			"Eject",
+			"Footer",
+			"Volume",
+			"Well",
+			"WellViewport"
+		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [

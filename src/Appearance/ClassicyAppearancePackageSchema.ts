@@ -13,7 +13,8 @@ import type {
 
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`, `slider`), each key of which is optional too.
+ * behavior groups (`scrollBar`, `slider`, `fileDialog`), each key of which is
+ * optional too.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -42,6 +43,9 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.optional(),
 	slider: z
 		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+		.optional(),
+	fileDialog: z
+		.object({ frame: z.enum(["movable", "fixed"]).optional() })
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 

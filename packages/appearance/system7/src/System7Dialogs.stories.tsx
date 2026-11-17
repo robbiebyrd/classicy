@@ -14,6 +14,7 @@ import {
 	ClassicyButton,
 	type ClassicyFileDialogVolume,
 	ClassicyFileOpenDialog,
+	ClassicyIcons,
 	ClassicyProgressBar,
 	ClassicyWindow,
 } from "@classicy/classicy";
@@ -206,23 +207,62 @@ const fixedModal = () => (
 export const FixedModal: Story = { render: fixedModal };
 export const FixedModalColor = inColor(fixedModal);
 
-// The folder `*-dialog-standardfile-open.png` lists: four items, which fit.
-const appleExtras: ClassicyFileDialogVolume = {
-	id: "apple-extras",
-	label: "Apple Extras",
+// The disk `*-755-dialog-standardfile-layout.png` shows: two SimpleText
+// documents and two folders, which fit; and the desktop, so Desktop is not
+// dimmed.
+const macintoshHd: ClassicyFileDialogVolume = {
+	id: "fs-Macintosh HD",
+	label: "Macintosh HD",
+	icon: ClassicyIcons.system.drives.disk,
 	list: async () => [
-		{ id: "applescript", name: "AppleScript\u2122", kind: "folder" },
-		{ id: "disk-tools", name: "Disk Tools", kind: "folder" },
-		{ id: "portables", name: "Portables", kind: "folder" },
-		{ id: "printing", name: "Printing", kind: "folder" },
+		{
+			id: "about-75",
+			name: "About System 7.5",
+			kind: "file",
+			icon: ClassicyIcons.system.files.document,
+		},
+		{
+			id: "about-755",
+			name: "About System 7.5.5 Update",
+			kind: "file",
+			icon: ClassicyIcons.system.files.document,
+		},
+		{ id: "apple-extras", name: "Apple Extras", kind: "folder" },
+		{ id: "system-folder", name: "System Folder", kind: "folder" },
 	],
 };
+const desktop: ClassicyFileDialogVolume = {
+	id: "desktop",
+	label: "Desktop",
+	list: async () => [],
+};
+
+/** Selects the list's first item once it has loaded, as the capture shows. */
+function SelectFirstItem() {
+	useEffect(() => {
+		const timer = window.setTimeout(
+			() =>
+				document
+					.querySelector<HTMLElement>(
+						".classicyFileOpenDialogWell .classicyTreeNodeLabelHolder",
+					)
+					?.click(),
+			200,
+		);
+		return () => window.clearTimeout(timer);
+	}, []);
+	return null;
+}
 
 /**
- * Standard File's Open dialog (the core's `ClassicyFileOpenDialog`) on the
- * folder `*-dialog-standardfile-open.png` lists. Its four items fit, and the
- * list keeps its vertical bar in the `fits` state (hollow arrows, a plain
- * track), as the capture shows: the package's `scrollBar.fitsBars`.
+ * Standard File's Open box (the core's `ClassicyFileOpenDialog`), as
+ * `*-755-dialog-standardfile-layout.png` draws it (story 0214-c61): a fixed
+ * modal dialog box (the package's `fileDialog.frame`), the folder pop-up
+ * centered over the list, the disk's icon and name at the top right, the
+ * list with its first item selected and its vertical bar in the `fits`
+ * state, and the button column, Eject (dimmed), Desktop, a line, Cancel and
+ * the default Open. QuickTime's Preview area, at the capture's left, is not
+ * drawn.
  */
 const standardFile = () => (
 	<StoryApp id="storybook.app" name="Storybook">
@@ -230,10 +270,11 @@ const standardFile = () => (
 			id="standard-file"
 			appId="storybook.app"
 			open
-			volumes={[appleExtras]}
+			volumes={[macintoshHd, desktop]}
 			onOpenFunc={fn()}
 			onCancelFunc={fn()}
 		/>
+		<SelectFirstItem />
 		<AtRest />
 	</StoryApp>
 );

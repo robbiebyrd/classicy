@@ -1,4 +1,5 @@
 import "./ClassicyFileOpenDialog.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
@@ -9,8 +10,11 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
@@ -186,6 +190,14 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const nodeIndex = useRef(new Map<string, ClassicyFileOpenSelection>());
 
 	const activeVolume = volumes.find((v) => v.id === activeVolumeId);
+	// System 7.5's Standard File box goes to the desktop with its Desktop
+	// button (`*-755-dialog-standardfile-layout.png`): the volume
+	// `desktopVolume(fs)` builds, when one is offered.
+	const desktopVolumeOffered = volumes.find((v) => v.id === "desktop");
+	// A fixed modal dialog box under a package whose layout says so (System
+	// 7); else the movable modal window of HIGOS8 p.59.
+	const fixedFrame =
+		useClassicyAppearanceLayout().fileDialog?.frame === "fixed";
 	const activeTypes = fileTypeFilters?.[filterIndex]?.types ?? null;
 	const activeFormat: ClassicyFileSaveFormat | undefined = formats[formatIndex];
 
@@ -479,6 +491,15 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	const switchVolume = (volumeId: string) => {
+		const nextVolume = volumes.find((v) => v.id === volumeId);
+		setActiveVolumeId(volumeId);
+		setSelectedIds([]);
+		if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
+			loadFolder(nextVolume, []);
+		}
+	};
+
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (mode === "open" && e.key === "Enter" && liveSelectedIds.length > 0) {
 			e.preventDefault();
@@ -519,14 +540,23 @@ export const ClassicyFileDialog: FunctionalComponent<
 				collapsable={false}
 				resizable={false}
 				scrollable={false}
-				initialSize={[440, 400]}
+				movable={!fixedFrame}
+				// The theme's optional `fileDialog.width` / `height` (System 7's
+				// Standard File box), else Mac OS 8's.
+				initialSize={[
+					readClassicyThemeVar("--file-dialog-width", 440),
+					readClassicyThemeVar("--file-dialog-height", 400),
+				]}
 				initialPosition={[180, 120]}
 				analyticsExclude
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: dialog-level keyboard shortcuts (Escape to cancel, Enter to open) */}
 				<div
 					ref={dialogBodyRef}
-					className={"classicyFileOpenDialogBody"}
+					className={classNames(
+						"classicyFileOpenDialogBody",
+						mode === "save" && "classicyFileDialogSaveBody",
+					)}
 					onKeyDown={handleKeyDown}
 				>
 					<ClassicyPopUpMenu
@@ -535,15 +565,21 @@ export const ClassicyFileDialog: FunctionalComponent<
 						labelPosition={"left"}
 						options={volumes.map((v) => ({ value: v.id, label: v.label }))}
 						selected={activeVolumeId}
-						onChangeFunc={(e) => {
-							const nextVolume = volumes.find((v) => v.id === e.target.value);
-							setActiveVolumeId(e.target.value);
-							setSelectedIds([]);
-							if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
-								loadFolder(nextVolume, []);
-							}
-						}}
+						onChangeFunc={(e) => switchVolume(e.target.value)}
 					/>
+					{/* The volume shown, by its small icon and name: System 7.5's
+					    disk name at the top right. The base sheet hides it. */}
+					<div className={"classicyFileOpenDialogVolume"}>
+						{activeVolume?.icon && (
+							<ClassicyIconImage
+								src={activeVolume.icon}
+								drawnAt={16}
+								width={16}
+								alt={""}
+							/>
+						)}
+						<span>{activeVolume?.label}</span>
+					</div>
 					<ClassicyScrollArea
 						className={"classicyFileOpenDialogWell"}
 						viewportClassName={"classicyFileOpenDialogWellViewport"}
@@ -605,6 +641,28 @@ export const ClassicyFileDialog: FunctionalComponent<
 							/>
 						)}
 						<div className={"classicyFileOpenDialogActions"}>
+							{/* System 7.5's Eject and Desktop buttons and the line
+							    under them; the base sheet hides them. Eject is dimmed:
+							    no volume here can be ejected. */}
+							<ClassicyButton
+								className={"classicyFileOpenDialogEject"}
+								disabled
+							>
+								Eject
+							</ClassicyButton>
+							<ClassicyButton
+								className={"classicyFileOpenDialogDesktop"}
+								disabled={
+									desktopVolumeOffered === undefined ||
+									activeVolumeId === desktopVolumeOffered.id
+								}
+								onClickFunc={() =>
+									desktopVolumeOffered && switchVolume(desktopVolumeOffered.id)
+								}
+							>
+								Desktop
+							</ClassicyButton>
+							<hr className={"classicyFileOpenDialogDivider"} />
 							{mode === "save" && (
 								<ClassicyButton
 									disabled={activeVolume?.mkDir === undefined}

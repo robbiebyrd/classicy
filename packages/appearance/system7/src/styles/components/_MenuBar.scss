@@ -195,5 +195,12 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
       height: var(--menu-bar-title-art-size);
       margin: 0;
     }
+
+    // Its menu hangs from the bar's line with its right side under the
+    // title's right edge (`*-755-appmenu-open.png`), not its left.
+    > .classicyMenuWrapper > .classicySubMenu {
+      right: 0;
+      left: auto;
+    }
   }
 }

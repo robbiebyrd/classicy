@@ -97,6 +97,19 @@ export type ClassicyAppearanceLayout = {
 		 */
 		thumbDrag?: "live" | "onRelease";
 	};
+	/**
+	 * How the file dialog (`ClassicyFileDialog`, Standard File) is framed.
+	 * Optional, as is each key.
+	 */
+	fileDialog?: {
+		/**
+		 * `"movable"` (the default, Mac OS 8, HIGOS8 p.59): a movable modal
+		 * window with a title bar. `"fixed"` (System 7, `*-755-dialog-
+		 * standardfile-layout.png`): a fixed modal dialog box, the double frame
+		 * alone, no title bar.
+		 */
+		frame?: "movable" | "fixed";
+	};
 };
 
 /**

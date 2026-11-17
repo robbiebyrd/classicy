@@ -123,6 +123,38 @@ export const DesktopColor: Story = {
 	render: () => themed(true, <Icons />),
 };
 
+/** Docks the Control Strip at the desktop's right edge, at its bottom. */
+function StripDockedRight() {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 0,
+		});
+		return () =>
+			dispatch({
+				type: "ClassicyDesktopControlStripSetPosition",
+				edge: "left",
+				bottom: 0,
+			});
+	}, [dispatch]);
+	return <StoryApp id="storybook.app" name="Storybook" />;
+}
+
+/**
+ * The Control Strip docked at the right edge, as 7.5.5 draws it after an
+ * Option-drag of its tab (`*-755-controlstrip-right.png`, story 0214-c61):
+ * the tab at its left end, the collapse box at its right.
+ */
+export const ControlStripRight: Story = {
+	render: () => <StripDockedRight />,
+};
+
+export const ControlStripRightColor: Story = {
+	render: () => themed(true, <StripDockedRight />),
+};
+
 function TabsWindow() {
 	const tabs = (prefix: string) => [
 		{

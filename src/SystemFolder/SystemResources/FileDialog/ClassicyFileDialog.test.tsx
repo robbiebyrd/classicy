@@ -123,3 +123,112 @@ describe("ClassicyFileDialog list bar while the items fit", () => {
 		expect(bars[0].classList.contains("fits")).toBe(true);
 	});
 });
+
+// Story 0214-c61: System 7.5's Standard File box (`*-755-dialog-standardfile-
+// layout.png`) shows parts Mac OS 8's does not: the disk's name and icon,
+// Eject and Desktop buttons and a line between them and Cancel. The dialog
+// always renders them (the base sheet hides them; a package shows them), and
+// a package's layout may draw the box as a fixed modal.
+describe("ClassicyFileDialog's Standard File parts", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const disk = {
+		id: "fs-Macintosh HD",
+		label: "Macintosh HD",
+		icon: "disk.png",
+		list: async () => [],
+	};
+	const desktop = { id: "desktop", label: "Desktop", list: async () => [] };
+	const open = (volumes = [disk, desktop], mode: "open" | "save" = "open") =>
+		render(
+			mode === "open" ? (
+				<ClassicyFileDialog
+					id="open-dialog"
+					appId="Finder.app"
+					open={true}
+					mode="open"
+					volumes={volumes}
+					onOpenFunc={() => {}}
+				/>
+			) : (
+				<ClassicyFileDialog
+					id="open-dialog"
+					appId="Finder.app"
+					open={true}
+					mode="save"
+					volumes={volumes}
+					formats={[
+						{
+							label: "Text",
+							extension: ".txt",
+							fileType: "text",
+							data: () => "",
+						},
+					]}
+					onSaveFunc={() => {}}
+				/>
+			),
+		);
+	const part = (name: string) =>
+		document.querySelector<HTMLElement>(`.classicyFileOpenDialog${name}`);
+
+	it("names the volume shown, with its icon", () => {
+		open();
+		const volume = part("Volume") as HTMLElement;
+		expect(volume.textContent).toBe("Macintosh HD");
+		expect(volume.querySelector("img")?.getAttribute("src")).toBe("disk.png");
+	});
+
+	it("draws Eject dimmed, Desktop, a line, then Cancel and Open, in that order", () => {
+		open();
+		const actions = part("Actions") as HTMLElement;
+		expect(
+			[...actions.children].map((child) =>
+				child.tagName === "HR" ? "line" : child.textContent,
+			),
+		).toEqual(["Eject", "Desktop", "line", "Cancel", "Open"]);
+		expect(part("Eject")).toBeDisabled();
+		expect(part("Desktop")).toBeEnabled();
+	});
+
+	it("goes to the desktop volume on Desktop, then dims it", () => {
+		open();
+		(part("Desktop") as HTMLElement).click();
+		return vi.waitFor(() => {
+			expect(part("Volume")?.textContent).toBe("Desktop");
+			expect(part("Desktop")).toBeDisabled();
+		});
+	});
+
+	it("dims Desktop with no desktop volume", () => {
+		open([disk]);
+		expect(part("Desktop")).toBeDisabled();
+	});
+
+	it("marks the save dialog's body", () => {
+		open([disk], "save");
+		expect(part("Body")).toHaveClass("classicyFileDialogSaveBody");
+	});
+
+	it("is a movable modal by default, a fixed one under a package that says so", () => {
+		const { unmount } = open();
+		expect(document.querySelector(".classicyWindowModalFixed")).toBeNull();
+		unmount();
+		registerClassicyAppearancePackage({
+			id: "test-fixed-file-dialog",
+			name: "Fixed",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-fixed-file-dialog-default",
+				package: "test-fixed-file-dialog",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				fileDialog: { frame: "fixed" },
+			},
+		});
+		open();
+		expect(document.querySelector(".classicyWindowModalFixed")).not.toBeNull();
+	});
+});

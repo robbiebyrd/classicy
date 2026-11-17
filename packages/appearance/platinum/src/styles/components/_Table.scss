@@ -10,9 +10,11 @@ $sorted: var(--color-system-02);
   // Fig. 2-24, p.38, and Fig. 2-43, p.51): the table publishes the sorted
   // header's place on its container (0 wide with nothing sorted).
   .classicyTableContainer {
-    background: linear-gradient($sorted, $sorted) var(--classicy-table-sorted-start) 0 /
-        var(--classicy-table-sorted-width) 100% no-repeat,
-      var(--color-system-01);
+    background-color: var(--color-system-01);
+    background-image: linear-gradient($sorted, $sorted);
+    background-repeat: no-repeat;
+    background-position: var(--classicy-table-sorted-start) top;
+    background-size: var(--classicy-table-sorted-width) 100%;
   }
 
   // A generic table's selected row keeps its highlight across the column;

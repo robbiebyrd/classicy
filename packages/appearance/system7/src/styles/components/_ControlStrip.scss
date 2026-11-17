@@ -61,8 +61,8 @@
 //
 // The strip's outer lower corner is rounded off by three black pixels in the
 // collapse box's corner (`*-controlstrip*.png`), at the strip's left end
-// (mirrored, at its right end, on a strip docked right, which no capture
-// shows). And the 1-bit strip starts a cell's inner shadow a pixel sooner
+// (at its right end on a strip docked right, `*-755-controlstrip-right.png`,
+// with a black line past the box, corner() below). And the 1-bit strip starts a cell's inner shadow a pixel sooner
 // than the color one, at the outer shadow's start: its right column a row
 // higher, at the cell's second row, and its bottom row a column further
 // left, at the cell's second column (`controlStrip.shadowStart`, 2 in color
@@ -93,18 +93,20 @@ $pressed-glyph-ink: var(--package-color-control-strip-pressed-glyph-ink, var(--c
 $pressed-glyph-light: var(--package-color-control-strip-pressed-glyph-light, var(--color-white));
 $pressed-glyph-dark: var(--package-color-control-strip-pressed-glyph-dark, var(--color-system-07));
 
-// The strip's rounded outer corner, from the collapse box's left (or right)
-// lower corner.
+// The strip's rounded outer corner, from the collapse box's lower left
+// corner: three black pixels past its frame. Docked right, 7.5.5 draws the
+// strip a line wider, a black line past the collapse box's frame at the
+// screen's edge (`*-755-controlstrip-right.png`, story 0214-c61), and the
+// corner is that end's mirror counted from the line: the frame's lowest two
+// pixels (black already) and one more inside it.
 $line: var(--window-border-size);
 @function corner($side) {
-  $x: 0;
-  $x-in: $line;
   @if $side == right {
-    $x: 100%;
-    $x-in: calc(100% - #{$line});
+    // A one-layer list, kept a layer when raised() joins it.
+    @return (layout.classicy-px-rect(var(--color-black), 100%, 100%, $line, $line),);
   }
-  @return layout.classicy-px-rect(var(--color-black), $x, 100%, $line, calc(#{$line} + #{$line})),
-    layout.classicy-px-rect(var(--color-black), $x-in, 100%, $line, $line);
+  @return layout.classicy-px-rect(var(--color-black), 0, 100%, $line, calc(#{$line} + #{$line})),
+    layout.classicy-px-rect(var(--color-black), $line, 100%, $line, $line);
 }
 
 // Each look's layers, under any `$over` (the corner).
@@ -204,6 +206,13 @@ $line: var(--window-border-size);
         @include pressed(corner($side));
       }
     }
+  }
+
+  // Docked right, the black line past the collapse box's frame, at the
+  // screen's edge: the box keeps a line clear and draws it there.
+  .classicyControlStripRight .classicyControlStripCollapseBox {
+    margin-right: $line;
+    box-shadow: $line 0 0 var(--color-black);
   }
 
   // A pressed collapse box's glyph, darkened (inverted in 1-bit).
