@@ -431,6 +431,49 @@ describe("the System 7 appearance package", () => {
 	// _Window.scss), measured from the 7.5 captures. The modal frame differs
 	// by depth: no bevels and a two-pixel white band and black line in 1-bit,
 	// three one-pixel rings and a one-pixel line in color.
+	// Story 0217-etx, from the 7.5 captures: SimpleText's alert 370 px
+	// outside (its text wrapping), short push buttons 60 wide (SimpleText's
+	// Cancel and Save), and Standard File's folder pop-up (its name 3 px past
+	// the icon, 6 px of ink to the triangle, its icon and name a row lower
+	// than a plain pop-up's), the disk's condensed name (4 pixels of white
+	// past its icon, ChicagoFLF's side bearing one of them) and the Save name
+	// field (7 rows under its label's top).
+	it("emits the alert width, button width and Standard File knobs the 7.5 captures measure", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [
+			bw,
+			color,
+			system7Json.defaults as unknown as ClassicyTheme,
+		])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--dialog-alert-max-width": "324px",
+				"--button-min-width": "60px",
+				"--pop-up-menu-value-icon-gap": "3px",
+				"--file-dialog-pop-up-tail": "5px",
+				"--file-dialog-save-pop-up-tail": "5px",
+				"--file-dialog-pop-up-content-drop": "1px",
+				"--file-dialog-volume-condense": "1px",
+				"--file-dialog-volume-gap": "3px",
+				"--file-dialog-save-name-gap": "3px",
+			});
+	});
+
+	// A file a Save box cannot choose dims its icon by the hidden-app rule in
+	// color (every pixel of SimpleText's icon in
+	// `color-dialog-standardfile-save.png`), and by the stylesheet's checker
+	// in 1-bit.
+	it("dims a row's icon that cannot be chosen as a hidden application's", async () => {
+		await import("./index");
+		const dimming = getClassicyAppearancePackage("system7")?.iconDimming;
+		expect(dimming?.disabledItem).toEqual(dimming?.hiddenApp);
+		expect(dimming?.variants?.bw).toEqual({
+			hiddenApp: null,
+			disabledItem: null,
+		});
+	});
+
 	it("emits the dialogs', alerts' and push buttons' knobs", async () => {
 		await import("./index");
 		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
@@ -674,12 +717,20 @@ describe("the System 7 appearance package", () => {
 			desktop: { iconGridOrigin: "top-right" },
 			// The scroll box stays put, an outline follows the pointer and the
 			// content scrolls on release (HIG p.165); a document window keeps
-			// its bars, inactive, while its document fits (p.160).
-			scrollBar: { thumbDrag: "onRelease", fitsBars: "shown" },
+			// its bars, inactive, while its document fits (p.160); the track's
+			// dots lie from the window's content origin, as QuickDraw laid a
+			// pattern from the window's port (story 0217-etx).
+			scrollBar: {
+				thumbDrag: "onRelease",
+				fitsBars: "shown",
+				patternOrigin: "window",
+			},
 			// Standard File is a fixed modal dialog box
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
-			// and browses one folder at a time (fix round 1, ruling R4).
-			fileDialog: { frame: "fixed", navigation: "flat" },
+			// and browses one folder at a time (fix round 1, ruling R4); the
+			// Save box opens with its default name selected
+			// (`*-dialog-standardfile-save.png`, story 0217-etx).
+			fileDialog: { frame: "fixed", navigation: "flat", saveName: "selected" },
 		});
 	});
 

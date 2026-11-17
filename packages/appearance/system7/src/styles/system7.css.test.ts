@@ -256,6 +256,59 @@ describe("system7.scss (compiled)", () => {
 				rule(".classicyWindow .classicyWindowTitleBar .classicyWindowIcon"),
 			).toMatch(/display: none;/));
 
+		// Story 0217-etx: a window with a close box and no zoom box (Find
+		// File, the control panels) centers its title on the whole bar, as
+		// one with both boxes does: the title area lies across the bar, a box
+		// column in from each end, the boxes over it.
+		it("centers the title on the whole bar, whatever boxes it has", () => {
+			const title = rule(
+				".classicyWindow .classicyWindowTitleBar .classicyWindowTitle",
+			);
+			expect(title).toMatch(/position: absolute;/);
+			expect(title).toMatch(/inset: 0;/);
+			expect(title).toMatch(
+				/padding: 0 calc\(var\(--title-bar-box-margin\) \+ var\(--window-control-size\) \+ var\(--title-bar-box-gap\)\);/,
+			);
+			const box = rule(
+				".classicyWindow .classicyWindowTitleBar .classicyWindowControlBox",
+			);
+			expect(box).toMatch(/position: relative;/);
+			expect(box).toMatch(/z-index: 1;/);
+			expect(
+				rule(
+					'.classicyWindow .classicyWindowTitleBar [data-classicy-control="zoom"]',
+				) ||
+					rule(
+						".classicyWindow .classicyWindowTitleBar [data-classicy-control=zoom]",
+					),
+			).toMatch(/margin-left: auto;/);
+			// The windoid's untitled drag bar stays in flow between its boxes.
+			const windoid = rule(
+				".classicyWindow.classicyWindowUtility .classicyWindowTitleBar .classicyWindowTitle",
+			);
+			expect(windoid).toMatch(/position: relative;/);
+			expect(windoid).toMatch(/inset: auto;/);
+			expect(windoid).toMatch(/padding: 0;/);
+		});
+
+		// An odd room beside the title puts its extra pixel on the right, as
+		// 7.5 does (Macintosh HD's window: margins 140 and 141).
+		it("gives the title's odd pixel of room to its right", () => {
+			for (const bar of [
+				".classicyWindow .classicyWindowTitleBar",
+				".classicyWindowFrame > .classicyWindowTitleBar",
+			]) {
+				expect(
+					rule(`${bar} .classicyWindowTitle .classicyWindowTitleLeft`),
+					bar,
+				).toMatch(/flex-basis: 0;/);
+				expect(
+					rule(`${bar} .classicyWindowTitle .classicyWindowTitleRight`),
+					bar,
+				).toMatch(/flex-basis: var\(--box-pixel\);/);
+			}
+		});
+
 		// The frame-edge drag handles are shared behavior: System 7 keeps them,
 		// on its one-pixel frame, never over the contents or the scroll bars.
 		it("keeps the frame-edge drag handles, on the frame and no deeper than it", () => {
@@ -853,6 +906,11 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/margin: 0;/);
 		});
 
+		// Story 0217-etx: a label and a message run on as one text block on
+		// the 16 px pitch (Page Setup's, Erase Disk's alerts), no gap.
+		it("runs an alert's label and message on as one block of text", () =>
+			expect(rule(".classicyAlert .classicyAlertBody")).toMatch(/gap: 0;/));
+
 		// HIG p.201: "Place the Save button in the lower-right corner with the
 		// Cancel button to its left. Place the Don't Save button left-aligned
 		// with the message text." Arranged with `order` on the buttons' roles
@@ -909,6 +967,14 @@ describe("system7.scss (compiled)", () => {
 
 		// FrameRoundRect's corners: four sides and two rectangles a corner for
 		// the button, four sides and six rectangles a corner for the ring.
+		// Story 0217-etx: QuickDraw centered a label on whole pixels, an odd
+		// pixel of room on its right (SimpleText's 60-pixel Cancel and Save);
+		// the indent's percentage keeps a label-sized button's width.
+		it("centers a push button's label with its odd pixel of room on the right", () =>
+			expect(rule(".classicyButton")).toMatch(
+				/text-indent: max\(var\(--box-pixel\) \* -1, -100000%\);/,
+			));
+
 		it("draws the push button and its default ring as pixel art, not a radius", () => {
 			const button = rule(".classicyButton");
 			expect(button).toMatch(/border: none;/);
@@ -1518,6 +1584,34 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
+		// Story 0217-etx: a field whose whole text is selected (the core's
+		// `selected` state) highlights its whole line, as TextEdit did (the
+		// Save box's name as it opens): black from three pixels in.
+		it("highlights a field's whole line while its whole text is selected", () => {
+			const selected = rule(".classicyInput.selected");
+			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
+			expect(selected).toMatch(
+				/box-shadow: inset 0 0 0 calc\(var\(--text-field-inset\) - var\(--box-pixel\)\) var\(--color-white\);/,
+			);
+			// After the field's own and the holder's backgrounds, which it
+			// must beat.
+			expect(css.lastIndexOf(".classicyInput.selected {")).toBeGreaterThan(
+				css.lastIndexOf(".classicyInputHolder input {"),
+			);
+		});
+
+		// Story 0217-etx: a row that cannot be chosen dims its icon, in 1-bit
+		// through the checker (the color rule is the core's canvas, which
+		// marks the image so these stand down).
+		it("dims the icon of a list row that cannot be chosen", () => {
+			const icon =
+				":where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage)";
+			expect(dithered(rule(icon))).toBe(true);
+			expect(css).toMatch(
+				/opacity: tan\(atan2\(var\(--menu-item-hidden-icon-opacity\), var\(--menu-item-hidden-icon-opacity-scale\)\)\);/,
+			);
+		});
+
 		it("frames a list in one black pixel and inverts its selected row", () => {
 			const list = rule(".classicyListBox");
 			expect(list).toMatch(
@@ -1767,10 +1861,19 @@ describe("system7.scss (compiled)", () => {
 			expect(pressed).toMatch(/--system7-arrow-fill: var\(--color-black\);/);
 		});
 
-		it("dots the track 25%, fixed to the screen, over the light gray", () => {
+		// Story 0217-etx: 7.5 lays the dots from the window's content origin
+		// (three captures, three screen phases, one window phase), which the
+		// core publishes on the track (layout `scrollBar.patternOrigin`).
+		it("dots the track 25% from the window's content origin, over the light gray", () => {
 			const track = rule(".classicyScrollBarTrack");
 			expect(count(track, "conic-gradient(from 270deg")).toBe(2);
-			expect(count(track, "fixed")).toBe(2);
+			expect(count(track, "fixed")).toBe(0);
+			expect(track).toContain(
+				"var(--classicy-scroll-origin-x) var(--classicy-scroll-origin-y)/calc(var(--box-pixel) * 4) calc(var(--box-pixel) * 2)",
+			);
+			expect(track).toContain(
+				"calc(var(--classicy-scroll-origin-x) + calc(var(--box-pixel) * 2)) calc(var(--classicy-scroll-origin-y) + var(--box-pixel))/calc(var(--box-pixel) * 4) calc(var(--box-pixel) * 2)",
+			);
 			expect(track).toMatch(/var\(--color-system-06\) 25%/);
 			expect(track).toMatch(/var\(--color-system-01\);$/m);
 		});
@@ -1820,10 +1923,28 @@ describe("system7.scss (compiled)", () => {
 			const dots = rule(
 				".classicyScrollBar .classicyScrollBarDragOutline::after",
 			);
-			// The track's two dot layers, fixed to the screen like the track's.
-			expect(dots.match(/conic-gradient/g)).toHaveLength(2);
-			expect(dots.match(/ fixed/g)).toHaveLength(2);
 			expect(dots).toMatch(/mask-composite: exclude;/);
+			// The track's two dot layers, in the track's phase: the bar's
+			// origin, less the outline's offset along the bar.
+			for (const [bar, x, y] of [
+				[
+					"Vertical",
+					"var(--classicy-scroll-origin-x)",
+					"calc(var(--classicy-scroll-origin-y) - var(--classicy-scroll-outline-offset))",
+				],
+				[
+					"Horizontal",
+					"calc(var(--classicy-scroll-origin-x) - var(--classicy-scroll-outline-offset))",
+					"var(--classicy-scroll-origin-y)",
+				],
+			] as const) {
+				const layers = rule(
+					`.classicyScrollBar${bar} .classicyScrollBarDragOutline::after`,
+				);
+				expect(layers.match(/conic-gradient/g), bar).toHaveLength(2);
+				expect(layers, bar).not.toMatch(/ fixed/);
+				expect(layers, bar).toContain(`${x} ${y}/`);
+			}
 			expect(dots).toMatch(/padding: var\(--box-pixel\);/);
 			expect(rule(".classicyScrollBar .classicyScrollBarThumb.dragging")).toBe(
 				"",
@@ -2024,8 +2145,8 @@ describe("system7.scss (compiled)", () => {
 				),
 			];
 			// The open Application menu title's icon (review r1 item 1), a
-			// hidden application's icon's opacity (item 2) and the list view's
-			// selected icon.
+			// hidden application's icon's opacity (item 2), a list row's
+			// dimmed icon's (story 0217-etx) and the list view's selected icon.
 			expect(guarded.map(([, header]) => header.trim())).toEqual([
 				expect.stringContaining(
 					".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)",
@@ -2033,6 +2154,7 @@ describe("system7.scss (compiled)", () => {
 				expect.stringContaining(
 					".classicyDesktopMenuAppSwitcher.open > p > img",
 				),
+				".classicyDesktop[data-classicy-appearance=system7] :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage)",
 				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
 			]);
 			for (const [, , declarations] of guarded)

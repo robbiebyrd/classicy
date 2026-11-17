@@ -67,6 +67,14 @@ $dimmed-label:
     background: face(var(--color-white));
     color: var(--color-black);
     line-height: var(--push-button-line-height);
+    // The label centered as QuickDraw centered it, an odd pixel of room on
+    // its right (SimpleText's 60-pixel Cancel and Save: 9 and 15 pixels of
+    // white left of the ink, 10 and 16 right). A pixel of negative indent
+    // moves a centered line half a pixel left, so an odd room's half pixel
+    // falls left and an even room's snaps back; the percentage, which an
+    // intrinsic size resolves as 0, keeps the indent out of a label-sized
+    // button's width (Don't Save stays 85).
+    text-indent: max(calc(#{$px} * -1), -100000%);
 
     &:focus {
       outline: none;

@@ -76,4 +76,23 @@
   :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
     @include d.classicy-dither-text("--color-theme-06");
   }
+
+  // A row that cannot be chosen dims its icon too (the files of Standard
+  // File's Save box, `*-dialog-standardfile-save.png`): in 1-bit through the
+  // 50% checker from the icon's corner (`dither.tileSize`, none in color);
+  // in color the core draws it by System 7's dimming rule
+  // (`iconDimming.disabledItem`, system7IconDimming.ts), marked
+  // `classicyIconDimmedImage`, and these rules stand down. For an icon a
+  // canvas cannot read, the fallback blends it toward white as the
+  // Application menu's hidden icons (`menuItem.hiddenIconOpacity` of
+  // `hiddenIconOpacityScale`).
+  :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage) {
+    @include d.classicy-dither-mask;
+  }
+
+  @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {
+    :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage) {
+      opacity: tan(atan2(var(--menu-item-hidden-icon-opacity), var(--menu-item-hidden-icon-opacity-scale)));
+    }
+  }
 }

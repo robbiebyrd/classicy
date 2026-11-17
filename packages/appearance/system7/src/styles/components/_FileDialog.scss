@@ -39,13 +39,19 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   }
 
   // The folder pop-up, as wide as its contents, centered over the list (no
-  // label: its name is the control's `aria-label`).
+  // label: its name is the control's `aria-label`). An odd pixel of room
+  // goes to its right, as 7.5 rounds it (the Open box's 133-pixel pop-up 42
+  // pixels in over its 218-pixel list, the Save box's 127-pixel one 45): the
+  // box centered in the list's width less a pixel, so half a pixel falls
+  // back to the left, and an even room's half pixel snaps to the middle.
   #{$box} > .classicyPopUpMenuWrapper {
     @include place(var(--#{$k}list-left), var(--#{$k}pop-up-top));
 
     display: flex;
     justify-content: center;
+    box-sizing: border-box;
     width: var(--#{$k}list-width);
+    padding-right: $px;
 
     > .classicyControlLabelHolder {
       display: none;
@@ -58,9 +64,9 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
 
     // Sized to its contents as 7.5's: the folder's icon
     // `popUpMenu.valueIconInset` (3) inside the frame, its name
-    // `popUpMenu.valueIconGap` (4) after it, `fileDialog.popUpTail` (17)
-    // before the triangle, and the triangle `popUpMenu.arrowInset` (5) inside
-    // the frame.
+    // `popUpMenu.valueIconGap` (3) after it, `fileDialog.popUpTail` (5)
+    // before the triangle (six pixels from the name's ink), and the triangle
+    // `popUpMenu.arrowInset` (5) inside the frame.
     .classicyPopUpMenuButton {
       gap: 0;
       width: auto;
@@ -79,6 +85,16 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
     .classicyPopUpMenuValue {
       flex: none;
     }
+
+    // Standard File draws the folder's icon and name a row lower in the box
+    // than a plain pop-up draws its text (`fileDialog.popUpContentDrop`, 1:
+    // the name's ink 5 rows under the frame's top, where Views has 4); the
+    // frame and the triangle stay.
+    .classicyPopUpMenuValueIcon,
+    .classicyPopUpMenuValue {
+      position: relative;
+      top: var(--file-dialog-pop-up-content-drop);
+    }
   }
 
   #{$box} > .classicyFileOpenDialogVolume {
@@ -90,6 +106,10 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
     font-family: var(--ui-font);
     font-size: var(--ui-font-size);
     line-height: var(--file-dialog-volume-line-height);
+    // The disk's name condensed, a pixel off each character's advance
+    // (`fileDialog.volumeCondense`), as Standard File draws it: "Macintosh
+    // HD" 75 pixels of ink where the pop-up's is 86.
+    letter-spacing: calc(var(--file-dialog-volume-condense) * -1);
     white-space: nowrap;
 
     > img {

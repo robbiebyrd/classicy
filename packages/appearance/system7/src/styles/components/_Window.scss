@@ -144,6 +144,45 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       height: auto;
       padding: var(--title-bar-title-top) var(--title-bar-title-gap) 0;
     }
+
+    // Where the room left beside the title is odd, its extra pixel goes on
+    // the right, as 7.5 rounds it (`*-finder-window-fits-active.png`, the
+    // Find File and Views windows): the right side's basis one pixel, the
+    // left's none, so the left side has half of one pixel less than the room
+    // and lands on floor(room / 2), and an even room's half pixel snaps back
+    // to the middle.
+    .classicyWindowTitleLeft {
+      flex-basis: 0;
+    }
+
+    .classicyWindowTitleRight {
+      flex-basis: $px;
+    }
+  }
+}
+
+// The title centered on the whole bar, whatever boxes it has, as 7.5 draws
+// it: a window with a close box and no zoom box (Find File, the control
+// panels) centers its title on the frame, not on the room after the close
+// box (`*-dialog-modeless-findfile.png`, `*-controlpanel-views.png`). The
+// title area lies across the bar, out of flow, kept off a box's column on
+// both sides (`titleBar.boxMargin`, the box and `titleBar.boxGap`), and the
+// boxes over it, so the bar reads the same with both boxes and the title
+// still breaks short of either. The zoom box keeps the right end.
+@mixin title-across-bar {
+  .classicyWindowControlBox {
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-classicy-control="zoom"] {
+    margin-left: auto;
+  }
+
+  .classicyWindowTitle {
+    position: absolute;
+    inset: 0;
+    padding: 0 calc(var(--title-bar-box-margin) + var(--window-control-size) + var(--title-bar-box-gap));
   }
 }
 
@@ -281,6 +320,7 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       }
 
       @include title-area;
+      @include title-across-bar;
     }
 
     // The contents fill the window under the title bar, flush with the
@@ -445,6 +485,13 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
       &:active {
         background: pixel-art(var(--color-black), $windoid-cross), var(--color-theme-02);
       }
+    }
+
+    // The windoid's drag bar (no title) runs between its boxes, in flow.
+    .classicyWindowTitle {
+      position: relative;
+      inset: auto;
+      padding: 0;
     }
 
     .classicyWindowTitle .classicyWindowTitleCenter {

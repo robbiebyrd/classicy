@@ -65,6 +65,17 @@ $fields: ".classicyInput, .classicySpinner";
     background-color: var(--classicy-spinner-background, var(--color-white));
   }
 
+  // A field whose whole text is selected (the core's `selected` state; the
+  // Save box's name as it opens, `*-dialog-standardfile-save.png`)
+  // highlights its whole line, as TextEdit did: the inside inverted from
+  // `textField.inset` (3) in from the frame's outer edge, two white rows and
+  // columns inside the frame, the text white on it. After the rules above,
+  // which it outranks or follows.
+  .classicyInput.selected {
+    background-color: var(--color-highlight);
+    box-shadow: inset 0 0 0 calc(var(--text-field-inset) - #{$px}) var(--color-white);
+  }
+
   // The date and time pickers: one field frame around their parts.
   .classicyDatePicker,
   .classicyTimePicker {

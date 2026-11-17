@@ -26,7 +26,11 @@
       margin-top: calc(var(--alert-layout-icon-top) - var(--alert-layout-text-top));
     }
 
+    // The label and the message run on as one block of text, on the
+    // 16-pixel pitch (Page Setup's, Erase Disk's and Energy Saver's alerts):
+    // no gap between them.
     .classicyAlertBody {
+      gap: 0;
       padding-top: 0;
     }
 
