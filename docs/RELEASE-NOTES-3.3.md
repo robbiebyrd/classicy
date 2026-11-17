@@ -426,6 +426,20 @@ diverge, so a logo registered through Platinum's
   load ends, the viewport resizes, or the pointer or focus moves, so a pattern lies in the same phase in every window, as
   QuickDraw laid it from the window's port. The default `"element"`
   publishes nothing.
+- **Patterns laid from the window or the desktop, per component.** A
+  package's new optional `layout.patternOrigin` names, for `ControlGroup`,
+  `PopUpMenu` and `Slider`, the origin their patterns are laid from:
+  `"window"` (the window's content origin) or `"desktop"` (the desktop's
+  corner, as QuickDraw laid its 1-bit patterns from the screen's). The core
+  publishes it on the group box's fieldset, the pop-up's button and
+  triangle, and the slider's input and tick rail, as
+  `--classicy-pattern-origin-x` / `-y` from each element's corner, kept
+  current on the same signals as the scroll bars' (a window moved on the
+  desktop included), so a dithered part keeps one phase wherever it sits.
+  The default `"element"`, and a component left out, publishes and watches
+  nothing: Platinum declares none and draws as before. One watcher per
+  window now serves every part and scroll bar in it, reading them all
+  before it writes.
 - **The Save box can open with its name selected.** A package's new
   optional `layout.fileDialog.saveName: "selected"` opens the Save box with
   its name field focused and the default name selected; the default
@@ -792,6 +806,13 @@ the ids the saver already names:
   secondary, solid group box keeps its 3 px gap). A
   list box's text sits a pixel higher in its row, by the new System 7 knob
   `listBox.textLift` (1, `--list-box-text-lift`).
+- **System 7's dithers keep the screen's phase.** The dimmed pop-up's
+  pattern (its 1-bit checker and its color #777777 sprinkle), the group
+  box's dots and the dimmed slider's checker are laid from the desktop's
+  corner (`layout.patternOrigin`), as the 7.5 captures lay them from the
+  screen's, not from each part's corner: a part moved a pixel, or a pop-up
+  a pixel wider, keeps its dots in step, and a pop-up's frame and triangle
+  share one phase.
 
 ## Upgrade
 
