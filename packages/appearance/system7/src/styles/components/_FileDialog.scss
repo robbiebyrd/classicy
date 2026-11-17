@@ -53,6 +53,23 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
 
     > .classicyPopUpMenu {
       flex: none;
+      width: auto;
+    }
+
+    // Sized to its contents as 7.5's: the folder's icon
+    // `popUpMenu.valueIconInset` (3) inside the frame, its name, then
+    // `fileDialog.popUpTail` (33) for the gap, the triangle and its inset.
+    .classicyPopUpMenuButton {
+      width: auto;
+      padding-right: var(--#{$k}pop-up-tail);
+    }
+
+    .classicyPopUpMenuValueIcon {
+      margin-left: calc(var(--pop-up-menu-value-icon-inset) - var(--menu-item-text-inset));
+    }
+
+    .classicyPopUpMenuValue {
+      flex: none;
     }
   }
 
@@ -90,6 +107,23 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   // and SimpleText its document kinds.
   #{$box} > .classicyFileOpenDialogFooter > .classicyPopUpMenuWrapper {
     @include place(var(--#{$k}filter-left), var(--#{$k}filter-top));
+
+    display: flex;
+    align-items: center;
+
+    > .classicyPopUpMenu {
+      flex: none;
+      width: auto;
+    }
+
+    .classicyPopUpMenuButton {
+      width: auto;
+      padding-right: var(--#{$k}pop-up-tail);
+    }
+
+    .classicyPopUpMenuValue {
+      flex: none;
+    }
   }
 
   #{$box} .classicyFileOpenDialogActions {
@@ -144,9 +178,14 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   @include box($open, "file-dialog-");
   @include box($save, "file-dialog-save-");
 
-  // Save's New (folder) button, between Desktop and the line.
+  // Save's New (folder) button, between Desktop and the line, its label
+  // on one line across the button (7.5 draws "New" and a folder there).
   #{$save} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3) {
     @include place(var(--file-dialog-save-buttons-left), var(--file-dialog-save-new-top));
+
+    padding-right: 0;
+    padding-left: 0;
+    white-space: nowrap;
   }
 
   // "Save As:" over its field, under the list.
@@ -198,5 +237,6 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   .classicyFileOpenDialogWell .classicyTreeNodeLabel {
     overflow: visible;
     text-overflow: clip;
+    line-height: var(--file-dialog-list-row-height);
   }
 }

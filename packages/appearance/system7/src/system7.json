@@ -162,7 +162,8 @@
 				"arrowTop": 5,
 				"arrowInset": 5,
 				"valueIconTop": 0,
-				"valueIconGap": 4
+				"valueIconGap": 4,
+				"valueIconInset": 3
 			},
 			"dialogFrame": {
 				"bevel": 0,
@@ -246,6 +247,7 @@
 				"width": 355,
 				"height": 195,
 				"popUpTop": 9,
+				"popUpTail": 33,
 				"volumeLeft": 237,
 				"volumeTop": 9,
 				"volumeGap": 4,
@@ -272,6 +274,7 @@
 				"saveWidth": 358,
 				"saveHeight": 252,
 				"savePopUpTop": 9,
+				"savePopUpTail": 33,
 				"saveVolumeLeft": 238,
 				"saveVolumeTop": 9,
 				"saveListLeft": 15,
@@ -466,7 +469,8 @@
 					"arrowTop": 5,
 					"arrowInset": 5,
 					"valueIconTop": 0,
-					"valueIconGap": 4
+					"valueIconGap": 4,
+					"valueIconInset": 3
 				},
 				"dialogFrame": {
 					"bevel": 0,
@@ -550,6 +554,7 @@
 					"width": 355,
 					"height": 195,
 					"popUpTop": 9,
+					"popUpTail": 33,
 					"volumeLeft": 237,
 					"volumeTop": 9,
 					"volumeGap": 4,
@@ -576,6 +581,7 @@
 					"saveWidth": 358,
 					"saveHeight": 252,
 					"savePopUpTop": 9,
+					"savePopUpTail": 33,
 					"saveVolumeLeft": 238,
 					"saveVolumeTop": 9,
 					"saveListLeft": 15,
@@ -772,7 +778,8 @@
 					"arrowTop": 5,
 					"arrowInset": 5,
 					"valueIconTop": 0,
-					"valueIconGap": 4
+					"valueIconGap": 4,
+					"valueIconInset": 3
 				},
 				"dialogFrame": {
 					"bevel": 1,
@@ -856,6 +863,7 @@
 					"width": 355,
 					"height": 195,
 					"popUpTop": 9,
+					"popUpTail": 33,
 					"volumeLeft": 237,
 					"volumeTop": 9,
 					"volumeGap": 4,
@@ -882,6 +890,7 @@
 					"saveWidth": 358,
 					"saveHeight": 252,
 					"savePopUpTop": 9,
+					"savePopUpTail": 33,
 					"saveVolumeLeft": 238,
 					"saveVolumeTop": 9,
 					"saveListLeft": 15,
