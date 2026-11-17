@@ -8,6 +8,7 @@ import { useClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import "./ClassicyAppearanceManager.scss";
+import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceControlStripModule";
 import {
 	type ChangeEvent,
 	type FC as FunctionalComponent,
