@@ -21,3 +21,25 @@ export const CLASSICY_DEFAULT_APPEARANCE_LAYOUT: ClassicyAppearanceLayout =
 		menuBar: Object.freeze({ placement: "screen" }),
 		desktop: Object.freeze({ iconGridOrigin: "top-right" }),
 	});
+
+/**
+ * The components that can lay their patterns from an origin the core
+ * publishes (`ClassicyAppearanceLayout`'s `patternOrigin`), by their
+ * vocabulary names (`CLASSICY_COMPONENT`). Frozen.
+ */
+export const CLASSICY_PATTERN_ORIGIN_COMPONENTS = Object.freeze([
+	"ControlGroup",
+	"PopUpMenu",
+	"Slider",
+] as const);
+
+/** One of `CLASSICY_PATTERN_ORIGIN_COMPONENTS`. */
+export type ClassicyPatternOriginComponent =
+	(typeof CLASSICY_PATTERN_ORIGIN_COMPONENTS)[number];
+
+/**
+ * Where a component's patterns are laid from: `element` (its own corner,
+ * nothing published), `window` (the window's content origin) or `desktop`
+ * (the desktop's corner, the screen's).
+ */
+export type ClassicyPatternOrigin = "element" | "window" | "desktop";

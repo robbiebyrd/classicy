@@ -37,9 +37,11 @@
 //   a `box-shadow` default-button ring) is hidden.
 // - It replaces the element's own `mask-image`, so it is not for icons
 //   (`ClassicyIcon.scss` masks their shape) or any other masked element.
-// - The checker's phase starts at each element's own corner, not at the
-//   window's origin as QuickDraw's patterns did, so two adjacent dithered
-//   elements need not line up.
+// - The checker's phase starts at each element's own corner, not at a
+//   fixed origin as QuickDraw's patterns did, so two adjacent dithered
+//   elements need not line up. A package that needs a fixed phase lays its
+//   own pattern from the origin the core publishes for the components its
+//   layout names in `patternOrigin` (`--classicy-pattern-origin-x` / `-y`).
 @use "color" as c;
 
 // The checker mask alone, for a whole dimmed control.

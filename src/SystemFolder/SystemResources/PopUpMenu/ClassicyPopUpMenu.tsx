@@ -27,6 +27,7 @@ import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceMan
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
+import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import {
 	type ClassicyPopUpMenuPlacementResult,
 	classicyPopUpMenuPlacement,
@@ -202,6 +203,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	// The frame's and the triangle's patterns laid from a fixed origin, where
+	// the package declares one (`layout.patternOrigin.PopUpMenu`, System 7).
+	const indicatorRef = useRef<HTMLSpanElement>(null);
+	useClassicyPatternOrigin("PopUpMenu", buttonRef, indicatorRef);
 	// A long list scrolls by its indicators (HIG7 p.83: a pop-up menu
 	// "scrolls like other menus"), never by a scroll bar.
 	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
@@ -579,6 +584,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					)}
 					<span className="classicyPopUpMenuValue">{currentLabel}</span>
 					<span
+						ref={indicatorRef}
 						className={classNames(
 							"classicyPopUpMenuIndicator",
 							classicyStateClasses({ open }),
