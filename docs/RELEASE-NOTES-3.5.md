@@ -824,6 +824,26 @@ the ids the saver already names:
   dimmed checked checkbox's X is unchanged. An element that is not rendered
   (a hidden tab panel, a closed menu) is given no origin, so moving a window
   writes nothing for it.
+- **Menus open where they show.** A menu bar's pull-down that would pass
+  the desktop's right edge, its frame's shadow included, hangs with its
+  right side under its title's right side instead, as System 7.5 hangs its
+  Help menu at the bar's right end; System 7's Help menu opened off the
+  screen before. One still too wide is pinned inside the desktop. The same
+  rule holds for a window's own menu bar, a menu bar extension's pull-down,
+  pop-up menus, combo box lists and pop-up bevel buttons, and submenus and
+  contextual menus now flip at the desktop's edge (`.classicyDesktop`, else
+  the viewport), not the viewport's, shadow included, and are pinned when
+  still too wide. Placed before paint, again whenever a menu opens, and
+  when the desktop changes size while a pull-down, submenu or contextual
+  menu is open. A flipped first-level pull-down carries
+  `classicySubMenuFlipLeft`, as a flipped submenu did; the base sheet hangs
+  it from its title's right side, and a package that places pull-downs in
+  its own rule places the flipped one too (System 7 does). New:
+  `ClassicyContextualMenu`'s optional `flipLeftTo` (the x its right side
+  goes to when it flips, the point by default) and
+  `classicyBevelPopupPlacement`'s optional sixth argument `across` (the span
+  across to keep to). Menus that fit are placed as before. See
+  AGENT-REFERENCE.md §4.5, "Where menus open".
 
 ## Upgrade
 

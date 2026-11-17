@@ -525,6 +525,21 @@ positioned). Dividers are system-05 over white (`platinum-menu-divider`, the
 look) across the full inner width (`ClassicyMenu.scss`, base structure, story
 0088-sz9). Bevel-button panels (`popupContent`) reuse the frame.
 
+Menus open where they show (`ClassicyMenuPlacement.internal.ts`,
+`useClassicySubmenuPlacement.internal.ts`): measured in layout effects, frame
+shadow included (border box, outer `box-shadow`, absolute
+`::before`/`::after`), against `.classicyDesktop`'s box (else the
+viewport's). A pull-down (screen or window bar) or submenu that would pass
+the right edge gets `classicySubMenuFlipLeft`, a pull-down then hanging with
+its right side under its title's right side (base `ClassicyDesktopMenuBar.scss`;
+a package that places pull-downs itself places it too, as System 7 does);
+one still too wide is pinned by equal and opposite wrapper margins. Again on
+reopen and on a desktop resize (`ResizeObserver` + `flushSync`). Contextual
+menus (`flipLeftTo`), extension pull-downs, pop-up menus, combo box lists
+and bevel pop-ups (`classicyBevelPopupPlacement`'s `across`) follow the same
+rule; vertical placement is unchanged. `bin/check-menus-on-desktop.ts`
+checks it in a browser.
+
 ### Keyboard Equivalents
 
 `ClassicyKeyboardEquivalentField` (HIGOS8 pp.120–122) captures a new
