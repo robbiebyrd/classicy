@@ -126,9 +126,44 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// The root element for the appearance hook, merged with the forwarded
 		// ref so callers keep receiving the <input>.
 		const [inputRef, setInputRef] = useClassicyMergedRef<HTMLInputElement>(ref);
-		// The field carries no state class (`isDefault` keeps its deprecated
-		// modifier class below).
-		const appearance = useClassicyAppearance("Input", {}, inputRef);
+		// The field's one state class: `selected` while it has focus and its
+		// whole text is selected (System 7 then highlights the field's whole
+		// line, as TextEdit did). `isDefault` keeps its deprecated modifier
+		// class below.
+		const [wholeTextSelected, setWholeTextSelected] = useState(false);
+		// Read again on every event that can change the selection or the
+		// focus: `select` (a script's `select()`, a drag), `selectionchange`
+		// where a browser fires it at the field, the keys and the pointer
+		// moving the caret, typing, and focus itself.
+		useEffect(() => {
+			const el = inputRef.current;
+			if (!el) return;
+			const read = () =>
+				setWholeTextSelected(
+					el.ownerDocument.activeElement === el &&
+						el.value.length > 0 &&
+						el.selectionStart === 0 &&
+						el.selectionEnd === el.value.length,
+				);
+			const events = [
+				"select",
+				"selectionchange",
+				"keyup",
+				"mouseup",
+				"input",
+				"focus",
+				"blur",
+			];
+			for (const type of events) el.addEventListener(type, read);
+			return () => {
+				for (const type of events) el.removeEventListener(type, read);
+			};
+		}, [inputRef]);
+		const appearance = useClassicyAppearance(
+			"Input",
+			{ selected: wholeTextSelected },
+			inputRef,
+		);
 
 		const handleOnChangeFunc: ChangeEventHandler<HTMLInputElement> = (e) => {
 			setValue(e.target.value);

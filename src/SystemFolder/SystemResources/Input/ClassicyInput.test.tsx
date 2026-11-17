@@ -144,3 +144,44 @@ describe("ClassicyInput forwarded ref", () => {
 		expect(calls).toHaveLength(1);
 	});
 });
+
+// Story 0217-etx: the field's `selected` state while it has focus and its
+// whole text is selected, so a package can highlight its whole line (System
+// 7, as TextEdit did, `*-dialog-standardfile-save.png`).
+describe("ClassicyInput's selected state", () => {
+	const field = () => document.getElementById("name") as HTMLInputElement;
+
+	it("is set while the whole text is selected, and cleared by a caret or a blur", async () => {
+		const user = userEvent.setup();
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		expect(field().classList.contains("selected")).toBe(false);
+		field().focus();
+		field().select();
+		await vi.waitFor(() =>
+			expect(field().classList.contains("selected")).toBe(true),
+		);
+		await user.keyboard("{ArrowRight}");
+		await vi.waitFor(() =>
+			expect(field().classList.contains("selected")).toBe(false),
+		);
+		field().select();
+		await vi.waitFor(() =>
+			expect(field().classList.contains("selected")).toBe(true),
+		);
+		field().blur();
+		await vi.waitFor(() =>
+			expect(field().classList.contains("selected")).toBe(false),
+		);
+	});
+
+	it("is not set for part of the text, or an empty field", async () => {
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		field().focus();
+		field().setSelectionRange(0, 4);
+		field().dispatchEvent(new Event("select"));
+		expect(field().classList.contains("selected")).toBe(false);
+		field().value = "";
+		field().select();
+		expect(field().classList.contains("selected")).toBe(false);
+	});
+});

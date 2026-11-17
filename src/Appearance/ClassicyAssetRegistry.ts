@@ -130,6 +130,7 @@ export type ClassicySystemArtKey =
 	| "controlStripTabRight"
 	| "newFolderGlyph"
 	| "openFolderIcon"
+	| "fileDialogFolderIcon"
 	| "controlStripCollapse"
 	| "controlStripScrollLeft"
 	| "controlStripScrollLeftDisabled"
@@ -1106,6 +1107,7 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	controlStripTabRight: "pixelArt",
 	newFolderGlyph: "pixelArt",
 	openFolderIcon: "image",
+	fileDialogFolderIcon: "image",
 	controlStripCollapse: "pixelArt",
 	controlStripScrollLeft: "pixelArt",
 	controlStripScrollLeftDisabled: "pixelArt",

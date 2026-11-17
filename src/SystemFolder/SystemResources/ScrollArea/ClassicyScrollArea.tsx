@@ -34,6 +34,7 @@ import {
 	computeClassicyScrollBars,
 	computeClassicyScrollThumb,
 } from "./ClassicyScrollAreaMetrics";
+import { useClassicyScrollPatternOrigin } from "./ClassicyScrollPatternOrigin.internal";
 
 /** The distance one press of a scroll arrow scrolls, when not given. */
 const DEFAULT_LINE_STEP = 16;
@@ -668,6 +669,14 @@ const ClassicyScrollBar = ({
 }: ClassicyScrollBarProps) => {
 	const vertical = orientation === "vertical";
 	const repeat = useClassicyPressRepeat();
+	// The track's pattern aligned to the window (the package's
+	// `scrollBar.patternOrigin: "window"`, System 7): the window's content
+	// origin published on the bar and its track.
+	useClassicyScrollPatternOrigin(
+		refs.bar,
+		refs.track,
+		useClassicyAppearanceLayout().scrollBar?.patternOrigin === "window",
+	);
 	const [pressed, setPressed] = useState<PressedPart>(null);
 	const [dragging, setDragging] = useState(false);
 	// An on-release drag's outline: where it is drawn (from the bar's start)

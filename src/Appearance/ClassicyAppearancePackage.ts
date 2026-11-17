@@ -81,6 +81,17 @@ export type ClassicyAppearanceLayout = {
 		 * the `fits` state (no thumb).
 		 */
 		fitsBars?: "hidden" | "shown";
+		/**
+		 * `"element"` (the default): nothing is published, and a track's
+		 * pattern lies where the package's stylesheet anchors it. `"window"`
+		 * (System 7, as QuickDraw aligned a pattern to its window port): the
+		 * core publishes the window's content origin (inside the frame, under
+		 * the title bar) on each bar and on its track, from that element's
+		 * padding-box corner, as `--classicy-scroll-origin-x` / `-y` in whole
+		 * pixels, kept current as the window resizes or anything in it
+		 * scrolls; the package positions its pattern by them.
+		 */
+		patternOrigin?: "element" | "window";
 	};
 	/**
 	 * How a slider with a ghost indicator (`ClassicySlider`'s `ghost`)
@@ -119,6 +130,13 @@ export type ClassicyAppearanceLayout = {
 		 * volumes.
 		 */
 		navigation?: "tree" | "flat";
+		/**
+		 * `"plain"` (the default, Mac OS 8): the Save box opens with the
+		 * modal's first control focused. `"selected"` (System 7.5,
+		 * `*-dialog-standardfile-save.png`): it opens with its name field
+		 * focused and the default name selected.
+		 */
+		saveName?: "plain" | "selected";
 	};
 };
 

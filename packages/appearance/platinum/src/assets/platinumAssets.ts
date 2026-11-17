@@ -46,7 +46,7 @@ const PLATINUM = "platinum";
  * icon-tree files, because the core draws them too (the screen saver's logos,
  * the pre-boot screen).
  *
- * Not registered (Platinum registers 36 of the 44 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 36 of the 45 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `menuCheck` and `menuDash` are `::before`
  * glyphs in the Platinum package, so those keys have no file at all;
  * `aboutBackground` has no Platinum art; Platinum draws no dithers, so it has
@@ -54,7 +54,9 @@ const PLATINUM = "platinum";
  * `helpMenuTitle` (registering one would change its menu bar); docked right
  * its Control Strip mirrors the left tab, so it has no
  * `controlStripTabRight`; it labels New Folder in words and draws a folder
- * for the folder shown, so it has no `newFolderGlyph` or `openFolderIcon`.
+ * for the folder shown, so it has no `newFolderGlyph` or `openFolderIcon`,
+ * and its file dialog's folders are the folder icon, so it has no
+ * `fileDialogFolderIcon`.
  * `triangle`
  * and `downArrow` are aliases of `submenuArrow` and `popupArrows`:
  * `registerClassicySystemArt` registers each with its key, so they are not
