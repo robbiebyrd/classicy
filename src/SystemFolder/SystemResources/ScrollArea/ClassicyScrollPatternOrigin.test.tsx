@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { stubClassicyClientRects } from "@/__tests__/withClientRects";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -44,9 +45,13 @@ const windowWithBar = () => {
 	Object.defineProperty(el("win"), "clientLeft", { value: 1 });
 	Object.defineProperty(el("win"), "clientTop", { value: 1 });
 	place(el("title"), 41, 41, 398, 18);
-	vi.spyOn(el("title"), "getClientRects").mockReturnValue([
-		DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
-	] as unknown as DOMRectList);
+	Object.defineProperty(el("title"), "getClientRects", {
+		configurable: true,
+		value: () =>
+			[
+				DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
+			] as unknown as DOMRectList,
+	});
 	return { win: el("win"), bar: el("bar"), track: el("track") };
 };
 
@@ -56,6 +61,7 @@ const published = (el: HTMLElement) => [
 ];
 
 describe("classicyWindowContentOrigin", () => {
+	beforeEach(() => stubClassicyClientRects());
 	afterEach(() => {
 		vi.restoreAllMocks();
 		document.body.innerHTML = "";
@@ -85,6 +91,7 @@ describe("classicyWindowContentOrigin", () => {
 });
 
 describe("publishClassicyScrollPatternOrigin", () => {
+	beforeEach(() => stubClassicyClientRects());
 	afterEach(() => {
 		vi.restoreAllMocks();
 		document.body.innerHTML = "";
@@ -123,6 +130,7 @@ describe("publishClassicyScrollPatternOrigin", () => {
 // element between them resizing. Each case moves the bar 3 px right and
 // 2 px down, then raises only the signal that case gives.
 describe("useClassicyScrollPatternOrigin republishes", () => {
+	beforeEach(() => stubClassicyClientRects());
 	afterEach(() => {
 		vi.restoreAllMocks();
 		document.body.innerHTML = "";
@@ -224,6 +232,25 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 		}
 	});
 
+	// Review r0, issue 1: a bar that is not rendered (its window's hidden
+	// pane) publishes nothing, and nothing is written as its window moves.
+	it("not while the bar is unrendered, and again once it renders", async () => {
+		const { win, bar } = windowWithBar();
+		track(bar);
+		bar.style.display = "none";
+		await vi.waitFor(() => expect(published(bar)).toEqual(["", ""]));
+		const writes = vi.spyOn(CSSStyleDeclaration.prototype, "setProperty");
+		window.dispatchEvent(new Event("resize"));
+		win.style.left = "1px";
+		await new Promise((r) => setTimeout(r));
+		expect(
+			writes.mock.calls.filter(([name]) => String(name).includes("-origin-")),
+		).toEqual([]);
+		writes.mockRestore();
+		bar.style.display = "";
+		await vi.waitFor(() => expect(published(bar)).toEqual(moved));
+	});
+
 	it("when the viewport resizes", () => {
 		const { bar } = windowWithBar();
 		track(bar);
@@ -235,7 +262,10 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 const WINDOW_ORIGIN_PACKAGE = "test-window-pattern-origin";
 
 describe("ClassicyScrollArea under a package that lays its pattern from the window", () => {
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 
 	const content = () => (

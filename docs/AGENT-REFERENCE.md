@@ -3881,15 +3881,47 @@ Platinum (§1); its README lists what it ships.
   captures). Dimmed, a checkbox's frame and a radio button's circle stay
   black (only the mark and the label dim); a pop-up's frame, shadow and
   triangle are masks over the package's dimmed pattern (`dimmed-pattern()`
-  in `src/styles/_pixel.scss`: the dimmed ink where x + y is odd in 1-bit;
-  #888888 with #777777 where x and y are both odd in color, anchored at
-  the part's corner); a slider loses its channel's checker band and goes
-  through a 2 x 2 checker in black at both depths. The primary group box's
-  dots are one checker on a `::before` layer masked to the frame's ring,
+  in `src/styles/_pixel.scss`: black where x + y is odd from the window's
+  content origin, at both depths, as Memory's 1-bit and color captures
+  draw Apple's dimmed pop-up), and its text goes through the same black
+  checker (`dimmed-checker`); a slider
+  loses its channel's checker band and goes through a 2 x 2 checker in
+  black at both depths. The primary group box's dots are one checker on a
+  `::before` layer masked to the frame's ring,
   and its title (the primary kind's only, `.classicyControlGroupFieldsetPrimary >
   .classicyControlGroupLegend`) drops the leading `groupBox.titlePad`, moved on by
   as much; the secondary, solid kind keeps the pad on both sides.
   A list row's text is lifted `listBox.textLift` (1) above centered.
+- **Dither phase** (story 0219-c62). Every pattern a part is dimmed or
+  dotted with lies from the window's content origin (outside a window, the
+  desktop's corner, the screen's), as 7.5 laid them from the window's port,
+  so a part keeps the window's phase wherever it and its window sit. Its
+  layout declares `patternOrigin: { ControlGroup, PopUpMenu, Separator,
+  Slider: "window" }` and names by selector in `patternOrigin.elements`
+  every other element its stylesheet dims through the core's dither or a
+  pattern of its own (dimmed labels, links, menu titles and items, field
+  text, list rows, push buttons and their default ring, bevel buttons,
+  little arrows, the hidden application's menu icon, Standard File's
+  divider; `system7.css.test.ts` pins that every rule reading the origin
+  reads it on a published element). QuickDraw's arithmetic gives two phases
+  from the origin (`_pixel.scss`, `$dim-x`/`$dim-y` and `$rule-x`/`$rule-y`):
+  the standard gray pen inks where x + y is even, so a dotted rule (the
+  Views and Sound panels' group boxes, Date & Time's and Standard File's
+  separators, the menus' dividers) is even, and dimming by erasing through
+  the gray leaves the ink where it is odd, so a dimmed part (Memory's
+  pop-up and slider, Clock Options' and Standard File's dimmed text, the
+  menus' dimmed titles, items and hidden icon, the Chooser's dimmed OK ring,
+  ports of both parities) is odd; a dimmed pop-up is the black checker in
+  color too (Memory; Clock Options' gray pop-ups are its own drawing).
+  The captures that differ draw by position, not
+  through the pen: dots laid from a part's own start (Memory's y 115
+  separator, the Chooser's color divider, Clock Options' group boxes) or a
+  frame drawn with the pen rather than dimmed (Clock Options' dimmed pop-up
+  frames and menu-bar Finder icon). A dimmed mixed checkbox's dash takes the
+  dimmed phase; a dimmed checked checkbox's X keeps its checker at the
+  box's corner: HIG p.207 dots both diagonals, which no fixed phase can, and
+  no capture shows one. The scroll tracks' dots keep the window's phase too
+  (`scrollBar.patternOrigin`).
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
   image, and the 16 px one where System 7 had both sizes.
 - **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
@@ -4001,10 +4033,10 @@ how they look) has two halves:
    drag outline during a thumb drag (`thumbDrag`).
 2. **The package's `layout` block**, for the three arrangements that need
    JavaScript as well as CSS, the optional `window.centering`, and the
-   optional `scrollBar` and `slider` groups, which declare behavior rather
-   than arrangement. The groups and each of their keys are optional, so a
-   package that leaves one out keeps the core's behavior; Platinum declares
-   only `slider`.
+   optional `scrollBar`, `patternOrigin` and `slider` groups, which declare
+   behavior rather than arrangement. The groups and each of their keys are
+   optional, so a package that leaves one out keeps the core's behavior;
+   Platinum declares only `slider`.
 
 | Key | Values (Platinum's first) | Drives |
 |---|---|---|
@@ -4019,7 +4051,9 @@ how they look) has two halves:
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
 | `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
-| `scrollBar.patternOrigin` (optional) | `element`, `window` | where a pattern in a bar is laid from. `element` (the default): the core publishes nothing, and a package anchors its track pattern where its stylesheet does. `window` (System 7, as QuickDraw laid a pattern from the window's port: the 7.5 Finder list, 7.5.5 Scrapbook and 7.5.5 Finder captures, three screen phases, one window phase): the core publishes the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner) on each bar and on its track, from that element's padding-box corner, as `--classicy-scroll-origin-x` / `-y` (whole pixels, the bar measured where its snap nudge puts it on the device-pixel grid), kept current as the bar, the window, its title bar or anything between them resizes, the DOM inside the window (outside one, the desktop's or the body's) changes, the desktop's attributes change, a stylesheet is added, removed or edited, anything in the window scrolls (outside one, anything in the document), a transition or an animation ends, a font loads, the viewport resizes, and a frame after the pointer or the focus moves (a pseudo-class rule) (`ClassicyScrollPatternOrigin.internal.ts`). A part inside the bar offsets the bar's (System 7's drag outline subtracts `--classicy-scroll-outline-offset`) |
+| `patternOrigin.<Component>` (optional) | `element`, `window`, `desktop` | where a component's patterns are laid from, per component: `ControlGroup`, `PopUpMenu`, `Separator`, `Slider` (`CLASSICY_PATTERN_ORIGIN_COMPONENTS`; another key is refused). `element` (the default, and a component left out): the core publishes nothing and watches nothing, and the package lays its pattern where its stylesheet anchors it (the part's own corner). `window` (System 7, as QuickDraw laid a pattern from the window's port): the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner). `desktop`: the desktop's corner (outside a desktop, the viewport's), whatever window holds the part. The core publishes that origin on each of the component's pattern-bearing elements (a `ControlGroup`'s fieldset; a `PopUpMenu`'s button and its indicator; a `Separator`'s rule; a `Slider`'s range input and its tick rail), from the element's padding-box corner (inside its computed border, not `clientLeft`, which Firefox makes a text field's border and padding), as `--classicy-pattern-origin-x` / `-y` (whole pixels on the device-pixel grid), and keeps it current on the scroll bars' signals (below, and the window's own attributes, so a window moved on the desktop republishes). An element with no client rects (not rendered: `display: none`, a hidden tab panel, a closed menu) is given none, and loses what it had, until it renders; so are a scroll bar and its track. One watcher per window (outside one, per desktop, else per document body) serves every part in it, scroll bars included: each signal reads every part, then writes the changed values (`ClassicyPatternOrigin.internal.ts`, `useClassicyPatternOrigin`) |
+| `patternOrigin.elements` (optional) | `{ selector, origin: "window" \| "desktop" }[]` | any other element a package fills or masks with a pattern (the core's dither mixins included: `classicy-dither-mask/-text/-line($x, $y)` place the checker's tile from the padding box, `mask-origin: padding-box`, when given a position), by CSS selector. Every `ClassicyWindow` publishes the origin on the matching elements whose nearest window it is, and `ClassicyDesktop` on those outside every window (menus, the menu bar), each selector queried on its own each signal, so an element that starts matching (a control dimmed, a menu opened) is published and one that stops has the properties removed, and its box and ancestors are watched like a component's (`useClassicyPatternOriginElements`, `watchClassicyPatternOriginSelector`). A selector the browser cannot parse (`:has()` before Firefox 121) is skipped with one warning, never refusing the package |
+| `scrollBar.patternOrigin` (optional) | `element`, `window` | where a pattern in a bar is laid from. `element` (the default): the core publishes nothing, and a package anchors its track pattern where its stylesheet does. `window` (System 7, as QuickDraw laid a pattern from the window's port: the 7.5 Finder list, 7.5.5 Scrapbook and 7.5.5 Finder captures, three screen phases, one window phase): the core publishes the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner) on each bar and on its track, from that element's padding-box corner, as `--classicy-scroll-origin-x` / `-y` (whole pixels, the bar measured where its snap nudge puts it on the device-pixel grid), kept current as the bar, the window, its title bar or anything between them resizes, the DOM inside the window (outside one, the desktop's or the body's) changes, the desktop's attributes change, a stylesheet is added, removed or edited, anything in the window scrolls (outside one, anything in the document), a transition or an animation ends, a font loads, the viewport resizes, and a frame after the pointer or the focus moves (a pseudo-class rule) (`ClassicyScrollPatternOrigin.internal.ts`, on the window's shared pattern-origin watcher, `patternOrigin` above). A part inside the bar offsets the bar's (System 7's drag outline subtracts `--classicy-scroll-outline-offset`) |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
@@ -5221,9 +5255,11 @@ Limits of the mask:
   `box-shadow` default-button ring) is hidden.
 - It replaces the element's own `mask-image`, so it is not for icons
   (`ClassicyIcon.scss` masks their shape) or any other masked element.
-- The checker's phase starts at each element's own corner, not at the
-  window's origin as QuickDraw's patterns did, so adjacent dithered elements
-  need not line up.
+- The checker's phase starts at each element's own corner unless the mixin
+  is given a position (`$x`, `$y`): a package that needs a fixed phase, as
+  QuickDraw's patterns had, passes the origin the core publishes on the
+  elements its layout's `patternOrigin` names, offset to its pattern's
+  phase (§8 "Layout declarations").
 
 **Reading a metric from JS.** Code that needs a theme size in pixels reads
 the variable instead of hard-coding the number:

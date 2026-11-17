@@ -37,9 +37,11 @@ $ring-reach: calc(#{$px} + var(--button-default-ring));
 
 // A dimmed label's ink, clipped to the glyphs: the dimmed ink under the
 // white cells of the 1-bit checker (`dither.tileSize`, 0 in color, where
-// the ink is plain gray).
+// the ink is plain gray), laid from the origin the core publishes on the
+// button (system7.json `patternOrigin.elements`): ink where x + y is odd
+// from it, as Standard File's Eject and Create (_pixel.scss).
 $dimmed-label:
-  conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top /
+  conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) $dim-x $dim-y /
     var(--dither-tile-size) var(--dither-tile-size),
   linear-gradient(var(--color-theme-06), var(--color-theme-06));
 
@@ -139,7 +141,11 @@ $dimmed-label:
 
   // A dimmed default button's ring dithers, black, at both depths (the
   // Chooser's OK in the 256-color capture).
+  // Laid from the origin the core publishes on the button, a dimmed part's
+  // phase (the ring's black where x + y is odd, as the Chooser's), from the
+  // ring's box, `$ring-reach` outside the button's padding box.
   :where(.classicyButton).default:disabled::after {
-    mask: var(--classicy-art-dither-checker) 0 0 / px(2) px(2) repeat;
+    mask: var(--classicy-art-dither-checker) calc(#{$pattern-origin-x} + #{$ring-reach})
+      calc(#{$pattern-origin-y} + #{$ring-reach}) / px(2) px(2) repeat;
   }
 }

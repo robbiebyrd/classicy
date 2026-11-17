@@ -58,8 +58,12 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
 // checker excluded from a full layer) with the pixels `$off` taken away and
 // `$on` added, under the frame's four sides. A pixel taken away is the
 // theme's dither pixel square, none in color (`--dither-tile-size` 0), where
-// nothing is dithered and the whole mark shows.
-@mixin dimmed-mark-mask($off: (), $on: ()) {
+// nothing is dithered and the whole mark shows. The checker lies at `$at`
+// from the box's border box: the X keeps it at the box's corner (HIG p.207
+// dots both of its diagonals, which no fixed phase does: through one, a
+// diagonal is whole or gone; no 7.5 capture shows a dimmed checked box),
+// the mixed dash takes the window's dimmed phase.
+@mixin dimmed-mark-mask($off: (), $on: (), $at: 0 0) {
   $mark: linear-gradient(var(--color-black), var(--color-black));
   $dither-pixel: min(var(--dither-tile-size), #{$px});
   $images: ();
@@ -84,7 +88,7 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
     }
   }
   mask-image: list.join($images, (var(--classicy-art-dither-checker), $mark), comma);
-  mask-position: list.join($positions, (0 0, 0 0), comma);
+  mask-position: list.join($positions, ($at, 0 0), comma);
   mask-size: list.join($sizes, (var(--dither-tile-size) var(--dither-tile-size), auto), comma);
   mask-repeat: list.join($repeats, (repeat, no-repeat), comma);
   mask-composite: list.append($composites, exclude, $separator: comma);
@@ -160,9 +164,13 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
     background: pixel-art(var(--color-black), $dash), var(--color-white);
   }
 
+  // The dash dots at any phase, so it takes the dimmed one from the window's
+  // content origin, which the core publishes on the box (system7.json
+  // `patternOrigin.elements`), a pixel further in for the frame: the origin
+  // is measured from the padding box, the mask from the border box.
   .classicyCheckbox.mixed:disabled {
     background: pixel-art(var(--color-theme-06), $dash), var(--color-white);
-    @include dimmed-mark-mask;
+    @include dimmed-mark-mask($at: calc(#{$dim-x} + #{$px}) calc(#{$dim-y} + #{$px}));
   }
 
   // The radio button: the wrapper draws the circle, the native input over
@@ -225,7 +233,7 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
   :where(.classicyRadioInputWrapper).disabled {
     .classicyRadioInput {
       background: pixel-art(var(--color-theme-06), $dot);
-      @include d.classicy-dither-mask;
+      @include d.classicy-dither-mask($dim-x, $dim-y);
     }
 
     .classicyRadioInput.mixed {

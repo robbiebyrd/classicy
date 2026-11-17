@@ -37,30 +37,50 @@
 //   a `box-shadow` default-button ring) is hidden.
 // - It replaces the element's own `mask-image`, so it is not for icons
 //   (`ClassicyIcon.scss` masks their shape) or any other masked element.
-// - The checker's phase starts at each element's own corner, not at the
-//   window's origin as QuickDraw's patterns did, so two adjacent dithered
-//   elements need not line up.
+// - The checker's phase starts at each element's own corner, not at a
+//   fixed origin as QuickDraw's patterns did, so two adjacent dithered
+//   elements need not line up. A package that needs a fixed phase lays its
+//   own pattern from the origin the core publishes for the components its
+//   layout names in `patternOrigin` (`--classicy-pattern-origin-x` / `-y`).
 @use "color" as c;
 
-// The checker mask alone, for a whole dimmed control.
-@mixin classicy-dither-mask {
+// The checker mask alone, for a whole dimmed control. `$x`, `$y` place the
+// checker's tile (left out, it starts at the element's corner): a package
+// that lays its dither from an origin the core publishes (its layout's
+// `patternOrigin`, `--classicy-pattern-origin-x` / `-y` on the element)
+// passes that origin, offset to its pattern's phase.
+@mixin classicy-dither-mask($x: null, $y: null) {
   mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
   mask-size: var(--dither-tile-size) var(--dither-tile-size), auto;
   mask-repeat: repeat, no-repeat;
   mask-composite: exclude;
+  @if $x != null or $y != null {
+    $at-x: 0;
+    $at-y: 0;
+    @if $x != null {
+      $at-x: $x;
+    }
+    @if $y != null {
+      $at-y: $y;
+    }
+    mask-position: $at-x $at-y, 0 0;
+    // The core measures the origin from the padding box; the cover keeps
+    // the border box.
+    mask-origin: padding-box, border-box;
+  }
 }
 
 // Text inked in `$on` through the checker. `$on` is a token whose value is
 // black in the 1-bit theme and the dim gray in the color one (see above).
-@mixin classicy-dither-text($on) {
+@mixin classicy-dither-text($on, $x: null, $y: null) {
   color: var(#{c.classicy-token($on)});
-  @include classicy-dither-mask;
+  @include classicy-dither-mask($x, $y);
 }
 
 // A rule painted in `$on` (the same per-theme token) through the checker:
 // dotted at a 1 px height on a 1-bit theme, solid gray on a color one. The
 // element's size is the rule's.
-@mixin classicy-dither-line($on) {
+@mixin classicy-dither-line($on, $x: null, $y: null) {
   background-color: var(#{c.classicy-token($on)});
-  @include classicy-dither-mask;
+  @include classicy-dither-mask($x, $y);
 }

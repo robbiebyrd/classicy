@@ -52,7 +52,7 @@ $fields: ".classicyInput, .classicySpinner";
     &:disabled {
       color: var(--color-theme-06);
       border-color: var(--color-theme-06);
-      @include d.classicy-dither-mask;
+      @include d.classicy-dither-mask($dim-x, $dim-y);
     }
   }
 
@@ -127,12 +127,12 @@ $fields: ".classicyInput, .classicySpinner";
 
     &:disabled {
       background: pixel-art(var(--color-theme-06), shifted(PopUpMenu.$popup-arrow, 4, 7)), var(--color-white);
-      @include d.classicy-dither-mask;
+      @include d.classicy-dither-mask($dim-x, $dim-y);
     }
   }
 
   .classicyComboBoxNoMatches.classicyPopUpMenuListItem {
-    @include d.classicy-dither-text("--color-theme-06");
+    @include d.classicy-dither-text("--color-theme-06", $dim-x, $dim-y);
   }
 
   // The text editors: the frame without the bevel or a focus ring.

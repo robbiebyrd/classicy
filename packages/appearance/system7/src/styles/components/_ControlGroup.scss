@@ -4,8 +4,8 @@
 // - Group box (HIG p.211, figure 7-10; the Views and Sound control panels):
 //   a dotted one-pixel rectangle at both depths (the control panels'
 //   captures are alike), drawn in one 50% pattern, so no two dots touch at
-//   any size: black where x + y is odd from the frame's corner, which is
-//   empty; the title breaks the line. A secondary group is a solid
+//   any size: black where x + y is even from the window's content origin
+//   (below); the title breaks the line. A secondary group is a solid
 //   one-pixel line (System 7 drew no second kind; a plain QuickDraw frame).
 // - Separator (Standard File's, Date & Time's): a one-pixel dotted line. In
 //   1-bit, black on every other pixel; in color, the gray pattern 7.5 draws
@@ -18,10 +18,17 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
 
 @mixin control-group {
   // The frame is a layer over the fieldset's transparent border: a 2 x 2
-  // checker from its outer corner, masked to the ring between its border
-  // box and its padding box. Each edge dotted on its own would start its
-  // dots afresh, out of step with its neighbors at two corners of a box
-  // whose width or height is even.
+  // checker, masked to the ring between its border box and its padding
+  // box. Each edge dotted on its own would start its dots afresh, out of
+  // step with its neighbors at two corners of a box whose width or height
+  // is even. The checker is laid from the window's content origin, which
+  // the core publishes on the fieldset (layout `patternOrigin.ControlGroup`),
+  // so the dots keep the window's phase wherever the box sits: black where
+  // x + y is even from it, a dotted rule's phase (_pixel.scss), as the Views
+  // and Sound control panels draw them. The layer's border box is the
+  // fieldset's, a pixel outside the padding box the origin is measured
+  // from, and the tile's black pixels are its (1, 0) and (0, 1), so it
+  // starts a pixel further right.
   .classicyControlGroupFieldsetPrimary {
     border: $px solid transparent;
 
@@ -32,7 +39,7 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
       box-sizing: border-box;
       border: $px solid transparent;
       background: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0)
-        border-box left top / px(2) px(2);
+        border-box calc(#{$pattern-origin-x} + #{px(2)}) calc(#{$pattern-origin-y} + #{$px}) / px(2) px(2);
       mask: $cover border-box, $cover padding-box;
       mask-composite: exclude;
       pointer-events: none;
@@ -65,20 +72,25 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
     border: 0;
   }
 
+  // A separator's dots lie from the window's content origin, which the
+  // core publishes on it (layout `patternOrigin.Separator`): a dotted
+  // rule's phase, the 1-bit ink and the color #777777 where x + y is even
+  // from it (Date & Time's and Standard File's separators). Along the rule
+  // that is every other pixel from its start, the first when the start's
+  // x + y is even: the tile starts at `x + y + 1` from the origin.
   .classicySeparatorHorizontal {
+    $at: calc(#{$pattern-origin-x} + #{$pattern-origin-y} + #{$px}) top;
     height: $px;
     background:
-      linear-gradient(to right, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / $color-only $px
-        repeat-x,
-      linear-gradient(to right, transparent 50%, var(--color-system-06) 0) left top / var(--dither-tile-size) $px
-        repeat-x;
+      linear-gradient(to right, var(--color-theme-06) 50%, var(--color-system-06) 0) $at / $color-only $px repeat-x,
+      linear-gradient(to right, transparent 50%, var(--color-system-06) 0) $at / var(--dither-tile-size) $px repeat-x;
   }
 
   .classicySeparatorVertical {
+    $at: left calc(#{$pattern-origin-x} + #{$pattern-origin-y} + #{$px});
     width: $px;
     background:
-      linear-gradient(var(--color-theme-06) 50%, var(--color-system-06) 0) left top / $px $color-only repeat-y,
-      linear-gradient(transparent 50%, var(--color-system-06) 0) left top / $px var(--dither-tile-size)
-        repeat-y;
+      linear-gradient(var(--color-theme-06) 50%, var(--color-system-06) 0) $at / $px $color-only repeat-y,
+      linear-gradient(transparent 50%, var(--color-system-06) 0) $at / $px var(--dither-tile-size) repeat-y;
   }
 }

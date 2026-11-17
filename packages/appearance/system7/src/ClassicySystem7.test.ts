@@ -824,6 +824,18 @@ describe("the System 7 appearance package", () => {
 				fitsBars: "shown",
 				patternOrigin: "window",
 			},
+			// Every dither lies from the window's content origin (outside a
+			// window, the screen's corner), as 7.5 laid its patterns from the
+			// window's port, so a part keeps the window's phase wherever it
+			// sits (story 0219-c62): the components, and the dimmed and dotted
+			// elements its stylesheet masks (system7.css.test.ts).
+			patternOrigin: {
+				ControlGroup: "window",
+				PopUpMenu: "window",
+				Separator: "window",
+				Slider: "window",
+				elements: expect.any(Array),
+			},
 			// Standard File is a fixed modal dialog box
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
 			// and browses one folder at a time (fix round 1, ruling R4); the

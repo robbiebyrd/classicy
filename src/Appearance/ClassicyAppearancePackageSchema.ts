@@ -11,10 +11,14 @@ import type {
 	ClassicyAppIdentityOverride,
 } from "./ClassicyAppearancePackage";
 
+// A component's pattern origin (`patternOrigin`), every component's key
+// optional; another key is refused (CLASSICY_PATTERN_ORIGIN_COMPONENTS).
+const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
+
 /**
  * The three arrangement groups, every one required, and the optional
- * behavior groups (`scrollBar`, `slider`, `fileDialog`, `fileBrowser`), each
- * key of which is optional too.
+ * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
+ * `fileBrowser`), each key of which is optional too.
  */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
@@ -40,6 +44,25 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			thumbDrag: z.enum(["live", "onRelease"]).optional(),
 			fitsBars: z.enum(["hidden", "shown"]).optional(),
 			patternOrigin: z.enum(["element", "window"]).optional(),
+		})
+		.optional(),
+	patternOrigin: z
+		.strictObject({
+			ControlGroup: patternOrigin,
+			PopUpMenu: patternOrigin,
+			Separator: patternOrigin,
+			Slider: patternOrigin,
+			elements: z
+				.array(
+					z.strictObject({
+						// Not parsed here: a selector newer than the browser
+						// would refuse the whole package; the core skips it.
+						selector: z.string().trim().min(1).max(1024),
+						origin: z.enum(["window", "desktop"]),
+					}),
+				)
+				.readonly()
+				.optional(),
 		})
 		.optional(),
 	slider: z

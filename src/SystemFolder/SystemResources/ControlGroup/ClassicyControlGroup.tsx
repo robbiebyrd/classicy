@@ -6,7 +6,9 @@ import type {
 	FC as FunctionalComponent,
 	ReactNode,
 } from "react";
+import { useRef } from "react";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
+import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 
 export type ClassicyControlGroupVariant = "primary" | "secondary";
@@ -117,8 +119,13 @@ export const ClassicyControlGroup: FunctionalComponent<
 	const contentClass = classNames(
 		layout === "form" && "classicyControlGroupFormContent",
 	);
+	// A frame dotted from a fixed origin, where the package declares one
+	// (`layout.patternOrigin.ControlGroup`, System 7).
+	const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+	useClassicyPatternOrigin("ControlGroup", fieldsetRef);
 	return (
 		<fieldset
+			ref={fieldsetRef}
 			className={classNames(
 				"classicyControlGroupFieldset",
 				variant === "secondary"

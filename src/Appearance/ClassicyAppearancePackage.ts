@@ -15,6 +15,11 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import type {
+	ClassicyPatternOrigin,
+	ClassicyPatternOriginComponent,
+	ClassicyPatternOriginElements,
+} from "./ClassicyAppearanceDefaults";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getRegisteredClassicyAppearancePackageOrDefault,
@@ -22,7 +27,13 @@ import {
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
 
-export { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
+export {
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+	CLASSICY_PATTERN_ORIGIN_COMPONENTS,
+	type ClassicyPatternOrigin,
+	type ClassicyPatternOriginComponent,
+	type ClassicyPatternOriginElements,
+} from "./ClassicyAppearanceDefaults";
 export {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
@@ -93,6 +104,34 @@ export type ClassicyAppearanceLayout = {
 		 */
 		patternOrigin?: "element" | "window";
 	};
+	/**
+	 * Where the patterns a package fills its parts with are laid from, by
+	 * component (`CLASSICY_PATTERN_ORIGIN_COMPONENTS`). Optional, as is each
+	 * key: a component left out, or set to `"element"` (the default), has
+	 * nothing published and no watcher, and its pattern lies where the
+	 * package's stylesheet anchors it (the part's own corner). `"window"`
+	 * (System 7, as QuickDraw laid a pattern from its window's port, so a
+	 * dithered part keeps the window's phase wherever it sits): the core
+	 * publishes the window's content origin (inside the frame, under the
+	 * title bar; outside a window, the desktop's corner). `"desktop"`: the
+	 * core publishes the desktop's corner (outside a desktop, the
+	 * viewport's), for a pattern that keeps one phase across the whole
+	 * screen, wherever the part's window is. Either is published on each of the component's
+	 * pattern-bearing elements, from the element's padding-box corner, as
+	 * `--classicy-pattern-origin-x` / `-y` in whole pixels, and kept current
+	 * as anything moves the element against it: a `ControlGroup`'s fieldset;
+	 * a `PopUpMenu`'s button and its indicator; a `Separator`'s rule; a
+	 * `Slider`'s range input and its tick rail. `elements` names any other
+	 * element by CSS selector (a dimmed label the core's dither mixins mask,
+	 * say), with its origin: every window, and the desktop for what lies
+	 * outside windows (menus, the menu bar), publishes it on the elements
+	 * in it that match, on the same signals, and removes it from an element
+	 * that no longer matches. The scroll bars have their own declaration,
+	 * `scrollBar.patternOrigin`.
+	 */
+	patternOrigin?: {
+		readonly [C in ClassicyPatternOriginComponent]?: ClassicyPatternOrigin;
+	} & { readonly elements?: readonly ClassicyPatternOriginElements[] };
 	/**
 	 * How a slider with a ghost indicator (`ClassicySlider`'s `ghost`)
 	 * drags. Optional, as is each key: a package that leaves one out keeps

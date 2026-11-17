@@ -4,6 +4,7 @@ import { compile, NodePackageImporter } from "sass";
 import { describe, expect, it } from "vitest";
 import { isSingleClassicyLayerBlock } from "../../../../../bin/classicyPackageCss";
 import { CLASSICY_LAYER_ORDER } from "../../../../../bin/classicyStyleInjector";
+import system7JsonSource from "../system7.json";
 
 // The System 7 package stylesheet as Sass compiles it: one
 // `@layer classicy.package` block, every rule scoped under the System 7
@@ -1398,6 +1399,14 @@ describe("system7.scss (compiled)", () => {
 				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
 			);
 			expect(dimmed).toMatch(/mask-composite: exclude;/);
+			// Story 0219-c62: the checker laid from the window's content origin
+			// (the core publishes it on the input, layout `patternOrigin`),
+			// shown where x + y is odd from it, a dimmed part's phase, as
+			// Memory's: the tile keeps its (0, 0) and (1, 1) pixels, so it
+			// starts a pixel right of the origin.
+			const FROM_ORIGIN =
+				/mask-position: calc\(var\(--classicy-pattern-origin-x\) \+ var\(--box-pixel\)\) var\(--classicy-pattern-origin-y\), 0 0;/;
+			expect(dimmed).toMatch(FROM_ORIGIN);
 			// The channel loses its checker band: both caps and the four
 			// runs, no far-cap checker pixels and no dotted columns.
 			for (const selector of [
@@ -1435,6 +1444,7 @@ describe("system7.scss (compiled)", () => {
 			expect(ticks).toMatch(
 				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
 			);
+			expect(ticks).toMatch(FROM_ORIGIN);
 			expect(
 				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
 			).toBe("");
@@ -1827,19 +1837,24 @@ describe("system7.scss (compiled)", () => {
 		// Story 0196-1i1: the base sheet no longer dims the box with a
 		// gradient, so there is nothing to drop. Story 0218-ll9: 7.5.5 dims
 		// the frame, its drop shadow and the triangle too
-		// (`bw-755-controlpanel-memory.png`, the 50% checker in 1-bit;
-		// `color-755-dialog-clockoptions.png`, #888888 with #777777 on every
-		// pixel whose x and y are both odd from the frame's corner, in color).
+		// (`bw-755-controlpanel-memory.png` and
+		// `color-755-controlpanel-memory.png`: the black 50% checker at both
+		// depths; round 2).
 		it("dims a pop-up's text, frame, shadow and triangle", () => {
 			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
 			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
-			expect(
-				dithered(
-					rule(
-						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue",
-					),
-				),
-			).toBe(true);
+			// The text too: black through a 2 x 2 checker at both depths,
+			// from the window's origin (Memory's color capture has no gray).
+			const value = rule(
+				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue",
+			);
+			expect(value).toMatch(/color: var\(--color-black\);/);
+			expect(value).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\), linear-gradient/,
+			);
+			expect(value).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
 			// The black frame and the right shadow give way to one layer that
 			// draws frame and shadow in the dimmed pattern.
 			const box = rule(":where(.classicyPopUpMenuButton).disabled");
@@ -1854,27 +1869,39 @@ describe("system7.scss (compiled)", () => {
 				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
 			);
 			expect(layersOf(arrow, BLACK)).toBe(6);
-			for (const part of [frame, arrow]) {
+			// Story 0219-c62: laid from the window's content origin, which the
+			// core publishes on the button and on the triangle (layout
+			// `patternOrigin.PopUpMenu`), as 7.5 laid its patterns from the
+			// window's port: the frame's layer starts the frame's width outside
+			// the button's padding box, the triangle at its own corner.
+			const ORIGIN = String.raw`var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\)`;
+			const FRAME_ORIGIN = String.raw`calc\(var\(--classicy-pattern-origin-x\) \+ var\(--window-border-size\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--window-border-size\)\)`;
+			for (const [part, at] of [
+				[frame, FRAME_ORIGIN],
+				[arrow, ORIGIN],
+			] as const) {
 				expect(part).toMatch(/^\s*mask: linear-gradient/m);
-				// 1-bit: the dimmed ink where x + y is odd, in the theme's tile.
+				expect(part).not.toMatch(/left top/);
+				// Round 2: at both depths the black 50% checker, black where
+				// x + y is odd from the origin, as Memory's dimmed pop-up draws it
+				// in 1-bit and in color (Apple's Control Manager pop-up; Clock
+				// Options' gray pop-ups are its own): no #888888, no #777777.
 				expect(part).toMatch(
-					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) left top ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+					new RegExp(
+						String.raw`background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) ${at};`,
+					),
 				);
-				// Color: #888888, and #777777 where x and y are odd, in a tile
-				// sized away in 1-bit.
-				expect(part).toMatch(
-					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				expect(part).toContain(
+					"background-size: calc(var(--box-pixel) * 2) calc(var(--box-pixel) * 2);",
 				);
-				expect(part).toMatch(
-					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
-				);
+				expect(part).not.toMatch(/--color-system-06|--color-theme-06/);
 			}
 		});
 
 		// Story 0218-ll9: 7.5 dots a group box in one 50% pattern, so no two
 		// dots touch at any size (`*-controlpanel-views.png`): one checker,
-		// anchored at the frame's corner, masked to the frame's ring, where
-		// each edge's own dots met out of step at two corners.
+		// masked to the frame's ring, where each edge's own dots met out of
+		// step at two corners.
 		it("dots the group box in one checker, and paints the legend on white", () => {
 			const group = rule(".classicyControlGroupFieldsetPrimary");
 			expect(group).toMatch(/border: var\(--box-pixel\) solid transparent;/);
@@ -1884,9 +1911,13 @@ describe("system7.scss (compiled)", () => {
 			expect(ring).toMatch(/inset: calc\(var\(--box-pixel\) \* -1\);/);
 			expect(ring).toMatch(/border: var\(--box-pixel\) solid transparent;/);
 			expect(ring).toMatch(/pointer-events: none;/);
-			// Black where x + y is odd, the corner pixel empty.
+			// Black where x + y is even from the window's content origin (story
+			// 0219-c62: the Views and Sound panels), which the core publishes
+			// on the fieldset (layout `patternOrigin`): the layer's border box
+			// is the fieldset's, a pixel outside its padding box, and the
+			// tile's black pixels are (1, 0) and (0, 1), a pixel further right.
 			expect(ring).toMatch(
-				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box left top ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
+				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box calc\(var\(--classicy-pattern-origin-x\) \+ calc\(var\(--box-pixel\) \* 2\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--box-pixel\)\) ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
 			);
 			// The border box less the padding box: the ring.
 			expect(ring).toMatch(
@@ -1939,12 +1970,34 @@ describe("system7.scss (compiled)", () => {
 				),
 			).toMatch(/background-image: none;/);
 			// Color's gray pair, sized away in 1-bit; 1-bit's dots, sized
-			// away in color.
+			// away in color. Story 0219-c62: both laid from the window's
+			// content origin the core publishes on the rule (layout
+			// `patternOrigin.Separator`), a dotted rule's phase: the ink where
+			// x + y is even from it (Date & Time, Standard File), the tile
+			// starting at x + y + 1.
+			const along = String.raw`calc\(var\(--classicy-pattern-origin-x\) \+ var\(--classicy-pattern-origin-y\) \+ var\(--box-pixel\)\)`;
 			expect(separator).toMatch(
-				/var\(--color-theme-06\) 50%, var\(--color-system-06\) 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				new RegExp(
+					String.raw`var\(--color-theme-06\) 50%, var\(--color-system-06\) 0\) ${along} top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)`,
+				),
 			);
 			expect(separator).toMatch(
-				/transparent 50%, var\(--color-system-06\) 0\) left top ?\/ ?var\(--dither-tile-size\)/,
+				new RegExp(
+					String.raw`transparent 50%, var\(--color-system-06\) 0\) ${along} top ?\/ ?var\(--dither-tile-size\)`,
+				),
+			);
+			expect(rule(".classicySeparatorVertical")).toMatch(
+				new RegExp(
+					String.raw`transparent 50%, var\(--color-system-06\) 0\) left ${along}`,
+				),
+			);
+			// A menu's divider: the dither from the origin, the same phase.
+			expect(
+				rule(
+					":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu) .classicySeparatorHorizontal",
+				),
+			).toContain(
+				"mask-position: var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y), 0 0;",
 			);
 		});
 
@@ -2731,14 +2784,20 @@ describe("system7.scss (compiled)", () => {
 					),
 				).toMatch(/display: none;/);
 				// The line: in color #888888 and #777777 alternating (theme-06,
-				// system-06), in 1-bit the checker a pixel along.
+				// system-06), in 1-bit the checker; story 0219-c62: both from the
+				// window's content origin, the ink where x + y is even from it.
 				const divider = rule(
 					`${box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
 				);
 				expect(divider).toContain(
 					"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)",
 				);
-				expect(divider).toContain("mask-position: var(--box-pixel) 0, 0 0;");
+				expect(divider).toContain(
+					"mask-position: calc(var(--classicy-pattern-origin-x) + var(--classicy-pattern-origin-y)) 0, 0 0;",
+				);
+				expect(divider).toContain(
+					"calc(calc(var(--classicy-pattern-origin-x) + var(--classicy-pattern-origin-y)) + var(--box-pixel)) top",
+				);
 			}
 			expect(rule(`${OPEN} > .classicyFileOpenDialogVolume > img`)).toContain(
 				"margin-top: var(--file-dialog-volume-icon-drop);",
@@ -3028,4 +3087,186 @@ describe("system7.scss (compiled)", () => {
 
 	it("uses no !important (the cascade layers decide)", () =>
 		expect(readFileSync(STYLESHEET, "utf8")).not.toContain("!important"));
+
+	// Story 0219-c62: every dither lies from the window's content origin,
+	// which the core publishes only on the elements the package names: its
+	// components (layout `patternOrigin.<Component>`) and the elements its
+	// `patternOrigin.elements` selects. Each rule that reads the origin, by
+	// the element it reads it on (a pseudo-element's host), the name that
+	// publishes there, and its phase from the origin (_pixel.scss): a
+	// dimmed part's ink where x + y is odd ("dim"), a dotted rule's where it
+	// is even ("rule"), or a layer of its own ("own", tested with its part).
+	const DIM =
+		"calc(var(--classicy-pattern-origin-x) + var(--box-pixel)) var(--classicy-pattern-origin-y), 0 0";
+	const RULE =
+		"var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y), 0 0";
+	const MENUS =
+		":is(.classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu)";
+	const READERS: Record<string, [string, "dim" | "rule" | "own"]> = {
+		[`${MENUS} .classicyMenuItem.disabled > p`]: [
+			".classicyMenuItem.disabled > p",
+			"dim",
+		],
+		[`${MENUS} .classicyMenuItem.disabled > kbd`]: [
+			".classicyMenuItem.disabled > kbd",
+			"dim",
+		],
+		[`${MENUS} .classicySeparatorHorizontal`]: ["Separator", "rule"],
+		":is(.classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem).disabled > p":
+			[".classicyMenuItem.disabled > p", "dim"],
+		".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)": [
+			".classicyDesktopMenuAppHidden > p > img",
+			"dim",
+		],
+		".classicyPopUpMenuGroupHeader": [".classicyPopUpMenuGroupHeader", "dim"],
+		":where(.classicyPopUpMenuButton).disabled": ["PopUpMenu", "own"],
+		":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue": [
+			".classicyPopUpMenuButton.disabled .classicyPopUpMenuValue",
+			"dim",
+		],
+		":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator": [
+			"PopUpMenu",
+			"own",
+		],
+		".classicyButton:disabled": [".classicyButton:disabled", "own"],
+		":where(.classicyButton).default:disabled": [
+			".classicyButton:disabled",
+			"own",
+		],
+		":where(.classicyControlLabel).disabled": [
+			".classicyControlLabel.disabled",
+			"dim",
+		],
+		":where(.classicyLink).disabled": [".classicyLink.disabled", "dim"],
+		":where(.classicyRadioInputWrapper).disabled .classicyRadioInput": [
+			".classicyRadioInputWrapper.disabled .classicyRadioInput",
+			"dim",
+		],
+		".classicyLittleArrows .classicyLittleArrowsButton:disabled": [
+			".classicyLittleArrowsButton:disabled",
+			"dim",
+		],
+		".classicyLittleArrows:not(:has(> .classicyLittleArrowsButton:enabled))": [
+			".classicyLittleArrows",
+			"dim",
+		],
+		":where(.classicySlider).disabled": ["Slider", "dim"],
+		":where(.classicySliderTicks).disabled": ["Slider", "dim"],
+		".classicyInput:disabled": [".classicyInput:disabled", "dim"],
+		".classicySpinner:disabled": [".classicySpinner:disabled", "dim"],
+		".classicyComboBoxIndicator:disabled": [
+			".classicyComboBoxIndicator:disabled",
+			"dim",
+		],
+		".classicyComboBoxNoMatches.classicyPopUpMenuListItem": [
+			".classicyComboBoxNoMatches",
+			"dim",
+		],
+		":where(.classicyListBoxOption).disabled .classicyListBoxOptionLabel": [
+			".classicyListBoxOption.disabled .classicyListBoxOptionLabel",
+			"dim",
+		],
+		":where(.classicyListBox).disabled .classicyListBoxOptionLabel": [
+			".classicyListBox.disabled .classicyListBoxOptionLabel",
+			"dim",
+		],
+		":where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel": [
+			".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeLabel",
+			"dim",
+		],
+		":where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeIcon:not(.classicyIconDimmedImage)":
+			[".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeIcon", "dim"],
+		".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody) .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider":
+			[".classicyFileOpenDialogDivider", "own"],
+		".classicyFileOpenDialogBody.classicyFileDialogSaveBody .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider":
+			[".classicyFileOpenDialogDivider", "own"],
+		".classicyControlGroupFieldsetPrimary": ["ControlGroup", "own"],
+		".classicySeparatorHorizontal": ["Separator", "own"],
+		".classicySeparatorVertical": ["Separator", "own"],
+		".classicyBevelButton:not(.classicyControlStrip *).disabled": [
+			".classicyBevelButton.disabled",
+			"dim",
+		],
+		".classicyBevelButton:not(.classicyControlStrip *).disabled.checked": [
+			".classicyBevelButton.disabled",
+			"dim",
+		],
+		".classicyCheckbox.mixed:disabled": [
+			".classicyCheckbox.mixed:disabled",
+			"own",
+		],
+		".classicyPlacard.disabled": [".classicyPlacard.disabled", "dim"],
+		":where(.classicyImageWell).disabled": [
+			".classicyImageWell.disabled",
+			"dim",
+		],
+		".classicyTabScrollButton:disabled .classicyTabScrollGlyph": [
+			".classicyTabScrollButton:disabled .classicyTabScrollGlyph",
+			"dim",
+		],
+	};
+	const SCOPE = ".classicyDesktop[data-classicy-appearance=system7] ";
+	const readers = () =>
+		[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+			.filter(([, , body]) => body.includes("--classicy-pattern-origin"))
+			.flatMap(([, header, body]) =>
+				splitSelectors(header).map(
+					(selector) =>
+						[
+							selector.replace(SCOPE, "").replace(/::(before|after)$/, ""),
+							body,
+						] as const,
+				),
+			);
+
+	it("reads the origin only where the package has it published", () => {
+		const declared = system7JsonSource.layout.patternOrigin as Record<
+			string,
+			unknown
+		> & { elements: { selector: string; origin: string }[] };
+		const selectors = declared.elements.map((entry) => entry.selector);
+		expect(declared.elements.every((entry) => entry.origin === "window")).toBe(
+			true,
+		);
+		const found = [...new Set(readers().map(([host]) => host))].sort();
+		expect(found).toEqual(Object.keys(READERS).sort());
+		for (const [host, [by]] of Object.entries(READERS)) {
+			if (/^[A-Z]/.test(by)) expect(declared[by], host).toBe("window");
+			else expect(selectors, host).toContain(by);
+		}
+		// And nothing published that no rule reads.
+		const used = new Set(Object.values(READERS).map(([by]) => by));
+		expect(selectors.filter((selector) => !used.has(selector))).toEqual([]);
+	});
+
+	it("lays each dimmed part's dither where x + y is odd from the origin, each dotted rule's where it is even", () => {
+		for (const [host, body] of readers()) {
+			const phase = READERS[host]?.[1];
+			if (phase === "dim" || phase === "rule")
+				expect(body, host).toContain(
+					`mask-position: ${phase === "dim" ? DIM : RULE};`,
+				);
+		}
+		// Review r0, issue 2: a dimmed mixed checkbox's dash (6 x 2) dots at
+		// any phase, so its checker takes the dimmed phase too, from the
+		// box's border box: the frame's pixel outside the padding box the
+		// origin is measured from. The X's stays at the box's corner.
+		const mixed = rule(".classicyCheckbox.mixed:disabled");
+		expect(mixed).toMatch(
+			/mask-position: [^;]*, calc\(calc\(var\(--classicy-pattern-origin-x\) \+ var\(--box-pixel\)\) \+ var\(--box-pixel\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--box-pixel\)\), 0 0;/,
+		);
+		expect(rule(".classicyCheckbox:disabled:checked:not(.mixed)")).toMatch(
+			/mask-position: [^;]*, 0 0, 0 0;/,
+		);
+		// A dimmed push button's label (Standard File's Eject) and its
+		// default ring (the Chooser's OK) take the dimmed phase too: the label
+		// inked under the white checker's clear cells, the ring through its
+		// black ones, from the ring's box `$ring-reach` outside.
+		expect(rule(".classicyButton:disabled")).toContain(
+			"transparent 0) calc(var(--classicy-pattern-origin-x) + var(--box-pixel)) var(--classicy-pattern-origin-y)/var(--dither-tile-size)",
+		);
+		expect(rule(":where(.classicyButton).default:disabled::after")).toContain(
+			"mask: var(--classicy-art-dither-checker) calc(var(--classicy-pattern-origin-x) + calc(var(--box-pixel) + var(--button-default-ring))) calc(var(--classicy-pattern-origin-y) + calc(var(--box-pixel) + var(--button-default-ring)))/",
+		);
+	});
 });

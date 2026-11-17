@@ -22,6 +22,7 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
 import {
 	classicySliderPosition,
@@ -263,6 +264,10 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 	// controlled value reconciliation conflicts with native slider capture on mouseup.
 	const inputRef = useRef<HTMLInputElement>(null);
 	const appearance = useClassicyAppearance("Slider", { disabled }, inputRef);
+	// The slider's and its ticks' patterns laid from a fixed origin, where
+	// the package declares one (`layout.patternOrigin.Slider`, System 7).
+	const ticksRef = useRef<HTMLDivElement>(null);
+	useClassicyPatternOrigin("Slider", inputRef, ticksRef);
 	// A ghost drag on release (HIGOS8 p.34): the package's declaration, for a
 	// slider that draws a ghost.
 	const thumbDrag = useClassicyAppearanceLayout().slider?.thumbDrag;
@@ -571,6 +576,7 @@ export const ClassicySlider: FunctionalComponent<ClassicySliderProps> = ({
 
 	const tickRail = hasTicks ? (
 		<div
+			ref={ticksRef}
 			aria-hidden="true"
 			className={classNames(
 				"classicySliderTicks",

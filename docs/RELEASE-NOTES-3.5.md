@@ -426,6 +426,24 @@ diverge, so a logo registered through Platinum's
   load ends, the viewport resizes, or the pointer or focus moves, so a pattern lies in the same phase in every window, as
   QuickDraw laid it from the window's port. The default `"element"`
   publishes nothing.
+- **Patterns laid from the window or the desktop.** A package's new
+  optional `layout.patternOrigin` names, for `ControlGroup`, `PopUpMenu`,
+  `Separator` and `Slider`, the origin their patterns are laid from:
+  `"window"` (the window's content origin) or `"desktop"` (the desktop's
+  corner). Its `elements` names any other element by CSS selector, with
+  its origin: every window publishes it on its matches, and the desktop on
+  those outside every window. The core publishes the origin on each such
+  element as `--classicy-pattern-origin-x` / `-y` from its padding-box
+  corner, kept current on the same signals as the scroll bars' (a window
+  moved on the desktop included), so a dithered part keeps one phase
+  wherever it sits. The default `"element"`, and a component or element
+  left out, publishes and watches nothing: Platinum declares none and
+  draws as before. One watcher per window now serves every part and scroll
+  bar in it, reading them all before it writes.
+- **The dither mixins take a position.** `classicy-dither-mask`,
+  `classicy-dither-text` and `classicy-dither-line` take an optional
+  `$x, $y`, the checker's tile position from the padding box
+  (`mask-origin: padding-box`); without it their CSS is unchanged.
 - **The Save box can open with its name selected.** A package's new
   optional `layout.fileDialog.saveName: "selected"` opens the Save box with
   its name field focused and the default name selected; the default
@@ -784,14 +802,28 @@ the ids the saver already names:
   A dimmed checkbox keeps its black frame and a dimmed radio button its
   black circle; only the mark and the label dim (the dimmed checked X keeps
   its dotted diagonals). A dimmed pop-up dims its frame, drop shadow and
-  triangle too: the 50% checker in 1-bit, #888888 with #777777 on every
-  other pixel of every other row in color. A dimmed slider keeps only its
+  triangle too, and its text: the black 50% checker at both depths, as
+  Memory draws Apple's dimmed pop-up in 1-bit and in color. A dimmed slider keeps only its
   outline and indicator, in black 50% dots at both depths, its channel
   empty. A group box is dotted in one 50% pattern, so no two dots touch at
   its corners, and its line runs to 1 or 2 px before the title's ink (a
   secondary, solid group box keeps its 3 px gap). A
   list box's text sits a pixel higher in its row, by the new System 7 knob
   `listBox.textLift` (1, `--list-box-text-lift`).
+- **System 7's dithers keep the window's phase.** Every dimmed and dotted
+  pattern (the dimmed pop-up's checker, the
+  dimmed slider, labels, links, menu titles and items, field text, list
+  rows, push buttons and their default ring, bevel buttons and little
+  arrows, the group box's dots, the separators and the menus' and Standard
+  File's dividers) is laid from the window's content origin, as 7.5 laid
+  them from the window's port, not from each part's corner: a part moved a
+  pixel, or a pop-up a pixel wider, keeps its dots in step, and a pop-up's
+  frame, triangle and text share one phase. Dimmed parts take the ink where
+  x + y is odd from the origin, dotted rules where it is even, as the
+  captures do; a dimmed mixed checkbox's dash takes the dimmed phase. A
+  dimmed checked checkbox's X is unchanged. An element that is not rendered
+  (a hidden tab panel, a closed menu) is given no origin, so moving a window
+  writes nothing for it.
 
 ## Upgrade
 
