@@ -1837,19 +1837,24 @@ describe("system7.scss (compiled)", () => {
 		// Story 0196-1i1: the base sheet no longer dims the box with a
 		// gradient, so there is nothing to drop. Story 0218-ll9: 7.5.5 dims
 		// the frame, its drop shadow and the triangle too
-		// (`bw-755-controlpanel-memory.png`, the 50% checker in 1-bit;
-		// `color-755-dialog-clockoptions.png`, #888888 with #777777 on every
-		// pixel whose x and y are both odd from the window's origin, in color).
+		// (`bw-755-controlpanel-memory.png` and
+		// `color-755-controlpanel-memory.png`: the black 50% checker at both
+		// depths; round 2).
 		it("dims a pop-up's text, frame, shadow and triangle", () => {
 			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
 			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
-			expect(
-				dithered(
-					rule(
-						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue",
-					),
-				),
-			).toBe(true);
+			// The text too: black through a 2 x 2 checker at both depths,
+			// from the window's origin (Memory's color capture has no gray).
+			const value = rule(
+				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuValue",
+			);
+			expect(value).toMatch(/color: var\(--color-black\);/);
+			expect(value).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\), linear-gradient/,
+			);
+			expect(value).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
 			// The black frame and the right shadow give way to one layer that
 			// draws frame and shadow in the dimmed pattern.
 			const box = rule(":where(.classicyPopUpMenuButton).disabled");
@@ -1877,28 +1882,19 @@ describe("system7.scss (compiled)", () => {
 			] as const) {
 				expect(part).toMatch(/^\s*mask: linear-gradient/m);
 				expect(part).not.toMatch(/left top/);
-				// 1-bit: the dimmed ink where x + y is odd from the origin
-				// (Memory), in the theme's tile.
+				// Round 2: at both depths the black 50% checker, black where
+				// x + y is odd from the origin, as Memory's dimmed pop-up draws it
+				// in 1-bit and in color (Apple's Control Manager pop-up; Clock
+				// Options' gray pop-ups are its own): no #888888, no #777777.
 				expect(part).toMatch(
 					new RegExp(
-						String.raw`conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) ${at};`,
-					),
-				);
-				// Color: #888888, and #777777 where x and y are both odd from the
-				// origin (Clock Options), in a tile sized away in 1-bit.
-				expect(part).toMatch(
-					new RegExp(
-						String.raw`conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) ${at},`,
-					),
-				);
-				expect(part).toMatch(
-					new RegExp(
-						String.raw`linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) ${at},`,
+						String.raw`background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) ${at};`,
 					),
 				);
 				expect(part).toContain(
-					"background-size: calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)) calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)), calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)) calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)), var(--dither-tile-size) var(--dither-tile-size);",
+					"background-size: calc(var(--box-pixel) * 2) calc(var(--box-pixel) * 2);",
 				);
+				expect(part).not.toMatch(/--color-system-06|--color-theme-06/);
 			}
 		});
 

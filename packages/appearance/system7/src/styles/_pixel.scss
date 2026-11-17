@@ -155,23 +155,28 @@ $rule-y: $pattern-origin-y;
 
 // The dimmed ink as a pattern, for a dimmed part whose shape is a mask
 // (a dithering mask would leave no room for it), laid from `$x`, `$y` (the
-// origin above, from the painted box's corner), from the top layer down:
-// - color: #777777 (`--color-system-06`) on each pixel whose x and y are
-//   both odd from the origin, over #888888 (`--color-theme-06`), as 7.5.5
-//   draws a dimmed pop-up's frame, shadow and triangle
-//   (`color-755-dialog-clockoptions.png`; its 1-bit capture thresholds the
-//   same dots to black);
-// - 1-bit: the dimmed ink (black) where x + y is odd from the origin, the
-//   50% checker, as `bw-755-controlpanel-memory.png` draws them.
-// The layers' sizes are `$dimmed-pattern-size`, a `background-size` set
-// after it.
+// origin above, from the painted box's corner): black where x + y is odd
+// from the origin, the 50% checker, at both depths, as Memory's dimmed
+// pop-up and slider are drawn (`bw-755-controlpanel-memory.png` and
+// `color-755-controlpanel-memory.png`, Apple's Control Manager pop-up: no
+// gray in color). Its size is `$dimmed-pattern-size`, a `background-size`
+// set after it.
 @function dimmed-pattern($x: $pattern-origin-x, $y: $pattern-origin-y) {
-  @return (
-    conic-gradient(from 90deg at $px $px, var(--color-system-06) 25%, transparent 0) $x $y,
-    linear-gradient(var(--color-theme-06), var(--color-theme-06)) $x $y,
-    conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) $x $y
-  );
+  @return conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0) $x $y;
 }
 
-$dimmed-pattern-size: $color-only $color-only, $color-only $color-only,
-  var(--dither-tile-size) var(--dither-tile-size);
+$dimmed-pattern-size: px(2) px(2);
+
+// The core's dither checker over a whole element in black at both depths,
+// a 2 x 2 tile (not the theme's, which is none in color), from the
+// dimmed phase: a dimmed part Memory draws as in 1-bit in color too (its
+// pop-up's text).
+@mixin dimmed-checker {
+  color: var(--color-black);
+  mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
+  mask-position: $dim-x $dim-y, 0 0;
+  mask-origin: padding-box, border-box;
+  mask-size: px(2) px(2), auto;
+  mask-repeat: repeat, no-repeat;
+  mask-composite: exclude;
+}
