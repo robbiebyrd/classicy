@@ -1042,16 +1042,26 @@ describe("system7.scss (compiled)", () => {
 			expect(layersOf(rule(".classicyRadioInput"), BLACK)).toBe(3);
 		});
 
-		it("dims a checkbox, a radio button and a label through the dither in the dimmed ink", () => {
+		// 7.5.5 keeps a dimmed checkbox's frame solid black at both depths
+		// and dims only its label (`*-755-dialog-clockoptions.png`, "Show the
+		// battery level" and the Chime boxes; story 0218-ll9); a dimmed radio
+		// button keeps its circle by the same Control Manager rule, and only
+		// its mark takes the dimmed ink.
+		it("dims a checkbox's and a radio button's mark and label, never their frame", () => {
 			const box = rule(".classicyCheckbox:disabled");
-			expect(box).toMatch(/border-color: var\(--color-theme-06\);/);
-			expect(dithered(box)).toBe(true);
+			expect(box).not.toMatch(/border-color/);
+			expect(box).not.toMatch(/mask/);
 			expect(layersOf(rule(".classicyCheckbox:disabled:checked"), DIM)).toBe(
 				18,
 			);
 			const radio = rule(":where(.classicyRadioInputWrapper).disabled");
-			expect(layersOf(radio, DIM)).toBe(12);
-			expect(dithered(radio)).toBe(true);
+			expect(layersOf(radio, DIM)).toBe(0);
+			expect(radio).not.toMatch(/mask/);
+			const dot = rule(
+				":where(.classicyRadioInputWrapper).disabled .classicyRadioInput",
+			);
+			expect(layersOf(dot, DIM)).toBe(3);
+			expect(dithered(dot)).toBe(true);
 			const label = rule(":where(.classicyControlLabel).disabled");
 			expect(label).toMatch(/color: var\(--color-theme-06\);/);
 			expect(dithered(label)).toBe(true);
@@ -1074,12 +1084,14 @@ describe("system7.scss (compiled)", () => {
 			const sizes = declared(masked, "mask-size");
 			const repeats = declared(masked, "mask-repeat");
 			const composites = declared(masked, "mask-composite");
-			expect(images.length).toBe(12);
+			// The frame's four sides, the ten pixels, the checker and the cover.
+			expect(images.length).toBe(16);
 			for (const list of [positions, sizes, repeats])
 				expect(list.length).toBe(images.length);
 			// A length in grid pixels, with the theme's tile (2 or 0).
 			const length = (value: string, tile: number): number => {
 				if (value === "0") return 0;
+				if (value === "100%") return 12;
 				if (value === "var(--box-pixel)") return 1;
 				if (value === "var(--dither-tile-size)") return tile;
 				if (value === "min(var(--dither-tile-size), var(--box-pixel))")
@@ -1104,11 +1116,14 @@ describe("system7.scss (compiled)", () => {
 			const mask = (tile: number) => {
 				let result = new Set<string>();
 				for (let i = images.length - 1; i >= 0; i--) {
-					const [x, y] = pair(positions[i]).map((v) => length(v, tile));
 					const [w, h] =
 						sizes[i] === "auto"
 							? [12, 12]
 							: pair(sizes[i]).map((v) => length(v, tile));
+					// A position of 100% is the far edge, less the layer's size.
+					const [x, y] = pair(positions[i]).map((v, axis) =>
+						v === "100%" ? 12 - (axis === 0 ? w : h) : length(v, tile),
+					);
 					const layer = new Set<string>();
 					for (let py = 0; py < 12; py++)
 						for (let px = 0; px < 12; px++) {
@@ -1151,11 +1166,26 @@ describe("system7.scss (compiled)", () => {
 			expect(shown(2, rising)).toEqual(["10,1", "8,3", "6,5", "4,7", "2,9"]);
 			expect(shown(0, falling)).toEqual(falling);
 			expect(shown(0, rising)).toEqual(rising);
-			// The frame stays dithered: its pixels are the checker's.
-			expect(mask(2).has("0,0")).toBe(true);
-			expect(mask(2).has("1,0")).toBe(false);
-			// Mixed dims its dash through the plain dither.
-			expect(rule(".classicyCheckbox.mixed:disabled")).not.toMatch(/mask/);
+			// The frame stays whole at both depths: every pixel of its ring.
+			const ring = [];
+			for (let i = 0; i < 12; i++)
+				ring.push(`${i},0`, `${i},11`, `0,${i}`, `11,${i}`);
+			for (const tile of [2, 0])
+				expect(ring.filter((key) => !mask(tile).has(key))).toEqual([]);
+			// Mixed dims its dash through the plain dither, inside the same
+			// whole frame.
+			const mixed = rule(".classicyCheckbox.mixed:disabled");
+			expect(mixed).toMatch(
+				/mask-image: [^;]*var\(--classicy-art-dither-checker\)/,
+			);
+			expect(declared(mixed, "mask-image").length).toBe(6);
+			expect(declared(mixed, "mask-composite")).toEqual([
+				"add",
+				"add",
+				"add",
+				"add",
+				"exclude",
+			]);
 		});
 
 		it("draws the little arrows in a round-cornered frame, the pressed half inverted", () => {

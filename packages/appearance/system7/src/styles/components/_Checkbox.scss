@@ -10,8 +10,11 @@
 //   (the Control Manager's highlight, `*-checkbox-pressed.png`).
 // - Radio button: the circle QuickDraw drew for a 12 x 12 oval; on, a 6 x 6
 //   dot three pixels in; pressed, a two-pixel ring (`*-radio-pressed.png`).
-// - Dimmed: the whole control and its label in the dimmed ink through the
-//   dither (HIG p.207: 50% gray in 1-bit, true gray in color).
+// - Dimmed: the frame and the circle stay black at both depths, as 7.5.5
+//   draws a dimmed checkbox (`*-755-dialog-clockoptions.png`, "Show the
+//   battery level"; story 0218-ll9); the mark and the label take the dimmed
+//   ink through the dither (HIG p.207: 50% gray in 1-bit, true gray in
+//   color).
 //
 // Every shape is pixel art (`classicy-px-rect` layers), never a radius,
 // which anti-aliases. The mixed state has no System 7 look (the System 7
@@ -47,11 +50,16 @@ $circle-face: (4 1 4 1) (2 2 8 2) (1 4 10 4) (2 8 8 2) (4 10 4 1);
 $dot: (4 3 4 1) (3 4 6 4) (4 8 4 1);
 $radio-dash: ((3 5 6 2),);
 
-// The dither's mask (the core's `classicy-dither-mask`: the checker
-// excluded from a full layer) with the pixels above added and taken away.
-// A pixel taken away is the theme's dither pixel square, none in color
-// (`--dither-tile-size` 0), where nothing is dithered and the whole X shows.
-@mixin x-dimmed-mask {
+// The frame's four sides, from the box's border edge: added over the
+// dither, so the frame stays whole at both depths.
+$frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100% 0) ($px 100%));
+
+// A dimmed mark's mask: the dither's (the core's `classicy-dither-mask`: the
+// checker excluded from a full layer) with the pixels `$off` taken away and
+// `$on` added, under the frame's four sides. A pixel taken away is the
+// theme's dither pixel square, none in color (`--dither-tile-size` 0), where
+// nothing is dithered and the whole mark shows.
+@mixin dimmed-mark-mask($off: (), $on: ()) {
   $mark: linear-gradient(var(--color-black), var(--color-black));
   $dither-pixel: min(var(--dither-tile-size), #{$px});
   $images: ();
@@ -59,7 +67,14 @@ $radio-dash: ((3 5 6 2),);
   $sizes: ();
   $repeats: ();
   $composites: ();
-  @each $pixels, $size, $composite in ($x-dimmed-off, $dither-pixel, exclude), ($x-dimmed-on, $px, add) {
+  @each $side in $frame-sides {
+    $images: list.append($images, $mark, $separator: comma);
+    $positions: list.append($positions, list.nth($side, 1), $separator: comma);
+    $sizes: list.append($sizes, list.nth($side, 2), $separator: comma);
+    $repeats: list.append($repeats, no-repeat, $separator: comma);
+    $composites: list.append($composites, add, $separator: comma);
+  }
+  @each $pixels, $size, $composite in ($off, $dither-pixel, exclude), ($on, $px, add) {
     @each $p in $pixels {
       $images: list.append($images, $mark, $separator: comma);
       $positions: list.append($positions, px(list.nth($p, 1)) px(list.nth($p, 2)), $separator: comma);
@@ -123,12 +138,10 @@ $radio-dash: ((3 5 6 2),);
     }
   }
 
-  // Dimmed (HIG p.207): the frame and the mark in the dimmed ink, through
-  // the dither; the face stays white.
+  // Dimmed (HIG p.207; `*-755-dialog-clockoptions.png`): the frame stays
+  // black and the face white; the mark takes the dimmed ink, through the
+  // dither, and the label dims by the label's rule.
   .classicyCheckbox:disabled {
-    border-color: var(--color-theme-06);
-    @include d.classicy-dither-mask;
-
     &:checked {
       background: pixel-art(var(--color-theme-06), $x-mark), var(--color-white);
     }
@@ -136,7 +149,7 @@ $radio-dash: ((3 5 6 2),);
     // Checked, its X keeps both diagonals (the mixed dash, a third state,
     // keeps the plain dither).
     &:checked:not(.mixed) {
-      @include x-dimmed-mask;
+      @include dimmed-mark-mask($x-dimmed-off, $x-dimmed-on);
     }
   }
 
@@ -149,6 +162,7 @@ $radio-dash: ((3 5 6 2),);
 
   .classicyCheckbox.mixed:disabled {
     background: pixel-art(var(--color-theme-06), $dash), var(--color-white);
+    @include dimmed-mark-mask;
   }
 
   // The radio button: the wrapper draws the circle, the native input over
@@ -205,13 +219,13 @@ $radio-dash: ((3 5 6 2),);
     background: pixel-art(var(--color-black), $radio-dash);
   }
 
-  // Dimmed: the circle and the dot in the dimmed ink, through the dither.
+  // Dimmed: the circle stays black, as a dimmed checkbox's frame does; the
+  // dot (the input, over the whole circle) takes the dimmed ink, through
+  // the dither.
   :where(.classicyRadioInputWrapper).disabled {
-    background: pixel-art(var(--color-theme-06), $circle), pixel-art(var(--color-white), $circle-face);
-    @include d.classicy-dither-mask;
-
     .classicyRadioInput {
       background: pixel-art(var(--color-theme-06), $dot);
+      @include d.classicy-dither-mask;
     }
 
     .classicyRadioInput.mixed {
