@@ -75,8 +75,10 @@ const originOf = (container: HTMLElement) => {
 };
 
 describe("ClassicyWindow and a package's patternOrigin.elements", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 
 	it("publishes the origin on the matching elements it holds", () => {

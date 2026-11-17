@@ -44,8 +44,10 @@ const menuBarOrigin = () => {
 };
 
 describe("ClassicyDesktop and a package's patternOrigin.elements", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 
 	const renderDesktop = () =>

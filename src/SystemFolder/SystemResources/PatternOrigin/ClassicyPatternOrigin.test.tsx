@@ -93,8 +93,10 @@ const inWindow = (ui: React.ReactElement) => {
 };
 
 describe("layout.patternOrigin", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
 		vi.restoreAllMocks();
@@ -327,8 +329,10 @@ describe("watchClassicyPatternOrigin", () => {
 });
 
 describe("components a package lays from a fixed origin", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
 		vi.restoreAllMocks();
@@ -444,8 +448,10 @@ describe("components a package lays from a fixed origin", () => {
 });
 
 describe("elements a package names by selector", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
 		vi.restoreAllMocks();

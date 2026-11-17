@@ -262,8 +262,10 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 const WINDOW_ORIGIN_PACKAGE = "test-window-pattern-origin";
 
 describe("ClassicyScrollArea under a package that lays its pattern from the window", () => {
-	beforeEach(() => stubClassicyClientRects());
-	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	beforeEach(() => {
+		stubClassicyClientRects();
+		resetClassicyAppearancePackagesForTests();
+	});
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 
 	const content = () => (
