@@ -222,8 +222,12 @@ const SYSTEM7_ART: Readonly<
 	controlStripTabRight: pixelArt(controlStripTabRight),
 	newFolderGlyph: pixelArt(newFolderGlyph),
 	// The folder pop-up's open folder (`*-dialog-standardfile-save.png`,
-	// 208,76): black at both depths.
+	// its 16 x 16 rect at 209,77): black at both depths.
 	openFolderIcon: art("color/open-folder-icon.png"),
+	// Standard File's list draws its small folder two rows higher than the
+	// Finder's (`*-755-dialog-standardfile-layout.png`, the folder rows' ink
+	// two rows under the row's top): the folder icon moved up two rows.
+	fileDialogFolderIcon: art("color/file-dialog-folder-icon.png"),
 	controlStripCollapse: pixelArt(controlStripCollapse),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeft),
 	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftDisabled),
@@ -256,6 +260,7 @@ const SYSTEM7_BW_ART: Readonly<
 	windowUtilityTexture: windowUtilityTextureBw,
 	windowGrip: art("bw/window-grip.png"),
 	zoomGlyph: art("bw/zoom-glyph.png"),
+	fileDialogFolderIcon: art("bw/file-dialog-folder-icon.png"),
 	// The Control Strip's 1-bit art: the `ics#` glyphs and PICT -4043 and
 	// -4048, black on white, with no bevel. The 1-bit disabled arrow is the
 	// arrow itself, as the panel's 1-bit picture of the strip draws it.

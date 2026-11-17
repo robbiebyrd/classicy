@@ -39,6 +39,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			thumbDrag: z.enum(["live", "onRelease"]).optional(),
 			fitsBars: z.enum(["hidden", "shown"]).optional(),
+			patternOrigin: z.enum(["element", "window"]).optional(),
 		})
 		.optional(),
 	slider: z
@@ -48,6 +49,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({
 			frame: z.enum(["movable", "fixed"]).optional(),
 			navigation: z.enum(["tree", "flat"]).optional(),
+			saveName: z.enum(["plain", "selected"]).optional(),
 		})
 		.optional(),
 	fileBrowser: z
@@ -268,10 +270,16 @@ const iconDimmingRule = z
 const iconDimming = z
 	.object({
 		hiddenApp: iconDimmingRule.optional(),
+		disabledItem: iconDimmingRule.optional(),
 		variants: z
 			.record(
 				z.string(),
-				z.object({ hiddenApp: iconDimmingRule.nullable().optional() }).strict(),
+				z
+					.object({
+						hiddenApp: iconDimmingRule.nullable().optional(),
+						disabledItem: iconDimmingRule.nullable().optional(),
+					})
+					.strict(),
 			)
 			.optional(),
 	})

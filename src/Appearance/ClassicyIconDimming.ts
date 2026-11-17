@@ -37,19 +37,28 @@ export type ClassicyIconDimmingRule = {
 };
 
 /** The surfaces a package can declare a dimming rule for. */
-export type ClassicyIconDimmingPurpose = "hiddenApp";
+export type ClassicyIconDimmingPurpose = "hiddenApp" | "disabledItem";
 
 /**
  * A package's dimming rules (`ClassicyAppearancePackage.iconDimming`):
  * `hiddenApp` is a hidden application's icon in the Application menu (HIG7
- * p.127). `variants` overrides them under a theme's asset variant
+ * p.127); `disabledItem` is the icon of a list or tree row that cannot be
+ * chosen (`ClassicyTree`'s `disabled` nodes: the files a Save box dims).
+ * `variants` overrides them under a theme's asset variant
  * (`ClassicyTheme.assetVariant`); `null` there declares no rule, so the
  * package's stylesheet dims the icon its own way (a 1-bit checker, say).
  */
 export type ClassicyIconDimming = {
 	hiddenApp?: ClassicyIconDimmingRule;
+	disabledItem?: ClassicyIconDimmingRule;
 	variants?: Readonly<
-		Record<string, { hiddenApp?: ClassicyIconDimmingRule | null }>
+		Record<
+			string,
+			{
+				hiddenApp?: ClassicyIconDimmingRule | null;
+				disabledItem?: ClassicyIconDimmingRule | null;
+			}
+		>
 	>;
 };
 

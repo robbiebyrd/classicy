@@ -240,6 +240,8 @@ Every file is the full 640 x 480 frame.
 | `*-755-getinfo-locked-running-app.png` | Get Info on SimpleText, locked, while it runs: the Locked box checked and enabled, the Comments box dotted (locked), the memory sizes read-only | both | Finder, Apple Extras > SimpleText | 8,27,243,313 | — (dimmed checked checkbox: not dimmed here) |
 | `*-755-getinfo-locked-in-trash.png` | Get Info on CPU Energy Saver, locked, in the Trash: the Locked box checked and enabled | both | Finder, Trash | 648,27,243,281 | — (dimmed checked checkbox: not dimmed here) |
 | `*-755-dialog-standardfile-layout.png` | Standard File Open box: the folder pop-up over the list, the disk's name and icon at the top right, the button column Eject (dimmed), Desktop, a line, Cancel, Open (default ring); QuickTime's Show Preview checkbox and dimmed Create button | both | SimpleText > Open… | dialog 88,88,465,200 | — (Standard File layout) |
+| `*-755-textfield-tail-selection.png` | The Save box's name field, "untitled" selected from its fourth character ("itled", dragged from before the "i" to past the end): the highlight from that character's pen position to the field's right edge | both | SimpleText > New, Save… (the `textfieldtail` scene) | field 160,275,202,22 | — (tail selection, story 0217-etx) |
+| `*-755-textfield-tail-selection-second.png` | Same, from its second character ("ntitled") | both | same | same | — (tail selection) |
 | `color-755-window-tint-<tint>.png` | An active document window and the Color control panel in each Window color: `gold`, `green`, `turquoise`, `red`, `pink`, `blue`, `gray`, `black-and-white` | color | Color control panel | window 191,172,251,159 | MWD 12 |
 | `755-depth-<depth>.png` | An active Finder window at `4-grays`, `4-colors`, `16-grays`, `16-colors`, `256-grays`, `256-colors` and `thousands` (switched from Black & White; the palette of a return to 256 colors differs from a fresh boot's) | each | Finder | window 191,172,251,159 | CIC "4-bit color variant" |
 | `755-simple-beep-recording.wav` | Simple Beep as the Sound Manager plays it, recorded from the page's audio (22,050 Hz, 16-bit, each 8-bit sample doubled) | — | SimpleSound | — | — (Simple Beep's waveform) |
@@ -349,6 +351,19 @@ Measured from the framebuffer files (exact pixels).
   list, the disk's name with its small icon at the top right, then the
   button column at the right: Eject, Desktop, a line, Cancel and the
   default Open.
+- **A tail selection in a text field** (`*-755-textfield-tail-selection*.png`,
+  beside `*-dialog-standardfile-save.png`'s whole name): the whole line's
+  highlight starts a pixel left of the text's pen position (3 px in from
+  the frame's outer edge, the text at 4), but a selection that starts
+  mid-text is highlighted from its first character's own pen position: the
+  column after the one TextEdit draws its caret in for that offset (the
+  "i" of "untitled" at 26, the caret at 25; the "n" at 12). Both run to 198,
+  inside the two white columns and the frame (199 to 201), and are the same
+  at both depths. The rule is the selection's kind, not its offset: a tail
+  scrolled so its first character sits at the field's left edge (a browser
+  field scrolls sideways; TextEdit's dialog fields wrap instead) starts at
+  that character's pen position (4), not at the whole line's 3, which the
+  package keys on the core's `data-classicy-selection="tail"`.
 - **Application menu title** (`*-755-appmenu-*.png`): the front
   application's small icon alone, in a title 34 px wide whose right edge is
   6 px from the screen's.

@@ -206,6 +206,16 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// a double-click or Open, the pop-up listing the path upward. Else the
 	// folders expand in place (Mac OS 8's tree).
 	const flat = dialogLayout?.navigation === "flat";
+	// System 7.5's Save box opens with its name field focused and the default
+	// name selected (the package's `fileDialog.saveName: "selected"`,
+	// `*-dialog-standardfile-save.png`); else the modal focuses its first
+	// control.
+	const selectsName = mode === "save" && dialogLayout?.saveName === "selected";
+	const nameInputRef = useRef<HTMLInputElement>(null);
+	// The name to select, set when a Save box opens and cleared once it is
+	// selected: the field shows the default name a commit or two after the
+	// open resets it.
+	const nameToSelect = useRef<string | null>(null);
 	// The folder flat navigation shows, from the volume root.
 	const [currentPath, setCurrentPath] = useState<string[]>([]);
 	// Flat navigation's folder rows, by node id: selectable, entered on Open.
@@ -213,6 +223,10 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// Flat rows each draw a small icon: an entry's own, else the generic
 	// folder's or document's (read at render, never captured at load).
 	const folderIcon = useClassicyAsset("icons", "system.folders.directory");
+	// A flat list's folder rows: the package's own list folder when it
+	// registers one (System 7.5's Standard File draws its small folder two
+	// rows higher than the Finder's), else the folder.
+	const listFolderIcon = useClassicyAsset("systemArt", "fileDialogFolderIcon");
 	const fileIcon = useClassicyAsset("icons", "system.files.file");
 	// The pop-up's current level: the package's open folder when it registers
 	// one (System 7.5's Standard File), else the folder.
@@ -263,7 +277,19 @@ export const ClassicyFileDialog: FunctionalComponent<
 		setActiveVolumeId(volumes[0].id);
 		setCurrentPath([]);
 		loadFolder(volumes[0], []);
+		nameToSelect.current = selectsName ? (props.defaultFileName ?? "") : null;
 	}, [open]);
+
+	// Selects the Save box's default name once the field shows it, focusing
+	// the field first (its selection is drawn only while it has focus).
+	useEffect(() => {
+		const name = nameToSelect.current;
+		const input = nameInputRef.current;
+		if (name === null || !input || input.value !== name) return;
+		nameToSelect.current = null;
+		input.focus({ preventScroll: true });
+		input.select();
+	});
 
 	// Save mode dims every file: they give context, but only folders are targets.
 	const isEntryDisabled = (entry: ClassicyFileDialogEntry) =>
@@ -340,7 +366,11 @@ export const ClassicyFileDialog: FunctionalComponent<
 			if (entry.kind === "folder") {
 				const id = cacheKey(volume.id, [...path, entry.name]);
 				folderIndex.current.add(id);
-				return { id, label: entry.name, leftIcon: entry.icon ?? folderIcon };
+				return {
+					id,
+					label: entry.name,
+					leftIcon: entry.icon ?? listFolderIcon ?? folderIcon,
+				};
 			}
 			const nodeId = `${cacheKey(volume.id, path)}${SEP}${entry.id}`;
 			const disabled = isEntryDisabled(entry);
@@ -356,7 +386,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 		});
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: buildNodes/isEntryDisabled are recreated each render and close over folders/activeTypes already; activeVolume/folders/filterIndex/currentPath/flat are the actual invalidation keys
+	// biome-ignore lint/correctness/useExhaustiveDependencies: buildNodes/isEntryDisabled are recreated each render and close over folders/activeTypes already; activeVolume/folders/filterIndex/currentPath/flat and the row icons are the actual invalidation keys
 	const nodes = useMemo(() => {
 		// Only clear/repopulate the index when buildNodes actually runs for
 		// these deps — resetting it unconditionally on every render would wipe
@@ -368,7 +398,16 @@ export const ClassicyFileDialog: FunctionalComponent<
 		return flat
 			? buildFlatNodes(activeVolume, currentPath)
 			: buildNodes(activeVolume, []);
-	}, [activeVolume, folders, filterIndex, currentPath, flat]);
+	}, [
+		activeVolume,
+		folders,
+		filterIndex,
+		currentPath,
+		flat,
+		folderIcon,
+		listFolderIcon,
+		fileIcon,
+	]);
 
 	const isFlatFolder = (nodeId: string) =>
 		flat && folderIndex.current.has(nodeId);
@@ -658,6 +697,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 				resizable={false}
 				scrollable={false}
 				movable={!fixedFrame}
+				initialFocusRef={selectsName ? nameInputRef : undefined}
 				initialSize={dialogSize}
 				initialPosition={[180, 120]}
 				analyticsExclude
@@ -768,6 +808,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 					{mode === "save" && activeFormat && (
 						<div className={"classicyFileDialogNameRow"}>
 							<ClassicyInput
+								ref={nameInputRef}
 								id={`${id}-name`}
 								labelTitle={"Save As:"}
 								labelPosition={"left"}

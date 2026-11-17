@@ -112,5 +112,6 @@ export type ClassicyComponentName = keyof typeof CLASSICY_COMPONENT;
 export const CLASSICY_PART_ATTRIBUTE = {
 	control: "data-classicy-control",
 	role: "data-classicy-role",
+	selection: "data-classicy-selection",
 	part: "data-classicy-part",
 } as const;

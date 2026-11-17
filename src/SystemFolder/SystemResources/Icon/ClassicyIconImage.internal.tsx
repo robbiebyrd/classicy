@@ -1,6 +1,7 @@
 import type { ImgHTMLAttributes } from "react";
 import {
 	CLASSICY_ICON_DIMMED_IMAGE_CLASS,
+	type ClassicyIconDimmingPurpose,
 	useClassicyDimmedIconImage,
 } from "@/Appearance/ClassicyIconDimming";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
@@ -30,14 +31,15 @@ type ClassicyIconImageProps = Omit<
 	/** The icon is drawn selected (only with `selectable`). */
 	selected?: boolean;
 	/**
-	 * The icon is drawn dimmed (a hidden application's, HIG7 p.127): the
-	 * active package's `iconDimming.hiddenApp` rule is applied on a canvas,
-	 * and the result drawn once ready, the `<img>` then marked
-	 * `classicyIconDimmedImage` so the package's stylesheet dimming stands
-	 * down. Without a rule, or for an icon a canvas cannot read (cross-origin
-	 * without CORS), the stylesheet's dimming applies.
+	 * The icon is drawn dimmed: `true` or `"hiddenApp"` as a hidden
+	 * application's (HIG7 p.127), `"disabledItem"` as a row's that cannot be
+	 * chosen. The active package's `iconDimming` rule for that purpose is
+	 * applied on a canvas, and the result drawn once ready, the `<img>` then
+	 * marked `classicyIconDimmedImage` so the package's stylesheet dimming
+	 * stands down. Without a rule, or for an icon a canvas cannot read
+	 * (cross-origin without CORS), the stylesheet's dimming applies.
 	 */
-	dimmed?: boolean;
+	dimmed?: boolean | ClassicyIconDimmingPurpose;
 };
 
 /** An `<img>` of an icon that picks the leaf's small image at small sizes,
@@ -63,8 +65,8 @@ export const ClassicyIconImage = ({
 	// leaf has one), and scaled by the surface's CSS like the plain image.
 	const { image: drawn, drawsDimmedImage } = useClassicyDimmedIconImage(
 		image,
-		dimmed,
-		"hiddenApp",
+		dimmed !== false,
+		dimmed === true || dimmed === false ? "hiddenApp" : dimmed,
 		drawnAt === true ? undefined : drawnAt,
 	);
 	return (

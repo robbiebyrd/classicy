@@ -22,7 +22,7 @@ import {
 import { SB_ICON, StoryApp } from "@sb/helpers";
 import { inColor, system7Parameters } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ComponentProps, useEffect } from "react";
+import { type ComponentProps, type CSSProperties, useEffect } from "react";
 import { fn } from "storybook/test";
 
 const meta = {
@@ -41,6 +41,9 @@ type Story = StoryObj<typeof meta>;
  * shows. So the focus a modal takes before the first key or pointer press
  * is let go on the next animation frame, whenever it arrives; after that
  * press the dialog keeps its focus, for trying the keyboard in the story.
+ * A text field keeps it: the Save box opens with its name selected
+ * (`*-dialog-standardfile-save.png`), which is drawn only while the field
+ * has focus.
  */
 function AtRest() {
 	useEffect(() => {
@@ -48,6 +51,7 @@ function AtRest() {
 		const release = (target: EventTarget | null) => {
 			if (
 				target instanceof HTMLElement &&
+				!(target instanceof HTMLInputElement) &&
 				target.closest(".classicyWindowModal")
 			) {
 				cancelAnimationFrame(frame);
@@ -142,20 +146,22 @@ const movableModal = () => (
 			<div style={{ display: "grid", gap: 2, lineHeight: "16px" }}>
 				<p style={text}>Items remaining to be copied: 204</p>
 				<p style={text}>Writing: Macintosh HD</p>
-				<div style={row}>
-					{/* As captured: 4 rows below the button's top, 14 pixels
-					    left of it, 10 of its 186 inside pixels filled. */}
+				<div style={{ ...row, alignItems: "flex-start" }}>
+					{/* As captured: the bar's frame 4 rows below the button's
+					    top (the bar's box starts 5 rows above its frame, the
+					    button's at its frame), 13 white pixels left of it, 10
+					    of its 186 inside pixels filled; the button 59 wide,
+					    the Finder's rect for it. */}
 					<ClassicyProgressBar
 						value={10}
 						max={186}
-						style={{
-							flex: 1,
-							alignSelf: "flex-start",
-							marginTop: 4,
-							marginRight: 1,
-						}}
+						style={{ flex: 1, marginTop: 4 }}
 					/>
-					<ClassicyButton style={{ margin: 0 }}>Stop</ClassicyButton>
+					<ClassicyButton
+						style={{ margin: "5px 0 0", minWidth: 59, width: 59 }}
+					>
+						Stop
+					</ClassicyButton>
 				</div>
 			</div>
 		</Dialog>
@@ -165,6 +171,39 @@ const movableModal = () => (
 
 export const MovableModal: Story = { render: movableModal };
 export const MovableModalColor = inColor(movableModal);
+
+/**
+ * Standard File's button column in 7.5's Open box, placed from the inner
+ * line: its buttons 80 wide (`fileDialog.buttonWidth`) at the box's column,
+ * 358 pixels in (the 7.5 box, wider than 7.5.5's, puts it further right
+ * than `fileDialog.buttonsLeft`), their tops `fileDialog.ejectTop`,
+ * `desktopTop`, `cancelTop` and `openTop` down, and the dotted line under
+ * Desktop a pixel left of the column (`dividerTop`, `dividerWidth`), drawn
+ * as the Open box draws it (_FileDialog.scss).
+ */
+const COLUMN_LEFT = 358;
+const columnButton = (top: string): CSSProperties => ({
+	position: "absolute",
+	left: COLUMN_LEFT,
+	top: `var(--file-dialog-${top}-top)`,
+	width: "var(--file-dialog-button-width)",
+	margin: 0,
+});
+const columnDivider: CSSProperties = {
+	position: "absolute",
+	left: COLUMN_LEFT - 1,
+	top: "var(--file-dialog-divider-top)",
+	width: "var(--file-dialog-divider-width)",
+	height: "var(--box-pixel)",
+	background:
+		"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0) left top / calc(var(--box-pixel) * 2) 100% repeat-x",
+	maskImage:
+		"var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black))",
+	maskSize: "var(--dither-tile-size) var(--dither-tile-size), auto",
+	maskRepeat: "repeat, no-repeat",
+	maskComposite: "exclude",
+	maskPosition: "var(--box-pixel) 0, 0 0",
+};
 
 /**
  * A fixed modal dialog (HIG p.190): the double frame alone, no title bar and
@@ -183,20 +222,16 @@ const fixedModal = () => (
 			initialSize={[461, 195]}
 			initialPosition={[88, 105]}
 		>
-			<div
-				style={{
-					display: "grid",
-					justifyItems: "end",
-					gap: 12,
-					paddingTop: 24,
-				}}
-			>
-				<ClassicyButton disabled margin="sm">
+			{/* Over the whole inner area, from the inner line (the modal's
+			    inner area is positioned). */}
+			<div style={{ position: "absolute", inset: 0 }}>
+				<ClassicyButton disabled style={columnButton("eject")}>
 					Eject
 				</ClassicyButton>
-				<ClassicyButton margin="sm">Desktop</ClassicyButton>
-				<ClassicyButton margin="sm">Cancel</ClassicyButton>
-				<ClassicyButton isDefault margin="sm">
+				<ClassicyButton style={columnButton("desktop")}>Desktop</ClassicyButton>
+				<div style={columnDivider} />
+				<ClassicyButton style={columnButton("cancel")}>Cancel</ClassicyButton>
+				<ClassicyButton isDefault style={columnButton("open")}>
 					Open
 				</ClassicyButton>
 			</div>

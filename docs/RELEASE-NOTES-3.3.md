@@ -59,6 +59,25 @@ draws them in the list's order. A chosen menu item blinks three times,
 System 7's default (`system7AppearanceHooks` sets the count), where
 Platinum's flashes twice.
 
+Checked against the 7.5 captures (story 0217-etx): a window's title is
+centered on the whole title bar whatever boxes it has, an odd pixel of room
+going to the right; the scroll track's dots lie from each window's content
+origin; an alert's label and message run on one 16-pixel pitch, its width
+is SimpleText's (`dialog.alertMaxWidth` 324) and short push buttons are 60
+px wide (`button.minWidth`), a label's odd pixel of room on its right
+(half a pixel of the button's left padding moved to its right,
+`pushButton.labelShift`, so a label wrapped in an inline, inline-block or
+block child is placed as a plain one is);
+Standard File's folder pop-up is as wide as
+7.5's, centered as 7.5 rounds it, its icon and name a row lower, its
+folders drawn two rows higher in the list, the disk's name condensed, the
+files a Save box dims dimmed icon and all, the Save box's name field a row
+lower and its default name selected when it opens. A text field's
+selection that runs to its text's end is highlighted, as TextEdit did, from
+its first character to the field's right edge: the whole line from a pixel
+left of the text, a tail from its first character's pen position, scrolled
+or not.
+
 **Mixing versions of the two Appearance Packages is unsupported.** Install
 `@classicy/classicy`, `@classicy/appearance-platinum` and
 `@classicy/appearance-system7` at one version and bump them together. Both
@@ -397,6 +416,39 @@ diverge, so a logo registered through Platinum's
   package shares and writes (System 7 registered after Platinum) no longer
   leaves an empty `<style id="classicy-fonts-<id>">`; one written before is
   removed when its last face is taken over.
+- **Scroll-track patterns laid from the window.** A package's new optional
+  `layout.scrollBar.patternOrigin: "window"` has the core publish the
+  window's content origin (inside the frame, under the title bar) on each
+  scroll bar and its track, as `--classicy-scroll-origin-x` / `-y` from that
+  element's corner, kept current as anything between the bar and the window
+  resizes, the DOM in the window or the desktop's attributes or a
+  stylesheet change, anything scrolls, a transition, an animation or a font
+  load ends, the viewport resizes, or the pointer or focus moves, so a pattern lies in the same phase in every window, as
+  QuickDraw laid it from the window's port. The default `"element"`
+  publishes nothing.
+- **The Save box can open with its name selected.** A package's new
+  optional `layout.fileDialog.saveName: "selected"` opens the Save box with
+  its name field focused and the default name selected; the default
+  `"plain"` is unchanged. `ClassicyInput` now carries the `selected` state
+  class while it has focus and its selection runs to its text's end (the
+  whole text, or its tail), and publishes where that selection starts, in
+  px from its text's left edge with its own scrolling, as
+  `--classicy-input-selection-start` on the `<input>`, and whether it
+  starts at the text's first character as the new part attribute
+  `data-classicy-selection` (`all`, else `tail`; a tail scrolled to the
+  field's left edge starts at 0 px as the whole text does); it reads the
+  selection again on `selectionchange` at the document (Chrome before 127
+  and Safari 16 fire it nowhere else), on a key press and the frame after
+  it, on a pointer release wherever it lands while the field has the focus
+  (a drag that ends outside the field) and the frame after it, on the click,
+  and when its value changes.
+- **Dimmed list icons and Standard File's list folder.** `iconDimming` gains
+  the optional purpose `disabledItem`: a `ClassicyTree` row that cannot be
+  chosen (the files a Save box dims) has its icon dimmed by it, where the
+  package declares one. A package may register the new system art
+  `fileDialogFolderIcon`, which a flat file dialog's list draws for a folder
+  row with no icon of its own (else the folder icon). Platinum declares and
+  registers neither, so its dialogs are unchanged.
 
 ## Base looks moved into Platinum
 

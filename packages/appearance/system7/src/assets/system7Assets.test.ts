@@ -229,6 +229,7 @@ describe("System 7's assets", () => {
 			expect(differs.sort()).toEqual(
 				[
 					"appleMenu",
+					"fileDialogFolderIcon",
 					"helpButton",
 					"helpMenuTitle",
 					"startupLogo",

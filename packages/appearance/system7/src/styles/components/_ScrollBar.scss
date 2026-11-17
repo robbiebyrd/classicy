@@ -14,9 +14,11 @@
 //   shadow at the bottom and right. Pressed, the arrow fills black.
 // - The track is a 25% pattern, one dot in four on each row, each row's dots
 //   two pixels over from the last's (#777777 on #DDDDDD in color, black on
-//   white in 1-bit; CIC "B&W scroll bar"), aligned to the screen as the
-//   captures have it (the same phase in every window; see `$dot` for the
-//   limits of that).
+//   white in 1-bit; CIC "B&W scroll bar"), aligned to the window's content
+//   origin as QuickDraw aligned a pattern to the window's port: a dot at the
+//   origin's column on its row, the same phase in every window wherever it
+//   lies (the Finder's, Scrapbook's and 7.5.5's Finder windows, three
+//   screen phases, one window phase).
 // - The scroll box is a fixed 16-pixel box (its maximum length as long as its
 //   minimum, which the core honors), white in a black outline in 1-bit; in
 //   color #AAAAAA, beveled, with grip ridges in its middle.
@@ -256,18 +258,20 @@ $arrow-face:
 $none: calc(#{$px} - #{$px});
 
 // The track's pattern: a dot at the corner of a 4 x 2 tile, twice, the
-// second two pixels over and a row down, fixed to the screen
-// (`background-attachment: fixed`), which gives every bar the captures'
-// phase. Its limits:
-// - the dots stay put while what holds the bar scrolls: in a host page that
-//   scrolls, or for a bar inside a scrolled window viewport, they slide
-//   along the bar instead of moving with it;
-// - iOS Safari ignores `fixed` and anchors each track's pattern to the track
-//   itself, so the phase varies from bar to bar there;
-// - Chromium cannot composite-scroll a scroller that holds a fixed
-//   background, so such a scroller repaints on the main thread as it
-//   scrolls.
+// second two pixels over and a row down, its tile laid from the window's
+// content origin: the core publishes that origin from the corner of each
+// bar and of its track (`--classicy-scroll-origin-x` / `-y`, the package's
+// layout `scrollBar.patternOrigin: "window"`), which the layers start from.
 $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transparent 0);
+
+// The pattern's two layers from the origin `$x`, `$y` (lengths from the
+// painted box's corner), each tile `4 x 2`.
+@function dots($x, $y) {
+  @return $dot $x $y / px(4) px(2), $dot calc(#{$x} + #{px(2)}) calc(#{$y} + #{$px}) / px(4) px(2);
+}
+
+$origin-x: var(--classicy-scroll-origin-x);
+$origin-y: var(--classicy-scroll-origin-y);
 
 @mixin scroll-bar {
   .classicyScrollBar {
@@ -360,8 +364,7 @@ $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transpa
 
   .classicyScrollBarTrack {
     background:
-      $dot 0 0 / px(4) px(2) fixed,
-      $dot px(2) $px / px(4) px(2) fixed,
+      dots($origin-x, $origin-y),
       var(--color-system-01);
   }
 
@@ -389,8 +392,9 @@ $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transpa
   // `*-scrollbox-dragging.png` shows it. Where the ring crosses the track
   // the light pixels go black and the gray dots keep their gray (1-bit:
   // every pixel black), which no blend of one ink reproduces: the ring is
-  // four black lines, and over them the track's dot pattern, at the same
-  // fixed phase, masked to the ring.
+  // four black lines, and over them the track's dot pattern, in the same
+  // phase (the bar's origin, less where the outline lies along the bar),
+  // masked to the ring.
   .classicyScrollBar .classicyScrollBarDragOutline {
     border: 0;
     background:
@@ -405,14 +409,22 @@ $dot: conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transpa
       inset: 0;
       box-sizing: border-box;
       padding: $px;
-      background:
-        $dot 0 0 / px(4) px(2) fixed,
-        $dot px(2) $px / px(4) px(2) fixed;
       mask:
         linear-gradient(var(--color-black), var(--color-black)) content-box,
         linear-gradient(var(--color-black), var(--color-black));
       mask-composite: exclude;
     }
+  }
+
+  // The outline lies `--classicy-scroll-outline-offset` along the bar from
+  // its padding-box corner, so its dots start that much short of the bar's
+  // origin.
+  .classicyScrollBarVertical .classicyScrollBarDragOutline::after {
+    background: dots($origin-x, calc(#{$origin-y} - var(--classicy-scroll-outline-offset)));
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarDragOutline::after {
+    background: dots(calc(#{$origin-x} - var(--classicy-scroll-outline-offset)), $origin-y);
   }
 
   // Nothing to scroll: hollow arrows (the 1-bit shape at both depths) and a

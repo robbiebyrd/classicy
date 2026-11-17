@@ -226,6 +226,9 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 				<ClassicyIconImage
 					className={"classicyTreeNodeIcon"}
 					src={node.leftIcon}
+					// A row that cannot be chosen dims its icon by the package's
+					// `iconDimming.disabledItem` rule, where it declares one.
+					dimmed={node.disabled ? "disabledItem" : false}
 					alt={""}
 					aria-hidden={true}
 				/>

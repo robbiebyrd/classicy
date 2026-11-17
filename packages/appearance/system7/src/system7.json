@@ -71,7 +71,7 @@
 				"staticTextHeight": 16
 			},
 			"button": {
-				"minWidth": 58,
+				"minWidth": 60,
 				"textPadding": 8,
 				"gap": 12
 			},
@@ -165,7 +165,7 @@
 				"arrowTop": 5,
 				"arrowInset": 5,
 				"valueIconTop": 0,
-				"valueIconGap": 4,
+				"valueIconGap": 3,
 				"valueIconInset": 3
 			},
 			"dialogFrame": {
@@ -173,6 +173,9 @@
 				"band": 2,
 				"line": 2,
 				"inset": 13
+			},
+			"dialog": {
+				"alertMaxWidth": 324
 			},
 			"alertLayout": {
 				"iconTop": 13,
@@ -185,7 +188,8 @@
 			},
 			"pushButton": {
 				"lineHeight": 16,
-				"textLift": 2
+				"textLift": 2,
+				"labelShift": 0.5
 			},
 			"headerStrip": {
 				"height": 17,
@@ -263,12 +267,14 @@
 				"width": 355,
 				"height": 195,
 				"popUpTop": 9,
-				"popUpTail": 17,
+				"popUpTail": 5,
 				"volumeLeft": 237,
 				"volumeTop": 9,
-				"volumeGap": 4,
+				"volumeGap": 3,
 				"volumeIconDrop": 2,
 				"volumeLineHeight": 18,
+				"volumeCondense": 1,
+				"popUpContentDrop": 1,
 				"listLeft": 15,
 				"listTop": 32,
 				"listWidth": 218,
@@ -290,7 +296,7 @@
 				"saveWidth": 358,
 				"saveHeight": 252,
 				"savePopUpTop": 9,
-				"savePopUpTail": 17,
+				"savePopUpTail": 5,
 				"saveVolumeLeft": 238,
 				"saveVolumeTop": 9,
 				"saveListLeft": 15,
@@ -299,7 +305,7 @@
 				"saveListHeight": 146,
 				"saveNameTop": 191,
 				"saveNameWidth": 202,
-				"saveNameGap": 2,
+				"saveNameGap": 3,
 				"saveFilterLeft": 235,
 				"saveFilterTop": 209,
 				"saveButtonsLeft": 255,
@@ -396,7 +402,7 @@
 					"staticTextHeight": 16
 				},
 				"button": {
-					"minWidth": 58,
+					"minWidth": 60,
 					"textPadding": 8,
 					"gap": 12
 				},
@@ -490,7 +496,7 @@
 					"arrowTop": 5,
 					"arrowInset": 5,
 					"valueIconTop": 0,
-					"valueIconGap": 4,
+					"valueIconGap": 3,
 					"valueIconInset": 3
 				},
 				"dialogFrame": {
@@ -498,6 +504,9 @@
 					"band": 2,
 					"line": 2,
 					"inset": 13
+				},
+				"dialog": {
+					"alertMaxWidth": 324
 				},
 				"alertLayout": {
 					"iconTop": 13,
@@ -510,7 +519,8 @@
 				},
 				"pushButton": {
 					"lineHeight": 16,
-					"textLift": 2
+					"textLift": 2,
+					"labelShift": 0.5
 				},
 				"headerStrip": {
 					"height": 17,
@@ -588,12 +598,14 @@
 					"width": 355,
 					"height": 195,
 					"popUpTop": 9,
-					"popUpTail": 17,
+					"popUpTail": 5,
 					"volumeLeft": 237,
 					"volumeTop": 9,
-					"volumeGap": 4,
+					"volumeGap": 3,
 					"volumeIconDrop": 2,
 					"volumeLineHeight": 18,
+					"volumeCondense": 1,
+					"popUpContentDrop": 1,
 					"listLeft": 15,
 					"listTop": 32,
 					"listWidth": 218,
@@ -615,7 +627,7 @@
 					"saveWidth": 358,
 					"saveHeight": 252,
 					"savePopUpTop": 9,
-					"savePopUpTail": 17,
+					"savePopUpTail": 5,
 					"saveVolumeLeft": 238,
 					"saveVolumeTop": 9,
 					"saveListLeft": 15,
@@ -624,7 +636,7 @@
 					"saveListHeight": 146,
 					"saveNameTop": 191,
 					"saveNameWidth": 202,
-					"saveNameGap": 2,
+					"saveNameGap": 3,
 					"saveFilterLeft": 235,
 					"saveFilterTop": 209,
 					"saveButtonsLeft": 255,
@@ -723,7 +735,7 @@
 					"staticTextHeight": 16
 				},
 				"button": {
-					"minWidth": 58,
+					"minWidth": 60,
 					"textPadding": 8,
 					"gap": 12
 				},
@@ -817,7 +829,7 @@
 					"arrowTop": 5,
 					"arrowInset": 5,
 					"valueIconTop": 0,
-					"valueIconGap": 4,
+					"valueIconGap": 3,
 					"valueIconInset": 3
 				},
 				"dialogFrame": {
@@ -825,6 +837,9 @@
 					"band": 1,
 					"line": 1,
 					"inset": 13
+				},
+				"dialog": {
+					"alertMaxWidth": 324
 				},
 				"alertLayout": {
 					"iconTop": 13,
@@ -837,7 +852,8 @@
 				},
 				"pushButton": {
 					"lineHeight": 16,
-					"textLift": 2
+					"textLift": 2,
+					"labelShift": 0.5
 				},
 				"headerStrip": {
 					"height": 17,
@@ -915,12 +931,14 @@
 					"width": 355,
 					"height": 195,
 					"popUpTop": 9,
-					"popUpTail": 17,
+					"popUpTail": 5,
 					"volumeLeft": 237,
 					"volumeTop": 9,
-					"volumeGap": 4,
+					"volumeGap": 3,
 					"volumeIconDrop": 2,
 					"volumeLineHeight": 18,
+					"volumeCondense": 1,
+					"popUpContentDrop": 1,
 					"listLeft": 15,
 					"listTop": 32,
 					"listWidth": 218,
@@ -942,7 +960,7 @@
 					"saveWidth": 358,
 					"saveHeight": 252,
 					"savePopUpTop": 9,
-					"savePopUpTail": 17,
+					"savePopUpTail": 5,
 					"saveVolumeLeft": 238,
 					"saveVolumeTop": 9,
 					"saveListLeft": 15,
@@ -951,7 +969,7 @@
 					"saveListHeight": 146,
 					"saveNameTop": 191,
 					"saveNameWidth": 202,
-					"saveNameGap": 2,
+					"saveNameGap": 3,
 					"saveFilterLeft": 235,
 					"saveFilterTop": 209,
 					"saveButtonsLeft": 255,
@@ -991,11 +1009,13 @@
 		},
 		"scrollBar": {
 			"thumbDrag": "onRelease",
-			"fitsBars": "shown"
+			"fitsBars": "shown",
+			"patternOrigin": "window"
 		},
 		"fileDialog": {
 			"frame": "fixed",
-			"navigation": "flat"
+			"navigation": "flat",
+			"saveName": "selected"
 		},
 		"fileBrowser": {
 			"listColumnTitles": "aboveList"

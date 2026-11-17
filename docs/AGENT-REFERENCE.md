@@ -781,6 +781,7 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
+| `ClassicyInput` (the `<input>`) | `selected` (while it has focus and a selection that runs to its text's end, the whole text or its tail; the `<input>` then carries `--classicy-input-selection-start`, the selection's start in px from its text's left edge, its own scrolling included, and `data-classicy-selection` (`all` from the text's first character, `tail` from a later one), and System 7 highlights the line from there to the field's right edge, as TextEdit did: the whole line a pixel left of the text's pen position, a tail from its first character's) |
 | `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
 | `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb |
 
@@ -838,13 +839,14 @@ Upgrading from the folded class names (`classicyWindowActive`,
 vocabulary" in §5 for the full old → new table.
 
 **Part attributes.** Parts that a skin or a test must find without relying
-on Classicy's internal class names carry one of three attributes
+on Classicy's internal class names carry one of four attributes
 (`CLASSICY_PART_ATTRIBUTE` holds the names):
 
 | Attribute | Values | On |
 |---|---|---|
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
+| `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
 | `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3) |
 
 ```ts
@@ -1120,7 +1122,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
+| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs. Each `padding` class names its horizontal padding `--classicy-button-padding-inline` (both sides in the base sheet), so a package can move part of it from one side to the other and keep the sum (System 7's `pushButton.labelShift`) |
 | `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`, or a function of the button returning one, called each time the surface opens), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes), and a press let go anywhere (or lost) before the hold delay opens nothing. Enter/Space or Down Arrow open it from the keyboard |
 | `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `size? ("large"\|"medium"\|"small")` (toolbar only; default `"large"`), `className?` | auto dividers between groups; roving-tabindex keyboard nav |
@@ -1134,7 +1136,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>` |
+| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1) |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
 | `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
@@ -1166,7 +1168,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyOutput` | `id` *, `value?` or children, `htmlFor?: string[]`, `variant? ("plain"\|"inset")`, `mono?`, `label?`, `disabled?` (dimmed) | real `<output>`; `inset` is the white beveled result well |
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
-| `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list |
+| `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming") |
 | `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
@@ -2164,7 +2166,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 44 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 45 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -2184,12 +2186,15 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (8 keys): `newFolderGlyph` (pixel art the file
+Unregistered by Platinum (9 keys): `newFolderGlyph` (pixel art the file
 dialog's New Folder button draws after "New", in its part
 `classicyFileDialogNewGlyph`, which the base sheet hides; System 7 shows it
 and hides the noun part `classicyFileDialogNewNoun`), `openFolderIcon` (the
 image the flat file dialog's pop-up draws for the folder shown, else the
-folder icon; System 7 registers 7.5's), `controlStripTabRight` (a strip docked
+folder icon; System 7 registers 7.5's), `fileDialogFolderIcon` (the image a
+flat file dialog's list draws for a folder row with no icon of its own, else
+the folder icon; System 7 registers Standard File's, the folder two rows
+higher), `controlStripTabRight` (a strip docked
 right draws this art unflipped, marking its tab `classicyControlStripTabRight`,
 when the active package registers it, else the left tab mirrored; System 7
 registers 7.5.5's), `aboutBackground` (no Platinum art),
@@ -3339,9 +3344,12 @@ first fallback is `label`. With `label` omitted, `name` is the own label.
 #### Icon dimming
 
 A package's optional `iconDimming` declares how it dims an icon, per pixel;
-the core draws the result on a canvas (`ClassicyIconDimming.ts`). One
-surface reads it today: `hiddenApp`, a hidden application's icon in the
-Application menu (HIG7 p.127). A rule is data, validated at registration:
+the core draws the result on a canvas (`ClassicyIconDimming.ts`). Two
+surfaces read it: `hiddenApp`, a hidden application's icon in the
+Application menu (HIG7 p.127), and `disabledItem`, the icon of a
+`ClassicyTree` row that cannot be chosen (a `disabled` node: the files a
+Save box dims). Each is optional, in `variants` too. A rule is data,
+validated at registration:
 
 ```ts
 iconDimming: {
@@ -3370,8 +3378,12 @@ cross-origin host that sends CORS headers is read; one that does not fails
 that load and is logged once per source at `warn`). This is a browser limit, not a
 choice: serve icons from the page's origin, as `data:` URLs, or with CORS.
 
-System 7 and Platinum declare the same rule (`system7IconDimming.ts`,
-`platinumIconDimming.ts`): blend halfway to white, 4 bits, the Macintosh
+System 7 and Platinum declare the same `hiddenApp` rule
+(`system7IconDimming.ts`, `platinumIconDimming.ts`), and System 7 the same
+again for `disabledItem` (`color-dialog-standardfile-save.png`: SimpleText's
+dimmed icon, every pixel; null in 1-bit, where its stylesheet's checker
+dims the icon, `:where(.classicyTreeNodeLabelHolder).disabled
+.classicyTreeNodeIcon:not(.classicyIconDimmedImage)`): blend halfway to white, 4 bits, the Macintosh
 8-bit system palette (the 6x6x6 cube, then the red, green, blue and gray
 ramps). It reproduces 7.5.5's dimmed Finder icon and 8.1's dimmed Stickies
 icon pixel for pixel. System 7's `bw` variant declares none: 1-bit dims
@@ -3810,15 +3822,26 @@ Platinum (§1); its README lists what it ships.
   set for both themes, with hotspots (`{ src, hotspot }`, §5 "CSS
   variables").
 - **Standard File, the Application menu, the list view** (story 0214-c61,
-  the 7.5.5 captures). Layout `fileDialog: { frame: "fixed" }` and the
-  `fileDialog` knobs (`width`, `height`; `popUpLeft`/`Top`/`Width`,
-  `volumeLeft`/`Top`/`Gap`/`LineHeight`/`IconDrop`, `listLeft`/`Top`/`Width`/`Height`,
+  the 7.5.5 captures). Layout `fileDialog: { frame: "fixed", navigation:
+  "flat", saveName: "selected" }` and the `fileDialog` knobs (`width`,
+  `height`; `popUpLeft`/`Top`/`Width`,
+  `volumeLeft`/`Top`/`Gap`/`LineHeight`/`IconDrop`/`Condense` (the disk's
+  name condensed a pixel a character, as Standard File draws it),
+  `listLeft`/`Top`/`Width`/`Height`,
   `buttonsLeft`, `buttonWidth`, `ejectTop`, `desktopTop`, `dividerTop`,
   `dividerWidth`, `cancelTop`, `openTop`, `filterLeft`/`Top`, the list's
-  `listRowHeight`/`listRowInset`/`listIconGap`, the pop-up's `popUpTail`,
-  and the Save box's `save*` counterparts with `saveNew*`,
+  `listRowHeight`/`listRowInset`/`listIconGap`, the pop-up's `popUpTail`
+  (5: six pixels from the name's ink to the triangle) and
+  `popUpContentDrop` (1: its icon and name a row lower than a plain
+  pop-up's), and the Save box's `save*` counterparts with `saveNew*`,
   `newGlyphGap`/`newGlyphRaise`: px from the inside of the box's inner
-  line) place Standard File's parts (`_FileDialog.scss`); the
+  line) place Standard File's parts (`_FileDialog.scss`; the folder pop-up
+  centered over the list with an odd pixel of room on its right, as 7.5
+  rounds it); a folder row draws Standard File's own folder
+  (`fileDialogFolderIcon`, two rows higher than the Finder's), and a file
+  a Save box dims has its icon dimmed too (`iconDimming.disabledItem`); the
+  Save box opens with its default name selected, the field's whole line
+  highlighted (its `selected` state); the
   Application menu's title is the front app's small icon alone
   (`menuBar.switcherTitleStart`/`End` 9, `menuBar.endInset` 6), inverted
   while open in 1-bit (`menuBar.titleArtInvert`), its menu right-aligned
@@ -3885,8 +3908,25 @@ Platinum (§1); its README lists what it ships.
   track's dots, matching `*-scrollbox-dragging.png`), snapping back past
   `scrollBar.snapBack` (24 px past the bar's own pixels on any side, as
   7.5.5's scroll bars were measured; HIG p.165 gives "a little more than
-  the width of the scroll box"), and `scrollBar.fitsBars: "shown"`: document windows and
-  list boxes keep their bars, hollow, while the content fits (HIG p.160).
+  the width of the scroll box"), `scrollBar.fitsBars: "shown"`: document windows and
+  list boxes keep their bars, hollow, while the content fits (HIG p.160),
+  and `scrollBar.patternOrigin: "window"`: the track's 25% dots are laid
+  from the window's content origin, the same phase in every window
+  wherever it lies, as the 7.5 captures draw them.
+- **Title bars.** The title and its gap in the stripes are centered on the
+  whole bar whatever boxes it has (a window with a close box and no zoom
+  box included, as Find File and the control panels are), an odd pixel of
+  room going to the right, as 7.5 rounds it.
+- **Dialog knobs.** `dialog.alertMaxWidth` 324 (SimpleText's save-changes
+  alert, 370 px outside, its message wrapped as 7.5 wraps it),
+  `button.minWidth` 60 (SimpleText's Save and Cancel), a push button's
+  label centered as QuickDraw centered it (an odd pixel of room on its
+  right: `pushButton.labelShift` 0.5 moves half a pixel of the spacing
+  class's left padding to the right, the sum and so a label-sized button's
+  width unchanged, so a plain label and one wrapped in an inline,
+  inline-block or block child are placed alike; a host that sets its own
+  padding gets it exactly), and an alert's label and message on one 16 px
+  pitch.
 - **Alerts** (HIG p.201). The buttons that are neither the default nor
   Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
   other]`, the first `alertLayout.otherButtonInset` (73 px) from the inner
@@ -3971,12 +4011,14 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
-| `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open, Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
+| `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open (a folder row with no icon of its own draws the package's `fileDialogFolderIcon` system art, else the folder icon), Save saves into the folder shown (while a folder is selected its default button reads Open and, like Enter, enters it; focusing or typing in the name field deselects the list, so Enter saves), New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
 | `fileBrowser.listColumnTitles` (optional) | `inList`, `aboveList` | where `ClassicyFileBrowser`'s list view (the Finder's) draws its column titles (`ClassicyTable`'s `headerPlacement`). `inList` (the default, Mac OS 8): the list's first row, pinned while it scrolls, beside the vertical bar. `aboveList` (System 7, HIG p.218, `*-755-finder-list-row-selected.png`): above the list's scrolling region, in its window's scroll area's head (`classicyScrollAreaHead`, the window's full width, over the vertical bar's column, scrolled sideways with the rows), so the vertical bar starts under them; the titles drawn there are a copy (`classicyTableDetachedHeader`, `aria-hidden`, its columns sized from the list's), while the list keeps its own header row for assistive technology, laid out with no height (`classicyTableHeaderHidden`); the window's header, when it has one, is marked `classicyWindowHeaderAboveHead` meanwhile, so a package can move its bottom rule under the titles |
+| `fileDialog.saveName` (optional) | `plain`, `selected` | how the Save box opens. `plain` (the default, Mac OS 8): the modal focuses its first control. `selected` (System 7.5, `*-dialog-standardfile-save.png`): the name field is the modal's first focus (`initialFocusRef`) and, once it shows the default name, takes focus with the whole name selected (the field's `selected` state, which System 7 draws as TextEdit's whole-line highlight) |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
 | `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
+| `scrollBar.patternOrigin` (optional) | `element`, `window` | where a pattern in a bar is laid from. `element` (the default): the core publishes nothing, and a package anchors its track pattern where its stylesheet does. `window` (System 7, as QuickDraw laid a pattern from the window's port: the 7.5 Finder list, 7.5.5 Scrapbook and 7.5.5 Finder captures, three screen phases, one window phase): the core publishes the window's content origin (inside its frame, under its title bar; outside a window, the desktop's corner) on each bar and on its track, from that element's padding-box corner, as `--classicy-scroll-origin-x` / `-y` (whole pixels, the bar measured where its snap nudge puts it on the device-pixel grid), kept current as the bar, the window, its title bar or anything between them resizes, the DOM inside the window (outside one, the desktop's or the body's) changes, the desktop's attributes change, a stylesheet is added, removed or edited, anything in the window scrolls (outside one, anything in the document), a transition or an animation ends, a font loads, the viewport resizes, and a frame after the pointer or the focus moves (a pseudo-class rule) (`ClassicyScrollPatternOrigin.internal.ts`). A part inside the bar offsets the bar's (System 7's drag outline subtracts `--classicy-scroll-outline-offset`) |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and

@@ -380,6 +380,20 @@ const optionDragTab = (from, to) => [
 	["keyUp", "Alt"],
 	["wait", 1_500],
 ];
+/** Drags the Save box's name field (row 286) from x to past its text's
+ * end, and shoots the selection with the pointer parked. */
+const dragTail = (x, name) => [
+	["move", x, 286],
+	["down"],
+	["wait", 300],
+	["move", 300, 286, 6],
+	["move", 352, 286, 4],
+	["wait", 400],
+	["up"],
+	["wait", 600],
+	PARK,
+	["shot", name],
+];
 /** The Control Strip's Monitor module's depths, by their item's y. */
 export const DEPTHS = {
 	"black-and-white": 347,
@@ -753,6 +767,36 @@ export const SCENES = {
 		["wait", 1_500],
 		["key", "Meta+q"],
 		["wait", 2_500],
+		["key", "Meta+w"],
+		["wait", 1_500],
+		deselect,
+		PARK,
+	],
+	// A text field's selection that runs from mid-text to its end (story
+	// 0217-etx): SimpleText's Save box over a new document, its name
+	// ("untitled") dragged from before its fourth character ("i"), then its
+	// second ("n"), to past its end; then the box canceled and SimpleText
+	// quit without saving. After the Standard File box, which also opens a
+	// document.
+	textfieldtail: (d) => [
+		...openDisk,
+		["double", 235, 232],
+		["wait", 5_000],
+		["key", "Meta+n"],
+		["wait", 2_500],
+		["type", "hello"],
+		["wait", 800],
+		["key", "Meta+s"],
+		["wait", 3_000],
+		...dragTail(187, `${d}-755-textfield-tail-selection`),
+		...dragTail(172, `${d}-755-textfield-tail-selection-second`),
+		["key", "Meta+Period"],
+		["wait", 1_500],
+		["key", "Meta+q"],
+		["wait", 2_500],
+		// The save-changes alert's Don't Save.
+		["click", 255, 189],
+		["wait", 3_000],
 		["key", "Meta+w"],
 		["wait", 1_500],
 		deselect,

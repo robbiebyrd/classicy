@@ -668,3 +668,108 @@ describe("ClassicyFileDialog's flat navigation", () => {
 		await vi.waitFor(() => expect(rows()).toEqual(["Read Me", "Apple Extras"]));
 	});
 });
+
+// Story 0217-etx: System 7.5's Save box opens with its default name selected
+// (`*-dialog-standardfile-save.png`) under a package whose layout says so
+// (`fileDialog.saveName: "selected"`), and its list draws the package's own
+// folder (`fileDialogFolderIcon` system art) for a folder row.
+describe("ClassicyFileDialog under System 7.5's Standard File declarations", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const standardFilePackage = (
+		fileDialog: NonNullable<
+			typeof CLASSICY_DEFAULT_APPEARANCE_LAYOUT.fileDialog
+		>,
+	) =>
+		registerClassicyAppearancePackage({
+			id: "test-standard-file",
+			name: "Standard File",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-standard-file-default",
+				package: "test-standard-file",
+			},
+			layout: { ...CLASSICY_DEFAULT_APPEARANCE_LAYOUT, fileDialog },
+		});
+	const disk = {
+		id: "fs-Macintosh HD",
+		label: "Macintosh HD",
+		list: async () => [
+			{ id: "extras", name: "Apple Extras", kind: "folder" as const },
+		],
+	};
+	const saveDialog = () =>
+		render(
+			<ClassicyFileDialog
+				id="save-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="save"
+				volumes={[disk]}
+				defaultFileName="untitled 1"
+				formats={[
+					{
+						label: "Text",
+						extension: "",
+						fileType: "text",
+						data: () => "",
+					},
+				]}
+				onSaveFunc={() => {}}
+			/>,
+		);
+	const nameField = () =>
+		document.querySelector<HTMLInputElement>(
+			".classicyFileDialogNameRow input",
+		) as HTMLInputElement;
+
+	it("opens the Save box with its name field focused and the default name selected", async () => {
+		standardFilePackage({ saveName: "selected" });
+		saveDialog();
+		await vi.waitFor(() => {
+			expect(document.activeElement).toBe(nameField());
+			expect(nameField().value).toBe("untitled 1");
+			expect([nameField().selectionStart, nameField().selectionEnd]).toEqual([
+				0, 10,
+			]);
+		});
+		// The field reports its whole text selected (the `selected` state).
+		await vi.waitFor(() =>
+			expect(nameField().classList.contains("selected")).toBe(true),
+		);
+	});
+
+	it("leaves the name unselected without the declaration (Mac OS 8)", async () => {
+		standardFilePackage({});
+		saveDialog();
+		await vi.waitFor(() => expect(nameField()?.value).toBe("untitled 1"));
+		expect(document.activeElement).not.toBe(nameField());
+		expect(nameField().classList.contains("selected")).toBe(false);
+	});
+
+	it("draws a flat list's folders with the package's list folder when it registers one", async () => {
+		standardFilePackage({ navigation: "flat" });
+		// The store-free test resolves assets through the default package.
+		registerClassicySystemArt("platinum", {
+			fileDialogFolderIcon: "list-folder.png",
+		});
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() =>
+			expect(
+				document
+					.querySelector(".classicyFileOpenDialogWell .classicyTreeNodeIcon")
+					?.getAttribute("src"),
+			).toBe("list-folder.png"),
+		);
+	});
+});
