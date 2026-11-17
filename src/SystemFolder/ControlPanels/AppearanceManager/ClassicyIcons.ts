@@ -165,6 +165,9 @@ export const ClassicyIcons = {
 		simpletext: {
 			app: icon("applications/simpletext/app.png"),
 		},
+		calculator: {
+			app: icon("applications/calculator/app.png"),
+		},
 	},
 	controlPanels: {
 		appearanceManager: {

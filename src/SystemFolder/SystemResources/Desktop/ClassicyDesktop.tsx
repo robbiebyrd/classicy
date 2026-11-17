@@ -1,3 +1,4 @@
+import { Calculator } from "@/SystemFolder/Calculator/Calculator";
 import {
 	getAllThemes,
 	getThemeVars,
@@ -247,6 +248,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		disablePictureViewer,
 		disableHyperCard,
 		disableWebViewer,
+		disableCalculator,
 	} = useContext(ClassicyDefaultAppsContext);
 
 	// Special ▸ Reset PRAM: forget every saved setting and start over.
@@ -773,6 +775,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableMoviePlayer && <MoviePlayer />}
 			{!disablePictureViewer && <QuickTimePictureViewer />}
 			{!disableWebViewer && <WebViewer />}
+			{!disableCalculator && <Calculator />}
 			<ClassicyOpenUrlController />
 			<ClassicyControlPanels />
 			{controlStrip !== false && (

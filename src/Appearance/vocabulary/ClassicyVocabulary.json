@@ -152,6 +152,7 @@
 			"Small"
 		],
 		"ButtonToolbar": ["Group", "SizeMedium", "SizeSmall"],
+		"Calculator": ["Display", "Key", "Keypad"],
 		"Checkbox": ["Holder", "X"],
 		"ColorPicker": [
 			"ActivePanel",
