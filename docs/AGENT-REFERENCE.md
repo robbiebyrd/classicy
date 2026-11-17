@@ -1181,10 +1181,10 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
-| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"): at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side), then pinned inside the desktop; up when it would pass the viewport's bottom |
+| `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
 | `useClassicyContextualMenu()` | → `{ showContextMenu(items, [x, y]), hideContextMenu() }` | imperative API |
 | `ClassicyDesktopMenuBar` | `className?`, `style?`, `placement? ("screen"\|"window")` | rendered by `ClassicyDesktop`; reads its menus from the store. `placement` defaults to the active package's `layout.menuBar.placement`; `"window"` renders nothing (the bar still runs the keyboard-equivalent dispatcher). The prop affects only this bar: windows draw a `ClassicyWindowMenuBar` when the package layout says `window`, whatever the prop says. So `placement="window"` under Platinum leaves no menus on screen (keyboard equivalents still fire), and `placement="screen"` under a window-placement package draws the screen bar and every window's bar (§8, "Layout declarations") |
 | `ClassicyWindowMenuBar` | `appId` *, `windowId` *, `menuItems` *, `className?`, `style?` | a window's own menu bar, rendered by `ClassicyWindow` under its title bar when the package layout's placement is `"window"`; usually not used directly. Root carries `data-classicy-part="window-menu-bar"`; the window root carries `classicyWindowWithMenuBar` while it draws one |
@@ -1196,14 +1196,18 @@ the bar's right end, `*-menu-help-and-selected-icon.png`, and its
 Application menu, `*-755-appmenu-open.png`; Mac OS 8.1's Application menu
 agrees). Every package, no declaration needed:
 
-- The box a menu keeps to is its desktop's (`.classicyDesktop`, the nearest
-  around it, else the viewport's; a desktop not laid out counts as the
-  viewport). A menu is measured as painted: its list's border box with its
-  outer `box-shadow` and any absolutely placed `::before`/`::after` (every
-  package's frame shadow), and a scrolling list's `.classicyMenuScrollShadow`.
+- The bounds a menu keeps to, on both axes, are what shows of its desktop:
+  the desktop's box (`.classicyDesktop`, the nearest around it) where it
+  overlaps the viewport. A desktop embedded in a page ends inside the
+  viewport; one wider or taller than the window (a host that fixes its
+  size, a scrolled page) is cut to it. With no desktop, one not laid out or
+  one wholly off screen, the viewport. A menu is measured as painted: its
+  list's border box with its outer `box-shadow` and any absolutely placed
+  `::before`/`::after` (every package's frame shadow), and a scrolling
+  list's `.classicyMenuScrollShadow`.
 - A menu bar's pull-down (the screen bar's and a window's own bar's,
   `menuBar.placement: "window"`) hangs where its package hangs it, under its
-  title's left side. One that would pass the desktop's right edge there is
+  title's left side. One that would pass the bounds' right edge there is
   flipped: its list carries `classicySubMenuFlipLeft`, and it hangs with its
   right side under its title's right side. The base sheet places it
   (`ClassicyDesktopMenuBar.scss`: `right: 0`, and the window padding the
@@ -1211,40 +1215,65 @@ agrees). Every package, no declaration needed:
   package whose own rule places pull-downs beats the base layer, so it
   places the flipped one too (System 7's `left: 0` does, and its flipped
   rule is `right: 0`, its frame's right edge on its title's). A window's
-  own bar keeps to the desktop too: a window does not clip its menus.
+  own bar keeps to the same bounds: a window does not clip its menus.
 - A submenu flips to its parent's left side by the same test
-  (`classicySubMenuFlipLeft`, as before, but against the desktop's box, not
-  `window.innerWidth`, and with its shadow).
+  (`classicySubMenuFlipLeft`, as before, but against the bounds, not
+  `window.innerWidth`, and with its shadow). One that passes an edge on
+  both sides goes back to the side it passes by less and is pinned from
+  there; a pull-down stays flipped, as the Menu Manager hangs it.
+- Down, a shown list taller than the room below it is capped at the
+  bounds' bottom and scrolls (the `ClassicyMenu` row), so a desktop's own
+  `overflow: hidden` never cuts a pull-down or a submenu off.
 - A menu that, placed or flipped, still passes an edge (one wider than the
-  room left of its title's right side, or under a title off the desktop's
-  left edge) is pinned inside the desktop: its wrapper is moved across by
-  equal and opposite inline margins (the box moves whole whichever edge its
-  list hangs from; no transform, which would become the containing block of
-  a fixed submenu), its left side winning when it is wider than the
-  desktop. The pixel-grid nudge adds to those margins.
+  room left of its title's right side, one under a title off the bounds'
+  left edge, one whose 64 px scroll floor still runs past a short
+  desktop's bottom) is pinned inside the bounds: its wrapper is moved across
+  and down by equal and opposite inline margins (the box moves whole
+  whichever edge its list hangs from; no transform, which would become the
+  containing block of a fixed submenu), its left side and top winning when
+  it is larger than the bounds. The pixel-grid nudge adds to those margins.
 - Contextual menus, menu bar extensions' pull-downs, pop-up menus, combo
-  box lists and pop-up bevel buttons' surfaces keep to the same box by the
-  same rule: at their point or under their control's left side where they
-  fit, else with their right side at the point or under the control's right
-  side, then pinned; on whole pixels. `classicyBevelPopupPlacement` takes the
-  span as its optional sixth argument, `across` (`{ left, right, inkLeft?,
-  inkRight? }`, the desktop's edges and the shadow's reach past each side);
-  without it, it keeps to the viewport as before. Vertically every menu
-  keeps its own rule (the scroll cap, the contextual menu's flip up, the
-  pop-up's aligned or grow placement), against the viewport.
+  box lists and pop-up bevel buttons' surfaces keep to the same bounds on
+  both axes. Across, by the same rule: at their point or under their
+  control's left side where they fit, else with their right side at the
+  point or under the control's right side, then pinned. Down, each by its
+  own rule against the bounds' top and bottom instead of the viewport's: a
+  contextual menu below the point, else above it, then pinned; a pop-up's
+  aligned or grow placement and a combo box's list
+  (`classicyPopUpMenuPlacement` is given the control's place from the
+  bounds' top and their height); a bevel pop-up below or beside its
+  button, flipping when there is no room, then pinned
+  (`classicyBevelPopupPlacement`'s optional sixth argument `bounds`,
+  `{ left, top, right, bottom, inkLeft?, inkTop?, inkRight?, inkBottom? }`:
+  the box and the shadow's reach past each side; without it, it keeps to
+  the viewport as before). Each is placed on whole pixels that keep it
+  inside (`classicyMenuWholePixel`), and is as wide as its items wherever
+  it is placed (`width: max-content` on `.classicyContextMenuWrapper`,
+  `.classicyPopUpMenuList` and a bevel button's menu, so a fixed surface
+  near the right edge is not shrunk to the room left, which wrapped its
+  items).
 - Measured in layout effects, each re-render before paint, so no frame
-  shows a menu off the desktop; again each time it opens, and when its
-  desktop changes size while it is open (a `ResizeObserver` on the desktop,
-  `flushSync`, so the re-placed menu paints in the same frame). Pop-up
-  menus, combo boxes and bevel pop-ups close on a window resize instead, as
-  before. A capped (scrolling) menu keeps its cap, which its top sets, and
-  its fixed scroll indicators follow it across (measured after every render
-  while capped).
+  shows a menu outside the bounds; again each time it opens, and when its
+  desktop changes size while it is open: the outermost open menu (a menu
+  bar's pull-down, a contextual menu's root) watches the desktop (a
+  `ResizeObserver`, `flushSync`, so the re-placed menu paints in the same
+  frame), and each submenu is measured again after the menu it sits in is
+  placed (`ClassicyMenuPlacementEpoch`), so it never keeps a place taken
+  beside its parent's old one. Pop-up menus, combo boxes and bevel pop-ups
+  close on a window resize instead, as before. A capped (scrolling) menu
+  keeps its cap, which its top sets, and its fixed scroll indicators follow
+  it across (measured after every render while capped; a combo box's after
+  typing re-places it).
 
-`node bin/check-menus-on-desktop.ts --port <n> [storyId ...]` opens every
-first-level menu of a served static Storybook's stories in turn (by default
-the System 7 and Platinum desktop stories) and fails when one passes its
-desktop.
+`node bin/check-menus-on-desktop.ts --port <n> [--embed WxH+L+T]
+[storyId ...]` opens, in a served static Storybook's stories (by default
+System 7 and Platinum stories with menu bars, submenus, a scrolling
+pull-down, pop-ups, a combo box, bevel pop-ups and contextual menus), every
+first-level menu-bar menu and its first submenu, its first pop-up menu,
+combo box and pop-up bevel button moved to the desktop's bottom-right
+corner, and the contextual menu at that corner, and fails when one passes
+its bounds on either axis. `--embed` puts the desktop in a W x H box at
+(L, T) of the viewport, as a host page embeds it.
 
 `ClassicyMenuItem.link` is analytics only: it is reported with the item's
 analytics event, and choosing the item does not navigate. Open a URL with

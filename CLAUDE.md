@@ -528,16 +528,20 @@ look) across the full inner width (`ClassicyMenu.scss`, base structure, story
 Menus open where they show (`ClassicyMenuPlacement.internal.ts`,
 `useClassicySubmenuPlacement.internal.ts`): measured in layout effects, frame
 shadow included (border box, outer `box-shadow`, absolute
-`::before`/`::after`), against `.classicyDesktop`'s box (else the
-viewport's). A pull-down (screen or window bar) or submenu that would pass
-the right edge gets `classicySubMenuFlipLeft`, a pull-down then hanging with
-its right side under its title's right side (base `ClassicyDesktopMenuBar.scss`;
-a package that places pull-downs itself places it too, as System 7 does);
-one still too wide is pinned by equal and opposite wrapper margins. Again on
-reopen and on a desktop resize (`ResizeObserver` + `flushSync`). Contextual
-menus (`flipLeftTo`), extension pull-downs, pop-up menus, combo box lists
-and bevel pop-ups (`classicyBevelPopupPlacement`'s `across`) follow the same
-rule; vertical placement is unchanged. `bin/check-menus-on-desktop.ts`
+`::before`/`::after`), against the bounds, `.classicyDesktop`'s box where it
+overlaps the viewport, on both axes. A pull-down (screen or window bar) or
+submenu that would pass the right edge gets `classicySubMenuFlipLeft`, a
+pull-down then hanging with its right side under its title's right side
+(base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself
+places it too, as System 7 does); a submenu passing both sides keeps the side
+it passes by less; one still outside is pinned by equal and opposite wrapper
+margins, across and down. The scroll cap ends at the bounds' bottom. Again on
+reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +
+`flushSync`; submenus follow via `ClassicyMenuPlacementEpoch`). Contextual
+menus (`flipLeftTo`), extension pull-downs, pop-up menus, combo box lists and
+bevel pop-ups (`classicyBevelPopupPlacement`'s `bounds`) keep to the same
+bounds on both axes, on whole pixels (`classicyMenuWholePixel`), at
+`width: max-content`. `bin/check-menus-on-desktop.ts [--embed WxH+L+T]`
 checks it in a browser.
 
 ### Keyboard Equivalents
