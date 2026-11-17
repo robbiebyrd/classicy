@@ -242,6 +242,10 @@
 			"iconSelection": {
 				"invert": 1
 			},
+			"desktopIconGrid": {
+				"rowGap": 20,
+				"top": 28
+			},
 			"fileBrowserList": {
 				"mediumIconSize": 16,
 				"rowPadding": 1
@@ -553,6 +557,10 @@
 				},
 				"iconSelection": {
 					"invert": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
 				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,
@@ -867,6 +875,10 @@
 				},
 				"iconSelection": {
 					"invert": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
 				},
 				"fileBrowserList": {
 					"mediumIconSize": 16,

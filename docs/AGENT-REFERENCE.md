@@ -3828,6 +3828,16 @@ Platinum (§1); its README lists what it ships.
   opacity; Platinum declares the same rule, its fallback 0.46 opacity); list rows are white, 18 px apart
   (`fileBrowserList.rowPadding` 1, no row lines); small text is Geneva
   (`typography.uiSmall`).
+- **The desktop and the menu bar** (story 0216-1im). The desktop icons sit
+  on 7.5's rows (the optional knobs `desktopIconGrid.rowGap: 20` and
+  `top: 28`, "Package knob families"); the screen's bottom corners are
+  rounded in black like its top ones, by a layer over the desktop (above
+  windows, menus and the Control Strip, under the startup screen, no
+  pointer events); the Help title's box overlaps the Application title's by
+  `menuBar.titleOverlap`, as the application's titles overlap; the clock
+  drops the core's margin after it and pads its end by `menuBar.clockEnd`
+  (1), so its last ink sits two pixels before Help's box. A keyboard-current
+  menu item is inverted, as a tracked one, with no focus ring.
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
   image, and the 16 px one where System 7 had both sizes.
 - **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
@@ -4500,7 +4510,19 @@ literals.
   `mediumIconSize: 16` alone, so its 16 px small icons draw unscaled
   (0.375 × 32 is 12). Platinum's two are in the table below as not
   structural: they have no floor value, so a package that sets neither is
-  not sized by Platinum's.
+  not sized by Platinum's. The desktop's Clean Up and icon placement
+  (`classicyDesktopIconMetrics`, `classicyDesktopIconGridPosition`, both
+  reducer paths, reading the theme) read two more, the family
+  `desktopIconGrid`: `rowGap`, the room under an icon's box before the next
+  row's (rows step by `desktop.iconSize` plus it, so the pitch follows an
+  edited icon size; the metrics' `rowPitch`), and `top`, the first row's
+  top for a top origin and the highest a bottom origin's row goes (the
+  metrics' `top`). Each counts when a theme sets it to a finite number of
+  zero or more; unset, rows step by `cell + padding` from `4 × padding`, as
+  columns always do, so Platinum, which sets neither, lays its desktop out
+  as before. System 7 sets `rowGap: 20` and `top: 28` (7.5's rows: label
+  tops at y 60, 112, 164, 216 under its 20 px bar, a 52 px pitch for its
+  32 px icons; `*-desktop-menubar-icons.png`).
 - **Knobs over fixed art.** Three knobs place or size a drawing whose
   pixels are fixed, so their ranges are what the art allows:
   `popUpSlider.trackLeft` and `popUpSlider.thumbLeft` are locked to their

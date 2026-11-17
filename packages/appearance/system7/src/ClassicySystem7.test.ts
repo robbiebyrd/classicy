@@ -16,6 +16,7 @@ import {
 	getClassicySoundPack,
 	listClassicySoundPacks,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { classicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import system7Json from "./system7.json";
 
@@ -592,6 +593,33 @@ describe("the System 7 appearance package", () => {
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
 			rowPadding: 1,
+		});
+	});
+
+	// 7.5's desktop icons (`*-desktop-menubar-icons.png`, story 0216-1im
+	// F3): label tops at y 60, 112, 164, 216, so 32 px icon boxes from y 28
+	// on a 52 px pitch, the icon, its 12-row label and 8 px below. The
+	// optional knobs `desktopIconGrid.rowGap` (20, added to the icon size,
+	// so the pitch follows an edited one) and `top` (28) declare it.
+	it("lays desktop icons out on 7.5's rows in both themes", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		expect(presets).toHaveLength(2);
+		for (const theme of presets) {
+			expect(theme.measurements.desktopIconGrid).toEqual({
+				rowGap: 20,
+				top: 28,
+			});
+			expect(classicyDesktopIconMetrics(theme)).toMatchObject({
+				size: 32,
+				rowPitch: 52,
+				top: 28,
+			});
+		}
+		expect(system7Json.defaults.measurements.desktopIconGrid).toEqual({
+			rowGap: 20,
+			top: 28,
 		});
 	});
 

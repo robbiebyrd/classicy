@@ -35,13 +35,47 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
  * The desktop-icon grid metrics, in px: the icon `size`, the `padding` around
  * it and the grid `cell` (icon plus label room) — the values `getThemeVars`
  * emits as `--desktop-icon-size`, `--desktop-icon-padding` and
- * `--desktop-icon-cell`. The grid steps by `cell + padding` on both axes.
+ * `--desktop-icon-cell`. The grid steps by `cell + padding` on both axes,
+ * unless the package declares its rows' geometry (`rowPitch`, `top`).
  */
 export type ClassicyDesktopIconMetrics = {
 	size: number;
 	padding: number;
 	cell: number;
+	/**
+	 * The distance between rows, from the optional package knob
+	 * `desktopIconGrid.rowGap` (the icon `size` plus it). Unset, rows step
+	 * by `cell + padding`, as columns always do.
+	 */
+	rowPitch?: number;
+	/**
+	 * The first row's top for a top origin, and the highest a bottom
+	 * origin's row goes: the optional package knob `desktopIconGrid.top`.
+	 * Unset, `4 × padding`.
+	 */
+	top?: number;
 };
+
+// An optional package knob of the `desktopIconGrid` family, not a structural
+// one: the core floor has none, so Platinum's grid keeps following its
+// formula. A value that is not a finite number of zero or more is ignored.
+const desktopIconGridKnob = (
+	theme: ClassicyTheme,
+	key: "rowGap" | "top",
+): number | undefined => {
+	const value = theme.measurements.desktopIconGrid?.[key];
+	return typeof value === "number" && Number.isFinite(value) && value >= 0
+		? value
+		: undefined;
+};
+
+/** The rows' pitch: the package's, else one grid step (`cell + padding`). */
+const rowStep = ({ padding, cell, rowPitch }: ClassicyDesktopIconMetrics) =>
+	rowPitch ?? cell + padding;
+
+/** The first row's top: the package's, else `4 × padding`. */
+const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
+	top ?? padding * 4;
 
 // One named derivation's value in px, rounded exactly as getThemeVars emits
 // it (px3), so the reducer's number equals the stylesheet's.
@@ -71,62 +105,83 @@ const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
  */
 export const classicyDesktopIconMetrics = (
 	theme: ClassicyTheme,
-): ClassicyDesktopIconMetrics => ({
-	size: theme.desktop.iconSize,
-	padding: derivedPx(theme, "--desktop-icon-padding"),
-	cell: derivedPx(theme, "--desktop-icon-cell"),
-});
+): ClassicyDesktopIconMetrics => {
+	const metrics: ClassicyDesktopIconMetrics = {
+		size: theme.desktop.iconSize,
+		padding: derivedPx(theme, "--desktop-icon-padding"),
+		cell: derivedPx(theme, "--desktop-icon-cell"),
+	};
+	// Each only when the package sets it, so Platinum's metrics are as before.
+	const rowGap = desktopIconGridKnob(theme, "rowGap");
+	if (rowGap !== undefined) metrics.rowPitch = metrics.size + rowGap;
+	const top = desktopIconGridKnob(theme, "top");
+	if (top !== undefined) metrics.top = top;
+	return metrics;
+};
 
 /**
- * The clean-up grid's column and row counts. Both step by one grid step
+ * The clean-up grid's column and row counts. Columns step by one grid step
  * (`cell + padding`, the step `classicyDesktopIconGridPosition` places by),
- * so every counted column fits the viewport. A bottom origin also reserves
- * the menu bar's band at the top (`8 * padding`: the top origins'
- * `4 * padding` lead, plus the bottom origins' own), so its last row never
- * lands under the menu bar. Some row must exist, so a viewport shorter than
- * `8 * padding` plus one step still gets one; there
+ * so every counted column fits the viewport; rows by the row pitch (the
+ * same step unless the package declares `desktopIconGrid.rowGap`). A bottom
+ * origin also reserves the menu bar's band at the top (the top origins'
+ * first-row top, `4 * padding` unless the package declares
+ * `desktopIconGrid.top`, plus the bottom origins' own `4 * padding`), so
+ * its last row never lands under the menu bar. Some row must exist, so a
+ * viewport shorter than that plus one row still gets one; there
  * `classicyDesktopIconGridPosition` clamps a bottom origin's y to at least
- * `4 * padding`, keeping that row on screen.
+ * the first-row top, keeping that row on screen.
  */
 const createGrid = (
-	{ padding, cell }: ClassicyDesktopIconMetrics,
+	metrics: ClassicyDesktopIconMetrics,
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"],
 ) => {
-	const step = cell + padding;
+	const { padding, cell } = metrics;
+	const pitch = rowStep(metrics);
 	return [
-		Math.floor(window.innerWidth / step),
+		Math.floor(window.innerWidth / (cell + padding)),
 		origin.startsWith("bottom")
-			? Math.max(1, Math.floor((window.innerHeight - padding * 8) / step))
-			: Math.floor(window.innerHeight / step),
+			? Math.max(
+					1,
+					Math.floor(
+						(window.innerHeight - firstRowTop(metrics) - padding * 4) / pitch,
+					),
+				)
+			: Math.floor(window.innerHeight / pitch),
 	];
 };
 
 /**
  * The desktop location of grid cell (`col`, `row`), counted from the package
  * layout's icon grid origin. `col` starts at 1 and `row` at 0, as the
- * clean-up walks them; both step by `cell + padding`. `top-right` (Platinum)
- * is the original formula: columns step in from the right edge, rows down
- * from the top.
+ * clean-up walks them; columns step by `cell + padding`, rows by the row
+ * pitch (the same, unless the package declares `desktopIconGrid.rowGap`),
+ * the first row of a top origin at the first-row top (`4 × padding`, unless
+ * it declares `desktopIconGrid.top`). `top-right` (Platinum) is the original
+ * formula: columns step in from the right edge, rows down from the top.
  */
 export const classicyDesktopIconGridPosition = (
-	{ padding, cell }: ClassicyDesktopIconMetrics,
+	metrics: ClassicyDesktopIconMetrics,
 	col: number,
 	row: number,
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
 		.desktop.iconGridOrigin,
 ): [number, number] => {
+	const { padding, cell } = metrics;
 	const step = cell + padding;
+	const pitch = rowStep(metrics);
+	const top = firstRowTop(metrics);
 	return [
 		origin.endsWith("right")
 			? Math.floor(window.innerWidth - step * col)
 			: Math.floor(step * (col - 1) + padding),
 		origin.startsWith("top")
-			? Math.floor(step * row) + padding * 4
-			: // Never above the top origins' first row (y = 4 × padding), so a
-				// row forced into a viewport too short for it stays on screen.
+			? Math.floor(pitch * row) + top
+			: // Never above the top origins' first row, so a row forced into a
+				// viewport too short for it stays on screen.
 				Math.max(
-					padding * 4,
-					Math.floor(window.innerHeight - step * (row + 1)) - padding * 4,
+					top,
+					Math.floor(window.innerHeight - pitch * (row + 1)) - padding * 4,
 				),
 	];
 };

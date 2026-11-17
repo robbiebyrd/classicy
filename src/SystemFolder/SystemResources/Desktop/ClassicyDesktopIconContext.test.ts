@@ -120,6 +120,126 @@ describe("classicyDesktopIconGridPosition", () => {
 	});
 });
 
+// Story 0216-1im F3: a package may declare its rows' geometry with the
+// optional knobs `desktopIconGrid.rowGap` (the room under each icon's box
+// before the next row's, so rows step by the icon size plus it) and
+// `desktopIconGrid.top` (the first row's top); unset, rows step by
+// `cell + padding` from `4 × padding`, as before. Columns are unchanged.
+describe("the optional desktopIconGrid knobs", () => {
+	beforeEach(() => setViewport(1024, 768));
+	afterEach(() => setViewport(...originalViewport));
+
+	// System 7's grid (`*-desktop-menubar-icons.png`): 32 px icons, label
+	// tops 60, 112, 164, 216, so boxes from y 28 on a 52 px pitch.
+	const metrics32: ClassicyDesktopIconMetrics = {
+		size: 32,
+		padding: 8,
+		cell: 64,
+		rowPitch: 52,
+		top: 28,
+	};
+
+	it("steps rows by rowPitch from top, columns as before", () => {
+		expect(
+			[0, 1, 2, 3].map((row) =>
+				classicyDesktopIconGridPosition(metrics32, 1, row, "top-right"),
+			),
+		).toEqual([
+			[952, 28],
+			[952, 80],
+			[952, 132],
+			[952, 184],
+		]);
+		expect(
+			classicyDesktopIconGridPosition(metrics32, 2, 0, "top-left"),
+		).toEqual([80, 28]);
+	});
+
+	it("steps a bottom origin's rows by rowPitch, never above top", () => {
+		expect(
+			classicyDesktopIconGridPosition(metrics32, 1, 0, "bottom-right"),
+		).toEqual([952, 768 - 52 - 32]);
+		setViewport(1024, 60);
+		expect(
+			classicyDesktopIconGridPosition(metrics32, 1, 0, "bottom-left")[1],
+		).toBe(28);
+	});
+
+	it("reads the knobs from the theme: rowPitch is the icon size plus rowGap", () => {
+		const theme = getTheme("default");
+		const withGrid = {
+			...theme,
+			desktop: { ...theme.desktop, iconSize: 32 },
+			measurements: {
+				...theme.measurements,
+				desktopIconGrid: { rowGap: 20, top: 28 },
+			},
+		} as ClassicyTheme;
+		expect(classicyDesktopIconMetrics(withGrid)).toEqual(metrics32);
+		// Following the editable icon size.
+		expect(
+			classicyDesktopIconMetrics({
+				...withGrid,
+				desktop: { ...withGrid.desktop, iconSize: 64 },
+			}),
+		).toMatchObject({ rowPitch: 84, top: 28 });
+	});
+
+	it("ignores knobs that are not finite numbers of zero or more", () => {
+		const theme = getTheme("default");
+		for (const desktopIconGrid of [
+			{ rowGap: -1, top: -1 },
+			{ rowGap: Number.NaN, top: Number.POSITIVE_INFINITY },
+			{},
+		]) {
+			const metrics = classicyDesktopIconMetrics({
+				...theme,
+				measurements: { ...theme.measurements, desktopIconGrid },
+			} as ClassicyTheme);
+			expect(metrics.rowPitch).toBeUndefined();
+			expect(metrics.top).toBeUndefined();
+		}
+	});
+
+	it("lays the desktop out on the knobs' rows, as many as fit", () => {
+		resetClassicyAppearancePackagesForTests();
+		registerClassicyAppearancePackage(platinum);
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				const theme = draft.System.Manager.Appearance.activeTheme;
+				theme.desktop.iconSize = 32;
+				theme.measurements.desktopIconGrid = { rowGap: 20, top: 28 };
+				draft.System.Manager.Desktop.icons = Array.from(
+					{ length: 16 },
+					(_, i) => ({
+						appId: `I${String(i).padStart(2, "0")}.app`,
+						appName: `I${String(i).padStart(2, "0")}`,
+						icon: "i.png",
+						kind: "app_shortcut",
+					}),
+				);
+			}),
+			true,
+		);
+		try {
+			dispatch({ type: "ClassicyDesktopIconCleanup" });
+			const at = useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.map((icon) => icon.location);
+			expect(at.slice(0, 3)).toEqual([
+				[952, 28],
+				[952, 80],
+				[952, 132],
+			]);
+			// floor(768 / 52) = 14 rows a column, then the next column.
+			expect(at[13]).toEqual([952, 28 + 13 * 52]);
+			expect(at[14]).toEqual([880, 28]);
+		} finally {
+			useAppManager.setState(DefaultAppManagerState, true);
+		}
+	});
+});
+
 describe("ClassicyDesktopIconCleanup", () => {
 	const icons = [
 		{ appId: "A.app", appName: "A", icon: "a.png", kind: "app_shortcut" },

@@ -632,6 +632,13 @@ the ids the saver already names:
   Platinum registered first, and Platinum's element lacks those five when
   System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
   leave System 7's out.
+- **Optional core knobs `desktopIconGrid.rowGap` and `desktopIconGrid.top`.**
+  The desktop's Clean Up and icon placement step rows by
+  `desktop.iconSize` plus `rowGap` and start the first row at `top` when a
+  theme sets them to zero or more, else by `cell + padding` from
+  `4 × padding` as before (columns are unchanged). `ClassicyDesktopIconMetrics`
+  gains the optional `rowPitch` and `top` they make. Platinum sets neither,
+  so its desktop lays out as before; System 7 sets 20 and 28, 7.5's rows.
 - **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
   the knob when a theme sets it to a positive number, else
   `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
