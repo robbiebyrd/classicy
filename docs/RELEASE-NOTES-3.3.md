@@ -820,7 +820,10 @@ the ids the saver already names:
   pixel, or a pop-up a pixel wider, keeps its dots in step, and a pop-up's
   frame, triangle and text share one phase. Dimmed parts take the ink where
   x + y is odd from the origin, dotted rules where it is even, as the
-  captures do. A dimmed checked checkbox's X is unchanged.
+  captures do; a dimmed mixed checkbox's dash takes the dimmed phase. A
+  dimmed checked checkbox's X is unchanged. An element that is not rendered
+  (a hidden tab panel, a closed menu) is given no origin, so moving a window
+  writes nothing for it.
 
 ## Upgrade
 
