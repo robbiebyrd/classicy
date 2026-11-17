@@ -136,6 +136,12 @@ export const dimClassicyIconPixels = (
 };
 
 const dimmedSources = new Map<string, Promise<string | undefined>>();
+// Sources already reported, so a source that cannot be read logs once however
+// many sizes or mounts ask for it.
+const reportedSources = new Set<string>();
+// Cache keys whose load failed: the failure may be transient (a network
+// error), so the next request for one draws again instead of keeping it.
+const retryKeys = new Set<string>();
 const settled = new Map<string, string | undefined>();
 const settledListeners = new Set<() => void>();
 
@@ -150,15 +156,37 @@ const loadImage = (src: string): Promise<HTMLImageElement | undefined> =>
 		image.src = src;
 	});
 
+const reportUnreadable = (src: string, why: string): void => {
+	if (reportedSources.has(src)) return;
+	reportedSources.add(src);
+	classicyLog(
+		"warn",
+		"Appearance",
+		`Icon ${src} ${why}; it is dimmed by the stylesheet instead`,
+	);
+};
+
 const draw = async (
 	src: string,
 	rule: ClassicyIconDimmingRule,
 	size: number | undefined,
+	key: string,
 ): Promise<string | undefined> => {
 	const image = await loadImage(src);
-	const width = size ?? image?.naturalWidth ?? 0;
-	const height = size ?? image?.naturalHeight ?? 0;
-	if (!image || width <= 0 || height <= 0) return undefined;
+	if (!image) {
+		// The real path for a cross-origin icon served without CORS (the load
+		// itself fails under `crossOrigin = "anonymous"`), but also a network
+		// error: not cached for good, so a later request tries again.
+		retryKeys.add(key);
+		reportUnreadable(
+			src,
+			"failed to load for dimming (a cross-origin icon without CORS headers, or a network error)",
+		);
+		return undefined;
+	}
+	const width = size ?? image.naturalWidth ?? 0;
+	const height = size ?? image.naturalHeight ?? 0;
+	if (width <= 0 || height <= 0) return undefined;
 	const canvas = document.createElement("canvas");
 	canvas.width = width;
 	canvas.height = height;
@@ -174,10 +202,9 @@ const draw = async (
 		// A cross-origin icon taints the canvas: its pixels cannot be read
 		// (the one case a browser forbids), so the package's stylesheet dims
 		// it its own way.
-		classicyLog(
-			"info",
-			"Appearance",
-			`Icon ${src} cannot be read from a canvas (cross-origin without CORS); it is dimmed by the stylesheet instead`,
+		reportUnreadable(
+			src,
+			"cannot be read from a canvas (cross-origin without CORS)",
 		);
 		return undefined;
 	}
@@ -187,7 +214,9 @@ const draw = async (
  * The icon at `src` dimmed by `rule`, as a `data:` URL, drawn `size` px
  * square (else at its natural size); `undefined` when the icon cannot be
  * read (it failed to load, has no size, or taints the canvas). Cached per
- * source, rule and size for the page.
+ * source, rule and size for the page, except a failed load, which is drawn
+ * again on the next request (the failure may be transient). A source that
+ * cannot be read logs one `warn` for the page.
  */
 export const classicyDimmedIconSource = (
 	src: string,
@@ -200,8 +229,9 @@ export const classicyDimmedIconSource = (
 		pending =
 			typeof document === "undefined" || typeof Image === "undefined"
 				? Promise.resolve(undefined)
-				: draw(src, rule, size).catch(() => undefined);
+				: draw(src, rule, size, key).catch(() => undefined);
 		pending.then((result) => {
+			if (retryKeys.delete(key)) dimmedSources.delete(key);
 			settled.set(key, result);
 			for (const listener of [...settledListeners]) listener();
 		});
@@ -214,6 +244,8 @@ export const classicyDimmedIconSource = (
 export const resetClassicyDimmedIconsForTests = (): void => {
 	dimmedSources.clear();
 	settled.clear();
+	reportedSources.clear();
+	retryKeys.clear();
 };
 
 /**
