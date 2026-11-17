@@ -1301,12 +1301,23 @@ const fontShareKeysBefore = (packageId: string): Set<string> => {
 
 /**
  * Rewrites `<style id="classicy-fonts-<packageId>">` from that package's
- * faces, less those an earlier package shares and writes.
+ * faces, less those an earlier package shares and writes. A package left
+ * with no rule of its own has no element: none is written, and one written
+ * before is removed.
  */
 const writeClassicyFontFaces = (packageId: string): void => {
 	if (typeof document === "undefined") return;
 	const id = `classicy-fonts-${packageId}`;
+	const shared = fontShareKeysBefore(packageId);
+	const css = [...(fontFaces.get(packageId)?.values() ?? [])]
+		.filter((face) => face.shareKey === undefined || !shared.has(face.shareKey))
+		.map(classicyFontFaceRule)
+		.join("\n");
 	let style = document.getElementById(id);
+	if (css === "") {
+		style?.remove();
+		return;
+	}
 	if (!style) {
 		style = document.createElement("style");
 		style.id = id;
@@ -1318,11 +1329,7 @@ const writeClassicyFontFaces = (packageId: string): void => {
 		if (base) base.after(style);
 		else document.head.prepend(style);
 	}
-	const shared = fontShareKeysBefore(packageId);
-	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
-		.filter((face) => face.shareKey === undefined || !shared.has(face.shareKey))
-		.map(classicyFontFaceRule)
-		.join("\n");
+	style.textContent = css;
 };
 
 /**

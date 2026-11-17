@@ -74,6 +74,14 @@ describe("Platinum and System 7 loaded together", () => {
 		60_000,
 	);
 
+	// Platinum first writes every face System 7 shares, which is all of
+	// them: System 7 is left with no rule, so it leaves no empty element.
+	it("leave no System 7 element when Platinum registers first", async () => {
+		await load(["platinum", "system7"]);
+		expect(document.getElementById("classicy-fonts-system7")).toBeNull();
+		expect(Object.keys(fontRules())).toEqual(["classicy-fonts-platinum"]);
+	}, 60_000);
+
 	it("System 7 alone still writes its five faces", async () => {
 		await load(["system7"]);
 		expect(fontRules()["classicy-fonts-system7"].map(faceOf).sort()).toEqual(
