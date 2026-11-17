@@ -687,7 +687,8 @@ the ids the saver already names:
   other pixel of every other row in color. A dimmed slider keeps only its
   outline and indicator, in black 50% dots at both depths, its channel
   empty. A group box is dotted in one 50% pattern, so no two dots touch at
-  its corners, and its line runs to 1 or 2 px before the title's ink. A
+  its corners, and its line runs to 1 or 2 px before the title's ink (a
+  secondary, solid group box keeps its 3 px gap). A
   list box's text sits a pixel higher in its row, by the new System 7 knob
   `listBox.textLift` (1, `--list-box-text-lift`).
 

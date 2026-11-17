@@ -3837,7 +3837,9 @@ Platinum (§1); its README lists what it ships.
   the part's corner); a slider loses its channel's checker band and goes
   through a 2 x 2 checker in black at both depths. The primary group box's
   dots are one checker on a `::before` layer masked to the frame's ring,
-  and its title drops the leading `groupBox.titlePad`, moved on by as much.
+  and its title (the primary kind's only, `.classicyControlGroupFieldsetPrimary >
+  .classicyControlGroupLegend`) drops the leading `groupBox.titlePad`, moved on by
+  as much; the secondary, solid kind keeps the pad on both sides.
   A list row's text is lifted `listBox.textLift` (1) above centered.
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
   image, and the 16 px one where System 7 had both sizes.

@@ -1702,14 +1702,34 @@ describe("system7.scss (compiled)", () => {
 		// 1) and 3 after it. The base sheet pads the title `groupBox.titlePad`
 		// (3) on each side; System 7 drops the leading pad and moves the
 		// title on by as much, so the ink stays put and the line runs up to
-		// the glyph's own bearing.
+		// the glyph's own bearing. Only the dotted (primary) kind: the
+		// secondary, solid kind has no 7.5 capture and keeps the base
+		// sheet's pad on both sides, a 3-pixel gap.
 		it("breaks the group box's line right before its title", () => {
-			const legend = rule(".classicyControlGroupLegend");
+			const legend = rule(
+				".classicyControlGroupFieldsetPrimary > .classicyControlGroupLegend",
+			);
 			expect(legend).toMatch(/padding-left: 0;/);
 			expect(legend).toMatch(
 				/left: calc\(var\(--group-box-margin-side\) \+ var\(--group-box-title-pad\)\);/,
 			);
 			expect(legend).not.toMatch(/padding-right/);
+			// Every other legend, the secondary kind's included, keeps the
+			// base sheet's place and pad: only its white comes from here.
+			const anyLegend = rule(".classicyControlGroupLegend");
+			expect(anyLegend).toMatch(/background-color: var\(--color-white\);/);
+			expect(anyLegend).not.toMatch(/padding-left/);
+			expect(anyLegend).not.toMatch(/(^|[\s;])left:/);
+			expect(
+				[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+					.filter(([, header]) =>
+						splitSelectors(header).some((selector) =>
+							selector.includes("Secondary"),
+						),
+					)
+					.map(([, , declarations]) => declarations)
+					.join("\n"),
+			).not.toMatch(/padding-left|(^|[\s;])left:/);
 			const separator = rule(".classicySeparatorHorizontal");
 			// A menu's divider keeps its own line (_Menu.scss).
 			expect(

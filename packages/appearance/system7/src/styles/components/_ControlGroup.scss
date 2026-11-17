@@ -43,15 +43,21 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
     border: $px solid var(--color-black);
   }
 
-  // The title, on the window's white, breaks the line: from just before its
-  // ink (the glyph's own bearing, 1 or 2 pixels in the captures: Views,
-  // Clock Options, Get Info) to `groupBox.titlePad` (3) after it. The base
-  // sheet pads it on both sides, so the leading pad goes and the title
-  // moves on by as much, which keeps its ink where it was.
+  // The title, on the window's white, breaks the line.
   .classicyControlGroupLegend {
+    background-color: var(--color-white);
+  }
+
+  // A dotted box's title breaks it from just before its ink (the glyph's
+  // own bearing, 1 or 2 pixels in the captures: Views, Clock Options, Get
+  // Info) to `groupBox.titlePad` (3) after it. The base sheet pads it on
+  // both sides, so the leading pad goes and the title moves on by as much,
+  // which keeps its ink where it was. The secondary, solid kind has no 7.5
+  // capture and keeps the base sheet's pad on both sides. A child
+  // combinator, so a secondary box inside a primary one keeps it too.
+  .classicyControlGroupFieldsetPrimary > .classicyControlGroupLegend {
     left: calc(var(--group-box-margin-side) + var(--group-box-title-pad));
     padding-left: 0;
-    background-color: var(--color-white);
   }
 
   .classicySeparatorHorizontal,
