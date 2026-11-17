@@ -3731,7 +3731,7 @@ Platinum (§1); its README lists what it ships.
 - **Standard File, the Application menu, the list view** (story 0214-c61,
   the 7.5.5 captures). Layout `fileDialog: { frame: "fixed" }` and the
   `fileDialog` knobs (`width`, `height`; `popUpLeft`/`Top`/`Width`,
-  `volumeLeft`/`Top`/`Gap`/`LineHeight`, `listLeft`/`Top`/`Width`/`Height`,
+  `volumeLeft`/`Top`/`Gap`/`LineHeight`/`IconDrop`, `listLeft`/`Top`/`Width`/`Height`,
   `buttonsLeft`, `buttonWidth`, `ejectTop`, `desktopTop`, `dividerTop`,
   `dividerWidth`, `cancelTop`, `openTop`: px from the inside of the box's
   inner line) place Standard File's parts (`_FileDialog.scss`); the

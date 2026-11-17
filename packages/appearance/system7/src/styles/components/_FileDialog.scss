@@ -16,8 +16,8 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
 
 @mixin place($left, $top) {
   position: absolute;
-  top: var(--file-dialog-#{$top});
-  left: var(--file-dialog-#{$left});
+  top: $top;
+  left: $left;
   margin: 0;
 }
 
@@ -33,7 +33,7 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
   }
 
   #{$open} > .classicyPopUpMenuWrapper {
-    @include place(pop-up-left, pop-up-top);
+    @include place(var(--file-dialog-pop-up-left), var(--file-dialog-pop-up-top));
 
     display: flex;
     width: var(--file-dialog-pop-up-width);
@@ -48,7 +48,7 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
   }
 
   #{$open} > .classicyFileOpenDialogVolume {
-    @include place(volume-left, volume-top);
+    @include place(var(--file-dialog-volume-left), var(--file-dialog-volume-top));
 
     display: flex;
     align-items: flex-start;
@@ -57,10 +57,14 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
     font-size: var(--ui-font-size);
     line-height: var(--file-dialog-volume-line-height);
     white-space: nowrap;
+
+    > img {
+      margin-top: var(--file-dialog-volume-icon-drop);
+    }
   }
 
   #{$open} > .classicyFileOpenDialogWell {
-    @include place(list-left, list-top);
+    @include place(var(--file-dialog-list-left), var(--file-dialog-list-top));
 
     box-sizing: border-box;
     width: var(--file-dialog-list-width);
@@ -80,20 +84,20 @@ $open: ".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
     }
   }
 
-  @each $part, $top in (Eject: eject-top, Desktop: desktop-top, Divider: divider-top) {
+  @each $part, $top in (Eject: var(--file-dialog-eject-top), Desktop: var(--file-dialog-desktop-top), Divider: var(--file-dialog-divider-top)) {
     #{$open} .classicyFileOpenDialogActions > .classicyFileOpenDialog#{$part} {
-      @include place(buttons-left, $top);
+      @include place(var(--file-dialog-buttons-left), $top);
 
       display: block;
     }
   }
 
   #{$open} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(2) {
-    @include place(buttons-left, cancel-top);
+    @include place(var(--file-dialog-buttons-left), var(--file-dialog-cancel-top));
   }
 
   #{$open} .classicyFileOpenDialogActions > .classicyButton:last-child {
-    @include place(buttons-left, open-top);
+    @include place(var(--file-dialog-buttons-left), var(--file-dialog-open-top));
   }
 
   // The line between Desktop and Cancel, across the column and a pixel

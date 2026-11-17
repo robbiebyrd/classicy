@@ -2094,6 +2094,9 @@ describe("system7.scss (compiled)", () => {
 			};
 			placed("> .classicyPopUpMenuWrapper", "pop-up-left", "pop-up-top");
 			placed("> .classicyFileOpenDialogVolume", "volume-left", "volume-top");
+			expect(rule(`${OPEN} > .classicyFileOpenDialogVolume > img`)).toContain(
+				"margin-top: var(--file-dialog-volume-icon-drop);",
+			);
 			placed("> .classicyFileOpenDialogWell", "list-left", "list-top");
 			for (const [part, top] of [
 				["Eject", "eject-top"],
