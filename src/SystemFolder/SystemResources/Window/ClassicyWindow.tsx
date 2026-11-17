@@ -58,6 +58,7 @@ import {
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
@@ -647,6 +648,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	// The elements a package lays a pattern in from a fixed origin
+	// (`layout.patternOrigin.elements`): this window's.
+	useClassicyPatternOriginElements(windowRef);
 	const layout = useClassicyAppearanceLayout();
 	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 

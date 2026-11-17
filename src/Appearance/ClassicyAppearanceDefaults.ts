@@ -30,6 +30,7 @@ export const CLASSICY_DEFAULT_APPEARANCE_LAYOUT: ClassicyAppearanceLayout =
 export const CLASSICY_PATTERN_ORIGIN_COMPONENTS = Object.freeze([
 	"ControlGroup",
 	"PopUpMenu",
+	"Separator",
 	"Slider",
 ] as const);
 
@@ -43,3 +44,13 @@ export type ClassicyPatternOriginComponent =
  * (the desktop's corner, the screen's).
  */
 export type ClassicyPatternOrigin = "element" | "window" | "desktop";
+
+/**
+ * Elements a package masks or fills with a pattern of its own (the core's
+ * dither mixins included), by CSS selector, and the origin to publish on
+ * each (`ClassicyAppearanceLayout`'s `patternOrigin.elements`).
+ */
+export type ClassicyPatternOriginElements = {
+	readonly selector: string;
+	readonly origin: Exclude<ClassicyPatternOrigin, "element">;
+};

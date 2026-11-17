@@ -50,7 +50,19 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.strictObject({
 			ControlGroup: patternOrigin,
 			PopUpMenu: patternOrigin,
+			Separator: patternOrigin,
 			Slider: patternOrigin,
+			elements: z
+				.array(
+					z.strictObject({
+						// Not parsed here: a selector newer than the browser
+						// would refuse the whole package; the core skips it.
+						selector: z.string().trim().min(1).max(1024),
+						origin: z.enum(["window", "desktop"]),
+					}),
+				)
+				.readonly()
+				.optional(),
 		})
 		.optional(),
 	slider: z

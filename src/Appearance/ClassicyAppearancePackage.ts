@@ -18,6 +18,7 @@ import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManage
 import type {
 	ClassicyPatternOrigin,
 	ClassicyPatternOriginComponent,
+	ClassicyPatternOriginElements,
 } from "./ClassicyAppearanceDefaults";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
@@ -31,6 +32,7 @@ export {
 	CLASSICY_PATTERN_ORIGIN_COMPONENTS,
 	type ClassicyPatternOrigin,
 	type ClassicyPatternOriginComponent,
+	type ClassicyPatternOriginElements,
 } from "./ClassicyAppearanceDefaults";
 export {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
@@ -118,13 +120,18 @@ export type ClassicyAppearanceLayout = {
 	 * pattern-bearing elements, from the element's padding-box corner, as
 	 * `--classicy-pattern-origin-x` / `-y` in whole pixels, and kept current
 	 * as anything moves the element against it: a `ControlGroup`'s fieldset;
-	 * a `PopUpMenu`'s button and its indicator; a `Slider`'s range input and
-	 * its tick rail. The scroll bars have their own declaration,
+	 * a `PopUpMenu`'s button and its indicator; a `Separator`'s rule; a
+	 * `Slider`'s range input and its tick rail. `elements` names any other
+	 * element by CSS selector (a dimmed label the core's dither mixins mask,
+	 * say), with its origin: every window, and the desktop for what lies
+	 * outside windows (menus, the menu bar), publishes it on the elements
+	 * in it that match, on the same signals, and removes it from an element
+	 * that no longer matches. The scroll bars have their own declaration,
 	 * `scrollBar.patternOrigin`.
 	 */
 	patternOrigin?: {
 		readonly [C in ClassicyPatternOriginComponent]?: ClassicyPatternOrigin;
-	};
+	} & { readonly elements?: readonly ClassicyPatternOriginElements[] };
 	/**
 	 * How a slider with a ghost indicator (`ClassicySlider`'s `ghost`)
 	 * drags. Optional, as is each key: a package that leaves one out keeps

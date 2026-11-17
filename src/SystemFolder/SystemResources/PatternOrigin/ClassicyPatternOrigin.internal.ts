@@ -4,6 +4,7 @@ import type {
 	ClassicyPatternOriginComponent,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // A package that fills a part with a pattern in CSS can only lay it from the
 // element's own box, so a part's dots fall in a phase set by where it sits.
@@ -90,6 +91,11 @@ export const classicyOriginPx = (value: number): string =>
  */
 export type ClassicyPatternOriginPart = {
 	readonly anchors: readonly HTMLElement[];
+	/**
+	 * Elements found anew on each publish (a selector's matches), whose boxes
+	 * and ancestors are watched too, from one publish to the next.
+	 */
+	readonly found?: () => readonly HTMLElement[];
 	readonly origin?: Exclude<ClassicyPatternOrigin, "element">;
 	readonly measure: (origin: Origin) => (() => void) | undefined;
 };
@@ -116,6 +122,8 @@ const STATE_EVENTS = [
 
 type Scope = {
 	readonly parts: Set<ClassicyPatternOriginPart>;
+	/** What each part's `found` elements reached at the last publish. */
+	readonly foundChains: Map<ClassicyPatternOriginPart, Element[]>;
 	readonly observe: (el: Element) => void;
 	readonly unobserve: (el: Element) => void;
 	readonly publish: () => void;
@@ -179,6 +187,16 @@ const createScope = (scopeEl: Element): Scope => {
 			return part.measure(origin);
 		});
 		for (const write of writes) write?.();
+		for (const part of parts) if (part.found) syncFound(part);
+	};
+	// A part's found elements, watched as its anchors are: the new chains
+	// observed before the old ones are let go, so a shared ancestor stays.
+	const foundChains = new Map<ClassicyPatternOriginPart, Element[]>();
+	const syncFound = (part: ClassicyPatternOriginPart) => {
+		const chain = (part.found?.() ?? []).flatMap(chainOf);
+		for (const el of chain) observe(el);
+		for (const el of foundChains.get(part) ?? []) unobserve(el);
+		foundChains.set(part, chain);
 	};
 	let frame = 0;
 	const publishNextFrame = () => {
@@ -245,7 +263,7 @@ const createScope = (scopeEl: Element): Scope => {
 		fonts?.removeEventListener?.("loadingdone", publish);
 		if (frame) view?.cancelAnimationFrame(frame);
 	};
-	return { parts, observe, unobserve, publish, originOf, stop };
+	return { parts, foundChains, observe, unobserve, publish, originOf, stop };
 };
 
 /** `anchor` and each ancestor up to its window (outside one, the root). */
@@ -283,9 +301,16 @@ export const watchClassicyPatternOriginPart = (
 	held.parts.add(part);
 	for (const el of chain) held.observe(el);
 	part.measure(held.originOf(part.origin))?.();
+	if (part.found) {
+		const found = part.found().flatMap(chainOf);
+		for (const el of found) held.observe(el);
+		held.foundChains.set(part, found);
+	}
 	return () => {
 		if (!held.parts.delete(part)) return;
 		for (const el of chain) held.unobserve(el);
+		for (const el of held.foundChains.get(part) ?? []) held.unobserve(el);
+		held.foundChains.delete(part);
 		if (held.parts.size > 0) return;
 		held.stop();
 		if (scopes.get(scopeEl) === held) scopes.delete(scopeEl);
@@ -298,6 +323,42 @@ const publishPatternOrigin = (el: HTMLElement, x: string, y: string) => {
 		el.style.setProperty("--classicy-pattern-origin-x", x);
 	if (el.style.getPropertyValue(CLASSICY_PATTERN_ORIGIN_Y) !== y)
 		el.style.setProperty("--classicy-pattern-origin-y", y);
+};
+
+/** Removes the two properties from `el`. */
+const removePatternOrigin = (el: HTMLElement) => {
+	el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_X);
+	el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_Y);
+};
+
+/**
+ * Reads `elements`' padding-box corners (inside their borders) against `at` (in whole device
+ * pixels) and returns the write that publishes them, which returns the
+ * elements written.
+ */
+const measureOn = (
+	elements: readonly HTMLElement[],
+	at: Origin,
+): (() => Set<HTMLElement>) => {
+	const ox = onClassicyDevicePixels(at.x);
+	const oy = onClassicyDevicePixels(at.y);
+	const values = elements.map((el) => {
+		const r = el.getBoundingClientRect();
+		// The border's width, not clientLeft, which Firefox makes a text
+		// field's border and padding.
+		const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+		const left = Number.parseFloat(style?.borderLeftWidth ?? "") || 0;
+		const top = Number.parseFloat(style?.borderTopWidth ?? "") || 0;
+		return [
+			el,
+			classicyOriginPx(ox - onClassicyDevicePixels(r.left) - left),
+			classicyOriginPx(oy - onClassicyDevicePixels(r.top) - top),
+		] as const;
+	});
+	return () => {
+		for (const [el, x, y] of values) publishPatternOrigin(el, x, y);
+		return new Set(elements);
+	};
 };
 
 /**
@@ -315,28 +376,79 @@ export const watchClassicyPatternOrigin = (
 	const stop = watchClassicyPatternOriginPart({
 		anchors: elements,
 		origin,
+		measure: (at) => measureOn(elements, at),
+	});
+	return () => {
+		stop();
+		for (const el of elements) removePatternOrigin(el);
+	};
+};
+
+// Selectors this browser cannot parse, each warned about once.
+const unparsedSelectors = new Set<string>();
+
+/** `root`'s elements matching `selector`, none when the browser cannot
+ * parse it (a selector newer than the browser, warned about once). */
+const queryAll = (root: Element, selector: string): HTMLElement[] => {
+	try {
+		return [...root.querySelectorAll<HTMLElement>(selector)];
+	} catch {
+		if (!unparsedSelectors.has(selector)) {
+			unparsedSelectors.add(selector);
+			classicyLog(
+				"warn",
+				"Appearance",
+				`patternOrigin.elements: this browser cannot parse "${selector}"; it is skipped`,
+			);
+		}
+		return [];
+	}
+};
+
+/**
+ * Publishes `origin` (as `watchClassicyPatternOrigin` does) on every element
+ * matching one of `selectors` that `root` holds (each queried on its own,
+ * so one the browser cannot parse, as `:has()` before Firefox 121, skips
+ * only itself, with one warning): inside `root`, a window, the ones
+ * whose nearest window it is; inside `root`, a desktop (or any other
+ * element), the ones outside every window. The matches are found again on
+ * each publish, so an element that starts matching (a control dimmed, a
+ * menu opened) is published on the next signal (its own class or the DOM
+ * changing is one), and one that stops matching has the properties
+ * removed. Returns the function that stops and removes them all.
+ */
+export const watchClassicyPatternOriginSelector = (
+	root: HTMLElement,
+	selectors: string | readonly string[],
+	origin: Exclude<ClassicyPatternOrigin, "element"> = "window",
+): (() => void) => {
+	const win = root.closest(".classicyWindow");
+	let published = new Set<HTMLElement>();
+	const list = typeof selectors === "string" ? [selectors] : selectors;
+	const matches = (): HTMLElement[] => [
+		...new Set(
+			list
+				.flatMap((selector) => queryAll(root, selector))
+				.filter((el) => el.closest(".classicyWindow") === win),
+		),
+	];
+	const stop = watchClassicyPatternOriginPart({
+		anchors: [root],
+		origin,
+		found: () => [...published],
 		measure: (at) => {
-			const ox = onClassicyDevicePixels(at.x);
-			const oy = onClassicyDevicePixels(at.y);
-			const values = elements.map((el) => {
-				const r = el.getBoundingClientRect();
-				return [
-					el,
-					classicyOriginPx(ox - onClassicyDevicePixels(r.left) - el.clientLeft),
-					classicyOriginPx(oy - onClassicyDevicePixels(r.top) - el.clientTop),
-				] as const;
-			});
+			const write = measureOn(matches(), at);
 			return () => {
-				for (const [el, x, y] of values) publishPatternOrigin(el, x, y);
+				const now = write();
+				for (const el of published) if (!now.has(el)) removePatternOrigin(el);
+				published = now;
 			};
 		},
 	});
 	return () => {
 		stop();
-		for (const el of elements) {
-			el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_X);
-			el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_Y);
-		}
+		for (const el of published) removePatternOrigin(el);
+		published = new Set();
 	};
 };
 
@@ -391,4 +503,32 @@ export const useClassicyPatternOrigin = (
 		},
 		[],
 	);
+};
+
+/**
+ * While the active package names elements by selector
+ * (`layout.patternOrigin.elements`), publishes each one's origin on the
+ * matching elements `root` holds (`watchClassicyPatternOriginSelector`):
+ * `ClassicyWindow` calls it for its window, `ClassicyDesktop` for what lies
+ * outside every window. Otherwise it publishes and watches nothing.
+ */
+export const useClassicyPatternOriginElements = (
+	root: RefObject<HTMLElement | null>,
+): void => {
+	const entries = useClassicyAppearanceLayout().patternOrigin?.elements;
+	useLayoutEffect(() => {
+		const el = root.current;
+		if (!el || !entries || entries.length === 0) return;
+		const stops = (["window", "desktop"] as const).flatMap((origin) => {
+			const selectors = entries
+				.filter((entry) => entry.origin === origin)
+				.map((entry) => entry.selector);
+			return selectors.length > 0
+				? [watchClassicyPatternOriginSelector(el, selectors, origin)]
+				: [];
+		});
+		return () => {
+			for (const stop of stops) stop();
+		};
+	}, [root, entries]);
 };

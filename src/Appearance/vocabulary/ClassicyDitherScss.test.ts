@@ -52,6 +52,46 @@ describe("src/Appearance/vocabulary/_dither.scss", () => {
 			].join("\n"),
 		));
 
+	// Story 0219-c62: a package that lays the checker from an origin the
+	// core publishes (`layout.patternOrigin`) passes the tile's position;
+	// without one, the mask keeps its default (the element's corner).
+	it("places the checker where the package says, and only then", () => {
+		// From the padding box, as the core measures the origin; the cover
+		// layer keeps the border box (a field's border is masked too).
+		const at = [
+			"  mask-position: calc(var(--classicy-pattern-origin-x) + 1px) var(--classicy-pattern-origin-y), 0 0;",
+			"  mask-origin: padding-box, border-box;",
+		];
+		expect(
+			compile(
+				"@include d.classicy-dither-mask(calc(var(--classicy-pattern-origin-x) + 1px), var(--classicy-pattern-origin-y));",
+			),
+		).toBe([".x {", ...MASK, ...at, "}"].join("\n"));
+		expect(
+			compile(
+				'@include d.classicy-dither-text("--color-black", calc(var(--classicy-pattern-origin-x) + 1px), var(--classicy-pattern-origin-y));',
+			),
+		).toBe(
+			[".x {", "  color: var(--color-black);", ...MASK, ...at, "}"].join("\n"),
+		);
+		expect(
+			compile(
+				'@include d.classicy-dither-line("--color-black", calc(var(--classicy-pattern-origin-x) + 1px), var(--classicy-pattern-origin-y));',
+			),
+		).toBe(
+			[
+				".x {",
+				"  background-color: var(--color-black);",
+				...MASK,
+				...at,
+				"}",
+			].join("\n"),
+		);
+		expect(compile("@include d.classicy-dither-mask;")).not.toMatch(
+			/mask-position/,
+		);
+	});
+
 	it("holds no literal color and no pixel literal", () => {
 		const css = compile(
 			'@include d.classicy-dither-text("--color-black"); @include d.classicy-dither-line("--color-black");',

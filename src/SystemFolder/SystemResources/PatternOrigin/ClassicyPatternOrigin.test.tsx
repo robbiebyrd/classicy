@@ -1,4 +1,4 @@
-import { act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
@@ -14,12 +14,15 @@ import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
 import {
 	CLASSICY_PATTERN_ORIGIN_X,
 	CLASSICY_PATTERN_ORIGIN_Y,
 	classicyPatternOriginScopeCountForTests,
+	useClassicyPatternOriginElements,
 	watchClassicyPatternOrigin,
+	watchClassicyPatternOriginSelector,
 } from "./ClassicyPatternOrigin.internal";
 
 // Story 0219-c62: a package may declare, per component, the origin its
@@ -108,6 +111,21 @@ describe("layout.patternOrigin", () => {
 				Slider: "element",
 			}),
 		).toBe(true);
+		expect(registers({ Separator: "window" })).toBe(true);
+		expect(
+			registers({
+				elements: [
+					{ selector: ".classicyControlLabel.disabled", origin: "window" },
+				],
+			}),
+		).toBe(true);
+
+		expect(
+			registers({ elements: [{ selector: ".a", origin: "element" }] }),
+		).toBe(false);
+		expect(registers({ elements: [{ selector: "", origin: "window" }] })).toBe(
+			false,
+		);
 		expect(registers({ Button: "window" })).toBe(false);
 		expect(registers({ PopUpMenu: "screen" })).toBe(false);
 		expect(registers({ window: ["PopUpMenu"] })).toBe(false);
@@ -160,8 +178,12 @@ describe("watchClassicyPatternOrigin", () => {
 	it("measures from the padding-box corner, in whole device pixels", () => {
 		const { a } = scene();
 		place(a, 100.4, 80.6);
-		Object.defineProperty(a, "clientLeft", { value: 2 });
-		Object.defineProperty(a, "clientTop", { value: 1 });
+		// The border, not clientLeft: Firefox counts a text field's padding
+		// in its clientLeft.
+		a.style.borderLeft = "2px solid";
+		a.style.borderTop = "1px solid";
+		Object.defineProperty(a, "clientLeft", { value: 5 });
+		Object.defineProperty(a, "clientTop", { value: 4 });
 		const stop = watchClassicyPatternOrigin([a]);
 		expect(published(a)).toEqual(["-61px", "-23px"]);
 		stop();
@@ -219,7 +241,7 @@ describe("components a package lays from a fixed origin", () => {
 
 	const parts = (container: HTMLElement) => [
 		...container.querySelectorAll(
-			".classicyControlGroupFieldset, .classicyPopUpMenuButton, .classicyPopUpMenuIndicator, input.classicySlider, .classicySliderTicks",
+			".classicyControlGroupFieldset, .classicyPopUpMenuButton, .classicyPopUpMenuIndicator, .classicySeparator, input.classicySlider, .classicySliderTicks",
 		),
 	];
 
@@ -233,6 +255,7 @@ describe("components a package lays from a fixed origin", () => {
 				disabled
 			/>
 			<ClassicySlider id="slide" value={50} tickInterval={50} disabled />
+			<ClassicySeparator />
 		</>
 	);
 
@@ -240,11 +263,12 @@ describe("components a package lays from a fixed origin", () => {
 		registerPatternOrigins({
 			ControlGroup: "desktop",
 			PopUpMenu: "desktop",
+			Separator: "window",
 			Slider: "window",
 		});
 		const { container } = inWindow(controls);
 		const found = parts(container);
-		expect(found.length).toBe(5);
+		expect(found.length).toBe(6);
 		for (const el of found)
 			for (const value of published(el)) expect(value).toMatch(/^-?\d+px$/);
 	});
@@ -260,6 +284,8 @@ describe("components a package lays from a fixed origin", () => {
 			const group = container.querySelector(
 				".classicyControlGroupFieldset",
 			) as HTMLElement;
+			// No border (jsdom gives a fieldset the UA's 2 px one).
+			group.style.border = "0";
 			place(group, 60, 90);
 			window.dispatchEvent(new Event("resize"));
 			expect(published(group), origin).toEqual(expected);
@@ -274,6 +300,8 @@ describe("components a package lays from a fixed origin", () => {
 		const group = container.querySelector(
 			".classicyControlGroupFieldset",
 		) as HTMLElement;
+		// No border (jsdom gives a fieldset the UA's 2 px one).
+		group.style.border = "0";
 		place(group, 60, 90);
 		window.dispatchEvent(new Event("resize"));
 		expect(published(group)).toEqual(["-57px", "-85px"]);
@@ -307,6 +335,7 @@ describe("components a package lays from a fixed origin", () => {
 		registerPatternOrigins({
 			ControlGroup: "desktop",
 			PopUpMenu: "desktop",
+			Separator: "desktop",
 			Slider: "desktop",
 		});
 		const before = classicyPatternOriginScopeCountForTests();
@@ -315,5 +344,119 @@ describe("components a package lays from a fixed origin", () => {
 		act(() => resetClassicyAppearancePackagesForTests());
 		for (const el of parts(container)) expect(published(el)).toEqual(["", ""]);
 		expect(classicyPatternOriginScopeCountForTests()).toBe(before);
+	});
+});
+
+describe("elements a package names by selector", () => {
+	beforeEach(() => resetClassicyAppearancePackagesForTests());
+	afterEach(() => {
+		resetClassicyAppearancePackagesForTests();
+		vi.restoreAllMocks();
+		document.body.innerHTML = "";
+	});
+
+	/** A desktop at (3, 5): a window (content origin 41, 59) holding a
+	 * label and a nested window, and a menu outside every window. */
+	const scene = () => {
+		document.body.innerHTML = `
+<div class="classicyDesktop" id="desk">
+  <div class="classicyWindow" id="win">
+    <div class="classicyWindowTitleBar" id="title"></div>
+    <span class="dim" id="label"></span>
+    <span id="later"></span>
+    <div class="classicyWindow" id="inner"><span class="dim" id="nested"></span></div>
+  </div>
+  <div class="menu"><p class="dim" id="item"></p></div>
+</div>`;
+		const el = (id: string) => document.getElementById(id) as HTMLElement;
+		place(el("desk"), 3, 5, 1024, 768);
+		place(el("win"), 40, 40, 400, 300);
+		Object.defineProperty(el("win"), "clientLeft", { value: 1 });
+		Object.defineProperty(el("win"), "clientTop", { value: 1 });
+		place(el("title"), 41, 41, 398, 18);
+		vi.spyOn(el("title"), "getClientRects").mockReturnValue([
+			DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
+		] as unknown as DOMRectList);
+		place(el("label"), 100, 80);
+		place(el("later"), 110, 90);
+		place(el("item"), 20, 25);
+		return el;
+	};
+
+	it("publishes on a window's matches, not on a nested window's", () => {
+		const el = scene();
+		const stop = watchClassicyPatternOriginSelector(el("win"), ".dim");
+		expect(published(el("label"))).toEqual(["-59px", "-21px"]);
+		expect(published(el("nested"))).toEqual(["", ""]);
+		expect(published(el("item"))).toEqual(["", ""]);
+		stop();
+		expect(published(el("label"))).toEqual(["", ""]);
+	});
+
+	it("publishes outside every window from the desktop", () => {
+		const el = scene();
+		const stop = watchClassicyPatternOriginSelector(
+			el("desk"),
+			".dim",
+			"desktop",
+		);
+		expect(published(el("item"))).toEqual(["-17px", "-20px"]);
+		expect(published(el("label"))).toEqual(["", ""]);
+		stop();
+	});
+
+	it("skips a selector the browser cannot parse, with one warning, and keeps the rest", () => {
+		const el = scene();
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const stop = watchClassicyPatternOriginSelector(el("win"), ["a[", ".dim"]);
+		expect(published(el("label"))).toEqual(["-59px", "-21px"]);
+		window.dispatchEvent(new Event("resize"));
+		expect(
+			warn.mock.calls.filter((call) => String(call[0]).includes('"a["')),
+		).toHaveLength(1);
+		stop();
+	});
+
+	it("follows an element that starts or stops matching", async () => {
+		const el = scene();
+		const stop = watchClassicyPatternOriginSelector(el("win"), ".dim");
+		el("later").classList.add("dim");
+		await vi.waitFor(() =>
+			expect(published(el("later"))).toEqual(["-69px", "-31px"]),
+		);
+		el("label").classList.remove("dim");
+		await vi.waitFor(() => expect(published(el("label"))).toEqual(["", ""]));
+		stop();
+	});
+
+	it("is what a window and the desktop watch when the package names elements", () => {
+		const el = scene();
+		registerPatternOrigins({
+			elements: [
+				{ selector: ".dim", origin: "window" },
+				{ selector: ".menu .dim", origin: "desktop" },
+			],
+		});
+		const win = renderHook(() =>
+			useClassicyPatternOriginElements({ current: el("win") }),
+		);
+		const desk = renderHook(() =>
+			useClassicyPatternOriginElements({ current: el("desk") }),
+		);
+		expect(published(el("label"))).toEqual(["-59px", "-21px"]);
+		// Outside windows, ".dim" (window origin: there, the desktop's corner)
+		// and ".menu .dim" (desktop) both match the menu item.
+		expect(published(el("item"))).toEqual(["-17px", "-20px"]);
+		win.unmount();
+		desk.unmount();
+		expect(published(el("label"))).toEqual(["", ""]);
+	});
+
+	it("watches nothing when the package names no elements", () => {
+		const el = scene();
+		const before = classicyPatternOriginScopeCountForTests();
+		renderHook(() => useClassicyPatternOriginElements({ current: el("win") }));
+		expect(classicyPatternOriginScopeCountForTests()).toBe(before);
+		expect(published(el("label"))).toEqual(["", ""]);
 	});
 });
