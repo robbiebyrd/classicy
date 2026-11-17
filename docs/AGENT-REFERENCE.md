@@ -3744,11 +3744,17 @@ Platinum (§1); its README lists what it ships.
   `fileDialog` knobs (`width`, `height`; `popUpLeft`/`Top`/`Width`,
   `volumeLeft`/`Top`/`Gap`/`LineHeight`/`IconDrop`, `listLeft`/`Top`/`Width`/`Height`,
   `buttonsLeft`, `buttonWidth`, `ejectTop`, `desktopTop`, `dividerTop`,
-  `dividerWidth`, `cancelTop`, `openTop`: px from the inside of the box's
-  inner line) place Standard File's parts (`_FileDialog.scss`); the
+  `dividerWidth`, `cancelTop`, `openTop`, `filterLeft`/`Top`, the list's
+  `listRowHeight`/`listRowInset`/`listIconGap`, the pop-up's `popUpTail`,
+  and the Save box's `save*` counterparts with `saveNew*`,
+  `newGlyphGap`/`newGlyphRaise`: px from the inside of the box's inner
+  line) place Standard File's parts (`_FileDialog.scss`); the
   Application menu's title is the front app's small icon alone
-  (`menuBar.switcherTitleStart`/`End` 9, `menuBar.endInset` 6), its menu
-  right-aligned under it; list rows are white, 18 px apart
+  (`menuBar.switcherTitleStart`/`End` 9, `menuBar.endInset` 6), inverted
+  while open in 1-bit (`menuBar.titleArtInvert`), its menu right-aligned
+  under it, a hidden application's icon dimmed (the checker in 1-bit,
+  `menuItem.hiddenIconOpacity`/`hiddenIconOpacityScale` in color; Platinum
+  at 0.35 opacity, as Mac OS 8.1); list rows are white, 18 px apart
   (`fileBrowserList.rowPadding` 1, no row lines); small text is Geneva
   (`typography.uiSmall`).
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
