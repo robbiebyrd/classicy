@@ -478,6 +478,42 @@ describe("system7.scss (compiled)", () => {
 			).toBe(6);
 		});
 
+		// In an 18-row item with a small icon (the Application menu's), 7.5
+		// draws the icon from the item's top and the mark a row lower than in
+		// a 16-row item, on the title's baseline
+		// (`*-755-appmenu-open.png`, the Finder row: icon art rows 85-99, the
+		// check 89-96; story 0216-1im F6).
+		it("puts a small icon at its item's top and the mark on the title's baseline", () => {
+			const imageRow = `${MENUS} .classicyMenuItem:has(> p > img)`;
+			expect(rule(`${imageRow} > p > img`)).toMatch(
+				/margin-top: calc\(var\(--menu-item-image-pad\) \* -1\);/,
+			);
+			expect(rule(`${imageRow} > p > .classicyMenuItemCheck`)).toMatch(
+				/top: var\(--menu-item-image-pad\);/,
+			);
+		});
+
+		// System 7 menus never drew a focus ring: an item the keyboard makes
+		// current is inverted, as the pointer tracks one (story 0216-1im F8),
+		// not Chromium's rounded, anti-aliased `outline: auto`. A dimmed item
+		// never highlights; and while the pointer is over the menu, it tracks
+		// the item under it alone.
+		it("highlights a keyboard-current menu item as a tracked one, with no ring", () => {
+			expect(rule(`${MENUS} .classicyMenuItem:focus-visible`)).toMatch(
+				/outline: none;/,
+			);
+			const current = rule(
+				`${MENUS} .classicyMenuItem:not(.disabled):focus-visible`,
+			);
+			expect(current).toMatch(/color: var\(--color-white\);/);
+			expect(current).toMatch(/background-color: var\(--color-black\);/);
+			const pointer = rule(
+				`${MENUS}:hover .classicyMenuItem:not(:hover, .open):focus-visible`,
+			);
+			expect(pointer).toMatch(/color: var\(--color-black\);/);
+			expect(pointer).toMatch(/background-color: transparent;/);
+		});
+
 		it("overlaps a submenu on its parent menu's right side", () =>
 			expect(
 				rule(

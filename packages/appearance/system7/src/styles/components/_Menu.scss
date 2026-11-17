@@ -144,9 +144,12 @@ $checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2
       padding-right: var(--menu-item-text-end);
     }
 
-    // A small icon before the title, `menuItem.imagePad` (1) clear of the
-    // item's top and bottom (the Apple menu's 18 px rows), the title
-    // `menuItem.imageGap` (4) after it.
+    // A small icon before the title, the title `menuItem.imageGap` (4)
+    // after it. Its item is `menuItem.imagePad` (1) taller above and below
+    // (the Application and Apple menus' 18 px rows), which moves the title,
+    // its mark and its submenu triangle a row down; the icon stays at the
+    // item's top (`*-755-appmenu-open.png`, the Finder row: item y 84, icon
+    // art rows 85-99 of its 84-99 box, the check 89-96, the title 88-96).
     img {
       width: var(--menu-item-image-size);
       height: var(--menu-item-image-size);
@@ -161,10 +164,39 @@ $checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2
         align-items: flex-start;
       }
 
+      > p > img {
+        margin-top: calc(var(--menu-item-image-pad) * -1);
+      }
+
+      > p > .classicyMenuItemCheck {
+        top: var(--menu-item-image-pad);
+      }
+
       &.classicyMenuItemChildMenuIndicator::after {
         top: calc(var(--menu-item-arrow-top) + var(--menu-item-image-pad));
       }
     }
+
+    // System 7 menus draw no focus ring: an item the keyboard makes current
+    // (a pop-up opened from the keyboard focuses its first item) is
+    // inverted, as the pointer tracks one, not ringed by the browser's
+    // rounded, anti-aliased `outline: auto`. A dimmed item never highlights.
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:not(.disabled):focus-visible {
+      color: var(--color-white);
+      background-color: var(--color-black);
+    }
+  }
+
+  // While the pointer is over a menu it tracks the item under it alone, so
+  // a keyboard-current item elsewhere in it shows plain (one open on its
+  // submenu stays highlighted).
+  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open):focus-visible {
+    color: var(--color-black);
+    background-color: transparent;
   }
 
   // A dimmed item: the dimmed ink, dithered in 1-bit; it never highlights
