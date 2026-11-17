@@ -160,3 +160,115 @@ describe("registerClassicyFonts", () => {
 		).toBeUndefined();
 	});
 });
+
+// Story 0210-aal: System 7 ships byte-identical copies of Platinum's faces,
+// so a host loading both would write each shared face twice. A face that
+// names its `file` is shared by family, weight, style and file: the first
+// package to register it writes its rule, the others none.
+describe("registerClassicyFonts with shared files", () => {
+	beforeEach(() => {
+		resetClassicyAssets();
+		document.head.innerHTML = "";
+	});
+
+	const rules = (packageId: string): string[] =>
+		styleCss(packageId).match(/@font-face\{[^}]*\}/g) ?? [];
+
+	it("writes a face two packages share once, in the first package's element", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/geneva.woff2", file: "Geneva-normal-normal" },
+			{ family: "Charcoal", src: "p/charcoal.woff2", file: "Charcoal" },
+		]);
+		registerClassicyFonts("system7", [
+			{ family: "Geneva", src: "s/geneva.woff2", file: "Geneva-normal-normal" },
+		]);
+		expect(rules("platinum")).toHaveLength(2);
+		expect(styleCss("platinum")).toContain("p/geneva.woff2");
+		expect(rules("system7")).toEqual([]);
+		// Each package's asset tree still names its own file.
+		expect(
+			resolveClassicyAsset("fonts", "Geneva.normal-normal", "system7"),
+		).toBe("s/geneva.woff2");
+	});
+
+	it("whichever package registers first writes it", () => {
+		registerClassicyFonts("system7", [
+			{ family: "Geneva", src: "s/geneva.woff2", file: "Geneva-normal-normal" },
+		]);
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/geneva.woff2", file: "Geneva-normal-normal" },
+			{ family: "Charcoal", src: "p/charcoal.woff2", file: "Charcoal" },
+		]);
+		expect(rules("system7")).toHaveLength(1);
+		expect(styleCss("system7")).toContain("s/geneva.woff2");
+		expect(rules("platinum")).toHaveLength(1);
+		expect(styleCss("platinum")).toContain("p/charcoal.woff2");
+	});
+
+	it("shares only the same family, weight, style and file", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "Geneva" },
+			{
+				family: "Geneva",
+				src: "p/gb.woff2",
+				file: "Geneva-bold",
+				weight: "bold",
+			},
+		]);
+		registerClassicyFonts("other", [
+			// Another file of the same face: its own rule.
+			{ family: "Geneva", src: "o/g.woff2", file: "Geneva-other" },
+			// The same file under another style: its own rule.
+			{
+				family: "Geneva",
+				src: "o/gb.woff2",
+				file: "Geneva-bold",
+				weight: "bold",
+				style: "italic",
+			},
+			// No file: never shared.
+			{ family: "Geneva", src: "o/gbn.woff2", weight: "bold" },
+		]);
+		expect(rules("platinum")).toHaveLength(2);
+		expect(rules("other")).toHaveLength(3);
+	});
+
+	it("a face named by another family is not shared", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "Shared" },
+		]);
+		registerClassicyFonts("other", [
+			{ family: "Monaco", src: "o/m.woff2", file: "Shared" },
+		]);
+		expect(rules("other")).toHaveLength(1);
+	});
+
+	it("hands a face back when its first package registers another file for it", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "Geneva" },
+		]);
+		registerClassicyFonts("system7", [
+			{ family: "Geneva", src: "s/g.woff2", file: "Geneva" },
+		]);
+		expect(rules("system7")).toEqual([]);
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g2.woff2", file: "Geneva-2" },
+		]);
+		expect(rules("platinum")).toHaveLength(1);
+		expect(styleCss("platinum")).toContain("p/g2.woff2");
+		expect(rules("system7")).toHaveLength(1);
+		expect(styleCss("system7")).toContain("s/g.woff2");
+	});
+
+	it("ignores a file that is not a non-empty string, keeping the face unshared", () => {
+		registerClassicyFonts("platinum", [
+			{ family: "Geneva", src: "p/g.woff2", file: "" },
+		]);
+		registerClassicyFonts("other", [
+			{ family: "Geneva", src: "o/g.woff2", file: "" },
+			{ family: "Monaco", src: "o/m.woff2", file: 7 as never },
+		]);
+		expect(rules("platinum")).toHaveLength(1);
+		expect(rules("other")).toHaveLength(2);
+	});
+});

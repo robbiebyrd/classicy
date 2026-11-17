@@ -131,15 +131,50 @@ const FILES = [
 	"SystemResources/Slider/ClassicySlider.scss",
 ];
 
-/** Every `prop: value` declaration of compiled CSS, comments removed. */
-const declarations = (css: string): string[] =>
-	css
-		.replace(/\/\*[\s\S]*?\*\//g, "")
-		.split(/[;{}]/)
-		.map((d) => d.trim())
-		.filter((d) => /^[-\w]+\s*:/.test(d) && !d.includes("::"))
-		.filter((d) => !/^[^:]*[.#[&]/.test(d))
+/**
+ * Every `prop: value` declaration of compiled CSS, comments removed. A
+ * scanner, not a split: a `;`, `{` or `}` inside a string or parentheses
+ * (`url(data:image/svg+xml;base64,…)`, `url("a;b")`) ends nothing, and only
+ * text inside a block that a `;` or the block's `}` ends is a declaration, so
+ * a selector (`input:checked + label`, ended by its `{`) or an at-rule
+ * statement (`@layer a, b;`) never reads as one.
+ */
+const declarations = (css: string): string[] => {
+	const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const out: string[] = [];
+	let depth = 0;
+	let parens = 0;
+	let quote = "";
+	let start = 0;
+	const end = (i: number) => {
+		const text = source.slice(start, i).trim();
+		start = i + 1;
+		return text;
+	};
+	for (let i = 0; i < source.length; i += 1) {
+		const c = source[i];
+		if (quote) {
+			if (c === "\\") i += 1;
+			else if (c === quote) quote = "";
+			continue;
+		}
+		if (c === '"' || c === "'") quote = c;
+		else if (c === "(") parens += 1;
+		else if (c === ")") parens = Math.max(0, parens - 1);
+		else if (parens > 0) continue;
+		else if (c === "{") {
+			end(i);
+			depth += 1;
+		} else if (c === ";" || c === "}") {
+			const text = end(i);
+			if (depth > 0 && text && !text.startsWith("@")) out.push(text);
+			if (c === "}") depth = Math.max(0, depth - 1);
+		}
+	}
+	return out
+		.filter((d) => /^[-\w]+\s*:/.test(d))
 		.map((d) => d.replace(/\s+/g, " "));
+};
 
 /**
  * The declarations that are neither structural nor a named exception, the
@@ -186,6 +221,28 @@ describe("base control sheets hold only structure", () => {
 			"scrollbar-width:none",
 		]);
 		expect(nonStructural(reset)).toHaveLength(3);
+	});
+
+	it("reads a selector with a pseudo-class as a selector, not a declaration", () => {
+		expect(nonStructural("input:checked + label{display:block}")).toEqual([]);
+		expect(
+			nonStructural(".a{display:block}\ninput:focus-visible{width:1px}"),
+		).toEqual([]);
+		expect(nonStructural("@layer a, b;\n.a{display:block}")).toEqual([]);
+		expect(
+			nonStructural("@media (min-width: 1px){.a:hover{color:red}}"),
+		).toEqual(["color:red"]);
+	});
+
+	it("keeps a declaration whole across a ';' inside url() or a string", () => {
+		expect(
+			nonStructural(
+				".a{display:block;background:url(data:image/svg+xml;base64,AAA=)}",
+			),
+		).toEqual(["background:url(data:image/svg+xml;base64,AAA=)"]);
+		expect(nonStructural('.a{content:"a;b}c";width:1px}')).toEqual([
+			'content:"a;b}c"',
+		]);
 	});
 
 	it("keeps the visibility exceptions robust to whitespace", () => {

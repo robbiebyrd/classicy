@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
@@ -50,8 +50,9 @@ export type ClassicyIconLeaf = {
 export const CLASSICY_SMALL_ICON_SIZE = 16;
 
 /**
- * What a stored `{ src, small }` leaf is. A class, not a shape, so a
- * namespace that happens to hold a `src` key is never mistaken for one.
+ * What a stored `{ src, small }` leaf is. A class, not a shape, so once
+ * registered a leaf and a namespace are never confused by their keys
+ * (registration itself reads the shape: `isIconLeafShape`).
  */
 class StoredIconLeaf {
 	// Structurally a tree of strings, so it nests in a ClassicyAssetTree.
@@ -66,7 +67,14 @@ class StoredIconLeaf {
 const isStoredLeaf = (value: unknown): value is StoredIconLeaf =>
 	value instanceof StoredIconLeaf;
 
-/** True for the `{ src, small? }` form an icon registration may hold. */
+/**
+ * True for the `{ src, small? }` form an `icons` registration may hold: a
+ * plain object with a `src` key and no key but `src` and `small`, whatever
+ * their values (`validLeaves` then checks them). The keys alone decide, so in
+ * an icon tree a namespace whose only icons are named `src` (and `small`)
+ * registers as one leaf; any other key keeps it a namespace. Other kinds
+ * never take this form.
+ */
 const isIconLeafShape = (value: unknown): value is ClassicyIconLeaf => {
 	if (typeof value !== "object" || value === null || Array.isArray(value))
 		return false;
@@ -140,6 +148,15 @@ export type ClassicyFontFace = {
 	src: ClassicyAssetSource | ClassicyAssetSource[];
 	weight?: string;
 	style?: string;
+	/**
+	 * The face's file, for a face several packages ship as the same file
+	 * (System 7's faces are copies of Platinum's): any name for it, such as
+	 * its basename. Faces of two packages with the same family, weight, style
+	 * and file share one `@font-face` rule, written by the package whose
+	 * first `registerClassicyFonts` call came first; the others write none.
+	 * Without it a face is never shared.
+	 */
+	file?: string;
 };
 
 type StoredFontFace = {
@@ -147,6 +164,8 @@ type StoredFontFace = {
 	sources: ClassicyAssetSource[];
 	weight: string;
 	style: string;
+	/** What faces of other packages share it by (`ClassicyFontFace.file`). */
+	shareKey?: string;
 };
 
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
@@ -397,6 +416,10 @@ export type ClassicyAssetRegistrationOptions = {
 	variant?: string;
 };
 
+/** True when `tree` holds at least one leaf, at any depth. */
+const hasLeaf = (tree: ClassicyAssetTree): boolean =>
+	Object.values(tree).some((value) => !isTree(value) || hasLeaf(value));
+
 /** The tree `kind` keeps for `packageId` (its `variant`'s, when given), created on demand. */
 const storedTree = (
 	kind: ClassicyAssetKind,
@@ -445,7 +468,9 @@ const storedTree = (
  * Deep-merge `tree` into that package's namespace for `kind`: its base tree,
  * or with `options.variant` that variant's tree. Leaves that are not a valid
  * `ClassicyAssetSource` are skipped with a warning; a variant name that is not
- * a `CLASSICY_ASSET_VARIANT_NAME` registers nothing, with a warning.
+ * a `CLASSICY_ASSET_VARIANT_NAME` registers nothing, with a warning. A variant
+ * is registered by its first accepted leaf: a variant registration that
+ * leaves no leaf registers nothing.
  */
 export const registerClassicyAssets = (
 	kind: ClassicyAssetKind,
@@ -462,11 +487,12 @@ export const registerClassicyAssets = (
 		);
 		return;
 	}
-	mergeInto(
-		storedTree(kind, packageId, variant),
-		validLeaves(kind, packageId, tree, ""),
-		"",
-	);
+	const accepted = validLeaves(kind, packageId, tree, "");
+	// A variant exists once a leaf of it is accepted: one whose every leaf was
+	// dropped (or that held none) registers nothing, so a theme naming it is
+	// still warned that it draws the base tree.
+	if (variant !== undefined && !hasLeaf(accepted)) return;
+	mergeInto(storedTree(kind, packageId, variant), accepted, "");
 	notify();
 };
 
@@ -533,10 +559,12 @@ const variantTree = (
 /**
  * Dotted-path lookup: the given (or active) package's `variant` tree, then
  * its base tree, then the default package's base tree. `variant` defaults to
- * the active theme's `assetVariant` when that theme belongs to the package;
- * pass it to resolve for another theme. Store-free: the active package and
- * theme are read through the source the store connects, so reducers may call
- * it.
+ * the active theme's `assetVariant` when that theme belongs to the package,
+ * even when `packageId` is given; pass `""` for the base tree alone (no
+ * variant is named `""`). To resolve for a theme that is not the active one,
+ * such as a preview of a sibling theme, use `resolveClassicyThemeAsset`.
+ * Store-free: the active package and theme are read through the source the
+ * store connects, so reducers may call it.
  */
 export const resolveClassicyAsset = (
 	kind: ClassicyAssetKind,
@@ -552,6 +580,27 @@ export const resolveClassicyAsset = (
 		walk(byPackage?.get(DEFAULT_PACKAGE), path)
 	);
 };
+
+/**
+ * Dotted-path lookup for `theme`, whatever theme is active: its package's
+ * (`theme.package`, Platinum when absent) tree for its own `assetVariant`,
+ * then that package's base tree, then the default package's. A theme naming
+ * no variant reads the base tree, never the active theme's variant. For
+ * previews of a theme other than the active one. Pure: a variant its package
+ * never registered reads the base tree with no warning (the active theme's
+ * lookups warn).
+ */
+export const resolveClassicyThemeAsset = (
+	kind: ClassicyAssetKind,
+	path: string,
+	theme: { package?: string; assetVariant?: string },
+): ClassicyAssetSource | undefined =>
+	resolveClassicyAsset(
+		kind,
+		path,
+		theme.package ?? DEFAULT_PACKAGE,
+		theme.assetVariant ?? "",
+	);
 
 /**
  * An icon with its small image: `resolveClassicyAsset("icons", path)` is the
@@ -813,7 +862,11 @@ export const useClassicyIconImage = (
 	px: number | true = true,
 	selected = false,
 ): string => {
-	const getSnapshot = () => resolveClassicyIconImage(src, px, selected);
+	// One getSnapshot per input: React re-runs a changed one during render.
+	const getSnapshot = useCallback(
+		() => resolveClassicyIconImage(src, px, selected),
+		[src, px, selected],
+	);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,
@@ -833,7 +886,14 @@ export const useClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
 ): ClassicyAssetSource | undefined => {
-	const getSnapshot = () => resolveClassicyAsset(kind, path);
+	// One getSnapshot per input. Under a theme naming a variant its package
+	// never registered, a read may queue that warning's check
+	// (`activeVariantFor`), once per package and variant per page, so calling
+	// it on every render stays side-effect free after the first.
+	const getSnapshot = useCallback(
+		() => resolveClassicyAsset(kind, path),
+		[kind, path],
+	);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,
@@ -871,7 +931,7 @@ const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 export const useClassicyAssetTree = (
 	kind: ClassicyAssetKind,
 ): ClassicyAssetTree => {
-	const getSnapshot = () => mergedTree(kind);
+	const getSnapshot = useCallback(() => mergedTree(kind), [kind]);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,
@@ -1225,7 +1285,24 @@ connectClassicyWallpaperSource({
 const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
 const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
 
-/** Rewrites `<style id="classicy-fonts-<packageId>">` from that package's faces. */
+/**
+ * The share keys an earlier package (in first-registration order) than
+ * `packageId` writes: its own faces with those keys are written there.
+ */
+const fontShareKeysBefore = (packageId: string): Set<string> => {
+	const keys = new Set<string>();
+	for (const [id, faces] of fontFaces) {
+		if (id === packageId) break;
+		for (const face of faces.values())
+			if (face.shareKey !== undefined) keys.add(face.shareKey);
+	}
+	return keys;
+};
+
+/**
+ * Rewrites `<style id="classicy-fonts-<packageId>">` from that package's
+ * faces, less those an earlier package shares and writes.
+ */
 const writeClassicyFontFaces = (packageId: string): void => {
 	if (typeof document === "undefined") return;
 	const id = `classicy-fonts-${packageId}`;
@@ -1241,14 +1318,18 @@ const writeClassicyFontFaces = (packageId: string): void => {
 		if (base) base.after(style);
 		else document.head.prepend(style);
 	}
+	const shared = fontShareKeysBefore(packageId);
 	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
+		.filter((face) => face.shareKey === undefined || !shared.has(face.shareKey))
 		.map(classicyFontFaceRule)
 		.join("\n");
 };
 
 /**
  * Registers font faces under `fonts.<family>.<weight>-<style>` and writes their
- * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`. A face
+ * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`, except a
+ * face with a `file` that a package registered earlier shares (same family,
+ * weight, style and file): that package's element holds its one rule. A face
  * with an unsafe family, descriptor or source is skipped with a warning.
  */
 export const registerClassicyFonts = (
@@ -1280,6 +1361,14 @@ export const registerClassicyFonts = (
 			continue;
 		}
 		const key = `${weight}-${style}`;
+		const { file } = font;
+		const shareable = typeof file === "string" && file !== "";
+		if (file !== undefined && !shareable)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored the file of font face "${font.family}" ${weight} ${style}: not a non-empty string; the face is not shared`,
+			);
 		const family = Object.hasOwn(tree, font.family)
 			? (tree[font.family] as ClassicyAssetTree)
 			: {};
@@ -1290,8 +1379,11 @@ export const registerClassicyFonts = (
 			sources,
 			weight,
 			style,
+			...(shareable ? { shareKey: `${font.family}|${key}|${file}` } : {}),
 		});
 	}
 	registerClassicyAssets("fonts", packageId, tree);
-	writeClassicyFontFaces(packageId);
+	// Every package's element: this registration may take a shared face over
+	// from a later package, or hand one back.
+	for (const id of fontFaces.keys()) writeClassicyFontFaces(id);
 };

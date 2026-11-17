@@ -19,6 +19,7 @@ import {
 	registerClassicySystemArt,
 	resetClassicyAssets,
 	resolveClassicyAsset,
+	resolveClassicyThemeAsset,
 	useClassicyAsset,
 	useClassicyAssetTree,
 	useClassicyAssetVars,
@@ -176,6 +177,52 @@ describe("resolution with a theme naming a variant", () => {
 		expect(resolveClassicyAsset("icons", "app", "sys7")).toBe("/sys7-app.png");
 	});
 
+	it('an explicit "" variant resolves the base tree under a variant theme', () => {
+		activate("sys7", themeOf("sys7", "bw"));
+		expect(resolveClassicyAsset("icons", "app", "sys7", "")).toBe(
+			"/sys7-app.png",
+		);
+		expect(resolveClassicyAsset("icons", "app", "sys7")).toBe(
+			"/sys7-bw-app.png",
+		);
+	});
+
+	it("a theme's own lookup resolves its variant, never the active theme's", async () => {
+		// A preview of a sibling theme: the active theme is sys7's bw one.
+		activate("sys7", themeOf("sys7", "bw"));
+		expect(resolveClassicyThemeAsset("icons", "app", themeOf("sys7"))).toBe(
+			"/sys7-app.png",
+		);
+		expect(
+			resolveClassicyThemeAsset("systemArt", "appleMenu", themeOf("sys7")),
+		).toBe("/apple-rainbow.png");
+		// And the other way round.
+		activate("sys7", themeOf("sys7"));
+		expect(
+			resolveClassicyThemeAsset("icons", "app", themeOf("sys7", "bw")),
+		).toBe("/sys7-bw-app.png");
+		expect(
+			resolveClassicyThemeAsset("cursors", "arrow", themeOf("sys7", "bw")),
+		).toBe("/arrow-bw.png");
+		// The theme's package, whatever the active one, then the default's.
+		expect(resolveClassicyThemeAsset("icons", "app", themeOf("platinum"))).toBe(
+			"/platinum-app.png",
+		);
+		expect(
+			resolveClassicyThemeAsset("icons", "core", themeOf("sys7", "bw")),
+		).toBe("/platinum-core.png");
+		// A theme naming no package is Platinum's (the theme schema's default).
+		expect(resolveClassicyThemeAsset("icons", "app", {})).toBe(
+			"/platinum-app.png",
+		);
+		// A variant the package never registered: its base tree, unwarned.
+		expect(
+			resolveClassicyThemeAsset("icons", "app", themeOf("sys7", "sepia")),
+		).toBe("/sys7-app.png");
+		await Promise.resolve();
+		expect(variantWarnings()).toEqual([]);
+	});
+
 	it("a variant of the package never reaches another package's lookups", () => {
 		// The active theme is sys7's, but the drawn package is Platinum.
 		registerClassicyAssets(
@@ -318,6 +365,40 @@ describe("a variant the package never registered", () => {
 		await Promise.resolve();
 		expect(variantWarnings()).toEqual([]);
 		expect(resolveClassicyAsset("icons", "app")).toBe("/sepia.png");
+	});
+
+	it("a variant whose every leaf was rejected is not registered, and is warned", async () => {
+		registerClassicyAssets(
+			"icons",
+			"sys7",
+			{ app: "javascript:alert(1)", system: { trash: 'x".png' } },
+			{ variant: "sepia" },
+		);
+		// Nothing to accept at all: an empty tree, or namespaces with no leaf.
+		registerClassicyAssets("cursors", "sys7", {}, { variant: "sepia" });
+		registerClassicyAssets("systemArt", "sys7", { nested: {} } as never, {
+			variant: "sepia",
+		});
+		registerClassicyCursors("sys7", { arrow: "" }, { variant: "sepia" });
+		activate("sys7", themeOf("sys7", "sepia"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7-app.png");
+		await Promise.resolve();
+		expect(variantWarnings()).toHaveLength(1);
+		expect(variantWarnings()[0].message).toContain('"sepia"');
+	});
+
+	it("one accepted leaf registers the variant, with no warning", async () => {
+		registerClassicyAssets(
+			"icons",
+			"sys7",
+			{ app: "javascript:alert(1)", trash: "/sepia-trash.png" },
+			{ variant: "sepia" },
+		);
+		activate("sys7", themeOf("sys7", "sepia"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7-app.png");
+		expect(resolveClassicyAsset("icons", "trash")).toBe("/sepia-trash.png");
+		await Promise.resolve();
+		expect(variantWarnings()).toEqual([]);
 	});
 
 	it("a variant registered for one kind counts as registered for every kind", async () => {

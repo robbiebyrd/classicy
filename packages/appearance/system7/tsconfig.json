@@ -22,5 +22,5 @@
 	],
 	// Stories are type-checked under storybook/tsconfig.json, which maps
 	// Storybook's types.
-	"exclude": ["dist", "node_modules", "resources", "src/**/*.stories.tsx"]
+	"exclude": ["dist", "node_modules", "src/**/*.stories.tsx"]
 }

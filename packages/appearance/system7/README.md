@@ -81,7 +81,10 @@ resolution).
 - **The screen savers.** The twelve After Dark savers Platinum ships, offered
   under System 7 too, Bouncing Ball by default.
 - **Fonts.** Chicago (ChicagoFLF), Geneva (regular, bold and italic) and
-  Monaco: byte-identical copies of the vector faces Platinum ships.
+  Monaco: byte-identical copies of the vector faces Platinum ships. A host
+  that loads both packages writes each of these faces once, in the element
+  of whichever package registered it first. Small interface text is 9 px
+  (`--ui-font-size-small: 9px`, the theme knob `uiText.smallFontSize`).
 
 ## Exports
 
@@ -130,7 +133,9 @@ order: the core's, then this package's two.
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
 A host that loads Platinum too links Platinum's two stylesheets as well
-(its README).
+(its README); Platinum's fonts stylesheet already holds this package's five
+faces (the same files), so such a host may leave this package's fonts
+stylesheet out.
 
 Link the files rather than importing `classicy-system7.fonts.css` through
 your own bundler: Vite inlines the small Monaco font as a `data:` URL, which

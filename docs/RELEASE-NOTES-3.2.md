@@ -107,8 +107,12 @@ diverge, so a logo registered through Platinum's
   from the package's base tree, then the default package's. The variant
   applies only while the active theme belongs to the drawn package, and
   readers re-render on a theme switch. `resolveClassicyAsset(kind, path,
-  packageId?, variant?)` takes an explicit variant. A variant the package
-  never registers is warned about once per page and draws the base tree.
+  packageId?, variant?)` takes an explicit variant (`""` for the base tree
+  alone); `resolveClassicyThemeAsset(kind, path, theme)` resolves for a
+  theme that need not be the active one, such as a preview, at its own
+  variant. A variant the package never registers is warned about once per
+  page and draws the base tree; a variant registration none of whose leaves
+  is accepted registers nothing.
   Wallpapers, fonts and `registerClassicyIcons` take no variant.
 - **Icons with their own 16 px image.** An `icons` leaf may be `{ src,
   small? }` as well as a URL. `resolveClassicyAsset` and `useClassicyAsset`
@@ -118,7 +122,9 @@ diverge, so a logo registered through Platinum's
   return the leaf's `small` when drawn at `CLASSICY_SMALL_ICON_SIZE` (16) or
   less. Menu items, list boxes, pop-up menus, the file browser's list view,
   the window title bar's proxy icon, menu bar extensions, Control Strip
-  modules (the new `ClassicyBevelButton` prop `iconSmall`), `ClassicyIcon`
+  modules (the new `ClassicyBevelButton` prop `iconSmall`, for a surface
+  whose stylesheet draws the icon at 16 px: it picks the image and never
+  sizes the icon), `ClassicyIcon`
   and desktop icons at 16 px or less draw it. A leaf without `small` scales
   as before.
 - **List-view icon sizes.** A theme may give the file browser's list view
@@ -237,8 +243,9 @@ diverge, so a logo registered through Platinum's
   `resolvePosition` takes it as an optional fourth argument. System 7 sets
   it; Platinum does not, so its windows land where they did.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
-  knob when a theme sets it, else `window.controlSize × 2.5` as before; it
-  has no floor value, so Platinum's band still follows its control size.
+  knob when a theme sets it to zero or more (a negative band is ignored),
+  else `window.controlSize × 2.5` as before; it has no floor value, so
+  Platinum's band still follows its control size.
 - **Cursor hotspots.** `registerClassicyCursors` accepts `{ src, hotspot:
   [x, y] }` (whole numbers, 0–127), published as
   `--classicy-cursor-<role>-hotspot` and returned by
@@ -277,7 +284,10 @@ diverge, so a logo registered through Platinum's
   key `helpMenuTitle`, which, when registered, draws the menu bar's Help
   title as an image; and `ClassicyMenuItem.imageAlt`, the alt text of an
   item drawn as its image alone (it keeps "Help" as that title's accessible
-  name).
+  name, and the Apple menu's art is now named "Apple"). An item with no
+  `title` carries its `imageAlt` as the `title` of its analytics events, so
+  the Apple menu's and the art Help menu's `hover` and `selected` events
+  name them, where their `title` was undefined.
 
 ## Base looks moved into Platinum
 
@@ -488,6 +498,20 @@ the ids the saver already names:
   by encoder rounding, about -79 and -55 dBFS RMS). A host bundler that
   names assets by content hash gives the three files new URLs, so a browser
   fetches them once.
+- **Fonts are written once when both packages load.** `ClassicyFontFace`
+  takes an optional `file`; faces of two packages with the same family,
+  weight, style and `file` share one `@font-face` rule, written in the
+  element of the package that registered it first. Platinum and System 7
+  name theirs, so a host loading both writes System 7's five faces (copies
+  of Platinum's) once: `<style id="classicy-fonts-system7">` is empty when
+  Platinum registered first, and Platinum's element lacks those five when
+  System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
+  leave System 7's out.
+- **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
+  the knob when a theme sets it to a positive number, else
+  `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
+  themes set 9, so its small text is 9 px, not 9.6 px (the size only: the
+  family is unchanged).
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 

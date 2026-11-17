@@ -312,7 +312,9 @@ const fontModules = import.meta.glob("./fonts/*.woff2", {
 /**
  * System 7's bundled faces, woff2 only, from the list
  * dist/classicy-system7.fonts.css is built from. Importing this module (a side
- * effect, listed in `package.json` `sideEffects`) registers them.
+ * effect, listed in `package.json` `sideEffects`) registers them. Each names
+ * its `file`, which is Platinum's name for the same bytes, so a host loading
+ * both packages writes each face once (whichever registers first writes it).
  */
 registerClassicyFonts(
 	SYSTEM7,
@@ -322,6 +324,7 @@ registerClassicyFonts(
 			src: fontModules[`./fonts/${file}.woff2`] ?? "",
 			weight,
 			style,
+			file,
 		}),
 	),
 );

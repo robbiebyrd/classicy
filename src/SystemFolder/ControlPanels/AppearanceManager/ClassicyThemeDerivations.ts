@@ -44,10 +44,22 @@ const ui = (i: ClassicyThemeDerivationInputs): number => i.typography.uiSize;
 // An optional package knob, not a structural one: the core floor has no
 // value, because Platinum's band must keep following `window.controlSize`
 // (an editable metric; H-R25). A theme without it, or with a value that is
-// not a finite number, derives the band from the control size.
+// not a finite number of zero or more, derives the band from the control size.
 const menuBarBand = (i: ClassicyThemeDerivationInputs): number | undefined => {
 	const band = i.measurements.menuBar?.bandHeight;
-	return typeof band === "number" && Number.isFinite(band) ? band : undefined;
+	return typeof band === "number" && Number.isFinite(band) && band >= 0
+		? band
+		: undefined;
+};
+// The same kind of optional package knob: a package whose small UI text is
+// not uiSize × 0.8 (System 7: 9 px under a 12 px uiSize) sets
+// `uiText.smallFontSize`. Without it, or with a value that is not a positive
+// finite number, the size follows uiSize, so Platinum's follows the Fonts tab.
+const uiTextSmall = (i: ClassicyThemeDerivationInputs): number | undefined => {
+	const size = i.measurements.uiText?.smallFontSize;
+	return typeof size === "number" && Number.isFinite(size) && size > 0
+		? size
+		: undefined;
 };
 // A structural knob, not a core input: `getThemeVars` heals the theme from
 // the package floor before deriving, so the core floor's band is the fallback
@@ -115,7 +127,8 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	},
 	{
 		cssVar: "--menu-bar-height",
-		formula: "menuBar.bandHeight, else window.controlSize * 2.5",
+		formula:
+			"menuBar.bandHeight (when 0 or more), else window.controlSize * 2.5",
 		doc: "Height of the screen menu bar, which windows may not be dragged or zoomed under (ClassicyWindow.tsx). A package whose bar does not follow its control size sets the knob `menuBar.bandHeight` (System 7: 20, with 11 px window boxes); Platinum sets none, so its bar scales with the Metrics tab's control size.",
 		compute: (i) => menuBarBand(i) ?? control(i) * 2.5,
 	},
@@ -205,9 +218,9 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	},
 	{
 		cssVar: "--ui-font-size-small",
-		formula: "typography.uiSize * 0.8",
-		doc: "Small UI text, such as labels and table cells (ClassicyControlGroup.scss, ClassicyTable.scss, ClassicyPopUpMenu.scss).",
-		compute: (i) => ui(i) * 0.8,
+		formula: "uiText.smallFontSize, else typography.uiSize * 0.8",
+		doc: "Small UI text, such as labels and table cells (ClassicyControlGroup.scss, ClassicyTable.scss, ClassicyPopUpMenu.scss). A package whose small text does not follow its UI size sets the knob `uiText.smallFontSize` (System 7: 9, under a 12 px UI size); Platinum sets none, so its small text scales with the Fonts tab's UI size.",
+		compute: (i) => uiTextSmall(i) ?? ui(i) * 0.8,
 		unrounded: true,
 	},
 	{
