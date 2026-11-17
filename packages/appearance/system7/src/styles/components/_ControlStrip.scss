@@ -218,6 +218,15 @@ $line: var(--window-border-size);
     box-shadow: $line 0 0 var(--color-black);
   }
 
+  // Docked right, the tab's own art (`controlStripTabRight`, which marks
+  // the tab `classicyControlStripTabRight`) draws the black line between it
+  // and the first scroll arrow: one pixel, as 7.5.5's
+  // (`*-755-controlstrip-right.png`, x 503), so the base sheet's line on the
+  // arrow cell, for a mirrored left tab, stands down.
+  .classicyControlStripRight .classicyControlStripScrollStart {
+    border-left-width: 0;
+  }
+
   // A pressed collapse box's glyph, darkened (inverted in 1-bit).
   .classicyControlStripCollapseBox:active:not(:disabled) {
     .classicyPixelK {

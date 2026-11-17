@@ -2309,6 +2309,15 @@ describe("system7.scss (compiled)", () => {
 			);
 		});
 
+		// Docked right, the tab's own art draws the black line between it and
+		// the first scroll arrow (`classicyControlStripTabRight`): one pixel,
+		// as 7.5.5's (`*-755-controlstrip-right.png`, x 503), so the base
+		// sheet's line on the arrow cell stands down (story 0216-1im F5).
+		it("draws one line between a right-docked strip's tab and its arrows", () =>
+			expect(
+				rule(".classicyControlStripRight .classicyControlStripScrollStart"),
+			).toMatch(/border-left-width: 0;/));
+
 		// A pressed cell (a module with its menu held open, or the collapse
 		// box held): two pixels of the dark edge on the top and left, two of
 		// the face on the bottom and right, around the pressed face.
