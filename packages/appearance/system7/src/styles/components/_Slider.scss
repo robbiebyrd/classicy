@@ -20,9 +20,12 @@
 // as seen, upright on a horizontal channel and lying on a vertical one, in
 // a box that runs `thumbStop` past it at each end along the channel (the
 // browser's travel ends with the box), and the base sheet's turns are
-// undone. Dimmed, the whole slider takes the dimmed ink through the dither.
+// undone. Dimmed, as Memory's RAM Disk slider (`*-755-controlpanel-memory.png`,
+// 7.5.5's only dimmed slider): the channel loses its checker band, and the
+// outline and the indicator that remain are drawn through a 50% checker, in
+// black at both depths (the captures are alike, the slider's art black and
+// white in color too).
 @use "sass:list";
-@use "pkg:@classicy/classicy/scss/dither" as d;
 @use "pkg:@classicy/classicy/scss/layout";
 @use "../pixel" as *;
 
@@ -77,17 +80,9 @@ $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
   @return layout.classicy-px-rect($ink, left $a, $start $l, $w, $h);
 }
 
-// The channel's art: both caps, the straight runs and the checker band.
-@function channel($ink, $horizontal) {
+// The channel's four straight runs.
+@function runs($ink, $horizontal) {
   $layers: ();
-  @each $far in (false, true) {
-    @each $r in $cap {
-      $layers: list.append($layers, rect($ink, $r, $horizontal, $far), $separator: comma);
-    }
-  }
-  @each $r in $far-band {
-    $layers: list.append($layers, rect($ink, $r, $horizontal, true), $separator: comma);
-  }
   @each $run in $runs {
     $across: px(list.nth($run, 1));
     $from: px(list.nth($run, 2));
@@ -98,6 +93,25 @@ $thumb-face: (1 2 1 19) (9 2 1 19) (3 1 5 21);
       $layers: list.append($layers, layout.classicy-px-rect($ink, left $across, top $from, $px, $length), $separator: comma);
     }
   }
+  @return $layers;
+}
+
+// The channel's art: both caps, the straight runs and, unless `$with-band` is
+// false (dimmed), the checker band.
+@function channel($ink, $horizontal, $with-band: true) {
+  $layers: ();
+  @each $far in (false, true) {
+    @each $r in $cap {
+      $layers: list.append($layers, rect($ink, $r, $horizontal, $far), $separator: comma);
+    }
+  }
+  @if not $with-band {
+    @return list.join($layers, runs($ink, $horizontal), comma);
+  }
+  @each $r in $far-band {
+    $layers: list.append($layers, rect($ink, $r, $horizontal, true), $separator: comma);
+  }
+  $layers: list.join($layers, runs($ink, $horizontal), comma);
   @each $across in $band {
     // Every other column starts a pixel further along: a 50% checker.
     $from: $band-from + ($across % 2);
@@ -156,6 +170,16 @@ $ink: var(--system7-slider-ink);
   border-radius: 0;
   box-shadow: none;
   background: channel($ink, $horizontal);
+}
+
+// A 50% checker over the whole element at both depths: the dither's mask
+// (the core's `classicy-dither-mask`) with a 2 x 2 tile, not the theme's,
+// which is none in color.
+@mixin checker-mask {
+  mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
+  mask-size: px(2) px(2), auto;
+  mask-repeat: repeat, no-repeat;
+  mask-composite: exclude;
 }
 
 @mixin slider {
@@ -245,11 +269,29 @@ $ink: var(--system7-slider-ink);
     }
   }
 
-  // Dimmed: the whole slider in the dimmed ink, through the dither.
+  // Dimmed (Memory's RAM Disk slider): the channel without its band, and
+  // the whole slider through the checker, black at both depths. A vertical
+  // slider matches both rules; its own follows at the same specificity.
   :where(.classicySlider).disabled {
-    --system7-slider-ink: var(--color-theme-06);
+    @include checker-mask;
 
-    @include d.classicy-dither-mask;
+    &::-webkit-slider-runnable-track {
+      background: channel($ink, true, $with-band: false);
+    }
+
+    &::-moz-range-track {
+      background: channel($ink, true, $with-band: false);
+    }
+  }
+
+  :where(.classicySliderInputVertical).disabled {
+    &::-webkit-slider-runnable-track {
+      background: channel($ink, false, $with-band: false);
+    }
+
+    &::-moz-range-track {
+      background: channel($ink, false, $with-band: false);
+    }
   }
 
   // Tick marks on whole pixels: black one-pixel lines, never moved by a
@@ -272,13 +314,9 @@ $ink: var(--system7-slider-ink);
     left: calc(var(--channel-slider-thumb-overhang) * -1);
   }
 
-  // Dimmed ticks in the dimmed ink through the dither, as the slider.
+  // Dimmed ticks as the slider: black, through the checker.
   :where(.classicySliderTicks).disabled {
-    @include d.classicy-dither-mask;
-
-    .classicySliderTick {
-      background: var(--color-theme-06);
-    }
+    @include checker-mask;
   }
 
   .classicySliderTickLabel {

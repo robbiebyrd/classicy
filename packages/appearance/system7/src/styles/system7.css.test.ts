@@ -1105,16 +1105,26 @@ describe("system7.scss (compiled)", () => {
 			expect(layersOf(rule(".classicyRadioInput"), BLACK)).toBe(3);
 		});
 
-		it("dims a checkbox, a radio button and a label through the dither in the dimmed ink", () => {
+		// 7.5.5 keeps a dimmed checkbox's frame solid black at both depths
+		// and dims only its label (`*-755-dialog-clockoptions.png`, "Show the
+		// battery level" and the Chime boxes; story 0218-ll9); a dimmed radio
+		// button keeps its circle by the same Control Manager rule, and only
+		// its mark takes the dimmed ink.
+		it("dims a checkbox's and a radio button's mark and label, never their frame", () => {
 			const box = rule(".classicyCheckbox:disabled");
-			expect(box).toMatch(/border-color: var\(--color-theme-06\);/);
-			expect(dithered(box)).toBe(true);
+			expect(box).not.toMatch(/border-color/);
+			expect(box).not.toMatch(/mask/);
 			expect(layersOf(rule(".classicyCheckbox:disabled:checked"), DIM)).toBe(
 				18,
 			);
 			const radio = rule(":where(.classicyRadioInputWrapper).disabled");
-			expect(layersOf(radio, DIM)).toBe(12);
-			expect(dithered(radio)).toBe(true);
+			expect(layersOf(radio, DIM)).toBe(0);
+			expect(radio).not.toMatch(/mask/);
+			const dot = rule(
+				":where(.classicyRadioInputWrapper).disabled .classicyRadioInput",
+			);
+			expect(layersOf(dot, DIM)).toBe(3);
+			expect(dithered(dot)).toBe(true);
 			const label = rule(":where(.classicyControlLabel).disabled");
 			expect(label).toMatch(/color: var\(--color-theme-06\);/);
 			expect(dithered(label)).toBe(true);
@@ -1137,12 +1147,14 @@ describe("system7.scss (compiled)", () => {
 			const sizes = declared(masked, "mask-size");
 			const repeats = declared(masked, "mask-repeat");
 			const composites = declared(masked, "mask-composite");
-			expect(images.length).toBe(12);
+			// The frame's four sides, the ten pixels, the checker and the cover.
+			expect(images.length).toBe(16);
 			for (const list of [positions, sizes, repeats])
 				expect(list.length).toBe(images.length);
 			// A length in grid pixels, with the theme's tile (2 or 0).
 			const length = (value: string, tile: number): number => {
 				if (value === "0") return 0;
+				if (value === "100%") return 12;
 				if (value === "var(--box-pixel)") return 1;
 				if (value === "var(--dither-tile-size)") return tile;
 				if (value === "min(var(--dither-tile-size), var(--box-pixel))")
@@ -1167,11 +1179,14 @@ describe("system7.scss (compiled)", () => {
 			const mask = (tile: number) => {
 				let result = new Set<string>();
 				for (let i = images.length - 1; i >= 0; i--) {
-					const [x, y] = pair(positions[i]).map((v) => length(v, tile));
 					const [w, h] =
 						sizes[i] === "auto"
 							? [12, 12]
 							: pair(sizes[i]).map((v) => length(v, tile));
+					// A position of 100% is the far edge, less the layer's size.
+					const [x, y] = pair(positions[i]).map((v, axis) =>
+						v === "100%" ? 12 - (axis === 0 ? w : h) : length(v, tile),
+					);
 					const layer = new Set<string>();
 					for (let py = 0; py < 12; py++)
 						for (let px = 0; px < 12; px++) {
@@ -1214,11 +1229,26 @@ describe("system7.scss (compiled)", () => {
 			expect(shown(2, rising)).toEqual(["10,1", "8,3", "6,5", "4,7", "2,9"]);
 			expect(shown(0, falling)).toEqual(falling);
 			expect(shown(0, rising)).toEqual(rising);
-			// The frame stays dithered: its pixels are the checker's.
-			expect(mask(2).has("0,0")).toBe(true);
-			expect(mask(2).has("1,0")).toBe(false);
-			// Mixed dims its dash through the plain dither.
-			expect(rule(".classicyCheckbox.mixed:disabled")).not.toMatch(/mask/);
+			// The frame stays whole at both depths: every pixel of its ring.
+			const ring = [];
+			for (let i = 0; i < 12; i++)
+				ring.push(`${i},0`, `${i},11`, `0,${i}`, `11,${i}`);
+			for (const tile of [2, 0])
+				expect(ring.filter((key) => !mask(tile).has(key))).toEqual([]);
+			// Mixed dims its dash through the plain dither, inside the same
+			// whole frame.
+			const mixed = rule(".classicyCheckbox.mixed:disabled");
+			expect(mixed).toMatch(
+				/mask-image: [^;]*var\(--classicy-art-dither-checker\)/,
+			);
+			expect(declared(mixed, "mask-image").length).toBe(6);
+			expect(declared(mixed, "mask-composite")).toEqual([
+				"add",
+				"add",
+				"add",
+				"add",
+				"exclude",
+			]);
 		});
 
 		it("draws the little arrows in a round-cornered frame, the pressed half inverted", () => {
@@ -1257,9 +1287,6 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicySliderTrackGroup")).toMatch(
 				/--slider-thumb-height: var\(--channel-slider-thumb-across\);/,
 			);
-			expect(rule(":where(.classicySlider).disabled")).toMatch(
-				/--system7-slider-ink: var\(--color-theme-06\);/,
-			);
 			// The base sheet no longer dims by a filter (it is Platinum's).
 			expect(rule(":where(.classicySlider).disabled")).not.toMatch(/filter/);
 			// The base sheet resets Firefox's 0.5em thumb corner radius, which
@@ -1267,6 +1294,64 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicySlider::-moz-range-thumb")).not.toMatch(
 				/border-radius/,
 			);
+		});
+
+		// Story 0218-ll9: 7.5.5's only dimmed slider, Memory's RAM Disk
+		// slider (`*-755-controlpanel-memory.png`), keeps its outline and its
+		// indicator in black 50% dots, its channel empty, and is the same at
+		// both depths: the slider's art is black and white in color too.
+		it("dims a slider to its outline and indicator, black through a 50% checker at both depths", () => {
+			const dimmed = rule(":where(.classicySlider).disabled");
+			// Black, not the dimmed ink.
+			expect(dimmed).not.toMatch(/--system7-slider-ink/);
+			// A 2 x 2 checker in both themes, not the theme's dither tile.
+			expect(dimmed).toMatch(
+				/mask-image: var\(--classicy-art-dither-checker\), linear-gradient/,
+			);
+			expect(dimmed).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
+			expect(dimmed).toMatch(/mask-composite: exclude;/);
+			// The channel loses its checker band: both caps and the four
+			// runs, no far-cap checker pixels and no dotted columns.
+			for (const selector of [
+				":where(.classicySlider).disabled::-webkit-slider-runnable-track",
+				":where(.classicySlider).disabled::-moz-range-track",
+				":where(.classicySliderInputVertical).disabled::-webkit-slider-runnable-track",
+				":where(.classicySliderInputVertical).disabled::-moz-range-track",
+			]) {
+				const track = rule(selector);
+				expect(layersOf(track, "var(--system7-slider-ink)"), selector).toBe(
+					10 + 10 + 4,
+				);
+				expect(track, selector).not.toMatch(/repeating-linear-gradient/);
+			}
+			// A dimmed vertical slider's track follows a dimmed horizontal
+			// one's, which it also matches, at the same specificity.
+			const at = (selector: string) =>
+				css.indexOf(
+					`.classicyDesktop[data-classicy-appearance=system7] ${selector} {`,
+				);
+			expect(
+				at(
+					":where(.classicySliderInputVertical).disabled::-webkit-slider-runnable-track",
+				),
+			).toBeGreaterThan(
+				at(":where(.classicySlider).disabled::-webkit-slider-runnable-track"),
+			);
+			expect(
+				at(":where(.classicySlider).disabled::-webkit-slider-runnable-track"),
+			).toBeGreaterThan(
+				at(".classicySliderInputVertical::-webkit-slider-runnable-track"),
+			);
+			// Its ticks the same: black through the same checker.
+			const ticks = rule(":where(.classicySliderTicks).disabled");
+			expect(ticks).toMatch(
+				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
+			);
+			expect(
+				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
+			).toBe("");
 		});
 
 		// Story 0198-0kv: the Sound control panel's slider
@@ -1489,18 +1574,14 @@ describe("system7.scss (compiled)", () => {
 
 		// Fix round 2: the ticks' and their labels' ink left the base sheet;
 		// System 7 draws its own, black, dimmed through the dither.
-		it("inks its ticks and their labels black, and dims ticks through the dither", () => {
+		// Dimmed, they stay black and go through the slider's checker (the
+		// dimmed slider's test, above).
+		it("inks its ticks and their labels black", () => {
 			expect(rule(".classicySliderTick")).toMatch(
 				/background: var\(--color-black\);/,
 			);
 			expect(rule(".classicySliderTickLabel")).toMatch(
 				/color: var\(--color-black\);/,
-			);
-			expect(
-				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
-			).toMatch(/background: var\(--color-theme-06\);/);
-			expect(dithered(rule(":where(.classicySliderTicks).disabled"))).toBe(
-				true,
 			);
 		});
 
@@ -1595,9 +1676,23 @@ describe("system7.scss (compiled)", () => {
 			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
 		});
 
+		// Story 0218-ll9: Sound's iconless list puts a row's caps 3 pixels
+		// and its baseline 11 below the row's top
+		// (`*-controlpanel-sound-slider.png`), a pixel above where centering
+		// the line in the 16-pixel row puts them: `listBox.textLift` (1).
+		it("lifts a list row's text by listBox.textLift", () => {
+			const label = rule(".classicyListBoxOptionLabel");
+			expect(label).toMatch(/position: relative;/);
+			expect(label).toMatch(/top: calc\(var\(--list-box-text-lift\) \* -1\);/);
+		});
+
 		// Story 0196-1i1: the base sheet no longer dims the box with a
-		// gradient, so there is nothing to drop.
-		it("dims a pop-up's text and triangle but keeps its frame", () => {
+		// gradient, so there is nothing to drop. Story 0218-ll9: 7.5.5 dims
+		// the frame, its drop shadow and the triangle too
+		// (`bw-755-controlpanel-memory.png`, the 50% checker in 1-bit;
+		// `color-755-dialog-clockoptions.png`, #888888 with #777777 on every
+		// pixel whose x and y are both odd from the frame's corner, in color).
+		it("dims a pop-up's text, frame, shadow and triangle", () => {
 			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
 			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
 			expect(
@@ -1607,23 +1702,97 @@ describe("system7.scss (compiled)", () => {
 					),
 				),
 			).toBe(true);
-			expect(
-				layersOf(
-					rule(
-						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
-					),
-					DIM,
-				),
-			).toBe(6);
+			// The black frame and the right shadow give way to one layer that
+			// draws frame and shadow in the dimmed pattern.
+			const box = rule(":where(.classicyPopUpMenuButton).disabled");
+			expect(box).toMatch(/border-color: transparent;/);
+			expect(rule(":where(.classicyPopUpMenuButton).disabled::after")).toMatch(
+				/content: none;/,
+			);
+			const frame = rule(":where(.classicyPopUpMenuButton).disabled::before");
+			// Four sides and the shadow's two strips.
+			expect(layersOf(frame, BLACK)).toBe(6);
+			const arrow = rule(
+				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
+			);
+			expect(layersOf(arrow, BLACK)).toBe(6);
+			for (const part of [frame, arrow]) {
+				expect(part).toMatch(/^\s*mask: linear-gradient/m);
+				// 1-bit: the dimmed ink where x + y is odd, in the theme's tile.
+				expect(part).toMatch(
+					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) left top ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+				);
+				// Color: #888888, and #777777 where x and y are odd, in a tile
+				// sized away in 1-bit.
+				expect(part).toMatch(
+					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				);
+				expect(part).toMatch(
+					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				);
+			}
 		});
 
-		it("dots the group box and separator, and paints the legend on white", () => {
+		// Story 0218-ll9: 7.5 dots a group box in one 50% pattern, so no two
+		// dots touch at any size (`*-controlpanel-views.png`): one checker,
+		// anchored at the frame's corner, masked to the frame's ring, where
+		// each edge's own dots met out of step at two corners.
+		it("dots the group box in one checker, and paints the legend on white", () => {
 			const group = rule(".classicyControlGroupFieldsetPrimary");
-			expect(group.split("repeating-linear-gradient(").length - 1).toBe(4);
-			expect(group).toMatch(/background-origin: border-box;/);
+			expect(group).toMatch(/border: var\(--box-pixel\) solid transparent;/);
+			expect(group).not.toMatch(/background/);
+			const ring = rule(".classicyControlGroupFieldsetPrimary::before");
+			expect(ring).toMatch(/position: absolute;/);
+			expect(ring).toMatch(/inset: calc\(var\(--box-pixel\) \* -1\);/);
+			expect(ring).toMatch(/border: var\(--box-pixel\) solid transparent;/);
+			expect(ring).toMatch(/pointer-events: none;/);
+			// Black where x + y is odd, the corner pixel empty.
+			expect(ring).toMatch(
+				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box left top ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
+			);
+			// The border box less the padding box: the ring.
+			expect(ring).toMatch(
+				/mask: linear-gradient\(var\(--color-black\), var\(--color-black\)\) border-box, linear-gradient\(var\(--color-black\), var\(--color-black\)\) padding-box;/,
+			);
+			expect(ring).toMatch(/mask-composite: exclude;/);
 			expect(rule(".classicyControlGroupLegend")).toMatch(
 				/background-color: var\(--color-white\);/,
 			);
+		});
+
+		// Story 0218-ll9: 7.5 breaks the line 1 or 2 pixels before the
+		// title's ink (Views' "Icon Views" 2, Clock Options' and Get Info's
+		// 1) and 3 after it. The base sheet pads the title `groupBox.titlePad`
+		// (3) on each side; System 7 drops the leading pad and moves the
+		// title on by as much, so the ink stays put and the line runs up to
+		// the glyph's own bearing. Only the dotted (primary) kind: the
+		// secondary, solid kind has no 7.5 capture and keeps the base
+		// sheet's pad on both sides, a 3-pixel gap.
+		it("breaks the group box's line right before its title", () => {
+			const legend = rule(
+				".classicyControlGroupFieldsetPrimary > .classicyControlGroupLegend",
+			);
+			expect(legend).toMatch(/padding-left: 0;/);
+			expect(legend).toMatch(
+				/left: calc\(var\(--group-box-margin-side\) \+ var\(--group-box-title-pad\)\);/,
+			);
+			expect(legend).not.toMatch(/padding-right/);
+			// Every other legend, the secondary kind's included, keeps the
+			// base sheet's place and pad: only its white comes from here.
+			const anyLegend = rule(".classicyControlGroupLegend");
+			expect(anyLegend).toMatch(/background-color: var\(--color-white\);/);
+			expect(anyLegend).not.toMatch(/padding-left/);
+			expect(anyLegend).not.toMatch(/(^|[\s;])left:/);
+			expect(
+				[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+					.filter(([, header]) =>
+						splitSelectors(header).some((selector) =>
+							selector.includes("Secondary"),
+						),
+					)
+					.map(([, , declarations]) => declarations)
+					.join("\n"),
+			).not.toMatch(/padding-left|(^|[\s;])left:/);
 			const separator = rule(".classicySeparatorHorizontal");
 			// A menu's divider keeps its own line (_Menu.scss).
 			expect(

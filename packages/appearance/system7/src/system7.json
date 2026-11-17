@@ -211,7 +211,8 @@
 				"lift": 2
 			},
 			"listBox": {
-				"rowHeight": 16
+				"rowHeight": 16,
+				"textLift": 1
 			},
 			"comboBox": {
 				"indicatorWidth": 20
@@ -535,7 +536,8 @@
 					"lift": 2
 				},
 				"listBox": {
-					"rowHeight": 16
+					"rowHeight": 16,
+					"textLift": 1
 				},
 				"comboBox": {
 					"indicatorWidth": 20
@@ -861,7 +863,8 @@
 					"lift": 2
 				},
 				"listBox": {
-					"rowHeight": 16
+					"rowHeight": 16,
+					"textLift": 1
 				},
 				"comboBox": {
 					"indicatorWidth": 20

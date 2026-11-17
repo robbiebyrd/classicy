@@ -3853,6 +3853,19 @@ Platinum (§1); its README lists what it ships.
   drops the core's margin after it and pads its end by `menuBar.clockEnd`
   (1), so its last ink sits two pixels before Help's box. A keyboard-current
   menu item is inverted, as a tracked one, with no focus ring.
+- **Dimmed controls, group boxes, lists** (story 0218-ll9, the 7.5
+  captures). Dimmed, a checkbox's frame and a radio button's circle stay
+  black (only the mark and the label dim); a pop-up's frame, shadow and
+  triangle are masks over the package's dimmed pattern (`dimmed-pattern()`
+  in `src/styles/_pixel.scss`: the dimmed ink where x + y is odd in 1-bit;
+  #888888 with #777777 where x and y are both odd in color, anchored at
+  the part's corner); a slider loses its channel's checker band and goes
+  through a 2 x 2 checker in black at both depths. The primary group box's
+  dots are one checker on a `::before` layer masked to the frame's ring,
+  and its title (the primary kind's only, `.classicyControlGroupFieldsetPrimary >
+  .classicyControlGroupLegend`) drops the leading `groupBox.titlePad`, moved on by
+  as much; the secondary, solid kind keeps the pad on both sides.
+  A list row's text is lifted `listBox.textLift` (1) above centered.
 - **Small icons** (§5). Exported icons are `{ src, small }` leaves: the 32 px
   image, and the 16 px one where System 7 had both sizes.
 - **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,

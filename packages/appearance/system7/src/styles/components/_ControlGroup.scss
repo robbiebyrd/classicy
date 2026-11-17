@@ -2,9 +2,10 @@
 // system7.scss inside the package wrapper.
 //
 // - Group box (HIG p.211, figure 7-10; the Views and Sound control panels):
-//   a dotted one-pixel rectangle, a black dot on every other pixel, its
-//   corner pixel empty, at both depths (the control panels' captures are
-//   alike); the title breaks the line. A secondary group is a solid
+//   a dotted one-pixel rectangle at both depths (the control panels'
+//   captures are alike), drawn in one 50% pattern, so no two dots touch at
+//   any size: black where x + y is odd from the frame's corner, which is
+//   empty; the title breaks the line. A secondary group is a solid
 //   one-pixel line (System 7 drew no second kind; a plain QuickDraw frame).
 // - Separator (Standard File's, Date & Time's): a one-pixel dotted line. In
 //   1-bit, black on every other pixel; in color, the gray pattern 7.5 draws
@@ -12,38 +13,30 @@
 //   `--color-system-06`).
 @use "../pixel" as *;
 
-// A dotted line along one edge (`$edge`) of the box: `$ink` on every
-// other pixel, starting `$skip` pixels in.
-@function dotted($ink, $edge, $skip) {
-  $line: repeating-linear-gradient(to right, $ink 0 $px, transparent 0 px(2));
-  $column: repeating-linear-gradient($ink 0 $px, transparent 0 px(2));
-  $length: calc(100% - #{px($skip)});
-  @if $edge == top {
-    @return $line left px($skip) top / $length $px no-repeat;
-  } @else if $edge == bottom {
-    @return $line left px($skip) bottom / $length $px no-repeat;
-  } @else if $edge == left {
-    @return $column left top px($skip) / $px $length no-repeat;
-  }
-  @return $column right top px($skip) / $px $length no-repeat;
-}
-
-// A layer drawn in color only. `dither.tileSize` has two legal values: 0
-// (color: plain ink) and 2 (1-bit: the 2 x 2 checker). So this tile is two
-// pixels long in color and zero, drawing nothing, in 1-bit; the 1-bit
-// layers below use the tile size itself, the other way round. Another
-// tile size would break the switch.
-$color-only: calc(#{px(2)} - var(--dither-tile-size));
+// A whole layer, for a mask.
+$cover: linear-gradient(var(--color-black), var(--color-black));
 
 @mixin control-group {
+  // The frame is a layer over the fieldset's transparent border: a 2 x 2
+  // checker from its outer corner, masked to the ring between its border
+  // box and its padding box. Each edge dotted on its own would start its
+  // dots afresh, out of step with its neighbors at two corners of a box
+  // whose width or height is even.
   .classicyControlGroupFieldsetPrimary {
     border: $px solid transparent;
-    background:
-      dotted(var(--color-black), top, 1),
-      dotted(var(--color-black), left, 1),
-      dotted(var(--color-black), bottom, 1),
-      dotted(var(--color-black), right, 1);
-    background-origin: border-box;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: calc(#{$px} * -1);
+      box-sizing: border-box;
+      border: $px solid transparent;
+      background: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0)
+        border-box left top / px(2) px(2);
+      mask: $cover border-box, $cover padding-box;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
   }
 
   .classicyControlGroupFieldsetSecondary {
@@ -53,6 +46,18 @@ $color-only: calc(#{px(2)} - var(--dither-tile-size));
   // The title, on the window's white, breaks the line.
   .classicyControlGroupLegend {
     background-color: var(--color-white);
+  }
+
+  // A dotted box's title breaks it from just before its ink (the glyph's
+  // own bearing, 1 or 2 pixels in the captures: Views, Clock Options, Get
+  // Info) to `groupBox.titlePad` (3) after it. The base sheet pads it on
+  // both sides, so the leading pad goes and the title moves on by as much,
+  // which keeps its ink where it was. The secondary, solid kind has no 7.5
+  // capture and keeps the base sheet's pad on both sides. A child
+  // combinator, so a secondary box inside a primary one keeps it too.
+  .classicyControlGroupFieldsetPrimary > .classicyControlGroupLegend {
+    left: calc(var(--group-box-margin-side) + var(--group-box-title-pad));
+    padding-left: 0;
   }
 
   .classicySeparatorHorizontal,

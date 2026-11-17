@@ -492,6 +492,9 @@ describe("the System 7 appearance package", () => {
 				"--text-field-inset": "3px",
 				"--text-field-lift": "2px",
 				"--list-box-row-height": "16px",
+				// Sound's list sets its text a pixel higher in the row than
+				// centered (story 0218-ll9).
+				"--list-box-text-lift": "1px",
 				"--combo-box-indicator-width": "20px",
 				"--outline-triangle-size": "11px",
 				"--channel-slider-channel": "13px",
