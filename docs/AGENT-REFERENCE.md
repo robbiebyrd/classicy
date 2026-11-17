@@ -3880,8 +3880,10 @@ Platinum (§1); its README lists what it ships.
   captures). Dimmed, a checkbox's frame and a radio button's circle stay
   black (only the mark and the label dim); a pop-up's frame, shadow and
   triangle are masks over the package's dimmed pattern (`dimmed-pattern()`
-  in `src/styles/_pixel.scss`: the dimmed ink where x + y is odd in 1-bit;
-  #888888 with #777777 where x and y are both odd in color, from the window's content origin); a slider
+  in `src/styles/_pixel.scss`: black where x + y is odd from the window's
+  content origin, at both depths, as Memory's 1-bit and color captures
+  draw Apple's dimmed pop-up), and its text goes through the same black
+  checker (`dimmed-checker`); a slider
   loses its channel's checker band and goes through a 2 x 2 checker in
   black at both depths. The primary group box's dots are one checker on a
   `::before` layer masked to the frame's ring,
@@ -3908,8 +3910,9 @@ Platinum (§1); its README lists what it ships.
   the gray leaves the ink where it is odd, so a dimmed part (Memory's
   pop-up and slider, Clock Options' and Standard File's dimmed text, the
   menus' dimmed titles, items and hidden icon, the Chooser's dimmed OK ring,
-  ports of both parities) is odd, with Clock Options' color sprinkle where x
-  and y are both odd. The captures that differ draw by position, not
+  ports of both parities) is odd; a dimmed pop-up is the black checker in
+  color too (Memory; Clock Options' gray pop-ups are its own drawing).
+  The captures that differ draw by position, not
   through the pen: dots laid from a part's own start (Memory's y 115
   separator, the Chooser's color divider, Clock Options' group boxes) or a
   frame drawn with the pen rather than dimmed (Clock Options' dimmed pop-up

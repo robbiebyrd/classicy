@@ -802,8 +802,8 @@ the ids the saver already names:
   A dimmed checkbox keeps its black frame and a dimmed radio button its
   black circle; only the mark and the label dim (the dimmed checked X keeps
   its dotted diagonals). A dimmed pop-up dims its frame, drop shadow and
-  triangle too: the 50% checker in 1-bit, #888888 with #777777 on every
-  other pixel of every other row in color. A dimmed slider keeps only its
+  triangle too, and its text: the black 50% checker at both depths, as
+  Memory draws Apple's dimmed pop-up in 1-bit and in color. A dimmed slider keeps only its
   outline and indicator, in black 50% dots at both depths, its channel
   empty. A group box is dotted in one 50% pattern, so no two dots touch at
   its corners, and its line runs to 1 or 2 px before the title's ink (a
@@ -811,7 +811,7 @@ the ids the saver already names:
   list box's text sits a pixel higher in its row, by the new System 7 knob
   `listBox.textLift` (1, `--list-box-text-lift`).
 - **System 7's dithers keep the window's phase.** Every dimmed and dotted
-  pattern (the dimmed pop-up's checker and color #777777 sprinkle, the
+  pattern (the dimmed pop-up's checker, the
   dimmed slider, labels, links, menu titles and items, field text, list
   rows, push buttons and their default ring, bevel buttons and little
   arrows, the group box's dots, the separators and the menus' and Standard
