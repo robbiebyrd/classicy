@@ -191,10 +191,12 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// focus: `select` (a script's `select()`, a drag), `selectionchange`
 		// at the field and at its document (Chrome before 127 and Safari 16
 		// fire it at the document only), the keys moving the caret, typing,
-		// the field's own scrolling and focus itself. A pointer release is
-		// read when it lands, on the click that follows it (the click is what
-		// collapses a selection into a caret) and a frame later (a release no
-		// click follows); a new value is read once it is committed.
+		// the field's own scrolling and focus itself. A key press and a
+		// pointer release are read when they land and a frame later (a key
+		// moves the caret after its keydown, and a held key's keyup is yet to
+		// come; a release no click follows); a release's click, which is what
+		// collapses a selection into a caret, is read too. A new value is read
+		// once it is committed.
 		useEffect(() => {
 			const el = inputRef.current;
 			if (!el) return;
@@ -229,14 +231,13 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					read();
 				});
 			};
-			const readOnRelease = () => {
+			const readNowAndNextFrame = () => {
 				read();
 				readNextFrame();
 			};
 			const events = [
 				"select",
 				"selectionchange",
-				"keydown",
 				"keyup",
 				"click",
 				"input",
@@ -244,12 +245,15 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				"focus",
 				"blur",
 			];
+			const settling = ["keydown", "mouseup"];
 			for (const type of events) el.addEventListener(type, read);
-			el.addEventListener("mouseup", readOnRelease);
+			for (const type of settling)
+				el.addEventListener(type, readNowAndNextFrame);
 			doc.addEventListener("selectionchange", read);
 			return () => {
 				for (const type of events) el.removeEventListener(type, read);
-				el.removeEventListener("mouseup", readOnRelease);
+				for (const type of settling)
+					el.removeEventListener(type, readNowAndNextFrame);
 				doc.removeEventListener("selectionchange", read);
 				if (frame) view?.cancelAnimationFrame(frame);
 				readSelectionRef.current = () => {};

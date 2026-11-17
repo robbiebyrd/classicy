@@ -252,6 +252,25 @@ describe("ClassicyInput's selected state", () => {
 		}
 	});
 
+	it("reads again a frame after a key goes down, before it is released", async () => {
+		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+		field().focus();
+		field().select();
+		await vi.waitFor(() => expect(isSelected()).toBe(true));
+		const unmute = muteFieldSelectionEvents();
+		try {
+			// A held arrow key moves the caret after its keydown, and its
+			// keyup is yet to come.
+			field().dispatchEvent(
+				new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+			);
+			field().setSelectionRange(0, 0);
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
 	it("reads again when its value changes while focused", async () => {
 		const { rerender } = render(
 			<ClassicyInput id="name" prefillValue="untitled 1" />,
