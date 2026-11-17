@@ -282,7 +282,11 @@ describe("the System 7 appearance package", () => {
 	// The Control Strip's own colors, measured from Control Strip 1.3.1 in
 	// System 7.5.5 (`*-controlstrip*.png`): the face and the shadow below a
 	// cell, and a pressed cell's dark edge and face; white or black in 1-bit,
-	// where the grays draw through the 50% checker (_ControlStrip.scss).
+	// where the grays draw through the 50% checker (_ControlStrip.scss). A
+	// pressed collapse box's glyph (`*-755-controlstrip-collapse-pressed.png`)
+	// takes its black to the ink (white in 1-bit: inverted), its white to the
+	// light (#777777; black in 1-bit) and its darkest grays to the dark
+	// (#222222; the 1-bit art draws none).
 	it("colors the Control Strip as 7.5.5's, white and black in 1-bit", () => {
 		const strip = (theme: (typeof system7Json.presets)[number]) =>
 			theme.color.families.controlStrip;
@@ -292,12 +296,18 @@ describe("the System 7 appearance package", () => {
 			darkEdge: 0x444444,
 			shadow: 0xaaaaaa,
 			pressedFace: 0x888888,
+			pressedGlyphInk: BLACK,
+			pressedGlyphLight: 0x777777,
+			pressedGlyphDark: 0x222222,
 		});
 		expect(strip(bw)).toEqual({
 			face: WHITE,
 			darkEdge: BLACK,
 			shadow: BLACK,
 			pressedFace: WHITE,
+			pressedGlyphInk: WHITE,
+			pressedGlyphLight: BLACK,
+			pressedGlyphDark: BLACK,
 		});
 		expect(strip(system7Json.defaults)).toEqual(strip(bw));
 		expect(Object.keys(system7Json.colorFamilies.controlStrip.colors)).toEqual([
@@ -305,6 +315,9 @@ describe("the System 7 appearance package", () => {
 			"darkEdge",
 			"shadow",
 			"pressedFace",
+			"pressedGlyphInk",
+			"pressedGlyphLight",
+			"pressedGlyphDark",
 		]);
 	});
 

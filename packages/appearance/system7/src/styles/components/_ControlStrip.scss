@@ -39,7 +39,25 @@
 // two pixels of `controlStrip.darkEdge` (#444444) on the top and left, two of
 // the face on the bottom and right, the two off corners the pressed face,
 // `controlStrip.pressedFace` (#888888; white in 1-bit, where the dark edge
-// is the checker).
+// is the checker). The dark edge's inner row and column stop
+// `controlStrip.shadowStart` short of the cell's right and bottom edges, as
+// a raised cell's inner shadow starts that far in: in color 2, the face's
+// inner column and row taking the pixel between, in 1-bit 1, the dark edge
+// taking it (the inner row's last pixel, black in the checker, in
+// `bw-755-controlstrip-collapse-pressed.png`; the inner column's by the
+// same rule, which no capture shows: in both pressed captures that pixel
+// falls on an odd x + y, where the checker is white).
+//
+// A pressed collapse box also redraws its glyph a pixel down and right (the
+// base sheet's shift) as an icon's selected transform: in color each of the
+// art's tokens darkened, #555555 (`7`) and #444444 (`m`) to
+// `controlStrip.pressedGlyphDark` (#222222), #888888 (`5`) to the dark edge
+// (#444444), #CCCCFF (`b`) to `--color-theme-07` (#333366) and white to
+// `controlStrip.pressedGlyphLight` (#777777); in 1-bit inverted, black (`K`)
+// to `controlStrip.pressedGlyphInk` (white) and white to the light (black),
+// so the 8 x 8 ring, white on the white pressed face, leaves a solid 6 x 6
+// black square. A theme of another package, which emits none of the three
+// glyph colors, draws the tokens they color as at rest.
 //
 // The strip's outer lower corner is rounded off by three black pixels in the
 // collapse box's corner (`*-controlstrip*.png`), at the strip's left end
@@ -71,6 +89,9 @@ $face: var(--package-color-control-strip-face, var(--color-system-02));
 $shadow: var(--package-color-control-strip-shadow, var(--color-system-04));
 $dark-edge: var(--package-color-control-strip-dark-edge, var(--color-system-07));
 $pressed-face: var(--package-color-control-strip-pressed-face, var(--color-system-04));
+$pressed-glyph-ink: var(--package-color-control-strip-pressed-glyph-ink, var(--color-black));
+$pressed-glyph-light: var(--package-color-control-strip-pressed-glyph-light, var(--color-white));
+$pressed-glyph-dark: var(--package-color-control-strip-pressed-glyph-dark, var(--color-system-07));
 
 // The strip's rounded outer corner, from the collapse box's left (or right)
 // lower corner.
@@ -116,14 +137,15 @@ $line: var(--window-border-size);
 }
 
 @mixin pressed($over: ()) {
+  $short: calc(100% - var(--control-strip-shadow-start));
   background: list.join(
     $over,
     (
       $checker,
       layout.classicy-px-rect($dark-edge, 0, 0, calc(100% - #{$b}), $b),
-      layout.classicy-px-rect($dark-edge, 0, $b, calc(100% - #{$b} - #{$b}), $b),
+      layout.classicy-px-rect($dark-edge, 0, $b, $short, $b),
       layout.classicy-px-rect($dark-edge, 0, 0, $b, calc(100% - #{$b})),
-      layout.classicy-px-rect($dark-edge, $b, 0, $b, calc(100% - #{$b} - #{$b})),
+      layout.classicy-px-rect($dark-edge, $b, 0, $b, $short),
       layout.classicy-px-rect($face, 100%, $b, $b, calc(100% - #{$b})),
       layout.classicy-px-rect($face, calc(100% - #{$b}), $b, $b, calc(100% - #{$b})),
       layout.classicy-px-rect($face, $b, calc(100% - #{$b}), calc(100% - #{$b}), $b),
@@ -181,6 +203,30 @@ $line: var(--window-border-size);
       &:active:not(:disabled) {
         @include pressed(corner($side));
       }
+    }
+  }
+
+  // A pressed collapse box's glyph, darkened (inverted in 1-bit).
+  .classicyControlStripCollapseBox:active:not(:disabled) {
+    .classicyPixelK {
+      fill: $pressed-glyph-ink;
+    }
+
+    .classicyPixelW {
+      fill: $pressed-glyph-light;
+    }
+
+    .classicyPixel7,
+    .classicyPixelm {
+      fill: $pressed-glyph-dark;
+    }
+
+    .classicyPixel5 {
+      fill: $dark-edge;
+    }
+
+    .classicyPixelb {
+      fill: var(--color-theme-07);
     }
   }
 

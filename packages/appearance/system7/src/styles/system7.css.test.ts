@@ -2076,6 +2076,21 @@ describe("system7.scss (compiled)", () => {
 					"var(--package-color-control-strip-face, var(--color-system-02))",
 				),
 			).toBe(4);
+			// The dark edge's inner row and column stop `controlStrip.shadowStart`
+			// short of the cell's right and bottom edges (2 in color, where the
+			// face's inner column and row take the pixel; 1 in 1-bit, where the
+			// dark edge does, as `bw-755-controlstrip-collapse-pressed.png`'s
+			// checker shows at the inner row's end).
+			const DARK =
+				"var(--package-color-control-strip-dark-edge, var(--color-system-07))";
+			const BEVEL = "var(--control-strip-bevel-width)";
+			const SHORT = "calc(100% - var(--control-strip-shadow-start))";
+			expect(pressed).toContain(
+				`${DARK}) 0 ${BEVEL}/${SHORT} ${BEVEL} no-repeat`,
+			);
+			expect(pressed).toContain(
+				`${DARK}) ${BEVEL} 0/${BEVEL} ${SHORT} no-repeat`,
+			);
 			expect(pressed).toMatch(
 				/, var\(--package-color-control-strip-pressed-face, var\(--color-system-04\)\);$/m,
 			);
@@ -2137,6 +2152,34 @@ describe("system7.scss (compiled)", () => {
 			expect(rule(".classicyControlStrip .classicyPixelm")).toMatch(
 				/fill: var\(--package-color-control-strip-dark-edge, var\(--color-system-07\)\);/,
 			);
+		});
+
+		// A pressed collapse box redraws its glyph as an icon's selected
+		// transform (`*-755-controlstrip-collapse-pressed.png`): in 1-bit
+		// inverted (the ring's white inside a solid black square, the ring
+		// white on the pressed face), in color each token darkened, #555555
+		// and #444444 to #222222, #CCCCFF to #333366, #888888 to #444444,
+		// white to #777777. The press's shift is the base sheet's.
+		it("darkens, or in 1-bit inverts, a pressed collapse box's glyph", () => {
+			const pressed = (token: string) =>
+				rule(
+					`.classicyControlStripCollapseBox:active:not(:disabled) .classicyPixel${token}`,
+				);
+			const fills: Record<string, RegExp> = {
+				K: /fill: var\(--package-color-control-strip-pressed-glyph-ink, var\(--color-black\)\);/,
+				W: /fill: var\(--package-color-control-strip-pressed-glyph-light, var\(--color-white\)\);/,
+				"7": /fill: var\(--package-color-control-strip-pressed-glyph-dark, var\(--color-system-07\)\);/,
+				m: /fill: var\(--package-color-control-strip-pressed-glyph-dark, var\(--color-system-07\)\);/,
+				"5": /fill: var\(--package-color-control-strip-dark-edge, var\(--color-system-07\)\);/,
+				b: /fill: var\(--color-theme-07\);/,
+			};
+			for (const [token, fill] of Object.entries(fills))
+				expect(pressed(token), token).toMatch(fill);
+			// At rest, and on a pressed scroll arrow, the art keeps its colors.
+			expect(
+				rule(".classicyControlStripCell:active:not(:disabled) .classicyPixelW"),
+			).toBe("");
+			expect(rule(".classicyControlStripCollapseBox .classicyPixelW")).toBe("");
 		});
 
 		it("frames a module's pop-up as a menu, its face the strip's with a white top and left", () => {

@@ -307,7 +307,9 @@ Measured from the framebuffer files (exact pixels).
 - **Pressed Control Strip cell** (`*-755-controlstrip-*-pressed.png`): two
   pixels of #444444 on the top and left, two of the face (#CCCCCC) on the
   bottom and right, a #888888 fill, the two off corners the fill; in 1-bit
-  the dark edge is the 50% checker and the rest white. At rest, the 1-bit
+  the dark edge is the 50% checker and the rest white, its inner row a
+  pixel longer than in color (to the face's outer column, where color's
+  face takes that pixel). At rest, the 1-bit
   strip's shadows (#AAAAAA and #888888 in color) and a dimmed arrow's dark
   side are the checker too, its inner shadow starting a pixel sooner than in
   color (its right column a row higher, its bottom row a column further
@@ -317,8 +319,9 @@ Measured from the framebuffer files (exact pixels).
   black where the screen's x + y is even, not each cell's: the cells start
   at x 29, 60 and 91 (a pitch of 31), so every other cell starts on an odd
   x + y. A pressed collapse box also redraws its glyph a pixel down and
-  right, darkened in color and inverted in 1-bit (a black square), which
-  the package does not draw yet.
+  right, darkened in color (#555555 and #444444 to #222222, #CCCCFF to
+  #333366, #888888 to #444444, white to #777777) and inverted in 1-bit (the
+  ring's inside a solid 6 x 6 black square).
 - **Opened icon, unselected** (`*-755-icon-opened-unselected.png`): the
   outline and the 25% pattern as selected, the fill #CCCCFF (the window
   color's light lavender) in color, white in 1-bit.

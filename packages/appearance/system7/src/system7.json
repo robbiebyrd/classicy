@@ -32,7 +32,10 @@
 					"face": 16777215,
 					"darkEdge": 0,
 					"shadow": 0,
-					"pressedFace": 16777215
+					"pressedFace": 16777215,
+					"pressedGlyphInk": 16777215,
+					"pressedGlyphLight": 0,
+					"pressedGlyphDark": 0
 				}
 			}
 		},
@@ -270,7 +273,10 @@
 						"face": 16777215,
 						"darkEdge": 0,
 						"shadow": 0,
-						"pressedFace": 16777215
+						"pressedFace": 16777215,
+						"pressedGlyphInk": 16777215,
+						"pressedGlyphLight": 0,
+						"pressedGlyphDark": 0
 					}
 				}
 			},
@@ -510,7 +516,10 @@
 						"face": 13421772,
 						"darkEdge": 4473924,
 						"shadow": 11184810,
-						"pressedFace": 8947848
+						"pressedFace": 8947848,
+						"pressedGlyphInk": 0,
+						"pressedGlyphLight": 7829367,
+						"pressedGlyphDark": 2236962
 					}
 				}
 			},
@@ -757,6 +766,15 @@
 				},
 				"pressedFace": {
 					"label": "Pressed Face"
+				},
+				"pressedGlyphInk": {
+					"label": "Pressed Glyph Ink"
+				},
+				"pressedGlyphLight": {
+					"label": "Pressed Glyph Light"
+				},
+				"pressedGlyphDark": {
+					"label": "Pressed Glyph Dark"
 				}
 			}
 		}
