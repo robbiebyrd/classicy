@@ -3,11 +3,13 @@ id: 0214-c61
 title: 'System 7 and Platinum: look follow-ups from the 7.5.5 captures'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6, Batch F-c.
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-17T00:39:22.088Z"
-updated: "2026-11-17T00:39:22.088Z"
+updated: "2026-11-17T06:29:31.756Z"
+started: "2026-11-17T06:29:28.733Z"
+completed: "2026-11-17T06:29:31.756Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -54,6 +56,6 @@ System 7 small text family; no empty fonts element; crisp list labels or the tec
 
 ## Acceptance Criteria
 
-- [ ] [MANUAL] Each listed look is AE 0 against its capture or HIG figure (pointer excluded), or the report gives the specific technical reason it cannot be, and Platinum and core shots move only where named.
+- [x] [MANUAL] Each listed look is AE 0 against its capture or HIG figure (pointer excluded), or the report gives the specific technical reason it cannot be, and Platinum and core shots move only where named.
 
 ## Work Log
