@@ -1556,7 +1556,11 @@ describe("ClassicyControlStrip — docked right, 7.5.5's way", () => {
 			expect(
 				strip().style.getPropertyValue("--classicy-control-strip-phase"),
 			).toBe("");
-			const watcher = observed.find(({ els }) => els.includes(desktop));
+			// jsdom lays nothing out, so the strip's positioned ancestor is its
+			// parent here.
+			const watcher = observed.find(({ els }) =>
+				els.includes(strip().parentElement as Element),
+			);
 			expect(watcher).toBeDefined();
 			left = 901;
 			act(() => watcher?.cb([], {} as ResizeObserver));

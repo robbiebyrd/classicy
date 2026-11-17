@@ -340,7 +340,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 				? undefined
 				: new ResizeObserver(measure);
 		const strip = stripRef.current;
-		const desktop = strip?.closest(".classicyDesktop") ?? strip?.parentElement;
+		// The desktop the strip is placed in: its positioned ancestor.
+		const desktop = strip?.offsetParent ?? strip?.parentElement;
 		if (desktop) observer?.observe(desktop);
 		if (strip) observer?.observe(strip);
 		return () => {
