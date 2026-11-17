@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the core default theme names.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
-import { act, render } from "@/__tests__/test-utils";
+import { act, fireEvent, render } from "@/__tests__/test-utils";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -410,5 +410,174 @@ describe("ClassicyFileDialog's flat navigation", () => {
 				entry: expect.objectContaining({ name: "Read Me" }),
 			}),
 		]);
+	});
+
+	// Review r1 items 5 and 6.
+	const buttonNamed = (name: string) =>
+		[...document.querySelectorAll<HTMLButtonElement>("button")].find(
+			(b) => b.textContent === name || b.getAttribute("aria-label") === name,
+		);
+	const pressEnter = (target: Element) =>
+		act(() => {
+			target.dispatchEvent(
+				new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+			);
+		});
+
+	it("enters a selected folder on Enter", async () => {
+		flatPackage();
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => row("Apple Extras").click());
+		pressEnter(row("Apple Extras"));
+		await vi.waitFor(() => expect(rows()).toEqual(["AppleScript"]));
+	});
+
+	const writable = () => {
+		const write = vi.fn(async () => {});
+		const mkDir = vi.fn(async () => {});
+		return { volume: { ...disk, write, mkDir }, write, mkDir };
+	};
+	const saveDialog = (volume: typeof disk) =>
+		render(
+			<ClassicyFileDialog
+				id="save-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="save"
+				volumes={[volume]}
+				defaultFileName="Notes"
+				formats={[
+					{
+						label: "Text",
+						extension: ".txt",
+						fileType: "text",
+						data: () => "hi",
+					},
+				]}
+				onSaveFunc={() => {}}
+			/>,
+		);
+
+	it("saves into the folder shown", async () => {
+		flatPackage();
+		const { volume, write } = writable();
+		saveDialog(volume);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => {
+			row("Apple Extras").dispatchEvent(
+				new MouseEvent("dblclick", { bubbles: true }),
+			);
+		});
+		await vi.waitFor(() => expect(rows()).toEqual(["AppleScript"]));
+		act(() => buttonNamed("Save")?.click());
+		await vi.waitFor(() =>
+			expect(write).toHaveBeenCalledWith(
+				["Apple Extras"],
+				"Notes.txt",
+				expect.anything(),
+				expect.anything(),
+			),
+		);
+	});
+
+	it("turns Save into Open while a folder is selected, which enters it (and so does Enter)", async () => {
+		flatPackage();
+		const { volume, write } = writable();
+		saveDialog(volume);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		expect(buttonNamed("Save")).toBeTruthy();
+		act(() => row("Apple Extras").click());
+		expect(buttonNamed("Save")).toBeUndefined();
+		act(() => buttonNamed("Open")?.click());
+		await vi.waitFor(() => expect(rows()).toEqual(["AppleScript"]));
+		expect(write).not.toHaveBeenCalled();
+		expect(buttonNamed("Save")).toBeTruthy();
+		act(() => row("AppleScript").click());
+		expect(buttonNamed("Open")).toBeTruthy();
+		pressEnter(row("AppleScript"));
+		await vi.waitFor(() => expect(popUpLabels()).toBe("AppleScript"));
+		expect(write).not.toHaveBeenCalled();
+	});
+
+	it("enters the folder New Folder creates", async () => {
+		flatPackage();
+		const { volume, mkDir } = writable();
+		saveDialog(volume);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => buttonNamed("New Folder")?.click());
+		const field = await vi.waitFor(() => {
+			const input = document.querySelector<HTMLInputElement>(
+				'[id="save-dialog-new-folder"] input, .classicyInputDialogBody input',
+			);
+			expect(input).not.toBeNull();
+			return input as HTMLInputElement;
+		});
+		act(() => {
+			fireEvent.change(field, { target: { value: "Letters" } });
+		});
+		act(() => buttonNamed("Create")?.click());
+		await vi.waitFor(() => expect(mkDir).toHaveBeenCalledWith([], "Letters"));
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector(
+					".classicyFileOpenDialogBody .classicyPopUpMenuValue",
+				)?.textContent,
+			).toBe("Letters"),
+		);
+	});
+
+	it("shows the error row for a folder that fails to load, and still goes up", async () => {
+		flatPackage();
+		const failing = {
+			...disk,
+			list: async (path: string[]) => {
+				if (path.length > 0) throw new Error("unreadable");
+				return disk.list(path);
+			},
+		};
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[failing]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => {
+			row("Apple Extras").dispatchEvent(
+				new MouseEvent("dblclick", { bubbles: true }),
+			);
+		});
+		await vi.waitFor(() =>
+			expect(rows()).toEqual(["Couldn't open this folder"]),
+		);
+		act(() => {
+			(
+				document.querySelector(
+					".classicyFileOpenDialogBody .classicyPopUpMenuButton",
+				) as HTMLElement
+			).click();
+		});
+		act(() => {
+			(
+				document.querySelectorAll(
+					".classicyPopUpMenuListItem",
+				)[1] as HTMLElement
+			).click();
+		});
+		await vi.waitFor(() => expect(rows()).toEqual(["Read Me", "Apple Extras"]));
 	});
 });

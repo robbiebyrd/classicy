@@ -368,6 +368,12 @@ export const ClassicyFileDialog: FunctionalComponent<
 
 	const isFlatFolder = (nodeId: string) =>
 		flat && folderIndex.current.has(nodeId);
+	// Flat Save with a folder selected: its default button is Open, which
+	// enters the folder (7.5's Standard File).
+	const saveFolderSelected =
+		mode === "save" &&
+		selectedIds.length === 1 &&
+		isFlatFolder(selectedIds[0] ?? "");
 
 	// Flat navigation: shows a folder (by its node id, its cache key).
 	const enterFolder = (nodeId: string) => {
@@ -500,6 +506,12 @@ export const ClassicyFileDialog: FunctionalComponent<
 
 	const commitSave = async (confirmedName?: string) => {
 		if (props.mode !== "save") return;
+		// Flat navigation, a folder selected: Save is Open, and enters it
+		// (System 7.5's Standard File).
+		if (confirmedName === undefined && saveFolderSelected) {
+			enterFolder(selectedIds[0]);
+			return;
+		}
 		if (!activeVolume?.write || !activeFormat) return;
 		if (confirmedName === undefined && !canSave) return;
 		const targetName = confirmedName ?? finalFileName;
@@ -593,6 +605,18 @@ export const ClassicyFileDialog: FunctionalComponent<
 		if (mode === "open" && e.key === "Enter" && liveSelectedIds.length > 0) {
 			e.preventDefault();
 			commitOpen(liveSelectedIds);
+			return;
+		}
+		// Save with a folder selected: Enter opens it, as the Open button
+		// does; the name field's own Enter reaches commitSave, which does too.
+		if (
+			mode === "save" &&
+			e.key === "Enter" &&
+			saveFolderSelected &&
+			!(e.target instanceof HTMLInputElement)
+		) {
+			e.preventDefault();
+			enterFolder(selectedIds[0]);
 		}
 	};
 
@@ -824,10 +848,10 @@ export const ClassicyFileDialog: FunctionalComponent<
 							) : (
 								<ClassicyButton
 									isDefault={true}
-									disabled={!canSave}
+									disabled={!canSave && !saveFolderSelected}
 									onClickFunc={() => void commitSave()}
 								>
-									Save
+									{saveFolderSelected ? "Open" : "Save"}
 								</ClassicyButton>
 							)}
 						</div>
