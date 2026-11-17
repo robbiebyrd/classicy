@@ -46,6 +46,7 @@ type ClassicyAppManagerProviderProps = {
 	disablePictureViewer?: boolean;
 	disableHyperCard?: boolean;
 	disableWebViewer?: boolean;
+	disableCalculator?: boolean;
 	/** Boot with sound off. First-mount default only; user can unmute at runtime. */
 	defaultMuted?: boolean;
 };
@@ -81,6 +82,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	disablePictureViewer,
 	disableHyperCard,
 	disableWebViewer,
+	disableCalculator,
 	defaultMuted,
 }) => {
 	const seeded = useRef(false);
@@ -121,6 +123,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			disablePictureViewer: disablePictureViewer ?? false,
 			disableHyperCard: disableHyperCard ?? false,
 			disableWebViewer: disableWebViewer ?? false,
+			disableCalculator: disableCalculator ?? false,
 		}),
 		[
 			disableSimpleText,
@@ -129,6 +132,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 			disablePictureViewer,
 			disableHyperCard,
 			disableWebViewer,
+			disableCalculator,
 		],
 	);
 

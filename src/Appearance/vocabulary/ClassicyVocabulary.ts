@@ -35,6 +35,7 @@ export const CLASSICY_COMPONENT = {
 	BevelButton: "classicyBevelButton",
 	Button: "classicyButton",
 	ButtonToolbar: "classicyButtonToolbar",
+	Calculator: "classicyCalculator",
 	Checkbox: "classicyCheckbox",
 	ColorPicker: "classicyColorPicker",
 	ComboBox: "classicyComboBox",

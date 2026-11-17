@@ -275,7 +275,7 @@ describe("ClassicyAppManagerProvider defaultMuted", () => {
 });
 
 describe("ClassicyAppManagerProvider default apps", () => {
-	it("defaults all four disableX props to false", async () => {
+	it("defaults every disableX prop to false", async () => {
 		const ctx = await import(
 			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext"
 		);
@@ -299,6 +299,7 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			disablePictureViewer: false,
 			disableHyperCard: false,
 			disableWebViewer: false,
+			disableCalculator: false,
 		});
 	});
 
@@ -315,7 +316,11 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			return null;
 		}
 		render(
-			<ctx.ClassicyAppManagerProvider disablePictureViewer disableMoviePlayer>
+			<ctx.ClassicyAppManagerProvider
+				disablePictureViewer
+				disableMoviePlayer
+				disableCalculator
+			>
 				<Capture />
 			</ctx.ClassicyAppManagerProvider>,
 		);
@@ -326,6 +331,7 @@ describe("ClassicyAppManagerProvider default apps", () => {
 			disablePictureViewer: true,
 			disableHyperCard: false,
 			disableWebViewer: false,
+			disableCalculator: true,
 		});
 	});
 });

@@ -18,6 +18,7 @@ describe("ClassicyDefaultAppsContext", () => {
 			disablePictureViewer: false,
 			disableHyperCard: false,
 			disableWebViewer: false,
+			disableCalculator: false,
 		});
 	});
 });
