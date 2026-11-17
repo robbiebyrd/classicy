@@ -26,6 +26,10 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyMenuBounds,
+	classicyMenuListLeft,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import {
@@ -199,6 +203,10 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	// falls back to growing downward under the stylesheet's height cap.
 	const [placement, setPlacement] =
 		useState<ClassicyPopUpMenuPlacementResult | null>(null);
+	// Across, once measured: under the button's left side, or where that
+	// would pass the desktop's right edge, its right side under the button's
+	// right side, pinned inside the desktop (ClassicyMenuPlacement).
+	const [menuLeft, setMenuLeft] = useState<number | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
@@ -282,6 +290,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		setHighlight(-1);
 		setMenuRect(null);
 		setPlacement(null);
+		setMenuLeft(null);
 		resetScrollArrows();
 	}, [resetScrollArrows]);
 
@@ -388,7 +397,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	// Measure the rendered menu and place it. A layout effect runs before paint,
 	// so the corrected placement is what the user sees (same approach as
-	// ClassicyContextualMenu's horizontal flip). `scrollHeight` is the unclamped
+	// ClassicyContextualMenu's horizontal flip). Across, it keeps to the
+	// desktop as a menu bar's pull-down does. `scrollHeight` is the unclamped
 	// content height, so it stays correct once maxHeight applies. When there is a
 	// current selection, its measured geometry drives the Mac OS 8 aligned
 	// placement (the selected item opens over the button); with none (placeholder),
@@ -421,6 +431,9 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					buttonRef.current,
 				),
 			),
+		);
+		setMenuLeft(
+			classicyMenuListLeft(el, menuRect, classicyMenuBounds(buttonRef.current)),
 		);
 	}, [open, menuRect, currentIndex, reactId]);
 
@@ -611,7 +624,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									position: "fixed",
 									// On whole pixels: the frame and shadow placed a
 									// fraction across blend their one-pixel columns.
-									left: `${Math.round(menuRect.left)}px`,
+									left: `${menuLeft ?? Math.round(menuRect.left)}px`,
 									minWidth: `${menuRect.width}px`,
 									zIndex: 5000,
 									// Aligned placement gives an explicit top (the selected item

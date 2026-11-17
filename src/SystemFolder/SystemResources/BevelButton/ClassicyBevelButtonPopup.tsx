@@ -22,6 +22,10 @@ import {
 	ClassicyMenu,
 	type ClassicyMenuItem,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import {
+	classicyMenuBounds,
+	classicyMenuInkBox,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 
 // A panel (non-menu surface) gives keyboard focus to its first control.
@@ -94,17 +98,32 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		top: number;
 	} | null>(null);
 
+	// Across, it keeps to its desktop, its frame's shadow included (the
+	// menu list's, or a panel's own), as a menu bar's pull-down does.
 	useLayoutEffect(() => {
 		const el = wrapperRef.current;
 		if (!el) return;
-		const { width, height } = el.getBoundingClientRect();
+		const frame = el.getBoundingClientRect();
+		const list = el.querySelector(":scope > .classicyMenuWrapper > ul");
+		const ink = classicyMenuInkBox(
+			el,
+			list,
+			list?.parentElement?.querySelector(":scope > .classicyMenuScrollShadow"),
+		);
+		const bounds = classicyMenuBounds(el);
 		setPosition(
 			classicyBevelPopupPlacement(
 				anchor,
-				{ width, height },
+				{ width: frame.width, height: frame.height },
 				{ width: window.innerWidth, height: window.innerHeight },
 				side,
 				align,
+				{
+					left: bounds.left,
+					right: bounds.right,
+					inkLeft: ink ? Math.max(frame.left - ink.left, 0) : 0,
+					inkRight: ink ? Math.max(ink.right - frame.right, 0) : 0,
+				},
 			),
 		);
 	}, [anchor, side, align]);

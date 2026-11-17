@@ -28,6 +28,10 @@ import {
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyMenuBounds,
+	classicyMenuListLeft,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuEntry,
@@ -133,6 +137,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 	const [placement, setPlacement] =
 		useState<ClassicyPopUpMenuPlacementResult | null>(null);
+	// Across, once measured: under the field's left side, or where that would
+	// pass the desktop's right edge, its right side under the field's right
+	// side, pinned inside the desktop (ClassicyMenuPlacement).
+	const [listLeft, setListLeft] = useState<number | null>(null);
 
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -211,6 +219,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		setBypassFilter(false);
 		setMenuRect(null);
 		setPlacement(null);
+		setListLeft(null);
 		resetScrollArrows();
 	}, [resetScrollArrows]);
 
@@ -327,6 +336,20 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			),
 		);
 	}, [open, menuRect]);
+
+	// Across, measured as it opens and as typing filters its suggestions,
+	// which change its width.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries is a trigger, not read: the rows it renders change the list's width
+	useLayoutEffect(() => {
+		if (!open || !menuRect || !listRef.current) return;
+		setListLeft(
+			classicyMenuListLeft(
+				listRef.current,
+				menuRect,
+				classicyMenuBounds(anchorRef.current),
+			),
+		);
+	}, [open, menuRect, filteredEntries]);
 
 	// The indicators follow the list as it is placed and as typing filters
 	// its suggestions; its scrolling reads only the extents.
@@ -469,7 +492,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 							onScroll={scrollArrows.onListScroll}
 							style={{
 								position: "fixed",
-								left: `${menuRect.left}px`,
+								left: `${listLeft ?? menuRect.left}px`,
 								minWidth: `${menuRect.width}px`,
 								zIndex: 5000,
 								// Unlike the pop-up menu (which overlays its button), the
