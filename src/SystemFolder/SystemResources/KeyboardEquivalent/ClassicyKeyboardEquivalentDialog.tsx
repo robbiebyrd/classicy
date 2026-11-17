@@ -21,6 +21,7 @@ import {
 	spellKeyboardEquivalent,
 } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
 import { keyboardShortcutFromEvent } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const MODIFIER_KEYS = new Set(["Meta", "Control", "Shift", "Alt", "OS"]);
@@ -193,13 +194,15 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 					aria-label={title || undefined}
 				>
 					<p className="classicyKeyboardEquivalentPrompt">{prompt}</p>
-					<output
+					{/* An <output> is a polite live region, so each new combination
+					    is announced as it is typed. */}
+					<ClassicyOutput
+						id={`${id}-value`}
 						className="classicyKeyboardEquivalentDisplay"
-						aria-live="polite"
-						aria-label="Keyboard equivalent"
-					>
-						{spellKeyboardEquivalent(value) || " "}
-					</output>
+						ariaLabel="Keyboard equivalent"
+						// A no-break space keeps an empty display at its full height.
+						value={spellKeyboardEquivalent(value) || " "}
+					/>
 					{description != null && description !== "" && (
 						<p className="classicyKeyboardEquivalentDescription">
 							{description}

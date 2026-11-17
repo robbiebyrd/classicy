@@ -23,6 +23,11 @@ type ClassicyOutputProps = PropsWithChildren<{
 	htmlFor?: string[];
 	/** Visible label text. Omit for no label. */
 	label?: string;
+	/**
+	 * Accessible name for a result with no visible label, such as one whose
+	 * caption is a group box's title or a dialog's prompt.
+	 */
+	ariaLabel?: string;
 	/** Where the label sits relative to the field. Defaults to `"left"`. */
 	labelPosition?: ClassicyLabelPosition;
 	/** Horizontal alignment of the label. Defaults to `"left"`. */
@@ -61,6 +66,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 	value,
 	htmlFor,
 	label,
+	ariaLabel,
 	labelPosition = "left",
 	labelAlign = "left",
 	variant = "plain",
@@ -74,6 +80,7 @@ export const ClassicyOutput: FunctionalComponent<ClassicyOutputProps> = ({
 		<output
 			id={id}
 			htmlFor={htmlFor?.join(" ")}
+			aria-label={ariaLabel}
 			className={classNames(
 				"classicyOutput",
 				variant === "inset" ? "classicyOutputInset" : "classicyOutputPlain",

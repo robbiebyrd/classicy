@@ -258,7 +258,7 @@
 		],
 		"DesktopMenuBar": [],
 		"Disclosure": ["Header", "Inner", "InnerClose"],
-		"DriveSetupList": ["Grid", "Head", "Header", "Row", "Table"],
+		"DriveSetupList": ["Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",
 			"ViewTableContainer",

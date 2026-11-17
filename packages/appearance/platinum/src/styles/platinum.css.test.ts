@@ -903,9 +903,6 @@ describe("platinum.scss (compiled)", () => {
 			expect(selected.first).toBeGreaterThan(
 				rules(".classicyTableColumnHeader").first,
 			);
-			expect(
-				rules(".classicyDriveSetupListHead th").props["box-shadow"],
-			).toBeDefined();
 			expect(rules(".classicyMeter").props.border).toBe(BORDER);
 			expect(rules(".classicyOutputInset").props.border).toBe(BORDER);
 			expect(

@@ -1,8 +1,10 @@
 // User-definable keyboard equivalents (HIGOS8 Ch.6, pp.120–122).
 
 // The read-only combination box of Figures 6-8 to 6-10: a framed static text
-// field on the dialog's gray, the spelled-out combination centered in it.
-.classicyKeyboardEquivalentDisplay {
+// field on the dialog's gray, the spelled-out combination centered in it. A
+// ClassicyOutput (plain): scoped to its element and class to outrank its
+// static-text sizing.
+output.classicyOutput.classicyKeyboardEquivalentDisplay {
   display: block;
   box-sizing: border-box;
   min-height: var(--edit-field-height);

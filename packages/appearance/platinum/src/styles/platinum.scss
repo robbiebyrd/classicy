@@ -15,7 +15,6 @@
 @use "components/Slider";
 @use "components/Checkbox";
 @use "components/PopUpMenu";
-@use "components/DriveSetupList";
 @use "components/Assistant";
 @use "components/ProgressBar";
 @use "components/Icon";
@@ -46,7 +45,6 @@
   @include Slider.slider;
   @include Checkbox.checkbox;
   @include PopUpMenu.popUpMenu;
-  @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;
   @include ProgressBar.progressBar;
   @include Icon.icon;

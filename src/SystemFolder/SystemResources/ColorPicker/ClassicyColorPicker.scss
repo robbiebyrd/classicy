@@ -349,25 +349,24 @@ $cp-crayon-tip: 0.31;
   font-family: var(--ui-font);
   font-size: var(--ui-font-size);
 
-  label {
+  // Each field is a ClassicySpinner, label on its left: the spinner takes the
+  // row's slack and its label (the holder, then the text in it) grows into
+  // it, right-aligned, so the fields line up in a column.
+  .classicySpinnerHolder,
+  .classicyControlLabelHolder {
+    flex: 1;
+  }
+
+  .classicyControlLabel {
     flex: 1;
     text-align: right;
     white-space: nowrap;
     font-weight: bold;
   }
 
-  input[type="number"] {
-    // Three digits and a little air; the old 52px bought nothing but width.
+  // Three digits and a little air.
+  .classicySpinner {
     width: var(--picker-field-width);
-    font-family: var(--ui-font);
-    font-size: var(--ui-font-size);
-    border: var(--window-border-size) solid var(--color-window-border);
-    padding: var(--control-frame-width) var(--layout-item-gap);
-    background: var(--color-white);
-    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 var(--color-system-05);
-    -moz-appearance: textfield;
-    &::-webkit-inner-spin-button,
-    &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   }
 
   .classicyColorPickerWheelUnit {

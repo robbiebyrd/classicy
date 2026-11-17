@@ -4131,7 +4131,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--control-padding-narrow` | `paddingSize / 3` | 2 | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-loose` | `paddingSize / 1.5` | 4 | ClassicyButtonToolbar.scss, ClassicyListBox.scss, ClassicyPlacard.scss, ClassicyPopUpMenu.scss, ClassicyTabs.scss |
 | `--control-padding-wide` | `paddingSize × 1.5` | 9 | ClassicyPopUpMenu.scss, ClassicyStartupScreen.scss, ClassicyTabs.scss |
-| `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss, DriveSetupList.scss |
+| `--ui-font-size-small` | `uiSize × 0.8` | 11.200000000000001 (unrounded) | ClassicyColorPicker.scss, ClassicyControlGroup.scss, ClassicyControlLabel.scss, ClassicyPopUpMenu.scss, ClassicySlider.scss, ClassicyTable.scss, ClassicyTextEditor.scss |
 | `--ui-font-size-caption` | `uiSize × 0.75` | 10.5 (unrounded) | ClassicyCheckbox.scss, ClassicyControlGroup.scss, ClassicyKbd.scss, ClassicyMenu.scss, ClassicyMeter.scss |
 | `--ui-font-size-compact` | `uiSize × 10 / 12` | 11.666666666666666 (unrounded) | ClassicyButtonToolbar.scss, ClassicyPlacard.scss, ClassicyTabs.scss |
 | `--ui-font-size-mini` | `uiSize / 1.5` | 9.333333333333334 (unrounded) | ClassicyBevelButton.scss, ClassicyButton.scss, ClassicyButtonToolbar.scss, ClassicyPlacard.scss |
@@ -4146,7 +4146,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--desktop-icon-label-pad` | `iconFontSize / 4` | 3 | ClassicyDesktopIcon.scss, ClassicyIcon.scss |
 | `--focus-ring-width` | `borderSize` | 1 | ClassicyColorPicker.scss, ClassicyControlStrip.scss, ClassicyLink.scss, ClassicyPopUpSlider.scss |
 | `--focus-ring-inset` | `borderSize × 3` | 3 | ClassicyColorPicker.scss, ClassicyControlStrip.scss |
-| `--layout-item-gap-half` | `itemGap / 2` | 2 | DriveSetupList.scss, HyperCard.scss |
+| `--layout-item-gap-half` | `itemGap / 2` | 2 | HyperCard.scss |
 | `--control-corner-radius` | `borderSize × 2` | 2 | ClassicyKbd.scss |
 | `--window-shadow-offset` | `borderSize × 2` | 2 | ClassicyWindowFrame.scss |
 | `--window-frame-inset-whole` | `floor(paddingSize / 1.25)` | 4 | ClassicyWindowFrame.scss |

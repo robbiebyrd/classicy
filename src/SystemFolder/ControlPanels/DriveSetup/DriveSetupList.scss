@@ -12,70 +12,16 @@
 	margin: 0;
 }
 
+// The list itself is a ClassicyTable, which draws the Platinum list look;
+// this only bounds its height.
 .classicyDriveSetupListTable {
-	border: var(--control-frame-width) inset var(--color-black);
-	background: var(--color-white);
-	overflow-y: auto;
 	max-height: var(--control-panel-list-max-height);
 	min-height: var(--drive-setup-list-min-height);
 }
 
-.classicyDriveSetupListGrid {
-	width: 100%;
-	border-collapse: collapse;
-	table-layout: fixed;
-
-	th,
-	td {
-		padding: var(--layout-item-gap-half) var(--window-padding-size);
-		text-align: left;
-		overflow: hidden;
-		white-space: nowrap;
-		text-overflow: ellipsis;
-	}
-
-	// Volume Name(s) / Type / Bus / ID / LUN
-	col,
-	th:nth-child(1),
-	td:nth-child(1) {
-		width: 40%;
-	}
-	th:nth-child(2),
-	td:nth-child(2) {
-		width: 24%;
-	}
-	th:nth-child(3),
-	td:nth-child(3) {
-		width: 14%;
-	}
-	th:nth-child(4),
-	td:nth-child(4) {
-		width: 11%;
-	}
-	th:nth-child(5),
-	td:nth-child(5) {
-		width: 11%;
-	}
-}
-
-// Match the Finder list view column headers
-// (.classicyFileBrowserViewTableColumnHeader).
-.classicyDriveSetupListHead th {
-	position: sticky;
-	top: 0;
-	font-size: var(--ui-font-size-small);
-	font-weight: normal;
-	font-stretch: condensed;
-	padding: var(--window-padding-size);
-	background: var(--color-system-03);
-	// The header bevel is the Platinum package's.
-}
-
-.classicyDriveSetupListRow {
-	cursor: default;
-
-	&.selected {
-		background: var(--color-black);
-		color: var(--color-white);
-	}
+// Drive Setup inverts the selected drive, black with white text, rather than
+// taking the table's highlight color (as the Finder's list view also does).
+.classicyDriveSetupListTable :where(.classicyDriveSetupListRow).selected {
+	color: var(--color-white);
+	background: var(--color-black);
 }
