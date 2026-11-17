@@ -120,7 +120,7 @@
 			"menuBar": {
 				"bandHeight": 20,
 				"inset": 9,
-				"endInset": 11,
+				"endInset": 6,
 				"titlePadding": 10,
 				"titleOverlap": 5,
 				"highlightTop": 1,
@@ -131,6 +131,8 @@
 				"helpTitleStart": 8,
 				"helpTitleEnd": 9,
 				"helpTitleDrop": 1,
+				"switcherTitleStart": 9,
+				"switcherTitleEnd": 9,
 				"titleArtInvert": 1
 			},
 			"uiText": {
@@ -369,7 +371,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
-					"endInset": 11,
+					"endInset": 6,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -380,6 +382,8 @@
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
 					"titleArtInvert": 1
 				},
 				"uiText": {
@@ -620,7 +624,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
-					"endInset": 11,
+					"endInset": 6,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -631,6 +635,8 @@
 					"helpTitleStart": 8,
 					"helpTitleEnd": 9,
 					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
 					"titleArtInvert": 0
 				},
 				"uiText": {

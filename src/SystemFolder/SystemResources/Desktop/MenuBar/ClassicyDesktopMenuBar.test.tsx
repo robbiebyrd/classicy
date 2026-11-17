@@ -452,3 +452,87 @@ describe("ClassicyDesktopMenuBar — sticky menus close on an outside mouse-down
 		expect(apple).not.toHaveClass("open");
 	});
 });
+
+// Story 0214-c61: the Application menu lists Hide <app>, Hide Others and
+// Show All, each dimmed when it does nothing, a divider, then each open
+// application with its small icon, the front one checked (HIG7 p.127,
+// 7.5.5's `*-755-appmenu-open.png`).
+describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	const app = (
+		id: string,
+		name: string,
+		extra: Partial<ClassicyStoreSystemApp> = {},
+	): ClassicyStoreSystemApp => ({
+		id,
+		name,
+		icon: `/icons/${name}.png`,
+		windows: {},
+		open: true,
+		focused: false,
+		data: {},
+		...extra,
+	});
+
+	/** The open switcher's items: [id, title, dimmed, checked, has image]. */
+	const items = () => {
+		const switcher = document.querySelector("#app-switcher") as HTMLElement;
+		fireEvent.click(switcher.querySelector("p") ?? switcher);
+		return [
+			...switcher.querySelectorAll(":scope .classicyMenuWrapper ul > *"),
+		].map((li) =>
+			li.querySelector("p")
+				? [
+						li.id,
+						li.querySelector("p")?.textContent,
+						li.classList.contains("disabled"),
+						li.querySelector(".classicyMenuItemCheck.checked") !== null,
+						li.querySelector("p > img") !== null,
+					]
+				: ["divider"],
+		);
+	};
+
+	it("dims every command with only the Finder open", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder", { focused: true }),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+		});
+		render(<ClassicyDesktopMenuBar />);
+		expect(items()).toEqual([
+			["app-switcher_hide", "Hide Finder", true, false, false],
+			["app-switcher_hide-others", "Hide Others", true, false, false],
+			["app-switcher_show-all", "Show All", true, false, false],
+			["divider"],
+			["Finder.app", "Finder", false, true, true],
+		]);
+	});
+
+	it("enables Hide and Hide Others with another app shown, Show All with one hidden", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", "Finder"),
+				"SimpleText.app": app("SimpleText.app", "SimpleText", {
+					focused: true,
+				}),
+				"Notes.app": app("Notes.app", "Notes", { hidden: true }),
+			};
+			draft.System.Manager.Applications.focusedAppId = "SimpleText.app";
+		});
+		render(<ClassicyDesktopMenuBar />);
+		expect(items()).toEqual([
+			["app-switcher_hide", "Hide SimpleText", false, false, false],
+			["app-switcher_hide-others", "Hide Others", false, false, false],
+			["app-switcher_show-all", "Show All", false, false, false],
+			["divider"],
+			["Finder.app", "Finder", false, false, true],
+			["SimpleText.app", "SimpleText", false, true, true],
+			["Notes.app", "Notes", false, false, true],
+		]);
+	});
+});

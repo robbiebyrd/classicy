@@ -10,6 +10,7 @@ import {
 	type ClassicyMenuItem,
 	ClassicyPopUpMenu,
 	ClassicyWindow,
+	useAppManagerDispatch,
 } from "@classicy/classicy";
 import { StoryApp } from "@sb/helpers";
 import { inColor, system7Parameters } from "@sb/system7";
@@ -247,3 +248,42 @@ const lowMenusScene = () => (
 
 export const LowMenus: Story = { render: lowMenusScene };
 export const LowMenusColor = inColor(lowMenusScene);
+
+/** Brings the Finder to the front, then opens the Application menu. */
+function FinderFrontSwitcherOpen({ open }: { open: boolean }) {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
+			if (open)
+				window.setTimeout(
+					() =>
+						document.querySelector<HTMLElement>("#app-switcher > p")?.click(),
+					100,
+				);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [dispatch, open]);
+	return null;
+}
+
+/**
+ * The Application menu with the Finder in front: its title the Finder's
+ * small icon alone, 34 px wide and 6 px from the screen's right edge
+ * (`*-755-appmenu-closed.png`), and, open, Hide Finder, Hide Others and Show
+ * All, a divider, then each open application by its small icon, the Finder
+ * checked (`*-755-appmenu-open.png`, where the Finder alone is open, so its
+ * commands are dimmed; here the Storybook app is open too).
+ */
+const applicationMenuScene = (open: boolean) => () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<FinderFrontSwitcherOpen open={open} />
+	</StoryApp>
+);
+
+export const ApplicationMenu: Story = { render: applicationMenuScene(false) };
+export const ApplicationMenuColor = inColor(applicationMenuScene(false));
+export const ApplicationMenuOpen: Story = {
+	render: applicationMenuScene(true),
+};
+export const ApplicationMenuOpenColor = inColor(applicationMenuScene(true));

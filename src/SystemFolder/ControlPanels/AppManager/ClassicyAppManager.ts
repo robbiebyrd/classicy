@@ -22,9 +22,12 @@ import {
 	focusApp,
 	focusWindow,
 	getDefaultAppForFileType,
+	hideApp,
+	hideOtherApps,
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
@@ -74,6 +77,12 @@ export interface ClassicyStoreSystemApp {
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	extension?: boolean;
+	/**
+	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
+	 * stays open, its windows out of sight, until Show All or until it takes
+	 * focus again (`focusApp` shows it). Never set on an extension.
+	 */
+	hidden?: boolean;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
@@ -187,8 +196,11 @@ export {
 	focusApp,
 	focusWindow,
 	getDefaultAppForFileType,
+	hideApp,
+	hideOtherApps,
 	loadApp,
 	openApp,
+	showAllApps,
 };
 
 export type ActionMessage = Record<string, unknown> & {
@@ -339,6 +351,23 @@ export const classicyAppEventHandler = (
 			if (hasApp(action)) {
 				focusApp(ds, action.app.id);
 			}
+			break;
+		}
+		// The Application menu's Hide <app>, Hide Others and Show All.
+		case "ClassicyAppHide": {
+			if (hasApp(action)) {
+				hideApp(ds, action.app.id);
+			}
+			break;
+		}
+		case "ClassicyAppHideOthers": {
+			if (hasApp(action)) {
+				hideOtherApps(ds, action.app.id);
+			}
+			break;
+		}
+		case "ClassicyAppShowAll": {
+			showAllApps(ds);
 			break;
 		}
 		case "ClassicyAppActivate": {

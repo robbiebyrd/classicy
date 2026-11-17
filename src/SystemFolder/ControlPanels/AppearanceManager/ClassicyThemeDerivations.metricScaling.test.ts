@@ -11,7 +11,6 @@ import {
 	type ClassicyThemeDerivationInputs,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
-import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
@@ -20,6 +19,7 @@ import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	type ClassicyThemeMetricKey,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import {
 	type ActionMessage,
 	type ClassicyStore,

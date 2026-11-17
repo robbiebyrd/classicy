@@ -14,6 +14,7 @@ export { registerClassicyAppearancePackage } from "@/Appearance/ClassicyAppearan
 export { classicyKnobsToSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
 export { playClassicyAppearanceSound } from "@/Appearance/ClassicyAppearanceSound";
 export {
+	registerClassicyAssets,
 	registerClassicyCursors,
 	registerClassicyFonts,
 	registerClassicySystemArt,

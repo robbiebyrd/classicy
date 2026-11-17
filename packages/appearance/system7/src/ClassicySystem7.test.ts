@@ -358,7 +358,11 @@ describe("the System 7 appearance package", () => {
 			expect(getThemeVars(theme)).toMatchObject({
 				"--menu-bar-height": "20px",
 				"--menu-bar-inset": "9px",
-				"--menu-bar-end-inset": "11px",
+				// The Application menu's title ends 6 px from the screen's
+				// right edge (`*-755-appmenu-closed.png`, story 0214-c61).
+				"--menu-bar-end-inset": "6px",
+				"--menu-bar-switcher-title-start": "9px",
+				"--menu-bar-switcher-title-end": "9px",
 				"--menu-bar-title-padding": "10px",
 				"--menu-bar-title-overlap": "5px",
 				"--menu-bar-highlight-top": "1px",

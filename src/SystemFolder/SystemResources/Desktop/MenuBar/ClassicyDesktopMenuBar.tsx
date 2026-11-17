@@ -226,6 +226,35 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const appSwitcherMenuMenuItem: ClassicyMenuItem = useMemo(() => {
 		const focusedApp = appSwitcherData.find((a) => a.focused);
 		const openApps = appSwitcherData.filter((a) => a.open);
+		// The Application menu's commands (HIG7 p.127): each dimmed when it
+		// would do nothing, as 7.5.5 draws them (`*-755-appmenu-open.png`).
+		const frontId = focusedApp?.id ?? "Finder.app";
+		const othersShown = openApps.some((a) => a.id !== frontId && !a.hidden);
+		const anyHidden = openApps.some((a) => a.hidden);
+		const commands: ClassicyMenuItem[] = [
+			{
+				id: "app-switcher_hide",
+				title: `Hide ${focusedApp?.name || finderName}`,
+				disabled: !othersShown,
+				event: "ClassicyAppHide",
+				eventData: { app: { id: frontId } },
+			},
+			{
+				id: "app-switcher_hide-others",
+				title: "Hide Others",
+				disabled: !othersShown,
+				event: "ClassicyAppHideOthers",
+				eventData: { app: { id: frontId } },
+			},
+			{
+				id: "app-switcher_show-all",
+				title: "Show All",
+				disabled: !anyHidden,
+				event: "ClassicyAppShowAll",
+				eventData: {},
+			},
+			{ id: "spacer" },
+		];
 		return {
 			id: "app-switcher",
 			image: focusedApp?.icon || "",
@@ -237,14 +266,19 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			// it and shove the clock and extensions sideways. Reserve the widest open
 			// app's width up front and the bar stays put.
 			titleWidthSamples: openApps.map((app) => app.name),
-			menuChildren: openApps.map((app) => ({
-				id: app.id,
-				icon: app.icon,
-				title: app.name,
-				onClickFunc: () => {
-					setActiveApp(app.id);
-				},
-			})),
+			menuChildren: [
+				...commands,
+				...openApps.map((app) => ({
+					id: app.id,
+					icon: app.icon,
+					title: app.name,
+					// The front application is checked, beside its icon.
+					checked: app.id === focusedApp?.id,
+					onClickFunc: () => {
+						setActiveApp(app.id);
+					},
+				})),
+			],
 		};
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, finderName, setActiveApp]);

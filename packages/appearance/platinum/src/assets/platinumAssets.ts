@@ -87,7 +87,10 @@ registerClassicySystemArt(PLATINUM, {
 registerClassicyAssets("icons", PLATINUM, {
 	system: {
 		folders: {
-			directory: { src: ClassicyIcons.system.folders.directory, small: folderSmall },
+			directory: {
+				src: ClassicyIcons.system.folders.directory,
+				small: folderSmall,
+			},
 		},
 	},
 } as ClassicyAssetTree);

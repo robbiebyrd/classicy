@@ -538,6 +538,21 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/border-top: 0;/);
 		});
 
+		// 7.5.5's Application menu title is the front application's small
+		// icon alone, in a title 34 px wide (`*-755-appmenu-closed.png`,
+		// story 0214-c61): the name is kept for screen readers, at no size.
+		it("draws the Application menu's title as the front app's icon alone", () => {
+			const switcher = rule(`${TITLES}.classicyDesktopMenuAppSwitcher`);
+			expect(switcher).toMatch(
+				/padding: 0 var\(--menu-bar-switcher-title-end\) 0 var\(--menu-bar-switcher-title-start\);/,
+			);
+			const p = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p`);
+			expect(p).toMatch(/font-size: 0;/);
+			const img = rule(`${TITLES}.classicyDesktopMenuAppSwitcher > p > img`);
+			expect(img).toMatch(/width: var\(--menu-bar-title-art-size\);/);
+			expect(img).toMatch(/margin: 0;/);
+		});
+
 		it("puts Help between the clock and the Application menu", () => {
 			expect(rule(".classicyDesktopMenu > [data-classicy-part=help]")).toMatch(
 				/order: 55;/,
@@ -2053,9 +2068,7 @@ describe("system7.scss (compiled)", () => {
 			expect(row).toMatch(/border-bottom-width: 0;/);
 			expect(row).toMatch(/background: var\(--color-white\);/);
 			expect(
-				rule(
-					".classicyFileBrowserViewTableContainer.classicyTableContainer",
-				),
+				rule(".classicyFileBrowserViewTableContainer.classicyTableContainer"),
 			).toMatch(/background: var\(--color-white\);/);
 		});
 
