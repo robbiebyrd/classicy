@@ -824,6 +824,15 @@ describe("the System 7 appearance package", () => {
 				fitsBars: "shown",
 				patternOrigin: "window",
 			},
+			// The dimmed pattern, the group box's dots and the dimmed slider's
+			// checker lie from the desktop's corner, as 7.5 laid its 1-bit
+			// patterns from the screen's, so a part keeps that phase wherever
+			// it and its window sit (story 0219-c62).
+			patternOrigin: {
+				ControlGroup: "desktop",
+				PopUpMenu: "desktop",
+				Slider: "desktop",
+			},
 			// Standard File is a fixed modal dialog box
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
 			// and browses one folder at a time (fix round 1, ruling R4); the

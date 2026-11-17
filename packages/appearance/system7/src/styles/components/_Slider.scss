@@ -174,9 +174,15 @@ $ink: var(--system7-slider-ink);
 
 // A 50% checker over the whole element at both depths: the dither's mask
 // (the core's `classicy-dither-mask`) with a 2 x 2 tile, not the theme's,
-// which is none in color.
+// which is none in color. The tile is laid from the desktop's corner,
+// which the core publishes on the slider and on its ticks (layout
+// `patternOrigin.Slider`), so the dots keep the screen's phase wherever the
+// slider sits: the ink shows where x + y is odd from it, as Memory's RAM
+// Disk slider draws it. The tile keeps its (0, 0) and (1, 1) pixels, so it
+// starts a pixel right of the origin.
 @mixin checker-mask {
   mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
+  mask-position: calc(#{$pattern-origin-x} + #{$px}) $pattern-origin-y, 0 0;
   mask-size: px(2) px(2), auto;
   mask-repeat: repeat, no-repeat;
   mask-composite: exclude;

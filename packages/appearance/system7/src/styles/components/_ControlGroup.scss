@@ -4,8 +4,8 @@
 // - Group box (HIG p.211, figure 7-10; the Views and Sound control panels):
 //   a dotted one-pixel rectangle at both depths (the control panels'
 //   captures are alike), drawn in one 50% pattern, so no two dots touch at
-//   any size: black where x + y is odd from the frame's corner, which is
-//   empty; the title breaks the line. A secondary group is a solid
+//   any size: black where x + y is odd from the desktop's corner, the
+//   screen's phase (below); the title breaks the line. A secondary group is a solid
 //   one-pixel line (System 7 drew no second kind; a plain QuickDraw frame).
 // - Separator (Standard File's, Date & Time's): a one-pixel dotted line. In
 //   1-bit, black on every other pixel; in color, the gray pattern 7.5 draws
@@ -18,10 +18,15 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
 
 @mixin control-group {
   // The frame is a layer over the fieldset's transparent border: a 2 x 2
-  // checker from its outer corner, masked to the ring between its border
-  // box and its padding box. Each edge dotted on its own would start its
-  // dots afresh, out of step with its neighbors at two corners of a box
-  // whose width or height is even.
+  // checker, masked to the ring between its border box and its padding
+  // box. Each edge dotted on its own would start its dots afresh, out of
+  // step with its neighbors at two corners of a box whose width or height
+  // is even. The checker is laid from the desktop's corner, which the core
+  // publishes on the fieldset (layout `patternOrigin.ControlGroup`), so the
+  // dots keep the screen's phase wherever the box sits: black where x + y
+  // is odd from it, as the Views control panel and Clock Options draw them.
+  // The layer's border box is the fieldset's, a pixel outside the padding
+  // box the origin is measured from.
   .classicyControlGroupFieldsetPrimary {
     border: $px solid transparent;
 
@@ -32,7 +37,7 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
       box-sizing: border-box;
       border: $px solid transparent;
       background: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0)
-        border-box left top / px(2) px(2);
+        border-box calc(#{$pattern-origin-x} + #{$px}) calc(#{$pattern-origin-y} + #{$px}) / px(2) px(2);
       mask: $cover border-box, $cover padding-box;
       mask-composite: exclude;
       pointer-events: none;

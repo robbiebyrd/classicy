@@ -171,8 +171,10 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
   // `color-755-dialog-clockoptions.png`: #888888, #777777 on every other
   // pixel of every other row, in color). The text dims through the dither;
   // the frame and the triangle are masks over the dimmed pattern
-  // (`dimmed-pattern()`, _pixel.scss), anchored at the frame's and the
-  // triangle's corners, as the captures' patterns fall. The frame and its
+  // (`dimmed-pattern()`, _pixel.scss), laid from the desktop's corner,
+  // which the core publishes on the button and on the triangle (layout
+  // `patternOrigin.PopUpMenu`), so the dots keep the screen's phase wherever
+  // the pop-up sits and whatever its width. The frame and its
   // shadow are one layer, `::before`, a pixel past the frame on every side
   // and two past it on the right and bottom: the four sides, then the
   // shadow's strips `menuFrame.shadowStart` (2) pixels in from the padding
@@ -195,7 +197,9 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
       inset: $out $shadow-out $shadow-out $out;
       width: auto;
       height: auto;
-      background: dimmed-pattern();
+      // The layer starts the frame's width outside the button's padding box.
+      background: dimmed-pattern(calc(#{$pattern-origin-x} + #{$b}), calc(#{$pattern-origin-y} + #{$b}));
+      background-size: $dimmed-pattern-size;
       mask:
         layout.classicy-px-rect($ink, left 0, top 0, $side, $b),
         layout.classicy-px-rect($ink, left 0, top 0, $b, $side),
@@ -211,6 +215,7 @@ $popup-arrow-up: (5 0 1 1) (4 1 3 1) (3 2 5 1) (2 3 7 1) (1 4 9 1) (0 5 11 1);
 
     .classicyPopUpMenuIndicator {
       background: dimmed-pattern();
+      background-size: $dimmed-pattern-size;
       mask: pixel-art(var(--color-black), $popup-arrow);
     }
   }

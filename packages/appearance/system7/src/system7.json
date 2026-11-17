@@ -1012,6 +1012,11 @@
 			"fitsBars": "shown",
 			"patternOrigin": "window"
 		},
+		"patternOrigin": {
+			"ControlGroup": "desktop",
+			"PopUpMenu": "desktop",
+			"Slider": "desktop"
+		},
 		"fileDialog": {
 			"frame": "fixed",
 			"navigation": "flat",

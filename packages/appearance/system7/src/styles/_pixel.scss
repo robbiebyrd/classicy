@@ -119,19 +119,38 @@ $px: var(--box-pixel);
 // break the switch.
 $color-only: calc(#{px(2)} - var(--dither-tile-size));
 
+// The origin a dithered part's pattern is laid from, from the element's
+// padding-box corner: the desktop's corner, the screen's, which the core
+// publishes on the parts the package lays from it (layout `patternOrigin`:
+// the group box, the pop-up menu, the slider). System 7 laid its 1-bit
+// patterns from the screen's corner, not the part's or the window's: the
+// 50% dots of Memory's dimmed pop-up and slider, of the Views control
+// panel's and Clock Options' group boxes and of Standard File's separator
+// all fall where x + y is odd on the screen, while those windows' content
+// origins lie in both phases. So a part keeps that phase wherever it and
+// its window sit.
+$pattern-origin-x: var(--classicy-pattern-origin-x);
+$pattern-origin-y: var(--classicy-pattern-origin-y);
+
 // The dimmed ink as a pattern, for a dimmed part whose shape is a mask
-// (a dithering mask would leave no room for it), anchored at the element's
-// corner, from the top layer down:
+// (a dithering mask would leave no room for it), laid from `$x`, `$y` (the
+// origin above, from the painted box's corner), from the top layer down:
 // - color: #777777 (`--color-system-06`) on each pixel whose x and y are
-//   both odd, over #888888 (`--color-theme-06`), as 7.5.5 draws a dimmed
-//   pop-up's frame, shadow and triangle (`color-755-dialog-clockoptions.png`);
-// - 1-bit: the dimmed ink (black) where x + y is odd, the 50% checker, as
-//   `bw-755-controlpanel-memory.png` draws them.
-@function dimmed-pattern() {
+//   both even from the origin, over #888888 (`--color-theme-06`), as 7.5.5
+//   draws a dimmed pop-up's frame, shadow and triangle
+//   (`color-755-dialog-clockoptions.png`; its 1-bit capture thresholds the
+//   same dots to black);
+// - 1-bit: the dimmed ink (black) where x + y is odd from the origin, the
+//   50% checker, as `bw-755-controlpanel-memory.png` draws them.
+// The layers' sizes are `$dimmed-pattern-size`, a `background-size` set
+// after it.
+@function dimmed-pattern($x: $pattern-origin-x, $y: $pattern-origin-y) {
   @return (
-    conic-gradient(from 90deg at $px $px, var(--color-system-06) 25%, transparent 0) left top / $color-only $color-only,
-    linear-gradient(var(--color-theme-06), var(--color-theme-06)) left top / $color-only $color-only,
-    conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) left top /
-      var(--dither-tile-size) var(--dither-tile-size)
+    conic-gradient(from 270deg at $px $px, var(--color-system-06) 25%, transparent 0) $x $y,
+    linear-gradient(var(--color-theme-06), var(--color-theme-06)) $x $y,
+    conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) $x $y
   );
 }
+
+$dimmed-pattern-size: $color-only $color-only, $color-only $color-only,
+  var(--dither-tile-size) var(--dither-tile-size);

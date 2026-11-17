@@ -1398,6 +1398,14 @@ describe("system7.scss (compiled)", () => {
 				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
 			);
 			expect(dimmed).toMatch(/mask-composite: exclude;/);
+			// Story 0219-c62: the checker laid from the desktop's corner (the
+			// core publishes it on the input, layout `patternOrigin`), shown
+			// where x + y is odd from it, the screen's phase, as Memory's: the
+			// tile keeps its (0, 0) and (1, 1) pixels, so it starts a pixel
+			// right of the origin.
+			const FROM_ORIGIN =
+				/mask-position: calc\(var\(--classicy-pattern-origin-x\) \+ var\(--box-pixel\)\) var\(--classicy-pattern-origin-y\), 0 0;/;
+			expect(dimmed).toMatch(FROM_ORIGIN);
 			// The channel loses its checker band: both caps and the four
 			// runs, no far-cap checker pixels and no dotted columns.
 			for (const selector of [
@@ -1435,6 +1443,7 @@ describe("system7.scss (compiled)", () => {
 			expect(ticks).toMatch(
 				/mask-size: calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\), auto;/,
 			);
+			expect(ticks).toMatch(FROM_ORIGIN);
 			expect(
 				rule(":where(.classicySliderTicks).disabled .classicySliderTick"),
 			).toBe("");
@@ -1829,7 +1838,7 @@ describe("system7.scss (compiled)", () => {
 		// the frame, its drop shadow and the triangle too
 		// (`bw-755-controlpanel-memory.png`, the 50% checker in 1-bit;
 		// `color-755-dialog-clockoptions.png`, #888888 with #777777 on every
-		// pixel whose x and y are both odd from the frame's corner, in color).
+		// pixel whose x and y are both even on the screen, in color).
 		it("dims a pop-up's text, frame, shadow and triangle", () => {
 			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
 			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
@@ -1854,27 +1863,48 @@ describe("system7.scss (compiled)", () => {
 				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
 			);
 			expect(layersOf(arrow, BLACK)).toBe(6);
-			for (const part of [frame, arrow]) {
+			// Story 0219-c62: laid from the desktop's corner, which the core
+			// publishes on the button and on the triangle (layout
+			// `patternOrigin.PopUpMenu`), as 7.5 laid its 1-bit patterns from
+			// the screen's: the frame's layer starts the frame's width outside
+			// the button's padding box, the triangle at its own corner.
+			const ORIGIN = String.raw`var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\)`;
+			const FRAME_ORIGIN = String.raw`calc\(var\(--classicy-pattern-origin-x\) \+ var\(--window-border-size\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--window-border-size\)\)`;
+			for (const [part, at] of [
+				[frame, FRAME_ORIGIN],
+				[arrow, ORIGIN],
+			] as const) {
 				expect(part).toMatch(/^\s*mask: linear-gradient/m);
-				// 1-bit: the dimmed ink where x + y is odd, in the theme's tile.
+				expect(part).not.toMatch(/left top/);
+				// 1-bit: the dimmed ink where x + y is odd from the screen's
+				// corner (Memory), in the theme's tile.
 				expect(part).toMatch(
-					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) left top ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+					new RegExp(
+						String.raw`conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) ${at};`,
+					),
 				);
-				// Color: #888888, and #777777 where x and y are odd, in a tile
-				// sized away in 1-bit.
+				// Color: #888888, and #777777 where x and y are both even from the
+				// screen's corner (Clock Options), in a tile sized away in 1-bit.
 				expect(part).toMatch(
-					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+					new RegExp(
+						String.raw`conic-gradient\(from 270deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) ${at},`,
+					),
 				);
 				expect(part).toMatch(
-					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+					new RegExp(
+						String.raw`linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) ${at},`,
+					),
+				);
+				expect(part).toContain(
+					"background-size: calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)) calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)), calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)) calc(calc(var(--box-pixel) * 2) - var(--dither-tile-size)), var(--dither-tile-size) var(--dither-tile-size);",
 				);
 			}
 		});
 
 		// Story 0218-ll9: 7.5 dots a group box in one 50% pattern, so no two
 		// dots touch at any size (`*-controlpanel-views.png`): one checker,
-		// anchored at the frame's corner, masked to the frame's ring, where
-		// each edge's own dots met out of step at two corners.
+		// masked to the frame's ring, where each edge's own dots met out of
+		// step at two corners.
 		it("dots the group box in one checker, and paints the legend on white", () => {
 			const group = rule(".classicyControlGroupFieldsetPrimary");
 			expect(group).toMatch(/border: var\(--box-pixel\) solid transparent;/);
@@ -1884,9 +1914,13 @@ describe("system7.scss (compiled)", () => {
 			expect(ring).toMatch(/inset: calc\(var\(--box-pixel\) \* -1\);/);
 			expect(ring).toMatch(/border: var\(--box-pixel\) solid transparent;/);
 			expect(ring).toMatch(/pointer-events: none;/);
-			// Black where x + y is odd, the corner pixel empty.
+			// Black where x + y is odd from the desktop's corner (story
+			// 0219-c62: Views, Clock Options, the screen's phase), which the
+			// core publishes on the fieldset (layout `patternOrigin`): the
+			// layer's border box is the fieldset's, a pixel outside its padding
+			// box.
 			expect(ring).toMatch(
-				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box left top ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
+				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box calc\(var\(--classicy-pattern-origin-x\) \+ var\(--box-pixel\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--box-pixel\)\) ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
 			);
 			// The border box less the padding box: the ring.
 			expect(ring).toMatch(
