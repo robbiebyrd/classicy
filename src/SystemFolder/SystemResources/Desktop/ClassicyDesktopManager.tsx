@@ -608,6 +608,8 @@ export const classicyDesktopEventHandler = (
 					case "header":
 					case "mono":
 					case "digital":
+					// The small UI text's family (optional; System 7's Geneva).
+					case "uiSmall":
 						theme.typography[action.fontType] = action.font;
 						break;
 				}

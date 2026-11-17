@@ -370,6 +370,9 @@ export const CLASSICY_THEME_NON_MEASUREMENT_VARS: readonly string[] = [
 // silently replaced.
 const RESERVED_THEME_VARS: ReadonlySet<string> = new Set([
 	...CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	// Emitted only when a theme sets `typography.uiSmall`, read as a font
+	// family: a measurement `uiFont.small` must never make it a length.
+	"--ui-font-small",
 	...CLASSICY_THEME_DERIVED_VARS,
 	...CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
 ]);

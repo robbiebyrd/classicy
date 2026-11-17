@@ -316,7 +316,9 @@ diverge, so a logo registered through Platinum's
   `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
   only when set. Small control labels and the slider's readout and tick
   labels read `var(--ui-font-small, var(--ui-font))`; a theme without it
-  keeps the UI family.
+  keeps the UI family. The Fonts tab shows a "Small UI Font" row for a theme
+  that has it, and `ClassicyDesktopChangeFont` accepts `fontType:
+  "uiSmall"`.
 - **A table's sorted column.** `ClassicyTable` marks the sorted column's
   body cells `classicyTableCellSorted` and publishes the sorted header's
   place on its root as `--classicy-table-sorted-start` and

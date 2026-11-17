@@ -1186,3 +1186,19 @@ describe("ClassicyDesktopLoadThemes normalizes metrics", () => {
 		).toBe("4px");
 	});
 });
+
+// Review r0 Important 8: ClassicyDesktopChangeFont edits the small UI text's
+// family (`typography.uiSmall`) like the other five.
+describe("ClassicyDesktopChangeFont — uiSmall", () => {
+	it("sets typography.uiSmall on the active (forked) theme", () => {
+		const ds = makeStore();
+		run(ds, {
+			type: "ClassicyDesktopChangeFont",
+			fontType: "uiSmall",
+			font: '"Geneva", sans-serif',
+		});
+		expect(appearance(ds).activeTheme.typography.uiSmall).toBe(
+			'"Geneva", sans-serif',
+		);
+	});
+});

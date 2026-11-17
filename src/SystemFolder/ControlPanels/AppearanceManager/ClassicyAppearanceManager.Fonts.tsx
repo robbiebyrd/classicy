@@ -158,6 +158,26 @@ export const useFontsTab = ({
 							onChangeFunc={(e) => reportSize("digitalSize", e.target.value)}
 						/>
 					</div>
+					{/* The small UI text's family, for a theme that names one
+					    (`typography.uiSmall`, System 7's Geneva): its size is the
+					    theme's `uiText.smallFontSize` knob, not edited here. */}
+					{typography.uiSmall !== undefined && (
+						<div className={"classicyAppearanceManagerFontsRow"}>
+							<div className={"classicyAppearanceManagerFontsLabel"}>
+								<ClassicyControlLabel
+									label={"Small UI Font"}
+									direction={"left"}
+								/>
+							</div>
+							<ClassicyPopUpMenu
+								id={"uiSmall"}
+								options={fontOptions}
+								selected={primaryFontFamily(typography.uiSmall)}
+								placeholder={"Custom"}
+								onChangeFunc={(e) => changeFont("uiSmall", e.target.value)}
+							/>
+						</div>
+					)}
 				</div>
 			),
 		}),

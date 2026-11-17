@@ -187,3 +187,29 @@ describe("useFontsTab — font sizes", () => {
 		expect(sizeField("uiSize").value).toBe(String(expected));
 	});
 });
+
+// Review r0 Important 8: a theme that names its small UI text's family
+// (`typography.uiSmall`, System 7's Geneva) shows it in a last row, with no
+// size of its own (`uiText.smallFontSize` is a knob); a theme without it
+// shows no such row.
+describe("useFontsTab — the small UI font", () => {
+	it("shows no row for a theme without typography.uiSmall", () => {
+		render(<Host />);
+		expect(screen.queryByText("Small UI Font")).toBeNull();
+		expect(screen.getAllByRole("combobox")).toHaveLength(ROWS.length);
+	});
+
+	it("shows and changes typography.uiSmall when the theme has it", async () => {
+		const changeFont = vi.fn();
+		render(
+			<Host
+				typography={{ ...defaultTypography, uiSmall: '"Geneva", sans-serif' }}
+				changeFont={changeFont}
+			/>,
+		);
+		expect(screen.getByText("Small UI Font")).toBeInTheDocument();
+		const menus = screen.getAllByRole("combobox");
+		expect(menus).toHaveLength(ROWS.length + 1);
+		expect(menus[ROWS.length]).toHaveTextContent("Geneva");
+	});
+});

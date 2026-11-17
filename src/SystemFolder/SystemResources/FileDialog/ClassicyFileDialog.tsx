@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
@@ -198,6 +199,21 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// 7); else the movable modal window of HIGOS8 p.59.
 	const fixedFrame =
 		useClassicyAppearanceLayout().fileDialog?.frame === "fixed";
+	// The box's size: the theme's optional `fileDialog.width` / `height` for
+	// Open and `fileDialog.saveWidth` / `saveHeight` for Save (System 7's
+	// Standard File boxes), else Mac OS 8's 440 x 400. Read once per opening
+	// and theme, never on every render.
+	const themeId = useAppManager(
+		(s) => s.System.Manager.Appearance?.activeTheme?.id,
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: an opening and a theme change are when the size is read; the reader reads the DOM
+	const dialogSize = useMemo((): [number, number] => {
+		const prefix = mode === "save" ? "--file-dialog-save-" : "--file-dialog-";
+		return [
+			readClassicyThemeVar(`${prefix}width`, 440),
+			readClassicyThemeVar(`${prefix}height`, 400),
+		];
+	}, [open, mode, themeId]);
 	const activeTypes = fileTypeFilters?.[filterIndex]?.types ?? null;
 	const activeFormat: ClassicyFileSaveFormat | undefined = formats[formatIndex];
 
@@ -541,12 +557,7 @@ export const ClassicyFileDialog: FunctionalComponent<
 				resizable={false}
 				scrollable={false}
 				movable={!fixedFrame}
-				// The theme's optional `fileDialog.width` / `height` (System 7's
-				// Standard File box), else Mac OS 8's.
-				initialSize={[
-					readClassicyThemeVar("--file-dialog-width", 440),
-					readClassicyThemeVar("--file-dialog-height", 400),
-				]}
+				initialSize={dialogSize}
 				initialPosition={[180, 120]}
 				analyticsExclude
 			>

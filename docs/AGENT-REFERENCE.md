@@ -4379,10 +4379,15 @@ literals.
   `var(--ui-font-small, var(--ui-font))`, so a theme without it, Platinum's,
   keeps the UI family; System 7 sets Geneva, as 7.5.5's Memory control panel
   draws its slider ticks and labels; pop-ups stay in the UI family, as 7.5.5
-  draws them in Chicago). Two more optional knobs are read by core code with
+  draws them in Chicago; the name is reserved, so no package measurement can
+  make it; the Appearance Manager's Fonts tab shows a "Small UI Font" row
+  for a theme that has the field, and `ClassicyDesktopChangeFont` takes
+  `fontType: "uiSmall"`). Two more optional knobs are read by core code with
   Mac OS 8's values as the fallback: `fileDialog.width` and `fileDialog.height`
-  (`--file-dialog-width`/`-height`, `ClassicyFileDialog`'s size; System 7:
-  355 x 195, the 7.5.5 Standard File box without QuickTime's Preview area). Its key names a font size, so the theme schema and the load-time
+  (`--file-dialog-width`/`-height`, the Open box's size; System 7: 355 x
+  195, the 7.5.5 Standard File box without QuickTime's Preview area) and
+  `fileDialog.saveWidth`/`saveHeight` (the Save box's), read once per
+  opening and theme. Its key names a font size, so the theme schema and the load-time
   heal hold it to 8–72 px; it is emitted as `--ui-text-small-font-size` too.
   Component code reads one
   more, `scrollBar.snapBack` (`--scroll-bar-snap-back`), with no floor value

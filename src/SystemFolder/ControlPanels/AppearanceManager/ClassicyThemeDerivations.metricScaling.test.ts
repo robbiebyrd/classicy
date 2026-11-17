@@ -15,6 +15,7 @@ import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { isReservedClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	type ClassicyThemeMetricKey,
@@ -570,5 +571,14 @@ describe("--ui-font-small is typography.uiSmall when a theme sets it", () => {
 			ClassicyThemeSchema.safeParse(withUiSmall("x; } body { color: red"))
 				.success,
 		).toBe(false);
+	});
+});
+
+// Review r0 Minor: a package measurement `uiFont.small` would make
+// `--ui-font-small`, a length where a font family is read; the name is
+// reserved like `--ui-font`.
+describe("--ui-font-small is reserved against package measurements", () => {
+	it("is a reserved theme variable", () => {
+		expect(isReservedClassicyThemeVar("--ui-font-small")).toBe(true);
 	});
 });
