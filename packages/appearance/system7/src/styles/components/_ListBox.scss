@@ -4,7 +4,8 @@
 // `*-controlpanel-sound-slider.png`) and the HIG (printed pp.220-221, figure
 // 7-20): a one-pixel black frame, no bevel, Chicago 12 rows on a 16-pixel
 // pitch (`listBox.rowHeight`, the Sound panel's list; Standard File's rows,
-// with their 16-pixel icons, are 18); the selected row inverted, black
+// with their 16-pixel icons, are 18), its text `listBox.textLift` (1) above
+// centered; the selected row inverted, black
 // with white text, in both themes (the highlight color, black by default,
 // HIG p.260). Dimmed rows take the dimmed ink through the dither. The
 // list's scroll bar is the scroll bars' (§3.6).
@@ -46,6 +47,13 @@
   .classicyListBoxOption {
     color: var(--color-black);
     outline: none;
+  }
+
+  // Sound's list sets the text a pixel above centered in the row: caps 3
+  // and the baseline 11 pixels below its top (`listBox.textLift`, 1).
+  .classicyListBoxOptionLabel {
+    position: relative;
+    top: calc(var(--list-box-text-lift) * -1);
   }
 
   :where(.classicyListBoxOption).selected {

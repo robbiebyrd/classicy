@@ -679,6 +679,17 @@ the ids the saver already names:
   ticks and readout draw in Geneva (`typography.uiSmall`). The Control Strip
   docked right is a pixel wider, as 7.5.5 draws it
   (`*-755-controlstrip-right.png`).
+- **System 7's dimmed controls, group boxes and lists, as 7.5 draws them.**
+  A dimmed checkbox keeps its black frame and a dimmed radio button its
+  black circle; only the mark and the label dim (the dimmed checked X keeps
+  its dotted diagonals). A dimmed pop-up dims its frame, drop shadow and
+  triangle too: the 50% checker in 1-bit, #888888 with #777777 on every
+  other pixel of every other row in color. A dimmed slider keeps only its
+  outline and indicator, in black 50% dots at both depths, its channel
+  empty. A group box is dotted in one 50% pattern, so no two dots touch at
+  its corners, and its line runs to 1 or 2 px before the title's ink. A
+  list box's text sits a pixel higher in its row, by the new System 7 knob
+  `listBox.textLift` (1, `--list-box-text-lift`).
 
 ## Upgrade
 

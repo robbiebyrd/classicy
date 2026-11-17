@@ -1613,6 +1613,16 @@ describe("system7.scss (compiled)", () => {
 			expect(selected).toMatch(/background-color: var\(--color-highlight\);/);
 		});
 
+		// Story 0218-ll9: Sound's iconless list puts a row's caps 3 pixels
+		// and its baseline 11 below the row's top
+		// (`*-controlpanel-sound-slider.png`), a pixel above where centering
+		// the line in the 16-pixel row puts them: `listBox.textLift` (1).
+		it("lifts a list row's text by listBox.textLift", () => {
+			const label = rule(".classicyListBoxOptionLabel");
+			expect(label).toMatch(/position: relative;/);
+			expect(label).toMatch(/top: calc\(var\(--list-box-text-lift\) \* -1\);/);
+		});
+
 		// Story 0196-1i1: the base sheet no longer dims the box with a
 		// gradient, so there is nothing to drop. Story 0218-ll9: 7.5.5 dims
 		// the frame, its drop shadow and the triangle too
