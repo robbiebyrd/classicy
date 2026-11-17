@@ -315,32 +315,18 @@ const ActionList: FunctionalComponent<{
 					</div>
 				);
 			})}
-			{/*
-			 * ClassicyPopUpMenu (commit 0826717) no longer renders a hidden native
-			 * <select> mirror — its options only enter the DOM once the custom
-			 * listbox is opened. The add-action control needs a real, always-queryable
-			 * <select> (script-editor tests target it directly), so it's a plain
-			 * native element here rather than ClassicyPopUpMenu. Option labels are
-			 * "+ "-prefixed so they never collide with a verb's bare-text row label
-			 * (e.g. an existing "beep" action row vs. this control's "beep" choice).
-			 */}
-			<select
+			<ClassicyPopUpMenu
+				// Remounted after each add, so it shows the placeholder again.
 				key={`${pathKey}:${actions.length}`}
 				id={`add:${pathKey}`}
 				className={"classicyHyperCardActionAddSelect"}
-				defaultValue={""}
-				onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+				placeholder={"+ add action…"}
+				options={verbOptions}
+				onChangeFunc={(e: ChangeEvent<HTMLSelectElement>) => {
 					const verb = e.target.value;
 					if (verb) replace([...actions, newAction(verb)]);
 				}}
-			>
-				<option value="">+ add action…</option>
-				{verbOptions.map((o) => (
-					<option key={o.value} value={o.value}>
-						{`+ ${o.label}`}
-					</option>
-				))}
-			</select>
+			/>
 		</div>
 	);
 };

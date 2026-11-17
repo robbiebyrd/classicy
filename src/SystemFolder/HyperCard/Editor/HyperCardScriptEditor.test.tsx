@@ -15,6 +15,19 @@ vi.mock(
 );
 
 afterEach(cleanup);
+
+/**
+ * Pick a verb from an event's add-action pop-up menu (a ClassicyPopUpMenu:
+ * open it by its button, then click the option).
+ */
+const chooseAction = (event: string, verb: string) => {
+	const button = document.querySelector(
+		`button[id^="add:${event}"]`,
+	) as HTMLButtonElement;
+	expect(button).toBeTruthy();
+	fireEvent.click(button);
+	fireEvent.click(screen.getByRole("option", { name: verb }));
+};
 beforeEach(() => dispatch.mockClear());
 
 function makeEdit(overrides: Partial<HCEditState> = {}): HCEditState {
@@ -79,13 +92,8 @@ describe("HyperCardScriptEditor", () => {
 	});
 
 	it("adding an action via the popup appends it with defaults", () => {
-		const { container } = render(
-			<HyperCardScriptEditor stackId={"demo"} edit={makeEdit()} />,
-		);
-		const addPopup = container.querySelector(
-			'select[id^="add:onMouseUp"]',
-		) as HTMLSelectElement;
-		fireEvent.change(addPopup, { target: { value: "wait" } });
+		render(<HyperCardScriptEditor stackId={"demo"} edit={makeEdit()} />);
+		chooseAction("onMouseUp", "wait");
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "ClassicyAppHCEditSetScript",
 			stackId: "demo",
@@ -176,11 +184,7 @@ describe("HyperCardScriptEditor", () => {
 		);
 
 		expect(screen.getByText("onMouseUp")).toBeTruthy();
-		const addAction = document.querySelector(
-			'select[id^="add:onMouseUp"]',
-		) as HTMLSelectElement;
-		expect(addAction).toBeTruthy();
-		fireEvent.change(addAction, { target: { value: "beep" } });
+		chooseAction("onMouseUp", "beep");
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "ClassicyAppHCEditSetScript",
 			stackId: "demo",

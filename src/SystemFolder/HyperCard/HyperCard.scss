@@ -259,11 +259,3 @@
 	margin-left: var(--hyper-card-indent);
 	width: 100%;
 }
-
-// Plain native <select> (see HyperCardScriptBuilder.tsx's add-action control) —
-// ClassicyPopUpMenu no longer renders one, so this gets a minimal look of its own
-// rather than sitting unstyled.
-.classicyHyperCardActionAddSelect {
-	font: inherit;
-	padding: var(--layout-item-gap-half) var(--layout-item-gap);
-}
