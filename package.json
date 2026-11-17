@@ -3,8 +3,8 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.4.0",
-	"release": "Intermezzo",
+	"version": "3.4.1",
+	"release": "Larghetto",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"

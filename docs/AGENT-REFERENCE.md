@@ -372,7 +372,7 @@ All optional:
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
 | `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
-| `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps |
+| `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps. `ClassicyDesktop` also clears what a disabled app saved earlier (Apple-menu entry, icon record, open record; `classicyDisabledDefaultAppCleanup`, `ClassicyDisabledDefaultApps.ts`) unless the app is mounted anyway |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
 
 State persists automatically to `localStorage` under the key

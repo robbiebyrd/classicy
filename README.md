@@ -789,10 +789,10 @@ one-time corrections applied against stored state (see
 
 ### Default apps
 
-`ClassicyDesktop` automatically mounts six built-in apps — `SimpleText`,
-`PDFViewer`, `MoviePlayer`, `PictureViewer`, `HyperCard`, and `WebViewer` — the
-same way it always mounts `Finder`. Each can be disabled individually via a prop
-on `ClassicyAppManagerProvider`:
+`ClassicyDesktop` automatically mounts seven built-in apps — `SimpleText`,
+`PDFViewer`, `MoviePlayer`, `PictureViewer`, `HyperCard`, `WebViewer`, and
+`Calculator` — the same way it always mounts `Finder`. Each can be disabled
+individually via a prop on `ClassicyAppManagerProvider`:
 
 ```tsx
 <ClassicyAppManagerProvider
@@ -802,14 +802,18 @@ on `ClassicyAppManagerProvider`:
   disablePictureViewer={true}  // opt out of Picture Viewer
   disableHyperCard={true}      // opt out of HyperCard
   disableWebViewer={true}      // opt out of Web Viewer
+  disableCalculator={true}     // opt out of Calculator
 >
   <ClassicyDesktop />
 </ClassicyAppManagerProvider>
 ```
 
-Disabling an app only stops it from auto-mounting — it remains available to
-import and render yourself (e.g. `import { PDFViewer } from "@classicy/classicy"`) if
-you want custom placement.
+A disabled app is also cleared from what a visitor saved before you disabled
+it: its Apple-menu entry, its Applications listing and an open window go away
+on their next visit. Disabling only stops the app from auto-mounting — it
+remains available to import and render yourself (e.g. `import { PDFViewer }
+from "@classicy/classicy"`) if you want custom placement, and an app you
+render yourself keeps its entries.
 
 ### Events
 
