@@ -15,6 +15,7 @@ export const SYSTEM7_ICON_FILES: Readonly<Record<string, string>> = {
 	"applications.stickies.app": "applications-stickies-app",
 	"applications.stickies.notes": "applications-stickies-notes",
 	"applications.simpletext.app": "applications-simpletext-app",
+	"applications.calculator.app": "applications-calculator-app",
 	"controlPanels.appearanceManager.app":
 		"control-panels-appearance-manager-app",
 	"controlPanels.controlStripManager.app":
@@ -114,6 +115,7 @@ export const SYSTEM7_ICON_REUSE: Readonly<Record<string, string>> = {
 	"controlPanels.soundManager.extension": EXTENSION,
 	"controlPanels.soundManager.preferences": "system.files.preferences",
 	// A module System 7.5 lacked shows as a module.
+	"system.controlStrip.appearance": "system.controlStrip.moduleFile",
 	"system.controlStrip.cd": "system.controlStrip.moduleFile",
 	"system.controlStrip.screenSaver": "system.controlStrip.moduleFile",
 	"system.controlStrip.soundOff": "system.controlStrip.sound",

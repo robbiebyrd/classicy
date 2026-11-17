@@ -10,7 +10,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 294 keys | 63 export (up to 4 PNGs each; the Map control panel's world map is a picture, one PNG at both depths); 90 reuse and 141 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
+| Icons | 296 keys | 64 export (up to 4 PNGs each; the Map control panel's world map is a picture, one PNG at both depths); 91 reuse and 141 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
 | System art | 45 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | Done: 5 sampled `snd ` written as WAV, Simple Beep rendered from its synthesizer commands, and one copy (plan 0018-dbd §4.2) |
@@ -76,7 +76,7 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 ### Finding an ID marked "to confirm"
 
 - **Generic system icons** (the negative IDs quoted from Apple's `Icons.h`) are in the System file. If one is missing there, look in Finder under the same ID.
-- **An application, control panel, extension or desk accessory's own icon:** open the file, open its `BNDL`, find the `FREF` for the file's own type (`APPL`, `cdev`, `INIT`, `appe`, `dfil`, …) and follow its local ID to the `ICN#` ID. Applications usually use 128, control panels -4064. The `icl8`, `ics#` and `ics8` share that ID.
+- **An application, control panel, extension or desk accessory's own icon:** open the file, open its `BNDL`, find the `FREF` for the file's own type (`APPL`, `cdev`, `INIT`, `appe`, `dfil`, …) and follow its local ID to the `ICN#` ID. Applications usually use 128, control panels -4064, desk accessories the first ID their driver owns (-16000 for Calculator's `DRVR` 12). The `icl8`, `ics#` and `ics8` share that ID.
 - **A document icon:** the same `BNDL`, following the `FREF` for the document's type (`TEXT`, `PICT`, `MooV`, …).
 - **Unsure which one it is:** ResEdit's `icl8` list shows thumbnails; pick by eye.
 - Write the ID you used over "ID to confirm" in the Source cell, so the export can be repeated.
@@ -248,6 +248,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.usenet.server` | Usenet server | core | Classicy UI glyph | — | — |
 | — | `applications.systemProfiler.app` | Apple System Profiler application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | [x] | `applications.simpletext.app` | SimpleText application | export | SimpleText (Apple Extras), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.png` |
+| [x] | `applications.calculator.app` | Calculator desk accessory | export | Calculator (Apple Menu Items), ID -16000 (`dfil`, the desk accessory file, in its `BNDL`: a desk accessory's own resources are numbered from -16000) | `ICN#` `icl8` `ics#` `ics8` | `applications-calculator-app.png` |
 
 ### Control panels
 
@@ -280,6 +281,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
+| — | `system.controlStrip.appearance` | Control Strip Appearance module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
 | — | `system.controlStrip.cd` | Control Strip CD module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
 | [x] | `system.controlStrip.fileSharing` | Control Strip File Sharing module (16 px) | export | File Sharing module (Control Strip Modules (Disabled), 7.5.5), ID 257, the folder its strip draws while sharing is on (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-file-sharing.png` |
 | [x] | `system.controlStrip.moduleFile` | Control Strip module file (32 px) | export | Monitor Resolution module (Control Strip Modules), ID 128 (`sdev`): no module file is generic, and this one's glyph, a small monitor, is the plainest | `ICN#` `icl8` `ics#` `ics8` | `system-control-strip-module-file.png` |
