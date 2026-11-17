@@ -20,6 +20,7 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
+import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsBarPolicy } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
@@ -213,6 +214,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 	// folder's or document's (read at render, never captured at load).
 	const folderIcon = useClassicyAsset("icons", "system.folders.directory");
 	const fileIcon = useClassicyAsset("icons", "system.files.file");
+	// The pop-up's current level: the package's open folder when it registers
+	// one (System 7.5's Standard File), else the folder.
+	const openFolderIcon = useClassicyAsset("systemArt", "openFolderIcon");
 	// The box's size: the theme's optional `fileDialog.width` / `height` for
 	// Open and `fileDialog.saveWidth` / `saveHeight` for Save (System 7's
 	// Standard File boxes), else Mac OS 8's 440 x 400. Read once per opening
@@ -688,7 +692,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 										icon:
 											depth === 0
 												? (activeVolume.icon ?? folderIcon)
-												: folderIcon,
+												: depth === currentPath.length
+													? (openFolderIcon ?? folderIcon)
+													: folderIcon,
 									})),
 								...volumes
 									.filter((v) => v.id !== activeVolume.id)
@@ -828,10 +834,21 @@ export const ClassicyFileDialog: FunctionalComponent<
 							<hr className={"classicyFileOpenDialogDivider"} />
 							{mode === "save" && (
 								<ClassicyButton
+									aria-label={"New Folder"}
 									disabled={activeVolume?.mkDir === undefined}
 									onClickFunc={() => setNewFolderOpen(true)}
 								>
-									New Folder
+									{/* "New", the noun and a folder glyph, the glyph a part the
+									    base sheet hides: a package may draw "New" and a folder
+									    instead, as System 7.5's Standard File does. */}
+									New
+									<span className={"classicyFileDialogNewNoun"}> Folder</span>
+									<span
+										className={"classicyFileDialogNewGlyph"}
+										aria-hidden={true}
+									>
+										<ClassicyPixelArt art={"newFolderGlyph"} />
+									</span>
 								</ClassicyButton>
 							)}
 							<ClassicyButton onClickFunc={() => onCancelFunc?.()}>

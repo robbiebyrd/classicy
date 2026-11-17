@@ -317,7 +317,13 @@ diverge, so a logo registered through Platinum's
   entered by a double-click or Open, the pop-up listing the folder's path
   upward; the default `"tree"` is unchanged. A closed `ClassicyPopUpMenu`
   draws its selected option's icon as `classicyPopUpMenuValueIcon`, hidden
-  by the base sheet.
+  by the base sheet. The New Folder button's label is "New", a noun part
+  (`classicyFileDialogNewNoun`, " Folder") and a glyph part
+  (`classicyFileDialogNewGlyph`, the `newFolderGlyph` pixel art, hidden by
+  the base sheet), its accessible name "New Folder"; the flat pop-up draws
+  the `openFolderIcon` system art for the folder shown when a package
+  registers it; and in flat Save, a selected folder turns Save into Open,
+  which enters it, as Enter does.
 - **The small UI text's family.** A theme may name it in the optional
   `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
   only when set. Small control labels and the slider's readout and tick

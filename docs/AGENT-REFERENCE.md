@@ -2139,7 +2139,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 42 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 44 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -2159,7 +2159,12 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (6 keys): `controlStripTabRight` (a strip docked
+Unregistered by Platinum (8 keys): `newFolderGlyph` (pixel art the file
+dialog's New Folder button draws after "New", in its part
+`classicyFileDialogNewGlyph`, which the base sheet hides; System 7 shows it
+and hides the noun part `classicyFileDialogNewNoun`), `openFolderIcon` (the
+image the flat file dialog's pop-up draws for the folder shown, else the
+folder icon; System 7 registers 7.5's), `controlStripTabRight` (a strip docked
 right draws this art unflipped, marking its tab `classicyControlStripTabRight`,
 when the active package registers it, else the left tab mirrored; System 7
 registers 7.5.5's), `aboutBackground` (no Platinum art),

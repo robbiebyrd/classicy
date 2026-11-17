@@ -45,6 +45,9 @@ import controlStripTabBw from "./pixelart/control-strip-tab-bw.txt?raw";
 // tab's colors as its tokens.
 import controlStripTabRight from "./pixelart/control-strip-tab-right.txt?raw";
 import controlStripTabRightBw from "./pixelart/control-strip-tab-right-bw.txt?raw";
+// Standard File's New button draws "New" and this folder, black at both
+// depths (`*-dialog-standardfile-save.png`, columns 452-467).
+import newFolderGlyph from "./pixelart/new-folder-glyph.txt?raw";
 import popUpSliderThumb from "./pixelart/popup-slider-thumb.txt?raw";
 import popUpSliderThumbBw from "./pixelart/popup-slider-thumb-bw.txt?raw";
 import popUpSliderTrack from "./pixelart/popup-slider-track.txt?raw";
@@ -217,6 +220,10 @@ const SYSTEM7_ART: Readonly<
 	// #333366 `n`. Mac OS 8 kept the strip, so the shapes are Platinum's.
 	controlStripTab: pixelArt(controlStripTab),
 	controlStripTabRight: pixelArt(controlStripTabRight),
+	newFolderGlyph: pixelArt(newFolderGlyph),
+	// The folder pop-up's open folder (`*-dialog-standardfile-save.png`,
+	// 208,76): black at both depths.
+	openFolderIcon: art("color/open-folder-icon.png"),
 	controlStripCollapse: pixelArt(controlStripCollapse),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeft),
 	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftDisabled),

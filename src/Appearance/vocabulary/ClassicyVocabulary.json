@@ -283,7 +283,7 @@
 			"ViewTableRowIcon",
 			"ViewTableRowIconLabel"
 		],
-		"FileDialog": ["Extension", "NameRow", "SaveBody"],
+		"FileDialog": ["Extension", "NameRow", "NewGlyph", "NewNoun", "SaveBody"],
 		"FileInput": [
 			"Body",
 			"Holder",

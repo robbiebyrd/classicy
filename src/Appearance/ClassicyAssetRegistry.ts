@@ -128,6 +128,8 @@ export type ClassicySystemArtKey =
 	| "quickTimeVolumeSlider"
 	| "controlStripTab"
 	| "controlStripTabRight"
+	| "newFolderGlyph"
+	| "openFolderIcon"
 	| "controlStripCollapse"
 	| "controlStripScrollLeft"
 	| "controlStripScrollLeftDisabled"
@@ -1095,6 +1097,8 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	quickTimeVolumeSlider: "image",
 	controlStripTab: "pixelArt",
 	controlStripTabRight: "pixelArt",
+	newFolderGlyph: "pixelArt",
+	openFolderIcon: "image",
 	controlStripCollapse: "pixelArt",
 	controlStripScrollLeft: "pixelArt",
 	controlStripScrollLeftDisabled: "pixelArt",

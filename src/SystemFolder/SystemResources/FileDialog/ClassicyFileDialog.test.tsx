@@ -6,6 +6,7 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
+import { registerClassicySystemArt } from "@/Appearance/ClassicyAssetRegistry";
 import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
 import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyFileDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialog";
@@ -205,6 +206,26 @@ describe("ClassicyFileDialog's Standard File parts", () => {
 		expect(part("Desktop")).toBeDisabled();
 	});
 
+	// Review r1 item 4: the New Folder button's label is "New", a noun part
+	// ("Folder") and a folder-glyph part the base sheet hides; a package may
+	// hide the noun and show the glyph (System 7's "New" and a folder). Its
+	// accessible name stays "New Folder".
+	it("labels New Folder as New, a noun part and a glyph part", () => {
+		open([disk], "save");
+		const button = [...document.querySelectorAll("button")].find(
+			(b) => b.getAttribute("aria-label") === "New Folder",
+		) as HTMLButtonElement;
+		expect(button).toBeTruthy();
+		expect(button.textContent).toBe("New Folder");
+		expect(
+			button.querySelector(".classicyFileDialogNewNoun")?.textContent,
+		).toBe(" Folder");
+		expect(button.querySelector(".classicyFileDialogNewGlyph")).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+	});
+
 	it("marks the save dialog's body", () => {
 		open([disk], "save");
 		expect(part("Body")).toHaveClass("classicyFileDialogSaveBody");
@@ -362,6 +383,40 @@ describe("ClassicyFileDialog's flat navigation", () => {
 			(options[1] as HTMLElement).click();
 		});
 		await vi.waitFor(() => expect(rows()).toEqual(["Read Me", "Apple Extras"]));
+	});
+
+	// Review r1 item 3: the pop-up's current level draws the package's open
+	// folder (`openFolderIcon` system art) when it registers one.
+	it("draws the package's open folder for the folder shown", async () => {
+		flatPackage();
+		// The store-free test resolves assets through the default package.
+		registerClassicySystemArt("platinum", {
+			openFolderIcon: "open-folder.png",
+		});
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => {
+			row("Apple Extras").dispatchEvent(
+				new MouseEvent("dblclick", { bubbles: true }),
+			);
+		});
+		await vi.waitFor(() => expect(popUpLabels()).toBe("Apple Extras"));
+		expect(
+			document
+				.querySelector(
+					".classicyFileOpenDialogBody .classicyPopUpMenuValueIcon",
+				)
+				?.getAttribute("src"),
+		).toBe("open-folder.png");
 	});
 
 	it("opens a selected folder with Open, and hands a selected file to onOpenFunc", async () => {

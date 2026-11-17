@@ -2016,7 +2016,9 @@ describe("system7.scss (compiled)", () => {
 			// The list view's selected icon, and the open Application menu
 			// title's icon (review r1 item 1).
 			expect(guarded.map(([, header]) => header.trim())).toEqual([
-				expect.stringContaining(".classicyDesktopMenuAppSwitcher.open > p > img"),
+				expect.stringContaining(
+					".classicyDesktopMenuAppSwitcher.open > p > img",
+				),
 				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
 			]);
 			for (const [, , declarations] of guarded)
@@ -2163,6 +2165,13 @@ describe("system7.scss (compiled)", () => {
 					`${SAVE} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3)`,
 				),
 			).toContain("top: var(--file-dialog-save-new-top);");
+			// "New" and a folder (review r1 item 4).
+			expect(rule(`${SAVE} .classicyFileDialogNewNoun`)).toMatch(
+				/display: none;/,
+			);
+			expect(rule(`${SAVE} .classicyFileDialogNewGlyph`)).toContain(
+				"margin-left: var(--file-dialog-new-glyph-gap);",
+			);
 			expect(rule(`${SAVE} > .classicyFileDialogNameRow`)).toContain(
 				"top: var(--file-dialog-save-name-top);",
 			);

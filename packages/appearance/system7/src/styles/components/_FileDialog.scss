@@ -192,14 +192,23 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   @include box($open, "file-dialog-");
   @include box($save, "file-dialog-save-");
 
-  // Save's New (folder) button, between Desktop and the line, its label
-  // on one line across the button (7.5 draws "New" and a folder there).
+  // Save's New (folder) button, between Desktop and the line: "New" and a
+  // folder `fileDialog.newGlyphGap` (11) after it, as 7.5 draws it (the
+  // noun hidden; its accessible name stays "New Folder").
   #{$save} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3) {
     @include place(var(--file-dialog-save-buttons-left), var(--file-dialog-save-new-top));
 
-    padding-right: 0;
-    padding-left: 0;
     white-space: nowrap;
+  }
+
+  #{$save} .classicyFileDialogNewNoun {
+    display: none;
+  }
+
+  #{$save} .classicyFileDialogNewGlyph {
+    display: inline-flex;
+    margin-left: var(--file-dialog-new-glyph-gap);
+    vertical-align: middle;
   }
 
   // "Save As:" over its field, under the list.

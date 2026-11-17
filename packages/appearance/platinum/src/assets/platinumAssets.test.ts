@@ -48,8 +48,11 @@ const PLATINUM_REGISTERS: Record<ClassicySystemArtKey, boolean> = {
 	quickTimeThumbSlider: true,
 	quickTimeVolumeSlider: true,
 	controlStripTab: true,
-	// Platinum mirrors its left tab docked right (story 0214-c61).
+	// Platinum mirrors its left tab docked right, labels New Folder in words
+	// and draws the folder pop-up's current level as a folder (story 0214-c61).
 	controlStripTabRight: false,
+	newFolderGlyph: false,
+	openFolderIcon: false,
 	controlStripCollapse: true,
 	controlStripScrollLeft: true,
 	controlStripScrollLeftDisabled: true,
@@ -85,9 +88,9 @@ describe("Platinum system art", () => {
 		expect(resolveClassicyAsset("systemArt", key)).toBeUndefined();
 	});
 
-	it("registers 36 of the 42 keys", () => {
+	it("registers 36 of the 44 keys", () => {
 		expect(REGISTERED).toHaveLength(36);
-		expect(UNREGISTERED).toHaveLength(6);
+		expect(UNREGISTERED).toHaveLength(8);
 	});
 
 	it("draws the Apple menu, trash, alias badge and help button from its own src/assets/art", () => {
