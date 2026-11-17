@@ -254,4 +254,57 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
   .classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected {
     background-color: transparent;
   }
+
+  // The list's column titles sit above it, over the window's scroll bar
+  // (layout `fileBrowser.listColumnTitles: "aboveList"`; the scroll area's
+  // head holds their detached copy): a white band as tall as a header strip
+  // (`headerStrip.height`, 17) over the double rule (`headerStrip.rule`, 3),
+  // the vertical bar starting under it (`*-755-finder-list-row-selected.png`:
+  // the titles in rows 190-206, the rule 207-209, the bar from 210). Their
+  // text is Geneva 9, the list's. The sorted title is underlined, with no
+  // triangle (row 203 under "Name"), and the name column's title starts over
+  // the names' boxes: past the triangle's gutter, the icon (the rows' size,
+  // which the list publishes as `--classicy-file-browser-icon-size`) and the
+  // space either side of it, then `fileBrowserList.titleInset` (1) into the
+  // name's box ("Name" at x 240, the selected name's box from 239). The
+  // title and its underline sit `headerStrip.titleDrop` (1) below the
+  // band's middle ("Name" rows 195-201, the underline 203).
+  .classicyScrollAreaHead {
+    border-bottom: var(--header-strip-rule) double var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyTableDetachedHeader .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  .classicyTableDetachedHeader .classicyTableColumnHeader {
+    box-sizing: border-box;
+    height: var(--header-strip-height);
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: var(--header-strip-height);
+    color: var(--color-black);
+    background: transparent;
+  }
+
+  .classicyTableDetachedHeader .classicyTableColumnHeader:first-child {
+    padding-left: calc(
+      var(--file-browser-list-disclosure-width) + var(--file-browser-list-icon-start) +
+        var(--classicy-file-browser-icon-size) + var(--file-browser-list-icon-end) + var(--file-browser-list-title-inset)
+    );
+  }
+
+  .classicyTableDetachedHeader .classicyTableHeaderCellContent {
+    position: relative;
+    top: var(--header-strip-title-drop);
+  }
+
+  .classicyTableDetachedHeader .classicyTableSortArrow {
+    display: none;
+  }
+
+  .classicyTableDetachedHeader :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span {
+    text-decoration: underline;
+  }
 }

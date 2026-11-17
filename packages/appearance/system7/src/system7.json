@@ -189,7 +189,8 @@
 			},
 			"headerStrip": {
 				"height": 17,
-				"rule": 3
+				"rule": 3,
+				"titleDrop": 1
 			},
 			"checkBox": {
 				"size": 12,
@@ -252,7 +253,8 @@
 				"disclosureWidth": 15,
 				"disclosureTop": 4,
 				"iconStart": 7,
-				"iconEnd": 10
+				"iconEnd": 10,
+				"titleInset": 1
 			},
 			"fileDialog": {
 				"width": 355,
@@ -509,7 +511,8 @@
 				},
 				"headerStrip": {
 					"height": 17,
-					"rule": 3
+					"rule": 3,
+					"titleDrop": 1
 				},
 				"checkBox": {
 					"size": 12,
@@ -572,7 +575,8 @@
 					"disclosureWidth": 15,
 					"disclosureTop": 4,
 					"iconStart": 7,
-					"iconEnd": 10
+					"iconEnd": 10,
+					"titleInset": 1
 				},
 				"fileDialog": {
 					"width": 355,
@@ -831,7 +835,8 @@
 				},
 				"headerStrip": {
 					"height": 17,
-					"rule": 3
+					"rule": 3,
+					"titleDrop": 1
 				},
 				"checkBox": {
 					"size": 12,
@@ -894,7 +899,8 @@
 					"disclosureWidth": 15,
 					"disclosureTop": 4,
 					"iconStart": 7,
-					"iconEnd": 10
+					"iconEnd": 10,
+					"titleInset": 1
 				},
 				"fileDialog": {
 					"width": 355,
@@ -981,6 +987,9 @@
 		"fileDialog": {
 			"frame": "fixed",
 			"navigation": "flat"
+		},
+		"fileBrowser": {
+			"listColumnTitles": "aboveList"
 		}
 	},
 	"knobs": {},

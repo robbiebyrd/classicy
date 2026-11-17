@@ -492,6 +492,25 @@ $windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
     font-size: var(--body-font-size);
   }
 
+  // Over a list whose column titles sit above it (the contents' scroll area
+  // draws them in its head, layout `fileBrowser.listColumnTitles:
+  // "aboveList"`), the double rule is under the titles, not the header
+  // (`*-755-finder-list-row-selected.png`), so the header has none and the
+  // contents give up the header alone.
+  .classicyWindow .classicyWindowHeader.classicyWindowHeaderAboveHead {
+    border-bottom: 0;
+  }
+
+  .classicyWindow .classicyWindowHeaderAboveHead + .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - var(--header-strip-height));
+  }
+
+  .classicyWindow.classicyWindowUtility
+    .classicyWindowHeaderAboveHead
+    + .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - var(--header-strip-height));
+  }
+
   // Under a window header the contents also give up the header and its rule
   // (the base sheet's height, which the rule above outranks from this
   // layer).

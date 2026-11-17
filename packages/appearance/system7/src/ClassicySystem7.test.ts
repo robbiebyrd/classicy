@@ -596,6 +596,11 @@ describe("the System 7 appearance package", () => {
 			expect(vars["--file-browser-list-disclosure-top"]).toBe("4px");
 			expect(vars["--file-browser-list-icon-start"]).toBe("7px");
 			expect(vars["--file-browser-list-icon-end"]).toBe("10px");
+			// The column titles above the list (story 0216-1im F9): the name
+			// column's a pixel into the names' boxes, and a row below the
+			// band's middle.
+			expect(vars["--file-browser-list-title-inset"]).toBe("1px");
+			expect(vars["--header-strip-title-drop"]).toBe("1px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,
@@ -604,6 +609,7 @@ describe("the System 7 appearance package", () => {
 			disclosureTop: 4,
 			iconStart: 7,
 			iconEnd: 10,
+			titleInset: 1,
 		});
 	});
 
@@ -723,6 +729,10 @@ describe("the System 7 appearance package", () => {
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
 			// and browses one folder at a time (fix round 1, ruling R4).
 			fileDialog: { frame: "fixed", navigation: "flat" },
+			// The Finder's list view titles sit above the list, over the
+			// scroll bar (`*-755-finder-list-row-selected.png`, story
+			// 0216-1im F9).
+			fileBrowser: { listColumnTitles: "aboveList" },
 		});
 	});
 
