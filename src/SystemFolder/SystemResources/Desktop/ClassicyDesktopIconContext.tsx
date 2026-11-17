@@ -15,7 +15,7 @@ import {
 	hasSortBy,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
 import {
-	deFocusApps,
+	markAppFocused,
 	openApp,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
@@ -289,8 +289,7 @@ export const classicyDesktopIconEventHandler = (
 		}
 		case "ClassicyDesktopIconFocus": {
 			if (!hasIconId(action)) break;
-			deFocusApps(ds);
-			ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+			markAppFocused(ds, "Finder.app");
 			ds.System.Manager.Desktop.selectedIcons = [action.iconId];
 			break;
 		}

@@ -28,6 +28,22 @@ export function deFocusApps(ds: ClassicyStore) {
 	return ds;
 }
 
+/**
+ * Marks `appId` the focused app: every other app and window unfocused, the
+ * app focused, stamped and recorded as `focusedAppId`, and shown when it was
+ * hidden (an app that takes focus is shown, HIG7 p.127). Every path that
+ * gives an app the menu bar goes through here.
+ */
+export function markAppFocused(ds: ClassicyStore, appId: string) {
+	const app = ds.System.Manager.Applications.apps[appId];
+	if (!app) return;
+	deFocusApps(ds);
+	app.focused = true;
+	app.lastFocusedAt = Date.now();
+	if (app.hidden) app.hidden = false;
+	ds.System.Manager.Applications.focusedAppId = appId;
+}
+
 export function focusWindow(
 	ds: ClassicyStore,
 	appId: string,
@@ -36,10 +52,7 @@ export function focusWindow(
 ) {
 	const app = ds.System.Manager.Applications.apps[appId];
 	if (!app) return ds;
-	deFocusApps(ds);
-	app.focused = true;
-	app.lastFocusedAt = Date.now();
-	ds.System.Manager.Applications.focusedAppId = appId;
+	markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
@@ -101,16 +114,11 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
 	// honoring it would leave a closed app owning the menu bar.
 	if (!app?.open) return;
-	// An app that takes focus is shown (HIG7 p.127).
-	if (app.hidden) app.hidden = false;
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
 	} else {
-		deFocusApps(ds);
-		app.focused = true;
-		app.lastFocusedAt = Date.now();
-		ds.System.Manager.Applications.focusedAppId = appId;
+		markAppFocused(ds, appId);
 	}
 }
 
@@ -279,6 +287,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
+		delete findApp.hidden;
 		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
 		}

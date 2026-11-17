@@ -2159,3 +2159,72 @@ describe("ClassicyAppHide, ClassicyAppHideOthers and ClassicyAppShowAll", () => 
 		expect(apps(ds)["Notes.app"].focused).toBe(true);
 	});
 });
+
+// Review r0 Critical 2: every way an app takes focus shows it, not only
+// focusApp: a window opening or taking focus, and the desktop's focusing the
+// Finder.
+describe("a hidden app that takes focus is shown", () => {
+	const hiddenNotes = () => {
+		const ds = makeStore();
+		ds.System.Manager.Applications.apps["Notes.app"] = {
+			id: "Notes.app",
+			name: "Notes",
+			icon: "",
+			open: true,
+			focused: false,
+			hidden: true,
+			windows: windowsRecord({
+				id: "note",
+				closed: false,
+				focused: false,
+			} as ClassicyStoreSystemAppWindow),
+			data: {},
+		};
+		return ds;
+	};
+	const notes = (ds: ClassicyStore) =>
+		ds.System.Manager.Applications.apps["Notes.app"];
+
+	it("on ClassicyWindowOpen", () => {
+		const ds = hiddenNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyWindowOpen",
+			app: { id: "Notes.app" },
+			window: { id: "other", size: [100, 100], position: [0, 0] },
+		});
+		expect(notes(ds).focused).toBe(true);
+		expect(notes(ds).hidden).toBe(false);
+	});
+
+	it("on ClassicyWindowFocus", () => {
+		const ds = hiddenNotes();
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyWindowFocus",
+			app: { id: "Notes.app" },
+			window: { id: "note" },
+		});
+		expect(notes(ds).focused).toBe(true);
+		expect(notes(ds).hidden).toBe(false);
+	});
+
+	it("on the desktop's focusing the Finder (ClassicyDesktopIconFocus)", () => {
+		const ds = hiddenNotes();
+		ds.System.Manager.Applications.apps["Finder.app"].hidden = true;
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyDesktopIconFocus",
+			iconId: "Finder.app",
+		});
+		expect(ds.System.Manager.Applications.apps["Finder.app"].focused).toBe(
+			true,
+		);
+		expect(ds.System.Manager.Applications.apps["Finder.app"].hidden).toBe(
+			false,
+		);
+	});
+
+	it("and a closed app is never left hidden", () => {
+		const ds = hiddenNotes();
+		closeApp(ds, "Notes.app");
+		expect(notes(ds).hidden).not.toBe(true);
+	});
+});

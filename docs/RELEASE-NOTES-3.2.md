@@ -294,9 +294,11 @@ diverge, so a logo registered through Platinum's
   nothing, a divider, then each open application by its small icon, the
   front one checked beside its icon. New actions `ClassicyAppHide` and
   `ClassicyAppHideOthers` (`{ app: { id } }`) and `ClassicyAppShowAll` set
-  an app's new `hidden` flag: its `ClassicyApp` container is `hidden`, its
-  windows stay mounted, and the next shown app takes the menu bar; an app
-  that takes focus is shown again. A menu item that is both `checked` and
+  an app's new `hidden` flag: its `ClassicyApp` container is `hidden` (a
+  modal window and its scrim, portaled outside it, hide too), its windows
+  stay mounted, and the next shown app takes the menu bar; an app that takes
+  focus in any way (a window opening or focused included) is shown again.
+  The flag is session state: it is not persisted. A menu item that is both `checked` and
   has an `icon`/`image` now draws both, the mark first (before, the mark
   replaced the icon).
 - **Standard File parts.** `ClassicyFileOpenDialog` and
