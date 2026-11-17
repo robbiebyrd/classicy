@@ -780,6 +780,13 @@ export function ClassicyTable<T>({
 			</table>
 		</div>
 	) : null;
+	// What the fitting observes: the copy (with its head and the head's
+	// viewport) and the list's header cells, one per visible column.
+	const visibleColumnKey = table
+		.getVisibleLeafColumns()
+		.map((column) => column.id)
+		.join("\n");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the copy's mount (detached, the lent head, the table scrolling itself) and the visible columns are what the observer watches; sizes after that come from it, not from renders
 	useLayoutEffect(() => {
 		const wrapper = detachedRef.current;
 		const copy = detachedTableRef.current;
@@ -821,7 +828,7 @@ export function ClassicyTable<T>({
 		observer.observe(head);
 		if (viewport) observer.observe(viewport);
 		return () => observer.disconnect();
-	});
+	}, [detached, lentHead, scrollable, visibleColumnKey]);
 
 	// The focusable list box: the keyboard target, scrolling its rows (in a
 	// ClassicyScrollArea, which scrolls its viewport for the keys a focused

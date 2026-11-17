@@ -1007,6 +1007,77 @@ describe("ClassicyTable's titles above the list", () => {
 	});
 });
 
+// Review r0 issue 3: the detached titles are fitted to the list by one
+// ResizeObserver, built when the copy mounts or its columns change, not on
+// every render (each selection change or sort).
+describe("ClassicyTable's detached titles' fitting", () => {
+	type Observed = { targets: Element[]; disconnected: boolean };
+	let observers: Observed[] = [];
+	beforeEach(() => {
+		observers = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				record: Observed = { targets: [], disconnected: false };
+				constructor() {
+					observers.push(this.record);
+				}
+				observe(el: Element) {
+					this.record.targets.push(el);
+				}
+				unobserve() {}
+				disconnect() {
+					this.record.disconnected = true;
+				}
+			},
+		);
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	// The fitting's observers: the ones watching the head (the sorted
+	// column's measure watches the list alone).
+	const listObservers = (container: HTMLElement) => {
+		const head = container.querySelector(".classicyScrollAreaHead");
+		return observers.filter((o) => head && o.targets.includes(head));
+	};
+
+	it("keeps one observer across renders, and re-observes when the columns change", () => {
+		const view = (cols: ClassicyTableColumn<Album>[]) => (
+			<ClassicyScrollArea>
+				<ClassicyTable
+					columns={cols}
+					rows={albums}
+					getRowId={(a) => a.id}
+					scrollable={false}
+					headerPlacement="aboveList"
+				/>
+			</ClassicyScrollArea>
+		);
+		const { container, rerender } = render(view(columns));
+		const first = listObservers(container);
+		expect(first).toHaveLength(1);
+		const cell = container.querySelector("tbody td") as HTMLElement;
+		fireEvent.click(cell);
+		const sorter = container.querySelector(
+			".classicyTableDetachedHeader th",
+		) as HTMLElement;
+		fireEvent.click(sorter);
+		expect(listObservers(container)).toEqual(first);
+		expect(first[0].disconnected).toBe(false);
+		// A new column's header cell is observed too.
+		rerender(
+			view([
+				...columns,
+				{ id: "decade", title: "Decade", accessor: (a) => a.year - 5 },
+			]),
+		);
+		expect(first[0].disconnected).toBe(true);
+		const live = listObservers(container).filter((o) => !o.disconnected);
+		expect(live).toHaveLength(1);
+		expect(live[0].targets.filter((el) => el.tagName === "TH")).toHaveLength(3);
+	});
+});
+
 describe("ClassicyTable's detached titles' style", () => {
 	it("takes the container's custom properties, not its other styles", () => {
 		const { container } = render(
