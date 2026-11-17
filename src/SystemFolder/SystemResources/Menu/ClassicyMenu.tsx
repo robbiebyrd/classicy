@@ -33,8 +33,12 @@ import {
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
+import { classicyMenuBounds } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
-import { useClassicySubmenuPlacement } from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
+import {
+	ClassicyMenuPlacementEpoch,
+	useClassicySubmenuPlacement,
+} from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
 import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
@@ -209,8 +213,8 @@ const nudgeMenuWrapperOntoGrid = (wrapper: HTMLElement) => {
  * `appMenu`, `ClassicyContextualMenuTarget` or `ClassicyBevelButton` instead
  * of using this directly.
  *
- * A shown list that would run past the bottom of the screen is capped there
- * and scrolls as Mac OS menus do (HIG7 p.78): no scroll bar, an indicator
+ * A shown list that would run past the bottom of the screen (what shows of
+ * its desktop) is capped there and scrolls as Mac OS menus do (HIG7 p.78): no scroll bar, an indicator
  * over the first or last row while items lie hidden past it, the list
  * scrolling a row at a time while the pointer rests on one
  * (`useClassicyMenuScrollArrows`). The list then carries
@@ -328,7 +332,10 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 					px(style.paddingBottom) +
 					px(style.borderTopWidth) +
 					px(style.borderBottomWidth);
-		const room = window.innerHeight - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
+		// The room below it, to the bottom of what shows of its desktop (the
+		// desktop's overflow would clip a list run past it).
+		const room =
+			classicyMenuBounds(el).bottom - POPUP_MENU_VIEWPORT_MARGIN - rect.top;
 		if (scrollCap === null) {
 			// From the list's top to its last laid-out row's bottom (its rows
 			// run down in order; a row with no box, `display: none`, is
@@ -822,17 +829,21 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			)}
 
 			{hasChildren && (
-				<ClassicyMenu
-					name={`${menuItem.id}_subitem`}
-					menuItems={menuItem.menuChildren ?? []}
-					open={isOpen}
-					style={submenuPlacement.style}
-					subNavClass={subNavClass}
-					navClass={classNames(
-						subNavClass,
-						submenuPlacement.flipLeft && "classicySubMenuFlipLeft",
-					)}
-				></ClassicyMenu>
+				// Its items measure their own menus again each time this one is
+				// placed.
+				<ClassicyMenuPlacementEpoch.Provider value={submenuPlacement.epoch}>
+					<ClassicyMenu
+						name={`${menuItem.id}_subitem`}
+						menuItems={menuItem.menuChildren ?? []}
+						open={isOpen}
+						style={submenuPlacement.style}
+						subNavClass={subNavClass}
+						navClass={classNames(
+							subNavClass,
+							submenuPlacement.flipLeft && "classicySubMenuFlipLeft",
+						)}
+					></ClassicyMenu>
+				</ClassicyMenuPlacementEpoch.Provider>
 			)}
 		</li>
 	);

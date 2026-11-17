@@ -7,9 +7,14 @@ import {
 	classicyMenuBounds,
 	classicyMenuInkBox,
 	classicyMenuLeftAt,
+	classicyMenuPinShiftDown,
+	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
-import { useClassicyMenuDesktopResize } from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
+import {
+	ClassicyMenuPlacementEpoch,
+	useClassicyMenuDesktopResize,
+} from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
 import "@/SystemFolder/SystemResources/Menu/ClassicyMenu.scss";
 import classNames from "classnames";
 import {
@@ -26,10 +31,11 @@ interface ClassicyMenuProps {
 	/** Menu name, used to key the rendered list. */
 	name: string;
 	/**
-	 * Top-left corner `[x, y]` in viewport pixels. The menu flips left when
-	 * it would pass the right edge of its desktop (`.classicyDesktop`, else
-	 * the viewport), its frame's shadow included, and is then pinned inside
-	 * the desktop; it flips up when it would pass the viewport's bottom edge.
+	 * Top-left corner `[x, y]` in viewport pixels. The menu keeps to what
+	 * shows of its desktop (`.classicyDesktop` where it overlaps the
+	 * viewport), its frame's shadow included: it flips left when it would
+	 * pass the right edge, up when it would pass the bottom, and is then
+	 * pinned inside.
 	 */
 	position: number[];
 	/**
@@ -82,10 +88,10 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 }) => {
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	// Start at the requested point; the layout effect flips the root menu
-	// leftward if it would pass the right edge of its desktop (its frame's
-	// shadow included), pins it inside the desktop, and flips it upward if
-	// it would overflow the bottom (a click on the Control Strip, say) — HIG
-	// contextual menus. Before paint, so no frame shows it off the desktop.
+	// leftward if it would pass the right edge of what shows of its desktop
+	// (its frame's shadow included), upward if it would pass the bottom (a
+	// click on the Control Strip, say), and pins it inside — HIG contextual
+	// menus. Before paint, so no frame shows it off the desktop.
 	const [left, setLeft] = useState<number>(position[0]);
 	const [top, setTop] = useState<number>(position[1]);
 	// Bumped when the desktop changes size while the menu is open: it is
@@ -107,19 +113,49 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 			list,
 			list?.parentElement?.querySelector(":scope > .classicyMenuScrollShadow"),
 		);
+		const bounds = classicyMenuBounds(el);
+		const inkLeft = ink ? Math.max(frame.left - ink.left, 0) : 0;
+		const inkRight = ink ? Math.max(ink.right - frame.right, 0) : 0;
 		setLeft(
-			classicyMenuLeftAt(
-				position[0],
-				flipLeftTo ?? position[0],
+			classicyMenuWholePixel(
+				classicyMenuLeftAt(
+					position[0],
+					flipLeftTo ?? position[0],
+					frame.width,
+					inkLeft,
+					inkRight,
+					bounds,
+				),
 				frame.width,
-				ink ? Math.max(frame.left - ink.left, 0) : 0,
-				ink ? Math.max(ink.right - frame.right, 0) : 0,
-				classicyMenuBounds(el),
+				inkLeft,
+				inkRight,
+				bounds.left,
+				bounds.right,
 			),
 		);
-		if (position[1] + frame.height > window.innerHeight) {
-			setTop(Math.max(0, position[1] - frame.height));
-		}
+		// Down: below the point where it fits, else above it, then pinned
+		// inside the bounds (a menu taller than them is capped and scrolls,
+		// ClassicyMenu).
+		const inkTop = ink ? Math.max(frame.top - ink.top, 0) : 0;
+		const inkBottom = ink ? Math.max(ink.bottom - frame.bottom, 0) : 0;
+		const inkAt = (y: number) => ({
+			left: 0,
+			right: 0,
+			top: y - inkTop,
+			bottom: y + frame.height + inkBottom,
+		});
+		let y = position[1];
+		if (inkAt(y).bottom > bounds.bottom) y = position[1] - frame.height;
+		setTop(
+			classicyMenuWholePixel(
+				y + classicyMenuPinShiftDown(inkAt(y), bounds),
+				frame.height,
+				inkTop,
+				inkBottom,
+				bounds.top,
+				bounds.bottom,
+			),
+		);
 	}, [position[0], position[1], flipLeftTo, desktopSize]);
 
 	const handleClickOutside = useCallback(
@@ -148,12 +184,16 @@ export const ClassicyContextualMenu: FunctionalComponent<ClassicyMenuProps> = ({
 				// blend their one-pixel columns (Firefox).
 				style={{ left: Math.round(left), top: Math.round(top), ...style }}
 			>
-				<ClassicyMenu
-					name={name}
-					menuItems={menuItems}
-					navClass={"classicyContextMenu"}
-					subNavClass={"classicyContextSubMenu"}
-				></ClassicyMenu>
+				{/* Its items' submenus are measured again after it is placed
+				    again (a desktop resize). */}
+				<ClassicyMenuPlacementEpoch.Provider value={desktopSize}>
+					<ClassicyMenu
+						name={name}
+						menuItems={menuItems}
+						navClass={"classicyContextMenu"}
+						subNavClass={"classicyContextSubMenu"}
+					></ClassicyMenu>
+				</ClassicyMenuPlacementEpoch.Provider>
 			</div>
 		</ClassicyMenuProvider>
 	);

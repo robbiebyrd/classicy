@@ -86,17 +86,23 @@ function rectOf(this: Element): DOMRect {
 	const width = widths[owner.id] ?? 100;
 	const wrapper = this.parentElement as HTMLElement;
 	const shift = pxOf(wrapper.style.marginLeft);
+	const shiftDown = pxOf(wrapper.style.marginTop);
 	const flipped = this.classList.contains("classicySubMenuFlipLeft");
 	if (owner.id in TITLES) {
 		// A pull-down: under its title's left side, or flipped, its right
 		// side under the title's right side.
 		const [left, right] = TITLES[owner.id];
-		return box((flipped ? right - width : left) + shift, 20, width, 50);
+		return box(
+			(flipped ? right - width : left) + shift,
+			20 + shiftDown,
+			width,
+			50,
+		);
 	}
 	// A submenu: beside its parent menu, its frame over the parent's side.
 	const parent = (owner.closest("ul") as Element).getBoundingClientRect();
 	const left = flipped ? parent.left - width + OVERLAP : parent.right - OVERLAP;
-	return box(left + shift, parent.top, width, 50);
+	return box(left + shift, parent.top + shiftDown, width, 50);
 }
 
 beforeEach(() => {
@@ -319,11 +325,11 @@ describe("a window's own menu bar", () => {
 });
 
 describe("a submenu", () => {
-	const nested = () =>
+	const nested = (parent = "help") =>
 		menuBar([
 			{
-				id: "help",
-				title: "help",
+				id: parent,
+				title: parent,
 				menuChildren: [
 					{
 						id: "sort",
@@ -364,6 +370,144 @@ describe("a submenu", () => {
 		// Flipped it would start at 447 - 500 + 5 = -48.
 		expect(wrapperOf("sort").style.marginLeft).toBe("48px");
 		expect(listOf("sort").getBoundingClientRect().left).toBe(0);
+	});
+});
+
+describe("a submenu that fits on neither side", () => {
+	it("is pinned from the side it passes the edge by less", () => {
+		// Under File (38-70) in a 400 px desktop, the menu runs 38-196; the
+		// 300 px submenu beside it would pass the right edge by 92 (its
+		// shadow included), flipped the left edge by 257: it stays on the
+		// right side, pinned back by 92.
+		desktop = { ...desktop, width: 400 };
+		widths = { file: 158, sort: 300 };
+		render(
+			menuBar([
+				{
+					id: "file",
+					title: "file",
+					menuChildren: [
+						{
+							id: "sort",
+							title: "Sort By",
+							menuChildren: [{ id: "name", title: "Name" }],
+						},
+					],
+				},
+			]),
+		);
+		fireEvent.click(screen.getByText("file"));
+		fireEvent.click(screen.getByText("Sort By"));
+		expect(listOf("sort")).not.toHaveClass("classicySubMenuFlipLeft");
+		expect(wrapperOf("sort").style.marginLeft).toBe("-92px");
+		const frame = listOf("sort").getBoundingClientRect();
+		expect([frame.left, frame.right]).toEqual([99, 399]);
+	});
+});
+
+describe("menus open where they show, vertically", () => {
+	it("pins a pull-down that would pass a short desktop's bottom up inside it", () => {
+		// The pull-down hangs at 20-70; the desktop ends at 60.
+		desktop = { ...desktop, height: 60 };
+		render(menuBar([title("file")]));
+		fireEvent.click(screen.getByText("file"));
+		expect(wrapperOf("file").style.marginTop).toBe("-10px");
+		expect(wrapperOf("file").style.marginBottom).toBe("10px");
+		expect(listOf("file").getBoundingClientRect().top).toBe(10);
+	});
+
+	it("flips a contextual menu up at the desktop's bottom, not the viewport's", () => {
+		render(
+			<div className="classicyDesktop">
+				<ClassicyContextualMenu
+					name="ctx"
+					position={[100, 450]}
+					menuItems={[{ id: "a", title: "A" }]}
+				/>
+			</div>,
+		);
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		// 450 + 50 passes the 480 px desktop (inside the 768 px viewport).
+		expect(wrapper.style.top).toBe("400px");
+	});
+
+	it("pins a contextual menu flipped up past the desktop's top inside it", () => {
+		desktop = { left: 0, top: 100, width: 640, height: 50 };
+		render(
+			<div className="classicyDesktop">
+				<ClassicyContextualMenu
+					name="ctx"
+					position={[100, 120]}
+					menuItems={[{ id: "a", title: "A" }]}
+				/>
+			</div>,
+		);
+		const wrapper = document.querySelector(
+			".classicyContextMenuWrapper",
+		) as HTMLElement;
+		expect(wrapper.style.top).toBe("100px");
+	});
+});
+
+describe("a desktop resize with a submenu open", () => {
+	it("measures the outermost menu first, then each submenu beside its parent's new place", () => {
+		const observers: { cb: ResizeObserverCallback; targets: Element[] }[] = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				targets: Element[] = [];
+				constructor(cb: ResizeObserverCallback) {
+					observers.push({ cb, targets: this.targets });
+				}
+				observe(target: Element) {
+					this.targets.push(target);
+				}
+				disconnect() {
+					this.targets.length = 0;
+				}
+				unobserve() {}
+			},
+		);
+		// In 640: Help flipped to 447-605, its 500 px submenu flipped too
+		// (-48) and pinned in by 48.
+		widths = { help: 158, sort: 500 };
+		render(
+			menuBar([
+				{
+					id: "help",
+					title: "help",
+					menuChildren: [
+						{
+							id: "sort",
+							title: "Sort By",
+							menuChildren: [{ id: "name", title: "Name" }],
+						},
+					],
+				},
+			]),
+		);
+		fireEvent.click(screen.getByText("help"));
+		fireEvent.click(screen.getByText("Sort By"));
+		expect(listOf("sort").getBoundingClientRect().left).toBe(0);
+		// To 1024: Help fits unflipped (572-730); its submenu beside it would
+		// run 725-1225, so it flips, to 77-577, and needs no pin. Observers
+		// told child first, as a browser may, must not leave the submenu
+		// measured against its parent's old place.
+		desktop = { ...desktop, width: 1024 };
+		const watching = observers.filter((o) =>
+			o.targets.some((t) => t.classList.contains("classicyDesktop")),
+		);
+		act(() => {
+			for (const o of [...watching].reverse()) o.cb([], {} as ResizeObserver);
+		});
+		expect(listOf("help")).not.toHaveClass("classicySubMenuFlipLeft");
+		expect(listOf("sort")).toHaveClass("classicySubMenuFlipLeft");
+		expect(wrapperOf("sort").style.marginLeft).toBe("");
+		const frame = listOf("sort").getBoundingClientRect();
+		expect([frame.left, frame.right]).toEqual([77, 577]);
+		vi.unstubAllGlobals();
 	});
 });
 

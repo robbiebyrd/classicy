@@ -7,9 +7,12 @@
 // Application menu, likewise; Mac OS 8.1's `platinum-81-appmenu-open.png`
 // agrees); one still too wide is pinned inside the screen. A submenu flips
 // to its parent's left side by the same test, and is pinned the same way.
-// The screen is the desktop (`.classicyDesktop`), else the viewport. Pure
-// measurement: the components publish the decision (ClassicyMenu's
-// `classicySubMenuFlipLeft`, a contextual menu's `left`).
+// Down, every menu keeps to the same box: a pull-down's scroll cap ends at
+// its bottom, and a menu still past it is pinned up. The screen is what
+// shows of the desktop: its box (`.classicyDesktop`) where it overlaps the
+// viewport, else the viewport. Pure measurement: the components publish the
+// decision (ClassicyMenu's `classicySubMenuFlipLeft`, a contextual menu's
+// `left` and `top`).
 
 /** A box in viewport pixels. */
 export type ClassicyMenuBox = {
@@ -39,19 +42,32 @@ const viewportBox = (): ClassicyMenuBox => ({
 });
 
 /**
- * The box a menu must show inside: the desktop's (`.classicyDesktop`, the
- * nearest one around `el`, else the page's), else the viewport's. A desktop
- * with no box yet (not laid out) gives the viewport's.
+ * The box a menu must show inside, on both axes: what shows of the desktop
+ * (`.classicyDesktop`, the nearest one around `el`, else the page's), its
+ * box where it overlaps the viewport. A desktop embedded in a page ends
+ * inside the viewport; one wider or taller than the window (a host that
+ * fixes its size, or a scrolled page) is cut to the viewport. With no
+ * desktop, one with no box yet (not laid out) or one wholly outside the
+ * viewport, the viewport's.
  */
 export const classicyMenuBounds = (el: Element | null): ClassicyMenuBox => {
+	const viewport = viewportBox();
 	const desktop =
 		el?.closest(".classicyDesktop") ??
 		el?.ownerDocument?.querySelector(".classicyDesktop") ??
 		null;
-	if (!desktop) return viewportBox();
+	if (!desktop) return viewport;
 	const r = desktop.getBoundingClientRect();
-	if (!(r.width > 0) || !(r.height > 0)) return viewportBox();
-	return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+	if (!(r.width > 0) || !(r.height > 0)) return viewport;
+	const shown = {
+		left: Math.max(r.left, viewport.left),
+		top: Math.max(r.top, viewport.top),
+		right: Math.min(r.right, viewport.right),
+		bottom: Math.min(r.bottom, viewport.bottom),
+	};
+	return shown.right > shown.left && shown.bottom > shown.top
+		? shown
+		: viewport;
 };
 
 const union = (a: ClassicyMenuBox, b: ClassicyMenuBox): ClassicyMenuBox => ({
@@ -221,6 +237,23 @@ export const classicyMenuPinShift = (
 };
 
 /**
+ * How far down (px, down positive) a menu painted at `ink` moves to lie
+ * inside `bounds`: up from the bottom edge, then, for one taller than the
+ * bounds, its top wins. Zero for one already inside.
+ */
+export const classicyMenuPinShiftDown = (
+	ink: ClassicyMenuBox,
+	bounds: ClassicyMenuBox,
+): number => {
+	let shift = 0;
+	if (ink.bottom > bounds.bottom + EDGE_TOLERANCE)
+		shift = bounds.bottom - ink.bottom;
+	if (ink.top + shift < bounds.top - EDGE_TOLERANCE)
+		shift = bounds.top - ink.top;
+	return shift;
+};
+
+/**
  * Where a menu placed at `left` (its frame's left edge, viewport px) goes
  * across so it shows, for a menu placed by its host at a point (a
  * contextual menu, a menu bar extension's pull-down): left where asked when
@@ -249,22 +282,25 @@ export const classicyMenuLeftAt = (
 };
 
 /**
- * `left`, on a whole pixel that keeps the menu inside `bounds` where the
- * exact place did (a fixed menu is drawn on whole pixels: a frame placed a
- * fraction across blends its one-pixel columns).
+ * `at` (a fixed menu's left or top edge), on a whole pixel that keeps the
+ * menu inside `from`-`to` on that axis where the exact place did: a fixed
+ * menu is drawn on whole pixels (a frame placed a fraction across blends
+ * its one-pixel columns), and rounding half a pixel the wrong way would put
+ * its shadow's last column past the edge. `size` is its frame's, `inkBefore`
+ * and `inkAfter` how far its shadow reaches past each side.
  */
-const wholePixelLeft = (
-	left: number,
-	width: number,
-	inkLeft: number,
-	inkRight: number,
-	bounds: ClassicyMenuBox,
-) => {
-	let at = Math.round(left);
-	if (at + width + inkRight > bounds.right + EDGE_TOLERANCE)
-		at = Math.floor(left);
-	if (at - inkLeft < bounds.left - EDGE_TOLERANCE) at = Math.ceil(left);
-	return at;
+export const classicyMenuWholePixel = (
+	at: number,
+	size: number,
+	inkBefore: number,
+	inkAfter: number,
+	from: number,
+	to: number,
+): number => {
+	let whole = Math.round(at);
+	if (whole + size + inkAfter > to + EDGE_TOLERANCE) whole = Math.floor(at);
+	if (whole - inkBefore < from - EDGE_TOLERANCE) whole = Math.ceil(at);
+	return whole;
 };
 
 /**
@@ -283,7 +319,7 @@ export const classicyMenuListLeft = (
 	const ink = classicyMenuInkBox(list) ?? frame;
 	const inkLeft = Math.max(frame.left - ink.left, 0);
 	const inkRight = Math.max(ink.right - frame.right, 0);
-	return wholePixelLeft(
+	return classicyMenuWholePixel(
 		classicyMenuLeftAt(
 			anchor.left,
 			anchor.right,
@@ -295,6 +331,7 @@ export const classicyMenuListLeft = (
 		frame.width,
 		inkLeft,
 		inkRight,
-		bounds,
+		bounds.left,
+		bounds.right,
 	);
 };

@@ -43,6 +43,23 @@ describe("classicyMenuBounds", () => {
 		});
 	});
 
+	it("is the overlap of the desktop's box and the viewport's", () => {
+		// A desktop wider and taller than the window (a host that fixes its
+		// size, or a scrolled page): menus keep to what shows.
+		const root = document.createElement("div");
+		root.className = "classicyDesktop";
+		document.body.append(root);
+		vi.spyOn(root, "getBoundingClientRect").mockReturnValue(
+			DOMRect.fromRect({ x: -50, y: -20, width: 1400, height: 900 }),
+		);
+		expect(classicyMenuBounds(root)).toEqual({
+			left: 0,
+			top: 0,
+			right: window.innerWidth,
+			bottom: window.innerHeight,
+		});
+	});
+
 	it("is the viewport's without a desktop, or with one not laid out", () => {
 		const viewport = {
 			left: 0,
