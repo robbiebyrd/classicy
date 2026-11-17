@@ -14,9 +14,11 @@ const css = sass.compile(
 	{ style: "expanded" },
 ).css;
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const ruleOf = (selector: string) =>
 	css.match(
-		new RegExp(`^${selector.replace(/[.]/g, "\\.")} \\{\\n([^}]*)\\n\\}`, "m"),
+		new RegExp(`^${escapeRegExp(selector)} \\{\\n([^}]*)\\n\\}`, "m"),
 	)?.[1];
 
 describe("ClassicyButton's spacing classes", () => {

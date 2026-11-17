@@ -402,7 +402,8 @@ node packages/appearance/system7/bin/capture-references.mjs beep .playwright-mcp
 `run` boots Infinite Mac's "System 7.5.5" disk in the repo's Playwright
 Chromium (headless, 700 x 620, device scale factor 1), quits Stickies, and
 plays the recipe (`SCENES` in the script: each scene starts and ends on the
-bare desktop, so `--only <regex>` runs one, by `<depth>-<scene>` name) at
+bare desktop, so `--only <names>` runs the scenes whose `<depth>-755-<scene>`
+name contains one of its comma-separated names) at
 256 colors, then Black & White, then the other depths. `beep` records
 Simple Beep from SimpleSound and compares it with the package's WAV.
 `serve <port> <out>` boots the emulator and takes steps over HTTP (POST

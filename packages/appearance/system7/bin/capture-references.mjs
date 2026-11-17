@@ -5,7 +5,7 @@
 // captures are references, kept out of git in
 // `.playwright-mcp/parity/system7/reference/`.
 //
-//   node packages/appearance/system7/bin/capture-references.mjs run <out> [--only <regex>]
+//   node packages/appearance/system7/bin/capture-references.mjs run <out> [--only <names>]
 //   node packages/appearance/system7/bin/capture-references.mjs beep <out>
 //   node packages/appearance/system7/bin/capture-references.mjs serve <port> <out> [<disk>]
 //
@@ -13,7 +13,8 @@
 // colors, then Black & White (set from the Control Strip's Monitor module),
 // then the other depths, saving every capture it names to `<out>` as the
 // emulator's own 640 x 480 framebuffer (PNG, exact pixels); `--only` keeps
-// the scenes whose `<depth>-<scene>` name matches. `beep` records Simple
+// the scenes whose `<depth>-755-<scene>` name contains one of its
+// comma-separated names (plain text, not a pattern). `beep` records Simple
 // Beep from SimpleSound and compares it with the package's WAV
 // (`compareSimpleBeep`), exiting 1 when they disagree. `serve` boots a disk
 // (default "System 7.5") and listens on 127.0.0.1:<port> (POST /do, a JSON
@@ -813,7 +814,9 @@ async function run(out, only) {
 		log: console.log,
 	});
 	emulator.out = out;
-	const wanted = (name) => !only || new RegExp(only).test(name);
+	const names = only?.split(",").filter(Boolean) ?? [];
+	const wanted = (name) =>
+		names.length === 0 || names.some((part) => name.includes(part));
 	try {
 		for (const d of ["color", "bw"]) {
 			if (d === "bw")
@@ -1016,8 +1019,11 @@ async function serve(port, out, disk) {
 			for (const step of JSON.parse(body || "[]")) await emulator.step(step);
 			res.end("ok\n");
 		} catch (error) {
+			// Plain text, never HTML: the message can hold anything.
+			console.error(error);
 			res.statusCode = 500;
-			res.end(`${error}\n`);
+			res.setHeader("content-type", "text/plain; charset=utf-8");
+			res.end(`${error instanceof Error ? error.message : String(error)}\n`);
 		}
 	});
 	server.listen(port, "127.0.0.1", () =>
