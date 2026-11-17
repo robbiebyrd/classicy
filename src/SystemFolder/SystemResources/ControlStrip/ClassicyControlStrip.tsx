@@ -331,8 +331,23 @@ export const ClassicyControlStrip: FunctionalComponent<
 		};
 		measure();
 		if (typeof window === "undefined") return;
+		// The desktop may resize or move with no window resize (a host that
+		// embeds it): watch its root and the strip, and any scroll.
 		window.addEventListener("resize", measure);
-		return () => window.removeEventListener("resize", measure);
+		window.addEventListener("scroll", measure, true);
+		const observer =
+			typeof ResizeObserver === "undefined"
+				? undefined
+				: new ResizeObserver(measure);
+		const strip = stripRef.current;
+		const desktop = strip?.closest(".classicyDesktop") ?? strip?.parentElement;
+		if (desktop) observer?.observe(desktop);
+		if (strip) observer?.observe(strip);
+		return () => {
+			window.removeEventListener("resize", measure);
+			window.removeEventListener("scroll", measure, true);
+			observer?.disconnect();
+		};
 	}, [edge, bottom, width, collapsed]);
 	const appearance = useClassicyAppearance(
 		"ControlStrip",

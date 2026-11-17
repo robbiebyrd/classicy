@@ -10,8 +10,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
@@ -211,8 +211,8 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const folderIndex = useRef(new Set<string>());
 	// Flat rows each draw a small icon: an entry's own, else the generic
 	// folder's or document's (read at render, never captured at load).
-	const folderIcon = ClassicyIcons.system?.folders?.directory;
-	const fileIcon = ClassicyIcons.system?.files?.file;
+	const folderIcon = useClassicyAsset("icons", "system.folders.directory");
+	const fileIcon = useClassicyAsset("icons", "system.files.file");
 	// The box's size: the theme's optional `fileDialog.width` / `height` for
 	// Open and `fileDialog.saveWidth` / `saveHeight` for Save (System 7's
 	// Standard File boxes), else Mac OS 8's 440 x 400. Read once per opening

@@ -1507,4 +1507,65 @@ describe("ClassicyControlStrip — docked right, 7.5.5's way", () => {
 			strip().style.getPropertyValue("--classicy-control-strip-phase"),
 		).toBe("1px");
 	});
+
+	// Review r1 item 7: the desktop may move or resize with no window
+	// resize; the strip measures again when its desktop root resizes.
+	it("measures its origin again when the desktop resizes", () => {
+		register(...testModules());
+		const observed: { cb: ResizeObserverCallback; els: Element[] }[] = [];
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				els: Element[] = [];
+				constructor(cb: ResizeObserverCallback) {
+					observed.push({ cb, els: this.els });
+				}
+				observe(el: Element) {
+					this.els.push(el);
+				}
+				unobserve() {}
+				disconnect() {}
+			},
+		);
+		let left = 900;
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: HTMLElement) {
+				const isStrip = this.classList.contains("classicyControlStrip");
+				return {
+					left: isStrip ? left : 0,
+					top: isStrip ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			},
+		);
+		const desktop = document.createElement("div");
+		desktop.className = "classicyDesktop";
+		document.body.append(desktop);
+		try {
+			dockRight();
+			renderWithProviders(
+				<ClassicyControlStrip disabledModules={BUILT_INS} />,
+				{ container: desktop },
+			);
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("");
+			const watcher = observed.find(({ els }) => els.includes(desktop));
+			expect(watcher).toBeDefined();
+			left = 901;
+			act(() => watcher?.cb([], {} as ResizeObserver));
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("1px");
+		} finally {
+			desktop.remove();
+			vi.unstubAllGlobals();
+		}
+	});
 });
