@@ -213,4 +213,16 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
     border-bottom-width: 0;
     background: var(--color-white);
   }
+
+  // Its column titles are on white, the sorted one too, at both depths
+  // (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name" and
+  // "Size"), where the base sheet's band is the system gray and a sorted
+  // title a lighter one.
+  .classicyFileBrowserViewTableContainer .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  .classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected {
+    background-color: transparent;
+  }
 }

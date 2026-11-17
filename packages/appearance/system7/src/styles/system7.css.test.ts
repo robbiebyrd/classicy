@@ -2135,6 +2135,23 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/background: var\(--color-white\);/);
 		});
 
+		// Its column titles are on white, the sorted one too, at both depths
+		// (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name"
+		// and "Size"), where the base sheet's band is the system gray and a
+		// sorted title a lighter one (story 0216-1im F8b).
+		it("draws the list view's column titles on white, the sorted one too", () => {
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer .classicyTableHeaderGroup",
+				),
+			).toMatch(/background: var\(--color-white\);/);
+			expect(
+				rule(
+					".classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected",
+				),
+			).toMatch(/background-color: transparent;/);
+		});
+
 		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,
 		// 7.5's `*-dialog-standardfile-save.png`; story 0214-c61): each box's
 		// parts placed from the inner line by its own knobs.
