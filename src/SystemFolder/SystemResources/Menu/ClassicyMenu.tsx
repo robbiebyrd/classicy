@@ -34,6 +34,7 @@ import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyI
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
 import { ClassicyMenuContext } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
+import { useClassicySubmenuPlacement } from "@/SystemFolder/SystemResources/Menu/useClassicySubmenuPlacement.internal";
 import { POPUP_MENU_VIEWPORT_MARGIN } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenuPlacement";
 import { ClassicySeparator } from "@/SystemFolder/SystemResources/Separator/ClassicySeparator";
 import { nudgeClassicyOntoPixelGrid } from "@/SystemFolder/SystemResources/Utils/pixelGridNudge.internal";
@@ -420,6 +421,13 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		}
 		measureScrollArrows();
 	}, [scrollCap, measureScrollArrows, resetScrollArrows]);
+	// A capped list its item moves across (flipped or pinned to show inside
+	// the desktop, useClassicySubmenuPlacement) takes its indicators along:
+	// they are fixed, placed from the list's box. Measured after every
+	// render while capped; it sets state only when the box has changed.
+	useLayoutEffect(() => {
+		if (scrollCap !== null) measureScrollArrows();
+	});
 	const { emit } = appearance;
 	// A submenu opens by a click, Return, or hovering an active menu; it
 	// closes when another opens or the menus close. Reported once the open
@@ -527,46 +535,16 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	const { closeAll, menuBarActive, activateMenuBar, pokeActivity } =
 		useContext(ClassicyMenuContext);
 	const [isFlashing, setIsFlashing] = useState(false);
-	const [submenuFlipped, setSubmenuFlipped] = useState(false);
-	// Where an open submenu goes when this item's list scrolls: fixed beside
-	// the item, out of the scrolling list's clip.
-	const [submenuAt, setSubmenuAt] = useState<CSSProperties | undefined>();
 	const itemRef = useRef<HTMLLIElement>(null);
+	// Where its open menu goes: flipped and pinned so it shows inside the
+	// desktop, and fixed beside the item while the item's list scrolls.
+	const submenuPlacement = useClassicySubmenuPlacement(itemRef, isOpen);
 	// Its own hook, not the menu's emit: each item is a MenuItem root.
 	const appearance = useClassicyAppearance(
 		"MenuItem",
 		{ disabled: menuItem.disabled, open: isOpen },
 		itemRef,
 	);
-
-	// Once open, measure the child menu against the viewport; if it would
-	// overflow the right edge, flip it to open leftward instead. Measured only
-	// on open (not after flipping) so the menu can't oscillate between sides.
-	useEffect(() => {
-		if (!isOpen) {
-			setSubmenuFlipped(false);
-			setSubmenuAt(undefined);
-			return;
-		}
-		const item = itemRef.current;
-		if (item?.closest("ul")?.classList.contains("classicyMenuListScrolls")) {
-			const r = item.getBoundingClientRect();
-			setSubmenuAt({
-				position: "fixed",
-				top: `${r.top}px`,
-				left: `${r.left}px`,
-				width: `${r.width}px`,
-				height: 0,
-			});
-		}
-		const submenu = itemRef.current?.querySelector(
-			":scope > .classicyMenuWrapper > ul",
-		);
-		if (!submenu) return;
-		setSubmenuFlipped(
-			submenu.getBoundingClientRect().right > window.innerWidth,
-		);
-	}, [isOpen]);
 
 	const { track } = useClassicyAnalytics();
 	const analyticsArgs = useMemo(
@@ -848,11 +826,11 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 					name={`${menuItem.id}_subitem`}
 					menuItems={menuItem.menuChildren ?? []}
 					open={isOpen}
-					style={submenuAt}
+					style={submenuPlacement.style}
 					subNavClass={subNavClass}
 					navClass={classNames(
 						subNavClass,
-						submenuFlipped && "classicySubMenuFlipLeft",
+						submenuPlacement.flipLeft && "classicySubMenuFlipLeft",
 					)}
 				></ClassicyMenu>
 			)}

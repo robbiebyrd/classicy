@@ -50,7 +50,10 @@ export interface ClassicyMenuBarExtensionProps {
  * re-queried. The item
  * is a real `<button>`, so Enter and Space activate it. With `menuItems`, a
  * click drops a Platinum menu below the item, which closes on a selection or a
- * click outside.
+ * click outside. The menu hangs from the item's left side, or, where that
+ * would pass the desktop's right edge, with its right side under the item's
+ * right side, as a menu bar title's pull-down does; one still too wide is
+ * pinned inside the desktop.
  *
  * ```tsx
  * <ClassicyMenuBarExtension id="myapp_menu" order={1} title={appName} menuItems={items}>
@@ -74,7 +77,10 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 	const [regionNode, setRegionNode] = useState<HTMLElement | null>(null);
 	const itemRef = useRef<HTMLLIElement>(null);
 	const [open, setOpen] = useState(false);
-	const [position, setPosition] = useState<[number, number]>([0, 0]);
+	// The item's box when it opened its menu: the menu hangs from its left
+	// side, or with its right side under the item's right side where that
+	// would pass the desktop's edge, as a menu bar title's pull-down does.
+	const [anchor, setAnchor] = useState({ left: 0, bottom: 0, right: 0 });
 
 	const hasMenu = !!menuItems && menuItems.length > 0;
 
@@ -91,7 +97,8 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 	const activate = () => {
 		if (hasMenu) {
 			const rect = itemRef.current?.getBoundingClientRect();
-			if (rect) setPosition([rect.left, rect.bottom]);
+			if (rect)
+				setAnchor({ left: rect.left, bottom: rect.bottom, right: rect.right });
 			// Open (not toggle): ClassicyContextualMenu owns outside-click /
 			// selection close via onClose.
 			setOpen(true);
@@ -136,7 +143,8 @@ export const ClassicyMenuBarExtension: FunctionalComponent<
 					<ClassicyContextualMenu
 						name={`menubar-ext-${id}`}
 						menuItems={menuItems as ClassicyMenuItem[]}
-						position={position}
+						position={[anchor.left, anchor.bottom]}
+						flipLeftTo={anchor.right}
 						onClose={() => setOpen(false)}
 					/>,
 					desktop,
