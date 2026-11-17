@@ -3,11 +3,13 @@ id: 0215-sa3
 title: 'System 7: docs update for 3.3 and the review follow-ups'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), Phase 6, task 6.17 (the second pass of 5.1's docs).
 type: chor
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-17T06:31:28.557Z"
-updated: "2026-11-17T06:31:28.557Z"
+updated: "2026-11-17T08:13:33.159Z"
+started: "2026-11-17T08:13:29.713Z"
+completed: "2026-11-17T08:13:33.159Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -54,6 +56,6 @@ A strict-CSP host linking both packages' font stylesheets loads each shared face
 
 ## Acceptance Criteria
 
-- [ ] [MANUAL] Every listed statement matches the code, the three code follow-ups have tests, the shared-font item is fixed or carries its specific reason, and the full gate passes with Platinum and core parity AE 0 except shots the report names.
+- [x] [MANUAL] Every listed statement matches the code, the three code follow-ups have tests, the shared-font item is fixed or carries its specific reason, and the full gate passes with Platinum and core parity AE 0 except shots the report names.
 
 ## Work Log
