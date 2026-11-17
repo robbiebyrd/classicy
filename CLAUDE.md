@@ -26,6 +26,7 @@ pnpm preview              # Full build → run example app
 pnpm storybook            # Run the component showcase (Storybook) dev server
 pnpm build:storybook      # Build static Storybook to storybook/storybook-static/
 pnpm parity:shoot / parity:app / parity:compare   # Visual parity (AE) checks: bin/parity/README.md
+pnpm sync:versions        # Set every packages/appearance/*/package.json to the root's version (after merging a main that bumped it; --check only reports)
 ```
 
 **CI** (`.github/workflows/ci.yml`) runs `pnpm lint`, `pnpm exec tsc --noEmit -p .`, `pnpm storybook:typecheck` (the stories and `storybook/.storybook/`, under the strict `storybook/tsconfig.json`; the root tsconfig excludes stories), `pnpm test` and `pnpm build:source && pnpm --filter classicy-example build` (the example app's `tsc -b && vite build` against the freshly built library, so a broken consumer import or type error fails the PR) on every pull request and push to `main`; run the same five locally before pushing. Every workflow pins `runs-on: ubuntu-26.04` rather than `ubuntu-latest`, so the image, and with it the distro ffmpeg that builds the released audio sprites, cannot change without a commit.

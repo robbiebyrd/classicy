@@ -50,7 +50,8 @@
 		"parity:stories": "node bin/parity/parity.ts stories",
 		"parity:shoot": "node bin/parity/parity.ts shoot",
 		"parity:app": "node bin/parity/parity.ts app",
-		"parity:compare": "node bin/parity/parity.ts compare"
+		"parity:compare": "node bin/parity/parity.ts compare",
+		"sync:versions": "node bin/syncPackageVersions.ts"
 	},
 	"lint-staged": {
 		"**/*.{js,jsx,ts,tsx,json,css,scss}": "biome check --write --no-errors-on-unmatched"
