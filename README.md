@@ -62,29 +62,36 @@ and icon art go missing.
 
 **Upgrading from 3.0.x?** [`docs/RELEASE-NOTES-3.1.md`](docs/RELEASE-NOTES-3.1.md): the screen savers (and their logo registry) now ship with `@classicy/appearance-platinum`; a host importing one from `@classicy/classicy` changes the import specifier.
 
-**Upgrading from 3.1.x?** [`docs/RELEASE-NOTES-3.2.md`](docs/RELEASE-NOTES-3.2.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
+**Upgrading from 3.2.x?** [`docs/RELEASE-NOTES-3.3.md`](docs/RELEASE-NOTES-3.3.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
 and rewrite every specifier, strings included: `from "classicy"`, deep paths
 (`classicy/dist/classicy.css`, `classicy/scss/*`), `vi.mock("classicy", …)` and
 `typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
-script, pnpm's `minimumReleaseAgeExclude`) must list **both** package names and
-move them together. The scoped names exist from 3.0.0 on; a lower range does
-not resolve. The release notes give a one-pass `sed`.
+script, pnpm's `minimumReleaseAgeExclude`) must list **every** Classicy package
+it loads (`@classicy/classicy`, `@classicy/appearance-platinum` and, when you
+load it, `@classicy/appearance-system7`) and move them together. The core and
+Platinum exist from 3.0.0 on, System 7 from 3.3.0; a lower range does not
+resolve. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
 wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
 file URLs (they return the SPA fallback page). Exclude both packages from
-the pre-bundle (and `@classicy/appearance-system7`, when you load it):
+the pre-bundle (and `@classicy/appearance-system7`, when you load it, as
+`example/vite.config.ts` does):
 
 ```ts
 // vite.config.ts
 export default defineConfig({
   optimizeDeps: {
-    exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+    exclude: [
+      "@classicy/classicy",
+      "@classicy/appearance-platinum",
+      "@classicy/appearance-system7", // when you load it
+    ],
   },
 })
 ```
@@ -93,7 +100,8 @@ Any CommonJS dependency they pull in may then need to go in
 `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
 (a Vite production build, webpack 5, Rollup with a URL plugin) need no
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
-the Platinum package's `dist/assets/` next to your bundle.
+each package's `dist/assets/` (Platinum's, and System 7's when you load it)
+next to your bundle.
 `import "@classicy/classicy/fonts"` is now a deprecated no-op (the Platinum package
 registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
 links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place

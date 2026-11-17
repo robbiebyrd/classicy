@@ -5,6 +5,13 @@ import {
 	getActiveClassicyAssetVariant,
 	subscribeClassicyAssets,
 } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	dimmedSources,
+	reportedSources,
+	retryKeys,
+	settled,
+	settledListeners,
+} from "@/Appearance/ClassicyIconDimming.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 /**
@@ -135,10 +142,6 @@ export const dimClassicyIconPixels = (
 	}
 };
 
-const dimmedSources = new Map<string, Promise<string | undefined>>();
-const settled = new Map<string, string | undefined>();
-const settledListeners = new Set<() => void>();
-
 const loadImage = (src: string): Promise<HTMLImageElement | undefined> =>
 	new Promise((resolve) => {
 		const image = new Image();
@@ -150,15 +153,37 @@ const loadImage = (src: string): Promise<HTMLImageElement | undefined> =>
 		image.src = src;
 	});
 
+const reportUnreadable = (src: string, why: string): void => {
+	if (reportedSources.has(src)) return;
+	reportedSources.add(src);
+	classicyLog(
+		"warn",
+		"Appearance",
+		`Icon ${src} ${why}; it is dimmed by the stylesheet instead`,
+	);
+};
+
 const draw = async (
 	src: string,
 	rule: ClassicyIconDimmingRule,
 	size: number | undefined,
+	key: string,
 ): Promise<string | undefined> => {
 	const image = await loadImage(src);
-	const width = size ?? image?.naturalWidth ?? 0;
-	const height = size ?? image?.naturalHeight ?? 0;
-	if (!image || width <= 0 || height <= 0) return undefined;
+	if (!image) {
+		// The real path for a cross-origin icon served without CORS (the load
+		// itself fails under `crossOrigin = "anonymous"`), but also a network
+		// error: not cached for good, so a later request tries again.
+		retryKeys.add(key);
+		reportUnreadable(
+			src,
+			"failed to load for dimming (a cross-origin icon without CORS headers, or a network error)",
+		);
+		return undefined;
+	}
+	const width = size ?? image.naturalWidth ?? 0;
+	const height = size ?? image.naturalHeight ?? 0;
+	if (width <= 0 || height <= 0) return undefined;
 	const canvas = document.createElement("canvas");
 	canvas.width = width;
 	canvas.height = height;
@@ -174,10 +199,9 @@ const draw = async (
 		// A cross-origin icon taints the canvas: its pixels cannot be read
 		// (the one case a browser forbids), so the package's stylesheet dims
 		// it its own way.
-		classicyLog(
-			"info",
-			"Appearance",
-			`Icon ${src} cannot be read from a canvas (cross-origin without CORS); it is dimmed by the stylesheet instead`,
+		reportUnreadable(
+			src,
+			"cannot be read from a canvas (cross-origin without CORS)",
 		);
 		return undefined;
 	}
@@ -187,7 +211,9 @@ const draw = async (
  * The icon at `src` dimmed by `rule`, as a `data:` URL, drawn `size` px
  * square (else at its natural size); `undefined` when the icon cannot be
  * read (it failed to load, has no size, or taints the canvas). Cached per
- * source, rule and size for the page.
+ * source, rule and size for the page, except a failed load, which is drawn
+ * again on the next request (the failure may be transient). A source that
+ * cannot be read logs one `warn` for the page.
  */
 export const classicyDimmedIconSource = (
 	src: string,
@@ -200,20 +226,15 @@ export const classicyDimmedIconSource = (
 		pending =
 			typeof document === "undefined" || typeof Image === "undefined"
 				? Promise.resolve(undefined)
-				: draw(src, rule, size).catch(() => undefined);
+				: draw(src, rule, size, key).catch(() => undefined);
 		pending.then((result) => {
+			if (retryKeys.delete(key)) dimmedSources.delete(key);
 			settled.set(key, result);
 			for (const listener of [...settledListeners]) listener();
 		});
 		dimmedSources.set(key, pending);
 	}
 	return pending;
-};
-
-/** Test-only: forgets every dimmed image. */
-export const resetClassicyDimmedIconsForTests = (): void => {
-	dimmedSources.clear();
-	settled.clear();
 };
 
 /**
@@ -238,6 +259,10 @@ export const resolveClassicyIconDimmingRule = (
 	return dimming[purpose];
 };
 
+// What an icon that is not dimmed subscribes with: nothing, so the many icons
+// that never dim hold no listener on the asset registry or the settled set.
+const subscribeNothing = (): (() => void) => () => {};
+
 const subscribeSettled = (listener: () => void): (() => void) => {
 	settledListeners.add(listener);
 	return () => {
@@ -260,14 +285,18 @@ export const useClassicyDimmedIconImage = (
 		() => (dimmed ? resolveClassicyIconDimmingRule(purpose) : undefined),
 		[dimmed, purpose],
 	);
-	const rule = useSyncExternalStore(subscribeClassicyAssets, getRule, getRule);
+	const rule = useSyncExternalStore(
+		dimmed ? subscribeClassicyAssets : subscribeNothing,
+		getRule,
+		getRule,
+	);
 	const key = rule && src ? `${parse(rule).key}|${size ?? ""}|${src}` : "";
 	useEffect(() => {
 		// Settling notifies `subscribeSettled`, which re-reads below.
 		if (rule && src) void classicyDimmedIconSource(src, rule, size);
 	}, [rule, src, size]);
 	const dimmedImage = useSyncExternalStore(
-		subscribeSettled,
+		dimmed ? subscribeSettled : subscribeNothing,
 		() => (key ? settled.get(key) : undefined),
 		() => undefined,
 	);

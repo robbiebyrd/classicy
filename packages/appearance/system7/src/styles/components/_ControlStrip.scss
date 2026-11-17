@@ -86,8 +86,8 @@ $b: var(--control-strip-bevel-width);
 $checker: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
   var(--classicy-control-strip-phase) top / var(--dither-tile-size) var(--dither-tile-size) fixed;
 
-// Every package color read falls back to the core token it was drawn in
-// before 3.2, for a theme of another package drawn under System 7.
+// Every package color read falls back to the nearest core token, for a
+// theme of another package drawn under System 7.
 $face: var(--package-color-control-strip-face, var(--color-system-02));
 $shadow: var(--package-color-control-strip-shadow, var(--color-system-04));
 $dark-edge: var(--package-color-control-strip-dark-edge, var(--color-system-07));
@@ -175,9 +175,9 @@ $line: var(--window-border-size);
   // token): `2`, the face, #CCCCCC (in a module's pop-up too, whose slider
   // thumb is drawn on the same face), and `m`, the tab's lowest row,
   // #444444 (`controlStrip.darkEdge`), which the core's tokens hold
-  // neither of. Every package color read falls back to the core token it
-  // was drawn in before 3.2, for a theme of another package drawn under
-  // System 7, which emits none.
+  // neither of. Every package color read falls back to the nearest core
+  // token, for a theme of another package drawn under System 7, which emits
+  // none.
   .classicyControlStrip .classicyPixel2,
   .classicyBevelButtonPopupPanel .classicyPixel2 {
     fill: $face;

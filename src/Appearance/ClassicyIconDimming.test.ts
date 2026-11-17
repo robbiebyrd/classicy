@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "../../packages/appearance/platinum/src/assets/sounds/platinum";
 import {
 	type ClassicyAppearancePackage,
@@ -10,10 +10,15 @@ import {
 	type ClassicyIconDimmingRule,
 	classicyDimmedIconSource,
 	dimClassicyIconPixels,
-	resetClassicyDimmedIconsForTests,
 	resolveClassicyIconDimmingRule,
 } from "@/Appearance/ClassicyIconDimming";
+import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	type ClassicyLogEntry,
+	registerClassicyLogSink,
+	unregisterClassicyLogSink,
+} from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // Story 0214-c61 fix round 3: a hidden application's icon is dimmed by the
 // active package's declared rule, per pixel, on a canvas: blend each channel
@@ -125,6 +130,87 @@ describe("classicyDimmedIconSource", () => {
 				SYSTEM7_LIKE,
 			),
 		).resolves.toBeUndefined();
+	});
+});
+
+describe("classicyDimmedIconSource: failures are logged", () => {
+	const entries: ClassicyLogEntry[] = [];
+	const failing = (event: "error" | "load") =>
+		vi.spyOn(globalThis, "Image").mockImplementation(function (
+			this: HTMLImageElement,
+		) {
+			const img = document.createElement("img");
+			Object.defineProperty(img, "naturalWidth", { value: 16 });
+			Object.defineProperty(img, "naturalHeight", { value: 16 });
+			queueMicrotask(() =>
+				event === "error"
+					? img.onerror?.(new Event("error"))
+					: img.onload?.(new Event("load")),
+			);
+			return img;
+		} as unknown as typeof Image);
+	const sunk = () => entries.filter((e) => e.subsystem === "Appearance");
+
+	beforeEach(() => {
+		entries.length = 0;
+		registerClassicyLogSink({
+			id: "icon-dimming-test",
+			onLog: (entry) => entries.push(entry),
+		});
+	});
+	afterEach(() => {
+		unregisterClassicyLogSink("icon-dimming-test");
+		resetClassicyDimmedIconsForTests();
+		vi.restoreAllMocks();
+	});
+
+	// The real path for a cross-origin icon served without CORS: with
+	// crossOrigin = "anonymous" the load itself fails.
+	it("warns once per source when the icon fails to load", async () => {
+		failing("error");
+		const src = "https://elsewhere.example/icon.png";
+		await expect(
+			classicyDimmedIconSource(src, SYSTEM7_LIKE),
+		).resolves.toBeUndefined();
+		// Another size of the same source is another cache key; still one warning.
+		await expect(
+			classicyDimmedIconSource(src, SYSTEM7_LIKE, 16),
+		).resolves.toBeUndefined();
+		const warnings = sunk().filter((e) => e.level === "warn");
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].message).toContain(src);
+	});
+
+	it("tries a failed load again on a later request, without logging again", async () => {
+		const image = failing("error");
+		const src = "https://elsewhere.example/icon.png";
+		await classicyDimmedIconSource(src, SYSTEM7_LIKE);
+		await classicyDimmedIconSource(src, SYSTEM7_LIKE);
+		expect(image).toHaveBeenCalledTimes(2);
+		expect(sunk().filter((e) => e.level === "warn")).toHaveLength(1);
+	});
+
+	it("warns once per source when the canvas is tainted, and does not retry", async () => {
+		const image = failing("load");
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+			() =>
+				({
+					drawImage: vi.fn(),
+					getImageData: () => {
+						throw new DOMException("tainted", "SecurityError");
+					},
+					putImageData: vi.fn(),
+				}) as unknown as CanvasRenderingContext2D,
+		);
+		const src = "https://elsewhere.example/tainted.png";
+		await classicyDimmedIconSource(src, SYSTEM7_LIKE);
+		await classicyDimmedIconSource(src, SYSTEM7_LIKE, 16);
+		await classicyDimmedIconSource(src, SYSTEM7_LIKE);
+		const warnings = sunk().filter((e) => e.level === "warn");
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0].message).toContain(src);
+		// A taint is the same every time; only the size's own key draws again.
+		expect(image).toHaveBeenCalledTimes(2);
 	});
 });
 

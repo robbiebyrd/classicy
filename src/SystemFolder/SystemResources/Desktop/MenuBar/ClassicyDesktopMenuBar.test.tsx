@@ -7,7 +7,7 @@ import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
-import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming";
+import { resetClassicyDimmedIconsForTests } from "@/Appearance/ClassicyIconDimming.internal";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
 	type ClassicyStore,

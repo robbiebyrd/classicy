@@ -1,3 +1,4 @@
+import smallAppIcon from "@img/icon-16x16.png";
 import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
 import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -136,14 +137,16 @@ const HiddenSwitcherOpen = () => {
 		}, 300);
 		return () => window.clearTimeout(timer);
 	}, [dispatch]);
-	return <StoryApp id="storybook.app" name="Storybook" />;
+	return <StoryApp id="storybook.app" name="Storybook" icon={smallAppIcon} />;
 };
 
 /**
  * The App Switcher after Hide Others: Show All enabled, and the hidden
  * Storybook app's icon dimmed by Platinum's `iconDimming` rule, as Mac OS
  * 8.1 draws a hidden application (the capture script's
- * `platinum-81-appmenu-hidden-app` on Infinite Mac).
+ * `platinum-81-appmenu-hidden-app` on Infinite Mac). The app's icon is a
+ * 16 px image (`assets/img/icon-16x16.png`), so the rule shows at the
+ * menu's native icon size rather than on a scaled 32 px one.
  */
 export const AppSwitcherHiddenApp: Story = {
 	parameters: desktopParameters,
