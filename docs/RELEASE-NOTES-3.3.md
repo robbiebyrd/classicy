@@ -704,6 +704,30 @@ the ids the saver already names:
   ticks and readout draw in Geneva (`typography.uiSmall`). The Control Strip
   docked right is a pixel wider, as 7.5.5 draws it
   (`*-755-controlstrip-right.png`).
+- **System 7, matched part by part to the 7.5 captures** (story 0216-1im).
+  New System 7 knobs: `menuBar.clockEnd` (1), the room after the clock's
+  last ink, which drops the core's margin after it; `headerStrip.titleDrop`
+  (1), `headerStrip.underlineTop` (12) and `headerStrip.underline` (1), the
+  list's column titles a row below their band's middle and the sorted
+  one's underline, a box 12 rows below its title's top, so no engine's
+  underline metrics move it; and `fileBrowserList.disclosureWidth` (15),
+  `disclosureTop` (4), `iconStart` (7), `iconEnd` (10) and `titleInset`
+  (1), a list row's triangle, icon and name, and the name column's title
+  over the names. It also sets the core's new `desktopIconGrid.rowGap` (20)
+  and `top` (28) and declares `fileBrowser.listColumnTitles: "aboveList"`.
+  Look fixes: the Help title overlaps the Application title by
+  `menuBar.titleOverlap`, and the clock ends two pixels before it; desktop
+  icons sit on 7.5's 52 px rows from y 28, a saved Custom theme's too; the
+  Finder list's column titles are white and sit above the list, over the
+  window's scroll bar, its double rule under them and the vertical bar
+  starting under the rule, the sorted title underlined with no triangle (in
+  a list with nothing scrolling above it as well); the list rows' triangle,
+  icon and name sit where 7.5.5 draws them, the name in the desktop label's
+  12-row box; the Application menu's image rows draw their icon at the
+  item's top and the check a row down; a keyboard-current menu item is
+  inverted with no focus ring; the right-docked Control Strip's tab meets
+  its first arrow cell on one black line; and the screen's bottom corners
+  are rounded in black like its top ones.
 
 ## Upgrade
 
