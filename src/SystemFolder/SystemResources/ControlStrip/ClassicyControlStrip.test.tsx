@@ -1572,4 +1572,53 @@ describe("ClassicyControlStrip — docked right, 7.5.5's way", () => {
 			vi.unstubAllGlobals();
 		}
 	});
+	// Review r2 Minor: the capture-phase scroll listener hears every scroll
+	// in the page; it reads the strip's box once per animation frame.
+	it("measures once per animation frame however many scrolls arrive", () => {
+		register(...testModules());
+		const frames: FrameRequestCallback[] = [];
+		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		vi.stubGlobal("cancelAnimationFrame", () => {});
+		let left = 900;
+		const box = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				const isStrip = this.classList.contains("classicyControlStrip");
+				return {
+					left: isStrip ? left : 0,
+					top: isStrip ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			});
+		try {
+			dockRight();
+			renderStrip();
+			const reads = () =>
+				box.mock.contexts.filter((el) =>
+					(el as HTMLElement).classList.contains("classicyControlStrip"),
+				).length;
+			const before = reads();
+			const pendingBefore = frames.length;
+			left = 901;
+			for (let i = 0; i < 5; i++) window.dispatchEvent(new Event("scroll"));
+			expect(reads()).toBe(before);
+			expect(frames.length).toBe(pendingBefore + 1);
+			act(() => frames.at(-1)?.(0));
+			expect(reads()).toBe(before + 1);
+			expect(
+				strip().style.getPropertyValue("--classicy-control-strip-phase"),
+			).toBe("1px");
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
 });

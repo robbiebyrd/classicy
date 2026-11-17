@@ -334,7 +334,17 @@ export const ClassicyControlStrip: FunctionalComponent<
 		// The desktop may resize or move with no window resize (a host that
 		// embeds it): watch its root and the strip, and any scroll.
 		window.addEventListener("resize", measure);
-		window.addEventListener("scroll", measure, true);
+		// Captured, a scroll anywhere in the page arrives: read the box once
+		// per animation frame, however many arrive.
+		let frame = 0;
+		const onScroll = () => {
+			if (frame) return;
+			frame = requestAnimationFrame(() => {
+				frame = 0;
+				measure();
+			});
+		};
+		window.addEventListener("scroll", onScroll, true);
 		const observer =
 			typeof ResizeObserver === "undefined"
 				? undefined
@@ -346,7 +356,8 @@ export const ClassicyControlStrip: FunctionalComponent<
 		if (strip) observer?.observe(strip);
 		return () => {
 			window.removeEventListener("resize", measure);
-			window.removeEventListener("scroll", measure, true);
+			window.removeEventListener("scroll", onScroll, true);
+			if (frame) cancelAnimationFrame(frame);
 			observer?.disconnect();
 		};
 	}, [edge, bottom, width, collapsed]);
