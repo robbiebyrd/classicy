@@ -1660,13 +1660,46 @@ describe("system7.scss (compiled)", () => {
 			}
 		});
 
-		it("dots the group box and separator, and paints the legend on white", () => {
+		// Story 0218-ll9: 7.5 dots a group box in one 50% pattern, so no two
+		// dots touch at any size (`*-controlpanel-views.png`): one checker,
+		// anchored at the frame's corner, masked to the frame's ring, where
+		// each edge's own dots met out of step at two corners.
+		it("dots the group box in one checker, and paints the legend on white", () => {
 			const group = rule(".classicyControlGroupFieldsetPrimary");
-			expect(group.split("repeating-linear-gradient(").length - 1).toBe(4);
-			expect(group).toMatch(/background-origin: border-box;/);
+			expect(group).toMatch(/border: var\(--box-pixel\) solid transparent;/);
+			expect(group).not.toMatch(/background/);
+			const ring = rule(".classicyControlGroupFieldsetPrimary::before");
+			expect(ring).toMatch(/position: absolute;/);
+			expect(ring).toMatch(/inset: calc\(var\(--box-pixel\) \* -1\);/);
+			expect(ring).toMatch(/border: var\(--box-pixel\) solid transparent;/);
+			expect(ring).toMatch(/pointer-events: none;/);
+			// Black where x + y is odd, the corner pixel empty.
+			expect(ring).toMatch(
+				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box 0 0 ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
+			);
+			// The border box less the padding box: the ring.
+			expect(ring).toMatch(
+				/mask: linear-gradient\(var\(--color-black\), var\(--color-black\)\) border-box, linear-gradient\(var\(--color-black\), var\(--color-black\)\) padding-box;/,
+			);
+			expect(ring).toMatch(/mask-composite: exclude;/);
 			expect(rule(".classicyControlGroupLegend")).toMatch(
 				/background-color: var\(--color-white\);/,
 			);
+		});
+
+		// Story 0218-ll9: 7.5 breaks the line 1 or 2 pixels before the
+		// title's ink (Views' "Icon Views" 2, Clock Options' and Get Info's
+		// 1) and 3 after it. The base sheet pads the title `groupBox.titlePad`
+		// (3) on each side; System 7 drops the leading pad and moves the
+		// title on by as much, so the ink stays put and the line runs up to
+		// the glyph's own bearing.
+		it("breaks the group box's line right before its title", () => {
+			const legend = rule(".classicyControlGroupLegend");
+			expect(legend).toMatch(/padding-left: 0;/);
+			expect(legend).toMatch(
+				/left: calc\(var\(--group-box-margin-side\) \+ var\(--group-box-title-pad\)\);/,
+			);
+			expect(legend).not.toMatch(/padding-right/);
 			const separator = rule(".classicySeparatorHorizontal");
 			// A menu's divider keeps its own line (_Menu.scss).
 			expect(
