@@ -1928,6 +1928,38 @@ describe("system7.scss (compiled)", () => {
 			expect(rule("> *")).toMatch(/image-rendering: auto;/);
 		});
 
+		// The screen's bottom corners, rounded in black as its top ones are
+		// (runs of 5, 3, 2, 1 and 1 pixels; `*-755-controlstrip.png` bottom
+		// right, `*-755-controlstrip-right.png` bottom left; story 0216-1im
+		// F11): a layer over everything on the desktop, windows, menus and
+		// the Control Strip included, that takes no pointer events.
+		it("rounds the screen's bottom corners over everything on the desktop", () => {
+			const ROOT = ".classicyDesktop[data-classicy-appearance=system7]";
+			const corners = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+				.filter(([, header]) => header.trim() === `${ROOT}::after`)
+				.map(([, , declarations]) => declarations)
+				.join("\n");
+			expect(corners).toMatch(/content: "";/);
+			expect(corners).toMatch(/position: absolute;/);
+			expect(corners).toMatch(/inset: 0;/);
+			expect(corners).toMatch(/pointer-events: none;/);
+			expect(corners).toMatch(/z-index: 99999;/);
+			// Four rectangles a corner, each anchored to its bottom corner.
+			expect(layersOf(corners, "var(--color-black)")).toBe(8);
+			for (const side of ["left", "right"]) {
+				expect(corners).toMatch(
+					new RegExp(
+						`var\\(--color-black\\)\\) ${side} 0 bottom 0/calc\\(var\\(--box-pixel\\) \\* 5\\) var\\(--box-pixel\\)`,
+					),
+				);
+				expect(corners).toMatch(
+					new RegExp(
+						`var\\(--color-black\\)\\) ${side} 0 bottom calc\\(var\\(--box-pixel\\) \\* 3\\)/var\\(--box-pixel\\) calc\\(var\\(--box-pixel\\) \\* 2\\)`,
+					),
+				);
+			}
+		});
+
 		it("draws the desktop under the startup screen", () => {
 			const startup = rule(".classicyStartupScreen");
 			for (const declaration of CORE_BACKGROUND)
