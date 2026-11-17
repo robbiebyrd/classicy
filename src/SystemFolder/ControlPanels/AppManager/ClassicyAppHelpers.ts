@@ -8,7 +8,29 @@ import {
 	mostRecentAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+
+// An app id is library input (a host's `ClassicyApp` id, a stack's
+// `ClassicyAppOpen`). Indexed plainly, `apps["__proto__"]` is
+// `Object.prototype`, and assigned, it rewrites the record's prototype, so
+// that id is never an app.
+const RESERVED_APP_ID = "__proto__";
+
+/** The app record with `appId`, or `undefined` when there is none of its own. */
+const ownApp = (ds: ClassicyStore, appId: string) => {
+	const apps = ds.System.Manager.Applications.apps;
+	return Object.hasOwn(apps, appId) ? apps[appId] : undefined;
+};
+
+/** Whether `appId` may become a record key; logs a refusal. */
+const isAssignableAppId = (appId: string) => {
+	if (appId !== RESERVED_APP_ID) return true;
+	classicyLog("warn", "ClassicyAppHelpers", "Ignoring reserved app id", {
+		appId,
+	});
+	return false;
+};
 
 export function getDefaultAppForFileType(
 	ds: ClassicyStore,
@@ -35,7 +57,7 @@ export function deFocusApps(ds: ClassicyStore) {
  * gives an app the menu bar goes through here.
  */
 export function markAppFocused(ds: ClassicyStore, appId: string) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	if (!app) return;
 	deFocusApps(ds);
 	app.focused = true;
@@ -50,7 +72,7 @@ export function focusWindow(
 	windowId: string,
 	menuBar?: ClassicyMenuItem[],
 ) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	if (!app) return ds;
 	markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
@@ -109,7 +131,7 @@ export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 }
 
 export function focusApp(ds: ClassicyStore, appId: string) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	// A closed app can never take focus: in-window controls that quit their
 	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
 	// honoring it would leave a closed app owning the menu bar.
@@ -183,7 +205,7 @@ export function pickShownSuccessorApp(
  * closed app, or the last shown app.
  */
 export function hideApp(ds: ClassicyStore, appId: string) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	if (!app?.open || app.extension === true || app.hidden === true) return;
 	const successor = pickShownSuccessorApp(ds, appId);
 	if (!successor) return;
@@ -196,7 +218,7 @@ export function hideApp(ds: ClassicyStore, appId: string) {
  * when it did not hold it.
  */
 export function hideOtherApps(ds: ClassicyStore, appId: string) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	if (!app?.open || app.extension === true) return;
 	if (!app.focused) focusApp(ds, appId);
 	for (const other of applicationMenuApps(ds))
@@ -215,7 +237,7 @@ export function openApp(
 	appName: string,
 	appIcon: string,
 ) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (findApp) {
 		findApp.open = true;
 		for (const w of listAppWindows(findApp)) {
@@ -223,7 +245,7 @@ export function openApp(
 			w.closedThisSession = false;
 		}
 		focusApp(ds, appId);
-	} else {
+	} else if (isAssignableAppId(appId)) {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
@@ -243,8 +265,9 @@ export function loadApp(
 	contextMenu?: ClassicyMenuItem[],
 	extension?: boolean,
 ) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (!findApp) {
+		if (!isAssignableAppId(appId)) return;
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
@@ -283,7 +306,7 @@ export function loadApp(
 }
 
 export function closeApp(ds: ClassicyStore, appId: string) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
