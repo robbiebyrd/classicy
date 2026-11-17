@@ -417,24 +417,29 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				};
 			}
 		}
-		setPlacement(
-			classicyPopUpMenuPlacement(
-				menuRect,
-				el.scrollHeight,
-				window.innerHeight,
-				selectedMetrics,
-				// The theme's cap, read from the button (the list may be portaled
-				// out of its themed ancestor) once per opening.
-				readClassicyThemeVar(
-					"--menu-pop-up-max-height",
-					undefined,
-					buttonRef.current,
-				),
+		// Down, between the top and bottom of what shows of the desktop: the
+		// policy measures from a screen at 0, so it is given the button's place
+		// from the bounds' top, and its `top` is put back.
+		const bounds = classicyMenuBounds(buttonRef.current);
+		const placed = classicyPopUpMenuPlacement(
+			{ top: menuRect.top - bounds.top, bottom: menuRect.bottom - bounds.top },
+			el.scrollHeight,
+			bounds.bottom - bounds.top,
+			selectedMetrics,
+			// The theme's cap, read from the button (the list may be portaled
+			// out of its themed ancestor) once per opening.
+			readClassicyThemeVar(
+				"--menu-pop-up-max-height",
+				undefined,
+				buttonRef.current,
 			),
 		);
-		setMenuLeft(
-			classicyMenuListLeft(el, menuRect, classicyMenuBounds(buttonRef.current)),
+		setPlacement(
+			placed.top === null
+				? placed
+				: { ...placed, top: placed.top + bounds.top },
 		);
+		setMenuLeft(classicyMenuListLeft(el, menuRect, bounds));
 	}, [open, menuRect, currentIndex, reactId]);
 
 	// Apply the aligning scroll once the menu has its final height, so the

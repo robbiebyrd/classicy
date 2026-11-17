@@ -59,12 +59,14 @@ describe("classicyBevelPopupPlacement (HIGOS8 p.32)", () => {
 		).toBe(640);
 	});
 
-	// Across, a popup keeps to its desktop's span with its frame's shadow,
-	// by the menu bar's rule (ClassicyMenuPlacement): below with no room on
-	// the right, its right side under the button's right side, then pinned.
-	describe("given the desktop's span across", () => {
-		// A 640 px desktop at 20, in the 800 px viewport; a 1 px shadow.
-		const across = { left: 20, right: 660, inkRight: 1 };
+	// Given its bounds, a popup keeps to what shows of its desktop with its
+	// frame's shadow, by the menu bar's rule (ClassicyMenuPlacement): below
+	// with no room on the right, its right side under the button's right
+	// side, then pinned.
+	describe("given the desktop's bounds", () => {
+		// A 640 px desktop at 20, as tall as the 600 px viewport; a 1 px
+		// shadow.
+		const across = { left: 20, top: 0, right: 660, bottom: 600, inkRight: 1 };
 		const at = (left: number, right: number) => ({
 			top: 100,
 			bottom: 132,
@@ -123,6 +125,33 @@ describe("classicyBevelPopupPlacement (HIGOS8 p.32)", () => {
 					across,
 				).left,
 			).toBe(320));
+
+		it("flips a popup below up at a short desktop's bottom, its shadow counted", () => {
+			// A desktop 300 px tall from 100: the frame would end on its
+			// bottom (280 + 120), the shadow a pixel past it.
+			const low = { top: 248, bottom: 280, left: 100, right: 132 };
+			expect(
+				classicyBevelPopupPlacement(low, menu, viewport, "below", "start", {
+					left: 0,
+					top: 100,
+					right: 800,
+					bottom: 400,
+					inkBottom: 1,
+				}).top,
+			).toBe(128);
+		});
+
+		it("pins a popup with no room above or below inside a short desktop", () =>
+			expect(
+				classicyBevelPopupPlacement(
+					{ top: 150, bottom: 182, left: 100, right: 132 },
+					menu,
+					viewport,
+					"below",
+					"start",
+					{ left: 0, top: 100, right: 800, bottom: 250, inkBottom: 1 },
+				).top,
+			).toBe(129));
 
 		it("pins a centered popup inside the desktop", () =>
 			expect(

@@ -2,6 +2,10 @@
   position: fixed;
   z-index: 900;
   display: inline-block;
+  // As wide as its items wherever it is placed: a fixed box is otherwise
+  // shrunk to the room right of its `left`, so near the right edge its
+  // items wrapped and it drew narrower than it was placed by.
+  width: max-content;
   margin: 0;
   padding: 0;
   // The menu inside draws its own frame and shadow (platinum-menu-frame,

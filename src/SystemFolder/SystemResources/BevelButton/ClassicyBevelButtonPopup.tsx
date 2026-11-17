@@ -25,6 +25,7 @@ import {
 import {
 	classicyMenuBounds,
 	classicyMenuInkBox,
+	classicyMenuWholePixel,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { ClassicyMenuProvider } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 
@@ -98,8 +99,9 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 		top: number;
 	} | null>(null);
 
-	// Across, it keeps to its desktop, its frame's shadow included (the
-	// menu list's, or a panel's own), as a menu bar's pull-down does.
+	// It keeps to what shows of its desktop on both axes, its frame's shadow
+	// included (the menu list's, or a panel's own), as a menu bar's
+	// pull-down does.
 	useLayoutEffect(() => {
 		const el = wrapperRef.current;
 		if (!el) return;
@@ -111,21 +113,39 @@ export const ClassicyBevelButtonPopup: FunctionalComponent<
 			list?.parentElement?.querySelector(":scope > .classicyMenuScrollShadow"),
 		);
 		const bounds = classicyMenuBounds(el);
-		setPosition(
-			classicyBevelPopupPlacement(
-				anchor,
-				{ width: frame.width, height: frame.height },
-				{ width: window.innerWidth, height: window.innerHeight },
-				side,
-				align,
-				{
-					left: bounds.left,
-					right: bounds.right,
-					inkLeft: ink ? Math.max(frame.left - ink.left, 0) : 0,
-					inkRight: ink ? Math.max(ink.right - frame.right, 0) : 0,
-				},
-			),
+		const inks = {
+			inkLeft: ink ? Math.max(frame.left - ink.left, 0) : 0,
+			inkTop: ink ? Math.max(frame.top - ink.top, 0) : 0,
+			inkRight: ink ? Math.max(ink.right - frame.right, 0) : 0,
+			inkBottom: ink ? Math.max(ink.bottom - frame.bottom, 0) : 0,
+		};
+		const placed = classicyBevelPopupPlacement(
+			anchor,
+			{ width: frame.width, height: frame.height },
+			{ width: window.innerWidth, height: window.innerHeight },
+			side,
+			align,
+			{ ...bounds, ...inks },
 		);
+		// On whole pixels that keep it inside.
+		setPosition({
+			left: classicyMenuWholePixel(
+				placed.left,
+				frame.width,
+				inks.inkLeft,
+				inks.inkRight,
+				bounds.left,
+				bounds.right,
+			),
+			top: classicyMenuWholePixel(
+				placed.top,
+				frame.height,
+				inks.inkTop,
+				inks.inkBottom,
+				bounds.top,
+				bounds.bottom,
+			),
+		});
 	}, [anchor, side, align]);
 
 	useLayoutEffect(() => {

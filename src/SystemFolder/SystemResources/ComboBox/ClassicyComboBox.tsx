@@ -320,11 +320,17 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		if (!open || !menuRect) return;
 		const el = listRef.current;
 		if (!el) return;
+		// Down, between the top and bottom of what shows of the desktop, as
+		// the pop-up menu's: the field's place from the bounds' top.
+		const bounds = classicyMenuBounds(anchorRef.current);
 		setPlacement(
 			classicyPopUpMenuPlacement(
-				menuRect,
+				{
+					top: menuRect.top - bounds.top,
+					bottom: menuRect.bottom - bounds.top,
+				},
 				el.scrollHeight,
-				window.innerHeight,
+				bounds.bottom - bounds.top,
 				null,
 				// The theme's cap, read from the input (the list may be portaled
 				// out of its themed ancestor) once per opening.
@@ -351,12 +357,14 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		);
 	}, [open, menuRect, filteredEntries]);
 
-	// The indicators follow the list as it is placed and as typing filters
-	// its suggestions; its scrolling reads only the extents.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries is a trigger, not read: the rows it renders change the list's box
+	// The indicators follow the list as it is placed (down, and across:
+	// typing that changes its width moves it, a commit after its rows) and
+	// as typing filters its suggestions; its scrolling reads only the
+	// extents.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries and listLeft are triggers, not read: the rows they render and the place across change the list's box
 	useLayoutEffect(() => {
 		if (open && placement) measureScrollArrows();
-	}, [open, placement, filteredEntries, measureScrollArrows]);
+	}, [open, placement, filteredEntries, listLeft, measureScrollArrows]);
 
 	useLayoutEffect(() => {
 		if (!open || effectiveHighlight < 0) return;

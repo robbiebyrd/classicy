@@ -110,6 +110,10 @@
   // (measurements.menu.popUpMaxHeight, platinum.json) governs only the single
   // measuring pass; the placement policy (ClassicyPopUpMenuPlacement.ts) caps
   // the open menu at the same variable, read when the menu opens.
+  // As wide as its items (its button's width at least, inline) wherever it
+  // is placed: a fixed box is otherwise shrunk to the room right of its
+  // `left`, so near the right edge its items wrapped.
+  width: max-content;
   margin: 0;
   padding: var(--window-border-size);
   list-style: none;

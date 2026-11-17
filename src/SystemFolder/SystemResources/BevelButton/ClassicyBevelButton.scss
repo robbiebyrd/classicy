@@ -146,6 +146,14 @@
   padding: 0;
 }
 
+// A menu is as wide as its items wherever it is placed: a fixed box is
+// otherwise shrunk to the room right of its `left`, so near the right edge
+// its items wrapped and it drew narrower than it was placed by. A panel
+// keeps its own size.
+.classicyBevelButtonPopup:not(.classicyBevelButtonPopupPanel) {
+  width: max-content;
+}
+
 // Any other surface (Figure 2-16's volume slider) shares that frame — border
 // and offset shadow — around the control face with a white highlight on the
 // inside top and left (the Platinum package draws all three). No padding: the

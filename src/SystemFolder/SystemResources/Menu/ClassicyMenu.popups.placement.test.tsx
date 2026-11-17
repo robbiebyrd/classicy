@@ -6,7 +6,13 @@
 // viewport's. jsdom lays nothing out: the boxes below are stubbed.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, userEvent } from "@/__tests__/test-utils";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	userEvent,
+} from "@/__tests__/test-utils";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import { ClassicyComboBox } from "@/SystemFolder/SystemResources/ComboBox/ClassicyComboBox";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
@@ -20,9 +26,10 @@ vi.mock(
 	() => ({ useSoundDispatch: () => vi.fn() }),
 );
 
-// A 640 px desktop in jsdom's 1024 px viewport; the button at its right end.
-const DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
-const BUTTON = { left: 600, right: 630, top: 100, bottom: 120 };
+// A 640 x 480 desktop in jsdom's 1024 x 768 viewport; the button at its
+// right end. A test may move either.
+let DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
+let BUTTON = { left: 600, right: 630, top: 100, bottom: 120 };
 // The open surface's frame width, a test's to set.
 let surfaceWidth = 100;
 
@@ -37,6 +44,8 @@ const isSurface = (el: Element) =>
 
 beforeEach(() => {
 	surfaceWidth = 100;
+	DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
+	BUTTON = { left: 600, right: 630, top: 100, bottom: 120 };
 	vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
 		function (this: Element) {
 			if (this.classList.contains("classicyDesktop"))
@@ -185,5 +194,109 @@ describe("a pop-up bevel button's menu", () => {
 		render(bevel());
 		quickClick(screen.getByRole("button", { name: "Marquee" }));
 		expect(screen.getByRole("menu").style.left).toBe("0px");
+	});
+});
+
+// The bounds' top and bottom too: a desktop shorter than the viewport,
+// its button at the bottom (a desktop embedded in a page).
+describe("down, in a desktop shorter than the viewport", () => {
+	beforeEach(() => {
+		DESKTOP = { left: 0, top: 0, width: 640, height: 200 };
+		BUTTON = { left: 300, right: 340, top: 180, bottom: 200 };
+	});
+
+	it("slides an aligned pop-up menu up inside the desktop", async () => {
+		render(
+			onDesktop(
+				<ClassicyPopUpMenu id="f" options={options} selected="geneva" />,
+			),
+		);
+		await userEvent.setup().click(screen.getByRole("combobox"));
+		// Its 64 px floor would run past 196 (200 less the margin) from 190.
+		expect(screen.getByRole("listbox").style.top).toBe("132px");
+	});
+
+	it("grows a combo box's list upward when there is no room below in the desktop", () => {
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 120 : 0;
+			},
+		);
+		render(
+			onDesktop(
+				<ClassicyComboBox
+					id="c"
+					options={[{ value: "a", label: "Apple" }]}
+					prefillValue=""
+				/>,
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Show options" }));
+		const list = screen.getByRole("listbox");
+		// Its bottom on the field's top (768 − 180), not hanging below 200.
+		expect(list.style.bottom).toBe("588px");
+		expect(list.style.top).toBe("");
+	});
+
+	it("flips a bevel button's menu up when there is no room below in the desktop", () => {
+		render(
+			onDesktop(
+				<ClassicyBevelButton
+					mode="popup"
+					aria-label="Marquee"
+					popupPlacement="below"
+					menuItems={[{ id: "a", title: "A" }]}
+					popupHoldDelayMs={10_000}
+				/>,
+			),
+		);
+		const button = screen.getByRole("button", { name: "Marquee" });
+		fireEvent.mouseDown(button, { button: 0 });
+		fireEvent.mouseUp(button, { button: 0 });
+		fireEvent.click(button, { detail: 1 });
+		expect(screen.getByRole("menu").style.top).toBe("120px");
+	});
+});
+
+describe("a combo box's scroll indicators", () => {
+	it("follow its list across when typing re-places it", () => {
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 400 : 0;
+			},
+		);
+		vi.spyOn(Element.prototype, "clientHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 100 : 0;
+			},
+		);
+		render(
+			onDesktop(
+				<ClassicyComboBox
+					id="c"
+					options={[
+						{ value: "a", label: "Apple" },
+						{ value: "b", label: "Apricot" },
+					]}
+					prefillValue=""
+				/>,
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Show options" }));
+		const down = () =>
+			document.querySelector<HTMLElement>(
+				'[data-classicy-part="menu-scroll-down"]',
+			);
+		expect(screen.getByRole("listbox").style.left).toBe("530px");
+		expect(down()?.style.left).toBe("530px");
+		// Typing narrows it so it fits under the field's left side again.
+		surfaceWidth = 30;
+		act(() => {
+			fireEvent.change(screen.getByRole("combobox"), {
+				target: { value: "Ap" },
+			});
+		});
+		expect(screen.getByRole("listbox").style.left).toBe("600px");
+		expect(down()?.style.left).toBe("600px");
 	});
 });
