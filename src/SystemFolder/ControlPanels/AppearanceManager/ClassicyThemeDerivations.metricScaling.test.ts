@@ -11,6 +11,7 @@ import {
 	type ClassicyThemeDerivationInputs,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
+import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
@@ -527,5 +528,47 @@ describe("--ui-font-size-small follows uiText.smallFontSize when a theme sets it
 		>;
 		expect(vars["--ui-font-size-caption"]).toBe(`${12 * 0.75}px`);
 		expect(vars["--ui-font-size"]).toBe("12px");
+	});
+});
+
+// Story 0214-c61: System 7 draws its small UI text in Geneva, not in its UI
+// family (Chicago). A theme names the small text's family in the optional
+// `typography.uiSmall`, emitted as `--ui-font-small`; stylesheets read it
+// with the UI family as the fallback, so a theme without it (Platinum's)
+// draws its small text in the UI family as before.
+describe("--ui-font-small is typography.uiSmall when a theme sets it", () => {
+	const withUiSmall = (uiSmall: string | undefined): ClassicyTheme => {
+		const theme = getTheme("default");
+		const typography: ClassicyTheme["typography"] = { ...theme.typography };
+		if (uiSmall === undefined) delete typography.uiSmall;
+		else typography.uiSmall = uiSmall;
+		return { ...theme, typography };
+	};
+	const vars = (theme: ClassicyTheme) =>
+		getThemeVars(theme) as Record<string, string>;
+
+	it("is emitted from the field", () => {
+		expect(vars(withUiSmall('"Geneva", sans-serif'))["--ui-font-small"]).toBe(
+			'"Geneva", sans-serif',
+		);
+	});
+
+	it("is not emitted without the field, or with an empty one", () => {
+		expect(vars(withUiSmall(undefined))).not.toHaveProperty("--ui-font-small");
+		expect(vars(withUiSmall(""))).not.toHaveProperty("--ui-font-small");
+	});
+
+	it("is a theme file's optional field", () => {
+		const theme = withUiSmall('"Geneva", sans-serif');
+		expect(ClassicyThemeSchema.parse(theme).typography.uiSmall).toBe(
+			'"Geneva", sans-serif',
+		);
+		expect(
+			ClassicyThemeSchema.parse(withUiSmall(undefined)).typography,
+		).not.toHaveProperty("uiSmall");
+		expect(
+			ClassicyThemeSchema.safeParse(withUiSmall("x; } body { color: red"))
+				.success,
+		).toBe(false);
 	});
 });

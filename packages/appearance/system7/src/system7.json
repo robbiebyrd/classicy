@@ -46,6 +46,7 @@
 		"typography": {
 			"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 			"uiSize": 12,
+			"uiSmall": "\"Geneva\", sans-serif",
 			"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 			"headerSize": 12,
 			"body": "\"Geneva\", sans-serif",
@@ -293,6 +294,7 @@
 			"typography": {
 				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
 				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"headerSize": 12,
 				"body": "\"Geneva\", sans-serif",
@@ -542,6 +544,7 @@
 			"typography": {
 				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
 				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
 				"headerSize": 12,
 				"body": "\"Geneva\", sans-serif",

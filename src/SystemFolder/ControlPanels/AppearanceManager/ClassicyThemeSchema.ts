@@ -192,6 +192,8 @@ export const ClassicyThemeSchema = z.object({
 	typography: z.object({
 		ui: fontStack,
 		uiSize: fontSize,
+		// The small UI text's family; optional, the UI family without it.
+		uiSmall: fontStack.optional(),
 		header: fontStack,
 		headerSize: fontSize,
 		body: fontStack,

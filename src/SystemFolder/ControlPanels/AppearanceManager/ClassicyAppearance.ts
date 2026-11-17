@@ -112,6 +112,14 @@ export type ClassicyThemeColorFamilies = Record<string, Record<string, number>>;
 export type ClassicyThemeTypography = {
 	ui: string;
 	uiSize: number;
+	/**
+	 * The small UI text's family (`--ui-font-small`: slider ticks and
+	 * readouts, small control labels), optional: stylesheets read it with
+	 * `--ui-font` as the fallback, so a theme without it draws its small text
+	 * in the UI family. System 7 sets Geneva under a Chicago UI family, as
+	 * 7.5.5 draws them; Platinum sets none.
+	 */
+	uiSmall?: string;
 	header: string;
 	headerSize: number;
 	body: string;
@@ -289,6 +297,9 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--body-font-size": intToPx(theme.typography.bodySize),
 		"--ui-font": theme.typography.ui,
 		"--ui-font-size": intToPx(theme.typography.uiSize),
+		...(theme.typography.uiSmall
+			? { "--ui-font-small": theme.typography.uiSmall }
+			: {}),
 		"--mono-font": theme.typography.mono,
 		"--mono-font-size": intToPx(theme.typography.monoSize),
 		"--digital-font": theme.typography.digital,

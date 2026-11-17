@@ -406,6 +406,21 @@ describe("the System 7 appearance package", () => {
 		}
 	});
 
+	// 7.5.5 draws its small UI text in Geneva 9 under Chicago 12 (the Memory
+	// control panel's slider ticks and labels, `*-755-slider-dragging.png`):
+	// the optional `typography.uiSmall` (story 0214-c61).
+	it("draws small UI text in Geneva in both themes and the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const themes = [pkg?.defaults, ...(pkg?.presets ?? [])] as ClassicyTheme[];
+		expect(themes).toHaveLength(3);
+		for (const theme of themes)
+			expect(getThemeVars(theme)).toMatchObject({
+				"--ui-font": '"ChicagoFLF", "Geneva", sans-serif',
+				"--ui-font-small": '"Geneva", sans-serif',
+			});
+	});
+
 	// The dialogs', alerts' and push buttons' knobs (styles/components/
 	// _Dialog.scss, _Alert.scss, _Button.scss and the window header in
 	// _Window.scss), measured from the 7.5 captures. The modal frame differs
