@@ -194,7 +194,8 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// the field's own scrolling and focus itself. A key press and a
 		// pointer release are read when they land and a frame later (a key
 		// moves the caret after its keydown, and a held key's keyup is yet to
-		// come; a release no click follows); a release's click, which is what
+		// come; a release no click follows, heard wherever it lands while the
+		// field has the focus); a release's click, which is what
 		// collapses a selection into a caret, is read too. A new value is read
 		// once it is committed.
 		useEffect(() => {
@@ -245,16 +246,25 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				"focus",
 				"blur",
 			];
-			const settling = ["keydown", "mouseup"];
+			const settling = ["keydown"];
 			for (const type of events) el.addEventListener(type, read);
 			for (const type of settling)
 				el.addEventListener(type, readNowAndNextFrame);
 			doc.addEventListener("selectionchange", read);
+			// A drag that starts in the field can end outside it, where its
+			// release and click land, so the release is heard at the document
+			// (capturing, so a handler that stops it cannot hide it) while the
+			// field has the focus.
+			const readRelease = () => {
+				if (doc.activeElement === el) readNowAndNextFrame();
+			};
+			doc.addEventListener("mouseup", readRelease, true);
 			return () => {
 				for (const type of events) el.removeEventListener(type, read);
 				for (const type of settling)
 					el.removeEventListener(type, readNowAndNextFrame);
 				doc.removeEventListener("selectionchange", read);
+				doc.removeEventListener("mouseup", readRelease, true);
 				if (frame) view?.cancelAnimationFrame(frame);
 				readSelectionRef.current = () => {};
 			};

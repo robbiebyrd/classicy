@@ -433,8 +433,10 @@ diverge, so a logo registered through Platinum's
   px from its text's left edge with its own scrolling, as
   `--classicy-input-selection-start` on the `<input>`; it reads the
   selection again on `selectionchange` at the document (Chrome before 127
-  and Safari 16 fire it nowhere else), on the click and the frame after a
-  pointer release, and when its value changes.
+  and Safari 16 fire it nowhere else), on a key press and the frame after
+  it, on a pointer release wherever it lands while the field has the focus
+  (a drag that ends outside the field) and the frame after it, on the click,
+  and when its value changes.
 - **Dimmed list icons and Standard File's list folder.** `iconDimming` gains
   the optional purpose `disabledItem`: a `ClassicyTree` row that cannot be
   chosen (the files a Save box dims) has its icon dimmed by it, where the

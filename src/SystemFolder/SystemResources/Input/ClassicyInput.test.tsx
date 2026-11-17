@@ -252,6 +252,47 @@ describe("ClassicyInput's selected state", () => {
 		}
 	});
 
+	// Review r1, observation 1: a drag that starts in the field and ends
+	// outside it releases (and clicks) outside the field, so only the
+	// document hears the release. With every `select` and `selectionchange`
+	// stopped, at the document too, the release is all there is to read.
+	const muteAllSelectionEvents = () => {
+		const stop = (e: Event) => e.stopImmediatePropagation();
+		for (const type of ["select", "selectionchange"])
+			window.addEventListener(type, stop, true);
+		return () => {
+			for (const type of ["select", "selectionchange"])
+				window.removeEventListener(type, stop, true);
+		};
+	};
+	it("reads again a frame after a pointer release outside the field while it is focused", async () => {
+		render(
+			<>
+				<ClassicyInput id="name" prefillValue="untitled 1" />
+				<div data-testid="outside" />
+			</>,
+		);
+		field().focus();
+		field().setSelectionRange(10, 10);
+		await vi.waitFor(() => expect(isSelected()).toBe(false));
+		const unmute = muteAllSelectionEvents();
+		try {
+			const outside = screen.getByTestId("outside");
+			outside.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+			// The drag's selection lands after the release.
+			field().setSelectionRange(4, 10);
+			await vi.waitFor(() => expect(isSelected()).toBe(true));
+			// A handler that stops the release on its way up still lets the
+			// field hear it.
+			outside.addEventListener("mouseup", (e) => e.stopPropagation());
+			outside.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+			field().setSelectionRange(10, 10);
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+		} finally {
+			unmute();
+		}
+	});
+
 	it("reads again a frame after a key goes down, before it is released", async () => {
 		render(<ClassicyInput id="name" prefillValue="untitled 1" />);
 		field().focus();
