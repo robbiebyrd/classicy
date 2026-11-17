@@ -57,11 +57,19 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
     }
 
     // Sized to its contents as 7.5's: the folder's icon
-    // `popUpMenu.valueIconInset` (3) inside the frame, its name, then
-    // `fileDialog.popUpTail` (33) for the gap, the triangle and its inset.
+    // `popUpMenu.valueIconInset` (3) inside the frame, its name
+    // `popUpMenu.valueIconGap` (4) after it, `fileDialog.popUpTail` (17)
+    // before the triangle, and the triangle `popUpMenu.arrowInset` (5) inside
+    // the frame.
     .classicyPopUpMenuButton {
+      gap: 0;
       width: auto;
-      padding-right: var(--#{$k}pop-up-tail);
+      padding-right: var(--pop-up-menu-arrow-inset);
+    }
+
+    .classicyPopUpMenuIndicator {
+      margin-right: 0;
+      margin-left: var(--#{$k}pop-up-tail);
     }
 
     .classicyPopUpMenuValueIcon {
@@ -117,8 +125,14 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
     }
 
     .classicyPopUpMenuButton {
+      gap: 0;
       width: auto;
-      padding-right: var(--#{$k}pop-up-tail);
+      padding-right: var(--pop-up-menu-arrow-inset);
+    }
+
+    .classicyPopUpMenuIndicator {
+      margin-right: 0;
+      margin-left: var(--#{$k}pop-up-tail);
     }
 
     .classicyPopUpMenuValue {
