@@ -38,8 +38,10 @@ pnpm add react react-dom # for a new app
 
 The package was published as `classicy` through 2.x; every specifier is
 `@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
-auto-bumps its dependencies must list both package names and move them
-together.
+auto-bumps its dependencies must list every Classicy package it loads
+(`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads it,
+`@classicy/appearance-system7`) and move them together. The core and Platinum
+exist from 3.0.0, System 7 from 3.3.0.
 
 **Import an Appearance Package at the entry.** The core registers none.
 Import Platinum once, before rendering; importing it registers Platinum and
@@ -138,9 +140,15 @@ A host that links both packages' fonts stylesheets declares the five faces
 they share (ChicagoFLF, Geneva in three styles, Monaco) twice, each with its
 own package's `url("assets/<file>.woff2")` and otherwise identical descriptors.
 That does not download them twice: among `@font-face` rules of one family with
-identical descriptors a browser keeps the last, and requests only its file (one
-request in Chromium for two linked sheets), so the package linked last supplies
-the five files and its `dist/assets/` must be served. The sheets are not
+identical descriptors a browser uses the last one defined (CSS Fonts), and
+requests only its file: measured on a host linking both sheets, in either order,
+Firefox 157 and Chromium 143 made one request per shared face, all from the
+last-linked sheet. If those files fail (a 404), both engines fall back to the
+earlier sheet's five files and load them; the five `.woff2` files are
+byte-identical between the packages, so link order changes the URL, never the
+glyphs. Safari is unmeasured (WebKit does not launch on the measuring host);
+it rests on the same CSS Fonts rule. So the package linked last supplies the
+five files, and its `dist/assets/` should be served. The sheets are not
 deduplicated at build time, since each has to stand alone for a host that loads
 one package; `system7Fonts.shared.test.ts` pins that the two rules of a shared
 face differ in the URL alone. A host loading both may also simply leave System
@@ -168,7 +176,11 @@ it):
 // vite.config.ts
 export default defineConfig({
     optimizeDeps: {
-        exclude: ['@classicy/classicy', '@classicy/appearance-platinum'],
+        exclude: [
+            '@classicy/classicy',
+            '@classicy/appearance-platinum',
+            '@classicy/appearance-system7', // when you load it
+        ],
     },
 })
 ```
@@ -177,7 +189,7 @@ Excluding them means any CommonJS dependency they pull in may then need to be
 listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
-a plugin), copy the Platinum package's `dist/assets/` next to your bundle.
+a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's when you load it) next to your bundle.
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
 
@@ -3344,14 +3356,15 @@ iconDimming: {
 
 Only `blend` is required; `bits` defaults to 8 and `palette` to none. A
 pixel's alpha is never changed, so the icon keeps its mask. The dimmed image
-is a `data:` URL, cached per source, rule and size for the page, and the
+is a `data:` URL, cached per source, rule and size for the page (except a failed load, which is drawn again on the next request: a cross-origin icon without CORS fails to load under `crossOrigin = "anonymous"`, and `onerror` carries no reason, so that cannot be told from a network error and is requested again on each dimmed mount; each source logs one `warn`), and the
 `<img>` drawing it carries the part class `classicyIconDimmedImage`
 (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), so the package's stylesheet dimming
 stands down: write that dimming as the fallback,
 `.classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)`.
 The fallback draws when the package declares no rule (or `null` under the
 variant), before the image is ready, and for an icon a canvas cannot read:
-**a cross-origin icon served without CORS** taints the canvas, so its pixels
+**a cross-origin icon served without CORS** fails to load for the canvas (one
+that loads but taints it is refused alike), so its pixels
 cannot be read (the core loads icons with `crossOrigin = "anonymous"`, so a
 cross-origin host that sends CORS headers is read; one that does not fails
 that load and is logged once per source at `warn`). This is a browser limit, not a
@@ -4353,7 +4366,7 @@ change), the way it declares measurement families. They are additive, 3.3.
   `defaults.color.families` only (the presets are filled when it
   registers). Its slider reads them (the channel's #222222 border and
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
-  it draws HIGOS8 Figs. 2-17 to 2-19 exactly. **System 7** declares
+  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays. **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit

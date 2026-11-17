@@ -39,7 +39,11 @@ It registers two themes, **System 7** (id `system7`, black and white, the
 package's defaults) and **System 7 Color** (id `system7-color`, the Standard
 window colors from System 7.5's `wctb` and `cctb` tables), its fonts (the
 Chicago, Geneva and Monaco faces Platinum ships), its icons, art, cursors and
-wallpapers, its sound pack (`system7`) and the screen savers. It exports
+wallpapers, its sound pack (`system7`: System 7.5's six alert sounds, Droplet,
+Indigo, Quack, Simple Beep, Sosumi and Wild Eep, with Simple Beep, a square
+wave synthesized to match the 7.5.5 Sound Manager's, the default alert; System 7
+had no interface feedback sounds, so the package's hooks play none) and the
+screen savers. It exports
 `SYSTEM7_APPEARANCE_PACKAGE_ID`, `system7Json` (typed `System7Json`),
 `system7SoundPack` and `system7AppearanceHooks`. Its strict-CSP stylesheets
 are `@classicy/appearance-system7/classicy-system7.css` and
@@ -84,6 +88,10 @@ diverge, so a logo registered through Platinum's
   theme without the family colors equal to its package's defaults, as it
   does knob values; theme files keep them (`ClassicyThemeSchema`
   `color.families`), and a 3.2 host loading such a file drops them.
+  New exports: `classicyColorFamilyVarName(family, key)` (the variable a
+  package color makes, `--package-color-<family>-<key>`, kebab-cased) and
+  `CLASSICY_PACKAGE_COLOR_VAR_PREFIX` (`"--package-color-"`, a name space
+  that is reserved: no measurement can make a variable in it).
   `AGENT-REFERENCE.md` §8, "Package color families".
 - **Selected icon images.** `registerClassicySelectedIconImages(packageId,
   { [image]: selectedImage }, { variant? })` registers the image a selected
@@ -201,7 +209,12 @@ diverge, so a logo registered through Platinum's
   never opens with its selection under an indicator. The indicators are
   the new parts `menu-scroll-up` and `menu-scroll-down`
   (`.classicyPopUpMenuScrollArrow`), drawn by the package: Platinum a black
-  triangle on the menu's face, System 7 its pop-up triangle.
+  triangle on the menu's face, System 7 its pop-up triangle. While a
+  `ClassicyMenu` list is capped, the list clips its frame's shadow
+  pseudo-elements, so `ClassicyMenu` renders an `aria-hidden` sibling over
+  it, `.classicyMenuScrollShadow`, in the list's wrapper; a package draws its
+  frame's shadow, and its bevel if the frame has one, on that sibling (a
+  package with no rule for it shows no shadow on a capped list).
 - **Packages keep the bars in the fits state.** `scrollBar.fitsBars:
   "shown"` keeps both bars of a document window and the vertical bar of a
   `ClassicyListBox` or Standard File's list drawn while the content fits,
@@ -245,7 +258,8 @@ diverge, so a logo registered through Platinum's
   free space, on a half pixel when that space is odd, as before;
   `"wholePixel"` rounds it, on first paint and on every re-center.
   `resolvePosition` takes it as an optional fourth argument. System 7 sets
-  it; Platinum does not, so its windows land where they did.
+  it; Platinum does not, so its windows land where they did. The type of
+  the setting is exported as `ClassicyWindowCentering`.
 - **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
   knob when a theme sets it to zero or more (a negative band is ignored),
   else `window.controlSize × 2.5` as before; it has no floor value, so
@@ -256,6 +270,8 @@ diverge, so a logo registered through Platinum's
   `resolveClassicyCursorHotspot(role)`. The hotspot belongs to the image:
   never hotspot an image another package shares. The split view, the window
   grow box and the PDF viewer's pan tool read it, falling back to `8 8`.
+  The leaf's types are exported: `ClassicyCursorHotspot` (`[x, y]`) and
+  `ClassicyCursorLeaf`.
 - **A fixed modal that is not an alert: `ClassicyWindow`'s `movable`.**
   `movable={false}` on a `modal` window makes a modal dialog box the user
   cannot move (HIGOS8 p.60), such as Standard File, Print or Page Setup,
@@ -281,7 +297,10 @@ diverge, so a logo registered through Platinum's
   window's whole content. System 7 keys its dialog inset on the class
   instead of `:has()`, so those dialogs get one inset in Firefox 113–120
   too. Platinum does not read it.
-- **Small structural hooks**: the root class `classicyWindowModalFixed` on a
+- **Small structural hooks**: the alert button row's classes
+  `classicyAlertButtonsHaveHelp` and `classicyAlertButtonsHaveOther`, set
+  from the alert's buttons (a help button, a Don't Save style button), which
+  a package keys its arrangement on without `:has()`; the root class `classicyWindowModalFixed` on a
   fixed modal (a modal `ClassicyWindow` of `type="error"` or with
   `movable={false}`, which cannot be dragged); the `open` state on a pop-up
   menu's label holder and indicator while its menu is open; the system-art
@@ -302,7 +321,9 @@ diverge, so a logo registered through Platinum's
   modal window and its scrim, portaled outside it, hide too), its windows
   stay mounted, and the next shown app takes the menu bar; an app that takes
   focus in any way (a window opening or focused included) is shown again.
-  The flag is session state: it is not persisted. A menu item that is both `checked` and
+  The flag is session state: it is not persisted. A hidden app's row in the
+  menu carries the class `classicyDesktopMenuAppHidden`, which a package's
+  fallback dimming keys on. A menu item that is both `checked` and
   has an `icon`/`image` now draws both, the mark first (before, the mark
   replaced the icon).
 - **Icon dimming** (AGENT-REFERENCE §8, "Icon dimming"). A hidden
@@ -311,13 +332,18 @@ diverge, so a logo registered through Platinum's
   a color, keep the top bits of each channel, then the nearest entry of a
   palette, judged over all three channels at once), drawn on a canvas and
   cached per icon and rule; the alpha mask is kept. New `ClassicyMenuItem`
-  field `imageDimmed`, part class `classicyIconDimmedImage`, and exports
+  field `imageDimmed`, part class `classicyIconDimmedImage`
+  (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), and exports
   `ClassicyIconDimming`, `ClassicyIconDimmingRule`,
   `useClassicyDimmedIconImage`, `resolveClassicyIconDimmingRule`,
   `dimClassicyIconPixels` and `classicyDimmedIconSource`. **Limit:** an
-  icon served cross-origin without CORS headers taints a canvas, so its
-  pixels cannot be read; it is dimmed by the package's stylesheet instead
-  (an opacity, which only approximates the rule). Serve icons from the
+  icon served cross-origin without CORS headers cannot be read on a canvas
+  (icons load with `crossOrigin = "anonymous"`, so its load fails; one that
+  loads but taints the canvas is refused the same way); it is dimmed by the
+  package's stylesheet instead (an opacity, which only approximates the
+  rule), and logged once per source at `warn`. A failed load is requested
+  again on the next dimmed mount, since a failure with no CORS headers cannot
+  be told from a network error. Serve icons from the
   page's origin, as `data:` URLs, or with CORS. Platinum and System 7 both
   declare Mac OS's rule (halfway to white, 4 bits, the 8-bit system
   palette), measured from 7.5.5 and 8.1; Platinum's fallback opacity is
@@ -325,7 +351,8 @@ diverge, so a logo registered through Platinum's
 - **Standard File parts.** `ClassicyFileOpenDialog` and
   `ClassicyFileSaveDialog` always render System 7.5's extra parts: the
   volume's small icon and name (`classicyFileOpenDialogVolume`), Eject
-  (always dimmed), Desktop (goes to the volume with id `"desktop"`, as
+  (`classicyFileOpenDialogEject`, always dimmed), Desktop
+  (`classicyFileOpenDialogDesktop`; goes to the volume with id `"desktop"`, as
   `desktopVolume(fs)` builds) and a line (`<hr
   class="classicyFileOpenDialogDivider">`). The base sheet hides all four,
   so Platinum's dialog is unchanged; a package shows and places them. A
@@ -466,7 +493,13 @@ the ids the saver already names:
   table is now an inner `.classicyScrollAreaViewport` (list box and table
   roots also carry `classicyScrollArea`): a host stylesheet that styled their
   native scroll bars or set their `overflow` targets the viewport, or the
-  parts above.
+  parts above. Surfaces that name their own viewport carry a class on it:
+  `classicyListBoxViewport`, `classicyFileOpenDialogWellViewport`,
+  `classicyAppearanceManagerColorsScrollViewport` (the Colors and Metrics tabs),
+  `classicyColorPickerModeListViewport`, `classicyAssistantBodyViewport` and
+  `classicyHyperCardLockedFieldText` (a locked field's text viewport); a
+  `ClassicyScrollArea` with `scrollable={false}` marks its viewport
+  `classicyScrollAreaViewportClipped`.
 - **`ClassicyScrollArea` internals.** One layout measurement per scroll
   frame (the render a scroll causes no longer measures again); the content
   observer ignores attributes that cannot move the content (`aria-*`,
@@ -566,13 +599,18 @@ the ids the saver already names:
   Platinum's color themes) now reads None there, where it read Default, and
   the preview shows the desktop color in place of the default picture.
   Platinum frames the preview, picture or color, in its recessed content
-  frame. `getThemeVars` emits `--desktop-background-image: none` for a
+  frame (the preview carries `classicyAppearanceManagerDesktopPreviewNone`
+  when there is no picture). `getThemeVars` emits `--desktop-background-image: none` for a
   theme with no picture, or one that resolves to none, where it emitted
   `url("")`, which a browser resolves to the page's own URL.
-- **Aligned pop-up menus stay on whole pixels.** An open pop-up slid back
-  above the screen's bottom margin is placed on a whole pixel even when its
-  measured height is fractional, its top rounded down so the far edge stays
-  inside the margin.
+- **Menus stay on whole pixels.** A contextual menu, a bevel button's
+  pop-up and a pop-up menu's list are placed on whole pixels, and a
+  submenu's wrapper is nudged onto the pixel grid (by under half a pixel,
+  in tree order, so a parent moves before its submenu). An open pop-up slid
+  back above the screen's bottom margin is placed on a whole pixel even
+  when its measured height is fractional, its top rounded down so the far
+  edge stays inside the margin. A capped list ends 4 px above the screen's
+  bottom, its shadow drawn in its wrapper (above).
 - **Platinum's sound sprites are re-encoded.** `platinum.ogg`, `platinum.m4a`
   and `platinum.mp3` are now the bit-exact encode of the same sources by
   mise's ffmpeg 8.0.1 as built on Linux against the distro's libvorbis and
@@ -599,6 +637,20 @@ the ids the saver already names:
   `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
   themes set 9, so its small text is 9 px, not 9.6 px (the size only: the
   family is unchanged).
+- **Other new exports.** Package colors: `getThemeColorFamily`,
+  `setThemeColorFamily`, `hasThemeColorFamilyChange`,
+  `isDeclaredThemeColorFamily`, `isThemeColorFamilyTarget`,
+  `withoutDefaultThemeColorFamilies`, `isClassicyPackageColorVar`,
+  `appearanceColorFamilyPickerId` and the types `ClassicyThemeColorFamilies`,
+  `ClassicyThemeColorFamilyChange` and `ClassicyThemeColorFamilyTarget`.
+  Hiding: the reducer helpers `hideApp`, `hideOtherApps`, `showAllApps`,
+  `markAppFocused` and `pickShownSuccessorApp`. Assets: the icon leaf type
+  `ClassicyIconLeaf`, `getActiveClassicyAssetVariant()` (the variant the
+  active theme draws) and the type `ClassicyIconDimmingPurpose`. Scroll
+  areas: the types `ClassicyScrollAreaProps`, `ClassicyScrollAreaViewportProps`
+  and `ClassicyScrollBarOrientation`. Sound: the type
+  `ClassicyAlertSoundOption` (`{ value, label }`, an alert the Sound tab
+  lists).
 - **Release workflow**: `push.yml` syncs System 7's version, checks its
   trusted publisher and publishes it with the other two.
 
@@ -632,7 +684,7 @@ the ids the saver already names:
 
 ## Upgrade
 
-1. Upgrading from 3.2.x (or 3.1.x), bump `@classicy/classicy` and
+1. Upgrading from 3.2.x, bump `@classicy/classicy` and
    `@classicy/appearance-platinum` together to
    3.3.0. To use System 7, add `@classicy/appearance-system7` at 3.3.0 and
    import it at your entry; keep every Classicy package at one version.
@@ -641,7 +693,8 @@ the ids the saver already names:
    stylesheets after the core's.
 3. If you ship your own Appearance Package, draw the looks that moved into
    Platinum (above), the control group's legend face, and, if you want them
-   styled, the scroll-bar parts.
+   styled, the scroll-bar parts. Draw the frame's shadow (and bevel) on
+   `.classicyMenuScrollShadow` too, or a capped menu shows none.
 4. If you call `useSoundTab` directly, nothing changes; it lists the playing
    pack's alerts unless you pass `alerts`.
 5. If you re-register a Platinum saver under your package, add your id to

@@ -138,10 +138,16 @@ faces (the same files), so such a host may leave this package's fonts
 stylesheet out. Linking both is harmless, though: the five shared faces are
 then declared twice with identical descriptors and each package's own URL
 (`assets/Geneva-normal-normal.woff2` in both, resolved against its own
-stylesheet), and a browser keeps the last rule of identical descriptors and
-requests only that file (one request in Chromium), so nothing downloads
-twice. The package that is linked last supplies those five files, so serve
-its `dist/assets/`. The two stylesheets are not deduplicated at build time
+stylesheet), and a browser uses the last rule defined for identical
+descriptors (CSS Fonts) and requests only that file, so nothing downloads
+twice: measured with both sheets linked, in either order, Firefox 157 and
+Chromium 143 made one request per shared face, all from the last-linked
+sheet, and when those files returned 404 both fell back to the earlier
+sheet's files. The five `.woff2` files are byte-identical in the two
+packages, so link order changes the URL, never the glyphs. Safari is
+unmeasured (WebKit does not launch on the measuring host) and rests on the
+same CSS Fonts rule. The package linked last supplies those five files, so
+serve its `dist/assets/`. The two stylesheets are not deduplicated at build time
 because each must stand alone for a host that loads one package, which needs
 all of its faces under its own URLs.
 
