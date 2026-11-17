@@ -628,6 +628,25 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/border-top: 0;/);
 		});
 
+		// A pull-down with no room on the right (the core flips it,
+		// `classicySubMenuFlipLeft`) hangs with its right side under its
+		// title's right edge, as 7.5's Help menu does at the bar's right end
+		// (`*-menu-help-and-selected-icon.png`: the Help title's box and the
+		// menu's frame both end at x 605). The package's own `left: 0` would
+		// beat the base sheet's flipped rule (the package layer wins), so it
+		// carries its own.
+		it("hangs a flipped pull-down with its right side under its title's right edge", () => {
+			const flipped = rule(
+				`${TITLES} > .classicyMenuWrapper > .classicySubMenu.classicySubMenuFlipLeft`,
+			);
+			expect(flipped).toMatch(/right: 0;/);
+			expect(flipped).toMatch(/left: auto;/);
+			// The pull-down's own margin (the bar's line its top) still holds.
+			expect(
+				rule(`${TITLES} > .classicyMenuWrapper > .classicySubMenu`),
+			).toMatch(/margin: var\(--window-border-size\) 0 0;/);
+		});
+
 		// 7.5.5's Application menu title is the front application's small
 		// icon alone, in a title 34 px wide (`*-755-appmenu-closed.png`,
 		// story 0214-c61): the name is kept for screen readers, at no size.

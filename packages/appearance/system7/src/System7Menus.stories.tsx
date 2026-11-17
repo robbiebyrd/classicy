@@ -1,7 +1,7 @@
 // System 7's menus under each of its two themes (plan 0018-dbd §3.3): the
 // menu bar with a menu pulled down (dimmed items, dividers, Command-key
-// equivalents), a hierarchical menu, checkmarks and dashes, and a pop-up menu
-// closed and open. Menus stay open only while something holds them, so each
+// equivalents), a hierarchical menu, checkmarks and dashes, the Help menu at
+// the bar's right end, and a pop-up menu closed and open. Menus stay open only while something holds them, so each
 // story opens its menu once the desktop has mounted, as a click would
 // (Classicy's menus are sticky). Compare with the System 7.5 captures in
 // docs/system7-reference-screenshots.md ("Desktop and menus", "Controls").
@@ -188,6 +188,24 @@ export const HierarchicalColor = inColor(
  */
 export const Checkmarks: Story = { render: menuScene([title("style")]) };
 export const CheckmarksColor = inColor(menuScene([title("style")]));
+
+/**
+ * The Help menu open at the bar's right end, between the clock and the
+ * Application menu: with no room to its right, it hangs with its right side
+ * under its title's right edge (the core flips a pull-down that would pass
+ * the desktop's edge; the package hangs it), its frame and shadow whole on
+ * the screen. As `*-menu-help-and-selected-icon.png`, where 7.5's Help title
+ * and its menu's frame both end at x 605 (the items are the Finder's there:
+ * application content).
+ */
+const helpMenuScene = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<OpenOnMount selectors={["#help-menu"]} />
+	</StoryApp>
+);
+
+export const HelpMenu: Story = { render: helpMenuScene };
+export const HelpMenuColor = inColor(helpMenuScene);
 
 const fonts = [
 	"Chicago",
