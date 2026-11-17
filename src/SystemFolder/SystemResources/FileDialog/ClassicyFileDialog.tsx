@@ -772,7 +772,17 @@ export const ClassicyFileDialog: FunctionalComponent<
 								labelTitle={"Save As:"}
 								labelPosition={"left"}
 								prefillValue={fileName}
-								onChangeFunc={(e) => setFileName(e.target.value)}
+								// Flat navigation: the name field takes the default
+								// button back, as 7.5's does. Focusing it or typing
+								// deselects the list (a selected folder made the
+								// button Open), so Enter saves into the folder shown.
+								onFocusFunc={() => {
+									if (flat && selectedIds.length > 0) setSelectedIds([]);
+								}}
+								onChangeFunc={(e) => {
+									setFileName(e.target.value);
+									if (flat && selectedIds.length > 0) setSelectedIds([]);
+								}}
 								onEnterFunc={() => void commitSave()}
 							/>
 							<span className={"classicyFileDialogExtension"}>

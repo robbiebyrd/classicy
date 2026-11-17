@@ -9,6 +9,7 @@ import classNames from "classnames";
 import {
 	type ChangeEventHandler,
 	type CSSProperties,
+	type FocusEventHandler,
 	type ForwardedRef,
 	type FC as FunctionalComponent,
 	forwardRef,
@@ -28,6 +29,8 @@ interface ClassicyInputProps {
 	onChangeFunc?: ChangeEventHandler<HTMLInputElement>;
 	/** Called when Enter is pressed in the field (no form submission needed). */
 	onEnterFunc?: () => void;
+	/** Called when the field takes focus, with the native focus event. */
+	onFocusFunc?: FocusEventHandler<HTMLInputElement>;
 	/** Visible label text. Omit for no label. */
 	labelTitle?: string;
 	/** Label text size. Defaults to `"medium"`. */
@@ -95,6 +98,7 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 			backgroundColor,
 			onChangeFunc,
 			onEnterFunc,
+			onFocusFunc,
 			className,
 			style,
 		},
@@ -162,9 +166,10 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					tabIndex={0}
 					onChange={handleOnChangeFunc}
 					onKeyDown={handleOnKeyDown}
-					onFocus={() =>
-						appearance.emit("focus", withClassicyAppearanceInput())
-					}
+					onFocus={(e) => {
+						appearance.emit("focus", withClassicyAppearanceInput());
+						onFocusFunc?.(e);
+					}}
 					onBlur={() => appearance.emit("blur", withClassicyAppearanceInput())}
 					name={id}
 					type={type}

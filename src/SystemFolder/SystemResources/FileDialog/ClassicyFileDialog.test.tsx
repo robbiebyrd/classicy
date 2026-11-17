@@ -564,6 +564,38 @@ describe("ClassicyFileDialog's flat navigation", () => {
 		expect(write).not.toHaveBeenCalled();
 	});
 
+	// Review r2 Minor: 7.5's name field takes the default button back. A
+	// folder selected, focusing the name field (or typing in it) deselects
+	// the list, so the button reads Save and Enter saves into the folder
+	// shown.
+	it("deselects the list when the name field takes focus or changes, so Enter saves", async () => {
+		flatPackage();
+		const { volume, write } = writable();
+		saveDialog(volume);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		const name = document.querySelector(
+			".classicyFileDialogNameRow input",
+		) as HTMLInputElement;
+		act(() => row("Apple Extras").click());
+		expect(buttonNamed("Open")).toBeTruthy();
+		act(() => name.focus());
+		expect(buttonNamed("Save")).toBeTruthy();
+		act(() => row("Apple Extras").click());
+		expect(buttonNamed("Open")).toBeTruthy();
+		fireEvent.change(name, { target: { value: "Letter" } });
+		expect(buttonNamed("Save")).toBeTruthy();
+		pressEnter(name);
+		await vi.waitFor(() =>
+			expect(write).toHaveBeenCalledWith(
+				[],
+				"Letter.txt",
+				expect.anything(),
+				expect.anything(),
+			),
+		);
+		expect(rows()).toEqual(["Read Me", "Apple Extras"]);
+	});
+
 	it("enters the folder New Folder creates", async () => {
 		flatPackage();
 		const { volume, mkDir } = writable();
