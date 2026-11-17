@@ -28,7 +28,9 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	classicyMenuBounds,
+	classicyMenuInkDown,
 	classicyMenuListLeft,
+	classicyMenuListPinTop,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
@@ -207,6 +209,9 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	// would pass the desktop's right edge, its right side under the button's
 	// right side, pinned inside the desktop (ClassicyMenuPlacement).
 	const [menuLeft, setMenuLeft] = useState<number | null>(null);
+	// Down, when its 64 px floor still passes the bounds (a very short
+	// desktop): the top that pins it inside, measured once it is placed.
+	const [menuPinTop, setMenuPinTop] = useState<number | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
@@ -291,6 +296,7 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		setMenuRect(null);
 		setPlacement(null);
 		setMenuLeft(null);
+		setMenuPinTop(null);
 		resetScrollArrows();
 	}, [resetScrollArrows]);
 
@@ -419,12 +425,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		}
 		// Down, between the top and bottom of what shows of the desktop: the
 		// policy measures from a screen at 0, so it is given the button's place
-		// from the bounds' top, and its `top` is put back.
+		// from the bounds' top, and its `top` is put back. Its margin holds the
+		// list's frame; its shadow comes off the room, so it shows too.
 		const bounds = classicyMenuBounds(buttonRef.current);
+		const { inkTop, inkBottom } = classicyMenuInkDown(el);
+		const origin = bounds.top + inkTop;
 		const placed = classicyPopUpMenuPlacement(
-			{ top: menuRect.top - bounds.top, bottom: menuRect.bottom - bounds.top },
+			{ top: menuRect.top - origin, bottom: menuRect.bottom - origin },
 			el.scrollHeight,
-			bounds.bottom - bounds.top,
+			bounds.bottom - bounds.top - inkTop - inkBottom,
 			selectedMetrics,
 			// The theme's cap, read from the button (the list may be portaled
 			// out of its themed ancestor) once per opening.
@@ -435,22 +444,37 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			),
 		);
 		setPlacement(
-			placed.top === null
-				? placed
-				: { ...placed, top: placed.top + bounds.top },
+			placed.top === null ? placed : { ...placed, top: placed.top + origin },
 		);
 		setMenuLeft(classicyMenuListLeft(el, menuRect, bounds));
+		setMenuPinTop(null);
 	}, [open, menuRect, currentIndex, reactId]);
+
+	// Placed, a list whose 64 px floor still passes the bounds (no room for
+	// it above or below the button in a very short desktop) is pinned
+	// inside, its top winning.
+	useLayoutEffect(() => {
+		if (!open || !placement || menuPinTop !== null) return;
+		const el = listRef.current;
+		if (!el) return;
+		const pinned = classicyMenuListPinTop(
+			el,
+			classicyMenuBounds(buttonRef.current),
+		);
+		if (pinned !== null) setMenuPinTop(pinned);
+	}, [open, placement, menuPinTop]);
 
 	// Apply the aligning scroll once the menu has its final height, so the
 	// selected item lands on the button (classic Platinum pop-up). Runs after the
 	// placement commit above, so it wins over the highlight's scroll-into-view.
+	// Again once a pinned list has moved: its indicators are fixed.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: menuPinTop is a trigger, not read: the pin moves the list's box
 	useLayoutEffect(() => {
 		if (!open || !placement) return;
 		const el = listRef.current;
 		if (el) el.scrollTop = placement.scrollTop;
 		measureScrollArrows();
-	}, [open, placement, measureScrollArrows]);
+	}, [open, placement, menuPinTop, measureScrollArrows]);
 
 	// Keyboard navigation moves a highlight, not focus (focus stays on the
 	// button for the combobox pattern), so nothing scrolls the active option
@@ -636,13 +660,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									// sits over the button). Otherwise anchor the edge the menu
 									// grows away from: its top to the button's top when growing
 									// down, its bottom to the button's bottom when growing up.
-									...(placement?.top != null
-										? { top: `${Math.round(placement.top)}px` }
-										: placement?.above
-											? {
-													bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
-												}
-											: { top: `${Math.round(menuRect.top)}px` }),
+									...(menuPinTop !== null
+										? { top: `${menuPinTop}px` }
+										: placement?.top != null
+											? { top: `${Math.round(placement.top)}px` }
+											: placement?.above
+												? {
+														bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
+													}
+												: { top: `${Math.round(menuRect.top)}px` }),
 									...(placement && { maxHeight: `${placement.maxHeight}px` }),
 									...scrollArrows.listStyle,
 								}}

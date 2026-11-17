@@ -30,7 +30,9 @@ import {
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	classicyMenuBounds,
+	classicyMenuInkDown,
 	classicyMenuListLeft,
+	classicyMenuListPinTop,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
@@ -141,6 +143,9 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	// pass the desktop's right edge, its right side under the field's right
 	// side, pinned inside the desktop (ClassicyMenuPlacement).
 	const [listLeft, setListLeft] = useState<number | null>(null);
+	// Down, when its 64 px floor still passes the bounds (a very short
+	// desktop): the top that pins it inside, measured once it is placed.
+	const [listPinTop, setListPinTop] = useState<number | null>(null);
 
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -220,6 +225,7 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		setMenuRect(null);
 		setPlacement(null);
 		setListLeft(null);
+		setListPinTop(null);
 		resetScrollArrows();
 	}, [resetScrollArrows]);
 
@@ -321,16 +327,23 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		const el = listRef.current;
 		if (!el) return;
 		// Down, between the top and bottom of what shows of the desktop, as
-		// the pop-up menu's: the field's place from the bounds' top.
+		// the pop-up menu's: the field's place from the bounds' top, the
+		// list's shadow off the room. The list hangs clear of the field (the
+		// pop-up's overlaps its button), so its room below is measured from
+		// the field's bottom and its room above from its top: the policy
+		// measures down from `top` and up from `bottom`.
 		const bounds = classicyMenuBounds(anchorRef.current);
+		const { inkTop, inkBottom } = classicyMenuInkDown(el);
+		const origin = bounds.top + inkTop;
+		setListPinTop(null);
 		setPlacement(
 			classicyPopUpMenuPlacement(
 				{
-					top: menuRect.top - bounds.top,
-					bottom: menuRect.bottom - bounds.top,
+					top: menuRect.bottom - origin,
+					bottom: menuRect.top - origin,
 				},
 				el.scrollHeight,
-				bounds.bottom - bounds.top,
+				bounds.bottom - bounds.top - inkTop - inkBottom,
 				null,
 				// The theme's cap, read from the input (the list may be portaled
 				// out of its themed ancestor) once per opening.
@@ -342,6 +355,20 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			),
 		);
 	}, [open, menuRect]);
+
+	// Placed, a list whose 64 px floor still passes the bounds (no room for
+	// it above or below the field in a very short desktop) is pinned inside,
+	// its top winning.
+	useLayoutEffect(() => {
+		if (!open || !placement || listPinTop !== null) return;
+		const el = listRef.current;
+		if (!el) return;
+		const pinned = classicyMenuListPinTop(
+			el,
+			classicyMenuBounds(anchorRef.current),
+		);
+		if (pinned !== null) setListPinTop(pinned);
+	}, [open, placement, listPinTop]);
 
 	// Across, measured as it opens and as typing filters its suggestions,
 	// which change its width.
@@ -361,10 +388,17 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	// typing that changes its width moves it, a commit after its rows) and
 	// as typing filters its suggestions; its scrolling reads only the
 	// extents.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries and listLeft are triggers, not read: the rows they render and the place across change the list's box
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries, listLeft and listPinTop are triggers, not read: the rows they render and the place across and down change the list's box
 	useLayoutEffect(() => {
 		if (open && placement) measureScrollArrows();
-	}, [open, placement, filteredEntries, listLeft, measureScrollArrows]);
+	}, [
+		open,
+		placement,
+		filteredEntries,
+		listLeft,
+		listPinTop,
+		measureScrollArrows,
+	]);
 
 	useLayoutEffect(() => {
 		if (!open || effectiveHighlight < 0) return;
@@ -506,9 +540,11 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 								// Unlike the pop-up menu (which overlays its button), the
 								// suggestion list hangs below the field — or sits fully
 								// above it when there is no room below.
-								...(placement?.above
-									? { bottom: `${window.innerHeight - menuRect.top}px` }
-									: { top: `${menuRect.bottom}px` }),
+								...(listPinTop !== null
+									? { top: `${listPinTop}px` }
+									: placement?.above
+										? { bottom: `${window.innerHeight - menuRect.top}px` }
+										: { top: `${menuRect.bottom}px` }),
 								...(placement && { maxHeight: `${placement.maxHeight}px` }),
 								...scrollArrows.listStyle,
 							}}

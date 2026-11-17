@@ -29,11 +29,15 @@ const TITLES: Record<string, [number, number]> = {
 	file: [38, 70],
 	help: [572, 605],
 	edge: [610, 640],
+	flush: [540, 640],
 	win: [560, 600],
 	offLeft: [-20, 10],
 };
 // Each menu's frame width, by the item that opens it.
 let widths: Record<string, number> = {};
+// Each menu's full (uncapped) height, by the item that opens it; 50 if not
+// given. A capped list is its cap and its 1 px border each side tall.
+let heights: Record<string, number> = {};
 // A frame's shadow: one pixel past its right side (System 7's, Platinum's).
 const SHADOW = 1;
 // A submenu's frame over its parent's side.
@@ -75,6 +79,12 @@ function rectOf(this: Element): DOMRect {
 			50,
 		);
 	}
+	// A capped list's shadow sibling lies over the list (ClassicyMenu
+	// places it from the list's box).
+	if (this.classList.contains("classicyMenuScrollShadow")) {
+		const list = this.parentElement?.querySelector(":scope > ul");
+		return list ? list.getBoundingClientRect() : box(0, 0, 0, 0);
+	}
 	if (this.tagName !== "UL") return box(0, 0, 0, 0);
 	if (this.classList.contains("classicyContextMenu")) {
 		const wrapper = this.closest(".classicyContextMenuWrapper") as Element;
@@ -84,6 +94,10 @@ function rectOf(this: Element): DOMRect {
 	// A bar's own list.
 	if (!owner) return box(0, 0, desktop.width, 20);
 	const width = widths[owner.id] ?? 100;
+	const cap = Number.parseFloat((this as HTMLElement).style.maxHeight);
+	const height = Number.isFinite(cap)
+		? Math.min(heights[owner.id] ?? 50, cap + 2)
+		: (heights[owner.id] ?? 50);
 	const wrapper = this.parentElement as HTMLElement;
 	const shift = pxOf(wrapper.style.marginLeft);
 	const shiftDown = pxOf(wrapper.style.marginTop);
@@ -96,18 +110,19 @@ function rectOf(this: Element): DOMRect {
 			(flipped ? right - width : left) + shift,
 			20 + shiftDown,
 			width,
-			50,
+			height,
 		);
 	}
 	// A submenu: beside its parent menu, its frame over the parent's side.
 	const parent = (owner.closest("ul") as Element).getBoundingClientRect();
 	const left = flipped ? parent.left - width + OVERLAP : parent.right - OVERLAP;
-	return box(left + shift, parent.top + shiftDown, width, 50);
+	return box(left + shift, parent.top + shiftDown, width, height);
 }
 
 beforeEach(() => {
 	desktop = { left: 0, top: 0, width: 640, height: 480 };
 	widths = {};
+	heights = {};
 	contextWidth = 100;
 	vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
 		rectOf,
@@ -118,6 +133,42 @@ beforeEach(() => {
 			const isMenuList =
 				el.tagName === "UL" &&
 				(ownerOf(el) !== null || el.classList.contains("classicyContextMenu"));
+			const isShadowSibling = el.classList.contains("classicyMenuScrollShadow");
+			if (pseudo && isShadowSibling) {
+				// As every package draws a capped list's shadow: on this sibling,
+				// SHADOW past the frame's right side and its bottom.
+				const r = el.getBoundingClientRect();
+				return (pseudo === "::after"
+					? {
+							content: '""',
+							display: "block",
+							position: "absolute",
+							left: `${r.width + SHADOW - 2}px`,
+							top: "2px",
+							width: "1px",
+							height: `${r.height - 2}px`,
+						}
+					: {
+							content: '""',
+							display: "block",
+							position: "absolute",
+							left: "2px",
+							top: `${r.height + SHADOW - 2}px`,
+							width: `${r.width - 2}px`,
+							height: "1px",
+						}) as unknown as CSSStyleDeclaration;
+			}
+			if (isShadowSibling)
+				return {
+					borderLeftWidth: "1px",
+					borderRightWidth: "1px",
+					borderTopWidth: "1px",
+					borderBottomWidth: "1px",
+					boxShadow: "none",
+				} as unknown as CSSStyleDeclaration;
+			// A capped list's own are hidden: it would clip them.
+			if (pseudo && el.classList.contains("classicyMenuListScrolls"))
+				return { content: "none" } as unknown as CSSStyleDeclaration;
 			if (pseudo) {
 				if (isMenuList && pseudo === "::after") {
 					// The frame's right shadow, placed from the padding box (a
@@ -414,6 +465,36 @@ describe("menus open where they show, vertically", () => {
 		expect(wrapperOf("file").style.marginTop).toBe("-10px");
 		expect(wrapperOf("file").style.marginBottom).toBe("10px");
 		expect(listOf("file").getBoundingClientRect().top).toBe(10);
+	});
+
+	// A desktop too short for a pull-down's 64 px scroll floor (room 56):
+	// capped at the floor, 66 px with its border, it runs 20-86 and its
+	// shadow to 87. Measured with that shadow (drawn on its sibling while it
+	// scrolls), it is pinned up by 7, frame and shadow inside.
+	it("pins a capped pull-down up with its shadow when its scroll floor passes a short desktop's bottom", () => {
+		desktop = { ...desktop, height: 80 };
+		heights = { file: 200 };
+		render(menuBar([title("file")]));
+		fireEvent.click(screen.getByText("file"));
+		expect(listOf("file")).toHaveClass("classicyMenuListScrolls");
+		expect(listOf("file").style.maxHeight).toBe("64px");
+		expect(wrapperOf("file").style.marginTop).toBe("-7px");
+		const frame = listOf("file").getBoundingClientRect();
+		expect(frame.bottom + SHADOW).toBe(80);
+	});
+
+	it("counts a capped pull-down's shadow at the right edge too", () => {
+		// Under a title ending on the desktop's edge, a capped 100 px menu's
+		// frame ends there, its shadow (on its sibling) a pixel past it:
+		// flipped, then pinned back by its shadow.
+		desktop = { ...desktop, height: 80 };
+		heights = { flush: 200 };
+		render(menuBar([title("flush")]));
+		fireEvent.click(screen.getByText("flush"));
+		expect(listOf("flush")).toHaveClass("classicyMenuListScrolls");
+		expect(listOf("flush")).toHaveClass("classicySubMenuFlipLeft");
+		expect(wrapperOf("flush").style.marginLeft).toBe("-1px");
+		expect(listOf("flush").getBoundingClientRect().right + SHADOW).toBe(640);
 	});
 
 	it("flips a contextual menu up at the desktop's bottom, not the viewport's", () => {

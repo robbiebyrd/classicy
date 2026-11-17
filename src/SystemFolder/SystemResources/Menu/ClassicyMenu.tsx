@@ -374,16 +374,22 @@ export const ClassicyMenu: FunctionalComponent<ClassicyMenuProps> = ({
 		if (next === null) restoreScrollRef.current = null;
 		setScrollCap(next);
 		let box: typeof shadowBox = null;
-		if (scrollCap !== null) {
-			// From the wrapper's padding box, as fractions: `offsetLeft` and
-			// `offsetWidth` would round.
+		if (next !== null) {
+			// Set with the cap, so the sibling is drawn in the cap's own commit:
+			// whatever measures the capped list there (its item placing it)
+			// finds its shadow, which the list's own pseudo-elements, hidden
+			// while it scrolls, no longer draw. From the wrapper's padding box,
+			// as fractions: `offsetLeft` and `offsetWidth` would round. Its
+			// height is the list's as capped: as drawn when already capped at
+			// this cap, else the cap and the frame (a `max-height` bounds the
+			// content box).
 			const wrapperRect = wrapper.getBoundingClientRect();
 			const wrapperStyle = getComputedStyle(wrapper);
 			box = {
 				left: rect.left - wrapperRect.left - px(wrapperStyle.borderLeftWidth),
 				top: rect.top - wrapperRect.top - px(wrapperStyle.borderTopWidth),
 				width: rect.width,
-				height: rect.height,
+				height: scrollCap === next ? rect.height : next + frame,
 			};
 		}
 		setShadowBox((prev) =>

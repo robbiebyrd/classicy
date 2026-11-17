@@ -335,3 +335,44 @@ export const classicyMenuListLeft = (
 		bounds.right,
 	);
 };
+
+/**
+ * How far a fixed list's painted box reaches past its frame above and
+ * below (its shadow), measured as it is drawn.
+ */
+export const classicyMenuInkDown = (
+	list: Element,
+): { inkTop: number; inkBottom: number } => {
+	const frame = list.getBoundingClientRect();
+	const ink = classicyMenuInkBox(list) ?? frame;
+	return {
+		inkTop: Math.max(frame.top - ink.top, 0),
+		inkBottom: Math.max(ink.bottom - frame.bottom, 0),
+	};
+};
+
+/**
+ * The top, on a whole pixel, that moves a fixed list drawn past `bounds`
+ * down or up inside them (its shadow included, its top winning when it is
+ * taller than they are), or null when it lies inside: a pop-up or combo
+ * box list whose 64 px floor does not fit the room above or below its
+ * control in a very short desktop.
+ */
+export const classicyMenuListPinTop = (
+	list: Element,
+	bounds: ClassicyMenuBox,
+): number | null => {
+	const frame = list.getBoundingClientRect();
+	const ink = classicyMenuInkBox(list);
+	if (!ink) return null;
+	const shift = classicyMenuPinShiftDown(ink, bounds);
+	if (shift === 0) return null;
+	return classicyMenuWholePixel(
+		frame.top + shift,
+		frame.height,
+		Math.max(frame.top - ink.top, 0),
+		Math.max(ink.bottom - frame.bottom, 0),
+		bounds.top,
+		bounds.bottom,
+	);
+};

@@ -30,8 +30,9 @@ vi.mock(
 // right end. A test may move either.
 let DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
 let BUTTON = { left: 600, right: 630, top: 100, bottom: 120 };
-// The open surface's frame width, a test's to set.
+// The open surface's frame width and content height, a test's to set.
 let surfaceWidth = 100;
+let surfaceContent = 56;
 
 const pxOf = (value: string) => Number.parseFloat(value) || 0;
 const box = (left: number, top: number, width: number, height: number) =>
@@ -44,6 +45,7 @@ const isSurface = (el: Element) =>
 
 beforeEach(() => {
 	surfaceWidth = 100;
+	surfaceContent = 56;
 	DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
 	BUTTON = { left: 600, right: 630, top: 100, bottom: 120 };
 	vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
@@ -62,7 +64,20 @@ beforeEach(() => {
 				);
 			if (isSurface(this)) {
 				const style = (this as HTMLElement).style;
-				return box(pxOf(style.left), pxOf(style.top), surfaceWidth, 60);
+				// Its content (`surfaceContent`, default 56) capped by its
+				// max-height, then its frame (1 px of padding and of border each
+				// side); placed by its top, or its bottom from the viewport's.
+				const cap = Number.parseFloat(style.maxHeight);
+				const height =
+					(Number.isFinite(cap)
+						? Math.min(surfaceContent, cap)
+						: surfaceContent) + 4;
+				const top = style.top
+					? pxOf(style.top)
+					: style.bottom
+						? window.innerHeight - pxOf(style.bottom) - height
+						: 0;
+				return box(pxOf(style.left), top, surfaceWidth, height);
 			}
 			// A bevel popup's menu list fills the popup.
 			const surface = this.parentElement?.closest(".classicyBevelButtonPopup");
@@ -212,8 +227,9 @@ describe("down, in a desktop shorter than the viewport", () => {
 			),
 		);
 		await userEvent.setup().click(screen.getByRole("combobox"));
-		// Its 64 px floor would run past 196 (200 less the margin) from 190.
-		expect(screen.getByRole("listbox").style.top).toBe("132px");
+		// Its 64 px floor would run past 196 (200 less the margin) from 190;
+		// its 2 px shadow comes off the room too: 200 − 2 − 4 − 64.
+		expect(screen.getByRole("listbox").style.top).toBe("130px");
 	});
 
 	it("grows a combo box's list upward when there is no room below in the desktop", () => {
@@ -298,5 +314,107 @@ describe("a combo box's scroll indicators", () => {
 		});
 		expect(screen.getByRole("listbox").style.left).toBe("600px");
 		expect(down()?.style.left).toBe("600px");
+	});
+});
+
+// A desktop barely taller than a list's 64 px floor (80 px): its frame and
+// its 2 px shadow (Platinum's box-shadow) stay inside, sliding or pinned.
+describe("in a desktop barely taller than a list's floor", () => {
+	beforeEach(() => {
+		DESKTOP = { left: 0, top: 0, width: 640, height: 80 };
+		BUTTON = { left: 300, right: 340, top: 58, bottom: 78 };
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 120 : 0;
+			},
+		);
+		surfaceContent = 120;
+	});
+
+	const inkBottom = (list: HTMLElement) =>
+		list.getBoundingClientRect().bottom + 2;
+
+	it("keeps an aligned pop-up menu's shadow inside the desktop's bottom", async () => {
+		render(
+			onDesktop(
+				<ClassicyPopUpMenu id="f" options={options} selected="geneva" />,
+			),
+		);
+		await userEvent.setup().click(screen.getByRole("combobox"));
+		const list = screen.getByRole("listbox");
+		expect(list.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+		expect(inkBottom(list)).toBeLessThanOrEqual(80);
+	});
+
+	it("pins a combo box's list with no room above or below the field inside the desktop", () => {
+		render(
+			onDesktop(
+				<ClassicyComboBox
+					id="c"
+					options={[{ value: "a", label: "Apple" }]}
+					prefillValue=""
+				/>,
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Show options" }));
+		const list = screen.getByRole("listbox");
+		expect(list.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+		expect(inkBottom(list)).toBeLessThanOrEqual(80);
+	});
+});
+
+// Below the floor: a desktop shorter than a list's 64 px floor and its
+// frame. The list cannot show whole anywhere; its top wins, at the
+// desktop's top, as a pull-down's does.
+describe("in a desktop shorter than a list's floor", () => {
+	it("keeps a combo box list's top inside the desktop", () => {
+		DESKTOP = { left: 0, top: 0, width: 640, height: 50 };
+		BUTTON = { left: 300, right: 340, top: 28, bottom: 48 };
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 120 : 0;
+			},
+		);
+		surfaceContent = 120;
+		render(
+			onDesktop(
+				<ClassicyComboBox
+					id="c"
+					options={[{ value: "a", label: "Apple" }]}
+					prefillValue=""
+				/>,
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Show options" }));
+		expect(screen.getByRole("listbox").getBoundingClientRect().top).toBe(0);
+	});
+});
+
+describe("a combo box's list in a desktop of ordinary height", () => {
+	it("measures its room from the field's edge it hangs from", () => {
+		// A field at 200-220 in a 480 px desktop, a long list: below it the
+		// room is 480 − 220, not 480 − 200, so the list (its frame and its
+		// shadow) ends inside the desktop.
+		DESKTOP = { left: 0, top: 0, width: 640, height: 480 };
+		BUTTON = { left: 300, right: 340, top: 200, bottom: 220 };
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 450 : 0;
+			},
+		);
+		surfaceContent = 450;
+		render(
+			onDesktop(
+				<ClassicyComboBox
+					id="c"
+					options={[{ value: "a", label: "Apple" }]}
+					prefillValue=""
+				/>,
+			),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Show options" }));
+		const list = screen.getByRole("listbox");
+		expect(list.getBoundingClientRect().top).toBe(220);
+		expect(list.getBoundingClientRect().bottom + 2).toBeLessThanOrEqual(480);
 	});
 });
