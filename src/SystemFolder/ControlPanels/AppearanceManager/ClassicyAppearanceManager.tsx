@@ -10,6 +10,7 @@ import {
 	resolveClassicyWallpaper,
 } from "@/Appearance/ClassicyWallpaperIndex";
 import "./ClassicyAppearanceManager.scss";
+import "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceControlStripModule";
 import {
 	type ChangeEvent,
 	type FC as FunctionalComponent,

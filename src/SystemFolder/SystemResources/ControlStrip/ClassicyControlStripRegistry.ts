@@ -74,6 +74,7 @@ export type ClassicyControlStripModuleRegistration = {
 export const CLASSICY_CONTROL_STRIP_MODULE_IDS = {
 	sound: "classicy-sound",
 	screenSaver: "classicy-screen-saver",
+	appearance: "classicy-appearance",
 } as const;
 
 /** The order a module gets when it declares none: after the built-ins. */

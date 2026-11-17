@@ -68,6 +68,7 @@
 		"./src/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons.ts",
 		"./src/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverControlStripModule.ts",
 		"./src/SystemFolder/ControlPanels/SoundManager/ClassicySoundControlStripModule.tsx",
+		"./src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceControlStripModule.ts",
 		"./src/SystemFolder/ControlPanels/ControlStripManager/ClassicyControlStripManagerManifest.ts"
 	],
 	"style": "./dist/classicy.css",

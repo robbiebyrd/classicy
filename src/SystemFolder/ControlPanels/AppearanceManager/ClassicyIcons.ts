@@ -219,6 +219,8 @@ export const ClassicyIcons = {
 		// 16 × 16 Control Strip module icons, lifted pixel-for-pixel from
 		// HIGOS8 Figure 6-15.
 		controlStrip: {
+			// The Appearance module: a window over a palette of theme colors.
+			appearance: icon("system/control-strip/appearance.png"),
 			cd: icon("system/control-strip/cd.png"),
 			fileSharing: icon("system/control-strip/file-sharing.png"),
 			// 32 × 32: a module's file in System Folder:Control Strip Modules,

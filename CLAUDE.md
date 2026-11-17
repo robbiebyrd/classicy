@@ -485,7 +485,10 @@ the control panel and the file system follow registrations made after mount.
 - Built-ins register like any module: Sound (`classicy-sound`, order 10, no
   owner) from `ClassicySoundManagerProvider`'s import graph; Screen Saver
   (`classicy-screen-saver`, order 20, owner `ScreenSaver.app`) from the
-  extension. Both files are in `package.json` `sideEffects`.
+  extension; Appearance (`classicy-appearance`, order 30, owner
+  `AppearanceManager.app`; switches theme, and package when two or more are
+  registered) from the Appearance control panel. All three files are in
+  `package.json` `sideEffects`.
 - System and registered modules **always show** unless the host lists them in
   `disabledModules` (not drawn, not offered in the control panel — published
   for it via `setClassicyControlStripDisabledModules`) or the user hides them.
