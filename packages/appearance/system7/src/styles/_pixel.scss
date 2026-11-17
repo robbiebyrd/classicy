@@ -124,18 +124,23 @@ $color-only: calc(#{px(2)} - var(--dither-tile-size));
 // desktop's corner, the screen's), which the core publishes on the parts
 // the package names (layout `patternOrigin`: its components, and its
 // `elements` by selector). System 7 laid its patterns from the window's
-// port, so a part keeps the window's phase wherever it sits. The 7.5
-// captures give two phases from that origin:
-// - a dimmed part's 50% dots (its text, its frame, its indicator, a
-//   dimmed control drawn through the gray) where x + y is odd: Memory's
-//   pop-up and slider, Clock Options' and Standard File's dimmed text, the
-//   dimmed menu titles, items and hidden application's icon, the Chooser's
-//   dimmed OK ring, in ports whose origins lie in both phases;
-// - a dotted rule's (a group box, a separator, a menu divider) where x + y
-//   is even: the Views and Sound panels' group boxes, Date & Time's and
-//   Standard File's separators, the menus' dividers (the Chooser's color
-//   divider and Clock Options' group boxes, drawn by their own code, are
-//   the other way).
+// port, so a part keeps the window's phase wherever it sits, and QuickDraw's
+// arithmetic gives the two phases: the standard gray pen inks where x + y
+// is even from the port's origin, and dimming by erasing through the gray
+// leaves the ink where it is odd.
+// - A dimmed part (its text, its frame, its indicator, a dimmed control):
+//   x + y odd. Memory's pop-up and slider, Clock Options' and Standard
+//   File's dimmed text, the dimmed menu titles, items and hidden
+//   application's icon, the Chooser's dimmed OK ring, in ports whose
+//   origins lie in both phases.
+// - A dotted rule (a group box, a separator, a menu divider), drawn with
+//   the gray pen: x + y even. The Views and Sound panels' group boxes, Date
+//   & Time's and Standard File's separators, the menus' dividers.
+// The captures that differ draw by position, not through the pen pattern:
+// dots laid from a part's own start (Memory's y 115 separator, the
+// Chooser's color divider, Clock Options' group boxes), or a frame drawn
+// with the pen rather than dimmed (Clock Options' dimmed pop-up frames and
+// its menu bar's dimmed Finder icon, both even).
 $pattern-origin-x: var(--classicy-pattern-origin-x);
 $pattern-origin-y: var(--classicy-pattern-origin-y);
 

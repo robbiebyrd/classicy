@@ -1032,6 +1032,7 @@
 				{ "selector": ".classicyButton:disabled", "origin": "window" },
 				{ "selector": ".classicyControlLabel.disabled", "origin": "window" },
 				{ "selector": ".classicyLink.disabled", "origin": "window" },
+				{ "selector": ".classicyCheckbox.mixed:disabled", "origin": "window" },
 				{
 					"selector": ".classicyRadioInputWrapper.disabled .classicyRadioInput",
 					"origin": "window"

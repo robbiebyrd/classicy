@@ -3195,6 +3195,10 @@ describe("system7.scss (compiled)", () => {
 			".classicyBevelButton.disabled",
 			"dim",
 		],
+		".classicyCheckbox.mixed:disabled": [
+			".classicyCheckbox.mixed:disabled",
+			"own",
+		],
 		".classicyPlacard.disabled": [".classicyPlacard.disabled", "dim"],
 		":where(.classicyImageWell).disabled": [
 			".classicyImageWell.disabled",
@@ -3247,6 +3251,17 @@ describe("system7.scss (compiled)", () => {
 					`mask-position: ${phase === "dim" ? DIM : RULE};`,
 				);
 		}
+		// Review r0, issue 2: a dimmed mixed checkbox's dash (6 x 2) dots at
+		// any phase, so its checker takes the dimmed phase too, from the
+		// box's border box: the frame's pixel outside the padding box the
+		// origin is measured from. The X's stays at the box's corner.
+		const mixed = rule(".classicyCheckbox.mixed:disabled");
+		expect(mixed).toMatch(
+			/mask-position: [^;]*, calc\(calc\(var\(--classicy-pattern-origin-x\) \+ var\(--box-pixel\)\) \+ var\(--box-pixel\)\) calc\(var\(--classicy-pattern-origin-y\) \+ var\(--box-pixel\)\), 0 0;/,
+		);
+		expect(rule(".classicyCheckbox:disabled:checked:not(.mixed)")).toMatch(
+			/mask-position: [^;]*, 0 0, 0 0;/,
+		);
 		// A dimmed push button's label (Standard File's Eject) and its
 		// default ring (the Chooser's OK) take the dimmed phase too: the label
 		// inked under the white checker's clear cells, the ring through its
