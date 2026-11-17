@@ -544,7 +544,7 @@ export function ClassicyTable<T>({
 
 	const sortedColumnId = sorting[0]?.id;
 	const columnSizing = table.getState().columnSizing;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the sort and the column sizes are what move the sorted header; the measure reads the DOM
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the sort, the columns and their sizes are what move the sorted header; the measure reads the DOM
 	useLayoutEffect(() => {
 		const measure = () => {
 			const container = containerRef.current;
@@ -569,7 +569,7 @@ export function ClassicyTable<T>({
 		const observer = new ResizeObserver(measure);
 		observer.observe(tableEl);
 		return () => observer.disconnect();
-	}, [sortedColumnId, columnSizing]);
+	}, [sortedColumnId, columnSizing, columns]);
 	const containerStyle: CSSProperties = {
 		"--classicy-table-sorted-start": `${sortedPlace[0]}px`,
 		"--classicy-table-sorted-width": `${sortedPlace[1]}px`,

@@ -320,7 +320,8 @@ diverge, so a logo registered through Platinum's
 - **A table's sorted column.** `ClassicyTable` marks the sorted column's
   body cells `classicyTableCellSorted` and publishes the sorted header's
   place on its root as `--classicy-table-sorted-start` and
-  `--classicy-table-sorted-width` (`0px` with nothing sorted). The root now
+  `--classicy-table-sorted-width` (`0px` with nothing sorted; measured on
+  each sort, column change, column resize and table resize). The root now
   always carries those two inline custom properties.
 - **No empty font element.** A package whose every font face an earlier
   package shares and writes (System 7 registered after Platinum) no longer
@@ -558,13 +559,13 @@ the ids the saver already names:
   trusted publisher and publishes it with the other two.
 
 - **Platinum's list view per HIGOS8 Figs. 2-24 and 2-43.** The sorted
-  column of a list (the Finder's list view and every `ClassicyTable`) is a
-  step darker, `--color-system-02`, in its cells and below the last row, a
-  white line still between rows; a selected row of a generic table keeps its
-  highlight across it. Folders in a list draw Platinum's own 16 px small
+  column of the Finder's list view (and any `ClassicyFileBrowser` in list
+  display) is a step darker, `--color-system-02`, in its cells and below the
+  last row, a white line still between rows. Generic `ClassicyTable`s are
+  unchanged. Folders in a list draw Platinum's own 16 px small
   folder, cut pixel for pixel from Fig. 2-24, where the 32 px folder was
-  scaled. Host stylesheets that set a table container's `background` see
-  the stripe through `background-image`.
+  scaled. A host stylesheet that sets the Finder list container's
+  `background` replaces the stripe.
 - **System 7, from new 7.5.5 captures.** Standard File is the fixed modal
   box 7.5.5 draws (`*-755-dialog-standardfile-layout.png`): the folder
   pop-up with no label over the list, the disk's icon and name at the top
