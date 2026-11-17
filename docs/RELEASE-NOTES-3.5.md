@@ -839,7 +839,12 @@ the ids the saver already names:
   long pull-down or submenu is capped and scrolls at the bounds' bottom
   (the desktop's overflow cut it off in an embedded desktop before), and
   contextual menus, pop-up and combo lists and bevel pop-ups flip and pin
-  against the bounds' top and bottom instead of the viewport's. Placed
+  against the bounds' top and bottom instead of the viewport's, their
+  shadows included; a combo box's list measures its room from the field's
+  edge it hangs from (it ran past the screen by the field's height). In a
+  desktop too short for a menu's 64 px scroll floor, the menu is pinned
+  inside, and where even the floor does not fit (under about 90 px for a
+  pull-down, 70 px for a pop-up or combo list), its top wins. Placed
   before paint, again whenever a menu opens, and when the desktop changes
   size while a pull-down, submenu or contextual menu is open (a submenu
   after its parent). Contextual menus, pop-up lists and bevel buttons'

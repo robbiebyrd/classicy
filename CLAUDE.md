@@ -535,7 +535,9 @@ pull-down then hanging with its right side under its title's right side
 (base `ClassicyDesktopMenuBar.scss`; a package that places pull-downs itself
 places it too, as System 7 does); a submenu passing both sides keeps the side
 it passes by less; one still outside is pinned by equal and opposite wrapper
-margins, across and down. The scroll cap ends at the bounds' bottom. Again on
+margins, across and down. The scroll cap ends at the bounds' bottom; a
+capped list's shadow sibling is rendered in the cap's own commit; a menu
+whose 64 px floor still passes the bounds is pinned, top winning. Again on
 reopen and on a desktop resize (the outermost open menu's `ResizeObserver` +
 `flushSync`; submenus follow via `ClassicyMenuPlacementEpoch`). Contextual
 menus (`flipLeftTo`), extension pull-downs, pop-up menus, combo box lists and

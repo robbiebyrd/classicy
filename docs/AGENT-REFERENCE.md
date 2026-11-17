@@ -1232,6 +1232,17 @@ agrees). Every package, no declaration needed:
   whichever edge its list hangs from; no transform, which would become the
   containing block of a fixed submenu), its left side and top winning when
   it is larger than the bounds. The pixel-grid nudge adds to those margins.
+  A capped list's shadow is drawn on `.classicyMenuScrollShadow` (its own
+  pseudo-elements are hidden while it scrolls), which `ClassicyMenu`
+  renders in the cap's own commit, so the measure that pins it counts the
+  shadow.
+- The floor: a menu never scrolls to fewer than 64 px of rows. Where the
+  bounds are too short to show that much whole (a pull-down: shorter than
+  the menu bar, the floor, the list's frame and shadow and the 4 px margin,
+  about 90 px under both packages; a pop-up or combo box list: shorter than
+  the floor and its frame and shadow, about 70 px), it is pinned with its
+  top at the bounds' top and its bottom cut; the pinned pull-down covers
+  its menu bar's bottom rows.
 - Contextual menus, menu bar extensions' pull-downs, pop-up menus, combo
   box lists and pop-up bevel buttons' surfaces keep to the same bounds on
   both axes. Across, by the same rule: at their point or under their
@@ -1241,7 +1252,13 @@ agrees). Every package, no declaration needed:
   contextual menu below the point, else above it, then pinned; a pop-up's
   aligned or grow placement and a combo box's list
   (`classicyPopUpMenuPlacement` is given the control's place from the
-  bounds' top and their height); a bevel pop-up below or beside its
+  bounds' top and their height less the list's shadow, which its 4 px
+  margin, holding the list's frame, does not; a combo box's list hangs
+  clear of its field, so its room below is measured from the field's
+  bottom and above from its top), and a list whose 64 px floor still
+  passes the bounds (no room for it on either side of its control in a
+  very short desktop) is pinned inside once placed
+  (`classicyMenuListPinTop`); a bevel pop-up below or beside its
   button, flipping when there is no room, then pinned
   (`classicyBevelPopupPlacement`'s optional sixth argument `bounds`,
   `{ left, top, right, bottom, inkLeft?, inkTop?, inkRight?, inkBottom? }`:
