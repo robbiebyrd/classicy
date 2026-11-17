@@ -176,8 +176,10 @@ const fonts = [
 
 /**
  * A window holding a titled pop-up menu, opened when `open` is set. It is
- * the Views control panel, which has no size box (so no scroll bars while
- * it fits, `scrollBar.fitsBars` keeping them only in document windows).
+ * the Views control panel, framed where the capture frames it (x 151..488),
+ * which has no size box (so no scroll bars while it fits,
+ * `scrollBar.fitsBars` keeping them only in document windows) and no zoom
+ * box.
  */
 const popUpScene = (open: boolean) => () => (
 	<StoryApp id="storybook.app" name="Storybook">
@@ -185,9 +187,10 @@ const popUpScene = (open: boolean) => () => (
 			id="views"
 			appId="storybook.app"
 			title="Views"
-			initialSize={[337, 180]}
-			initialPosition={[152, 36]}
+			initialSize={[336, 180]}
+			initialPosition={[151, 36]}
 			resizable={false}
+			zoomable={false}
 		>
 			<div style={{ padding: "16px 12px", width: 300 }}>
 				<ClassicyPopUpMenu
