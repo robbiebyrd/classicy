@@ -3,7 +3,7 @@
 	"module": "./dist/classicy.es.js",
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
-	"version": "3.4.1",
+	"version": "3.4.2",
 	"release": "Larghetto",
 	"repository": {
 		"type": "git",
