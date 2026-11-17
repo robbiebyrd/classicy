@@ -206,6 +206,8 @@ $save: ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
   }
 
   #{$save} .classicyFileDialogNewGlyph {
+    position: relative;
+    bottom: var(--file-dialog-new-glyph-raise);
     display: inline-flex;
     margin-left: var(--file-dialog-new-glyph-gap);
     vertical-align: middle;
