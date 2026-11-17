@@ -63,7 +63,7 @@ const desktopIconGridKnob = (
 	theme: ClassicyTheme,
 	key: "rowGap" | "top",
 ): number | undefined => {
-	const value = theme.measurements.desktopIconGrid?.[key];
+	const value = theme.measurements?.desktopIconGrid?.[key];
 	return typeof value === "number" && Number.isFinite(value) && value >= 0
 		? value
 		: undefined;
