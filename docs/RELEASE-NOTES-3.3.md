@@ -64,8 +64,10 @@ centered on the whole title bar whatever boxes it has, an odd pixel of room
 going to the right; the scroll track's dots lie from each window's content
 origin; an alert's label and message run on one 16-pixel pitch, its width
 is SimpleText's (`dialog.alertMaxWidth` 324) and short push buttons are 60
-px wide (`button.minWidth`), a label's odd pixel of room on its right (a
-block child of a button takes no second indent);
+px wide (`button.minWidth`), a label's odd pixel of room on its right
+(half a pixel of the button's left padding moved to its right,
+`pushButton.labelShift`, so a label wrapped in an inline, inline-block or
+block child is placed as a plain one is);
 Standard File's folder pop-up is as wide as
 7.5's, centered as 7.5 rounds it, its icon and name a row lower, its
 folders drawn two rows higher in the list, the disk's name condensed, the

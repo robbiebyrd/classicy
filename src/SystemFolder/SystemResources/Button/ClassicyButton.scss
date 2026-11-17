@@ -67,7 +67,10 @@
 // Keys are the class-name suffix; values are the multiplier. Md (1x) reproduces
 // the historical default spacing. Horizontal padding is floored at the HIG
 // text-to-border minimum (--button-text-padding, 8px) so labels never crowd
-// the button frame.
+// the button frame. Each class names its horizontal padding
+// (`--classicy-button-padding-inline`), so an Appearance Package can move
+// part of it from one side to the other and keep the sum (System 7's
+// half-pixel label nudge); the base sheet pads both sides with it alike.
 $classicy-button-spacing: (
   Sm: 0.5,
   Md: 1,
@@ -77,8 +80,8 @@ $classicy-button-spacing: (
 
 @each $suffix, $mult in $classicy-button-spacing {
   .classicyButtonPadding#{$suffix} {
-    padding: calc(var(--control-padding) * #{$mult})
-      max(var(--button-text-padding), calc(var(--window-padding-size) * #{$mult}));
+    --classicy-button-padding-inline: max(var(--button-text-padding), calc(var(--window-padding-size) * #{$mult}));
+    padding: calc(var(--control-padding) * #{$mult}) var(--classicy-button-padding-inline);
   }
 
   .classicyButtonMargin#{$suffix} {

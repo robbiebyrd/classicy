@@ -67,21 +67,6 @@ $dimmed-label:
     background: face(var(--color-white));
     color: var(--color-black);
     line-height: var(--push-button-line-height);
-    // The label centered as QuickDraw centered it, an odd pixel of room on
-    // its right (SimpleText's 60-pixel Cancel and Save: 9 and 15 pixels of
-    // white left of the ink, 10 and 16 right). A pixel of negative indent
-    // moves a centered line half a pixel left, so an odd room's half pixel
-    // falls left and an even room's snaps back; the percentage, which an
-    // intrinsic size resolves as 0, keeps the indent out of a label-sized
-    // button's width (Don't Save stays 85).
-    text-indent: max(calc(#{$px} * -1), -100000%);
-
-    // The indent inherits: a block or inline-block child (an icon-and-label
-    // wrapper) would indent its own first line again. An inline child rides
-    // the button's indented line.
-    > * {
-      text-indent: 0;
-    }
 
     &:focus {
       outline: none;
@@ -97,6 +82,22 @@ $dimmed-label:
       outline: px(2) solid var(--color-black);
       outline-offset: $px;
     }
+  }
+
+  // The label centered as QuickDraw centered it, an odd pixel of room on
+  // its right (SimpleText's 60-pixel Cancel and Save: 9 and 15 pixels of
+  // white left of the ink, 10 and 16 right). Half a pixel of the left
+  // padding moves to the right (`pushButton.labelShift`), which moves the
+  // content box, and the label centered in it, half a pixel left: an odd
+  // room's half pixel falls left and an even room's snaps back. The sum is
+  // the spacing class's, so a label-sized button keeps its width (Don't Save
+  // stays 85). It is the box's, not an inherited `text-indent`, so a plain
+  // label, an inline child, an inline-block child and a block child (an
+  // icon-and-label wrapper) are all placed alike. A host that sets its own
+  // padding gets that padding exactly.
+  .classicyButton:is(.classicyButtonPaddingSm, .classicyButtonPaddingMd, .classicyButtonPaddingLg, .classicyButtonPaddingXl) {
+    padding-left: calc(var(--classicy-button-padding-inline) - var(--push-button-label-shift));
+    padding-right: calc(var(--classicy-button-padding-inline) + var(--push-button-label-shift));
   }
 
   :where(.classicyButton).default:focus-visible {

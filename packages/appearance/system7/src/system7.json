@@ -187,7 +187,8 @@
 			},
 			"pushButton": {
 				"lineHeight": 16,
-				"textLift": 2
+				"textLift": 2,
+				"labelShift": 0.5
 			},
 			"headerStrip": {
 				"height": 17,
@@ -503,7 +504,8 @@
 				},
 				"pushButton": {
 					"lineHeight": 16,
-					"textLift": 2
+					"textLift": 2,
+					"labelShift": 0.5
 				},
 				"headerStrip": {
 					"height": 17,
@@ -821,7 +823,8 @@
 				},
 				"pushButton": {
 					"lineHeight": 16,
-					"textLift": 2
+					"textLift": 2,
+					"labelShift": 0.5
 				},
 				"headerStrip": {
 					"height": 17,

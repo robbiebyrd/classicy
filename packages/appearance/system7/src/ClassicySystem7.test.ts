@@ -491,6 +491,7 @@ describe("the System 7 appearance package", () => {
 				"--alert-layout-other-button-inset": "73px",
 				"--push-button-line-height": "16px",
 				"--push-button-text-lift": "2px",
+				"--push-button-label-shift": "0.5px",
 				"--header-strip-height": "17px",
 				"--header-strip-rule": "3px",
 				"--button-default-ring": "3px",

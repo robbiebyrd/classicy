@@ -968,16 +968,31 @@ describe("system7.scss (compiled)", () => {
 		// FrameRoundRect's corners: four sides and two rectangles a corner for
 		// the button, four sides and six rectangles a corner for the ring.
 		// Story 0217-etx: QuickDraw centered a label on whole pixels, an odd
-		// pixel of room on its right (SimpleText's 60-pixel Cancel and Save);
-		// the indent's percentage keeps a label-sized button's width.
+		// pixel of room on its right (SimpleText's 60-pixel Cancel and Save).
+		// Review N-1 (fix round 2): the nudge is the content box's, half a
+		// pixel of the left padding moved to the right, not an inherited
+		// `text-indent`, so a plain label, an inline child, an inline-block
+		// child and a block child are placed alike; the padding's sum, and so
+		// a label-sized button's width, is the base sheet's.
 		it("centers a push button's label with its odd pixel of room on the right", () => {
-			expect(rule(".classicyButton")).toMatch(
-				/text-indent: max\(var\(--box-pixel\) \* -1, -100000%\);/,
+			const padded =
+				".classicyButton:is(.classicyButtonPaddingSm, .classicyButtonPaddingMd, .classicyButtonPaddingLg, .classicyButtonPaddingXl)";
+			const declarations = rule(padded);
+			expect(declarations).toMatch(
+				/padding-left: calc\(var\(--classicy-button-padding-inline\) - var\(--push-button-label-shift\)\);/,
 			);
-			// Review M-2: the indent inherits, so a block or inline-block
-			// child of a button (an icon-and-label wrapper) would indent its
-			// own first line again; the button's children take none.
-			expect(rule(".classicyButton > *")).toMatch(/text-indent: 0;/);
+			expect(declarations).toMatch(
+				/padding-right: calc\(var\(--classicy-button-padding-inline\) \+ var\(--push-button-label-shift\)\);/,
+			);
+			// No inherited nudge: a child's own line takes no indent, so no
+			// rule has to reset one.
+			const buttonRules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
+				([, header]) => /\.classicyButton/.test(header),
+			);
+			expect(buttonRules.length).toBeGreaterThan(0);
+			for (const [, , declarations] of buttonRules)
+				expect(declarations).not.toMatch(/text-indent/);
+			expect(rule(".classicyButton > *")).toBe("");
 		});
 
 		it("draws the push button and its default ring as pixel art, not a radius", () => {

@@ -1121,7 +1121,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs |
+| `ClassicyButton` | `isDefault?`, `disabled?`, `depressed?` (draw it held down, e.g. while its menu is open), `onClickFunc?`, `buttonShape? ("rectangle"\|"square")`, `buttonSize? ("medium"\|"small")`, `buttonType?`, `padding?/margin? ("sm"\|"md"\|"lg"\|"xl")` | forwardRef to `<button>`; accepts remaining button HTML attrs. Each `padding` class names its horizontal padding `--classicy-button-padding-inline` (both sides in the base sheet), so a package can move part of it from one side to the other and keep the sum (System 7's `pushButton.labelShift`) |
 | `ClassicyBevelButton` | `mode? ("push"\|"toggle"\|"radio"\|"popup")`, `bevelWidth? ("small"\|"medium"\|"large")`, `icon?`, `on?`, `mixed?`, `onChangeFunc?(on)`, `popupArrow? ("small"\|"large")`, `popupDirection? ("horizontal"\|"vertical")`, `menuItems?` (`ClassicyMenuItem[]`), `popupContent?`, `popupTrigger? ("click"\|"hold")`, `popupPlacement? ("below"\|"right")`, `popupAlign? ("start"\|"center")`, `popupAnchorInset?` (`{top?, bottom?, left?, right?}`, or a function of the button returning one, called each time the surface opens), `popupHoldDelayMs? (500)`, `square?` (square bevel, as in a toolbar), `iconAlt?` (the icon's alt text; omit when the button has a text label), `className?` | auto-squares inside a toolbar. With `menuItems` (or `popupContent`, e.g. `ClassicyPopUpSlider`) it opens a Platinum menu below or to the right of itself (HIGOS8 p.32), flipping when there is no room. `click` trigger (default in `popup` mode): quick click = sticky menu, press held past the hold delay = standard press-drag-release menu. `hold` trigger (default in other modes): click keeps the button's own behavior, a long press shows the options (tool palettes), and a press let go anywhere (or lost) before the hold delay opens nothing. Enter/Space or Down Arrow open it from the keyboard |
 | `ClassicyHelpButton` | `onClickFunc?`, `label? ("Help")`, `disabled?`, `id?`, `className?` | HIG Help button (HIGOS8 p.86): 20 × 21 small-bevel button with the help glyph (system-art key `helpButton`); `label` is the accessible name. Place it lower left aligned with the push buttons (`margin-right: auto` in a right-aligned row), else upper right. `ClassicyAlert`'s `help` button role renders it |
 | `ClassicyButtonToolbar` / `ClassicyButtonToolbarGroup` | `children` *, `size? ("large"\|"medium"\|"small")` (toolbar only; default `"large"`), `className?` | auto dividers between groups; roving-tabindex keyboard nav |
@@ -3882,8 +3882,12 @@ Platinum (§1); its README lists what it ships.
   alert, 370 px outside, its message wrapped as 7.5 wraps it),
   `button.minWidth` 60 (SimpleText's Save and Cancel), a push button's
   label centered as QuickDraw centered it (an odd pixel of room on its
-  right, by a one-pixel negative `text-indent` that an intrinsic size
-  resolves as none), and an alert's label and message on one 16 px pitch.
+  right: `pushButton.labelShift` 0.5 moves half a pixel of the spacing
+  class's left padding to the right, the sum and so a label-sized button's
+  width unchanged, so a plain label and one wrapped in an inline,
+  inline-block or block child are placed alike; a host that sets its own
+  padding gets it exactly), and an alert's label and message on one 16 px
+  pitch.
 - **Alerts** (HIG p.201). The buttons that are neither the default nor
   Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
   other]`, the first `alertLayout.otherButtonInset` (73 px) from the inner
