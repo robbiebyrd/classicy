@@ -18,6 +18,7 @@ import {
 	withDefaultThemeColorFamilies,
 	withDefaultThemeMetrics,
 } from "@classicy/classicy";
+import { PLATINUM_ICON_DIMMING } from "./platinumIconDimming";
 // Both register at module load: the Platinum assets (system art, cursors,
 // wallpapers, fonts) and the Platinum sound pack. The sound pack must be
 // registered before the registration below, since the package is validated
@@ -143,4 +144,5 @@ registerClassicyAppearancePackage({
 	sounds: [platinumSoundPack],
 	hooks: platinumAppearanceHooks,
 	defaultScreenSaver: "bouncing-ball",
+	iconDimming: PLATINUM_ICON_DIMMING,
 });

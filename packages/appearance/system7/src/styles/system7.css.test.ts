@@ -559,8 +559,11 @@ describe("system7.scss (compiled)", () => {
 				"filter: invert(tan(atan2(var(--menu-bar-title-art-invert), var(--box-pixel))));",
 			);
 			// A hidden application's icon in the menu is dimmed, through the
-			// checker (review r0 Minor).
-			const hidden = rule(".classicyDesktopMenuAppHidden > p > img");
+			// checker (review r0 Minor), unless the core drew it dimmed by the
+			// package's rule (review r2 §3: `classicyIconDimmedImage`).
+			const hidden = rule(
+				".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)",
+			);
 			expect(hidden).toContain(
 				"mask-image: var(--classicy-art-dither-checker)",
 			);
@@ -2024,7 +2027,9 @@ describe("system7.scss (compiled)", () => {
 			// hidden application's icon's opacity (item 2) and the list view's
 			// selected icon.
 			expect(guarded.map(([, header]) => header.trim())).toEqual([
-				expect.stringContaining(".classicyDesktopMenuAppHidden > p > img"),
+				expect.stringContaining(
+					".classicyDesktopMenuAppHidden > p > img:not(.classicyIconDimmedImage)",
+				),
 				expect.stringContaining(
 					".classicyDesktopMenuAppSwitcher.open > p > img",
 				),
