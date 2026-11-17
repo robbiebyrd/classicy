@@ -112,7 +112,10 @@ export interface ClassicyScrollAreaProps
 	 * for one, to portal into. None by default.
 	 */
 	head?: ReactNode;
-	/** Called with whether the area draws a head, once and on each change. */
+	/**
+	 * Called with whether the area draws a head, once and on each change,
+	 * and with `false` when it unmounts while drawing one.
+	 */
 	onHeadChange?: (present: boolean) => void;
 }
 
@@ -372,9 +375,21 @@ export const ClassicyScrollArea = forwardRef<
 	const showHead = head !== undefined || headRequests > 0;
 	const onHeadChangeRef = useRef(onHeadChange);
 	onHeadChangeRef.current = onHeadChange;
+	// The last answer given, so an unmount with a head reports it gone (a
+	// window keeps its header's mark from it) and one without says nothing.
+	const reportedHeadRef = useRef(false);
 	useEffect(() => {
+		reportedHeadRef.current = showHead;
 		onHeadChangeRef.current?.(showHead);
 	}, [showHead]);
+	useEffect(
+		() => () => {
+			if (!reportedHeadRef.current) return;
+			reportedHeadRef.current = false;
+			onHeadChangeRef.current?.(false);
+		},
+		[],
+	);
 
 	// Measure the viewport: which bars it needs, and where each thumb sits.
 	// Runs on every layout change and scroll; sets state only on a change.

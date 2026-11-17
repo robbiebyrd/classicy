@@ -762,6 +762,37 @@ describe("ClassicyScrollArea's head", () => {
 		expect(onHeadChange).toHaveBeenLastCalledWith(false);
 	});
 
+	// Review r0 issue 4: a window marks its header while its contents draw a
+	// head, so an area unmounting with one says it is gone.
+	it("says its head is gone when it unmounts with one", () => {
+		const onHeadChange = vi.fn();
+		const { rerender } = render(
+			<div>
+				<ClassicyScrollArea
+					head={<span>Titles</span>}
+					onHeadChange={onHeadChange}
+				>
+					<p>Content</p>
+				</ClassicyScrollArea>
+			</div>,
+		);
+		expect(onHeadChange).toHaveBeenLastCalledWith(true);
+		rerender(<div />);
+		expect(onHeadChange).toHaveBeenLastCalledWith(false);
+		expect(onHeadChange.mock.calls).toEqual([[true], [false]]);
+	});
+
+	it("says nothing more when it unmounts with no head", () => {
+		const onHeadChange = vi.fn();
+		const { unmount } = render(
+			<ClassicyScrollArea onHeadChange={onHeadChange}>
+				<p>Content</p>
+			</ClassicyScrollArea>,
+		);
+		unmount();
+		expect(onHeadChange.mock.calls).toEqual([[false]]);
+	});
+
 	it("lends no head outside a scroll area", () => {
 		let seen: HTMLElement | null | undefined;
 		const Asker = () => {
