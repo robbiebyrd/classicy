@@ -359,7 +359,11 @@ Measured from the framebuffer files (exact pixels).
   column after the one TextEdit draws its caret in for that offset (the
   "i" of "untitled" at 26, the caret at 25; the "n" at 12). Both run to 198,
   inside the two white columns and the frame (199 to 201), and are the same
-  at both depths.
+  at both depths. The rule is the selection's kind, not its offset: a tail
+  scrolled so its first character sits at the field's left edge (a browser
+  field scrolls sideways; TextEdit's dialog fields wrap instead) starts at
+  that character's pen position (4), not at the whole line's 3, which the
+  package keys on the core's `data-classicy-selection="tail"`.
 - **Application menu title** (`*-755-appmenu-*.png`): the front
   application's small icon alone, in a title 34 px wide whose right edge is
   6 px from the screen's.

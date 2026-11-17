@@ -18,6 +18,7 @@ export type VocabularyInput = {
 	attributes: {
 		"data-classicy-control": string[];
 		"data-classicy-role": string[];
+		"data-classicy-selection": string[];
 		"data-classicy-part": string[];
 	};
 };
@@ -31,6 +32,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const ATTRIBUTE_NAMES = [
 	"data-classicy-control",
 	"data-classicy-role",
+	"data-classicy-selection",
 	"data-classicy-part",
 ] as const;
 
@@ -148,6 +150,7 @@ export type ClassicyComponentName = keyof typeof CLASSICY_COMPONENT;
 export const CLASSICY_PART_ATTRIBUTE = {
 	control: "data-classicy-control",
 	role: "data-classicy-role",
+	selection: "data-classicy-selection",
 	part: "data-classicy-part",
 } as const;
 `;

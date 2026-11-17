@@ -368,6 +368,48 @@ describe("ClassicyInput's selected state", () => {
 		}
 	});
 
+	// Review r2, N-2: a tail scrolled so its first character sits at the
+	// field's left edge publishes a start of 0px, as the whole text does, so
+	// the field also says which it is: `data-classicy-selection` is "all"
+	// for a selection from the text's first character, "tail" for one from
+	// a later one, and absent with the state.
+	it("says whether its selection starts at the text's start, whatever the offset", async () => {
+		const rect = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function (this: HTMLElement) {
+				const width =
+					this.tagName === "SPAN" ? (this.textContent ?? "").length * 7 : 0;
+				return new DOMRect(0, 0, width, 0);
+			});
+		try {
+			render(<ClassicyInput id="name" prefillValue="untitled 1" />);
+			const kind = () => field().getAttribute("data-classicy-selection");
+			const start = () =>
+				field().style.getPropertyValue("--classicy-input-selection-start");
+			field().focus();
+			field().select();
+			await vi.waitFor(() => expect(kind()).toBe("all"));
+			field().setSelectionRange(4, 10);
+			await vi.waitFor(() => expect(kind()).toBe("tail"));
+			// Scrolled so the tail's first character is at the left edge.
+			Object.defineProperty(field(), "scrollLeft", {
+				configurable: true,
+				value: 28,
+			});
+			field().setSelectionRange(5, 10);
+			field().setSelectionRange(4, 10);
+			await vi.waitFor(() => expect(start()).toBe("0px"));
+			expect(kind()).toBe("tail");
+			field().setSelectionRange(0, 10);
+			await vi.waitFor(() => expect(kind()).toBe("all"));
+			field().setSelectionRange(10, 10);
+			await vi.waitFor(() => expect(isSelected()).toBe(false));
+			expect(kind()).toBeNull();
+		} finally {
+			rect.mockRestore();
+		}
+	});
+
 	it("measures a password field's selection start over its masked text", async () => {
 		const measured: string[] = [];
 		const rect = vi

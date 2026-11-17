@@ -76,19 +76,23 @@ $fields: ".classicyInput, .classicySpinner";
   // ground. TextEdit's whole line starts a pixel left of the text's pen
   // position, a tail at its first character's pen position, a pixel further
   // right (`*-755-textfield-tail-selection*.png`: the highlight on the
-  // column after the caret's), so a start past the text's left edge adds a
-  // pixel (`min(start, 1 px)`; one scrolled off, left of it, stays covered
-  // from the inset). After the rules above, which it outranks or follows.
+  // column after the caret's). Which it is comes from the core's
+  // `data-classicy-selection` ("tail": the selection starts after the
+  // text's first character), not from the offset, which is 0 for a tail
+  // scrolled to the field's left edge as for the whole text. A start
+  // scrolled off, left of the edge, runs under the white ring and stays
+  // covered from the inset. After the rules above, which it outranks or
+  // follows.
   .classicyInput.selected {
     background-image: linear-gradient(var(--color-highlight), var(--color-highlight));
     background-repeat: no-repeat;
     background-position: right top;
-    background-size: calc(
-        100% - var(--text-field-inset) + #{$px} - var(--classicy-input-selection-start) -
-          min(var(--classicy-input-selection-start), #{$px})
-      )
-      100%;
+    background-size: calc(100% - var(--text-field-inset) + #{$px} - var(--classicy-input-selection-start)) 100%;
     box-shadow: inset 0 0 0 calc(var(--text-field-inset) - #{$px}) var(--color-white);
+  }
+
+  .classicyInput.selected[data-classicy-selection="tail"] {
+    background-size: calc(100% - var(--text-field-inset) - var(--classicy-input-selection-start)) 100%;
   }
 
   // The date and time pickers: one field frame around their parts.

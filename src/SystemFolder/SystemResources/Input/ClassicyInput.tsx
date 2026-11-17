@@ -183,9 +183,15 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 		// TextEdit highlighted such a selection to the field's right edge,
 		// from where it starts, which the field publishes as
 		// `--classicy-input-selection-start` (px from its content box's left
-		// edge, its own scrolling included) while the state is set.
+		// edge, its own scrolling included) while the state is set, and
+		// whether it starts at the text's first character as
+		// `data-classicy-selection` ("all", else "tail"): a tail scrolled to
+		// the left edge starts at 0px, as the whole text does.
 		// `isDefault` keeps its deprecated modifier class below.
-		const [selection, setSelection] = useState<{ start: number } | null>(null);
+		const [selection, setSelection] = useState<{
+			start: number;
+			fromTextStart: boolean;
+		} | null>(null);
 		const readSelectionRef = useRef<() => void>(() => {});
 		// Read again on every event that can change the selection or the
 		// focus: `select` (a script's `select()`, a drag), `selectionchange`
@@ -221,7 +227,12 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 				const x = Math.round(
 					classicyInputTextWidth(el, el.value.slice(0, start)) - el.scrollLeft,
 				);
-				setSelection((prev) => (prev?.start === x ? prev : { start: x }));
+				const fromTextStart = start === 0;
+				setSelection((prev) =>
+					prev?.start === x && prev.fromTextStart === fromTextStart
+						? prev
+						: { start: x, fromTextStart },
+				);
 			};
 			readSelectionRef.current = read;
 			const readNextFrame = () => {
@@ -327,6 +338,9 @@ export const ClassicyInput: FunctionalComponent<ClassicyInputProps> =
 					disabled={disabled}
 					value={value}
 					placeholder={placeholder}
+					data-classicy-selection={
+						selection ? (selection.fromTextStart ? "all" : "tail") : undefined
+					}
 					className={classNames(
 						"classicyInput",
 						appearance.className,

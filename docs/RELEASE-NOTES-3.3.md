@@ -74,7 +74,9 @@ folders drawn two rows higher in the list, the disk's name condensed, the
 files a Save box dims dimmed icon and all, the Save box's name field a row
 lower and its default name selected when it opens. A text field's
 selection that runs to its text's end is highlighted, as TextEdit did, from
-its first character to the field's right edge.
+its first character to the field's right edge: the whole line from a pixel
+left of the text, a tail from its first character's pen position, scrolled
+or not.
 
 **Mixing versions of the two Appearance Packages is unsupported.** Install
 `@classicy/classicy`, `@classicy/appearance-platinum` and
@@ -431,7 +433,10 @@ diverge, so a logo registered through Platinum's
   class while it has focus and its selection runs to its text's end (the
   whole text, or its tail), and publishes where that selection starts, in
   px from its text's left edge with its own scrolling, as
-  `--classicy-input-selection-start` on the `<input>`; it reads the
+  `--classicy-input-selection-start` on the `<input>`, and whether it
+  starts at the text's first character as the new part attribute
+  `data-classicy-selection` (`all`, else `tail`; a tail scrolled to the
+  field's left edge starts at 0 px as the whole text does); it reads the
   selection again on `selectionchange` at the document (Chrome before 127
   and Safari 16 fire it nowhere else), on a key press and the frame after
   it, on a pointer release wherever it lands while the field has the focus

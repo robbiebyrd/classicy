@@ -1613,8 +1613,10 @@ describe("system7.scss (compiled)", () => {
 		// observation 2 (`*-755-textfield-tail-selection*.png`): the whole
 		// line's highlight starts a pixel left of the text's pen position,
 		// but a tail's starts at its first character's pen position, a pixel
-		// further right; `min(start, 1 px)` adds that pixel for any start
-		// past the text's left edge, and none at it.
+		// further right. Review r2, N-2: that pixel is keyed on the core's
+		// `data-classicy-selection="tail"` (the selection starts after the
+		// text's first character), not on the offset, which is 0 for a tail
+		// scrolled to the field's left edge as for the whole text.
 		it("highlights a field's line to its right edge from the selection's start", () => {
 			const selected = rule(".classicyInput.selected");
 			expect(selected).not.toMatch(/background-color:/);
@@ -1624,8 +1626,14 @@ describe("system7.scss (compiled)", () => {
 			expect(selected).toMatch(/background-repeat: no-repeat;/);
 			expect(selected).toMatch(/background-position: right top;/);
 			expect(selected).toMatch(
-				/background-size: calc\(100% - var\(--text-field-inset\) \+ var\(--box-pixel\) - var\(--classicy-input-selection-start\) - min\(var\(--classicy-input-selection-start\), var\(--box-pixel\)\)\) 100%;/,
+				/background-size: calc\(100% - var\(--text-field-inset\) \+ var\(--box-pixel\) - var\(--classicy-input-selection-start\)\) 100%;/,
 			);
+			expect(
+				rule(".classicyInput.selected[data-classicy-selection=tail]"),
+			).toMatch(
+				/background-size: calc\(100% - var\(--text-field-inset\) - var\(--classicy-input-selection-start\)\) 100%;/,
+			);
+			expect(selected).not.toMatch(/min\(/);
 			expect(selected).toMatch(
 				/box-shadow: inset 0 0 0 calc\(var\(--text-field-inset\) - var\(--box-pixel\)\) var\(--color-white\);/,
 			);

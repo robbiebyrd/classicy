@@ -592,6 +592,7 @@
 	"attributes": {
 		"data-classicy-control": ["close", "zoom", "collapse"],
 		"data-classicy-role": ["default", "cancel", "other"],
+		"data-classicy-selection": ["all", "tail"],
 		"data-classicy-part": [
 			"apple",
 			"app",
