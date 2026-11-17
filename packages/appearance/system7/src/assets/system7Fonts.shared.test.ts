@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { classicyFontStylesheet } from "../../../../../bin/classicyFontStylesheet";
 import { PLATINUM_FONT_FACES } from "../../../platinum/src/assets/platinumFonts.internal";
 import { SYSTEM7_FONT_FACES } from "./system7Fonts.internal";
 
@@ -88,4 +89,43 @@ describe("Platinum and System 7 loaded together", () => {
 			SYSTEM7_FONT_FACES.map(key).sort(),
 		);
 	}, 60_000);
+});
+
+// Strict CSP (story 0215-sa3, item 4): a host that links both packages'
+// fonts stylesheets declares the five shared faces twice, each with its own
+// package's URL. A browser keeps the last rule of identical descriptors and
+// loads only that one file, so nothing downloads twice, provided the two
+// rules differ in nothing but the URL. Were one to differ (a unicode-range,
+// a weight), both would stay in the family and both might load.
+describe("the two static fonts stylesheets, both linked", () => {
+	const sheet = (
+		faces: readonly {
+			family: string;
+			file: string;
+			weight: string;
+			style: string;
+		}[],
+		name: string,
+	) =>
+		classicyFontStylesheet(faces, (face) => `assets/${face.file}.woff2`, name)
+			.trim()
+			.split("\n");
+	/** A rule with its url() blanked: what the browser matches faces by. */
+	const withoutUrl = (rule: string) => rule.replace(/url\("[^"]*"\)/, "url()");
+
+	it("declare each shared face with the same descriptors, apart from the URL", () => {
+		const platinum = new Map(
+			PLATINUM_FONT_FACES.map((face, i) => [
+				key(face),
+				sheet(PLATINUM_FONT_FACES, "platinum")[i],
+			]),
+		);
+		const system7 = sheet(SYSTEM7_FONT_FACES, "system7");
+		expect(system7).toHaveLength(SYSTEM7_FONT_FACES.length);
+		SYSTEM7_FONT_FACES.forEach((face, i) => {
+			const other = platinum.get(key(face));
+			expect(other, key(face)).toBeDefined();
+			expect(withoutUrl(system7[i])).toBe(withoutUrl(other as string));
+		});
+	});
 });

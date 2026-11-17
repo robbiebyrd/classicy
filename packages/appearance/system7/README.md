@@ -135,7 +135,15 @@ Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
 A host that loads Platinum too links Platinum's two stylesheets as well
 (its README); Platinum's fonts stylesheet already holds this package's five
 faces (the same files), so such a host may leave this package's fonts
-stylesheet out.
+stylesheet out. Linking both is harmless, though: the five shared faces are
+then declared twice with identical descriptors and each package's own URL
+(`assets/Geneva-normal-normal.woff2` in both, resolved against its own
+stylesheet), and a browser keeps the last rule of identical descriptors and
+requests only that file (one request in Chromium), so nothing downloads
+twice. The package that is linked last supplies those five files, so serve
+its `dist/assets/`. The two stylesheets are not deduplicated at build time
+because each must stand alone for a host that loads one package, which needs
+all of its faces under its own URLs.
 
 Link the files rather than importing `classicy-system7.fonts.css` through
 your own bundler: Vite inlines the small Monaco font as a `data:` URL, which

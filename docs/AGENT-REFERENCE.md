@@ -134,6 +134,19 @@ resolves against the stylesheet, so serve the Platinum package's
 `verify:dist` fails the build if the file declares any other faces than the
 runtime registers, or names a file that is not in `dist/assets/`.
 
+A host that links both packages' fonts stylesheets declares the five faces
+they share (ChicagoFLF, Geneva in three styles, Monaco) twice, each with its
+own package's `url("assets/<file>.woff2")` and otherwise identical descriptors.
+That does not download them twice: among `@font-face` rules of one family with
+identical descriptors a browser keeps the last, and requests only its file (one
+request in Chromium for two linked sheets), so the package linked last supplies
+the five files and its `dist/assets/` must be served. The sheets are not
+deduplicated at build time, since each has to stand alone for a host that loads
+one package; `system7Fonts.shared.test.ts` pins that the two rules of a shared
+face differ in the URL alone. A host loading both may also simply leave System
+7's fonts stylesheet out (Platinum's holds all five). The runtime registration
+already writes each shared face once (story 0210-aal).
+
 A host that *imports* `classicy-platinum.fonts.css` through its own bundler
 (instead of linking it) has the bundler process the font `url()`s: Vite inlines
 the small Monaco font as a `data:` URL, and `font-src 'self'` blocks that. A

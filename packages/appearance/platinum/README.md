@@ -90,6 +90,10 @@ order: the core's, then this package's two.
 ```
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
+A host that also loads System 7 may link its fonts stylesheet too: the five
+faces the two share are declared twice with identical descriptors, the last
+rule wins, and the browser requests only that file, so none downloads twice
+(System 7's README has the detail).
 
 Link the files rather than importing `classicy-platinum.fonts.css` through your
 own bundler: Vite inlines the small Monaco font as a `data:` URL, which
