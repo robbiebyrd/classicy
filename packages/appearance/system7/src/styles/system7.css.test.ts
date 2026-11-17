@@ -553,6 +553,11 @@ describe("system7.scss (compiled)", () => {
 			);
 			expect(menu).toMatch(/right: 0;/);
 			expect(menu).toMatch(/left: auto;/);
+			// Open, its icon inverts with the highlight in 1-bit, by
+			// menuBar.titleArtInvert as a number (review r1 item 1).
+			expect(css).toContain(
+				"filter: invert(tan(atan2(var(--menu-bar-title-art-invert), var(--box-pixel))));",
+			);
 			// A hidden application's icon in the menu is dimmed, through the
 			// checker (review r0 Minor).
 			expect(rule(".classicyDesktopMenuAppHidden > p > img")).toContain(
@@ -2002,20 +2007,23 @@ describe("system7.scss (compiled)", () => {
 		// become `none` over the base sheet's darkening: no highlight. So the
 		// rule, and only it, sits in an `@supports` test of the functions
 		// themselves (no `var()`), and such a browser keeps the darkening.
-		it("guards the list-view icon's filter with @supports for tan() and atan2()", () => {
+		it("guards each icon filter with @supports for tan() and atan2()", () => {
 			const guarded = [
 				...css.matchAll(
 					/@supports \(filter: invert\(tan\(atan2\(1em, 1em\)\)\)\) \{\s*([^{}]+)\{([^{}]*)\}\s*\}/g,
 				),
 			];
-			expect(guarded).toHaveLength(1);
-			const [, header, declarations] = guarded[0];
-			expect(header.trim()).toBe(
+			// The list view's selected icon, and the open Application menu
+			// title's icon (review r1 item 1).
+			expect(guarded.map(([, header]) => header.trim())).toEqual([
+				expect.stringContaining(".classicyDesktopMenuAppSwitcher.open > p > img"),
 				".classicyDesktop[data-classicy-appearance=system7] .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
-			);
-			expect(declarations).toMatch(/filter: invert\(tan\(atan2\(/);
-			// Nothing outside the guard uses the functions.
-			const outside = css.replace(guarded[0][0], "");
+			]);
+			for (const [, , declarations] of guarded)
+				expect(declarations).toMatch(/filter: invert\(tan\(atan2\(/);
+			// Nothing outside the guards uses the functions.
+			let outside = css;
+			for (const [block] of guarded) outside = outside.replace(block, "");
 			expect(outside).not.toMatch(/atan2\(|tan\(/);
 		});
 

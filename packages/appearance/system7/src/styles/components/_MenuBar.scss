@@ -206,6 +206,16 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
       margin: 0;
     }
 
+    // Open, its icon inverts with the highlight in 1-bit (QuickDraw inverts
+    // the title's rectangle: `*-755-appmenu-open.png` is the closed title
+    // negated) and draws as it is in color, by `menuBar.titleArtInvert` as a
+    // number (1 or 0), as a selected icon's filter is (_Icon.scss).
+    @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {
+      &.open > p > img {
+        filter: invert(tan(atan2(var(--menu-bar-title-art-invert), #{$px})));
+      }
+    }
+
     // Its menu hangs from the bar's line with its right side under the
     // title's right edge (`*-755-appmenu-open.png`), not its left.
     // (A hidden application's row is below, outside the titles.)
