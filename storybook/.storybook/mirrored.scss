@@ -34,7 +34,6 @@
 @use "pkg:@classicy/appearance-platinum/scss/components/ComboBox";
 @use "pkg:@classicy/appearance-platinum/scss/components/ControlGroup";
 @use "pkg:@classicy/appearance-platinum/scss/components/PopUpMenu";
-@use "pkg:@classicy/appearance-platinum/scss/components/DriveSetupList";
 @use "pkg:@classicy/appearance-platinum/scss/components/Assistant";
 @use "pkg:@classicy/appearance-platinum/scss/components/ProgressBar";
 @use "pkg:@classicy/appearance-platinum/scss/components/Icon";
@@ -73,7 +72,6 @@
   @include ComboBox.comboBox;
   @include ControlGroup.controlGroup;
   @include PopUpMenu.popUpMenu;
-  @include DriveSetupList.driveSetupList;
   @include Assistant.assistant;
   @include ProgressBar.progressBar;
   @include Icon.icon;

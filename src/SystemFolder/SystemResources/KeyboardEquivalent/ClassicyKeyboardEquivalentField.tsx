@@ -11,6 +11,7 @@ import {
 	type ClassicyKeyboardEquivalentDialogProps,
 } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentDialog";
 import { spellKeyboardEquivalent } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
+import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 
 export type ClassicyKeyboardEquivalentFieldProps = Omit<
 	ClassicyKeyboardEquivalentDialogProps,
@@ -76,13 +77,13 @@ export const ClassicyKeyboardEquivalentField: FunctionalComponent<
 	return (
 		<ClassicyControlGroup label={label} className={className} style={style}>
 			<div className="classicyKeyboardEquivalentField">
-				<output
+				<ClassicyOutput
 					id={`${id}-value`}
 					className="classicyKeyboardEquivalentDisplay"
-					aria-label={label}
-				>
-					{spellKeyboardEquivalent(value) || " "}
-				</output>
+					ariaLabel={label}
+					// A no-break space keeps an empty display at its full height.
+					value={spellKeyboardEquivalent(value) || " "}
+				/>
 				<ClassicyButton
 					id={id}
 					disabled={disabled}

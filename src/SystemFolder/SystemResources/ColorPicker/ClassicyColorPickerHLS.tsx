@@ -1,6 +1,7 @@
 import classNames from "classnames";
 import type { ChangeEvent, CSSProperties, FC } from "react";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
+import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import {
 	hlsToRgb,
 	intToRgb,
@@ -103,14 +104,14 @@ export const ClassicyColorPickerHLS: FC<ClassicyColorPickerHLSProps> = ({
 						] as const
 					).map(([label, field, val, unit]) => (
 						<div key={field} className="classicyColorPickerWheelField">
-							<label htmlFor={`cp-hls-${field}`}>{label}:</label>
-							<input
+							<ClassicySpinner
 								id={`cp-hls-${field}`}
-								type="number"
-								min={0}
-								max={field === "h" ? 360 : 100}
-								value={val}
-								onChange={onFieldChange(field)}
+								labelTitle={`${label}:`}
+								labelPosition="left"
+								minValue={0}
+								maxValue={field === "h" ? 360 : 100}
+								prefillValue={val}
+								onChangeFunc={onFieldChange(field)}
 							/>
 							<span className="classicyColorPickerWheelUnit">{unit}</span>
 						</div>

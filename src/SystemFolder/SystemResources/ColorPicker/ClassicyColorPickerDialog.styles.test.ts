@@ -107,7 +107,9 @@ describe("ClassicyColorPickerDialog layout", () => {
 			const fields = rule(".classicyColorPickerWheelFields");
 			expect(fields["flex-shrink"]).toBe("0");
 			expect(
-				rule(".classicyColorPickerWheelField label")["min-width"],
+				rule(".classicyColorPickerWheelField .classicyControlLabel")[
+					"min-width"
+				],
 			).toBeUndefined();
 		});
 

@@ -455,11 +455,13 @@ describe("compiled SCSS of the touched components", () => {
 		}
 	});
 
-	it("DriveSetupList: .classicyDriveSetupListRow.selected", () => {
+	it("DriveSetupList: :where(.classicyDriveSetupListRow).selected", () => {
 		const css = compile(
 			"src/SystemFolder/ControlPanels/DriveSetup/DriveSetupList.scss",
 		);
-		expect(css).toContain(".classicyDriveSetupListRow.selected {");
+		expect(css).toContain(
+			".classicyDriveSetupListTable :where(.classicyDriveSetupListRow).selected {",
+		);
 		expect(css).not.toContain("driveSetupList__row--selected");
 	});
 });

@@ -314,7 +314,7 @@ export const CLASSICY_THEME_DERIVATIONS: readonly ClassicyThemeDerivation[] = [
 	{
 		cssVar: "--layout-item-gap-half",
 		formula: "layout.itemGap / 2",
-		doc: "Half the item gap: the vertical padding of a compact list row, such as HyperCard's palette entries and add-action pop-up and Drive Setup's list cells (HyperCard.scss, DriveSetupList.scss). One role, one name (H-R19).",
+		doc: "Half the item gap: the vertical padding of a compact list row, such as HyperCard's palette entries (HyperCard.scss). One role, one name (H-R19).",
 		compute: (i) => i.measurements.layout.itemGap / 2,
 	},
 	{

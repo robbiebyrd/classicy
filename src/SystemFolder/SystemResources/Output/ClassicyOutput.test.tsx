@@ -50,6 +50,15 @@ describe("ClassicyOutput", () => {
 		expect(output).toHaveClass("classicyOutputInset", "classicyOutputMono");
 	});
 
+	it("names an unlabeled output with ariaLabel", () => {
+		render(
+			<ClassicyOutput id="combo" ariaLabel="Keyboard equivalent" value="⌘K" />,
+		);
+		expect(
+			screen.getByRole("status", { name: "Keyboard equivalent" }),
+		).toHaveTextContent("⌘K");
+	});
+
 	it("renders a ClassicyControlLabel tied to the output", () => {
 		render(<ClassicyOutput id="total" value={42} label="Total" />);
 		const label = screen.getByText("Total");

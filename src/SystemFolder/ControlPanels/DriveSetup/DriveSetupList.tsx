@@ -1,9 +1,11 @@
 import "./DriveSetupList.scss";
 import classNames from "classnames";
 import type { CSSProperties, FC } from "react";
-import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
-import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import {
+	ClassicyTable,
+	type ClassicyTableColumn,
+} from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import type { DriveRow } from "./ClassicyDriveSetupUtils";
 
 type DriveSetupListProps = {
@@ -15,6 +17,17 @@ type DriveSetupListProps = {
 	/** Inline style for the root element. */
 	style?: CSSProperties;
 };
+
+// Drive Setup's columns, in the old 40/24/14/11/11 proportions. The table is
+// laid out fixed at full width, so columns narrower in total than the list
+// stretch to fill it; wider ones would overflow it.
+const DRIVE_COLUMNS: ClassicyTableColumn<DriveRow>[] = [
+	{ id: "name", title: "Volume Name(s)", accessor: (d) => d.name, width: 120 },
+	{ id: "type", title: "Type", accessor: (d) => d.type, width: 72 },
+	{ id: "bus", title: "Bus", accessor: (d) => d.bus, width: 42 },
+	{ id: "id", title: "ID", accessor: (d) => d.id, width: 33 },
+	{ id: "lun", title: "LUN", accessor: (d) => d.lun, width: 33 },
+];
 
 export const DriveSetupList: FC<DriveSetupListProps> = ({
 	drives,
@@ -29,38 +42,18 @@ export const DriveSetupList: FC<DriveSetupListProps> = ({
 			style={style}
 		>
 			<ClassicyControlLabel label="List of Drives" />
-			<ClassicyScrollArea className="classicyDriveSetupListTable">
-				<table className="classicyDriveSetupListGrid">
-					<thead className="classicyDriveSetupListHead">
-						<tr>
-							<th>Volume Name(s)</th>
-							<th>Type</th>
-							<th>Bus</th>
-							<th>ID</th>
-							<th>LUN</th>
-						</tr>
-					</thead>
-					<tbody>
-						{drives.map((d) => (
-							<tr
-								key={d.name}
-								aria-selected={selected === d.name}
-								className={classNames(
-									"classicyDriveSetupListRow",
-									classicyStateClasses({ selected: selected === d.name }),
-								)}
-								onClick={() => onSelect(d.name)}
-							>
-								<td>{d.name}</td>
-								<td>{d.type}</td>
-								<td>{d.bus}</td>
-								<td>{d.id}</td>
-								<td>{d.lun}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</ClassicyScrollArea>
+			<ClassicyTable
+				className="classicyDriveSetupListTable"
+				columns={DRIVE_COLUMNS}
+				rows={drives}
+				getRowId={(d) => d.name}
+				selectionMode="single"
+				selected={selected ? [selected] : []}
+				onSelectionChange={(ids) => {
+					if (ids[0]) onSelect(ids[0]);
+				}}
+				rowClassName={() => "classicyDriveSetupListRow"}
+			/>
 		</div>
 	);
 };

@@ -53,7 +53,7 @@ describe("DriveSetupList", () => {
 		).toBeInTheDocument();
 	});
 
-	it("marks the selected row with aria-selected on its table row", () => {
+	it("marks the selected row on its table row", () => {
 		render(
 			<DriveSetupList
 				drives={drives}
@@ -62,6 +62,22 @@ describe("DriveSetupList", () => {
 			/>,
 		);
 		const selectedRow = screen.getByText("Macintosh HD").closest("tr");
-		expect(selectedRow).toHaveAttribute("aria-selected", "true");
+		expect(selectedRow).toHaveClass("selected");
+		expect(selectedRow).toHaveAttribute("data-selected", "true");
+	});
+
+	it("is a ClassicyTable: arrow keys select a drive", () => {
+		const onSelect = vi.fn();
+		const { container } = render(
+			<DriveSetupList drives={drives} selected={null} onSelect={onSelect} />,
+		);
+		const list = container.querySelector(
+			".classicyTableContainer.classicyDriveSetupListTable",
+		) as HTMLElement;
+		expect(list).not.toBeNull();
+		fireEvent.keyDown(list, { key: "End" });
+		expect(onSelect).toHaveBeenCalledWith("Backup Disk");
+		fireEvent.keyDown(list, { key: "ArrowUp" });
+		expect(onSelect).toHaveBeenLastCalledWith("Macintosh HD");
 	});
 });

@@ -8,6 +8,7 @@
  */
 
 import {
+	ClassicyButton,
 	type HCAction,
 	type HCPluginAction,
 	type HCStack,
@@ -53,15 +54,14 @@ const DemoMap: FC<HyperCardPartProps> = ({
 			<div>Controls: {locked ? "🔒 locked" : "unlocked"}</div>
 			{value && <div>Selected: {value}</div>}
 			{!locked && (
-				<button
-					type="button"
-					onClick={() => {
+				<ClassicyButton
+					onClickFunc={() => {
 						setValue(`pin @ ${lat},${lon}`);
 						fire();
 					}}
 				>
 					Drop pin
-				</button>
+				</ClassicyButton>
 			)}
 		</div>
 	);
