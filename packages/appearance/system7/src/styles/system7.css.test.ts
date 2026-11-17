@@ -1954,8 +1954,7 @@ describe("system7.scss (compiled)", () => {
 		// is 1 in 1-bit (inverted, no darkening) and 0 in color (the base
 		// sheet's contrast(0.75) brightness(0.5), unchanged).
 		it("inverts a selected list-view icon in 1-bit by the same knob, and never one drawing its selected image", () => {
-			const N =
-				"tan(atan2(var(--icon-selection-invert), var(--box-pixel)))";
+			const N = "tan(atan2(var(--icon-selection-invert), var(--box-pixel)))";
 			expect(
 				rule(
 					".classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage)",
