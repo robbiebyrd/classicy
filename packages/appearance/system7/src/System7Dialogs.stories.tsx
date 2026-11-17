@@ -14,6 +14,7 @@ import {
 	ClassicyButton,
 	type ClassicyFileDialogVolume,
 	ClassicyFileOpenDialog,
+	ClassicyFileSaveDialog,
 	ClassicyIcons,
 	ClassicyProgressBar,
 	ClassicyWindow,
@@ -207,29 +208,53 @@ const fixedModal = () => (
 export const FixedModal: Story = { render: fixedModal };
 export const FixedModalColor = inColor(fixedModal);
 
-// The disk `*-755-dialog-standardfile-layout.png` shows: two SimpleText
-// documents and two folders, which fit; and the desktop, so Desktop is not
-// dimmed.
+// The disk `*-755-dialog-standardfile-layout.png` shows (two SimpleText
+// documents and two folders, which fit), and Apple Extras as
+// `*-dialog-standardfile-save.png` lists it (folders, and two files a save
+// dims); and the desktop, so Desktop is not dimmed.
+const documentIcon = ClassicyIcons.system.files.document;
 const macintoshHd: ClassicyFileDialogVolume = {
 	id: "fs-Macintosh HD",
 	label: "Macintosh HD",
 	icon: ClassicyIcons.system.drives.disk,
-	list: async () => [
-		{
-			id: "about-75",
-			name: "About System 7.5",
-			kind: "file",
-			icon: ClassicyIcons.system.files.document,
-		},
-		{
-			id: "about-755",
-			name: "About System 7.5.5 Update",
-			kind: "file",
-			icon: ClassicyIcons.system.files.document,
-		},
-		{ id: "apple-extras", name: "Apple Extras", kind: "folder" },
-		{ id: "system-folder", name: "System Folder", kind: "folder" },
-	],
+	list: async (path) =>
+		path[0] === "Apple Extras"
+			? [
+					{ id: "applescript", name: "AppleScript\u2122", kind: "folder" },
+					{
+						id: "energy",
+						name: "CPU Energy Saver",
+						kind: "file",
+						icon: ClassicyIcons.system.files.application,
+					},
+					{ id: "disk-tools", name: "Disk Tools", kind: "folder" },
+					{ id: "portables", name: "Portables", kind: "folder" },
+					{ id: "printing", name: "Printing", kind: "folder" },
+					{
+						id: "simpletext",
+						name: "SimpleText",
+						kind: "file",
+						icon: ClassicyIcons.applications.simpletext.app,
+					},
+				]
+			: path.length > 0
+				? []
+				: [
+						{
+							id: "about-75",
+							name: "About System 7.5",
+							kind: "file",
+							icon: documentIcon,
+						},
+						{
+							id: "about-755",
+							name: "About System 7.5.5 Update",
+							kind: "file",
+							icon: documentIcon,
+						},
+						{ id: "apple-extras", name: "Apple Extras", kind: "folder" },
+						{ id: "system-folder", name: "System Folder", kind: "folder" },
+					],
 };
 const desktop: ClassicyFileDialogVolume = {
 	id: "desktop",
@@ -237,32 +262,48 @@ const desktop: ClassicyFileDialogVolume = {
 	list: async () => [],
 };
 
-/** Selects the list's first item once it has loaded, as the capture shows. */
-function SelectFirstItem() {
+/** A row of the list, by its name. */
+const listRow = (name: string) =>
+	[
+		...document.querySelectorAll<HTMLElement>(
+			".classicyFileOpenDialogWell .classicyTreeNodeLabelHolder",
+		),
+	].find((el) => el.textContent === name);
+
+/**
+ * Once the list has loaded: selects its first item, as the Open capture
+ * shows, or enters `folder` with a double-click, as the Save capture shows
+ * Apple Extras.
+ */
+function AfterLoad({ folder }: { folder?: string }) {
 	useEffect(() => {
-		const timer = window.setTimeout(
-			() =>
+		const timer = window.setTimeout(() => {
+			if (folder)
+				listRow(folder)?.dispatchEvent(
+					new MouseEvent("dblclick", { bubbles: true }),
+				);
+			else
 				document
 					.querySelector<HTMLElement>(
 						".classicyFileOpenDialogWell .classicyTreeNodeLabelHolder",
 					)
-					?.click(),
-			200,
-		);
+					?.click();
+		}, 200);
 		return () => window.clearTimeout(timer);
-	}, []);
+	}, [folder]);
 	return null;
 }
 
 /**
  * Standard File's Open box (the core's `ClassicyFileOpenDialog`), as
  * `*-755-dialog-standardfile-layout.png` draws it (story 0214-c61): a fixed
- * modal dialog box (the package's `fileDialog.frame`), the folder pop-up
- * centered over the list, the disk's icon and name at the top right, the
- * list with its first item selected and its vertical bar in the `fits`
- * state, and the button column, Eject (dimmed), Desktop, a line, Cancel and
- * the default Open. QuickTime's Preview area, at the capture's left, is not
- * drawn.
+ * modal dialog box (the package's `fileDialog.frame`), browsing one folder
+ * at a time (`fileDialog.navigation: "flat"`), the folder pop-up with the
+ * disk's icon centered over the list, the disk's icon and name at the top
+ * right, the list (16 px icons, 18 px rows, the first item selected across
+ * the row, the vertical bar `fits`), and the button column, Eject (dimmed),
+ * Desktop, a line, Cancel and the default Open. QuickTime's Preview area,
+ * at the capture's left, is not drawn.
  */
 const standardFile = () => (
 	<StoryApp id="storybook.app" name="Storybook">
@@ -274,13 +315,77 @@ const standardFile = () => (
 			onOpenFunc={fn()}
 			onCancelFunc={fn()}
 		/>
-		<SelectFirstItem />
+		<AfterLoad />
 		<AtRest />
 	</StoryApp>
 );
 
 export const StandardFile: Story = { render: standardFile };
 export const StandardFileColor = inColor(standardFile);
+
+/**
+ * The Open box with file-type filters (SimpleText's and HyperCard's): the
+ * Show pop-up under the list, where 7.5.5 draws QuickTime's Show Preview
+ * (`fileDialog.filterLeft`/`filterTop`).
+ */
+const standardFileShow = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyFileOpenDialog
+			id="standard-file-show"
+			appId="storybook.app"
+			open
+			volumes={[macintoshHd, desktop]}
+			fileTypeFilters={[
+				{ label: "All Documents", types: null },
+				{ label: "Text", types: ["text"] },
+			]}
+			onOpenFunc={fn()}
+			onCancelFunc={fn()}
+		/>
+		<AtRest />
+	</StoryApp>
+);
+
+export const StandardFileShow: Story = { render: standardFileShow };
+export const StandardFileShowColor = inColor(standardFileShow);
+
+/**
+ * Standard File's Save box (the core's `ClassicyFileSaveDialog`), as 7.5's
+ * `*-dialog-standardfile-save.png` draws it: in Apple Extras, the files
+ * dimmed, "Save As:" and the name's field under the list, and the button
+ * column Eject, Desktop, New (folder), a line, Cancel and the default Save,
+ * placed by the `fileDialog.save*` knobs. SimpleText's document/stationery
+ * radio buttons are the application's and not drawn.
+ */
+const standardFileSave = () => (
+	<StoryApp id="storybook.app" name="Storybook">
+		<ClassicyFileSaveDialog
+			id="standard-file-save"
+			appId="storybook.app"
+			open
+			volumes={[
+				{ ...macintoshHd, write: async () => {}, mkDir: async () => {} },
+				desktop,
+			]}
+			formats={[
+				{
+					label: "SimpleText Document",
+					extension: "",
+					fileType: "text",
+					data: () => "",
+				},
+			]}
+			defaultFileName="untitled 1"
+			onSaveFunc={fn()}
+			onCancelFunc={fn()}
+		/>
+		<AfterLoad folder="Apple Extras" />
+		<AtRest />
+	</StoryApp>
+);
+
+export const StandardFileSave: Story = { render: standardFileSave };
+export const StandardFileSaveColor = inColor(standardFileSave);
 
 /**
  * A core modal whose contents lay out no margin of their own (the About

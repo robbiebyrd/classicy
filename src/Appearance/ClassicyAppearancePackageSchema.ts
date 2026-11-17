@@ -45,7 +45,10 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
 		.optional(),
 	fileDialog: z
-		.object({ frame: z.enum(["movable", "fixed"]).optional() })
+		.object({
+			frame: z.enum(["movable", "fixed"]).optional(),
+			navigation: z.enum(["tree", "flat"]).optional(),
+		})
 		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 

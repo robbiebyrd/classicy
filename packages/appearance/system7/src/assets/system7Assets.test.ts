@@ -79,6 +79,10 @@ const ART_KEYS = unionMembers("ClassicySystemArtKey") as ClassicySystemArtKey[];
 /** The Control Strip's pixel art: each key's color rows, then its 1-bit rows. */
 const STRIP_ART: Partial<Record<ClassicySystemArtKey, [string, string]>> = {
 	controlStripTab: ["control-strip-tab", "control-strip-tab-bw"],
+	controlStripTabRight: [
+		"control-strip-tab-right",
+		"control-strip-tab-right-bw",
+	],
 	controlStripCollapse: ["control-strip-collapse", "control-strip-collapse-bw"],
 	controlStripScrollLeft: [
 		"control-strip-scroll-left",

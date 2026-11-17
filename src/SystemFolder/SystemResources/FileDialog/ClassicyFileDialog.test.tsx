@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Registers Platinum's sound pack, which the core default theme names.
 import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
-import { render } from "@/__tests__/test-utils";
+import { act, render } from "@/__tests__/test-utils";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -230,5 +230,185 @@ describe("ClassicyFileDialog's Standard File parts", () => {
 		});
 		open();
 		expect(document.querySelector(".classicyWindowModalFixed")).not.toBeNull();
+	});
+});
+
+// Ruling R4: a package's `layout.fileDialog.navigation: "flat"` browses as
+// System 7.5's Standard File does: the current folder's contents only, every
+// row with its small icon, a folder entered by a double-click (or Open with
+// it selected), and the pop-up listing the folder's path upward, each level
+// by its small icon.
+describe("ClassicyFileDialog's flat navigation", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const flatPackage = () =>
+		registerClassicyAppearancePackage({
+			id: "test-flat-file-dialog",
+			name: "Flat",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-flat-file-dialog-default",
+				package: "test-flat-file-dialog",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				fileDialog: { navigation: "flat" },
+			},
+		});
+	const disk = {
+		id: "fs-Macintosh HD",
+		label: "Macintosh HD",
+		icon: "disk.png",
+		list: async (path: string[]) =>
+			path.length === 0
+				? [
+						{
+							id: "readme",
+							name: "Read Me",
+							kind: "file" as const,
+							icon: "doc.png",
+						},
+						{ id: "extras", name: "Apple Extras", kind: "folder" as const },
+					]
+				: path[0] === "Apple Extras"
+					? [{ id: "script", name: "AppleScript", kind: "folder" as const }]
+					: [],
+	};
+	const rows = () =>
+		[
+			...document.querySelectorAll(
+				".classicyFileOpenDialogWell .classicyTreeNodeLabel",
+			),
+		].map((el) => el.textContent);
+	const row = (name: string) =>
+		[
+			...document.querySelectorAll<HTMLElement>(
+				".classicyFileOpenDialogWell .classicyTreeNodeLabelHolder",
+			),
+		].find((el) => el.textContent === name) as HTMLElement;
+	const popUpLabels = () =>
+		document.querySelector(
+			".classicyFileOpenDialogBody .classicyPopUpMenuValue",
+		)?.textContent ?? "";
+
+	it("lists the folder's own contents, every row with its icon, no triangles", async () => {
+		flatPackage();
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() => expect(rows()).toEqual(["Read Me", "Apple Extras"]));
+		expect(
+			document.querySelectorAll(
+				".classicyFileOpenDialogWell .classicyTreeNodeBranch",
+			),
+		).toHaveLength(0);
+		expect(
+			document.querySelectorAll(
+				".classicyFileOpenDialogWell .classicyTreeNodeIcon",
+			),
+		).toHaveLength(2);
+		expect(popUpLabels()).toBe("Macintosh HD");
+	});
+
+	it("enters a folder on double-click, and goes back up through the pop-up", async () => {
+		flatPackage();
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={() => {}}
+			/>,
+		);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		act(() => {
+			row("Apple Extras").dispatchEvent(
+				new MouseEvent("dblclick", { bubbles: true }),
+			);
+		});
+		await vi.waitFor(() => expect(rows()).toEqual(["AppleScript"]));
+		expect(popUpLabels()).toBe("Apple Extras");
+		// The pop-up's options: the folder, then each level up, with icons.
+		act(() => {
+			(
+				document.querySelector(
+					".classicyFileOpenDialogBody .classicyPopUpMenuButton",
+				) as HTMLElement
+			).click();
+		});
+		const options = [
+			...document.querySelectorAll(".classicyPopUpMenuListItem"),
+		];
+		expect(options.map((o) => o.textContent)).toEqual([
+			"Apple Extras",
+			"Macintosh HD",
+		]);
+		expect(
+			options
+				.map((o) => o.querySelector("img")?.getAttribute("src") ?? null)
+				.every(Boolean),
+		).toBe(true);
+		act(() => {
+			(options[1] as HTMLElement).click();
+		});
+		await vi.waitFor(() => expect(rows()).toEqual(["Read Me", "Apple Extras"]));
+	});
+
+	it("opens a selected folder with Open, and hands a selected file to onOpenFunc", async () => {
+		flatPackage();
+		const onOpen = vi.fn();
+		render(
+			<ClassicyFileDialog
+				id="open-dialog"
+				appId="Finder.app"
+				open={true}
+				mode="open"
+				volumes={[disk]}
+				onOpenFunc={onOpen}
+			/>,
+		);
+		await vi.waitFor(() => expect(row("Apple Extras")).toBeTruthy());
+		const openButton = () =>
+			[...document.querySelectorAll<HTMLButtonElement>("button")].find(
+				(b) => b.textContent === "Open",
+			) as HTMLButtonElement;
+		act(() => row("Apple Extras").click());
+		expect(openButton()).toBeEnabled();
+		act(() => openButton().click());
+		await vi.waitFor(() => expect(rows()).toEqual(["AppleScript"]));
+		expect(onOpen).not.toHaveBeenCalled();
+		act(() => {
+			(
+				document.querySelector(
+					".classicyFileOpenDialogBody .classicyPopUpMenuButton",
+				) as HTMLElement
+			).click();
+		});
+		act(() => {
+			(
+				document.querySelectorAll(
+					".classicyPopUpMenuListItem",
+				)[1] as HTMLElement
+			).click();
+		});
+		await vi.waitFor(() => expect(row("Read Me")).toBeTruthy());
+		act(() => row("Read Me").click());
+		act(() => openButton().click());
+		expect(onOpen).toHaveBeenCalledWith([
+			expect.objectContaining({
+				path: [],
+				entry: expect.objectContaining({ name: "Read Me" }),
+			}),
+		]);
 	});
 });

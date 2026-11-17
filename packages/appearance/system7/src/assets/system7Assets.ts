@@ -40,6 +40,11 @@ import controlStripScrollRightBw from "./pixelart/control-strip-scroll-right-bw.
 import controlStripScrollRightDisabled from "./pixelart/control-strip-scroll-right-disabled.txt?raw";
 import controlStripTab from "./pixelart/control-strip-tab.txt?raw";
 import controlStripTabBw from "./pixelart/control-strip-tab-bw.txt?raw";
+// Docked right, 7.5.5's own tab (not the left one mirrored: its grip a
+// column apart), read from `*-755-controlstrip-right.png` with the left
+// tab's colors as its tokens.
+import controlStripTabRight from "./pixelart/control-strip-tab-right.txt?raw";
+import controlStripTabRightBw from "./pixelart/control-strip-tab-right-bw.txt?raw";
 import popUpSliderThumb from "./pixelart/popup-slider-thumb.txt?raw";
 import popUpSliderThumbBw from "./pixelart/popup-slider-thumb-bw.txt?raw";
 import popUpSliderTrack from "./pixelart/popup-slider-track.txt?raw";
@@ -211,6 +216,7 @@ const SYSTEM7_ART: Readonly<
 	// #888888 `5`, #555555 and #444444 `7`, #CCCCFF `b`, the slider's
 	// #333366 `n`. Mac OS 8 kept the strip, so the shapes are Platinum's.
 	controlStripTab: pixelArt(controlStripTab),
+	controlStripTabRight: pixelArt(controlStripTabRight),
 	controlStripCollapse: pixelArt(controlStripCollapse),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeft),
 	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftDisabled),
@@ -247,6 +253,7 @@ const SYSTEM7_BW_ART: Readonly<
 	// -4048, black on white, with no bevel. The 1-bit disabled arrow is the
 	// arrow itself, as the panel's 1-bit picture of the strip draws it.
 	controlStripTab: pixelArt(controlStripTabBw),
+	controlStripTabRight: pixelArt(controlStripTabRightBw),
 	controlStripCollapse: pixelArt(controlStripCollapseBw),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeftBw),
 	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftBw),

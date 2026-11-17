@@ -160,7 +160,9 @@
 			"popUpMenu": {
 				"height": 18,
 				"arrowTop": 5,
-				"arrowInset": 5
+				"arrowInset": 5,
+				"valueIconTop": 0,
+				"valueIconGap": 4
 			},
 			"dialogFrame": {
 				"bevel": 0,
@@ -243,9 +245,7 @@
 			"fileDialog": {
 				"width": 355,
 				"height": 195,
-				"popUpLeft": 57,
 				"popUpTop": 9,
-				"popUpWidth": 133,
 				"volumeLeft": 237,
 				"volumeTop": 9,
 				"volumeGap": 4,
@@ -255,15 +255,43 @@
 				"listTop": 32,
 				"listWidth": 218,
 				"listHeight": 128,
+				"listRowHeight": 18,
+				"listRowInset": 2,
+				"listIconGap": 4,
+				"filterLeft": 15,
+				"filterTop": 165,
 				"buttonsLeft": 252,
 				"buttonWidth": 80,
 				"ejectTop": 35,
 				"desktopTop": 63,
-				"dividerTop": 94,
 				"dividerLeft": 251,
+				"dividerTop": 94,
 				"dividerWidth": 82,
 				"cancelTop": 107,
-				"openTop": 138
+				"openTop": 138,
+				"saveWidth": 358,
+				"saveHeight": 252,
+				"savePopUpTop": 9,
+				"saveVolumeLeft": 238,
+				"saveVolumeTop": 9,
+				"saveListLeft": 15,
+				"saveListTop": 32,
+				"saveListWidth": 218,
+				"saveListHeight": 146,
+				"saveNameTop": 191,
+				"saveNameWidth": 202,
+				"saveNameGap": 2,
+				"saveFilterLeft": 235,
+				"saveFilterTop": 209,
+				"saveButtonsLeft": 255,
+				"saveEjectTop": 35,
+				"saveDesktopTop": 63,
+				"saveNewTop": 90,
+				"saveDividerLeft": 253,
+				"saveDividerTop": 120,
+				"saveDividerWidth": 84,
+				"saveCancelTop": 133,
+				"saveOpenTop": 164
 			}
 		},
 		"desktop": {
@@ -436,7 +464,9 @@
 				"popUpMenu": {
 					"height": 18,
 					"arrowTop": 5,
-					"arrowInset": 5
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 4
 				},
 				"dialogFrame": {
 					"bevel": 0,
@@ -519,9 +549,7 @@
 				"fileDialog": {
 					"width": 355,
 					"height": 195,
-					"popUpLeft": 57,
 					"popUpTop": 9,
-					"popUpWidth": 133,
 					"volumeLeft": 237,
 					"volumeTop": 9,
 					"volumeGap": 4,
@@ -531,15 +559,43 @@
 					"listTop": 32,
 					"listWidth": 218,
 					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
 					"buttonsLeft": 252,
 					"buttonWidth": 80,
 					"ejectTop": 35,
 					"desktopTop": 63,
-					"dividerTop": 94,
 					"dividerLeft": 251,
+					"dividerTop": 94,
 					"dividerWidth": 82,
 					"cancelTop": 107,
-					"openTop": 138
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 2,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
 				}
 			},
 			"desktop": {
@@ -714,7 +770,9 @@
 				"popUpMenu": {
 					"height": 18,
 					"arrowTop": 5,
-					"arrowInset": 5
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 4
 				},
 				"dialogFrame": {
 					"bevel": 1,
@@ -797,9 +855,7 @@
 				"fileDialog": {
 					"width": 355,
 					"height": 195,
-					"popUpLeft": 57,
 					"popUpTop": 9,
-					"popUpWidth": 133,
 					"volumeLeft": 237,
 					"volumeTop": 9,
 					"volumeGap": 4,
@@ -809,15 +865,43 @@
 					"listTop": 32,
 					"listWidth": 218,
 					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
 					"buttonsLeft": 252,
 					"buttonWidth": 80,
 					"ejectTop": 35,
 					"desktopTop": 63,
-					"dividerTop": 94,
 					"dividerLeft": 251,
+					"dividerTop": 94,
 					"dividerWidth": 82,
 					"cancelTop": 107,
-					"openTop": 138
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 2,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
 				}
 			},
 			"desktop": {
@@ -847,7 +931,8 @@
 			"fitsBars": "shown"
 		},
 		"fileDialog": {
-			"frame": "fixed"
+			"frame": "fixed",
+			"navigation": "flat"
 		}
 	},
 	"knobs": {},

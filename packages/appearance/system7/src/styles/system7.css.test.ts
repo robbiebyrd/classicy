@@ -2054,7 +2054,7 @@ describe("system7.scss (compiled)", () => {
 		// and pressed fill white. The checker is fixed to the screen, so its
 		// phase is the screen's, not the cell's.
 		const CHECKER =
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--dither-tile-size) var(--dither-tile-size) fixed";
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-control-strip-phase) top/var(--dither-tile-size) var(--dither-tile-size) fixed";
 		const SHADOW =
 			"var(--package-color-control-strip-shadow, var(--color-system-04))";
 		// 7.5.5's Finder list view (`*-finder-list-row-selected.png`, story
@@ -2082,63 +2082,100 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(/background: var\(--color-white\);/);
 		});
 
-		// 7.5.5's Standard File box (`*-755-dialog-standardfile-layout.png`,
-		// story 0214-c61): the open box's parts placed by the `fileDialog`
-		// knobs from the inner line; the save box keeps the base layout.
-		it("lays Standard File's open box out as 7.5.5 does", () => {
+		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,
+		// 7.5's `*-dialog-standardfile-save.png`; story 0214-c61): each box's
+		// parts placed from the inner line by its own knobs.
+		it("lays Standard File's Open and Save boxes out as 7.5 does", () => {
 			const OPEN =
 				".classicyFileOpenDialogBody:not(.classicyFileDialogSaveBody)";
-			expect(rule(OPEN)).toMatch(/position: absolute;\s+inset: 0;/);
-			const placed = (part: string, left: string, top: string) => {
-				const declarations = rule(`${OPEN} ${part}`);
-				expect(declarations, part).toMatch(/position: absolute;/);
-				expect(declarations, part).toContain(`top: var(--file-dialog-${top});`);
-				expect(declarations, part).toContain(
-					`left: var(--file-dialog-${left});`,
+			const SAVE = ".classicyFileOpenDialogBody.classicyFileDialogSaveBody";
+			for (const [box, k] of [
+				[OPEN, "file-dialog-"],
+				[SAVE, "file-dialog-save-"],
+			] as const) {
+				expect(rule(box)).toMatch(/position: absolute;\s+inset: 0;/);
+				const placed = (part: string, left: string, top: string) => {
+					const declarations = rule(`${box} ${part}`);
+					expect(declarations, `${box} ${part}`).toMatch(/position: absolute;/);
+					expect(declarations, part).toContain(`top: var(--${k}${top});`);
+					expect(declarations, part).toContain(`left: var(--${k}${left});`);
+				};
+				placed("> .classicyPopUpMenuWrapper", "list-left", "pop-up-top");
+				placed("> .classicyFileOpenDialogVolume", "volume-left", "volume-top");
+				placed("> .classicyFileOpenDialogWell", "list-left", "list-top");
+				placed(
+					"> .classicyFileOpenDialogFooter > .classicyPopUpMenuWrapper",
+					"filter-left",
+					"filter-top",
 				);
-			};
-			placed("> .classicyPopUpMenuWrapper", "pop-up-left", "pop-up-top");
-			placed("> .classicyFileOpenDialogVolume", "volume-left", "volume-top");
+				for (const [part, top] of [
+					["Eject", "eject-top"],
+					["Desktop", "desktop-top"],
+				])
+					placed(
+						`.classicyFileOpenDialogActions > .classicyFileOpenDialog${part}`,
+						"buttons-left",
+						top,
+					);
+				placed(
+					".classicyFileOpenDialogActions > .classicyFileOpenDialogDivider",
+					"divider-left",
+					"divider-top",
+				);
+				placed(
+					".classicyFileOpenDialogActions > .classicyButton:nth-last-child(2)",
+					"buttons-left",
+					"cancel-top",
+				);
+				placed(
+					".classicyFileOpenDialogActions > .classicyButton:last-child",
+					"buttons-left",
+					"open-top",
+				);
+				expect(
+					rule(
+						`${box} > .classicyPopUpMenuWrapper > .classicyControlLabelHolder`,
+					),
+				).toMatch(/display: none;/);
+				// The line: in color #888888 and #777777 alternating (theme-06,
+				// system-06), in 1-bit the checker a pixel along.
+				const divider = rule(
+					`${box} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
+				);
+				expect(divider).toContain(
+					"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)",
+				);
+				expect(divider).toContain("mask-position: var(--box-pixel) 0, 0 0;");
+			}
 			expect(rule(`${OPEN} > .classicyFileOpenDialogVolume > img`)).toContain(
 				"margin-top: var(--file-dialog-volume-icon-drop);",
 			);
-			placed("> .classicyFileOpenDialogWell", "list-left", "list-top");
-			for (const [part, top] of [
-				["Eject", "eject-top"],
-				["Desktop", "desktop-top"],
-				["Divider", "divider-top"],
-			])
-				placed(
-					`.classicyFileOpenDialogActions > .classicyFileOpenDialog${part}`,
-					"buttons-left",
-					top,
-				);
-			placed(
-				".classicyFileOpenDialogActions > .classicyButton:nth-last-child(2)",
-				"buttons-left",
-				"cancel-top",
-			);
-			placed(
-				".classicyFileOpenDialogActions > .classicyButton:last-child",
-				"buttons-left",
-				"open-top",
-			);
 			expect(
 				rule(
-					`${OPEN} > .classicyPopUpMenuWrapper > .classicyControlLabelHolder`,
+					`${SAVE} .classicyFileOpenDialogActions > .classicyButton:nth-last-child(3)`,
 				),
+			).toContain("top: var(--file-dialog-save-new-top);");
+			expect(rule(`${SAVE} > .classicyFileDialogNameRow`)).toContain(
+				"top: var(--file-dialog-save-name-top);",
+			);
+			// The flat list: 16 px icons on the row pitch, no triangles, the
+			// selection across the row, whole names.
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeRow"),
+			).toContain("height: var(--file-dialog-list-row-height);");
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeDisclosure"),
 			).toMatch(/display: none;/);
-			// The line, 82 px from a pixel left of the column: in color #888888
-			// and #777777 alternating (theme-06, system-06), in 1-bit the checker
-			// a pixel along, black on every other pixel from the column's first.
-			const divider = rule(
-				`${OPEN} .classicyFileOpenDialogActions > .classicyFileOpenDialogDivider`,
-			);
-			expect(divider).toContain(
-				"linear-gradient(90deg, var(--color-theme-06) 50%, var(--color-system-06) 0)",
-			);
-			expect(divider).toContain("left: var(--file-dialog-divider-left);");
-			expect(divider).toContain("mask-position: var(--box-pixel) 0, 0 0;");
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeIcon"),
+			).toContain("width: var(--icon-small-size);");
+			expect(
+				rule(".classicyFileOpenDialogWell .classicyTreeNodeLabel"),
+			).toMatch(/text-overflow: clip;/);
+			// The closed pop-up's icon part, shown.
+			expect(
+				rule(".classicyPopUpMenuButton > .classicyPopUpMenuValueIcon"),
+			).toMatch(/display: block;/);
 		});
 
 		it("bevels the strip's cells by the theme's bevel width on the strip's face", () => {
@@ -2280,9 +2317,10 @@ describe("system7.scss (compiled)", () => {
 				expect(look.match(/ fixed\b/g), selector).toHaveLength(1);
 				// Its transparent quarters (top left and bottom right of the
 				// 2 x 2 tile, the layers beneath showing through) fall on the
-				// viewport's even x + y.
+				// viewport's even x + y, a pixel along while the strip's origin
+				// is odd (the core's --classicy-control-strip-phase).
 				expect(look, selector).toMatch(
-					/conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) left top\//,
+					/conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-control-strip-phase\) top\//,
 				);
 			}
 		});

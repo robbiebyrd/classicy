@@ -21,7 +21,11 @@ import { registerTestAppsPackage } from "@/__tests__/testAppsPackage";
 // The renaming tests switch back to Platinum, which must be registered.
 import "@classicy/appearance-platinum";
 import { unregisterClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
-import { registerClassicyAssets } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	registerClassicyAssets,
+	registerClassicySystemArt,
+} from "@/Appearance/ClassicyAssetRegistry";
+import { encodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import {
 	type ActionMessage,
@@ -1445,5 +1449,62 @@ describe("Control Strip tab when the pointer stream is lost", () => {
 		fireEvent.mouseDown(tab(), { button: 0, clientX: 200 });
 		unmount();
 		expect(live.size).toBe(0);
+	});
+});
+
+// Story 0214-c61 fix round 1 (review r0 Important 5): 7.5.5 docks its strip
+// right with a tab of its own (not the left one mirrored), and aligns the
+// 1-bit checker to the strip's own origin.
+describe("ClassicyControlStrip — docked right, 7.5.5's way", () => {
+	const strip = () => screen.getByRole("toolbar", { name: "Control Strip" });
+	const tab = () =>
+		strip().querySelector(".classicyControlStripTab") as HTMLElement;
+	const dockRight = () =>
+		dispatch({
+			type: "ClassicyDesktopControlStripSetPosition",
+			edge: "right",
+			bottom: 0,
+		});
+
+	it("draws the mirrored left tab when the package has no right tab art", () => {
+		register(...testModules());
+		dockRight();
+		renderStrip();
+		expect(tab()).not.toHaveClass("classicyControlStripTabRight");
+	});
+
+	it("draws the package's right tab art, unflipped, when it registers one", () => {
+		register(...testModules());
+		registerClassicySystemArt("platinum", {
+			controlStripTabRight: encodeClassicyPixelArtRows(["KK", "WK"]),
+		});
+		dockRight();
+		renderStrip();
+		expect(tab()).toHaveClass("classicyControlStripTabRight");
+	});
+
+	it("publishes whether its origin falls on an odd pixel, for a package's checker", () => {
+		register(...testModules());
+		vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+			function (this: HTMLElement) {
+				const odd = this.classList.contains("classicyControlStrip");
+				return {
+					left: odd ? 901 : 0,
+					top: odd ? 744 : 0,
+					right: 0,
+					bottom: 0,
+					width: 0,
+					height: 0,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				} as DOMRect;
+			},
+		);
+		dockRight();
+		renderStrip();
+		expect(
+			strip().style.getPropertyValue("--classicy-control-strip-phase"),
+		).toBe("1px");
 	});
 });

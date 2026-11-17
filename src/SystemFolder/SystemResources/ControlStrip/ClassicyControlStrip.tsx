@@ -15,7 +15,10 @@ import {
 	useClassicyAppIdentity,
 	useClassicyAppIdentityOverrides,
 } from "@/Appearance/ClassicyAppIdentity";
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import {
+	resolveClassicyAsset,
+	useClassicyAsset,
+} from "@/Appearance/ClassicyAssetRegistry";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
@@ -205,6 +208,7 @@ const ClassicyControlStripModuleButton: FunctionalComponent<{
 const CONTROL_STRIP_POSITION_PROPERTIES = [
 	"--classicy-control-strip-bottom",
 	"--classicy-control-strip-top-inset",
+	"--classicy-control-strip-phase",
 ];
 const withoutPositionProperties = (
 	style: CSSProperties | undefined,
@@ -308,6 +312,28 @@ export const ClassicyControlStrip: FunctionalComponent<
 
 	const [canScroll, setCanScroll] = useState({ left: false, right: false });
 	const stripRef = useRef<HTMLDivElement>(null);
+	// Docked right, a package's own tab art (`controlStripTabRight`, System
+	// 7.5.5's) drawn as it is; without one the left tab is mirrored.
+	const rightTabArt = useClassicyAsset("systemArt", "controlStripTabRight");
+	const ownRightTab = edge === "right" && Boolean(rightTabArt);
+	// Whether the strip's origin (its left plus its top, in viewport pixels)
+	// is odd: published as `--classicy-control-strip-phase` (1px, else
+	// unset: the base sheet's 0px), so a package can align a screen-fixed
+	// pattern to the strip's own origin, as QuickDraw aligned the strip's
+	// 50% checker to its window (7.5.5 docked right).
+	const [oddOrigin, setOddOrigin] = useState(false);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: its place (edge, height) and width move the origin; the measure reads the DOM
+	useLayoutEffect(() => {
+		const measure = () => {
+			const box = stripRef.current?.getBoundingClientRect();
+			if (!box) return;
+			setOddOrigin(((Math.round(box.left) + Math.round(box.top)) & 1) === 1);
+		};
+		measure();
+		if (typeof window === "undefined") return;
+		window.addEventListener("resize", measure);
+		return () => window.removeEventListener("resize", measure);
+	}, [edge, bottom, width, collapsed]);
 	const appearance = useClassicyAppearance(
 		"ControlStrip",
 		{ collapsed, dragging: Boolean(movePreview) },
@@ -628,6 +654,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 							"--classicy-control-strip-bottom": `${bottom}px`,
 							"--classicy-control-strip-top-inset": `${topInset}px`,
 						} as CSSProperties)),
+				...(oddOrigin
+					? ({ "--classicy-control-strip-phase": "1px" } as CSSProperties)
+					: {}),
 				...style,
 			}}
 		>
@@ -697,7 +726,10 @@ export const ClassicyControlStrip: FunctionalComponent<
 			)}
 			<button
 				type="button"
-				className="classicyControlStripTab"
+				className={classNames(
+					"classicyControlStripTab",
+					ownRightTab && "classicyControlStripTabRight",
+				)}
 				aria-label={
 					collapsed
 						? "Expand Control Strip"
@@ -712,7 +744,9 @@ export const ClassicyControlStrip: FunctionalComponent<
 				}}
 				onKeyDown={onTabKeyDown}
 			>
-				<ClassicyPixelArt art="controlStripTab" />
+				<ClassicyPixelArt
+					art={ownRightTab ? "controlStripTabRight" : "controlStripTab"}
+				/>
 			</button>
 		</div>
 	);

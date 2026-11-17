@@ -109,6 +109,15 @@ export type ClassicyAppearanceLayout = {
 		 * alone, no title bar.
 		 */
 		frame?: "movable" | "fixed";
+		/**
+		 * `"tree"` (the default, Mac OS 8): folders expand in place under
+		 * disclosure triangles. `"flat"` (System 7.5's Standard File): the
+		 * list shows one folder's contents, every row by its small icon, a
+		 * folder entered by a double-click or Open, and the pop-up lists the
+		 * folder's path upward (each level by its small icon), then the other
+		 * volumes.
+		 */
+		navigation?: "tree" | "flat";
 	};
 };
 

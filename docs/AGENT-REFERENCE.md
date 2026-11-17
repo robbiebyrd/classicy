@@ -1190,7 +1190,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?`, `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
-| `ClassicyFileOpenDialog` | `id` *, `appId` *, `open` *, `volumes` *, `onOpenFunc(selections)` *, `selectionMode?`, `fileTypeFilters?`, `onCancelFunc?`, `title? ("Open")` | always renders System 7.5's Standard File parts (`*-755-dialog-standardfile-layout.png`): the volume's small icon and name (`classicyFileOpenDialogVolume`), Eject (`classicyFileOpenDialogEject`, always dimmed), Desktop (`classicyFileOpenDialogDesktop`: goes to the volume with id `"desktop"`, `desktopVolume(fs)`'s; dimmed without one or on it) and a line (`<hr class="classicyFileOpenDialogDivider">`), before the actions. The base sheet hides all four, so a package shows them (System 7 does). The box is a movable modal unless the package's `layout.fileDialog.frame` is `"fixed"` (§8, "Layout declarations"); its size is the theme's optional `fileDialog.width` x `height` knobs, else 440 x 400; a save box's body also carries `classicyFileDialogSaveBody` |
+| `ClassicyFileOpenDialog` | `id` *, `appId` *, `open` *, `volumes` *, `onOpenFunc(selections)` *, `selectionMode?`, `fileTypeFilters?`, `onCancelFunc?`, `title? ("Open")` | always renders System 7.5's Standard File parts (`*-755-dialog-standardfile-layout.png`): the volume's small icon and name (`classicyFileOpenDialogVolume`), Eject (`classicyFileOpenDialogEject`, always dimmed), Desktop (`classicyFileOpenDialogDesktop`: goes to the volume with id `"desktop"`, `desktopVolume(fs)`'s; dimmed without one or on it) and a line (`<hr class="classicyFileOpenDialogDivider">`), before the actions. The base sheet hides all four, so a package shows them (System 7 does). The box is a movable modal unless the package's `layout.fileDialog.frame` is `"fixed"` (§8, "Layout declarations"); its size is the theme's optional `fileDialog.width` x `height` knobs, else 440 x 400; a save box's body also carries `classicyFileDialogSaveBody`. A closed `ClassicyPopUpMenu` draws its selected option's `icon` as the part `classicyPopUpMenuValueIcon`, which the base sheet hides (System 7 shows it) |
 | `ClassicyFileSaveDialog` | `id` *, `appId` *, `open` *, `volumes` *, `formats` *, `onSaveFunc(saved)` *, `defaultFileName?`, `onErrorFunc?`, `onCancelFunc?`, `title? ("Save")` | |
 | `ClassicyColorPickerDialog` | `id` *, `open` *, `initialColor?`, `onSelectFunc?(color: number)`, `onCancelFunc?`, `crayons?` | |
 | `ClassicyColorPicker` | `id` *, `value?`/`defaultValue?` (int color), `onChangeFunc?(color)`, `labelTitle?` | swatch control that opens the dialog |
@@ -2139,7 +2139,7 @@ the `crashScreen.artWidth` knob and the `controlStripPopup` family (now
 
 ### System art
 
-`ClassicySystemArtKey` is a union of 41 keys. Platinum registers 36 of them;
+`ClassicySystemArtKey` is a union of 42 keys. Platinum registers 36 of them;
 the rest resolve to `undefined` and their consumers fall back to the stylesheet
 default (or draw nothing). Each registered entry is published on the desktop
 root as `--classicy-art-<kebab-key>` (pixel art excepted: its
@@ -2159,7 +2159,10 @@ root as `--classicy-art-<kebab-key>` (pixel art excepted: its
 | `halftone`, `halftoneLarge` | the open-icon dot pattern (the mask of `platinum-halftone`'s `::before`, no fallback) and the pre-boot dither |
 | `controlStripTab`, `controlStripCollapse`, `controlStripScrollLeft`, `controlStripScrollLeftDisabled`, `controlStripScrollRight`, `controlStripScrollRightDisabled`, `controlStripModuleArrow`, `popUpSliderTrack`, `popUpSliderThumb` | `ClassicyPixelArt` rows (`<ClassicyPixelArt art={key} />`, `useClassicyPixelArtRows`) |
 
-Unregistered by Platinum (5 keys): `aboutBackground` (no Platinum art),
+Unregistered by Platinum (6 keys): `controlStripTabRight` (a strip docked
+right draws this art unflipped, marking its tab `classicyControlStripTabRight`,
+when the active package registers it, else the left tab mirrored; System 7
+registers 7.5.5's), `aboutBackground` (no Platinum art),
 `menuCheck`, `menuDash` (the menu check and dash are `::before` glyphs in
 Platinum's menu partial), `ditherChecker` (the dither vocabulary's checker
 tile, a mask, §8 "Dither vocabulary"; Platinum draws no dithers) and
@@ -3406,9 +3409,12 @@ attributes and the consumer's passthrough props (§4.0.1):
   component's: the window protects exactly `width`, `height`, `left`,
   `top`, `minWidth` and `minHeight` and drops `zIndex`; a package's
   `transform`, `margin`, `right`, `bottom`, `maxWidth` and the like do apply.
-  The control strip's two position custom properties
-  (`--classicy-control-strip-bottom` and `--classicy-control-strip-top-inset`)
-  are its own: a package's style never sets them, in the default position
+  The control strip's three position custom properties
+  (`--classicy-control-strip-bottom`, `--classicy-control-strip-top-inset`
+  and `--classicy-control-strip-phase`, `1px` while the strip's origin, its
+  left plus its top in viewport pixels, is odd, else the base sheet's `0px`,
+  for a package aligning a screen-fixed pattern to the strip: System 7's
+  1-bit checker) are its own: a package's style never sets them, in the default position
   included (a consumer `style` still may), but a package's inline
   `bottom`/`left` does apply and beats the SCSS.
 - **attrs:** the package's `data-*` first, so the component's own attributes
@@ -3845,6 +3851,7 @@ how they look) has two halves:
 | `window.growBoxCorner` | `bottom-right`, `bottom-left`, `top-right`, `top-left` | the grow box's corner (base CSS keyed on `[data-classicy-grow-box]`, the grip's two drawn edges included, which stay on its content side) and which corner a resize drag keeps fixed (`computeClassicyWindowResize`, below) |
 | `menuBar.placement` | `screen`, `window` | `screen`: the one menu bar across the top. `window`: the screen bar renders nothing (it stays mounted and still dispatches and registers keyboard equivalents), and each window with an `appMenu` draws it in a `ClassicyWindowMenuBar` under its title bar |
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
+| `fileDialog.navigation` (optional) | `tree`, `flat` | how `ClassicyFileDialog` browses. `tree` (the default, Mac OS 8): folders expand in place under disclosure triangles. `flat` (System 7.5's Standard File): the list shows one folder's contents, every row by its small icon (an entry's own, else the generic folder's or document's), a folder row is selectable and entered by a double-click or Open, Save saves into the folder shown, New Folder enters the new folder, and the pop-up (`aria-label` "Folder") lists the folder's path upward, each level by its small icon, then the other volumes |
 | `fileDialog.frame` (optional) | `movable`, `fixed` | how `ClassicyFileDialog` (Open and Save) is framed. `movable` (the default, Mac OS 8, HIGOS8 p.59): a movable modal window with a title bar. `fixed` (System 7, `*-755-dialog-standardfile-layout.png`): a fixed modal dialog box (`movable={false}`: the double frame, no title bar, `classicyWindowModalFixed`) |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |

@@ -567,6 +567,16 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 					onClick={() => (open ? closeMenu() : openMenu())}
 					onKeyDown={onButtonKeyDown}
 				>
+					{/* The selected option's icon, a part the base sheet hides and a
+					    package may show (System 7's folder pop-up). */}
+					{selectedOption?.icon && (
+						<ClassicyIconImage
+							className="classicyPopUpMenuValueIcon"
+							src={selectedOption.icon}
+							alt={""}
+							aria-hidden={true}
+						/>
+					)}
 					<span className="classicyPopUpMenuValue">{currentLabel}</span>
 					<span
 						className={classNames(

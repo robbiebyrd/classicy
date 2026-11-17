@@ -678,7 +678,8 @@ describe("the System 7 appearance package", () => {
 			scrollBar: { thumbDrag: "onRelease", fitsBars: "shown" },
 			// Standard File is a fixed modal dialog box
 			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
-			fileDialog: { frame: "fixed" },
+			// and browses one folder at a time (fix round 1, ruling R4).
+			fileDialog: { frame: "fixed", navigation: "flat" },
 		});
 	});
 

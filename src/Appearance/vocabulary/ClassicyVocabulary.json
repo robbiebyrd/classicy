@@ -227,7 +227,8 @@
 			"Scroll",
 			"ScrollStart",
 			"Status",
-			"Tab"
+			"Tab",
+			"TabRight"
 		],
 		"CrashScreen": [],
 		"DateAndTimeManager": [
@@ -415,6 +416,7 @@
 			"SizeMini",
 			"SizeSmall",
 			"Value",
+			"ValueIcon",
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],

@@ -78,10 +78,13 @@
 $b: var(--control-strip-bevel-width);
 
 // The 1-bit checker over a cell's layers (none in color, tile 0), in the
-// screen's phase (fixed: the tile's transparent corner, black beneath, at
-// the viewport's even x + y).
-$checker: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top /
-  var(--dither-tile-size) var(--dither-tile-size) fixed;
+// strip's phase, as QuickDraw aligned the pattern to the strip's window:
+// screen-fixed (the tile's transparent corner, black beneath, at the
+// viewport's even x + y), shifted a pixel while the strip's origin is odd
+// (`--classicy-control-strip-phase`, set by the core; docked right at
+// x 487, `*-755-controlstrip-right.png`).
+$checker: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0)
+  var(--classicy-control-strip-phase) top / var(--dither-tile-size) var(--dither-tile-size) fixed;
 
 // Every package color read falls back to the core token it was drawn in
 // before 3.2, for a theme of another package drawn under System 7.

@@ -310,8 +310,14 @@ diverge, so a logo registered through Platinum's
   so Platinum's dialog is unchanged; a package shows and places them. A
   package's new optional `layout.fileDialog.frame: "fixed"` draws the box as
   a fixed modal dialog, and the optional theme knobs `fileDialog.width` and
-  `height` size it (else 440 x 400). A save box's body also carries
-  `classicyFileDialogSaveBody`.
+  `height` size it (else 440 x 400; `saveWidth`/`saveHeight` for Save). A
+  save box's body also carries `classicyFileDialogSaveBody`. A package's
+  optional `layout.fileDialog.navigation: "flat"` browses one folder at a
+  time, as 7.5's Standard File does: every row by its small icon, a folder
+  entered by a double-click or Open, the pop-up listing the folder's path
+  upward; the default `"tree"` is unchanged. A closed `ClassicyPopUpMenu`
+  draws its selected option's icon as `classicyPopUpMenuValueIcon`, hidden
+  by the base sheet.
 - **The small UI text's family.** A theme may name it in the optional
   `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
   only when set. Small control labels and the slider's readout and tick
@@ -325,6 +331,12 @@ diverge, so a logo registered through Platinum's
   `--classicy-table-sorted-width` (`0px` with nothing sorted; measured on
   each sort, column change, column resize and table resize). The root now
   always carries those two inline custom properties.
+- **Control Strip docked right.** A package may register the system art
+  `controlStripTabRight`, which a strip docked right draws unflipped (its tab
+  marked `classicyControlStripTabRight`); without it the left tab is
+  mirrored as before. The strip also publishes
+  `--classicy-control-strip-phase` (`1px` while its origin is odd), for a
+  package that aligns a screen-fixed pattern to the strip.
 - **No empty font element.** A package whose every font face an earlier
   package shares and writes (System 7 registered after Platinum) no longer
   leaves an empty `<style id="classicy-fonts-<id>">`; one written before is
@@ -569,11 +581,17 @@ the ids the saver already names:
   scaled. A host stylesheet that sets the Finder list container's
   `background` replaces the stripe.
 - **System 7, from new 7.5.5 captures.** Standard File is the fixed modal
-  box 7.5.5 draws (`*-755-dialog-standardfile-layout.png`): the folder
-  pop-up with no label over the list, the disk's icon and name at the top
-  right, and the button column Eject, Desktop, a dotted line, Cancel and
+  box 7.5.5 draws (`*-755-dialog-standardfile-layout.png`), browsing one
+  folder at a time: the folder pop-up with the folder's icon centered over
+  the list, the disk's icon and name at the top right, 16 px icons on 18 px
+  rows selected across the row, the Show pop-up (file type filters) under
+  the list, and the button column Eject, Desktop, a dotted line, Cancel and
   Open, placed by the new `fileDialog` knobs (QuickTime's Preview area is not
-  drawn). The Application menu's title is the front application's small icon
+  drawn); the Save box is 7.5's (`*-dialog-standardfile-save.png`): its name
+  field under the list and New between Desktop and the line, by its own
+  `fileDialog.save*` knobs. The Finder is shown by the System file's
+  Macintosh (the Application menu's title), and a hidden application's icon
+  is dimmed in that menu. The Application menu's title is the front application's small icon
   alone, 34 px wide and 6 px from the screen's edge (`menuBar.endInset` 6,
   `switcherTitleStart`/`End` 9), its menu right-aligned under it. The Finder
   list view's rows are white with no line between them, 18 px apart

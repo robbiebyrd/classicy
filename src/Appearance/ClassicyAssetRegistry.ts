@@ -127,6 +127,7 @@ export type ClassicySystemArtKey =
 	| "quickTimeThumbSlider"
 	| "quickTimeVolumeSlider"
 	| "controlStripTab"
+	| "controlStripTabRight"
 	| "controlStripCollapse"
 	| "controlStripScrollLeft"
 	| "controlStripScrollLeftDisabled"
@@ -1093,6 +1094,7 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	quickTimeThumbSlider: "image",
 	quickTimeVolumeSlider: "image",
 	controlStripTab: "pixelArt",
+	controlStripTabRight: "pixelArt",
 	controlStripCollapse: "pixelArt",
 	controlStripScrollLeft: "pixelArt",
 	controlStripScrollLeftDisabled: "pixelArt",
