@@ -3,6 +3,7 @@
 // the matching elements outside every window (the menu bar, open menus).
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { stubClassicyClientRects } from "@/__tests__/withClientRects";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -43,6 +44,7 @@ const menuBarOrigin = () => {
 };
 
 describe("ClassicyDesktop and a package's patternOrigin.elements", () => {
+	beforeEach(() => stubClassicyClientRects());
 	beforeEach(() => resetClassicyAppearancePackagesForTests());
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 

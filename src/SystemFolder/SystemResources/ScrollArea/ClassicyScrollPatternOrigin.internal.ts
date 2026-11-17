@@ -2,6 +2,7 @@ import { type RefObject, useLayoutEffect } from "react";
 import {
 	classicyOriginPx,
 	classicyWindowContentOrigin,
+	isClassicyRendered,
 	onClassicyDevicePixels,
 	watchClassicyPatternOriginPart,
 } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
@@ -49,6 +50,13 @@ const measureScrollPatternOrigin = (
 	track: HTMLElement | null,
 	origin: { x: number; y: number },
 ): (() => void) => {
+	// A bar that is not rendered (a hidden pane's) gets no origin.
+	if (!isClassicyRendered(bar))
+		return () => {
+			for (const el of [bar, track])
+				for (const name of [CLASSICY_SCROLL_ORIGIN_X, CLASSICY_SCROLL_ORIGIN_Y])
+					if (el?.style.getPropertyValue(name)) el.style.removeProperty(name);
+		};
 	const ox = onClassicyDevicePixels(origin.x);
 	const oy = onClassicyDevicePixels(origin.y);
 	const barRect = bar.getBoundingClientRect();

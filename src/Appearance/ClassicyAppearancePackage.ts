@@ -110,13 +110,13 @@ export type ClassicyAppearanceLayout = {
 	 * key: a component left out, or set to `"element"` (the default), has
 	 * nothing published and no watcher, and its pattern lies where the
 	 * package's stylesheet anchors it (the part's own corner). `"window"`
-	 * (as QuickDraw laid a pixel pattern from its window's port): the core
-	 * publishes the window's content origin (inside the frame, under the title
-	 * bar; outside a window, the desktop's corner). `"desktop"` (System 7, as
-	 * QuickDraw laid its 1-bit patterns from the screen's corner, so a
-	 * dithered part keeps one phase wherever its window and the part sit):
-	 * the core publishes the desktop's corner (outside a desktop, the
-	 * viewport's). Either is published on each of the component's
+	 * (System 7, as QuickDraw laid a pattern from its window's port, so a
+	 * dithered part keeps the window's phase wherever it sits): the core
+	 * publishes the window's content origin (inside the frame, under the
+	 * title bar; outside a window, the desktop's corner). `"desktop"`: the
+	 * core publishes the desktop's corner (outside a desktop, the
+	 * viewport's), for a pattern that keeps one phase across the whole
+	 * screen, wherever the part's window is. Either is published on each of the component's
 	 * pattern-bearing elements, from the element's padding-box corner, as
 	 * `--classicy-pattern-origin-x` / `-y` in whole pixels, and kept current
 	 * as anything moves the element against it: a `ControlGroup`'s fieldset;

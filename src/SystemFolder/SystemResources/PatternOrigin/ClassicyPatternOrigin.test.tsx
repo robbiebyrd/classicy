@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { stubClassicyClientRects } from "@/__tests__/withClientRects";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
 	getClassicyAppearancePackage,
@@ -22,6 +23,7 @@ import {
 	classicyPatternOriginScopeCountForTests,
 	useClassicyPatternOriginElements,
 	watchClassicyPatternOrigin,
+	watchClassicyPatternOriginPart,
 	watchClassicyPatternOriginSelector,
 } from "./ClassicyPatternOrigin.internal";
 
@@ -77,9 +79,13 @@ const inWindow = (ui: React.ReactElement) => {
 	Object.defineProperty(win, "clientLeft", { value: 1 });
 	Object.defineProperty(win, "clientTop", { value: 1 });
 	place(title, 41, 41, 398, 18);
-	vi.spyOn(title, "getClientRects").mockReturnValue([
-		DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
-	] as unknown as DOMRectList);
+	Object.defineProperty(title, "getClientRects", {
+		configurable: true,
+		value: () =>
+			[
+				DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
+			] as unknown as DOMRectList,
+	});
 	const host = document.createElement("div");
 	win.append(host);
 	const view = render(ui, { container: host });
@@ -87,6 +93,7 @@ const inWindow = (ui: React.ReactElement) => {
 };
 
 describe("layout.patternOrigin", () => {
+	beforeEach(() => stubClassicyClientRects());
 	beforeEach(() => resetClassicyAppearancePackagesForTests());
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
@@ -137,6 +144,7 @@ describe("layout.patternOrigin", () => {
 });
 
 describe("watchClassicyPatternOrigin", () => {
+	beforeEach(() => stubClassicyClientRects());
 	afterEach(() => {
 		vi.restoreAllMocks();
 		document.body.innerHTML = "";
@@ -156,9 +164,13 @@ describe("watchClassicyPatternOrigin", () => {
 		Object.defineProperty(el("win"), "clientLeft", { value: 1 });
 		Object.defineProperty(el("win"), "clientTop", { value: 1 });
 		place(el("title"), 41, 41, 398, 18);
-		vi.spyOn(el("title"), "getClientRects").mockReturnValue([
-			DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
-		] as unknown as DOMRectList);
+		Object.defineProperty(el("title"), "getClientRects", {
+			configurable: true,
+			value: () =>
+				[
+					DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
+				] as unknown as DOMRectList,
+		});
 		return { win: el("win"), a: el("a"), b: el("b") };
 	};
 
@@ -210,6 +222,89 @@ describe("watchClassicyPatternOrigin", () => {
 		stop();
 	});
 
+	// Review r0, issue 1: an element that is not rendered (`display: none`,
+	// a hidden tab panel, a closed menu's divider) has no rects, and its
+	// "origin" would be the window's place on the page: nothing is published
+	// on it, and a window moved over it writes nothing.
+	it("publishes nothing on an unrendered part, and again once it renders", async () => {
+		const { win, a } = scene();
+		place(a, 100, 80);
+		const stop = watchClassicyPatternOrigin([a]);
+		expect(published(a)).toEqual(["-59px", "-21px"]);
+		a.style.display = "none";
+		await vi.waitFor(() => expect(published(a)).toEqual(["", ""]));
+		const writes = vi.spyOn(CSSStyleDeclaration.prototype, "setProperty");
+		for (let i = 1; i <= 5; i++) {
+			place(win, 40 + i, 40, 400, 300);
+			win.style.left = `${i}px`;
+			await new Promise((r) => setTimeout(r));
+		}
+		expect(
+			writes.mock.calls.filter(([name]) => String(name).includes("-origin-")),
+		).toEqual([]);
+		writes.mockRestore();
+		// Rendered again, with the window 5 px further right than it was.
+		a.style.display = "";
+		await vi.waitFor(() => expect(published(a)).toEqual(["-54px", "-21px"]));
+		stop();
+	});
+
+	// Review r0, issue 6: a window dragged on the desktop changes only its
+	// own style, which moves nothing against its content origin, so its
+	// window-laid parts are not measured again; a desktop-laid part is.
+	it("measures nothing anew when only its window's own style changes", async () => {
+		const { win, a, b } = scene();
+		place(a, 100, 80);
+		place(b, 120, 90);
+		const measured = { window: 0, desktop: 0 };
+		const part = (origin: "window" | "desktop", el: HTMLElement) =>
+			watchClassicyPatternOriginPart({
+				anchors: [el],
+				origin,
+				measure: () => {
+					measured[origin]++;
+					return undefined;
+				},
+			});
+		const stopA = part("window", a);
+		win.style.left = "5px";
+		await new Promise((r) => setTimeout(r));
+		expect(measured.window).toBe(1);
+		const stopB = part("desktop", b);
+		win.style.left = "6px";
+		await new Promise((r) => setTimeout(r));
+		expect(measured).toEqual({ window: 2, desktop: 2 });
+		// Anything else in the window still measures.
+		stopB();
+		a.setAttribute("class", "moved");
+		await new Promise((r) => setTimeout(r));
+		expect(measured.window).toBe(3);
+		stopA();
+	});
+
+	it("outside every window, measures nothing anew for a change inside one", async () => {
+		const { win, a } = scene();
+		const item = document.createElement("p");
+		(document.getElementById("desk") as HTMLElement).append(item);
+		place(item, 20, 25);
+		let measured = 0;
+		const stop = watchClassicyPatternOriginPart({
+			anchors: [item],
+			measure: () => {
+				measured++;
+				return undefined;
+			},
+		});
+		win.style.left = "5px";
+		a.setAttribute("class", "moved");
+		await new Promise((r) => setTimeout(r));
+		expect(measured).toBe(1);
+		item.setAttribute("class", "moved");
+		await new Promise((r) => setTimeout(r));
+		expect(measured).toBe(2);
+		stop();
+	});
+
 	it("shares one watcher among every part of a window, and drops it with the last", () => {
 		const { a, b } = scene();
 		place(a, 100, 80);
@@ -232,6 +327,7 @@ describe("watchClassicyPatternOrigin", () => {
 });
 
 describe("components a package lays from a fixed origin", () => {
+	beforeEach(() => stubClassicyClientRects());
 	beforeEach(() => resetClassicyAppearancePackagesForTests());
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
@@ -348,6 +444,7 @@ describe("components a package lays from a fixed origin", () => {
 });
 
 describe("elements a package names by selector", () => {
+	beforeEach(() => stubClassicyClientRects());
 	beforeEach(() => resetClassicyAppearancePackagesForTests());
 	afterEach(() => {
 		resetClassicyAppearancePackagesForTests();
@@ -374,9 +471,13 @@ describe("elements a package names by selector", () => {
 		Object.defineProperty(el("win"), "clientLeft", { value: 1 });
 		Object.defineProperty(el("win"), "clientTop", { value: 1 });
 		place(el("title"), 41, 41, 398, 18);
-		vi.spyOn(el("title"), "getClientRects").mockReturnValue([
-			DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
-		] as unknown as DOMRectList);
+		Object.defineProperty(el("title"), "getClientRects", {
+			configurable: true,
+			value: () =>
+				[
+					DOMRect.fromRect({ x: 41, y: 41, width: 398, height: 18 }),
+				] as unknown as DOMRectList,
+		});
 		place(el("label"), 100, 80);
 		place(el("later"), 110, 90);
 		place(el("item"), 20, 25);
@@ -414,6 +515,29 @@ describe("elements a package names by selector", () => {
 		expect(
 			warn.mock.calls.filter((call) => String(call[0]).includes('"a["')),
 		).toHaveLength(1);
+		stop();
+	});
+
+	it("writes nothing on an unrendered match when its window moves", async () => {
+		const el = scene();
+		const stop = watchClassicyPatternOriginSelector(el("win"), ".dim");
+		el("label").style.display = "none";
+		await vi.waitFor(() => expect(published(el("label"))).toEqual(["", ""]));
+		const writes = vi.spyOn(CSSStyleDeclaration.prototype, "setProperty");
+		for (let i = 1; i <= 5; i++) {
+			place(el("win"), 40 + i, 40, 400, 300);
+			el("win").style.left = `${i}px`;
+			await new Promise((r) => setTimeout(r));
+		}
+		expect(
+			writes.mock.calls.filter(([name]) => String(name).includes("-origin-")),
+		).toEqual([]);
+		writes.mockRestore();
+		// Rendered again, with the window 5 px further right than it was.
+		el("label").style.display = "";
+		await vi.waitFor(() =>
+			expect(published(el("label"))).toEqual(["-54px", "-21px"]),
+		);
 		stop();
 	});
 

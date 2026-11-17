@@ -3,6 +3,7 @@
 // the matching elements it holds.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
+import { stubClassicyClientRects } from "@/__tests__/withClientRects";
 import {
 	registerClassicyAppearancePackage,
 	resetClassicyAppearancePackagesForTests,
@@ -74,6 +75,7 @@ const originOf = (container: HTMLElement) => {
 };
 
 describe("ClassicyWindow and a package's patternOrigin.elements", () => {
+	beforeEach(() => stubClassicyClientRects());
 	beforeEach(() => resetClassicyAppearancePackagesForTests());
 	afterEach(() => resetClassicyAppearancePackagesForTests());
 

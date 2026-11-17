@@ -8,12 +8,12 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // A package that fills a part with a pattern in CSS can only lay it from the
 // element's own box, so a part's dots fall in a phase set by where it sits.
-// QuickDraw laid a pattern from a fixed origin instead: a pixel pattern from
-// its window's port (the scroll tracks, `scrollBar.patternOrigin`), a 1-bit
-// pattern from the screen's corner (System 7's dimmed controls and dotted
-// rules). So the core tells a package where that origin lies from each
-// element of the parts it declares (its layout's `patternOrigin`), and of no
-// other.
+// QuickDraw laid a pattern from a fixed origin instead, its window's port
+// (System 7's scroll tracks, dimmed controls and dotted rules). So the core
+// tells a package where its chosen origin lies (the window's content origin,
+// or the desktop's corner for a pattern in one phase across the screen) from
+// each element of the parts it declares (its layout's `patternOrigin` and
+// `scrollBar.patternOrigin`), and of no other.
 //
 // One watcher per window (outside a window, per desktop, else per document
 // body) keeps every registered part in it current: a signal that may have
@@ -58,7 +58,7 @@ export const classicyWindowContentOrigin = (
 
 /**
  * The desktop's corner, in viewport coordinates, for `el` (the screen's
- * corner, which System 7 laid its 1-bit patterns from); outside a desktop,
+ * corner, for a pattern in one phase across the screen); outside a desktop,
  * the viewport's.
  */
 export const classicyDesktopOrigin = (
@@ -163,7 +163,9 @@ const scopeElementOf = (el: HTMLElement): Element =>
  * - the pointer or the focus moves, a frame later (a rule keyed on a
  *   pseudo-class state lays out with no attribute changing).
  * Publishing writes only changed values, so the mutation it makes itself
- * settles after one more read.
+ * settles after one more read. A window's own style changing (a drag) is
+ * no signal for the parts laid from its content origin, nor is a change
+ * inside a window for the parts outside every window.
  */
 const createScope = (scopeEl: Element): Scope => {
 	const doc = scopeEl.ownerDocument;
@@ -224,10 +226,30 @@ const createScope = (scopeEl: Element): Scope => {
 	};
 	const titleBar = win?.querySelector(":scope > .classicyWindowTitleBar");
 	if (titleBar) observe(titleBar);
+	// Mutations that move no part against its origin, so publish nothing:
+	// a window's own style (dragged, its parts and its content origin move
+	// together; a size change is the ResizeObserver's), unless a part of it
+	// is laid from the desktop; and, outside every window, anything inside
+	// a window (absolutely placed, it moves nothing outside it).
+	const moves = (record: MutationRecord): boolean => {
+		const target = record.target;
+		if (win)
+			return !(
+				target === win &&
+				record.type === "attributes" &&
+				record.attributeName === "style" &&
+				![...parts].some((part) => part.origin === "desktop")
+			);
+		return !(
+			target instanceof Element && target.closest(".classicyWindow") !== null
+		);
+	};
 	const mutations =
 		typeof MutationObserver === "undefined"
 			? null
-			: new MutationObserver(publish);
+			: new MutationObserver((records) => {
+					if (records.some(moves)) publish();
+				});
 	mutations?.observe(scopeEl, {
 		subtree: true,
 		childList: true,
@@ -325,14 +347,25 @@ const publishPatternOrigin = (el: HTMLElement, x: string, y: string) => {
 		el.style.setProperty("--classicy-pattern-origin-y", y);
 };
 
-/** Removes the two properties from `el`. */
+/** Removes the two properties from `el`, writing nothing when it has none. */
 const removePatternOrigin = (el: HTMLElement) => {
-	el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_X);
-	el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_Y);
+	if (el.style.getPropertyValue(CLASSICY_PATTERN_ORIGIN_X) !== "")
+		el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_X);
+	if (el.style.getPropertyValue(CLASSICY_PATTERN_ORIGIN_Y) !== "")
+		el.style.removeProperty(CLASSICY_PATTERN_ORIGIN_Y);
 };
 
 /**
- * Reads `elements`' padding-box corners (inside their borders) against `at` (in whole device
+ * Whether `el` is rendered: an element with no box (`display: none`, or
+ * inside such an element: a hidden tab panel, a closed menu) has no client
+ * rects, and its corner would be read as the viewport's, so it is given no
+ * origin until it renders (its style or an ancestor changing is a signal).
+ */
+export const isClassicyRendered = (el: Element): boolean =>
+	el.getClientRects().length > 0;
+
+/**
+ * Reads the rendered ones of `elements`' padding-box corners (inside their borders) against `at` (in whole device
  * pixels) and returns the write that publishes them, which returns the
  * elements written.
  */
@@ -342,7 +375,8 @@ const measureOn = (
 ): (() => Set<HTMLElement>) => {
 	const ox = onClassicyDevicePixels(at.x);
 	const oy = onClassicyDevicePixels(at.y);
-	const values = elements.map((el) => {
+	const rendered = elements.filter(isClassicyRendered);
+	const values = rendered.map((el) => {
 		const r = el.getBoundingClientRect();
 		// The border's width, not clientLeft, which Firefox makes a text
 		// field's border and padding.
@@ -357,7 +391,9 @@ const measureOn = (
 	});
 	return () => {
 		for (const [el, x, y] of values) publishPatternOrigin(el, x, y);
-		return new Set(elements);
+		for (const el of elements)
+			if (!rendered.includes(el)) removePatternOrigin(el);
+		return new Set(rendered);
 	};
 };
 
