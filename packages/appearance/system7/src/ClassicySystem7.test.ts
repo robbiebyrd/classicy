@@ -605,6 +605,11 @@ describe("the System 7 appearance package", () => {
 			// band's middle.
 			expect(vars["--file-browser-list-title-inset"]).toBe("1px");
 			expect(vars["--header-strip-title-drop"]).toBe("1px");
+			// The sorted title's underline, a pixel thick 12 rows below its
+			// title's top (row 203 of the band from 190, the title a row
+			// down), drawn as a box so no engine's underline metrics move it.
+			expect(vars["--header-strip-underline-top"]).toBe("12px");
+			expect(vars["--header-strip-underline"]).toBe("1px");
 		}
 		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
 			mediumIconSize: 16,

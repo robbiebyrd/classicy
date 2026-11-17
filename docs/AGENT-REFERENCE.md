@@ -3836,8 +3836,13 @@ Platinum (§1); its README lists what it ships.
   `headerStrip.height` tall over the double rule the window header gives up,
   the sorted one underlined with no triangle, the name column's
   `fileBrowserList.titleInset` (1) into the names' boxes and every title
-  `headerStrip.titleDrop` (1) below the band's middle; small text is Geneva
-  (`typography.uiSmall`).
+  `headerStrip.titleDrop` (1) below the band's middle. The underline is a
+  box, not a `text-decoration`, so no engine's underline metrics move it:
+  `headerStrip.underline` (1) thick, `headerStrip.underlineTop` (12) below
+  the top of its title's line box, which is the header strip's height. A
+  list with nothing scrolling above it to hold the titles (a modal's
+  contents) draws them the same way in its own header row; small text is
+  Geneva (`typography.uiSmall`).
 - **The desktop and the menu bar** (story 0216-1im). The desktop icons sit
   on 7.5's rows (the optional knobs `desktopIconGrid.rowGap: 20` and
   `top: 28`, "Package knob families"); the screen's bottom corners are

@@ -2285,29 +2285,59 @@ describe("system7.scss (compiled)", () => {
 			).toMatch(
 				/height: calc\(100% - var\(--window-title-bar-height\) \+ var\(--window-border-size\) - var\(--header-strip-height\)\);/,
 			);
-			const DETACHED = ".classicyTableDetachedHeader";
-			expect(rule(`${DETACHED} .classicyTableHeaderGroup`)).toMatch(
-				/background: var\(--color-white\);/,
-			);
-			const title = rule(`${DETACHED} .classicyTableColumnHeader`);
-			expect(title).toMatch(/height: var\(--header-strip-height\);/);
-			expect(title).toMatch(/background: transparent;/);
-			expect(rule(`${DETACHED} .classicyTableSortArrow`)).toMatch(
-				/display: none;/,
-			);
+			// The titles look the same above the list and, where nothing
+			// above the list scrolls to hold them (a modal's contents), in
+			// it: its own header row, unless that row is the hidden one the
+			// detached copy stands in for (review r0, issue 2).
+			for (const TITLES of [
+				".classicyTableDetachedHeader",
+				".classicyFileBrowserViewTableContainer .classicyTableHeader:not(.classicyTableHeaderHidden)",
+			]) {
+				const title = rule(`${TITLES} .classicyTableColumnHeader`);
+				expect(title, TITLES).toMatch(/height: var\(--header-strip-height\);/);
+				expect(title, TITLES).toMatch(
+					/line-height: var\(--header-strip-height\);/,
+				);
+				expect(title, TITLES).toMatch(/background: transparent;/);
+				expect(rule(`${TITLES} .classicyTableSortArrow`), TITLES).toMatch(
+					/display: none;/,
+				);
+				// The underline is a box pinned to the title's 17-row line
+				// box, not the engine's text-decoration (review r0, issue 5).
+				const SORTED = `${TITLES} :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span`;
+				expect(rule(SORTED), TITLES).toMatch(/position: relative;/);
+				expect(rule(SORTED), TITLES).not.toMatch(/text-decoration/);
+				const underline = rule(`${SORTED}::after`);
+				expect(underline, TITLES).toMatch(/content: "";/);
+				expect(underline, TITLES).toMatch(/position: absolute;/);
+				expect(underline, TITLES).toMatch(/left: 0;/);
+				expect(underline, TITLES).toMatch(/right: 0;/);
+				expect(underline, TITLES).toMatch(
+					/top: var\(--header-strip-underline-top\);/,
+				);
+				expect(underline, TITLES).toMatch(
+					/height: var\(--header-strip-underline\);/,
+				);
+				expect(underline, TITLES).toMatch(/background: currentColor;/);
+				expect(
+					rule(`${TITLES} .classicyTableColumnHeader:first-child`),
+					TITLES,
+				).toMatch(
+					/padding-left: calc\(var\(--file-browser-list-disclosure-width\) \+ var\(--file-browser-list-icon-start\) \+ var\(--classicy-file-browser-icon-size\) \+ var\(--file-browser-list-icon-end\) \+ var\(--file-browser-list-title-inset\)\);/,
+				);
+				const content = rule(`${TITLES} .classicyTableHeaderCellContent`);
+				expect(content, TITLES).toMatch(/position: relative;/);
+				expect(content, TITLES).toMatch(
+					/top: var\(--header-strip-title-drop\);/,
+				);
+			}
 			expect(
-				rule(
-					`${DETACHED} :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span`,
-				),
-			).toMatch(/text-decoration: underline;/);
-			expect(
-				rule(`${DETACHED} .classicyTableColumnHeader:first-child`),
-			).toMatch(
-				/padding-left: calc\(var\(--file-browser-list-disclosure-width\) \+ var\(--file-browser-list-icon-start\) \+ var\(--classicy-file-browser-icon-size\) \+ var\(--file-browser-list-icon-end\) \+ var\(--file-browser-list-title-inset\)\);/,
+				rule(".classicyTableDetachedHeader .classicyTableHeaderGroup"),
+			).toMatch(/background: var\(--color-white\);/);
+			// No rule sizes the hidden header row: it stays at no height.
+			expect(css).not.toMatch(
+				/\.classicyFileBrowserViewTableContainer \.classicyTableColumnHeader \{[^}]*height/,
 			);
-			const content = rule(`${DETACHED} .classicyTableHeaderCellContent`);
-			expect(content).toMatch(/position: relative;/);
-			expect(content).toMatch(/top: var\(--header-strip-title-drop\);/);
 		});
 
 		// 7.5.5's Standard File boxes (`*-755-dialog-standardfile-layout.png`,

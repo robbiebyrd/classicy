@@ -190,7 +190,9 @@
 			"headerStrip": {
 				"height": 17,
 				"rule": 3,
-				"titleDrop": 1
+				"titleDrop": 1,
+				"underlineTop": 12,
+				"underline": 1
 			},
 			"checkBox": {
 				"size": 12,
@@ -512,7 +514,9 @@
 				"headerStrip": {
 					"height": 17,
 					"rule": 3,
-					"titleDrop": 1
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
 				},
 				"checkBox": {
 					"size": 12,
@@ -836,7 +840,9 @@
 				"headerStrip": {
 					"height": 17,
 					"rule": 3,
-					"titleDrop": 1
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
 				},
 				"checkBox": {
 					"size": 12,

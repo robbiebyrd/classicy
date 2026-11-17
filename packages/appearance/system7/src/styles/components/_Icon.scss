@@ -278,33 +278,55 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
     background: var(--color-white);
   }
 
-  .classicyTableDetachedHeader .classicyTableColumnHeader {
-    box-sizing: border-box;
-    height: var(--header-strip-height);
-    padding-top: 0;
-    padding-bottom: 0;
-    line-height: var(--header-strip-height);
-    color: var(--color-black);
-    background: transparent;
-  }
+  // The titles look the same where nothing above the list scrolls to hold
+  // them (a modal's contents): there they stay in the list, in its own
+  // header row, unless that row is the hidden one the detached copy stands
+  // in for (`classicyTableHeaderHidden`, laid out at no height).
+  .classicyTableDetachedHeader,
+  .classicyFileBrowserViewTableContainer .classicyTableHeader:not(.classicyTableHeaderHidden) {
+    .classicyTableColumnHeader {
+      box-sizing: border-box;
+      height: var(--header-strip-height);
+      padding-top: 0;
+      padding-bottom: 0;
+      line-height: var(--header-strip-height);
+      color: var(--color-black);
+      background: transparent;
+    }
 
-  .classicyTableDetachedHeader .classicyTableColumnHeader:first-child {
-    padding-left: calc(
-      var(--file-browser-list-disclosure-width) + var(--file-browser-list-icon-start) +
-        var(--classicy-file-browser-icon-size) + var(--file-browser-list-icon-end) + var(--file-browser-list-title-inset)
-    );
-  }
+    .classicyTableColumnHeader:first-child {
+      padding-left: calc(
+        var(--file-browser-list-disclosure-width) + var(--file-browser-list-icon-start) +
+          var(--classicy-file-browser-icon-size) + var(--file-browser-list-icon-end) + var(--file-browser-list-title-inset)
+      );
+    }
 
-  .classicyTableDetachedHeader .classicyTableHeaderCellContent {
-    position: relative;
-    top: var(--header-strip-title-drop);
-  }
+    .classicyTableHeaderCellContent {
+      position: relative;
+      top: var(--header-strip-title-drop);
+    }
 
-  .classicyTableDetachedHeader .classicyTableSortArrow {
-    display: none;
-  }
+    .classicyTableSortArrow {
+      display: none;
+    }
 
-  .classicyTableDetachedHeader :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span {
-    text-decoration: underline;
+    // The underline is a box, `headerStrip.underline` (1) thick and
+    // `headerStrip.underlineTop` (12) below the top of its title's line box
+    // (the header strip's height, so the same in every engine), where a
+    // text-decoration would sit by each engine's reading of the font's
+    // underline metrics. It spans the title's advance, as an underline does.
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span {
+      position: relative;
+    }
+
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: var(--header-strip-underline-top);
+      height: var(--header-strip-underline);
+      background: currentColor;
+    }
   }
 }
