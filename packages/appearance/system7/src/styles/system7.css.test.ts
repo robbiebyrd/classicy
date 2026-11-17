@@ -1657,15 +1657,15 @@ describe("system7.scss (compiled)", () => {
 				expect(part).toMatch(/^\s*mask: linear-gradient/m);
 				// 1-bit: the dimmed ink where x + y is odd, in the theme's tile.
 				expect(part).toMatch(
-					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) 0 0 ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) left top ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
 				);
 				// Color: #888888, and #777777 where x and y are odd, in a tile
 				// sized away in 1-bit.
 				expect(part).toMatch(
-					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) 0 0 ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
 				);
 				expect(part).toMatch(
-					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) 0 0 ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) left top ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
 				);
 			}
 		});
@@ -1685,7 +1685,7 @@ describe("system7.scss (compiled)", () => {
 			expect(ring).toMatch(/pointer-events: none;/);
 			// Black where x + y is odd, the corner pixel empty.
 			expect(ring).toMatch(
-				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box 0 0 ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
+				/background: conic-gradient\(var\(--color-black\) 0 25%, transparent 0 50%, var\(--color-black\) 0 75%, transparent 0\) border-box left top ?\/ ?calc\(var\(--box-pixel\) \* 2\) calc\(var\(--box-pixel\) \* 2\);/,
 			);
 			// The border box less the padding box: the ring.
 			expect(ring).toMatch(

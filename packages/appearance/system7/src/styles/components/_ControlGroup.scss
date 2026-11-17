@@ -32,7 +32,7 @@ $cover: linear-gradient(var(--color-black), var(--color-black));
       box-sizing: border-box;
       border: $px solid transparent;
       background: conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0)
-        border-box 0 0 / px(2) px(2);
+        border-box left top / px(2) px(2);
       mask: $cover border-box, $cover padding-box;
       mask-composite: exclude;
       pointer-events: none;

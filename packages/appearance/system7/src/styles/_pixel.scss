@@ -126,9 +126,9 @@ $color-only: calc(#{px(2)} - var(--dither-tile-size));
 //   `bw-755-controlpanel-memory.png` draws them.
 @function dimmed-pattern() {
   @return (
-    conic-gradient(from 90deg at $px $px, var(--color-system-06) 25%, transparent 0) 0 0 / $color-only $color-only,
-    linear-gradient(var(--color-theme-06), var(--color-theme-06)) 0 0 / $color-only $color-only,
-    conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) 0 0 /
+    conic-gradient(from 90deg at $px $px, var(--color-system-06) 25%, transparent 0) left top / $color-only $color-only,
+    linear-gradient(var(--color-theme-06), var(--color-theme-06)) left top / $color-only $color-only,
+    conic-gradient(var(--color-theme-06) 0 25%, transparent 0 50%, var(--color-theme-06) 0 75%, transparent 0) left top /
       var(--dither-tile-size) var(--dither-tile-size)
   );
 }
