@@ -30,7 +30,12 @@
 				},
 				"controlStrip": {
 					"face": 16777215,
-					"darkEdge": 0
+					"darkEdge": 0,
+					"shadow": 0,
+					"pressedFace": 16777215,
+					"pressedGlyphInk": 16777215,
+					"pressedGlyphLight": 0,
+					"pressedGlyphDark": 0
 				}
 			}
 		},
@@ -86,15 +91,13 @@
 			},
 			"titleBar": {
 				"stripeInset": 1,
-				"stripeHeight": 1,
-				"stripePeriod": 2,
 				"boxMargin": 8,
 				"boxGap": 1,
 				"titleGap": 6,
 				"titleTop": 2,
 				"modalStripeInset": 2
 			},
-			"windowBox": {
+			"box": {
 				"pixel": 1,
 				"bevel": 0,
 				"zoomGlyph": 7
@@ -116,6 +119,7 @@
 			"menuBar": {
 				"bandHeight": 20,
 				"inset": 9,
+				"endInset": 11,
 				"titlePadding": 10,
 				"titleOverlap": 5,
 				"highlightTop": 1,
@@ -174,7 +178,7 @@
 				"lineHeight": 16,
 				"textLift": 2
 			},
-			"windowHeader": {
+			"headerStrip": {
 				"height": 17,
 				"rule": 3
 			},
@@ -215,10 +219,11 @@
 				"bevel": 0,
 				"arrowSpread": 1,
 				"grip": 0,
-				"snapBack": 20
+				"snapBack": 24
 			},
 			"controlStrip": {
-				"bevelWidth": 0
+				"bevelWidth": 1,
+				"shadowStart": 1
 			},
 			"iconLabel": {
 				"height": 12,
@@ -272,7 +277,12 @@
 					},
 					"controlStrip": {
 						"face": 16777215,
-						"darkEdge": 0
+						"darkEdge": 0,
+						"shadow": 0,
+						"pressedFace": 16777215,
+						"pressedGlyphInk": 16777215,
+						"pressedGlyphLight": 0,
+						"pressedGlyphDark": 0
 					}
 				}
 			},
@@ -328,15 +338,13 @@
 				},
 				"titleBar": {
 					"stripeInset": 1,
-					"stripeHeight": 1,
-					"stripePeriod": 2,
 					"boxMargin": 8,
 					"boxGap": 1,
 					"titleGap": 6,
 					"titleTop": 2,
 					"modalStripeInset": 2
 				},
-				"windowBox": {
+				"box": {
 					"pixel": 1,
 					"bevel": 0,
 					"zoomGlyph": 7
@@ -358,6 +366,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
+					"endInset": 11,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -416,7 +425,7 @@
 					"lineHeight": 16,
 					"textLift": 2
 				},
-				"windowHeader": {
+				"headerStrip": {
 					"height": 17,
 					"rule": 3
 				},
@@ -457,10 +466,11 @@
 					"bevel": 0,
 					"arrowSpread": 1,
 					"grip": 0,
-					"snapBack": 20
+					"snapBack": 24
 				},
 				"controlStrip": {
-					"bevelWidth": 0
+					"bevelWidth": 1,
+					"shadowStart": 1
 				},
 				"iconLabel": {
 					"height": 12,
@@ -516,7 +526,12 @@
 					},
 					"controlStrip": {
 						"face": 13421772,
-						"darkEdge": 4473924
+						"darkEdge": 4473924,
+						"shadow": 11184810,
+						"pressedFace": 8947848,
+						"pressedGlyphInk": 0,
+						"pressedGlyphLight": 7829367,
+						"pressedGlyphDark": 2236962
 					}
 				}
 			},
@@ -572,15 +587,13 @@
 				},
 				"titleBar": {
 					"stripeInset": 1,
-					"stripeHeight": 1,
-					"stripePeriod": 2,
 					"boxMargin": 8,
 					"boxGap": 1,
 					"titleGap": 6,
 					"titleTop": 2,
 					"modalStripeInset": 2
 				},
-				"windowBox": {
+				"box": {
 					"pixel": 1,
 					"bevel": 1,
 					"zoomGlyph": 7
@@ -602,6 +615,7 @@
 				"menuBar": {
 					"bandHeight": 20,
 					"inset": 9,
+					"endInset": 11,
 					"titlePadding": 10,
 					"titleOverlap": 5,
 					"highlightTop": 1,
@@ -660,7 +674,7 @@
 					"lineHeight": 16,
 					"textLift": 2
 				},
-				"windowHeader": {
+				"headerStrip": {
 					"height": 17,
 					"rule": 3
 				},
@@ -701,10 +715,11 @@
 					"bevel": 1,
 					"arrowSpread": 0,
 					"grip": 6,
-					"snapBack": 20
+					"snapBack": 24
 				},
 				"controlStrip": {
-					"bevelWidth": 1
+					"bevelWidth": 1,
+					"shadowStart": 2
 				},
 				"iconLabel": {
 					"height": 12,
@@ -763,6 +778,21 @@
 				},
 				"darkEdge": {
 					"label": "Dark Edge"
+				},
+				"shadow": {
+					"label": "Shadow"
+				},
+				"pressedFace": {
+					"label": "Pressed Face"
+				},
+				"pressedGlyphInk": {
+					"label": "Pressed Glyph Ink"
+				},
+				"pressedGlyphLight": {
+					"label": "Pressed Glyph Light"
+				},
+				"pressedGlyphDark": {
+					"label": "Pressed Glyph Dark"
 				}
 			}
 		}

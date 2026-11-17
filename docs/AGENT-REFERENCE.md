@@ -2179,9 +2179,19 @@ guaranteed. Both draw masks from `file:` pages, and a background image always
 loads. So Platinum's art is safe when a host serves `dist/assets/` from a CDN
 or packages the app for `file:`. Platinum's one mask art, the open icon's
 halftone (below), is registered as an inline `data:` URI, so it needs no fetch
-at all. The masks that remain are the icons' `--classicy-icon-mask` (the
-icon's own image, any URL the host gives, and the alias badge): a host serving
-those from another origin must send CORS headers, in every engine.
+at all. System 7 does the same for its masks: the dither checker (below),
+the art its title bars mask a token layer with, `windowStripes` (the
+racing stripes) and `windowUtilityTexture` (the windoid's drag-bar dots),
+and the 1-bit `appleMenu` and `helpMenuTitle` art, which masks an open
+Apple or Help title's inversion layer, all registered as inline `data:`
+URIs (their files still ship in `dist/assets/`, and its `verify:dist`
+allows exactly these). Its color `appleMenu` and `helpMenuTitle` art stays
+a file: the same mask is fetched there, but the layer it masks draws
+nothing in color (`menuBar.titleArtInvert` is 0), so a mask dropped there
+changes no pixel. The masks that remain are the icons'
+`--classicy-icon-mask` (the icon's own image, any URL the host gives, and
+the alias badge): a host serving those from another origin must send CORS
+headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -3718,6 +3728,9 @@ Platinum (§1); its README lists what it ships.
 - **Alert sounds** (§10). The `system7` pack declares six `alerts` (Droplet,
   Indigo, Quack, Simple Beep, Sosumi, Wild Eep) with `defaultAlert:
   "ClassicyAlertSimpleBeep"`, so the Sound tab lists those six under System 7.
+  Simple Beep is rendered from its square-wave synthesizer commands in the
+  waveform the 7.5.5 Sound Manager was recorded playing (an 8-bit square),
+  8-bit at 22,050 Hz.
 - **Dither vocabulary** ("Dither vocabulary", below): dimmed menu items,
   labels and controls, and menu dividers, through
   `@classicy/classicy/scss/dither`, in a dedicated dim ink
@@ -3727,8 +3740,9 @@ Platinum (§1); its README lists what it ships.
   layout declares `scrollBar.thumbDrag: "onRelease"`: a dragged box stays
   put while its outline follows the pointer (a black ring under the
   track's dots, matching `*-scrollbox-dragging.png`), snapping back past
-  `scrollBar.snapBack` (20 px, "a little more than the width of the scroll
-  box", HIG p.165), and `scrollBar.fitsBars: "shown"`: document windows and
+  `scrollBar.snapBack` (24 px past the bar's own pixels on any side, as
+  7.5.5's scroll bars were measured; HIG p.165 gives "a little more than
+  the width of the scroll box"), and `scrollBar.fitsBars: "shown"`: document windows and
   list boxes keep their bars, hollow, while the content fits (HIG p.160).
 - **Alerts** (HIG p.201). The buttons that are neither the default nor
   Cancel (Don't Save) go first, by `order: -1` on `[data-classicy-role=
@@ -3784,7 +3798,8 @@ registration module, so the twelve ids register twice with equal
 definitions (the registry replaces each in place), and the Logo saver's
 image registry keeps its state on `globalThis`
 (`Symbol.for("@classicy/screen-saver-logos@1")`), so both copies share one
-list. Mixing versions of the two Appearance Packages is unsupported: an
+list, and one record of the stock logos whose missing icon was logged, so
+each warning shows once. Mixing versions of the two Appearance Packages is unsupported: an
 older Platinum can re-register the savers under `platinum` only, or keep its
 own logo registry, which then diverges from System 7's.
 
@@ -3815,7 +3830,7 @@ how they look) has two halves:
 | `desktop.iconGridOrigin` | `top-right`, `top-left`, `bottom-right`, `bottom-left` | the corner desktop icons are laid out from, by Clean Up (`ClassicyDesktopIconCleanup`) and when an icon is added. Switching packages does not move existing icons; the next Clean Up does |
 | `slider.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicySlider` drawn with a `ghost` drags. `live` (the default): the indicator follows the pointer and the value changes as it goes, the ghost with it. `onRelease` (Platinum, HIGOS8 p.34, Figure 2-17, "a slider with a downward pointing indicator shadowed by a ghost indicator"): the indicator stays where it was while the ghost follows the pointer, and the value changes once, when the button comes up (`onChangeFunc`, then `onCommitFunc`); a lost pointer stream drops the ghost's value. A slider without a ghost drags live under either, the HIG's "live feedback" (p.35); the keyboard and the wheel are unaffected; touch stays the browser's live drag, even under `onRelease` |
 | `scrollBar.fitsBars` (optional) | `hidden`, `shown` | whether bars stay while the content fits. `hidden` (Mac OS 8): a window draws its bars only while its content overflows (or it has a placard), a `ClassicyListBox` its vertical bar only while its rows do. `shown` (System 7, HIG p.160, "If the document is no larger than the window, the scroll bars are inactive"): a document window always draws both bars, and a list box (`ClassicyListBox`, Standard File's list) its vertical bar, in the `fits` state (no thumb) while their axis fits. It is the default of `ClassicyWindow`'s `fitsScrollBars` for a resizable, non-utility window; a window with no size box or a utility window keeps the `hidden` rule, and a window passing `fitsScrollBars={false}` (Movie Player, Picture Viewer, a HyperCard card) does too. Lists read it through `useClassicyFitsBarPolicy(keep?)` (`"always"` or `"auto"`), windows through `useClassicyFitsScrollBars()` |
-| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 20; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") outside the bar's box on any side, the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
+| `scrollBar.thumbDrag` (optional) | `live`, `onRelease` | how a `ClassicyScrollArea` thumb drag scrolls. `live` (Mac OS 8): the content follows the thumb. `onRelease` (System 7, HIG p.165): the thumb stays put and a drag outline (`data-classicy-part="scroll-drag-outline"`, `.classicyScrollBarDragOutline`, the thumb's length, which the package draws) follows the pointer; the content scrolls when the button comes up. While the pointer is more than the theme variable `--scroll-bar-snap-back` (px; System 7's knob `scrollBar.snapBack`, 24; a theme that does not emit it gets the bar's own thickness across, "the width of the scroll box") past the bar's own pixels on any side (its box grown by that much, the right and bottom edges counted out, as QuickDraw's `PtInRect`), the outline sits back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, scrolling nothing; while the outline is held, the keys and the wheel are swallowed, so the content never moves under it (Mac OS tracked the mouse alone). Arrows, the track, and the keys and wheel outside a drag are unaffected |
 
 **Reading it.** `useClassicyAppearanceLayout()` (components; re-renders on a
 package switch) and `getClassicyAppearanceLayout(packageId?)` (reducers and
@@ -4246,7 +4261,12 @@ change), the way it declares measurement families. They are additive, 3.2.
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
   it draws HIGOS8 Figs. 2-17 to 2-19 exactly. **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
-  `controlStrip.face` / `darkEdge` (#CCCCCC / #444444, white / black).
+  `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
+  #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
+  strip drawing its grays through the 50% checker), and
+  `controlStrip.pressedGlyphInk` / `pressedGlyphLight` / `pressedGlyphDark`
+  (black / #777777 / #222222; white / black / black), a pressed collapse
+  box's glyph darkened, inverted in 1-bit, as 7.5.5 draws it.
 
 **Layout metrics** are theme data too. The inputs live in the theme JSON under
 `measurements.<family>` (Platinum defaults in `CLASSICY_DEFAULT_THEME_METRICS`,
@@ -4343,7 +4363,7 @@ literals.
   either: a `ClassicyScrollArea` under a package whose layout declares
   `scrollBar.thumbDrag: "onRelease"` reads it once per thumb drag, and a
   theme that does not emit it snaps back at the bar's own thickness, "the
-  width of the scroll box" (System 7 sets 20, "a little more"). The file
+  width of the scroll box" (System 7 sets 24, measured on 7.5.5). The file
   browser's list view reads four more the same way, the family
   `fileBrowserList`: `smallIconSize`, `mediumIconSize` and `largeIconSize`
   (`--file-browser-list-<step>-icon-size`, `LIST_VIEW_ICON_SIZE_VARS`), a
@@ -4967,8 +4987,9 @@ its package root (any image value, a CSS gradient included): it serves while
 no art is registered, and a registered `ditherChecker`, which
 `ClassicyDesktop` publishes inline on the same root, takes its place. System
 7 does both: it registers a 2 × 2 SVG tile, imported `?inline` (a mask
-fetched by URL is a CORS request, as for Platinum's `halftone`; it is the one
-`data:` URI System 7's `verify:dist` allows), and declares the same checker
+fetched by URL is a CORS request, as for Platinum's `halftone`; with the
+title-bar stripe and drag-bar dot PNGs, also masks, it is one of the
+`data:` URIs System 7's `verify:dist` allows), and declares the same checker
 as a `conic-gradient` on its package root. Its 1-bit theme sets
 `dither.tileSize` to 2, its color theme to 0. Platinum registers no tile.
 
@@ -5124,7 +5145,7 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   (`× 2`, `× 3`, `× 4`, alone or as `100% - …`): positions on the Control
   Strip art's bevel-pixel grid inside `classicy-px-rect` (H-R7), not theme
   proportions.
-- System 7's `_pixel.scss`, the one `window-box-pixel × n` in its `px()`
+- System 7's `_pixel.scss`, the one `box-pixel × n` in its `px()`
   helper: the pressed close and zoom boxes' starburst, the windoid close
   box's cross, the menu bar's screen corners, the menu checkmark, the
   menu and pop-up triangles, the push buttons' rounded corners and

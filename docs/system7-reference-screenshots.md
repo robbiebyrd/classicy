@@ -1,11 +1,13 @@
 # System 7.5 reference screenshots
 
-Reference captures of real System 7.5 for the System 7 Appearance Package
-(plan 0018-dbd, section 3.1). They settle what the HIG figures do not show,
-chiefly the 1-bit look and the pressed states. The images are not committed:
-they live in the gitignored folder
+Reference captures of real System 7.5 and 7.5.5 for the System 7 Appearance
+Package (plan 0018-dbd, section 3.1; story 0212-rce). They settle what the
+HIG figures do not show, chiefly the 1-bit look and the pressed states. The
+images are not committed: they live in the gitignored folder
 `.playwright-mcp/parity/system7/reference/`, and this index says what each one
-shows and how to make them again.
+shows and how to make them again. The 7.5.5 set (every file with `755` in its
+name) is made by a script, `packages/appearance/system7/bin/capture-references.mjs`
+("How to reproduce", below).
 
 ## Source and method
 
@@ -40,12 +42,17 @@ shows and how to make them again.
 
 ## Index
 
-Region values are approximate (to a few pixels); measure from the file before
-pinning a value. "Q" names the open question a capture answers: **MWD n** is
+"Region" is where the element lies in the 640 x 480 frame, as `x,y,w,h`
+(the box to crop: `convert <file> -crop WxH+X+Y +repage`); the values are
+approximate (to a few pixels), so measure from the file before pinning a
+value. "Q" names the open question a capture answers: **MWD n** is
 question n in the Open questions of
 `docs/superpowers/specs/2026-11-11-system7-hig-menus-windows-dialogs.md`;
 **CIC "…"** names a bullet in the Open questions of
-`docs/superpowers/specs/2026-11-11-system7-hig-controls-icons-color.md`.
+`docs/superpowers/specs/2026-11-11-system7-hig-controls-icons-color.md`;
+**HIG p.n** a page of the System 7 HIG whose figure the capture backs. A —
+means the capture answers no open question: it is the reference for the
+look its Element names.
 
 ### Desktop and menus
 
@@ -131,8 +138,8 @@ question n in the Open questions of
 | `bw-alert-caution-savechanges.png` | Same | 1-bit | SimpleText | same | — |
 | `color-alert-stop-pagesetup.png` | Stop alert, one default button | color | SimpleText, Page Setup… with no printer | 118,88,404,120 | — |
 | `bw-alert-stop-pagesetup.png` | Same | 1-bit | SimpleText | same | — |
-| `color-dialog-modeless-findfile.png` | Modeless dialog (Find File 7.5): close box, striped title, no size or zoom box, pop-up menus, edit field, default button | color | Find File (Apple menu > Find File) | 88,85,463,134 | modeless dialog (HIG p.178–181, figs 6-2 to 6-5) |
-| `bw-dialog-modeless-findfile.png` | Same, over an inactive Finder window | 1-bit | Find File | same | same |
+| `color-dialog-modeless-findfile.png` | Modeless dialog (Find File 7.5): close box, striped title, no size or zoom box, pop-up menus, edit field, default button | color | Find File (Apple menu > Find File) | 88,85,463,134 | HIG p.178–181 (figs 6-2 to 6-5) |
+| `bw-dialog-modeless-findfile.png` | Same, over an inactive Finder window | 1-bit | Find File | same | HIG p.178–181 |
 | `color-alert-findfile-noitems.png` | Alert with the application's own icon instead of note/caution/stop (Find File "No items were found."), over the dimmed modeless dialog | color | Find File, search for "zzqqx" | 150,86,338,148 | — (no stock note alert, see Not captured) |
 | `bw-alert-findfile-noitems.png` | Same | 1-bit | Find File | same | — |
 | `color-alert-stop-sharing.png` | Stop alert, one button (Sharing… with File Sharing not installed) | color | Finder, File > Sharing… on System Folder | 128,86,384,130 | — |
@@ -190,6 +197,50 @@ captures, which no palette slot holds (theme-03 is the Standard wctb's tinge,
 1-bit; plan 0018-dbd Batch F-b), so against the disclosure captures a
 triangle is AE 0 at both depths (`_Triangle.scss`).
 
+### System 7.5.5 (story 0212-rce)
+
+Made by `packages/appearance/system7/bin/capture-references.mjs run` on
+Infinite Mac's "System 7.5.5" disk (the release the package's assets were
+exported from; its Control Strip runs on the Quadra 650, where 7.5's
+refuses to), each scene at 256 colors (`color-755-*`) and Black & White
+(`bw-755-*`), the depths switched from the Control Strip's Monitor module.
+Every file is the full 640 x 480 frame.
+
+| File | Element | Depth | Source | Region | Q |
+| --- | --- | --- | --- | --- | --- |
+| `*-755-appmenu-closed.png` | Application (App Switcher) menu title, closed: the front application's small icon alone | both | Finder | title 600,0,34,19 | — (App Switcher title) |
+| `*-755-appmenu-open.png` | Same, open: Hide Finder, Hide Others, Show All (dimmed), a separator, each open application with its small icon, the current one checked | both | Finder | title 600,0,34,19; menu 532,19,108,85 | — (App Switcher title) |
+| `*-755-controlstrip.png` | Control Strip at rest: collapse box, scroll arrows (left dimmed), Monitor depth, resolution and Sound modules, tab | both | Control Strip 1.3.1 | 0,456,160,24 | — (Control Strip) |
+| `*-755-controlstrip-module-pressed.png` | Sound module pressed, its menu held open (pointer moved off) | both | Control Strip | cell 91,457,31,22; menu 92,333,44,124 | — (pressed strip cell, inferred before) |
+| `*-755-controlstrip-collapse-pressed.png` | Collapse box pressed (pointer on its lower right corner) | both | Control Strip | 1,457,13,22 | — (pressed strip cell) |
+| `*-755-icon-opened-unselected.png` | Macintosh HD opened and deselected (its window open, inactive, behind) | both | Finder | icon 584,36,32,32; window 191,172,251,159 | CIC "opened-icon pattern" (unselected, inferred before) |
+| `*-755-menu-pulldown-view-checkmark.png` | View menu, a checkmark against "by Icon" | both | Finder | 107,19,115,114 | — (1-bit checkmark menu) |
+| `*-755-finder-list-row-selected.png` | List view, Apple Extras selected: icon darkened (inverted in 1-bit), name inverted | both | Finder, Macintosh HD by Name | row 196,246,130,18 | — (Finder list selected row, inferred before) |
+| `*-755-finder-closebox-pressed.png` | Close box pressed | both | Finder | 199,175,11,11 | MWD 2 (color Finder box) |
+| `*-755-finder-zoombox-pressed.png` | Zoom box pressed | both | Finder | 422,175,11,11 | MWD 2 |
+| `*-755-scrollbox-drag-24-below.png` | Horizontal scroll box dragged, pointer 24 px below the bar (y 354): the outline follows | both | Finder list | bar 191,315,236,16 | — (snap-back distance) |
+| `*-755-scrollbox-drag-25-below.png` | Pointer 25 px below (y 355): the outline is back over the box | both | Finder list | same | — (snap-back distance) |
+| `*-755-scrollbox-drag-24-above.png` | Pointer 24 px above the bar (y 291): follows | both | Finder list | same | — (snap-back distance) |
+| `*-755-scrollbox-drag-25-above.png` | Pointer 25 px above (y 290): back over the box | both | Finder list | same | — (snap-back distance) |
+| `*-755-dialog-clockoptions.png` | Clock Options: dimmed checkboxes, dimmed pop-ups and button, group boxes, default ring | both | Date & Time > Clock Options… | 64,46,513,311 | — (dimmed controls) |
+| `*-755-controlpanel-memory.png` | Memory: a dimmed pop-up and a dimmed horizontal slider | both | Memory | 100,42,355,356 | — (dimmed pop-up and slider) |
+| `*-755-slider-dragging.png` | The Memory panel's RAM Disk slider dragged (RAM Disk on) | both | Memory | 262,300,150,20 | — (slider mid-drag) |
+| `*-755-alert-note-energysaver.png` | Note alert (the "talking face" icon), one default button | both | Energy Saver on a Quadra 650 | 128,90,385,116 | HIG p.194 (note alert) |
+| `*-755-alert-stop-erasedisk.png` | Stop alert: the startup disk cannot be erased | both | Finder, Special > Erase Disk… on Macintosh HD | 128,86,385,120 | — |
+| `*-755-stickies-notes.png` | Stickies' notes: size boxes on windows with no scroll bars | both | Stickies | full frame | MWD 7 |
+| `*-755-menu-blink-1.png` … `-8.png` | Eight consecutive frames after choosing Clean Up Desktop (three blinks, General Controls' default) | both | Finder, Special menu | 225,0,95,90 | MWD 10 |
+| `*-755-scrapbook-active.png` | Scrapbook, active | both | Scrapbook | 18,42,392,306 | MWD 5 (1-bit Scrapbook) |
+| `*-755-scrapbook-closebox-pressed.png` | Its close box pressed | both | Scrapbook | box 26,47,11,11 | MWD 2 |
+| `*-755-scrapbook-zoombox-pressed.png` | Its zoom box pressed | both | Scrapbook | box 389,47,11,11 | MWD 2 |
+| `*-755-scrapbook-inactive.png` | Scrapbook inactive: its scroll bar dimmed | both | Scrapbook | 18,42,392,306 | CIC "inactive scroll bars" |
+| `*-755-menu-pulldown-label-alldimmed.png` | Label menu with its title and items dimmed (General Controls in front) | both | General Controls | 157,0,100,130 | — (color dimmed Label menu) |
+| `*-755-getinfo-locked-running-app.png` | Get Info on SimpleText, locked, while it runs: the Locked box checked and enabled, the Comments box dotted (locked), the memory sizes read-only | both | Finder, Apple Extras > SimpleText | 8,27,243,313 | — (dimmed checked checkbox: not dimmed here) |
+| `*-755-getinfo-locked-in-trash.png` | Get Info on CPU Energy Saver, locked, in the Trash: the Locked box checked and enabled | both | Finder, Trash | 648,27,243,281 | — (dimmed checked checkbox: not dimmed here) |
+| `*-755-dialog-standardfile-layout.png` | Standard File Open box: the folder pop-up over the list, the disk's name and icon at the top right, the button column Eject (dimmed), Desktop, a line, Cancel, Open (default ring); QuickTime's Show Preview checkbox and dimmed Create button | both | SimpleText > Open… | dialog 88,88,465,200 | — (Standard File layout) |
+| `color-755-window-tint-<tint>.png` | An active document window and the Color control panel in each Window color: `gold`, `green`, `turquoise`, `red`, `pink`, `blue`, `gray`, `black-and-white` | color | Color control panel | window 191,172,251,159 | MWD 12 |
+| `755-depth-<depth>.png` | An active Finder window at `4-grays`, `4-colors`, `16-grays`, `16-colors`, `256-grays`, `256-colors` and `thousands` (switched from Black & White; the palette of a return to 256 colors differs from a fresh boot's) | each | Finder | window 191,172,251,159 | CIC "4-bit color variant" |
+| `755-simple-beep-recording.wav` | Simple Beep as the Sound Manager plays it, recorded from the page's audio (22,050 Hz, 16-bit, each 8-bit sample doubled) | — | SimpleSound | — | — (Simple Beep's waveform) |
+
 ## What the captures settle
 
 Measured from the framebuffer files (exact pixels).
@@ -204,9 +255,8 @@ Measured from the framebuffer files (exact pixels).
   turns dark. The floating window's small close box draws a smaller
   starburst.
 - **MWD 4, color values, measured with the Color control panel's Window
-  color set to "Standard"** (checked on 2026-11-11, fix round 1: it was
-  already "Standard", with Highlight color "Black & White", so no capture was
-  re-shot; see `color-controlpanel-color-standard.png`). At 256 colors the
+  color set to "Standard"** (with Highlight color "Black & White", the
+  7.5 defaults, `color-controlpanel-color-standard.png`). At 256 colors the
   7.5 Standard window colors are: title bar `#EEEEEE` with stripes `#777777`
   (six stripes on every other row), top highlight `#CCCCFF`, bottom shade
   `#9999CC`, box frame `#333366`, inner shade `#666699`; scroll track
@@ -249,45 +299,109 @@ Measured from the framebuffer files (exact pixels).
   arrows, plain track, no box). An active window whose content fits shows
   the arrows and a plain track with no box.
 - **CIC "4-bit color variant":** Monitors offers Black & White, 4, 16, 256
-  and Thousands; only Black & White and 256 were captured.
+  and Thousands, color or gray; 7.5.5's Control Strip lists all of them, and
+  each is captured (`755-depth-*.png`).
+- **Note alert (HIG p.194):** Energy Saver on a machine it does not
+  support puts up a note alert (`*-755-alert-note-energysaver.png`): the
+  talking-face icon in the stop and caution alerts' frame and layout.
+- **Pressed Control Strip cell** (`*-755-controlstrip-*-pressed.png`): two
+  pixels of #444444 on the top and left, two of the face (#CCCCCC) on the
+  bottom and right, a #888888 fill, the two off corners the fill; in 1-bit
+  the dark edge is the 50% checker and the rest white, its inner row a
+  pixel longer than in color (to the face's outer column, where color's
+  face takes that pixel). At rest, the 1-bit
+  strip's shadows (#AAAAAA and #888888 in color) and a dimmed arrow's dark
+  side are the checker too, its inner shadow starting a pixel sooner than in
+  color (its right column a row higher, its bottom row a column further
+  left, seen where a cell starts on an even x, at x 60); the strip's outer
+  lower corner is rounded off by three black pixels; and the collapse box's
+  inner square is shaded #444444. The checker is in the screen's phase,
+  black where the screen's x + y is even, not each cell's: the cells start
+  at x 29, 60 and 91 (a pitch of 31), so every other cell starts on an odd
+  x + y. A pressed collapse box also redraws its glyph a pixel down and
+  right, darkened in color (#555555 and #444444 to #222222, #CCCCFF to
+  #333366, #888888 to #444444, white to #777777) and inverted in 1-bit (the
+  ring's inside a solid 6 x 6 black square).
+- **Opened icon, unselected** (`*-755-icon-opened-unselected.png`): the
+  outline and the 25% pattern as selected, the fill #CCCCFF (the window
+  color's light lavender) in color, white in 1-bit.
+- **Finder list view, selected row** (`*-755-finder-list-row-selected.png`):
+  the icon darkened in color (inverted in 1-bit) and only the name
+  inverted, white on black at both depths.
+- **Scroll-box snap-back** (`*-755-scrollbox-drag-*.png`): the outline
+  follows the pointer up to 24 px past the bar's own pixels, on either side,
+  and snaps back over the box at 25.
+- **Simple Beep** (`755-simple-beep-recording.wav`): an 8-bit square, half
+  of each cycle at 127 + amplitude / 8 and half at 127 - amplitude / 8,
+  whatever the timbre; docs/system7-asset-inventory.md has the comparison.
+- **Standard File layout** (`*-755-dialog-standardfile-layout.png`, 7.5's
+  `*-dialog-standardfile-open.png`): the folder pop-up centered over the
+  list, the disk's name with its small icon at the top right, then the
+  button column at the right: Eject, Desktop, a line, Cancel and the
+  default Open.
+- **Application menu title** (`*-755-appmenu-*.png`): the front
+  application's small icon alone, in a title 34 px wide whose right edge is
+  6 px from the screen's.
+- **MWD 7, size box without scroll bars:** Stickies' notes
+  (`*-755-stickies-notes.png`).
+- **MWD 12, window tints:** each of the Color control panel's Window colors
+  on an active document window (`color-755-window-tint-*.png`).
 
 ## Not captured
 
-- A note alert. Every stock 7.5 alert tried used the stop or caution icon
-  (Sharing…, Erase Disk on the startup disk, Empty Trash, Chooser AppleTalk
-  and printer change, Page Setup with no printer, save changes) or the
-  application's own icon (Find File "No items were found."). Fallback: HIG
-  figure 6-18, "a note alert box", printed page 194 (PDF page 218); the frame,
-  layout and button match the captured stop and caution alerts, only the
-  icon (the "talking face") differs.
-- A slider being dragged; only the resting Sound slider.
-- A size box on a window without scroll bars (MWD 7).
-- Menu blinking (MWD 10) and other animation; captures are still frames.
-- Window tints other than Standard (MWD 12); the choices are listed above.
-- 4-bit and 16-bit depths, and grays.
+- A dimmed checked checkbox. None of 7.5.5's panels tried shows one:
+  Clock Options clears a dimmed sub-option's check (its "…same number of
+  times as current hour" box, checked, reads unchecked once "Chime on the
+  hour" is cleared); General Controls, Easy Access, Memory, Get Info (the
+  System file's, the Finder's) and Energy Saver dim none that is checked.
+  Nor does Get Info on a locked application while it runs (SimpleText) or
+  on a locked item in the Trash (CPU Energy Saver): both draw the Locked box
+  checked and enabled, in black, at both depths
+  (`*-755-getinfo-locked-*.png`, the script's `lockedgetinfo` scene).
+  The package's dotted dimmed X rests on the HIG's "dithered to 50 percent
+  gray" (p.207).
+- Menu blinking (MWD 10) at its own rate: the emulator posts a frame every
+  100 ms, so the eight frames show the item on and off but not every phase.
 - Title clipping and truncation (MWD 9); the title gap can be measured from
   the window captures.
 
 ## How to reproduce
 
-1. Run a small Node script that launches the repo's Playwright Chromium
-   headless (`--disable-gpu`), viewport 700x620, `deviceScaleFactor: 1`, and
-   adds an init script that stores the latest `emulator_screen` message
-   (`window.addEventListener("message", e => { if (e.data?.type ===
-   "emulator_screen") window.__last = e.data; })`) before navigating to the
-   URL above.
-2. Drive the mouse with `page.mouse` at emulator coordinates plus the
-   canvas's `getBoundingClientRect()` origin (the canvas is not at 0,0), and
-   the keyboard with `page.keyboard` (Command is `Meta`).
-3. To save a frame, in the page: `new ImageData(new
-   Uint8ClampedArray(f.data), f.width, f.height)`, `putImageData` onto an
-   `OffscreenCanvas`, `convertToBlob({ type: "image/png" })`, and write the
-   bytes from Node.
-4. After boot, click a sticky note and press Command-Q to quit Stickies
-   (Infinite Mac's welcome notes), then follow the Source column. For 1-bit,
-   open Apple menu > Control Panels > Monitors and choose Black & White.
+The 7.5.5 set: from the repository root,
 
-Caveat: the emulator crashed (`do_get_mem_* out of bounds`, then the tab died)
+```sh
+node packages/appearance/system7/bin/capture-references.mjs run .playwright-mcp/parity/system7/reference
+node packages/appearance/system7/bin/capture-references.mjs beep .playwright-mcp/parity/system7/reference
+```
+
+`run` boots Infinite Mac's "System 7.5.5" disk in the repo's Playwright
+Chromium (headless, 700 x 620, device scale factor 1), quits Stickies, and
+plays the recipe (`SCENES` in the script: each scene starts and ends on the
+bare desktop, so `--only <regex>` runs one, by `<depth>-<scene>` name) at
+256 colors, then Black & White, then the other depths. `beep` records
+Simple Beep from SimpleSound and compares it with the package's WAV.
+`serve <port> <out>` boots the emulator and takes steps over HTTP (POST
+`/do` a JSON list of steps, a `["record"]` step then GET `/audio`, GET
+`/frame`, `/scene/<name>/<depth>` and `/quit`), to work out a new scene. How it
+works:
+
+1. An init script keeps the latest `emulator_screen` message (with
+   `screen_update_messages=true` the embed posts its framebuffer, RGBA) and
+   taps every node connected to the audio destination with a
+   ScriptProcessor that keeps the samples while recording.
+2. The mouse is driven with `page.mouse` at emulator coordinates plus the
+   canvas's `getBoundingClientRect()` origin; the emulated pointer follows
+   with a lag, so every move waits 400 ms before a press. Menus and pressed
+   controls are shot with the button held, the pointer moved off where that
+   keeps them held (a menu stays open), and released where nothing happens.
+3. A capture waits for a frame drawn after the last input and writes it out
+   through an `OffscreenCanvas` as PNG: the emulator's own 640 x 480 pixels.
+
+The 7.5 set was made by hand the same way, on the "System 7.5" disk:
+follow its Source column after quitting Stickies; for 1-bit, open Apple
+menu > Control Panels > Monitors and choose Black & White.
+
+Caveat (the 7.5 set): the emulator crashed (`do_get_mem_* out of bounds`, then the tab died)
 three times, each shortly after a control panel window was closed (Monitors
 twice, after a depth change; Date & Time once, after its little arrows
 changed the clock). Leaving Monitors open, dragged almost off screen, avoided

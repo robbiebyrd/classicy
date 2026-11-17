@@ -322,6 +322,16 @@ for (const [stem, file, id, options = {}] of ICONS) {
 	}
 }
 
+// The Location Manager panel's world map (`controlPanels.location.map`):
+// 7.5.5's Map control panel draws its own, `PICT` -4064, 360 × 180, black
+// land on white (one picture at both depths), decoded by resource_dasm into
+// the decoded folder beside the System file's pictures.
+{
+	const map = readBmp(join(decodedRoot, "Map.rsrc_PICT_-4064.bmp"));
+	write("icons/color/32/control-panels-location-map.png", map);
+	write("icons/bw/32/control-panels-location-map.png", map);
+}
+
 // --- System art -------------------------------------------------------
 
 const ref = (file) => readPng(join(referenceRoot, file));
@@ -387,29 +397,35 @@ for (const [variant, id] of [
 	);
 }
 
+// The title-bar face: #EEEEEE in color, white in 1-bit. The stripes and
+// the drag-bar dots are cropped as ink alone, the face made clear, so a
+// consumer draws them over its own face (System 7 masks a token with them,
+// _Window.scss).
+const FACE = { color: [0xee, 0xee, 0xee], bw: WHITE };
+
 // The title-bar stripes: a 16 × 15 tile from an active window's title bar,
 // rows 2–16 below the top frame line (y 81), between the close box and the
 // title.
-write(
-	"art/color/window-stripes.png",
-	crop(ref("color-finder-window-fits-active.png"), 80, 83, 16, 15),
-);
-write(
-	"art/bw/window-stripes.png",
-	crop(ref("bw-finder-window-fits-active.png"), 80, 83, 16, 15),
-);
+for (const variant of ["color", "bw"])
+	write(
+		`art/${variant}/window-stripes.png`,
+		clearWhere(
+			crop(ref(`${variant}-finder-window-fits-active.png`), 80, 83, 16, 15),
+			(p) => isColor(p, FACE[variant]),
+		),
+	);
 
 // The floating window's drag-bar texture: one dot in every 3 × 3 (rows 4, 7
 // and 10 below the frame line, measured on Apple Guide's window), so the
 // tile is one 3 × 3 period, its dot top left.
-write(
-	"art/color/window-utility-texture.png",
-	crop(ref("color-floating-appleguide.png"), 108, 97, 3, 3),
-);
-write(
-	"art/bw/window-utility-texture.png",
-	crop(ref("bw-floating-appleguide.png"), 108, 97, 3, 3),
-);
+for (const variant of ["color", "bw"])
+	write(
+		`art/${variant}/window-utility-texture.png`,
+		clearWhere(
+			crop(ref(`${variant}-floating-appleguide.png`), 108, 97, 3, 3),
+			(p) => isColor(p, FACE[variant]),
+		),
+	);
 
 // The size box cell: inside the vertical bar's left line (x 412), the
 // horizontal bar's top line (y 282) and the frame (x 427, y 297).
@@ -547,7 +563,8 @@ write("cursors/resize-nesw.png", diagonal(true));
 // rate, Apple's 11,127.27 and 22,254.55 Hz written as 11127 and 22254 (WAV
 // rates are whole numbers), no resampling, trimming or fades. Simple Beep
 // (`snd ` 1) holds no samples: it is square-wave synthesizer commands, which
-// macSound.ts plays into 16-bit mono at 22,050 Hz.
+// macSound.ts plays into 8-bit unsigned mono at 22,050 Hz, the waveform the
+// Sound Manager was recorded drawing (`squareWaveSample`).
 const ALERTS = [
 	["ClassicyAlertSimpleBeep", 1],
 	["ClassicyAlertQuack", 5],
@@ -573,7 +590,7 @@ for (const [sprite, id] of ALERTS) {
 		);
 	} else if (sound.synths.some((synth) => synth.id === SQUARE_WAVE_SYNTH)) {
 		const samples = renderSquareWave(sound.commands, 22050);
-		wav = encodeWav({ rate: 22050, bits: 16, samples });
+		wav = encodeWav({ rate: 22050, bits: 8, samples });
 		console.log(
 			`snd ${id} -> ${sprite}: square-wave synthesizer, ${sound.commands.length} commands, ${samples.length} samples at 22050 Hz`,
 		);

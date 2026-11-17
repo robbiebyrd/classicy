@@ -188,9 +188,18 @@ for (const [id, side] of [
 		rows(strip("ics#", id), [8, 10, 0, 0], BW),
 	);
 }
+// The running strip (Control Strip 1.3.1 in 7.5.5, `color-controlstrip.png`)
+// draws the inner square's lower and right sides #444444, the tab's dark
+// edge (token `m`), where the panel's `ics8` holds #555555: the art keeps the
+// outer square's #555555 (its top row and left column) and takes the
+// strip's color inside it.
 write(
 	"control-strip-collapse",
-	rows(strip("ics8", -4045), [8, 8, 0, 0], COLOR),
+	rows(strip("ics8", -4045), [8, 8, 0, 0], COLOR).map((line, y) =>
+		y < 2
+			? line
+			: [...line].map((t, x) => (x >= 2 && t === "7" ? "m" : t)).join(""),
+	),
 );
 write(
 	"control-strip-collapse-bw",

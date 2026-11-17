@@ -33,14 +33,12 @@
 //   shape, as the captures' rounded corners show) filled with the 25%
 //   pattern, one black dot in four on each row, the next row's two over,
 //   from the icon's corner (the `halftone` art, Fig 8-1's open-icon
-//   pattern). The fill is the window color's dark lavender
-//   (`--color-theme-04`, #666699) in color and white in 1-bit (the same
-//   knob, so that the inverted selection is black); selected,
-//   #333366 (`--color-theme-07`) in color, and the 1-bit icon inverts as a
-//   whole (white outline, white dots on black), as the captures show. Only
-//   the selected form was captured: the unselected one is the selected one
-//   undarkened (#333366 is #666699 darkened, as 7.5 darkens through its
-//   color table) and uninverted.
+//   pattern). The fill is the window color's light lavender
+//   (`--color-theme-02`, #CCCCFF) in color and white in 1-bit
+//   (`*-icon-opened-unselected.png`, 7.5.5's Macintosh HD with its window
+//   open); selected, #333366 (`--color-theme-07`) in color, and the 1-bit
+//   icon inverts as a whole (white outline, white dots on black), as
+//   `*-desktop-icon-selected-opened.png` shows.
 // - The alias badge's size and place and the italic alias label stay as the
 //   base sheet draws them.
 // - A Finder list view's selected small icon (an `<img>`, no mask pair)
@@ -164,7 +162,7 @@ $eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
         background-blend-mode: normal;
         backdrop-filter: none;
         filter: none;
-        --system7-icon-open-face: var(--color-theme-04);
+        --system7-icon-open-face: var(--color-theme-02);
       }
     }
   }
@@ -192,4 +190,13 @@ $invert: tan(atan2(var(--icon-selection-invert), #{$px}));
     ".classicyDesktopIconSelectedImage"
   );
   @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask", ".classicyIconSelectedImage");
+
+  // The Finder's list view (ClassicyFileBrowser's table): a selected item's
+  // name inverted, white on black at both depths
+  // (`*-finder-list-row-selected.png`), where the base sheet's is
+  // white on `--color-system-07` (#555555 in color).
+  :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: var(--color-white);
+    background: var(--color-black);
+  }
 }

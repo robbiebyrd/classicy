@@ -13,10 +13,21 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@classicy/classicy";
-// The dither checker is a mask (`classicy-dither`, HIG p.60), and
-// `mask-image` URLs are fetched in CORS mode: as a `data:` URI (a
-// `currentColor` shape, not color-encoded) it needs no fetch, as Platinum's
-// halftone (ruling E17). The file is still emitted by the art glob below.
+// The masks: the dither checker (`classicy-dither`, HIG p.60), the title
+// bar's racing stripes and the windoid's drag-bar dots, each the mask of a
+// token layer (_Window.scss), and the 1-bit Apple and Help titles' art, the
+// mask of an open title's inversion layer (_MenuBar.scss; the color titles'
+// layer draws nothing, so their art stays a file). `mask-image` URLs are
+// fetched in CORS mode, so a host serving dist/assets from another origin
+// without CORS headers would lose them: as `data:` URIs they need no fetch,
+// as Platinum's halftone (ruling E17). The files are still emitted by the
+// art glob below.
+import appleMenuBw from "./art/bw/apple-menu.png?inline";
+import helpMenuTitleBw from "./art/bw/help-button.png?inline";
+import windowStripesBw from "./art/bw/window-stripes.png?inline";
+import windowUtilityTextureBw from "./art/bw/window-utility-texture.png?inline";
+import windowStripes from "./art/color/window-stripes.png?inline";
+import windowUtilityTexture from "./art/color/window-utility-texture.png?inline";
 import ditherChecker from "./art/dither-checker.svg?inline";
 import controlStripCollapse from "./pixelart/control-strip-collapse.txt?raw";
 import controlStripCollapseBw from "./pixelart/control-strip-collapse-bw.txt?raw";
@@ -174,10 +185,10 @@ const SYSTEM7_ART: Readonly<
 	helpMenuTitle: art("color/help-button.png"),
 	aboutLogo: ClassicyIcons.classicy.logo,
 	aboutBackground: art("about-background.svg"),
-	windowStripes: art("color/window-stripes.png"),
+	windowStripes,
 	// System 7 has no red stripes; nothing reads them.
-	windowStripesRed: art("color/window-stripes.png"),
-	windowUtilityTexture: art("color/window-utility-texture.png"),
+	windowStripesRed: windowStripes,
+	windowUtilityTexture,
 	windowGrip: art("color/window-grip.png"),
 	windowDither: art("window-dither.svg"),
 	zoomGlyph: art("color/zoom-glyph.png"),
@@ -221,15 +232,15 @@ const SYSTEM7_ART: Readonly<
 const SYSTEM7_BW_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
 > = {
-	appleMenu: art("bw/apple-menu.png"),
+	appleMenu: appleMenuBw,
 	startupLogo: art("bw/startup-logo.png"),
 	trashEmpty: art("bw/trash-empty.png"),
 	trashFull: art("bw/trash-full.png"),
 	helpButton: art("bw/help-button.png"),
-	helpMenuTitle: art("bw/help-button.png"),
-	windowStripes: art("bw/window-stripes.png"),
-	windowStripesRed: art("bw/window-stripes.png"),
-	windowUtilityTexture: art("bw/window-utility-texture.png"),
+	helpMenuTitle: helpMenuTitleBw,
+	windowStripes: windowStripesBw,
+	windowStripesRed: windowStripesBw,
+	windowUtilityTexture: windowUtilityTextureBw,
 	windowGrip: art("bw/window-grip.png"),
 	zoomGlyph: art("bw/zoom-glyph.png"),
 	// The Control Strip's 1-bit art: the `ics#` glyphs and PICT -4043 and

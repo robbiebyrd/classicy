@@ -28,10 +28,14 @@
 //    nothing. dist/ itself holds only the two bundles and their maps, the two
 //    strict-CSP stylesheets, assets/ and types/.
 //
-// 3. NOTHING IS INLINED BUT THE DITHER CHECKER. The only `data:` URI in
-//    either bundle is src/assets/art/dither-checker.svg, the dither
-//    vocabulary's mask, which a `mask-image` URL would fetch in CORS mode
-//    (Platinum's halftone, ruling E17). The ES bundle's
+// 3. NOTHING IS INLINED BUT THE MASKS. The only `data:` URIs in either
+//    bundle are the package's mask art, which a `mask-image` URL would fetch
+//    in CORS mode (Platinum's halftone, ruling E17): src/assets/art/
+//    dither-checker.svg, the dither vocabulary's mask, and the title bar's
+//    racing stripes and the windoid's drag-bar dots, art/{color,bw}/
+//    window-stripes.png and window-utility-texture.png, and the 1-bit open
+//    Apple and Help titles' inversion masks, art/bw/apple-menu.png and
+//    help-button.png, each byte for byte its file (base64). The ES bundle's
 //    `new URL("assets/…", import.meta.url)` references each name a file in
 //    dist/assets, and every file there is referenced.
 //
@@ -290,12 +294,28 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	);
 }
 
-// Invariant 3: nothing but the dither checker is inlined; the files are
-// referenced from the ES bundle.
+// Invariant 3: nothing but the masks is inlined; the files are referenced
+// from the ES bundle.
 const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
+const PNG_MASKS = [
+	...["color", "bw"].flatMap((variant) =>
+		["window-stripes.png", "window-utility-texture.png"].map((name) =>
+			join("src", "assets", "art", variant, name),
+		),
+	),
+	...["apple-menu.png", "help-button.png"].map((name) =>
+		join("src", "assets", "art", "bw", name),
+	),
+];
 {
 	const problems = [];
 	const checker = ((await read(DITHER_CHECKER)) ?? "").trim();
+	const pngMasks = new Set();
+	for (const file of PNG_MASKS) {
+		const bytes = await readFile(file).catch(() => null);
+		if (bytes) pngMasks.add(`base64,${bytes.toString("base64")}`);
+		else problems.push(`${file}: missing -> a mask the bundles inline.`);
+	}
 	for (const { file, source } of bundles) {
 		const uris = new Set(
 			[...source.matchAll(/data:([a-z]+\/[a-z0-9.+-]+)[;,]([^"`\s]*)/g)].map(
@@ -310,8 +330,9 @@ const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 				decoded = decodeURIComponent(body).replaceAll("'", '"');
 			} catch {}
 			if (type === "image/svg+xml" && checker && decoded === checker) continue;
+			if (type === "image/png" && pngMasks.has(body)) continue;
 			problems.push(
-				`${file}: inlines ${type} -> System 7 inlines only the dither checker (${DITHER_CHECKER}); check noInlineAppearanceAssetsPlugin.`,
+				`${file}: inlines ${type} -> System 7 inlines only its masks (${[DITHER_CHECKER, ...PNG_MASKS].join(", ")}); check noInlineAppearanceAssetsPlugin.`,
 			);
 		}
 	}
@@ -328,7 +349,7 @@ const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
 		);
 	report(
 		problems,
-		`${BUNDLES.join(", ")}: inline only the dither checker; ${refs.length} file reference(s), one per file in dist/assets`,
+		`${BUNDLES.join(", ")}: inline only the masks; ${refs.length} file reference(s), one per file in dist/assets`,
 	);
 }
 

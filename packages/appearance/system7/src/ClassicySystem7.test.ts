@@ -234,14 +234,12 @@ describe("the System 7 appearance package", () => {
 		for (const theme of [bw, color])
 			expect(vars(theme)).toMatchObject({
 				"--title-bar-stripe-inset": "1px",
-				"--title-bar-stripe-height": "1px",
-				"--title-bar-stripe-period": "2px",
 				"--title-bar-box-margin": "8px",
 				"--title-bar-box-gap": "1px",
 				"--title-bar-title-gap": "6px",
 				"--title-bar-title-top": "2px",
-				"--window-box-pixel": "1px",
-				"--window-box-zoom-glyph": "7px",
+				"--box-pixel": "1px",
+				"--box-zoom-glyph": "7px",
 				"--grow-box-small-offset": "2px",
 				"--grow-box-large-size": "9px",
 				"--utility-title-bar-box-margin": "3px",
@@ -250,15 +248,77 @@ describe("the System 7 appearance package", () => {
 				"--window-utility-control-box-size": "9px",
 			});
 		expect(vars(bw)).toMatchObject({
-			"--window-box-bevel": "0px",
+			"--box-bevel": "0px",
 			"--grow-box-small-size": "7px",
 			"--grow-box-large-offset": "4px",
 		});
 		expect(vars(color)).toMatchObject({
-			"--window-box-bevel": "1px",
+			"--box-bevel": "1px",
 			"--grow-box-small-size": "6px",
 			"--grow-box-large-offset": "3px",
 		});
+	});
+
+	// A family's knobs emit as `--<family>-<key>`: a family named
+	// `window…` would emit inside the core `window` family's names, where a
+	// core key added later (`window.boxBevel`, say) would take the name and
+	// win (core inputs beat package families). So System 7's own families
+	// keep out of every core family's namespace but `controlStrip`, the
+	// Control Strip's, which the core floor declares itself.
+	it("keeps its own knob families out of the core families' names", () => {
+		const kebab = (name: string) =>
+			name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+		const core = ["window", "control", "button", "groupBox", "layout"];
+		for (const theme of [system7Json.defaults, ...system7Json.presets])
+			for (const family of Object.keys(theme.measurements ?? {})) {
+				if (core.includes(family) || family === "controlStrip") continue;
+				for (const owner of core)
+					expect(kebab(family).startsWith(`${kebab(owner)}-`), family).toBe(
+						false,
+					);
+			}
+	});
+
+	// The Control Strip's own colors, measured from Control Strip 1.3.1 in
+	// System 7.5.5 (`*-controlstrip*.png`): the face and the shadow below a
+	// cell, and a pressed cell's dark edge and face; white or black in 1-bit,
+	// where the grays draw through the 50% checker (_ControlStrip.scss). A
+	// pressed collapse box's glyph (`*-755-controlstrip-collapse-pressed.png`)
+	// takes its black to the ink (white in 1-bit: inverted), its white to the
+	// light (#777777; black in 1-bit) and its darkest grays to the dark
+	// (#222222; the 1-bit art draws none).
+	it("colors the Control Strip as 7.5.5's, white and black in 1-bit", () => {
+		const strip = (theme: (typeof system7Json.presets)[number]) =>
+			theme.color.families.controlStrip;
+		const [bw, color] = system7Json.presets;
+		expect(strip(color)).toEqual({
+			face: 0xcccccc,
+			darkEdge: 0x444444,
+			shadow: 0xaaaaaa,
+			pressedFace: 0x888888,
+			pressedGlyphInk: BLACK,
+			pressedGlyphLight: 0x777777,
+			pressedGlyphDark: 0x222222,
+		});
+		expect(strip(bw)).toEqual({
+			face: WHITE,
+			darkEdge: BLACK,
+			shadow: BLACK,
+			pressedFace: WHITE,
+			pressedGlyphInk: WHITE,
+			pressedGlyphLight: BLACK,
+			pressedGlyphDark: BLACK,
+		});
+		expect(strip(system7Json.defaults)).toEqual(strip(bw));
+		expect(Object.keys(system7Json.colorFamilies.controlStrip.colors)).toEqual([
+			"face",
+			"darkEdge",
+			"shadow",
+			"pressedFace",
+			"pressedGlyphInk",
+			"pressedGlyphLight",
+			"pressedGlyphDark",
+		]);
 	});
 
 	// The dimmed ink (styles/components/_Menu.scss): theme-06, the one slot
@@ -298,6 +358,7 @@ describe("the System 7 appearance package", () => {
 			expect(getThemeVars(theme)).toMatchObject({
 				"--menu-bar-height": "20px",
 				"--menu-bar-inset": "9px",
+				"--menu-bar-end-inset": "11px",
 				"--menu-bar-title-padding": "10px",
 				"--menu-bar-title-overlap": "5px",
 				"--menu-bar-highlight-top": "1px",
@@ -367,8 +428,8 @@ describe("the System 7 appearance package", () => {
 				"--alert-layout-other-button-inset": "73px",
 				"--push-button-line-height": "16px",
 				"--push-button-text-lift": "2px",
-				"--window-header-height": "17px",
-				"--window-header-rule": "3px",
+				"--header-strip-height": "17px",
+				"--header-strip-rule": "3px",
 				"--button-default-ring": "3px",
 			});
 		expect(getThemeVars(bw)).toMatchObject({
@@ -430,7 +491,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "0px",
 			"--scroll-bar-arrow-spread": "1px",
 			"--scroll-bar-grip": "0px",
-			"--scroll-bar-snap-back": "20px",
+			"--scroll-bar-snap-back": "24px",
 			"--window-scrollbar-size": "16px",
 		});
 		expect(vars(color)).toMatchObject({
@@ -438,7 +499,7 @@ describe("the System 7 appearance package", () => {
 			"--scroll-bar-bevel": "1px",
 			"--scroll-bar-arrow-spread": "0px",
 			"--scroll-bar-grip": "6px",
-			"--scroll-bar-snap-back": "20px",
+			"--scroll-bar-snap-back": "24px",
 			"--window-scrollbar-size": "16px",
 		});
 		// The defaults are the 1-bit theme's.
@@ -447,7 +508,7 @@ describe("the System 7 appearance package", () => {
 		);
 	});
 
-	it("emits the Control Strip's bevel (color only), the icon labels' knobs and the 1-bit icon switch", async () => {
+	it("emits the Control Strip's bevel, the icon labels' knobs and the 1-bit icon switch", async () => {
 		await import("./index");
 		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
 			[]) as ClassicyTheme[];
@@ -459,20 +520,24 @@ describe("the System 7 appearance package", () => {
 			"--icon-label-text-top": "2px",
 			"--desktop-icon-font-size": "9px",
 		};
+		// The 1-bit strip bevels too: its grays are the 50% checker
+		// (`bw-controlstrip.png`).
 		expect(vars(bw)).toMatchObject({
-			"--control-strip-bevel-width": "0px",
+			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-start": "1px",
 			"--icon-selection-invert": "1px",
 			...labels,
 		});
 		expect(vars(color)).toMatchObject({
 			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-start": "2px",
 			"--icon-selection-invert": "0px",
 			...labels,
 		});
 		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
 		// the strip Mac OS 8 kept), System 7 adds only the bevel.
 		expect(Object.keys(system7Json.defaults.measurements.controlStrip)).toEqual(
-			["bevelWidth"],
+			["bevelWidth", "shadowStart"],
 		);
 		expect(system7Json.defaults.measurements.iconLabel).toEqual(
 			system7Json.presets[0].measurements.iconLabel,
@@ -614,10 +679,8 @@ describe("the System 7 appearance package", () => {
 	});
 
 	// System 7 had no interface feedback sounds: its one hook blinks a chosen
-	// menu item (HIG p.56) and plays nothing.
-	it("hooks only the menu item's blink, and plays no sound", async () => {
-		const core = await import("@classicy/classicy");
-		const play = vi.spyOn(core, "playClassicyAppearanceSound");
+	// menu item (HIG p.56); hooks.test.ts proves it plays nothing.
+	it("hooks only the menu item's blink", async () => {
 		const { system7AppearanceHooks } = await import("./index");
 		const pkg = getClassicyAppearancePackage("system7");
 		expect(pkg?.hooks).toBe(system7AppearanceHooks);
@@ -636,7 +699,6 @@ describe("the System 7 appearance package", () => {
 			style: { animationIterationCount: 3 },
 		});
 		expect(menuItem.release?.(ctx)).toEqual({});
-		expect(play).not.toHaveBeenCalled();
 		expect(Object.isFrozen(system7AppearanceHooks.on)).toBe(true);
 	});
 

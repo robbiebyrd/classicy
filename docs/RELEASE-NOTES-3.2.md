@@ -180,9 +180,9 @@ diverge, so a logo registered through Platinum's
   place while a drag outline, the new part `scroll-drag-outline`
   (`.classicyScrollBarDragOutline`), follows the pointer, and scrolls on
   release. A pointer more than the theme's `--scroll-bar-snap-back` (else
-  the bar's own thickness, "the width of the scroll box") from the bar
-  snaps the outline back over the thumb, and a release there scrolls
-  nothing. Escape or a lost pointer stream cancels the drag, and the keys
+  the bar's own thickness, "the width of the scroll box") past the bar's
+  own pixels on any side (System 7: 24, measured on 7.5.5) snaps the
+  outline back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, and the keys
   and the wheel wait while it is held. `"live"`, the default, scrolls as
   the thumb moves, as before.
 - **Long menus scroll by indicators.** A `ClassicyPopUpMenu` or
@@ -349,6 +349,10 @@ the ids the saver already names:
 
 ## Other changes you may notice
 
+- **One Logo saver warning, whichever package logs it.** With Platinum and
+  System 7 both loaded, a stock Logo saver logo whose icon no package
+  registers logs its warning once, not once per package's copy of the
+  registry: the copies share the record of what they warned about.
 - **Platinum's slider draws HIGOS8's grays.** Platinum declares the HIG's
   16-step gray ramp as a package color family, `grayRamp` (the Colors tab's
   new "Gray Ramp" group, 14 swatches). The slider's channel border is

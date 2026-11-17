@@ -39,15 +39,10 @@ import { system7SoundPack } from "./assets/sounds/system7";
 import { system7AppearanceHooks } from "./hooks";
 import system7Css from "./styles/system7.scss?inline";
 import system7JsonSource from "./system7.json";
+import { deepFreeze } from "./system7DeepFreeze.internal";
 
 export * from "./assets/sounds/system7";
 export { system7AppearanceHooks } from "./hooks";
-
-const deepFreeze = <T extends object>(value: T): T => {
-	for (const child of Object.values(value))
-		if (typeof child === "object" && child !== null) deepFreeze(child);
-	return Object.freeze(value);
-};
 
 /**
  * System 7's theme data (`system7.json`), typed with the core's own types, so

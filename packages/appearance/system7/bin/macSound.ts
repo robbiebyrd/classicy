@@ -101,33 +101,35 @@ export const noteFrequency = (note: number): number =>
 	440 * 2 ** ((note - 69) / 12);
 
 /**
- * One cycle of the square-wave synthesizer's waveform at `phase` (0–1), for
- * a timbre of 0–254. Inside Macintosh: Sound documents only the ends ("A
- * timbre value of 0 produces a clear tone; a timbre value of 254 produces a
- * buzzing tone"), not the curve between them: this mixes a sine (0) and a
- * square (254) linearly by the timbre, an assumption.
+ * The square-wave synthesizer's sample at `phase` (0–1) of a cycle, for an
+ * amplitude of 0–255, as 8-bit unsigned (128 is silence). Inside Macintosh:
+ * Sound documents only that the timbre runs from "a clear tone" (0) to "a
+ * buzzing tone" (254); System 7.5.5's Sound Manager, recorded playing Simple
+ * Beep (timbre 90) on Infinite Mac's Quadra 650, draws a plain square
+ * whatever it is: half a cycle at 127 + amplitude / 8 and half at 127 -
+ * amplitude / 8, high first (amplitude 224: 155 and 99, a 56-step swing).
+ * Under 8 the swing is nothing, and the output is silence.
  */
-export const squareWaveSample = (phase: number, timbre: number): number => {
-	const mix = Math.min(Math.max(timbre, 0), 254) / 254;
-	const sine = Math.sin(2 * Math.PI * phase);
-	const square = phase < 0.5 ? 1 : -1;
-	return (1 - mix) * sine + mix * square;
+export const squareWaveSample = (phase: number, amplitude: number): number => {
+	const swing = Math.min(Math.max(amplitude, 0), 255) >> 3;
+	if (swing === 0) return 128;
+	return phase < 0.5 ? 127 + swing : 127 - swing;
 };
 
 /**
  * Plays a square-wave synthesizer's commands (`timbreCmd`, `ampCmd`,
  * `freqCmd`, `freqDurationCmd`, `restCmd`, `quietCmd`, `waitCmd`) into
- * 16-bit mono samples at `rate`. Commands run in order; only the waits, the
+ * 8-bit unsigned mono samples at `rate` (`squareWaveSample`; the timbre is
+ * read and changes nothing). Commands run in order; only the waits, the
  * notes' and the rests' durations take time, and the sound ends where the
- * last of them does. Amplitude is linear, 255 full scale; the
- * waveform phase runs on across pitch and amplitude changes.
+ * last of them does. The waveform phase runs on across pitch and amplitude
+ * changes.
  */
 export const renderSquareWave = (
 	commands: readonly SoundCommand[],
 	rate: number,
-): Int16Array => {
+): Uint8Array => {
 	const out: number[] = [];
-	let timbre = 0;
 	let amplitude = 255;
 	let frequency = 0;
 	let phase = 0;
@@ -138,10 +140,7 @@ export const renderSquareWave = (
 		elapsed += halfMs;
 		const end = Math.round((elapsed / 2000) * rate);
 		while (out.length < end) {
-			const value = frequency
-				? (amplitude / 255) * squareWaveSample(phase, timbre)
-				: 0;
-			out.push(Math.round(value * 32767));
+			out.push(frequency ? squareWaveSample(phase, amplitude) : 128);
 			phase = (phase + frequency / rate) % 1;
 		}
 	};
@@ -156,9 +155,7 @@ export const renderSquareWave = (
 		const duration = param1 & 0xffff;
 		switch (cmd) {
 			case SOUND_CMD.nullCmd:
-				break;
 			case SOUND_CMD.timbreCmd:
-				timbre = param1;
 				break;
 			case SOUND_CMD.ampCmd:
 				amplitude = Math.min(Math.max(param1, 0), 255);
@@ -182,7 +179,7 @@ export const renderSquareWave = (
 				throw new Error(`sound command ${cmd} is not a square-wave command`);
 		}
 	}
-	return Int16Array.from(out);
+	return Uint8Array.from(out);
 };
 
 /**

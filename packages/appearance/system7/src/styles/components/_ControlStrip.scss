@@ -12,67 +12,148 @@
 //   #888888 on the top and left and white on the bottom and right. The face
 //   is System 7's own color `controlStrip.face`
 //   (`--package-color-control-strip-face`, #CCCCCC, which no palette slot
-//   holds), the shadows `--color-system-04` and `--color-system-05`
-//   (#AAAAAA and #888888).
-// - 1-bit (PICT -4043): white cells in their black lines, no bevel. The
-//   bevels' width is the knob `controlStrip.bevelWidth`, 1 in color and 0 in
-//   1-bit, where the face color is white.
+//   holds), the inner shadow its `controlStrip.shadow` (#AAAAAA), the outer
+//   `--color-system-05` (#888888).
+// - 1-bit: white cells in their black lines, bevelled as in color
+//   (`controlStrip.bevelWidth` is 1 in both), every gray of a bevel the
+//   screen's 50% checker, which the strip running in 7.5.5 draws
+//   (`bw-controlstrip.png`; the panel's own 1-bit picture, PICT -4043, shows
+//   the cells flat). The checker is a white one laid over the cell's
+//   layers, sized by the theme's dither tile (`dither.tileSize`, 0 in color,
+//   where it draws nothing), so the 1-bit grays, black, keep one pixel in
+//   two. Its phase is the screen's, as QuickDraw's patterns are: black where
+//   the screen's x + y is even, whatever the cell's origin (the captures'
+//   cells start at x 29, 60 and 91, a pitch of 31, so every other cell
+//   starts on an odd x + y). So the layer is fixed to the viewport
+//   (`background-attachment: fixed`), the desktop's origin, as the scroll
+//   bars' track dots are (_ScrollBar.scss, which names that choice's
+//   limits: a fixed layer stays put while a host page scrolls, and iOS
+//   Safari anchors it to the cell instead), and a strip moved by an odd
+//   offset or docked right keeps the phase too.
 // - The glyphs (collapse box, scroll arrows, tab, pop-up slider) are the
 //   panel's own bitmaps, registered as pixel art per theme (system7Assets.ts).
 //
-// A pressed cell (a module with its menu open) has no picture in the panel;
-// it is drawn as Platinum draws it, two dark pixels on the top and left and
-// two light on the bottom and right on a darker face, in the same tokens.
+// A pressed cell (a module with its menu held open, or the collapse box or a
+// scroll arrow held), as Control Strip 1.3.1 draws it in 7.5.5
+// (`*-controlstrip-module-pressed.png`, `*-controlstrip-collapse-pressed.png`):
+// two pixels of `controlStrip.darkEdge` (#444444) on the top and left, two of
+// the face on the bottom and right, the two off corners the pressed face,
+// `controlStrip.pressedFace` (#888888; white in 1-bit, where the dark edge
+// is the checker). The dark edge's inner row and column stop
+// `controlStrip.shadowStart` short of the cell's right and bottom edges, as
+// a raised cell's inner shadow starts that far in: in color 2, the face's
+// inner column and row taking the pixel between, in 1-bit 1, the dark edge
+// taking it (the inner row's last pixel, black in the checker, in
+// `bw-755-controlstrip-collapse-pressed.png`; the inner column's by the
+// same rule, which no capture shows: in both pressed captures that pixel
+// falls on an odd x + y, where the checker is white).
+//
+// A pressed collapse box also redraws its glyph a pixel down and right (the
+// base sheet's shift) as an icon's selected transform: in color each of the
+// art's tokens darkened, #555555 (`7`) and #444444 (`m`) to
+// `controlStrip.pressedGlyphDark` (#222222), #888888 (`5`) to the dark edge
+// (#444444), #CCCCFF (`b`) to `--color-theme-07` (#333366) and white to
+// `controlStrip.pressedGlyphLight` (#777777); in 1-bit inverted, black (`K`)
+// to `controlStrip.pressedGlyphInk` (white) and white to the light (black),
+// so the 8 x 8 ring, white on the white pressed face, leaves a solid 6 x 6
+// black square. A theme of another package, which emits none of the three
+// glyph colors, draws the tokens they color as at rest.
+//
+// The strip's outer lower corner is rounded off by three black pixels in the
+// collapse box's corner (`*-controlstrip*.png`), at the strip's left end
+// (mirrored, at its right end, on a strip docked right, which no capture
+// shows). And the 1-bit strip starts a cell's inner shadow a pixel sooner
+// than the color one, at the outer shadow's start: its right column a row
+// higher, at the cell's second row, and its bottom row a column further
+// left, at the cell's second column (`controlStrip.shadowStart`, 2 in color
+// and 1 in 1-bit, the pixels in from the cell's top and left edges; the
+// bottom row's first pixel shows only on a cell starting on an even x, at
+// x 60 in `bw-755-controlstrip.png`, where the checker keeps it black).
 //
 // A module's pop-up surface (the Sound module's slider) is every bevel
 // button's pop-up panel, drawn in _FlatControls.scss.
+@use "sass:list";
 @use "pkg:@classicy/classicy/scss/layout";
 
 $b: var(--control-strip-bevel-width);
 
-@mixin raised {
-  background:
-    layout.classicy-px-rect(var(--color-white), $b, $b, calc(100% - #{$b} - #{$b} - #{$b}), $b),
-    layout.classicy-px-rect(var(--color-white), $b, $b, $b, calc(100% - #{$b} - #{$b} - #{$b})),
-    layout.classicy-px-rect(
-      var(--color-system-04),
-      calc(100% - #{$b}),
-      calc(#{$b} + #{$b}),
-      $b,
-      calc(100% - #{$b} - #{$b} - #{$b} - #{$b})
+// The 1-bit checker over a cell's layers (none in color, tile 0), in the
+// screen's phase (fixed: the tile's transparent corner, black beneath, at
+// the viewport's even x + y).
+$checker: conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top /
+  var(--dither-tile-size) var(--dither-tile-size) fixed;
+
+// Every package color read falls back to the core token it was drawn in
+// before 3.2, for a theme of another package drawn under System 7.
+$face: var(--package-color-control-strip-face, var(--color-system-02));
+$shadow: var(--package-color-control-strip-shadow, var(--color-system-04));
+$dark-edge: var(--package-color-control-strip-dark-edge, var(--color-system-07));
+$pressed-face: var(--package-color-control-strip-pressed-face, var(--color-system-04));
+$pressed-glyph-ink: var(--package-color-control-strip-pressed-glyph-ink, var(--color-black));
+$pressed-glyph-light: var(--package-color-control-strip-pressed-glyph-light, var(--color-white));
+$pressed-glyph-dark: var(--package-color-control-strip-pressed-glyph-dark, var(--color-system-07));
+
+// The strip's rounded outer corner, from the collapse box's left (or right)
+// lower corner.
+$line: var(--window-border-size);
+@function corner($side) {
+  $x: 0;
+  $x-in: $line;
+  @if $side == right {
+    $x: 100%;
+    $x-in: calc(100% - #{$line});
+  }
+  @return layout.classicy-px-rect(var(--color-black), $x, 100%, $line, calc(#{$line} + #{$line})),
+    layout.classicy-px-rect(var(--color-black), $x-in, 100%, $line, $line);
+}
+
+// Each look's layers, under any `$over` (the corner).
+@mixin raised($over: ()) {
+  $shadow-start: var(--control-strip-shadow-start);
+  background: list.join(
+    $over,
+    (
+      $checker,
+      layout.classicy-px-rect(var(--color-white), $b, $b, calc(100% - #{$b} - #{$b} - #{$b}), $b),
+      layout.classicy-px-rect(var(--color-white), $b, $b, $b, calc(100% - #{$b} - #{$b} - #{$b})),
+      layout.classicy-px-rect($shadow, calc(100% - #{$b}), $shadow-start, $b, calc(100% - #{$shadow-start} - #{$b} - #{$b})),
+      layout.classicy-px-rect($shadow, $shadow-start, calc(100% - #{$b}), calc(100% - #{$shadow-start} - #{$b}), $b),
+      layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
+      layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
+      $face
     ),
-    layout.classicy-px-rect(
-      var(--color-system-04),
-      calc(#{$b} + #{$b}),
-      calc(100% - #{$b}),
-      calc(100% - #{$b} - #{$b} - #{$b}),
-      $b
-    ),
-    layout.classicy-px-rect(var(--color-system-05), 100%, $b, $b, calc(100% - #{$b})),
-    layout.classicy-px-rect(var(--color-system-05), $b, 100%, calc(100% - #{$b}), $b),
-    var(--package-color-control-strip-face, var(--color-system-02));
+    $separator: comma
+  );
 }
 
 @mixin recessed {
   background:
+    $checker,
     layout.classicy-px-rect(var(--color-system-05), 0, 0, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-system-05), 0, 0, calc(100% - #{$b}), $b),
     layout.classicy-px-rect(var(--color-white), 100%, $b, $b, calc(100% - #{$b})),
     layout.classicy-px-rect(var(--color-white), $b, 100%, calc(100% - #{$b}), $b),
-    var(--package-color-control-strip-face, var(--color-system-02));
+    $face;
 }
 
-@mixin pressed {
-  background:
-    layout.classicy-px-rect(var(--color-system-06), 0, 0, calc(100% - #{$b}), $b),
-    layout.classicy-px-rect(var(--color-system-06), 0, $b, calc(100% - #{$b} - #{$b}), $b),
-    layout.classicy-px-rect(var(--color-system-06), 0, 0, $b, calc(100% - #{$b})),
-    layout.classicy-px-rect(var(--color-system-06), $b, 0, $b, calc(100% - #{$b} - #{$b})),
-    layout.classicy-px-rect(var(--color-system-02), 100%, $b, $b, calc(100% - #{$b})),
-    layout.classicy-px-rect(var(--color-system-02), calc(100% - #{$b}), $b, $b, calc(100% - #{$b})),
-    layout.classicy-px-rect(var(--color-system-02), $b, calc(100% - #{$b}), calc(100% - #{$b}), $b),
-    layout.classicy-px-rect(var(--color-system-02), $b, 100%, calc(100% - #{$b}), $b),
-    var(--color-system-04);
+@mixin pressed($over: ()) {
+  $short: calc(100% - var(--control-strip-shadow-start));
+  background: list.join(
+    $over,
+    (
+      $checker,
+      layout.classicy-px-rect($dark-edge, 0, 0, calc(100% - #{$b}), $b),
+      layout.classicy-px-rect($dark-edge, 0, $b, $short, $b),
+      layout.classicy-px-rect($dark-edge, 0, 0, $b, calc(100% - #{$b})),
+      layout.classicy-px-rect($dark-edge, $b, 0, $b, $short),
+      layout.classicy-px-rect($face, 100%, $b, $b, calc(100% - #{$b})),
+      layout.classicy-px-rect($face, calc(100% - #{$b}), $b, $b, calc(100% - #{$b})),
+      layout.classicy-px-rect($face, $b, calc(100% - #{$b}), calc(100% - #{$b}), $b),
+      layout.classicy-px-rect($face, $b, 100%, calc(100% - #{$b}), $b),
+      $pressed-face
+    ),
+    $separator: comma
+  );
 }
 
 @mixin control-strip {
@@ -94,11 +175,11 @@ $b: var(--control-strip-bevel-width);
   // System 7, which emits none.
   .classicyControlStrip .classicyPixel2,
   .classicyBevelButtonPopupPanel .classicyPixel2 {
-    fill: var(--package-color-control-strip-face, var(--color-system-02));
+    fill: $face;
   }
 
   .classicyControlStrip .classicyPixelm {
-    fill: var(--package-color-control-strip-dark-edge, var(--color-system-07));
+    fill: $dark-edge;
   }
 
   // The collapse box and scroll arrows.
@@ -112,6 +193,41 @@ $b: var(--control-strip-bevel-width);
 
   .classicyControlStripScroll:disabled {
     @include recessed;
+  }
+
+  // The collapse box, at the strip's outer end, holds its rounded corner.
+  @each $side, $root in (left: "", right: ".classicyControlStripRight ") {
+    #{$root}.classicyControlStripCollapseBox {
+      @include raised(corner($side));
+
+      &:active:not(:disabled) {
+        @include pressed(corner($side));
+      }
+    }
+  }
+
+  // A pressed collapse box's glyph, darkened (inverted in 1-bit).
+  .classicyControlStripCollapseBox:active:not(:disabled) {
+    .classicyPixelK {
+      fill: $pressed-glyph-ink;
+    }
+
+    .classicyPixelW {
+      fill: $pressed-glyph-light;
+    }
+
+    .classicyPixel7,
+    .classicyPixelm {
+      fill: $pressed-glyph-dark;
+    }
+
+    .classicyPixel5 {
+      fill: $dark-edge;
+    }
+
+    .classicyPixelb {
+      fill: var(--color-theme-07);
+    }
   }
 
   // Each module is a pop-up bevel button; the strip's bevel replaces its face

@@ -65,7 +65,7 @@ resolution).
   - the desktop: icons with opaque Geneva labels that invert when selected,
     the desktop pattern, the startup screen, the Control Strip in the 7.5
     Control Strip panel's own art, and the Appearance Manager's panel.
-- **Icons, system art and cursors** from System 7.5: 62 icons exported, in
+- **Icons, system art and cursors** from System 7.5: 63 icons exported, in
   color and in 1-bit, at 32 and 16 px where System 7 had both, every system
   art key and every cursor role, so a host that loads System 7 alone draws no
   blank art. Where System 7 had no icon for something, the key reuses the
@@ -176,10 +176,17 @@ forks with no emulator: `bin/export-assets.mjs` and
 `bin/export-pixel-art.mjs` decode the raw resources (exported by
 resource_dasm) into the committed PNGs and WAVs, and rewrite the same bytes
 on a rerun. Simple Beep, which System 7 plays from its square-wave
-synthesizer, is rendered from the resource's own commands. The commands,
-and each file's source resource, are in
+synthesizer, is rendered from the resource's own commands, in the square
+wave the 7.5.5 Sound Manager was recorded drawing. The commands, the
+waveform and each file's source resource, are in
 [`docs/system7-asset-inventory.md`](../../../docs/system7-asset-inventory.md)
 in the repository.
+
+The reference screenshots the looks were measured against are System 7.5
+and 7.5.5 running on [Infinite Mac](https://infinitemac.org);
+`bin/capture-references.mjs` replays the capture recipe (and records Simple
+Beep to check the render against), indexed in
+[`docs/system7-reference-screenshots.md`](../../../docs/system7-reference-screenshots.md).
 
 ## Developing
 

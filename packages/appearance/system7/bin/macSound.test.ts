@@ -107,15 +107,22 @@ describe("the square-wave synthesizer", () => {
 		expect(noteFrequency(60)).toBeCloseTo(261.626, 3);
 	});
 
-	it("draws a sine at timbre 0 and a square at 254", () => {
-		expect(squareWaveSample(0.25, 0)).toBeCloseTo(1, 10);
-		expect(squareWaveSample(0.125, 0)).toBeCloseTo(Math.SQRT1_2, 10);
-		expect(squareWaveSample(0.125, 254)).toBe(1);
-		expect(squareWaveSample(0.625, 254)).toBe(-1);
-		expect(squareWaveSample(0.125, 127)).toBeCloseTo(
-			(Math.SQRT1_2 + 1) / 2,
-			10,
-		);
+	// Measured from System 7.5.5's Sound Manager playing Simple Beep on
+	// Infinite Mac (docs/system7-asset-inventory.md, "Reproducing the
+	// files"): an 8-bit square, half a cycle at 127 + amplitude / 8 and half
+	// at 127 - amplitude / 8, the timbre changing nothing.
+	it("draws an 8-bit square, amplitude / 8 either side of 127, whatever the timbre", () => {
+		expect(squareWaveSample(0, 224)).toBe(155);
+		expect(squareWaveSample(0.49, 224)).toBe(155);
+		expect(squareWaveSample(0.5, 224)).toBe(99);
+		expect(squareWaveSample(0.99, 224)).toBe(99);
+		expect(squareWaveSample(0.25, 200)).toBe(152);
+		expect(squareWaveSample(0.75, 200)).toBe(102);
+		expect(squareWaveSample(0.25, 32)).toBe(131);
+		expect(squareWaveSample(0.75, 32)).toBe(123);
+		// Under 8 the amplitude is no step at all: silence, 128.
+		expect(squareWaveSample(0.25, 7)).toBe(128);
+		expect(squareWaveSample(0.75, 0)).toBe(128);
 	});
 
 	it("plays for the waits' half-milliseconds, at the amplitude in force", () => {
@@ -125,25 +132,42 @@ describe("the square-wave synthesizer", () => {
 				cmd(SOUND_CMD.ampCmd, 255),
 				cmd(SOUND_CMD.freqCmd, 0, 69),
 				cmd(SOUND_CMD.waitCmd, 40),
-				cmd(SOUND_CMD.ampCmd, 51),
+				cmd(SOUND_CMD.ampCmd, 64),
 				cmd(SOUND_CMD.waitCmd, 40),
 				cmd(SOUND_CMD.ampCmd, 0),
 			],
 			22050,
 		);
-		// 2 × 20 ms at 22,050 Hz.
+		// 2 × 20 ms at 22,050 Hz, 8-bit.
+		expect(samples).toBeInstanceOf(Uint8Array);
 		expect(samples.length).toBe(882);
-		const first = samples.slice(0, 441);
-		const second = samples.slice(441);
-		expect(Math.max(...first)).toBe(32767);
-		expect(Math.min(...first)).toBe(-32767);
-		expect(Math.max(...second)).toBe(Math.round(32767 / 5));
-		// 440 Hz: 8.8 cycles in 20 ms, so 17 or 18 sign changes.
-		let changes = 0;
+		const first = [...samples.slice(0, 441)];
+		const second = [...samples.slice(441)];
+		expect(new Set(first)).toEqual(new Set([158, 96]));
+		expect(new Set(second)).toEqual(new Set([135, 119]));
+		// 440 Hz: 8.8 cycles in 20 ms, so 17 or 18 edges; the wave starts
+		// on its high half.
+		expect(first[0]).toBe(158);
+		let edges = 0;
 		for (let i = 1; i < first.length; i++)
-			if (Math.sign(first[i]) !== Math.sign(first[i - 1])) changes++;
-		expect(changes).toBeGreaterThanOrEqual(17);
-		expect(changes).toBeLessThanOrEqual(18);
+			if (first[i] !== first[i - 1]) edges++;
+		expect(edges).toBeGreaterThanOrEqual(17);
+		expect(edges).toBeLessThanOrEqual(18);
+	});
+
+	it("ignores the timbre", () => {
+		const play = (timbre: number) =>
+			renderSquareWave(
+				[
+					cmd(SOUND_CMD.timbreCmd, timbre),
+					cmd(SOUND_CMD.ampCmd, 224),
+					cmd(SOUND_CMD.freqCmd, 0, 69),
+					cmd(SOUND_CMD.waitCmd, 40),
+				],
+				22050,
+			);
+		expect(play(0)).toEqual(play(254));
+		expect(play(90)).toEqual(play(254));
 	});
 
 	it("is silent before a note and after a rest", () => {
@@ -156,9 +180,9 @@ describe("the square-wave synthesizer", () => {
 			22050,
 		);
 		expect(samples.length).toBe(Math.round(0.03 * 22050));
-		expect(samples.slice(0, 220).every((s) => s === 0)).toBe(true);
-		expect(samples.slice(220, 441).some((s) => s !== 0)).toBe(true);
-		expect(samples.slice(441).every((s) => s === 0)).toBe(true);
+		expect(samples.slice(0, 220).every((s) => s === 128)).toBe(true);
+		expect(samples.slice(220, 441).some((s) => s !== 128)).toBe(true);
+		expect(samples.slice(441).every((s) => s === 128)).toBe(true);
 	});
 
 	it("refuses what it cannot play", () => {

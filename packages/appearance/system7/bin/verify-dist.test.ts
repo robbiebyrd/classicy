@@ -36,13 +36,30 @@ const PACKAGE =
 // out, not built with JSON.stringify, so the fixture source is fixed text; a
 // test below keeps it equal to PACKAGE.
 const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"system7\"] .classicyWindow{border:1px solid}}"`;
-// The dither checker, the one file the bundles inline (as Vite writes an
-// SVG `data:` URI: single quotes, the rest percent-encoded).
+// The masks, the files the bundles inline: the dither checker (as Vite
+// writes an SVG `data:` URI: single quotes, the rest percent-encoded), and
+// the stripe and dot PNGs and the 1-bit Apple and Help titles' art (base64),
+// whose files ship too.
 const DITHER_CHECKER =
 	'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="1" width="1" height="1"/></svg>';
 const DITHER_URI = `data:image/svg+xml,${encodeURIComponent(DITHER_CHECKER.replaceAll('"', "'")).replaceAll("%27", "'")}`;
 const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
+const PNG_MASKS: Record<string, Buffer> = {
+	"src/assets/art/color/window-stripes.png": bytes(80, 84),
+	"src/assets/art/bw/window-stripes.png": bytes(81, 82),
+	"src/assets/art/color/window-utility-texture.png": bytes(82, 73),
+	"src/assets/art/bw/window-utility-texture.png": bytes(83, 73),
+	"src/assets/art/bw/apple-menu.png": bytes(84, 60),
+	"src/assets/art/bw/help-button.png": bytes(85, 61),
+};
+const pngUri = (file: string) =>
+	`data:image/png;base64,${PNG_MASKS[file]?.toString("base64")}`;
+const MASK_URIS = Object.keys(PNG_MASKS)
+	.map((file, i) => `const m${i}="${pngUri(file)}";`)
+	.join("");
+const MASKS_NAMED =
+	"src/assets/art/dither-checker.svg, src/assets/art/color/window-stripes.png, src/assets/art/color/window-utility-texture.png, src/assets/art/bw/window-stripes.png, src/assets/art/bw/window-utility-texture.png, src/assets/art/bw/apple-menu.png, src/assets/art/bw/help-button.png";
 
 // Source file → its bytes. Every one ships in dist/assets under its name,
 // except the wallpaper photos, which nothing imports.
@@ -55,6 +72,7 @@ const SOURCES: Record<string, Buffer> = {
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
 	"src/assets/art/dither-checker.svg": Buffer.from(DITHER_CHECKER),
+	...PNG_MASKS,
 	"src/assets/art/bw/apple-bw.png": bytes(40),
 	"src/assets/art/color/apple.png": bytes(41),
 	// One name in two variant folders, and in an icon's four folders.
@@ -104,8 +122,8 @@ const urls = SHIPPED.map(
 	(file) =>
 		`new URL("assets/${system7AssetFileName(file)}",import.meta.url).href`,
 ).join(",");
-const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const d="${DITHER_URI}";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-system7.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const d="${DITHER_URI}";const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const d="${DITHER_URI}";${MASK_URIS}const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-system7.es.js.map\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearanceSystem7={},g.classicy,g.React)})(this,function(e,c,j){const d="${DITHER_URI}";${MASK_URIS}const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
 const FONTS = classicyFontStylesheet(
 	SYSTEM7_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -130,16 +148,18 @@ const DIST: Record<string, string | Buffer> = {
 
 let run = 0;
 /**
- * Writes the fixture package (the sources, with `sources` over them, then
- * dist/ with `changes` applied: a path to new content, or `null` to delete
- * it) and runs the script in it.
+ * Writes the fixture package (the sources, with `sources` over them and
+ * `omit` left out, then dist/ with `changes` applied: a path to new content,
+ * or `null` to delete it) and runs the script in it.
  */
 const verify = (
 	changes: Record<string, string | Buffer | null> = {},
 	sources: Record<string, Buffer> = {},
+	omit: readonly string[] = [],
 ) => {
 	const dir = path.join(root, `case-${run++}`);
 	for (const [file, content] of Object.entries({ ...SOURCES, ...sources })) {
+		if (omit.includes(file)) continue;
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
@@ -345,9 +365,9 @@ describe("bin/verify-dist.mjs", () => {
 			}));
 	});
 
-	// Invariant 3: assets are files, referenced from the bundle; the one
-	// inlined file is the dither checker's mask.
-	describe("3. nothing is inlined but the dither checker", () => {
+	// Invariant 3: assets are files, referenced from the bundle; the inlined
+	// files are the masks.
+	describe("3. nothing is inlined but the masks", () => {
 		it.each([
 			["a PNG", "data:image/png;base64,AAAA", "image/png"],
 			[
@@ -365,7 +385,7 @@ describe("bin/verify-dist.mjs", () => {
 				}),
 			).toEqual({
 				status: 1,
-				stderr: `dist/appearance-system7.umd.js: inlines ${type} -> System 7 inlines only the dither checker (src/assets/art/dither-checker.svg); check noInlineAppearanceAssetsPlugin.`,
+				stderr: `dist/appearance-system7.umd.js: inlines ${type} -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
 			}));
 
 		it("fails the dither checker inlined when its source changed", () =>
@@ -379,7 +399,45 @@ describe("bin/verify-dist.mjs", () => {
 					},
 				).stderr.split("\n"),
 			).toContain(
-				"dist/appearance-system7.es.js: inlines image/svg+xml -> System 7 inlines only the dither checker (src/assets/art/dither-checker.svg); check noInlineAppearanceAssetsPlugin.",
+				`dist/appearance-system7.es.js: inlines image/svg+xml -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+			));
+
+		it.each([
+			["a stripe mask", "src/assets/art/bw/window-stripes.png"],
+			["a 1-bit title's mask", "src/assets/art/bw/apple-menu.png"],
+		])("fails %s inlined when its source changed", (_kind, file) =>
+			expect(
+				verify(
+					{},
+					{
+						[file]: bytes(90, 82),
+					},
+				).stderr.split("\n"),
+			).toEqual(
+				expect.arrayContaining([
+					`dist/appearance-system7.es.js: inlines image/png -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+					`dist/appearance-system7.umd.js: inlines image/png -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+				]),
+			));
+
+		it("fails a mask's source gone", () =>
+			expect(
+				verify(
+					{
+						"appearance-system7.es.js": ES.replace(
+							`const m3="${pngUri("src/assets/art/bw/window-utility-texture.png")}";`,
+							"",
+						),
+						"appearance-system7.umd.js": UMD.replace(
+							`const m3="${pngUri("src/assets/art/bw/window-utility-texture.png")}";`,
+							"",
+						),
+					},
+					{},
+					["src/assets/art/bw/window-utility-texture.png"],
+				).stderr.split("\n"),
+			).toContain(
+				"src/assets/art/bw/window-utility-texture.png: missing -> a mask the bundles inline.",
 			));
 
 		it("fails a reference to a file that is not in dist/assets", () =>

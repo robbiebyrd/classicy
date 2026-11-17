@@ -84,7 +84,7 @@ const sheets = scssFiles.map((full) =>
 
 // A workspace Appearance Package's sheet may also read what its own themes
 // emit beyond the default theme's: the knob families only it declares
-// (System 7's `titleBar`, `windowBox`, `growBox`). Keyed by package id.
+// (System 7's `titleBar`, `box`, `growBox`). Keyed by package id.
 const PACKAGE_SHEET = /^packages\/appearance\/([^/]+)\/src\//;
 const packageOf = (full: string): string | undefined =>
 	PACKAGE_SHEET.exec(repoPath(full))?.[1];

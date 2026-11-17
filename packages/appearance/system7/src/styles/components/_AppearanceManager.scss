@@ -9,8 +9,13 @@
 //   frame: its picture as the desktop draws it (an 8 × 8 desktop pattern
 //   repeated at its own size, not one tile stretched over the preview), or
 //   its flat color when it has none (where the preview would show the
-//   default package's stand-in picture). The preview's own image is moved
-//   out of its box (`object-position`), leaving its background.
+//   default package's stand-in picture). The preview's own image keeps its
+//   natural size (`object-fit: none`) and starts a viewport's width right of
+//   the box's left edge and a viewport's height below its top
+//   (`object-position`), so however large the picture, none of it falls
+//   inside a box smaller than the viewport, and the box shows its
+//   background alone. (A negative offset left the right end of a picture
+//   wider than the offset inside the box.)
 @use "Desktop";
 
 @mixin appearance-manager {
@@ -22,7 +27,7 @@
     box-sizing: border-box;
     border: var(--window-border-size) solid var(--color-black);
     object-fit: none;
-    object-position: -200vw 0;
+    object-position: 100vw 100vh;
     @include Desktop.desktop-background;
   }
 }

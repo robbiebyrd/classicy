@@ -45,6 +45,21 @@ const unionMembers = (typeName: string): string[] => {
 	return [...(match?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "");
 };
 
+// The system art the bundles inline, beside the dither checker: masks,
+// which a `mask-image` URL would fetch in CORS mode.
+const MASK_FILES: Readonly<Record<string, string>> = {
+	windowStripes: "window-stripes",
+	windowStripesRed: "window-stripes",
+	windowUtilityTexture: "window-utility-texture",
+};
+// And the 1-bit Apple and Help titles' art, the mask of an open title's
+// inversion layer (_MenuBar.scss), inline in 1-bit only: the color titles'
+// layer draws nothing.
+const BW_MASK_FILES: Readonly<Record<string, string>> = {
+	appleMenu: "apple-menu",
+	helpMenuTitle: "help-button",
+};
+
 const iconLeaves = (tree: ClassicyAssetTree, trail = ""): string[] =>
 	Object.entries(tree).flatMap(([key, value]) => {
 		const keyPath = trail ? `${trail}.${key}` : key;
@@ -223,12 +238,42 @@ describe("System 7's assets", () => {
 				].sort(),
 			);
 			for (const key of differs) {
-				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW)).toMatch(
-					/\/art\/bw\//,
-				);
+				if (key in MASK_FILES) continue;
+				if (!(key in BW_MASK_FILES))
+					expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW)).toMatch(
+						/\/art\/bw\//,
+					);
 				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BASE)).toMatch(
 					/\/art\/color\//,
 				);
+			}
+		});
+
+		// The title bar's stripes and the windoid's dots are masks too
+		// (_Window.scss), fetched in CORS mode as URLs, so each is registered
+		// as its file's own bytes, inline, per theme, and so are the 1-bit
+		// Apple and Help titles' art (_MenuBar.scss), in 1-bit (verify-dist
+		// holds the build to it).
+		it("registers the stripe, dot and 1-bit title masks inline, each its theme's file", () => {
+			for (const [key, file] of Object.entries(MASK_FILES))
+				for (const variant of [BW, BASE]) {
+					const bytes = readFileSync(
+						path.join(assets, "art", variant, `${file}.png`),
+					);
+					expect(
+						resolveClassicyAsset("systemArt", key, SYSTEM7, variant),
+						`${key} ${variant}`,
+					).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+				}
+			for (const [key, file] of Object.entries(BW_MASK_FILES)) {
+				const bytes = readFileSync(path.join(assets, "art", BW, `${file}.png`));
+				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW), key).toBe(
+					`data:image/png;base64,${bytes.toString("base64")}`,
+				);
+				expect(
+					resolveClassicyAsset("systemArt", key, SYSTEM7, BASE),
+					key,
+				).toMatch(/\/art\/color\//);
 			}
 		});
 
@@ -267,13 +312,26 @@ describe("System 7's assets", () => {
 			expect(rows("control-strip-tab").slice(0, 22).join("")).not.toContain(
 				"m",
 			);
+			// The collapse box's inner square is shaded in the dark edge too,
+			// as the running strip draws it (`color-controlstrip.png`), its
+			// outer square the panel's #555555 (token 7).
+			expect(rows("control-strip-collapse")).toEqual([
+				"77777777",
+				"7bbbbbbb",
+				"7b5555mW",
+				"7b5555mW",
+				"7b5555mW",
+				"7b5555mW",
+				"7bmmmmmW",
+				"7bWWWWWW",
+			]);
 			// The 1-bit slider's channel is the 50% checker.
 			expect(rows("popup-slider-track-bw")[10]).toBe("KWKWKWKWK.");
 			expect(rows("popup-slider-track-bw")[11]).toBe("KWKKWKKWK.");
 		});
 
 		// verify-dist holds the build to it: the dither checker is the one
-		// file the bundles inline (a mask, fetched in CORS mode as a URL).
+		// SVG the bundles inline (a mask, fetched in CORS mode as a URL).
 		it("registers the dither checker inline, a currentColor checker", () => {
 			const checker = resolveClassicyAsset(
 				"systemArt",

@@ -23,6 +23,7 @@ export const SYSTEM7_ICON_FILES: Readonly<Record<string, string>> = {
 		"control-panels-date-time-manager-date-time-manager",
 	"controlPanels.keyboard.app": "control-panels-keyboard-app",
 	"controlPanels.location.app": "control-panels-location-app",
+	"controlPanels.location.map": "control-panels-location-map",
 	"controlPanels.soundManager.app": "control-panels-sound-manager-app",
 	"controlPanels.soundManager.stt": "control-panels-sound-manager-stt",
 	"controlPanels.soundManager.tts": "control-panels-sound-manager-tts",

@@ -1,20 +1,9 @@
 import type { ClassicyAppearanceHooks } from "@classicy/classicy";
+import { type DeepReadonly, deepFreeze } from "./system7DeepFreeze.internal";
 
 // System 7's behavior hooks: the blink of a chosen menu item (HIG p.56), and
 // nothing else. System 7 had no interface feedback sounds, so no handler
 // plays one; each only decorates.
-
-/** `T` with every object in it read-only; functions stay as they are. */
-type DeepReadonly<T> = T extends (...args: never[]) => unknown
-	? T
-	: { readonly [K in keyof T]: DeepReadonly<T[K]> };
-
-/** Freezes `value` and every plain object or array inside it. */
-const deepFreeze = <T extends object>(value: T): DeepReadonly<T> => {
-	for (const child of Object.values(value))
-		if (child !== null && typeof child === "object") deepFreeze(child);
-	return Object.freeze(value) as DeepReadonly<T>;
-};
 
 /**
  * How many times a chosen menu item blinks: System 7's default, three
