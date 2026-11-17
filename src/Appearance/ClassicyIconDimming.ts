@@ -240,6 +240,10 @@ export const classicyDimmedIconSource = (
 	return pending;
 };
 
+/** Test-only: how many components listen for a dimmed image to settle. */
+export const classicyDimmedIconListenerCountForTests = (): number =>
+	settledListeners.size;
+
 /** Test-only: forgets every dimmed image. */
 export const resetClassicyDimmedIconsForTests = (): void => {
 	dimmedSources.clear();

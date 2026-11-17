@@ -1,7 +1,7 @@
-import { act, renderHook } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-	classicyDimmedIconSource,
+	classicyDimmedIconListenerCountForTests,
 	resetClassicyDimmedIconsForTests,
 	useClassicyDimmedIconImage,
 } from "@/Appearance/ClassicyIconDimming";
@@ -41,27 +41,20 @@ describe("useClassicyDimmedIconImage subscriptions", () => {
 		expect(assetSubscriptions.count).toBe(0);
 	});
 
-	it("does not render again when some other icon's dimmed image settles", async () => {
-		let renders = 0;
-		renderHook(() => {
-			renders += 1;
-			return useClassicyDimmedIconImage("icon.png", false);
-		});
-		const before = renders;
-		await act(async () => {
-			// No Image in the test document draws: the request settles at once.
-			vi.spyOn(globalThis, "Image").mockImplementation(function (
-				this: HTMLImageElement,
-			) {
-				const img = document.createElement("img");
-				queueMicrotask(() => img.onerror?.(new Event("error")));
-				return img;
-			} as unknown as typeof Image);
-			await classicyDimmedIconSource("other.png", {
-				blend: { color: "#FFFFFF", amount: 0.5 },
-			});
-		});
-		expect(renders).toBe(before);
+	// The settled set is the hook's second subscription: a mounted icon that is
+	// not dimmed holds no listener on it.
+	it("listens for settled images only while the icon is dimmed", () => {
+		const plain = renderHook(() =>
+			useClassicyDimmedIconImage("icon.png", false),
+		);
+		expect(classicyDimmedIconListenerCountForTests()).toBe(0);
+		const dimmed = renderHook(() =>
+			useClassicyDimmedIconImage("icon.png", true),
+		);
+		expect(classicyDimmedIconListenerCountForTests()).toBe(1);
+		dimmed.unmount();
+		expect(classicyDimmedIconListenerCountForTests()).toBe(0);
+		plain.unmount();
 	});
 
 	it("subscribes while the icon is dimmed", () => {
