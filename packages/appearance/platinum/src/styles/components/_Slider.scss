@@ -79,7 +79,7 @@ $px: var(--slider-pixel);
 // The gray ramp is Platinum's own color family, which only Platinum's
 // themes emit. A theme of another package drawn under Platinum (a host's,
 // or one a dropped package left) emits none, so every ramp read falls back
-// to the core palette token the slider drew with before 3.3, and the slider
+// to the core palette token the slider drew with before 3.5, and the slider
 // still draws.
 $ramp-fallbacks: (
   "--package-color-gray-ramp-step2": "--color-system-07",
@@ -509,8 +509,8 @@ $channel: (
   @return $layers;
 }
 
-// ── Deprecated: the pre-3.3 thumb ───────────────────────────────────────────
-// The indicator Platinum drew before 3.3: a pentagon clipped from the
+// ── Deprecated: the pre-3.5 thumb ───────────────────────────────────────────
+// The indicator Platinum drew before 3.5: a pentagon clipped from the
 // registered art `sliderThumb` with the `sliderStrikes` grip over
 // `$body-gradient`. Platinum no longer uses it; it stays for hosts that
 // `@use` this partial's mixin.

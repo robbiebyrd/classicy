@@ -41,7 +41,7 @@ The package was published as `classicy` through 2.x; every specifier is
 auto-bumps its dependencies must list every Classicy package it loads
 (`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads it,
 `@classicy/appearance-system7`) and move them together. The core and Platinum
-exist from 3.0.0, System 7 from 3.3.0.
+exist from 3.0.0, System 7 from 3.5.0.
 
 **Import an Appearance Package at the entry.** The core registers none.
 Import Platinum once, before rendering; importing it registers Platinum and
@@ -1608,7 +1608,7 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   regular image. Platinum registers one small image of its own, the list
   view's 16 px folder (`system.folders.directory`, `art/folder-small.png`,
   cut pixel for pixel from HIGOS8 Fig. 2-24), over the core's 32 px folder.
-- **Selected icon images** (3.3, story 0197-s0z):
+- **Selected icon images** (3.5, story 0197-s0z):
   `registerClassicySelectedIconImages(packageId, { [image]: selectedImage },
   { variant? })` gives, for an icon image's URL (full-size or small, as drawn),
   the image a selected icon draws instead, for the package's base look or,
@@ -2693,7 +2693,7 @@ and `classicyCustomThemeSlotId(packageId)`.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'select', color: 0x3366cc })
 // Palettes: index 0–6 maps to --color-system-01 … -07 / --color-theme-01 … -07.
 dispatch({ type: 'ClassicyDesktopChangeColor', colorKey: 'theme', index: 2, color: 0x9999ff })
-// A package color (3.3): one the active package declares in `colorFamilies`.
+// A package color (3.5): one the active package declares in `colorFamilies`.
 dispatch({ type: 'ClassicyDesktopChangeColor', family: 'grayRamp', key: 'step2', color: 0x222222 })
 ```
 
@@ -3805,7 +3805,7 @@ check) are absent by design: they are Platinum's look, not the component's
 Appearance Package: System 7.5 in black and white and in color. It is built
 the way a third-party package would be (it reaches the core only as
 `@classicy/classicy`; `System7SourceImports.test.ts`), and it is the worked
-example of the capabilities 3.3 added for it. Install and import it like
+example of the capabilities 3.5 added for it. Install and import it like
 Platinum (§1); its README lists what it ships.
 
 - **Themes.** `system7` ("System 7", the package's defaults: every color
@@ -4332,7 +4332,7 @@ edit on a built-in theme forks its package's Custom theme (above).
 | Colors | `useColorsTab({ theme, editingCustomTheme, changeColor, appId, colorFamilies? })` | The 28 `CLASSICY_THEME_COLOR_TARGETS` swatches in groups (`appearanceColorPickerId(target)`), then one group per family of the active package's `colorFamilies` (`appearanceColorFamilyPickerId(family, key)`; "Package color families"), dispatching `ClassicyDesktopChangeColor` (the family form for a package color), with the fork notice |
 | Fonts | `useFontsTab({ typography, changeFont, changeFontSize })` | A family pop-up (the font registry, §5) and a size per typography slot (`ClassicyDesktopChangeFont`, `ClassicyDesktopChangeFontSize`) |
 | Metrics | `useMetricsTab({ theme, editingCustomTheme, changeMetric })` | One spinner per `CLASSICY_THEME_METRIC_TARGETS` entry, grouped by `CLASSICY_THEME_METRIC_GROUPS` (Window, Controls, Buttons, Group Boxes, Layout), ids `appearanceMetricSpinnerId({ metricKey })` → `appearance_metric_<metricKey>`. Entries are rounded to whole pixels and clamped to the target's bounds, then dispatched as `ClassicyDesktopChangeMetric { metricKey, value }`; an empty entry dispatches nothing (the field shows its minimum until the next edit). Fork notice: "Changing a metric creates a Custom theme from “<name>”." |
-| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.3, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
+| Sound | `useSoundTab({ soundPacks, soundPack, changeSoundPack, alerts, alertSound, changeAlertSound, alertVolume, changeAlertVolume, previewAlertVolume })` | The Sound Pack pop-up (`#soundPack`): `useClassicySoundPacks()` packs with no `packageId` or the active package's, plus the active theme's pack when another package owns it, written by `ClassicyDesktopChangeAppearanceOption { path: "sound.pack", value }`; Alert Sound and Alert Volume (§10; the slider auditions the alert when released, not when its drag's pointer stream is lost). `alerts` (`readonly { value, label }[]`, optional; new in 3.5, and a call without it works as in 3.1) is what the Alert Sound pop-up lists; omitted, it is the alerts of the pack that plays for the active theme (the registered pack named by `sound.pack`, else the default pack, `classicyPackAlerts(pack)`), and `alertSound` the alert in effect (`resolveClassicyAlertSound(pack, stored)`) |
 
 `appearanceThemeEditNotice(themeName, editingCustomTheme, change)` returns
 the shared notice string (Colors passes "a color", Metrics "a metric",
@@ -4372,7 +4372,7 @@ Theme-driven variables (values change per theme):
 
 **Package color families.** An Appearance Package may declare colors of its
 own beside the 28 core colors (`CLASSICY_THEME_COLOR_TARGETS`, which do not
-change), the way it declares measurement families. They are additive, 3.3.
+change), the way it declares measurement families. They are additive, 3.5.
 
 - **Theme data.** `color.families.<family>.<key>`, a 24-bit RGB integer
   (`ClassicyThemeColors.families?`, `ClassicyThemeColorFamilies`). Family and
@@ -4921,7 +4921,7 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--finder-about-heading-font-size` | `uiSize × 1.0714` | 14.9996 (unrounded) | FinderAboutThisComputer.scss |
 | `--finder-about-copyright-font-size` | `uiSize × 0.7857` | 10.9998 (unrounded) | FinderAboutThisComputer.scss |
 | `--menu-item-padding-inline` | `paddingSize × 1.25` | 7.5 | ClassicyMenu.scss |
-| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.3 (Platinum's knob is pixel art); kept for hosts |
+| `--slider-thumb-corner-radius` | `borderSize × 1.5` | 1.5 | none since 3.5 (Platinum's knob is pixel art); kept for hosts |
 | `--tab-scroll-arrow-size` | `controlSize / 3` | 4 | ClassicyTabs.scss |
 | `--tab-scroll-arrow-size-large` | `controlSize / 2.25` | 5.333 | ClassicyTabs.scss |
 | `--tab-min-width-medium` | `controlSize × 7` | 84 | ClassicyTabs.scss |
@@ -5589,7 +5589,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
   the missing ids) and plays those sprites from the Platinum pack when it is
   registered (the warning reads `…; they play nothing` when it is not); a
   sprite missing from both is not played. A pack that declares its own
-  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`, new in 3.3), only the
+  `alerts` need not define the contract's alert ids (`CLASSICY_CONTRACT_ALERT_SPRITE_IDS`, new in 3.5), only the
   alerts it declares (`classicySoundPackMissingSprites(pack)`).
   `CLASSICY_CONTRACT_ALERT_SPRITE_IDS` is the exported, `as const` list of
   Platinum's seven alert sprite ids (`ClassicyAlertBonk`, `ClassicyAlertGrowl`,

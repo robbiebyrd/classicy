@@ -822,7 +822,7 @@ describe("platinum.scss (compiled)", () => {
 			return out;
 		};
 		// Every gray-ramp read falls back to the core token the slider drew
-		// with before 3.3 (a theme of another package emits no ramp), here
+		// with before 3.5 (a theme of another package emits no ramp), here
 		// checked and then dropped, so the decoders read the ramp's name.
 		const RAMP_FALLBACK: Record<string, string> = {
 			"--package-color-gray-ramp-step2": "--color-system-07",
@@ -842,7 +842,7 @@ describe("platinum.scss (compiled)", () => {
 				},
 			);
 
-		it("reads every gray-ramp step with its pre-3.3 core token as fallback", () => {
+		it("reads every gray-ramp step with its pre-3.5 core token as fallback", () => {
 			const reads = [...css.matchAll(/var\((--package-color-[\w-]+)([,)])/g)];
 			expect(reads.length).toBeGreaterThan(0);
 			expect(reads.filter(([, , next]) => next !== ",")).toEqual([]);

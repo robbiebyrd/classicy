@@ -1,8 +1,8 @@
-# Release notes: 3.3
+# Release notes: 3.5
 
 A second Appearance Package, System 7, ships beside Platinum, with the core
 capabilities it needed. These notes list every change a host can see,
-measured from 3.2.x, with the step each change needs. The API is described in
+measured from 3.4.x, with the step each change needs. The API is described in
 [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§5 "Asset registries", §8
 "Theming" and its "System 7" section, §10 "Sound").
 
@@ -528,7 +528,7 @@ the ids the saver already names:
   there), where it was the indicator in system grays
   at 75% opacity over everything. A host that styled the ghost's opacity
   sets it on `.classicySliderGhost` again. Under a theme of another package
-  the slider draws its pre-3.3 grays.
+  the slider draws its pre-3.5 grays.
 - **Platinum's list view matches HIGOS8.** The Finder list view (and any
   `ClassicyFileBrowser` in `display="list"`) draws its default icon step at
   16 px, the small icon's own size, in 18 px rows a 1 px line apart, as
@@ -640,7 +640,7 @@ the ids the saver already names:
   picker's channel sliders, which keep their own fills
   (`--classicy-slider-track`). The new knobs are the `slider` family
   (AGENT-REFERENCE §8, "Package knob families"), and every placement is
-  derived from them. The pre-3.3 thumb's art keys (`sliderThumb`,
+  derived from them. The pre-3.5 thumb's art keys (`sliderThumb`,
   `sliderThumbRect`, `sliderStrikes`) stay registered, and the
   `platinum-slider-thumb` mixin stays in Platinum's `_Slider.scss` for
   hosts that `@use` it; Platinum no longer draws with them.
@@ -795,9 +795,9 @@ the ids the saver already names:
 
 ## Upgrade
 
-1. Upgrading from 3.2.x, bump `@classicy/classicy` and
+1. Upgrading from 3.4.x, bump `@classicy/classicy` and
    `@classicy/appearance-platinum` together to
-   3.3.0. To use System 7, add `@classicy/appearance-system7` at 3.3.0 and
+   3.5.0. To use System 7, add `@classicy/appearance-system7` at 3.5.0 and
    import it at your entry; keep every Classicy package at one version.
 2. With a Vite dev server, add `@classicy/appearance-system7` to
    `optimizeDeps.exclude` when you load it. Under a strict CSP, link its two

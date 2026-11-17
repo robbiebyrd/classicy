@@ -62,7 +62,7 @@ and icon art go missing.
 
 **Upgrading from 3.0.x?** [`docs/RELEASE-NOTES-3.1.md`](docs/RELEASE-NOTES-3.1.md): the screen savers (and their logo registry) now ship with `@classicy/appearance-platinum`; a host importing one from `@classicy/classicy` changes the import specifier.
 
-**Upgrading from 3.2.x?** [`docs/RELEASE-NOTES-3.3.md`](docs/RELEASE-NOTES-3.3.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
+**Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
@@ -72,7 +72,7 @@ and rewrite every specifier, strings included: `from "classicy"`, deep paths
 script, pnpm's `minimumReleaseAgeExclude`) must list **every** Classicy package
 it loads (`@classicy/classicy`, `@classicy/appearance-platinum` and, when you
 load it, `@classicy/appearance-system7`) and move them together. The core and
-Platinum exist from 3.0.0 on, System 7 from 3.3.0; a lower range does not
+Platinum exist from 3.0.0 on, System 7 from 3.5.0; a lower range does not
 resolve. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,

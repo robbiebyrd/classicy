@@ -54,10 +54,10 @@ if ! [[ "$PUBLISH_WAIT_SECONDS" =~ ^[0-9]+$ && "$PUBLISH_POLL_SECONDS" =~ ^[1-9]
 	exit 1
 fi
 # The release the placeholder makes way for, named in its deprecation. It is
-# per package: the core and Platinum first shipped in 3.0.0, System 7 in 3.3.0.
+# per package: the core and Platinum first shipped in 3.0.0, System 7 in 3.5.0.
 first_release_for() {
 	case "$1" in
-	@classicy/appearance-system7) echo "3.3.0" ;;
+	@classicy/appearance-system7) echo "3.5.0" ;;
 	*) echo "3.0.0" ;;
 	esac
 }
@@ -142,7 +142,7 @@ DEPRECATION_FOR() { echo "Placeholder with no code; install $1@$(first_release_f
 manifest_name() { node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name' "$1"; }
 
 # The distinct first releases of the packages given, oldest first, for the
-# closing notes ("3.0.0" or "3.0.0 and 3.3.0").
+# closing notes ("3.0.0" or "3.0.0 and 3.5.0").
 RELEASES=""
 for MANIFEST in "${MANIFESTS[@]}"; do
 	RELEASES="$RELEASES$(first_release_for "$(manifest_name "$MANIFEST")")"$'\n'

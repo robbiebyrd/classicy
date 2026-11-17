@@ -10,7 +10,7 @@ import {
  * The Platinum slider (story 0194-5bs, HIGOS8 Figure 2-17) is pixel art drawn
  * in theme tokens: every layer of the channel, the indicator, the knob, the
  * ghost and the ticks is a one-pixel-grid `linear-gradient` of one token, so
- * a theme's colors reach it. It reads no registered image (the pre-3.3
+ * a theme's colors reach it. It reads no registered image (the pre-3.5
  * pentagon art, `--classicy-art-slider-thumb`, `-thumb-rect` and `-strikes`,
  * stays registered for hosts and for the deprecated `platinum-slider-thumb`
  * mixin) and no SVG baked into the stylesheet. The art test of each part is
