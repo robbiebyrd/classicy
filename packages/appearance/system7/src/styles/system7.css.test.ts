@@ -1563,8 +1563,12 @@ describe("system7.scss (compiled)", () => {
 		});
 
 		// Story 0196-1i1: the base sheet no longer dims the box with a
-		// gradient, so there is nothing to drop.
-		it("dims a pop-up's text and triangle but keeps its frame", () => {
+		// gradient, so there is nothing to drop. Story 0218-ll9: 7.5.5 dims
+		// the frame, its drop shadow and the triangle too
+		// (`bw-755-controlpanel-memory.png`, the 50% checker in 1-bit;
+		// `color-755-dialog-clockoptions.png`, #888888 with #777777 on every
+		// pixel whose x and y are both odd from the frame's corner, in color).
+		it("dims a pop-up's text, frame, shadow and triangle", () => {
 			expect(rule(":where(.classicyPopUpMenu).disabled")).toBe("");
 			expect(rule(".classicyPopUpMenu.disabled")).toBe("");
 			expect(
@@ -1574,14 +1578,35 @@ describe("system7.scss (compiled)", () => {
 					),
 				),
 			).toBe(true);
-			expect(
-				layersOf(
-					rule(
-						":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
-					),
-					DIM,
-				),
-			).toBe(6);
+			// The black frame and the right shadow give way to one layer that
+			// draws frame and shadow in the dimmed pattern.
+			const box = rule(":where(.classicyPopUpMenuButton).disabled");
+			expect(box).toMatch(/border-color: transparent;/);
+			expect(rule(":where(.classicyPopUpMenuButton).disabled::after")).toMatch(
+				/content: none;/,
+			);
+			const frame = rule(":where(.classicyPopUpMenuButton).disabled::before");
+			// Four sides and the shadow's two strips.
+			expect(layersOf(frame, BLACK)).toBe(6);
+			const arrow = rule(
+				":where(.classicyPopUpMenuButton).disabled .classicyPopUpMenuIndicator",
+			);
+			expect(layersOf(arrow, BLACK)).toBe(6);
+			for (const part of [frame, arrow]) {
+				expect(part).toMatch(/^\s*mask: linear-gradient/m);
+				// 1-bit: the dimmed ink where x + y is odd, in the theme's tile.
+				expect(part).toMatch(
+					/conic-gradient\(var\(--color-theme-06\) 0 25%, transparent 0 50%, var\(--color-theme-06\) 0 75%, transparent 0\) 0 0 ?\/ ?var\(--dither-tile-size\) var\(--dither-tile-size\)/,
+				);
+				// Color: #888888, and #777777 where x and y are odd, in a tile
+				// sized away in 1-bit.
+				expect(part).toMatch(
+					/conic-gradient\(from 90deg at var\(--box-pixel\) var\(--box-pixel\), var\(--color-system-06\) 25%, transparent 0\) 0 0 ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				);
+				expect(part).toMatch(
+					/linear-gradient\(var\(--color-theme-06\), var\(--color-theme-06\)\) 0 0 ?\/ ?calc\(calc\(var\(--box-pixel\) \* 2\) - var\(--dither-tile-size\)\)/,
+				);
+			}
 		});
 
 		it("dots the group box and separator, and paints the legend on white", () => {
