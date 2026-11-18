@@ -182,7 +182,9 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 		}
 	});
 
-	it("when a container outside any window scrolls (the desktop's corner is the origin)", () => {
+	// A scroll is read in the next animation frame, once however many came
+	// (final review M3).
+	it("when a container outside any window scrolls (the desktop's corner is the origin)", async () => {
 		document.body.innerHTML = `
 <div class="classicyDesktop" id="desk"><div id="scroller"><div class="classicyScrollBar" id="bar"></div></div></div>`;
 		place(document.getElementById("desk") as HTMLElement, 0, 0, 1024, 768);
@@ -196,10 +198,10 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 		(document.getElementById("scroller") as HTMLElement).dispatchEvent(
 			new Event("scroll"),
 		);
-		expect(published(bar)).toEqual(["-37px", "-41px"]);
+		await vi.waitFor(() => expect(published(bar)).toEqual(["-37px", "-41px"]));
 	});
 
-	it("when the document scrolls a bar outside any desktop", () => {
+	it("when the document scrolls a bar outside any desktop", async () => {
 		document.body.innerHTML = `<div class="classicyScrollBar" id="bar"></div>`;
 		const bar = document.getElementById("bar") as HTMLElement;
 		place(bar, 10, 300, 16, 100);
@@ -209,7 +211,7 @@ describe("useClassicyScrollPatternOrigin republishes", () => {
 		expect(published(bar)).toEqual(["-10px", "-300px"]);
 		place(bar, 10, 200, 16, 100);
 		document.dispatchEvent(new Event("scroll"));
-		expect(published(bar)).toEqual(["-10px", "-200px"]);
+		await vi.waitFor(() => expect(published(bar)).toEqual(["-10px", "-200px"]));
 	});
 
 	it("when a transition or an animation inside the window ends", () => {

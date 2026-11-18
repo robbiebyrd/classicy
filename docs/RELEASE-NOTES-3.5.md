@@ -477,7 +477,12 @@ diverge, so a logo registered through Platinum's
   wherever it sits. The default `"element"`, and a component or element
   left out, publishes and watches nothing: Platinum declares none and
   draws as before. One watcher per window now serves every part and scroll
-  bar in it, reading them all before it writes.
+  bar in it, reading them all before it writes, and reads them once an
+  animation frame for the DOM's changes and scrolls, however many came: a
+  window holding a 1,000-row table whose content changes and scrolls every
+  frame took 5 reads a frame (about 6 ms each, under System 7's 25
+  selectors) and about 6 ms a change, and now takes 1.4 reads a frame and
+  0.1 ms a change.
 - **The dither mixins take a position.** `classicy-dither-mask`,
   `classicy-dither-text` and `classicy-dither-line` take an optional
   `$x, $y`, the checker's tile position from the padding box
