@@ -346,6 +346,40 @@ describe("watchClassicyPatternOrigin", () => {
 		stop();
 	});
 
+	// Final review r1, N2: a component that rewrites an element's inline
+	// style every frame only to repaint it (the progress bar's stripes)
+	// marks it `data-classicy-paint-only-style`; those writes move no part,
+	// so the window is not read again for them.
+	it("reads nothing anew for a style write on an element marked paint-only", async () => {
+		const { win, a } = scene();
+		place(a, 100, 80);
+		const bar = document.createElement("progress");
+		bar.setAttribute("data-classicy-paint-only-style", "");
+		win.append(bar);
+		let measured = 0;
+		const stop = watchClassicyPatternOriginPart({
+			anchors: [a],
+			measure: () => {
+				measured++;
+				return undefined;
+			},
+		});
+		expect(measured).toBe(1);
+		for (let i = 0; i < 5; i++) {
+			bar.style.setProperty("--slide-var", `${i}px`);
+			await nextFrame();
+		}
+		expect(measured).toBe(1);
+		// The same write on an element not so marked is read.
+		bar.removeAttribute("data-classicy-paint-only-style");
+		await nextFrame();
+		const before = measured;
+		bar.style.setProperty("--slide-var", "9px");
+		await nextFrame();
+		expect(measured).toBe(before + 1);
+		stop();
+	});
+
 	it("shares one watcher among every part of a window, and drops it with the last", () => {
 		const { a, b } = scene();
 		place(a, 100, 80);

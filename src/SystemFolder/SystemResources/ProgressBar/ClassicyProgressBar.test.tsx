@@ -180,6 +180,40 @@ describe("ClassicyProgressBar stripes without @property", () => {
 		expect(progress.style.getPropertyValue("--slide-var")).toBe("");
 	});
 
+	// Final review r1, N2: Firefox 113-127 lack `@property` too, but draw
+	// no stripes (they are `::-webkit-progress-value`'s), so nothing there
+	// would read the offset.
+	it("slides nothing where nothing draws the stripes (Firefox 113-127)", () => {
+		vi.stubGlobal("CSS", {
+			supports: (condition: string) =>
+				condition !== "selector(::-webkit-progress-value)",
+		});
+		const { container } = render(<ClassicyProgressBar indeterminate={true} />);
+		expect(container.firstChild).not.toHaveClass(
+			"classicyProgressSlideByScript",
+		);
+		expect(frames).toHaveLength(0);
+	});
+
+	// The period is read when the slide starts, not on every frame (a
+	// computed style read each frame), and the bar's per-frame writes are
+	// marked as repainting it alone, so no observer measures for them.
+	it("reads the period once, and marks its writes as repainting the bar alone", () => {
+		vi.stubGlobal("CSS", { supports: () => true });
+		const reads = vi.spyOn(window, "getComputedStyle");
+		const { container, unmount } = render(
+			<ClassicyProgressBar indeterminate={true} />,
+		);
+		const progress = container.querySelector("progress") as HTMLElement;
+		expect(progress.hasAttribute("data-classicy-paint-only-style")).toBe(true);
+		reads.mockClear();
+		for (const time of [0, 16, 32, 48]) runFrame(time);
+		expect(reads).not.toHaveBeenCalled();
+		expect(progress.style.getPropertyValue("--slide-var")).not.toBe("");
+		unmount();
+		expect(progress.hasAttribute("data-classicy-paint-only-style")).toBe(false);
+	});
+
 	it("leaves them to the keyframes where @property is supported", () => {
 		vi.stubGlobal("CSS", { supports: () => true, registerProperty: () => {} });
 		const { container } = render(<ClassicyProgressBar indeterminate={true} />);

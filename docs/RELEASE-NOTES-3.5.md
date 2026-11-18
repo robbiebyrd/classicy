@@ -346,7 +346,12 @@ diverge, so a logo registered through Platinum's
   changes. An indeterminate `ClassicyProgressBar`'s stripes slide in Safari
   16.2–16.3, which have no `@property` (they stood still: the keyframes
   stepped between two offsets that draw the same stripes); there the bar
-  carries `classicyProgressSlideByScript` and slides them from a frame loop.
+  carries `classicyProgressSlideByScript` and slides them from a frame loop,
+  its `<progress>` marked `data-classicy-paint-only-style` so the
+  pattern-origin watcher and the scroll area do not measure for each frame's
+  write. Firefox 113–127 have no `@property` either, but Firefox draws no
+  stripes (they are `::-webkit-progress-value`'s), so the bar runs no loop
+  there.
   The floor check (`bin/classicyCssFloor.ts`) holds a `text-wrap` to its
   `white-space` too.
 - **Classes in place of `:has()`, for Firefox 113–120.** A browser without

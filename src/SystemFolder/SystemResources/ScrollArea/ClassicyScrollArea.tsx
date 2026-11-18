@@ -24,6 +24,7 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicyPressRepeat } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
+import { isClassicyPaintOnlyStyleChange } from "@/SystemFolder/SystemResources/Utils/ClassicyPaintOnlyStyle.internal";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import {
 	ClassicyScrollAreaHeadContext,
@@ -528,7 +529,10 @@ export const ClassicyScrollArea = forwardRef<
 		// (typing, a list re-rendering its rows): the next animation frame,
 		// before it paints.
 		let frame = 0;
-		const onMutation = () => {
+		const onMutation = (records: MutationRecord[]) => {
+			// A style write on an element marked paint-only repaints it alone
+			// (a progress bar's stripes, every frame): no content moves.
+			if (records.every(isClassicyPaintOnlyStyleChange)) return;
 			if (typeof requestAnimationFrame !== "function") {
 				observeChildren();
 				update();

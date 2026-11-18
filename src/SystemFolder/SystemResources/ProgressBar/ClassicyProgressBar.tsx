@@ -16,28 +16,35 @@ import {
 	labelAlignClass,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { CLASSICY_PAINT_ONLY_STYLE_ATTRIBUTE } from "@/SystemFolder/SystemResources/Utils/ClassicyPaintOnlyStyle.internal";
 
 /** The stripes' loop (ClassicyProgressBar.scss, `stripeSlide`): two periods. */
 const STRIPE_LOOP_MS = 3000;
 
 /**
  * Whether this browser animates the indeterminate stripes' offset only by
- * script: it has CSS but no registered custom properties (`@property`,
+ * script: it draws them (`::-webkit-progress-value`, the only part they are
+ * drawn on) but has no registered custom properties (`@property`,
  * `CSS.registerProperty`), as Safari 16.2 and 16.3, inside the floor. There
  * `--slide-var` animates discretely, and its keyframes, two periods apart,
- * draw the same stripes: they would stand still.
+ * draw the same stripes: they would stand still. Firefox 113-127 lack
+ * `@property` too, but draw no stripes, so nothing would read the offset.
  */
 const classicyStripesSlideByScript = (): boolean =>
 	typeof CSS !== "undefined" &&
 	typeof CSS.supports === "function" &&
+	CSS.supports("selector(::-webkit-progress-value)") &&
 	typeof (CSS as { registerProperty?: unknown }).registerProperty !==
 		"function";
 
 /**
  * Slides an indeterminate bar's stripes from a frame loop where the browser
  * cannot animate `--slide-var` (`classicyStripesSlideByScript`), along the
- * keyframes' path: two stripe periods every 3 s, linear. Returns whether it
- * does, for the class that stops the keyframes there.
+ * keyframes' path: two stripe periods every 3 s, linear, the period read
+ * when the slide starts. The progress element is marked paint-only while it
+ * slides, so the observers that measure on a style change skip its
+ * per-frame writes. Returns whether it slides, for the class that stops the
+ * keyframes there.
  */
 const useClassicyStripeSlide = (
 	progressRef: { current: HTMLProgressElement | null },
@@ -51,21 +58,20 @@ const useClassicyStripeSlide = (
 			return;
 		}
 		setByScript(true);
+		const travel =
+			readClassicyThemeVar("--progress-bar-stripe-period", undefined, el) * 2;
+		el.setAttribute(CLASSICY_PAINT_ONLY_STYLE_ATTRIBUTE, "");
 		let frame = 0;
 		const step = (time: number) => {
-			const period = readClassicyThemeVar(
-				"--progress-bar-stripe-period",
-				undefined,
-				el,
-			);
 			const t = (time % STRIPE_LOOP_MS) / STRIPE_LOOP_MS;
-			el.style.setProperty("--slide-var", `${t * (period + period)}px`);
+			el.style.setProperty("--slide-var", `${t * travel}px`);
 			frame = requestAnimationFrame(step);
 		};
 		frame = requestAnimationFrame(step);
 		return () => {
 			cancelAnimationFrame(frame);
 			el.style.removeProperty("--slide-var");
+			el.removeAttribute(CLASSICY_PAINT_ONLY_STYLE_ATTRIBUTE);
 		};
 	}, [progressRef, indeterminate]);
 	return byScript;

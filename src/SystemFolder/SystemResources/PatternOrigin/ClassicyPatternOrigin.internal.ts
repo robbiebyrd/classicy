@@ -5,6 +5,7 @@ import type {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { isClassicyPaintOnlyStyleChange } from "@/SystemFolder/SystemResources/Utils/ClassicyPaintOnlyStyle.internal";
 
 // A package that fills a part with a pattern in CSS can only lay it from the
 // element's own box, so a part's dots fall in a phase set by where it sits.
@@ -244,10 +245,13 @@ const createScope = (scopeEl: Element): Scope => {
 	// Mutations that move no part against its origin, so publish nothing:
 	// a window's own style (dragged, its parts and its content origin move
 	// together; a size change is the ResizeObserver's), unless a part of it
-	// is laid from the desktop; and, outside every window, anything inside
-	// a window (absolutely placed, it moves nothing outside it).
+	// is laid from the desktop; a style write on an element marked
+	// paint-only (it repaints that element alone: an indeterminate progress
+	// bar's stripes, every frame); and, outside every window, anything
+	// inside a window (absolutely placed, it moves nothing outside it).
 	const moves = (record: MutationRecord): boolean => {
 		const target = record.target;
+		if (isClassicyPaintOnlyStyleChange(record)) return false;
 		if (win)
 			return !(
 				target === win &&
