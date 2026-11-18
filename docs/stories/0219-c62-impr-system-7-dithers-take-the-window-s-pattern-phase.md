@@ -3,11 +3,13 @@ id: 0219-c62
 title: 'System 7: dithers take the window''s pattern phase'
 purpose: Follow-up from plan 0018-dbd (System 7 Appearance Package), task 5.2 verification (batch L's review).
 type: impr
-status: pending
+status: complete
 priority: "4"
 effort: M
 created: "2026-11-17T11:24:27.639Z"
-updated: "2026-11-17T11:24:27.639Z"
+updated: "2026-11-18T01:43:21.032Z"
+started: "2026-11-18T01:43:17.816Z"
+completed: "2026-11-18T01:43:21.032Z"
 tags: []
 milestone: ""
 due_date: ""
@@ -42,6 +44,6 @@ The dimmed pattern, the group box checker and the color pop-up sprinkle position
 
 ## Acceptance Criteria
 
-- [ ] [MANUAL] Every System 7 dither named here keeps the window's phase at any position and size (tested at both parities), Platinum and core parity stay AE 0, System 7 moved shots are named, and the full gate passes.
+- [x] [MANUAL] Every System 7 dither named here keeps the window's phase at any position and size (tested at both parities), Platinum and core parity stay AE 0, System 7 moved shots are named, and the full gate passes.
 
 ## Work Log
