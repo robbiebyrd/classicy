@@ -4,7 +4,7 @@
 	"types": "./dist/types/src/index.d.ts",
 	"name": "@classicy/classicy",
 	"version": "3.5.0",
-	"release": "Rubato",
+	"release": "Overture",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/robbiebyrd/classicy"
