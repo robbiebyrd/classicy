@@ -274,6 +274,23 @@ describe("withDefaultThemeColorFamilies", () => {
 		).toBe(0x222222);
 	});
 
+	// Final review M6: a persisted family is JSON from localStorage, and
+	// JSON.parse makes `__proto__` an own key; copied by assignment it set
+	// the merged family's prototype. Kept keys are color family names only.
+	it("keeps no key that is not a family name, a parsed __proto__ included", () => {
+		const theme = baseTheme();
+		theme.color.families = JSON.parse(
+			'{"grayRamp":{"step2":1193046,"__proto__":{"polluted":true},"constructor":5,"Bad Key":7}}',
+		);
+		const grayRamp = withDefaultThemeColorFamilies(theme, defaults).color
+			.families?.grayRamp as Record<string, unknown>;
+		expect(Object.getPrototypeOf(grayRamp)).toBe(Object.prototype);
+		expect(Object.keys(grayRamp).sort()).toEqual(["step2", "step8"]);
+		expect(grayRamp).toEqual({ step2: 1193046, step8: 0x888888 });
+		expect((grayRamp as { polluted?: unknown }).polluted).toBeUndefined();
+		expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+	});
+
 	it("returns the same theme when it is complete or there are no defaults", () => {
 		const theme = baseTheme();
 		theme.color.families = structuredClone(defaults);

@@ -130,7 +130,8 @@ type ThemeWithColor = { color: ClassicyTheme["color"] };
  * (`classicyThemeColorFamilyDefaults(theme.package)`), key by key, as
  * `withDefaultThemeMetrics` completes measurements: present colors win, a
  * missing or invalid leaf takes the default, and families and keys the
- * defaults do not name are kept. Copy-on-write: the same theme back when
+ * defaults do not name are kept (in a family it completes, only keys that
+ * are color family names). Copy-on-write: the same theme back when
  * nothing is missing or there are no defaults. Never mutates its input.
  */
 export function withDefaultThemeColorFamilies<T extends ThemeWithColor>(
@@ -159,8 +160,12 @@ export function withDefaultThemeColorFamilies<T extends ThemeWithColor>(
 			const have = own && Object.hasOwn(own, key) ? own[key] : undefined;
 			merged[key] = isValidThemeColor(have) ? have : keys[key];
 		}
+		// The theme's other keys, kept, but only a color family name: a
+		// persisted family is parsed JSON, whose own `__proto__` key, copied
+		// by assignment, would set `merged`'s prototype.
 		for (const [key, value] of Object.entries(own ?? {})) {
-			if (!Object.hasOwn(merged, key)) merged[key] = value;
+			if (isColorFamilyName(key) && !Object.hasOwn(merged, key))
+				merged[key] = value;
 		}
 		next[family] = merged;
 	}
