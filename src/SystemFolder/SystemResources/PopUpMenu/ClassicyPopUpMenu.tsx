@@ -26,6 +26,11 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyMenuBounds,
+	classicyMenuListLeft,
+	classicyMenuListPinTop,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
 import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import {
@@ -199,6 +204,13 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 	// falls back to growing downward under the stylesheet's height cap.
 	const [placement, setPlacement] =
 		useState<ClassicyPopUpMenuPlacementResult | null>(null);
+	// Across, once measured: under the button's left side, or where that
+	// would pass the desktop's right edge, its right side under the button's
+	// right side, pinned inside the desktop (ClassicyMenuPlacement).
+	const [menuLeft, setMenuLeft] = useState<number | null>(null);
+	// Down, when its 64 px floor still passes the bounds (a very short
+	// desktop): the top that pins it inside, measured once it is placed.
+	const [menuPinTop, setMenuPinTop] = useState<number | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
@@ -282,6 +294,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		setHighlight(-1);
 		setMenuRect(null);
 		setPlacement(null);
+		setMenuLeft(null);
+		setMenuPinTop(null);
 		resetScrollArrows();
 	}, [resetScrollArrows]);
 
@@ -388,7 +402,8 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 
 	// Measure the rendered menu and place it. A layout effect runs before paint,
 	// so the corrected placement is what the user sees (same approach as
-	// ClassicyContextualMenu's horizontal flip). `scrollHeight` is the unclamped
+	// ClassicyContextualMenu's horizontal flip). Across, it keeps to the
+	// desktop as a menu bar's pull-down does. `scrollHeight` is the unclamped
 	// content height, so it stays correct once maxHeight applies. When there is a
 	// current selection, its measured geometry drives the Mac OS 8 aligned
 	// placement (the selected item opens over the button); with none (placeholder),
@@ -407,32 +422,60 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 				};
 			}
 		}
-		setPlacement(
-			classicyPopUpMenuPlacement(
-				menuRect,
-				el.scrollHeight,
-				window.innerHeight,
-				selectedMetrics,
-				// The theme's cap, read from the button (the list may be portaled
-				// out of its themed ancestor) once per opening.
-				readClassicyThemeVar(
-					"--menu-pop-up-max-height",
-					undefined,
-					buttonRef.current,
-				),
+		// Down, between the top and bottom of what shows of the desktop: the
+		// policy measures from a screen at 0, so it is given the button's place
+		// from the bounds' top, and its `top` is put back. Its 4 px margin
+		// holds the list's padding and shadow (slid to the bottom, the frame
+		// ends 2 px above it, the shadow on it); a list whose 64 px floor
+		// passes the bounds anyway is pinned below.
+		const bounds = classicyMenuBounds(buttonRef.current);
+		const placed = classicyPopUpMenuPlacement(
+			{ top: menuRect.top - bounds.top, bottom: menuRect.bottom - bounds.top },
+			el.scrollHeight,
+			bounds.bottom - bounds.top,
+			selectedMetrics,
+			// The theme's cap, read from the button (the list may be portaled
+			// out of its themed ancestor) once per opening.
+			readClassicyThemeVar(
+				"--menu-pop-up-max-height",
+				undefined,
+				buttonRef.current,
 			),
 		);
+		setPlacement(
+			placed.top === null
+				? placed
+				: { ...placed, top: placed.top + bounds.top },
+		);
+		setMenuLeft(classicyMenuListLeft(el, menuRect, bounds));
+		setMenuPinTop(null);
 	}, [open, menuRect, currentIndex, reactId]);
+
+	// Placed, a list whose 64 px floor still passes the bounds (no room for
+	// it above or below the button in a very short desktop) is pinned
+	// inside, its top winning.
+	useLayoutEffect(() => {
+		if (!open || !placement || menuPinTop !== null) return;
+		const el = listRef.current;
+		if (!el) return;
+		const pinned = classicyMenuListPinTop(
+			el,
+			classicyMenuBounds(buttonRef.current),
+		);
+		if (pinned !== null) setMenuPinTop(pinned);
+	}, [open, placement, menuPinTop]);
 
 	// Apply the aligning scroll once the menu has its final height, so the
 	// selected item lands on the button (classic Platinum pop-up). Runs after the
 	// placement commit above, so it wins over the highlight's scroll-into-view.
+	// Again once a pinned list has moved: its indicators are fixed.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: menuPinTop is a trigger, not read: the pin moves the list's box
 	useLayoutEffect(() => {
 		if (!open || !placement) return;
 		const el = listRef.current;
 		if (el) el.scrollTop = placement.scrollTop;
 		measureScrollArrows();
-	}, [open, placement, measureScrollArrows]);
+	}, [open, placement, menuPinTop, measureScrollArrows]);
 
 	// Keyboard navigation moves a highlight, not focus (focus stays on the
 	// button for the combobox pattern), so nothing scrolls the active option
@@ -611,20 +654,22 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 									position: "fixed",
 									// On whole pixels: the frame and shadow placed a
 									// fraction across blend their one-pixel columns.
-									left: `${Math.round(menuRect.left)}px`,
+									left: `${menuLeft ?? Math.round(menuRect.left)}px`,
 									minWidth: `${menuRect.width}px`,
 									zIndex: 5000,
 									// Aligned placement gives an explicit top (the selected item
 									// sits over the button). Otherwise anchor the edge the menu
 									// grows away from: its top to the button's top when growing
 									// down, its bottom to the button's bottom when growing up.
-									...(placement?.top != null
-										? { top: `${Math.round(placement.top)}px` }
-										: placement?.above
-											? {
-													bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
-												}
-											: { top: `${Math.round(menuRect.top)}px` }),
+									...(menuPinTop !== null
+										? { top: `${menuPinTop}px` }
+										: placement?.top != null
+											? { top: `${Math.round(placement.top)}px` }
+											: placement?.above
+												? {
+														bottom: `${Math.round(window.innerHeight - menuRect.bottom)}px`,
+													}
+												: { top: `${Math.round(menuRect.top)}px` }),
 									...(placement && { maxHeight: `${placement.maxHeight}px` }),
 									...scrollArrows.listStyle,
 								}}

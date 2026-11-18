@@ -9,7 +9,8 @@
 // pixels either side of its text, neighbors overlapping by
 // `menuBar.titleOverlap` (5); an open title inverted, a black block over
 // the bar's rows but its first (`menuBar.highlightTop`); the pull-down
-// hanging from the bar's line, its left side under the title's. The bar's
+// hanging from the bar's line, its left side under the title's, or its
+// right side under the title's where it would pass the screen. The bar's
 // height is also the band windows keep clear of (`--menu-bar-height`, from
 // the same knob). The Help menu sits at the right, between the clock and
 // the Application menu (HIG p.52).
@@ -87,6 +88,18 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
         left: 0;
         margin: $b 0 0;
         border-top: 0;
+      }
+
+      // One with no room on the right (the core flips it, measured against
+      // the desktop, shadow included) hangs with its right side under the
+      // title's right edge instead, as 7.5's Help menu does at the bar's
+      // right end (`*-menu-help-and-selected-icon.png`: the title's box and
+      // the menu's frame both end at x 605) and its Application menu always
+      // does (below). This rule's `left: 0` beats the base sheet's flipped
+      // rule, so it is flipped here too.
+      > .classicySubMenu.classicySubMenuFlipLeft {
+        right: 0;
+        left: auto;
       }
 
       // A scrolling pull-down's shadow, on the sibling over it (_Menu.scss):

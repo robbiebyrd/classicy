@@ -39,6 +39,10 @@ const items = (n: number, prefix = "item") =>
 let padding = 0;
 let border = 0;
 let wrapperPosition = "relative";
+// A test's desktop (`.classicyDesktop`), its size a test's to set (300 px
+// tall, as the screen is, by default).
+let desktopWidth = 1024;
+let desktopHeight = 300;
 const frame = () => 2 * (padding + border);
 const scroll = new WeakMap<Element, number>();
 const originals = new Map<string, PropertyDescriptor | undefined>();
@@ -145,6 +149,14 @@ beforeEach(() => {
 					height: ROW,
 				});
 			}
+			if (this.classList.contains("classicyDesktop")) {
+				return DOMRect.fromRect({
+					x: 0,
+					y: 0,
+					width: desktopWidth,
+					height: desktopHeight,
+				});
+			}
 			// A wrapper sits a little up and left of its list.
 			if (this.classList.contains("classicyMenuWrapper")) {
 				return DOMRect.fromRect({ x: 30.25, y: 90, width: 200, height: 0 });
@@ -169,7 +181,9 @@ beforeEach(() => {
 				position === "fixed"
 					? pxOf(wrapper.style.left)
 					: parentList
-						? parentList.getBoundingClientRect().x + 155
+						? parentList.getBoundingClientRect().x +
+							// Flipped to its parent's left side.
+							(this.classList.contains("classicySubMenuFlipLeft") ? -155 : 155)
 						: across
 							? Number(across.dataset.left)
 							: 40;
@@ -194,6 +208,8 @@ afterEach(() => {
 	padding = 0;
 	border = 0;
 	wrapperPosition = "relative";
+	desktopWidth = 1024;
+	desktopHeight = 300;
 	for (const [key, descriptor] of originals) {
 		if (descriptor)
 			Object.defineProperty(HTMLElement.prototype, key, descriptor);
@@ -265,6 +281,48 @@ describe("ClassicyMenu scrolling", () => {
 		fireEvent.click(screen.getByText("Long"));
 		expect(sub.classList.contains("classicyMenuListScrolls")).toBe(true);
 		expect(sub.style.maxHeight).toBe("196px");
+	});
+
+	// The screen is the desktop, where it ends above the window's bottom
+	// (a desktop embedded in a page): the desktop's overflow would clip a
+	// list capped at the window's bottom, and its indicator would float
+	// below the desktop.
+	it("caps a menu at the bottom of a desktop shorter than the viewport", () => {
+		desktopHeight = 200;
+		const { container } = render(
+			<div className="classicyDesktop">
+				<ClassicyMenu name="m" menuItems={items(30)} />
+			</div>,
+		);
+		const list = container.querySelector("ul") as HTMLElement;
+		expect(list.classList.contains("classicyMenuListScrolls")).toBe(true);
+		// 200 − 4 (the margin) − 100 (the list's top), not the viewport's 196.
+		expect(list.style.maxHeight).toBe("96px");
+	});
+
+	// A re-placed menu (flipped and pinned to show inside the desktop,
+	// ClassicyMenuPlacement) still scrolls: its cap follows its top, which
+	// does not move, and its indicators follow it across.
+	it("keeps a flipped, pinned submenu's cap, and its indicators follow it", () => {
+		desktopWidth = 230;
+		const menuItems = [
+			{ id: "long", title: "Long", menuChildren: items(30, "child") },
+		];
+		const { container } = render(
+			<div className="classicyDesktop">
+				<ClassicyMenu name="m" menuItems={menuItems} subNavClass="sub" />
+			</div>,
+		);
+		fireEvent.click(screen.getByText("Long"));
+		const sub = container.querySelector("ul.sub") as HTMLElement;
+		// Beside its parent at 195-355 it would pass the 230 px desktop by
+		// 125: flipped to its parent's left side (-115), which passes it by
+		// less, then pinned in by 115.
+		expect(sub.classList.contains("classicySubMenuFlipLeft")).toBe(true);
+		expect(sub.getBoundingClientRect().x).toBe(0);
+		expect(sub.classList.contains("classicyMenuListScrolls")).toBe(true);
+		expect(sub.style.maxHeight).toBe("196px");
+		expect(arrow("down")?.style.left).toBe("0px");
 	});
 
 	it("closes a submenu it holds open when it scrolls, and places it fixed while open, on the grid", () => {

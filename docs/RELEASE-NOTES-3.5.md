@@ -824,6 +824,43 @@ the ids the saver already names:
   dimmed checked checkbox's X is unchanged. An element that is not rendered
   (a hidden tab panel, a closed menu) is given no origin, so moving a window
   writes nothing for it.
+- **Menus open where they show.** Every menu keeps to what shows of its
+  desktop, on both axes: the desktop's box (`.classicyDesktop`) where it
+  overlaps the viewport, so a desktop embedded in a page and one larger
+  than the window both keep their menus on screen. A menu bar's pull-down
+  that would pass the right edge, its frame's shadow included, hangs with
+  its right side under its title's right side instead, as System 7.5 hangs
+  its Help menu at the bar's right end; System 7's Help menu opened off the
+  screen before. One still too wide is pinned inside. The same rule holds
+  for a window's own menu bar, a menu bar extension's pull-down, pop-up
+  menus, combo box lists and pop-up bevel buttons; submenus and contextual
+  menus flip at the bounds' edge rather than the viewport's, and a submenu
+  that fits on neither side keeps to the side it passes by less. Down, a
+  long pull-down or submenu is capped and scrolls at the bounds' bottom
+  (the desktop's overflow cut it off in an embedded desktop before), and
+  contextual menus, pop-up and combo lists and bevel pop-ups flip and pin
+  against the bounds' top and bottom instead of the viewport's, their
+  shadows included; a combo box's list measures its room from the field's
+  edge it hangs from (it ran past the screen by the field's height). A menu
+  never scrolls to fewer than 64 px of rows (a chosen floor,
+  `MENU_MIN_SCROLL_HEIGHT` and `POPUP_MENU_MIN_HEIGHT`): in bounds under
+  about 90 px a pull-down whose floor no longer fits below its menu bar is
+  pinned up over the bar and still shows whole, and in bounds under about
+  70 px (the floor, its frame and shadow) any menu keeps its top at the
+  bounds' top and its bottom is cut. Placed
+  before paint, again whenever a menu opens, and when the desktop changes
+  size while a pull-down, submenu or contextual menu is open (a submenu
+  after its parent). Contextual menus, pop-up lists and bevel buttons'
+  menus are now as wide as their items wherever they open (`width:
+  max-content`): near the right edge they were shrunk to the room left and
+  wrapped. A flipped first-level pull-down carries `classicySubMenuFlipLeft`,
+  as a flipped submenu did; the base sheet hangs it from its title's right
+  side, and a package that places pull-downs in its own rule places the
+  flipped one too (System 7 does). New: `ClassicyContextualMenu`'s optional
+  `flipLeftTo` (the x its right side goes to when it flips, the point by
+  default) and `classicyBevelPopupPlacement`'s optional sixth argument
+  `bounds` (the box to keep to and the shadow's reach). Menus that fit are
+  placed as before. See AGENT-REFERENCE.md §4.5, "Where menus open".
 
 ## Upgrade
 

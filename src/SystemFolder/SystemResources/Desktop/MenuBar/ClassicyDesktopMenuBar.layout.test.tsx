@@ -172,6 +172,31 @@ describe("ClassicyDesktopMenuBar layout — styles", () => {
 		).toBe("auto");
 	});
 
+	// A pull-down that would pass the desktop's right edge where it hangs is
+	// flipped (ClassicyMenu publishes `classicySubMenuFlipLeft`): it hangs
+	// with its right side under its title's right side instead, mirroring
+	// its left side's hang (ClassicyMenu.scss pulls a pull-down out by the
+	// window padding on the left; flipped, by the same on the right). A
+	// balloon-wrapped title's too.
+	it("hangs a flipped pull-down from its title's right side, mirroring its left hang", () => {
+		for (const title of [
+			".classicyDesktopMenu > .classicyMenuItem",
+			".classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem",
+		]) {
+			const flipped = rule(
+				`${title} > .classicyMenuWrapper > .classicySubMenu.classicySubMenuFlipLeft`,
+			);
+			expect(flipped.left, title).toBe("auto");
+			expect(flipped.right, title).toBe("0");
+			expect(flipped["margin-right"], title).toBe(
+				"calc(var(--window-padding-size) * -1)",
+			);
+		}
+		expect(rule(".classicySubMenu").margin).toBe(
+			"0 0 0 calc(var(--window-padding-size) * -1)",
+		);
+	});
+
 	// The deprecated Sound widget is no longer drawn in the bar, but its sheet
 	// sits beside the others and floated right too.
 	it("no menu bar stylesheet floats right", () => {

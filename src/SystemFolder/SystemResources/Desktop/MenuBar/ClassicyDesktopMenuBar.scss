@@ -75,6 +75,25 @@
   }
 }
 
+// A pull-down hangs below its title, its left side pulled out by the window
+// padding (ClassicyMenu.scss). One that would pass the desktop's right edge
+// there is flipped (ClassicyMenu measures it, frame shadow included, and
+// marks it `classicySubMenuFlipLeft`): it hangs with its right side under
+// its title's right side instead, pulled out by the same padding on that
+// side, as System 7.5 hangs its Help menu at the bar's right end
+// (`*-menu-help-and-selected-icon.png`). One still too wide is pinned
+// inside the desktop by its wrapper, inline. A package whose own rule
+// places the pull-down (the package layer beats this one) places the
+// flipped one too.
+.classicyDesktopMenu > .classicyMenuItem,
+.classicyDesktopMenu > .classicyMenuItemBalloonAnchor > .classicyMenuItem {
+  > .classicyMenuWrapper > .classicySubMenu.classicySubMenuFlipLeft {
+    left: auto;
+    right: 0;
+    margin-right: calc(var(--window-padding-size) * -1);
+  }
+}
+
 // Left to right: Apple, the app's menus, Help, then — pushed to the far end by
 // the extensions' auto margin — menu bar extensions, the clock and the App
 // Switcher. A top-level item with balloon help is wrapped in a

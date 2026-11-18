@@ -73,6 +73,30 @@ if (typeof HTMLCanvasElement !== "undefined") {
 	});
 }
 
+// Nor does jsdom compute a pseudo-element's style: getComputedStyle(el,
+// "::before") reports "Not implemented" and returns the element's own. A
+// menu measures its frame's shadow (drawn by ::before/::after) to keep it on
+// the desktop (ClassicyMenuPlacement.internal.ts): answer silently as a
+// browser does for a pseudo-element that is not generated (`content: none`,
+// no box), since jsdom generates none. Writable and configurable, so a test
+// can spy on it to supply a pseudo-element of its own.
+if (typeof window !== "undefined") {
+	const elementStyle = window.getComputedStyle.bind(window);
+	const notGenerated = {
+		content: "none",
+		display: "none",
+		position: "static",
+		getPropertyValue: (property: string) =>
+			property === "content" || property === "display" ? "none" : "",
+	} as unknown as CSSStyleDeclaration;
+	Object.defineProperty(window, "getComputedStyle", {
+		value: (el: Element, pseudo?: string | null) =>
+			pseudo ? notGenerated : elementStyle(el),
+		configurable: true,
+		writable: true,
+	});
+}
+
 beforeEach(() => {
 	Object.defineProperty(globalThis, "localStorage", {
 		value: new MemoryStorage(),
