@@ -1236,16 +1236,20 @@ agrees). Every package, no declaration needed:
   pseudo-elements are hidden while it scrolls), which `ClassicyMenu`
   renders in the cap's own commit, so the measure that pins it counts the
   shadow.
-- The floor: a menu never scrolls to fewer than 64 px of rows. Where the
-  bounds are too short to show that much whole (a pull-down: shorter than
-  the menu bar, the floor, the list's frame and shadow and the 4 px margin,
-  about 90 px under both packages; any other menu, a submenu, a contextual
-  menu, a bevel button's menu, a pop-up or combo box list: shorter than the
-  floor and its frame and shadow, about 70 px), it is pinned with its top
-  at the bounds' top and its bottom cut; the pinned pull-down covers its
-  menu bar's bottom rows. `bin/check-menus-on-desktop.ts --embed
-  600x60+200+150` shows it: every menu it reports past those bounds starts
-  at their top.
+- The floor: a menu never scrolls to fewer than 64 px of rows. It is a
+  chosen constant, `MENU_MIN_SCROLL_HEIGHT` (`ClassicyMenu.tsx`) and
+  `POPUP_MENU_MIN_HEIGHT` (`ClassicyPopUpMenuPlacement.ts`), both 64, kept
+  so a scrolling menu holds more than its two indicators; what follows is a
+  limit only because it is kept. Where a pull-down's floor no longer fits
+  below its menu bar (bounds under about 90 px under both packages: the
+  bar, the floor, the list's frame and shadow and the 4 px margin), it is
+  pinned up over the bar's bottom rows and still shows whole. Where the
+  bounds are shorter than the floor itself with its frame and shadow
+  (about 70 px), no menu (a pull-down, a submenu, a contextual menu, a
+  bevel button's menu, a pop-up or combo box list) can show whole: it is
+  pinned with its top at the bounds' top and its bottom cut.
+  `bin/check-menus-on-desktop.ts --embed 600x60+200+150` shows it: every
+  menu it reports past those bounds starts at their top.
 - Contextual menus, menu bar extensions' pull-downs, pop-up menus, combo
   box lists and pop-up bevel buttons' surfaces keep to the same bounds on
   both axes. Across, by the same rule: at their point or under their
@@ -1255,10 +1259,11 @@ agrees). Every package, no declaration needed:
   contextual menu below the point, else above it, then pinned; a pop-up's
   aligned or grow placement and a combo box's list
   (`classicyPopUpMenuPlacement` is given the control's place from the
-  bounds' top and their height less the list's shadow, which its 4 px
-  margin, holding the list's frame, does not; a combo box's list hangs
-  clear of its field, so its room below is measured from the field's
-  bottom and above from its top), and a list whose 64 px floor still
+  bounds' top and their height; its 4 px margin holds the list's padding
+  and shadow, so a list slid to the bounds' bottom ends its frame 2 px
+  above it and its shadow on it; a combo box's list hangs clear of its
+  field, so its room below is measured from the field's bottom and above
+  from its top), and a list whose 64 px floor still
   passes the bounds (no room for it on either side of its control in a
   very short desktop) is pinned inside once placed
   (`classicyMenuListPinTop`); a bevel pop-up below or beside its

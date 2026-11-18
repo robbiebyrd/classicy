@@ -841,10 +841,13 @@ the ids the saver already names:
   contextual menus, pop-up and combo lists and bevel pop-ups flip and pin
   against the bounds' top and bottom instead of the viewport's, their
   shadows included; a combo box's list measures its room from the field's
-  edge it hangs from (it ran past the screen by the field's height). In a
-  desktop too short for a menu's 64 px scroll floor, the menu is pinned
-  inside, and where even the floor does not fit (under about 90 px for a
-  pull-down, 70 px for any other menu), its top wins. Placed
+  edge it hangs from (it ran past the screen by the field's height). A menu
+  never scrolls to fewer than 64 px of rows (a chosen floor,
+  `MENU_MIN_SCROLL_HEIGHT` and `POPUP_MENU_MIN_HEIGHT`): in bounds under
+  about 90 px a pull-down whose floor no longer fits below its menu bar is
+  pinned up over the bar and still shows whole, and in bounds under about
+  70 px (the floor, its frame and shadow) any menu keeps its top at the
+  bounds' top and its bottom is cut. Placed
   before paint, again whenever a menu opens, and when the desktop changes
   size while a pull-down, submenu or contextual menu is open (a submenu
   after its parent). Contextual menus, pop-up lists and bevel buttons'
