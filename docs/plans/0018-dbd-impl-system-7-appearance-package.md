@@ -2,11 +2,12 @@
 id: 0018-dbd
 title: 'System 7 Appearance Package: implementation'
 type: impl
-status: in_progress
+status: complete
 priority: "2"
 effort: XL
 created: "2026-11-11T05:11:08.451Z"
-updated: "2026-11-12T14:23:27.995Z"
+updated: "2026-11-18T03:59:24.982Z"
+completed: "2026-11-18T03:59:24.982Z"
 tags: []
 milestone: ""
 due_date: ""
