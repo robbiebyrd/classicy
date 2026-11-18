@@ -71,11 +71,18 @@
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
 //    build-machine path in a fileName option (the screen savers bring JSX,
 //    plan 0018-dbd §3.8).
+//
+// 9. EVERY STYLESHEET KEEPS TO THE BROWSER FLOOR'S CSS MATH (the core's
+//    invariant 15): a declaration calling `round()` or another function
+//    Chrome 120, Safari 16.2 or Firefox 113 lacks carries a fallback, an
+//    earlier declaration of its property that calls none, or an enclosing
+//    `@supports` testing it (bin/classicyCssFloor.ts).
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, posix, sep } from "node:path";
 import { exit } from "node:process";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
+import { findClassicyCssFloorProblems } from "../../../../bin/classicyCssFloor.ts";
 import {
 	findClassicyBareSpecifiers,
 	findClassicyExtensionlessSpecifiers,
@@ -477,5 +484,22 @@ report(
 	),
 	`${BUNDLES.join(", ")}: production JSX runtime, no build-machine paths`,
 );
+
+// Invariant 9: the browser floor's CSS math, in every stylesheet.
+{
+	const problems = [];
+	const cssFiles = (await readdir(DIST).catch(() => []))
+		.filter((f) => f.endsWith(".css"))
+		.sort()
+		.map((f) => join(DIST, f));
+	for (const file of cssFiles)
+		problems.push(
+			...findClassicyCssFloorProblems(file, await readFile(file, "utf8")),
+		);
+	report(
+		problems,
+		`browser floor: ${cssFiles.length} .css file(s), every newer CSS math function with a fallback`,
+	);
+}
 
 if (failed) exit(1);

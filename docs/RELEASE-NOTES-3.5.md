@@ -256,7 +256,13 @@ diverge, so a logo registered through Platinum's
   the color picker's sliders and every other live control are unchanged.
   On a vertical slider the ghost now travels up its track (it drew at the
   top) and is lit like its indicator, and on either it moves by whole
-  pixels, so its art is never resampled.
+  pixels, so its art is never resampled, in a browser with CSS `round()`
+  (Chrome 125, Firefox 118, Safari 15.4). Chrome 120–124 and Firefox
+  113–117 place it unrounded, as 3.4 did, from a plain `calc()` declared
+  first; a vertical slider's thumb is centered across its channel the same
+  way. A new check holds every shipped stylesheet to that: a declaration
+  calling CSS math newer than the browser floor needs such a fallback
+  (`verify:dist`, core invariant 15 and each package's invariant 9).
 - **A press on a slider's thumb never moves it.** A mouse or pen press on
   `ClassicySlider` is now the slider's own: the browser's range drag is
   stopped (the press's `mousedown` default is prevented; its `pointerdown`,

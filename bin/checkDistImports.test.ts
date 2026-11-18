@@ -189,6 +189,37 @@ describe("check-dist-imports.mjs invariant 9: stylesheet charset (named files)",
 	});
 });
 
+// Invariant 15: a declaration calling a CSS math function newer than the
+// browser floor carries a fallback the floor parses.
+describe("check-dist-imports.mjs invariant 15: the browser floor's CSS math (named files)", () => {
+	const FILE = join("fx", "slider.css");
+
+	it.each([
+		[
+			"a rounded value after its unrounded one",
+			".a{left:calc(50% - 6px);left:round(50% - 6px,1px)}",
+		],
+		[
+			"one under @supports testing it",
+			"@supports (left: round(1px,1px)){.a{left:round(50%,1px)}}",
+		],
+	])("passes %s", (_name, css) =>
+		expect(check({}, { [FILE]: css })).toEqual({ status: 0, stderr: "" }));
+
+	it("fails an unguarded round()", () => {
+		const { status, stderr } = check(
+			{},
+			{ [FILE]: ".a{left:round(50% - 6px,1px)}" },
+		);
+		expect(status).toBe(1);
+		expect(stderr.trim()).toMatch(
+			new RegExp(
+				`^${FILE.replace(".", "\\.")}: \`left: round\\(50% - 6px,1px\\)\` in \`\\.a\` calls round\\(\\)`,
+			),
+		);
+	});
+});
+
 // Invariant 10: the library stylesheet is only classicy.base blocks, so no
 // unlayered rule outranks the package and host layers.
 describe("check-dist-imports.mjs invariant 10: dist/classicy.css layers (named files)", () => {

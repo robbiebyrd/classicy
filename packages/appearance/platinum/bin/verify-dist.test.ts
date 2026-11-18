@@ -331,6 +331,16 @@ describe("bin/verify-dist.mjs", () => {
 			}).stderr,
 		).toMatch(/dist\/classicy-platinum\.css: non-ASCII byte at offset/));
 
+	// Invariant 9 (the core's 15).
+	it("9. fails a stylesheet calling round() with no fallback", () =>
+		expect(
+			verify({
+				"classicy-platinum.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE.replace(".classicyWindow", ".a{left:round(50%,1px)} .classicyWindow")}`,
+			}).stderr,
+		).toMatch(
+			/dist\/classicy-platinum\.css: `left: round\(50%,1px\)` in `[^`]*\.a` calls round\(\)/,
+		));
+
 	// Invariant 6 (the core's old 12).
 	describe("6. the font stylesheet", () => {
 		it("fails a missing face", () =>

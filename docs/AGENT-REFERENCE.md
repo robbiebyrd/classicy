@@ -86,6 +86,17 @@ engine those declarations are invalid at computed-value time, so the property
 is unset: error title bars lose their tint, icon drag and selection overlays
 go transparent.
 
+CSS math newer than the floor (`round()`, `mod()`, `rem()`, `abs()`,
+`sign()`, `pow()`, `sqrt()`, `hypot()`, `log()`, `exp()`) always carries a
+fallback: an earlier declaration of the same property that calls none (a
+browser that cannot parse a value drops the declaration and keeps the
+earlier one), or an enclosing `@supports` testing the function. The slider's
+ghost and a vertical thumb's centering are rounded to whole pixels where the
+browser has `round()` (Chrome 125, Firefox 118) and unrounded before.
+`bin/classicyCssFloor.ts` checks it: over every compiled stylesheet in the
+repo (`ClassicyBrowserFloor.repo.test.ts`) and in `verify:dist` over every
+shipped one (the core's invariant 15, each Appearance Package's invariant 9).
+
 Every export comes from the package root (a flat barrel). Importing it also
 installs the stylesheet: the bundle injects `classicy.css` as a
 `<style id="classicy-styles">` at the top of `<head>` on first import (once; not
