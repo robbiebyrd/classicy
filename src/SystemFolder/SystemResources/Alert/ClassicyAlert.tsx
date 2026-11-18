@@ -291,7 +291,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
-			className={className}
+			// The movable alert's red title bar is keyed on its window's class
+			// (no `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks).
+			className={classNames(movable && "classicyAlertMovableWindow", className)}
 			style={style}
 			appId={appId}
 			title={title}

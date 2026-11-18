@@ -336,6 +336,25 @@ diverge, so a logo registered through Platinum's
   `title` carries its `imageAlt` as the `title` of its analytics events, so
   the Apple menu's and the art Help menu's `hover` and `selected` events
   name them, where their `title` was undefined.
+- **Classes in place of `:has()`, for Firefox 113–120.** A browser without
+  `:has()` (Firefox before 121, inside the floor) drops a whole rule that
+  uses it, so the looks such rules drew now key on classes the components
+  set: the chosen tab's wrapper carries `selected` (`ClassicyTabs`; the base
+  sheet's chosen-tab fill, Platinum's included, and System 7's open tab);
+  `ClassicyMenu` marks an item whose title holds an image
+  `classicyMenuItemHasImage` (from `icon` or `image`; System 7's 18 px
+  Application and Apple menu rows and its 1-bit Apple and Help titles'
+  inversion); `ClassicyLittleArrows` carries `disabled` while both arrows are
+  (System 7's dimmed frame); a movable `ClassicyAlert`'s window carries
+  `classicyAlertMovableWindow` (its red title bar, Platinum's red stripes
+  too); `ClassicyFileBrowser`'s list view root carries
+  `classicyFileBrowserFillList` (without it there the icon view's fill took
+  no width and stacked every icon at the top left); and the Apple Guide
+  window carries `appleGuideWindowFrame` (its border-box size). System 7's
+  pressed radio button draws its ring on the input's own `:active`. Chrome
+  and Safari draw them as before. A host or package rule written against
+  the old `:has()` selectors still matches where `:has()` is supported; key
+  it on the class instead to reach Firefox 113–120.
 
 - **The Application menu's Hide commands** (HIG7 p.127). The App Switcher
   lists Hide <app>, Hide Others and Show All, each dimmed when it would do

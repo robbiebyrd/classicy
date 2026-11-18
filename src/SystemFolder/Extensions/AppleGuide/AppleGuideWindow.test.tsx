@@ -20,12 +20,14 @@ vi.mock("@/SystemFolder/SystemResources/Pager/ClassicyPager.scss", () => ({}));
 vi.mock("@/SystemFolder/SystemResources/Window/ClassicyWindow", () => ({
 	ClassicyWindow: ({
 		children,
+		className,
 		onCloseFunc,
 	}: {
 		children?: ReactNode;
+		className?: string;
 		onCloseFunc?: (id: string) => void;
 	}) => (
-		<div>
+		<div data-testid="window" className={className}>
 			{children}
 			<button type="button" onClick={() => onCloseFunc?.("w")}>
 				close
@@ -72,6 +74,17 @@ beforeEach(() => {
 });
 
 describe("AppleGuideWindow", () => {
+	// AppleGuide.scss sizes this one window border-box by its own class (no
+	// `:has(.appleGuideWindow)`, which Firefox 113-120 lacks), the host's
+	// className after it.
+	it("marks its window appleGuideWindowFrame", () => {
+		render(<AppleGuideWindow topicId="one-page" className="hostGuide" />);
+		expect(screen.getByTestId("window")).toHaveClass(
+			"appleGuideWindowFrame",
+			"hostGuide",
+		);
+	});
+
 	it("renders the topic title in the header band", () => {
 		const { container } = render(<AppleGuideWindow topicId="one-page" />);
 		expect(

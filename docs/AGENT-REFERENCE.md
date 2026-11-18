@@ -788,12 +788,12 @@ component's root class, never folded into a longer class name and never in a
 | `ClassicyDesktopIcon` | `selected`, `open` (its app is open, or its folder is open in a Finder window), `dragging` |
 | `ClassicyControlStrip` | `collapsed`, `dragging` |
 | `ClassicyMenu` items | `disabled`, `open` |
-| `ClassicyTabs` tab buttons; `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
+| `ClassicyTabs` tab buttons and their wrappers (`classicyTabButtonWrapper`); `ClassicyListBox` options, `ClassicyTree` nodes, `ClassicyTable` rows and sorted column header, Finder list rows, color picker crayons and modes | `selected` (plus `disabled` where an item can be disabled) |
 | `ClassicyPopUpMenu` | `open`, `disabled`; while it is open, its label's root (`classicyControlLabelHolder`) and its indicator (`classicyPopUpMenuIndicator`) carry `open` too |
 | `ClassicyDisclosure` (its content element) | `open` |
 | `ClassicyFileInput` | `error` |
 | `ClassicyInput` (the `<input>`) | `selected` (while it has focus and a selection that runs to its text's end, the whole text or its tail; the `<input>` then carries `--classicy-input-selection-start`, the selection's start in px from its text's left edge, its own scrolling included, and `data-classicy-selection` (`all` from the text's first character, `tail` from a later one), and System 7 highlights the line from there to the field's right edge, as TextEdit did: the whole line a pixel left of the text's pen position, a tail from its first character's) |
-| `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch | `disabled` |
+| `ClassicySlider`, `ClassicyPopUpSlider`, `ClassicyComboBox`, `ClassicyLink`, `ClassicyOutput`, `ClassicyControlLabel`, `ClassicyColorPicker` swatch, `ClassicyLittleArrows` (`classicyLittleArrows`, while both its arrows are) | `disabled` |
 | `ClassicyScrollArea` (`classicyScrollArea`; each bar `classicyScrollBar` and the corner too) | `inactive` (the root, bars and corner, while its window is inactive); on a bar, `fits` (its axis has nothing to scroll: no thumb); `pressed` on a held arrow or track, `dragging` on a dragged thumb |
 
 Not every declared state has a component row above:
@@ -4094,6 +4094,17 @@ Platinum (§1); its README lists what it ships.
   it, keyed on the button row's `classicyAlertButtonsHaveHelp` and
   `classicyAlertButtonsHaveOther`, which `ClassicyAlert` sets from its
   buttons (no `:has()`, so Firefox 113 and later).
+- **No `:has()` for a look Firefox 113–120 needs.** The chosen tab (its
+  wrapper's `selected`), an Application or Apple menu item's 18 px row and
+  the open 1-bit Apple and Help titles' inversion (`classicyMenuItemHasImage`,
+  which `ClassicyMenu` sets on an item whose title holds an image, from
+  `icon` or `image`), the dimmed little arrows' frame (`classicyLittleArrows`
+  `disabled`) and the pressed radio button (the input draws the two-pixel
+  ring over the wrapper's circle on its own `:active`, under the mark it
+  shows unpressed) are keyed on plain classes. The only `:has()` rules left
+  in System 7's sheet are the window menu bar's and the menu bar's, each a
+  twin of a plain rule (`ClassicyBrowserFloor.repo.test.ts` holds every
+  compiled sheet to that).
 - **Dialogs.** The modal double frame (HIG p.190), with no title bar on a
   fixed modal, and a `dialogFrame.inset` (13 px, HIG p.196) on every modal's
   inner area except one marked `classicyWindowContentsSelfPadded` (§4.1),

@@ -54,6 +54,20 @@ describe("ClassicyTabs", () => {
 		expect(firstButton).toHaveClass("selected");
 	});
 
+	// A package keys the chosen tab's look on its wrapper's own state (no
+	// `:has()`, which Firefox 113-120 lacks).
+	it("marks the chosen tab's wrapper selected, and only it", async () => {
+		const user = userEvent.setup();
+		const { container } = render(<ClassicyTabs tabs={tabs} />);
+		const selected = () =>
+			[...container.querySelectorAll(".classicyTabButtonWrapper")].map((w) =>
+				w.classList.contains("selected"),
+			);
+		expect(selected()).toEqual([true, false, false]);
+		await user.click(screen.getByRole("tab", { name: "Third Tab" }));
+		expect(selected()).toEqual([false, false, true]);
+	});
+
 	it("clicking second tab shows its content and hides first", async () => {
 		const user = userEvent.setup();
 		const { container } = render(<ClassicyTabs tabs={tabs} />);

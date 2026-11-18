@@ -49,7 +49,7 @@ const ACTIVE =
 	":where(.classicyWindow).active .classicyWindowTitleBar .classicyWindowTitle";
 const RED = ".classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle";
 const ALERT =
-	".classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle";
+	".classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle";
 const FRAME =
 	".classicyWindowFrame .classicyWindowTitleBar .classicyWindowTitle";
 const UTILITY =

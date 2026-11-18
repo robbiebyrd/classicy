@@ -85,7 +85,9 @@
 // rendering 712x334 for an initialSize of 700x322. Switching this one window to
 // border-box makes initialSize mean the OUTER frame, matching the reference
 // capture exactly and staying correct if a theme changes its frame metrics.
-// Scoped via :has() so no other window's sizing semantics change.
-.classicyWindow:has(.appleGuideWindow) {
+// Scoped by the class AppleGuideWindow puts on its window, so no other
+// window's sizing semantics change (not `:has(.appleGuideWindow)`, which
+// Firefox 113-120 lacks).
+.classicyWindow.appleGuideWindowFrame {
   box-sizing: border-box;
 }

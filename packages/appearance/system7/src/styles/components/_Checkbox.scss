@@ -49,6 +49,8 @@ $circle-pressed: (4 0 4 1) (2 1 8 1) (1 2 3 1) (8 2 3 1) (1 3 2 1) (9 3 2 1) (0 
 $circle-face: (4 1 4 1) (2 2 8 2) (1 4 10 4) (2 8 8 2) (4 10 4 1);
 $dot: (4 3 4 1) (3 4 6 4) (4 8 4 1);
 $radio-dash: ((3 5 6 2),);
+// The pressed ring over the face, which the input draws while pressed.
+$radio-pressed: pixel-art(var(--color-black), $circle-pressed), pixel-art(var(--color-white), $circle-face);
 
 // The frame's four sides, from the box's border edge: added over the
 // dither, so the frame stays whole at both depths.
@@ -188,11 +190,6 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
     border-radius: 0;
     box-shadow: none;
     background: pixel-art(var(--color-black), $circle), pixel-art(var(--color-white), $circle-face);
-
-    // Pressed, on the button or its label (whose control it is).
-    &:has(> .classicyRadioInput:active) {
-      background: pixel-art(var(--color-black), $circle-pressed), pixel-art(var(--color-white), $circle-face);
-    }
   }
 
   .classicyRadioInput {
@@ -225,6 +222,32 @@ $frame-sides: ((0 0) (100% $px)) ((0 100%) (100% $px)) ((0 0) ($px 100%)) ((100%
     margin: 0;
     border: 0;
     background: pixel-art(var(--color-black), $radio-dash);
+  }
+
+  // Pressed, on the button or its label (whose control it is: a press on
+  // the label makes the input `:active` too), the two-pixel ring
+  // (`*-radio-pressed.png`). The input draws it over the wrapper's circle
+  // (the ring holds every pixel of the circle, the face is the same), under
+  // the mark it shows unpressed, keyed on its own `:active`, not on the
+  // wrapper through `:has()`, which Firefox 113-120 lacks. Each rule follows
+  // the unpressed one of its specificity it overrides: no mark, the dot
+  // while on, the dash while mixed and on, but the dot while also focused.
+  // A dimmed button is never `:active`.
+  .classicyRadioInput:active {
+    opacity: 1;
+    background: $radio-pressed;
+  }
+
+  .classicyRadioInput:checked:active {
+    background: pixel-art(var(--color-black), $dot), $radio-pressed;
+  }
+
+  :where(.classicyRadioInput).mixed:checked:active {
+    background: pixel-art(var(--color-black), $radio-dash), $radio-pressed;
+  }
+
+  :where(.classicyRadioInput).mixed:checked:focus-visible:active {
+    background: pixel-art(var(--color-black), $dot), $radio-pressed;
   }
 
   // Dimmed: the circle stays black, as a dimmed checkbox's frame does; the

@@ -47,7 +47,9 @@ $tab-lines: (
       margin-left: calc(0% - #{$px});
     }
 
-    &:has(.classicyTabButton.selected) {
+    // The chosen tab, by the state ClassicyTabs sets on its wrapper (no
+    // `:has()`, which Firefox 113-120 lacks).
+    &.selected {
       position: relative;
       background: $tab-lines, var(--color-white);
     }

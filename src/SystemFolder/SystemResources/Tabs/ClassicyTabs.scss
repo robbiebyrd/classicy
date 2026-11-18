@@ -79,7 +79,9 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
 
 // clip-path on <button> does not reliably clip background-color in all browsers.
 // All visual shaping lives here on the wrapper <div> instead.
-// Active fill is detected via :has() so the button element stays transparent.
+// The chosen tab's wrapper carries the `selected` state (ClassicyTabs sets
+// it beside its button's), so the button element stays transparent and no
+// rule needs `:has()`, which Firefox 113-120 lacks.
 .classicyTabButtonWrapper {
   flex: 0 0 auto;
   height: var(--control-square-size);
@@ -88,12 +90,12 @@ $tab-shape: polygon(13.70% 0%, 86.30% 0%, 100% 100%, 0% 100%);
   // wrapper's background image, stretched to fill it above the fill.
   background-size: 100% 100%;
   background-repeat: no-repeat;
-  // The fill — overridden to the active color via :has() below.
+  // The fill — overridden to the active color below.
   background-color: var(--color-system-04);
+}
 
-  &:has(.classicyTabButton.selected) {
-    background-color: var(--color-system-02);
-  }
+:where(.classicyTabButtonWrapper).selected {
+  background-color: var(--color-system-02);
 }
 
 .classicyTabButton {

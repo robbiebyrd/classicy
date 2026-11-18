@@ -53,7 +53,9 @@ describe("tab outline art (Platinum package)", () => {
 		expect(w["background-image"]).toBeUndefined();
 		expect(w.position).toBeUndefined();
 		expect(
-			baseRule(".classicyTabButtonWrapper:has(.classicyTabButton.selected)")[
+			// The wrapper's own state, which ClassicyTabs sets: no `:has()`,
+			// which Firefox 113-120 lacks.
+			baseRule(":where(.classicyTabButtonWrapper).selected")[
 				"background-color"
 			],
 		).toBe("var(--color-system-02)");

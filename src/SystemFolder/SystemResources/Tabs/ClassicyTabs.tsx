@@ -349,7 +349,13 @@ export const ClassicyTabs: FunctionalComponent<TabProps> = ({
 							return (
 								<div
 									key={`button_${key}`}
-									className={"classicyTabButtonWrapper"}
+									// Its state too, so a package keys the chosen tab's
+									// look on the wrapper with a plain class rule (no
+									// `:has()`, which Firefox 113-120 lacks).
+									className={classNames(
+										"classicyTabButtonWrapper",
+										classicyStateClasses({ selected: isActive }),
+									)}
 								>
 									<button
 										type="button"
