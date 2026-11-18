@@ -844,7 +844,7 @@ the ids the saver already names:
   edge it hangs from (it ran past the screen by the field's height). In a
   desktop too short for a menu's 64 px scroll floor, the menu is pinned
   inside, and where even the floor does not fit (under about 90 px for a
-  pull-down, 70 px for a pop-up or combo list), its top wins. Placed
+  pull-down, 70 px for any other menu), its top wins. Placed
   before paint, again whenever a menu opens, and when the desktop changes
   size while a pull-down, submenu or contextual menu is open (a submenu
   after its parent). Contextual menus, pop-up lists and bevel buttons'

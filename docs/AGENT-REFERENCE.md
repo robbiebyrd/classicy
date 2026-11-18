@@ -1239,10 +1239,13 @@ agrees). Every package, no declaration needed:
 - The floor: a menu never scrolls to fewer than 64 px of rows. Where the
   bounds are too short to show that much whole (a pull-down: shorter than
   the menu bar, the floor, the list's frame and shadow and the 4 px margin,
-  about 90 px under both packages; a pop-up or combo box list: shorter than
-  the floor and its frame and shadow, about 70 px), it is pinned with its
-  top at the bounds' top and its bottom cut; the pinned pull-down covers
-  its menu bar's bottom rows.
+  about 90 px under both packages; any other menu, a submenu, a contextual
+  menu, a bevel button's menu, a pop-up or combo box list: shorter than the
+  floor and its frame and shadow, about 70 px), it is pinned with its top
+  at the bounds' top and its bottom cut; the pinned pull-down covers its
+  menu bar's bottom rows. `bin/check-menus-on-desktop.ts --embed
+  600x60+200+150` shows it: every menu it reports past those bounds starts
+  at their top.
 - Contextual menus, menu bar extensions' pull-downs, pop-up menus, combo
   box lists and pop-up bevel buttons' surfaces keep to the same bounds on
   both axes. Across, by the same rule: at their point or under their
