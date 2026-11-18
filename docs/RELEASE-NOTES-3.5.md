@@ -106,7 +106,7 @@ diverge, so a logo registered through Platinum's
   built-in into its Custom theme, as color edits do). Persistence stores a
   theme without the family colors equal to its package's defaults, as it
   does knob values; theme files keep them (`ClassicyThemeSchema`
-  `color.families`), and a 3.2 host loading such a file drops them.
+  `color.families`), and a 3.4 host loading such a file drops them.
   New exports: `classicyColorFamilyVarName(family, key)` (the variable a
   package color makes, `--package-color-<family>-<key>`, kebab-cased) and
   `CLASSICY_PACKAGE_COLOR_VAR_PREFIX` (`"--package-color-"`, a name space
