@@ -279,7 +279,13 @@ export const ClassicyFileBrowser: FunctionalComponent<
 		// biome-ignore lint/a11y/noStaticElementInteractions: keys and right-clicks bubble here from the focusable list box and icons
 		<div
 			ref={rootRef}
-			className={classNames("classicyFileBrowserFill", className)}
+			// The list view's root takes its table's width; the fill rule
+			// keys on this class (no `:has()`, which Firefox 113-120 lacks).
+			className={classNames(
+				"classicyFileBrowserFill",
+				display === "list" && "classicyFileBrowserFillList",
+				className,
+			)}
 			style={style}
 			{...{ [CLASSICY_DROP_FOLDER_ATTRIBUTE]: path }}
 			onKeyDown={onKeyDown}

@@ -5,6 +5,7 @@ import type {
 } from "@/Appearance/ClassicyAppearancePackage";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { isClassicyPaintOnlyStyleChange } from "@/SystemFolder/SystemResources/Utils/ClassicyPaintOnlyStyle.internal";
 
 // A package that fills a part with a pattern in CSS can only lay it from the
 // element's own box, so a part's dots fall in a phase set by where it sits.
@@ -102,7 +103,6 @@ export type ClassicyPatternOriginPart = {
 
 /** Events after which a part may have moved against its origin. */
 const SETTLE_EVENTS = [
-	"scroll",
 	"transitionend",
 	"transitioncancel",
 	"animationend",
@@ -119,6 +119,10 @@ const STATE_EVENTS = [
 	"focusin",
 	"focusout",
 ];
+
+/** Events that can come many times a frame (a scroll), read once in the
+ * frame, as the DOM's mutations are. */
+const FRAME_EVENTS = ["scroll"];
 
 type Scope = {
 	readonly parts: Set<ClassicyPatternOriginPart>;
@@ -162,6 +166,12 @@ const scopeElementOf = (el: HTMLElement): Element =>
  *   reflowing above a part) or the viewport resizes (a media query);
  * - the pointer or the focus moves, a frame later (a rule keyed on a
  *   pseudo-class state lays out with no attribute changing).
+ * A mutation and a scroll publish in the next animation frame, once however
+ * many came (final review M3: one publish queries every declared selector
+ * and lays the window out, so a window whose content mutates or scrolls many
+ * times a frame paid that each time). The frame's callbacks run before it
+ * paints, so a part never shows a stale origin, unless its DOM changed in an
+ * animation frame callback itself, which the next frame publishes.
  * Publishing writes only changed values, so the mutation it makes itself
  * settles after one more read. A window's own style changing (a drag) is
  * no signal for the parts laid from its content origin, nor is a change
@@ -177,7 +187,14 @@ const createScope = (scopeEl: Element): Scope => {
 		kind === "desktop"
 			? classicyDesktopOrigin(scopeEl)
 			: classicyWindowContentOrigin(scopeEl);
+	// The animation frame a mutation or a scroll publishes in, while pending.
+	let frame = 0;
 	const publish = () => {
+		// A frame's publish still pending reads nothing this one does not.
+		if (frame) {
+			view?.cancelAnimationFrame(frame);
+			frame = 0;
+		}
 		// Each origin read once, then every part read, then written.
 		const origins = new Map<ClassicyPatternOriginPart["origin"], Origin>();
 		const writes = [...parts].map((part) => {
@@ -200,7 +217,6 @@ const createScope = (scopeEl: Element): Scope => {
 		for (const el of foundChains.get(part) ?? []) unobserve(el);
 		foundChains.set(part, chain);
 	};
-	let frame = 0;
 	const publishNextFrame = () => {
 		if (!view || frame) return;
 		frame = view.requestAnimationFrame(() => {
@@ -229,10 +245,13 @@ const createScope = (scopeEl: Element): Scope => {
 	// Mutations that move no part against its origin, so publish nothing:
 	// a window's own style (dragged, its parts and its content origin move
 	// together; a size change is the ResizeObserver's), unless a part of it
-	// is laid from the desktop; and, outside every window, anything inside
-	// a window (absolutely placed, it moves nothing outside it).
+	// is laid from the desktop; a style write on an element marked
+	// paint-only (it repaints that element alone: an indeterminate progress
+	// bar's stripes, every frame); and, outside every window, anything
+	// inside a window (absolutely placed, it moves nothing outside it).
 	const moves = (record: MutationRecord): boolean => {
 		const target = record.target;
+		if (isClassicyPaintOnlyStyleChange(record)) return false;
 		if (win)
 			return !(
 				target === win &&
@@ -248,7 +267,7 @@ const createScope = (scopeEl: Element): Scope => {
 		typeof MutationObserver === "undefined"
 			? null
 			: new MutationObserver((records) => {
-					if (records.some(moves)) publish();
+					if (records.some(moves)) publishNextFrame();
 				});
 	mutations?.observe(scopeEl, {
 		subtree: true,
@@ -269,7 +288,7 @@ const createScope = (scopeEl: Element): Scope => {
 	const events: EventTarget = win ?? doc;
 	for (const type of SETTLE_EVENTS)
 		events.addEventListener(type, publish, true);
-	for (const type of STATE_EVENTS)
+	for (const type of [...STATE_EVENTS, ...FRAME_EVENTS])
 		events.addEventListener(type, publishNextFrame, true);
 	view?.addEventListener("resize", publish);
 	const fonts = doc.fonts;
@@ -279,7 +298,7 @@ const createScope = (scopeEl: Element): Scope => {
 		mutations?.disconnect();
 		for (const type of SETTLE_EVENTS)
 			events.removeEventListener(type, publish, true);
-		for (const type of STATE_EVENTS)
+		for (const type of [...STATE_EVENTS, ...FRAME_EVENTS])
 			events.removeEventListener(type, publishNextFrame, true);
 		view?.removeEventListener("resize", publish);
 		fonts?.removeEventListener?.("loadingdone", publish);

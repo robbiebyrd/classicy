@@ -24,6 +24,21 @@ describe("ClassicyLittleArrows", () => {
 		expect(downBtn()).toBeInTheDocument();
 	});
 
+	// Both arrows dimmed: the pair carries the state, so a package dims its
+	// frame with a plain class rule (no `:has()`, which Firefox 113-120
+	// lacks).
+	it("carries the disabled state while its arrows are disabled", () => {
+		const { container, rerender } = render(
+			<ClassicyLittleArrows onStep={vi.fn()} disabled />,
+		);
+		const root = container.querySelector(".classicyLittleArrows");
+		expect(root).toHaveClass("disabled");
+		expect(upBtn()).toBeDisabled();
+		rerender(<ClassicyLittleArrows onStep={vi.fn()} />);
+		expect(root).not.toHaveClass("disabled");
+		expect(upBtn()).toBeEnabled();
+	});
+
 	describe("focus on a mouse press", () => {
 		// The group's focus ring and the arrows' black bevel are :focus-within
 		// styles, so a press that moved focus to the arrow (or, in Safari and

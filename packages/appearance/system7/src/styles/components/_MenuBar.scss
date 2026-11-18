@@ -147,9 +147,10 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
   // (_Icon.scss): 1 px tiles in "System 7", none in "System 7 Color". The
   // 1-bit titles' art is registered inline (system7Assets.ts), so the mask
   // needs no CORS fetch; the color titles' is a file, but their layer draws
-  // nothing.
+  // nothing. Only a title drawn as its art: ClassicyMenu marks it (no
+  // `:has(> img)`, which Firefox 113-120 lacks).
   @each $title, $art in (".classicyDesktopMenuApple": "--classicy-art-apple-menu", ".classicyDesktopMenuHelp": "--classicy-art-help-menu-title") {
-    :is(#{$titles})#{$title}.open > p:has(> img)::after {
+    :is(#{$titles})#{$title}.classicyMenuItemHasImage.open > p::after {
       content: "";
       position: absolute;
       top: 0;

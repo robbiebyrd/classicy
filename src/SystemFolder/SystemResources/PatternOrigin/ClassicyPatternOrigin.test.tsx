@@ -35,6 +35,11 @@ import {
 // from the element's padding-box corner, as it does for scroll bars
 // (`scrollBar.patternOrigin`, story 0217-etx).
 
+// A mutation is read in the next animation frame (final review M3): wait
+// past it.
+const nextFrame = () =>
+	new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 const place = (el: Element, x: number, y: number, w = 10, h = 10) =>
 	vi
 		.spyOn(el, "getBoundingClientRect")
@@ -239,7 +244,7 @@ describe("watchClassicyPatternOrigin", () => {
 		for (let i = 1; i <= 5; i++) {
 			place(win, 40 + i, 40, 400, 300);
 			win.style.left = `${i}px`;
-			await new Promise((r) => setTimeout(r));
+			await nextFrame();
 		}
 		expect(
 			writes.mock.calls.filter(([name]) => String(name).includes("-origin-")),
@@ -270,16 +275,16 @@ describe("watchClassicyPatternOrigin", () => {
 			});
 		const stopA = part("window", a);
 		win.style.left = "5px";
-		await new Promise((r) => setTimeout(r));
+		await nextFrame();
 		expect(measured.window).toBe(1);
 		const stopB = part("desktop", b);
 		win.style.left = "6px";
-		await new Promise((r) => setTimeout(r));
+		await nextFrame();
 		expect(measured).toEqual({ window: 2, desktop: 2 });
 		// Anything else in the window still measures.
 		stopB();
 		a.setAttribute("class", "moved");
-		await new Promise((r) => setTimeout(r));
+		await nextFrame();
 		expect(measured.window).toBe(3);
 		stopA();
 	});
@@ -299,11 +304,79 @@ describe("watchClassicyPatternOrigin", () => {
 		});
 		win.style.left = "5px";
 		a.setAttribute("class", "moved");
-		await new Promise((r) => setTimeout(r));
+		await nextFrame();
 		expect(measured).toBe(1);
 		item.setAttribute("class", "moved");
-		await new Promise((r) => setTimeout(r));
+		await nextFrame();
 		expect(measured).toBe(2);
+		stop();
+	});
+
+	// Final review M3: a window whose content mutates or scrolls many times
+	// a frame (a time readout, a progress bar, a 1,000-row table) is read
+	// once that frame, not once a signal: each publish queries every
+	// declared selector and lays the window out.
+	it("coalesces a frame's mutations and scrolls into one publish", async () => {
+		const frames: FrameRequestCallback[] = [];
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		const { win, a } = scene();
+		place(a, 100, 80);
+		let measured = 0;
+		const stop = watchClassicyPatternOriginPart({
+			anchors: [a],
+			measure: () => {
+				measured++;
+				return undefined;
+			},
+		});
+		expect(measured).toBe(1);
+		// Ten mutations, each its own observer callback, and twenty scrolls.
+		for (let i = 0; i < 10; i++) {
+			a.setAttribute("data-tick", String(i));
+			await Promise.resolve();
+		}
+		for (let i = 0; i < 20; i++) win.dispatchEvent(new Event("scroll"));
+		expect(measured).toBe(1);
+		expect(frames).toHaveLength(1);
+		frames.shift()?.(0);
+		expect(measured).toBe(2);
+		stop();
+	});
+
+	// Final review r1, N2: a component that rewrites an element's inline
+	// style every frame only to repaint it (the progress bar's stripes)
+	// marks it `data-classicy-paint-only-style`; those writes move no part,
+	// so the window is not read again for them.
+	it("reads nothing anew for a style write on an element marked paint-only", async () => {
+		const { win, a } = scene();
+		place(a, 100, 80);
+		const bar = document.createElement("progress");
+		bar.setAttribute("data-classicy-paint-only-style", "");
+		win.append(bar);
+		let measured = 0;
+		const stop = watchClassicyPatternOriginPart({
+			anchors: [a],
+			measure: () => {
+				measured++;
+				return undefined;
+			},
+		});
+		expect(measured).toBe(1);
+		for (let i = 0; i < 5; i++) {
+			bar.style.setProperty("--slide-var", `${i}px`);
+			await nextFrame();
+		}
+		expect(measured).toBe(1);
+		// The same write on an element not so marked is read.
+		bar.removeAttribute("data-classicy-paint-only-style");
+		await nextFrame();
+		const before = measured;
+		bar.style.setProperty("--slide-var", "9px");
+		await nextFrame();
+		expect(measured).toBe(before + 1);
 		stop();
 	});
 
@@ -533,7 +606,7 @@ describe("elements a package names by selector", () => {
 		for (let i = 1; i <= 5; i++) {
 			place(el("win"), 40 + i, 40, 400, 300);
 			el("win").style.left = `${i}px`;
-			await new Promise((r) => setTimeout(r));
+			await nextFrame();
 		}
 		expect(
 			writes.mock.calls.filter(([name]) => String(name).includes("-origin-")),

@@ -537,8 +537,13 @@ describe("system7.scss (compiled)", () => {
 		// a 16-row item, on the title's baseline
 		// (`*-755-appmenu-open.png`, the Finder row: icon art rows 85-99, the
 		// check 89-96; story 0216-1im F6).
+		// Keyed on the class ClassicyMenu sets on an item drawn with an image,
+		// not `:has()`, which Firefox 113-120 lacks.
 		it("puts a small icon at its item's top and the mark on the title's baseline", () => {
-			const imageRow = `${MENUS} .classicyMenuItem:has(> p > img)`;
+			const imageRow = `${MENUS} .classicyMenuItem.classicyMenuItemHasImage`;
+			expect(rule(imageRow)).toMatch(
+				/height: calc\(var\(--menu-item-image-size\) \+ var\(--menu-item-image-pad\) \+ var\(--menu-item-image-pad\)\);/,
+			);
 			expect(rule(`${imageRow} > p > img`)).toMatch(
 				/margin-top: calc\(var\(--menu-item-image-pad\) \* -1\);/,
 			);
@@ -750,7 +755,9 @@ describe("system7.scss (compiled)", () => {
 				[".classicyDesktopMenuApple", "--classicy-art-apple-menu"],
 				[".classicyDesktopMenuHelp", "--classicy-art-help-menu-title"],
 			]) {
-				const overlay = rule(`${TITLES}${title}.open > p:has(> img)::after`);
+				const overlay = rule(
+					`${TITLES}${title}.classicyMenuItemHasImage.open > p::after`,
+				);
 				expect(overlay).toMatch(/mix-blend-mode: difference;/);
 				expect(overlay).toMatch(
 					/linear-gradient\(var\(--color-white\), var\(--color-white\)\) left top ?\/ ?var\(--menu-bar-title-art-invert\) var\(--menu-bar-title-art-invert\)/,
@@ -1202,13 +1209,59 @@ describe("system7.scss (compiled)", () => {
 			const wrapper = rule(".classicyRadioInputWrapper");
 			expect(wrapper).toMatch(/border-radius: 0;/);
 			expect(layersOf(wrapper, BLACK)).toBe(12);
+			expect(layersOf(rule(".classicyRadioInput"), BLACK)).toBe(3);
+		});
+
+		// Pressed (`*-radio-pressed.png`), the two-pixel ring: the input
+		// itself draws it over the wrapper's circle, keyed on its own
+		// `:active` (a press on its label makes it active too), with the
+		// mark it shows unpressed on top, not on the wrapper through
+		// `:has()`, which Firefox 113-120 lacks.
+		it("draws a pressed radio button's ring on its input, under the mark it shows", () => {
+			const ring = 14;
+			const pressed = rule(".classicyRadioInput:active");
+			expect(pressed).toMatch(/opacity: 1;/);
+			expect(layersOf(pressed, BLACK)).toBe(ring);
+			// The dot (3 rectangles) over the ring, checked; the dash (1)
+			// while mixed, unless focused, where the dot shows unpressed.
+			expect(layersOf(rule(".classicyRadioInput:checked:active"), BLACK)).toBe(
+				3 + ring,
+			);
 			expect(
 				layersOf(
-					rule(".classicyRadioInputWrapper:has(> .classicyRadioInput:active)"),
+					rule(":where(.classicyRadioInput).mixed:checked:active"),
 					BLACK,
 				),
-			).toBe(14);
-			expect(layersOf(rule(".classicyRadioInput"), BLACK)).toBe(3);
+			).toBe(1 + ring);
+			expect(
+				layersOf(
+					rule(
+						":where(.classicyRadioInput).mixed:checked:focus-visible:active",
+					),
+					BLACK,
+				),
+			).toBe(3 + ring);
+			const at = (selector: string) =>
+				css.indexOf(
+					`.classicyDesktop[data-classicy-appearance=system7] ${selector} {`,
+				);
+			// Each follows the unpressed rule of its specificity it overrides.
+			expect(at(".classicyRadioInput:active")).toBeGreaterThan(
+				at(".classicyRadioInput:focus-visible"),
+			);
+			expect(at(".classicyRadioInput:checked:active")).toBeGreaterThan(
+				at(".classicyRadioInput:checked:focus-visible"),
+			);
+			expect(
+				at(":where(.classicyRadioInput).mixed:checked:active"),
+			).toBeGreaterThan(at(".classicyRadioInput:checked:active"));
+			expect(
+				selectorsOf(css).filter(
+					(selector) =>
+						selector.includes("classicyRadioInput") &&
+						selector.includes(":has("),
+				),
+			).toEqual([]);
 		});
 
 		// 7.5.5 keeps a dimmed checkbox's frame solid black at both depths
@@ -1369,13 +1422,16 @@ describe("system7.scss (compiled)", () => {
 			const pressed = rule(`${up}:active:not(:disabled)`);
 			expect(pressed).toMatch(/var\(--color-black\);$/m);
 			expect(layersOf(pressed, "var(--color-white)")).toBe(5);
+			// Dimmed altogether, keyed on the state ClassicyLittleArrows sets
+			// (no `:has()`, which Firefox 113-120 lacks).
+			expect(dithered(rule(".classicyLittleArrows.disabled"))).toBe(true);
 			expect(
-				dithered(
-					rule(
-						".classicyLittleArrows:not(:has(> .classicyLittleArrowsButton:enabled))",
-					),
+				selectorsOf(css).filter(
+					(selector) =>
+						selector.includes("classicyLittleArrows") &&
+						selector.includes(":has("),
 				),
-			).toBe(true);
+			).toEqual([]);
 		});
 
 		it("draws the channel slider: its caps, runs and checker, and a capsule thumb", () => {
@@ -3084,9 +3140,9 @@ describe("system7.scss (compiled)", () => {
 			// Top, two corner pixels, two sides, and the panel's line under it.
 			expect(layersOf(tab, BLACK)).toBe(6);
 			expect(tab).toMatch(/0 100%\/100% var\(--box-pixel\)/);
-			const chosen = rule(
-				".classicyTabButtonWrapper:has(.classicyTabButton.selected)",
-			);
+			// Keyed on the state ClassicyTabs sets on the chosen tab's wrapper,
+			// not `:has()`, which Firefox 113-120 lacks.
+			const chosen = rule(".classicyTabButtonWrapper.selected");
 			expect(layersOf(chosen, BLACK)).toBe(5);
 			expect(chosen).not.toMatch(/0 100%\/100%/);
 			expect(
@@ -3165,10 +3221,7 @@ describe("system7.scss (compiled)", () => {
 			".classicyLittleArrowsButton:disabled",
 			"dim",
 		],
-		".classicyLittleArrows:not(:has(> .classicyLittleArrowsButton:enabled))": [
-			".classicyLittleArrows",
-			"dim",
-		],
+		".classicyLittleArrows.disabled": [".classicyLittleArrows", "dim"],
 		":where(.classicySlider).disabled": ["Slider", "dim"],
 		":where(.classicySliderTicks).disabled": ["Slider", "dim"],
 		".classicyInput:disabled": [".classicyInput:disabled", "dim"],

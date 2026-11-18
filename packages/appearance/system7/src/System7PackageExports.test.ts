@@ -138,12 +138,19 @@ const pack = ({ command, args, files }: (typeof PACKERS)[number]) =>
 		),
 	);
 
+// The screen savers' partial is the one stylesheet kept out: it loads
+// Platinum's saver index from Platinum's source by a workspace path
+// (`../../../platinum/src/...`), which no tarball holds, so no host could
+// compile it (final review M4). system7.scss, which loads it, ships compiled
+// and is not for host compilation either (the README).
+const UNPUBLISHED_SHEETS = ["src/styles/_screenSavers.scss"];
 const styleSheets = readdirSync(path.join(packageDir, "src/styles"), {
 	recursive: true,
 })
 	.map((file) => String(file).split(path.sep).join("/"))
 	.filter((file) => file.endsWith(".scss"))
-	.map((file) => `src/styles/${file}`);
+	.map((file) => `src/styles/${file}`)
+	.filter((file) => !UNPUBLISHED_SHEETS.includes(file));
 
 describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	let packed: string[] | { unavailable: string };
@@ -153,7 +160,9 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 	const files = (skip: (note: string) => never) =>
 		Array.isArray(packed) ? packed : skip(packed.unavailable);
 
-	it("ships every stylesheet, the README and the license", ({ skip }) => {
+	it("ships every stylesheet but the savers' partial, the README and the license", ({
+		skip,
+	}) => {
 		expect(styleSheets).toContain("src/styles/system7.scss");
 		expect(files(skip)).toEqual(
 			expect.arrayContaining([
@@ -163,6 +172,9 @@ describe.each(PACKERS)("the tarball, as $name packs it", (packer) => {
 				...styleSheets,
 			]),
 		);
+		expect(
+			files(skip).filter((file) => UNPUBLISHED_SHEETS.includes(file)),
+		).toEqual([]);
 	});
 
 	it("ships no test, no other source, no build script and nothing from resources/ or assets/", ({

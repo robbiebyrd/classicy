@@ -144,6 +144,10 @@ $vertical-rail-inset: $thumb-half 0;
   // whole pixel and the box is placed in layout, never translated (Chromium
   // paints a layout offset and a transform apart and resamples between
   // them), so its pixel art is drawn sharp. Only its turns are transforms.
+  // The unrounded travel first: a browser without CSS `round()` (Chrome
+  // 120-124, Firefox 113-117, inside the floor) drops the rounded one and
+  // keeps it (bin/classicyCssFloor.ts).
+  left: calc((100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0));
   left: round((100% - #{$thumb-w}) * var(--classicy-ghost-pos, 0), var(--window-border-size));
 
   &.classicySliderIndicatorUp { transform: rotate(180deg); }
@@ -266,8 +270,10 @@ $vertical-rail-inset: $thumb-half 0;
   // exact, and both directions sit the same. A package that places its
   // thumb by its own knobs (Platinum: its indicator's flat side three pixels
   // past the channel, its point six past) sets its own margin over this.
+  // Unrounded first, for a browser without `round()` (Chrome 120-124).
   &::-webkit-slider-thumb {
     margin-top: 0;
+    margin-left: calc(#{$thumb-margin-top} - #{$track-half});
     margin-left: round(up, calc(#{$thumb-margin-top} - #{$track-half}), var(--window-border-size));
   }
 }
@@ -334,6 +340,9 @@ $vertical-rail-inset: $thumb-half 0;
   .classicySliderGhost {
     top: auto;
     left: calc(50% - #{$thumb-w} / 2);
+    // Unrounded first, for a browser without `round()`, as the horizontal
+    // ghost's `left`.
+    bottom: calc((100% - #{$thumb-h}) * var(--classicy-ghost-pos, 0));
     bottom: round((100% - #{$thumb-h}) * var(--classicy-ghost-pos, 0), var(--window-border-size));
     margin-top: 0;
     transform: none;

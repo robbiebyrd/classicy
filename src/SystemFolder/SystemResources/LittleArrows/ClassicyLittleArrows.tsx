@@ -9,6 +9,7 @@ import {
 	useRef,
 } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import {
 	CLASSICY_PRESS_REPEAT_INTERVAL_MS,
 	useClassicyPressRepeat,
@@ -137,7 +138,14 @@ export const ClassicyLittleArrows: FunctionalComponent<
 
 	return (
 		<div
-			className={classNames("classicyLittleArrows", className)}
+			// Both arrows dimmed: the pair carries the state, so a package
+			// dims its frame with a plain class rule (no `:has()`, which
+			// Firefox 113-120 lacks).
+			className={classNames(
+				"classicyLittleArrows",
+				classicyStateClasses({ disabled }),
+				className,
+			)}
 			style={style}
 		>
 			<button

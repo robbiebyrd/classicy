@@ -408,7 +408,11 @@ name contains one of its comma-separated names) at
 Simple Beep from SimpleSound and compares it with the package's WAV.
 `serve <port> <out>` boots the emulator and takes steps over HTTP (POST
 `/do` a JSON list of steps, a `["record"]` step then GET `/audio`, GET
-`/frame`, `/scene/<name>/<depth>` and `/quit`), to work out a new scene. How it
+`/frame`, `/scene/<name>/<depth>` and `/quit`), to work out a new scene. It
+answers a script (curl, node) or a URL typed in the browser only: a request
+a web page sends (an `Origin` header, or `Sec-Fetch-Site` other than `none`)
+gets a 403 (`bin/captureSafety.mjs`), and a capture's name is letters,
+digits, `_`, `.` and `-` only, so `<name>.png` stays in `<out>`. How it
 works:
 
 1. An init script keeps the latest `emulator_screen` message (with

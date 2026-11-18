@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@/__tests__/test-utils";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 
@@ -83,5 +83,72 @@ describe("ClassicyTextEditor", () => {
 	it("respects disabled prop", () => {
 		render(<ClassicyTextEditor id="te-1" disabled />);
 		expect(screen.getByRole("textbox")).toBeDisabled();
+	});
+});
+
+// `autoHeight` grows the field with its text by CSS `field-sizing: content`
+// (Chrome 123). Firefox, Safari and Chrome 120-122, inside the floor, lack
+// it, so there the editor sizes the field to its text itself.
+describe("ClassicyTextEditor autoHeight without field-sizing", () => {
+	const lineHeight = 15;
+	let supported = false;
+	const originalCss = globalThis.CSS;
+	beforeEach(() => {
+		supported = false;
+		vi.stubGlobal("CSS", {
+			supports: (property: string, value: string) =>
+				supported && property === "field-sizing" && value === "content",
+		});
+		// jsdom lays nothing out: the text's height is a line per line of it,
+		// what it overflows a field 0 px tall by.
+		vi.spyOn(
+			HTMLTextAreaElement.prototype,
+			"scrollHeight",
+			"get",
+		).mockImplementation(function (this: HTMLTextAreaElement) {
+			return this.value.split("\n").length * lineHeight;
+		});
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+		globalThis.CSS = originalCss;
+	});
+	const field = (container: HTMLElement) =>
+		container.querySelector("textarea") as HTMLTextAreaElement;
+
+	it("sizes the field to its text, and again as the text changes", () => {
+		const { container } = render(
+			<ClassicyTextEditor id="t" content={"one\ntwo"} autoHeight />,
+		);
+		expect(field(container).style.height).toBe(`${2 * lineHeight}px`);
+		fireEvent.change(field(container), {
+			target: { value: "one\ntwo\nthree\nfour" },
+		});
+		expect(field(container).style.height).toBe(`${4 * lineHeight}px`);
+	});
+
+	it("leaves the field to CSS where field-sizing is supported", () => {
+		supported = true;
+		const { container } = render(
+			<ClassicyTextEditor id="t" content={"one\ntwo"} autoHeight />,
+		);
+		expect(field(container).style.height).toBe("");
+	});
+
+	it("sizes nothing without autoHeight", () => {
+		const { container } = render(
+			<ClassicyTextEditor id="t" content={"one\ntwo"} />,
+		);
+		expect(field(container).style.height).toBe("");
+	});
+
+	it("gives the field back to its stylesheet when autoHeight is turned off", () => {
+		const { container, rerender } = render(
+			<ClassicyTextEditor id="t" content={"one\ntwo"} autoHeight />,
+		);
+		expect(field(container).style.height).not.toBe("");
+		rerender(<ClassicyTextEditor id="t" content={"one\ntwo"} />);
+		expect(field(container).style.height).toBe("");
 	});
 });

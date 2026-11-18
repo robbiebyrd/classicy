@@ -238,6 +238,10 @@ and piece of art) is the Platinum Appearance Package's own stylesheet, in
   injections; the fonts file holds the same `@font-face` rules the package
   writes, each pointing at its `.woff2` in the Platinum package's
   `dist/assets/` (serve that folder beside it, and allow it in `font-src`).
+  Allow `data:` in `img-src` too (`img-src 'self' data:`): a dimmed icon (a
+  hidden application's in the Application menu, a disabled list row's) is
+  drawn on a canvas and shown from a `data:` URL, and a few masks and glyphs
+  are inline `data:` images, which a policy without it shows broken.
   Link the files rather than importing them through your bundler: Vite
   inlines the small Monaco font as a `data:` URL, which `font-src 'self'`
   blocks. If you must import them, set `build.assetsInlineLimit: 0` or allow

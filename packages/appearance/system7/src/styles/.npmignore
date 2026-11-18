@@ -4,3 +4,7 @@
 # ignored by pnpm 10). System7PackageExports.test.ts checks what both
 # packers really pack.
 *.test.*
+# The screen savers' partial loads Platinum's saver index from Platinum's
+# source by a workspace path, which no tarball holds, so no host could
+# compile it (system7.scss, which loads it, ships compiled; the README).
+_screenSavers.scss

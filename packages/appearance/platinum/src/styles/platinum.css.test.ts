@@ -597,7 +597,7 @@ describe("platinum.scss (compiled)", () => {
 		expect(redSides.at).toBeGreaterThan(activeSides.at);
 		expect(
 			rule(
-				`${P} .classicyWindow:has(.classicyAlertMovable) .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
+				`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
 			).props["background-size"],
 		).toBe("auto 100%");
 		expect(

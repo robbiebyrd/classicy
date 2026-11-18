@@ -68,6 +68,7 @@
 			"Label",
 			"Message",
 			"Movable",
+			"MovableWindow",
 			"Top"
 		],
 		"AppearanceManager": [
@@ -276,6 +277,7 @@
 		"DriveSetupList": ["Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",
+			"FillList",
 			"ViewTableContainer",
 			"ViewTableDisclosure",
 			"ViewTableDisclosureTriangle",
@@ -367,6 +369,7 @@
 			"ChildMenuIndicator",
 			"Flash",
 			"FlashKeyframes",
+			"HasImage",
 			"KeyboardShortcut",
 			"NoImage",
 			"TitleSample",
@@ -426,7 +429,8 @@
 			"ChasingArrows",
 			"ChasingArrowsSpinner",
 			"Determinate",
-			"Indeterminate"
+			"Indeterminate",
+			"SlideByScript"
 		],
 		"RadioInput": ["Group", "GroupColumns", "Margin", "Wrapper"],
 		"RichTextEditor": [],

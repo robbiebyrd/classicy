@@ -156,7 +156,9 @@ $checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2
       margin-right: var(--menu-item-image-gap);
     }
 
-    &:has(> p > img) {
+    // ClassicyMenu marks an item whose title holds an image (no
+    // `:has(> p > img)`, which Firefox 113-120 lacks).
+    &.classicyMenuItemHasImage {
       height: calc(var(--menu-item-image-size) + var(--menu-item-image-pad) + var(--menu-item-image-pad));
       padding-top: var(--menu-item-image-pad);
 

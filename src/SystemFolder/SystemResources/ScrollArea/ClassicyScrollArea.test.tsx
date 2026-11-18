@@ -866,6 +866,16 @@ describe("ClassicyScrollArea internals", () => {
 			once,
 		);
 		expect(await mutate(() => p.setAttribute("hidden", ""))).toBe(once);
+		// A style write on an element marked as repainting itself alone (the
+		// progress bar's stripes, every frame) moves no content.
+		p.removeAttribute("hidden");
+		await act(async () => {
+			p.setAttribute("data-classicy-paint-only-style", "");
+			await nextFrame();
+		});
+		expect(await mutate(() => p.style.setProperty("--slide-var", "4px"))).toBe(
+			0,
+		);
 		expect(await mutate(() => p.append(document.createElement("span")))).toBe(
 			once,
 		);

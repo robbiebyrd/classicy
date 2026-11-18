@@ -138,4 +138,19 @@ describe("Alert's window and the fixed-modal marker", () => {
 		expect(alertWindow()).toHaveClass("classicyWindowModal");
 		expect(alertWindow()).not.toHaveClass("classicyWindowModalFixed");
 	});
+
+	// The red title bar is keyed on the window's own class (no
+	// `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks), the
+	// host's className after it.
+	it("marks a movable alert's window classicyAlertMovableWindow", () => {
+		render(<ClassicyAlert label="Note" movable className="hostAlert" />);
+		expect(alertWindow()).toHaveClass("classicyAlertMovableWindow");
+		expect(alertWindow()).toHaveClass("hostAlert");
+	});
+
+	it("leaves a fixed alert's window without it", () => {
+		render(<ClassicyAlert label="Note" className="hostAlert" />);
+		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");
+		expect(alertWindow()).toHaveClass("hostAlert");
+	});
 });

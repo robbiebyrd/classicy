@@ -1,4 +1,5 @@
 import "./AppleGuide.scss";
+import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
 import {
 	useAppManager,
@@ -91,7 +92,9 @@ export const AppleGuideWindow: FunctionalComponent<AppleGuideWindowProps> = ({
 		<ClassicyWindow
 			id={appleGuideWindowId(topicId)}
 			appId={APPLE_GUIDE_APP_ID}
-			className={className}
+			// AppleGuide.scss sizes this window border-box by its own class
+			// (no `:has(.appleGuideWindow)`, which Firefox 113-120 lacks).
+			className={classNames("appleGuideWindowFrame", className)}
 			style={style}
 			hideIcon={true}
 			closable={true}

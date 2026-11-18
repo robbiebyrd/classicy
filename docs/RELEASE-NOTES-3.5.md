@@ -106,7 +106,7 @@ diverge, so a logo registered through Platinum's
   built-in into its Custom theme, as color edits do). Persistence stores a
   theme without the family colors equal to its package's defaults, as it
   does knob values; theme files keep them (`ClassicyThemeSchema`
-  `color.families`), and a 3.2 host loading such a file drops them.
+  `color.families`), and a 3.4 host loading such a file drops them.
   New exports: `classicyColorFamilyVarName(family, key)` (the variable a
   package color makes, `--package-color-<family>-<key>`, kebab-cased) and
   `CLASSICY_PACKAGE_COLOR_VAR_PREFIX` (`"--package-color-"`, a name space
@@ -256,7 +256,13 @@ diverge, so a logo registered through Platinum's
   the color picker's sliders and every other live control are unchanged.
   On a vertical slider the ghost now travels up its track (it drew at the
   top) and is lit like its indicator, and on either it moves by whole
-  pixels, so its art is never resampled.
+  pixels, so its art is never resampled, in a browser with CSS `round()`
+  (Chrome 125, Firefox 118, Safari 15.4). Chrome 120–124 and Firefox
+  113–117 place it unrounded, as 3.4 did, from a plain `calc()` declared
+  first; a vertical slider's thumb is centered across its channel the same
+  way. A new check holds every shipped stylesheet to that: a declaration
+  calling CSS math newer than the browser floor needs such a fallback
+  (`verify:dist`, core invariant 15 and each package's invariant 9).
 - **A press on a slider's thumb never moves it.** A mouse or pen press on
   `ClassicySlider` is now the slider's own: the browser's range drag is
   stopped (the press's `mousedown` default is prevented; its `pointerdown`,
@@ -330,6 +336,43 @@ diverge, so a logo registered through Platinum's
   `title` carries its `imageAlt` as the `title` of its analytics events, so
   the Apple menu's and the art Help menu's `hover` and `selected` events
   name them, where their `title` was undefined.
+- **The rest of the floor.** A window title and a tab label keep to one
+  line in Firefox 113–120 and Safari 16.2–17.3, which have no `text-wrap`
+  (a `white-space: nowrap` comes first; a long window title wrapped there
+  instead of ending in an ellipsis), and `ClassicyTextEditor`'s
+  `autoHeight` grows with its text in Firefox, Safari and Chrome 120–122,
+  which have no `field-sizing`: the editor sets the field's height to its
+  text's there, whenever the text, the field's width or a loaded font
+  changes. An indeterminate `ClassicyProgressBar`'s stripes slide in Safari
+  16.2–16.3, which have no `@property` (they stood still: the keyframes
+  stepped between two offsets that draw the same stripes); there the bar
+  carries `classicyProgressSlideByScript` and slides them from a frame loop,
+  its `<progress>` marked `data-classicy-paint-only-style` so the
+  pattern-origin watcher and the scroll area do not measure for each frame's
+  write. Firefox 113–127 have no `@property` either, but Firefox draws no
+  stripes (they are `::-webkit-progress-value`'s), so the bar runs no loop
+  there.
+  The floor check (`bin/classicyCssFloor.ts`) holds a `text-wrap` to its
+  `white-space` too.
+- **Classes in place of `:has()`, for Firefox 113–120.** A browser without
+  `:has()` (Firefox before 121, inside the floor) drops a whole rule that
+  uses it, so the looks such rules drew now key on classes the components
+  set: the chosen tab's wrapper carries `selected` (`ClassicyTabs`; the base
+  sheet's chosen-tab fill, Platinum's included, and System 7's open tab);
+  `ClassicyMenu` marks an item whose title holds an image
+  `classicyMenuItemHasImage` (from `icon` or `image`; System 7's 18 px
+  Application and Apple menu rows and its 1-bit Apple and Help titles'
+  inversion); `ClassicyLittleArrows` carries `disabled` while both arrows are
+  (System 7's dimmed frame); a movable `ClassicyAlert`'s window carries
+  `classicyAlertMovableWindow` (its red title bar, Platinum's red stripes
+  too); `ClassicyFileBrowser`'s list view root carries
+  `classicyFileBrowserFillList` (without it there the icon view's fill took
+  no width and stacked every icon at the top left); and the Apple Guide
+  window carries `appleGuideWindowFrame` (its border-box size). System 7's
+  pressed radio button draws its ring on the input's own `:active`. Chrome
+  and Safari draw them as before. A host or package rule written against
+  the old `:has()` selectors still matches where `:has()` is supported; key
+  it on the class instead to reach Firefox 113–120.
 
 - **The Application menu's Hide commands** (HIG7 p.127). The App Switcher
   lists Hide <app>, Hide Others and Show All, each dimmed when it would do
@@ -439,7 +482,12 @@ diverge, so a logo registered through Platinum's
   wherever it sits. The default `"element"`, and a component or element
   left out, publishes and watches nothing: Platinum declares none and
   draws as before. One watcher per window now serves every part and scroll
-  bar in it, reading them all before it writes.
+  bar in it, reading them all before it writes, and reads them once an
+  animation frame for the DOM's changes and scrolls, however many came: a
+  window holding a 1,000-row table whose content changes and scrolls every
+  frame took 5 reads a frame (about 6 ms each, under System 7's 25
+  selectors) and about 6 ms a change, and now takes 1.4 reads a frame and
+  0.1 ms a change.
 - **The dither mixins take a position.** `classicy-dither-mask`,
   `classicy-dither-text` and `classicy-dither-line` take an optional
   `$x, $y`, the checker's tile position from the padding box
@@ -870,7 +918,9 @@ the ids the saver already names:
    import it at your entry; keep every Classicy package at one version.
 2. With a Vite dev server, add `@classicy/appearance-system7` to
    `optimizeDeps.exclude` when you load it. Under a strict CSP, link its two
-   stylesheets after the core's.
+   stylesheets after the core's, and allow `data:` in `img-src`: a dimmed
+   icon (a hidden application's, a disabled row's) is drawn on a canvas and
+   shown from a `data:` URL.
 3. If you ship your own Appearance Package, draw the looks that moved into
    Platinum (above), the control group's legend face, and, if you want them
    styled, the scroll-bar parts. Draw the frame's shadow (and bevel) on

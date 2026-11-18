@@ -774,6 +774,10 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			className={classNames(
 				"classicyMenuItem",
 				menuItem.icon ? "" : "classicyMenuItemNoImage",
+				// Its title holds an image (below), so a package sizes the row
+				// with a plain class rule (no `:has(> p > img)`, which Firefox
+				// 113-120 lacks).
+				(menuItem.image || menuItem.icon) && "classicyMenuItemHasImage",
 				menuItem.className,
 				appearance.className,
 				hasChildren ? "classicyMenuItemChildMenuIndicator" : "",
