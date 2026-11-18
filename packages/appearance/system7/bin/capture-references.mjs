@@ -24,7 +24,11 @@
 // scene step by step.
 //
 // Every output path is resolved against the working directory; nothing is
-// written anywhere else. Requires the repo's Playwright (a devDependency of
+// written anywhere else: a capture's name is letters, digits, `_`, `.` and
+// `-` only (`captureFileName`), so `<name>.png` stays in `<out>`, and
+// `serve` refuses a request a web page sends (`refusedCaptureRequest`: an
+// `Origin` header, or a `Sec-Fetch-Site` other than `none`), so a page open
+// in the developer's browser cannot drive the emulator. Requires the repo's Playwright (a devDependency of
 // the workspace root) and its headless Chromium, and a network connection
 // to infinitemac.org.
 
@@ -33,6 +37,7 @@ import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { captureFileName, refusedCaptureRequest } from "./captureSafety.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../..");
 const { chromium } = createRequire(join(REPO_ROOT, "package.json"))(
@@ -180,7 +185,7 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 					const before = await frames();
 					await sleep(args[1] ?? 300);
 					writeFileSync(
-						join(emulator.out, `${args[0]}.png`),
+						join(emulator.out, captureFileName(args[0])),
 						await emulator.frame(before),
 					);
 					return;
@@ -191,7 +196,10 @@ export async function bootEmulator({ disk, log = () => {} } = {}) {
 					for (let i = 1; i <= args[1]; i++) {
 						const png = await emulator.frame(last);
 						last = await frames();
-						writeFileSync(join(emulator.out, `${args[0]}-${i}.png`), png);
+						writeFileSync(
+							join(emulator.out, captureFileName(`${args[0]}-${i}`)),
+							png,
+						);
 					}
 					return;
 				}
@@ -989,6 +997,13 @@ async function serve(port, out, disk) {
 	const emulator = await bootEmulator({ disk, log: console.log });
 	emulator.out = out;
 	const server = createServer(async (req, res) => {
+		const refused = refusedCaptureRequest(req.headers);
+		if (refused) {
+			res.statusCode = 403;
+			res.setHeader("content-type", "text/plain; charset=utf-8");
+			res.end(`${refused}\n`);
+			return;
+		}
 		try {
 			if (req.url === "/frame") {
 				res.setHeader("content-type", "image/png");
@@ -1008,6 +1023,12 @@ async function serve(port, out, disk) {
 				return;
 			}
 			const scene = /^\/scene\/([^/]+)\/(color|bw)$/.exec(req.url ?? "");
+			if (scene && !Object.hasOwn(SCENES, scene[1])) {
+				res.statusCode = 404;
+				res.setHeader("content-type", "text/plain; charset=utf-8");
+				res.end(`no scene ${JSON.stringify(scene[1])}\n`);
+				return;
+			}
 			if (scene) {
 				for (const step of SCENES[scene[1]](scene[2]))
 					await emulator.step(step);
