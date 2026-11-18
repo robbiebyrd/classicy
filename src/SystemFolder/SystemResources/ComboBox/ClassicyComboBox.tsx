@@ -30,7 +30,6 @@ import {
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	classicyMenuBounds,
-	classicyMenuInkDown,
 	classicyMenuListLeft,
 	classicyMenuListPinTop,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
@@ -327,23 +326,22 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		const el = listRef.current;
 		if (!el) return;
 		// Down, between the top and bottom of what shows of the desktop, as
-		// the pop-up menu's: the field's place from the bounds' top, the
-		// list's shadow off the room. The list hangs clear of the field (the
-		// pop-up's overlaps its button), so its room below is measured from
-		// the field's bottom and its room above from its top: the policy
-		// measures down from `top` and up from `bottom`.
+		// the pop-up menu's: the field's place from the bounds' top (the
+		// policy's 4 px margin holds the list's padding and shadow). The list
+		// hangs clear of the field (the pop-up's overlaps its button), so its
+		// room below is measured from the field's bottom and its room above
+		// from its top: the policy measures down from `top` and up from
+		// `bottom`.
 		const bounds = classicyMenuBounds(anchorRef.current);
-		const { inkTop, inkBottom } = classicyMenuInkDown(el);
-		const origin = bounds.top + inkTop;
 		setListPinTop(null);
 		setPlacement(
 			classicyPopUpMenuPlacement(
 				{
-					top: menuRect.bottom - origin,
-					bottom: menuRect.top - origin,
+					top: menuRect.bottom - bounds.top,
+					bottom: menuRect.top - bounds.top,
 				},
 				el.scrollHeight,
-				bounds.bottom - bounds.top - inkTop - inkBottom,
+				bounds.bottom - bounds.top,
 				null,
 				// The theme's cap, read from the input (the list may be portaled
 				// out of its themed ancestor) once per opening.

@@ -28,7 +28,6 @@ import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/u
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	classicyMenuBounds,
-	classicyMenuInkDown,
 	classicyMenuListLeft,
 	classicyMenuListPinTop,
 } from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
@@ -425,15 +424,15 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 		}
 		// Down, between the top and bottom of what shows of the desktop: the
 		// policy measures from a screen at 0, so it is given the button's place
-		// from the bounds' top, and its `top` is put back. Its margin holds the
-		// list's frame; its shadow comes off the room, so it shows too.
+		// from the bounds' top, and its `top` is put back. Its 4 px margin
+		// holds the list's padding and shadow (slid to the bottom, the frame
+		// ends 2 px above it, the shadow on it); a list whose 64 px floor
+		// passes the bounds anyway is pinned below.
 		const bounds = classicyMenuBounds(buttonRef.current);
-		const { inkTop, inkBottom } = classicyMenuInkDown(el);
-		const origin = bounds.top + inkTop;
 		const placed = classicyPopUpMenuPlacement(
-			{ top: menuRect.top - origin, bottom: menuRect.bottom - origin },
+			{ top: menuRect.top - bounds.top, bottom: menuRect.bottom - bounds.top },
 			el.scrollHeight,
-			bounds.bottom - bounds.top - inkTop - inkBottom,
+			bounds.bottom - bounds.top,
 			selectedMetrics,
 			// The theme's cap, read from the button (the list may be portaled
 			// out of its themed ancestor) once per opening.
@@ -444,7 +443,9 @@ export const ClassicyPopUpMenu: FunctionalComponent<classicyPopUpMenuProps> = ({
 			),
 		);
 		setPlacement(
-			placed.top === null ? placed : { ...placed, top: placed.top + origin },
+			placed.top === null
+				? placed
+				: { ...placed, top: placed.top + bounds.top },
 		);
 		setMenuLeft(classicyMenuListLeft(el, menuRect, bounds));
 		setMenuPinTop(null);

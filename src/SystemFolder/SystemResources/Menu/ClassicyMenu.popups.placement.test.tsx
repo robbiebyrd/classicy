@@ -65,13 +65,17 @@ beforeEach(() => {
 			if (isSurface(this)) {
 				const style = (this as HTMLElement).style;
 				// Its content (`surfaceContent`, default 56) capped by its
-				// max-height, then its frame (1 px of padding and of border each
-				// side); placed by its top, or its bottom from the viewport's.
+				// max-height, then its frame: a pop-up or combo list, Platinum's,
+				// 1 px of padding a side, its edge and shadow drawn by its
+				// box-shadow (slid to the screen's bottom its frame ends 2 px
+				// above it, its shadow on it); a bevel button's menu, 2 px a
+				// side. Placed by its top, or its bottom from the viewport's.
 				const cap = Number.parseFloat(style.maxHeight);
+				const frame = this.getAttribute("role") === "listbox" ? 2 : 4;
 				const height =
 					(Number.isFinite(cap)
 						? Math.min(surfaceContent, cap)
-						: surfaceContent) + 4;
+						: surfaceContent) + frame;
 				const top = style.top
 					? pxOf(style.top)
 					: style.bottom
@@ -227,9 +231,8 @@ describe("down, in a desktop shorter than the viewport", () => {
 			),
 		);
 		await userEvent.setup().click(screen.getByRole("combobox"));
-		// Its 64 px floor would run past 196 (200 less the margin) from 190;
-		// its 2 px shadow comes off the room too: 200 − 2 − 4 − 64.
-		expect(screen.getByRole("listbox").style.top).toBe("130px");
+		// Its 64 px floor would run past 196 (200 less the margin) from 190.
+		expect(screen.getByRole("listbox").style.top).toBe("132px");
 	});
 
 	it("grows a combo box's list upward when there is no room below in the desktop", () => {
@@ -314,6 +317,30 @@ describe("a combo box's scroll indicators", () => {
 		});
 		expect(screen.getByRole("listbox").style.left).toBe("600px");
 		expect(down()?.style.left).toBe("600px");
+	});
+});
+
+// At ordinary heights a list keeps the place round 1 gave it: the policy's
+// 4 px margin holds its frame's padding and its 2 px shadow, so nothing of
+// the shadow comes off the room (review round 2).
+describe("a pop-up menu low on a full-size screen", () => {
+	it("slides up until its frame ends 2 px above the bottom, its shadow on it", async () => {
+		DESKTOP = { left: 0, top: 0, width: 1024, height: 768 };
+		BUTTON = { left: 300, right: 340, top: 741, bottom: 766.5 };
+		vi.spyOn(Element.prototype, "scrollHeight", "get").mockImplementation(
+			function (this: Element) {
+				return this.getAttribute("role") === "listbox" ? 94 : 0;
+			},
+		);
+		surfaceContent = 94;
+		render(
+			onDesktop(
+				<ClassicyPopUpMenu id="f" options={options} selected="geneva" />,
+			),
+		);
+		await userEvent.setup().click(screen.getByRole("combobox"));
+		const frame = screen.getByRole("listbox").getBoundingClientRect();
+		expect([frame.top, frame.bottom]).toEqual([670, 766]);
 	});
 });
 
