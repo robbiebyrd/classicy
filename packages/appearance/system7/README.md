@@ -95,9 +95,11 @@ resolution).
   as `System7Json`), `system7SoundPack` and `system7AppearanceHooks`. It
   exports no saver component and no logo registry: import those from
   `@classicy/appearance-platinum` if you need them.
-- `./scss/*`: the package's SCSS. `system7.scss` ships compiled and is not
-  for host compilation: it loads the savers' stylesheets from Platinum's
-  source, which neither package's tarball holds.
+- `./scss/*`: the package's SCSS: `pixel` and the `components/*`
+  partials. `system7.scss` ships compiled and is not for host compilation:
+  it loads the savers' stylesheets from Platinum's source, which neither
+  package's tarball holds, through `_screenSavers.scss`, which the tarball
+  leaves out for that reason.
 - `./classicy-system7.css` and `./classicy-system7.fonts.css`: the look and
   the fonts as stylesheets, for hosts whose Content-Security-Policy blocks
   inline `<style>` (below).
