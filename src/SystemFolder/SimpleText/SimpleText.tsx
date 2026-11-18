@@ -24,6 +24,7 @@ import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialo
 import { ClassicyFileSaveDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileSaveDialog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyRichTextEditor } from "@/SystemFolder/SystemResources/RichTextEditor/ClassicyRichTextEditor";
+import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import { ClassicyTextEditor } from "@/SystemFolder/SystemResources/TextEditor/ClassicyTextEditor";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -104,6 +105,7 @@ export const SimpleText = () => {
 	const [untitledDocs, setUntitledDocs] = useState<UntitledDoc[]>([]);
 
 	const [showOpenDialog, setShowOpenDialog] = useState(false);
+	const keepsFitsBars = useClassicyFitsScrollBars();
 	const [saveTarget, setSaveTarget] = useState<SaveTarget | null>(null);
 
 	const untitledCounter = useRef(0);
@@ -515,6 +517,9 @@ export const SimpleText = () => {
 					) : (
 						<ClassicyTextEditor
 							content={doc.content}
+							// A document: its bars stay while the text fits when the
+							// package keeps them (System 7's SimpleText).
+							fitsScrollBars={keepsFitsBars}
 							onChangeFunc={(e) => {
 								if (doc.target.kind === "untitled") {
 									setUntitledContent(doc.target.id, e.target.value);

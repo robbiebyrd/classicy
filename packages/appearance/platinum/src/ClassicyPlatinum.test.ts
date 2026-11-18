@@ -9,6 +9,7 @@ import { resolveClassicyWallpaper } from "@/Appearance/ClassicyWallpaperIndex";
 import {
 	getAllThemes,
 	getTheme,
+	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { CLASSICY_DEFAULT_THEME_METRICS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { isThemeMetricFamilyTarget } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
@@ -103,7 +104,11 @@ describe("the Platinum appearance package", () => {
 		// The defaults are the `default` preset itself.
 		expect(pkg?.defaults).toBe(getTheme("default"));
 		expect(pkg?.defaults).toBe(pkg?.presets?.[0]);
-		expect(pkg?.layout).toEqual(CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout);
+		// The core's arrangement, and Platinum's ghost drag on release.
+		expect(pkg?.layout).toEqual({
+			...CLASSICY_FALLBACK_APPEARANCE_PACKAGE.layout,
+			slider: { thumbDrag: "onRelease" },
+		});
 	});
 
 	it("completes each preset: wallpaper by filename, every knob family filled", async () => {
@@ -137,11 +142,23 @@ describe("the Platinum appearance package", () => {
 
 	// H-R8: Platinum's knob families live in `defaults` only; the presets
 	// carry the core five and are filled from the defaults at load.
-	it("defaults equals the Default preset, plus the knob families", () => {
-		const { measurements, ...rest } = platinumJson.defaults;
-		const { measurements: presetMeasurements, ...presetRest } =
-			platinumJson.presets[0];
+	it("defaults equals the Default preset, plus the knob and color families", () => {
+		const {
+			measurements,
+			color: { families, ...color },
+			...rest
+		} = platinumJson.defaults;
+		const {
+			measurements: presetMeasurements,
+			color: presetColor,
+			...presetRest
+		} = platinumJson.presets[0];
 		expect(rest).toEqual(presetRest);
+		expect(color).toEqual(presetColor);
+		expect(Object.keys(families ?? {})).toEqual(["grayRamp"]);
+		for (const preset of platinumJson.presets) {
+			expect(preset.color, preset.id).not.toHaveProperty("families");
+		}
 		const { window, control, button, groupBox, layout } = measurements;
 		expect(presetMeasurements).toEqual({
 			window,
@@ -167,6 +184,32 @@ describe("the Platinum appearance package", () => {
 		);
 	});
 
+	// HIGOS8's 16-step gray ramp (0x11 steps), steps 1 to E (0 and F are
+	// black and white): the slider's grays, Platinum's color family.
+	it("declares the gray ramp, and fills every built-in theme with it", () => {
+		const ramp = platinumJson.defaults.color.families?.grayRamp ?? {};
+		const steps = [..."123456789ABCDE"];
+		expect(ramp).toEqual(
+			Object.fromEntries(
+				steps.map((c) => [`step${c}`, Number.parseInt(c, 16) * 0x111111]),
+			),
+		);
+		expect(platinumJson.colorFamilies).toEqual({
+			grayRamp: {
+				label: "Gray Ramp",
+				colors: Object.fromEntries(
+					steps.map((c) => [`step${c}`, { label: c }]),
+				),
+			},
+		});
+		for (const theme of getAllThemes()) {
+			expect(theme.color.families?.grayRamp, theme.id).toEqual(ramp);
+		}
+		expect(getClassicyAppearancePackage("platinum")?.colorFamilies).toEqual(
+			platinumJson.colorFamilies,
+		);
+	});
+
 	it("every built-in theme is filled with the default's knob families", () => {
 		for (const theme of getAllThemes()) {
 			for (const [family, keys] of Object.entries(
@@ -180,6 +223,27 @@ describe("the Platinum appearance package", () => {
 		}
 	});
 
+	// Owner decision, 2026-11-16: the list view matches HIGOS8 Fig. 2-24
+	// (p.38) and Fig. 2-43 (p.51), 16 px small icons in 18 px rows a 1 px
+	// line apart. The default (medium) step draws at 16, not 0.375 x 48 = 18,
+	// with 1 px above and below; the other steps stay scaled.
+	it("draws the list view's default step at 16 px in 18 px rows, in every theme", async () => {
+		await import("./index");
+		const themes = getAllThemes();
+		expect(themes).toHaveLength(21);
+		for (const theme of themes) {
+			const vars = getThemeVars(theme) as Record<string, string>;
+			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
+			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
+			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
+			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+		}
+		expect(platinumJson.defaults.measurements.fileBrowserList).toEqual({
+			mediumIconSize: 16,
+			rowPadding: 1,
+		});
+	});
+
 	it("every preset carries package platinum", () => {
 		expect(platinumJson.defaults.package).toBe("platinum");
 		for (const preset of platinumJson.presets)
@@ -191,6 +255,9 @@ describe("the Platinum appearance package", () => {
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-right" },
+			// HIGOS8 p.34, Figure 2-17: a slider's indicator stays put while its
+			// ghost follows the pointer, and the value changes on release.
+			slider: { thumbDrag: "onRelease" },
 		}));
 
 	// H-R4 (owner ruling): knob metadata only for the six contract families;

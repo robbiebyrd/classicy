@@ -16,9 +16,10 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 ## Using Classicy in a Vite app
 
-Classicy is two packages: `@classicy/classicy`, the framework, and
-`@classicy/appearance-platinum`, the Platinum look. Install both, at the same
-version:
+Classicy is a framework, `@classicy/classicy`, and the looks it draws, its
+Appearance Packages: `@classicy/appearance-platinum`, the Platinum look (Mac
+OS 8), and `@classicy/appearance-system7`, System 7 (below). Install the
+framework and a package, at the same version:
 
 ```sh
 pnpm add @classicy/classicy @classicy/appearance-platinum
@@ -61,27 +62,36 @@ and icon art go missing.
 
 **Upgrading from 3.0.x?** [`docs/RELEASE-NOTES-3.1.md`](docs/RELEASE-NOTES-3.1.md): the screen savers (and their logo registry) now ship with `@classicy/appearance-platinum`; a host importing one from `@classicy/classicy` changes the import specifier.
 
+**Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
+
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
 and rewrite every specifier, strings included: `from "classicy"`, deep paths
 (`classicy/dist/classicy.css`, `classicy/scss/*`), `vi.mock("classicy", …)` and
 `typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
-script, pnpm's `minimumReleaseAgeExclude`) must list **both** package names and
-move them together. The scoped names exist from 3.0.0 on; a lower range does
-not resolve. The release notes give a one-pass `sed`.
+script, pnpm's `minimumReleaseAgeExclude`) must list **every** Classicy package
+it loads (`@classicy/classicy`, `@classicy/appearance-platinum` and, when you
+load it, `@classicy/appearance-system7`) and move them together. The core and
+Platinum exist from 3.0.0 on, System 7 from 3.5.0; a lower range does not
+resolve. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
 wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
 file URLs (they return the SPA fallback page). Exclude both packages from
-the pre-bundle:
+the pre-bundle (and `@classicy/appearance-system7`, when you load it, as
+`example/vite.config.ts` does):
 
 ```ts
 // vite.config.ts
 export default defineConfig({
   optimizeDeps: {
-    exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+    exclude: [
+      "@classicy/classicy",
+      "@classicy/appearance-platinum",
+      "@classicy/appearance-system7", // when you load it
+    ],
   },
 })
 ```
@@ -90,7 +100,8 @@ Any CommonJS dependency they pull in may then need to go in
 `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
 (a Vite production build, webpack 5, Rollup with a URL plugin) need no
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
-the Platinum package's `dist/assets/` next to your bundle.
+each package's `dist/assets/` (Platinum's, and System 7's when you load it)
+next to your bundle.
 `import "@classicy/classicy/fonts"` is now a deprecated no-op (the Platinum package
 registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
 links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place
@@ -227,6 +238,10 @@ and piece of art) is the Platinum Appearance Package's own stylesheet, in
   injections; the fonts file holds the same `@font-face` rules the package
   writes, each pointing at its `.woff2` in the Platinum package's
   `dist/assets/` (serve that folder beside it, and allow it in `font-src`).
+  Allow `data:` in `img-src` too (`img-src 'self' data:`): a dimmed icon (a
+  hidden application's in the Application menu, a disabled list row's) is
+  drawn on a canvas and shown from a `data:` URL, and a few masks and glyphs
+  are inline `data:` images, which a policy without it shows broken.
   Link the files rather than importing them through your bundler: Vite
   inlines the small Monaco font as a `data:` URL, which `font-src 'self'`
   blocks. If you must import them, set `build.assetsInlineLimit: 0` or allow
@@ -388,6 +403,30 @@ the theme (`--<family>-<key>`) instead of `Npx` literals.
 
 Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
 pixel-literal purge (Part H)", and §8, "Package knob families".
+
+## System 7
+
+`@classicy/appearance-system7` draws System 7.5, in black and white
+("System 7") and in color ("System 7 Color"), with System 7.5's own icons,
+art, cursors, desktop pattern and alert sounds, and the same twelve screen
+savers. Use it alone or beside Platinum; the Appearance Manager switches
+between them. Install every package you load at one version, and bump them
+together:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-system7
+# or, with both looks:
+pnpm add @classicy/classicy @classicy/appearance-platinum @classicy/appearance-system7
+```
+
+```tsx
+import "@classicy/appearance-platinum"; // optional
+import "@classicy/appearance-system7";
+```
+
+A Vite host lists it in `optimizeDeps.exclude` too (above). Its README,
+[`packages/appearance/system7/README.md`](packages/appearance/system7/README.md),
+has its exports and its strict-CSP stylesheets.
 
 ## Building and running on localhost
 

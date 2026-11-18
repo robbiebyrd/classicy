@@ -8,7 +8,29 @@ import {
 	mostRecentAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+
+// An app id is library input (a host's `ClassicyApp` id, a stack's
+// `ClassicyAppOpen`). Indexed plainly, `apps["__proto__"]` is
+// `Object.prototype`, and assigned, it rewrites the record's prototype, so
+// that id is never an app.
+const RESERVED_APP_ID = "__proto__";
+
+/** The app record with `appId`, or `undefined` when there is none of its own. */
+const ownApp = (ds: ClassicyStore, appId: string) => {
+	const apps = ds.System.Manager.Applications.apps;
+	return Object.hasOwn(apps, appId) ? apps[appId] : undefined;
+};
+
+/** Whether `appId` may become a record key; logs a refusal. */
+const isAssignableAppId = (appId: string) => {
+	if (appId !== RESERVED_APP_ID) return true;
+	classicyLog("warn", "ClassicyAppHelpers", "Ignoring reserved app id", {
+		appId,
+	});
+	return false;
+};
 
 export function getDefaultAppForFileType(
 	ds: ClassicyStore,
@@ -28,18 +50,31 @@ export function deFocusApps(ds: ClassicyStore) {
 	return ds;
 }
 
+/**
+ * Marks `appId` the focused app: every other app and window unfocused, the
+ * app focused, stamped and recorded as `focusedAppId`, and shown when it was
+ * hidden (an app that takes focus is shown, HIG7 p.127). Every path that
+ * gives an app the menu bar goes through here.
+ */
+export function markAppFocused(ds: ClassicyStore, appId: string) {
+	const app = ownApp(ds, appId);
+	if (!app) return;
+	deFocusApps(ds);
+	app.focused = true;
+	app.lastFocusedAt = Date.now();
+	if (app.hidden) app.hidden = false;
+	ds.System.Manager.Applications.focusedAppId = appId;
+}
+
 export function focusWindow(
 	ds: ClassicyStore,
 	appId: string,
 	windowId: string,
 	menuBar?: ClassicyMenuItem[],
 ) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	if (!app) return ds;
-	deFocusApps(ds);
-	app.focused = true;
-	app.lastFocusedAt = Date.now();
-	ds.System.Manager.Applications.focusedAppId = appId;
+	markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
@@ -96,7 +131,7 @@ export function pickWindowToRestore(app: ClassicyStoreSystemApp) {
 }
 
 export function focusApp(ds: ClassicyStore, appId: string) {
-	const app = ds.System.Manager.Applications.apps[appId];
+	const app = ownApp(ds, appId);
 	// A closed app can never take focus: in-window controls that quit their
 	// own app bubble a ClassicyAppActivate after the ClassicyAppClose, and
 	// honoring it would leave a closed app owning the menu bar.
@@ -105,10 +140,7 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
 	} else {
-		deFocusApps(ds);
-		app.focused = true;
-		app.lastFocusedAt = Date.now();
-		ds.System.Manager.Applications.focusedAppId = appId;
+		markAppFocused(ds, appId);
 	}
 }
 
@@ -139,13 +171,73 @@ export function pickSuccessorApp(
 	return best.id;
 }
 
+/** The open apps the Application menu lists: every one but extensions. */
+const applicationMenuApps = (ds: ClassicyStore) =>
+	Object.values(ds.System.Manager.Applications.apps).filter(
+		(app) => app.open && app.extension !== true,
+	);
+
+/**
+ * The open, shown app other than `appId` that takes the menu bar when
+ * `appId` is hidden: the most recently focused one, Finder only when no
+ * other is shown. `undefined` when every other app is hidden or none is
+ * open, so `appId` stays shown (the Application menu dims Hide then).
+ */
+export function pickShownSuccessorApp(
+	ds: ClassicyStore,
+	appId: string,
+): string | undefined {
+	const shown = applicationMenuApps(ds).filter(
+		(app) => app.id !== appId && app.hidden !== true,
+	);
+	const peers = shown.filter((app) => app.id !== "Finder.app");
+	if (peers.length > 0)
+		return peers.reduce((a, b) =>
+			(b.lastFocusedAt ?? 0) > (a.lastFocusedAt ?? 0) ? b : a,
+		).id;
+	return shown[0]?.id;
+}
+
+/**
+ * Hides `appId` (the Application menu's Hide <app>): its windows go out of
+ * sight while it stays open, and, when it held the menu bar, the next shown
+ * app takes it (`pickShownSuccessorApp`). Nothing happens to an extension, a
+ * closed app, or the last shown app.
+ */
+export function hideApp(ds: ClassicyStore, appId: string) {
+	const app = ownApp(ds, appId);
+	if (!app?.open || app.extension === true || app.hidden === true) return;
+	const successor = pickShownSuccessorApp(ds, appId);
+	if (!successor) return;
+	app.hidden = true;
+	if (app.focused) focusApp(ds, successor);
+}
+
+/**
+ * Hides every open app but `appId` (Hide Others), which takes the menu bar
+ * when it did not hold it.
+ */
+export function hideOtherApps(ds: ClassicyStore, appId: string) {
+	const app = ownApp(ds, appId);
+	if (!app?.open || app.extension === true) return;
+	if (!app.focused) focusApp(ds, appId);
+	for (const other of applicationMenuApps(ds))
+		if (other.id !== appId) other.hidden = true;
+}
+
+/** Shows every hidden app (Show All); the menu bar stays where it is. */
+export function showAllApps(ds: ClassicyStore) {
+	for (const app of Object.values(ds.System.Manager.Applications.apps))
+		if (app.hidden) app.hidden = false;
+}
+
 export function openApp(
 	ds: ClassicyStore,
 	appId: string,
 	appName: string,
 	appIcon: string,
 ) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (findApp) {
 		findApp.open = true;
 		for (const w of listAppWindows(findApp)) {
@@ -153,7 +245,7 @@ export function openApp(
 			w.closedThisSession = false;
 		}
 		focusApp(ds, appId);
-	} else {
+	} else if (isAssignableAppId(appId)) {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
@@ -173,8 +265,9 @@ export function loadApp(
 	contextMenu?: ClassicyMenuItem[],
 	extension?: boolean,
 ) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (!findApp) {
+		if (!isAssignableAppId(appId)) return;
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
 			name: appName,
@@ -213,10 +306,11 @@ export function loadApp(
 }
 
 export function closeApp(ds: ClassicyStore, appId: string) {
-	const findApp = ds.System.Manager.Applications.apps[appId];
+	const findApp = ownApp(ds, appId);
 	if (findApp) {
 		findApp.open = false;
 		findApp.focused = false;
+		delete findApp.hidden;
 		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
 		}

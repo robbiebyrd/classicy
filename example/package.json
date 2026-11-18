@@ -17,6 +17,7 @@
 	},
 	"dependencies": {
 		"@classicy/appearance-platinum": "workspace:*",
+		"@classicy/appearance-system7": "workspace:*",
 		"@classicy/classicy": "workspace:*",
 		"dompurify": "^3.4.0",
 		"react": "^19.1.0",

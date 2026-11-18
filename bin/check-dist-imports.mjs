@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Thirteen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-14: number 12 moved to the
+// Fourteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-15: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -131,6 +131,14 @@
 //    in an Appearance Package (plan 0016-vbq): no dist/*.js or dist/*.css
 //    carries a `classicySaver*` keyframe or class, and invariant 5 also
 //    covers the savers' images (src/screenSavers/**) as files or inlined.
+//
+// 15. EVERY STYLESHEET KEEPS TO THE BROWSER FLOOR'S CSS MATH (Chrome 120,
+//    Safari 16.2, Firefox 113). A declaration calling `round()` or another
+//    function the floor lacks is dropped whole there, so each one needs a
+//    fallback: an earlier declaration of its property that calls none, or an
+//    enclosing `@supports` testing it (bin/classicyCssFloor.ts). The slider's
+//    rounded ghost shipped without one and lost its position on Chrome
+//    120-124 and Firefox 113-117.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -140,6 +148,7 @@ import {
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
 import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import { findClassicyCssFloorProblems } from "./classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
 import {
 	CLASSICY_PACKAGE_ASSET_FOLDERS,
@@ -627,6 +636,32 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	else
 		console.log(
 			`screen savers: no classicySaver name in ${files.length} bundle(s) or stylesheet(s)`,
+		);
+}
+
+// Invariant 15: the browser floor's CSS math, in each stylesheet (the named
+// .css files, in named mode).
+{
+	const named = argv.slice(2);
+	const cssFiles = named.length
+		? named.filter((f) => f.endsWith(".css"))
+		: (await readdir(DIST))
+				.filter((f) => f.endsWith(".css"))
+				.sort()
+				.map((f) => join(DIST, f));
+	let clean = 0;
+	for (const file of cssFiles) {
+		const problems = findClassicyCssFloorProblems(
+			file,
+			await readFile(file, "utf8"),
+		);
+		for (const problem of problems) console.error(problem);
+		if (problems.length) failed = true;
+		else clean++;
+	}
+	if (clean === cssFiles.length)
+		console.log(
+			`browser floor: ${clean} .css file(s), every newer CSS math function with a fallback`,
 		);
 }
 

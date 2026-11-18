@@ -3,10 +3,10 @@ import {
 	type ClassicyAppIdentityOverrides,
 	classicyAppIdentityFrom,
 } from "@/Appearance/ClassicyAppIdentity";
-import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { classicyDerivedFolderReservedNames } from "@/SystemFolder/SystemResources/File/ClassicyDerivedFolderPlaceholders.internal";
 import { classicyDerivedAppEntryNames } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
+import { classicyCoreIcon } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemCoreIcon.internal";
 import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
@@ -35,7 +35,7 @@ export const buildExtensionsFolder = (
 ): ClassicyFileSystemEntry => {
 	const folder: ClassicyFileSystemEntry = {
 		_type: ClassicyFileSystemEntryFileType.Directory,
-		_icon: ClassicyIcons.system.folders.extensions,
+		_icon: classicyCoreIcon("system.folders.extensions"),
 		_readOnly: true,
 	};
 

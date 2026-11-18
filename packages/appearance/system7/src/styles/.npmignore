@@ -1,0 +1,10 @@
+# Published with the package (package.json "files": "src/styles"), minus the
+# tests that sit beside the stylesheets. npm and pnpm both honor a nested
+# .npmignore inside a "files" directory (a "!" pattern in "files" itself is
+# ignored by pnpm 10). System7PackageExports.test.ts checks what both
+# packers really pack.
+*.test.*
+# The screen savers' partial loads Platinum's saver index from Platinum's
+# source by a workspace path, which no tarball holds, so no host could
+# compile it (system7.scss, which loads it, ships compiled; the README).
+_screenSavers.scss

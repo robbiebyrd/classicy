@@ -19,6 +19,7 @@ import {
 const attributes = {
 	"data-classicy-control": [],
 	"data-classicy-role": [],
+	"data-classicy-selection": [],
 	"data-classicy-part": [],
 };
 
@@ -37,6 +38,17 @@ describe("generateVocabulary", () => {
 		);
 		expect(ts).toContain('Button: "classicyButton"');
 		expect(ts.startsWith("// generated — do not edit")).toBe(true);
+	});
+
+	it("emits CLASSICY_PART_ATTRIBUTE with every part attribute's name", () => {
+		const { ts } = generateVocabulary(sameInput);
+		for (const [key, name] of [
+			["control", "data-classicy-control"],
+			["role", "data-classicy-role"],
+			["selection", "data-classicy-selection"],
+			["part", "data-classicy-part"],
+		])
+			expect(ts).toContain(`\t${key}: "${name}",\n`);
 	});
 
 	it("emits $classicy-states and classicy-state()", () => {

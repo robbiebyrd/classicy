@@ -25,10 +25,11 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob, the 84 knobs a base stylesheet (`classicy.base`)
- * or component code reads ("Structural: yes", AGENT-REFERENCE §8). The 11
- * look-only knobs, read only by Platinum's own partials, are Platinum's and
- * stay in its `platinum.json`. Frozen all the way down.
+ * and every structural knob, the 85 knobs a base stylesheet (`classicy.base`),
+ * component code or the SCSS vocabulary (`dither.tileSize`) reads
+ * ("Structural: yes", AGENT-REFERENCE §8). The 11 look-only knobs, read only
+ * by Platinum's own partials, are Platinum's and stay in its
+ * `platinum.json`. Frozen all the way down.
  */
 export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasurements> =
 	deepFreeze({
@@ -151,6 +152,8 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		menu: { popUpMaxHeight: 300 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
+		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.
+		dither: { tileSize: 0 },
 	});
 
 /**

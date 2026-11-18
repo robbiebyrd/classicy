@@ -113,6 +113,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 
 import "../../../index.css";
 
@@ -185,6 +186,9 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const { showContextMenu } = useClassicyContextualMenu();
 	const rafIdRef = useRef<number | null>(null);
 	const desktopRef = useRef<HTMLDivElement>(null);
+	// The elements a package lays a pattern in from a fixed origin
+	// (`layout.patternOrigin.elements`): those outside every window.
+	useClassicyPatternOriginElements(desktopRef);
 	const typePrefixRef = useRef<string>("");
 	const typePrefixTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

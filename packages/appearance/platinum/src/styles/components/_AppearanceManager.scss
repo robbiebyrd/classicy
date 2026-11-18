@@ -1,0 +1,14 @@
+// The Platinum look of the Appearance Manager's own parts (from
+// ClassicyAppearanceManager.scss): the Desktop tab's preview, its picture or
+// its None swatch alike, sits in Platinum's recessed content frame (the
+// window's content well, HIGOS8 p.41: a 1 px border etched into the face),
+// so a None swatch whose desktop color matches the panel still shows its
+// edge.
+@use "../mixins";
+
+@mixin appearanceManager {
+  .classicyAppearanceManagerDesktopPreview {
+    box-sizing: border-box;
+    @include mixins.platinum-window-inner-border;
+  }
+}

@@ -1,0 +1,1124 @@
+{
+	"id": "system7",
+	"name": "System 7",
+	"defaults": {
+		"id": "system7",
+		"name": "System 7",
+		"package": "system7",
+		"assetVariant": "bw",
+		"color": {
+			"outline": 0,
+			"select": 0,
+			"highlight": 0,
+			"window": {
+				"border": 0,
+				"borderOutset": 0,
+				"borderInset": 16777215,
+				"frame": 16777215,
+				"title": 0,
+				"document": 16777215
+			},
+			"black": 0,
+			"white": 16777215,
+			"alert": 0,
+			"error": 0,
+			"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
+			"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0],
+			"families": {
+				"outlineTriangle": {
+					"checker": 16777215
+				},
+				"controlStrip": {
+					"face": 16777215,
+					"darkEdge": 0,
+					"shadow": 0,
+					"pressedFace": 16777215,
+					"pressedGlyphInk": 16777215,
+					"pressedGlyphLight": 0,
+					"pressedGlyphDark": 0
+				}
+			}
+		},
+		"sound": {
+			"pack": "system7",
+			"disabled": []
+		},
+		"typography": {
+			"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+			"uiSize": 12,
+			"uiSmall": "\"Geneva\", sans-serif",
+			"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+			"headerSize": 12,
+			"body": "\"Geneva\", sans-serif",
+			"bodySize": 9,
+			"mono": "\"Monaco\", monospace",
+			"monoSize": 12,
+			"digital": "\"Monaco\", monospace",
+			"digitalSize": 12
+		},
+		"measurements": {
+			"window": {
+				"borderSize": 1,
+				"controlSize": 11,
+				"paddingSize": 6,
+				"scrollbarSize": 16,
+				"titleBarHeight": 19,
+				"utilityTitleBarHeight": 13
+			},
+			"control": {
+				"height": 20,
+				"labelGap": 5,
+				"staticTextHeight": 16
+			},
+			"button": {
+				"minWidth": 60,
+				"textPadding": 8,
+				"gap": 12
+			},
+			"groupBox": {
+				"marginSide": 10,
+				"marginTop": 12,
+				"marginBottom": 10,
+				"titlePad": 3,
+				"gap": 12
+			},
+			"layout": {
+				"itemGap": 4,
+				"groupGap": 16,
+				"dialogEdge": 12
+			},
+			"dither": {
+				"tileSize": 2
+			},
+			"titleBar": {
+				"stripeInset": 1,
+				"boxMargin": 8,
+				"boxGap": 1,
+				"titleGap": 6,
+				"titleTop": 2,
+				"modalStripeInset": 2
+			},
+			"box": {
+				"pixel": 1,
+				"bevel": 0,
+				"zoomGlyph": 7
+			},
+			"growBox": {
+				"smallOffset": 2,
+				"smallSize": 7,
+				"largeOffset": 4,
+				"largeSize": 9,
+				"windoidOffset": 1,
+				"windoidSize": 3
+			},
+			"utilityTitleBar": {
+				"boxMargin": 3,
+				"dotInset": 3,
+				"textureWidth": 3,
+				"textureHeight": 3
+			},
+			"menuBar": {
+				"bandHeight": 20,
+				"inset": 9,
+				"endInset": 6,
+				"titlePadding": 10,
+				"titleOverlap": 5,
+				"highlightTop": 1,
+				"lineHeight": 16,
+				"titleArtSize": 16,
+				"appleTitleStart": 6,
+				"appleTitleEnd": 7,
+				"helpTitleStart": 8,
+				"helpTitleEnd": 9,
+				"helpTitleDrop": 1,
+				"switcherTitleStart": 9,
+				"switcherTitleEnd": 9,
+				"clockEnd": 1,
+				"titleArtInvert": 1
+			},
+			"uiText": {
+				"smallFontSize": 9
+			},
+			"menuFrame": {
+				"shadowStart": 2,
+				"submenuOverlap": 5
+			},
+			"menuItem": {
+				"height": 16,
+				"lineHeight": 14,
+				"textInset": 14,
+				"textEnd": 14,
+				"markInset": 3,
+				"markTop": 4,
+				"shortcutWidth": 22,
+				"arrowInset": 8,
+				"arrowTop": 2,
+				"dividerTop": 8,
+				"imageSize": 16,
+				"imagePad": 1,
+				"imageGap": 4,
+				"hiddenIconOpacity": 100,
+				"hiddenIconOpacityScale": 100
+			},
+			"popUpMenu": {
+				"height": 18,
+				"arrowTop": 5,
+				"arrowInset": 5,
+				"valueIconTop": 0,
+				"valueIconGap": 3,
+				"valueIconInset": 3
+			},
+			"dialogFrame": {
+				"bevel": 0,
+				"band": 2,
+				"line": 2,
+				"inset": 13
+			},
+			"dialog": {
+				"alertMaxWidth": 324
+			},
+			"alertLayout": {
+				"iconTop": 13,
+				"iconInset": 23,
+				"textTop": 12,
+				"textGap": 21,
+				"edge": 13,
+				"lineHeight": 16,
+				"otherButtonInset": 73
+			},
+			"pushButton": {
+				"lineHeight": 16,
+				"textLift": 2,
+				"labelShift": 0.5
+			},
+			"headerStrip": {
+				"height": 17,
+				"rule": 3,
+				"titleDrop": 1,
+				"underlineTop": 12,
+				"underline": 1
+			},
+			"checkBox": {
+				"size": 12,
+				"labelGap": 4
+			},
+			"radioButton": {
+				"size": 12
+			},
+			"littleArrows": {
+				"width": 11,
+				"height": 18,
+				"gap": 5
+			},
+			"textField": {
+				"inset": 3,
+				"lift": 2
+			},
+			"listBox": {
+				"rowHeight": 16,
+				"textLift": 1
+			},
+			"comboBox": {
+				"indicatorWidth": 20
+			},
+			"outlineTriangle": {
+				"size": 11
+			},
+			"channelSlider": {
+				"channel": 13,
+				"thumbAlong": 11,
+				"thumbAcross": 23,
+				"thumbOverhang": 5,
+				"thumbStop": 5
+			},
+			"scrollBar": {
+				"boxLength": 16,
+				"bevel": 0,
+				"arrowSpread": 1,
+				"grip": 0,
+				"snapBack": 24
+			},
+			"controlStrip": {
+				"bevelWidth": 1,
+				"shadowStart": 1
+			},
+			"iconLabel": {
+				"height": 12,
+				"pad": 2,
+				"textTop": 2
+			},
+			"iconSelection": {
+				"invert": 1
+			},
+			"desktopIconGrid": {
+				"rowGap": 20,
+				"top": 28
+			},
+			"fileBrowserList": {
+				"mediumIconSize": 16,
+				"rowPadding": 1,
+				"disclosureWidth": 15,
+				"disclosureTop": 4,
+				"iconStart": 7,
+				"iconEnd": 10,
+				"titleInset": 1
+			},
+			"fileDialog": {
+				"width": 355,
+				"height": 195,
+				"popUpTop": 9,
+				"popUpTail": 5,
+				"volumeLeft": 237,
+				"volumeTop": 9,
+				"volumeGap": 3,
+				"volumeIconDrop": 2,
+				"volumeLineHeight": 18,
+				"volumeCondense": 1,
+				"popUpContentDrop": 1,
+				"listLeft": 15,
+				"listTop": 32,
+				"listWidth": 218,
+				"listHeight": 128,
+				"listRowHeight": 18,
+				"listRowInset": 2,
+				"listIconGap": 4,
+				"filterLeft": 15,
+				"filterTop": 165,
+				"buttonsLeft": 252,
+				"buttonWidth": 80,
+				"ejectTop": 35,
+				"desktopTop": 63,
+				"dividerLeft": 251,
+				"dividerTop": 94,
+				"dividerWidth": 82,
+				"cancelTop": 107,
+				"openTop": 138,
+				"saveWidth": 358,
+				"saveHeight": 252,
+				"savePopUpTop": 9,
+				"savePopUpTail": 5,
+				"saveVolumeLeft": 238,
+				"saveVolumeTop": 9,
+				"saveListLeft": 15,
+				"saveListTop": 32,
+				"saveListWidth": 218,
+				"saveListHeight": 146,
+				"saveNameTop": 191,
+				"saveNameWidth": 202,
+				"saveNameGap": 3,
+				"saveFilterLeft": 235,
+				"saveFilterTop": 209,
+				"saveButtonsLeft": 255,
+				"saveEjectTop": 35,
+				"saveDesktopTop": 63,
+				"saveNewTop": 90,
+				"newGlyphGap": 11,
+				"newGlyphRaise": 1,
+				"saveDividerLeft": 253,
+				"saveDividerTop": 120,
+				"saveDividerWidth": 84,
+				"saveCancelTop": 133,
+				"saveOpenTop": 164
+			}
+		},
+		"desktop": {
+			"iconSize": 32,
+			"iconFontSize": 9,
+			"backgroundImage": "desktop-gray-bw.png",
+			"backgroundColor": 16777215,
+			"backgroundRepeat": "repeat",
+			"backgroundPosition": "top left",
+			"backgroundSize": "auto"
+		}
+	},
+	"presets": [
+		{
+			"id": "system7",
+			"name": "System 7",
+			"package": "system7",
+			"assetVariant": "bw",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 0,
+					"borderInset": 16777215,
+					"frame": 16777215,
+					"title": 0,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 0,
+				"error": 0,
+				"system": [16777215, 16777215, 16777215, 16777215, 0, 0, 0],
+				"theme": [16777215, 16777215, 16777215, 0, 0, 0, 0],
+				"families": {
+					"outlineTriangle": {
+						"checker": 16777215
+					},
+					"controlStrip": {
+						"face": 16777215,
+						"darkEdge": 0,
+						"shadow": 0,
+						"pressedFace": 16777215,
+						"pressedGlyphInk": 16777215,
+						"pressedGlyphLight": 0,
+						"pressedGlyphDark": 0
+					}
+				}
+			},
+			"sound": {
+				"pack": "system7",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
+				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"headerSize": 12,
+				"body": "\"Geneva\", sans-serif",
+				"bodySize": 9,
+				"mono": "\"Monaco\", monospace",
+				"monoSize": 12,
+				"digital": "\"Monaco\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 11,
+					"paddingSize": 6,
+					"scrollbarSize": 16,
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 60,
+					"textPadding": 8,
+					"gap": 12
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 16,
+					"dialogEdge": 12
+				},
+				"dither": {
+					"tileSize": 2
+				},
+				"titleBar": {
+					"stripeInset": 1,
+					"boxMargin": 8,
+					"boxGap": 1,
+					"titleGap": 6,
+					"titleTop": 2,
+					"modalStripeInset": 2
+				},
+				"box": {
+					"pixel": 1,
+					"bevel": 0,
+					"zoomGlyph": 7
+				},
+				"growBox": {
+					"smallOffset": 2,
+					"smallSize": 7,
+					"largeOffset": 4,
+					"largeSize": 9,
+					"windoidOffset": 1,
+					"windoidSize": 3
+				},
+				"utilityTitleBar": {
+					"boxMargin": 3,
+					"dotInset": 3,
+					"textureWidth": 3,
+					"textureHeight": 3
+				},
+				"menuBar": {
+					"bandHeight": 20,
+					"inset": 9,
+					"endInset": 6,
+					"titlePadding": 10,
+					"titleOverlap": 5,
+					"highlightTop": 1,
+					"lineHeight": 16,
+					"titleArtSize": 16,
+					"appleTitleStart": 6,
+					"appleTitleEnd": 7,
+					"helpTitleStart": 8,
+					"helpTitleEnd": 9,
+					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
+					"clockEnd": 1,
+					"titleArtInvert": 1
+				},
+				"uiText": {
+					"smallFontSize": 9
+				},
+				"menuFrame": {
+					"shadowStart": 2,
+					"submenuOverlap": 5
+				},
+				"menuItem": {
+					"height": 16,
+					"lineHeight": 14,
+					"textInset": 14,
+					"textEnd": 14,
+					"markInset": 3,
+					"markTop": 4,
+					"shortcutWidth": 22,
+					"arrowInset": 8,
+					"arrowTop": 2,
+					"dividerTop": 8,
+					"imageSize": 16,
+					"imagePad": 1,
+					"imageGap": 4,
+					"hiddenIconOpacity": 100,
+					"hiddenIconOpacityScale": 100
+				},
+				"popUpMenu": {
+					"height": 18,
+					"arrowTop": 5,
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 3,
+					"valueIconInset": 3
+				},
+				"dialogFrame": {
+					"bevel": 0,
+					"band": 2,
+					"line": 2,
+					"inset": 13
+				},
+				"dialog": {
+					"alertMaxWidth": 324
+				},
+				"alertLayout": {
+					"iconTop": 13,
+					"iconInset": 23,
+					"textTop": 12,
+					"textGap": 21,
+					"edge": 13,
+					"lineHeight": 16,
+					"otherButtonInset": 73
+				},
+				"pushButton": {
+					"lineHeight": 16,
+					"textLift": 2,
+					"labelShift": 0.5
+				},
+				"headerStrip": {
+					"height": 17,
+					"rule": 3,
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
+				},
+				"checkBox": {
+					"size": 12,
+					"labelGap": 4
+				},
+				"radioButton": {
+					"size": 12
+				},
+				"littleArrows": {
+					"width": 11,
+					"height": 18,
+					"gap": 5
+				},
+				"textField": {
+					"inset": 3,
+					"lift": 2
+				},
+				"listBox": {
+					"rowHeight": 16,
+					"textLift": 1
+				},
+				"comboBox": {
+					"indicatorWidth": 20
+				},
+				"outlineTriangle": {
+					"size": 11
+				},
+				"channelSlider": {
+					"channel": 13,
+					"thumbAlong": 11,
+					"thumbAcross": 23,
+					"thumbOverhang": 5,
+					"thumbStop": 5
+				},
+				"scrollBar": {
+					"boxLength": 16,
+					"bevel": 0,
+					"arrowSpread": 1,
+					"grip": 0,
+					"snapBack": 24
+				},
+				"controlStrip": {
+					"bevelWidth": 1,
+					"shadowStart": 1
+				},
+				"iconLabel": {
+					"height": 12,
+					"pad": 2,
+					"textTop": 2
+				},
+				"iconSelection": {
+					"invert": 1
+				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
+				},
+				"fileBrowserList": {
+					"mediumIconSize": 16,
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10,
+					"titleInset": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpTop": 9,
+					"popUpTail": 5,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 3,
+					"volumeIconDrop": 2,
+					"volumeLineHeight": 18,
+					"volumeCondense": 1,
+					"popUpContentDrop": 1,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerLeft": 251,
+					"dividerTop": 94,
+					"dividerWidth": 82,
+					"cancelTop": 107,
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"savePopUpTail": 5,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 3,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"newGlyphGap": 11,
+					"newGlyphRaise": 1,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 9,
+				"backgroundImage": "desktop-gray-bw.png",
+				"backgroundColor": 16777215,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "top left",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "system7-color",
+			"name": "System 7 Color",
+			"package": "system7",
+			"color": {
+				"outline": 0,
+				"select": 0,
+				"highlight": 0,
+				"window": {
+					"border": 0,
+					"borderOutset": 13421823,
+					"borderInset": 10066380,
+					"frame": 16777215,
+					"title": 0,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					14540253, 12303291, 12303291, 11184810, 8947848, 7829367, 5592405
+				],
+				"theme": [
+					15658734, 13421823, 10066380, 6710937, 3355443, 8947848, 3355494
+				],
+				"families": {
+					"outlineTriangle": {
+						"checker": 10066431
+					},
+					"controlStrip": {
+						"face": 13421772,
+						"darkEdge": 4473924,
+						"shadow": 11184810,
+						"pressedFace": 8947848,
+						"pressedGlyphInk": 0,
+						"pressedGlyphLight": 7829367,
+						"pressedGlyphDark": 2236962
+					}
+				}
+			},
+			"sound": {
+				"pack": "system7",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"uiSize": 12,
+				"uiSmall": "\"Geneva\", sans-serif",
+				"header": "\"ChicagoFLF\", \"Geneva\", sans-serif",
+				"headerSize": 12,
+				"body": "\"Geneva\", sans-serif",
+				"bodySize": 9,
+				"mono": "\"Monaco\", monospace",
+				"monoSize": 12,
+				"digital": "\"Monaco\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 11,
+					"paddingSize": 6,
+					"scrollbarSize": 16,
+					"titleBarHeight": 19,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 60,
+					"textPadding": 8,
+					"gap": 12
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 16,
+					"dialogEdge": 12
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"titleBar": {
+					"stripeInset": 1,
+					"boxMargin": 8,
+					"boxGap": 1,
+					"titleGap": 6,
+					"titleTop": 2,
+					"modalStripeInset": 2
+				},
+				"box": {
+					"pixel": 1,
+					"bevel": 1,
+					"zoomGlyph": 7
+				},
+				"growBox": {
+					"smallOffset": 2,
+					"smallSize": 6,
+					"largeOffset": 3,
+					"largeSize": 9,
+					"windoidOffset": 1,
+					"windoidSize": 3
+				},
+				"utilityTitleBar": {
+					"boxMargin": 3,
+					"dotInset": 3,
+					"textureWidth": 3,
+					"textureHeight": 3
+				},
+				"menuBar": {
+					"bandHeight": 20,
+					"inset": 9,
+					"endInset": 6,
+					"titlePadding": 10,
+					"titleOverlap": 5,
+					"highlightTop": 1,
+					"lineHeight": 16,
+					"titleArtSize": 16,
+					"appleTitleStart": 6,
+					"appleTitleEnd": 7,
+					"helpTitleStart": 8,
+					"helpTitleEnd": 9,
+					"helpTitleDrop": 1,
+					"switcherTitleStart": 9,
+					"switcherTitleEnd": 9,
+					"clockEnd": 1,
+					"titleArtInvert": 0
+				},
+				"uiText": {
+					"smallFontSize": 9
+				},
+				"menuFrame": {
+					"shadowStart": 2,
+					"submenuOverlap": 5
+				},
+				"menuItem": {
+					"height": 16,
+					"lineHeight": 14,
+					"textInset": 14,
+					"textEnd": 14,
+					"markInset": 3,
+					"markTop": 4,
+					"shortcutWidth": 22,
+					"arrowInset": 8,
+					"arrowTop": 2,
+					"dividerTop": 8,
+					"imageSize": 16,
+					"imagePad": 1,
+					"imageGap": 4,
+					"hiddenIconOpacity": 53,
+					"hiddenIconOpacityScale": 100
+				},
+				"popUpMenu": {
+					"height": 18,
+					"arrowTop": 5,
+					"arrowInset": 5,
+					"valueIconTop": 0,
+					"valueIconGap": 3,
+					"valueIconInset": 3
+				},
+				"dialogFrame": {
+					"bevel": 1,
+					"band": 1,
+					"line": 1,
+					"inset": 13
+				},
+				"dialog": {
+					"alertMaxWidth": 324
+				},
+				"alertLayout": {
+					"iconTop": 13,
+					"iconInset": 23,
+					"textTop": 12,
+					"textGap": 21,
+					"edge": 13,
+					"lineHeight": 16,
+					"otherButtonInset": 73
+				},
+				"pushButton": {
+					"lineHeight": 16,
+					"textLift": 2,
+					"labelShift": 0.5
+				},
+				"headerStrip": {
+					"height": 17,
+					"rule": 3,
+					"titleDrop": 1,
+					"underlineTop": 12,
+					"underline": 1
+				},
+				"checkBox": {
+					"size": 12,
+					"labelGap": 4
+				},
+				"radioButton": {
+					"size": 12
+				},
+				"littleArrows": {
+					"width": 11,
+					"height": 18,
+					"gap": 5
+				},
+				"textField": {
+					"inset": 3,
+					"lift": 2
+				},
+				"listBox": {
+					"rowHeight": 16,
+					"textLift": 1
+				},
+				"comboBox": {
+					"indicatorWidth": 20
+				},
+				"outlineTriangle": {
+					"size": 11
+				},
+				"channelSlider": {
+					"channel": 13,
+					"thumbAlong": 11,
+					"thumbAcross": 23,
+					"thumbOverhang": 5,
+					"thumbStop": 5
+				},
+				"scrollBar": {
+					"boxLength": 16,
+					"bevel": 1,
+					"arrowSpread": 0,
+					"grip": 6,
+					"snapBack": 24
+				},
+				"controlStrip": {
+					"bevelWidth": 1,
+					"shadowStart": 2
+				},
+				"iconLabel": {
+					"height": 12,
+					"pad": 2,
+					"textTop": 2
+				},
+				"iconSelection": {
+					"invert": 0
+				},
+				"desktopIconGrid": {
+					"rowGap": 20,
+					"top": 28
+				},
+				"fileBrowserList": {
+					"mediumIconSize": 16,
+					"rowPadding": 1,
+					"disclosureWidth": 15,
+					"disclosureTop": 4,
+					"iconStart": 7,
+					"iconEnd": 10,
+					"titleInset": 1
+				},
+				"fileDialog": {
+					"width": 355,
+					"height": 195,
+					"popUpTop": 9,
+					"popUpTail": 5,
+					"volumeLeft": 237,
+					"volumeTop": 9,
+					"volumeGap": 3,
+					"volumeIconDrop": 2,
+					"volumeLineHeight": 18,
+					"volumeCondense": 1,
+					"popUpContentDrop": 1,
+					"listLeft": 15,
+					"listTop": 32,
+					"listWidth": 218,
+					"listHeight": 128,
+					"listRowHeight": 18,
+					"listRowInset": 2,
+					"listIconGap": 4,
+					"filterLeft": 15,
+					"filterTop": 165,
+					"buttonsLeft": 252,
+					"buttonWidth": 80,
+					"ejectTop": 35,
+					"desktopTop": 63,
+					"dividerLeft": 251,
+					"dividerTop": 94,
+					"dividerWidth": 82,
+					"cancelTop": 107,
+					"openTop": 138,
+					"saveWidth": 358,
+					"saveHeight": 252,
+					"savePopUpTop": 9,
+					"savePopUpTail": 5,
+					"saveVolumeLeft": 238,
+					"saveVolumeTop": 9,
+					"saveListLeft": 15,
+					"saveListTop": 32,
+					"saveListWidth": 218,
+					"saveListHeight": 146,
+					"saveNameTop": 191,
+					"saveNameWidth": 202,
+					"saveNameGap": 3,
+					"saveFilterLeft": 235,
+					"saveFilterTop": 209,
+					"saveButtonsLeft": 255,
+					"saveEjectTop": 35,
+					"saveDesktopTop": 63,
+					"saveNewTop": 90,
+					"newGlyphGap": 11,
+					"newGlyphRaise": 1,
+					"saveDividerLeft": 253,
+					"saveDividerTop": 120,
+					"saveDividerWidth": 84,
+					"saveCancelTop": 133,
+					"saveOpenTop": 164
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 9,
+				"backgroundImage": "desktop-gray.png",
+				"backgroundColor": 11184810,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "top left",
+				"backgroundSize": "auto"
+			}
+		}
+	],
+	"layout": {
+		"window": {
+			"growBoxCorner": "bottom-right",
+			"centering": "wholePixel"
+		},
+		"menuBar": {
+			"placement": "screen"
+		},
+		"desktop": {
+			"iconGridOrigin": "top-right"
+		},
+		"scrollBar": {
+			"thumbDrag": "onRelease",
+			"fitsBars": "shown",
+			"patternOrigin": "window"
+		},
+		"patternOrigin": {
+			"ControlGroup": "window",
+			"PopUpMenu": "window",
+			"Separator": "window",
+			"Slider": "window",
+			"elements": [
+				{ "selector": ".classicyMenuItem.disabled > p", "origin": "window" },
+				{ "selector": ".classicyMenuItem.disabled > kbd", "origin": "window" },
+				{
+					"selector": ".classicyDesktopMenuAppHidden > p > img",
+					"origin": "window"
+				},
+				{ "selector": ".classicyPopUpMenuGroupHeader", "origin": "window" },
+				{
+					"selector": ".classicyPopUpMenuButton.disabled .classicyPopUpMenuValue",
+					"origin": "window"
+				},
+				{ "selector": ".classicyButton:disabled", "origin": "window" },
+				{ "selector": ".classicyControlLabel.disabled", "origin": "window" },
+				{ "selector": ".classicyLink.disabled", "origin": "window" },
+				{ "selector": ".classicyCheckbox.mixed:disabled", "origin": "window" },
+				{
+					"selector": ".classicyRadioInputWrapper.disabled .classicyRadioInput",
+					"origin": "window"
+				},
+				{ "selector": ".classicyLittleArrows", "origin": "window" },
+				{
+					"selector": ".classicyLittleArrowsButton:disabled",
+					"origin": "window"
+				},
+				{ "selector": ".classicyInput:disabled", "origin": "window" },
+				{ "selector": ".classicySpinner:disabled", "origin": "window" },
+				{
+					"selector": ".classicyComboBoxIndicator:disabled",
+					"origin": "window"
+				},
+				{ "selector": ".classicyComboBoxNoMatches", "origin": "window" },
+				{
+					"selector": ".classicyListBox.disabled .classicyListBoxOptionLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyListBoxOption.disabled .classicyListBoxOptionLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeLabel",
+					"origin": "window"
+				},
+				{
+					"selector": ".classicyTreeNodeLabelHolder.disabled .classicyTreeNodeIcon",
+					"origin": "window"
+				},
+				{ "selector": ".classicyFileOpenDialogDivider", "origin": "window" },
+				{ "selector": ".classicyBevelButton.disabled", "origin": "window" },
+				{ "selector": ".classicyPlacard.disabled", "origin": "window" },
+				{ "selector": ".classicyImageWell.disabled", "origin": "window" },
+				{
+					"selector": ".classicyTabScrollButton:disabled .classicyTabScrollGlyph",
+					"origin": "window"
+				}
+			]
+		},
+		"fileDialog": {
+			"frame": "fixed",
+			"navigation": "flat",
+			"saveName": "selected"
+		},
+		"fileBrowser": {
+			"listColumnTitles": "aboveList"
+		}
+	},
+	"knobs": {},
+	"colorFamilies": {
+		"outlineTriangle": {
+			"label": "Disclosure Triangle",
+			"colors": {
+				"checker": {
+					"label": "Checker"
+				}
+			}
+		},
+		"controlStrip": {
+			"label": "Control Strip",
+			"colors": {
+				"face": {
+					"label": "Face"
+				},
+				"darkEdge": {
+					"label": "Dark Edge"
+				},
+				"shadow": {
+					"label": "Shadow"
+				},
+				"pressedFace": {
+					"label": "Pressed Face"
+				},
+				"pressedGlyphInk": {
+					"label": "Pressed Glyph Ink"
+				},
+				"pressedGlyphLight": {
+					"label": "Pressed Glyph Light"
+				},
+				"pressedGlyphDark": {
+					"label": "Pressed Glyph Dark"
+				}
+			}
+		}
+	}
+}

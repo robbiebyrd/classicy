@@ -22,13 +22,15 @@ import {
 	focusApp,
 	focusWindow,
 	getDefaultAppForFileType,
+	hideApp,
+	hideOtherApps,
 	loadApp,
 	openApp,
 	pickSuccessorApp,
+	showAllApps,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 import { classicyDateTimeManagerEventHandler } from "@/SystemFolder/ControlPanels/DateAndTimeManager/ClassicyDateAndTimeEventHandler";
-import { DEFAULT_ALERT_SOUND } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import type { ClassicyStoreSystemSoundManager } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import {
 	type ClassicyStoreSystemBootManager,
@@ -75,6 +77,12 @@ export interface ClassicyStoreSystemApp {
 	lastAccessedWindowId?: string;
 	noDesktopIcon?: boolean;
 	extension?: boolean;
+	/**
+	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
+	 * stays open, its windows out of sight, until Show All or until it takes
+	 * focus again (`focusApp` shows it). Never set on an extension.
+	 */
+	hidden?: boolean;
 	debug?: boolean;
 	options?: Record<string, unknown>[];
 	appMenu?: ClassicyMenuItem[];
@@ -188,8 +196,11 @@ export {
 	focusApp,
 	focusWindow,
 	getDefaultAppForFileType,
+	hideApp,
+	hideOtherApps,
 	loadApp,
 	openApp,
+	showAllApps,
 };
 
 export type ActionMessage = Record<string, unknown> & {
@@ -340,6 +351,23 @@ export const classicyAppEventHandler = (
 			if (hasApp(action)) {
 				focusApp(ds, action.app.id);
 			}
+			break;
+		}
+		// The Application menu's Hide <app>, Hide Others and Show All.
+		case "ClassicyAppHide": {
+			if (hasApp(action)) {
+				hideApp(ds, action.app.id);
+			}
+			break;
+		}
+		case "ClassicyAppHideOthers": {
+			if (hasApp(action)) {
+				hideOtherApps(ds, action.app.id);
+			}
+			break;
+		}
+		case "ClassicyAppShowAll": {
+			showAllApps(ds);
 			break;
 		}
 		case "ClassicyAppActivate": {
@@ -669,7 +697,6 @@ export const DefaultAppManagerState: ClassicyStore = {
 				// package's registration replaces it with its own "default".
 				activeTheme: CLASSICY_CORE_DEFAULT_THEME,
 				customThemes: [],
-				alertSound: DEFAULT_ALERT_SOUND,
 				// Alerts play at the full system volume until the user lowers it.
 				alertVolume: 100,
 				// Mac OS 8.0 shipped with Smart Scrolling on (arrows grouped at

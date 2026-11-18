@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ClassicyAssetKind } from "@/Appearance/ClassicyAssetRegistry";
 import { isClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import { CLASSICY_MEASUREMENT_NAME } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import { ClassicyPackageThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import { ClassicySoundPackSchema } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type {
@@ -10,7 +11,15 @@ import type {
 	ClassicyAppIdentityOverride,
 } from "./ClassicyAppearancePackage";
 
-/** The three arrangement groups; every group is required. */
+// A component's pattern origin (`patternOrigin`), every component's key
+// optional; another key is refused (CLASSICY_PATTERN_ORIGIN_COMPONENTS).
+const patternOrigin = z.enum(["element", "window", "desktop"]).optional();
+
+/**
+ * The three arrangement groups, every one required, and the optional
+ * behavior groups (`scrollBar`, `patternOrigin`, `slider`, `fileDialog`,
+ * `fileBrowser`), each key of which is optional too.
+ */
 export const ClassicyAppearanceLayoutSchema = z.object({
 	window: z.object({
 		growBoxCorner: z.enum([
@@ -19,6 +28,7 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			"top-right",
 			"top-left",
 		]),
+		centering: z.enum(["exact", "wholePixel"]).optional(),
 	}),
 	menuBar: z.object({ placement: z.enum(["screen", "window"]) }),
 	desktop: z.object({
@@ -29,6 +39,47 @@ export const ClassicyAppearanceLayoutSchema = z.object({
 			"bottom-left",
 		]),
 	}),
+	scrollBar: z
+		.object({
+			thumbDrag: z.enum(["live", "onRelease"]).optional(),
+			fitsBars: z.enum(["hidden", "shown"]).optional(),
+			patternOrigin: z.enum(["element", "window"]).optional(),
+		})
+		.optional(),
+	patternOrigin: z
+		.strictObject({
+			ControlGroup: patternOrigin,
+			PopUpMenu: patternOrigin,
+			Separator: patternOrigin,
+			Slider: patternOrigin,
+			elements: z
+				.array(
+					z.strictObject({
+						// Not parsed here: a selector newer than the browser
+						// would refuse the whole package; the core skips it.
+						selector: z.string().trim().min(1).max(1024),
+						origin: z.enum(["window", "desktop"]),
+					}),
+				)
+				.readonly()
+				.optional(),
+		})
+		.optional(),
+	slider: z
+		.object({ thumbDrag: z.enum(["live", "onRelease"]).optional() })
+		.optional(),
+	fileDialog: z
+		.object({
+			frame: z.enum(["movable", "fixed"]).optional(),
+			navigation: z.enum(["tree", "flat"]).optional(),
+			saveName: z.enum(["plain", "selected"]).optional(),
+		})
+		.optional(),
+	fileBrowser: z
+		.object({
+			listColumnTitles: z.enum(["inList", "aboveList"]).optional(),
+		})
+		.optional(),
 }) satisfies z.ZodType<ClassicyAppearanceLayout>;
 
 // Every ClassicyAssetKind, once. The `satisfies` and the check below fail the
@@ -70,6 +121,26 @@ const knob = z
 	.refine((k) => k.min <= k.default && k.default <= k.max, {
 		error: "must satisfy min <= default <= max",
 	});
+
+// A package color family's metadata (`colorFamilies`): names that become a
+// `--package-color-<family>-<key>` variable, and a label for each.
+const colorFamilyName = z
+	.string()
+	.regex(
+		CLASSICY_MEASUREMENT_NAME,
+		"must be a camelCase name starting with a lowercase letter",
+	)
+	.refine((name) => !["constructor", "prototype"].includes(name), {
+		error: "must not be constructor or prototype",
+	});
+const colorFamilyLabel = z.string().trim().min(1).max(64);
+const colorFamilies = z.record(
+	colorFamilyName,
+	z.object({
+		label: colorFamilyLabel,
+		colors: z.record(colorFamilyName, z.object({ label: colorFamilyLabel })),
+	}),
+);
 
 // Keys that would reach Object.prototype through a plain-object lookup. The
 // registry stores the package object as given (its `apps` as a frozen copy of
@@ -206,6 +277,37 @@ const appsWithoutForbiddenKeys = z.custom<z.input<typeof appsRecord>>(
  * `hooks` (code and compiled CSS, which no schema can vouch for). Unknown
  * keys, those three included, are stripped from the parsed output.
  */
+const dimmingColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "must be #RRGGBB");
+
+const iconDimmingRule = z
+	.object({
+		blend: z.object({
+			color: dimmingColor,
+			amount: z.number().min(0).max(1),
+		}),
+		bits: z.number().int().min(1).max(8).optional(),
+		palette: z.array(dimmingColor).min(1).max(256).optional(),
+	})
+	.strict();
+
+const iconDimming = z
+	.object({
+		hiddenApp: iconDimmingRule.optional(),
+		disabledItem: iconDimmingRule.optional(),
+		variants: z
+			.record(
+				z.string(),
+				z
+					.object({
+						hiddenApp: iconDimmingRule.nullable().optional(),
+						disabledItem: iconDimmingRule.nullable().optional(),
+					})
+					.strict(),
+			)
+			.optional(),
+	})
+	.strict();
+
 export const ClassicyAppearancePackageSchema = z
 	.object({
 		id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "must be a kebab-case id"),
@@ -222,6 +324,11 @@ export const ClassicyAppearancePackageSchema = z
 		defaults: ClassicyPackageThemeSchema,
 		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
+		colorFamilies: colorFamilies
+			.optional()
+			.describe(
+				"Labels for the package's own colors (defaults.color.families), which the Appearance Manager's Colors tab edits.",
+			),
 		layout: ClassicyAppearanceLayoutSchema,
 		assets: z.partialRecord(z.enum(ASSET_KINDS), assetTree).optional(),
 		sounds: z.array(ClassicySoundPackSchema).optional(),
@@ -238,11 +345,38 @@ export const ClassicyAppearancePackageSchema = z
 			.describe(
 				"Per-app display overrides keyed by app id (\"MoviePlayer.app\"): a name, icon or balloon description shown in place of the app's own. Display only; the app's id, action types and saved state keep its own identity.",
 			),
+		iconDimming: iconDimming
+			.optional()
+			.describe(
+				"How the package dims an icon per pixel (a hidden application's icon): blend each channel toward a color, keep the top bits of each, then take the nearest palette entry. Per asset variant, null declares none.",
+			),
 	})
 	// The defaults are the theme a switch to this package activates; one that
 	// names another package would make ChangeAppearancePackage re-clone it on
 	// every switch and leave the active theme claiming the wrong package.
 	// (Presets are not checked here: preset lists belong to part J.)
+	// Every declared color needs a value in the defaults: the Colors tab
+	// shows it, and themes are completed from it.
+	.check((ctx) => {
+		const families = ctx.value.defaults.color.families ?? {};
+		for (const [family, { colors }] of Object.entries(
+			ctx.value.colorFamilies ?? {},
+		)) {
+			for (const key of Object.keys(colors)) {
+				const values = Object.hasOwn(families, family)
+					? families[family]
+					: undefined;
+				if (!values || !Object.hasOwn(values, key)) {
+					ctx.issues.push({
+						code: "custom",
+						input: key,
+						path: ["colorFamilies", family, "colors", key],
+						message: `has no value in defaults.color.families.${family}`,
+					});
+				}
+			}
+		}
+	})
 	.check((ctx) => {
 		const { id, defaults } = ctx.value;
 		if (defaults.package !== id) {

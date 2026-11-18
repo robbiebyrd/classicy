@@ -271,6 +271,9 @@ export const MoviePlayer: FunctionalComponent = () => {
 					resizable={true}
 					zoomable={true}
 					scrollable={true}
+					// A movie is not a document the bars would scroll: no bars
+					// while it fits, whatever the package keeps.
+					fitsScrollBars={false}
 					collapsable={false}
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}

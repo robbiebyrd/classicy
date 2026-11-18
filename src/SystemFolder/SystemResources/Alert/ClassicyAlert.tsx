@@ -21,6 +21,7 @@ import {
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 /**
  * Alert severity: `note` (information), `caution` (an action with consequences
@@ -227,6 +228,15 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 		return fallback ?? resolvedButtons[resolvedButtons.length - 1];
 	}, [resolvedButtons, defaultButtonId]);
 
+	// What the button row holds, as classes on it, so a package can arrange a
+	// help button beside the others with plain class selectors (System 7
+	// pins it before Don't Save; `:has()` would leave out Firefox 113-120).
+	const hasHelpButton = resolvedButtons.some((b) => b.role === "help");
+	const hasOtherButton = resolvedButtons.some(
+		(b) =>
+			b.role !== "help" && alertButtonRole(b, defaultButton?.id) === "other",
+	);
+
 	const cancelButton = useMemo(
 		() => resolvedButtons.find((b) => b.role === "cancel"),
 		[resolvedButtons],
@@ -281,7 +291,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
-			className={className}
+			// The movable alert's red title bar is keyed on its window's class
+			// (no `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks).
+			className={classNames(movable && "classicyAlertMovableWindow", className)}
 			style={style}
 			appId={appId}
 			title={title}
@@ -299,67 +311,78 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			initialPosition={["center", "center"]}
 			analyticsExclude
 		>
-			<div
-				{...appearance.attrs}
-				ref={contentRef}
-				className={classNames(
-					"classicyAlert",
-					appearance.className,
-					movable ? "classicyAlertMovable" : "classicyAlertFixed",
-				)}
-				style={appearance.style}
-				role="alertdialog"
-				aria-modal="true"
-				aria-label={label}
-			>
-				<div className={"classicyAlertTop"}>
-					<div className={"classicyAlertIcon"}>
-						<AlertIcon alertType={alertType} />
+			{/* Pads its own root, so its window is marked self-padded. */}
+			<ClassicyWindowSelfPadding rootRef={contentRef}>
+				<div
+					{...appearance.attrs}
+					ref={contentRef}
+					className={classNames(
+						"classicyAlert",
+						appearance.className,
+						movable ? "classicyAlertMovable" : "classicyAlertFixed",
+					)}
+					style={appearance.style}
+					role="alertdialog"
+					aria-modal="true"
+					aria-label={label}
+				>
+					<div className={"classicyAlertTop"}>
+						<div className={"classicyAlertIcon"}>
+							<AlertIcon alertType={alertType} />
+						</div>
+						<div className={"classicyAlertBody"}>
+							<p className={"classicyAlertLabel"}>{label}</p>
+							{message != null && message !== "" && (
+								<div className={"classicyAlertMessage"}>{message}</div>
+							)}
+						</div>
 					</div>
-					<div className={"classicyAlertBody"}>
-						<p className={"classicyAlertLabel"}>{label}</p>
-						{message != null && message !== "" && (
-							<div className={"classicyAlertMessage"}>{message}</div>
+					<div
+						className={classNames(
+							"classicyAlertButtons",
+							hasHelpButton && "classicyAlertButtonsHaveHelp",
+							hasOtherButton && "classicyAlertButtonsHaveOther",
+						)}
+					>
+						{resolvedButtons.map((button) =>
+							button.role === "help" ? (
+								// HIGOS8 p.86: alert boxes place the Help button lower left
+								// automatically — the bevel-button glyph, not a text "?".
+								<ClassicyHelpButton
+									key={button.id}
+									label={
+										button.label && button.label !== "?" ? button.label : "Help"
+									}
+									disabled={button.disabled}
+									onClickFunc={() => handleButton(button)}
+									className="classicyAlertHelpButton"
+									{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
+								/>
+							) : (
+								<ClassicyButton
+									key={button.id}
+									ref={
+										button.id === defaultButton?.id
+											? defaultButtonRef
+											: undefined
+									}
+									isDefault={button.id === defaultButton?.id}
+									disabled={button.disabled}
+									onClickFunc={() => handleButton(button)}
+									{...{
+										[CLASSICY_PART_ATTRIBUTE.role]: alertButtonRole(
+											button,
+											defaultButton?.id,
+										),
+									}}
+								>
+									{button.label}
+								</ClassicyButton>
+							),
 						)}
 					</div>
 				</div>
-				<div className={"classicyAlertButtons"}>
-					{resolvedButtons.map((button) =>
-						button.role === "help" ? (
-							// HIGOS8 p.86: alert boxes place the Help button lower left
-							// automatically — the bevel-button glyph, not a text "?".
-							<ClassicyHelpButton
-								key={button.id}
-								label={
-									button.label && button.label !== "?" ? button.label : "Help"
-								}
-								disabled={button.disabled}
-								onClickFunc={() => handleButton(button)}
-								className="classicyAlertHelpButton"
-								{...{ [CLASSICY_PART_ATTRIBUTE.role]: "other" }}
-							/>
-						) : (
-							<ClassicyButton
-								key={button.id}
-								ref={
-									button.id === defaultButton?.id ? defaultButtonRef : undefined
-								}
-								isDefault={button.id === defaultButton?.id}
-								disabled={button.disabled}
-								onClickFunc={() => handleButton(button)}
-								{...{
-									[CLASSICY_PART_ATTRIBUTE.role]: alertButtonRole(
-										button,
-										defaultButton?.id,
-									),
-								}}
-							>
-								{button.label}
-							</ClassicyButton>
-						),
-					)}
-				</div>
-			</div>
+			</ClassicyWindowSelfPadding>
 		</ClassicyWindow>
 	);
 };

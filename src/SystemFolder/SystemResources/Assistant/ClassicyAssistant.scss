@@ -61,9 +61,12 @@
 
 .classicyAssistantBody {
 	flex: 1 1 auto;
-	overflow: auto;
-	padding: var(--window-padding-size);
 	background: var(--color-white);
+}
+
+// The body scrolls in a ClassicyScrollArea: the padding is the viewport's.
+.classicyAssistantBodyViewport {
+	padding: var(--window-padding-size);
 }
 
 .classicyAssistantFooter {

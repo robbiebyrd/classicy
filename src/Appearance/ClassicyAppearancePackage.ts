@@ -6,6 +6,7 @@ import type {
 	ClassicyAssetTree,
 } from "@/Appearance/ClassicyAssetRegistry";
 import type { ClassicyAssetSource } from "@/Appearance/ClassicyAssetSource";
+import type { ClassicyIconDimming } from "@/Appearance/ClassicyIconDimming";
 import type {
 	ClassicyComponentName,
 	ClassicyState,
@@ -14,6 +15,11 @@ import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManag
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import type { ClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import type {
+	ClassicyPatternOrigin,
+	ClassicyPatternOriginComponent,
+	ClassicyPatternOriginElements,
+} from "./ClassicyAppearanceDefaults";
 import {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getRegisteredClassicyAppearancePackageOrDefault,
@@ -21,7 +27,13 @@ import {
 	subscribeClassicyAppearancePackages,
 } from "./ClassicyAppearancePackageRegistry";
 
-export { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
+export {
+	CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+	CLASSICY_PATTERN_ORIGIN_COMPONENTS,
+	type ClassicyPatternOrigin,
+	type ClassicyPatternOriginComponent,
+	type ClassicyPatternOriginElements,
+} from "./ClassicyAppearanceDefaults";
 export {
 	CLASSICY_FALLBACK_APPEARANCE_PACKAGE,
 	getClassicyAppearancePackage,
@@ -40,10 +52,148 @@ export {
 export type ClassicyAppearanceLayout = {
 	window: {
 		growBoxCorner: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+		/**
+		 * Where a window opened at a symbolic `"center"` position lands.
+		 * Optional. `"exact"` (the default, Mac OS 8): at exactly half the free
+		 * space, on a half pixel when that space is odd. `"wholePixel"`
+		 * (System 7): rounded to a whole pixel, so a centered alert or dialog
+		 * draws its one-pixel lines and text crisp in every engine.
+		 */
+		centering?: "exact" | "wholePixel";
 	};
 	menuBar: { placement: "screen" | "window" };
 	desktop: {
 		iconGridOrigin: "top-right" | "top-left" | "bottom-right" | "bottom-left";
+	};
+	/**
+	 * How the scroll bars behave (`ClassicyScrollArea`). Optional, as is each
+	 * key: a package that leaves one out keeps Mac OS 8's behavior.
+	 */
+	scrollBar?: {
+		/**
+		 * `"live"` (the default, Mac OS 8): dragging the thumb scrolls the
+		 * content as it goes. `"onRelease"` (System 7, HIG p.165): the thumb
+		 * stays put while a drag outline (`data-classicy-part`
+		 * `scroll-drag-outline`) follows the pointer, and the content scrolls
+		 * when the button comes up; a pointer more than the theme's
+		 * `--scroll-bar-snap-back` (else the bar's thickness, "the width of
+		 * the scroll box") from the bar snaps the outline back over the thumb,
+		 * and a release there scrolls nothing. Escape cancels the drag; the
+		 * keys and the wheel wait until it ends.
+		 */
+		thumbDrag?: "live" | "onRelease";
+		/**
+		 * `"hidden"` (the default, Mac OS 8): a document window draws its bars
+		 * only while its content overflows, and a list box its bar only while
+		 * its rows do. `"shown"` (System 7, HIG p.160): a document window keeps
+		 * both bars (the default of `ClassicyWindow`'s `fitsScrollBars` for a
+		 * resizable, non-utility window) and a list (`ClassicyListBox`,
+		 * Standard File's) its vertical bar while the content fits, drawn in
+		 * the `fits` state (no thumb).
+		 */
+		fitsBars?: "hidden" | "shown";
+		/**
+		 * `"element"` (the default): nothing is published, and a track's
+		 * pattern lies where the package's stylesheet anchors it. `"window"`
+		 * (System 7, as QuickDraw aligned a pattern to its window port): the
+		 * core publishes the window's content origin (inside the frame, under
+		 * the title bar) on each bar and on its track, from that element's
+		 * padding-box corner, as `--classicy-scroll-origin-x` / `-y` in whole
+		 * pixels, kept current as the window resizes or anything in it
+		 * scrolls; the package positions its pattern by them.
+		 */
+		patternOrigin?: "element" | "window";
+	};
+	/**
+	 * Where the patterns a package fills its parts with are laid from, by
+	 * component (`CLASSICY_PATTERN_ORIGIN_COMPONENTS`). Optional, as is each
+	 * key: a component left out, or set to `"element"` (the default), has
+	 * nothing published and no watcher, and its pattern lies where the
+	 * package's stylesheet anchors it (the part's own corner). `"window"`
+	 * (System 7, as QuickDraw laid a pattern from its window's port, so a
+	 * dithered part keeps the window's phase wherever it sits): the core
+	 * publishes the window's content origin (inside the frame, under the
+	 * title bar; outside a window, the desktop's corner). `"desktop"`: the
+	 * core publishes the desktop's corner (outside a desktop, the
+	 * viewport's), for a pattern that keeps one phase across the whole
+	 * screen, wherever the part's window is. Either is published on each of the component's
+	 * pattern-bearing elements, from the element's padding-box corner, as
+	 * `--classicy-pattern-origin-x` / `-y` in whole pixels, and kept current
+	 * as anything moves the element against it: a `ControlGroup`'s fieldset;
+	 * a `PopUpMenu`'s button and its indicator; a `Separator`'s rule; a
+	 * `Slider`'s range input and its tick rail. `elements` names any other
+	 * element by CSS selector (a dimmed label the core's dither mixins mask,
+	 * say), with its origin: every window, and the desktop for what lies
+	 * outside windows (menus, the menu bar), publishes it on the elements
+	 * in it that match, on the same signals, and removes it from an element
+	 * that no longer matches. The scroll bars have their own declaration,
+	 * `scrollBar.patternOrigin`.
+	 */
+	patternOrigin?: {
+		readonly [C in ClassicyPatternOriginComponent]?: ClassicyPatternOrigin;
+	} & { readonly elements?: readonly ClassicyPatternOriginElements[] };
+	/**
+	 * How a slider with a ghost indicator (`ClassicySlider`'s `ghost`)
+	 * drags. Optional, as is each key: a package that leaves one out keeps
+	 * live dragging.
+	 */
+	slider?: {
+		/**
+		 * `"live"` (the default): the indicator follows the pointer and the
+		 * value changes as it goes, the ghost with it. `"onRelease"`
+		 * (Platinum, HIGOS8 p.34, Figure 2-17): the indicator stays where it
+		 * was while the ghost follows the pointer, and the value changes, once,
+		 * when the button comes up; a lost pointer stream drops it. A slider
+		 * without a ghost drags live under either (the HIG's "live feedback").
+		 */
+		thumbDrag?: "live" | "onRelease";
+	};
+	/**
+	 * How the file dialog (`ClassicyFileDialog`, Standard File) is framed.
+	 * Optional, as is each key.
+	 */
+	fileDialog?: {
+		/**
+		 * `"movable"` (the default, Mac OS 8, HIGOS8 p.59): a movable modal
+		 * window with a title bar. `"fixed"` (System 7, `*-755-dialog-
+		 * standardfile-layout.png`): a fixed modal dialog box, the double frame
+		 * alone, no title bar.
+		 */
+		frame?: "movable" | "fixed";
+		/**
+		 * `"tree"` (the default, Mac OS 8): folders expand in place under
+		 * disclosure triangles. `"flat"` (System 7.5's Standard File): the
+		 * list shows one folder's contents, every row by its small icon, a
+		 * folder entered by a double-click or Open, and the pop-up lists the
+		 * folder's path upward (each level by its small icon), then the other
+		 * volumes.
+		 */
+		navigation?: "tree" | "flat";
+		/**
+		 * `"plain"` (the default, Mac OS 8): the Save box opens with the
+		 * modal's first control focused. `"selected"` (System 7.5,
+		 * `*-dialog-standardfile-save.png`): it opens with its name field
+		 * focused and the default name selected.
+		 */
+		saveName?: "plain" | "selected";
+	};
+	/**
+	 * How the file browser (`ClassicyFileBrowser`, the Finder's windows)
+	 * draws its list view. Optional, as is each key.
+	 */
+	fileBrowser?: {
+		/**
+		 * Where the list view's column titles go. `"inList"` (the default, Mac
+		 * OS 8): the list's first row, pinned while it scrolls, beside the
+		 * vertical bar. `"aboveList"` (System 7, HIG p.218,
+		 * `*-755-finder-list-row-selected.png`): above the list's scrolling
+		 * region, in its scroll area's head (`classicyScrollAreaHead`), the
+		 * window's full width, so the vertical bar starts under them; they
+		 * scroll sideways with the rows (`ClassicyTable`'s `headerPlacement`).
+		 * The window's header, when it has one, is marked
+		 * `classicyWindowHeaderAboveHead` meanwhile.
+		 */
+		listColumnTitles?: "inList" | "aboveList";
 	};
 };
 
@@ -56,6 +206,19 @@ export type ClassicyAppearanceLayout = {
 export type ClassicyAppearanceKnobs = Record<
 	string,
 	Record<string, { label: string; min: number; max: number; default: number }>
+>;
+
+/**
+ * A package's own named colors, as UI metadata: family → `{ label, colors:
+ * key → { label } }`. The values themselves are theme data, under
+ * `defaults.color.families.<family>.<key>` (every declared key must have
+ * one), emitted as `--package-color-<family>-<key>`; the Appearance
+ * Manager's Colors tab lists the declared ones under each family's label,
+ * and `ClassicyDesktopChangeColor { family, key, color }` edits only those.
+ */
+export type ClassicyAppearanceColorFamilies = Record<
+	string,
+	{ label: string; colors: Record<string, { label: string }> }
 >;
 
 /**
@@ -225,6 +388,8 @@ export type ClassicyAppearancePackage = {
 	presets?: ClassicyTheme[];
 	/** UI metadata per measurements family/key. */
 	knobs?: ClassicyAppearanceKnobs;
+	/** UI metadata per color family/key (`defaults.color.families`). */
+	colorFamilies?: ClassicyAppearanceColorFamilies;
 	/** Built from `knobs` by `classicyKnobsToSchema(knobs)`. */
 	// biome-ignore lint/suspicious/noExplicitAny: the contract's type; each package's knobs give the shape.
 	options?: z.ZodObject<any>;
@@ -242,6 +407,13 @@ export type ClassicyAppearancePackage = {
 	 * ignored.
 	 */
 	defaultScreenSaver?: string;
+	/**
+	 * How the package dims an icon per pixel (a hidden application's icon in
+	 * the Application menu), drawn on a canvas by the core
+	 * (`ClassicyIconDimming.ts`); without a rule, or for an icon a canvas
+	 * cannot read, the package's stylesheet dims it.
+	 */
+	iconDimming?: ClassicyIconDimming;
 	hooks?: ClassicyAppearanceHooks;
 };
 

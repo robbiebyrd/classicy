@@ -12,6 +12,10 @@ import {
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { slugifyClassicyThemeName } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import {
+	classicyThemeColorFamilyDefaults,
+	withDefaultThemeColorFamilies,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
+import {
 	type ClassicyThemeWithPartialMetrics,
 	classicyThemeMeasurementDefaults,
 	withDefaultThemeMetrics,
@@ -95,14 +99,33 @@ const importableClassicyThemeBackground = (
 ): string => classicyWallpaperReferenceFor(value, packageId) ?? value;
 
 /**
+ * A host-loaded theme's color families completed from its package's
+ * (`withDefaultThemeColorFamilies`), before validation: only when its
+ * `color` is an object, so a malformed theme reaches the schema as it came.
+ */
+const completeLoadedColorFamilies = <T>(value: T, packageId: string): T => {
+	const color = (value as { color?: unknown }).color;
+	return isRecord(color)
+		? (withDefaultThemeColorFamilies(
+				value as unknown as Pick<ClassicyTheme, "color">,
+				classicyThemeColorFamilyDefaults(packageId),
+			) as unknown as T)
+		: value;
+};
+
+/**
  * Serializes `theme` as a theme file (tab-indented JSON, trailing newline).
  * The theme is completed first (H-R17): a stored theme carries only the
- * package-family values it changed, and the file carries them all.
+ * package-family values (measurements and package colors) it changed, and
+ * the file carries them all.
  */
 export const exportClassicyTheme = (stored: ClassicyTheme): string => {
-	const theme = withDefaultThemeMetrics(
-		stored,
-		classicyThemeMeasurementDefaults(stored.package),
+	const theme = withDefaultThemeColorFamilies(
+		withDefaultThemeMetrics(
+			stored,
+			classicyThemeMeasurementDefaults(stored.package),
+		),
+		classicyThemeColorFamilyDefaults(stored.package),
 	);
 	const portable: ClassicyTheme = {
 		...theme,
@@ -216,9 +239,12 @@ export const readClassicyLoadedThemes = (
 		const parsed = ClassicyThemeSchema.safeParse(
 			// Unvalidated until the parse: the completion only reads
 			// `measurements`, and copies anything it does not recognize.
-			withDefaultThemeMetrics(
-				value as unknown as ClassicyThemeWithPartialMetrics,
-				classicyThemeMeasurementDefaults(packageId),
+			completeLoadedColorFamilies(
+				withDefaultThemeMetrics(
+					value as unknown as ClassicyThemeWithPartialMetrics,
+					classicyThemeMeasurementDefaults(packageId),
+				),
+				packageId,
 			),
 		);
 		if (!parsed.success) {

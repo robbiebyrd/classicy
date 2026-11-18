@@ -60,12 +60,15 @@
 		"Alert": [
 			"Body",
 			"Buttons",
+			"ButtonsHaveHelp",
+			"ButtonsHaveOther",
 			"Fixed",
 			"HelpButton",
 			"Icon",
 			"Label",
 			"Message",
 			"Movable",
+			"MovableWindow",
 			"Top"
 		],
 		"AppearanceManager": [
@@ -73,11 +76,13 @@
 			"ColorsGrid",
 			"ColorsGroup",
 			"ColorsScroll",
+			"ColorsScrollViewport",
 			"Content",
 			"DesktopControls",
 			"DesktopOptionsColumn",
 			"DesktopOptionsRow",
 			"DesktopPreview",
+			"DesktopPreviewNone",
 			"DesktopRow",
 			"FontsColumn",
 			"FontsLabel",
@@ -94,6 +99,7 @@
 			"AccessoryIconMd",
 			"AccessoryIconSm",
 			"Body",
+			"BodyViewport",
 			"Footer",
 			"FooterButtons",
 			"Header",
@@ -163,6 +169,7 @@
 			"DialogFooter",
 			"ModeList",
 			"ModeListItem",
+			"ModeListViewport",
 			"Preview",
 			"Slider",
 			"SliderBlack",
@@ -222,7 +229,8 @@
 			"Scroll",
 			"ScrollStart",
 			"Status",
-			"Tab"
+			"Tab",
+			"TabRight"
 		],
 		"CrashScreen": [],
 		"DateAndTimeManager": [
@@ -243,8 +251,16 @@
 			"SplitArrows",
 			"State"
 		],
-		"DesktopIcon": ["Alias", "AliasBadge", "Image", "Mask", "MaskOuter"],
+		"DesktopIcon": [
+			"Alias",
+			"AliasBadge",
+			"Image",
+			"Mask",
+			"MaskOuter",
+			"SelectedImage"
+		],
 		"DesktopMenu": [
+			"AppHidden",
 			"AppSwitcher",
 			"Apple",
 			"Extension",
@@ -261,6 +277,7 @@
 		"DriveSetupList": ["Header", "Row", "Table"],
 		"FileBrowser": [
 			"Fill",
+			"FillList",
 			"ViewTableContainer",
 			"ViewTableDisclosure",
 			"ViewTableDisclosureTriangle",
@@ -269,7 +286,7 @@
 			"ViewTableRowIcon",
 			"ViewTableRowIconLabel"
 		],
-		"FileDialog": ["Extension", "NameRow"],
+		"FileDialog": ["Extension", "NameRow", "NewGlyph", "NewNoun", "SaveBody"],
 		"FileInput": [
 			"Body",
 			"Holder",
@@ -279,7 +296,17 @@
 			"Native",
 			"RemoveGlyph"
 		],
-		"FileOpenDialog": ["Actions", "Body", "Footer", "Well"],
+		"FileOpenDialog": [
+			"Actions",
+			"Body",
+			"Desktop",
+			"Divider",
+			"Eject",
+			"Footer",
+			"Volume",
+			"Well",
+			"WellViewport"
+		],
 		"Form": ["ButtonRow", "Dialog"],
 		"HelpButton": [],
 		"HyperCard": [
@@ -301,6 +328,7 @@
 			"InspectorField",
 			"InspectorRow",
 			"LockedField",
+			"LockedFieldText",
 			"MissingPart",
 			"Palette",
 			"PaletteEntry",
@@ -318,7 +346,7 @@
 			"Stage",
 			"StageInner"
 		],
-		"Icon": ["Invisible", "Mask", "MaskOuter"],
+		"Icon": ["DimmedImage", "Invisible", "Mask", "MaskOuter", "SelectedImage"],
 		"ImageWell": ["DragOver", "Image"],
 		"Input": ["Default", "Holder"],
 		"InputDialog": ["Body", "Buttons", "Icon", "Prompt", "Top"],
@@ -332,15 +360,16 @@
 			"Prompt"
 		],
 		"Link": [],
-		"ListBox": ["Option", "OptionIcon", "OptionLabel"],
+		"ListBox": ["Option", "OptionIcon", "OptionLabel", "Viewport"],
 		"LittleArrows": ["Button", "ButtonDown", "Group"],
-		"Menu": [],
+		"Menu": ["ListScrolls", "ScrollShadow"],
 		"MenuItem": [
 			"BalloonAnchor",
 			"Check",
 			"ChildMenuIndicator",
 			"Flash",
 			"FlashKeyframes",
+			"HasImage",
 			"KeyboardShortcut",
 			"NoImage",
 			"TitleSample",
@@ -383,11 +412,15 @@
 			"ListItemHighlight",
 			"ListItemIcon",
 			"ListItemLabel",
+			"ScrollArrow",
+			"ScrollArrowDown",
+			"ScrollArrowUp",
 			"SizeLarge",
 			"SizeMedium",
 			"SizeMini",
 			"SizeSmall",
 			"Value",
+			"ValueIcon",
 			"Wrapper"
 		],
 		"PopUpSlider": ["Thumb", "Track"],
@@ -396,7 +429,8 @@
 			"ChasingArrows",
 			"ChasingArrowsSpinner",
 			"Determinate",
-			"Indeterminate"
+			"Indeterminate",
+			"SlideByScript"
 		],
 		"RadioInput": ["Group", "GroupColumns", "Margin", "Wrapper"],
 		"RichTextEditor": [],
@@ -406,10 +440,29 @@
 			"Overlay",
 			"OverlayTransparent"
 		],
+		"ScrollArea": [
+			"Body",
+			"Corner",
+			"Foot",
+			"Head",
+			"Viewport",
+			"ViewportClipped"
+		],
+		"ScrollBar": [
+			"Arrow",
+			"ArrowEnd",
+			"ArrowStart",
+			"DragOutline",
+			"Horizontal",
+			"Thumb",
+			"Track",
+			"Vertical"
+		],
 		"Separator": ["Horizontal", "Vertical"],
 		"Slider": [
 			"Ghost",
 			"GhostHidden",
+			"HasGhost",
 			"Highlighted",
 			"IndicatorDown",
 			"IndicatorLeft",
@@ -437,12 +490,15 @@
 		"SubMenu": ["FlipLeft"],
 		"Table": [
 			"Cell",
+			"CellSorted",
 			"ColumnHeader",
 			"Container",
 			"Content",
+			"DetachedHeader",
 			"Header",
 			"HeaderCellContent",
 			"HeaderGroup",
+			"HeaderHidden",
 			"HeaderSticky",
 			"Row",
 			"SortArrow",
@@ -450,7 +506,10 @@
 		],
 		"Tabs": [],
 		"TextEditor": [
+			"Area",
+			"AreaAutoHeight",
 			"AutoHeight",
+			"Bevel",
 			"Border",
 			"Holder",
 			"SizeLarge",
@@ -487,6 +546,7 @@
 			"ContentsModal",
 			"ContentsModalInner",
 			"ContentsNotDimmed",
+			"ContentsSelfPadded",
 			"ContentsWithHeader",
 			"ControlBox",
 			"Document",
@@ -495,12 +555,14 @@
 			"FrameBody",
 			"FrameEdge",
 			"Header",
+			"HeaderAboveHead",
 			"HeaderDimmed",
 			"HeaderList",
 			"Icon",
 			"Menu",
 			"MenuBar",
 			"Modal",
+			"ModalFixed",
 			"ModalFront",
 			"ModalScrim",
 			"ModalScrimError",
@@ -539,11 +601,13 @@
 		"default",
 		"checked",
 		"mixed",
-		"expanded"
+		"expanded",
+		"fits"
 	],
 	"attributes": {
 		"data-classicy-control": ["close", "zoom", "collapse"],
 		"data-classicy-role": ["default", "cancel", "other"],
+		"data-classicy-selection": ["all", "tail"],
 		"data-classicy-part": [
 			"apple",
 			"app",
@@ -555,7 +619,16 @@
 			"modifier-control",
 			"modifier-option",
 			"modifier-shift",
-			"modifier-command"
+			"modifier-command",
+			"scrollbar",
+			"scroll-arrow-start",
+			"scroll-track",
+			"scroll-arrow-end",
+			"scroll-thumb",
+			"scroll-corner",
+			"scroll-drag-outline",
+			"menu-scroll-up",
+			"menu-scroll-down"
 		]
 	}
 }

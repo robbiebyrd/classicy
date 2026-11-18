@@ -72,3 +72,18 @@ export const WithSubmenu: Story = {
 		onClose: fn(),
 	},
 };
+
+/**
+ * Opened near the bottom of the screen (a right-click low on the desktop):
+ * the menu flips up above the point, and its scroll cap follows it there, so
+ * all of its items show, with no scroll indicators.
+ */
+export const NearBottom: Story = {
+	decorators: [(Story) => <Story />],
+	args: {
+		name: "storybook_context_bottom",
+		position: [300, 740],
+		menuItems: MENU_ITEMS,
+		onClose: fn(),
+	},
+};

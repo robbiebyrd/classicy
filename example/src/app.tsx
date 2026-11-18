@@ -6,8 +6,11 @@ import {
 	ClassicyDesktop,
 	registerClassicyIcons,
 } from "@classicy/classicy";
-// The Appearance Package: the core draws no desktop without one.
+// The Appearance Packages: the core draws no desktop without one. Platinum
+// registers first, so it stays the default; System 7 adds its two themes
+// to the Appearance Manager (Themes tab).
 import "@classicy/appearance-platinum";
+import "@classicy/appearance-system7";
 import { BlueBox } from "./Applications/BlueBox/BlueBox";
 import { Browser } from "./Applications/Browser/Browser";
 // Side-effect import: registers example HyperCard plugins (custom part, commands,

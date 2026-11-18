@@ -13,6 +13,7 @@ import {
 	within,
 } from "@/__tests__/test-utils";
 import { useSoundTab } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceManager.Sound";
+import { CLASSICY_ALERT_SOUNDS } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 
 vi.mock(
 	"@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext",
@@ -22,6 +23,7 @@ vi.mock(
 type SoundTabProps = Parameters<typeof useSoundTab>[0];
 
 const baseProps = (): SoundTabProps => ({
+	alerts: CLASSICY_ALERT_SOUNDS,
 	alertSound: "ClassicyAlertSosumi",
 	changeAlertSound: vi.fn() as (e: ChangeEvent<HTMLSelectElement>) => void,
 	alertVolume: 100,

@@ -13,7 +13,7 @@ import {
 	SoundDataSchema,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
-import { DEFAULT_ALERT_SOUND } from "./ClassicyAlertSounds";
+import { resolveClassicyAlertSound } from "./ClassicyAlertSounds";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager
@@ -155,7 +155,6 @@ export const initialPlayer: ClassicySoundState = {
 	disabled: [] as string[],
 	labels: soundLabels,
 	volume: 100,
-	alertSound: DEFAULT_ALERT_SOUND,
 	alertVolume: 100,
 };
 
@@ -241,6 +240,13 @@ const playAlert = (ss: ClassicySoundState, sound: string) => {
 	}
 };
 
+/** The alert to play now: the stored choice if the loaded pack has it. */
+const currentAlert = (ss: ClassicySoundState): string | undefined =>
+	resolveClassicyAlertSound(
+		ss.packId ? getClassicySoundPack(ss.packId) : undefined,
+		ss.alertSound,
+	);
+
 const playerCanPlay = (ss: ClassicySoundState, sound: string) => {
 	return (
 		playerCanPlayInterrupt(ss, sound) &&
@@ -283,14 +289,14 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundPlayError: {
-			const sound = action.sound ?? ss.alertSound ?? DEFAULT_ALERT_SOUND;
-			if (playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
+			const sound = action.sound ?? currentAlert(ss);
+			if (sound && playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
 			next = { ...ss };
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicyAlertSound: {
-			const sound = ss.alertSound ?? DEFAULT_ALERT_SOUND;
-			if (playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
+			const sound = currentAlert(ss);
+			if (sound && playerCanPlayInterrupt(ss, sound)) playAlert(ss, sound);
 			next = { ...ss };
 			break;
 		}

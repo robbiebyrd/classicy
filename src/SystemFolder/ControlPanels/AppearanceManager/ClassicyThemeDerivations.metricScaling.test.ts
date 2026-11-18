@@ -15,10 +15,12 @@ import {
 	exportClassicyTheme,
 	parseClassicyThemeFile,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
+import { isReservedClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	CLASSICY_THEME_METRIC_TARGETS,
 	type ClassicyThemeMetricKey,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
+import { ClassicyThemeSchema } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeSchema";
 import {
 	type ActionMessage,
 	type ClassicyStore,
@@ -434,5 +436,149 @@ describe("--progress-bar-stripe-period follows progressBar.stripeWidth", () => {
 				"--progress-bar-stripe-period"
 			],
 		).toBe("20px");
+	});
+});
+
+// Plan 0018-dbd §3.3: a package whose menu bar does not follow its control
+// size (System 7: 11 px window boxes under a 20 px bar) sets the optional knob
+// menuBar.bandHeight. Without it the band stays controlSize × 2.5, so
+// Platinum's still follows the Metrics tab.
+describe("--menu-bar-height follows menuBar.bandHeight when a theme sets it", () => {
+	const withMenuBar = (
+		menuBar: Record<string, number> | undefined,
+		controlSize = 12,
+	): ClassicyTheme => {
+		const theme = getTheme("default");
+		const measurements: ClassicyTheme["measurements"] = {
+			...theme.measurements,
+			window: { ...theme.measurements.window, controlSize },
+		};
+		if (menuBar) measurements.menuBar = menuBar;
+		return { ...theme, measurements };
+	};
+	const band = (theme: ClassicyTheme) =>
+		(getThemeVars(theme) as Record<string, string>)["--menu-bar-height"];
+
+	it("is the knob, whatever the control size", () => {
+		expect(band(withMenuBar({ bandHeight: 20 }, 11))).toBe("20px");
+		expect(band(withMenuBar({ bandHeight: 20 }, 16))).toBe("20px");
+		expect(band(withMenuBar({ bandHeight: 0 }, 11))).toBe("0px");
+	});
+
+	it("is controlSize × 2.5 without the knob", () => {
+		expect(band(withMenuBar(undefined, 12))).toBe("30px");
+		expect(band(withMenuBar(undefined, 11))).toBe("27.5px");
+		// A family without the key, or a value that is not a finite number.
+		expect(band(withMenuBar({ inset: 9 }, 11))).toBe("27.5px");
+		expect(band(withMenuBar({ bandHeight: Number.NaN }, 11))).toBe("27.5px");
+	});
+
+	it("is controlSize × 2.5 for a negative band", () => {
+		expect(band(withMenuBar({ bandHeight: -1 }, 11))).toBe("27.5px");
+		expect(band(withMenuBar({ bandHeight: -0.001 }, 12))).toBe("30px");
+		expect(
+			band(withMenuBar({ bandHeight: Number.NEGATIVE_INFINITY }, 12)),
+		).toBe("30px");
+	});
+});
+
+// Story 0210-aal: System 7's small UI text is 9 px, a whole size, not
+// uiSize × 0.8 (9.6 px at its 12 px uiSize). A package sets the optional knob
+// uiText.smallFontSize; without it the size still follows uiSize, so
+// Platinum's follows the Fonts tab.
+describe("--ui-font-size-small follows uiText.smallFontSize when a theme sets it", () => {
+	const withUiText = (
+		uiText: Record<string, number> | undefined,
+		uiSize = 12,
+	): ClassicyTheme => {
+		const theme = getTheme("default");
+		const measurements: ClassicyTheme["measurements"] = {
+			...theme.measurements,
+		};
+		if (uiText) measurements.uiText = uiText;
+		return {
+			...theme,
+			typography: { ...theme.typography, uiSize },
+			measurements,
+		};
+	};
+	const small = (theme: ClassicyTheme) =>
+		(getThemeVars(theme) as Record<string, string>)["--ui-font-size-small"];
+
+	it("is the knob, whatever the UI size", () => {
+		expect(small(withUiText({ smallFontSize: 9 }, 12))).toBe("9px");
+		expect(small(withUiText({ smallFontSize: 9 }, 20))).toBe("9px");
+		expect(small(withUiText({ smallFontSize: 10.5 }, 12))).toBe("10.5px");
+	});
+
+	it("is uiSize × 0.8 without the knob, or with one that is not a positive finite number", () => {
+		expect(small(withUiText(undefined, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText(undefined, 14))).toBe(`${14 * 0.8}px`);
+		expect(small(withUiText({ other: 9 }, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText({ smallFontSize: Number.NaN }, 12))).toBe(
+			`${12 * 0.8}px`,
+		);
+		expect(small(withUiText({ smallFontSize: 0 }, 12))).toBe(`${12 * 0.8}px`);
+		expect(small(withUiText({ smallFontSize: -9 }, 12))).toBe(`${12 * 0.8}px`);
+	});
+
+	it("leaves the other UI text sizes on uiSize", () => {
+		const vars = getThemeVars(withUiText({ smallFontSize: 9 }, 12)) as Record<
+			string,
+			string
+		>;
+		expect(vars["--ui-font-size-caption"]).toBe(`${12 * 0.75}px`);
+		expect(vars["--ui-font-size"]).toBe("12px");
+	});
+});
+
+// Story 0214-c61: System 7 draws its small UI text in Geneva, not in its UI
+// family (Chicago). A theme names the small text's family in the optional
+// `typography.uiSmall`, emitted as `--ui-font-small`; stylesheets read it
+// with the UI family as the fallback, so a theme without it (Platinum's)
+// draws its small text in the UI family as before.
+describe("--ui-font-small is typography.uiSmall when a theme sets it", () => {
+	const withUiSmall = (uiSmall: string | undefined): ClassicyTheme => {
+		const theme = getTheme("default");
+		const typography: ClassicyTheme["typography"] = { ...theme.typography };
+		if (uiSmall === undefined) delete typography.uiSmall;
+		else typography.uiSmall = uiSmall;
+		return { ...theme, typography };
+	};
+	const vars = (theme: ClassicyTheme) =>
+		getThemeVars(theme) as Record<string, string>;
+
+	it("is emitted from the field", () => {
+		expect(vars(withUiSmall('"Geneva", sans-serif'))["--ui-font-small"]).toBe(
+			'"Geneva", sans-serif',
+		);
+	});
+
+	it("is not emitted without the field, or with an empty one", () => {
+		expect(vars(withUiSmall(undefined))).not.toHaveProperty("--ui-font-small");
+		expect(vars(withUiSmall(""))).not.toHaveProperty("--ui-font-small");
+	});
+
+	it("is a theme file's optional field", () => {
+		const theme = withUiSmall('"Geneva", sans-serif');
+		expect(ClassicyThemeSchema.parse(theme).typography.uiSmall).toBe(
+			'"Geneva", sans-serif',
+		);
+		expect(
+			ClassicyThemeSchema.parse(withUiSmall(undefined)).typography,
+		).not.toHaveProperty("uiSmall");
+		expect(
+			ClassicyThemeSchema.safeParse(withUiSmall("x; } body { color: red"))
+				.success,
+		).toBe(false);
+	});
+});
+
+// Review r0 Minor: a package measurement `uiFont.small` would make
+// `--ui-font-small`, a length where a font family is read; the name is
+// reserved like `--ui-font`.
+describe("--ui-font-small is reserved against package measurements", () => {
+	it("is a reserved theme variable", () => {
+		expect(isReservedClassicyThemeVar("--ui-font-small")).toBe(true);
 	});
 });

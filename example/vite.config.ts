@@ -35,6 +35,12 @@ const liveSourceAliases = [
 			"packages/appearance/platinum/src/index.ts",
 		),
 	},
+	// System 7, the workspace package packages/appearance/system7, the same
+	// way, for when the app imports it.
+	{
+		find: /^@classicy\/appearance-system7$/,
+		replacement: path.resolve(root, "packages/appearance/system7/src/index.ts"),
+	},
 	// Exact match only — `@classicy/classicy/scss/*` must keep resolving via the package
 	// `exports` map (which already points at source).
 	{
@@ -84,13 +90,17 @@ export default defineConfig(({ command }) => {
 		build: {
 			sourcemap: true,
 		},
-		// What every Vite host sets (README, "Vite consumers"): both packages
+		// What every Vite host sets (README, "Vite consumers"): the packages
 		// load their fonts, art, wallpapers and sound sprites as
 		// `new URL("assets/…", import.meta.url)` files, which the dependency
 		// pre-bundle (node_modules/.vite/deps/) would break. The dev server here
-		// aliases both to source, but the example is the reference host.
+		// aliases them to source, but the example is the reference host.
 		optimizeDeps: {
-			exclude: ["@classicy/classicy", "@classicy/appearance-platinum"],
+			exclude: [
+				"@classicy/classicy",
+				"@classicy/appearance-platinum",
+				"@classicy/appearance-system7",
+			],
 		},
 		// Platinum's SCSS (live source, and the mixins Browser.scss uses) reaches
 		// the core's vocabulary as `pkg:@classicy/classicy/scss/*`.

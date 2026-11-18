@@ -72,12 +72,17 @@ export const withClassicyDeclarationExtensions = (
 		return `${keyword}${quote}${resolved}${quote}`;
 	});
 
-/** The relative specifiers in a declaration's `code` that carry no extension. */
-export const findClassicyExtensionlessSpecifiers = (code: string): string[] =>
+/** The relative specifiers a declaration's `code` imports, in order. */
+export const findClassicyRelativeSpecifiers = (code: string): string[] =>
 	[...code.matchAll(RELATIVE_SPECIFIER)]
 		.filter((match) => match[1] === undefined)
-		.map((match) => match[4])
-		.filter((specifier) => !HAS_EXTENSION.test(specifier));
+		.map((match) => match[4]);
+
+/** The relative specifiers in a declaration's `code` that carry no extension. */
+export const findClassicyExtensionlessSpecifiers = (code: string): string[] =>
+	findClassicyRelativeSpecifiers(code).filter(
+		(specifier) => !HAS_EXTENSION.test(specifier),
+	);
 
 /** The package specifiers a declaration's `code` imports, in order. */
 export const findClassicyBareSpecifiers = (code: string): string[] =>

@@ -1,4 +1,5 @@
 import "./ClassicyFileOpenDialog.scss";
+import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
@@ -9,12 +10,20 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
+import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import { ClassicyInputDialog } from "@/SystemFolder/SystemResources/InputDialog/ClassicyInputDialog";
 import { useKeyboardEquivalents } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
+import { ClassicyPixelArt } from "@/SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { useClassicyFitsBarPolicy } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
 import {
 	ClassicyTree,
 	type ClassicyTreeNode,
@@ -164,6 +173,9 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const formats = props.mode === "save" ? props.formats : [];
 
 	const [activeVolumeId, setActiveVolumeId] = useState(volumes[0]?.id);
+	// The file list keeps its vertical bar while its items fit under a
+	// package that keeps the bars (System 7's Standard File, HIG7 p.160).
+	const wellVerticalPolicy = useClassicyFitsBarPolicy();
 	const [folders, setFolders] = useState<Map<string, FolderState>>(new Map());
 	const [selectedIds, setSelectedIds] = useState<string[]>([]);
 	const [filterIndex, setFilterIndex] = useState(0);
@@ -181,6 +193,59 @@ export const ClassicyFileDialog: FunctionalComponent<
 	const nodeIndex = useRef(new Map<string, ClassicyFileOpenSelection>());
 
 	const activeVolume = volumes.find((v) => v.id === activeVolumeId);
+	// System 7.5's Standard File box goes to the desktop with its Desktop
+	// button (`*-755-dialog-standardfile-layout.png`): the volume
+	// `desktopVolume(fs)` builds, when one is offered.
+	const desktopVolumeOffered = volumes.find((v) => v.id === "desktop");
+	// A fixed modal dialog box under a package whose layout says so (System
+	// 7); else the movable modal window of HIGOS8 p.59.
+	const dialogLayout = useClassicyAppearanceLayout().fileDialog;
+	const fixedFrame = dialogLayout?.frame === "fixed";
+	// System 7.5's Standard File browses one folder at a time (the package's
+	// `fileDialog.navigation: "flat"`): its contents only, a folder entered by
+	// a double-click or Open, the pop-up listing the path upward. Else the
+	// folders expand in place (Mac OS 8's tree).
+	const flat = dialogLayout?.navigation === "flat";
+	// System 7.5's Save box opens with its name field focused and the default
+	// name selected (the package's `fileDialog.saveName: "selected"`,
+	// `*-dialog-standardfile-save.png`); else the modal focuses its first
+	// control.
+	const selectsName = mode === "save" && dialogLayout?.saveName === "selected";
+	const nameInputRef = useRef<HTMLInputElement>(null);
+	// The name to select, set when a Save box opens and cleared once it is
+	// selected: the field shows the default name a commit or two after the
+	// open resets it.
+	const nameToSelect = useRef<string | null>(null);
+	// The folder flat navigation shows, from the volume root.
+	const [currentPath, setCurrentPath] = useState<string[]>([]);
+	// Flat navigation's folder rows, by node id: selectable, entered on Open.
+	const folderIndex = useRef(new Set<string>());
+	// Flat rows each draw a small icon: an entry's own, else the generic
+	// folder's or document's (read at render, never captured at load).
+	const folderIcon = useClassicyAsset("icons", "system.folders.directory");
+	// A flat list's folder rows: the package's own list folder when it
+	// registers one (System 7.5's Standard File draws its small folder two
+	// rows higher than the Finder's), else the folder.
+	const listFolderIcon = useClassicyAsset("systemArt", "fileDialogFolderIcon");
+	const fileIcon = useClassicyAsset("icons", "system.files.file");
+	// The pop-up's current level: the package's open folder when it registers
+	// one (System 7.5's Standard File), else the folder.
+	const openFolderIcon = useClassicyAsset("systemArt", "openFolderIcon");
+	// The box's size: the theme's optional `fileDialog.width` / `height` for
+	// Open and `fileDialog.saveWidth` / `saveHeight` for Save (System 7's
+	// Standard File boxes), else Mac OS 8's 440 x 400. Read once per opening
+	// and theme, never on every render.
+	const themeId = useAppManager(
+		(s) => s.System.Manager.Appearance?.activeTheme?.id,
+	);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: an opening and a theme change are when the size is read; the reader reads the DOM
+	const dialogSize = useMemo((): [number, number] => {
+		const prefix = mode === "save" ? "--file-dialog-save-" : "--file-dialog-";
+		return [
+			readClassicyThemeVar(`${prefix}width`, 440),
+			readClassicyThemeVar(`${prefix}height`, 400),
+		];
+	}, [open, mode, themeId]);
 	const activeTypes = fileTypeFilters?.[filterIndex]?.types ?? null;
 	const activeFormat: ClassicyFileSaveFormat | undefined = formats[formatIndex];
 
@@ -210,8 +275,21 @@ export const ClassicyFileDialog: FunctionalComponent<
 		setNewFolderOpen(false);
 		setErrorPrompt(null);
 		setActiveVolumeId(volumes[0].id);
+		setCurrentPath([]);
 		loadFolder(volumes[0], []);
+		nameToSelect.current = selectsName ? (props.defaultFileName ?? "") : null;
 	}, [open]);
+
+	// Selects the Save box's default name once the field shows it, focusing
+	// the field first (its selection is drawn only while it has focus).
+	useEffect(() => {
+		const name = nameToSelect.current;
+		const input = nameInputRef.current;
+		if (name === null || !input || input.value !== name) return;
+		nameToSelect.current = null;
+		input.focus({ preventScroll: true });
+		input.select();
+	});
 
 	// Save mode dims every file: they give context, but only folders are targets.
 	const isEntryDisabled = (entry: ClassicyFileDialogEntry) =>
@@ -276,27 +354,96 @@ export const ClassicyFileDialog: FunctionalComponent<
 		});
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: buildNodes/isEntryDisabled are recreated each render and close over folders/activeTypes already; activeVolume/folders/filterIndex are the actual invalidation keys
+	// Flat navigation's rows: the folder's own contents, no children, every
+	// row with its small icon; a folder row is selectable (Open enters it).
+	const buildFlatNodes = (
+		volume: ClassicyFileDialogVolume,
+		path: string[],
+	): ClassicyTreeNode[] => {
+		const state = folders.get(cacheKey(volume.id, path));
+		if (!Array.isArray(state)) return buildNodes(volume, path);
+		return state.map((entry) => {
+			if (entry.kind === "folder") {
+				const id = cacheKey(volume.id, [...path, entry.name]);
+				folderIndex.current.add(id);
+				return {
+					id,
+					label: entry.name,
+					leftIcon: entry.icon ?? listFolderIcon ?? folderIcon,
+				};
+			}
+			const nodeId = `${cacheKey(volume.id, path)}${SEP}${entry.id}`;
+			const disabled = isEntryDisabled(entry);
+			if (!disabled) {
+				nodeIndex.current.set(nodeId, { volumeId: volume.id, path, entry });
+			}
+			return {
+				id: nodeId,
+				label: entry.name,
+				leftIcon: entry.icon ?? fileIcon,
+				disabled,
+			};
+		});
+	};
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: buildNodes/isEntryDisabled are recreated each render and close over folders/activeTypes already; activeVolume/folders/filterIndex/currentPath/flat and the row icons are the actual invalidation keys
 	const nodes = useMemo(() => {
 		// Only clear/repopulate the index when buildNodes actually runs for
 		// these deps — resetting it unconditionally on every render would wipe
 		// it out on renders that reuse the memoized node tree (e.g. a pure
 		// selection change), breaking lookups for the next interaction.
 		nodeIndex.current = new Map();
-		return activeVolume ? buildNodes(activeVolume, []) : [];
-	}, [activeVolume, folders, filterIndex]);
+		folderIndex.current = new Set();
+		if (!activeVolume) return [];
+		return flat
+			? buildFlatNodes(activeVolume, currentPath)
+			: buildNodes(activeVolume, []);
+	}, [
+		activeVolume,
+		folders,
+		filterIndex,
+		currentPath,
+		flat,
+		folderIcon,
+		listFolderIcon,
+		fileIcon,
+	]);
+
+	const isFlatFolder = (nodeId: string) =>
+		flat && folderIndex.current.has(nodeId);
+	// Flat Save with a folder selected: its default button is Open, which
+	// enters the folder (7.5's Standard File).
+	const saveFolderSelected =
+		mode === "save" &&
+		selectedIds.length === 1 &&
+		isFlatFolder(selectedIds[0] ?? "");
+
+	// Flat navigation: shows a folder (by its node id, its cache key).
+	const enterFolder = (nodeId: string) => {
+		if (!activeVolume) return;
+		const [, ...pathNames] = nodeId.split(SEP);
+		setCurrentPath(pathNames);
+		setSelectedIds([]);
+		if (!folders.has(nodeId)) loadFolder(activeVolume, pathNames);
+	};
 
 	// Open mode prunes selections the filter disabled or a reload removed; in
 	// save mode the selection is a folder, which is never in the file index.
 	const liveSelectedIds =
 		mode === "save"
 			? selectedIds
-			: selectedIds.filter((sid) => nodeIndex.current.has(sid));
+			: selectedIds.filter(
+					(sid) => nodeIndex.current.has(sid) || isFlatFolder(sid),
+				);
 
 	// In save mode the single selected id is always a folder node (files are
 	// disabled); its id is the cache key, i.e. volume id + path segments.
-	const selectedFolderPath =
-		mode === "save" && selectedIds[0] ? selectedIds[0].split(SEP).slice(1) : [];
+	// Flat navigation saves into the folder shown.
+	const selectedFolderPath = flat
+		? currentPath
+		: mode === "save" && selectedIds[0]
+			? selectedIds[0].split(SEP).slice(1)
+			: [];
 
 	const handleFolderToggle = (nodeId: string, isOpen: boolean) => {
 		if (!activeVolume || !isOpen) return;
@@ -312,9 +459,10 @@ export const ClassicyFileDialog: FunctionalComponent<
 		_node: ClassicyTreeNode,
 		e: unknown,
 	) => {
-		if (mode === "save") {
-			// Files are disabled and never fire selection, so any id here is a
-			// folder (placeholder rows aside).
+		if (mode === "save" || isFlatFolder(nodeId)) {
+			// Files are disabled in save mode and never fire selection, so any
+			// id here is a folder (placeholder rows aside); a flat folder row is
+			// picked alone.
 			if (nodeId.includes(`${SEP}#`)) return;
 			setSelectedIds([nodeId]);
 			return;
@@ -352,6 +500,11 @@ export const ClassicyFileDialog: FunctionalComponent<
 
 	const commitOpen = (ids: string[]) => {
 		if (props.mode !== "open") return;
+		// Flat navigation: Open on a folder enters it.
+		if (ids.length === 1 && isFlatFolder(ids[0])) {
+			enterFolder(ids[0]);
+			return;
+		}
 		const selections = ids
 			.map((nid) => nodeIndex.current.get(nid))
 			.filter((s): s is ClassicyFileOpenSelection => s !== undefined);
@@ -396,6 +549,12 @@ export const ClassicyFileDialog: FunctionalComponent<
 
 	const commitSave = async (confirmedName?: string) => {
 		if (props.mode !== "save") return;
+		// Flat navigation, a folder selected: Save is Open, and enters it
+		// (System 7.5's Standard File).
+		if (confirmedName === undefined && saveFolderSelected) {
+			enterFolder(selectedIds[0]);
+			return;
+		}
 		if (!activeVolume?.write || !activeFormat) return;
 		if (confirmedName === undefined && !canSave) return;
 		const targetName = confirmedName ?? finalFileName;
@@ -466,7 +625,8 @@ export const ClassicyFileDialog: FunctionalComponent<
 		try {
 			await activeVolume.mkDir(path, name);
 			loadFolder(activeVolume, path);
-			setSelectedIds([cacheKey(activeVolume.id, [...path, name])]);
+			if (flat) enterFolder(cacheKey(activeVolume.id, [...path, name]));
+			else setSelectedIds([cacheKey(activeVolume.id, [...path, name])]);
 			setNewFolderOpen(false);
 		} catch (error) {
 			setErrorPrompt("folder");
@@ -474,10 +634,32 @@ export const ClassicyFileDialog: FunctionalComponent<
 		}
 	};
 
+	const switchVolume = (volumeId: string) => {
+		const nextVolume = volumes.find((v) => v.id === volumeId);
+		setActiveVolumeId(volumeId);
+		setCurrentPath([]);
+		setSelectedIds([]);
+		if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
+			loadFolder(nextVolume, []);
+		}
+	};
+
 	const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
 		if (mode === "open" && e.key === "Enter" && liveSelectedIds.length > 0) {
 			e.preventDefault();
 			commitOpen(liveSelectedIds);
+			return;
+		}
+		// Save with a folder selected: Enter opens it, as the Open button
+		// does; the name field's own Enter reaches commitSave, which does too.
+		if (
+			mode === "save" &&
+			e.key === "Enter" &&
+			saveFolderSelected &&
+			!(e.target instanceof HTMLInputElement)
+		) {
+			e.preventDefault();
+			enterFolder(selectedIds[0]);
 		}
 	};
 
@@ -514,51 +696,134 @@ export const ClassicyFileDialog: FunctionalComponent<
 				collapsable={false}
 				resizable={false}
 				scrollable={false}
-				initialSize={[440, 400]}
+				movable={!fixedFrame}
+				initialFocusRef={selectsName ? nameInputRef : undefined}
+				initialSize={dialogSize}
 				initialPosition={[180, 120]}
 				analyticsExclude
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: dialog-level keyboard shortcuts (Escape to cancel, Enter to open) */}
 				<div
 					ref={dialogBodyRef}
-					className={"classicyFileOpenDialogBody"}
+					className={classNames(
+						"classicyFileOpenDialogBody",
+						mode === "save" && "classicyFileDialogSaveBody",
+					)}
 					onKeyDown={handleKeyDown}
 				>
-					<ClassicyPopUpMenu
-						id={`${id}-volume`}
-						label={"Volume"}
-						labelPosition={"left"}
-						options={volumes.map((v) => ({ value: v.id, label: v.label }))}
-						selected={activeVolumeId}
-						onChangeFunc={(e) => {
-							const nextVolume = volumes.find((v) => v.id === e.target.value);
-							setActiveVolumeId(e.target.value);
-							setSelectedIds([]);
-							if (nextVolume && !folders.has(cacheKey(nextVolume.id, []))) {
-								loadFolder(nextVolume, []);
-							}
-						}}
-					/>
-					<div className={"classicyFileOpenDialogWell"}>
+					{flat && activeVolume ? (
+						// The folder pop-up (System 7.5's Standard File): the folder
+						// shown, then each level up to the volume, each by its small
+						// icon, then the other volumes. Its name is the button's
+						// `aria-label`, whether or not a package shows the label.
+						<ClassicyPopUpMenu
+							id={`${id}-volume`}
+							label={"Folder"}
+							labelPosition={"left"}
+							options={[
+								...[...currentPath.keys(), currentPath.length]
+									.reverse()
+									.map((depth) => ({
+										value: `${SEP}level${SEP}${depth}`,
+										label:
+											depth === 0
+												? activeVolume.label
+												: (currentPath[depth - 1] ?? ""),
+										icon:
+											depth === 0
+												? (activeVolume.icon ?? folderIcon)
+												: depth === currentPath.length
+													? (openFolderIcon ?? folderIcon)
+													: folderIcon,
+									})),
+								...volumes
+									.filter((v) => v.id !== activeVolume.id)
+									.map((v) => ({
+										value: v.id,
+										label: v.label,
+										icon: v.icon ?? folderIcon,
+									})),
+							]}
+							selected={`${SEP}level${SEP}${currentPath.length}`}
+							onChangeFunc={(e) => {
+								const value = e.target.value;
+								if (!value.startsWith(`${SEP}level${SEP}`)) {
+									switchVolume(value);
+									return;
+								}
+								const depth = Number(value.split(SEP)[2]);
+								const path = currentPath.slice(0, depth);
+								setCurrentPath(path);
+								setSelectedIds([]);
+								if (!folders.has(cacheKey(activeVolume.id, path)))
+									loadFolder(activeVolume, path);
+							}}
+						/>
+					) : (
+						<ClassicyPopUpMenu
+							id={`${id}-volume`}
+							label={"Volume"}
+							labelPosition={"left"}
+							options={volumes.map((v) => ({ value: v.id, label: v.label }))}
+							selected={activeVolumeId}
+							onChangeFunc={(e) => switchVolume(e.target.value)}
+						/>
+					)}
+					{/* The volume shown, by its small icon and name: System 7.5's
+					    disk name at the top right. The base sheet hides it. */}
+					<div className={"classicyFileOpenDialogVolume"}>
+						{activeVolume?.icon && (
+							<ClassicyIconImage
+								src={activeVolume.icon}
+								drawnAt={16}
+								width={16}
+								alt={""}
+							/>
+						)}
+						<span>{activeVolume?.label}</span>
+					</div>
+					<ClassicyScrollArea
+						className={"classicyFileOpenDialogWell"}
+						viewportClassName={"classicyFileOpenDialogWellViewport"}
+						vertical={wellVerticalPolicy}
+					>
 						<ClassicyTree
 							nodes={nodes}
 							selectionMode={selectionMode === "multi" ? "multi" : "single"}
 							selectedIds={liveSelectedIds}
 							onSelectNode={handleSelect}
 							onActivateNode={
-								mode === "open" ? (nodeId) => commitOpen([nodeId]) : undefined
+								flat
+									? (nodeId) =>
+											isFlatFolder(nodeId)
+												? enterFolder(nodeId)
+												: mode === "open" && commitOpen([nodeId])
+									: mode === "open"
+										? (nodeId) => commitOpen([nodeId])
+										: undefined
 							}
 							onToggleNode={handleFolderToggle}
 						/>
-					</div>
+					</ClassicyScrollArea>
 					{mode === "save" && activeFormat && (
 						<div className={"classicyFileDialogNameRow"}>
 							<ClassicyInput
+								ref={nameInputRef}
 								id={`${id}-name`}
 								labelTitle={"Save As:"}
 								labelPosition={"left"}
 								prefillValue={fileName}
-								onChangeFunc={(e) => setFileName(e.target.value)}
+								// Flat navigation: the name field takes the default
+								// button back, as 7.5's does. Focusing it or typing
+								// deselects the list (a selected folder made the
+								// button Open), so Enter saves into the folder shown.
+								onFocusFunc={() => {
+									if (flat && selectedIds.length > 0) setSelectedIds([]);
+								}}
+								onChangeFunc={(e) => {
+									setFileName(e.target.value);
+									if (flat && selectedIds.length > 0) setSelectedIds([]);
+								}}
 								onEnterFunc={() => void commitSave()}
 							/>
 							<span className={"classicyFileDialogExtension"}>
@@ -596,12 +861,45 @@ export const ClassicyFileDialog: FunctionalComponent<
 							/>
 						)}
 						<div className={"classicyFileOpenDialogActions"}>
+							{/* System 7.5's Eject and Desktop buttons and the line
+							    under them; the base sheet hides them. Eject is dimmed:
+							    no volume here can be ejected. */}
+							<ClassicyButton
+								className={"classicyFileOpenDialogEject"}
+								disabled
+							>
+								Eject
+							</ClassicyButton>
+							<ClassicyButton
+								className={"classicyFileOpenDialogDesktop"}
+								disabled={
+									desktopVolumeOffered === undefined ||
+									activeVolumeId === desktopVolumeOffered.id
+								}
+								onClickFunc={() =>
+									desktopVolumeOffered && switchVolume(desktopVolumeOffered.id)
+								}
+							>
+								Desktop
+							</ClassicyButton>
+							<hr className={"classicyFileOpenDialogDivider"} />
 							{mode === "save" && (
 								<ClassicyButton
+									aria-label={"New Folder"}
 									disabled={activeVolume?.mkDir === undefined}
 									onClickFunc={() => setNewFolderOpen(true)}
 								>
-									New Folder
+									{/* "New", the noun and a folder glyph, the glyph a part the
+									    base sheet hides: a package may draw "New" and a folder
+									    instead, as System 7.5's Standard File does. */}
+									New
+									<span className={"classicyFileDialogNewNoun"}> Folder</span>
+									<span
+										className={"classicyFileDialogNewGlyph"}
+										aria-hidden={true}
+									>
+										<ClassicyPixelArt art={"newFolderGlyph"} />
+									</span>
 								</ClassicyButton>
 							)}
 							<ClassicyButton onClickFunc={() => onCancelFunc?.()}>
@@ -618,10 +916,10 @@ export const ClassicyFileDialog: FunctionalComponent<
 							) : (
 								<ClassicyButton
 									isDefault={true}
-									disabled={!canSave}
+									disabled={!canSave && !saveFolderSelected}
 									onClickFunc={() => void commitSave()}
 								>
-									Save
+									{saveFolderSelected ? "Open" : "Save"}
 								</ClassicyButton>
 							)}
 						</div>

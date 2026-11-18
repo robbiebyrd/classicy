@@ -1,19 +1,11 @@
-// Platinum List Manager scrolling list: inset white box, fixed-height rows.
+// Platinum List Manager scrolling list: fixed-height rows. The inset white
+// box, its bevel and the row selection and disabled colors are the Platinum
+// package's (packages/appearance/platinum/src/styles/components/_ListBox.scss).
 .classicyListBox {
   --classicy-listbox-row-height: calc(var(--control-row-height) + var(--window-border-size));
 
   box-sizing: border-box;
-  overflow-y: auto;
   max-height: calc(var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height));
-  background: var(--color-white);
-  // HIGOS8 Ch.2 "List Boxes and Frames" (p.39): a 2px frame whose inside lines
-  // share the scroll bar's, matching the image well / edit text — 1px black
-  // border + 2px inset bevel (was a 1px
-  // platinum-window-inner-border, packages/appearance/platinum/src/styles/_mixins.scss).
-  border: var(--window-border-size) solid var(--color-black);
-  box-shadow:
-    inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
-    inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
 }
 
 .classicyListBoxOption {
@@ -25,27 +17,16 @@
   padding: 0 var(--control-padding-loose);
   font-family: var(--ui-font);
   font-size: var(--ui-font-size);
-  color: var(--color-black);
   white-space: nowrap;
   cursor: pointer;
-  outline: none;
-}
-
-:where(.classicyListBoxOption).selected {
-  color: var(--color-white);
-  background-color: var(--color-theme-04);
 }
 
 :where(.classicyListBoxOption).disabled {
-  color: var(--color-system-05);
   cursor: default;
 }
 
 :where(.classicyListBox).disabled {
-  background: var(--color-system-02);
-
   .classicyListBoxOption {
-    color: var(--color-system-05);
     cursor: default;
   }
 }

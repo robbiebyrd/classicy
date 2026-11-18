@@ -15,6 +15,11 @@ import {
 	unregisterClassicyAppearancePackage,
 } from "@/Appearance/ClassicyAppearancePackage";
 import {
+	registerClassicyAssets,
+	resolveClassicyAsset,
+	resolveClassicyIconImage,
+} from "@/Appearance/ClassicyAssetRegistry";
+import {
 	type ActionMessage,
 	DefaultAppManagerState,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
@@ -1108,6 +1113,56 @@ describe("useClassicyFileSystem Control Strip Modules overlay", () => {
 			act(() => unmount());
 			vi.restoreAllMocks();
 			unregisterClassicyAppearancePackage("test-fs-strip-static");
+		}
+	});
+
+	it("files a module with no fileIcon under the core's module icon, drawn as the active package's (0193-801)", () => {
+		const packageId = "test-fs-strip-icons";
+		registerTestAppsPackage(packageId, {});
+		registerClassicyAssets("icons", packageId, {
+			system: { controlStrip: { moduleFile: "/pkg/module-file.png" } },
+		});
+		registerClassicyControlStripModule({
+			id: "fs-test-module",
+			label: "Weather",
+			icon: "/weather.png",
+		});
+		const core = resolveClassicyAsset(
+			"icons",
+			"system.controlStrip.moduleFile",
+			PLATINUM_APPEARANCE_PACKAGE_ID,
+		);
+		expect(core).toBeTruthy();
+		try {
+			const { result } = renderHook(
+				() => useClassicyFileSystem("test-strip-overlay-icon"),
+				{
+					wrapper: wrapperFor({
+						defaultFileSystem: drive(),
+						mode: "exclusive",
+					}),
+				},
+			);
+			const icon = () => result.current.resolve(`${folder}:Weather`)._icon;
+			act(() => {
+				dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId });
+			});
+			// The entry holds the core's URL whichever package is active…
+			expect(icon()).toBe(core);
+			// …which every icon surface draws as the active package's.
+			expect(resolveClassicyIconImage(icon() as string, 32)).toBe(
+				"/pkg/module-file.png",
+			);
+			act(() => {
+				dispatch({
+					type: "ClassicyDesktopChangeAppearancePackage",
+					packageId: PLATINUM_APPEARANCE_PACKAGE_ID,
+				});
+			});
+			expect(icon()).toBe(core);
+			expect(resolveClassicyIconImage(icon() as string, 32)).toBe(core);
+		} finally {
+			unregisterClassicyAppearancePackage(packageId);
 		}
 	});
 

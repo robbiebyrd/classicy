@@ -6,6 +6,7 @@ import type {
 	MouseEvent,
 } from "react";
 import { CLASSICY_PART_ATTRIBUTE } from "@/Appearance/vocabulary/ClassicyVocabulary";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 
 export type ClassicyWindowTitleBarProps = {
 	/** The title text. Empty, the bar draws one title-less center band. */
@@ -123,7 +124,7 @@ export const ClassicyWindowTitleBar: FunctionalComponent<
 					<div className={"classicyWindowTitleLeft"}></div>
 					{!hideIcon && (
 						<div className={"classicyWindowIcon"}>
-							<img src={icon} alt={title} />
+							<ClassicyIconImage src={icon} alt={title} />
 						</div>
 					)}
 					<div className={"classicyWindowTitleText"}>

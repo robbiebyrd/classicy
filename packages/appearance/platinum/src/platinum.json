@@ -24,7 +24,25 @@
 			"system": [
 				15658734, 14540253, 13421772, 11184810, 8421504, 3750201, 2105376
 			],
-			"theme": [15658734, 13421823, 10066431, 6710988, 3355545, 136, 85]
+			"theme": [15658734, 13421823, 10066431, 6710988, 3355545, 136, 85],
+			"families": {
+				"grayRamp": {
+					"step1": 1118481,
+					"step2": 2236962,
+					"step3": 3355443,
+					"step4": 4473924,
+					"step5": 5592405,
+					"step6": 6710886,
+					"step7": 7829367,
+					"step8": 8947848,
+					"step9": 10066329,
+					"stepA": 11184810,
+					"stepB": 12303291,
+					"stepC": 13421772,
+					"stepD": 14540253,
+					"stepE": 15658734
+				}
+			}
 		},
 		"sound": {
 			"pack": "platinum",
@@ -133,6 +151,10 @@
 				"paletteMaxWidth": 220,
 				"indent": 12
 			},
+			"fileBrowserList": {
+				"mediumIconSize": 16,
+				"rowPadding": 1
+			},
 			"finder": {
 				"padding": 8,
 				"aboutBannerWidth": 260,
@@ -209,6 +231,18 @@
 			},
 			"stripMenu": {
 				"overlap": 3
+			},
+			"slider": {
+				"pixel": 1,
+				"channel": 7,
+				"thumbAlong": 15,
+				"thumbAcross": 17,
+				"thumbRise": 3,
+				"tickWidth": 3,
+				"tickHeight": 8
+			},
+			"dither": {
+				"tileSize": 0
 			}
 		},
 		"desktop": {
@@ -2001,6 +2035,9 @@
 		},
 		"desktop": {
 			"iconGridOrigin": "top-right"
+		},
+		"slider": {
+			"thumbDrag": "onRelease"
 		}
 	},
 	"knobs": {
@@ -2266,6 +2303,55 @@
 				"min": 3,
 				"max": 32,
 				"default": 8
+			}
+		}
+	},
+	"colorFamilies": {
+		"grayRamp": {
+			"label": "Gray Ramp",
+			"colors": {
+				"step1": {
+					"label": "1"
+				},
+				"step2": {
+					"label": "2"
+				},
+				"step3": {
+					"label": "3"
+				},
+				"step4": {
+					"label": "4"
+				},
+				"step5": {
+					"label": "5"
+				},
+				"step6": {
+					"label": "6"
+				},
+				"step7": {
+					"label": "7"
+				},
+				"step8": {
+					"label": "8"
+				},
+				"step9": {
+					"label": "9"
+				},
+				"stepA": {
+					"label": "A"
+				},
+				"stepB": {
+					"label": "B"
+				},
+				"stepC": {
+					"label": "C"
+				},
+				"stepD": {
+					"label": "D"
+				},
+				"stepE": {
+					"label": "E"
+				}
 			}
 		}
 	}

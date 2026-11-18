@@ -1,0 +1,26 @@
+// The Platinum edit text field look (from ClassicyInput.scss).
+@mixin input {
+  .classicyInput {
+    // HIGOS8 Ch.2 "Edit Text Fields and Frames" (p.41): a 2px recessed frame,
+    // consistent with the image well / group box / separator
+    // (--control-frame-width): a 1px black border + a 2px inset bevel (dark
+    // top-left, light bottom-right).
+    border: var(--window-border-size) solid var(--color-black);
+    box-shadow:
+      inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-system-05),
+      inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 var(--color-white);
+
+    // The field stays a rectangular 2px frame in all states; focus adds a
+    // ring without changing the frame's shape.
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--control-frame-width) var(--color-theme-04),
+      0 0 var(--window-border-size) var(--control-frame-width) var(--color-theme-04);
+    }
+  }
+
+  .classicyInputHolder {
+    input {
+      background-color: var(--classicy-input-background, var(--color-white));
+    }
+  }
+}

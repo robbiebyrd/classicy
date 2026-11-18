@@ -1,0 +1,67 @@
+// The Platinum little-arrows look (from ClassicyLittleArrows.scss): the
+// beveled box, the buttons' bevels and pressed and disabled faces, and the
+// field-paired group's flat unfocused box and focus ring. The layout stays in
+// the base sheet.
+@mixin littleArrows {
+  .classicyLittleArrows {
+    border-style: solid;
+    border-color: var(--color-black);
+    box-shadow:
+      calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+      var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
+    background-color: var(--color-system-02);
+
+    .classicyLittleArrowsButton {
+      border: none;
+      border-radius: 0;
+      background-color: var(--color-system-02);
+      box-shadow:
+        inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
+        inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05);
+
+      &:first-child {
+        border-bottom: var(--window-border-size) solid var(--color-black);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-system-04);
+        box-shadow:
+          inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-05),
+          inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-03);
+      }
+
+      &:disabled {
+        img {
+          opacity: 0.4;
+        }
+      }
+    }
+  }
+
+  // Unfocused, the arrows box goes flat and gray (border, divider and
+  // glyphs); while anything inside has focus it is drawn black and beveled,
+  // and one theme-colored ring wraps field, gap and arrows together.
+  .classicyLittleArrowsGroup {
+    &:not(:focus-within) > .classicyLittleArrows {
+      border-color: var(--color-system-04);
+      box-shadow: none;
+
+      .classicyLittleArrowsButton {
+        box-shadow: none;
+
+        &:first-child {
+          border-bottom-color: var(--color-system-04);
+        }
+
+        img {
+          opacity: 0.4;
+        }
+      }
+    }
+
+    &:focus-within {
+      background-color: var(--color-theme-04);
+      box-shadow: 0 0 0 var(--control-frame-width) var(--color-theme-04);
+    }
+  }
+}

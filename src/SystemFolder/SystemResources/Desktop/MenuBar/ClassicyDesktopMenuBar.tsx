@@ -178,6 +178,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
 	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
+	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
+	// p.52): a package that registers the art gets it in place of the word.
+	const helpMenuTitleArt = useClassicyAsset("systemArt", "helpMenuTitle");
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const appMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
@@ -223,6 +226,39 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const appSwitcherMenuMenuItem: ClassicyMenuItem = useMemo(() => {
 		const focusedApp = appSwitcherData.find((a) => a.focused);
 		const openApps = appSwitcherData.filter((a) => a.open);
+		// The Application menu's commands (HIG7 p.127): each dimmed when it
+		// would do nothing, as 7.5.5 draws them (`*-755-appmenu-open.png`).
+		// The front application: none while an extension holds focus, when
+		// Hide and Hide Others have no app to act on.
+		const frontId = focusedApp?.id;
+		const othersShown =
+			frontId !== undefined &&
+			openApps.some((a) => a.id !== frontId && !a.hidden);
+		const anyHidden = openApps.some((a) => a.hidden);
+		const commands: ClassicyMenuItem[] = [
+			{
+				id: "app-switcher_hide",
+				title: `Hide ${focusedApp?.name || finderName}`,
+				disabled: !othersShown,
+				event: "ClassicyAppHide",
+				eventData: { app: { id: frontId ?? "" } },
+			},
+			{
+				id: "app-switcher_hide-others",
+				title: "Hide Others",
+				disabled: !othersShown,
+				event: "ClassicyAppHideOthers",
+				eventData: { app: { id: frontId ?? "" } },
+			},
+			{
+				id: "app-switcher_show-all",
+				title: "Show All",
+				disabled: !anyHidden,
+				event: "ClassicyAppShowAll",
+				eventData: {},
+			},
+			{ id: "spacer" },
+		];
 		return {
 			id: "app-switcher",
 			image: focusedApp?.icon || "",
@@ -234,14 +270,25 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			// it and shove the clock and extensions sideways. Reserve the widest open
 			// app's width up front and the bar stays put.
 			titleWidthSamples: openApps.map((app) => app.name),
-			menuChildren: openApps.map((app) => ({
-				id: app.id,
-				icon: app.icon,
-				title: app.name,
-				onClickFunc: () => {
-					setActiveApp(app.id);
-				},
-			})),
+			menuChildren: [
+				...commands,
+				...openApps.map((app) => ({
+					id: app.id,
+					icon: app.icon,
+					title: app.name,
+					// The front application is checked, beside its icon; a hidden
+					// one's icon is dimmed: by the package's rule on a canvas
+					// (`imageDimmed`), else by its stylesheet
+					// (`classicyDesktopMenuAppHidden`).
+					checked: app.id === focusedApp?.id,
+					...(app.hidden
+						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
+						: {}),
+					onClickFunc: () => {
+						setActiveApp(app.id);
+					},
+				})),
+			],
 		};
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
 	}, [appSwitcherData, finderName, setActiveApp]);
@@ -291,12 +338,15 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		}
 		return {
 			id: "help-menu",
-			title: "Help",
+			// The art replaces the word, which stays its accessible name.
+			...(helpMenuTitleArt
+				? { image: helpMenuTitleArt, imageAlt: "Help" }
+				: { title: "Help" }),
 			className: "classicyDesktopMenuHelp",
 			part: "help",
 			menuChildren: helpChildren,
 		};
-	}, [disableBalloonHelp, helpMenus, focusedMenuApp]);
+	}, [disableBalloonHelp, helpMenus, focusedMenuApp, helpMenuTitleArt]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
@@ -340,6 +390,8 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			appleMenuItem: {
 				id: "apple-menu",
 				image: appleMenuIcon,
+				// The art is the title: its accessible name.
+				imageAlt: "Apple",
 				menuChildren,
 				className: "classicyDesktopMenuApple",
 				part: "apple",

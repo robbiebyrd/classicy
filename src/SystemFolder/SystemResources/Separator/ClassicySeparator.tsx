@@ -1,6 +1,8 @@
 import "./ClassicySeparator.scss";
 import classNames from "classnames";
 import type { CSSProperties, FC as FunctionalComponent } from "react";
+import { useRef } from "react";
+import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 
 export type ClassicySeparatorOrientation = "horizontal" | "vertical";
 
@@ -35,8 +37,13 @@ export const ClassicySeparator: FunctionalComponent<ClassicySeparatorProps> = ({
 	className,
 	style,
 }) => {
+	// A dotted rule laid from a fixed origin, where the package declares one
+	// (`layout.patternOrigin.Separator`, System 7).
+	const ruleRef = useRef<HTMLHRElement>(null);
+	useClassicyPatternOrigin("Separator", ruleRef);
 	return (
 		<hr
+			ref={ruleRef}
 			className={classNames(
 				"classicySeparator",
 				orientation === "vertical"

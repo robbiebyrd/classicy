@@ -46,13 +46,19 @@
   background: var(--color-system-01);
 }
 
+// The space above and below a row's icon and label is the theme's optional
+// `fileBrowserList.rowPadding`, which sets the row pitch apart from the
+// space beside them (Platinum: 1, HIGOS8 Fig. 2-24's 18 px rows around
+// 16 px icons); a theme without it keeps the icon spacing all round.
 .classicyFileBrowserViewTableRowIcon {
-  margin: var(--file-browser-list-icon-spacing);
+  margin: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing))
+    var(--file-browser-list-icon-spacing);
   flex-shrink: 0;
 }
 
 .classicyFileBrowserViewTableRowIconLabel {
-  padding: var(--file-browser-list-icon-spacing);
+  padding: var(--file-browser-list-row-padding, var(--file-browser-list-icon-spacing))
+    var(--file-browser-list-icon-spacing);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,7 +69,11 @@
   background: var(--color-system-07);
 }
 
-:where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIcon {
+// A selected item's icon darkens, unless it draws the active package's own
+// selected image (`registerClassicySelectedIconImages`; `ClassicyIconImage`
+// marks it `classicyIconSelectedImage`).
+:where(.classicyFileBrowserViewTableRow).selected
+  .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
   filter: contrast(0.75) brightness(0.5);
 }
 
@@ -115,6 +125,8 @@
 // table is wider than the window, scrolling right still shows the list's
 // background, click target and drop target under the last row. At the
 // window's width the window's white contents box showed through there.
-.classicyFileBrowserFill:not(:has(> .classicyFileBrowserViewTableContainer)) {
+// ClassicyFileBrowser marks the list view's root (no `:has()`, which Firefox
+// 113-120 lacks: there every icon stacked at the top left).
+.classicyFileBrowserFill:not(.classicyFileBrowserFillList) {
   width: 100%;
 }

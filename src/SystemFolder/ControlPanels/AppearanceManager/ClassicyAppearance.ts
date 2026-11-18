@@ -8,6 +8,11 @@ import {
 	intToPct,
 	intToPx,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicySize";
+import {
+	classicyColorFamilyVars,
+	classicyThemeColorFamilyDefaults,
+	withDefaultThemeColorFamilies,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { classicyThemeDerivations } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
 import {
 	classicyMeasurementVars,
@@ -89,11 +94,32 @@ export type ClassicyThemeColors = {
 	system: ClassicyThemeColorPalette;
 	theme: ClassicyThemeColorPalette;
 	window: ClassicyThemeColorsWindow;
+	/**
+	 * An Appearance Package's own named colors, beside the 28 core colors:
+	 * family → key → 24-bit RGB integer. Optional (a theme saved before its
+	 * package declared one is completed from the package's
+	 * `defaults.color.families`, `withDefaultThemeColorFamilies`). Every leaf
+	 * becomes `--package-color-<family>-<key>` (kebab-case) on the desktop
+	 * root (`classicyColorFamilyVars`).
+	 */
+	families?: ClassicyThemeColorFamilies;
 };
+
+/** Package color families: family → key → 24-bit RGB integer
+ * (`ClassicyThemeColors.families`). */
+export type ClassicyThemeColorFamilies = Record<string, Record<string, number>>;
 
 export type ClassicyThemeTypography = {
 	ui: string;
 	uiSize: number;
+	/**
+	 * The small UI text's family (`--ui-font-small`: slider ticks and
+	 * readouts, small control labels), optional: stylesheets read it with
+	 * `--ui-font` as the fallback, so a theme without it draws its small text
+	 * in the UI family. System 7 sets Geneva under a Chicago UI family, as
+	 * 7.5.5 draws them; Platinum sets none.
+	 */
+	uiSmall?: string;
 	header: string;
 	headerSize: number;
 	body: string;
@@ -197,7 +223,20 @@ export type ClassicyTheme = {
 	measurements: ClassicyThemeMeasurements;
 	desktop: ClassicyThemeDesktop;
 	sound: ClassicyThemeSound;
+	/**
+	 * The variant of its package's assets this theme draws with
+	 * (`registerClassicyAssets(kind, package, tree, { variant })`): icons,
+	 * system art, cursors and wallpapers by name resolve the variant's tree,
+	 * then the package's base tree, then the default package's. Absent, the
+	 * base tree; a variant the package never registered draws the base tree
+	 * too, with one warning.
+	 */
+	assetVariant?: string;
 };
+
+/** A resolved desktop picture as a CSS image: `url("…")`, or `none`. */
+const classicyDesktopPictureVar = (src: string): string =>
+	src ? `url("${src}")` : "none";
 
 export const getThemeVars = (theme: ClassicyTheme) => {
 	// Completed first, key by key, from the theme's package defaults over
@@ -210,6 +249,7 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		classicyThemeMeasurementDefaults(theme.package),
 	).measurements;
 	const border = m.window.borderSize;
+	const colorFamilyDefaults = classicyThemeColorFamilyDefaults(theme.package);
 	return {
 		// --- Layout metrics: every theme input under `measurements.<family>`
 		// as `--<family>-<key>` (the core families' Platinum defaults are Mac
@@ -236,6 +276,13 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-theme-05": intToHex(theme.color.theme[4]),
 		"--color-theme-06": intToHex(theme.color.theme[5]),
 		"--color-theme-07": intToHex(theme.color.theme[6]),
+		// --- Package colors: every leaf under `color.families` as
+		// `--package-color-<family>-<key>`, completed from the theme's own
+		// registered package. A namespace no other variable takes.
+		...classicyColorFamilyVars(
+			withDefaultThemeColorFamilies(theme, colorFamilyDefaults).color.families,
+			colorFamilyDefaults,
+		),
 		// Stripe unit of the scrollbar arrow glyphs; scales with the scrollbar.
 		"--window-scrollbar-arrow-size": intToPx(m.window.scrollbarSize / 4),
 		// Classic Mac OS small-icon (SICN) size.
@@ -250,6 +297,9 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--body-font-size": intToPx(theme.typography.bodySize),
 		"--ui-font": theme.typography.ui,
 		"--ui-font-size": intToPx(theme.typography.uiSize),
+		...(theme.typography.uiSmall
+			? { "--ui-font-small": theme.typography.uiSmall }
+			: {}),
 		"--mono-font": theme.typography.mono,
 		"--mono-font-size": intToPx(theme.typography.monoSize),
 		"--digital-font": theme.typography.digital,
@@ -265,7 +315,10 @@ export const getThemeVars = (theme: ClassicyTheme) => {
 		"--color-highlight": intToHex(theme.color.highlight),
 		// Themes hold a registered wallpaper by filename; resolved here, at
 		// render, through the asset registry (the theme's own package first).
-		"--desktop-background-image": `url("${resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package)}")`,
+		// No picture is `none`: `url("")` resolves to the page's own URL.
+		"--desktop-background-image": classicyDesktopPictureVar(
+			resolveClassicyWallpaper(theme.desktop.backgroundImage, theme.package),
+		),
 		"--desktop-background-color": intToHex(theme.desktop.backgroundColor),
 		"--desktop-background-repeat": theme.desktop.backgroundRepeat,
 		"--desktop-background-position": theme.desktop.backgroundPosition,

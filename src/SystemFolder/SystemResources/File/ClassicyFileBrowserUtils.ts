@@ -19,13 +19,27 @@ export const fileTypeDisplayName = (fileType: string) => {
 	return capitalizeFirst(fileType.replaceAll("_", " "));
 };
 
-export const iconImageByType = (byType: string) => {
+/**
+ * The icon for an entry of type `byType` that has none of its own: the
+ * folder icon for a directory, the generic file icon otherwise, from
+ * `packageId`'s icons (default: the active package's). Pass
+ * `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID` for the core's icon, which every
+ * icon surface draws as the active package's (`resolveClassicyIconImage`),
+ * to store an icon or hand it to a surface that may not re-render on a
+ * package or theme switch.
+ */
+export const iconImageByType = (byType: string, packageId?: string) => {
 	switch (byType) {
 		case "directory": {
-			return resolveClassicyAsset("icons", "system.folders.directory") ?? "";
+			return (
+				resolveClassicyAsset("icons", "system.folders.directory", packageId) ??
+				""
+			);
 		}
 		default: {
-			return resolveClassicyAsset("icons", "system.files.file") ?? "";
+			return (
+				resolveClassicyAsset("icons", "system.files.file", packageId) ?? ""
+			);
 		}
 	}
 };

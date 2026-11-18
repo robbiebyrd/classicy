@@ -16,12 +16,13 @@
   flex-direction: column;
 }
 
+// Each pane is a ClassicyScrollArea: it scrolls its content with Classicy's
+// own scroll bars.
 .classicySplitViewPane {
   flex-shrink: 1;
   flex-basis: 0;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
 }
 
 // The divider wears the window frame edge's clothes: the frame-gray fill and
@@ -44,8 +45,10 @@
 }
 
 // Cursors come from the asset registry: ClassicyDesktop defines
-// `--classicy-cursor-<role>` as url("…") on its root. Hotspot 8 8 = the center
-// of the 16px Platinum resize cursors, where the bar meets the arrow. Outside a
+// `--classicy-cursor-<role>` as url("…") on its root, and
+// `--classicy-cursor-<role>-hotspot` for a cursor registered with a hotspot;
+// without one the hotspot is 8 8, the center of the 16px Platinum resize
+// cursors, where the bar meets the arrow. Outside a
 // desktop the variable is undefined, which would void the whole `cursor`
 // declaration; the fallback is an image that never loads, so the browser moves
 // on to the keyword cursor.
@@ -54,14 +57,14 @@ $cursor-missing: url('data:,');
 .classicySplitViewHorizontal > .classicySplitViewDivider {
   width: var(--window-padding-size);
   cursor:
-    var(--classicy-cursor-resize-lr, #{$cursor-missing}) 8 8,
+    var(--classicy-cursor-resize-lr, #{$cursor-missing}) var(--classicy-cursor-resize-lr-hotspot, 8 8),
     col-resize;
 }
 
 .classicySplitViewVertical > .classicySplitViewDivider {
   height: var(--window-padding-size);
   cursor:
-    var(--classicy-cursor-resize-ud, #{$cursor-missing}) 8 8,
+    var(--classicy-cursor-resize-ud, #{$cursor-missing}) var(--classicy-cursor-resize-ud-hotspot, 8 8),
     row-resize;
 }
 
@@ -75,7 +78,7 @@ $cursor-missing: url('data:,');
 {
   .classicySplitView[data-drag-direction='#{$dir}'] .classicySplitViewDivider {
     cursor:
-      var(--classicy-cursor-#{$var}, #{$cursor-missing}) 8 8,
+      var(--classicy-cursor-#{$var}, #{$cursor-missing}) var(--classicy-cursor-#{$var}-hotspot, 8 8),
       $fallback;
   }
 }

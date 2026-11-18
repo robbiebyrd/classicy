@@ -33,8 +33,9 @@ const desktopIcon = compileFile(`${SYSTEM}/Desktop/ClassicyDesktopIcon.scss`);
 const progressBar = compileFile(
 	`${SYSTEM}/ProgressBar/ClassicyProgressBar.scss`,
 );
-const controlGroup = compileFile(
-	`${SYSTEM}/ControlGroup/ClassicyControlGroup.scss`,
+// The group box's frame colors are in its Platinum partial.
+const controlGroup = compileSource(
+	`@use "styles/components/ControlGroup" as g;\n@include g.controlGroup;`,
 );
 // The QuickTime controller look is in its Platinum partial.
 const quickTime = compileSource(
@@ -134,7 +135,7 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 
 	it("ControlGroup groove is a 6% tint of system-01", () =>
 		expect(controlGroup).toContain(
-			"groove color-mix(in srgb, var(--color-system-01), white 6%)",
+			"border-color: color-mix(in srgb, var(--color-system-01), white 6%)",
 		));
 
 	it("the WebViewer frame and the progress-bar mask stop are the white token", () => {

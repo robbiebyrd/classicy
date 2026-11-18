@@ -28,6 +28,10 @@ import {
 	editActiveClassicyTheme,
 } from "../AppearanceManager/ClassicyCustomTheme";
 import {
+	classicyThemeColorFamilyDefaults,
+	withoutDefaultThemeColorFamilies,
+} from "../AppearanceManager/ClassicyThemeColorFamilies";
+import {
 	classicyThemeMeasurementDefaults,
 	withoutDefaultThemeMeasurements,
 } from "../AppearanceManager/ClassicyThemeMetrics";
@@ -138,8 +142,8 @@ const hasKnownClassicyThemePackage = (theme: ClassicyTheme): boolean =>
 /**
  * `theme` as it is persisted: a registered wallpaper by its filename
  * (`withPortableClassicyWallpaper`; a URL that only works in this build never
- * reaches storage), and without the package-family leaves equal to its
- * package's defaults (H-R17). A theme whose package is not registered yet,
+ * reaches storage), and without the package-family leaves (measurements
+ * and package colors) equal to its package's defaults (H-R17). A theme whose package is not registered yet,
  * Platinum's included, keeps every knob: its defaults cannot be read yet
  * (they would resolve to another package's, or to the core floor), and an
  * edit that happens to equal those values would be lost.
@@ -148,9 +152,12 @@ const persistableClassicyTheme = (theme: ClassicyTheme): ClassicyTheme => {
 	if (!theme || typeof theme !== "object") return theme;
 	const portable = withPortableClassicyWallpaper(theme);
 	return hasKnownClassicyThemePackage(portable)
-		? withoutDefaultThemeMeasurements(
-				portable,
-				classicyThemeMeasurementDefaults(portable.package),
+		? withoutDefaultThemeColorFamilies(
+				withoutDefaultThemeMeasurements(
+					portable,
+					classicyThemeMeasurementDefaults(portable.package),
+				),
+				classicyThemeColorFamilyDefaults(portable.package),
 			)
 		: portable;
 };
@@ -184,9 +191,12 @@ export const withoutDefaultActiveThemeMeasurements = (
 				...state.System.Manager,
 				Appearance: {
 					...appearance,
-					activeTheme: withoutDefaultThemeMeasurements(
-						theme,
-						classicyThemeMeasurementDefaults(theme.package),
+					activeTheme: withoutDefaultThemeColorFamilies(
+						withoutDefaultThemeMeasurements(
+							theme,
+							classicyThemeMeasurementDefaults(theme.package),
+						),
+						classicyThemeColorFamilyDefaults(theme.package),
 					),
 				},
 			},
@@ -653,10 +663,14 @@ useAppManager.subscribe(followDrawnPackage);
 
 // The asset registry follows the active Appearance Package: the store's
 // packageId resolved against the package registry, so assets and the desktop
-// root's data-classicy-appearance always agree. Connected here, once the store
-// exists; the registry reads it lazily, never during module evaluation.
+// root's data-classicy-appearance always agree, and the active theme, whose
+// assetVariant selects a variant of that package's assets. Connected here,
+// once the store exists; the registry reads it lazily, never during module
+// evaluation.
 connectClassicyAssetPackageSource({
 	getId: () => resolveClassicyAppearancePackage().id,
+	getActiveTheme: () =>
+		useAppManager.getState().System.Manager.Appearance.activeTheme,
 	subscribe: (onChange) => {
 		const unsubscribeStore = useAppManager.subscribe(onChange);
 		const unsubscribePackages = subscribeClassicyAppearancePackages(onChange);
@@ -815,6 +829,9 @@ export function sanitizeStateForPersistence(
 		// if dragged (preventDefault on mousemove, the resizing class) until
 		// its first click.
 		for (const app of Object.values(draft.System.Manager.Applications.apps)) {
+			// Hidden by the Application menu's Hide commands: session state, as
+			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
+			delete app.hidden;
 			for (const w of Object.values(app.windows ?? {})) {
 				delete w.closedThisSession;
 				delete w.resizing;

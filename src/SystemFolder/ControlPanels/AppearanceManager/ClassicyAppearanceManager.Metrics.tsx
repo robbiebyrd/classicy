@@ -10,6 +10,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 import { ClassicyControlGroup } from "@/SystemFolder/SystemResources/ControlGroup/ClassicyControlGroup";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { ClassicySpinner } from "@/SystemFolder/SystemResources/Spinner/ClassicySpinner";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
@@ -67,7 +68,10 @@ export const useMetricsTab = ({
 							"a metric",
 						)}
 					/>
-					<div className={"classicyAppearanceManagerColorsScroll"}>
+					<ClassicyScrollArea
+						className={"classicyAppearanceManagerColorsScroll"}
+						viewportClassName={"classicyAppearanceManagerColorsScrollViewport"}
+					>
 						{CLASSICY_THEME_METRIC_GROUPS.map((group) => (
 							<div
 								key={group.id}
@@ -112,7 +116,7 @@ export const useMetricsTab = ({
 								</ClassicyControlGroup>
 							</div>
 						))}
-					</div>
+					</ClassicyScrollArea>
 				</div>
 			),
 		}),

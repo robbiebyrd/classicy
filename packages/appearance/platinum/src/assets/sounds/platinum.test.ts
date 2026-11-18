@@ -24,6 +24,21 @@ describe("platinum sound pack", () => {
 		expect(classicySoundPackMissingSprites(platinumSoundPack)).toEqual([]);
 	});
 
+	it("declares its seven alerts with Sosumi as the default", () => {
+		expect(platinumSoundPack.alerts?.map((a) => a.value)).toEqual([
+			"ClassicyAlertBonk",
+			"ClassicyAlertGrowl",
+			"ClassicyAlertIndigo",
+			"ClassicyAlertQuack",
+			"ClassicyAlertSosumi",
+			"ClassicyAlertTabitha",
+			"ClassicyAlertWildEep",
+		]);
+		expect(platinumSoundPack.defaultAlert).toBe("ClassicyAlertSosumi");
+		for (const a of platinumSoundPack.alerts ?? [])
+			expect(platinumSoundPack.sprite).toHaveProperty(a.value);
+	});
+
 	it("has four src URLs whose basenames match the JSON", () => {
 		expect(platinumSoundPack.src.map((u) => u.split("/").pop())).toEqual([
 			"platinum.ogg",

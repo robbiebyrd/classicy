@@ -34,9 +34,21 @@ describe("cursor stylesheets", () => {
 			);
 			expect(declarations.length, name).toBeGreaterThan(0);
 			for (const declaration of declarations) {
-				expect(declaration, name).toMatch(
-					/^cursor: var\(--classicy-[a-z-]+, url\("data:,"\)\) \d+ \d+, [a-z-]+;$/,
-				);
+				if (!declaration.includes("var(--classicy-cursor-")) {
+					expect(declaration, name).toMatch(
+						/^cursor: var\(--classicy-[a-z-]+, url\("data:,"\)\) \d+ \d+, [a-z-]+;$/,
+					);
+					continue;
+				}
+				// A registry cursor's hotspot is the registered one (`{ src,
+				// hotspot }`), read from the role's own -hotspot variable, with a
+				// numeric fallback.
+				const match =
+					/^cursor: var\(--classicy-cursor-([a-z-]+), url\("data:,"\)\) var\(--classicy-cursor-([a-z-]+)-hotspot, \d+ \d+\), [a-z-]+;$/.exec(
+						declaration,
+					);
+				expect(match, `${name}: ${declaration}`).not.toBeNull();
+				expect(match?.[2], declaration).toBe(match?.[1]);
 			}
 		}
 	});

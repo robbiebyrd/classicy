@@ -62,13 +62,17 @@ describe("menu and pop-up arrows (Platinum package)", () => {
 	});
 
 	// Ruling E21: the indicator draws the registered art as its own image,
-	// sized and placed by the base sheet's unchanged longhands.
+	// at 45%, centered. The longhands that size and place it moved from the
+	// base sheet into the package with the rest of its look (story 0196-1i1).
 	it("the pop-up arrows are the indicator's image, at 45%, centered", () => {
 		const el = rule(".classicyPopUpMenuIndicator");
 		expect(el["background-image"]).toBe("var(--classicy-art-popup-arrows)");
+		expect(el["background-repeat"]).toBe("no-repeat");
+		expect(el["background-position"]).toBe("center");
+		expect(el["background-size"]).toBe("45%");
 		expect(el["mask-image"]).toBeUndefined();
-		expect(popUpCss).toMatch(
-			/\.classicyPopUpMenuIndicator \{[^}]*background-repeat: no-repeat;[^}]*background-position: center;[^}]*background-size: 45%;/,
+		expect(popUpCss).not.toMatch(
+			/\.classicyPopUpMenuIndicator \{[^}]*background-/,
 		);
 	});
 

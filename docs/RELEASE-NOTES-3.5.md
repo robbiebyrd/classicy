@@ -1,0 +1,931 @@
+# Release notes: 3.5
+
+A second Appearance Package, System 7, ships beside Platinum, with the core
+capabilities it needed. These notes list every change a host can see,
+measured from 3.4.x, with the step each change needs. The API is described in
+[`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§5 "Asset registries", §8
+"Theming" and its "System 7" section, §10 "Sound").
+
+## Summary
+
+`@classicy/appearance-system7` draws System 7.5 in black and white and in
+color, with System 7.5's own icons, art, cursors, desktop pattern and alert
+sounds, and the same twelve screen savers as Platinum. To draw it, the core
+gained per-theme asset variants, 16 px icon images, alert sounds chosen by
+the sound pack, a dither vocabulary, its own scroll bars and a few small
+structural hooks, and packages may now declare colors of their own.
+Platinum looks the same but for its slider, whose grays are now HIGOS8's
+own (below): several looks that sat in the core's base layer moved into
+Platinum's stylesheet, and one inline color left `ClassicyControlGroup`
+(see "Behavior change", below).
+
+## New: the System 7 Appearance Package
+
+Install it with the core, at the same version, alone or beside Platinum:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-system7
+# or, with both looks:
+pnpm add @classicy/classicy @classicy/appearance-platinum @classicy/appearance-system7
+```
+
+Import it once, at your app's entry:
+
+```tsx
+import '@classicy/appearance-system7'
+```
+
+It registers two themes, **System 7** (id `system7`, black and white, the
+package's defaults) and **System 7 Color** (id `system7-color`, the Standard
+window colors from System 7.5's `wctb` and `cctb` tables), its fonts (the
+Chicago, Geneva and Monaco faces Platinum ships), its icons, art, cursors and
+wallpapers, its sound pack (`system7`: System 7.5's six alert sounds, Droplet,
+Indigo, Quack, Simple Beep, Sosumi and Wild Eep, with Simple Beep, a square
+wave synthesized to match the 7.5.5 Sound Manager's, the default alert; System 7
+had no interface feedback sounds, so the package's hooks play none) and the
+screen savers. It exports
+`SYSTEM7_APPEARANCE_PACKAGE_ID`, `system7Json` (typed `System7Json`),
+`system7SoundPack` and `system7AppearanceHooks`. Its strict-CSP stylesheets
+are `@classicy/appearance-system7/classicy-system7.css` and
+`@classicy/appearance-system7/classicy-system7.fonts.css`, linked after the
+core's like Platinum's. A Vite host adds it to `optimizeDeps.exclude`. See
+[its README](../packages/appearance/system7/README.md).
+
+System 7 arranges an alert's buttons as its HIG does (p.201): a button that
+is neither the default nor Cancel, such as Don't Save, stands at the left,
+under the message text, apart from Cancel and the default button at the
+lower right. Hosts keep listing the buttons in any order; Platinum still
+draws them in the list's order. A chosen menu item blinks three times,
+System 7's default (`system7AppearanceHooks` sets the count), where
+Platinum's flashes twice.
+
+Checked against the 7.5 captures (story 0217-etx): a window's title is
+centered on the whole title bar whatever boxes it has, an odd pixel of room
+going to the right; the scroll track's dots lie from each window's content
+origin; an alert's label and message run on one 16-pixel pitch, its width
+is SimpleText's (`dialog.alertMaxWidth` 324) and short push buttons are 60
+px wide (`button.minWidth`), a label's odd pixel of room on its right
+(half a pixel of the button's left padding moved to its right,
+`pushButton.labelShift`, so a label wrapped in an inline, inline-block or
+block child is placed as a plain one is);
+Standard File's folder pop-up is as wide as
+7.5's, centered as 7.5 rounds it, its icon and name a row lower, its
+folders drawn two rows higher in the list, the disk's name condensed, the
+files a Save box dims dimmed icon and all, the Save box's name field a row
+lower and its default name selected when it opens. A text field's
+selection that runs to its text's end is highlighted, as TextEdit did, from
+its first character to the field's right edge: the whole line from a pixel
+left of the text, a tail from its first character's pen position, scrolled
+or not.
+
+**Mixing versions of the two Appearance Packages is unsupported.** Install
+`@classicy/classicy`, `@classicy/appearance-platinum` and
+`@classicy/appearance-system7` at one version and bump them together. Both
+packages register the screen savers from one module and share the Logo
+saver's image registry; with an older Platinum beside System 7 the savers
+can end up offered under `platinum` only, or the two Logo registries
+diverge, so a logo registered through Platinum's
+`registerClassicyScreenSaverLogo` may never show.
+
+## New in the core
+
+- **Package color families.** A package may declare colors beyond the 28
+  core colors, which do not change: values in its themes under
+  `color.families.<family>.<key>` (24-bit integers), labels in its
+  `colorFamilies` metadata (`ClassicyAppearanceColorFamilies`, like
+  `knobs`). Each is emitted as `--package-color-<family>-<key>`
+  (`classicyColorFamilyVars`; the prefix is reserved, so no measurement can
+  make one). A stylesheet reads one with a core color as fallback
+  (`var(--package-color-…, var(--color-…))`), for a theme of another
+  package, which emits none. A theme saved before a family existed is completed from its
+  package's defaults (`withDefaultThemeColorFamilies`,
+  `classicyThemeColorFamilyDefaults`); a theme of an unregistered package is
+  kept whole. The Appearance Manager's Colors tab lists the active package's
+  families after the core groups, and `ClassicyDesktopChangeColor` takes a
+  second form, `{ family, key, color }`, for a declared color (it forks a
+  built-in into its Custom theme, as color edits do). Persistence stores a
+  theme without the family colors equal to its package's defaults, as it
+  does knob values; theme files keep them (`ClassicyThemeSchema`
+  `color.families`), and a 3.4 host loading such a file drops them.
+  New exports: `classicyColorFamilyVarName(family, key)` (the variable a
+  package color makes, `--package-color-<family>-<key>`, kebab-cased) and
+  `CLASSICY_PACKAGE_COLOR_VAR_PREFIX` (`"--package-color-"`, a name space
+  that is reserved: no measurement can make a variable in it).
+  `AGENT-REFERENCE.md` §8, "Package color families".
+- **Selected icon images.** `registerClassicySelectedIconImages(packageId,
+  { [image]: selectedImage }, { variant? })` registers the image a selected
+  icon draws in place of an icon image while the package's base look (or,
+  with `variant`, that variant's) is active.
+  `resolveClassicyIconImage` and `useClassicyIconImage` take a third
+  argument, `selected`. A selected `ClassicyIcon` or desktop icon draws the
+  registered image and marks its mask pair with the new `SelectedImage`
+  part class (`classicyIconSelectedImage`,
+  `classicyDesktopIconSelectedImage`) so the package can drop its own
+  selected look; without an entry nothing changes. System 7 uses it for its
+  color icons.
+- **Per-theme asset variants.** `registerClassicyAssets(kind, packageId,
+  tree, { variant })`, and `registerClassicyCursors` and
+  `registerClassicySystemArt` with the same last argument
+  (`ClassicyAssetRegistrationOptions`), register an extra tree for a named
+  variant of a package (`CLASSICY_ASSET_VARIANT_NAME`: a letter or digit,
+  then letters, digits, `_` or `-`, at most 64). A theme selects one with
+  `assetVariant` (`ClassicyTheme.assetVariant`, kept by the schema, theme
+  files, persistence and custom-theme forks). A key the variant lacks comes
+  from the package's base tree, then the default package's. The variant
+  applies only while the active theme belongs to the drawn package, and
+  readers re-render on a theme switch. `resolveClassicyAsset(kind, path,
+  packageId?, variant?)` takes an explicit variant (`""` for the base tree
+  alone); `resolveClassicyThemeAsset(kind, path, theme)` resolves for a
+  theme that need not be the active one, such as a preview, at its own
+  variant. A variant the package never registers is warned about once per
+  page and draws the base tree; a variant registration none of whose leaves
+  is accepted registers nothing.
+  Wallpapers, fonts and `registerClassicyIcons` take no variant.
+- **Icons with their own 16 px image.** An `icons` leaf may be `{ src,
+  small? }` as well as a URL. `resolveClassicyAsset` and `useClassicyAsset`
+  still return a URL (`src`), so props and persisted records keep plain
+  strings; `resolveClassicyIcon(path)` returns the leaf. Small surfaces call
+  `resolveClassicyIconImage(src, px | true)` / `useClassicyIconImage`, which
+  return the leaf's `small` when drawn at `CLASSICY_SMALL_ICON_SIZE` (16) or
+  less. Menu items, list boxes, pop-up menus, the file browser's list view,
+  the window title bar's proxy icon, menu bar extensions, Control Strip
+  modules (the new `ClassicyBevelButton` prop `iconSmall`, for a surface
+  whose stylesheet draws the icon at 16 px: it picks the image and never
+  sizes the icon), `ClassicyIcon`
+  and desktop icons at 16 px or less draw it. A leaf without `small` scales
+  as before.
+- **List-view icon sizes.** A theme may give the file browser's list view
+  its own icon size per step, the optional measurements
+  `fileBrowserList.smallIconSize`, `mediumIconSize` and `largeIconSize`
+  (px; `LIST_VIEW_ICON_SIZE_VARS` names their variables, and
+  `listViewIconSize` takes the size as a third argument), and its own row
+  pitch, `fileBrowserList.rowPadding` (the space above and below a row's
+  icon and label). A step with no size keeps `desktop.iconSize` scaled, and
+  a theme with no `rowPadding` keeps the icon spacing all round. A list
+  with no `listViewOptions` draws the medium step's size when the theme
+  gives one, else 18 px as before. System 7 sets `mediumIconSize: 16`: its
+  list view draws the 16 px small icons unscaled. Platinum sets both (see
+  "Other changes you may notice").
+- **Alert sounds come from the sound pack.** `ClassicySoundPack` gains
+  `alerts` (`{ value, label }[]`, the alerts the Sound tab lists) and
+  `defaultAlert`. A pack without `alerts` takes the default pack's
+  (Platinum's), as it takes its other sprites; `alerts: []` means none.
+  Platinum's pack declares its seven, Sosumi by default. The alert played is
+  the stored choice when the active pack offers it, else the pack's default;
+  the stored choice is never rewritten. New store-free readers:
+  `classicyPackAlerts`, `classicyPackDefaultAlert`,
+  `resolveClassicyAlertSound` and `playingClassicySoundPack` (the pack that
+  plays for a theme's `sound.pack`: that pack, else the default). A pack
+  that declares `alerts` need not define the contract's alert ids, only its
+  own (`classicySoundPackMissingSprites`); the contract's seven are exported
+  as `CLASSICY_CONTRACT_ALERT_SPRITE_IDS`.
+- **The dither vocabulary**, `@classicy/classicy/scss/dither`:
+  `classicy-dither-mask`, `classicy-dither-text($on)` and
+  `classicy-dither-line($on)` draw dimmed text, dimmed controls and dotted
+  rules through a checker. The theme switches them with the new knob
+  `dither.tileSize` (`--dither-tile-size`; 0, plain ink, in the core floor
+  and Platinum), and the tile is the new system-art key `ditherChecker`
+  (`--classicy-art-dither-checker`), which a package may also declare on its
+  package root. Every theme now emits `--dither-tile-size`.
+- **`ClassicyScrollArea`: Classicy draws its own scroll bars.** Content
+  scrolls natively in a viewport whose own bars are hidden, and the bars are
+  DOM parts an Appearance Package draws: `data-classicy-part` `scrollbar`,
+  `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`
+  and `scroll-corner`, with the new state `fits` on a bar with nothing to
+  scroll, `pressed` on a held arrow or track, `dragging` on a dragged thumb,
+  and `inactive` while the window is inactive (read from the new
+  `ClassicyWindowActiveContext`, or the `inactive` prop). Arrows and the
+  track repeat while held, pausing while the pointer is off the part. The
+  thumb's length honors the package's `min-height`/`max-height` (vertical) or
+  `min-width`/`max-width` (horizontal), px lengths only, so equal limits fix
+  it. Windows, list boxes, tables (new prop `ClassicyTable.scrollable`),
+  text editors, split-view panes, the Assistant, file dialogs, the color
+  picker and other scrolling surfaces use it. The thumb and bar math is
+  exported (`computeClassicyScrollThumb`, `computeClassicyScrollBars`,
+  `classicyScrollPositionForThumb`, `classicyScrollAxisFits`, and the types
+  `ClassicyScrollAxisMetrics`, `ClassicyScrollThumb`, `ClassicyScrollBarsShown`,
+  `ClassicyScrollBarPolicy` and `ClassicyScrollBarsInput`).
+- **Packages declare scroll-on-release.** The package `layout` gains an
+  optional `scrollBar` group (optional keys, so existing packages validate
+  unchanged). `scrollBar.thumbDrag: "onRelease"` leaves a dragged thumb in
+  place while a drag outline, the new part `scroll-drag-outline`
+  (`.classicyScrollBarDragOutline`), follows the pointer, and scrolls on
+  release. A pointer more than the theme's `--scroll-bar-snap-back` (else
+  the bar's own thickness, "the width of the scroll box") past the bar's
+  own pixels on any side (System 7: 24, measured on 7.5.5) snaps the
+  outline back over the thumb, and a release there scrolls nothing. Escape or a lost pointer stream cancels the drag, and the keys
+  and the wheel wait while it is held. `"live"`, the default, scrolls as
+  the thumb moves, as before.
+- **Long menus scroll by indicators.** A `ClassicyPopUpMenu` or
+  `ClassicyComboBox` list too long for its space no longer shows the
+  browser's scroll bar, and a `ClassicyMenu` list (a pull-down, a
+  submenu, a contextual menu) too long for the screen below it no longer
+  runs off it: it is capped there (`classicyMenuListScrolls`, and the new
+  `ClassicyMenu` prop `open`). As Mac OS menus do (HIG7 pp.78 and 83), an
+  indicator lies over the first or last row while items are hidden past
+  that end, and the list scrolls a row at a time while the pointer rests
+  on it; the wheel and the keyboard still scroll it, and an aligned pop-up
+  never opens with its selection under an indicator. The indicators are
+  the new parts `menu-scroll-up` and `menu-scroll-down`
+  (`.classicyPopUpMenuScrollArrow`), drawn by the package: Platinum a black
+  triangle on the menu's face, System 7 its pop-up triangle. While a
+  `ClassicyMenu` list is capped, the list clips its frame's shadow
+  pseudo-elements, so `ClassicyMenu` renders an `aria-hidden` sibling over
+  it, `.classicyMenuScrollShadow`, in the list's wrapper; a package draws its
+  frame's shadow, and its bevel if the frame has one, on that sibling (a
+  package with no rule for it shows no shadow on a capped list).
+- **Packages keep the bars in the fits state.** `scrollBar.fitsBars:
+  "shown"` keeps both bars of a document window and the vertical bar of a
+  `ClassicyListBox` or Standard File's list drawn while the content fits,
+  in the `fits` state (no thumb). `"hidden"`, the default, draws them only
+  while the content overflows, as before. The new `ClassicyWindow` prop
+  `fitsScrollBars` decides per window: it defaults to the declaration for a
+  resizable, non-utility window, and the Movie Player, Picture Viewer and
+  HyperCard card windows pass `false`. `useClassicyFitsScrollBars()` and
+  `useClassicyFitsBarPolicy(keep?)` read the declaration for your own
+  scrollers. `ClassicyTextEditor` gains `fitsScrollBars` (default `false`)
+  for a document editor that fills its window; SimpleText's plain-text
+  window passes the declaration.
+- **Platinum's ghost indicator stays behind the pointer (HIGOS8 p.34).**
+  The package `layout` gains an optional `slider` group: `slider.thumbDrag:
+  "onRelease"`, which Platinum declares, keeps a `ClassicySlider`'s
+  indicator where it was while its `ghost` follows the pointer, and changes
+  the value once, on release (`onChangeFunc` then `onCommitFunc`); a lost
+  pointer stream drops it. `"live"`, the default, moves both with the
+  pointer, as before. A slider without `ghost` drags live under either, so
+  the color picker's sliders and every other live control are unchanged.
+  On a vertical slider the ghost now travels up its track (it drew at the
+  top) and is lit like its indicator, and on either it moves by whole
+  pixels, so its art is never resampled, in a browser with CSS `round()`
+  (Chrome 125, Firefox 118, Safari 15.4). Chrome 120–124 and Firefox
+  113–117 place it unrounded, as 3.4 did, from a plain `calc()` declared
+  first; a vertical slider's thumb is centered across its channel the same
+  way. A new check holds every shipped stylesheet to that: a declaration
+  calling CSS math newer than the browser floor needs such a fallback
+  (`verify:dist`, core invariant 15 and each package's invariant 9).
+- **A press on a slider's thumb never moves it.** A mouse or pen press on
+  `ClassicySlider` is now the slider's own: the browser's range drag is
+  stopped (the press's `mousedown` default is prevented; its `pointerdown`,
+  `mousedown` and `mouseup` still reach the page, so open menus close) and
+  the value follows the pointer's travel from where it pressed. In Firefox
+  a press anywhere on the thumb used to move it under the pointer, so
+  pressing a vertical slider's thumb could change the value by a step. A
+  press on the track still puts the thumb under the pointer. The input
+  captures the pointer; a drag that loses it, or sees a move with the
+  button up, ends where it is. During a mouse or pen drag `onChangeFunc`
+  receives a synthetic `input` event (the value is set through the
+  input's prototype setter), and the `change` event on a release that moved
+  the value is dispatched by hand. Touch, the keyboard and the wheel stay
+  the browser's.
+- **Packages may center windows on whole pixels.** The package `layout`
+  gains an optional `window.centering`: `"exact"`, the default, centers a
+  window opened at a symbolic `"center"` (an alert, a dialog) at half the
+  free space, on a half pixel when that space is odd, as before;
+  `"wholePixel"` rounds it, on first paint and on every re-center.
+  `resolvePosition` takes it as an optional fourth argument. System 7 sets
+  it; Platinum does not, so its windows land where they did. The type of
+  the setting is exported as `ClassicyWindowCentering`.
+- **Optional core knob `menuBar.bandHeight`.** `--menu-bar-height` is the
+  knob when a theme sets it to zero or more (a negative band is ignored),
+  else `window.controlSize × 2.5` as before; it has no floor value, so
+  Platinum's band still follows its control size.
+- **Cursor hotspots.** `registerClassicyCursors` accepts `{ src, hotspot:
+  [x, y] }` (whole numbers, 0–127), published as
+  `--classicy-cursor-<role>-hotspot` and returned by
+  `resolveClassicyCursorHotspot(role)`. The hotspot belongs to the image:
+  never hotspot an image another package shares. The split view, the window
+  grow box and the PDF viewer's pan tool read it, falling back to `8 8`.
+  The leaf's types are exported: `ClassicyCursorHotspot` (`[x, y]`) and
+  `ClassicyCursorLeaf`.
+- **A fixed modal that is not an alert: `ClassicyWindow`'s `movable`.**
+  `movable={false}` on a `modal` window makes a modal dialog box the user
+  cannot move (HIGOS8 p.60), such as Standard File, Print or Page Setup,
+  without the alert semantics `type="error"` brings: it does not beep when it
+  opens, draws the ordinary modal scrim and stacks in the modal-front band.
+  It defaults to `true` (a movable modal dialog box, as before), does nothing
+  on a non-modal window (a development build logs a warning, once per
+  window), and an error modal stays fixed, beeping and red whatever it says.
+  Platinum and System 7 draw it with no title bar (HIGOS8 figure 3-3), so
+  pass `closable={false}` and `collapsable={false}`; Platinum's fixed alert
+  keeps its red title bar.
+- **Self-padding dialogs carry a class.** A modal's inner area
+  (`.classicyWindowContentsModalInner`) carries
+  `classicyWindowContentsSelfPadded` while its content pads its own root:
+  `ClassicyAlert`, `ClassicyInputDialog`, `ClassicyKeyboardEquivalentDialog`
+  and `ClassicyForm layout="dialog"`. Content says so through the new
+  `useClassicyWindowSelfPadding(enabled?, rootRef?)` hook, or the
+  `<ClassicyWindowSelfPadding rootRef>` wrapper for a component that renders
+  the window itself; a host's own self-padding dialog content may use
+  either. With `rootRef` the claim holds only while that element is the
+  window's content root (a direct child of its inner area), so a nested or
+  portaled claimant leaves the inset alone; without it a claim covers the
+  window's whole content. System 7 keys its dialog inset on the class
+  instead of `:has()`, so those dialogs get one inset in Firefox 113–120
+  too. Platinum does not read it.
+- **Small structural hooks**: the alert button row's classes
+  `classicyAlertButtonsHaveHelp` and `classicyAlertButtonsHaveOther`, set
+  from the alert's buttons (a help button, a Don't Save style button), which
+  a package keys its arrangement on without `:has()`; the root class `classicyWindowModalFixed` on a
+  fixed modal (a modal `ClassicyWindow` of `type="error"` or with
+  `movable={false}`, which cannot be dragged); the `open` state on a pop-up
+  menu's label holder and indicator while its menu is open; the system-art
+  key `helpMenuTitle`, which, when registered, draws the menu bar's Help
+  title as an image; and `ClassicyMenuItem.imageAlt`, the alt text of an
+  item drawn as its image alone (it keeps "Help" as that title's accessible
+  name, and the Apple menu's art is now named "Apple"). An item with no
+  `title` carries its `imageAlt` as the `title` of its analytics events, so
+  the Apple menu's and the art Help menu's `hover` and `selected` events
+  name them, where their `title` was undefined.
+- **The rest of the floor.** A window title and a tab label keep to one
+  line in Firefox 113–120 and Safari 16.2–17.3, which have no `text-wrap`
+  (a `white-space: nowrap` comes first; a long window title wrapped there
+  instead of ending in an ellipsis), and `ClassicyTextEditor`'s
+  `autoHeight` grows with its text in Firefox, Safari and Chrome 120–122,
+  which have no `field-sizing`: the editor sets the field's height to its
+  text's there, whenever the text, the field's width or a loaded font
+  changes. An indeterminate `ClassicyProgressBar`'s stripes slide in Safari
+  16.2–16.3, which have no `@property` (they stood still: the keyframes
+  stepped between two offsets that draw the same stripes); there the bar
+  carries `classicyProgressSlideByScript` and slides them from a frame loop,
+  its `<progress>` marked `data-classicy-paint-only-style` so the
+  pattern-origin watcher and the scroll area do not measure for each frame's
+  write. Firefox 113–127 have no `@property` either, but Firefox draws no
+  stripes (they are `::-webkit-progress-value`'s), so the bar runs no loop
+  there.
+  The floor check (`bin/classicyCssFloor.ts`) holds a `text-wrap` to its
+  `white-space` too.
+- **Classes in place of `:has()`, for Firefox 113–120.** A browser without
+  `:has()` (Firefox before 121, inside the floor) drops a whole rule that
+  uses it, so the looks such rules drew now key on classes the components
+  set: the chosen tab's wrapper carries `selected` (`ClassicyTabs`; the base
+  sheet's chosen-tab fill, Platinum's included, and System 7's open tab);
+  `ClassicyMenu` marks an item whose title holds an image
+  `classicyMenuItemHasImage` (from `icon` or `image`; System 7's 18 px
+  Application and Apple menu rows and its 1-bit Apple and Help titles'
+  inversion); `ClassicyLittleArrows` carries `disabled` while both arrows are
+  (System 7's dimmed frame); a movable `ClassicyAlert`'s window carries
+  `classicyAlertMovableWindow` (its red title bar, Platinum's red stripes
+  too); `ClassicyFileBrowser`'s list view root carries
+  `classicyFileBrowserFillList` (without it there the icon view's fill took
+  no width and stacked every icon at the top left); and the Apple Guide
+  window carries `appleGuideWindowFrame` (its border-box size). System 7's
+  pressed radio button draws its ring on the input's own `:active`. Chrome
+  and Safari draw them as before. A host or package rule written against
+  the old `:has()` selectors still matches where `:has()` is supported; key
+  it on the class instead to reach Firefox 113–120.
+
+- **The Application menu's Hide commands** (HIG7 p.127). The App Switcher
+  lists Hide <app>, Hide Others and Show All, each dimmed when it would do
+  nothing, a divider, then each open application by its small icon, the
+  front one checked beside its icon. New actions `ClassicyAppHide` and
+  `ClassicyAppHideOthers` (`{ app: { id } }`) and `ClassicyAppShowAll` set
+  an app's new `hidden` flag: its `ClassicyApp` container is `hidden` (a
+  modal window and its scrim, portaled outside it, hide too), its windows
+  stay mounted, and the next shown app takes the menu bar; an app that takes
+  focus in any way (a window opening or focused included) is shown again.
+  The flag is session state: it is not persisted. A hidden app's row in the
+  menu carries the class `classicyDesktopMenuAppHidden`, which a package's
+  fallback dimming keys on. A menu item that is both `checked` and
+  has an `icon`/`image` now draws both, the mark first (before, the mark
+  replaced the icon).
+- **Icon dimming** (AGENT-REFERENCE §8, "Icon dimming"). A hidden
+  application's icon in the Application menu is dimmed per pixel by the
+  active package's new `iconDimming` declaration (`hiddenApp`: blend toward
+  a color, keep the top bits of each channel, then the nearest entry of a
+  palette, judged over all three channels at once), drawn on a canvas and
+  cached per icon and rule; the alpha mask is kept. New `ClassicyMenuItem`
+  field `imageDimmed`, part class `classicyIconDimmedImage`
+  (`CLASSICY_ICON_DIMMED_IMAGE_CLASS`), and exports
+  `ClassicyIconDimming`, `ClassicyIconDimmingRule`,
+  `useClassicyDimmedIconImage`, `resolveClassicyIconDimmingRule`,
+  `dimClassicyIconPixels` and `classicyDimmedIconSource`. **Limit:** an
+  icon served cross-origin without CORS headers cannot be read on a canvas
+  (icons load with `crossOrigin = "anonymous"`, so its load fails; one that
+  loads but taints the canvas is refused the same way); it is dimmed by the
+  package's stylesheet instead (an opacity, which only approximates the
+  rule), and logged once per source at `warn`. A failed load is requested
+  again on the next dimmed mount, since a failure with no CORS headers cannot
+  be told from a network error. Serve icons from the
+  page's origin, as `data:` URLs, or with CORS. Platinum and System 7 both
+  declare Mac OS's rule (halfway to white, 4 bits, the 8-bit system
+  palette), measured from 7.5.5 and 8.1; Platinum's fallback opacity is
+  0.46.
+- **Standard File parts.** `ClassicyFileOpenDialog` and
+  `ClassicyFileSaveDialog` always render System 7.5's extra parts: the
+  volume's small icon and name (`classicyFileOpenDialogVolume`), Eject
+  (`classicyFileOpenDialogEject`, always dimmed), Desktop
+  (`classicyFileOpenDialogDesktop`; goes to the volume with id `"desktop"`, as
+  `desktopVolume(fs)` builds) and a line (`<hr
+  class="classicyFileOpenDialogDivider">`). The base sheet hides all four,
+  so Platinum's dialog is unchanged; a package shows and places them. A
+  package's new optional `layout.fileDialog.frame: "fixed"` draws the box as
+  a fixed modal dialog, and the optional theme knobs `fileDialog.width` and
+  `height` size it (else 440 x 400; `saveWidth`/`saveHeight` for Save). A
+  save box's body also carries `classicyFileDialogSaveBody`. A package's
+  optional `layout.fileDialog.navigation: "flat"` browses one folder at a
+  time, as 7.5's Standard File does: every row by its small icon, a folder
+  entered by a double-click or Open, the pop-up listing the folder's path
+  upward; the default `"tree"` is unchanged. A closed `ClassicyPopUpMenu`
+  draws its selected option's icon as `classicyPopUpMenuValueIcon`, hidden
+  by the base sheet. The New Folder button's label is "New", a noun part
+  (`classicyFileDialogNewNoun`, " Folder") and a glyph part
+  (`classicyFileDialogNewGlyph`, the `newFolderGlyph` pixel art, hidden by
+  the base sheet), its accessible name "New Folder"; the flat pop-up draws
+  the `openFolderIcon` system art for the folder shown when a package
+  registers it; and in flat Save, a selected folder turns Save into Open,
+  which enters it, as Enter does, until the name field takes focus or
+  changes, which deselects the list so Enter saves (7.5's behavior).
+  `ClassicyInput` takes a new optional `onFocusFunc`.
+- **The small UI text's family.** A theme may name it in the optional
+  `typography.uiSmall` (theme files carry it), emitted as `--ui-font-small`
+  only when set. Small control labels and the slider's readout and tick
+  labels read `var(--ui-font-small, var(--ui-font))`; a theme without it
+  keeps the UI family. The Fonts tab shows a "Small UI Font" row for a theme
+  that has it, and `ClassicyDesktopChangeFont` accepts `fontType:
+  "uiSmall"`.
+- **A table's sorted column.** `ClassicyTable` marks the sorted column's
+  body cells `classicyTableCellSorted` and publishes the sorted header's
+  place on its root as `--classicy-table-sorted-start` and
+  `--classicy-table-sorted-width` (`0px` with nothing sorted; measured on
+  each sort, column change, column resize and table resize). The root now
+  always carries those two inline custom properties.
+- **Control Strip docked right.** A package may register the system art
+  `controlStripTabRight`, which a strip docked right draws unflipped (its tab
+  marked `classicyControlStripTabRight`); without it the left tab is
+  mirrored as before. The strip also publishes
+  `--classicy-control-strip-phase` (`1px` while its origin is odd), for a
+  package that aligns a screen-fixed pattern to the strip.
+- **No empty font element.** A package whose every font face an earlier
+  package shares and writes (System 7 registered after Platinum) no longer
+  leaves an empty `<style id="classicy-fonts-<id>">`; one written before is
+  removed when its last face is taken over.
+- **Scroll-track patterns laid from the window.** A package's new optional
+  `layout.scrollBar.patternOrigin: "window"` has the core publish the
+  window's content origin (inside the frame, under the title bar) on each
+  scroll bar and its track, as `--classicy-scroll-origin-x` / `-y` from that
+  element's corner, kept current as anything between the bar and the window
+  resizes, the DOM in the window or the desktop's attributes or a
+  stylesheet change, anything scrolls, a transition, an animation or a font
+  load ends, the viewport resizes, or the pointer or focus moves, so a pattern lies in the same phase in every window, as
+  QuickDraw laid it from the window's port. The default `"element"`
+  publishes nothing.
+- **Patterns laid from the window or the desktop.** A package's new
+  optional `layout.patternOrigin` names, for `ControlGroup`, `PopUpMenu`,
+  `Separator` and `Slider`, the origin their patterns are laid from:
+  `"window"` (the window's content origin) or `"desktop"` (the desktop's
+  corner). Its `elements` names any other element by CSS selector, with
+  its origin: every window publishes it on its matches, and the desktop on
+  those outside every window. The core publishes the origin on each such
+  element as `--classicy-pattern-origin-x` / `-y` from its padding-box
+  corner, kept current on the same signals as the scroll bars' (a window
+  moved on the desktop included), so a dithered part keeps one phase
+  wherever it sits. The default `"element"`, and a component or element
+  left out, publishes and watches nothing: Platinum declares none and
+  draws as before. One watcher per window now serves every part and scroll
+  bar in it, reading them all before it writes, and reads them once an
+  animation frame for the DOM's changes and scrolls, however many came: a
+  window holding a 1,000-row table whose content changes and scrolls every
+  frame took 5 reads a frame (about 6 ms each, under System 7's 25
+  selectors) and about 6 ms a change, and now takes 1.4 reads a frame and
+  0.1 ms a change.
+- **The dither mixins take a position.** `classicy-dither-mask`,
+  `classicy-dither-text` and `classicy-dither-line` take an optional
+  `$x, $y`, the checker's tile position from the padding box
+  (`mask-origin: padding-box`); without it their CSS is unchanged.
+- **The Save box can open with its name selected.** A package's new
+  optional `layout.fileDialog.saveName: "selected"` opens the Save box with
+  its name field focused and the default name selected; the default
+  `"plain"` is unchanged. `ClassicyInput` now carries the `selected` state
+  class while it has focus and its selection runs to its text's end (the
+  whole text, or its tail), and publishes where that selection starts, in
+  px from its text's left edge with its own scrolling, as
+  `--classicy-input-selection-start` on the `<input>`, and whether it
+  starts at the text's first character as the new part attribute
+  `data-classicy-selection` (`all`, else `tail`; a tail scrolled to the
+  field's left edge starts at 0 px as the whole text does); it reads the
+  selection again on `selectionchange` at the document (Chrome before 127
+  and Safari 16 fire it nowhere else), on a key press and the frame after
+  it, on a pointer release wherever it lands while the field has the focus
+  (a drag that ends outside the field) and the frame after it, on the click,
+  and when its value changes.
+- **Dimmed list icons and Standard File's list folder.** `iconDimming` gains
+  the optional purpose `disabledItem`: a `ClassicyTree` row that cannot be
+  chosen (the files a Save box dims) has its icon dimmed by it, where the
+  package declares one. A package may register the new system art
+  `fileDialogFolderIcon`, which a flat file dialog's list draws for a folder
+  row with no icon of its own (else the folder icon). Platinum declares and
+  registers neither, so its dialogs are unchanged.
+
+## Base looks moved into Platinum
+
+Base component SCSS is structure only, so these looks moved from the core's
+base layer into Platinum's stylesheet: radio buttons, checkboxes, little
+arrows, text inputs, list boxes and trees, the spinner, the date and time
+pickers, the combo box's indicator, the control group's frames, and the
+pop-up menu's (the dimmed box's gradient, the button's focus ring, the
+indicator's divider, rounded corners and bevel, and the open menu's frame,
+face, items, highlight and group titles), and the slider's (the channel's
+border, shading and bevel, the dimmed filter, the ghost's translucency, and
+the ticks' and their labels' ink). Platinum draws them exactly as before
+(the slider's then redrawn, below).
+The Platinum channel reads the new `--classicy-slider-track` first, an image
+that replaces its shading: the color picker sets it on its channel sliders,
+and a host may set it on a slider or an ancestor. A host that ships its own Appearance Package now draws them itself;
+until it does, they show their structure only, as every other component
+already did under a package with no look.
+
+Platinum's `_scrollbars.scss` (published as
+`@classicy/appearance-platinum/scss/scrollbars`) gains the mixins that draw
+`ClassicyScrollArea`'s parts. Its native-bar rules stay, for a host's own
+scrollers.
+
+## Behavior change: `ClassicyControlGroup`'s title background
+
+`ClassicyControlGroup` no longer sets an inline `background-color:
+var(--color-system-03)` behind its legend. Without the `backgroundColor`
+prop, the active Appearance Package paints the face there: Platinum does, so
+Platinum hosts see no change. A host with its own package, or one that
+relied on the inline color, adds a rule (or passes `backgroundColor`):
+
+```scss
+.classicyControlGroupLegend {
+  background-color: var(--color-system-03);
+}
+```
+
+## The screen savers under both packages
+
+Platinum's twelve savers are now offered under `platinum` and `system7`
+(`packages: ["platinum", "system7"]`), and both packages name
+`defaultScreenSaver: "bouncing-ball"`. System 7 bundles Platinum's saver
+registration module and its stylesheet index, so a host loading System 7
+alone gets the savers, and it exports none of them: import saver components
+and the Logo registry from `@classicy/appearance-platinum`. A host loading
+both registers each id twice with equal definitions, which is harmless. The
+Logo registry's state now lives on `globalThis`, so both bundles share one
+list.
+
+A host that re-registers a saver to offer it under its own package keeps
+the ids the saver already names:
+
+```diff
+ const fish = getClassicyScreenSaver('fish')
+-if (fish) registerClassicyScreenSaver({ ...fish, packages: ['platinum', 'my-package'] })
++if (fish) registerClassicyScreenSaver({ ...fish, packages: [...(fish.packages ?? []), 'my-package'] })
+```
+
+## Other changes you may notice
+
+- **One Logo saver warning, whichever package logs it.** With Platinum and
+  System 7 both loaded, a stock Logo saver logo whose icon no package
+  registers logs its warning once, not once per package's copy of the
+  registry: the copies share the record of what they warned about.
+- **Platinum's slider draws HIGOS8's grays.** Platinum declares the HIG's
+  16-step gray ramp as a package color family, `grayRamp` (the Colors tab's
+  new "Gray Ramp" group, 14 swatches). The slider's channel border is
+  #222222 (was #202020, `--color-system-07`), its etch and fill the ramp's
+  #AAAAAA (unchanged), the tick mark's shadow #888888 (was #808080), and the
+  ghost indicator is Figure 2-17's: opaque, in the ramp's grays (an #888888
+  outline, white, #DDDDDD and #BBBBBB faces; over the channel's border rows
+  #444444 to #DDDDDD, the channel showing through), drawn under the
+  indicator as Figure 2-17 draws it (with a ghost, the slider marks its
+  track layer `classicySliderHasGhost`, and Platinum draws the channel on
+  `.classicySliderTrackLayer::before` and the ghost at `z-index: -1`
+  there), where it was the indicator in system grays
+  at 75% opacity over everything. A host that styled the ghost's opacity
+  sets it on `.classicySliderGhost` again. Under a theme of another package
+  the slider draws its pre-3.5 grays.
+- **Platinum's list view matches HIGOS8.** The Finder list view (and any
+  `ClassicyFileBrowser` in `display="list"`) draws its default icon step at
+  16 px, the small icon's own size, in 18 px rows a 1 px line apart, as
+  HIGOS8 Figure 2-24 (p.38) and Figure 2-43 (p.51) show: a 19 px row pitch.
+  It was an 18 px icon (0.375 × the 48 px desktop icon) on a 25 px pitch.
+  The Small and Large steps keep their icon sizes (12 and 32 px); Small
+  keeps its 19 px pitch, and Large's goes from 39 to 35. Both are theme
+  data, `fileBrowserList.mediumIconSize` and `fileBrowserList.rowPadding`:
+  a theme file that sets them to 18 and 3 draws the old list. A host that
+  sized list rows from the old pitch should measure again.
+- **Scroll bars are drawn in every browser.** Firefox now shows Platinum's
+  full bars (arrows, track and thumb) instead of the thin `scrollbar-color`
+  fallback. The scrolling element of a window's contents, a list box or a
+  table is now an inner `.classicyScrollAreaViewport` (list box and table
+  roots also carry `classicyScrollArea`): a host stylesheet that styled their
+  native scroll bars or set their `overflow` targets the viewport, or the
+  parts above. Surfaces that name their own viewport carry a class on it:
+  `classicyListBoxViewport`, `classicyFileOpenDialogWellViewport`,
+  `classicyAppearanceManagerColorsScrollViewport` (the Colors, Metrics, Options and Packages tabs),
+  `classicyColorPickerModeListViewport`, `classicyAssistantBodyViewport` and
+  `classicyHyperCardLockedFieldText` (a locked field's text viewport); a
+  `ClassicyScrollArea` with `scrollable={false}` marks its viewport
+  `classicyScrollAreaViewportClipped`.
+- **`ClassicyScrollArea` internals.** One layout measurement per scroll
+  frame (the render a scroll causes no longer measures again); the content
+  observer ignores attributes that cannot move the content (`aria-*`,
+  `tabindex`, `data-*`) and leaves text changes to the resize observer where
+  the browser has one; a `renderViewport` scroller that remounts keeps being
+  watched; a held track that the pointer leaves pages toward where it comes
+  back. `viewportRef` is typed `Ref<HTMLElement>`, so a `<textarea>` viewport's
+  ref type-checks (a widening: existing `HTMLDivElement` refs still do).
+- **The default state seeds no `alertSound`.** A first session plays the
+  active pack's default alert. `Appearance.alertSound` was already optional;
+  read the alert in effect with `resolveClassicyAlertSound(pack, stored)`.
+- **`useSoundTab` takes an optional `alerts`.** Called as in 3.1, the
+  Appearance Manager's Sound tab hook lists the alerts of the sound pack that
+  plays for the active theme (`classicyPackAlerts(pack)`), so no change is
+  needed. Pass `alerts` to list others. Its `alertSound` is the alert in
+  effect.
+- **Deprecated**: `CLASSICY_ALERT_SOUNDS` and `DEFAULT_ALERT_SOUND` are
+  Platinum's values, kept for existing imports; read the active pack with
+  `classicyPackAlerts` and `classicyPackDefaultAlert` instead.
+- **The Control Strip's Sound and Screen Saver modules** read their glyphs
+  from the icon registry when they render, so a package's icons show there.
+- **A core icon URL draws as the active package's icon.**
+  `resolveClassicyIconImage` / `useClassicyIconImage`, which every icon
+  surface calls, now map a URL the default package registers for an icon key
+  (the core's, `ClassicyIcons.*`) to the image the active theme draws for
+  that key, variant included, before picking the small image. So the derived
+  Applications, Extensions and Control Strip Modules folders, the module
+  files, the seeded folders and Finder's drive icon on the desktop show
+  System 7's icons under System 7 (its 1-bit art under "System 7", its color
+  art under "System 7 Color"), and follow a switch, with no rebuild and no
+  change to what is stored. Under Platinum every icon draws as before.
+  Another package's URL draws unchanged; a host that wants an image drawn as
+  is under every package passes its own URL rather than the core's. New
+  folders, the derived folders' own icons, a module file's default icon, the
+  Desktop Folder's desktop icons and the Open and Save dialogs' volumes now
+  hold the core's URL rather than the active package's, so the stored tree
+  is the same under every package and an open dialog never keeps another
+  package's art. `iconImageByType(type, packageId?)` takes an optional
+  package (default: the active one).
+- **More icons draw through `ClassicyIconImage`.** `ClassicyTree`'s
+  `leftIcon` and `rightIcon` (the Open and Save lists), `ClassicyTabs`' tab
+  icons, `ClassicyComboBox`'s option icons, `ClassicyInputDialog`'s icon,
+  `ClassicyAboutWindow`'s app icon, `ClassicyAssistant`'s label and accessory
+  icons and the startup screen's extension parade drew a plain `<img>`; they
+  now follow the active package as above and draw an icon's small image
+  where they are small (tree rows, standard and small tabs, combo box
+  options, the assistant's label icon and `sm` accessory). Under Platinum,
+  whose icons have no small images, they draw as before.
+- **Vertical sliders lay out.** A vertical `ClassicySlider` no longer takes
+  its height from the viewport: in a container with no set height its track
+  is `--slider-vertical-min-height` long (`controlSize × 8`, 96 px under
+  Platinum), and given a height it grows to fill it. Its value readout (and
+  its label, when it has one) now fits inside that height, where the readout
+  used to spill below the container. With `tickInterval` set its ticks run
+  beside the track, not under it, and `tickLabels` sit beside their ticks.
+  A vertical slider stays centered in its container, and its track is
+  nudged onto the pixel grid (by under half a pixel, as a submenu is) where
+  centering leaves it on a fraction of one.
+- **Visual fix: Platinum's slider now matches the HIGOS8 figures: Figs.
+  2-18 and 2-19 at rest, a ramp step down pressed (Fig. 2-17's tone).** The channel is the at-rest
+  figures': an etched #AAAAAA row, a dark border (`--color-system-07`),
+  three flat #AAAAAA rows, a dark border and a white row, with one-pixel
+  pixel-art ends, 7 px thick in every state (it was a 6 px gray cylinder).
+  The indicator is their 15 x 16 pixel-art indicator in the theme's
+  lavender ramp (`--color-theme-01` to `-07`), lit from the top left, its
+  flat side 3 px past the channel and its point 6 px past it whichever way
+  it points (it was a 21 x 21 silver pentagon); pressed, the same art with
+  every ink a step down the ramp, which is Fig. 2-17 less its doubled row
+  (that figure is 2-18's slider resampled a row and a column larger, so only
+  its tone is taken).
+  The nondirectional knob is the same indicator without its point,
+  centered on the channel, the highlighted one is drawn pressed, and the
+  ghost indicator is the indicator in grays. Tick marks are Figure 2-18's
+  3 x 8 etched marks, the row after the indicator's point. A vertical
+  slider's channel is the same art turned, as the 1996 draft's Figure 13
+  draws it (the etch on its left), and its left-pointing indicator is
+  Figure 13's, lit from the top left like the down one rather than turned
+  with it; the up- and right-pointing indicators, which no figure draws,
+  follow the same lighting. A horizontal slider's input is now 19 px tall
+  (it was 21), and a vertical one 19 px wide. Firefox's thumb corner
+  radius (its UA sheet's 0.5em, which clipped the art round) is reset in
+  the base sheet, for every package, and the base sheet now paints the
+  thumb above the tick rail (it used to paint under a tick where it
+  overhung the input). Every Platinum slider looks
+  different, including the Appearance Manager's Sound tab and the color
+  picker's channel sliders, which keep their own fills
+  (`--classicy-slider-track`). The new knobs are the `slider` family
+  (AGENT-REFERENCE §8, "Package knob families"), and every placement is
+  derived from them. The pre-3.5 thumb's art keys (`sliderThumb`,
+  `sliderThumbRect`, `sliderStrikes`) stay registered, and the
+  `platinum-slider-thumb` mixin stays in Platinum's `_Slider.scss` for
+  hosts that `@use` it; Platinum no longer draws with them.
+- **The Desktop tab offers None.** The Appearance Manager's Patterns pop-up
+  lists None first: it removes the desktop picture
+  (`ClassicyDesktopChangeBackground` with `""`), so the desktop shows its
+  solid color, which the Colors tab sets. A theme with no picture (most of
+  Platinum's color themes) now reads None there, where it read Default, and
+  the preview shows the desktop color in place of the default picture.
+  Platinum frames the preview, picture or color, in its recessed content
+  frame (the preview carries `classicyAppearanceManagerDesktopPreviewNone`
+  when there is no picture). `getThemeVars` emits `--desktop-background-image: none` for a
+  theme with no picture, or one that resolves to none, where it emitted
+  `url("")`, which a browser resolves to the page's own URL.
+- **Menus stay on whole pixels.** A contextual menu, a bevel button's
+  pop-up and a pop-up menu's list are placed on whole pixels, and a
+  submenu's wrapper is nudged onto the pixel grid (by under half a pixel,
+  in tree order, so a parent moves before its submenu). An open pop-up slid
+  back above the screen's bottom margin is placed on a whole pixel even
+  when its measured height is fractional, its top rounded down so the far
+  edge stays inside the margin. A capped list ends 4 px above the screen's
+  bottom, its shadow drawn in its wrapper (above).
+- **Platinum's sound sprites are re-encoded.** `platinum.ogg`, `platinum.m4a`
+  and `platinum.mp3` are now the bit-exact encode of the same sources by
+  mise's ffmpeg 8.0.1 as built on Linux against the distro's libvorbis and
+  libmp3lame, where a forced rebuild (`CLASSICY_AUDIO_FORCE=1 pnpm
+  build:audio`) reproduces them byte for byte. A build linked against other
+  encoder libraries (Homebrew's on macOS) may encode the ogg and mp3
+  differently, and the stamp keeps an unforced build from rewriting them. Their sprite map (`platinum.json`) and
+  `platinum.ac3` are unchanged; every sound starts and lasts as before, and
+  sounds the same (the m4a decodes to the same samples, the ogg and mp3 differ
+  by encoder rounding, about -79 and -55 dBFS RMS). A host bundler that
+  names assets by content hash gives the three files new URLs, so a browser
+  fetches them once.
+- **Fonts are written once when both packages load.** `ClassicyFontFace`
+  takes an optional `file`; faces of two packages with the same family,
+  weight, style and `file` share one `@font-face` rule, written in the
+  element of the package that registered it first. Platinum and System 7
+  name theirs, so a host loading both writes System 7's five faces (copies
+  of Platinum's) once: `<style id="classicy-fonts-system7">` is empty when
+  Platinum registered first, and Platinum's element lacks those five when
+  System 7 did. A strict-CSP host linking Platinum's fonts stylesheet may
+  leave System 7's out.
+- **Column titles above a list: layout `fileBrowser.listColumnTitles`.** A
+  package may declare `"aboveList"` (System 7; the default `"inList"` is
+  Mac OS 8's, so Platinum is unchanged) to draw the file browser's list-view
+  column titles above the list's scrolling region, over the window's
+  vertical bar, which starts under them. It rests on three additions:
+  `ClassicyScrollArea`'s `head` and `onHeadChange` props (a head part,
+  `classicyScrollAreaHead`, the area's full width, scrolled sideways with
+  the viewport, which the area also draws while a descendant asks for one),
+  `ClassicyTable`'s `headerPlacement` prop (`"aboveList"` draws an
+  `aria-hidden` copy of the header row, `classicyTableDetachedHeader`, in
+  that head, and keeps the table's own header row for assistive technology,
+  laid out with no height, `classicyTableHeaderHidden`), and the window
+  header's `classicyWindowHeaderAboveHead` mark while its contents draw a
+  head. The Finder's list publishes its icon size as
+  `--classicy-file-browser-icon-size` on the table, for a package placing
+  the name column's title over the names.
+- **Optional core knobs `desktopIconGrid.rowGap` and `desktopIconGrid.top`.**
+  The desktop's Clean Up and icon placement step rows by
+  `desktop.iconSize` plus `rowGap` and start the first row at `top` when a
+  theme, completed by its package's defaults as `getThemeVars` completes
+  it, sets them to zero or more (so a saved Custom theme keeps its
+  package's rows), else by `cell + padding` from `4 × padding` as before
+  (columns are unchanged). `ClassicyDesktopIconMetrics`
+  gains the optional `rowPitch` and `top` they make. Platinum sets neither,
+  so its desktop lays out as before; System 7 sets 20 and 28, 7.5's rows.
+- **Optional core knob `uiText.smallFontSize`.** `--ui-font-size-small` is
+  the knob when a theme sets it to a positive number, else
+  `typography.uiSize × 0.8` as before (Platinum sets none). System 7's
+  themes set 9, so its small text is 9 px, not 9.6 px (the size only: the
+  family is unchanged).
+- **Other new exports.** Package colors: `getThemeColorFamily`,
+  `setThemeColorFamily`, `hasThemeColorFamilyChange`,
+  `isDeclaredThemeColorFamily`, `isThemeColorFamilyTarget`,
+  `withoutDefaultThemeColorFamilies`, `isClassicyPackageColorVar`,
+  `appearanceColorFamilyPickerId` and the types `ClassicyThemeColorFamilies`,
+  `ClassicyThemeColorFamilyChange` and `ClassicyThemeColorFamilyTarget`.
+  Hiding: the reducer helpers `hideApp`, `hideOtherApps`, `showAllApps`,
+  `markAppFocused` and `pickShownSuccessorApp`. Assets: the icon leaf type
+  `ClassicyIconLeaf`, `getActiveClassicyAssetVariant()` (the variant the
+  active theme draws) and the type `ClassicyIconDimmingPurpose`. Scroll
+  areas: the types `ClassicyScrollAreaProps`, `ClassicyScrollAreaViewportProps`
+  and `ClassicyScrollBarOrientation`.
+- **Release workflow**: `push.yml` syncs System 7's version, checks its
+  trusted publisher and publishes it with the other two.
+
+- **Platinum's list view per HIGOS8 Figs. 2-24 and 2-43.** The sorted
+  column of the Finder's list view (and any `ClassicyFileBrowser` in list
+  display) is a step darker, `--color-system-02`, in its cells and below the
+  last row, a white line still between rows. Generic `ClassicyTable`s are
+  unchanged. Folders in a list draw Platinum's own 16 px small
+  folder, cut pixel for pixel from Fig. 2-24, where the 32 px folder was
+  scaled. A host stylesheet that sets the Finder list container's
+  `background` replaces the stripe.
+- **System 7, from new 7.5.5 captures.** Standard File is the fixed modal
+  box 7.5.5 draws (`*-755-dialog-standardfile-layout.png`), browsing one
+  folder at a time: the folder pop-up with the folder's icon centered over
+  the list, the disk's icon and name at the top right, 16 px icons on 18 px
+  rows selected across the row, the Show pop-up (file type filters) under
+  the list, and the button column Eject, Desktop, a dotted line, Cancel and
+  Open, placed by the new `fileDialog` knobs (QuickTime's Preview area is not
+  drawn); the Save box is 7.5's (`*-dialog-standardfile-save.png`): its name
+  field under the list and New between Desktop and the line, by its own
+  `fileDialog.save*` knobs. The Finder is shown by the System file's
+  Macintosh (the Application menu's title), and a hidden application's icon
+  is dimmed in that menu. The Application menu's title is the front application's small icon
+  alone, 34 px wide and 6 px from the screen's edge (`menuBar.endInset` 6,
+  `switcherTitleStart`/`End` 9), its menu right-aligned under it. The Finder
+  list view's rows are white with no line between them, 18 px apart
+  (`fileBrowserList.rowPadding` 1). Small control labels and the slider's
+  ticks and readout draw in Geneva (`typography.uiSmall`). The Control Strip
+  docked right is a pixel wider, as 7.5.5 draws it
+  (`*-755-controlstrip-right.png`).
+- **System 7, matched part by part to the 7.5 captures** (story 0216-1im).
+  New System 7 knobs: `menuBar.clockEnd` (1), the room after the clock's
+  last ink, which drops the core's margin after it; `headerStrip.titleDrop`
+  (1), `headerStrip.underlineTop` (12) and `headerStrip.underline` (1), the
+  list's column titles a row below their band's middle and the sorted
+  one's underline, a box 12 rows below its title's top, so no engine's
+  underline metrics move it; and `fileBrowserList.disclosureWidth` (15),
+  `disclosureTop` (4), `iconStart` (7), `iconEnd` (10) and `titleInset`
+  (1), a list row's triangle, icon and name, and the name column's title
+  over the names. It also sets the core's new `desktopIconGrid.rowGap` (20)
+  and `top` (28) and declares `fileBrowser.listColumnTitles: "aboveList"`.
+  Look fixes: the Help title overlaps the Application title by
+  `menuBar.titleOverlap`, and the clock ends two pixels before it; desktop
+  icons sit on 7.5's 52 px rows from y 28, a saved Custom theme's too; the
+  Finder list's column titles are white and sit above the list, over the
+  window's scroll bar, its double rule under them and the vertical bar
+  starting under the rule, the sorted title underlined with no triangle (in
+  a list with nothing scrolling above it as well); the list rows' triangle,
+  icon and name sit where 7.5.5 draws them, the name in the desktop label's
+  12-row box; the Application menu's image rows draw their icon at the
+  item's top and the check a row down; a keyboard-current menu item is
+  inverted with no focus ring; the right-docked Control Strip's tab meets
+  its first arrow cell on one black line; and the screen's bottom corners
+  are rounded in black like its top ones.
+- **System 7's dimmed controls, group boxes and lists, as 7.5 draws them.**
+  A dimmed checkbox keeps its black frame and a dimmed radio button its
+  black circle; only the mark and the label dim (the dimmed checked X keeps
+  its dotted diagonals). A dimmed pop-up dims its frame, drop shadow and
+  triangle too, and its text: the black 50% checker at both depths, as
+  Memory draws Apple's dimmed pop-up in 1-bit and in color. A dimmed slider keeps only its
+  outline and indicator, in black 50% dots at both depths, its channel
+  empty. A group box is dotted in one 50% pattern, so no two dots touch at
+  its corners, and its line runs to 1 or 2 px before the title's ink (a
+  secondary, solid group box keeps its 3 px gap). A
+  list box's text sits a pixel higher in its row, by the new System 7 knob
+  `listBox.textLift` (1, `--list-box-text-lift`).
+- **System 7's dithers keep the window's phase.** Every dimmed and dotted
+  pattern (the dimmed pop-up's checker, the
+  dimmed slider, labels, links, menu titles and items, field text, list
+  rows, push buttons and their default ring, bevel buttons and little
+  arrows, the group box's dots, the separators and the menus' and Standard
+  File's dividers) is laid from the window's content origin, as 7.5 laid
+  them from the window's port, not from each part's corner: a part moved a
+  pixel, or a pop-up a pixel wider, keeps its dots in step, and a pop-up's
+  frame, triangle and text share one phase. Dimmed parts take the ink where
+  x + y is odd from the origin, dotted rules where it is even, as the
+  captures do; a dimmed mixed checkbox's dash takes the dimmed phase. A
+  dimmed checked checkbox's X is unchanged. An element that is not rendered
+  (a hidden tab panel, a closed menu) is given no origin, so moving a window
+  writes nothing for it.
+- **Menus open where they show.** Every menu keeps to what shows of its
+  desktop, on both axes: the desktop's box (`.classicyDesktop`) where it
+  overlaps the viewport, so a desktop embedded in a page and one larger
+  than the window both keep their menus on screen. A menu bar's pull-down
+  that would pass the right edge, its frame's shadow included, hangs with
+  its right side under its title's right side instead, as System 7.5 hangs
+  its Help menu at the bar's right end; System 7's Help menu opened off the
+  screen before. One still too wide is pinned inside. The same rule holds
+  for a window's own menu bar, a menu bar extension's pull-down, pop-up
+  menus, combo box lists and pop-up bevel buttons; submenus and contextual
+  menus flip at the bounds' edge rather than the viewport's, and a submenu
+  that fits on neither side keeps to the side it passes by less. Down, a
+  long pull-down or submenu is capped and scrolls at the bounds' bottom
+  (the desktop's overflow cut it off in an embedded desktop before), and
+  contextual menus, pop-up and combo lists and bevel pop-ups flip and pin
+  against the bounds' top and bottom instead of the viewport's, their
+  shadows included; a combo box's list measures its room from the field's
+  edge it hangs from (it ran past the screen by the field's height). A menu
+  never scrolls to fewer than 64 px of rows (a chosen floor,
+  `MENU_MIN_SCROLL_HEIGHT` and `POPUP_MENU_MIN_HEIGHT`): in bounds under
+  about 90 px a pull-down whose floor no longer fits below its menu bar is
+  pinned up over the bar and still shows whole, and in bounds under about
+  70 px (the floor, its frame and shadow) any menu keeps its top at the
+  bounds' top and its bottom is cut. Placed
+  before paint, again whenever a menu opens, and when the desktop changes
+  size while a pull-down, submenu or contextual menu is open (a submenu
+  after its parent). Contextual menus, pop-up lists and bevel buttons'
+  menus are now as wide as their items wherever they open (`width:
+  max-content`): near the right edge they were shrunk to the room left and
+  wrapped. A flipped first-level pull-down carries `classicySubMenuFlipLeft`,
+  as a flipped submenu did; the base sheet hangs it from its title's right
+  side, and a package that places pull-downs in its own rule places the
+  flipped one too (System 7 does). New: `ClassicyContextualMenu`'s optional
+  `flipLeftTo` (the x its right side goes to when it flips, the point by
+  default) and `classicyBevelPopupPlacement`'s optional sixth argument
+  `bounds` (the box to keep to and the shadow's reach). Menus that fit are
+  placed as before. See AGENT-REFERENCE.md §4.5, "Where menus open".
+
+## Upgrade
+
+1. Upgrading from 3.4.x, bump `@classicy/classicy` and
+   `@classicy/appearance-platinum` together to
+   3.5.0. To use System 7, add `@classicy/appearance-system7` at 3.5.0 and
+   import it at your entry; keep every Classicy package at one version.
+2. With a Vite dev server, add `@classicy/appearance-system7` to
+   `optimizeDeps.exclude` when you load it. Under a strict CSP, link its two
+   stylesheets after the core's, and allow `data:` in `img-src`: a dimmed
+   icon (a hidden application's, a disabled row's) is drawn on a canvas and
+   shown from a `data:` URL.
+3. If you ship your own Appearance Package, draw the looks that moved into
+   Platinum (above), the control group's legend face, and, if you want them
+   styled, the scroll-bar parts. Draw the frame's shadow (and bevel) on
+   `.classicyMenuScrollShadow` too, or a capped menu shows none.
+4. If you call `useSoundTab` directly, nothing changes; it lists the playing
+   pack's alerts unless you pass `alerts`.
+5. If you re-register a Platinum saver under your package, add your id to
+   its existing `packages` rather than replacing them.

@@ -74,6 +74,15 @@
   }
 }
 
+// Safari 16.2 and 16.3 have no `@property`, so the keyframes above would
+// step `--slide-var` between two offsets two periods apart, which draw the
+// same stripes. There ClassicyProgressBar marks the bar and sets the offset
+// from a frame loop on the progress element, whose pseudo-element inherits
+// it (an unregistered custom property inherits), with the keyframes stopped.
+.classicyProgressSlideByScript progress[value]::-webkit-progress-value {
+  animation: none;
+}
+
 // ─── Asynchronous "chasing arrows" indicator ────────────────────────────────────
 // A small spinning pair of arrows for background processes of unknown extent.
 // Stepped rotation approximates the frame-by-frame Mac OS 8 animation.

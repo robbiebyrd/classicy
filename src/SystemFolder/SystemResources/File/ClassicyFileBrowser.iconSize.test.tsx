@@ -26,7 +26,7 @@ const makeFs = (key: string) =>
 		},
 	});
 
-const renderList = (key: string) =>
+const renderList = (key: string, options = true) =>
 	render(
 		<ClassicyAppManagerProvider>
 			<ClassicyFileBrowser
@@ -34,9 +34,11 @@ const renderList = (key: string) =>
 				path="Documents"
 				appId="Finder.app"
 				display="list"
-				listViewOptions={FinderListViewOptionsSchema.parse({
-					iconSize: "large",
-				})}
+				listViewOptions={
+					options
+						? FinderListViewOptionsSchema.parse({ iconSize: "large" })
+						: undefined
+				}
 			/>
 		</ClassicyAppManagerProvider>,
 	);
@@ -67,5 +69,46 @@ describe("ClassicyFileBrowser list-view icon base", () => {
 		const { container } = renderList("test-browser-list-desktop");
 		// round(64 * 0.667) = 43.
 		expect(await rowIconWidth(container)).toBe("43");
+	});
+
+	// An Appearance Package may give a step its own size (the measurement
+	// family `fileBrowserList`, emitted on the desktop): System 7 draws its
+	// 16 px small icons at 16, which no scale of its 32 px base gives.
+	it("draws the step at the package's own size when the desktop carries one", async () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--file-browser-list-large-icon-size", "30px");
+		document.body.append(desktop);
+		const { container } = renderList("test-browser-list-package-size");
+		expect(await rowIconWidth(container)).toBe("30");
+	});
+
+	it("keeps the scaled size for a step the package gives no size, or 0", async () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--file-browser-list-medium-icon-size", "16px");
+		desktop.style.setProperty("--file-browser-list-large-icon-size", "0px");
+		document.body.append(desktop);
+		const { container } = renderList("test-browser-list-other-step");
+		expect(await rowIconWidth(container)).toBe("43");
+	});
+
+	// A list with no options draws the medium step: 18 px whatever the
+	// theme's base, as it always has, unless the look sizes that step
+	// (Platinum and System 7: 16, their small icons unscaled).
+	it("draws a list with no options at 18 px, or the look's medium size", async () => {
+		const desktop = document.createElement("div");
+		desktop.id = "classicyDesktop";
+		desktop.style.setProperty("--desktop-icon-size", "64px");
+		desktop.style.setProperty("--file-browser-list-large-icon-size", "30px");
+		document.body.append(desktop);
+		const plain = renderList("test-browser-list-no-options", false);
+		expect(await rowIconWidth(plain.container)).toBe("18");
+		plain.unmount();
+		desktop.style.setProperty("--file-browser-list-medium-icon-size", "16px");
+		const sized = renderList("test-browser-list-no-options-sized", false);
+		expect(await rowIconWidth(sized.container)).toBe("16");
 	});
 });

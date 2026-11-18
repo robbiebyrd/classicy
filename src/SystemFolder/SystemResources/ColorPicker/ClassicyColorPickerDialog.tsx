@@ -13,6 +13,7 @@ import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { ClassicyAppIdContext } from "@/SystemFolder/SystemResources/App/ClassicyAppIdContext";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import { ClassicyColorPickerCMYK } from "./ClassicyColorPickerCMYK";
 import { ClassicyColorPickerCrayon } from "./ClassicyColorPickerCrayon";
@@ -178,8 +179,9 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 				<div className="classicyColorPickerDialogBody">
 					{/* A single-select listbox: focus stays on the list and the arrow
 				    keys move the selection (aria-activedescendant). */}
-					<div
+					<ClassicyScrollArea
 						className="classicyColorPickerModeList"
+						viewportClassName="classicyColorPickerModeListViewport"
 						role="listbox"
 						aria-label="Color picker mode"
 						tabIndex={0}
@@ -205,8 +207,10 @@ export const ClassicyColorPickerDialog: FC<ClassicyColorPickerDialogProps> = ({
 								{m}
 							</div>
 						))}
-					</div>
-					<div className="classicyColorPickerActivePanel">{activePanel}</div>
+					</ClassicyScrollArea>
+					<ClassicyScrollArea className="classicyColorPickerActivePanel">
+						{activePanel}
+					</ClassicyScrollArea>
 				</div>
 				<div
 					className="classicyColorPickerPreview"

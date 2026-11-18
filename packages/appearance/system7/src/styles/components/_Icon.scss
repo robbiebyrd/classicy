@@ -1,0 +1,332 @@
+// System 7's icons (plan 0018-dbd §3.7), included by system7.scss inside the
+// package wrapper: the desktop's (ClassicyDesktopIcon) and a window's
+// (ClassicyIcon), each an image in a pair of elements masked by the image's
+// own shape (`classicy…MaskOuter` around `classicy…Mask`). Measured from the
+// 7.5 captures (`*-desktop-menubar-icons`, `*-desktop-icon-selected-opened`,
+// `*-menu-help-and-selected-icon`, `color-controlpanel-monitors-opened-icon`)
+// and the HIG (printed pp.234-241):
+//
+// - The icon draws at its own size, the mask pair exactly its box (the base
+//   sheet's pair is a pixel larger and smaller, Platinum's fringe).
+// - The label, Geneva 9, sits right under the icon's box on an opaque white
+//   rectangle `iconLabel.height` (12) rows tall, `iconLabel.pad` (2) columns
+//   wider than the name on each side; the text is set `iconLabel.textTop`
+//   (2) rows down, which puts the vector Geneva's capitals 3 rows into the
+//   box, where the bitmap face's are. One line, however far past the icon's
+//   cell it reaches; inverted (white on black) when the icon is selected, at
+//   both depths.
+// - Selected, the icon inverts on a 1-bit screen and darkens on a color one,
+//   by the knob `iconSelection.invert` (1 in "System 7", 0 in "System 7
+//   Color"): it sizes the tile of a white layer over the image whose
+//   `difference` inverts it, and one pixel less, the tile of a half-black
+//   one that darkens it, so only one of them draws. 7.5 darkened a color
+//   icon through its color table, in the 256-color screen's colors, which no
+//   filter matches pixel for pixel: System 7's own color icons draw their
+//   pre-rendered selected images instead (`registerClassicySelectedIconImages`,
+//   bin/selectedIcons.mjs; the component marks the mask pair with the
+//   `SelectedImage` part), and the half-black layer stands down over them.
+//   It still darkens any other image (a host's, or a core glyph System 7
+//   has none of): #DDDDDD to about #666666. The alias badge (blank in
+//   System 7, a host's art otherwise) inverts and darkens with its icon.
+// - Opened (its window open), the image gives way to its shape: outlined in
+//   black, its inside (the pixels whose four neighbors are all in the
+//   shape, as the captures' rounded corners show) filled with the 25%
+//   pattern, one black dot in four on each row, the next row's two over,
+//   from the icon's corner (the `halftone` art, Fig 8-1's open-icon
+//   pattern). The fill is the window color's light lavender
+//   (`--color-theme-02`, #CCCCFF) in color and white in 1-bit
+//   (`*-icon-opened-unselected.png`, 7.5.5's Macintosh HD with its window
+//   open); selected, #333366 (`--color-theme-07`) in color, and the 1-bit
+//   icon inverts as a whole (white outline, white dots on black), as
+//   `*-desktop-icon-selected-opened.png` shows.
+// - The alias badge's size and place and the italic alias label stay as the
+//   base sheet draws them.
+// - A Finder list view's selected small icon (an `<img>`, no mask pair)
+//   follows the same knob through its `filter`: inverted in 1-bit, as the
+//   desktop's is, and in color the base sheet's darkening, unchanged. The
+//   knob is a length, so `tan(atan2(knob, one pixel))` makes the number a
+//   filter takes: 1 in 1-bit, 0 in color. The rule sits in an `@supports`
+//   test of the functions: without it a browser that lacks them (before
+//   Chrome 111, Firefox 108, Safari 15.4) would still take the declaration,
+//   whose `var()` hides the unknown functions until computed-value time,
+//   and compute `filter: none`, no highlight at all; guarded, it keeps the
+//   base sheet's darkening. An icon drawing its pre-rendered
+//   selected image takes no filter, as in the base sheet. The list draws
+//   its icons at 16 px (`fileBrowserList.mediumIconSize`), the size of the
+//   small icons (`ics#`, `ics8`; HIG printed p.234).
+@use "pkg:@classicy/classicy/scss/color" as c;
+@use "../pixel" as *;
+
+// The icon's shape one pixel in from its edge: its mask, and four copies of
+// it one pixel left, right, up and down, intersected.
+$eroded: var(--classicy-icon-mask), var(--classicy-icon-mask), var(--classicy-icon-mask),
+  var(--classicy-icon-mask), var(--classicy-icon-mask);
+$eroded-at: 0 0, $px 0, calc(0% - #{$px}) 0, 0 $px, 0 calc(0% - #{$px});
+
+@mixin icon-states($root, $outer, $mask, $selected-image) {
+  #{$root} {
+    // The box, exactly the icon's, holding the overlays below.
+    #{$outer}:not(.classicyDesktopIconAliasBadge) {
+      position: relative;
+      width: var(--desktop-icon-size);
+      height: var(--desktop-icon-size);
+      mask-size: 100% 100%;
+      background: none;
+
+      > #{$mask} {
+        width: 100%;
+        height: 100%;
+        mask-size: 100% 100%;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    // Over the image, whose mask makes it a layer of its own: the badge's
+    // too (the base sheet positions the badge absolutely).
+    #{$outer}::before,
+    #{$outer}::after {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      content: "";
+      pointer-events: none;
+    }
+
+    p {
+      margin-top: 0;
+      padding: var(--icon-label-text-top) var(--icon-label-pad) 0;
+      white-space: nowrap;
+      line-height: calc(var(--icon-label-height) - var(--icon-label-text-top));
+      color: var(--color-black);
+      background: var(--color-white);
+    }
+  }
+
+  #{$root}.selected {
+    p {
+      color: var(--color-white);
+      background: var(--color-black);
+    }
+
+    #{$outer} {
+      filter: none;
+
+      img {
+        filter: none;
+      }
+
+      // 1-bit: inverted.
+      &::after {
+        background: linear-gradient(var(--color-white), var(--color-white)) left top /
+          var(--icon-selection-invert) var(--icon-selection-invert);
+        mix-blend-mode: difference;
+      }
+    }
+  }
+
+  // Color: darkened.
+  #{$root}.selected:not(.open) #{$outer}::before {
+    background: linear-gradient(c.classicy-alpha("--color-black", 50%), c.classicy-alpha("--color-black", 50%)) left top /
+      calc(#{$px} - var(--icon-selection-invert)) calc(#{$px} - var(--icon-selection-invert));
+  }
+
+  // Unless the icon draws its pre-rendered selected image.
+  #{$root}.selected:not(.open) #{$outer}#{$selected-image}::before {
+    background: none;
+  }
+
+  #{$root}.open {
+    #{$outer} {
+      // The outline: the whole shape, black, under its inside.
+      background: var(--color-black);
+
+      #{$mask} {
+        mask-image: $eroded;
+        mask-position: $eroded-at;
+        mask-size: 100% 100%;
+        mask-repeat: no-repeat;
+        mask-composite: intersect;
+        // The dots are the open-icon fill pattern, the `halftone` system art
+        // (8 x 8, black where it is not clear), from the icon's corner.
+        background:
+          var(--classicy-art-halftone, none) left top / px(8) px(8),
+          // 1-bit: white.
+          linear-gradient(var(--color-white), var(--color-white)) left top /
+            var(--icon-selection-invert) var(--icon-selection-invert),
+          var(--system7-icon-open-face);
+        background-blend-mode: normal;
+        backdrop-filter: none;
+        filter: none;
+        --system7-icon-open-face: var(--color-theme-02);
+      }
+    }
+  }
+
+  #{$root}.selected.open #{$outer} #{$mask} {
+    --system7-icon-open-face: var(--color-theme-07);
+  }
+}
+
+// `iconSelection.invert` as a number: 1 (1-bit) or 0 (color).
+$invert: tan(atan2(var(--icon-selection-invert), #{$px}));
+
+@mixin icon {
+  // Interpolated, so that Sass does not work the test's functions out.
+  @supports #{"(filter: invert(tan(atan2(1em, 1em))))"} {
+    .classicyFileBrowserViewTableRow.selected .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
+      filter: invert($invert) contrast(max(0.75, #{$invert})) brightness(max(0.5, #{$invert}));
+    }
+  }
+
+  @include icon-states(
+    ".classicyDesktopIcon",
+    ".classicyDesktopIconMaskOuter",
+    ".classicyDesktopIconMask",
+    ".classicyDesktopIconSelectedImage"
+  );
+  @include icon-states(".classicyIcon", ".classicyIconMaskOuter", ".classicyIconMask", ".classicyIconSelectedImage");
+
+  // The Finder's list view (ClassicyFileBrowser's table): a selected item's
+  // name inverted, white on black at both depths
+  // (`*-finder-list-row-selected.png`), where the base sheet's is
+  // white on `--color-system-07` (#555555 in color).
+  :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: var(--color-white);
+    background: var(--color-black);
+  }
+
+  // Its rows are white with no line between them, 18 px apart: the 16 px
+  // icon and `fileBrowserList.rowPadding` (1) above and below
+  // (`*-755-finder-list-row-selected.png`), where the base sheet's are the
+  // system gray a white line apart; the list below them white too.
+  .classicyFileBrowserViewTableContainer.classicyTableContainer {
+    background: var(--color-white);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyTableRow {
+    border-top-width: 0;
+    border-bottom-width: 0;
+    background: var(--color-white);
+  }
+
+  // A row's parts where 7.5.5 draws them, from the window's inner edge
+  // (`*-755-finder-list-row-selected.png`): the disclosure triangle's ink 6
+  // px in and 4 rows down, its 11 px box (_Triangle.scss) in a gutter
+  // `fileBrowserList.disclosureWidth` (15) wide, `disclosureTop` (4) from
+  // the row's top; the 16 px icon from 22, `iconStart` (7) after the gutter;
+  // the name's box from 48, `iconEnd` (10) after the icon. The name's box is
+  // the desktop label's, `iconLabel.height` (12) rows, its text
+  // `iconLabel.textTop` (2) down and `iconLabel.pad` (2) in, centered in the
+  // 18-row row, so rows 3 to 14 as 7.5.5's inverted name.
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableDisclosure {
+    flex: 0 0 var(--file-browser-list-disclosure-width);
+    align-self: stretch;
+    align-items: flex-start;
+    box-sizing: border-box;
+    padding-top: var(--file-browser-list-disclosure-top);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIcon {
+    margin: var(--file-browser-list-row-padding) var(--file-browser-list-icon-end) var(--file-browser-list-row-padding)
+      var(--file-browser-list-icon-start);
+  }
+
+  .classicyFileBrowserViewTableContainer .classicyFileBrowserViewTableRowIconLabel {
+    box-sizing: border-box;
+    height: var(--icon-label-height);
+    padding: var(--icon-label-text-top) var(--icon-label-pad) 0;
+    line-height: calc(var(--icon-label-height) - var(--icon-label-text-top));
+  }
+
+  // Its column titles are on white, the sorted one too, at both depths
+  // (`color-755-finder-list-row-selected.png`: #FFFFFF behind "Name" and
+  // "Size"), where the base sheet's band is the system gray and a sorted
+  // title a lighter one.
+  .classicyFileBrowserViewTableContainer .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  .classicyFileBrowserViewTableContainer :where(.classicyTableColumnHeader).selected {
+    background-color: transparent;
+  }
+
+  // The list's column titles sit above it, over the window's scroll bar
+  // (layout `fileBrowser.listColumnTitles: "aboveList"`; the scroll area's
+  // head holds their detached copy): a white band as tall as a header strip
+  // (`headerStrip.height`, 17) over the double rule (`headerStrip.rule`, 3),
+  // the vertical bar starting under it (`*-755-finder-list-row-selected.png`:
+  // the titles in rows 190-206, the rule 207-209, the bar from 210). Their
+  // text is Geneva 9, the list's. The sorted title is underlined, with no
+  // triangle (row 203 under "Name"), and the name column's title starts over
+  // the names' boxes: past the triangle's gutter, the icon (the rows' size,
+  // which the list publishes as `--classicy-file-browser-icon-size`) and the
+  // space either side of it, then `fileBrowserList.titleInset` (1) into the
+  // name's box ("Name" at x 240, the selected name's box from 239). The
+  // title and its underline sit `headerStrip.titleDrop` (1) below the
+  // band's middle ("Name" rows 195-201, the underline 203).
+  .classicyScrollAreaHead {
+    border-bottom: var(--header-strip-rule) double var(--color-black);
+    background: var(--color-white);
+  }
+
+  .classicyTableDetachedHeader .classicyTableHeaderGroup {
+    background: var(--color-white);
+  }
+
+  // The titles look the same where nothing above the list scrolls to hold
+  // them (a modal's contents): there they stay in the list, in its own
+  // header row, unless that row is the hidden one the detached copy stands
+  // in for (`classicyTableHeaderHidden`, laid out at no height).
+  .classicyTableDetachedHeader,
+  .classicyFileBrowserViewTableContainer .classicyTableHeader:not(.classicyTableHeaderHidden) {
+    .classicyTableColumnHeader {
+      box-sizing: border-box;
+      height: var(--header-strip-height);
+      padding-top: 0;
+      padding-bottom: 0;
+      line-height: var(--header-strip-height);
+      color: var(--color-black);
+      background: transparent;
+    }
+
+    .classicyTableColumnHeader:first-child {
+      padding-left: calc(
+        var(--file-browser-list-disclosure-width) + var(--file-browser-list-icon-start) +
+          var(--classicy-file-browser-icon-size) + var(--file-browser-list-icon-end) + var(--file-browser-list-title-inset)
+      );
+    }
+
+    .classicyTableHeaderCellContent {
+      position: relative;
+      top: var(--header-strip-title-drop);
+    }
+
+    .classicyTableSortArrow {
+      display: none;
+    }
+
+    // The underline is a box, `headerStrip.underline` (1) thick and
+    // `headerStrip.underlineTop` (12) below the top of its title's line box
+    // (the header strip's height, so the same in every engine), where a
+    // text-decoration would sit by each engine's reading of the font's
+    // underline metrics. It spans the title's advance, as an underline does.
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span {
+      position: relative;
+    }
+
+    :where(.classicyTableColumnHeader).selected .classicyTableHeaderCellContent > span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: var(--header-strip-underline-top);
+      height: var(--header-strip-underline);
+      background: currentColor;
+    }
+  }
+}

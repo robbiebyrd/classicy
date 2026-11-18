@@ -1,0 +1,25 @@
+// The Platinum date and time picker look (from ClassicyDatePicker.scss and
+// ClassicyTimePicker.scss): the box's border, bevel and white face, and the
+// reset of the inner fields' own frames (these beat the edit field's look in
+// _Input.scss by specificity, as they beat it by order before). Layout stays
+// in the base sheets.
+@mixin dateTimePicker {
+  .classicyDatePicker,
+  .classicyTimePicker {
+    border-style: solid;
+    border-color: var(--color-black);
+    box-shadow: calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 var(--color-system-05),
+    var(--window-border-size) var(--window-border-size) 0 0 var(--color-system-04);
+    background-color: var(--color-white);
+
+    input {
+      box-shadow: none;
+      border: none;
+      outline: none;
+
+      &:focus-visible {
+        outline: 0;
+      }
+    }
+  }
+}

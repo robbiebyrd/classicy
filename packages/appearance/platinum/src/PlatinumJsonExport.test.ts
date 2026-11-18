@@ -79,6 +79,7 @@ describe("the platinumJson export's type", () => {
 			"presets",
 			"layout",
 			"knobs",
+			"colorFamilies",
 		];
 		expect(Object.keys(platinumSource).sort()).toEqual([...keys].sort());
 		expectTypeOf<keyof PlatinumJson>().toEqualTypeOf<

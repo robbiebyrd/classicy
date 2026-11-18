@@ -4,7 +4,6 @@
 .classicyTableContainer {
   position: relative;
   width: 100%;
-  overflow: auto;
   background: var(--color-system-01);
   outline: 0;
 
@@ -33,6 +32,28 @@
 
 .classicyTableHeader {
   border: none;
+}
+
+// Column titles above the list (`headerPlacement="aboveList"`): the copy
+// drawn in the scroll area's head, as wide as its table, which ClassicyTable
+// sizes to the list's (each column too), plus the room it pads after it; and
+// the table's own header, kept for assistive technology and laid out, so it
+// still sizes the columns, but with no height: unseen, taking no room.
+.classicyTableDetachedHeader {
+  width: max-content;
+}
+
+.classicyTableHeaderHidden .classicyTableColumnHeader {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
+}
+
+.classicyTableHeaderHidden .classicyTableHeaderCellContent {
+  height: 0;
+  overflow: hidden;
 }
 
 .classicyTableContent {

@@ -16,6 +16,7 @@ import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
 import { classicyStateClasses } from "@/Appearance/vocabulary/ClassicyVocabulary";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { useListNavigation } from "@/SystemFolder/SystemResources/Keyboard/useListNavigation";
 import {
 	ClassicyTriangle,
@@ -222,9 +223,12 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 				)}
 			</span>
 			{node.leftIcon && (
-				<img
+				<ClassicyIconImage
 					className={"classicyTreeNodeIcon"}
 					src={node.leftIcon}
+					// A row that cannot be chosen dims its icon by the package's
+					// `iconDimming.disabledItem` rule, where it declares one.
+					dimmed={node.disabled ? "disabledItem" : false}
 					alt={""}
 					aria-hidden={true}
 				/>
@@ -336,7 +340,7 @@ const ClassicyTreeNodeItem: FunctionalComponent<ClassicyTreeNodeItemProps> = ({
 						</ClassicyButton>
 					))}
 				{node.rightIcon && (
-					<img
+					<ClassicyIconImage
 						className={"classicyTreeNodeIconRight"}
 						src={node.rightIcon}
 						alt={""}

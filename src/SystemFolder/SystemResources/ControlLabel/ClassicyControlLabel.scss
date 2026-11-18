@@ -19,7 +19,10 @@
   color: var(--color-system-05);
 }
 
+// Small text in the theme's small UI family (`typography.uiSmall`), the UI
+// family when it names none.
 .classicyControlLabelSizeSmall {
+  font-family: var(--ui-font-small, var(--ui-font));
   font-size: var(--ui-font-size-small);
 }
 

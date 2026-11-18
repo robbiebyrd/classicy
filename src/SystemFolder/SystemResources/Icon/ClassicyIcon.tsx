@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useClassicyAppearance } from "@/Appearance/useClassicyAppearance";
 import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceInput.internal";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
 	type ClassicyLabelPosition,
@@ -28,6 +29,7 @@ import {
 	useClassicyFileDragEndOnUnmount,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDragAppearance.internal";
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 
 interface ClassicyIconProps {
@@ -290,16 +292,36 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		</p>
 	);
 
+	// Without `size` the icon draws at the theme's desktop icon size
+	// (`--desktop-icon-size`). Rendered at the small-icon size or less, it
+	// draws the icon's own small image when it has one; larger draws `icon`.
+	const themeIconSize = useAppManager(
+		(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
+	);
+	// Selected, the image the active package draws for it selected, when it
+	// registers one (`registerClassicySelectedIconImages`) and once it has
+	// loaded, marked so its stylesheet draws no selected look of its own over
+	// it. The mask keeps the plain image's shape.
+	const {
+		image,
+		plain: iconUrl,
+		drawsSelectedImage,
+	} = useClassicySelectedIconImage(
+		icon,
+		size ?? themeIconSize ?? Number.POSITIVE_INFINITY,
+		active,
+	);
 	const iconEl = (
 		<div
 			className={classNames(
 				"classicyIconMaskOuter",
 				invisible ? "classicyIconInvisible" : "",
+				drawsSelectedImage && "classicyIconSelectedImage",
 			)}
-			style={{ "--classicy-icon-mask": `url("${icon}")` } as CSSProperties}
+			style={{ "--classicy-icon-mask": `url("${iconUrl}")` } as CSSProperties}
 		>
 			<div className={"classicyIconMask"}>
-				<img src={icon} alt={name} />
+				<img src={image} alt={name} />
 			</div>
 		</div>
 	);

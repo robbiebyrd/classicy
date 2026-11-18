@@ -28,8 +28,8 @@ import {
 
 const CORE_FIVE = ["window", "control", "button", "groupBox", "layout"];
 
-// The knobs only Platinum's own partials read (AGENT-REFERENCE §8,
-// "Structural: no"): Platinum's look, never the core's.
+// The knobs only Platinum's own partials read, and its optional ones
+// (AGENT-REFERENCE §8, "Structural: no"): Platinum's look, never the core's.
 const LOOK_ONLY = [
 	"controlStrip.bevelWidth",
 	"menuFrame.borderWidth",
@@ -42,6 +42,18 @@ const LOOK_ONLY = [
 	"utilityTitleBar.textureWidth",
 	"utilityTitleBar.textureHeight",
 	"quickTime.captionShadowBlur",
+	// Platinum's slider, drawn from HIGOS8 Figure 2-17 (_Slider.scss).
+	"slider.pixel",
+	"slider.channel",
+	"slider.thumbAlong",
+	"slider.thumbAcross",
+	"slider.thumbRise",
+	"slider.tickWidth",
+	"slider.tickHeight",
+	// Optional knobs the file browser's list view reads with a fallback
+	// (HIGOS8 Figure 2-24): a floor value would size every package's list.
+	"fileBrowserList.mediumIconSize",
+	"fileBrowserList.rowPadding",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -103,12 +115,12 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(95);
+		expect(documented.size).toBe(105);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(84);
+		expect(structural).toHaveLength(85);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();
@@ -139,12 +151,16 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 });
 
 describe("CLASSICY_CORE_DEFAULT_THEME", () => {
-	it("is Platinum's defaults without the wallpaper and the look-only knobs", () => {
+	it("is Platinum's defaults without the wallpaper, the look-only knobs and Platinum's own colors", () => {
 		const expected = structuredClone(platinumJson.defaults) as unknown as {
+			color: { families?: unknown };
 			desktop: { backgroundImage: string };
 			measurements: Record<string, Record<string, number>>;
 		};
 		expected.desktop.backgroundImage = "";
+		// Package colors (the gray ramp) are a package's look alone: no base
+		// stylesheet reads one, so the core holds none.
+		delete expected.color.families;
 		for (const path of LOOK_ONLY) {
 			const [family, key] = path.split(".");
 			delete expected.measurements[family][key];
@@ -204,7 +220,7 @@ describe("themes with no package registered", () => {
 		expect(getTheme("bondi")).toBe(CLASSICY_CORE_DEFAULT_THEME);
 	});
 
-	it("getThemeVars emits what Platinum's default emits, but the look-only knobs", () => {
+	it("getThemeVars emits what Platinum's default emits, but the look-only knobs and package colors", () => {
 		const today = getThemeVars(getTheme("default")) as Record<string, string>;
 		resetClassicyAppearancePackagesForTests();
 		const floor = getThemeVars(getTheme("default") as ClassicyTheme) as Record<
@@ -219,9 +235,12 @@ describe("themes with no package registered", () => {
 		const expected = Object.fromEntries(
 			Object.entries(today).filter(
 				([name]) =>
-					!lookOnly.includes(name) && name !== "--desktop-background-image",
+					!lookOnly.includes(name) &&
+					!name.startsWith("--package-color-") &&
+					name !== "--desktop-background-image",
 			),
 		);
+		expect(today).toHaveProperty("--package-color-gray-ramp-step2");
 		const { "--desktop-background-image": _wallpaper, ...rest } = floor;
 		expect(rest).toEqual(expected);
 		for (const name of lookOnly) expect(floor).not.toHaveProperty(name);

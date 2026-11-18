@@ -4,6 +4,7 @@ import type { ClassicyAppearancePackage } from "@/Appearance/ClassicyAppearanceP
 import { intToHex } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyColors";
 import { listClassicyPackageBuiltInThemes } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
 import { ClassicyRadioInput } from "@/SystemFolder/SystemResources/RadioInput/ClassicyRadioInput";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 
 interface PackagesTabProps {
@@ -59,7 +60,10 @@ export const usePackagesTab = ({
 			// packages are registered, the window stays under the 340 px HIG
 			// ceiling. One group spans its full width.
 			children: (
-				<div className={"classicyAppearanceManagerColorsScroll"}>
+				<ClassicyScrollArea
+					className={"classicyAppearanceManagerColorsScroll"}
+					viewportClassName={"classicyAppearanceManagerColorsScrollViewport"}
+				>
 					<div className={"classicyAppearanceManagerColorsGroup"}>
 						{/* Titled like Date & Time's radio groups; the title also
 						    names the radiogroup for assistive technology. */}
@@ -93,7 +97,7 @@ export const usePackagesTab = ({
 							))}
 						</ul>
 					</div>
-				</div>
+				</ClassicyScrollArea>
 			),
 		}),
 		[inputs, packages, changePackage],

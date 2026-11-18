@@ -16,6 +16,7 @@ export const CLASSICY_STATE = {
 	checked: "checked",
 	mixed: "mixed",
 	expanded: "expanded",
+	fits: "fits",
 } as const;
 
 export type ClassicyState = keyof typeof CLASSICY_STATE;
@@ -87,6 +88,8 @@ export const CLASSICY_COMPONENT = {
 	RadioInput: "classicyRadioInput",
 	RichTextEditor: "classicyRichTextEditor",
 	ScreenSaver: "classicyScreenSaver",
+	ScrollArea: "classicyScrollArea",
+	ScrollBar: "classicyScrollBar",
 	Separator: "classicySeparator",
 	Slider: "classicySlider",
 	SoundManager: "classicySoundManager",
@@ -110,5 +113,6 @@ export type ClassicyComponentName = keyof typeof CLASSICY_COMPONENT;
 export const CLASSICY_PART_ATTRIBUTE = {
 	control: "data-classicy-control",
 	role: "data-classicy-role",
+	selection: "data-classicy-selection",
 	part: "data-classicy-part",
 } as const;

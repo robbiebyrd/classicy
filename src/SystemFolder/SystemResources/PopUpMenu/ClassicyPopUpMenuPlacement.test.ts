@@ -74,6 +74,70 @@ describe("classicyPopUpMenuPlacement", () => {
 	});
 });
 
+// The list is placed on whole pixels (its `top` rounded, or its `bottom`
+// from the viewport's bottom), so the height the space allows is measured
+// from that pixel: a button a fraction down the screen must not leave the
+// list's far edge half a pixel into the 4 px margin.
+describe("classicyPopUpMenuPlacement on whole pixels", () => {
+	it("measures the space below from the rounded top", () => {
+		// Top 100.5 is placed at 101: 800 − 101 − 4 = 695 of room, not 695.5.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(100.5),
+			800,
+			800,
+			null,
+			10000,
+		);
+		expect(placement.above).toBe(false);
+		expect(placement.maxHeight).toBe(695);
+		expect(Math.round(100.5) + placement.maxHeight).toBe(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
+
+	it("measures the space above from the rounded bottom", () => {
+		// Bottom 720.25 is placed 80 from the viewport's bottom (not 79.75):
+		// 720 − 4 = 716 of room.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(700.25),
+			800,
+			800,
+			null,
+			10000,
+		);
+		expect(placement.above).toBe(true);
+		expect(placement.maxHeight).toBe(716);
+		expect(800 - Math.round(800 - 720.25) - placement.maxHeight).toBe(
+			POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
+
+	it("aligns the selection on a whole pixel", () => {
+		// Button center 110.5, selected row center 10: top 100.5, placed at 101.
+		const placement = classicyPopUpMenuPlacement(anchor(100.5), 100, 800, {
+			offsetTop: 0,
+			height: 20,
+		});
+		expect(placement.top).toBe(101);
+	});
+
+	it("slides a fractional-height menu back on screen to a whole pixel", () => {
+		// 120.5 tall, selection low on a button near the bottom: the clamped
+		// top 800 − 4 − 120.5 = 675.5 is placed at 675, so the far edge
+		// (795.5) stays inside the 4 px margin, not half a pixel into it.
+		const placement = classicyPopUpMenuPlacement(anchor(760), 120.5, 800, {
+			offsetTop: 0,
+			height: 20,
+		});
+		expect(placement.top).toBe(675);
+		expect(placement.maxHeight).toBe(120.5);
+		expect(Number.isInteger(placement.top)).toBe(true);
+		expect((placement.top ?? 0) + placement.maxHeight).toBeLessThanOrEqual(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+	});
+});
+
 describe("classicyPopUpMenuPlacement — aligned (selected item over the button)", () => {
 	it("opens the selected item centered on the button", () => {
 		// Button center 110; selected row center 50 -> menu top 60 lines them up.
@@ -110,6 +174,40 @@ describe("classicyPopUpMenuPlacement — aligned (selected item over the button)
 		expect(placement.scrollTop).toBe(104);
 		// The selection lands exactly on the button center.
 		expect((placement.top ?? 0) + 510 - placement.scrollTop).toBe(410);
+	});
+
+	// A scrolled list draws its scroll indicator over its first visible row
+	// (and one over its last while items lie below): the selection never
+	// lands under one, one row in from that end instead.
+	it("keeps the selection off the row the up indicator covers", () => {
+		// Button at the screen's top: the menu pins to the margin, and lining
+		// the selection up would scroll it 500 px, into the first row.
+		const placement = classicyPopUpMenuPlacement(anchor(4), 900, 800, {
+			offsetTop: 500,
+			height: 20,
+		});
+		expect(placement.top).toBe(POPUP_MENU_VIEWPORT_MARGIN);
+		expect(placement.scrollTop).toBe(480);
+		// One row below the menu's top: the second visible row.
+		expect(500 - placement.scrollTop).toBe(20);
+	});
+
+	it("keeps the selection off the row the down indicator covers", () => {
+		// Button at the screen's bottom: the capped menu reaches the bottom
+		// margin, and the selection would land in its last row, items below.
+		const placement = classicyPopUpMenuPlacement(
+			anchor(776),
+			900,
+			800,
+			{ offsetTop: 280, height: 20 },
+			300,
+		);
+		expect((placement.top ?? 0) + placement.maxHeight).toBe(
+			800 - POPUP_MENU_VIEWPORT_MARGIN,
+		);
+		expect(placement.scrollTop).toBe(20);
+		// The selection's bottom is a row clear of the menu's bottom.
+		expect(280 + 20 - placement.scrollTop).toBe(placement.maxHeight - 20);
 	});
 
 	it("keeps the whole menu on screen when the selection is at the very top", () => {

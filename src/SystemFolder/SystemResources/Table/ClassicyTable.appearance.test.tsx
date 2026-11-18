@@ -129,8 +129,15 @@ describe("ClassicyTable appearance", () => {
 		const { container } = renderTable();
 		const el = root(container);
 		expect(el.hasAttribute("data-probe-state")).toBe(false);
-		expect(el.hasAttribute("style")).toBe(false);
-		expect(el.getAttribute("class")).toBe("classicyTableContainer");
+		// Only the table's own sorted-column place (story 0214-c61), no
+		// package style.
+		expect(el.getAttribute("style")).toBe(
+			"--classicy-table-sorted-start: 0px; --classicy-table-sorted-width: 0px;",
+		);
+		// The root is a ClassicyScrollArea (Classicy's own scroll bars).
+		expect(el.getAttribute("class")).toBe(
+			"classicyScrollArea classicyTableContainer",
+		);
 	});
 
 	it("emits the drags a cell reports through emitDrag, from its root", () => {

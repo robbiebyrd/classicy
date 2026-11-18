@@ -23,6 +23,7 @@ import {
 import { keyboardShortcutFromEvent } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
 import { ClassicyOutput } from "@/SystemFolder/SystemResources/Output/ClassicyOutput";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 const MODIFIER_KEYS = new Set(["Meta", "Control", "Shift", "Alt", "OS"]);
 
@@ -185,40 +186,45 @@ export const ClassicyKeyboardEquivalentDialog: FunctionalComponent<
 				initialPosition={["center", "center"]}
 				analyticsExclude
 			>
-				<div
-					ref={contentRef}
-					className="classicyKeyboardEquivalentDialog"
-					tabIndex={-1}
-					role="dialog"
-					aria-modal="true"
-					aria-label={title || undefined}
-				>
-					<p className="classicyKeyboardEquivalentPrompt">{prompt}</p>
-					{/* An <output> is a polite live region, so each new combination
-					    is announced as it is typed. */}
-					<ClassicyOutput
-						id={`${id}-value`}
-						className="classicyKeyboardEquivalentDisplay"
-						ariaLabel="Keyboard equivalent"
-						// A no-break space keeps an empty display at its full height.
-						value={spellKeyboardEquivalent(value) || " "}
-					/>
-					{description != null && description !== "" && (
-						<p className="classicyKeyboardEquivalentDescription">
-							{description}
-						</p>
-					)}
-					<div className="classicyKeyboardEquivalentButtons">
-						<ClassicyButton onClickFunc={cancel}>{cancelLabel}</ClassicyButton>
-						<ClassicyButton
-							isDefault={true}
-							disabled={!value}
-							onClickFunc={confirm}
-						>
-							{confirmLabel}
-						</ClassicyButton>
+				{/* Pads its own root, so its window is marked self-padded. */}
+				<ClassicyWindowSelfPadding rootRef={contentRef}>
+					<div
+						ref={contentRef}
+						className="classicyKeyboardEquivalentDialog"
+						tabIndex={-1}
+						role="dialog"
+						aria-modal="true"
+						aria-label={title || undefined}
+					>
+						<p className="classicyKeyboardEquivalentPrompt">{prompt}</p>
+						{/* An <output> is a polite live region, so each new combination
+						    is announced as it is typed. */}
+						<ClassicyOutput
+							id={`${id}-value`}
+							className="classicyKeyboardEquivalentDisplay"
+							ariaLabel="Keyboard equivalent"
+							// A no-break space keeps an empty display at its full height.
+							value={spellKeyboardEquivalent(value) || " "}
+						/>
+						{description != null && description !== "" && (
+							<p className="classicyKeyboardEquivalentDescription">
+								{description}
+							</p>
+						)}
+						<div className="classicyKeyboardEquivalentButtons">
+							<ClassicyButton onClickFunc={cancel}>
+								{cancelLabel}
+							</ClassicyButton>
+							<ClassicyButton
+								isDefault={true}
+								disabled={!value}
+								onClickFunc={confirm}
+							>
+								{confirmLabel}
+							</ClassicyButton>
+						</div>
 					</div>
-				</div>
+				</ClassicyWindowSelfPadding>
 			</ClassicyWindow>
 			{problem && (
 				<ClassicyAlert

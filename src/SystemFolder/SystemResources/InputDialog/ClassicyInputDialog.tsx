@@ -9,12 +9,14 @@ import {
 	useState,
 } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import {
 	useFocusTrap,
 	useKeyboardEquivalents,
 } from "@/SystemFolder/SystemResources/Keyboard/useKeyboardEquivalents";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { ClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 /** Props for `ClassicyInputDialog`. */
 export type ClassicyInputDialogProps = {
@@ -175,49 +177,56 @@ export const ClassicyInputDialog: FunctionalComponent<
 			initialPosition={["center", "center"]}
 			analyticsExclude
 		>
-			<div
-				ref={contentRef}
-				className="classicyInputDialog"
-				role="dialog"
-				aria-modal="true"
-				aria-label={title || undefined}
-			>
-				<div className="classicyInputDialogTop">
-					{icon && (
-						<div className="classicyInputDialogIcon">
-							<img src={icon} alt="" />
-						</div>
-					)}
-					<div className="classicyInputDialogBody">
-						{prompt != null && prompt !== "" && (
-							<label
-								className="classicyInputDialogPrompt"
-								htmlFor={`${id}-field`}
-							>
-								{prompt}
-							</label>
+			{/* Pads its own root, so its window is marked self-padded. */}
+			<ClassicyWindowSelfPadding rootRef={contentRef}>
+				<div
+					ref={contentRef}
+					className="classicyInputDialog"
+					role="dialog"
+					aria-modal="true"
+					aria-label={title || undefined}
+				>
+					<div className="classicyInputDialogTop">
+						{icon && (
+							<div className="classicyInputDialogIcon">
+								<ClassicyIconImage
+									src={icon}
+									drawnAt={Number.POSITIVE_INFINITY}
+									alt=""
+								/>
+							</div>
 						)}
-						<ClassicyInput
-							id={`${id}-field`}
-							ref={inputRef}
-							type={inputType}
-							placeholder={placeholder}
-							prefillValue={initialValue}
-							onChangeFunc={(e) => setValue(e.target.value)}
-						/>
+						<div className="classicyInputDialogBody">
+							{prompt != null && prompt !== "" && (
+								<label
+									className="classicyInputDialogPrompt"
+									htmlFor={`${id}-field`}
+								>
+									{prompt}
+								</label>
+							)}
+							<ClassicyInput
+								id={`${id}-field`}
+								ref={inputRef}
+								type={inputType}
+								placeholder={placeholder}
+								prefillValue={initialValue}
+								onChangeFunc={(e) => setValue(e.target.value)}
+							/>
+						</div>
+					</div>
+					<div className="classicyInputDialogButtons">
+						<ClassicyButton onClickFunc={cancel}>{cancelLabel}</ClassicyButton>
+						<ClassicyButton
+							isDefault={true}
+							disabled={!isValid}
+							onClickFunc={confirm}
+						>
+							{confirmLabel}
+						</ClassicyButton>
 					</div>
 				</div>
-				<div className="classicyInputDialogButtons">
-					<ClassicyButton onClickFunc={cancel}>{cancelLabel}</ClassicyButton>
-					<ClassicyButton
-						isDefault={true}
-						disabled={!isValid}
-						onClickFunc={confirm}
-					>
-						{confirmLabel}
-					</ClassicyButton>
-				</div>
-			</div>
+			</ClassicyWindowSelfPadding>
 		</ClassicyWindow>
 	);
 };

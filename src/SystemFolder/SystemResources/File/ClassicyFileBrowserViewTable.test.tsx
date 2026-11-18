@@ -1,9 +1,23 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+// Registers Platinum's sound pack, which the core default theme names.
+import "../../../../packages/appearance/platinum/src/assets/sounds/platinum";
+import {
+	registerClassicyAppearancePackage,
+	resetClassicyAppearancePackagesForTests,
+} from "@/Appearance/ClassicyAppearancePackage";
+import {
+	registerClassicySelectedIconImages,
+	resetClassicyAssets,
+} from "@/Appearance/ClassicyAssetRegistry";
+import { CLASSICY_CORE_DEFAULT_THEME } from "@/Appearance/ClassicyCoreTheme";
+import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/useClassicyAppearanceLayout";
 import { ClassicyFileBrowserViewTable } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewTable";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { resetClassicySelectedIconImagesForTests } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 
 function deferred<T>() {
 	let resolve!: (value: T) => void;
@@ -640,5 +654,121 @@ describe("ClassicyFileBrowserViewTable configurable columns", () => {
 		expect(screen.queryByText("Version")).not.toBeInTheDocument();
 		// Filename, Size, Kind — no more, no fewer.
 		expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+	});
+});
+
+// Story 0197-s0z, fix round 3: the Finder list view draws a selected item's
+// icon selected: the active package's selected image when it registers one
+// (once loaded), marked so the stylesheet's darkening stands down.
+describe("ClassicyFileBrowserViewTable selected icon", () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		resetClassicySelectedIconImagesForTests();
+		resetClassicyAssets();
+	});
+
+	it("draws a selected row's icon as its selected image, marked, and the others plain", async () => {
+		vi.stubGlobal(
+			"Image",
+			class {
+				onload: (() => void) | null = null;
+				set src(_value: string) {
+					queueMicrotask(() => this.onload?.());
+				}
+			},
+		);
+		registerClassicySelectedIconImages("platinum", {
+			"/doc.png": "/doc-selected.png",
+		});
+		const cfs = new ClassicyFileSystem("test-table-selected-icon", {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"a.txt": {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_icon: "/doc.png",
+				},
+				"b.txt": {
+					_type: ClassicyFileSystemEntryFileType.TextFile,
+					_icon: "/doc.png",
+				},
+			},
+		});
+		vi.spyOn(cfs, "size").mockResolvedValue(1);
+		render(
+			<ClassicyFileBrowserViewTable
+				fs={cfs}
+				path="Documents"
+				appId="Finder.app"
+				selectedPaths={["Documents:a.txt"]}
+			/>,
+		);
+		const icon = (alt: string) => screen.getByAltText(alt) as HTMLImageElement;
+		await waitFor(() =>
+			expect(icon("Documents:a.txt").getAttribute("src")).toBe(
+				"/doc-selected.png",
+			),
+		);
+		expect(icon("Documents:a.txt")).toHaveClass("classicyIconSelectedImage");
+		expect(icon("Documents:b.txt").getAttribute("src")).toBe("/doc.png");
+		expect(icon("Documents:b.txt")).not.toHaveClass(
+			"classicyIconSelectedImage",
+		);
+	});
+});
+
+// Story 0216-1im F9: a package's `layout.fileBrowser.listColumnTitles:
+// "aboveList"` (System 7, HIG p.218) puts the list view's column titles
+// above its window's scrolling region, in the scroll area's head.
+describe("ClassicyFileBrowserViewTable's column titles", () => {
+	afterEach(() => resetClassicyAppearancePackagesForTests());
+
+	const fsWithDocument = (key: string) =>
+		new ClassicyFileSystem(key, {
+			_type: "directory",
+			Documents: {
+				_type: ClassicyFileSystemEntryFileType.Directory,
+				"a.txt": { _type: ClassicyFileSystemEntryFileType.TextFile },
+			},
+		});
+
+	const inScrollArea = (cfs: ClassicyFileSystem) =>
+		render(
+			<ClassicyScrollArea>
+				<ClassicyFileBrowserViewTable
+					fs={cfs}
+					path="Documents"
+					appId="Finder.app"
+				/>
+			</ClassicyScrollArea>,
+		);
+
+	it("keeps them in the list by default", () => {
+		const { container } = inScrollArea(fsWithDocument("test-titles-in-list"));
+		expect(container.querySelector(".classicyScrollAreaHead")).toBeNull();
+	});
+
+	it("puts them above the list under a package that says so", () => {
+		registerClassicyAppearancePackage({
+			id: "test-titles-above",
+			name: "Titles Above",
+			css: "",
+			defaults: {
+				...CLASSICY_CORE_DEFAULT_THEME,
+				id: "test-titles-above-default",
+				package: "test-titles-above",
+			},
+			layout: {
+				...CLASSICY_DEFAULT_APPEARANCE_LAYOUT,
+				fileBrowser: { listColumnTitles: "aboveList" },
+			},
+		});
+		const { container } = inScrollArea(fsWithDocument("test-titles-above"));
+		const head = container.querySelector(".classicyScrollAreaHead");
+		expect(
+			[
+				...(head?.querySelectorAll(".classicyTableDetachedHeader th") ?? []),
+			].map((th) => th.textContent),
+		).toEqual(["Filename", "Size", "Kind"]);
 	});
 });

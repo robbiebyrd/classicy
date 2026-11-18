@@ -15,6 +15,7 @@ import "./ClassicyWindow.scss";
 import classNames from "classnames";
 import {
 	type CSSProperties,
+	cloneElement,
 	type FC as FunctionalComponent,
 	type MouseEvent,
 	type ReactNode,
@@ -56,11 +57,17 @@ import {
 } from "@/SystemFolder/SystemResources/Analytics/ClassicyAnalyticsPath";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
+import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
 	type ClassicyWindowRect,
 	computeClassicyWindowResize,
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
+import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
@@ -180,11 +187,27 @@ export function classicyWindowChromeSize(el: HTMLElement): [number, number] {
 	];
 }
 
+/**
+ * Where a window at a symbolic `"center"` lands: the active package's
+ * `layout.window.centering` (`"exact"` unless it says `"wholePixel"`).
+ */
+export type ClassicyWindowCentering = NonNullable<
+	ClassicyAppearanceLayout["window"]["centering"]
+>;
+
+/**
+ * A window's opening position, `pos` resolved against the viewport. A
+ * `"center"` axis is centered exactly (on a half pixel when the free space
+ * is odd), or, with `centering` `"wholePixel"`, rounded to a whole pixel.
+ */
 export function resolvePosition(
 	pos: [ClassicyWindowPositionX, ClassicyWindowPositionY],
 	windowSize: [number, number],
 	menuBarHeight: number = readClassicyThemeVar("--menu-bar-height"),
+	centering: ClassicyWindowCentering = "exact",
 ): [number, number] {
+	const center = (free: number) =>
+		centering === "wholePixel" ? Math.round(free / 2) : free / 2;
 	const vw = typeof window !== "undefined" ? window.innerWidth : 800;
 	const vh = typeof window !== "undefined" ? window.innerHeight : 600;
 
@@ -196,7 +219,7 @@ export function resolvePosition(
 	} else if (pos[0] === "right") {
 		x = Math.max(0, vw - windowSize[0]);
 	} else {
-		x = Math.max(0, (vw - windowSize[0]) / 2);
+		x = Math.max(0, center(vw - windowSize[0]));
 	}
 
 	let y: number;
@@ -207,7 +230,7 @@ export function resolvePosition(
 	} else if (pos[1] === "bottom") {
 		y = Math.max(menuBarHeight, vh - windowSize[1]);
 	} else {
-		y = Math.max(menuBarHeight, (vh - windowSize[1]) / 2);
+		y = Math.max(menuBarHeight, center(vh - windowSize[1]));
 	}
 
 	return [x, y];
@@ -292,7 +315,8 @@ interface ClassicyWindowProps {
 	 */
 	resizable?: boolean;
 	/**
-	 * Scroll the contents with Platinum scroll bars. The bars appear only
+	 * Scroll the contents with Classicy's own scroll bars (a
+	 * `ClassicyScrollArea`, drawn by the Appearance Package). The bars appear only
 	 * while the content overflows the window (or a `placard` needs the
 	 * bottom gutter), and then both are drawn, as in Mac OS 8 — the other
 	 * axis shows an empty track so the grow box keeps its corner. Content
@@ -302,13 +326,38 @@ interface ClassicyWindowProps {
 	 */
 	scrollable?: boolean;
 	/**
+	 * Keep both scroll bars drawn while the content fits, each in the `fits`
+	 * state (no thumb), as System 7 draws a document window's bars (HIG7
+	 * p.160). Defaults to the active package's `layout.scrollBar.fitsBars`
+	 * for a document window (resizable, not `windowType="utility"`), else
+	 * `false`. Pass `false` for a window whose content is not a document
+	 * the bars would scroll (a movie, a picture, a HyperCard card), `true`
+	 * to keep them whatever the package says. No effect when `scrollable`
+	 * is `false` or on a modal.
+	 */
+	fitsScrollBars?: boolean;
+	/**
 	 * Make this a modal dialog (HIGOS8 p.57). The window portals into the
 	 * desktop above an input-blocking scrim (clicking outside beeps), traps Tab
-	 * focus, cancels on Escape / Command-period, and draws no zoom box. It stays
-	 * movable unless `type="error"`. Its store record is dropped on unmount, so
-	 * a modal keeps no geometry between openings. Defaults to `false`.
+	 * focus, cancels on Escape / Command-period, and draws no zoom box. It is a
+	 * movable modal dialog box unless `movable={false}` or `type="error"`. Its
+	 * store record is dropped on unmount, so a modal keeps no geometry between
+	 * openings. Defaults to `false`.
 	 */
 	modal?: boolean;
+	/**
+	 * On a `modal` window, `false` makes a modal dialog box that the user
+	 * cannot move (HIGOS8 p.60, "non-movable modal dialog box", as opposed to
+	 * the movable modal dialog box of p.59): the move gesture is refused and
+	 * the root carries `classicyWindowModalFixed` (Platinum and System 7 drop
+	 * its title bar, HIGOS8 figure 3-3, so pass `closable={false}` and
+	 * `collapsable={false}`). Unlike `type="error"` it is not an alert: it
+	 * does not beep when it opens, draws the ordinary modal scrim and stacks
+	 * in the modal-front band with the other dialogs. An error modal is fixed
+	 * whatever this says. Has no effect on non-modal windows (a development
+	 * build warns, once per window). Defaults to `true`.
+	 */
+	movable?: boolean;
 	/**
 	 * Stretch the inner content area to the full height of the window, for
 	 * content that should fill it rather than size to itself. Defaults to off.
@@ -401,9 +450,11 @@ interface ClassicyWindowProps {
 	children?: ReactNode;
 	/**
 	 * Dialog flavor. `"error"` on a `modal` window makes a fixed alert: it
-	 * cannot be dragged, beeps when it opens, and stacks in the red error band
-	 * above other modals. Has no visual effect on non-modal windows. Defaults
-	 * to `"default"`.
+	 * cannot be dragged, beeps when it opens, stacks in the red error band
+	 * above other modals and carries `classicyWindowModalFixed` on its root
+	 * (a package may drop a fixed modal's title bar). For a fixed modal that
+	 * is not an alert, use `movable={false}` instead. Has no visual effect on
+	 * non-modal windows. Defaults to `"default"`.
 	 */
 	type?: string;
 	/**
@@ -548,7 +599,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	collapsable = true,
 	resizable = true,
 	scrollable = true,
+	fitsScrollBars,
 	modal = false,
+	movable = true,
 	type = "default",
 	growable,
 	defaultWindow = false,
@@ -595,7 +648,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	// The elements a package lays a pattern in from a fixed origin
+	// (`layout.patternOrigin.elements`): this window's.
+	useClassicyPatternOriginElements(windowRef);
 	const layout = useClassicyAppearanceLayout();
+	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 
 	// `--menu-bar-height`, read once per theme and menu-bar placement instead
 	// of on every render: a drag re-renders on each mousemove, and a read
@@ -632,6 +689,39 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			),
 		);
 	}, [activeTheme, menuBarPlacement]);
+
+	// A modal of type "error" (an alert) or with `movable={false}` cannot be
+	// moved (a fixed modal dialog box); every other modal can (a movable one).
+	// Only "error" carries the alert semantics (the beep, the error scrim and
+	// the red band), which key on `type` below, never on this value.
+	const fixedModal = modal && (type === "error" || !movable);
+
+	// `movable` applies to modals only (a document window always moves). Say
+	// so once per window, in development, rather than drop it silently.
+	const movableIgnoredWarned = useRef(false);
+	useEffect(() => {
+		if (process.env.NODE_ENV === "production") return;
+		if (modal || movable || movableIgnoredWarned.current) return;
+		movableIgnoredWarned.current = true;
+		classicyLog(
+			"warn",
+			"Window",
+			"movable={false} has no effect on a non-modal window; pass modal to make a fixed modal dialog box",
+			{ appId, id },
+		);
+	}, [modal, movable, appId, id]);
+
+	// How many mounted descendants lay themselves out from the window's edge
+	// (useClassicyWindowSelfPadding: an alert, the input and keyboard-
+	// equivalent dialogs, a dialog-layout form). A modal marks its inner area
+	// while any do, so a package's dialog inset can skip them without
+	// `:has()`. Claims are counted, not flagged, so one going never clears
+	// another's.
+	const [selfPaddingClaims, setSelfPaddingClaims] = useState(0);
+	const claimSelfPadding = useCallback(() => {
+		setSelfPaddingClaims((n) => n + 1);
+		return () => setSelfPaddingClaims((n) => n - 1);
+	}, []);
 
 	const resolvedSize = useMemo(
 		() => resolveSize(initialSize, menuBarHeight),
@@ -762,11 +852,16 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 			// resizable window's real size can already differ from its initial
 			// default by the time this runs.
 			clampWindowPositionToViewport(
-				resolvePosition(initialPosition, resolvedSize, menuBarHeight),
+				resolvePosition(
+					initialPosition,
+					resolvedSize,
+					menuBarHeight,
+					centering,
+				),
 				size,
 				menuBarHeight,
 			),
-		[initialPosition, resolvedSize, size, menuBarHeight],
+		[initialPosition, resolvedSize, size, menuBarHeight, centering],
 	);
 
 	// #248: only a symbolic position (e.g. "center") should ever re-center as
@@ -855,7 +950,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		const rect = el.getBoundingClientRect();
 		const measuredSize: [number, number] = [rect.width, rect.height];
 		const recentered = clampWindowPositionToViewport(
-			resolvePosition(initialPosition, measuredSize, menuBarHeight),
+			resolvePosition(initialPosition, measuredSize, menuBarHeight, centering),
 			measuredSize,
 			menuBarHeight,
 		);
@@ -883,56 +978,39 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return () => observer.disconnect();
 	}, [ws.closed]);
 
-	// Scroll bars only while there is something to scroll. The contents box
-	// is `overflow: scroll` (both bars, Mac OS 8 style) only while its content
-	// overflows on either axis; otherwise it drops to `auto`, which draws
-	// nothing. Measured here rather than left to `overflow: auto` alone
-	// because `auto` is per-axis: a lone vertical bar would run the full
-	// height and its end arrows would sit under the grow box. Re-measured
-	// when the box resizes (ResizeObserver: window resize, bars appearing),
-	// when its subtree changes (MutationObserver), and when something inside
-	// finishes loading (an <img> growing after mount). Layout effect so the
-	// first paint already has the right bars. The 1px tolerance absorbs
-	// sub-pixel rounding between scrollHeight and clientHeight.
+	// Scroll bars only while there is something to scroll. The contents'
+	// ClassicyScrollArea draws both bars (Mac OS 8 style) only while its
+	// content overflows on either axis, and none otherwise; it always
+	// scrolls. Decided here rather than left to the area's per-axis `auto`
+	// because a lone vertical bar would run the full height and its end
+	// arrows would sit under the grow box. The area measures its viewport
+	// (resize, content and load changes, by a pixel's tolerance) and reports
+	// overflow through `onOverflowChange`, so the window keeps no observer of
+	// its own.
 	const [contentOverflows, setContentOverflows] = useState(false);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed and ws.collapsed aren't read — they re-attach the observers once the contents box exists again
-	useLayoutEffect(() => {
-		if (!scrollable) return;
-		const el = contentsRef.current;
-		if (!el) return;
-		const measure = () => {
-			const next =
-				el.scrollHeight > el.clientHeight + 1 ||
-				el.scrollWidth > el.clientWidth + 1;
-			setContentOverflows((prev) => (prev === next ? prev : next));
-		};
-		measure();
-		// jsdom has neither observer; the mount measurement above still runs.
-		const resizeObserver =
-			typeof ResizeObserver === "undefined"
-				? undefined
-				: new ResizeObserver(measure);
-		resizeObserver?.observe(el);
-		const mutationObserver =
-			typeof MutationObserver === "undefined"
-				? undefined
-				: new MutationObserver(measure);
-		mutationObserver?.observe(el, {
-			childList: true,
-			subtree: true,
-			characterData: true,
-			attributes: true,
-		});
-		el.addEventListener("load", measure, true);
-		return () => {
-			resizeObserver?.disconnect();
-			mutationObserver?.disconnect();
-			el.removeEventListener("load", measure, true);
-		};
-	}, [scrollable, ws.closed, ws.collapsed]);
+	// Whether the contents' scroll area draws a head (a list's column titles
+	// above its scrolling region, `classicyScrollAreaHead`), which then takes
+	// over the header's bottom edge: the header is marked
+	// `classicyWindowHeaderAboveHead` meanwhile.
+	const [contentsHasHead, setContentsHasHead] = useState(false);
+	const onContentOverflow = useCallback(
+		(overflow: { vertical: boolean; horizontal: boolean }) =>
+			setContentOverflows(overflow.vertical || overflow.horizontal),
+		[],
+	);
 	// A placard lives in the horizontal scroll bar's gutter (HIGOS8 p.46), so
-	// a window with one keeps its bars.
-	const showScrollBars = scrollable && (contentOverflows || Boolean(placard));
+	// a window with one keeps its bars. A package whose layout keeps the bars
+	// in the fits state (System 7: "If the document is no larger than the
+	// window, the scroll bars are inactive", HIG p.160) keeps them for a
+	// document window, one with a size box; a utility window or one the user
+	// cannot resize stays bare until its content overflows. `fitsScrollBars`
+	// overrides either way (a movie or a card is not a document).
+	const packageKeepsFitsBars = useClassicyFitsScrollBars();
+	const keepsFitsBars =
+		fitsScrollBars ??
+		(packageKeepsFitsBars && resizable && windowType !== "utility");
+	const showScrollBars =
+		scrollable && (contentOverflows || Boolean(placard) || keepsFitsBars);
 
 	const pageviewPath = useMemo(
 		() => analyticsPath ?? classicyWindowPagePath(appId, id),
@@ -1252,8 +1330,8 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 
 	const startMoveWindow = (e: MouseEvent<HTMLDivElement>) => {
 		e.preventDefault();
-		if (modal && type === "error") {
-			// Don't allow modal error dialogs to move
+		if (fixedModal) {
+			// A fixed modal dialog box (an alert, or `movable={false}`) never moves
 			return;
 		}
 		// Only arm a potential drag; it becomes a real drag once the pointer
@@ -1872,6 +1950,45 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		!modal &&
 		!ws.collapsed;
 
+	// An array literal, so the class co-occurrence guard reads its classes.
+	const contentsClasses = [
+		!modal && !isActive()
+			? dimContents
+				? "classicyWindowContentsDimmed"
+				: "classicyWindowContentsNotDimmed"
+			: "",
+		scrollable === true ? "" : "classicyWindowNoScroll",
+		modal === true ? "classicyWindowContentsModal" : "classicyWindowContents",
+		header ? "classicyWindowContentsWithHeader" : "",
+		classicyStateClasses({ collapsed: ws.collapsed }),
+	];
+	const contentsStyle = backgroundColor
+		? ({
+				"--classicy-window-contents-bg": backgroundColor,
+			} as CSSProperties)
+		: undefined;
+	const contentsInner = (
+		<div
+			className={classNames(
+				"classicyWindowContentsInner",
+				modal === true ? "classicyWindowContentsModalInner" : "",
+				modal === true && selfPaddingClaims > 0
+					? "classicyWindowContentsSelfPadded"
+					: "",
+				growable ? "classicyWindowContentsInnerGrow" : "",
+				contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
+				contentFrame && !isActive()
+					? "classicyWindowContentsFramed classicyWindowContentsFramedDimmed"
+					: "",
+			)}
+		>
+			{" "}
+			<ClassicyWindowSelfPaddingContext.Provider value={claimSelfPadding}>
+				{children}
+			</ClassicyWindowSelfPaddingContext.Provider>
+		</div>
+	);
+
 	const windowContent = !ws.closed && (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: application container captures clicks for focus
 		<div
@@ -1906,6 +2023,11 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				// alerts (classicyWindowRed). Error modals keep the red alert band.
 				modal && type !== "error" ? "classicyWindowModalFront" : "",
 				modal && type === "error" ? "classicyWindowRed" : "",
+				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
+				// in System 7) as opposed to a movable one: the window the move
+				// gesture refuses, an alert or `movable={false}`. Platinum drops
+				// the bar of the second only (its alert keeps the red bar).
+				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
@@ -1970,50 +2092,40 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					className={classNames(
 						"classicyWindowHeader",
 						headerVariant === "list" ? "classicyWindowHeaderList" : "",
+						contentsHasHead ? "classicyWindowHeaderAboveHead" : "",
 						isActive() ? "" : "classicyWindowHeaderDimmed",
 					)}
 				>
 					{header}
 				</div>
 			)}
-			<div
-				ref={contentsRef}
-				className={classNames(
-					!modal && !isActive()
-						? dimContents
-							? "classicyWindowContentsDimmed"
-							: "classicyWindowContentsNotDimmed"
-						: "",
-					scrollable === true ? "" : "classicyWindowNoScroll",
-					modal === true
-						? "classicyWindowContentsModal"
-						: "classicyWindowContents",
-					header ? "classicyWindowContentsWithHeader" : "",
-					classicyStateClasses({ collapsed: ws.collapsed }),
-				)}
-				style={
-					backgroundColor
-						? ({
-								"--classicy-window-contents-bg": backgroundColor,
-							} as CSSProperties)
-						: undefined
-				}
-			>
+			{/* A modal's contents never scroll (a dialog is laid out to fit);
+			    every other window scrolls in a ClassicyScrollArea, which draws
+			    Classicy's own bars: both, or none (see showScrollBars). */}
+			{modal === true ? (
 				<div
-					className={classNames(
-						"classicyWindowContentsInner",
-						modal === true ? "classicyWindowContentsModalInner" : "",
-						growable ? "classicyWindowContentsInnerGrow" : "",
-						contentFrame && isActive() ? "classicyWindowContentsFramed" : "",
-						contentFrame && !isActive()
-							? "classicyWindowContentsFramed classicyWindowContentsFramedDimmed"
-							: "",
-					)}
+					ref={contentsRef}
+					className={classNames(contentsClasses)}
+					style={contentsStyle}
 				>
-					{" "}
-					{children}
+					{contentsInner}
 				</div>
-			</div>
+			) : (
+				<ClassicyWindowActiveContext.Provider value={isActive()}>
+					<ClassicyScrollArea
+						className={classNames(contentsClasses)}
+						style={contentsStyle}
+						viewportRef={contentsRef}
+						scrollable={scrollable}
+						vertical={showScrollBars ? "always" : "never"}
+						horizontal={showScrollBars ? "always" : "never"}
+						onOverflowChange={onContentOverflow}
+						onHeadChange={setContentsHasHead}
+					>
+						{contentsInner}
+					</ClassicyScrollArea>
+				</ClassicyWindowActiveContext.Provider>
+			)}
 			{/* #196: a Platinum placard status region pinned to the window's
 					    bottom-left, to the left of the horizontal scroll bar. Hidden
 					    while collapsed and kept clear of the bottom-right resizer. */}
@@ -2049,6 +2161,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// unmounted) must drop the scrim too — otherwise the input-blocking backdrop
 	// outlives the window and locks the whole page.
 	if (modal && desktopRoot && !ws.closed) {
+		// A hidden app's modal (the Application menu's Hide commands) is
+		// portaled outside the app's hidden container, so it and its scrim
+		// hide themselves, kept mounted, as the app's other windows are.
+		const appHidden = currentApp?.hidden === true;
 		// #197: modal windows render an input-blocking scrim; clicking it beeps.
 		const modalScrim = (
 			// biome-ignore lint/a11y/noStaticElementInteractions: scrim is a mouse-only backdrop
@@ -2057,6 +2173,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					"classicyWindowModalScrim",
 					modal && type === "error" ? "classicyWindowModalScrimError" : "",
 				)}
+				style={appHidden ? { display: "none" } : undefined}
 				role="presentation"
 				onMouseDown={onModalScrimClick}
 			></div>
@@ -2064,7 +2181,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		return createPortal(
 			<>
 				{modalScrim}
-				{windowContent}
+				{appHidden && windowContent
+					? cloneElement(windowContent, {
+							style: {
+								...(windowContent.props as { style?: CSSProperties }).style,
+								display: "none",
+							},
+						} as { style: CSSProperties })
+					: windowContent}
 			</>,
 			desktopRoot,
 		);

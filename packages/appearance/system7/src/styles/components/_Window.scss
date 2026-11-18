@@ -1,0 +1,632 @@
+// The System 7 window look (plan 0018-dbd §3.2), included by system7.scss
+// inside the package wrapper. Measured from System 7.5 framebuffer captures
+// (docs/system7-reference-screenshots.md) and the System 7 HIG (printed
+// pp.134-168): a flat 1 px frame with a 1 px drop shadow, a 19 px title bar
+// with six racing stripes broken around the close box, the zoom box and the
+// title, flat 11 px boxes, and a size box drawn as two overlapping squares.
+// Inactive windows lose the stripes, the boxes and the size-box glyph, and
+// on a color screen their frame and title turn gray.
+//
+// Everything is drawn from theme tokens and knobs, so one stylesheet serves
+// both themes; where the two depths differ, the theme's values do:
+//
+//   token                         System 7 Color   System 7 (1-bit)
+//   --color-window-border         #000000 frame    black
+//   --color-theme-01              #EEEEEE face     white
+//   --color-theme-02              #CCCCFF bevel    white (no bevel)
+//   --color-window-border-inset   #9999CC shade    white (no bevel; the
+//                                 pressed-box fill)
+//   --color-window-border-outset  #CCCCFF box ring black (the ring's lower
+//                                 and right sides, and the box bevel)
+//   --color-theme-07              #333366 box ink  black
+//   --color-system-03             #BBBBBB          white (windoid box, small
+//                                                  size-box square)
+//   --color-system-04             #AAAAAA          white (box fill, large
+//                                                  size-box square)
+//   --color-system-05             #888888          black (inactive title)
+//   --color-system-06             #777777          black (stripes)
+//   --color-system-07             #555555          black (inactive frame)
+//   --color-theme-05              #333333          black (windoid dots)
+//
+// and the knobs `box.bevel` (1 in color, 0 in 1-bit: the boxes' and
+// size box's inner bevel) and the `growBox` squares, which differ by a pixel
+// between the depths.
+//
+// The pressed boxes' starburst and the windoid box's cross are art on a
+// pixel grid: one-pixel rectangles (`classicy-px-rect` layers) placed in
+// multiples of `--box-pixel` (`px()` and `pixel-art()`, ../_pixel.scss).
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../pixel" as *;
+
+$b: var(--window-border-size);
+
+// The pressed close and zoom boxes' starburst (11 x 11, both depths): four
+// three-pixel rays and four two-pixel diagonals around an empty center.
+$starburst: (5 1 1 3) (5 7 1 3) (1 5 3 1) (7 5 3 1) (2 2) (3 3) (8 2) (7 3) (2 8) (3 7) (8 8) (7 7);
+
+// The pressed windoid close box's cross (9 x 9): the diagonals alone.
+$windoid-cross: (2 2) (3 3) (6 2) (5 3) (2 6) (3 5) (6 6) (5 5);
+
+// A box's face: a one-pixel ring, dark at the top and left and light at the
+// bottom and right, then an inner bevel of `--box-bevel` (light at the
+// top and left, dark at the bottom and right; none in 1-bit) around the
+// fill. Inset shadows, so they paint over the background's glyph layers; the
+// first listed is on top, which gives the ring's off corners to its dark side.
+@mixin box-face {
+  box-shadow:
+    inset $b $b 0 0 var(--color-theme-07),
+    inset calc(#{$b} * -1) calc(#{$b} * -1) 0 0 var(--color-window-border-outset),
+    inset calc(#{$b} + var(--box-bevel)) calc(#{$b} + var(--box-bevel)) 0 0
+      var(--color-window-border-outset),
+    inset calc((#{$b} + var(--box-bevel)) * -1) calc((#{$b} + var(--box-bevel)) * -1) 0 0
+      var(--color-theme-07);
+}
+
+// A pressed box: the bevel gives way to a black ring around the art.
+@mixin box-pressed {
+  box-shadow:
+    inset $b $b 0 0 var(--color-black),
+    inset calc(#{$b} * -1) calc(#{$b} * -1) 0 0 var(--color-black);
+}
+
+// The title bar's bevel (color: a #CCCCFF highlight at the top and left, a
+// #9999CC shade at the bottom and right, the shade taking both off corners;
+// 1-bit: white on white).
+@mixin bar-bevel {
+  box-shadow:
+    inset calc(#{$b} * -1) calc(#{$b} * -1) 0 0 var(--color-window-border-inset),
+    inset $b $b 0 0 var(--color-theme-02);
+}
+
+// A size-box square: its ring, its fill and (color only) the highlight row
+// and column inside its upper left, which run over the ring's right and
+// bottom sides as QuickDraw drew them.
+@function grow-square($o, $s, $fill) {
+  $in: calc(#{$o} + #{$px});
+  $bevel: var(--box-bevel);
+  @return layout.classicy-px-rect(var(--color-window-border-outset), $in, $in, calc(#{$s} - #{$px}), $bevel),
+    layout.classicy-px-rect(var(--color-window-border-outset), $in, $in, $bevel, calc(#{$s} - #{$px})),
+    layout.classicy-px-rect($fill, $in, $in, calc(#{$s} - #{$px} - #{$px}), calc(#{$s} - #{$px} - #{$px})),
+    layout.classicy-px-rect(var(--color-theme-07), $o, $o, $s, $s);
+}
+
+// The active title bar's face and its six stripes on alternate rows,
+// `--window-control-size` tall and centered like the boxes, running `$inset`
+// inside the bar's bevel at both ends. The stripes are the `windowStripes`
+// art (the capture's ink alone, 16 x 15, its rows 2 to 12 the stripes, from
+// the bar's second row) masking a layer of the stripe token behind the
+// bar's parts, drawn with nearest-neighbor scaling: a pixel of art stays a
+// whole device pixel at any zoom or device-pixel ratio, where a gradient's
+// edges would blend at 125%, and the color stays the theme's. The layer
+// fills the bar's height, so its top and bottom edges, which a fractional
+// ratio leaves across a device pixel, fall on rows the art leaves clear.
+// The art (and the windoid's dots below) is registered inline, a `data:`
+// URI, since a mask URL is a CORS fetch (system7Assets.ts).
+@mixin title-bar-stripes($inset) {
+  isolation: isolate;
+  background: var(--color-theme-01);
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 $inset;
+    background-color: var(--color-system-06);
+    mask: var(--classicy-art-window-stripes) left $px / auto repeat-x;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+}
+
+// The title bar's title area: no proxy icon (System 7 titles carry none;
+// it is Mac OS 8.5's), and the title, Chicago 12 on the stripes, its line
+// `titleBar.titleTop` below the bar's top, in a gap of face
+// `titleBar.titleGap` wide on each side (with the face's one-pixel side
+// bearing, the seven pixels System 7 leaves between the stripes and the ink).
+@mixin title-area {
+  .classicyWindowIcon {
+    display: none;
+  }
+
+  .classicyWindowTitle {
+    align-self: stretch;
+
+    .classicyWindowTitleLeft,
+    .classicyWindowTitleRight,
+    .classicyWindowTitleCenter {
+      height: auto;
+      margin: 0;
+    }
+
+    .classicyWindowTitleText {
+      align-self: stretch;
+      align-items: flex-start;
+      height: auto;
+      padding: var(--title-bar-title-top) var(--title-bar-title-gap) 0;
+    }
+
+    // Where the room left beside the title is odd, its extra pixel goes on
+    // the right, as 7.5 rounds it (`*-finder-window-fits-active.png`, the
+    // Find File and Views windows): the right side's basis one pixel, the
+    // left's none, so the left side has half of one pixel less than the room
+    // and lands on floor(room / 2), and an even room's half pixel snaps back
+    // to the middle.
+    .classicyWindowTitleLeft {
+      flex-basis: 0;
+    }
+
+    .classicyWindowTitleRight {
+      flex-basis: $px;
+    }
+  }
+}
+
+// The title centered on the whole bar, whatever boxes it has, as 7.5 draws
+// it: a window with a close box and no zoom box (Find File, the control
+// panels) centers its title on the frame, not on the room after the close
+// box (`*-dialog-modeless-findfile.png`, `*-controlpanel-views.png`). The
+// title area lies across the bar, out of flow, kept off a box's column on
+// both sides (`titleBar.boxMargin`, the box and `titleBar.boxGap`), and the
+// boxes over it, so the bar reads the same with both boxes and the title
+// still breaks short of either. The zoom box keeps the right end.
+@mixin title-across-bar {
+  .classicyWindowControlBox {
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-classicy-control="zoom"] {
+    margin-left: auto;
+  }
+
+  .classicyWindowTitle {
+    position: absolute;
+    inset: 0;
+    padding: 0 calc(var(--title-bar-box-margin) + var(--window-control-size) + var(--title-bar-box-gap));
+  }
+}
+
+// The contents' heights in a window `$root` that holds its own menu bar:
+// each of the four below (document or utility, with or without a header)
+// less the bar's height, which the base sheet reads the same way (a host's
+// or package's `--classicy-window-menu-bar-height`, else the theme's).
+@mixin with-menu-bar($root) {
+  $bar: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
+  $header: calc(var(--header-strip-height) + var(--header-strip-rule));
+
+  #{$root} .classicyWindowContents {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - #{$bar});
+  }
+
+  #{$root} .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - #{$header} - #{$bar});
+  }
+
+  #{$root}.classicyWindowUtility .classicyWindowContents {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - #{$bar});
+  }
+
+  #{$root}.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - #{$header} - #{$bar});
+  }
+}
+
+@mixin window {
+  .classicyWindow {
+    // No frame ring: the contents meet the 1 px frame, and the drop shadow
+    // falls one pixel right and down (HIG p.135).
+    padding: 0;
+    border: $b solid var(--color-window-border);
+    box-shadow: $b $b 0 0 var(--color-black);
+
+    // The frame-edge drag handles (Classicy's behavior, shared by every
+    // package) lie on the 1 px frame itself, never over the contents or the
+    // scroll bars: the base sizes them by the frame ring System 7 has none of.
+    .classicyWindowFrameEdge-top,
+    .classicyWindowFrameEdge-bottom {
+      left: calc(#{$b} * -1);
+      right: calc(#{$b} * -1);
+      height: $b;
+    }
+
+    .classicyWindowFrameEdge-top {
+      top: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-bottom {
+      bottom: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-left,
+    .classicyWindowFrameEdge-right {
+      top: calc(#{$b} * -1);
+      bottom: calc(#{$b} * -1);
+      width: $b;
+    }
+
+    .classicyWindowFrameEdge-left {
+      left: calc(#{$b} * -1);
+    }
+
+    .classicyWindowFrameEdge-right {
+      right: calc(#{$b} * -1);
+    }
+
+    // Title bar, 19 px with the frame line above it and the line below it
+    // (HIG p.138): 17 rows inside, then the line.
+    .classicyWindowTitleBar {
+      height: calc(var(--window-title-bar-height) - #{$b} - #{$b});
+      padding: 0;
+      column-gap: 0;
+      align-items: center;
+      border-bottom: $b solid var(--color-window-border);
+      background-color: var(--color-window-document);
+
+      // The boxes sit in a gap of title-bar face (`titleBar.boxGap` on each
+      // side), `titleBar.boxMargin` in from the frame.
+      .classicyWindowControlBox {
+        width: auto;
+        height: auto;
+        padding: 0 var(--title-bar-box-gap);
+        background-color: var(--color-theme-01);
+      }
+
+      [data-classicy-control="close"] {
+        margin-left: calc(var(--title-bar-box-margin) - var(--title-bar-box-gap));
+      }
+
+      [data-classicy-control="zoom"] {
+        margin-right: calc(var(--title-bar-box-margin) - var(--title-bar-box-gap));
+      }
+
+      .classicyWindowCloseBox,
+      .classicyWindowZoomBox {
+        background-color: var(--color-system-04);
+
+        @include box-face;
+
+        &:before,
+        &:after {
+          content: none;
+        }
+
+        &:active {
+          background: pixel-art(var(--color-black), $starburst), var(--color-window-border-inset);
+
+          @include box-pressed;
+        }
+      }
+
+      // The zoom box's glyph: the right and bottom sides of a smaller square
+      // in its upper left (`box.zoomGlyph` on a side, the box's ring
+      // its other two); the bevel paints over the pixels it shares.
+      .classicyWindowZoomBox {
+        background:
+          layout.classicy-px-rect(
+            var(--color-theme-07),
+            calc(var(--box-zoom-glyph) - #{$px}),
+            $px,
+            $px,
+            calc(var(--box-zoom-glyph) - #{$px})
+          ),
+          layout.classicy-px-rect(
+            var(--color-theme-07),
+            $px,
+            calc(var(--box-zoom-glyph) - #{$px}),
+            calc(var(--box-zoom-glyph) - #{$px}),
+            $px
+          ),
+          var(--color-system-04);
+      }
+
+      @include title-area;
+      @include title-across-bar;
+    }
+
+    // The contents fill the window under the title bar, flush with the
+    // frame.
+    .classicyWindowContents {
+      height: calc(100% - var(--window-title-bar-height) + #{$b});
+
+      // A scroll bar is 16 px with both its outlines, and each outline it
+      // shares (HIG p.158; the captures): the outer ones lie on the frame,
+      // the vertical bar's top on the line above it, and the bars' inner ends
+      // on the size box's lines. So each bar reaches one pixel past the
+      // contents on those sides. (The bars' look is §3.6's, _ScrollBar.scss.)
+      // Where a bar lies on the frame or the line above it, that line shows
+      // through, the bar's own lines kept off it: it is the window's, gray
+      // in an inactive color window.
+      > .classicyScrollAreaBody > .classicyScrollBarVertical {
+        --system7-bar-off-top: #{$b};
+        --system7-bar-off-right: #{$b};
+
+        margin: calc(#{$b} * -1) calc(#{$b} * -1) calc(#{$b} * -1) 0;
+      }
+
+      > .classicyScrollAreaFoot {
+        margin-bottom: calc(#{$b} * -1);
+
+        > .classicyScrollBarHorizontal {
+          --system7-bar-off-bottom: #{$b};
+          --system7-bar-off-left: #{$b};
+
+          margin: 0 calc(#{$b} * -1);
+        }
+
+        // Under the size box; its outer lines are the frame's.
+        > .classicyScrollAreaCorner {
+          margin-right: calc(#{$b} * -1);
+          border-color: transparent;
+        }
+      }
+    }
+
+    // The size box: the 15 x 15 cell where the scroll bars meet, its top and
+    // left lines theirs, holding two overlapping squares (the small one in
+    // front). The frame is its right and bottom sides.
+    .classicyWindowResizer {
+      right: 0;
+      bottom: 0;
+      width: calc(var(--window-scrollbar-size) - #{$b});
+      height: calc(var(--window-scrollbar-size) - #{$b});
+      border-top: $b solid var(--color-black);
+      border-left: $b solid var(--color-black);
+      background:
+        grow-square(var(--grow-box-small-offset), var(--grow-box-small-size), var(--color-system-03)),
+        grow-square(var(--grow-box-large-offset), var(--grow-box-large-size), var(--color-system-04)),
+        var(--color-theme-01);
+
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  // The active title bar: face, bevel and six stripes on alternate rows,
+  // `--window-control-size` tall and centered like the boxes, running
+  // `titleBar.stripeInset` inside the bevel.
+  .classicyWindow.active .classicyWindowTitleBar {
+    @include title-bar-stripes(var(--title-bar-stripe-inset));
+
+    @include bar-bevel;
+
+    // The gap the stripes break around.
+    .classicyWindowTitleText {
+      background-color: var(--color-theme-01);
+    }
+  }
+
+  // Inactive (HIG p.140): no stripes, boxes or size-box glyph; a white bar;
+  // the frame, the line under the bar and the title gray in color (black in
+  // 1-bit); the drop shadow and the scroll bars' lines stay black. The base
+  // sheet's whole-window dimming filter is not System 7's.
+  .classicyWindow.inactive {
+    border-color: var(--color-system-07);
+    filter: none;
+
+    .classicyWindowTitleBar {
+      border-bottom-color: var(--color-system-07);
+    }
+  }
+
+  // Named under `.classicyWindow` to outrank the size box's glyph.
+  .classicyWindow .classicyWindowResizerDimmed {
+    background: var(--color-window-document);
+  }
+
+  // Inactive contents are drawn as they are: the base sheet's contrast
+  // filters, which undo or deepen its window filter, go with it.
+  .classicyWindowContentsDimmed,
+  .classicyWindowContentsNotDimmed {
+    opacity: 1;
+    filter: none;
+  }
+
+  // So is an inactive window's header (the Finder's, black on white in
+  // `*-finder-list-scrollable-inactive.png`), its double rule the line the
+  // scroll bar meets.
+  .classicyWindowHeaderDimmed {
+    opacity: 1;
+  }
+
+  // WindowShade: the title bar alone; its line lands on the bottom frame.
+  .classicyWindow.collapsed {
+    height: calc(var(--window-title-bar-height) - #{$b} - #{$b});
+  }
+
+  // The utility window (floating window, HIG p.137; Apple Guide's in the
+  // references): a 13-row bar of title-bar face with three rows of single
+  // dots, every `utilityTitleBar.textureWidth` pixels, and a 9 x 9 close box.
+  // Named down to `.classicyWindowTitleBar` to outrank the active bar above.
+  //
+  // Rulings (plan 0018-dbd §3.2 review): the capture governs over the HIG.
+  // The HIG gives an 11 px drag region (p.138); Apple Guide's bar has 13
+  // rows inside the frame and its line, so `utilityTitleBarHeight` is 13.
+  // It is the bar's interior, unlike `titleBarHeight` (19, the document bar
+  // with its frame line and the line under it), because the core derives
+  // the windoid's box from it (`--window-utility-control-box-size`, the bar
+  // less two borders above and below: 9). And the drag area is the
+  // capture's sparse dots, one pixel in every 3 x 3, not the 50% checker
+  // the design gives System 7's other gray areas.
+  .classicyWindow.classicyWindowUtility .classicyWindowTitleBar {
+    top: 0;
+    height: var(--window-utility-title-bar-height);
+    min-height: var(--window-utility-title-bar-height);
+    background: var(--color-theme-01);
+
+    @include bar-bevel;
+
+    // No racing stripes (the active bar's layer, above): the dots instead.
+    &::before {
+      content: none;
+    }
+
+    .classicyWindowControlBox {
+      width: auto;
+      height: auto;
+      padding: 0;
+      background: none;
+    }
+
+    [data-classicy-control="close"] {
+      margin-left: var(--utility-title-bar-box-margin);
+    }
+
+    [data-classicy-control="zoom"] {
+      margin-right: var(--utility-title-bar-box-margin);
+    }
+
+    .classicyWindowCloseBox,
+    .classicyWindowZoomBox {
+      width: var(--window-utility-control-box-size);
+      height: var(--window-utility-control-box-size);
+      background-color: var(--color-system-03);
+
+      &:active {
+        background: pixel-art(var(--color-black), $windoid-cross), var(--color-theme-02);
+      }
+    }
+
+    // The windoid's drag bar (no title) runs between its boxes, in flow.
+    .classicyWindowTitle {
+      position: relative;
+      inset: auto;
+      padding: 0;
+    }
+
+    .classicyWindowTitle .classicyWindowTitleCenter {
+      position: relative;
+      isolation: isolate;
+      align-self: stretch;
+      margin: 0 var(--utility-title-bar-dot-inset);
+
+      // One dot in the upper left of each tile (`windowUtilityTexture`,
+      // its dot alone, masking the dot token), stopping `dotInset` short of
+      // the bar's top and bottom; nearest-neighbor, as the stripes. The
+      // layer starts a pixel above the first row of dots and left of the
+      // first column, the tile moved a pixel in, so its top and left edges
+      // fall on the clear part of a tile, and ends a pixel below the last
+      // row of dots, on another clear row.
+      &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: calc(var(--utility-title-bar-dot-inset) - #{$px}) 0 calc(var(--utility-title-bar-dot-inset) - #{$px})
+          px(-1);
+        background-color: var(--color-theme-05);
+        mask: var(--classicy-art-window-utility-texture) $px $px / var(--utility-title-bar-texture-width)
+          var(--utility-title-bar-texture-height) repeat;
+        image-rendering: pixelated;
+        pointer-events: none;
+      }
+    }
+  }
+
+  .classicyWindow.classicyWindowUtility .classicyWindowContents {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b});
+  }
+
+  // A window header (the Finder's item count and disk space): a white strip
+  // `headerStrip.height` (17) rows tall over a double rule, two black lines
+  // a white row apart (`headerStrip.rule`, 3), meeting the frame at both
+  // ends; its text Geneva 9, the Finder's views font
+  // (`*-finder-window-fits-active.png`).
+  .classicyWindow .classicyWindowHeader {
+    height: var(--header-strip-height);
+    border-bottom: var(--header-strip-rule) double var(--color-black);
+    background: var(--color-window-document);
+    font-family: var(--body-font), sans-serif;
+    font-size: var(--body-font-size);
+  }
+
+  // Over a list whose column titles sit above it (the contents' scroll area
+  // draws them in its head, layout `fileBrowser.listColumnTitles:
+  // "aboveList"`), the double rule is under the titles, not the header
+  // (`*-755-finder-list-row-selected.png`), so the header has none and the
+  // contents give up the header alone.
+  .classicyWindow .classicyWindowHeader.classicyWindowHeaderAboveHead {
+    border-bottom: 0;
+  }
+
+  .classicyWindow .classicyWindowHeaderAboveHead + .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) + #{$b} - var(--header-strip-height));
+  }
+
+  .classicyWindow.classicyWindowUtility
+    .classicyWindowHeaderAboveHead
+    + .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-utility-title-bar-height) - #{$b} - var(--header-strip-height));
+  }
+
+  // Under a window header the contents also give up the header and its rule
+  // (the base sheet's height, which the rule above outranks from this
+  // layer).
+  .classicyWindow .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(
+      100% - var(--window-title-bar-height) + #{$b} - var(--header-strip-height) - var(--header-strip-rule)
+    );
+  }
+
+  .classicyWindow.classicyWindowUtility .classicyWindowContents.classicyWindowContentsWithHeader {
+    height: calc(
+      100% - var(--window-utility-title-bar-height) - #{$b} - var(--header-strip-height) - var(--header-strip-rule)
+    );
+  }
+
+  // A window holding its own menu bar (menu-bar placement `window`, which
+  // System 7's layout never asks for, but a host may place a bar): the
+  // contents give up the bar's height too, as the base sheet's
+  // (ClassicyWindowMenuBar.scss) do, which the rules above outrank. Keyed
+  // twice, in separate rules, as there: a browser that cannot parse :has()
+  // drops only those.
+  @each $root in (".classicyWindow.classicyWindowWithMenuBar", ".classicyWindow:has(> .classicyWindowMenuBar)") {
+    @include with-menu-bar($root);
+  }
+
+  // A resizable windoid's size box: its narrower scroll-bar cell (the base
+  // sheet's windoid --window-scrollbar-size) with one square, `growBox`'s
+  // windoid square. (Apple Guide's window is not resizable and draws none.)
+  .classicyWindow.classicyWindowUtility .classicyWindowResizer {
+    background:
+      grow-square(var(--grow-box-windoid-offset), var(--grow-box-windoid-size), var(--color-system-03)),
+      var(--color-theme-01);
+  }
+
+  .classicyWindow.classicyWindowUtility.collapsed {
+    height: var(--window-utility-title-bar-height);
+  }
+
+  // The move and resize outline: a dotted one-pixel rectangle (HIG p.154).
+  .classicyWindow.dragging,
+  .classicyWindow.classicyWindowResizing {
+    border: $b dotted var(--color-black);
+    box-shadow: none;
+  }
+
+  // The standalone frame (ClassicyWindowFrame): a document window's chrome
+  // around static contents, always drawn active and with no boxes, its body
+  // the window's white.
+  .classicyWindowFrame {
+    background: var(--color-window-document);
+    box-shadow: $b $b 0 0 var(--color-black);
+
+    > .classicyWindowTitleBar {
+      height: calc(var(--window-title-bar-height) - #{$b} - #{$b});
+      padding: 0;
+      column-gap: 0;
+      align-items: center;
+
+      @include title-bar-stripes(var(--title-bar-stripe-inset));
+      @include bar-bevel;
+      @include title-area;
+
+      .classicyWindowTitleText {
+        background-color: var(--color-theme-01);
+      }
+    }
+  }
+
+  .classicyWindowFrameBody {
+    background: var(--color-window-document);
+  }
+}

@@ -198,6 +198,9 @@ importers:
       '@classicy/appearance-platinum':
         specifier: workspace:*
         version: link:../packages/appearance/platinum
+      '@classicy/appearance-system7':
+        specifier: workspace:*
+        version: link:../packages/appearance/system7
       '@classicy/classicy':
         specifier: workspace:*
         version: link:..
@@ -244,6 +247,19 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.6.6
+    devDependencies:
+      '@classicy/classicy':
+        specifier: workspace:*
+        version: link:../../..
+
+  packages/appearance/system7:
+    dependencies:
+      react:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.2.7(react@19.2.7)
     devDependencies:
       '@classicy/classicy':
         specifier: workspace:*

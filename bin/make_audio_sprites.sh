@@ -51,7 +51,7 @@ pack_outputs_exist() {
 	local base=$1 ext
 	[[ -f "${base}.json" ]] || return 1
 	IFS=',' read -ra exts <<< "${formats}"
-	for ext in "${exts[@]}"; do
+	for ext in ${exts[@]+"${exts[@]}"}; do
 		[[ -f "${base}.${ext}" ]] || return 1
 	done
 }
@@ -76,7 +76,7 @@ fs.writeFileSync(file, JSON.stringify(out, null, "\t") + "\n");
 
 loop_args=()
 IFS=',' read -ra loop_items <<< "${loops}"
-for item in "${loop_items[@]}"; do
+for item in ${loop_items[@]+"${loop_items[@]}"}; do
 	[[ -n "${item}" ]] && loop_args+=(--loop "${item}")
 done
 
@@ -105,7 +105,10 @@ for eachDir in "${dir}"/*/; do
 		echo "audio: ${name} is up to date"
 		continue
 	fi
-	PATH="${shim_dir}:${PATH}" "${audiosprite_bin}" -f howler2 -o "${base}" -e "${formats}" "${loop_args[@]}" "${dir}/${name}/sprites/*.${fileExt}"
+	# `${a[@]+"${a[@]}"}`: an empty array (a pack with no looping sprite)
+	# expands to nothing; a bare "${a[@]}" is an unbound variable under
+	# `set -u` in bash before 4.4, macOS's /bin/bash 3.2 among them.
+	PATH="${shim_dir}:${PATH}" "${audiosprite_bin}" -f howler2 -o "${base}" -e "${formats}" ${loop_args[@]+"${loop_args[@]}"} "${dir}/${name}/sprites/*.${fileExt}"
 	normalize_sprite_json "${base}.json"
 	printf '%s\n' "${hash}" > "${stamp}"
 done

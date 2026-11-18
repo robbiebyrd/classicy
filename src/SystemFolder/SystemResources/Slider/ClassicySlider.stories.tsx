@@ -82,6 +82,25 @@ export const Vertical: Story = {
 };
 
 /**
+ * A vertical slider with labeled tick marks: the ticks run beside the track,
+ * the indicator pointing at them, each label beside its tick, and the track
+ * fills the height the slider is given (`style`), less its label above and
+ * its value readout below.
+ */
+export const TickedVertical: Story = {
+	args: {
+		id: "slider-ticked-vertical",
+		labelTitle: "Level",
+		value: 55,
+		orientation: "vertical",
+		indicatorDirection: "right",
+		tickInterval: 25,
+		tickLabels: ["Low", null, null, null, "High"],
+		style: { height: 160 },
+	},
+};
+
+/**
  * A nondirectional (unpointed) knob with a single center tick — the HIG choice
  * when direction carries no meaning, as in a balance control.
  */
@@ -95,6 +114,22 @@ export const NondirectionalKnob: Story = {
 	},
 };
 
+/**
+ * The nondirectional knob on a vertical slider, turned to lie across its
+ * track, with its center tick beside it.
+ */
+export const NondirectionalVertical: Story = {
+	args: {
+		id: "slider-nondirectional-vertical",
+		labelTitle: "Fade",
+		value: 50,
+		orientation: "vertical",
+		indicatorDirection: "nondirectional",
+		tickInterval: "center",
+		style: { height: 160 },
+	},
+};
+
 /** `indicatorDirection` overrides which way the thumb points. */
 export const UpwardIndicator: Story = {
 	args: {
@@ -105,7 +140,12 @@ export const UpwardIndicator: Story = {
 	},
 };
 
-/** `ghost`: drag the thumb to see a translucent copy trail the pointer (the Mac OS 8 ghost indicator). */
+/**
+ * `ghost`: drag the thumb to see the Mac OS 8 ghost indicator, a translucent
+ * copy that follows the pointer. Under Platinum (`layout.slider.thumbDrag:
+ * "onRelease"`) the indicator stays put meanwhile and the value changes on
+ * release; under a package that drags live, both follow the pointer.
+ */
 export const GhostIndicator: Story = {
 	args: {
 		id: "slider-ghost",

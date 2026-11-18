@@ -19,7 +19,8 @@ import "@classicy/appearance-platinum";
 pnpm add @classicy/classicy @classicy/appearance-platinum
 ```
 
-A host that auto-bumps its dependencies lists both names and moves them
+A host that auto-bumps its dependencies lists every Classicy package it loads
+(the core, this package and, with System 7, `@classicy/appearance-system7`) and moves them
 together. The package ships its type declarations (`bundler`, `node16` and `nodenext`
 resolution), so a named import type-checks:
 
@@ -44,8 +45,12 @@ import { platinumAppearanceHooks } from "@classicy/appearance-platinum";
   `resolveClassicyScreenSaverLogo`, `CLASSICY_SCREEN_SAVER_LOGO_IDS`,
   `CLASSICY_SCREEN_SAVER_DEFAULT_LOGO_ID` and the
   `ClassicyScreenSaverLogoDefinition` type. Platinum registers the savers
-  under `packages: ["platinum"]` and names `defaultScreenSaver:
-  "bouncing-ball"`.
+  under `packages: ["platinum", "system7"]` and names `defaultScreenSaver:
+  "bouncing-ball"`. The System 7 package (`@classicy/appearance-system7`)
+  bundles the same registration module and offers them too; a host loading
+  both installs them at one version (mixing versions of the two Appearance
+  Packages is unsupported: the savers can end up offered under `platinum`
+  only, or the Logo saver's image registries diverge).
 - `./scss/*`: Platinum's SCSS (`mixins`, `scrollbars`, `assets`), for hosts
   and packages that build on its look. It uses the core's vocabulary as
   `pkg:@classicy/classicy/scss/*`, so compile it with Sass's
@@ -85,6 +90,17 @@ order: the core's, then this package's two.
 ```
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
+Allow `data:` in `img-src` as well: a dimmed icon (a hidden application's
+in the Application menu, a disabled list row's) is drawn on a canvas and
+shown from a `data:` URL, and a few masks and glyphs are inline `data:`
+images; a policy whose `img-src` omits `data:` shows a broken image there
+in place of the dimmed icon, or no mask.
+
+A host that also loads System 7 may link its fonts stylesheet too: the five
+faces the two share are declared twice with identical descriptors; the browser
+uses the last rule defined and requests only its file (one request per face in
+Firefox and Chromium; the earlier sheet's files load if those 404), so none
+downloads twice. System 7's README has the detail, Safari's status included.
 
 Link the files rather than importing `classicy-platinum.fonts.css` through your
 own bundler: Vite inlines the small Monaco font as a `data:` URL, which

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
@@ -33,6 +33,55 @@ export type ClassicyAssetKind =
 
 export type ClassicyAssetTree = {
 	[key: string]: ClassicyAssetSource | ClassicyAssetTree;
+};
+
+/**
+ * An icon tree leaf that carries its own 16 px image beside the full-size
+ * one (System 7's `ics#`/`ics8` small icons are drawn, not scaled). A plain
+ * string leaf is still an icon: it scales at small sizes. Only the `icons`
+ * kind accepts this form.
+ */
+export type ClassicyIconLeaf = {
+	src: ClassicyAssetSource;
+	small?: ClassicyAssetSource;
+};
+
+/** The small-icon size in px (the `--icon-small-size` the theme emits). */
+export const CLASSICY_SMALL_ICON_SIZE = 16;
+
+/**
+ * What a stored `{ src, small }` leaf is. A class, not a shape, so once
+ * registered a leaf and a namespace are never confused by their keys
+ * (registration itself reads the shape: `isIconLeafShape`).
+ */
+class StoredIconLeaf {
+	// Structurally a tree of strings, so it nests in a ClassicyAssetTree.
+	readonly [key: string]: string;
+	/** `small` is "" when the leaf has no small image (never a valid source). */
+	constructor(
+		readonly src: ClassicyAssetSource,
+		readonly small: ClassicyAssetSource = "",
+	) {}
+}
+
+const isStoredLeaf = (value: unknown): value is StoredIconLeaf =>
+	value instanceof StoredIconLeaf;
+
+/**
+ * True for the `{ src, small? }` form an `icons` registration may hold: a
+ * plain object with a `src` key and no key but `src` and `small`, whatever
+ * their values (`validLeaves` then checks them). The keys alone decide, so in
+ * an icon tree a namespace whose only icons are named `src` (and `small`)
+ * registers as one leaf; any other key keeps it a namespace. Other kinds
+ * never take this form.
+ */
+const isIconLeafShape = (value: unknown): value is ClassicyIconLeaf => {
+	if (typeof value !== "object" || value === null || Array.isArray(value))
+		return false;
+	return (
+		Object.hasOwn(value, "src") &&
+		Object.keys(value).every((k) => k === "src" || k === "small")
+	);
 };
 
 export type ClassicyCursorRole =
@@ -78,6 +127,10 @@ export type ClassicySystemArtKey =
 	| "quickTimeThumbSlider"
 	| "quickTimeVolumeSlider"
 	| "controlStripTab"
+	| "controlStripTabRight"
+	| "newFolderGlyph"
+	| "openFolderIcon"
+	| "fileDialogFolderIcon"
 	| "controlStripCollapse"
 	| "controlStripScrollLeft"
 	| "controlStripScrollLeftDisabled"
@@ -89,7 +142,9 @@ export type ClassicySystemArtKey =
 	| "menuCheck"
 	| "menuDash"
 	| "triangle"
-	| "downArrow";
+	| "downArrow"
+	| "ditherChecker"
+	| "helpMenuTitle";
 
 export type ClassicyFontFace = {
 	family: string;
@@ -97,6 +152,15 @@ export type ClassicyFontFace = {
 	src: ClassicyAssetSource | ClassicyAssetSource[];
 	weight?: string;
 	style?: string;
+	/**
+	 * The face's file, for a face several packages ship as the same file
+	 * (System 7's faces are copies of Platinum's): any name for it, such as
+	 * its basename. Faces of two packages with the same family, weight, style
+	 * and file share one `@font-face` rule, written by the package whose
+	 * first `registerClassicyFonts` call came first; the others write none.
+	 * Without it a face is never shared.
+	 */
+	file?: string;
 };
 
 type StoredFontFace = {
@@ -104,9 +168,24 @@ type StoredFontFace = {
 	sources: ClassicyAssetSource[];
 	weight: string;
 	style: string;
+	/** What faces of other packages share it by (`ClassicyFontFace.file`). */
+	shareKey?: string;
 };
 
 const trees = new Map<ClassicyAssetKind, Map<string, ClassicyAssetTree>>();
+/**
+ * Each package's variant trees per kind: kind → package → variant → tree
+ * (`registerClassicyAssets(…, { variant })`). A theme picks one with
+ * `assetVariant`; its lookups read it over the package's base tree.
+ */
+const variantTrees = new Map<
+	ClassicyAssetKind,
+	Map<string, Map<string, ClassicyAssetTree>>
+>();
+/** Every variant name each package registered, of any kind. */
+const registeredVariants = new Map<string, Set<string>>();
+/** `<package>|<variant>` pairs a theme named unregistered: warned or queued. */
+const reportedVariants = new Set<string>();
 /** Every registered face per package, with its full fallback source list. */
 const fontFaces = new Map<string, Map<string, StoredFontFace>>();
 /** Each package's wallpaper files by wallpaper name (`registerClassicyWallpapers`). */
@@ -117,7 +196,7 @@ let version = 0;
 const listeners = new Set<() => void>();
 
 let unsubscribePackageSource: (() => void) | undefined;
-let lastActiveId: string | undefined;
+let lastActiveKey: string | undefined;
 
 /**
  * The active Appearance Package's id: the store's `packageId` resolved
@@ -130,12 +209,70 @@ let lastActiveId: string | undefined;
 export const getActiveClassicyAppearancePackageId = (): string =>
 	getClassicyAssetPackageSource()?.getId() ?? DEFAULT_PACKAGE;
 
-const onPackageSourceChange = (): void => {
+/**
+ * A name for an asset variant (`registerClassicyAssets(…, { variant })`,
+ * `ClassicyTheme.assetVariant`): a letter or digit, then letters, digits,
+ * `_` or `-`, at most 64 characters.
+ */
+export const CLASSICY_ASSET_VARIANT_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
+/**
+ * The active theme's `assetVariant`, when that theme belongs to `packageId`:
+ * a variant names one package's trees, so a theme drawn under another
+ * package (its own not registered yet) selects none. Pure: no warning.
+ */
+const themeVariantFor = (packageId: string): string | undefined => {
+	const theme = getClassicyAssetPackageSource()?.getActiveTheme?.();
+	const variant = theme?.assetVariant;
+	if (typeof variant !== "string") return undefined;
+	return (theme?.package ?? DEFAULT_PACKAGE) === packageId
+		? variant
+		: undefined;
+};
+
+const isRegisteredVariant = (packageId: string, variant: string): boolean =>
+	registeredVariants.get(packageId)?.has(variant) ?? false;
+
+/**
+ * `themeVariantFor`, warning once per package and variant per page when the
+ * package never registered that variant (its lookups then read the base
+ * tree, which they do anyway: an unregistered variant has no tree). Checked
+ * after the current task, so a package whose variant trees register in the
+ * same module evaluation as a first lookup is never warned.
+ */
+const activeVariantFor = (packageId: string): string | undefined => {
+	const variant = themeVariantFor(packageId);
+	if (variant === undefined || isRegisteredVariant(packageId, variant))
+		return variant;
+	const key = `${packageId}|${variant}`;
+	if (reportedVariants.has(key)) return variant;
+	reportedVariants.add(key);
+	queueMicrotask(() => {
+		if (isRegisteredVariant(packageId, variant)) {
+			reportedVariants.delete(key);
+			return;
+		}
+		classicyLog(
+			"warn",
+			SUBSYSTEM,
+			`Theme asset variant "${variant}" is not registered for package "${packageId}"; its base assets are used`,
+		);
+	});
+	return variant;
+};
+
+/** The active package and its theme's variant: what every snapshot keys on. */
+const activeKey = (): string => {
 	const id = getActiveClassicyAppearancePackageId();
-	if (id === lastActiveId) return;
-	lastActiveId = id;
-	// The caches key on the active id, so no version bump: consumers only
-	// need to re-read their snapshots.
+	return `${id}|${themeVariantFor(id) ?? ""}`;
+};
+
+const onPackageSourceChange = (): void => {
+	const key = activeKey();
+	if (key === lastActiveKey) return;
+	lastActiveKey = key;
+	// The caches key on the active id and variant, so no version bump:
+	// consumers only need to re-read their snapshots.
 	for (const listener of [...listeners]) listener();
 };
 
@@ -143,7 +280,7 @@ const onPackageSourceChange = (): void => {
 const followPackageSource = (): void => {
 	const source = getClassicyAssetPackageSource();
 	if (!source || unsubscribePackageSource) return;
-	lastActiveId = getActiveClassicyAppearancePackageId();
+	lastActiveKey = activeKey();
 	unsubscribePackageSource = source.subscribe(onPackageSourceChange);
 };
 
@@ -161,7 +298,7 @@ onClassicyAssetPackageSourceConnect(() => {
 });
 
 const isTree = (value: unknown): value is ClassicyAssetTree =>
-	typeof value === "object" && value !== null;
+	typeof value === "object" && value !== null && !isStoredLeaf(value);
 
 const copyTree = (tree: ClassicyAssetTree): ClassicyAssetTree => {
 	const out: ClassicyAssetTree = {};
@@ -184,7 +321,7 @@ const mergeInto = (
 		const incoming = source[key];
 		const existing = Object.hasOwn(target, key) ? target[key] : undefined;
 		if (isTree(incoming)) {
-			if (typeof existing === "string") {
+			if (typeof existing === "string" || isStoredLeaf(existing)) {
 				classicyLog(
 					"warn",
 					SUBSYSTEM,
@@ -234,7 +371,26 @@ const validLeaves = (
 			continue;
 		}
 		const value = tree[key];
-		if (isTree(value)) {
+		if (kind === "icons" && isIconLeafShape(value)) {
+			if (!isClassicyAssetSource(value.src)) {
+				classicyLog(
+					"warn",
+					SUBSYSTEM,
+					`Ignored ${kind} asset "${path}" for package "${packageId}": not a safe asset source`,
+				);
+			} else if (value.small === undefined) {
+				out[key] = new StoredIconLeaf(value.src);
+			} else if (isClassicyAssetSource(value.small)) {
+				out[key] = new StoredIconLeaf(value.src, value.small);
+			} else {
+				classicyLog(
+					"warn",
+					SUBSYSTEM,
+					`Ignored the small image of ${kind} asset "${path}" for package "${packageId}": not a safe asset source`,
+				);
+				out[key] = new StoredIconLeaf(value.src);
+			}
+		} else if (isTree(value)) {
 			const subtree = validLeaves(kind, packageId, value, path);
 			// A subtree whose every leaf was dropped registers nothing: merging
 			// `{}` would turn an existing valid leaf into an empty namespace.
@@ -254,61 +410,478 @@ const validLeaves = (
 	return out;
 };
 
+export type ClassicyAssetRegistrationOptions = {
+	/**
+	 * Register `tree` as this named variant of the package's assets
+	 * (`CLASSICY_ASSET_VARIANT_NAME`) instead of its base tree. A theme of the
+	 * package selects it with `assetVariant`; its lookups read the variant's
+	 * tree, then the package's base tree, then the default package's.
+	 */
+	variant?: string;
+};
+
+/** True when `tree` holds at least one leaf, at any depth. */
+const hasLeaf = (tree: ClassicyAssetTree): boolean =>
+	Object.values(tree).some((value) => !isTree(value) || hasLeaf(value));
+
+/** The tree `kind` keeps for `packageId` (its `variant`'s, when given), created on demand. */
+const storedTree = (
+	kind: ClassicyAssetKind,
+	packageId: string,
+	variant: string | undefined,
+): ClassicyAssetTree => {
+	let tree: ClassicyAssetTree | undefined;
+	if (variant === undefined) {
+		let byPackage = trees.get(kind);
+		if (!byPackage) {
+			byPackage = new Map();
+			trees.set(kind, byPackage);
+		}
+		tree = byPackage.get(packageId);
+		if (!tree) {
+			tree = {};
+			byPackage.set(packageId, tree);
+		}
+		return tree;
+	}
+	let byPackage = variantTrees.get(kind);
+	if (!byPackage) {
+		byPackage = new Map();
+		variantTrees.set(kind, byPackage);
+	}
+	let byVariant = byPackage.get(packageId);
+	if (!byVariant) {
+		byVariant = new Map();
+		byPackage.set(packageId, byVariant);
+	}
+	tree = byVariant.get(variant);
+	if (!tree) {
+		tree = {};
+		byVariant.set(variant, tree);
+	}
+	let names = registeredVariants.get(packageId);
+	if (!names) {
+		names = new Set();
+		registeredVariants.set(packageId, names);
+	}
+	names.add(variant);
+	return tree;
+};
+
 /**
- * Deep-merge `tree` into that package's namespace for `kind`. Leaves that are
- * not a valid `ClassicyAssetSource` are skipped with a warning.
+ * Deep-merge `tree` into that package's namespace for `kind`: its base tree,
+ * or with `options.variant` that variant's tree. Leaves that are not a valid
+ * `ClassicyAssetSource` are skipped with a warning; a variant name that is not
+ * a `CLASSICY_ASSET_VARIANT_NAME` registers nothing, with a warning. A variant
+ * is registered by its first accepted leaf: a variant registration that
+ * leaves no leaf registers nothing.
  */
 export const registerClassicyAssets = (
 	kind: ClassicyAssetKind,
 	packageId: string,
 	tree: ClassicyAssetTree,
+	options?: ClassicyAssetRegistrationOptions,
 ): void => {
-	let byPackage = trees.get(kind);
-	if (!byPackage) {
-		byPackage = new Map();
-		trees.set(kind, byPackage);
+	const variant = options?.variant;
+	if (variant !== undefined && !CLASSICY_ASSET_VARIANT_NAME.test(variant)) {
+		classicyLog(
+			"warn",
+			SUBSYSTEM,
+			`Ignored ${kind} assets for package "${packageId}": "${String(variant)}" is not a variant name (a letter or digit, then letters, digits, _ or -, at most 64)`,
+		);
+		return;
 	}
-	let stored = byPackage.get(packageId);
-	if (!stored) {
-		stored = {};
-		byPackage.set(packageId, stored);
-	}
-	mergeInto(stored, validLeaves(kind, packageId, tree, ""), "");
+	const accepted = validLeaves(kind, packageId, tree, "");
+	// A variant exists once a leaf of it is accepted: one whose every leaf was
+	// dropped (or that held none) registers nothing, so a theme naming it is
+	// still warned that it draws the base tree.
+	if (variant !== undefined && !hasLeaf(accepted)) return;
+	mergeInto(storedTree(kind, packageId, variant), accepted, "");
 	notify();
 };
 
 /** Test-only: clears every package tree and bumps the version. */
 export const resetClassicyAssets = (): void => {
+	cursorHotspots.clear();
 	trees.clear();
+	variantTrees.clear();
+	registeredVariants.clear();
+	reportedVariants.clear();
+	reportedSmallCollisions.clear();
+	reportedFollowCollisions.clear();
 	fontFaces.clear();
 	wallpaperFiles.clear();
 	wallpaperLegacyDigests.clear();
+	selectedIconImages.clear();
 	notify();
+};
+
+type Node = ClassicyAssetSource | ClassicyAssetTree | StoredIconLeaf;
+
+const walkNode = (
+	tree: ClassicyAssetTree | undefined,
+	path: string,
+): Node | undefined => {
+	let node: Node | undefined = tree;
+	for (const segment of path.split(".")) {
+		if (!isTree(node) || !Object.hasOwn(node, segment)) return undefined;
+		node = node[segment];
+	}
+	return node;
 };
 
 const walk = (
 	tree: ClassicyAssetTree | undefined,
 	path: string,
 ): ClassicyAssetSource | undefined => {
-	let node: ClassicyAssetSource | ClassicyAssetTree | undefined = tree;
-	for (const segment of path.split(".")) {
-		if (!isTree(node) || !Object.hasOwn(node, segment)) return undefined;
-		node = node[segment];
-	}
+	const node = walkNode(tree, path);
+	if (isStoredLeaf(node)) return node.src;
 	return typeof node === "string" ? node : undefined;
 };
 
-/** Dotted-path lookup: the given (or active) package, then the default package. */
+const walkIcon = (
+	tree: ClassicyAssetTree | undefined,
+	path: string,
+): ClassicyIconLeaf | undefined => {
+	const node = walkNode(tree, path);
+	if (isStoredLeaf(node))
+		return node.small === ""
+			? { src: node.src }
+			: { src: node.src, small: node.small };
+	return typeof node === "string" ? { src: node } : undefined;
+};
+
+const variantTree = (
+	kind: ClassicyAssetKind,
+	packageId: string,
+	variant: string | undefined,
+): ClassicyAssetTree | undefined =>
+	variant === undefined
+		? undefined
+		: variantTrees.get(kind)?.get(packageId)?.get(variant);
+
+/**
+ * Dotted-path lookup: the given (or active) package's `variant` tree, then
+ * its base tree, then the default package's base tree. `variant` defaults to
+ * the active theme's `assetVariant` when that theme belongs to the package,
+ * even when `packageId` is given; pass `""` for the base tree alone (no
+ * variant is named `""`). To resolve for a theme that is not the active one,
+ * such as a preview of a sibling theme, use `resolveClassicyThemeAsset`.
+ * Store-free: the active package and theme are read through the source the
+ * store connects, so reducers may call it.
+ */
 export const resolveClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
 	packageId?: string,
+	variant?: string,
 ): ClassicyAssetSource | undefined => {
 	const byPackage = trees.get(kind);
 	const id = packageId ?? getActiveClassicyAppearancePackageId();
 	return (
+		walk(variantTree(kind, id, variant ?? activeVariantFor(id)), path) ??
 		walk(byPackage?.get(id), path) ??
 		walk(byPackage?.get(DEFAULT_PACKAGE), path)
+	);
+};
+
+/**
+ * Dotted-path lookup for `theme`, whatever theme is active: its package's
+ * (`theme.package`, Platinum when absent) tree for its own `assetVariant`,
+ * then that package's base tree, then the default package's. A theme naming
+ * no variant reads the base tree, never the active theme's variant. For
+ * previews of a theme other than the active one. Pure: a variant its package
+ * never registered reads the base tree with no warning (the active theme's
+ * lookups warn).
+ */
+export const resolveClassicyThemeAsset = (
+	kind: ClassicyAssetKind,
+	path: string,
+	theme: { package?: string; assetVariant?: string },
+): ClassicyAssetSource | undefined =>
+	resolveClassicyAsset(
+		kind,
+		path,
+		theme.package ?? DEFAULT_PACKAGE,
+		theme.assetVariant ?? "",
+	);
+
+/**
+ * An icon with its small image: `resolveClassicyAsset("icons", path)` is the
+ * `src`; `small` is present when the leaf was registered as `{ src, small }`.
+ * Resolved like any asset: variant tree, base tree, default package.
+ */
+export const resolveClassicyIcon = (
+	path: string,
+	packageId?: string,
+	variant?: string,
+): ClassicyIconLeaf | undefined => {
+	const byPackage = trees.get("icons");
+	const id = packageId ?? getActiveClassicyAppearancePackageId();
+	return (
+		walkIcon(variantTree("icons", id, variant ?? activeVariantFor(id)), path) ??
+		walkIcon(byPackage?.get(id), path) ??
+		walkIcon(byPackage?.get(DEFAULT_PACKAGE), path)
+	);
+};
+
+const smallIndexCache = new Map<
+	string,
+	{ version: number; value: Map<string, string> }
+>();
+
+/**
+ * Every `src` to `small` pair of the icon set the active theme draws: the
+ * theme's variant tree, then the active package's base tree, then the default
+ * package's, each path counted once (a more specific tree's leaf hides the
+ * same path below it, as lookups do).
+ *
+ * A small image belongs to its `src` image, not to one leaf, because icons
+ * travel as plain URL strings. So a leaf with no `small` that shares a `src`
+ * with a leaf that has one draws that `small`. When leaves sharing one `src`
+ * declare different `small` images, the most specific tree wins (variant over
+ * the active package over the default package), and within one tree the first
+ * key in tree order; one `classicyLog` warning per such `src` and page says so.
+ */
+const smallIndex = (): Map<string, string> => {
+	const activeId = getActiveClassicyAppearancePackageId();
+	const variant = activeVariantFor(activeId);
+	const key = `${activeId}|${variant ?? ""}`;
+	const cached = smallIndexCache.get(key);
+	if (cached && cached.version === version) return cached.value;
+	const value = new Map<string, string>();
+	// The key each small image was taken from, to name it in a warning.
+	const smallFrom = new Map<string, string>();
+	const byPackage = trees.get("icons");
+	const tiers = [
+		variantTree("icons", activeId, variant),
+		byPackage?.get(activeId),
+		activeId === DEFAULT_PACKAGE ? undefined : byPackage?.get(DEFAULT_PACKAGE),
+	];
+	const seenPaths = new Set<string>();
+	for (const tier of tiers) {
+		if (!tier) continue;
+		const tierPaths: string[] = [];
+		const visit = (tree: ClassicyAssetTree, trail: string) => {
+			for (const name of Object.keys(tree)) {
+				const path = trail ? `${trail}.${name}` : name;
+				const node: Node | undefined = tree[name];
+				if (isStoredLeaf(node)) {
+					tierPaths.push(path);
+					if (seenPaths.has(path) || node.small === "") continue;
+					const existing = value.get(node.src);
+					if (existing === undefined) {
+						value.set(node.src, node.small);
+						smallFrom.set(node.src, path);
+					} else if (existing !== node.small)
+						warnSmallCollision(node.src, smallFrom.get(node.src) ?? "", path);
+				} else if (isTree(node)) visit(node, path);
+				else if (typeof node === "string") tierPaths.push(path);
+			}
+		};
+		visit(tier, "");
+		for (const path of tierPaths) seenPaths.add(path);
+	}
+	smallIndexCache.set(key, { version, value });
+	return value;
+};
+
+const reportedSmallCollisions = new Set<string>();
+
+/** Warns once per image. Names the keys, never `src`, which a production
+ *  build may inline as a multi-kilobyte `data:` URI. */
+const warnSmallCollision = (src: string, used: string, other: string): void => {
+	if (reportedSmallCollisions.has(src)) return;
+	reportedSmallCollisions.add(src);
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`Icons "${used}" and "${other}" share an image but declare different small images; "${used}"'s (the most specific tree's first) is used`,
+	);
+};
+
+const followIndexCache = new Map<
+	string,
+	{ version: number; value: Map<string, string> }
+>();
+
+const reportedFollowCollisions = new Set<string>();
+
+/** The follow index on the identity path: shared, never written. */
+const NO_FOLLOW: ReadonlyMap<string, string> = new Map();
+
+/**
+ * Every `src` of the default package's base icon tree (the core's icons,
+ * `ClassicyIcons.*`, and whatever else is registered under
+ * `CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID`) to the image the active theme
+ * draws for the same key: its variant tree, then the active package's base
+ * tree, then the default package's. Empty while the default package is
+ * active with no variant, where every key draws its own `src`.
+ *
+ * A `src` several keys share stands for the first of them in tree order;
+ * when the active theme draws those keys with different images, one
+ * `classicyLog` warning per `src` and page says so.
+ */
+const followIndex = (): ReadonlyMap<string, string> => {
+	const activeId = getActiveClassicyAppearancePackageId();
+	const variant = activeVariantFor(activeId);
+	if (activeId === DEFAULT_PACKAGE && variant === undefined) return NO_FOLLOW;
+	const key = `${activeId}|${variant ?? ""}`;
+	const cached = followIndexCache.get(key);
+	if (cached && cached.version === version) return cached.value;
+	const value = new Map<string, string>();
+	// The key each URL stands for, to name it in a warning.
+	const keyOf = new Map<string, string>();
+	const core = trees.get("icons")?.get(DEFAULT_PACKAGE);
+	const visit = (tree: ClassicyAssetTree, trail: string) => {
+		for (const name of Object.keys(tree)) {
+			const path = trail ? `${trail}.${name}` : name;
+			const node: Node | undefined = tree[name];
+			if (isTree(node)) {
+				visit(node, path);
+				continue;
+			}
+			const src = isStoredLeaf(node) ? node.src : node;
+			if (typeof src !== "string") continue;
+			const drawn = resolveClassicyAsset("icons", path, activeId, variant);
+			if (drawn === undefined) continue;
+			const existing = value.get(src);
+			if (existing === undefined) {
+				value.set(src, drawn);
+				keyOf.set(src, path);
+			} else if (existing !== drawn)
+				warnFollowCollision(src, keyOf.get(src) ?? "", path);
+		}
+	};
+	if (core) visit(core, "");
+	followIndexCache.set(key, { version, value });
+	return value;
+};
+
+/** Warns once per URL. Names the keys, never `src`, which a production
+ *  build may inline as a multi-kilobyte `data:` URI. */
+const warnFollowCollision = (
+	src: string,
+	used: string,
+	other: string,
+): void => {
+	if (reportedFollowCollisions.has(src)) return;
+	reportedFollowCollisions.add(src);
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`The core icons "${used}" and "${other}" share an image the active theme draws differently; "${used}"'s (the first in tree order) is drawn`,
+	);
+};
+
+// ─── Selected icon images ──────────────────────────────────────────────────
+
+// Per package and variant (`<package>|<variant>`, the base tree's with an
+// empty variant): an icon image's URL to the image its selected icon draws.
+const selectedIconImages = new Map<string, Map<string, string>>();
+
+/**
+ * Registers, for `packageId`, the image a selected icon draws in place of
+ * each icon image: `{ [image]: selectedImage }`, by the image's own URL (an
+ * icon's full-size or small image, as `resolveClassicyIconImage` draws it).
+ * For a look no CSS draws exactly: System 7 darkens a selected color icon
+ * through the 8-bit color table, so it registers each color icon's
+ * pre-rendered selected rendering. While the package is active, a selected
+ * `ClassicyIcon` or `ClassicyDesktopIcon` draws the registered image and
+ * marks its mask with the `SelectedImage` part class
+ * (`classicyIconSelectedImage`, `classicyDesktopIconSelectedImage`), so the
+ * package's stylesheet leaves out whatever selected look it draws itself; an
+ * image with no entry keeps that look. Like an asset tree, the images
+ * belong to the package's base look, or, with `{ variant }`, to that
+ * variant's: they apply while the active theme draws that look (System 7's
+ * 1-bit theme, its `bw` variant, inverts a selected icon and registers
+ * none). Merges into the look's earlier registrations; an entry whose image
+ * or selected image is not a safe asset source (`isClassicyAssetSource`) is
+ * dropped with a warning.
+ */
+export const registerClassicySelectedIconImages = (
+	packageId: string,
+	images: Readonly<Record<string, ClassicyAssetSource>>,
+	{ variant }: ClassicyAssetRegistrationOptions = {},
+): void => {
+	const look = `${packageId}|${variant ?? ""}`;
+	const map = selectedIconImages.get(look) ?? new Map<string, string>();
+	for (const [image, selected] of Object.entries(images)) {
+		if (!isClassicyAssetSource(image) || !isClassicyAssetSource(selected)) {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored a selected icon image for package "${packageId}": not a safe asset source`,
+			);
+			continue;
+		}
+		map.set(image, selected);
+	}
+	selectedIconImages.set(look, map);
+	notify();
+};
+
+/**
+ * The image to draw for the icon URL `src` at `px` (CSS px). Icons travel as
+ * plain URL strings (props, persisted records, file system entries), so this
+ * looks `src` up in the icon trees:
+ *
+ * - A URL the default package registers for a key (the core's icons,
+ *   `ClassicyIcons.*`) stands for that key, and draws the active package's
+ *   and theme variant's image for it (the default package's own when the
+ *   active package draws none). So an icon captured or stored as the core's
+ *   URL follows a package or theme switch, and nothing stored changes.
+ * - Then the image's registered small image when it has one and `px` is no
+ *   larger than the small-icon size (`CLASSICY_SMALL_ICON_SIZE`).
+ *
+ * - Then, when `selected`, the image the active package's look (its base
+ *   tree's, or the active theme's variant's) draws for it selected
+ *   (`registerClassicySelectedIconImages`), when it registers one.
+ *
+ * A URL no leaf names returns unchanged. Pass `true` for a surface whose size
+ * comes from CSS and is the small size.
+ */
+export const resolveClassicyIconImage = (
+	src: string,
+	px: number | true = true,
+	selected = false,
+): string => {
+	const drawn = followIndex().get(src) ?? src;
+	const image =
+		px !== true && !(px <= CLASSICY_SMALL_ICON_SIZE)
+			? drawn
+			: (smallIndex().get(drawn) ?? drawn);
+	if (!selected) return image;
+	const activeId = getActiveClassicyAppearancePackageId();
+	return (
+		selectedIconImages
+			.get(`${activeId}|${activeVariantFor(activeId) ?? ""}`)
+			?.get(image) ?? image
+	);
+};
+
+/**
+ * The active theme's asset variant for the active package (`ClassicyTheme.assetVariant`),
+ * or `undefined`. Store-free, read at call time.
+ */
+export const getActiveClassicyAssetVariant = (): string | undefined =>
+	activeVariantFor(getActiveClassicyAppearancePackageId());
+
+/** `resolveClassicyIconImage`, re-read when the registry or the theme changes. */
+export const useClassicyIconImage = (
+	src: string,
+	px: number | true = true,
+	selected = false,
+): string => {
+	// One getSnapshot per input: React re-runs a changed one during render.
+	const getSnapshot = useCallback(
+		() => resolveClassicyIconImage(src, px, selected),
+		[src, px, selected],
+	);
+	return useSyncExternalStore(
+		subscribeClassicyAssets,
+		getSnapshot,
+		getSnapshot,
 	);
 };
 
@@ -324,7 +897,14 @@ export const useClassicyAsset = (
 	kind: ClassicyAssetKind,
 	path: string,
 ): ClassicyAssetSource | undefined => {
-	const getSnapshot = () => resolveClassicyAsset(kind, path);
+	// One getSnapshot per input. Under a theme naming a variant its package
+	// never registered, a read may queue that warning's check
+	// (`activeVariantFor`), once per package and variant per page, so calling
+	// it on every render stays side-effect free after the first.
+	const getSnapshot = useCallback(
+		() => resolveClassicyAsset(kind, path),
+		[kind, path],
+	);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,
@@ -339,7 +919,8 @@ const treeCache = new Map<
 
 const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 	const activeId = getActiveClassicyAppearancePackageId();
-	const key = `${kind}|${activeId}`;
+	const variant = activeVariantFor(activeId);
+	const key = `${kind}|${activeId}|${variant ?? ""}`;
 	const cached = treeCache.get(key);
 	if (cached && cached.version === version) return cached.value;
 	const byPackage = trees.get(kind);
@@ -348,15 +929,20 @@ const mergedTree = (kind: ClassicyAssetKind): ClassicyAssetTree => {
 		const active = byPackage?.get(activeId);
 		if (active) mergeInto(value, active, "");
 	}
+	const selected = variantTree(kind, activeId, variant);
+	if (selected) mergeInto(value, selected, "");
 	treeCache.set(key, { version, value });
 	return value;
 };
 
-/** Merged COPY (the default package under the active one); stable until a registration. */
+/**
+ * Merged COPY (the default package under the active one, under the active
+ * theme's variant of it); stable until a registration or a switch.
+ */
 export const useClassicyAssetTree = (
 	kind: ClassicyAssetKind,
 ): ClassicyAssetTree => {
-	const getSnapshot = () => mergedTree(kind);
+	const getSnapshot = useCallback(() => mergedTree(kind), [kind]);
 	return useSyncExternalStore(
 		subscribeClassicyAssets,
 		getSnapshot,
@@ -379,8 +965,8 @@ let varsCache: { version: number; key: string; value: Record<string, string> } =
 	{ version: -1, key: "", value: {} };
 
 const assetVars = (): Record<string, string> => {
-	const activeId = getActiveClassicyAppearancePackageId();
-	if (varsCache.version === version && varsCache.key === activeId) {
+	const key = activeKey();
+	if (varsCache.version === version && varsCache.key === key) {
 		return varsCache.value;
 	}
 	const value: Record<string, string> = {};
@@ -390,26 +976,98 @@ const assetVars = (): Record<string, string> => {
 			// by ClassicyPixelArt, never by CSS, so it gets no variable.
 			if (typeof src === "string" && !parseClassicyPixelArtSource(src)) {
 				value[classicyAssetVarName(kind, key)] = `url("${src}")`;
+				const hotspot = kind === "cursors" && cursorHotspots.get(src);
+				if (hotspot)
+					value[`${classicyAssetVarName(kind, key)}-hotspot`] =
+						`${hotspot[0]} ${hotspot[1]}`;
 			}
 		}
 	}
-	varsCache = { version, key: activeId, value };
+	varsCache = { version, key, value };
 	return value;
 };
 
 /**
- * `--classicy-cursor-<role>` / `--classicy-art-<key>` as `url("…")` strings.
- * Pixel-art system art (the Control Strip and pop-up slider glyphs) is left
- * out: it is drawn by `ClassicyPixelArt`, not by stylesheets.
+ * `--classicy-cursor-<role>` / `--classicy-art-<key>` as `url("…")` strings,
+ * and `--classicy-cursor-<role>-hotspot` (`"<x> <y>"`) for a cursor registered
+ * with a hotspot. Pixel-art system art (the Control Strip and pop-up slider
+ * glyphs) is left out: it is drawn by `ClassicyPixelArt`, not by stylesheets.
  */
 export const useClassicyAssetVars = (): Record<string, string> =>
 	useSyncExternalStore(subscribeClassicyAssets, assetVars, assetVars);
 
+/**
+ * A cursor image's hotspot: the pixel, from its top left, that points (CSS
+ * `cursor: url(…) <x> <y>`). A whole number from 0 to 127 on each axis.
+ */
+export type ClassicyCursorHotspot = readonly [x: number, y: number];
+
+/** A cursor with its hotspot (`registerClassicyCursors`). */
+export type ClassicyCursorLeaf = {
+	src: ClassicyAssetSource;
+	hotspot: ClassicyCursorHotspot;
+};
+
+/**
+ * Each registered cursor image's hotspot, by image: a hotspot belongs to the
+ * image, so a role resolves its hotspot from whichever tree its image came
+ * from (variant, package, default package) and the two never disagree.
+ */
+const cursorHotspots = new Map<string, ClassicyCursorHotspot>();
+
+const isHotspot = (value: unknown): value is ClassicyCursorHotspot =>
+	Array.isArray(value) &&
+	value.length === 2 &&
+	value.every((n) => Number.isInteger(n) && n >= 0 && n < 128);
+
+/**
+ * Register a package's cursors (with `options.variant`, a variant's). A
+ * cursor is an image, or `{ src, hotspot: [x, y] }` for one whose pointing
+ * pixel is not where the stylesheets that draw it assume (each names its
+ * own fallback, the center `8 8` for the resize cursors and the hand). The
+ * hotspot is published beside the image as
+ * `--classicy-cursor-<role>-hotspot` and used by `useClassicyCursor`; an
+ * invalid one is ignored with a warning, keeping the image.
+ */
 export const registerClassicyCursors = (
 	packageId: string,
-	cursors: Partial<Record<ClassicyCursorRole, ClassicyAssetSource>>,
-): void =>
-	registerClassicyAssets("cursors", packageId, cursors as ClassicyAssetTree);
+	cursors: Partial<
+		Record<ClassicyCursorRole, ClassicyAssetSource | ClassicyCursorLeaf>
+	>,
+	options?: ClassicyAssetRegistrationOptions,
+): void => {
+	const tree: ClassicyAssetTree = {};
+	for (const [role, value] of Object.entries(cursors)) {
+		if (typeof value !== "object" || value === null) {
+			if (value !== undefined) tree[role] = value;
+			continue;
+		}
+		tree[role] = value.src;
+		if (!isClassicyAssetSource(value.src)) continue;
+		if (isHotspot(value.hotspot))
+			cursorHotspots.set(value.src, [value.hotspot[0], value.hotspot[1]]);
+		else
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored the hotspot of cursor "${role}" for package "${packageId}": not two whole numbers from 0 to 127`,
+			);
+	}
+	registerClassicyAssets("cursors", packageId, tree, options);
+};
+
+/**
+ * The hotspot of the cursor `role` resolves to (`resolveClassicyAsset`), or
+ * undefined when its image was registered without one.
+ */
+export const resolveClassicyCursorHotspot = (
+	role: ClassicyCursorRole,
+	packageId?: string,
+	variant?: string,
+): ClassicyCursorHotspot | undefined => {
+	const src = resolveClassicyAsset("cursors", role, packageId, variant);
+	return src === undefined ? undefined : cursorHotspots.get(src);
+};
 
 /**
  * How each system-art key is drawn: `"image"` (a CSS image, published as
@@ -446,6 +1104,10 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	quickTimeThumbSlider: "image",
 	quickTimeVolumeSlider: "image",
 	controlStripTab: "pixelArt",
+	controlStripTabRight: "pixelArt",
+	newFolderGlyph: "pixelArt",
+	openFolderIcon: "image",
+	fileDialogFolderIcon: "image",
 	controlStripCollapse: "pixelArt",
 	controlStripScrollLeft: "pixelArt",
 	controlStripScrollLeftDisabled: "pixelArt",
@@ -458,6 +1120,8 @@ const SYSTEM_ART_FORMS: Record<ClassicySystemArtKey, "image" | "pixelArt"> = {
 	menuDash: "image",
 	triangle: "image",
 	downArrow: "image",
+	ditherChecker: "image",
+	helpMenuTitle: "image",
 };
 
 /**
@@ -482,11 +1146,13 @@ const isSystemArtKey = (key: string): key is ClassicySystemArtKey =>
  * A source of the wrong form for its key is registered but logged, since it
  * draws nothing: a plain image for a pixel-art key, or pixel art for an image
  * key. In development, a key outside `ClassicySystemArtKey` (a removed key
- * from a JS host, a typo) is logged too.
+ * from a JS host, a typo) is logged too. With `options.variant`, the art is
+ * that variant's.
  */
 export const registerClassicySystemArt = (
 	packageId: string,
 	art: Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>,
+	options?: ClassicyAssetRegistrationOptions,
 ): void => {
 	const entries: Record<string, ClassicyAssetSource | undefined> = { ...art };
 	for (const [alias, key] of SYSTEM_ART_ALIASES) {
@@ -530,7 +1196,12 @@ export const registerClassicySystemArt = (
 				`System art "${key}" for package "${packageId}" is pixel art, not an image; it draws nothing there`,
 			);
 	}
-	registerClassicyAssets("systemArt", packageId, entries as ClassicyAssetTree);
+	registerClassicyAssets(
+		"systemArt",
+		packageId,
+		entries as ClassicyAssetTree,
+		options,
+	);
 };
 
 /**
@@ -629,11 +1300,39 @@ connectClassicyWallpaperSource({
 const SAFE_FONT_NAME = /^[^"'\\;{}\u0000-\u001f\u007f]+$/;
 const SAFE_FONT_DESCRIPTOR = /^[A-Za-z0-9 .%-]+$/;
 
-/** Rewrites `<style id="classicy-fonts-<packageId>">` from that package's faces. */
+/**
+ * The share keys an earlier package (in first-registration order) than
+ * `packageId` writes: its own faces with those keys are written there.
+ */
+const fontShareKeysBefore = (packageId: string): Set<string> => {
+	const keys = new Set<string>();
+	for (const [id, faces] of fontFaces) {
+		if (id === packageId) break;
+		for (const face of faces.values())
+			if (face.shareKey !== undefined) keys.add(face.shareKey);
+	}
+	return keys;
+};
+
+/**
+ * Rewrites `<style id="classicy-fonts-<packageId>">` from that package's
+ * faces, less those an earlier package shares and writes. A package left
+ * with no rule of its own has no element: none is written, and one written
+ * before is removed.
+ */
 const writeClassicyFontFaces = (packageId: string): void => {
 	if (typeof document === "undefined") return;
 	const id = `classicy-fonts-${packageId}`;
+	const shared = fontShareKeysBefore(packageId);
+	const css = [...(fontFaces.get(packageId)?.values() ?? [])]
+		.filter((face) => face.shareKey === undefined || !shared.has(face.shareKey))
+		.map(classicyFontFaceRule)
+		.join("\n");
 	let style = document.getElementById(id);
+	if (css === "") {
+		style?.remove();
+		return;
+	}
 	if (!style) {
 		style = document.createElement("style");
 		style.id = id;
@@ -645,14 +1344,14 @@ const writeClassicyFontFaces = (packageId: string): void => {
 		if (base) base.after(style);
 		else document.head.prepend(style);
 	}
-	style.textContent = [...(fontFaces.get(packageId)?.values() ?? [])]
-		.map(classicyFontFaceRule)
-		.join("\n");
+	style.textContent = css;
 };
 
 /**
  * Registers font faces under `fonts.<family>.<weight>-<style>` and writes their
- * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`. A face
+ * `@font-face` rules into `<style id="classicy-fonts-<packageId>">`, except a
+ * face with a `file` that a package registered earlier shares (same family,
+ * weight, style and file): that package's element holds its one rule. A face
  * with an unsafe family, descriptor or source is skipped with a warning.
  */
 export const registerClassicyFonts = (
@@ -684,6 +1383,14 @@ export const registerClassicyFonts = (
 			continue;
 		}
 		const key = `${weight}-${style}`;
+		const { file } = font;
+		const shareable = typeof file === "string" && file !== "";
+		if (file !== undefined && !shareable)
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`Ignored the file of font face "${font.family}" ${weight} ${style}: not a non-empty string; the face is not shared`,
+			);
 		const family = Object.hasOwn(tree, font.family)
 			? (tree[font.family] as ClassicyAssetTree)
 			: {};
@@ -694,8 +1401,11 @@ export const registerClassicyFonts = (
 			sources,
 			weight,
 			style,
+			...(shareable ? { shareKey: `${font.family}|${key}|${file}` } : {}),
 		});
 	}
 	registerClassicyAssets("fonts", packageId, tree);
-	writeClassicyFontFaces(packageId);
+	// Every package's element: this registration may take a shared face over
+	// from a later package, or hand one back.
+	for (const id of fontFaces.keys()) writeClassicyFontFaces(id);
 };

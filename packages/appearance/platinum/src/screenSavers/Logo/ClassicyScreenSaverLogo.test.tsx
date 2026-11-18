@@ -141,6 +141,39 @@ describe("screen saver logo registry", () => {
 		}
 	});
 
+	// System 7's bundle carries its own copy of the registry (the logo
+	// registry's tests load one the same way); the copies share one record
+	// of the logos already warned about, so a host loading both packages
+	// sees each warning once (story 0211-4pl).
+	it("warns once per logo across the bundles' copies of the registry", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		vi.mocked(resolveClassicyAsset).mockReturnValue(undefined);
+		try {
+			const first = getClassicyScreenSaverLogo("startup-screen");
+			// Warned once by now, here or by the test above.
+			expect(first && classicyScreenSaverLogoSrc(first)).toBeTruthy();
+			const copy = "./ClassicyScreenSaverLogoRegistry.ts?warn-copy";
+			await import(/* @vite-ignore */ copy);
+			const second = getClassicyScreenSaverLogo("startup-screen");
+			// The copy registered its own stock logo in the first's place.
+			expect(second?.src).not.toBe(first?.src);
+			warn.mockClear();
+			if (second) classicyScreenSaverLogoSrc(second);
+			if (first) classicyScreenSaverLogoSrc(first);
+			expect(
+				warn.mock.calls.filter((call) =>
+					String(call[0]).includes('"startup-screen" logo'),
+				),
+			).toEqual([]);
+		} finally {
+			vi.mocked(resolveClassicyAsset).mockReset();
+			vi.mocked(resolveClassicyAsset).mockImplementation(
+				realResolve.current as typeof resolveClassicyAsset,
+			);
+			warn.mockRestore();
+		}
+	});
+
 	it("draws a logo whose src is a function with what it returns", () => {
 		const logo: ClassicyScreenSaverLogoDefinition = {
 			id: "acme",

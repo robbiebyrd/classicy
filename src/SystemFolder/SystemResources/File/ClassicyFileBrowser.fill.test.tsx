@@ -90,4 +90,19 @@ describe("ClassicyFileBrowser fill width by view (0100-a5o)", () => {
 		expect(root?.classList.contains("classicyFileBrowserFill")).toBe(true);
 		expect(width(root)).not.toBe("100%");
 	});
+
+	// The rule is keyed on the list root's own class, not `:has()`, which
+	// Firefox 113-120 lacks (there the icon view's fill took no width and
+	// stacked every icon at the top left).
+	it("marks the list view's root, and keys no width rule on :has()", async () => {
+		const list = renderBrowser("test-browser-fill-list-class", "list");
+		expect(list.firstElementChild).toHaveClass("classicyFileBrowserFillList");
+		const icons = renderBrowser("test-browser-fill-icons-class", "icons");
+		expect(icons.firstElementChild).not.toHaveClass(
+			"classicyFileBrowserFillList",
+		);
+		expect(sheet.textContent).not.toMatch(
+			/classicyFileBrowserFill[^{}]*:has\(/,
+		);
+	});
 });

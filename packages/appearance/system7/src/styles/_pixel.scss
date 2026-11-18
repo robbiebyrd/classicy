@@ -1,0 +1,182 @@
+// System 7's pixel-grid art, shared by the component partials: lengths in
+// grid pixels and stacks of one-pixel rectangles (`classicy-px-rect`
+// layers), for the parts QuickDraw drew pixel by pixel (the pressed boxes'
+// starburst, the menu bar's screen corners, the menu and pop-up triangles,
+// the push buttons' rounded corners and default ring).
+// One grid pixel is `--box-pixel` (1); the multiplier allowlist names
+// this file's one site, the `px()` helper.
+@use "sass:list";
+@use "pkg:@classicy/classicy/scss/layout";
+
+$px: var(--box-pixel);
+
+// A length of `$n` grid pixels.
+@function px($n) {
+  @if $n == 0 {
+    @return 0;
+  }
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
+
+// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
+// `(x y)` is one pixel), inked in `$ink`. With `$from: right` the x of each
+// rectangle is its distance from the right edge to the rectangle's right
+// side, so the art is anchored to the element's right edge; with
+// `$up: bottom` the y is its distance from the bottom edge to the
+// rectangle's bottom side, anchoring the art to the bottom edge (the art
+// mirrored top to bottom).
+@function pixel-art($ink, $rects, $from: left, $up: top) {
+  $layers: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $x: px(list.nth($rect, 1));
+    $y: px(list.nth($rect, 2));
+    @if $from == right or $up == bottom {
+      $x: $from $x;
+      $y: $up $y;
+    }
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, $x, $y, px($w), px($h)),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}
+
+// The `(x y w h)` rectangles `$rects` moved `$dx` right and `$dy` down,
+// to place a piece of art inside a larger box.
+@function shifted($rects, $dx, $dy) {
+  $moved: ();
+  @each $rect in $rects {
+    $rect: list.set-nth($rect, 1, list.nth($rect, 1) + $dx);
+    $rect: list.set-nth($rect, 2, list.nth($rect, 2) + $dy);
+    $moved: list.append($moved, $rect, $separator: comma);
+  }
+  @return $moved;
+}
+
+// A frame QuickDraw drew with FrameRoundRect: straight sides `$t` grid
+// pixels thick that stop `$n` pixels short of each corner, and the corner
+// art `$corner`, `(x y w h)` rectangles in the top left `$n` x `$n` cell,
+// mirrored into the other three. Pixel-exact at any size, unlike a
+// `border-radius`, which anti-aliases its curve.
+@function round-frame($ink, $n, $t, $corner) {
+  $layers: (
+    layout.classicy-px-rect($ink, left px($n), top 0, calc(100% - #{px($n + $n)}), px($t)),
+    layout.classicy-px-rect($ink, left px($n), bottom 0, calc(100% - #{px($n + $n)}), px($t)),
+    layout.classicy-px-rect($ink, left 0, top px($n), px($t), calc(100% - #{px($n + $n)})),
+    layout.classicy-px-rect($ink, right 0, top px($n), px($t), calc(100% - #{px($n + $n)}))
+  );
+  @each $h in (left, right) {
+    @each $v in (top, bottom) {
+      @each $rect in $corner {
+        $layers: list.append(
+          $layers,
+          layout.classicy-px-rect(
+            $ink,
+            $h px(list.nth($rect, 1)),
+            $v px(list.nth($rect, 2)),
+            px(list.nth($rect, 3)),
+            px(list.nth($rect, 4))
+          ),
+          $separator: comma
+        );
+      }
+    }
+  }
+  @return $layers;
+}
+
+// The inside of such a frame, filled in `$ink`: one centered rectangle per
+// `(x y)` inset, together the rounded shape the frame encloses.
+@function round-fill($ink, $insets) {
+  $layers: ();
+  @each $inset in $insets {
+    $x: list.nth($inset, 1);
+    $y: list.nth($inset, 2);
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, px($x), px($y), calc(100% - #{px($x + $x)}), calc(100% - #{px($y + $y)})),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}
+
+// A layer drawn in color only. `dither.tileSize` has two legal values: 0
+// (color: plain ink) and 2 (1-bit: the 2 x 2 checker). So this tile is two
+// pixels long in color and zero, drawing nothing, in 1-bit; a 1-bit layer
+// uses the tile size itself, the other way round. Another tile size would
+// break the switch.
+$color-only: calc(#{px(2)} - var(--dither-tile-size));
+
+// The origin a dithered part's pattern is laid from, from the element's
+// padding-box corner: the window's content origin (outside a window, the
+// desktop's corner, the screen's), which the core publishes on the parts
+// the package names (layout `patternOrigin`: its components, and its
+// `elements` by selector). System 7 laid its patterns from the window's
+// port, so a part keeps the window's phase wherever it sits, and QuickDraw's
+// arithmetic gives the two phases: the standard gray pen inks where x + y
+// is even from the port's origin, and dimming by erasing through the gray
+// leaves the ink where it is odd.
+// - A dimmed part (its text, its frame, its indicator, a dimmed control):
+//   x + y odd. Memory's pop-up and slider, Clock Options' and Standard
+//   File's dimmed text, the dimmed menu titles, items and hidden
+//   application's icon, the Chooser's dimmed OK ring, in ports whose
+//   origins lie in both phases.
+// - A dotted rule (a group box, a separator, a menu divider), drawn with
+//   the gray pen: x + y even. The Views and Sound panels' group boxes, Date
+//   & Time's and Standard File's separators, the menus' dividers.
+// The captures that differ draw by position, not through the pen pattern:
+// dots laid from a part's own start (Memory's y 115 separator, the
+// Chooser's color divider, Clock Options' group boxes), or a frame drawn
+// with the pen rather than dimmed (Clock Options' dimmed pop-up frames and
+// its menu bar's dimmed Finder icon, both even).
+$pattern-origin-x: var(--classicy-pattern-origin-x);
+$pattern-origin-y: var(--classicy-pattern-origin-y);
+
+// The core's dither mask (`classicy-dither-mask`, its ink where the 2 x 2
+// tile is clear: (0, 0) and (1, 1)) placed for a dimmed part, the ink
+// where x + y is odd from the origin, and for a dotted rule, where it is
+// even.
+$dim-x: calc(#{$pattern-origin-x} + #{$px});
+$dim-y: $pattern-origin-y;
+$rule-x: $pattern-origin-x;
+$rule-y: $pattern-origin-y;
+
+// The dimmed ink as a pattern, for a dimmed part whose shape is a mask
+// (a dithering mask would leave no room for it), laid from `$x`, `$y` (the
+// origin above, from the painted box's corner): black where x + y is odd
+// from the origin, the 50% checker, at both depths, as Memory's dimmed
+// pop-up and slider are drawn (`bw-755-controlpanel-memory.png` and
+// `color-755-controlpanel-memory.png`, Apple's Control Manager pop-up: no
+// gray in color). Its size is `$dimmed-pattern-size`, a `background-size`
+// set after it.
+@function dimmed-pattern($x: $pattern-origin-x, $y: $pattern-origin-y) {
+  @return conic-gradient(var(--color-black) 0 25%, transparent 0 50%, var(--color-black) 0 75%, transparent 0) $x $y;
+}
+
+$dimmed-pattern-size: px(2) px(2);
+
+// The core's dither checker over a whole element in black at both depths,
+// a 2 x 2 tile (not the theme's, which is none in color), from the
+// dimmed phase: a dimmed part Memory draws as in 1-bit in color too (its
+// pop-up's text).
+@mixin dimmed-checker {
+  color: var(--color-black);
+  mask-image: var(--classicy-art-dither-checker), linear-gradient(var(--color-black), var(--color-black));
+  mask-position: $dim-x $dim-y, 0 0;
+  mask-origin: padding-box, border-box;
+  mask-size: px(2) px(2), auto;
+  mask-repeat: repeat, no-repeat;
+  mask-composite: exclude;
+}

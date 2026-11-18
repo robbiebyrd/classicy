@@ -12,6 +12,7 @@ import {
 	resolveStandardViews,
 } from "@/SystemFolder/Finder/FinderContext";
 import { useFinderViewsTab } from "@/SystemFolder/Finder/useFinderViewsTab";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyTabs } from "@/SystemFolder/SystemResources/Tabs/ClassicyTabs";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
@@ -64,7 +65,7 @@ export const FinderPreferences: FunctionalComponent<FinderPreferencesProps> = ({
 				    note as explanatory help, it is not a control. Nothing here
 				    opens Apple Guide, so it is deliberately not a button. */}
 				<div className={"finderPreferencesFooter"}>
-					<img
+					<ClassicyIconImage
 						className={"finderPreferencesHelpIcon"}
 						src={helpIcon}
 						alt={"Help"}

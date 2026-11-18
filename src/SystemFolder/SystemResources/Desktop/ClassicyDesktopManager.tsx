@@ -17,6 +17,10 @@ import {
 	listClassicyPackageBuiltInThemes,
 	listClassicyThemes,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyCustomTheme";
+import {
+	isDeclaredThemeColorFamily,
+	setThemeColorFamily,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorFamilies";
 import { setThemeColor } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeColorTargets";
 import {
 	readClassicyLoadedThemes,
@@ -62,17 +66,18 @@ import {
 	hasStripPosition,
 	hasStripWidth,
 	hasThemeColorChange,
+	hasThemeColorFamilyChange,
 	hasThemeMetricChange,
 	hasThemeMetricFamilyChange,
 	hasVisible,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyActionPredicates";
+import { markAppFocused } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import type {
 	ActionMessage,
 	ClassicyStore,
 	ClassicyStoreSystemManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { dispatchToPlugin } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { getClassicySoundPack } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import type { ClassicyIconBalloonHelp } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
@@ -283,12 +288,7 @@ export const classicyDesktopEventHandler = (
 				hasMouseEvent(action) &&
 				(action.e.target as Record<string, unknown>).id === "classicyDesktop"
 			) {
-				for (const app of Object.values(ds.System.Manager.Applications.apps)) {
-					app.focused = false;
-					for (const w of listAppWindows(app)) w.focused = false;
-				}
-
-				ds.System.Manager.Applications.apps["Finder.app"].focused = true;
+				markAppFocused(ds, "Finder.app");
 				ds.System.Manager.Desktop.selectedIcons = [];
 				ds.System.Manager.Desktop.selectBox.active = true;
 				ds.System.Manager.Desktop.selectBox.start = [
@@ -418,12 +418,38 @@ export const classicyDesktopEventHandler = (
 		// Every theme edit below goes through editActiveClassicyTheme: the first
 		// edit made on a built-in forks it into the "Custom" theme (built-ins are
 		// never mutated), later edits modify the active custom theme in place.
+		// Two forms: `{ colorKey, index?, color }` for the 28 core colors, and
+		// `{ family, key, color }` for a package color, validated against the
+		// `colorFamilies` the active theme's own package declares (the theme
+		// is what is written, and the Colors tab lists that package's colors;
+		// an unregistered package declares none).
 		case "ClassicyDesktopChangeColor": {
-			if (!hasThemeColorChange(action)) break;
+			const appearance = ds.System.Manager.Appearance;
+			if (hasThemeColorChange(action)) {
+				const target = action;
+				editActiveClassicyTheme(appearance, (theme) =>
+					setThemeColor(theme, target, target.color),
+				);
+				break;
+			}
+			if (!hasThemeColorFamilyChange(action)) break;
 			const target = action;
-			editActiveClassicyTheme(ds.System.Manager.Appearance, (theme) =>
-				setThemeColor(theme, target, target.color),
-			);
+			const themePackage =
+				appearance.activeTheme.package ??
+				CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+			const declared =
+				getClassicyAppearancePackage(themePackage)?.colorFamilies;
+			if (!isDeclaredThemeColorFamily(declared, target)) {
+				classicyLog(
+					"warn",
+					"ClassicyDesktopManager",
+					`ClassicyDesktopChangeColor rejected: "${target.family}.${target.key}" is not a color of the active theme's package ("${themePackage}")`,
+				);
+				break;
+			}
+			editActiveClassicyTheme(appearance, (theme) => {
+				setThemeColorFamily(theme, target, target.color);
+			});
 			break;
 		}
 		// Same fork-on-first-edit semantics for the layout metrics
@@ -582,6 +608,8 @@ export const classicyDesktopEventHandler = (
 					case "header":
 					case "mono":
 					case "digital":
+					// The small UI text's family (optional; System 7's Geneva).
+					case "uiSmall":
 						theme.typography[action.fontType] = action.font;
 						break;
 				}

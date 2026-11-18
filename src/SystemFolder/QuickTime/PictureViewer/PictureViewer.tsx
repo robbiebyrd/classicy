@@ -230,6 +230,9 @@ export const QuickTimePictureViewer: FunctionalComponent = () => {
 					resizable={true}
 					zoomable={true}
 					scrollable={true}
+					// No bars while the picture fits, whatever the package keeps:
+					// System 7's viewers drew none.
+					fitsScrollBars={false}
 					collapsable={false}
 					initialSize={[400, 100]}
 					initialPosition={[300, 50]}

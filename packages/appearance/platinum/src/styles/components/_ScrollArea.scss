@@ -1,0 +1,20 @@
+// The Platinum look of Classicy's own scroll bars (ClassicyScrollArea.scss
+// places the parts): the native bars' look from _scrollbars.scss, drawn on
+// the parts, and Smart Scrolling's two arrangements.
+@use "../scrollbars";
+
+@mixin scrollArea {
+  @include scrollbars.platinum-scroll-bar-parts;
+
+  &.classicyDesktopSplitArrows {
+    @include scrollbars.platinum-scroll-bar-parts-split-arrows;
+  }
+
+  // The viewport's native bar stays hidden. The desktop's Firefox fallback
+  // (`scrollbar-width: auto` on `& *`, _Desktop.scss) would otherwise show it
+  // from this layer, over the base sheet's `none`; one class more, (0,3,0)
+  // vs (0,2,0), and later in platinum.scss, so this wins.
+  .classicyScrollAreaViewport {
+    scrollbar-width: none;
+  }
+}

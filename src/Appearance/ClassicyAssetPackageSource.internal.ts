@@ -8,7 +8,15 @@
 export type ClassicyAssetPackageSource = {
 	/** The resolved active package id, read at call time. */
 	getId: () => string;
-	/** Calls `onChange` whenever the active id may have changed. */
+	/**
+	 * The active theme, read at call time: its `package` and `assetVariant`
+	 * pick the variant tree its lookups read first. Optional: a source without
+	 * it selects no variant.
+	 */
+	getActiveTheme?: () =>
+		| { package?: string; assetVariant?: string }
+		| undefined;
+	/** Calls `onChange` whenever the active id or theme may have changed. */
 	subscribe: (onChange: () => void) => () => void;
 };
 

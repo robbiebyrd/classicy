@@ -27,6 +27,13 @@ import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import {
+	classicyMenuBounds,
+	classicyMenuListLeft,
+	classicyMenuListPinTop,
+} from "@/SystemFolder/SystemResources/Menu/ClassicyMenuPlacement.internal";
+import { useClassicyMenuScrollArrows } from "@/SystemFolder/SystemResources/Menu/useClassicyMenuScrollArrows.internal";
 import {
 	type ClassicyPopUpMenuEntry,
 	type ClassicyPopUpMenuOption,
@@ -131,10 +138,27 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 	const [placement, setPlacement] =
 		useState<ClassicyPopUpMenuPlacementResult | null>(null);
+	// Across, once measured: under the field's left side, or where that would
+	// pass the desktop's right edge, its right side under the field's right
+	// side, pinned inside the desktop (ClassicyMenuPlacement).
+	const [listLeft, setListLeft] = useState<number | null>(null);
+	// Down, when its 64 px floor still passes the bounds (a very short
+	// desktop): the top that pins it inside, measured once it is placed.
+	const [listPinTop, setListPinTop] = useState<number | null>(null);
 
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	// A long suggestion list scrolls by its indicators, as the pop-up menu's
+	// does (HIG7 p.78), never by a scroll bar.
+	const scrollArrows = useClassicyMenuScrollArrows(listRef, {
+		rowSelector: '[role="option"]',
+		// Over the list (5000) in the portal they share.
+		zIndex: 5001,
+	});
+	const resetScrollArrows = scrollArrows.reset;
+	const measureScrollArrows = scrollArrows.measure;
+	const scrollArrowsContain = scrollArrows.contains;
 	// The last committed suggestion — what a freeText=false combo reverts to.
 	const committedLabel = useRef<string | undefined>(prefillValue);
 	const committedValue = useRef<string | undefined>(undefined);
@@ -199,7 +223,10 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		setBypassFilter(false);
 		setMenuRect(null);
 		setPlacement(null);
-	}, []);
+		setListLeft(null);
+		setListPinTop(null);
+		resetScrollArrows();
+	}, [resetScrollArrows]);
 
 	const openList = useCallback(
 		(bypass: boolean) => {
@@ -265,14 +292,15 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			const target = e.target as Node;
 			if (
 				!anchorRef.current?.contains(target) &&
-				!listRef.current?.contains(target)
+				!listRef.current?.contains(target) &&
+				!scrollArrowsContain(target)
 			) {
 				dismiss();
 			}
 		};
 		document.addEventListener("mousedown", onPointerDown);
 		return () => document.removeEventListener("mousedown", onPointerDown);
-	}, [open, dismiss]);
+	}, [open, dismiss, scrollArrowsContain]);
 
 	// A fixed-position portal can't follow its anchor; dismiss on ancestor
 	// scroll or resize, but not when the list scrolls its own overflow.
@@ -297,11 +325,23 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 		if (!open || !menuRect) return;
 		const el = listRef.current;
 		if (!el) return;
+		// Down, between the top and bottom of what shows of the desktop, as
+		// the pop-up menu's: the field's place from the bounds' top (the
+		// policy's 4 px margin holds the list's padding and shadow). The list
+		// hangs clear of the field (the pop-up's overlaps its button), so its
+		// room below is measured from the field's bottom and its room above
+		// from its top: the policy measures down from `top` and up from
+		// `bottom`.
+		const bounds = classicyMenuBounds(anchorRef.current);
+		setListPinTop(null);
 		setPlacement(
 			classicyPopUpMenuPlacement(
-				menuRect,
+				{
+					top: menuRect.bottom - bounds.top,
+					bottom: menuRect.top - bounds.top,
+				},
 				el.scrollHeight,
-				window.innerHeight,
+				bounds.bottom - bounds.top,
 				null,
 				// The theme's cap, read from the input (the list may be portaled
 				// out of its themed ancestor) once per opening.
@@ -313,6 +353,50 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			),
 		);
 	}, [open, menuRect]);
+
+	// Placed, a list whose 64 px floor still passes the bounds (no room for
+	// it above or below the field in a very short desktop) is pinned inside,
+	// its top winning.
+	useLayoutEffect(() => {
+		if (!open || !placement || listPinTop !== null) return;
+		const el = listRef.current;
+		if (!el) return;
+		const pinned = classicyMenuListPinTop(
+			el,
+			classicyMenuBounds(anchorRef.current),
+		);
+		if (pinned !== null) setListPinTop(pinned);
+	}, [open, placement, listPinTop]);
+
+	// Across, measured as it opens and as typing filters its suggestions,
+	// which change its width.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries is a trigger, not read: the rows it renders change the list's width
+	useLayoutEffect(() => {
+		if (!open || !menuRect || !listRef.current) return;
+		setListLeft(
+			classicyMenuListLeft(
+				listRef.current,
+				menuRect,
+				classicyMenuBounds(anchorRef.current),
+			),
+		);
+	}, [open, menuRect, filteredEntries]);
+
+	// The indicators follow the list as it is placed (down, and across:
+	// typing that changes its width moves it, a commit after its rows) and
+	// as typing filters its suggestions; its scrolling reads only the
+	// extents.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filteredEntries, listLeft and listPinTop are triggers, not read: the rows they render and the place across and down change the list's box
+	useLayoutEffect(() => {
+		if (open && placement) measureScrollArrows();
+	}, [
+		open,
+		placement,
+		filteredEntries,
+		listLeft,
+		listPinTop,
+		measureScrollArrows,
+	]);
 
 	useLayoutEffect(() => {
 		if (!open || effectiveHighlight < 0) return;
@@ -435,98 +519,105 @@ export const ClassicyComboBox: FunctionalComponent<ClassicyComboBoxProps> = ({
 			{open &&
 				menuRect &&
 				createPortal(
-					<div
-						ref={listRef}
-						id={listId}
-						role="listbox"
-						aria-label={label ?? placeholder ?? id}
-						className={classNames(
-							"classicyPopUpMenuList",
-							placement?.above && "classicyPopUpMenuListAbove",
-						)}
-						style={{
-							position: "fixed",
-							left: `${menuRect.left}px`,
-							minWidth: `${menuRect.width}px`,
-							zIndex: 5000,
-							// Unlike the pop-up menu (which overlays its button), the
-							// suggestion list hangs below the field — or sits fully
-							// above it when there is no room below.
-							...(placement?.above
-								? { bottom: `${window.innerHeight - menuRect.top}px` }
-								: { top: `${menuRect.bottom}px` }),
-							...(placement && { maxHeight: `${placement.maxHeight}px` }),
-						}}
-					>
-						{filtered.length === 0 && (
-							<div
-								role="presentation"
-								className="classicyComboBoxNoMatches classicyPopUpMenuListItem"
-							>
-								No matches
-							</div>
-						)}
-						{rows.map((row, rowIndex) => {
-							if (row.kind === "header") {
+					<>
+						<div
+							ref={listRef}
+							id={listId}
+							role="listbox"
+							aria-label={label ?? placeholder ?? id}
+							className={classNames(
+								"classicyPopUpMenuList",
+								placement?.above && "classicyPopUpMenuListAbove",
+							)}
+							onScroll={scrollArrows.onListScroll}
+							style={{
+								position: "fixed",
+								left: `${listLeft ?? menuRect.left}px`,
+								minWidth: `${menuRect.width}px`,
+								zIndex: 5000,
+								// Unlike the pop-up menu (which overlays its button), the
+								// suggestion list hangs below the field — or sits fully
+								// above it when there is no room below.
+								...(listPinTop !== null
+									? { top: `${listPinTop}px` }
+									: placement?.above
+										? { bottom: `${window.innerHeight - menuRect.top}px` }
+										: { top: `${menuRect.bottom}px` }),
+								...(placement && { maxHeight: `${placement.maxHeight}px` }),
+								...scrollArrows.listStyle,
+							}}
+						>
+							{filtered.length === 0 && (
+								<div
+									role="presentation"
+									className="classicyComboBoxNoMatches classicyPopUpMenuListItem"
+								>
+									No matches
+								</div>
+							)}
+							{rows.map((row, rowIndex) => {
+								if (row.kind === "header") {
+									return (
+										<div
+											// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the filtered options; the index disambiguates duplicate group labels and rows never reorder independently
+											key={`${id}-group-${row.label}-${rowIndex}`}
+											role="presentation"
+											className="classicyPopUpMenuGroupHeader"
+										>
+											{row.label}
+										</div>
+									);
+								}
+								const { option: o, flatIndex: index, grouped } = row;
+								const isSelected = o.value === committedValue.current;
 								return (
 									<div
-										// biome-ignore lint/suspicious/noArrayIndexKey: rows derive 1:1 from the filtered options; the index disambiguates duplicate group labels and rows never reorder independently
-										key={`${id}-group-${row.label}-${rowIndex}`}
-										role="presentation"
-										className="classicyPopUpMenuGroupHeader"
+										key={id + o.value}
+										id={optionId(index)}
+										role="option"
+										tabIndex={-1}
+										aria-selected={isSelected}
+										className={classNames(
+											"classicyPopUpMenuListItem",
+											grouped && "classicyPopUpMenuListItemGrouped",
+											index === effectiveHighlight &&
+												"classicyPopUpMenuListItemHighlight",
+										)}
+										onMouseEnter={() => setHighlight(index)}
+										// Commit on mousedown-driven click; preventDefault on
+										// mousedown keeps focus in the input meanwhile.
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => commitOption(o)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" || e.key === " ") {
+												e.preventDefault();
+												commitOption(o);
+											}
+										}}
 									>
-										{row.label}
+										<span
+											className={classNames(
+												"classicyPopUpMenuCheck",
+												classicyStateClasses({ checked: isSelected }),
+											)}
+											aria-hidden={true}
+										/>
+										{o.icon && (
+											<ClassicyIconImage
+												className="classicyPopUpMenuListItemIcon"
+												src={o.icon}
+												alt=""
+											/>
+										)}
+										<span className="classicyPopUpMenuListItemLabel">
+											{o.label}
+										</span>
 									</div>
 								);
-							}
-							const { option: o, flatIndex: index, grouped } = row;
-							const isSelected = o.value === committedValue.current;
-							return (
-								<div
-									key={id + o.value}
-									id={optionId(index)}
-									role="option"
-									tabIndex={-1}
-									aria-selected={isSelected}
-									className={classNames(
-										"classicyPopUpMenuListItem",
-										grouped && "classicyPopUpMenuListItemGrouped",
-										index === effectiveHighlight &&
-											"classicyPopUpMenuListItemHighlight",
-									)}
-									onMouseEnter={() => setHighlight(index)}
-									// Commit on mousedown-driven click; preventDefault on
-									// mousedown keeps focus in the input meanwhile.
-									onMouseDown={(e) => e.preventDefault()}
-									onClick={() => commitOption(o)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											commitOption(o);
-										}
-									}}
-								>
-									<span
-										className={classNames(
-											"classicyPopUpMenuCheck",
-											classicyStateClasses({ checked: isSelected }),
-										)}
-										aria-hidden={true}
-									/>
-									{o.icon && (
-										<img
-											className="classicyPopUpMenuListItemIcon"
-											src={o.icon}
-											alt=""
-										/>
-									)}
-									<span className="classicyPopUpMenuListItemLabel">
-										{o.label}
-									</span>
-								</div>
-							);
-						})}
-					</div>,
+							})}
+						</div>
+						{scrollArrows.indicators}
+					</>,
 					document.getElementById("classicyDesktop") ?? document.body,
 				)}
 		</div>

@@ -4,7 +4,9 @@
 
 @mixin alert {
   // The shorthand alone on the side bands resets the focused bands' 99.8%.
-  .classicyWindow:has(.classicyAlertMovable) {
+  // Keyed on the class ClassicyAlert puts on a movable alert's window (no
+  // `:has()`, which Firefox 113-120 lacks).
+  .classicyWindow.classicyAlertMovableWindow {
     @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%);
   }
 }

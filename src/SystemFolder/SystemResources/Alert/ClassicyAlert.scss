@@ -89,8 +89,9 @@
 // title-bar highlight here — mirrors `.classicyWindowRed`'s title treatment
 // without touching ClassicyWindow. The non-movable variant already gets the red
 // border from `.classicyWindowRed` (modal + type="error"). The red stripes are
-// in the Platinum package.
-.classicyWindow:has(.classicyAlertMovable) {
+// in the Platinum package. Keyed on the class ClassicyAlert puts on its
+// window, not `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks.
+.classicyWindow.classicyAlertMovableWindow {
   .classicyWindowTitleBar {
     background-color: c.classicy-tint("--color-error", 80%);
   }

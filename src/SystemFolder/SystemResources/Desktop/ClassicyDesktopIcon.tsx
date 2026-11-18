@@ -8,6 +8,7 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { getAppManifest } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
+import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
 import "@/SystemFolder/SystemResources/BalloonHelp/ClassicyBalloonHelp.scss";
 import {
@@ -194,6 +195,11 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			style,
 		}) => {
 			const aliasBadge = useClassicyAsset("systemArt", "aliasBadge") ?? "";
+			// The icon draws at the theme's desktop icon size: a theme that sets
+			// it to the small-icon size or less draws the leaf's small image.
+			const desktopIconSize = useAppManager(
+				(s) => s.System?.Manager?.Appearance?.activeTheme?.desktop?.iconSize,
+			);
 			// How the active package shows the app. Only an app shortcut stands
 			// for its app: drives share Finder.app's id, and other kinds name
 			// their own target.
@@ -216,6 +222,17 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const isSelected = useAppManager(
 				(s) => s.System.Manager.Desktop.selectedIcons?.includes(appId) ?? false,
+			);
+			// Selected, the image the active package draws for it selected, as
+			// ClassicyIcon does (`registerClassicySelectedIconImages`).
+			const {
+				image: iconImage,
+				plain: iconUrl,
+				drawsSelectedImage,
+			} = useClassicySelectedIconImage(
+				identity.icon,
+				desktopIconSize ?? Number.POSITIVE_INFINITY,
+				isSelected,
 			);
 			// A click on a selected icon still changes the selection when it
 			// collapses a multiple selection down to this icon.
@@ -590,15 +607,18 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				>
 					<div className={"classicyDesktopIconImage"}>
 						<div
-							className={"classicyDesktopIconMaskOuter"}
+							className={classNames(
+								"classicyDesktopIconMaskOuter",
+								drawsSelectedImage && "classicyDesktopIconSelectedImage",
+							)}
 							style={
 								{
-									"--classicy-icon-mask": `url("${identity.icon}")`,
+									"--classicy-icon-mask": `url("${iconUrl}")`,
 								} as CSSProperties
 							}
 						>
 							<div className={"classicyDesktopIconMask"}>
-								<img src={identity.icon} alt={identity.name} />
+								<img src={iconImage} alt={identity.name} />
 							</div>
 						</div>
 						{isAlias && (

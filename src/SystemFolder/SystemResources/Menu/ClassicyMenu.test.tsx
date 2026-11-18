@@ -261,15 +261,45 @@ describe("ClassicyMenu", () => {
 		expect(container.querySelector(".classicyMenuItemCheck")).toBeNull();
 	});
 
-	it("never renders both an icon and a checkmark (checkmark wins)", () => {
+	// Story 0214-c61: the Application menu checks the front application
+	// beside its small icon (HIG7 p.127, 7.5.5's `*-755-appmenu-open.png`).
+	it("renders the checkmark, then the icon, for an item with both", () => {
 		const items = [
 			{ id: "tools", title: "Tools", checked: true, icon: "tool.png" },
 		];
 		const { container } = render(
 			<ClassicyMenu name="test-menu" menuItems={items} />,
 		);
-		expect(container.querySelector(".classicyMenuItemCheck")).not.toBeNull();
-		expect(container.querySelector("img")).toBeNull();
+		const p = container.querySelector("#tools > p") as HTMLElement;
+		expect(
+			[...p.children].map((child) =>
+				child.tagName === "IMG" ? "img" : child.className,
+			),
+		).toEqual(["classicyMenuItemCheck checked", "img"]);
+	});
+
+	// A package sizes an item drawn with an image (System 7's 18 px rows)
+	// on a class, not `:has(> p > img)`, which Firefox 113-120 lacks: it is
+	// set exactly when the item's title holds an image, from `icon` or
+	// `image`.
+	it("marks an item drawn with an image classicyMenuItemHasImage", () => {
+		const items = [
+			{ id: "with-icon", title: "Icon", icon: "tool.png" },
+			{ id: "with-image", image: "apple.png", imageAlt: "Apple" },
+			{ id: "plain", title: "Plain" },
+		];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		for (const id of ["with-icon", "with-image", "plain"]) {
+			const item = container.querySelector(`#${id}`) as HTMLElement;
+			expect(item.classList.contains("classicyMenuItemHasImage"), id).toBe(
+				item.querySelector(":scope > p > img") !== null,
+			);
+		}
+		expect(
+			container.querySelectorAll(".classicyMenuItemHasImage"),
+		).toHaveLength(2);
 	});
 });
 

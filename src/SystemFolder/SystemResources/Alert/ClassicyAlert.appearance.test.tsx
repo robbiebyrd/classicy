@@ -120,3 +120,37 @@ describe("ClassicyAlert appearance", () => {
 		);
 	});
 });
+
+// A fixed alert's window carries the fixed-modal marker, a movable one's
+// does not, so a package can drop the fixed one's title bar (System 7 HIG
+// p.190).
+describe("Alert's window and the fixed-modal marker", () => {
+	const alertWindow = () => root().closest(".classicyWindow");
+
+	it("marks a fixed alert's window", () => {
+		render(<ClassicyAlert label="Note" />);
+		expect(alertWindow()).toHaveClass("classicyWindowModal");
+		expect(alertWindow()).toHaveClass("classicyWindowModalFixed");
+	});
+
+	it("leaves a movable alert's window unmarked", () => {
+		render(<ClassicyAlert label="Note" movable />);
+		expect(alertWindow()).toHaveClass("classicyWindowModal");
+		expect(alertWindow()).not.toHaveClass("classicyWindowModalFixed");
+	});
+
+	// The red title bar is keyed on the window's own class (no
+	// `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks), the
+	// host's className after it.
+	it("marks a movable alert's window classicyAlertMovableWindow", () => {
+		render(<ClassicyAlert label="Note" movable className="hostAlert" />);
+		expect(alertWindow()).toHaveClass("classicyAlertMovableWindow");
+		expect(alertWindow()).toHaveClass("hostAlert");
+	});
+
+	it("leaves a fixed alert's window without it", () => {
+		render(<ClassicyAlert label="Note" className="hostAlert" />);
+		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");
+		expect(alertWindow()).toHaveClass("hostAlert");
+	});
+});

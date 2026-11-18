@@ -3,6 +3,7 @@
 
 import type { Howl } from "howler";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CLASSICY_ALERT_SOUNDS } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import {
 	type ClassicySoundActionTypes,
 	type ClassicySoundState,
@@ -51,6 +52,8 @@ beforeEach(() => {
 		name: "Platinum",
 		src: ["test.mp3"],
 		sprite: { click: [0, 100] },
+		alerts: CLASSICY_ALERT_SOUNDS,
+		defaultAlert: "ClassicyAlertSosumi",
 	});
 });
 

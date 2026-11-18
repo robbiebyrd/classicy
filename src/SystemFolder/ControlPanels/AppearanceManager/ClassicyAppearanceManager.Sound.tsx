@@ -1,5 +1,11 @@
 import { type ChangeEvent, useMemo } from "react";
-import { CLASSICY_ALERT_SOUNDS } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { classicyPackAlerts } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
+import {
+	CLASSICY_DEFAULT_SOUND_PACK_ID,
+	playingClassicySoundPack,
+	useClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 import { ClassicySlider } from "@/SystemFolder/SystemResources/Slider/ClassicySlider";
@@ -11,6 +17,12 @@ interface SoundTabProps {
 	/** The active theme's `sound.pack`. */
 	soundPack: string;
 	changeSoundPack: (e: ChangeEvent<HTMLSelectElement>) => void;
+	/**
+	 * The alerts the Alert Sound pop-up lists. Omitted (as in 3.1): the pack
+	 * that plays for the active theme declares them.
+	 */
+	alerts?: readonly { value: string; label: string }[];
+	/** The alert in effect: the stored choice, else the pack's default. */
 	alertSound: string;
 	changeAlertSound: (e: ChangeEvent<HTMLSelectElement>) => void;
 	/** Alert sound level, 0–100 (a percentage of the system volume). */
@@ -28,12 +40,29 @@ export const useSoundTab = ({
 	soundPacks,
 	soundPack,
 	changeSoundPack,
+	alerts: alertsProp,
 	alertSound,
 	changeAlertSound,
 	alertVolume,
 	changeAlertVolume,
 	previewAlertVolume,
 }: SoundTabProps): TabIndividual => {
+	const registeredPacks = useClassicySoundPacks();
+	const themePackId =
+		useAppManager(
+			(s) => s.System.Manager.Appearance?.activeTheme?.sound?.pack,
+		) ?? CLASSICY_DEFAULT_SOUND_PACK_ID;
+	// `registeredPacks` is a dependency so a pack registering late (or the
+	// default pack an alert-less pack inherits from) is picked up.
+	const defaultAlerts = useMemo(
+		() => [
+			...classicyPackAlerts(
+				playingClassicySoundPack(registeredPacks, themePackId),
+			),
+		],
+		[registeredPacks, themePackId],
+	);
+	const alerts = alertsProp ?? defaultAlerts;
 	const soundPackOptions = useMemo(
 		() => soundPacks.map(({ id, name }) => ({ value: id, label: name })),
 		[soundPacks],
@@ -64,7 +93,7 @@ export const useSoundTab = ({
 						</div>
 						<ClassicyPopUpMenu
 							id={"alertSound"}
-							options={CLASSICY_ALERT_SOUNDS}
+							options={[...alerts]}
 							selected={alertSound}
 							onChangeFunc={changeAlertSound}
 						/>
@@ -102,6 +131,7 @@ export const useSoundTab = ({
 			soundPackOptions,
 			soundPack,
 			changeSoundPack,
+			alerts,
 			alertSound,
 			changeAlertSound,
 			alertVolume,

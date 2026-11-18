@@ -13,7 +13,25 @@ export type ClassicySoundPack = SoundData & {
 	id: string;
 	name: string;
 	packageId?: string;
+	/**
+	 * The sprite ids the user may pick as the alert sound, with display names
+	 * (the Sound tab's list). Absent: the pack takes the default pack's
+	 * alerts, as it takes its other sprites; `[]`: it has none, and alerts
+	 * play nothing.
+	 */
+	alerts?: ClassicyAlertSoundOption[];
+	/**
+	 * The alert played while the stored choice is not one of `alerts`. Absent
+	 * (or not in `alerts`): the first alert, or the default pack's default
+	 * when `alerts` is absent.
+	 */
+	defaultAlert?: string;
 };
+
+export interface ClassicyAlertSoundOption {
+	value: string;
+	label: string;
+}
 
 export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 	SoundDataSchema.extend({
@@ -22,16 +40,26 @@ export const ClassicySoundPackSchema: z.ZodType<ClassicySoundPack> =
 			.regex(/^[a-z0-9][a-z0-9-]{0,63}$/, "must be a kebab-case id"),
 		name: z.string().trim().min(1).max(64),
 		packageId: z.string().max(64).optional(),
+		alerts: z
+			.array(
+				z.object({
+					value: z.string().min(1).max(128),
+					label: z.string().trim().min(1).max(64),
+				}),
+			)
+			.max(64)
+			.optional(),
+		defaultAlert: z.string().min(1).max(128).optional(),
 		src: z.array(z.string().min(1)).min(1),
 	});
 
 export const CLASSICY_DEFAULT_SOUND_PACK_ID = "platinum";
 
 /**
- * The sprite ids Classicy dispatches (`sound: "…"`). Equal to the key set of
- * the Platinum sprite sheet; a custom pack should provide all of them.
+ * The contract's alert sprite ids (Platinum's seven). A pack declaring its
+ * own `alerts` need not define them.
  */
-export const CLASSICY_SOUND_SPRITE_IDS = [
+export const CLASSICY_CONTRACT_ALERT_SPRITE_IDS = [
 	"ClassicyAlertBonk",
 	"ClassicyAlertGrowl",
 	"ClassicyAlertIndigo",
@@ -39,6 +67,14 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 	"ClassicyAlertSosumi",
 	"ClassicyAlertTabitha",
 	"ClassicyAlertWildEep",
+] as const satisfies readonly string[];
+
+/**
+ * The sprite ids Classicy dispatches (`sound: "…"`). Equal to the key set of
+ * the Platinum sprite sheet; a custom pack should provide all of them.
+ */
+export const CLASSICY_SOUND_SPRITE_IDS = [
+	...CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
 	"ClassicyBeep",
 	"ClassicyBoot",
 	"ClassicyButtonClickDown",
@@ -76,6 +112,10 @@ export const CLASSICY_SOUND_SPRITE_IDS = [
 ] as const satisfies readonly string[];
 
 export type ClassicySoundSpriteId = (typeof CLASSICY_SOUND_SPRITE_IDS)[number];
+
+const CONTRACT_ALERT_SPRITE_IDS: ReadonlySet<string> = new Set(
+	CLASSICY_CONTRACT_ALERT_SPRITE_IDS,
+);
 
 const registry = new Map<string, ClassicySoundPack>();
 const listeners = new Set<() => void>();
@@ -126,10 +166,33 @@ export const useClassicySoundPacks = (): readonly ClassicySoundPack[] =>
 		listClassicySoundPacks,
 	);
 
-/** Contract sprite ids that `pack` does not define. */
+/**
+ * The pack that plays for the theme's `packId` among `packs`: that pack, else
+ * the default pack (what the sound provider loads), else none. Store-free and
+ * silent, unlike the provider's lookup.
+ */
+export const playingClassicySoundPack = (
+	packs: readonly ClassicySoundPack[],
+	packId: string,
+): ClassicySoundPack | undefined =>
+	packs.find((pack) => pack.id === packId) ??
+	packs.find((pack) => pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID);
+
+/**
+ * Sprite ids `pack` should define but does not. The contract ids, except the
+ * contract's alert ids when the pack declares its own `alerts` (the alerts
+ * are pack-defined); plus each alert it declares.
+ */
 export const classicySoundPackMissingSprites = (
 	pack: ClassicySoundPack,
-): string[] => CLASSICY_SOUND_SPRITE_IDS.filter((id) => !(id in pack.sprite));
+): string[] => {
+	const own = pack.alerts !== undefined;
+	const required = CLASSICY_SOUND_SPRITE_IDS.filter(
+		(id) => !(own && CONTRACT_ALERT_SPRITE_IDS.has(id)),
+	);
+	const ids = [...required, ...(pack.alerts ?? []).map((a) => a.value)];
+	return [...new Set(ids)].filter((id) => !(id in pack.sprite));
+};
 
 /** Test helper: forget every registered pack. */
 export const resetClassicySoundPacks = (): void => {

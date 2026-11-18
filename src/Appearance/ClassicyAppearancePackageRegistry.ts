@@ -1,4 +1,7 @@
-import { setClassicyPackageMeasurementsLookup } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
+import {
+	setClassicyPackageColorFamiliesLookup,
+	setClassicyPackageMeasurementsLookup,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
 import {
 	classicyScreenSaverOfferedUnder,
 	getClassicyScreenSaver,
@@ -185,6 +188,15 @@ setClassicyPackageMeasurementsLookup(
 			(id === undefined ? undefined : registry.get(id)) ??
 			registry.get(CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)
 		)?.defaults.measurements,
+);
+
+// Package color families (`classicyThemeColorFamilyDefaults`): the theme's
+// own package only, never another's. A missing id is the default package's,
+// as everywhere a theme names none.
+setClassicyPackageColorFamiliesLookup(
+	(id) =>
+		registry.get(id ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID)?.defaults.color
+			.families,
 );
 
 /** Registered packages, in registration order. */

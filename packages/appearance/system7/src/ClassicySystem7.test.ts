@@ -1,0 +1,917 @@
+import { castDraft, produce } from "immer";
+import { describe, expect, it, vi } from "vitest";
+import {
+	getClassicyAppearancePackage,
+	listClassicyAppearancePackages,
+} from "@/Appearance/ClassicyAppearancePackageRegistry";
+import { ClassicyAppearancePackageSchema } from "@/Appearance/ClassicyAppearancePackageSchema";
+import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import {
+	getAllThemes,
+	getTheme,
+	getThemeVars,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { classicyThemeMeasurementDefaults } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
+import { sanitizeStateForPersistence } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { migrateClassicyState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
+import {
+	getClassicySoundPack,
+	listClassicySoundPacks,
+} from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundPacks";
+import { classicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
+import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
+import system7Json from "./system7.json";
+
+// The System 7 package registers on import (plan 0018-dbd §2.2): package
+// `system7` with its two themes, its layout, its fonts and its sound pack,
+// alone, with no other package registered (the test setup registers none).
+
+const BLACK = 0x000000;
+const WHITE = 0xffffff;
+
+const allColors = (color: (typeof system7Json.presets)[number]["color"]) => [
+	color.outline,
+	color.select,
+	color.highlight,
+	color.black,
+	color.white,
+	color.alert,
+	color.error,
+	...color.system,
+	...color.theme,
+	...Object.values(color.window),
+];
+
+describe("the System 7 appearance package", () => {
+	it("registers package system7 on import, alone and without an error", async () => {
+		const log = vi.spyOn(ClassicyLog, "classicyLog");
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		expect(pkg?.name).toBe("System 7");
+		expect(listClassicyAppearancePackages().map((p) => p.id)).toEqual([
+			"system7",
+		]);
+		expect(log).not.toHaveBeenCalledWith(
+			"error",
+			expect.anything(),
+			expect.anything(),
+		);
+		log.mockRestore();
+		// The first import loads the whole core barrel cold (see
+		// ClassicyPlatinum.test.ts).
+	}, 30_000);
+
+	it("passes the package schema, defaults.package included", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const parsed = ClassicyAppearancePackageSchema.safeParse(pkg);
+		expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+		expect(pkg?.defaults.package).toBe("system7");
+		expect(typeof pkg?.css).toBe("string");
+		expect(pkg?.knobs).toEqual({});
+	});
+
+	it("registers the two themes, the black-and-white one the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		expect(pkg?.presets?.map((t) => [t.id, t.name])).toEqual([
+			["system7", "System 7"],
+			["system7-color", "System 7 Color"],
+		]);
+		expect(pkg?.defaults).toBe(pkg?.presets?.[0]);
+		expect(pkg?.presets).toEqual(getAllThemes());
+		expect(getTheme("system7-color")).toBe(pkg?.presets?.[1]);
+		for (const theme of pkg?.presets ?? [])
+			expect(theme.package).toBe("system7");
+	});
+
+	// Design 0017-6me, "Per-theme art": the 1-bit theme draws the `bw`
+	// variant of the package's assets, the color theme the base tree.
+	it("names the bw asset variant on System 7 and none on System 7 Color", async () => {
+		await import("./index");
+		const [bw, color] = getClassicyAppearancePackage("system7")?.presets ?? [];
+		expect(bw?.assetVariant).toBe("bw");
+		expect(color?.assetVariant).toBeUndefined();
+	});
+
+	it("draws the 1-bit theme in black and white only, dithered", () => {
+		const [bw] = system7Json.presets;
+		expect(new Set(allColors(bw.color))).toEqual(new Set([BLACK, WHITE]));
+		expect(bw.measurements.dither.tileSize).toBe(2);
+	});
+
+	// The desktop's flat color, under the theme's pattern (its desktop picture,
+	// System7DesktopPicture.test.ts) and alone when a user picks no picture,
+	// and the startup screen's: the pattern's light cell, white in 1-bit and
+	// #AAAAAA (system-04) in color.
+	it("sets the desktop's flat color to the pattern's light cell", () => {
+		const [bw, color] = system7Json.presets;
+		expect(bw.desktop.backgroundColor).toBe(WHITE);
+		expect(color.desktop.backgroundColor).toBe(color.color.system[3]);
+		expect(color.color.system[3]).toBe(0xaaaaaa);
+	});
+
+	// The Standard window colors as System 7.5 draws them at 256 colors
+	// (docs/system7-reference-screenshots.md, MWD 4): the title-bar face,
+	// bevel and stripes, the boxes' ink and fills, the inactive frame and
+	// title, the windoid's dots; true gray, no dither. The slots the window
+	// chrome reads are the ones named in styles/components/_Window.scss;
+	// system-01 is the scroll track and arrow-box face (#DDDDDD) and system-02
+	// the modal dialog frame's gray band (#BBBBBB), as the captures show them
+	// (plan 0018-dbd §4.2), for the looks still to come.
+	it("draws the color theme with the 7.5 Standard window colors", () => {
+		const [, color] = system7Json.presets;
+		expect(color.color.system).toEqual([
+			0xdddddd, 0xbbbbbb, 0xbbbbbb, 0xaaaaaa, 0x888888, 0x777777, 0x555555,
+		]);
+		expect(color.color.theme).toEqual([
+			0xeeeeee, 0xccccff, 0x9999cc, 0x666699, 0x333333, 0x888888, 0x333366,
+		]);
+		expect(color.color.window).toEqual({
+			border: BLACK,
+			borderOutset: 0xccccff,
+			borderInset: 0x9999cc,
+			frame: WHITE,
+			title: BLACK,
+			document: WHITE,
+		});
+		expect(color.color.highlight).toBe(BLACK);
+		expect(color.measurements.dither.tileSize).toBe(0);
+	});
+
+	// System 7.5's Standard color tables (System `wctb` 0 and `cctb` 0, plan
+	// 0018-dbd §4.2; docs/system7-asset-inventory.md, "Window colors"): the
+	// content, frame and text entries are the window's own slots, and the two
+	// tinges, #CCCCFF and #333366, end a lavender ramp the window and control
+	// definitions draw in thirds, which the theme holds in theme-02, -03, -04
+	// and -07 (every tinge the 256-color captures show).
+	it("takes its window slots and tinge ramp from the Standard wctb and cctb", () => {
+		const [, color] = system7Json.presets;
+		const wctb = {
+			wContentColor: WHITE,
+			wFrameColor: BLACK,
+			wTextColor: BLACK,
+			wDialogLight: 0xccccff,
+			wTingeLight: 0xccccff,
+			wTingeDark: 0x333366,
+		};
+		const cctb = { cTingeLight: 0xccccff, cTingeDark: 0x333366 };
+		expect(color.color.window.document).toBe(wctb.wContentColor);
+		expect(color.color.window.border).toBe(wctb.wFrameColor);
+		expect(color.color.window.title).toBe(wctb.wTextColor);
+		expect(color.color.window.borderOutset).toBe(wctb.wTingeLight);
+		expect(cctb.cTingeLight).toBe(wctb.wTingeLight);
+		expect(cctb.cTingeDark).toBe(wctb.wTingeDark);
+		const channels = (rgb: number) => [
+			rgb >> 16,
+			(rgb >> 8) & 0xff,
+			rgb & 0xff,
+		];
+		const third = (light: number, dark: number, n: number) =>
+			channels(light)
+				.map((c, i) => Math.round((c * (3 - n) + channels(dark)[i] * n) / 3))
+				.reduce((rgb, c) => (rgb << 8) | c, 0);
+		const ramp = [0, 1, 2, 3].map((n) =>
+			third(wctb.wTingeLight, wctb.wTingeDark, n),
+		);
+		expect(ramp).toEqual([0xccccff, 0x9999cc, 0x666699, 0x333366]);
+		const { theme } = color.color;
+		expect([theme[1], theme[2], theme[3], theme[6]]).toEqual(ramp);
+		expect(color.color.window.borderInset).toBe(ramp[1]);
+	});
+
+	// The slots the window chrome reads hold, in the 1-bit theme, the black
+	// or white the 1-bit captures show for the color theme's value (the box
+	// ring's lower and right sides black, the bevel and fills white).
+	it("maps each window-chrome slot to black or white in the 1-bit theme", () => {
+		const [bw] = system7Json.presets;
+		expect(bw.color.window.borderOutset).toBe(BLACK);
+		expect(bw.color.window.borderInset).toBe(WHITE);
+		expect(bw.color.theme.slice(0, 2)).toEqual([WHITE, WHITE]);
+		expect(bw.color.theme.slice(4)).toEqual([BLACK, BLACK, BLACK]);
+		expect(bw.color.system.slice(2)).toEqual([
+			WHITE,
+			WHITE,
+			BLACK,
+			BLACK,
+			BLACK,
+		]);
+	});
+
+	// HIG p.207, p.88: Chicago 12 for interface text, Geneva 9 for small text
+	// and icon labels; 32 px icons.
+	it("sets Chicago 12, Geneva 9 and 32 px icons in both themes", () => {
+		for (const theme of system7Json.presets) {
+			expect(theme.typography.ui).toMatch(/^"ChicagoFLF"/);
+			expect(theme.typography.uiSize).toBe(12);
+			expect(theme.typography.body).toMatch(/^"Geneva"/);
+			expect(theme.typography.bodySize).toBe(9);
+			expect(theme.desktop.iconSize).toBe(32);
+			expect(theme.desktop.iconFontSize).toBe(9);
+		}
+	});
+
+	// The windoid's 13-row bar is Apple Guide's (`*-floating-appleguide.png`),
+	// with its 9 px close box (the bar less two borders above and below).
+	it("sets System 7's window metrics: 11 px boxes, a 16 px scroll bar, a 19 px title bar", () => {
+		for (const theme of system7Json.presets)
+			expect(theme.measurements.window).toEqual({
+				borderSize: 1,
+				controlSize: 11,
+				paddingSize: 6,
+				scrollbarSize: 16,
+				titleBarHeight: 19,
+				utilityTitleBarHeight: 13,
+			});
+	});
+
+	// The window chrome's knobs (styles/components/_Window.scss), measured
+	// from the 7.5 captures: the stripes and the gaps around the boxes and
+	// the title are the same at both depths; the boxes' bevel and the size
+	// box's squares differ by a pixel between them.
+	it("emits the window chrome's knobs, the 1-bit theme without bevels", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		for (const theme of [bw, color])
+			expect(vars(theme)).toMatchObject({
+				"--title-bar-stripe-inset": "1px",
+				"--title-bar-box-margin": "8px",
+				"--title-bar-box-gap": "1px",
+				"--title-bar-title-gap": "6px",
+				"--title-bar-title-top": "2px",
+				"--box-pixel": "1px",
+				"--box-zoom-glyph": "7px",
+				"--grow-box-small-offset": "2px",
+				"--grow-box-large-size": "9px",
+				"--utility-title-bar-box-margin": "3px",
+				"--utility-title-bar-dot-inset": "3px",
+				"--utility-title-bar-texture-width": "3px",
+				"--window-utility-control-box-size": "9px",
+			});
+		expect(vars(bw)).toMatchObject({
+			"--box-bevel": "0px",
+			"--grow-box-small-size": "7px",
+			"--grow-box-large-offset": "4px",
+		});
+		expect(vars(color)).toMatchObject({
+			"--box-bevel": "1px",
+			"--grow-box-small-size": "6px",
+			"--grow-box-large-offset": "3px",
+		});
+	});
+
+	// A family's knobs emit as `--<family>-<key>`: a family named
+	// `window…` would emit inside the core `window` family's names, where a
+	// core key added later (`window.boxBevel`, say) would take the name and
+	// win (core inputs beat package families). So System 7's own families
+	// keep out of every core family's namespace but `controlStrip`, the
+	// Control Strip's, which the core floor declares itself.
+	it("keeps its own knob families out of the core families' names", () => {
+		const kebab = (name: string) =>
+			name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+		const core = ["window", "control", "button", "groupBox", "layout"];
+		for (const theme of [system7Json.defaults, ...system7Json.presets])
+			for (const family of Object.keys(theme.measurements ?? {})) {
+				if (core.includes(family) || family === "controlStrip") continue;
+				for (const owner of core)
+					expect(kebab(family).startsWith(`${kebab(owner)}-`), family).toBe(
+						false,
+					);
+			}
+	});
+
+	// The Control Strip's own colors, measured from Control Strip 1.3.1 in
+	// System 7.5.5 (`*-controlstrip*.png`): the face and the shadow below a
+	// cell, and a pressed cell's dark edge and face; white or black in 1-bit,
+	// where the grays draw through the 50% checker (_ControlStrip.scss). A
+	// pressed collapse box's glyph (`*-755-controlstrip-collapse-pressed.png`)
+	// takes its black to the ink (white in 1-bit: inverted), its white to the
+	// light (#777777; black in 1-bit) and its darkest grays to the dark
+	// (#222222; the 1-bit art draws none).
+	it("colors the Control Strip as 7.5.5's, white and black in 1-bit", () => {
+		const strip = (theme: (typeof system7Json.presets)[number]) =>
+			theme.color.families.controlStrip;
+		const [bw, color] = system7Json.presets;
+		expect(strip(color)).toEqual({
+			face: 0xcccccc,
+			darkEdge: 0x444444,
+			shadow: 0xaaaaaa,
+			pressedFace: 0x888888,
+			pressedGlyphInk: BLACK,
+			pressedGlyphLight: 0x777777,
+			pressedGlyphDark: 0x222222,
+		});
+		expect(strip(bw)).toEqual({
+			face: WHITE,
+			darkEdge: BLACK,
+			shadow: BLACK,
+			pressedFace: WHITE,
+			pressedGlyphInk: WHITE,
+			pressedGlyphLight: BLACK,
+			pressedGlyphDark: BLACK,
+		});
+		expect(strip(system7Json.defaults)).toEqual(strip(bw));
+		expect(Object.keys(system7Json.colorFamilies.controlStrip.colors)).toEqual([
+			"face",
+			"darkEdge",
+			"shadow",
+			"pressedFace",
+			"pressedGlyphInk",
+			"pressedGlyphLight",
+			"pressedGlyphDark",
+		]);
+	});
+
+	// The dimmed ink (styles/components/_Menu.scss): theme-06, the one slot
+	// System 7 draws nothing else with, is the 7.5 dimmed menu text's #888888
+	// in color and black in 1-bit, where the dither draws it at 50%.
+	it("dedicates theme-06 to the dimmed ink: gray in color, black dithered in 1-bit", () => {
+		const [bw, color] = system7Json.presets;
+		expect(color.color.theme[5]).toBe(0x888888);
+		expect(bw.color.theme[5]).toBe(BLACK);
+		expect(bw.measurements.dither.tileSize).toBe(2);
+		expect(color.measurements.dither.tileSize).toBe(0);
+	});
+
+	// The menu titles' art inverts open by its own knob, a 1 px tile in black
+	// and white and none in color (styles/components/_MenuBar.scss), apart
+	// from the icons' iconSelection.invert.
+	it("emits menuBar.titleArtInvert, 1 px in 1-bit and 0 in color", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (id: string) => {
+			const theme = presets.find((t) => t.id === id);
+			if (!theme) throw new Error(`no preset ${id}`);
+			return getThemeVars(theme) as Record<string, string>;
+		};
+		expect(vars("system7")["--menu-bar-title-art-invert"]).toBe("1px");
+		expect(vars("system7-color")["--menu-bar-title-art-invert"]).toBe("0px");
+	});
+
+	// The menus' knobs (styles/components/_Menu.scss, _MenuBar.scss,
+	// _PopUpMenu.scss), measured from the 7.5 menu captures, the same at both
+	// depths; and the menu bar's 20 px band, which windows keep clear of.
+	it("emits the menus' knobs and a 20 px menu bar in both themes", async () => {
+		await import("./index");
+		for (const theme of (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--menu-bar-height": "20px",
+				"--menu-bar-inset": "9px",
+				// The Application menu's title ends 6 px from the screen's
+				// right edge (`*-755-appmenu-closed.png`, story 0214-c61).
+				"--menu-bar-end-inset": "6px",
+				"--menu-bar-switcher-title-start": "9px",
+				"--menu-bar-switcher-title-end": "9px",
+				"--menu-bar-title-padding": "10px",
+				"--menu-bar-title-overlap": "5px",
+				"--menu-bar-highlight-top": "1px",
+				"--menu-bar-line-height": "16px",
+				"--menu-bar-title-art-size": "16px",
+				"--menu-bar-apple-title-start": "6px",
+				"--menu-bar-apple-title-end": "7px",
+				"--menu-bar-help-title-start": "8px",
+				"--menu-bar-help-title-end": "9px",
+				"--menu-bar-help-title-drop": "1px",
+				// The clock's padding before the Help title: its last ink two
+				// pixels before Help's box (`*-755-appmenu-closed.png`, story
+				// 0216-1im F2).
+				"--menu-bar-clock-end": "1px",
+				"--menu-frame-shadow-start": "2px",
+				"--menu-frame-submenu-overlap": "5px",
+				"--menu-item-height": "16px",
+				"--menu-item-line-height": "14px",
+				"--menu-item-text-inset": "14px",
+				"--menu-item-text-end": "14px",
+				"--menu-item-mark-inset": "3px",
+				"--menu-item-mark-top": "4px",
+				"--menu-item-shortcut-width": "22px",
+				"--menu-item-arrow-inset": "8px",
+				"--menu-item-arrow-top": "2px",
+				"--menu-item-divider-top": "8px",
+				"--menu-item-image-size": "16px",
+				"--menu-item-image-pad": "1px",
+				"--menu-item-image-gap": "4px",
+				"--pop-up-menu-height": "18px",
+				"--pop-up-menu-arrow-top": "5px",
+				"--pop-up-menu-arrow-inset": "5px",
+			});
+	});
+
+	// Small UI text is 9 px, System 7's small size, set by the optional knob
+	// uiText.smallFontSize: uiSize × 0.8 would be 9.6 px (story 0210-aal).
+	it("draws small UI text at 9 px in both themes and the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const themes = [pkg?.defaults, ...(pkg?.presets ?? [])] as ClassicyTheme[];
+		expect(themes).toHaveLength(3);
+		for (const theme of themes) {
+			expect(theme.typography.uiSize).toBe(12);
+			expect(getThemeVars(theme)).toMatchObject({
+				"--ui-font-size-small": "9px",
+				"--ui-font-size": "12px",
+			});
+		}
+	});
+
+	// 7.5.5 draws its small UI text in Geneva 9 under Chicago 12 (the Memory
+	// control panel's slider ticks and labels, `*-755-slider-dragging.png`):
+	// the optional `typography.uiSmall` (story 0214-c61).
+	it("draws small UI text in Geneva in both themes and the defaults", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		const themes = [pkg?.defaults, ...(pkg?.presets ?? [])] as ClassicyTheme[];
+		expect(themes).toHaveLength(3);
+		for (const theme of themes)
+			expect(getThemeVars(theme)).toMatchObject({
+				"--ui-font": '"ChicagoFLF", "Geneva", sans-serif',
+				"--ui-font-small": '"Geneva", sans-serif',
+			});
+	});
+
+	// The dialogs', alerts' and push buttons' knobs (styles/components/
+	// _Dialog.scss, _Alert.scss, _Button.scss and the window header in
+	// _Window.scss), measured from the 7.5 captures. The modal frame differs
+	// by depth: no bevels and a two-pixel white band and black line in 1-bit,
+	// three one-pixel rings and a one-pixel line in color.
+	// Story 0217-etx, from the 7.5 captures: SimpleText's alert 370 px
+	// outside (its text wrapping), short push buttons 60 wide (SimpleText's
+	// Cancel and Save), and Standard File's folder pop-up (its name 3 px past
+	// the icon, 6 px of ink to the triangle, its icon and name a row lower
+	// than a plain pop-up's), the disk's condensed name (4 pixels of white
+	// past its icon, ChicagoFLF's side bearing one of them) and the Save name
+	// field (7 rows under its label's top).
+	it("emits the alert width, button width and Standard File knobs the 7.5 captures measure", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [
+			bw,
+			color,
+			system7Json.defaults as unknown as ClassicyTheme,
+		])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--dialog-alert-max-width": "324px",
+				"--button-min-width": "60px",
+				"--pop-up-menu-value-icon-gap": "3px",
+				"--file-dialog-pop-up-tail": "5px",
+				"--file-dialog-save-pop-up-tail": "5px",
+				"--file-dialog-pop-up-content-drop": "1px",
+				"--file-dialog-volume-condense": "1px",
+				"--file-dialog-volume-gap": "3px",
+				"--file-dialog-save-name-gap": "3px",
+			});
+	});
+
+	// A file a Save box cannot choose dims its icon by the hidden-app rule in
+	// color (every pixel of SimpleText's icon in
+	// `color-dialog-standardfile-save.png`), and by the stylesheet's checker
+	// in 1-bit.
+	it("dims a row's icon that cannot be chosen as a hidden application's", async () => {
+		await import("./index");
+		const dimming = getClassicyAppearancePackage("system7")?.iconDimming;
+		expect(dimming?.disabledItem).toEqual(dimming?.hiddenApp);
+		expect(dimming?.variants?.bw).toEqual({
+			hiddenApp: null,
+			disabledItem: null,
+		});
+	});
+
+	it("emits the dialogs', alerts' and push buttons' knobs", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [bw, color])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--title-bar-modal-stripe-inset": "2px",
+				"--dialog-frame-inset": "13px",
+				"--alert-layout-icon-top": "13px",
+				"--alert-layout-icon-inset": "23px",
+				"--alert-layout-text-top": "12px",
+				"--alert-layout-text-gap": "21px",
+				"--alert-layout-edge": "13px",
+				"--alert-layout-line-height": "16px",
+				"--alert-layout-other-button-inset": "73px",
+				"--push-button-line-height": "16px",
+				"--push-button-text-lift": "2px",
+				"--push-button-label-shift": "0.5px",
+				"--header-strip-height": "17px",
+				"--header-strip-rule": "3px",
+				"--button-default-ring": "3px",
+			});
+		expect(getThemeVars(bw)).toMatchObject({
+			"--dialog-frame-bevel": "0px",
+			"--dialog-frame-band": "2px",
+			"--dialog-frame-line": "2px",
+		});
+		expect(getThemeVars(color)).toMatchObject({
+			"--dialog-frame-bevel": "1px",
+			"--dialog-frame-band": "1px",
+			"--dialog-frame-line": "1px",
+		});
+	});
+
+	// The controls' knobs (styles/components/_Checkbox.scss, _LittleArrows.scss,
+	// _TextField.scss, _ListBox.scss), measured from the 7.5 captures: the
+	// same at both depths, since the HIG draws controls black on white in
+	// color too (p.259).
+	it("emits the controls' knobs, the same in both themes", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		for (const theme of [bw, color])
+			expect(getThemeVars(theme)).toMatchObject({
+				"--check-box-size": "12px",
+				"--check-box-label-gap": "4px",
+				"--radio-button-size": "12px",
+				"--little-arrows-width": "11px",
+				"--little-arrows-height": "18px",
+				"--little-arrows-gap": "5px",
+				"--text-field-inset": "3px",
+				"--text-field-lift": "2px",
+				"--list-box-row-height": "16px",
+				// Sound's list sets its text a pixel higher in the row than
+				// centered (story 0218-ll9).
+				"--list-box-text-lift": "1px",
+				"--combo-box-indicator-width": "20px",
+				"--outline-triangle-size": "11px",
+				"--channel-slider-channel": "13px",
+				"--channel-slider-thumb-along": "11px",
+				"--channel-slider-thumb-across": "23px",
+				"--channel-slider-thumb-overhang": "5px",
+				"--channel-slider-thumb-stop": "5px",
+				// The text field and the progress bar (the Copy dialog's) are
+				// the core's derivations: 22 and 11 pixels.
+				"--edit-field-height": "22px",
+				"--progress-height": "11px",
+			});
+	});
+
+	// The scroll bar (styles/components/_ScrollBar.scss): a 16 px box at both
+	// depths; the color theme's arrow-box shadow and grip, the 1-bit theme's
+	// wider arrows.
+	it("emits the scroll bars' knobs, the color bevel and grip and the 1-bit spread", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		expect(vars(bw)).toMatchObject({
+			"--scroll-bar-box-length": "16px",
+			"--scroll-bar-bevel": "0px",
+			"--scroll-bar-arrow-spread": "1px",
+			"--scroll-bar-grip": "0px",
+			"--scroll-bar-snap-back": "24px",
+			"--window-scrollbar-size": "16px",
+		});
+		expect(vars(color)).toMatchObject({
+			"--scroll-bar-box-length": "16px",
+			"--scroll-bar-bevel": "1px",
+			"--scroll-bar-arrow-spread": "0px",
+			"--scroll-bar-grip": "6px",
+			"--scroll-bar-snap-back": "24px",
+			"--window-scrollbar-size": "16px",
+		});
+		// The defaults are the 1-bit theme's.
+		expect(system7Json.defaults.measurements.scrollBar).toEqual(
+			system7Json.presets[0].measurements.scrollBar,
+		);
+	});
+
+	it("emits the Control Strip's bevel, the icon labels' knobs and the 1-bit icon switch", async () => {
+		await import("./index");
+		const [bw, color] = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		const vars = (theme: ClassicyTheme | undefined) =>
+			theme ? getThemeVars(theme) : {};
+		const labels = {
+			"--icon-label-height": "12px",
+			"--icon-label-pad": "2px",
+			"--icon-label-text-top": "2px",
+			"--desktop-icon-font-size": "9px",
+		};
+		// The 1-bit strip bevels too: its grays are the 50% checker
+		// (`bw-controlstrip.png`).
+		expect(vars(bw)).toMatchObject({
+			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-start": "1px",
+			"--icon-selection-invert": "1px",
+			...labels,
+		});
+		expect(vars(color)).toMatchObject({
+			"--control-strip-bevel-width": "1px",
+			"--control-strip-shadow-start": "2px",
+			"--icon-selection-invert": "0px",
+			...labels,
+		});
+		// The strip's geometry is the core floor's (Control Strip 1.3.1 is
+		// the strip Mac OS 8 kept), System 7 adds only the bevel.
+		expect(Object.keys(system7Json.defaults.measurements.controlStrip)).toEqual(
+			["bevelWidth", "shadowStart"],
+		);
+		expect(system7Json.defaults.measurements.iconLabel).toEqual(
+			system7Json.presets[0].measurements.iconLabel,
+		);
+		expect(system7Json.defaults.measurements.iconSelection).toEqual(
+			system7Json.presets[0].measurements.iconSelection,
+		);
+	});
+
+	// Story 0197-s0z: the Finder list view draws System 7's small icons
+	// (`ics#`, `ics8`; HIG p.234) at their own 16 px, which no scale of the
+	// 32 px desktop icon gives (0.375 x 32 = 12). The other steps stay scaled.
+	it("draws the list view's icons at 16 px in both themes", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		expect(presets).toHaveLength(2);
+		for (const theme of presets) {
+			const vars = getThemeVars(theme) as Record<string, string>;
+			expect(vars["--file-browser-list-medium-icon-size"]).toBe("16px");
+			expect(vars["--file-browser-list-small-icon-size"]).toBeUndefined();
+			expect(vars["--file-browser-list-large-icon-size"]).toBeUndefined();
+			// 7.5.5's rows are 18 px apart (`*-755-finder-list-row-selected.png`,
+			// story 0214-c61): the 16 px icon and 1 px above and below, with
+			// no line between rows (_Icon.scss).
+			expect(vars["--file-browser-list-row-padding"]).toBe("1px");
+			// A row's parts from the window's inner edge, as 7.5.5 draws them
+			// (story 0216-1im F10): the triangle's 11 px box in a 15 px gutter,
+			// 4 rows down; the icon 7 px after it; the name 10 px after that.
+			expect(vars["--file-browser-list-disclosure-width"]).toBe("15px");
+			expect(vars["--file-browser-list-disclosure-top"]).toBe("4px");
+			expect(vars["--file-browser-list-icon-start"]).toBe("7px");
+			expect(vars["--file-browser-list-icon-end"]).toBe("10px");
+			// The column titles above the list (story 0216-1im F9): the name
+			// column's a pixel into the names' boxes, and a row below the
+			// band's middle.
+			expect(vars["--file-browser-list-title-inset"]).toBe("1px");
+			expect(vars["--header-strip-title-drop"]).toBe("1px");
+			// The sorted title's underline, a pixel thick 12 rows below its
+			// title's top (row 203 of the band from 190, the title a row
+			// down), drawn as a box so no engine's underline metrics move it.
+			expect(vars["--header-strip-underline-top"]).toBe("12px");
+			expect(vars["--header-strip-underline"]).toBe("1px");
+		}
+		expect(system7Json.defaults.measurements.fileBrowserList).toEqual({
+			mediumIconSize: 16,
+			rowPadding: 1,
+			disclosureWidth: 15,
+			disclosureTop: 4,
+			iconStart: 7,
+			iconEnd: 10,
+			titleInset: 1,
+		});
+	});
+
+	// 7.5's desktop icons (`*-desktop-menubar-icons.png`, story 0216-1im
+	// F3): label tops at y 60, 112, 164, 216, so 32 px icon boxes from y 28
+	// on a 52 px pitch, the icon, its 12-row label and 8 px below. The
+	// optional knobs `desktopIconGrid.rowGap` (20, added to the icon size,
+	// so the pitch follows an edited one) and `top` (28) declare it.
+	it("lays desktop icons out on 7.5's rows in both themes", async () => {
+		await import("./index");
+		const presets = (getClassicyAppearancePackage("system7")?.presets ??
+			[]) as ClassicyTheme[];
+		expect(presets).toHaveLength(2);
+		for (const theme of presets) {
+			expect(theme.measurements.desktopIconGrid).toEqual({
+				rowGap: 20,
+				top: 28,
+			});
+			expect(classicyDesktopIconMetrics(theme)).toMatchObject({
+				size: 32,
+				rowPitch: 52,
+				top: 28,
+			});
+		}
+		expect(system7Json.defaults.measurements.desktopIconGrid).toEqual({
+			rowGap: 20,
+			top: 28,
+		});
+	});
+
+	// A forked (Custom) System 7 theme is persisted without the knob values
+	// equal to its package's defaults (H-R17), and the load path refills the
+	// core five families only, so the knobs must come from the package's
+	// defaults when the theme lacks them, as getThemeVars reads them.
+	it("keeps 7.5's rows for a Custom theme as it is persisted", async () => {
+		await import("./index");
+		const preset = (getClassicyAppearancePackage("system7")?.presets ??
+			[])[0] as ClassicyTheme;
+		const custom = {
+			...preset,
+			id: "custom-system7",
+			name: "Custom",
+		} as ClassicyTheme;
+		const state = produce(DefaultAppManagerState, (draft) => {
+			draft.System.Manager.Appearance.packageId = "system7";
+			draft.System.Manager.Appearance.activeTheme = castDraft(custom);
+			draft.System.Manager.Appearance.customThemes = castDraft([custom]);
+		});
+		const stored =
+			sanitizeStateForPersistence(state).System.Manager.Appearance.activeTheme;
+		// Stripped the way persistence strips it.
+		expect(stored.measurements.desktopIconGrid).toBeUndefined();
+		expect(classicyDesktopIconMetrics(stored)).toMatchObject({
+			size: 32,
+			rowPitch: 52,
+			top: 28,
+		});
+		// And once the load path's migration has run over it.
+		const loaded = migrateClassicyState(
+			JSON.parse(JSON.stringify(sanitizeStateForPersistence(state))),
+		).System.Manager.Appearance.activeTheme;
+		expect(classicyDesktopIconMetrics(loaded)).toMatchObject({
+			rowPitch: 52,
+			top: 28,
+		});
+	});
+
+	// The slider's thumb overhangs its channel the same on both sides
+	// (_Slider.scss centers it by the overhang).
+	it("centers the slider's thumb across its channel", () => {
+		for (const theme of system7Json.presets) {
+			const { channel, thumbAcross, thumbOverhang } =
+				theme.measurements.channelSlider;
+			expect(channel + thumbOverhang + thumbOverhang).toBe(thumbAcross);
+		}
+	});
+
+	// The progress bar's track and fill (_ProgressBar.scss): #CCCCFF and
+	// #444444 (half #333333, half #555555) in color, white and black in 1-bit.
+	it("draws the progress bar from the tinge ramp in color, black and white in 1-bit", () => {
+		const [bw, color] = system7Json.presets;
+		expect([color.color.theme[1], color.color.theme[4]]).toEqual([
+			0xccccff, 0x333333,
+		]);
+		expect(color.color.system[6]).toBe(0x555555);
+		expect([bw.color.theme[1], bw.color.theme[4], bw.color.system[6]]).toEqual([
+			WHITE,
+			0,
+			0,
+		]);
+	});
+
+	// HIG p.190: "The outer line is one pixel thick and the inner line is two
+	// pixels thick", two white pixels apart, in 1-bit; color's bevels and
+	// band fill the same five pixels (the 7.5 captures).
+	it("frames a modal dialog five pixels deep at both depths, in its own colors", () => {
+		const [bw, color] = system7Json.presets;
+		for (const theme of [bw, color]) {
+			const { bevel, band, line } = theme.measurements.dialogFrame;
+			expect(
+				theme.measurements.window.borderSize + bevel + band + bevel + line,
+			).toBe(5);
+		}
+		// The band (system-02) is white in 1-bit and the cctb's gray in color;
+		// the bevels' light and dark (theme-02, theme-04) the tinge ramp's.
+		expect(bw.color.system[1]).toBe(WHITE);
+		expect(color.color.system[1]).toBe(0xbbbbbb);
+		expect([color.color.theme[1], color.color.theme[3]]).toEqual([
+			0xccccff, 0x666699,
+		]);
+	});
+
+	it("completes each theme from the core floor and its own measurements", async () => {
+		await import("./index");
+		const floor = classicyThemeMeasurementDefaults("system7");
+		for (const theme of getClassicyAppearancePackage("system7")?.presets ??
+			[]) {
+			expect(Object.keys(theme.measurements)).toEqual(
+				Object.keys(system7Json.defaults.measurements),
+			);
+			expect(theme.measurements.window.controlSize).toBe(11);
+			expect(Object.keys(floor)).toEqual(
+				expect.arrayContaining(Object.keys(theme.measurements)),
+			);
+		}
+		// The package's defaults win over the core floor's.
+		expect(floor.window.scrollbarSize).toBe(16);
+		expect(floor.dither.tileSize).toBe(2);
+	});
+
+	// 7.5.5's Application menu title is the Finder's small icon, the System
+	// file's Macintosh (`system.mac`): the 16 px image found at AE 0 in
+	// `*-755-appmenu-closed.png` (review r0 Important 7).
+	it("shows the Finder by the Macintosh icon", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.apps).toEqual({
+			"Finder.app": { icon: ClassicyIcons.system.mac },
+		});
+	});
+
+	it("lays out as the HIG does: grow box bottom right, menu bar on the screen, icons from the top right", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.layout).toEqual({
+			// A centered window (an alert, a dialog) on whole pixels, so its
+			// one-pixel frame and Chicago text are never resampled.
+			window: { growBoxCorner: "bottom-right", centering: "wholePixel" },
+			menuBar: { placement: "screen" },
+			desktop: { iconGridOrigin: "top-right" },
+			// The scroll box stays put, an outline follows the pointer and the
+			// content scrolls on release (HIG p.165); a document window keeps
+			// its bars, inactive, while its document fits (p.160); the track's
+			// dots lie from the window's content origin, as QuickDraw laid a
+			// pattern from the window's port (story 0217-etx).
+			scrollBar: {
+				thumbDrag: "onRelease",
+				fitsBars: "shown",
+				patternOrigin: "window",
+			},
+			// Every dither lies from the window's content origin (outside a
+			// window, the screen's corner), as 7.5 laid its patterns from the
+			// window's port, so a part keeps the window's phase wherever it
+			// sits (story 0219-c62): the components, and the dimmed and dotted
+			// elements its stylesheet masks (system7.css.test.ts).
+			patternOrigin: {
+				ControlGroup: "window",
+				PopUpMenu: "window",
+				Separator: "window",
+				Slider: "window",
+				elements: expect.any(Array),
+			},
+			// Standard File is a fixed modal dialog box
+			// (`*-755-dialog-standardfile-layout.png`, story 0214-c61).
+			// and browses one folder at a time (fix round 1, ruling R4); the
+			// Save box opens with its default name selected
+			// (`*-dialog-standardfile-save.png`, story 0217-etx).
+			fileDialog: { frame: "fixed", navigation: "flat", saveName: "selected" },
+			// The Finder's list view titles sit above the list, over the
+			// scroll bar (`*-755-finder-list-row-selected.png`, story
+			// 0216-1im F9).
+			fileBrowser: { listColumnTitles: "aboveList" },
+		});
+	});
+
+	it("registers its own sound pack, which both themes name, and lists it once", async () => {
+		const { system7SoundPack } = await import("./assets/sounds/system7");
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.sounds).toEqual([
+			system7SoundPack,
+		]);
+		expect(getClassicySoundPack("system7")).toEqual(system7SoundPack);
+		expect(listClassicySoundPacks().map((pack) => pack.id)).toEqual([
+			"system7",
+		]);
+		for (const theme of system7Json.presets)
+			expect(theme.sound.pack).toBe("system7");
+		// System 7.5's six alerts, Simple Beep the default (plan 0018-dbd
+		// §4.2; system7.alerts.test.ts).
+		expect(system7SoundPack.alerts).toHaveLength(6);
+		expect(system7SoundPack.defaultAlert).toBe("ClassicyAlertSimpleBeep");
+	});
+
+	// The After Dark savers register under System 7 too (plan 0018-dbd
+	// §3.8; System7ScreenSavers.test.tsx).
+	it("names bouncing-ball its default screen saver", async () => {
+		await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		expect(pkg?.defaultScreenSaver).toBe("bouncing-ball");
+	});
+
+	// The Themes tab shows the System file's icon (plan 0018-dbd §4.1).
+	it("shows the System file's suitcase as its icon", async () => {
+		await import("./index");
+		expect(getClassicyAppearancePackage("system7")?.icon).toMatch(
+			/\/icons\/color\/32\/system-folders-suitcase-system\.png$/,
+		);
+	});
+
+	// System 7 had no interface feedback sounds: its one hook blinks a chosen
+	// menu item (HIG p.56); hooks.test.ts proves it plays nothing.
+	it("hooks only the menu item's blink", async () => {
+		const { system7AppearanceHooks } = await import("./index");
+		const pkg = getClassicyAppearancePackage("system7");
+		expect(pkg?.hooks).toBe(system7AppearanceHooks);
+		expect(Object.keys(system7AppearanceHooks.on ?? {})).toEqual(["MenuItem"]);
+		const menuItem = system7AppearanceHooks.on?.MenuItem ?? {};
+		expect(Object.keys(menuItem).sort()).toEqual(["press", "release"]);
+		const ctx = {
+			component: "MenuItem",
+			event: "press",
+			detail: { itemId: "x" },
+		} as never;
+		// Three blinks, System 7's default (HIG figure 7-9, General Controls'
+		// Menu Blinking: Off, 1, 2, 3), each one cycle of the keyframes.
+		expect(menuItem.press?.(ctx)).toEqual({
+			className: "classicyMenuItemFlash",
+			style: { animationIterationCount: 3 },
+		});
+		expect(menuItem.release?.(ctx)).toEqual({});
+		expect(Object.isFrozen(system7AppearanceHooks.on)).toBe(true);
+	});
+
+	it("exports its id and a frozen copy of its theme data", async () => {
+		const mod = await import("./index");
+		expect(mod.SYSTEM7_APPEARANCE_PACKAGE_ID).toBe("system7");
+		expect(mod.system7Json).toEqual(system7Json);
+		expect(mod.system7Json).not.toBe(system7Json);
+		expect(Object.isFrozen(mod.system7Json.presets[1].color.theme)).toBe(true);
+	});
+});

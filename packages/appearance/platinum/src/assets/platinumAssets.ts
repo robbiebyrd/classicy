@@ -1,6 +1,8 @@
 import {
+	type ClassicyAssetTree,
 	type ClassicyFontFace,
 	ClassicyIcons,
+	registerClassicyAssets,
 	registerClassicyCursors,
 	registerClassicyFonts,
 	registerClassicySystemArt,
@@ -8,6 +10,7 @@ import {
 } from "@classicy/classicy";
 import aliasBadge from "./art/alias.png";
 import appleMenu from "./art/apple.png";
+import folderSmall from "./art/folder-small.png";
 import helpButton from "./art/help-button.png";
 import { platinumArt as art, PLATINUM_SYSTEM_ART } from "./art/platinumArt";
 import trashEmpty from "./art/trash-empty.png";
@@ -43,12 +46,21 @@ const PLATINUM = "platinum";
  * icon-tree files, because the core draws them too (the screen saver's logos,
  * the pre-boot screen).
  *
- * Not registered (Platinum registers 36 of the 39 `ClassicySystemArtKey`s; the
+ * Not registered (Platinum registers 36 of the 45 `ClassicySystemArtKey`s; the
  * rest resolve to `undefined`): `menuCheck` and `menuDash` are `::before`
  * glyphs in the Platinum package, so those keys have no file at all;
- * `aboutBackground` has no Platinum art. `triangle` and `downArrow` are
- * aliases of `submenuArrow` and `popupArrows`: `registerClassicySystemArt`
- * registers each with its key, so they are not listed here.
+ * `aboutBackground` has no Platinum art; Platinum draws no dithers, so it has
+ * no `ditherChecker`, and its Help menu title is the word, so it has no
+ * `helpMenuTitle` (registering one would change its menu bar); docked right
+ * its Control Strip mirrors the left tab, so it has no
+ * `controlStripTabRight`; it labels New Folder in words and draws a folder
+ * for the folder shown, so it has no `newFolderGlyph` or `openFolderIcon`,
+ * and its file dialog's folders are the folder icon, so it has no
+ * `fileDialogFolderIcon`.
+ * `triangle`
+ * and `downArrow` are aliases of `submenuArrow` and `popupArrows`:
+ * `registerClassicySystemArt` registers each with its key, so they are not
+ * listed here.
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu,
@@ -71,6 +83,23 @@ registerClassicySystemArt(PLATINUM, {
 	...PLATINUM_SYSTEM_ART,
 	...PLATINUM_PIXEL_ART,
 });
+
+/**
+ * The list view's 16 px folder (HIGOS8 Fig. 2-24, p.38, and Fig. 2-43, p.51),
+ * cut pixel for pixel from Fig. 2-24, as the generic folder's own small
+ * image: drawn at 16 px and under (`resolveClassicyIconImage`), where the
+ * core's 32 px folder, which stays the leaf's image, would be scaled.
+ */
+registerClassicyAssets("icons", PLATINUM, {
+	system: {
+		folders: {
+			directory: {
+				src: ClassicyIcons.system.folders.directory,
+				small: folderSmall,
+			},
+		},
+	},
+} as ClassicyAssetTree);
 
 /**
  * Platinum's cursors by role. `ibeam`, `crosshair`, `resizeNwse` and
@@ -115,6 +144,8 @@ const fontModules = import.meta.glob("./fonts/*.woff2", {
 /**
  * Platinum's thirteen bundled faces, woff2 only (baseline in every supported
  * browser), from the list dist/classicy-platinum.fonts.css is built from.
+ * Each names its `file`, so another package shipping the same file (System
+ * 7's five faces) shares its rule rather than writing it again.
  */
 registerClassicyFonts(
 	PLATINUM,
@@ -124,6 +155,7 @@ registerClassicyFonts(
 			src: fontModules[`./fonts/${file}.woff2`] ?? "",
 			weight,
 			style,
+			file,
 		}),
 	),
 );

@@ -227,7 +227,7 @@ function scanSourceTree(): { tokens: Set<string>; prefixes: Set<string> } {
 }
 
 describe("ClassicyVocabulary", () => {
-	it("CLASSICY_STATE has the 15 contract states", () => {
+	it("CLASSICY_STATE has the 16 contract states", () => {
 		expect(Object.keys(CLASSICY_STATE)).toEqual([
 			"active",
 			"inactive",
@@ -244,6 +244,7 @@ describe("ClassicyVocabulary", () => {
 			"checked",
 			"mixed",
 			"expanded",
+			"fits",
 		]);
 	});
 

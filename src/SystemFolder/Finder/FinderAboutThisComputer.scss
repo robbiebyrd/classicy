@@ -81,10 +81,10 @@
   white-space: nowrap;
 }
 
+// Scrolls in a ClassicyScrollArea (Classicy's own scroll bars).
 .finderAboutThisComputerUsage {
   border-top: var(--window-border-size) solid c.classicy-shade("--color-system-04", 10%);
   flex: 1;
-  overflow-y: auto;
   background-color: var(--color-system-01);
 }
 

@@ -13,8 +13,8 @@ import {
 	writeClassicyHost,
 } from "./check-host-types";
 
-// bin/check-host-types.ts packs both packages and type-checks a host against
-// them under each mode (the end of `build:source`, stories 0151-0cc and
+// bin/check-host-types.ts packs the packages (the core, Platinum and System 7)
+// and type-checks a host against them under each mode (the end of `build:source`, stories 0151-0cc and
 // 0153-k0e). Here the same host and the same tsc run against two tiny
 // hand-written packages, `"type": "module"` like the real ones, whose
 // declarations re-export through a dotted module name with or without `.js`,
@@ -53,6 +53,7 @@ const host = (extension: string, { untyped = false } = {}) => {
 		"types/Manager.Colors.d.ts": [
 			...(untyped ? ["import { Player } from 'untyped';"] : []),
 			"export type ClassicyTheme = { id: string; name: string };",
+			"export type ClassicySoundPack = { id: string };",
 			"export declare const registerClassicyAppearancePackage: (id: string) => void;",
 		].join("\n"),
 	});
@@ -68,6 +69,15 @@ const host = (extension: string, { untyped = false } = {}) => {
 			"import type { ClassicyTheme } from '@classicy/classicy';",
 			"export declare const platinumAppearanceHooks: object;",
 			"export declare const platinumJson: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
+		].join("\n"),
+	});
+	write(join(dir, "node_modules/@classicy/appearance-system7"), {
+		"package.json": manifest("@classicy/appearance-system7"),
+		"types/index.d.ts": `export * from './assets.sounds${extension}';\n`,
+		"types/assets.sounds.d.ts": [
+			"import type { ClassicySoundPack, ClassicyTheme } from '@classicy/classicy';",
+			"export declare const system7SoundPack: ClassicySoundPack;",
+			"export declare const system7Json: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
 		].join("\n"),
 	});
 	return Object.fromEntries(
@@ -102,6 +112,9 @@ describe("check-host-types.ts", () => {
 			);
 			expect(results[resolution].output, resolution).toContain(
 				`error TS2305: Module '"@classicy/appearance-platinum"' has no exported member 'platinumJson'.`,
+			);
+			expect(results[resolution].output, resolution).toContain(
+				`error TS2305: Module '"@classicy/appearance-system7"' has no exported member 'system7Json'.`,
 			);
 		}
 	}, 60_000);

@@ -436,7 +436,8 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 		});
 
 		// The fixture carries the core five only, so each theme is completed
-		// with Platinum's knob families (H 2.1) and the list is a copy.
+		// with Platinum's knob families (H 2.1) and its own colors, the gray
+		// ramp (Batch F-b), and the list is a copy.
 		const loaded = ds.System.Manager.Appearance.availableThemes ?? [];
 		expect(loaded).toHaveLength(2);
 		const { window, control, button, groupBox, layout, ...knobFamilies } =
@@ -444,6 +445,10 @@ describe("classicyDesktopEventHandler — ClassicyDesktopLoadThemes", () => {
 		loaded.forEach((theme, i) => {
 			expect(theme).toEqual({
 				...newThemes[i],
+				color: {
+					...newThemes[i].color,
+					families: platinumJson.defaults.color.families,
+				},
 				measurements: { ...newThemes[i].measurements, ...knobFamilies },
 			});
 		});

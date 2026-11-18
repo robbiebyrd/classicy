@@ -1,5 +1,3 @@
-@use "../../../Appearance/vocabulary/color" as c;
-
 // Half the legend's line box: the part of a title that overhangs above the
 // frame. A labeled group reserves it above its border; a stack subtracts it
 // so the HIG frame-to-frame distance holds.
@@ -23,16 +21,16 @@ $legend-overhang: var(--control-group-legend-overhang);
   }
 }
 
-// Primary group box: the 2px etched frame (1px light + 1px dark). The `groove`
-// keyword paints exactly that light/dark pair; the width is pinned to the HIG
-// 2px frame token shared with list boxes, edit-text frames and image wells.
+// Primary group box: the 2px frame width, pinned to the HIG token shared with
+// list boxes, edit-text frames and image wells. The etched look (`groove`) and
+// the secondary line color are the Platinum package's (_ControlGroup.scss).
 .classicyControlGroupFieldsetPrimary {
-  border: var(--control-frame-width) groove c.classicy-tint("--color-system-01", 6%);
+  border-width: var(--control-frame-width);
 }
 
 // Secondary group box: a single 1px line, no etch.
 .classicyControlGroupFieldsetSecondary {
-  border: var(--window-border-size) solid var(--color-system-05);
+  border-width: var(--window-border-size);
 }
 
 .classicyControlGroupFieldsetLabeled {

@@ -1,8 +1,10 @@
+import smallAppIcon from "@img/icon-16x16.png";
 import { desktopParameters, SB_ICON, StoryApp } from "@sb/helpers";
 import { mirroredParameters } from "@sb/mirrored";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { fn } from "storybook/test";
+import { useAppManagerDispatch } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAboutMenu } from "@/SystemFolder/SystemResources/App/ClassicyAppMenuHooks";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -92,6 +94,129 @@ const AppMenuWindow = () => {
 export const WithAppMenu: Story = {
 	parameters: desktopParameters,
 	render: () => <AppMenuWindow />,
+};
+
+/** Brings the Finder to the front and opens the App Switcher. */
+const SwitcherOpen = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
+			window.setTimeout(
+				() => document.querySelector<HTMLElement>("#app-switcher > p")?.click(),
+				100,
+			);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [dispatch]);
+	return <StoryApp id="storybook.app" name="Storybook" />;
+};
+
+/**
+ * The App Switcher (Mac OS 8's Application menu) open with the Finder in
+ * front and the Storybook app running: Hide Finder, Hide Others, Show All
+ * (dimmed: nothing is hidden), a divider, then each application by its small
+ * icon, the Finder checked (HIG7 p.127; HIGOS8 has no figure of the menu).
+ */
+export const AppSwitcherOpen: Story = {
+	parameters: desktopParameters,
+	render: () => <SwitcherOpen />,
+};
+
+/** Hides the others (the Storybook app), then opens the App Switcher. */
+const HiddenSwitcherOpen = () => {
+	const dispatch = useAppManagerDispatch();
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } });
+			dispatch({ type: "ClassicyAppHideOthers", app: { id: "Finder.app" } });
+			window.setTimeout(
+				() => document.querySelector<HTMLElement>("#app-switcher > p")?.click(),
+				100,
+			);
+		}, 300);
+		return () => window.clearTimeout(timer);
+	}, [dispatch]);
+	return <StoryApp id="storybook.app" name="Storybook" icon={smallAppIcon} />;
+};
+
+/**
+ * The App Switcher after Hide Others: Show All enabled, and the hidden
+ * Storybook app's icon dimmed by Platinum's `iconDimming` rule, as Mac OS
+ * 8.1 draws a hidden application (the capture script's
+ * `platinum-81-appmenu-hidden-app` on Infinite Mac). The app's icon is a
+ * 16 px image (`assets/img/icon-16x16.png`), so the rule shows at the
+ * menu's native icon size rather than on a scaled 32 px one.
+ */
+export const AppSwitcherHiddenApp: Story = {
+	parameters: desktopParameters,
+	render: () => <HiddenSwitcherOpen />,
+};
+
+// Enough rows to run past the bottom of a 768 px screen.
+const LONG_MENU_ROWS = 48;
+
+const LongMenuWindow = () => {
+	const appMenu: ClassicyMenuItem[] = useMemo(
+		() => [
+			{
+				id: "storybook.app_fonts",
+				title: "Fonts",
+				menuChildren: Array.from({ length: LONG_MENU_ROWS }, (_, i) => ({
+					id: `storybook.app_font_${i + 1}`,
+					title: `Font ${i + 1}`,
+					onClickFunc: fn(),
+				})),
+			},
+		],
+		[],
+	);
+	// Opens the Fonts menu once the desktop has settled, clicking its title
+	// as the user would until it stays open.
+	useEffect(() => {
+		let tries = 0;
+		let openTicks = 0;
+		const timer = window.setInterval(() => {
+			tries += 1;
+			const title = document.getElementById("storybook.app_fonts");
+			const opened = title?.classList.contains("open");
+			if (tries > 25 || (opened && openTicks++ > 2)) {
+				window.clearInterval(timer);
+			}
+			if (opened) return;
+			openTicks = 0;
+			title?.click();
+		}, 400);
+		return () => window.clearInterval(timer);
+	}, []);
+	return (
+		<StoryApp id="storybook.app" name="Storybook">
+			<ClassicyWindow
+				id="menus"
+				appId="storybook.app"
+				title="Menu Demo"
+				appMenu={appMenu}
+				initialSize={[360, 180]}
+				initialPosition={[80, 60]}
+			>
+				<p style={{ padding: "1em" }}>
+					This window&apos;s Fonts menu has {LONG_MENU_ROWS} items, more than
+					the screen holds.
+				</p>
+			</ClassicyWindow>
+		</StoryApp>
+	);
+};
+
+/**
+ * A pull-down too long for the screen, open: the list is capped so that its
+ * frame ends 4 px above the screen's bottom, its shadow drawn on a sibling
+ * (the scrolling list would clip its own), and it scrolls by the indicator
+ * over its last row while the pointer rests there (HIG7 p.78).
+ */
+export const ScrollingMenu: Story = {
+	parameters: desktopParameters,
+	render: () => <LongMenuWindow />,
 };
 
 const BalloonMenuWindow = () => {

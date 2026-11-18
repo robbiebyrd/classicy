@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import type { ActionMessage } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
@@ -79,7 +80,11 @@ export const classicyDesktopItemIconAction = (
 		app: {
 			id: `${CLASSICY_DESKTOP_ITEM_ICON_PREFIX}${path}`,
 			name,
-			icon: (entry._icon as string | undefined) ?? iconImageByType(entry._type),
+			// The core's icon for the type, stored with the desktop's icons
+			// and drawn as the active package's.
+			icon:
+				(entry._icon as string | undefined) ??
+				iconImageByType(entry._type, CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID),
 		},
 		kind: isFolder ? "directory" : "file",
 		filePath: path,

@@ -6,7 +6,9 @@ import type {
 	FC as FunctionalComponent,
 	ReactNode,
 } from "react";
+import { useRef } from "react";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
+import { useClassicyPatternOrigin } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyPopUpMenu } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
 
 export type ClassicyControlGroupVariant = "primary" | "secondary";
@@ -52,8 +54,9 @@ type ClassicyControlGroupProps = {
 	layout?: "default" | "form";
 	/**
 	 * Background painted behind the title so it masks the frame line. Match it
-	 * to the surface the group sits on. Defaults to `var(--color-system-03)`
-	 * (the window face).
+	 * to the surface the group sits on. Without it the active Appearance
+	 * Package paints the window's face there (Platinum
+	 * `var(--color-system-03)`).
 	 */
 	backgroundColor?: string;
 	/** The grouped controls. */
@@ -94,7 +97,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 	popUpMenuTitle,
 	columns = false,
 	layout = "default",
-	backgroundColor = "var(--color-system-03)",
+	backgroundColor,
 	children,
 	className,
 	style,
@@ -116,8 +119,13 @@ export const ClassicyControlGroup: FunctionalComponent<
 	const contentClass = classNames(
 		layout === "form" && "classicyControlGroupFormContent",
 	);
+	// A frame dotted from a fixed origin, where the package declares one
+	// (`layout.patternOrigin.ControlGroup`, System 7).
+	const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+	useClassicyPatternOrigin("ControlGroup", fieldsetRef);
 	return (
 		<fieldset
+			ref={fieldsetRef}
 			className={classNames(
 				"classicyControlGroupFieldset",
 				variant === "secondary"
@@ -132,7 +140,7 @@ export const ClassicyControlGroup: FunctionalComponent<
 			{hasLegend && (
 				<legend
 					className={"classicyControlGroupLegend"}
-					style={{ backgroundColor }}
+					style={backgroundColor ? { backgroundColor } : undefined}
 				>
 					{legendContent}
 				</legend>

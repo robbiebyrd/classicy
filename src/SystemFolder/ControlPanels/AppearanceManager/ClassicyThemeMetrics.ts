@@ -370,6 +370,9 @@ export const CLASSICY_THEME_NON_MEASUREMENT_VARS: readonly string[] = [
 // silently replaced.
 const RESERVED_THEME_VARS: ReadonlySet<string> = new Set([
 	...CLASSICY_THEME_NON_MEASUREMENT_VARS,
+	// Emitted only when a theme sets `typography.uiSmall`, read as a font
+	// family: a measurement `uiFont.small` must never make it a length.
+	"--ui-font-small",
 	...CLASSICY_THEME_DERIVED_VARS,
 	...CLASSICY_THEME_DERIVATIONS.map((d) => d.cssVar),
 ]);
@@ -395,13 +398,27 @@ const isPaletteThemeVar = (name: string): boolean =>
 	name.startsWith("--color-");
 
 /**
+ * The prefix of a package color's variable
+ * (`--package-color-<family>-<key>`, `classicyColorFamilyVarName`): the
+ * namespace Appearance Packages own for the colors they declare beside the
+ * core palette, which keeps `--color-` (H-R16). Reserved whole, like
+ * `--color-`, so no measurement (a family `packageColor`, say) can make one.
+ */
+export const CLASSICY_PACKAGE_COLOR_VAR_PREFIX = "--package-color-";
+
+/** True for a name in the package colors' `--package-color-` space. */
+export const isClassicyPackageColorVar = (name: string): boolean =>
+	name.startsWith(CLASSICY_PACKAGE_COLOR_VAR_PREFIX);
+
+/**
  * True when `getThemeVars` sets `name` itself, after the measurement inputs:
  * a palette, font or desktop variable (`CLASSICY_THEME_NON_MEASUREMENT_VARS`),
  * an earlier derived variable (`CLASSICY_THEME_DERIVED_VARS`) or a named
  * derivation (`CLASSICY_THEME_DERIVATIONS`); or when `name` takes the
  * `--classicy-` prefix, which Classicy keeps for its own root variables
  * (`--classicy-layout-*`, `--classicy-art-*`, …); or when `name` takes the
- * palette's `--color-` prefix (H-R16). A package measurement whose
+ * palette's `--color-` prefix (H-R16), or the package colors'
+ * `--package-color-` prefix. A package measurement whose
  * variable (`classicyMeasurementVarName`) is reserved is skipped by
  * `classicyMeasurementVars`, and is not an editable knob
  * (`isThemeMetricFamilyTarget`).
@@ -409,7 +426,8 @@ const isPaletteThemeVar = (name: string): boolean =>
 export const isReservedClassicyThemeVar = (name: string): boolean =>
 	RESERVED_THEME_VARS.has(name) ||
 	isClassicyPrefixedThemeVar(name) ||
-	isPaletteThemeVar(name);
+	isPaletteThemeVar(name) ||
+	isClassicyPackageColorVar(name);
 
 /**
  * The CSS variable a measurement makes: `--<family>-<key>`, kebab-cased
@@ -485,7 +503,9 @@ export function classicyMeasurementVars(
 						? `Measurement ${source} makes ${name}; the --classicy- prefix is reserved for Classicy's own variables.`
 						: isPaletteThemeVar(name) && !RESERVED_THEME_VARS.has(name)
 							? `Measurement ${source} makes ${name}; the --color- prefix is reserved for the palette.`
-							: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
+							: isClassicyPackageColorVar(name)
+								? `Measurement ${source} makes ${name}; the --package-color- prefix is reserved for package colors.`
+								: `Measurement ${source} makes ${name}, a reserved theme variable; getThemeVars sets its own value.`,
 				);
 				continue;
 			}

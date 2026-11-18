@@ -1,12 +1,14 @@
 import "./ClassicyForm.scss";
 import classNames from "classnames";
-import type {
-	CSSProperties,
-	FormEvent,
-	FormHTMLAttributes,
-	FC as FunctionalComponent,
-	PropsWithChildren,
+import {
+	type CSSProperties,
+	type FormEvent,
+	type FormHTMLAttributes,
+	type FC as FunctionalComponent,
+	type PropsWithChildren,
+	useRef,
 } from "react";
+import { useClassicyWindowSelfPadding } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding";
 
 type ClassicyFormProps = PropsWithChildren<{
 	/**
@@ -18,7 +20,11 @@ type ClassicyFormProps = PropsWithChildren<{
 	/**
 	 * `default` stacks rows with the HIG item gap; `dialog` additionally
 	 * applies the HIG dialog edge inset — the layout for a form that fills a
-	 * modal ClassicyWindow. Defaults to `default`.
+	 * modal ClassicyWindow. A `dialog` form that is the window's content
+	 * root (a direct child of its inner area) tells the window that it pads
+	 * itself (`useClassicyWindowSelfPadding`), so a package gives it no
+	 * second inset; nested deeper, it leaves the window's inset alone.
+	 * Defaults to `default`.
 	 */
 	layout?: "default" | "dialog";
 	/** Extra class on the `<form>`. */
@@ -58,6 +64,11 @@ export const ClassicyForm: FunctionalComponent<ClassicyFormProps> = ({
 	children,
 	...rest
 }) => {
+	// A dialog-layout form pads its own root (the HIG dialog edge), so the
+	// modal it fills is told not to inset it again, but only while the form
+	// is that modal's content root.
+	const formRef = useRef<HTMLFormElement>(null);
+	useClassicyWindowSelfPadding(layout === "dialog", formRef);
 	const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		onSubmitFunc?.(e);
@@ -66,6 +77,7 @@ export const ClassicyForm: FunctionalComponent<ClassicyFormProps> = ({
 	return (
 		<form
 			{...rest}
+			ref={formRef}
 			className={classNames(
 				"classicyForm",
 				layout === "dialog" ? "classicyFormDialog" : "",

@@ -9,13 +9,16 @@
 // Hand-written. Its exports are the package's public API.
 
 import {
+	type ClassicyAppearanceColorFamilies,
 	type ClassicyAppearanceKnobs,
 	type ClassicyAppearanceLayout,
 	type ClassicyTheme,
 	classicyKnobsToSchema,
 	registerClassicyAppearancePackage,
+	withDefaultThemeColorFamilies,
 	withDefaultThemeMetrics,
 } from "@classicy/classicy";
+import { PLATINUM_ICON_DIMMING } from "./platinumIconDimming";
 // Both register at module load: the Platinum assets (system art, cursors,
 // wallpapers, fonts) and the Platinum sound pack. The sound pack must be
 // registered before the registration below, since the package is validated
@@ -70,6 +73,8 @@ export type PlatinumJson = {
 	readonly presets: ReadonlyArray<Readonly<ClassicyTheme>>;
 	readonly layout: Readonly<ClassicyAppearanceLayout>;
 	readonly knobs: Readonly<ClassicyAppearanceKnobs>;
+	/** Labels for Platinum's own colors: HIGOS8's gray ramp (`grayRamp`). */
+	readonly colorFamilies: Readonly<ClassicyAppearanceColorFamilies>;
 };
 
 /**
@@ -94,14 +99,23 @@ export const PLATINUM_APPEARANCE_PACKAGE_ID = "platinum";
 // registered (the core floor under these values, which hold every floor key).
 const platinumMeasurements = platinumJsonSource.defaults.measurements;
 
+// Platinum's own colors (`grayRamp`, HIGOS8's 16-step gray ramp: the
+// slider's grays) are in `defaults.color.families` alone too, filled the
+// same way.
+const platinumColorFamilies = platinumJsonSource.defaults.color.families;
+
 /**
  * A platinum.json theme as Platinum registers it: its wallpaper named by
  * filename, as the JSON names it and every theme holds it (`getThemeVars`
  * resolves it through the asset registry at render), its measurements
- * completed from Platinum's defaults, and its package named.
+ * and package colors completed from Platinum's defaults, and its package
+ * named.
  */
 const platinumTheme = (theme: ClassicyTheme): ClassicyTheme => ({
-	...withDefaultThemeMetrics(theme, platinumMeasurements),
+	...withDefaultThemeColorFamilies(
+		withDefaultThemeMetrics(theme, platinumMeasurements),
+		platinumColorFamilies,
+	),
 	package: theme.package ?? PLATINUM_APPEARANCE_PACKAGE_ID,
 });
 
@@ -124,9 +138,11 @@ registerClassicyAppearancePackage({
 	presets: platinumPresets,
 	css: platinumCss,
 	knobs: platinumJsonSource.knobs,
+	colorFamilies: platinumJsonSource.colorFamilies,
 	options: classicyKnobsToSchema(platinumJsonSource.knobs),
 	layout: platinumJsonSource.layout as ClassicyAppearanceLayout,
 	sounds: [platinumSoundPack],
 	hooks: platinumAppearanceHooks,
 	defaultScreenSaver: "bouncing-ball",
+	iconDimming: PLATINUM_ICON_DIMMING,
 });
