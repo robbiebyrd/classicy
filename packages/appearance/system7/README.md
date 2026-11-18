@@ -134,6 +134,12 @@ order: the core's, then this package's two.
 ```
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
+Allow `data:` in `img-src` as well: a dimmed icon (a hidden application's
+in the Application menu, a disabled list row's) is drawn on a canvas and
+shown from a `data:` URL, and a few masks and glyphs are inline `data:`
+images; a policy whose `img-src` omits `data:` shows a broken image there
+in place of the dimmed icon, or no mask.
+
 A host that loads Platinum too links Platinum's two stylesheets as well
 (its README); Platinum's fonts stylesheet already holds this package's five
 faces (the same files), so such a host may leave this package's fonts

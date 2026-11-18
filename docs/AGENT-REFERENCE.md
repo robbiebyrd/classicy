@@ -137,6 +137,14 @@ layer.
 <link rel="stylesheet" href="/node_modules/@classicy/appearance-platinum/dist/classicy-platinum.fonts.css">
 ```
 
+Such a policy must allow `data:` in `img-src` (`img-src 'self' data:`): a
+package's `iconDimming` draws a dimmed icon (a hidden application's, a
+disabled row's) on a canvas and shows it from `canvas.toDataURL()`
+(`ClassicyIconDimming.ts`), with no stylesheet fallback once that URL has
+settled, and a few masks and glyphs are inline `data:` images (Platinum's
+halftone, System 7's 1-bit menu titles, glyphs in `classicy.css`). Without
+it those draw as broken images, or with no mask.
+
 The fonts file holds the `@font-face` rules the runtime writes, generated at
 build time from the same face list and rule writer: the thirteen faces of
 Charcoal, ChicagoFLF, Geneva, AppleGaramond, Monaco and VCR OSD Mono, with

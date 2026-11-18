@@ -913,7 +913,9 @@ the ids the saver already names:
    import it at your entry; keep every Classicy package at one version.
 2. With a Vite dev server, add `@classicy/appearance-system7` to
    `optimizeDeps.exclude` when you load it. Under a strict CSP, link its two
-   stylesheets after the core's.
+   stylesheets after the core's, and allow `data:` in `img-src`: a dimmed
+   icon (a hidden application's, a disabled row's) is drawn on a canvas and
+   shown from a `data:` URL.
 3. If you ship your own Appearance Package, draw the looks that moved into
    Platinum (above), the control group's legend face, and, if you want them
    styled, the scroll-bar parts. Draw the frame's shadow (and bevel) on

@@ -90,6 +90,12 @@ order: the core's, then this package's two.
 ```
 
 Serve this package's `dist/assets/` beside them, and allow it in `font-src`.
+Allow `data:` in `img-src` as well: a dimmed icon (a hidden application's
+in the Application menu, a disabled list row's) is drawn on a canvas and
+shown from a `data:` URL, and a few masks and glyphs are inline `data:`
+images; a policy whose `img-src` omits `data:` shows a broken image there
+in place of the dimmed icon, or no mask.
+
 A host that also loads System 7 may link its fonts stylesheet too: the five
 faces the two share are declared twice with identical descriptors; the browser
 uses the last rule defined and requests only its file (one request per face in
