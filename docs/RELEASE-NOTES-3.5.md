@@ -336,6 +336,19 @@ diverge, so a logo registered through Platinum's
   `title` carries its `imageAlt` as the `title` of its analytics events, so
   the Apple menu's and the art Help menu's `hover` and `selected` events
   name them, where their `title` was undefined.
+- **The rest of the floor.** A window title and a tab label keep to one
+  line in Firefox 113–120 and Safari 16.2–17.3, which have no `text-wrap`
+  (a `white-space: nowrap` comes first; a long window title wrapped there
+  instead of ending in an ellipsis), and `ClassicyTextEditor`'s
+  `autoHeight` grows with its text in Firefox, Safari and Chrome 120–122,
+  which have no `field-sizing`: the editor sets the field's height to its
+  text's there, whenever the text, the field's width or a loaded font
+  changes. An indeterminate `ClassicyProgressBar`'s stripes slide in Safari
+  16.2–16.3, which have no `@property` (they stood still: the keyframes
+  stepped between two offsets that draw the same stripes); there the bar
+  carries `classicyProgressSlideByScript` and slides them from a frame loop.
+  The floor check (`bin/classicyCssFloor.ts`) holds a `text-wrap` to its
+  `white-space` too.
 - **Classes in place of `:has()`, for Firefox 113–120.** A browser without
   `:has()` (Firefox before 121, inside the floor) drops a whole rule that
   uses it, so the looks such rules drew now key on classes the components

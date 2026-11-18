@@ -429,7 +429,8 @@
 			"ChasingArrows",
 			"ChasingArrowsSpinner",
 			"Determinate",
-			"Indeterminate"
+			"Indeterminate",
+			"SlideByScript"
 		],
 		"RadioInput": ["Group", "GroupColumns", "Margin", "Wrapper"],
 		"RichTextEditor": [],

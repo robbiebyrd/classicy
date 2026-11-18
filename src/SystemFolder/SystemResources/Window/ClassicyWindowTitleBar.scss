@@ -83,6 +83,9 @@
         & > p {
           overflow: hidden;
           margin: 0;
+          // `white-space` first: Firefox 113-120 and Safari 16.2-17.3 have
+          // no `text-wrap`, and would wrap the title (bin/classicyCssFloor.ts).
+          white-space: nowrap;
           text-wrap: nowrap;
           text-overflow: ellipsis;
         }

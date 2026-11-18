@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
 import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 
@@ -129,5 +129,72 @@ describe("ClassicyProgressBar", () => {
 		// Without a value, indeterminate stays; value defaults to undefined now.
 		const { container } = render(<ClassicyProgressBar indeterminate={true} />);
 		expect(container.querySelector("progress")).toHaveAttribute("value", "100");
+	});
+});
+
+// The indeterminate stripes slide by animating the registered `--slide-var`
+// (CSS `@property`). Safari 16.2 and 16.3, inside the floor, lack
+// `@property`: there the keyframes would step it between two offsets that
+// draw the same stripes, so the bar slides them from script instead.
+describe("ClassicyProgressBar stripes without @property", () => {
+	let frames: FrameRequestCallback[] = [];
+	beforeEach(() => {
+		frames = [];
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+			frames.push(cb);
+			return frames.length;
+		});
+		vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+	const runFrame = (time: number) => {
+		const pending = frames;
+		frames = [];
+		for (const cb of pending) cb(time);
+	};
+
+	it("slides them from script, the keyframes stopped, where @property is missing", () => {
+		vi.stubGlobal("CSS", { supports: () => true });
+		const { container, unmount } = render(
+			<ClassicyProgressBar indeterminate={true} />,
+		);
+		const bar = container.firstChild as HTMLElement;
+		expect(bar).toHaveClass("classicyProgressSlideByScript");
+		const progress = container.querySelector("progress") as HTMLElement;
+		// jsdom has no theme: the period falls back to Platinum's 20 px, and
+		// a 3 s loop travels two periods, as the keyframes do.
+		runFrame(0);
+		const start = Number.parseFloat(
+			progress.style.getPropertyValue("--slide-var"),
+		);
+		runFrame(750);
+		const quarter = Number.parseFloat(
+			progress.style.getPropertyValue("--slide-var"),
+		);
+		expect(quarter - start).toBeCloseTo(10);
+		unmount();
+		expect(window.cancelAnimationFrame).toHaveBeenCalled();
+		expect(progress.style.getPropertyValue("--slide-var")).toBe("");
+	});
+
+	it("leaves them to the keyframes where @property is supported", () => {
+		vi.stubGlobal("CSS", { supports: () => true, registerProperty: () => {} });
+		const { container } = render(<ClassicyProgressBar indeterminate={true} />);
+		expect(container.firstChild).not.toHaveClass(
+			"classicyProgressSlideByScript",
+		);
+		expect(frames).toHaveLength(0);
+	});
+
+	it("slides nothing for a determinate bar", () => {
+		vi.stubGlobal("CSS", { supports: () => true });
+		const { container } = render(<ClassicyProgressBar value={4} />);
+		expect(container.firstChild).not.toHaveClass(
+			"classicyProgressSlideByScript",
+		);
+		expect(frames).toHaveLength(0);
 	});
 });

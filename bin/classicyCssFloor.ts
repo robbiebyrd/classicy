@@ -11,6 +11,10 @@
 // whatever it holds, and a `var()` reading one the browser cannot compute is
 // invalid at computed-value time), so only `@supports` guards it.
 //
+// Properties newer than the floor fall back the same way, on an older
+// property declared first: `text-wrap` (Firefox 121, Safari 17.4) on
+// `white-space`, which keeps a line whole in every browser the floor has.
+//
 // verify:dist runs this over every stylesheet the core and each Appearance
 // Package ship (core invariant 15), and ClassicyBrowserFloor.repo.test.ts
 // over every compiled stylesheet in the repo.
@@ -32,6 +36,13 @@ export const CLASSICY_CSS_FLOOR_FUNCTIONS: ReadonlySet<string> = new Set([
 	"hypot",
 	"log",
 ]);
+
+/**
+ * Properties newer than the floor, each with the older property that must be
+ * declared before it in the same rule.
+ */
+export const CLASSICY_CSS_FLOOR_PROPERTIES: ReadonlyMap<string, string> =
+	new Map([["text-wrap", "white-space"]]);
 
 const FLOOR = "Chrome 120, Safari 16.2, Firefox 113";
 
@@ -73,6 +84,17 @@ export const findClassicyCssFloorProblems = (
 	const problems: string[] = [];
 	for (const rule of classicyCssRules(css)) {
 		rule.declarations.forEach(([property, value], index) => {
+			const older = CLASSICY_CSS_FLOOR_PROPERTIES.get(property);
+			if (
+				older &&
+				!rule.context.some((prelude) => /^@supports\b/i.test(prelude)) &&
+				!rule.declarations
+					.slice(0, index)
+					.some(([earlier]) => earlier === older)
+			)
+				problems.push(
+					`${file}: \`${property}: ${value}\` in \`${rule.selector}\` sets ${property}, which the browser floor (${FLOOR}) lacks, with no fallback -> declare \`${older}\` first (a browser that cannot parse the declaration keeps it).`,
+				);
 			for (const name of floorCalls(value)) {
 				if (supportsGuards(rule.context, name)) continue;
 				const fallback =

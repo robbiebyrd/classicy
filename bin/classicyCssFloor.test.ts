@@ -71,6 +71,20 @@ describe("findClassicyCssFloorProblems", () => {
 			),
 		).toEqual([]));
 
+	// Firefox 121 and Safari 17.4 have `text-wrap`; the floor keeps a line
+	// whole with `white-space`, which must come first.
+	it("fails a text-wrap with no white-space before it", () =>
+		expect(problems(".a{text-wrap:nowrap}")).toEqual([
+			"x.css: `text-wrap: nowrap` in `.a` sets text-wrap, which the browser floor (Chrome 120, Safari 16.2, Firefox 113) lacks, with no fallback -> declare `white-space` first (a browser that cannot parse the declaration keeps it).",
+		]));
+
+	it("passes a text-wrap after a white-space", () =>
+		expect(
+			problems(
+				".a{white-space:nowrap;text-wrap:nowrap}.b{text-wrap:nowrap;white-space:nowrap}",
+			),
+		).toEqual([expect.stringContaining("in `.b`")]));
+
 	it("ignores strings and comments", () =>
 		expect(
 			problems('.a{content:"round(1px)";/* left:round(1px, 1px) */left:0}'),

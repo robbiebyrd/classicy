@@ -1,10 +1,14 @@
 import "./ClassicyProgressBar.scss";
 import classNames from "classnames";
-import type {
-	CSSProperties,
-	FC as FunctionalComponent,
-	ReactElement,
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	type ReactElement,
+	useEffect,
+	useRef,
+	useState,
 } from "react";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	ClassicyControlLabel,
 	type ClassicyLabelAlign,
@@ -12,6 +16,60 @@ import {
 	labelAlignClass,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
+
+/** The stripes' loop (ClassicyProgressBar.scss, `stripeSlide`): two periods. */
+const STRIPE_LOOP_MS = 3000;
+
+/**
+ * Whether this browser animates the indeterminate stripes' offset only by
+ * script: it has CSS but no registered custom properties (`@property`,
+ * `CSS.registerProperty`), as Safari 16.2 and 16.3, inside the floor. There
+ * `--slide-var` animates discretely, and its keyframes, two periods apart,
+ * draw the same stripes: they would stand still.
+ */
+const classicyStripesSlideByScript = (): boolean =>
+	typeof CSS !== "undefined" &&
+	typeof CSS.supports === "function" &&
+	typeof (CSS as { registerProperty?: unknown }).registerProperty !==
+		"function";
+
+/**
+ * Slides an indeterminate bar's stripes from a frame loop where the browser
+ * cannot animate `--slide-var` (`classicyStripesSlideByScript`), along the
+ * keyframes' path: two stripe periods every 3 s, linear. Returns whether it
+ * does, for the class that stops the keyframes there.
+ */
+const useClassicyStripeSlide = (
+	progressRef: { current: HTMLProgressElement | null },
+	indeterminate: boolean,
+): boolean => {
+	const [byScript, setByScript] = useState(false);
+	useEffect(() => {
+		const el = progressRef.current;
+		if (!indeterminate || !el || !classicyStripesSlideByScript()) {
+			setByScript(false);
+			return;
+		}
+		setByScript(true);
+		let frame = 0;
+		const step = (time: number) => {
+			const period = readClassicyThemeVar(
+				"--progress-bar-stripe-period",
+				undefined,
+				el,
+			);
+			const t = (time % STRIPE_LOOP_MS) / STRIPE_LOOP_MS;
+			el.style.setProperty("--slide-var", `${t * (period + period)}px`);
+			frame = requestAnimationFrame(step);
+		};
+		frame = requestAnimationFrame(step);
+		return () => {
+			cancelAnimationFrame(frame);
+			el.style.removeProperty("--slide-var");
+		};
+	}, [progressRef, indeterminate]);
+	return byScript;
+};
 
 interface ClassicyProgressProps {
 	/** Amount done, out of `max`. Ignored while indeterminate. Defaults to `0`. */
@@ -101,6 +159,12 @@ export const ClassicyProgressBar: FunctionalComponent<
 	const hasValue = value !== undefined;
 	const resolvedIndeterminate = indeterminate && !(autoSwitch && hasValue);
 
+	const progressRef = useRef<HTMLProgressElement>(null);
+	const slideByScript = useClassicyStripeSlide(
+		progressRef,
+		Boolean(resolvedIndeterminate && !chasingArrows),
+	);
+
 	const effectiveMax = resolvedIndeterminate ? 100 : max;
 	const effectiveValue = resolvedIndeterminate ? 100 : (value ?? 0);
 
@@ -132,11 +196,12 @@ export const ClassicyProgressBar: FunctionalComponent<
 					resolvedIndeterminate
 						? "classicyProgressIndeterminate"
 						: "classicyProgressDeterminate",
+					slideByScript && "classicyProgressSlideByScript",
 					indicatorClassName,
 				)}
 				style={indicatorStyle}
 			>
-				<progress max={effectiveMax} value={effectiveValue} />
+				<progress ref={progressRef} max={effectiveMax} value={effectiveValue} />
 			</div>
 		);
 	}
