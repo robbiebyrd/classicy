@@ -85,6 +85,21 @@ describe("findClassicyCssFloorProblems", () => {
 			),
 		).toEqual([expect.stringContaining("in `.b`")]));
 
+	// A keyframe's declaration is dropped the same way when its value does
+	// not parse, so the keyframes are held to the floor too (final review
+	// r1, N1).
+	it("fails a keyframe calling round() with no fallback", () =>
+		expect(problems("@keyframes k { to { left: round(1px, 2px) } }")).toEqual([
+			"x.css: `left: round(1px, 2px)` in `@keyframes k { to }` calls round(), which the browser floor (Chrome 120, Safari 16.2, Firefox 113) lacks, with no fallback -> declare `left` first without it (a browser that cannot parse the value keeps the earlier one), or wrap the rule in `@supports (left: round(…))`.",
+		]));
+
+	it("reads every keyframe, prefixed and layered ones included, with their fallbacks", () =>
+		expect(
+			problems(
+				"@layer classicy.base{@-webkit-keyframes w{from{left:0}50%{left:mod(5px,2px)}}@keyframes k{0%,to{top:1px;top:round(1px,2px)}}}",
+			),
+		).toEqual([expect.stringContaining("in `@-webkit-keyframes w { 50% }`")]));
+
 	it("ignores strings and comments", () =>
 		expect(
 			problems('.a{content:"round(1px)";/* left:round(1px, 1px) */left:0}'),

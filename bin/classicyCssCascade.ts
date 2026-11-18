@@ -202,6 +202,10 @@ export type ClassicyCssRule = {
 const GROUPING_AT_RULES =
 	/^@(?:media|supports|layer|container|scope|document)\b/;
 
+// Keyframe blocks, whose keyframes (`from`, `50%`) hold declarations as a
+// style rule does; read only on request.
+const KEYFRAMES_AT_RULE = /^@(?:-webkit-)?keyframes\b/;
+
 const skipComment = (css: string, i: number): number => {
 	const end = css.indexOf("*/", i + 2);
 	return end === -1 ? css.length : end + 2;
@@ -260,9 +264,15 @@ const declarationsOf = (body: string): [string, string][] => {
  * Every style rule in `css` (plain CSS, as Sass compiles it), in source
  * order, flattened out of `@media`, `@supports`, `@layer` and the other
  * grouping at-rules (recorded in `context`). Keyframes, font faces and other
- * non-style blocks are skipped. Nested style rules are not supported.
+ * non-style blocks are skipped, unless `keyframes` is set: then each keyframe
+ * comes back too, as a rule whose `selector` is its own (`from`, `50%`) and
+ * whose `context` ends with its `@keyframes` prelude. Nested style rules are
+ * not supported.
  */
-export const classicyCssRules = (css: string): ClassicyCssRule[] => {
+export const classicyCssRules = (
+	css: string,
+	{ keyframes = false }: { keyframes?: boolean } = {},
+): ClassicyCssRule[] => {
 	const rules: ClassicyCssRule[] = [];
 	const walk = (from: number, to: number, context: string[]) => {
 		let i = from;
@@ -281,7 +291,10 @@ export const classicyCssRules = (css: string): ClassicyCssRule[] => {
 			const prelude = css.slice(i, stop).trim();
 			const end = blockEnd(css, stop);
 			if (prelude.startsWith("@")) {
-				if (GROUPING_AT_RULES.test(prelude))
+				if (
+					GROUPING_AT_RULES.test(prelude) ||
+					(keyframes && KEYFRAMES_AT_RULE.test(prelude))
+				)
 					walk(stop + 1, end, [...context, prelude]);
 			} else {
 				rules.push({

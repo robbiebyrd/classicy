@@ -15,6 +15,9 @@
 // property declared first: `text-wrap` (Firefox 121, Safari 17.4) on
 // `white-space`, which keeps a line whole in every browser the floor has.
 //
+// Keyframes are read too: a keyframe's declaration the browser cannot parse
+// is dropped the same way, and falls back the same way.
+//
 // verify:dist runs this over every stylesheet the core and each Appearance
 // Package ship (core invariant 15), and ClassicyBrowserFloor.repo.test.ts
 // over every compiled stylesheet in the repo.
@@ -82,7 +85,12 @@ export const findClassicyCssFloorProblems = (
 	css: string,
 ): string[] => {
 	const problems: string[] = [];
-	for (const rule of classicyCssRules(css)) {
+	for (const rule of classicyCssRules(css, { keyframes: true })) {
+		const keyframes = rule.context.at(-1);
+		const where =
+			keyframes && /^@(?:-webkit-)?keyframes\b/.test(keyframes)
+				? `${keyframes} { ${rule.selector} }`
+				: rule.selector;
 		rule.declarations.forEach(([property, value], index) => {
 			const older = CLASSICY_CSS_FLOOR_PROPERTIES.get(property);
 			if (
@@ -93,7 +101,7 @@ export const findClassicyCssFloorProblems = (
 					.some(([earlier]) => earlier === older)
 			)
 				problems.push(
-					`${file}: \`${property}: ${value}\` in \`${rule.selector}\` sets ${property}, which the browser floor (${FLOOR}) lacks, with no fallback -> declare \`${older}\` first (a browser that cannot parse the declaration keeps it).`,
+					`${file}: \`${property}: ${value}\` in \`${where}\` sets ${property}, which the browser floor (${FLOOR}) lacks, with no fallback -> declare \`${older}\` first (a browser that cannot parse the declaration keeps it).`,
 				);
 			for (const name of floorCalls(value)) {
 				if (supportsGuards(rule.context, name)) continue;
@@ -107,7 +115,7 @@ export const findClassicyCssFloorProblems = (
 						);
 				if (fallback) continue;
 				problems.push(
-					`${file}: \`${property}: ${value}\` in \`${rule.selector}\` calls ${name}(), which the browser floor (${FLOOR}) lacks, with no fallback -> declare \`${property}\` first without it (a browser that cannot parse the value keeps the earlier one), or wrap the rule in \`@supports (${property}: ${name}(…))\`.`,
+					`${file}: \`${property}: ${value}\` in \`${where}\` calls ${name}(), which the browser floor (${FLOOR}) lacks, with no fallback -> declare \`${property}\` first without it (a browser that cannot parse the value keeps the earlier one), or wrap the rule in \`@supports (${property}: ${name}(…))\`.`,
 				);
 			}
 		});
