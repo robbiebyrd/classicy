@@ -16,6 +16,49 @@ describe("ClassicyControlLabel", () => {
 		expect(container.firstChild).toBeNull();
 	});
 
+	it.each([
+		["null", null],
+		["undefined", undefined],
+		["false", false],
+	])("returns null when label is %s", (_, label) => {
+		const { container } = render(<ClassicyControlLabel label={label} />);
+		expect(container.firstChild).toBeNull();
+	});
+
+	it("renders rich content inside the <label>, naming its control", () => {
+		render(
+			<>
+				<ClassicyControlLabel
+					labelFor="folder-name"
+					label={
+						<>
+							Name of <em>new</em> folder:
+						</>
+					}
+				/>
+				<input id="folder-name" />
+			</>,
+		);
+		const em = screen.getByText("new");
+		expect(em.tagName).toBe("EM");
+		expect(em.closest("label")).toHaveAttribute("for", "folder-name");
+		expect(screen.getByLabelText("Name of new folder:")).toHaveAttribute(
+			"id",
+			"folder-name",
+		);
+	});
+
+	it("gives the icon the label's text as alt, or none beside rich content", () => {
+		const { rerender } = render(
+			<ClassicyControlLabel label="Printer" icon="printer.png" />,
+		);
+		expect(screen.getByRole("img")).toHaveAttribute("alt", "Printer");
+		rerender(
+			<ClassicyControlLabel label={<b>Printer</b>} icon="printer.png" />,
+		);
+		expect(document.querySelector("img")).toHaveAttribute("alt", "");
+	});
+
 	it("renders label text", () => {
 		render(<ClassicyControlLabel label="My Label" />);
 		expect(screen.getByText("My Label")).toBeInTheDocument();

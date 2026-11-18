@@ -11,7 +11,8 @@ const repoRoot = path.resolve(import.meta.dirname, "../..");
 // Platinum's source, the workspace package @classicy/appearance-platinum.
 const platinumSrc = path.join(repoRoot, "packages/appearance/platinum/src");
 // System 7's source, the workspace package @classicy/appearance-system7,
-// registered only in the iframes of its own stories (./system7.ts).
+// registered only in the iframes of its own stories (./system7.ts) or where
+// the Package toolbar chose it (./StorybookPackages.ts).
 const system7Src = path.join(repoRoot, "packages/appearance/system7/src");
 
 const config: StorybookConfig = {

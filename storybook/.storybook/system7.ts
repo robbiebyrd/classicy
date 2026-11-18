@@ -2,9 +2,10 @@
 // only they do: importing this module registers the System 7 Appearance
 // Package (`@classicy/appearance-system7`), so it is registered only in a
 // story iframe that has loaded one of those story files (Storybook loads
-// CSF files lazily), never in every iframe through preview.tsx. Platinum's
-// stories, the Theme toolbar and the parity baseline never see it, as with
-// the `mirrored` package (./mirrored.ts).
+// CSF files lazily) or where it was chosen in the Package toolbar
+// (./StorybookPackages.ts), never in every iframe through preview.tsx.
+// Platinum's stories and the parity baseline never see it, as with the
+// `mirrored` package (./mirrored.ts).
 import "@classicy/appearance-system7";
 import {
 	createElement,

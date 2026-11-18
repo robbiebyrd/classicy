@@ -37,11 +37,18 @@
     gap: var(--layout-focus-gap);
   }
 
-  // Prompt label above the field.
+  // Prompt above the field: a ClassicyControlLabel, whose row carries this
+  // class. Set flush left, like the alert's message, and kept on narrow
+  // screens, where a control label otherwise hides: it is the dialog's
+  // question.
   .classicyInputDialogPrompt {
-    font-family: var(--ui-font), sans-serif;
+    display: flex;
     margin: 0;
     line-height: 1.2;
+
+    .classicyControlLabel {
+      margin-left: 0;
+    }
   }
 
   // Buttons row: right-aligned, default rightmost (matches the alert).

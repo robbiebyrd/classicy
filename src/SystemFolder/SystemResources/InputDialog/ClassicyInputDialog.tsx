@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyButton";
+import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyInput } from "@/SystemFolder/SystemResources/Input/ClassicyInput";
 import {
@@ -32,7 +33,10 @@ export type ClassicyInputDialogProps = {
 	appId?: string;
 	/** Title-bar text; also the dialog's accessible name. Defaults to `""`. */
 	title?: string;
-	/** Prompt shown above the field as its `<label>` (e.g. "Name of new folder:"). */
+	/**
+	 * Prompt shown above the field as its `<label>` (e.g. "Name of new
+	 * folder:"), a `ClassicyControlLabel`: text or rich content.
+	 */
 	prompt?: ReactNode;
 	/** Initial field value; its text is selected on open. Defaults to `""`. */
 	initialValue?: string;
@@ -197,14 +201,12 @@ export const ClassicyInputDialog: FunctionalComponent<
 							</div>
 						)}
 						<div className="classicyInputDialogBody">
-							{prompt != null && prompt !== "" && (
-								<label
-									className="classicyInputDialogPrompt"
-									htmlFor={`${id}-field`}
-								>
-									{prompt}
-								</label>
-							)}
+							{/* Renders nothing for an empty prompt. */}
+							<ClassicyControlLabel
+								className="classicyInputDialogPrompt"
+								labelFor={`${id}-field`}
+								label={prompt}
+							/>
 							<ClassicyInput
 								id={`${id}-field`}
 								ref={inputRef}

@@ -1,7 +1,13 @@
 import type { Decorator } from "@storybook/react-vite";
 import type { CSSProperties, ReactNode } from "react";
-import { useLayoutEffect, useState } from "react";
+import {
+	useEffect,
+	useLayoutEffect,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useActiveClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackage";
+import { subscribeClassicyAppearancePackages } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import { useClassicyAssetVars } from "@/Appearance/ClassicyAssetRegistry";
 import {
 	getTheme,
@@ -16,6 +22,13 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import {
+	isStorybookAppearancePackagePending,
+	loadStorybookAppearancePackage,
+	resolveStorybookThemeId,
+	STORYBOOK_DEFAULT_PACKAGE_ID,
+	STORYBOOK_PACKAGE_GLOBAL,
+} from "./StorybookPackages";
 
 // Stories must not write desktop state into the user's localStorage.
 stopAppManagerPersistence();
@@ -25,6 +38,9 @@ const resetClassicyStore = (themeId: string) => {
 	fresh.System.Manager.Appearance.activeTheme = getTheme(themeId);
 	useAppManager.setState(fresh, true);
 };
+
+const currentThemeId = () =>
+	useAppManager.getState().System.Manager.Appearance.activeTheme.id;
 
 const ClassicyDesktopFrame = ({
 	themeId,
@@ -49,6 +65,12 @@ const ClassicyDesktopFrame = ({
 				type: "ClassicyDesktopChangeAppearancePackage",
 				packageId: appearancePackage,
 			});
+			// The switch activates the package's defaults; a Theme toolbar
+			// choice of one of the package's other themes then replaces them.
+			// (A story's own theme, set in its effects, still runs later.)
+			const theme = resolveStorybookThemeId(appearancePackage, themeId);
+			if (theme !== currentThemeId())
+				dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: theme });
 		}
 		setReady(true);
 		// The store outlives the story: put the default package back when a
@@ -194,26 +216,95 @@ const StoryFrame = ({
 	);
 };
 
-export const withClassicy: Decorator = (Story, context) => {
-	const themeId = (context.globals.theme as string) ?? "default";
-	// `parameters.classicy.appearancePackage`: render the story under that
-	// registered Appearance Package (e.g. "mirrored", via mirroredParameters).
-	const appearancePackage = context.parameters.classicy?.appearancePackage as
-		| string
-		| undefined;
+/**
+ * Renders its children once `packageId` is registered: a package chosen in
+ * the Package toolbar is imported on first use, and the story waits for it
+ * (an empty frame for a moment) rather than drawing under Platinum first.
+ */
+const StorybookPackageGate = ({
+	packageId,
+	children,
+}: {
+	packageId: string;
+	children: ReactNode;
+}) => {
+	const pending = useSyncExternalStore(
+		subscribeClassicyAppearancePackages,
+		() => isStorybookAppearancePackagePending(packageId),
+		() => isStorybookAppearancePackagePending(packageId),
+	);
+	useEffect(() => {
+		if (pending) void loadStorybookAppearancePackage(packageId);
+	}, [pending, packageId]);
+	return pending ? null : children;
+};
+
+/**
+ * Lends a plain (non-desktop) story the Package toolbar's package beyond its
+ * CSS: the store's `Appearance.packageId`, which package hooks, `decorate()`
+ * and the layout read. Puts the default package back when the story leaves.
+ */
+const StoryPackageScope = ({
+	packageId,
+	themeId,
+	children,
+}: {
+	packageId: string;
+	themeId: string;
+	children: ReactNode;
+}) => {
+	const [ready, setReady] = useState(false);
+	useLayoutEffect(() => {
+		dispatch({ type: "ClassicyDesktopChangeAppearancePackage", packageId });
+		if (themeId !== currentThemeId())
+			dispatch({ type: "ClassicyDesktopChangeTheme", activeTheme: themeId });
+		setReady(true);
+		return () => resetClassicyStore("default");
+	}, [packageId, themeId]);
+	return ready ? children : null;
+};
+
+type ClassicyStoryProps = {
+	Story: Parameters<Decorator>[0];
+	context: Parameters<Decorator>[1];
+	/** `parameters.classicy.appearancePackage`: the story's own package. */
+	storyPackage?: string;
+	/** The Package toolbar's choice. */
+	chosenPackage: string;
+};
+
+const ClassicyStory = ({
+	Story,
+	context,
+	storyPackage,
+	chosenPackage,
+}: ClassicyStoryProps) => {
+	const toolbarThemeId = (context.globals.theme as string) ?? "default";
+	// A story's own package wins over the toolbar's: it is what the story shows.
+	const packageId = storyPackage ?? chosenPackage;
+	// A switched package (one the story does not set itself) is drawn like a
+	// story package, but in the Theme toolbar's theme when it is one of the
+	// package's, else in its defaults. Under the default package nothing
+	// changes: the toolbar theme as it is.
+	const switched =
+		storyPackage === undefined &&
+		chosenPackage !== STORYBOOK_DEFAULT_PACKAGE_ID;
+	const appearancePackage =
+		storyPackage ?? (switched ? chosenPackage : undefined);
+	const themeId = resolveStorybookThemeId(packageId, toolbarThemeId);
 
 	if (context.parameters.classicy?.desktop) {
-		// Keyed on story + theme so any switch fully unmounts/remounts the frame,
-		// guaranteeing the store-reset effect runs against a clean component tree
-		// instead of leaking component-local state across resets.
-		// `height` (not `minHeight`) is required here: ClassicyDesktop's root
-		// element is styled `height: 100%`, and a percentage height only
+		// Keyed on story + package + theme so any switch fully unmounts/remounts
+		// the frame, guaranteeing the store-reset effect runs against a clean
+		// component tree instead of leaking component-local state across
+		// resets. `height` (not `minHeight`) is required here: ClassicyDesktop's
+		// root element is styled `height: 100%`, and a percentage height only
 		// resolves against an ancestor with an explicit `height`, not one that
 		// merely ends up that tall via `min-height`.
 		return (
 			<div style={{ height: "100vh" }}>
 				<ClassicyDesktopFrame
-					key={`${context.id}-${themeId}`}
+					key={`${context.id}-${packageId}-${themeId}`}
 					themeId={themeId}
 					// Stories that mount their own strip set `controlStrip: false`.
 					controlStrip={context.parameters.classicy?.controlStrip ?? true}
@@ -225,12 +316,13 @@ export const withClassicy: Decorator = (Story, context) => {
 		);
 	}
 
-	// The plain frame only scopes the package's CSS (the store, and with it
-	// the layout, is left alone); the variables are the theme's under it.
+	// The plain frame scopes the package's CSS; the variables are the theme's
+	// under it. A story's own package keeps the toolbar theme's variables
+	// (its package swapped in) and leaves the store alone; a switched package
+	// also takes the store (StoryPackageScope), so its hooks follow.
+	const theme = getTheme(storyPackage ? toolbarThemeId : themeId);
 	const vars = getThemeVars(
-		appearancePackage
-			? { ...getTheme(themeId), package: appearancePackage }
-			: getTheme(themeId),
+		storyPackage ? { ...theme, package: storyPackage } : theme,
 	) as CSSProperties;
 	const isCanvas = context.viewMode === "story";
 	const typography: CSSProperties = {
@@ -239,7 +331,7 @@ export const withClassicy: Decorator = (Story, context) => {
 		color: "var(--color-black)",
 	};
 
-	return (
+	const frame = (
 		<ClassicySoundManagerProvider>
 			<StoryFrame
 				isCanvas={isCanvas}
@@ -257,5 +349,40 @@ export const withClassicy: Decorator = (Story, context) => {
 				<Story />
 			</StoryFrame>
 		</ClassicySoundManagerProvider>
+	);
+
+	return switched ? (
+		// Keyed so a story remounts under each package and theme, re-running
+		// its own setup after the scope's reset.
+		<StoryPackageScope
+			key={`${packageId}-${themeId}`}
+			packageId={packageId}
+			themeId={themeId}
+		>
+			{frame}
+		</StoryPackageScope>
+	) : (
+		frame
+	);
+};
+
+export const withClassicy: Decorator = (Story, context) => {
+	// `parameters.classicy.appearancePackage`: render the story under that
+	// registered Appearance Package (e.g. "mirrored", via mirroredParameters).
+	const storyPackage = context.parameters.classicy?.appearancePackage as
+		| string
+		| undefined;
+	const chosenPackage =
+		(context.globals[STORYBOOK_PACKAGE_GLOBAL] as string | undefined) ??
+		STORYBOOK_DEFAULT_PACKAGE_ID;
+	return (
+		<StorybookPackageGate packageId={storyPackage ?? chosenPackage}>
+			<ClassicyStory
+				Story={Story}
+				context={context}
+				storyPackage={storyPackage}
+				chosenPackage={chosenPackage}
+			/>
+		</StorybookPackageGate>
 	);
 };

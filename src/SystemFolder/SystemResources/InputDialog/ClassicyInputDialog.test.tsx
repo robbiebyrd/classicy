@@ -31,6 +31,37 @@ describe("ClassicyInputDialog", () => {
 		expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
 	});
 
+	it("labels the field with its prompt, a ClassicyControlLabel", () => {
+		setup();
+		const prompt = screen.getByText("Name of new folder:");
+		expect(prompt).toHaveClass("classicyControlLabel");
+		expect(prompt.parentElement).toHaveClass("classicyInputDialogPrompt");
+		expect(screen.getByLabelText("Name of new folder:")).toHaveAttribute(
+			"placeholder",
+			"untitled folder",
+		);
+	});
+
+	it("takes a rich prompt", () => {
+		setup({
+			prompt: (
+				<>
+					Name of <em>new</em> folder:
+				</>
+			),
+		});
+		expect(screen.getByText("new").tagName).toBe("EM");
+		expect(screen.getByLabelText("Name of new folder:")).toHaveAttribute(
+			"placeholder",
+			"untitled folder",
+		);
+	});
+
+	it("draws no prompt row for an empty prompt", () => {
+		setup({ prompt: "" });
+		expect(document.querySelector(".classicyInputDialogPrompt")).toBeNull();
+	});
+
 	it("disables the default button until the value is valid", async () => {
 		const user = userEvent.setup();
 		setup();

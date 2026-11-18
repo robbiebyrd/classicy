@@ -49,13 +49,21 @@ interface ClassicyControlLabelProps {
 	 * is not one element — a group of fields, a radio group.
 	 */
 	id?: string;
-	/** The label text. When empty (the default) the component renders nothing at all. */
-	label?: string;
+	/**
+	 * The label: plain text, or rich content such as emphasized or linked
+	 * words. When empty (the default: `""`, `null`, `undefined` or `false`)
+	 * the component renders nothing at all.
+	 */
+	label?: ReactNode;
 	/** Text size: `small`, `medium` or `large` (double size). Defaults to `medium`. */
 	labelSize?: ClassicyControlLabelSize;
 	/** Draws the text in the disabled gray (HIGOS8 p.42). Defaults to `false`. */
 	disabled?: boolean;
-	/** Optional icon drawn beside the text (its alt text is the label). */
+	/**
+	 * Optional icon drawn beside the text. Its alt text is a text label;
+	 * beside rich content it is decorative (empty alt), since the label next
+	 * to it already names the control.
+	 */
 	icon?: string;
 	/** Icon size: `sm` (16px), `lg` (64px), anything else 32px. */
 	iconSize?: string;
@@ -92,6 +100,9 @@ interface ClassicyControlLabelProps {
  * `label`/`labelTitle` props; reach for it directly when labeling your own
  * control.
  *
+ * `label` takes rich content as well as text (`<>Name of <em>new</em>
+ * folder:</>`); the `<label>` still names the control from its text.
+ *
  * Gotchas: an empty `label` renders nothing (not even `children`); with
  * `onClickFunc` the wrapper row is focusable with `role="button"` and runs it
  * on click, Enter or Space; and the row is hidden below 480px viewport width.
@@ -120,7 +131,12 @@ export const ClassicyControlLabel: FunctionalComponent<
 	className,
 	style,
 }) => {
-	if (label === "") {
+	if (
+		label === "" ||
+		label === null ||
+		label === undefined ||
+		label === false
+	) {
 		return null;
 	}
 
@@ -178,7 +194,11 @@ export const ClassicyControlLabel: FunctionalComponent<
 					src={icon}
 					drawnAt={Number.parseInt(imageSize(iconSize), 10)}
 					width={imageSize(iconSize)}
-					alt={label}
+					alt={
+						typeof label === "string" || typeof label === "number"
+							? String(label)
+							: ""
+					}
 				/>
 			)}
 
