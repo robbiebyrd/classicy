@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Sixteen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-17: number 12 moved to the
+// Seventeen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-18: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -170,6 +170,13 @@
 //    modern worker calls Map.prototype.getOrInsertComputed, which no browser
 //    on the floor has, and is reported by name. Skipped when the caller
 //    names files.
+
+// 18. THE ABOUT BOX'S EARTH PICTURE IS EMBEDDED AS WEBP, BYTE FOR BYTE
+//    (plan 0019-fb7 §6.6). classicy.es.js and classicy.umd.js each carry
+//    exactly one `data:image/webp;base64,` URI, and its payload is
+//    assets/img/ui/earth.webp byte for byte: the core's only WebP, so
+//    VitePluginImageTools never re-encoded it. Skipped when the caller names
+//    files.
 
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -803,6 +810,40 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`pdf.js worker: deflated once in ${umdEntry} and once in the ES chunks (${carriers.join(", ")}), each equal to the installed pdfjs-dist legacy worker (${worker.length} bytes), never in ${esEntry}; no data:text/javascript URI in ${files.length} bundle(s)`,
+		);
+}
+
+// Invariant 18: both entry bundles embed assets/img/ui/earth.webp, once and
+// byte for byte. Skipped when the caller names specific files.
+if (!argv.slice(2).length) {
+	const EARTH = "assets/img/ui/earth.webp";
+	const earth = await readFile(EARTH).catch(() => null);
+	const problems = [];
+	if (!earth)
+		problems.push(`${EARTH}: missing -> the core's earth WebP source is gone.`);
+	else
+		for (const file of [
+			join(DIST, "classicy.es.js"),
+			join(DIST, "classicy.umd.js"),
+		]) {
+			const source = await readFile(file, "utf8").catch(() => null);
+			if (source === null) {
+				problems.push(`${file}: missing, so it cannot embed the earth WebP.`);
+				continue;
+			}
+			const uris = [
+				...source.matchAll(/data:image\/webp;base64,([A-Za-z0-9+/=]*)/g),
+			].map((m) => Buffer.from(m[1], "base64"));
+			if (uris.length !== 1 || !uris[0].equals(earth))
+				problems.push(
+					`${file}: carries ${uris.length} data:image/webp URI(s)${uris.length === 1 ? ` (${uris[0].length} bytes)` : ""}, not exactly one equal to ${EARTH} (${earth.length} bytes) -> the earth WebP must embed byte-identical: exclude it from VitePluginImageTools in vite.config.ts, and keep ui("earth.webp") in ClassicyIcons.ts.`,
+				);
+		}
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`earth WebP: ${EARTH} (${earth.length} bytes) embedded byte-identical, once, in classicy.es.js and classicy.umd.js`,
 		);
 }
 

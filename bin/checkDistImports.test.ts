@@ -743,3 +743,64 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 			),
 		]));
 });
+
+// Invariant 18 (plan 0019-fb7 §6.6): both core entry bundles embed
+// assets/img/ui/earth.webp byte for byte, as the only data:image/webp in
+// them, so the image plugin never re-encoded it. Whole-dist mode, reading
+// assets/img/ui/earth.webp from the working directory.
+describe("check-dist-imports.mjs invariant 18: the embedded earth WebP (whole dist)", () => {
+	const EARTH = Buffer.from("RIFF....WEBPVP8X earth fixture bytes", "latin1");
+	const uri = (bytes: Buffer) =>
+		`data:image/webp;base64,${bytes.toString("base64")}`;
+	const earth18 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		mkdirSync(join(dir, "assets", "img", "ui"), { recursive: true });
+		writeFileSync(join(dir, "assets", "img", "ui", "earth.webp"), EARTH);
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const lines = (text: string) =>
+			text.split("\n").filter((line) => line.includes("earth WebP"));
+		return { out: lines(result.stdout), err: lines(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+
+	it("invariant 18 passes when both bundles embed it byte-identical", () => {
+		const bundle = `a="${uri(EARTH)}";export{a};`;
+		expect(
+			earth18({ "classicy.es.js": bundle, "classicy.umd.js": bundle }).err,
+		).toEqual([]);
+		expect(
+			earth18({ "classicy.es.js": bundle, "classicy.umd.js": bundle }).out,
+		).toHaveLength(1);
+	});
+
+	it("invariant 18 fails when the embedded earth WebP differs from assets/img/ui/earth.webp", () => {
+		const other = `a="${uri(Buffer.concat([EARTH, Buffer.from("!")]))}";export{a};`;
+		const same = `a="${uri(EARTH)}";export{a};`;
+		const { err } = earth18({
+			"classicy.es.js": other,
+			"classicy.umd.js": same,
+		});
+		expect(err).toHaveLength(1);
+		expect(err[0]).toContain(ES);
+		expect(err[0]).toContain("assets/img/ui/earth.webp");
+	});
+
+	it("invariant 18 fails when a bundle lacks it or carries another data:image/webp", () => {
+		const same = `a="${uri(EARTH)}";export{a};`;
+		const extra = `${same}b="data:image/webp;base64,AAAA";`;
+		const none = "export{};";
+		expect(
+			earth18({ "classicy.es.js": same, "classicy.umd.js": none }).err,
+		).toHaveLength(1);
+		expect(
+			earth18({ "classicy.es.js": same, "classicy.umd.js": extra }).err[0],
+		).toContain(UMD);
+	});
+});
