@@ -26,20 +26,28 @@ made.
 
 ## Sizes
 
-> **To be measured** (plan 0019-fb7 §7.2): `npm pack --dry-run --json` for
-> each package at 3.5.0 and at 3.6.0. No figure below is filled in yet.
+Measured with `npm pack --dry-run --json` (MB are 10^6 bytes), before the
+change (3.5.0) and after it (3.6.0). The 3.5.0 columns were packed from this
+change's base, 3.5.0 plus the `ClassicyControlLabel` change below; npm lists
+the published 3.5.0 packages within 4 KB of them unpacked, and their
+tarballs, packed by the release, 0.5% to 0.7% larger.
 
 | Package | Unpacked, 3.5.0 | Unpacked, 3.6.0 | Tarball, 3.5.0 | Tarball, 3.6.0 |
 |---|---|---|---|---|
-| `@classicy/classicy` | _7.2_ | _7.2_ | _7.2_ | _7.2_ |
-| `@classicy/appearance-platinum` | _7.2_ | _7.2_ | _7.2_ | _7.2_ |
-| `@classicy/appearance-system7` | _7.2_ | _7.2_ | _7.2_ | _7.2_ |
-| **Total** | _7.2_ | _7.2_ | _7.2_ | _7.2_ |
+| `@classicy/classicy` | 34.96 MB | 20.82 MB (−40.4%) | 11.51 MB | 6.95 MB (−39.6%) |
+| `@classicy/appearance-platinum` | 8.57 MB | 4.80 MB (−44.0%) | 2.60 MB | 1.75 MB (−32.7%) |
+| `@classicy/appearance-system7` | 4.49 MB | 3.20 MB (−28.6%) | 1.32 MB | 1.07 MB (−18.9%) |
+| **Total** | **48.02 MB** | **28.82 MB (−40.0%)** | **15.43 MB** | **9.77 MB (−36.7%)** |
 
-By the design's measurements, most of the saving is, in the core, the
-third-party text in its maps and the uncompressed worker; in Platinum, the
-mp3 and ac3 sprites and zod's text in its maps; in System 7, zod's text in
-its maps and its mp3 and ac3 sprites.
+Where the unpacked saving comes from, measured file by file:
+- **The core** (−14.14 MB): its source maps, −10.94 MB (22.18 MB to
+  11.24 MB); its bundles, −2.88 MB (the compressed worker, and the WebP
+  Earth picture's −0.71 MB, less the +0.18 MB of pdf.js's legacy build);
+  and the rest, −0.32 MB, mostly its declaration maps.
+- **Platinum** (−3.78 MB): the mp3 and ac3 sprites, −2.69 MB; its source
+  maps, −0.77 MB; its images, −0.30 MB.
+- **System 7** (−1.29 MB): its source maps, −0.80 MB; the mp3 and ac3
+  sprites, −0.45 MB; its images, −0.04 MB.
 
 ## Sound sprites ship as ogg and m4a only
 
@@ -92,14 +100,17 @@ wallpapers, and System 7's art, icons and wallpapers. So is the core's About
 This Computer Earth picture (icon key `classicy.bg`), which both core bundles
 embed. Every image is lossless (the color under fully transparent pixels
 kept), with two exceptions: Platinum's photo wallpaper "Default Photo"
-(`default.jpg`, already a JPEG) is lossy WebP at quality 90, kept above a
-45 dB PSNR floor over white and over black; and the Earth picture, a 16-bit
-PNG, is held at 8 bits a channel, as browsers drew it. The two PNGs browsers
-color-managed (Platinum's Sad Mac and the Earth picture, which carried gamma
-and chromaticity but no sRGB tag) became WebPs carrying the equivalent ICC
-profile, so they draw as before. Measured in Chromium and Firefox, each
-browser against its own drawing of the original, every other image draws
-pixel-identical; Safari was not measured.
+(`default.jpg`, already a JPEG) is lossy WebP at quality 90: 50.69 dB PSNR
+against the JPEG, as Chromium and Firefox draw them (the floor is 45 dB);
+and the Earth picture, a 16-bit PNG, is held at 8 bits a channel, as
+browsers drew it. The two PNGs browsers color-managed (Platinum's Sad Mac
+and the Earth picture, which carried gamma and chromaticity but no sRGB
+tag) became WebPs carrying the equivalent ICC profile: the Sad Mac draws
+pixel-identical, and the Earth picture within two levels a channel in
+Chromium (58.15 dB PSNR) and one in Firefox (64.84 dB), the half-step
+between its 16-bit original and 8 bits. Measured in Chromium and Firefox,
+each browser against its own drawing of the original, every other image
+draws pixel-identical; Safari was not measured.
 
 Unchanged: the cursors (PNG, the format every browser takes for a CSS
 `cursor`), the SVG art, Platinum's alias badge (`art/alias.png`, whose
@@ -138,12 +149,17 @@ received before. pdf.js then starts it exactly as before (a `blob:` module
 worker importing that URI, with its main-thread fallback), so the worker is
 still never fetched: PDFs open on `file:` (Electron), CDN and custom-scheme
 hosts as they did, and a Content-Security-Policy that admitted 3.5's PDF
-worker admits this one.
+worker admits this one. (On a `file:` page Chromium starts no module worker
+from a `blob:` URL, so there pdf.js takes its fallback, in 3.5 as now.)
 
 In the ES build, pdf.js and the compressed worker are two lazily loaded
 chunks (`pdf-*.js` and `ClassicyPdfWorkerSource.internal-*.js`), so a host
 that never opens a PDF loads neither. The UMD bundle carries both inline.
-Inflating takes place once per page, when the first PDF opens.
+The worker is inflated once per page load, when the first PDF opens, and
+later PDFs reuse it. In Chromium 143 inflating took 116 ms (the median of
+nine runs), and the first PDF's document loaded about 0.1 s later than with
+3.5's bundle (430 ms against 324 ms from the viewer's mount, the median of
+seven runs each).
 
 **Who must act:** nobody. A host that serves the core's ES build unbundled
 already serves its `pdf-*.js` chunk beside `classicy.es.js`; the second
@@ -161,9 +177,14 @@ chunk sits beside it in the same `dist/`.
   0.71.5, bundled 6.1.200, whose modern build calls it natively too; before
   0.70.3 the host supplied pdf.js.) The PDF viewer now loads pdf.js's legacy
   build (`pdfjs-dist/legacy/build/pdf.mjs` and its worker), which carries the
-  polyfills; the types still come from `pdfjs-dist`. A pdf.js chunk that
-  fails to load (a dropped connection) is no longer remembered: the next
-  document tries again.
+  polyfills; the types still come from `pdfjs-dist`. Those polyfills are
+  core-js's, and they fill in the page's own globals where the browser
+  lacks a method, or has one core-js finds nonconforming
+  (`Map.prototype.getOrInsertComputed`,
+  `Uint8Array.prototype.toBase64`, iterator and `Set` methods, among
+  others): in the ES build when the first PDF opens, and in the UMD bundle
+  when the bundle loads. A pdf.js chunk that fails to load (a dropped
+  connection) is no longer remembered: the next document tries again.
 - **The Trash folder's icon follows the active package.** The Trash folder
   stored, as its `_icon`, the art URL of the package active when it was
   first made, and every surface drew that, so after a package switch its
