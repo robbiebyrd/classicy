@@ -14,14 +14,13 @@ import {
 	getThemeVars,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
-import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
 	dispatch,
 	stopAppManagerPersistence,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
-import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
+import { ClassicySystem } from "@/SystemFolder/SystemResources/Desktop/ClassicySystem";
 import {
 	isStorybookAppearancePackagePending,
 	loadStorybookAppearancePackage,
@@ -83,11 +82,9 @@ const ClassicyDesktopFrame = ({
 
 	if (!ready) return null;
 	return (
-		<ClassicyAppManagerProvider>
-			<ClassicyDesktop startupScreen={false} controlStrip={controlStrip}>
-				{children}
-			</ClassicyDesktop>
-		</ClassicyAppManagerProvider>
+		<ClassicySystem startupScreen={false} controlStrip={controlStrip}>
+			{children}
+		</ClassicySystem>
 	);
 };
 

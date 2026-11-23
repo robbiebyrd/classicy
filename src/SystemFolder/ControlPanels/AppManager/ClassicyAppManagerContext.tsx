@@ -29,7 +29,7 @@ import {
 import type { ClassicyFileSystemTree } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import type { ClassicyFileSystemSeedMigration } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemSeedMigrations";
 
-type ClassicyAppManagerProviderProps = {
+export type ClassicyAppManagerProviderProps = {
 	gaMeasurementIds?: string[];
 	gtmContainerId?: string;
 	appName?: string;

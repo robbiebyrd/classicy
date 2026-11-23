@@ -43,6 +43,7 @@ pnpm sync:versions        # Set every packages/appearance/*/package.json to the 
 ### Component Hierarchy
 
 ```
+ClassicySystem                 # One root tag: the provider with the desktop inside, both components' props
 ClassicyAppManagerProvider     # Thin wrapper - Analytics + SoundManager only
   └── AnalyticsProvider        # Google Analytics/GTM
        └── ClassicySoundManagerProvider  # Sound (still uses React Context)
