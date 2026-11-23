@@ -44,14 +44,14 @@ A Classicy app is three things at once:
 You always write the component and the manifest. You write a reducer only when
 the app needs to keep state that must survive a reload.
 
-An app mounts as a child of `<ClassicySystem>`, the one root tag: it is
+An app mounts as a child of `<Classicy>`, the one root tag: it is
 `<ClassicyAppManagerProvider>` (store, sound, analytics) with
 `<ClassicyDesktop>` inside it, and takes both components' props.
 
 ```tsx
-<ClassicySystem>
+<Classicy>
     <MyApp />
-</ClassicySystem>
+</Classicy>
 ```
 
 The two components are still exported, and nesting them yourself is the same
@@ -69,7 +69,7 @@ Applications folder.
 > render (and in your test setup file, for tests that render a desktop). The
 > entry is in AGENT-REFERENCE §1.
 
-> **Mount `ClassicyDesktop` eagerly** (`ClassicySystem` always does).
+> **Mount `ClassicyDesktop` eagerly** (`Classicy` always does).
 > Lazy-loading it so that it mounts a tick
 > after `ClassicyAppManagerProvider` corrupts manager state: early dispatches
 > reach a reducer whose state the desktop has not seeded yet, and every later
@@ -1053,7 +1053,7 @@ any path containing `__proto__`, `constructor`, or `prototype`.
 ### Seeding a file system
 
 ```tsx
-<ClassicySystem
+<Classicy
     defaultFileSystem={{
         "Macintosh HD": {
             _type: "drive",

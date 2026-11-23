@@ -20,7 +20,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
-import { ClassicySystem } from "@/SystemFolder/SystemResources/Desktop/ClassicySystem";
+import { Classicy } from "@/SystemFolder/SystemResources/Desktop/Classicy";
 import {
 	isStorybookAppearancePackagePending,
 	loadStorybookAppearancePackage,
@@ -82,9 +82,9 @@ const ClassicyDesktopFrame = ({
 
 	if (!ready) return null;
 	return (
-		<ClassicySystem startupScreen={false} controlStrip={controlStrip}>
+		<Classicy startupScreen={false} controlStrip={controlStrip}>
 			{children}
-		</ClassicySystem>
+		</Classicy>
 	);
 };
 

@@ -9,13 +9,13 @@ import {
 } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 /**
- * Props of `ClassicySystem`: every `ClassicyAppManagerProvider` prop
+ * Props of `Classicy`: every `ClassicyAppManagerProvider` prop
  * (analytics, `defaultState`, the default file system, `disable*` for the
  * built-in apps, `defaultMuted`) and every `ClassicyDesktop` prop (the
  * startup screen, `controlStrip`, `className`, `style`, `children`). The two
  * sets share no name, so each prop goes to the one component that takes it.
  */
-export type ClassicySystemProps = ClassicyAppManagerProviderProps &
+export type ClassicyProps = ClassicyAppManagerProviderProps &
 	ClassicyDesktopProps;
 
 /**
@@ -24,9 +24,9 @@ export type ClassicySystemProps = ClassicyAppManagerProviderProps &
  * children:
  *
  * ```tsx
- * <ClassicySystem defaultMuted controlStrip={{ defaultCollapsed: true }}>
+ * <Classicy defaultMuted controlStrip={{ defaultCollapsed: true }}>
  *   <MyApp />
- * </ClassicySystem>
+ * </Classicy>
  * ```
  *
  * It is exactly the two components nested, so the desktop also mounts in the
@@ -35,7 +35,7 @@ export type ClassicySystemProps = ClassicyAppManagerProviderProps &
  * them, such as a component of your own that reads the provider's contexts
  * outside the desktop. `className` and `style` go to the desktop's root.
  */
-export const ClassicySystem: FunctionalComponent<ClassicySystemProps> = ({
+export const Classicy: FunctionalComponent<ClassicyProps> = ({
 	// ClassicyDesktop
 	children,
 	startupScreen,

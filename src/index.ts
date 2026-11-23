@@ -183,6 +183,7 @@ export * from "./SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 export * from "./SystemFolder/SystemResources/Cursor/useClassicyCursor";
 export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
 export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils";
+export * from "./SystemFolder/SystemResources/Desktop/Classicy";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
@@ -195,7 +196,6 @@ export * from "./SystemFolder/SystemResources/Desktop/ClassicyDisabledDefaultApp
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyNoAppearancePackage";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyOpenUrlController";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
-export * from "./SystemFolder/SystemResources/Desktop/ClassicySystem";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 export * from "./SystemFolder/SystemResources/Desktop/MenuBar/ClassicyMenuBarExtension";

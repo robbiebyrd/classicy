@@ -57,7 +57,7 @@ registers at runtime, so there is nothing to import for them either.
 
 ## Quick start
 
-`ClassicySystem` is the whole system in one tag: the store, sound and
+`Classicy` is the whole system in one tag: the store, sound and
 analytics provider (`ClassicyAppManagerProvider`) with the desktop
 (`ClassicyDesktop`) inside it. Apps are its children, and each app is a
 `ClassicyApp` holding `ClassicyWindow`s.
@@ -66,7 +66,7 @@ analytics provider (`ClassicyAppManagerProvider`) with the desktop
 import {
   ClassicyApp,
   ClassicyButton,
-  ClassicySystem,
+  Classicy,
   ClassicyWindow,
 } from "@classicy/classicy";
 import appIcon from "./my-app.png";
@@ -87,9 +87,9 @@ export const MyApp = () => (
 );
 
 export const Root = () => (
-  <ClassicySystem>
+  <Classicy>
     <MyApp />
-  </ClassicySystem>
+  </Classicy>
 );
 ```
 

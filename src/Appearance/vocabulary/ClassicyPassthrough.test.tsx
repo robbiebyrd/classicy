@@ -40,9 +40,9 @@ import {
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { ClassicyControlStrip } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStrip";
 import { ClassicyDatePicker } from "@/SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
+import { Classicy } from "@/SystemFolder/SystemResources/Desktop/Classicy";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyDesktopIcon } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
-import { ClassicySystem } from "@/SystemFolder/SystemResources/Desktop/ClassicySystem";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
 import { ClassicyDisclosure } from "@/SystemFolder/SystemResources/Disclosure/ClassicyDisclosure";
 import { ClassicyFileBrowser } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
@@ -526,9 +526,9 @@ const cases: Row[] = [
 		sel(".classicyDesktop"),
 	],
 	[
-		"ClassicySystem",
+		"Classicy",
 		() => (
-			<ClassicySystem
+			<Classicy
 				startupScreen={false}
 				controlStrip={false}
 				className={HOST}

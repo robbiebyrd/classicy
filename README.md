@@ -31,15 +31,15 @@ registers no Appearance Package of its own:
 
 ```tsx
 import "@classicy/appearance-platinum";
-import { ClassicySystem } from "@classicy/classicy";
+import { Classicy } from "@classicy/classicy";
 import { createRoot } from "react-dom/client";
 
 createRoot(document.getElementById("root")!).render(
-  <ClassicySystem>{/* your ClassicyApp components */}</ClassicySystem>,
+  <Classicy>{/* your ClassicyApp components */}</Classicy>,
 );
 ```
 
-`ClassicySystem` is `ClassicyAppManagerProvider` with `ClassicyDesktop` inside
+`Classicy` is `ClassicyAppManagerProvider` with `ClassicyDesktop` inside
 it, in one tag, and takes both components' props. Both stay exported: nest
 them yourself only when something must sit between them.
 
@@ -608,7 +608,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 
 | Component | Description | HTML equivalent |
 |-----------|-------------|-----------------|
-| `ClassicySystem` | The whole system in one tag: `ClassicyAppManagerProvider` with `ClassicyDesktop` inside, taking both components' props | — |
+| `Classicy` | The whole system in one tag: `ClassicyAppManagerProvider` with `ClassicyDesktop` inside, taking both components' props | — |
 | `ClassicyDesktop` | Root desktop surface — icons, menu bar, wallpaper, drag-select | — (desktop metaphor) |
 | `ClassicyDesktopMenuBar` | Top menu bar with system menu, app menu, and widget tray | `<nav>` |
 | `ClassicyApp` | Application container. Props: `id`, `name`, `icon`, `defaultWindow` | — |
@@ -703,7 +703,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
 ## Architecture
 ### Component Organization
 
-`<ClassicySystem>` renders the first two levels for you:
+`<Classicy>` renders the first two levels for you:
 
 * `<ClassicyAppManagerProvider>`
     * `<ClassicyDesktop>`
@@ -715,7 +715,7 @@ is in [`docs/AGENT-REFERENCE.md` §4.0](docs/AGENT-REFERENCE.md).
                     * `<ClassicyUIControls?>`
                     * `<OtherReactNodes?>`
 
-`ClassicyDesktop` must be imported **eagerly** (`ClassicySystem` does this for
+`ClassicyDesktop` must be imported **eagerly** (`Classicy` does this for
 you). Mounting it lazily, a tick after `ClassicyAppManagerProvider`, corrupts manager state: early dispatches reach a
 reducer whose state the desktop has not seeded yet, and every dispatch after
 that throws.
@@ -727,13 +727,13 @@ sound, analytics, persistence, and testing.
 
 ### Seeding default state
 
-`ClassicySystem` (or `ClassicyAppManagerProvider`) accepts an optional `defaultState` — a deep-partial
+`Classicy` (or `ClassicyAppManagerProvider`) accepts an optional `defaultState` — a deep-partial
 `ClassicyStore` merged over the built-in defaults **on first load only** (when no
 saved state exists in `localStorage`). Returning visitors keep their persisted
 state.
 
 ```tsx
-<ClassicySystem
+<Classicy
   defaultState={{
     System: { Manager: { DateAndTime: {
       dateTime: "2001-09-11T12:40:00.000Z", // 8:40 AM US Eastern (EDT, UTC-4)
@@ -742,7 +742,7 @@ state.
   }}
 >
   {/* ... */}
-</ClassicySystem>
+</Classicy>
 ```
 
 Arrays in `defaultState` replace their default counterparts wholesale (they are
@@ -751,14 +751,14 @@ clear `localStorage["classicyDesktopState"]` or dispatch the change at runtime.
 
 ### Seeding the default filesystem
 
-`ClassicySystem` (or `ClassicyAppManagerProvider`) accepts optional `defaultFileSystem` and
+`Classicy` (or `ClassicyAppManagerProvider`) accepts optional `defaultFileSystem` and
 `defaultFileSystemMode` props to seed the virtual filesystem used by Finder
 and other file-aware apps **on first load only** (when no saved filesystem
 exists in `localStorage["classicyStorage"]`). Returning visitors keep their
 persisted filesystem.
 
 ```tsx
-<ClassicySystem
+<Classicy
   defaultFileSystem={{
     "Macintosh HD": {
       _type: "drive",
@@ -777,7 +777,7 @@ persisted filesystem.
   defaultFileSystemMode="merge"
 >
   {/* ... */}
-</ClassicySystem>
+</Classicy>
 ```
 
 `defaultFileSystemMode` controls how the filesystem is constructed:
@@ -798,10 +798,10 @@ one-time corrections applied against stored state (see
 `ClassicyDesktop` automatically mounts seven built-in apps — `SimpleText`,
 `PDFViewer`, `MoviePlayer`, `PictureViewer`, `HyperCard`, `WebViewer`, and
 `Calculator` — the same way it always mounts `Finder`. Each can be disabled
-individually via a prop on `ClassicySystem` (or `ClassicyAppManagerProvider`):
+individually via a prop on `Classicy` (or `ClassicyAppManagerProvider`):
 
 ```tsx
-<ClassicySystem
+<Classicy
   disableSimpleText={false}    // default: false (loads)
   disablePDFViewer={false}     // default: false (loads)
   disableMoviePlayer={true}    // opt out of Movie Player

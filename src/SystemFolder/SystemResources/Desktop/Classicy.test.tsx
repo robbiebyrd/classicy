@@ -4,14 +4,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
-import { ClassicySystem } from "@/SystemFolder/SystemResources/Desktop/ClassicySystem";
+import { Classicy } from "@/SystemFolder/SystemResources/Desktop/Classicy";
 
 const iconFor = (appId: string) =>
 	useAppManager
 		.getState()
 		.System.Manager.Desktop.icons.find((i) => i.appId === appId);
 
-describe("ClassicySystem", () => {
+describe("Classicy", () => {
 	beforeEach(() => {
 		localStorage.clear();
 		sessionStorage.clear();
@@ -21,9 +21,9 @@ describe("ClassicySystem", () => {
 
 	it("draws the desktop with its children, in one tag", () => {
 		const { container } = render(
-			<ClassicySystem startupScreen={false} controlStrip={false}>
+			<Classicy startupScreen={false} controlStrip={false}>
 				<p>my app</p>
-			</ClassicySystem>,
+			</Classicy>,
 		);
 		const desktop = container.querySelector("#classicyDesktop");
 		expect(desktop).not.toBeNull();
@@ -32,11 +32,7 @@ describe("ClassicySystem", () => {
 
 	it("passes the provider's props to the provider", () => {
 		render(
-			<ClassicySystem
-				startupScreen={false}
-				controlStrip={false}
-				disableSimpleText
-			/>,
+			<Classicy startupScreen={false} controlStrip={false} disableSimpleText />,
 		);
 		expect(iconFor("SimpleText.app")).toBeUndefined();
 		expect(iconFor("PDFViewer.app")).toBeDefined();
@@ -44,7 +40,7 @@ describe("ClassicySystem", () => {
 
 	it("passes the desktop's props to the desktop", () => {
 		const { container } = render(
-			<ClassicySystem
+			<Classicy
 				startupScreen={false}
 				className="host"
 				style={{ marginTop: 7 }}
