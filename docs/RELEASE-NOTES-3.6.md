@@ -1,10 +1,13 @@
 # Release notes: 3.6
 
-The three packages are smaller, PDFs render again on every supported browser,
-and the Trash folder's icon follows the active Appearance Package. These notes
-list every change a host can see, measured from 3.5.x, with the step each
-change needs. The API is described in [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md)
-(§1 "Installation & Setup", §5 "Asset registries", §10 "Sound").
+The three packages are smaller, PDFs render on every supported browser (no
+release from 0.71.6 through 3.5.0, every 3.x release among them, drew a PDF
+page on the browsers at Classicy's floor), and the Trash folder's icon
+follows the active Appearance Package. These notes list every change a host
+can see, measured from 3.5.x, with the step each change needs; a host on an
+earlier 3.x reads each version's notes in turn, and the PDF fix applies to it
+too. The API is described in [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§1
+"Installation & Setup", §5 "Asset registries", §10 "Sound").
 
 ## Summary
 
@@ -15,9 +18,11 @@ worker embedded uncompressed in both core bundles. 3.6 drops or compresses
 each of them and stores the Appearance Packages' images as WebP. Nothing a
 host imports changed: no export was added, removed or renamed, every saved
 desktop, theme and theme file loads as before, and Platinum draws pixel for
-pixel as it did. Two fixes ride along: pdf.js's modern build had stopped
-every PDF page from drawing on the supported browsers, and the Trash folder
-kept the art of whichever package was active when it was first made.
+pixel as it did. Two fixes ride along: pdf.js's modern build, which every
+release from 0.71.6 through 3.5.0 bundled (every 1.x, 2.x and 3.x release
+among them), drew no PDF page on the browsers at Classicy's floor, and the
+Trash folder kept the art of whichever package was active when it was first
+made.
 
 ## Sizes
 
@@ -133,7 +138,7 @@ received before. pdf.js then starts it exactly as before (a `blob:` module
 worker importing that URI, with its main-thread fallback), so the worker is
 still never fetched: PDFs open on `file:` (Electron), CDN and custom-scheme
 hosts as they did, and a Content-Security-Policy that admitted 3.5's PDF
-viewer admits this one.
+worker admits this one.
 
 In the ES build, pdf.js and the compressed worker are two lazily loaded
 chunks (`pdf-*.js` and `ClassicyPdfWorkerSource.internal-*.js`), so a host
@@ -146,15 +151,19 @@ chunk sits beside it in the same `dist/`.
 
 ## Fixes
 
-- **PDFs render on the supported browsers again.** pdfjs-dist 6.2.108's
-  modern build, which 3.5.0 bundled, calls `Map.prototype.getOrInsertComputed`
-  natively, in its API and its worker. No browser on Classicy's floor
-  (Chrome and Edge 120, Safari 16.2, Firefox 113) has it, so every page
-  showed "Couldn't render this page." The PDF viewer now loads pdf.js's
-  legacy build (`pdfjs-dist/legacy/build/pdf.mjs` and its worker), which
-  carries the polyfills; the types still come from `pdfjs-dist`. A pdf.js
-  chunk that fails to load (a dropped connection) is no longer remembered:
-  the next document tries again.
+- **PDFs render on every supported browser.** Every release from 0.71.6
+  through 3.5.0, every 3.x release among them (3.0.0 through 3.5.0), bundled
+  pdfjs-dist 6.2.108's modern build, which calls
+  `Map.prototype.getOrInsertComputed` natively, in its API and its worker. No
+  browser on Classicy's floor (Chrome and Edge 120, Safari 16.2, Firefox 113)
+  has it, so on those browsers, and on any other without it, every page
+  showed "Couldn't render this page." (The releases before, 0.70.3 through
+  0.71.5, bundled 6.1.200, whose modern build calls it natively too; before
+  0.70.3 the host supplied pdf.js.) The PDF viewer now loads pdf.js's legacy
+  build (`pdfjs-dist/legacy/build/pdf.mjs` and its worker), which carries the
+  polyfills; the types still come from `pdfjs-dist`. A pdf.js chunk that
+  fails to load (a dropped connection) is no longer remembered: the next
+  document tries again.
 - **The Trash folder's icon follows the active package.** The Trash folder
   stored, as its `_icon`, the art URL of the package active when it was
   first made, and every surface drew that, so after a package switch its
@@ -224,7 +233,10 @@ chunk sits beside it in the same `dist/`.
 
 1. Bump every Classicy package you load (`@classicy/classicy`,
    `@classicy/appearance-platinum`, `@classicy/appearance-system7`) together
-   to 3.6.0.
+   to 3.6.0. From any 3.x before 3.5, follow each version's notes in turn
+   (3.1, 3.5); every 3.x release before 3.6 has the PDF bug above, so 3.6 is
+   the first 3.x release whose PDF viewer draws pages on the browsers at
+   Classicy's floor.
 2. If you load a sound sprite or an image from a package's `dist/assets/` by
    path, use the `.ogg` or `.m4a` sprite, and the `.webp` name for an image.
 3. On a bundler that does not handle `new URL(…, import.meta.url)`, copy the
