@@ -167,9 +167,16 @@
 //    PDF loads none. Each payload inflates to the installed pdfjs-dist
 //    legacy worker (`legacy/build/pdf.worker.min.mjs`) byte for byte
 //    (invariant 2's reason: the worker and the API come from one place); its
-//    modern worker calls Map.prototype.getOrInsertComputed, which no browser
-//    on the floor has, and is reported by name. Skipped when the caller
-//    names files.
+//    modern worker calls Map.prototype.getOrInsertComputed, which the oldest
+//    supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack, and is
+//    reported by name. The API is the legacy build too: classicy.umd.js and
+//    each ES chunk other than the entry that carries pdf.js's API carry
+//    core-js's polyfill of that method, and at least one ES chunk carries
+//    it. And no bundle but classicy.es.js imports the ES entry: a lazy chunk
+//    that did (3.6's worker chunk imported classicyLog) names it as
+//    "./classicy.es.js", so a host serving the entry under another URL
+//    loads a second copy of the library, or none, on the first PDF. Skipped
+//    when the caller names files.
 
 // 18. THE ABOUT BOX'S EARTH PICTURE IS EMBEDDED AS WEBP, BYTE FOR BYTE
 //    (plan 0019-fb7 §6.6). classicy.es.js and classicy.umd.js each carry
@@ -180,7 +187,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { argv, exit } from "node:process";
 import {
 	findClassicyPlainCssFiles,
@@ -799,7 +806,7 @@ if (!argv.slice(2).length) {
 		for (const payload of payloads.get(file) ?? [])
 			if (payload.equals(modernWorker))
 				problems.push(
-					`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${payload.length} bytes), not its legacy build (${worker.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which no supported browser has: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`,
+					`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${payload.length} bytes), not its legacy build (${worker.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`,
 				);
 			else if (!payload.equals(worker))
 				problems.push(
@@ -810,6 +817,77 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`pdf.js worker: deflated once in ${umdEntry} and once in the ES chunks (${carriers.join(", ")}), each equal to the installed pdfjs-dist legacy worker (${worker.length} bytes), never in ${esEntry}; no data:text/javascript URI in ${files.length} bundle(s)`,
+		);
+
+	// pdf.js's API is its legacy build. That build carries core-js, and
+	// core-js's polyfill of Map.prototype.getOrInsertComputed is the call
+	//   $({ target: 'Map', proto: true, real: true, forced: IS_PURE }, {
+	//     getOrInsertComputed: function getOrInsertComputed(key, callbackfn) {
+	// (legacy/build/pdf.mjs), which the ES chunk keeps as
+	// `{ target: "Map", proto: !0, … }, {\n getOrInsertComputed: function(`
+	// and the minified UMD bundle as
+	// `{target:"Map",proto:!0,real:!0,forced:o},{getOrInsertComputed:function(`.
+	// What it matches survives any minifier: object keys and a string value,
+	// which are never renamed (only whitespace, quotes and `true` change; a
+	// method shorthand is accepted too). The modern build calls the method
+	// natively and holds no such call. A bundle carries pdf.js's API when it
+	// holds the text of getDocument's argument check, in both builds.
+	const LEGACY_PDFJS =
+		/\btarget\s*:\s*(["'`])Map\1\s*,\s*proto\s*:[^{}]*\}\s*,\s*\{\s*getOrInsertComputed\s*(?::\s*function\b|\()/;
+	const PDFJS_API = "getDocument - expected either";
+	const apiProblems = [];
+	const legacyIn = [];
+	const text = new Map();
+	for (const file of files) text.set(file, await readFile(file, "utf8"));
+	const modern = (file) =>
+		`${file}: carries the pdf.js API's modern build, not its legacy build (no core-js polyfill of Map.prototype.getOrInsertComputed) -> import pdfjs-dist/legacy/build/pdf.mjs in PDFViewerDocument.tsx: the modern build calls the method natively, and the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack it.`;
+	const umdText = text.get(umdEntry) ?? "";
+	if (!umdText.includes(PDFJS_API))
+		apiProblems.push(
+			`${umdEntry}: carries no pdf.js API -> the UMD bundle carries pdfjs-dist/legacy/build/pdf.mjs inline (PDFViewerDocument's import()).`,
+		);
+	else if (!LEGACY_PDFJS.test(umdText)) apiProblems.push(modern(umdEntry));
+	else legacyIn.push(umdEntry);
+	const pdfChunks = chunks.filter((f) => text.get(f).includes(PDFJS_API));
+	if (!pdfChunks.length)
+		apiProblems.push(
+			`${DIST}: no ES chunk other than ${esEntry} carries the pdf.js API -> PDFViewerDocument loads pdfjs-dist/legacy/build/pdf.mjs with import(), in a lazy chunk.`,
+		);
+	for (const file of pdfChunks)
+		if (LEGACY_PDFJS.test(text.get(file))) legacyIn.push(file);
+		else apiProblems.push(modern(file));
+	for (const problem of apiProblems) console.error(problem);
+	if (apiProblems.length) failed = true;
+	else
+		console.log(
+			`pdf.js API: the legacy build (core-js's Map.prototype.getOrInsertComputed polyfill) in ${legacyIn.join(" and ")}`,
+		);
+
+	// No bundle but the ES entry imports it: a static import, a re-export or
+	// an import() whose specifier, read from the bundle's folder, names
+	// dist/classicy.es.js.
+	const ENTRY_SPECIFIER =
+		/(?:^|[;}\n])\s*(?:import|export)\s*(?:[^"'`;]*?\bfrom\s*)?(["'`])([^"'`\n]+)\1|\bimport\(\s*(["'`])([^"'`\n]+)\3\s*\)/g;
+	const entryProblems = [];
+	const others = files.filter((f) => f !== esEntry);
+	for (const file of others) {
+		const named = new Set();
+		for (const m of text.get(file).matchAll(ENTRY_SPECIFIER)) {
+			const specifier = m[2] ?? m[4];
+			if (!specifier.startsWith(".")) continue;
+			const target = join(dirname(file), specifier.split(/[?#]/)[0]);
+			if (target === esEntry) named.add(specifier);
+		}
+		for (const specifier of named)
+			entryProblems.push(
+				`${file}: imports the ES entry ("${specifier}") -> a lazy chunk imports nothing of classicy.es.js, or a host serving the entry under another URL (a query string, a CDN redirect, a renamed file) loads a second copy of the library, or none: keep the chunk's modules free of Classicy imports (ClassicyPdfWorkerSource.internal.ts imports only fflate and the deflated worker).`,
+			);
+	}
+	for (const problem of entryProblems) console.error(problem);
+	if (entryProblems.length) failed = true;
+	else
+		console.log(
+			`lazy chunks: none of ${others.length} bundle(s) other than ${esEntry} imports the ES entry`,
 		);
 }
 

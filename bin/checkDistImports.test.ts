@@ -594,7 +594,8 @@ describe("check-dist-imports.mjs invariant 2: packages that stay bundled (named 
 // read.
 describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole dist)", () => {
 	// The legacy build's worker (plan 0019-fb7 §3.4); the modern one calls
-	// Map.prototype.getOrInsertComputed, which no browser on the floor has.
+	// Map.prototype.getOrInsertComputed, which the oldest supported browsers
+	// (Chrome 120, Safari 16.2, Firefox 113) lack.
 	const resolveWorker = (path: string) =>
 		readFileSync(createRequire(import.meta.url).resolve(path));
 	const WORKER = resolveWorker("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
@@ -676,7 +677,7 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 	it("invariant 17 fails when the bundles carry the modern worker instead of the legacy one", () => {
 		const MODERN = payload(MODERN_WORKER);
 		const message = (file: string) =>
-			`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${MODERN_WORKER.length} bytes), not its legacy build (${WORKER.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which no supported browser has: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`;
+			`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${MODERN_WORKER.length} bytes), not its legacy build (${WORKER.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`;
 		expect(
 			worker17({
 				"classicy.es.js": "export{};",
@@ -742,6 +743,132 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 				),
 			),
 		]));
+});
+
+// Invariant 17, its lazy chunks and its pdf.js (plan 0019-fb7's final
+// review). No bundle but classicy.es.js imports the ES entry: a lazy chunk
+// that did would make a host serving the entry under another URL load a
+// second copy of the library, or none, on the first PDF. And classicy.umd.js
+// and the ES chunks that carry pdf.js's API carry its legacy build, known by
+// core-js's polyfill of Map.prototype.getOrInsertComputed, which the modern
+// build lacks (it calls the method natively). Fixtures are the installed
+// pdf.mjs files themselves, and the legacy one minified as the UMD bundle
+// is. Only these lines are read.
+describe("check-dist-imports.mjs invariant 17: lazy chunks and pdf.js's legacy build (whole dist)", () => {
+	const pdfjs = (path: string) =>
+		readFileSync(createRequire(import.meta.url).resolve(path), "utf8");
+	const LEGACY = pdfjs("pdfjs-dist/legacy/build/pdf.mjs");
+	const MODERN = pdfjs("pdfjs-dist/build/pdf.mjs");
+	const PDF_CHUNK = "pdf-DM8UBKbM.js";
+	const WORKER_CHUNK = "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js";
+	const lines17 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const ours = (text: string) =>
+			text
+				.split("\n")
+				.filter(
+					(line) => line.includes("pdf.js API") || line.includes("ES entry"),
+				);
+		return { out: ours(result.stdout), err: ours(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const PDF = join("dist", PDF_CHUNK);
+	const LAZY = join("dist", WORKER_CHUNK);
+	const MODERN_MESSAGE = (file: string) =>
+		`${file}: carries the pdf.js API's modern build, not its legacy build (no core-js polyfill of Map.prototype.getOrInsertComputed) -> import pdfjs-dist/legacy/build/pdf.mjs in PDFViewerDocument.tsx: the modern build calls the method natively, and the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack it.`;
+	const ENTRY_MESSAGE = (file: string, specifier: string) =>
+		`${file}: imports the ES entry ("${specifier}") -> a lazy chunk imports nothing of classicy.es.js, or a host serving the entry under another URL (a query string, a CDN redirect, a renamed file) loads a second copy of the library, or none: keep the chunk's modules free of Classicy imports (ClassicyPdfWorkerSource.internal.ts imports only fflate and the deflated worker).`;
+	const dist = (overrides: Record<string, string> = {}) => ({
+		"classicy.es.js": "export{};",
+		"classicy.umd.js": LEGACY,
+		[PDF_CHUNK]: LEGACY,
+		[WORKER_CHUNK]: "var v=1;export{v as classicyPdfWorkerSrc};",
+		...overrides,
+	});
+
+	it("passes the legacy build in the UMD bundle and an ES chunk, and chunks that import no entry", () =>
+		expect(lines17(dist())).toEqual({
+			out: [
+				`pdf.js API: the legacy build (core-js's Map.prototype.getOrInsertComputed polyfill) in ${UMD} and ${PDF}`,
+				`lazy chunks: none of 3 bundle(s) other than ${ES} imports the ES entry`,
+			],
+			err: [],
+		}));
+
+	// The marker is object keys and a string, which a minifier never renames.
+	// Minified by esbuild (through Vite) in a child Node: esbuild refuses
+	// jsdom's TextEncoder.
+	it("passes the legacy build minified", () => {
+		const minify = spawnSync(
+			process.execPath,
+			[
+				"--input-type=module",
+				"-e",
+				`import { transformWithEsbuild } from "vite";
+				import { text } from "node:stream/consumers";
+				const { code } = await transformWithEsbuild(await text(process.stdin), "pdf.mjs", { minify: true });
+				process.stdout.write(code);`,
+			],
+			{ input: LEGACY, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+		);
+		expect(minify.status).toBe(0);
+		const minified = minify.stdout;
+		expect(minified.length).toBeLessThan(LEGACY.length / 2);
+		expect(minified).not.toContain("target: 'Map'");
+		expect(
+			lines17(dist({ "classicy.umd.js": minified, [PDF_CHUNK]: minified })).err,
+		).toEqual([]);
+	}, 60_000);
+
+	it("invariant 17 fails on pdf.js's modern build, in the UMD bundle or an ES chunk", () =>
+		expect(
+			lines17(dist({ "classicy.umd.js": MODERN, [PDF_CHUNK]: MODERN })).err,
+		).toEqual([MODERN_MESSAGE(UMD), MODERN_MESSAGE(PDF)]));
+
+	it("fails when no ES chunk carries the pdf.js API, or the UMD bundle carries none", () => {
+		expect(lines17(dist({ [PDF_CHUNK]: "export{};" })).err).toEqual([
+			`dist: no ES chunk other than ${ES} carries the pdf.js API -> PDFViewerDocument loads pdfjs-dist/legacy/build/pdf.mjs with import(), in a lazy chunk.`,
+		]);
+		expect(lines17(dist({ "classicy.umd.js": "var a=1;" })).err).toEqual([
+			`${UMD}: carries no pdf.js API -> the UMD bundle carries pdfjs-dist/legacy/build/pdf.mjs inline (PDFViewerDocument's import()).`,
+		]);
+	});
+
+	it("invariant 17 fails on a lazy chunk that imports the ES entry", () => {
+		// 3.6's worker chunk before the fix: its first line.
+		const STATIC = `import { classicyLog as fr } from "./classicy.es.js";\nvar v=1;export{v};`;
+		expect(lines17(dist({ [WORKER_CHUNK]: STATIC })).err).toEqual([
+			ENTRY_MESSAGE(LAZY, "./classicy.es.js"),
+		]);
+		expect(
+			lines17(
+				dist({
+					[WORKER_CHUNK]: `var v=1;export{v};export { a as b } from "./classicy.es.js";`,
+					"other-Cx1.js": `import "./classicy.es.js";const l=()=>import("./classicy.es.js");export{l};`,
+				}),
+			).err,
+		).toEqual([
+			ENTRY_MESSAGE(LAZY, "./classicy.es.js"),
+			ENTRY_MESSAGE(join("dist", "other-Cx1.js"), "./classicy.es.js"),
+		]);
+	});
+
+	it("passes a chunk that imports another chunk", () =>
+		expect(
+			lines17(
+				dist({
+					[WORKER_CHUNK]: `import { i } from "./${PDF_CHUNK}";export{i};`,
+				}),
+			).err,
+		).toEqual([]));
 });
 
 // Invariant 18 (plan 0019-fb7 §6.6): both core entry bundles embed
