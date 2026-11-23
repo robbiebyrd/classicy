@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Fifteen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-16: number 12 moved to the
+// Sixteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-17: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -16,14 +16,16 @@
 //    (rolldown: "No such file or directory") and its vitest failed to collect
 //    62 suites ("does not provide an export named 'default'").
 //
-// 2. pdfjs-dist MUST NOT BE EXTERNAL. build.lib forces asset inlining, so
-//    PDFViewerDocument's `?url` import bakes *this repo's* pdf.worker into dist
-//    as a data: URI. pdf.js refuses to run when the worker and API disagree on
-//    version, so externalizing the library lets the consumer supply a different
-//    API and the two drift. Shipped in 0.70.0-0.70.2: classicy inlined the
-//    6.1.200 worker while rt911 resolved the 6.2.108 API, and every PDF failed
-//    with "Couldn't load this PDF." -- caught and rendered as UI text, so no
-//    console error and no failing test anywhere.
+// 2. pdfjs-dist AND fflate MUST NOT BE EXTERNAL. The PDF viewer embeds *this
+//    repo's* pdf.worker in dist (deflated since plan 0019-fb7, invariant 17;
+//    a `?url` data: URI before). pdf.js refuses to run when the worker and API
+//    disagree on version, so externalizing the library lets the consumer
+//    supply a different API and the two drift. Shipped in 0.70.0-0.70.2:
+//    classicy inlined the 6.1.200 worker while rt911 resolved the 6.2.108
+//    API, and every PDF failed with "Couldn't load this PDF." -- caught and
+//    rendered as UI text, so no console error and no failing test anywhere.
+//    fflate, which inflates the worker, is a devDependency: a host has no copy
+//    to import.
 //
 // 3. EACH ENTRY BUNDLE MUST INJECT THE STYLESHEET (#303), and carry no inlined
 //    fonts. `import "@classicy/classicy"` is supposed to be enough for the
@@ -150,8 +152,24 @@
 //    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts): third-party
 //    and asset text were half of the core's 22 MB of maps. Skipped when the
 //    caller names files.
+//
+// 17. THE PDF.JS WORKER SHIPS DEFLATED, ONCE PER BUILD, NEVER IN THE ES ENTRY
+//    (plan 0019-fb7 Part 2). PDFViewerDocument embeds the worker raw-deflated
+//    (`?classicy-deflate`, bin/classicyDeflateAsset.ts) and rebuilds its data:
+//    URI when the first PDF opens, so no dist/*.js holds a
+//    data:text/javascript URI (the `?url` one was 1.68 MB in each entry
+//    bundle). A URI means one with its payload: the bare
+//    `data:text/javascript;base64,` prefix the worker source builds its URI
+//    from passes, as a bare font prefix passes invariant 3.
+//    classicy.umd.js carries exactly one payload, the ES chunks other than
+//    classicy.es.js exactly one between them (the lazy worker source, loaded
+//    beside pdf.js), and classicy.es.js none: an ES host that never opens a
+//    PDF loads none. Each payload inflates to the installed pdfjs-dist
+//    worker byte for byte (invariant 2's reason: the worker and the API come
+//    from one place). Skipped when the caller names files.
 
 import { readdir, readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { argv, exit } from "node:process";
 import {
@@ -161,6 +179,7 @@ import {
 import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
 import { findClassicyCssFloorProblems } from "./classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
+import { classicyDeflatePayloads } from "./classicyDeflateAsset.ts";
 import {
 	CLASSICY_PACKAGE_ASSET_FOLDERS,
 	findClassicyCorePackageFiles,
@@ -193,7 +212,15 @@ async function bundles() {
 		.map((f) => join(DIST, f));
 }
 
-const MUST_BE_BUNDLED = ["pdfjs-dist"];
+// Each package that must stay bundled, and why.
+const MUST_BE_BUNDLED = {
+	"pdfjs-dist":
+		"its worker is embedded here at build time; the consumer would supply a mismatched API version and every PDF would fail to load.",
+	fflate:
+		"a devDependency (it inflates the embedded pdf.js worker), so a host has no copy to import.",
+};
+const bundledPackageOf = (s) =>
+	Object.keys(MUST_BE_BUNDLED).find((p) => s === p || s.startsWith(`${p}/`));
 
 let failed = false;
 for (const file of await bundles()) {
@@ -210,17 +237,13 @@ for (const file of await bundles()) {
 		);
 	}
 
-	const leaked = specifiers.filter((s) =>
-		MUST_BE_BUNDLED.some((p) => s === p || s.startsWith(`${p}/`)),
-	);
+	const leaked = specifiers.filter((s) => bundledPackageOf(s));
 	if (leaked.length) {
 		failed = true;
 		console.error(`${file}: externalized a package that must stay bundled:`);
 		for (const s of leaked) console.error(`  import "${s}"`);
-		console.error(
-			"  -> its worker is inlined here at build time; the consumer would " +
-				"supply a mismatched API version and every PDF would fail to load.",
-		);
+		for (const p of new Set(leaked.map(bundledPackageOf)))
+			console.error(`  -> ${p}: ${MUST_BE_BUNDLED[p]}`);
 	}
 
 	if (!queried.length && !leaked.length) {
@@ -704,6 +727,73 @@ if (!argv.slice(2).length) {
 	else
 		console.log(
 			`source maps: ${maps.length} dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text`,
+		);
+}
+
+// Invariant 17: the pdf.js worker ships deflated, once in the UMD bundle and
+// once in the ES build's lazy chunks, never in the ES entry. Skipped when the
+// caller names specific files.
+if (!argv.slice(2).length) {
+	const worker = await readFile(
+		createRequire(import.meta.url).resolve(
+			"pdfjs-dist/build/pdf.worker.min.mjs",
+		),
+	);
+	// A URI with its payload, not the bare prefix: the worker source keeps
+	// `"data:text/javascript;base64,"` to build its URI from at runtime.
+	const WORKER_DATA_URI = /data:text\/javascript[^,"'`]*,[^"'`\s]{16}/;
+	const esEntry = join(DIST, "classicy.es.js");
+	const umdEntry = join(DIST, "classicy.umd.js");
+	const files = (await readdir(DIST))
+		.filter((f) => f.endsWith(".js"))
+		.sort()
+		.map((f) => join(DIST, f));
+	const problems = [];
+	// Each bundle's payloads, inflated; null for one that does not inflate
+	// (reported, and left out of the counts).
+	const payloads = new Map();
+	for (const file of files) {
+		const source = await readFile(file, "utf8");
+		if (WORKER_DATA_URI.test(source))
+			problems.push(
+				`${file}: carries a data:text/javascript URI -> the pdf.js worker is embedded deflated (\`?classicy-deflate\`, bin/classicyDeflateAsset.ts), never as a \`?url\` data: URI.`,
+			);
+		try {
+			payloads.set(file, classicyDeflatePayloads(source));
+		} catch (error) {
+			payloads.set(file, null);
+			problems.push(
+				`${file}: carries a deflated pdf.js worker that does not inflate (${error.message}) -> check classicyDeflateAssetPlugin in vite.config.ts.`,
+			);
+		}
+	}
+	const count = (file) => (payloads.get(file) ?? []).length;
+	if (payloads.get(umdEntry) !== null && count(umdEntry) !== 1)
+		problems.push(
+			`${umdEntry}: carries ${count(umdEntry)} deflated pdf.js workers, not 1 -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts and classicyDeflateAssetPlugin in vite.config.ts.`,
+		);
+	if (count(esEntry))
+		problems.push(
+			`${esEntry}: carries ${count(esEntry)} deflated pdf.js worker(s) -> the ES entry carries none: PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`,
+		);
+	const chunks = files.filter((f) => f !== esEntry && f !== umdEntry);
+	const carriers = chunks.filter((f) => count(f));
+	const inChunks = chunks.reduce((sum, f) => sum + count(f), 0);
+	if (chunks.every((f) => payloads.get(f) !== null) && inChunks !== 1)
+		problems.push(
+			`${DIST}: the ES chunks other than ${esEntry} carry ${inChunks} deflated pdf.js workers, not 1 (${carriers.join(", ") || "none"}) -> PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`,
+		);
+	for (const file of [umdEntry, ...chunks, esEntry])
+		for (const payload of payloads.get(file) ?? [])
+			if (!payload.equals(worker))
+				problems.push(
+					`${file}: its deflated pdf.js worker (${payload.length} bytes) is not the installed pdfjs-dist worker (${worker.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+				);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`pdf.js worker: deflated once in ${umdEntry} and once in the ES chunks (${carriers.join(", ")}), each equal to the installed pdfjs-dist worker (${worker.length} bytes), never in ${esEntry}; no data:text/javascript URI in ${files.length} bundle(s)`,
 		);
 }
 

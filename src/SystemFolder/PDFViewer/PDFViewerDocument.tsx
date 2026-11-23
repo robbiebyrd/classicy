@@ -5,7 +5,6 @@ import type {
 	PDFDocumentProxy,
 	RenderTask,
 } from "pdfjs-dist";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
@@ -27,16 +26,28 @@ import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base6
 // at module-evaluation time. A static import here would run that the instant
 // anything is imported from the classicy barrel — crashing any consumer's
 // non-browser environment (Node, test runners, SSR) even if they never
-// render a PDFViewer. Load it lazily instead, once, on first use.
-let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
+// render a PDFViewer. Load it lazily instead, once, on first use. The
+// worker's source loads beside it: the worker ships deflated (plan 0019-fb7
+// Part 2), so in the ES build both are lazy chunks, and a host that never
+// opens a PDF downloads neither.
+let pdfjsModules: Promise<
+	[
+		typeof import("pdfjs-dist"),
+		typeof import("./ClassicyPdfWorkerSource.internal"),
+	]
+> | null = null;
 function loadPdfjs() {
-	if (!pdfjsPromise) {
-		pdfjsPromise = import("pdfjs-dist").then((pdfjs) => {
-			pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-			return pdfjs;
-		});
-	}
-	return pdfjsPromise;
+	pdfjsModules ??= Promise.all([
+		import("pdfjs-dist"),
+		import("./ClassicyPdfWorkerSource.internal"),
+	]);
+	// Set on every load: the worker source keeps only a rebuilt URI, so after
+	// a failed inflate (`""`, logged; getDocument() then throws, which shows
+	// the load error) the next document inflates, and logs, again.
+	return pdfjsModules.then(([pdfjs, { classicyPdfWorkerSrc }]) => {
+		pdfjs.GlobalWorkerOptions.workerSrc = classicyPdfWorkerSrc();
+		return pdfjs;
+	});
 }
 
 const MIN_SCALE = 0.1;

@@ -66,8 +66,8 @@ vi.mock("pdfjs-dist", () => ({
 	GlobalWorkerOptions: { workerSrc: "" },
 	RenderingCancelledException: class extends Error {},
 }));
-vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
-	default: "mock-worker-url",
+vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
+	classicyPdfWorkerSrc: () => "mock-worker-url",
 }));
 // No audio: the rows only need the components' DOM.
 vi.mock(

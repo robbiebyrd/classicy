@@ -1,8 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { deflateRawSync } from "node:zlib";
 import { afterAll, describe, expect, it } from "vitest";
+import { CLASSICY_DEFLATE_MARK } from "./classicyDeflateAsset";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 // The real bin/check-dist-imports.mjs, run in
@@ -541,4 +550,182 @@ describe("check-dist-imports.mjs invariant 16: source map text (whole dist)", ()
 			],
 			err: [],
 		}));
+});
+
+// Invariant 2: pdfjs-dist and fflate stay bundled. The worker is embedded
+// from this repo's pdfjs-dist, and fflate (which inflates it) is a
+// devDependency no host installs.
+describe("check-dist-imports.mjs invariant 2: packages that stay bundled (named files)", () => {
+	const FILE = join("fx", "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js");
+
+	it("passes a chunk that carries fflate inline", () =>
+		expect(
+			check({}, { [FILE]: "function i(){}export{i as inflateSync};" }),
+		).toEqual({ status: 0, stderr: "" }));
+
+	it.each([
+		[
+			"fflate",
+			'import{inflateSync as i}from"fflate";export{i};',
+			"fflate: a devDependency (it inflates the embedded pdf.js worker), so a host has no copy to import.",
+		],
+		[
+			"pdfjs-dist",
+			'const p=()=>import("pdfjs-dist");export{p};',
+			"pdfjs-dist: its worker is embedded here at build time; the consumer would supply a mismatched API version and every PDF would fail to load.",
+		],
+	])("fails a chunk that imports %s", (name, code, reason) => {
+		const { status, stderr } = check({}, { [FILE]: code });
+		expect(status).toBe(1);
+		expect(stderr.trim().split("\n")).toEqual([
+			`${FILE}: externalized a package that must stay bundled:`,
+			`  import "${name}"`,
+			`  -> ${reason}`,
+		]);
+	});
+});
+
+// Invariant 17 (plan 0019-fb7 Part 2): the pdf.js worker ships deflated
+// (`?classicy-deflate`), never as a data:text/javascript URI; the UMD bundle
+// carries it once, the ES build once in a lazy chunk, and the ES entry not at
+// all; each copy inflates to the installed pdfjs-dist worker. Run without
+// named files on a dist/ holding only the bundles given, so the other
+// invariants report what that dist lacks; only the pdf.js worker lines are
+// read.
+describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole dist)", () => {
+	const WORKER = readFileSync(
+		createRequire(import.meta.url).resolve(
+			"pdfjs-dist/build/pdf.worker.min.mjs",
+		),
+	);
+	const payload = (bytes: Buffer) =>
+		`a=${JSON.stringify(
+			CLASSICY_DEFLATE_MARK +
+				deflateRawSync(bytes, { level: 9 }).toString("base64"),
+		)};export{a};`;
+	const DEFLATED = payload(WORKER);
+	const CHUNK = "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js";
+	const worker17 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const workerLines = (text: string) =>
+			text.split("\n").filter((line) => line.includes("pdf.js worker"));
+		return { out: workerLines(result.stdout), err: workerLines(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const LAZY = join("dist", CHUNK);
+
+	it("passes with one payload in the UMD bundle and one in an ES chunk", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": "export{};",
+				[CHUNK]: DEFLATED,
+			}),
+		).toEqual({
+			out: [
+				`pdf.js worker: deflated once in ${UMD} and once in the ES chunks (${LAZY}), each equal to the installed pdfjs-dist worker (${WORKER.length} bytes), never in ${ES}; no data:text/javascript URI in 4 bundle(s)`,
+			],
+			err: [],
+		}));
+
+	// The bare prefix is how the worker source builds its URI at runtime.
+	it("passes the bare data:text/javascript prefix", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": `p="data:text/javascript;base64,";${DEFLATED}`,
+				[CHUNK]: `p="data:text/javascript;base64,",u=p+b;${DEFLATED}`,
+			}).err,
+		).toEqual([]));
+
+	it("invariant 17 fails on a data:text/javascript URI", () =>
+		expect(
+			worker17({
+				"classicy.es.js": `w="data:text/javascript;base64,${WORKER.subarray(0, 48).toString("base64")}";export{w};`,
+				"classicy.umd.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${ES}: carries a data:text/javascript URI -> the pdf.js worker is embedded deflated (\`?classicy-deflate\`, bin/classicyDeflateAsset.ts), never as a \`?url\` data: URI.`,
+		]));
+
+	it("fails when the deflated worker differs from the installed one", () => {
+		const OTHER = payload(Buffer.concat([WORKER, Buffer.from("\n")]));
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": OTHER,
+				[CHUNK]: OTHER,
+			}).err,
+		).toEqual([
+			`${UMD}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+			`${LAZY}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+		]);
+	});
+
+	it("fails when classicy.es.js carries it", () =>
+		expect(
+			worker17({
+				"classicy.es.js": DEFLATED,
+				"classicy.umd.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${ES}: carries 1 deflated pdf.js worker(s) -> the ES entry carries none: PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`,
+		]));
+
+	it("fails when classicy.umd.js lacks it", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": "export{};",
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${UMD}: carries 0 deflated pdf.js workers, not 1 -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts and classicyDeflateAssetPlugin in vite.config.ts.`,
+		]));
+
+	it("fails when no ES chunk carries it, or two do", () => {
+		const message = (count: number, chunks: string) =>
+			`dist: the ES chunks other than ${ES} carry ${count} deflated pdf.js workers, not 1 (${chunks}) -> PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`;
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": "export{};",
+			}).err,
+		).toEqual([message(0, "none")]);
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([message(2, `${LAZY}, ${join("dist", "pdf-DM8UBKbM.js")}`)]);
+	});
+
+	it("fails on a payload that does not inflate", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": `a="${CLASSICY_DEFLATE_MARK}AAAAAAAA";export{a};`,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			expect.stringMatching(
+				new RegExp(
+					`^${UMD.replaceAll(".", "\\.")}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
+				),
+			),
+		]));
 });

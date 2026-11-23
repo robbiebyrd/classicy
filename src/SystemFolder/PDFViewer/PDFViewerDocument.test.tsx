@@ -33,10 +33,12 @@ vi.mock(
 
 const {
 	getDocumentMock,
+	globalWorkerOptions,
 	mockDoc,
 	mockPage,
 	mockLoadingTaskDestroy,
 	RenderingCancelledExceptionMock,
+	workerSrcMock,
 } = vi.hoisted(() => {
 	// Mirrors the real pdf.js RenderingCancelledException (a concrete,
 	// instanceof-checkable class) closely enough for the component's
@@ -79,23 +81,32 @@ const {
 			destroy: mockLoadingTaskDestroy,
 		}),
 	);
+	// pdf.js's worker options, one object for the whole file, so a test can
+	// read what the viewer set before getDocument() ran.
+	const globalWorkerOptions = { workerSrc: "" };
+	// The worker source the viewer hands pdf.js: the real module rebuilds the
+	// data: URI from the deflated worker (ClassicyPdfWorkerSource.internal.ts,
+	// tested on its own); `""` is what it returns when that fails.
+	const workerSrcMock = vi.fn(() => "mock-worker-url");
 	return {
 		getDocumentMock,
+		globalWorkerOptions,
 		mockDoc,
 		mockPage,
 		mockLoadingTaskDestroy,
 		RenderingCancelledExceptionMock,
+		workerSrcMock,
 	};
 });
 
 vi.mock("pdfjs-dist", () => ({
 	getDocument: getDocumentMock,
-	GlobalWorkerOptions: { workerSrc: "" },
+	GlobalWorkerOptions: globalWorkerOptions,
 	RenderingCancelledException: RenderingCancelledExceptionMock,
 }));
 
-vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
-	default: "mock-worker-url",
+vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
+	classicyPdfWorkerSrc: workerSrcMock,
 }));
 
 import { act } from "react";
@@ -114,6 +125,8 @@ beforeEach(() => {
 	// test that fails before its first render can't leak its render task
 	// into the next test. It restores each vi.fn's original implementation.
 	getDocumentMock.mockReset();
+	workerSrcMock.mockReset();
+	globalWorkerOptions.workerSrc = "";
 	mockDoc.getPage.mockReset();
 	mockLoadingTaskDestroy.mockReset();
 	mockPage.render.mockReset();
@@ -172,6 +185,57 @@ describe("PDFViewerDocument", () => {
 			await user.click(screen.getByRole("button", { name: "Zoom Out" }));
 		}
 		expect(screen.getByRole("button", { name: "Zoom Out" })).toBeDisabled();
+	});
+
+	it("sets the worker source before loading a document", async () => {
+		let workerSrcAtLoad: string | undefined;
+		getDocumentMock.mockImplementationOnce(() => {
+			workerSrcAtLoad = globalWorkerOptions.workerSrc;
+			return {
+				promise: Promise.resolve(mockDoc),
+				destroy: mockLoadingTaskDestroy,
+			};
+		});
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+		expect(workerSrcAtLoad).toBe("mock-worker-url");
+		expect(globalWorkerOptions.workerSrc).toBe("mock-worker-url");
+	});
+
+	// The worker's compressed copy did not inflate (logged by the worker
+	// source): pdf.js gets no worker and refuses the document, and the viewer
+	// shows its load error rather than spinning on "Loading…". pdfjs-dist 6
+	// throws from getDocument() itself (its PDFWorker reads the empty
+	// workerSrc in its constructor); a rejected load is caught the same way.
+	const NO_WORKER = 'No "GlobalWorkerOptions.workerSrc" specified.';
+	it.each([
+		[
+			"getDocument rejects",
+			() => ({
+				promise: Promise.reject(new Error(NO_WORKER)),
+				destroy: mockLoadingTaskDestroy,
+			}),
+		],
+		[
+			"getDocument throws",
+			(): never => {
+				throw new Error(NO_WORKER);
+			},
+		],
+	])("shows its load error when the worker source is empty (%s)", async (_name, load) => {
+		workerSrcMock.mockReturnValue("");
+		globalWorkerOptions.workerSrc = "stale";
+		let workerSrcAtLoad: string | undefined;
+		getDocumentMock.mockImplementationOnce(() => {
+			workerSrcAtLoad = globalWorkerOptions.workerSrc;
+			return load();
+		});
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
+		expect(workerSrcAtLoad).toBe("");
+		expect(screen.queryByText("Next")).not.toBeInTheDocument();
 	});
 
 	it("shows an error message (no toolbar) when the document fails to load", async () => {

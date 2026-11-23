@@ -83,8 +83,10 @@ const config: StorybookConfig = {
 				// Storybook compiles the SCSS itself, so the component stylesheets
 				// are layered here too (@layer classicy.base), as in the library build.
 				classicyCssLayerPlugin(),
-				// `?classicy-deflate` imports (the pdf.js worker), as in the library
-				// build (bin/classicyDeflateAsset.ts).
+				// `?classicy-deflate` imports, as in the library build
+				// (bin/classicyDeflateAsset.ts): the pdf.js worker is a string in the
+				// PDF viewer's lazy chunk, which rebuilds its data: URI when the first
+				// PDF opens, so Storybook emits no worker file.
 				classicyDeflateAssetPlugin(),
 				richSvg(),
 				VitePluginImageTools({
@@ -92,16 +94,15 @@ const config: StorybookConfig = {
 					// as in vite.config.ts; story 0146-doe.
 					excludes: CLASSICY_IMAGE_TOOLS_EXCLUDES,
 					quality: 100,
-					// Disabled: pdfjs-dist's worker is imported with `?url` (see
-					// PDFViewerDocument.tsx) and is emitted as a plain asset whose
-					// name ends in ".mjs". vite-plugin-image-tools's webp-compat
-					// pass matches any bundle entry ending in "js"/"css" and
-					// assumes it's a JS/CSS chunk (`.code`/`.source`), but an
-					// asset only has `.source` — so `.code` is undefined and the
-					// plugin crashes trying to `.replace()` it. This only bites
-					// once a story renders the real ClassicyDesktop (which pulls
-					// in PDFViewer transitively), so webp conversion is disabled
-					// here rather than worked around upstream.
+					// Disabled. First because pdfjs-dist's worker, imported with
+					// `?url`, was emitted as an asset named "...mjs", and
+					// vite-plugin-image-tools's webp-compat pass, which takes any
+					// bundle entry ending in "js"/"css" for a chunk, crashed on its
+					// missing `.code`. The worker is now embedded deflated
+					// (`?classicy-deflate`, in a JS chunk), so that asset is gone,
+					// but WebP stays off: turning it on would re-encode the static
+					// build's images, which the parity tools shoot (bin/parity/
+					// README.md), so story pixels could move with it.
 					enableWebp: false,
 					enableDev: true,
 					enableDevWebp: false,
