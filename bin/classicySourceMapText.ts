@@ -2,13 +2,18 @@ import type { Plugin } from "vite";
 
 // Published source maps keep Classicy's own source text only (plan 0019-fb7
 // Part 1). A third-party module (a path through node_modules/, the compressed
-// pdf.js worker's module included) and an asset Vite embedded in the bundle
-// lose their `sourcesContent`; `sources`, `names` and `mappings` stay, so stack
-// traces and DevTools still name the vendor file and line, and every vendor
-// source is on the map's `x_google_ignoreList`, so DevTools steps over it.
+// pdf.js worker's module included) and an embedded asset (an image, sound,
+// media, font or PDF file by its extension, or a module whose text starts
+// `export default "data:`) lose their `sourcesContent`; `sources`, `names` and
+// `mappings` stay, so stack traces and DevTools still name the vendor file and
+// line, and every vendor source is on the map's `x_google_ignoreList`, so
+// DevTools steps over it.
 //
 // classicySourceMapTextPlugin does it in the three library builds;
-// findClassicySourceMapTextProblems is each package's verify:dist gate.
+// findClassicySourceMapTextProblems is each package's verify:dist gate. The
+// gate classifies with the same rules, so a src/ module that is an asset only
+// by its text reads as Classicy's own once stripped, and the gate fails on it
+// (safe: loud, never silent); its extension belongs in the list below.
 
 /** A source map as Rollup writes it: the v3 fields, any other key kept. */
 export type ClassicyRawSourceMap = {
@@ -49,37 +54,22 @@ export const CLASSICY_MAP_ASSET_EXTENSIONS = [
 const ASSET_EXTENSIONS: ReadonlySet<string> = new Set(
 	CLASSICY_MAP_ASSET_EXTENSIONS,
 );
-// Vite's asset queries (`?inline`, `?url`) and the no-inline opt-out
-// (bin/classicyNoInlineAssets.ts). `?raw` is not one: it is Classicy's text.
-const ASSET_QUERIES: ReadonlySet<string> = new Set([
-	"inline",
-	"url",
-	"no-inline",
-]);
 const DATA_MODULE = 'export default "data:';
 
 /**
- * A map source as a forward-slash path and its query. Rollup relativizes a
- * virtual module's `\0` id like any other (`../../\0commonjsHelpers.js`), so
- * every NUL goes, not only a leading one.
+ * A map source as a forward-slash path, its query dropped. Rollup relativizes
+ * a virtual module's `\0` id like any other (`../../\0commonjsHelpers.js`),
+ * so every NUL goes, not only a leading one.
  */
-const splitSource = (source: string): { path: string; query: string[] } => {
-	const normalized = source.replace(/\\/g, "/").replace(/\0/g, "");
-	const at = normalized.indexOf("?");
-	if (at === -1) return { path: normalized, query: [] };
-	return {
-		path: normalized.slice(0, at),
-		query: normalized
-			.slice(at + 1)
-			.split("&")
-			.map((param) => param.split("=")[0]),
-	};
-};
+const sourcePath = (source: string): string =>
+	source.replace(/\\/g, "/").replace(/\0/g, "").split("?")[0];
 
 /**
- * Whose text a map source holds. `vendor`: a path through node_modules/
- * (query ignored). `asset`: an embedded asset module, by its Vite query, its
- * extension or a text starting `export default "data:`. `own`: Classicy's
+ * Whose text a map source holds. `vendor`: a path through node_modules/.
+ * `asset`: an embedded image, sound, media, font or PDF file, by its
+ * extension, or a module whose text starts `export default "data:`. A query
+ * makes nothing an asset: a package stylesheet imported `?inline`, or a `?url`
+ * or `?raw` import of Classicy's text, is Classicy's own. `own`: Classicy's
  * source, under a src/ folder (the core's, a package's, or Platinum's savers
  * as System 7 bundles them). `other`: anything else, such as a virtual helper.
  */
@@ -87,11 +77,10 @@ export function classifyClassicyMapSource(
 	source: string,
 	content: string | null | undefined,
 ): ClassicyMapSourceKind {
-	const { path, query } = splitSource(source);
+	const path = sourcePath(source);
 	if (/(?:^|\/)node_modules\//.test(path)) return "vendor";
 	const extension = /\.([^./]+)$/.exec(path)?.[1].toLowerCase();
 	if (
-		query.some((param) => ASSET_QUERIES.has(param)) ||
 		(extension !== undefined && ASSET_EXTENSIONS.has(extension)) ||
 		content?.startsWith(DATA_MODULE)
 	)
@@ -159,7 +148,7 @@ export function findClassicySourceMapTextProblems(
 			);
 		if (kind === "own" && typeof content !== "string")
 			problems.push(
-				`${fileName}: has no text for Classicy's own source ${source} -> only third-party and asset text may be dropped.`,
+				`${fileName}: has no text for Classicy's own source ${source} -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.`,
 			);
 		if (kind === "vendor" && !ignore.has(i))
 			problems.push(

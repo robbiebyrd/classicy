@@ -66,7 +66,16 @@ describe("classifyClassicyMapSource", () => {
 		expect(
 			classifyClassicyMapSource("../assets/img/icons/system/macos.SVG", null),
 		).toBe("asset");
-		expect(classifyClassicyMapSource("../src/x.txt?url", null)).toBe("asset");
+		expect(
+			classifyClassicyMapSource(
+				"../packages/appearance/platinum/src/a.png?no-inline",
+				'export default "__VITE_ASSET__x__"',
+			),
+		).toBe("asset");
+		// The extension decides, whatever the query: an SVG is an image.
+		expect(
+			classifyClassicyMapSource("../src/foo.svg?raw", 'export default "<svg>"'),
+		).toBe("asset");
 	});
 
 	it("classifies Classicy sources as own", () => {
@@ -77,12 +86,22 @@ describe("classifyClassicyMapSource", () => {
 				"export {};",
 			),
 		).toBe("own");
-		// A `?raw` import is Classicy's text, not an embedded asset.
+		// A query makes nothing an asset: a package stylesheet imported
+		// `?inline`, a `?url` or `?raw` import of Classicy's text stay own.
 		expect(
 			classifyClassicyMapSource(
 				"../src/assets/pixelart/popup-slider-thumb.txt?raw",
 				'export default "..77.."',
 			),
+		).toBe("own");
+		expect(
+			classifyClassicyMapSource(
+				"../src/x.scss?inline",
+				'export default "@layer classicy.package{}"',
+			),
+		).toBe("own");
+		expect(
+			classifyClassicyMapSource("../src/x.ts?url", 'export default "x"'),
 		).toBe("own");
 	});
 
@@ -174,6 +193,21 @@ describe("findClassicySourceMapTextProblems", () => {
 		const bad = findClassicySourceMapTextProblems("{not json", FILE);
 		expect(bad).toHaveLength(1);
 		expect(bad[0]).toContain(FILE);
+	});
+
+	it("a src/ module recognized as an asset only by its content is stripped, and the gate reports it", () => {
+		// Fails safe: once its text is gone nothing tells it from Classicy's
+		// own code, so the gate fails loudly and names the fix.
+		const DATA = "../src/a.ttf";
+		const stripped = stripClassicySourceMapText(
+			map([OWN, DATA], ["a", 'export default "data:font/ttf;base64,AA"']),
+		);
+		expect(stripped.sourcesContent).toEqual(["a", null]);
+		const problems = problemsOf(stripped);
+		expect(problems).toHaveLength(1);
+		expect(problems[0]).toContain(FILE);
+		expect(problems[0]).toContain(DATA);
+		expect(problems[0]).toContain("CLASSICY_MAP_ASSET_EXTENSIONS");
 	});
 });
 
