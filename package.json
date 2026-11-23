@@ -136,6 +136,7 @@
 		"audiosprite": "0.7.2",
 		"barrelsby": "^2.8.1",
 		"concurrently": "^9.2.3",
+		"fflate": "^0.8.3",
 		"husky": "^9.1.7",
 		"jsdom": "^29.1.1",
 		"lint-staged": "^17.0.7",
