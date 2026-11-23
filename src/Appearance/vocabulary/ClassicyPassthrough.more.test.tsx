@@ -67,7 +67,7 @@ vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
 	RenderingCancelledException: class extends Error {},
 }));
 vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
-	classicyPdfWorkerSrc: () => "mock-worker-url",
+	classicyPdfWorkerSrc: () => ({ ok: true, src: "mock-worker-url" }),
 }));
 // No audio: the rows only need the components' DOM.
 vi.mock(
