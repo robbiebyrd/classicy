@@ -35,6 +35,8 @@ const ALLOWED: Record<string, string> = {
 		"Storybook's stories glob (main.ts): Platinum's own stories, its screen savers'",
 	"packages/appearance/system7/src/**/*.stories.@(ts|tsx)":
 		"Storybook's stories glob (main.ts): System 7's own stories",
+	"packages/appearance/system7/src/system7.json":
+		"System 7's theme data, for Storybook's Theme toolbar (StorybookPackages.ts), which lists an unregistered package's presets from its JSON without registering it",
 };
 
 const RELATIVE_INTO_PACKAGES = /["'`]((?:\.\.\/)+packages\/[^"'`]*)["'`]/g;
