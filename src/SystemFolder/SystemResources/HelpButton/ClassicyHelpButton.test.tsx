@@ -39,7 +39,7 @@ describe("ClassicyHelpButton", () => {
 			"src",
 			resolveClassicyAsset("systemArt", "helpButton"),
 		);
-		expect(glyph?.getAttribute("src")).toMatch(/help-button\.png$/);
+		expect(glyph?.getAttribute("src")).toMatch(/help-button\.webp$/);
 		// Decorative — the button's aria-label carries the name.
 		expect(glyph).toHaveAttribute("alt", "");
 	});
