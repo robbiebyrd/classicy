@@ -26,21 +26,36 @@ import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base6
 // at module-evaluation time. A static import here would run that the instant
 // anything is imported from the classicy barrel — crashing any consumer's
 // non-browser environment (Node, test runners, SSR) even if they never
-// render a PDFViewer. Load it lazily instead, once, on first use. The
-// worker's source loads beside it: the worker ships deflated (plan 0019-fb7
-// Part 2), so in the ES build both are lazy chunks, and a host that never
-// opens a PDF downloads neither.
+// render a PDFViewer. Load it lazily instead, on first use. The worker's
+// source loads beside it: the worker ships deflated (plan 0019-fb7 Part 2),
+// so in the ES build both are lazy chunks, and a host that never opens a PDF
+// downloads neither.
+//
+// Both are pdf.js's legacy build (its API here, its worker in
+// ClassicyPdfWorkerSource.internal.ts; one version, one place). The modern
+// build calls methods newer than the browsers Classicy supports without
+// polyfills, Map.prototype.getOrInsertComputed among them, which none of
+// them has, so no page would draw ("Couldn't render this page."). The legacy
+// build carries the polyfills. Its declarations re-export pdfjs-dist's own,
+// so the types above still come from "pdfjs-dist".
 let pdfjsModules: Promise<
 	[
-		typeof import("pdfjs-dist"),
+		typeof import("pdfjs-dist/legacy/build/pdf.mjs"),
 		typeof import("./ClassicyPdfWorkerSource.internal"),
 	]
 > | null = null;
 function loadPdfjs() {
+	// A load that failed (a chunk that did not arrive) is not kept: the next
+	// document imports again, which loads it wherever the browser fetches a
+	// failed module anew. Only these imports are retried; pdf.js keeps its own
+	// failures (a fake worker that did not set up stays failed for the page).
 	pdfjsModules ??= Promise.all([
-		import("pdfjs-dist"),
+		import("pdfjs-dist/legacy/build/pdf.mjs"),
 		import("./ClassicyPdfWorkerSource.internal"),
-	]);
+	]).catch((error: unknown) => {
+		pdfjsModules = null;
+		throw error;
+	});
 	// Set on every load: the worker source keeps only a rebuilt URI, so after
 	// a failed inflate (`""`, logged; getDocument() then throws, which shows
 	// the load error) the next document inflates, and logs, again.

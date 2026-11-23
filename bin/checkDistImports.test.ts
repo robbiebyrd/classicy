@@ -593,11 +593,12 @@ describe("check-dist-imports.mjs invariant 2: packages that stay bundled (named 
 // invariants report what that dist lacks; only the pdf.js worker lines are
 // read.
 describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole dist)", () => {
-	const WORKER = readFileSync(
-		createRequire(import.meta.url).resolve(
-			"pdfjs-dist/build/pdf.worker.min.mjs",
-		),
-	);
+	// The legacy build's worker (plan 0019-fb7 §3.4); the modern one calls
+	// Map.prototype.getOrInsertComputed, which no browser on the floor has.
+	const resolveWorker = (path: string) =>
+		readFileSync(createRequire(import.meta.url).resolve(path));
+	const WORKER = resolveWorker("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
+	const MODERN_WORKER = resolveWorker("pdfjs-dist/build/pdf.worker.min.mjs");
 	const payload = (bytes: Buffer) =>
 		`a=${JSON.stringify(
 			CLASSICY_DEFLATE_MARK +
@@ -632,7 +633,7 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 			}),
 		).toEqual({
 			out: [
-				`pdf.js worker: deflated once in ${UMD} and once in the ES chunks (${LAZY}), each equal to the installed pdfjs-dist worker (${WORKER.length} bytes), never in ${ES}; no data:text/javascript URI in 4 bundle(s)`,
+				`pdf.js worker: deflated once in ${UMD} and once in the ES chunks (${LAZY}), each equal to the installed pdfjs-dist legacy worker (${WORKER.length} bytes), never in ${ES}; no data:text/javascript URI in 4 bundle(s)`,
 			],
 			err: [],
 		}));
@@ -667,9 +668,22 @@ describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole
 				[CHUNK]: OTHER,
 			}).err,
 		).toEqual([
-			`${UMD}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
-			`${LAZY}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+			`${UMD}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist legacy worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+			`${LAZY}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist legacy worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
 		]);
+	});
+
+	it("invariant 17 fails when the bundles carry the modern worker instead of the legacy one", () => {
+		const MODERN = payload(MODERN_WORKER);
+		const message = (file: string) =>
+			`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${MODERN_WORKER.length} bytes), not its legacy build (${WORKER.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which no supported browser has: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`;
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": MODERN,
+				[CHUNK]: MODERN,
+			}).err,
+		).toEqual([message(UMD), message(LAZY)]);
 	});
 
 	it("fails when classicy.es.js carries it", () =>

@@ -10,15 +10,17 @@ import {
 
 // The pdf.js worker ships raw-deflated (plan 0019-fb7 §3.1) and is rebuilt at
 // runtime into the data: URI pdf.js received from the `?url` import before
-// (§3.2). fflate's inflateSync is wrapped in a spy that calls the real one,
-// so the memo can be counted.
+// (§3.2). It is the legacy build's worker (§3.4): the modern one calls
+// Map.prototype.getOrInsertComputed, which no browser on the floor has.
+// fflate's inflateSync is wrapped in a spy that calls the real one, so the
+// memo can be counted.
 vi.mock("fflate", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("fflate")>();
 	return { ...actual, inflateSync: vi.fn(actual.inflateSync) };
 });
 
 const WORKER = createRequire(import.meta.url).resolve(
-	"pdfjs-dist/build/pdf.worker.min.mjs",
+	"pdfjs-dist/legacy/build/pdf.worker.min.mjs",
 );
 const DATA_URI_PREFIX = "data:text/javascript;base64,";
 
@@ -41,7 +43,7 @@ afterEach(() => {
 });
 
 describe("classicyPdfWorkerSrc", () => {
-	it("builds the data: URI pdf.js received before", async () => {
+	it("builds the data: URI of pdf.js's legacy worker", async () => {
 		const { source } = await freshWorkerSource();
 		const expected = DATA_URI_PREFIX + readFileSync(WORKER).toString("base64");
 		const src = source.classicyPdfWorkerSrc();

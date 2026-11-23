@@ -37,6 +37,8 @@ const {
 	mockDoc,
 	mockPage,
 	mockLoadingTaskDestroy,
+	pdfjsImports,
+	pdfjsModule,
 	RenderingCancelledExceptionMock,
 	workerSrcMock,
 } = vi.hoisted(() => {
@@ -88,22 +90,40 @@ const {
 	// data: URI from the deflated worker (ClassicyPdfWorkerSource.internal.ts,
 	// tested on its own); `""` is what it returns when that fails.
 	const workerSrcMock = vi.fn(() => "mock-worker-url");
+	// Which pdf.js builds the viewer imported ("legacy", "modern"), and how
+	// many of its next legacy imports fail, as a chunk that does not load.
+	const pdfjsImports = { builds: [] as string[], failuresLeft: 0 };
+	const pdfjsModule = (build: "legacy" | "modern") => {
+		pdfjsImports.builds.push(build);
+		if (build === "legacy" && pdfjsImports.failuresLeft > 0) {
+			pdfjsImports.failuresLeft--;
+			throw new TypeError("Failed to fetch dynamically imported module");
+		}
+		return {
+			getDocument: getDocumentMock,
+			GlobalWorkerOptions: globalWorkerOptions,
+			RenderingCancelledException: RenderingCancelledExceptionMock,
+		};
+	};
 	return {
 		getDocumentMock,
 		globalWorkerOptions,
 		mockDoc,
 		mockPage,
 		mockLoadingTaskDestroy,
+		pdfjsImports,
+		pdfjsModule,
 		RenderingCancelledExceptionMock,
 		workerSrcMock,
 	};
 });
 
-vi.mock("pdfjs-dist", () => ({
-	getDocument: getDocumentMock,
-	GlobalWorkerOptions: globalWorkerOptions,
-	RenderingCancelledException: RenderingCancelledExceptionMock,
-}));
+// pdf.js's legacy build is the one the viewer loads (plan 0019-fb7 §3.4):
+// the modern build calls Map.prototype.getOrInsertComputed, which no browser
+// on Classicy's floor has. The modern build is mocked too, only to record
+// that it is never imported.
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => pdfjsModule("legacy"));
+vi.mock("pdfjs-dist", () => pdfjsModule("modern"));
 
 vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
 	classicyPdfWorkerSrc: workerSrcMock,
@@ -185,6 +205,41 @@ describe("PDFViewerDocument", () => {
 			await user.click(screen.getByRole("button", { name: "Zoom Out" }));
 		}
 		expect(screen.getByRole("button", { name: "Zoom Out" })).toBeDisabled();
+	});
+
+	it("loads pdf.js's legacy build", async () => {
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+		expect(pdfjsImports.builds).toContain("legacy");
+		expect(pdfjsImports.builds).not.toContain("modern");
+	});
+
+	// pdf.js's chunk did not load (a network blip, or a deploy that replaced
+	// it): that document shows its load error, and the next one imports the
+	// chunk again rather than failing on the first attempt's rejection. A
+	// fresh copy of the viewer, and the mock registered again (doMock drops
+	// its cached module), so no earlier test's pdf.js is kept.
+	it("a failed chunk load is retried on the next document", async () => {
+		vi.resetModules();
+		vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => pdfjsModule("legacy"));
+		const { PDFViewerDocument: FreshViewer } = await import(
+			"@/SystemFolder/PDFViewer/PDFViewerDocument"
+		);
+		pdfjsImports.failuresLeft = 1;
+		const { rerender } = render(
+			<FreshViewer url="http://example.com/first.pdf" />,
+		);
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
+		expect(pdfjsImports.failuresLeft).toBe(0);
+		expect(getDocumentMock).not.toHaveBeenCalled();
+		rerender(<FreshViewer url="http://example.com/second.pdf" />);
+		expect(await screen.findByText("Page 1 of 3")).toBeInTheDocument();
+		expect(getDocumentMock).toHaveBeenCalledTimes(1);
+		expect(getDocumentMock).toHaveBeenCalledWith({
+			url: "http://example.com/second.pdf",
+		});
 	});
 
 	it("sets the worker source before loading a document", async () => {

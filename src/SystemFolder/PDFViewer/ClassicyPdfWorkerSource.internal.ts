@@ -1,5 +1,5 @@
 import { inflateSync } from "fflate";
-import deflatedWorker from "pdfjs-dist/build/pdf.worker.min.mjs?classicy-deflate";
+import deflatedWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // The pdf.js worker ships raw-deflated as base64 text (plan 0019-fb7 Part 2,
@@ -7,7 +7,10 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 // import inlines. When pdf.js first loads, the PDF viewer rebuilds that same
 // URI from it, so pdf.js takes the path it always has (a blob: module worker
 // importing the data: URI, its main-thread fallback included) and fetches
-// nothing: PDFs open on file:, CDN and custom-scheme hosts alike.
+// nothing: PDFs open on file:, CDN and custom-scheme hosts alike. It is the
+// legacy build's worker, as PDFViewerDocument loads the legacy build's API:
+// the modern worker calls Map.prototype.getOrInsertComputed, which no
+// browser Classicy supports has.
 
 /**
  * What the build plugin's payload starts with: CLASSICY_DEFLATE_MARK in

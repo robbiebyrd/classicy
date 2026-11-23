@@ -55,7 +55,7 @@ import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/Cl
 
 // The document loads, but its page never renders: the rows only need the
 // viewer's root element.
-vi.mock("pdfjs-dist", () => ({
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
 	getDocument: () => ({
 		promise: Promise.resolve({
 			numPages: 1,

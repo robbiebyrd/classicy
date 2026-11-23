@@ -165,8 +165,11 @@
 //    classicy.es.js exactly one between them (the lazy worker source, loaded
 //    beside pdf.js), and classicy.es.js none: an ES host that never opens a
 //    PDF loads none. Each payload inflates to the installed pdfjs-dist
-//    worker byte for byte (invariant 2's reason: the worker and the API come
-//    from one place). Skipped when the caller names files.
+//    legacy worker (`legacy/build/pdf.worker.min.mjs`) byte for byte
+//    (invariant 2's reason: the worker and the API come from one place); its
+//    modern worker calls Map.prototype.getOrInsertComputed, which no browser
+//    on the floor has, and is reported by name. Skipped when the caller
+//    names files.
 
 import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -734,10 +737,12 @@ if (!argv.slice(2).length) {
 // once in the ES build's lazy chunks, never in the ES entry. Skipped when the
 // caller names specific files.
 if (!argv.slice(2).length) {
+	const localRequire = createRequire(import.meta.url);
 	const worker = await readFile(
-		createRequire(import.meta.url).resolve(
-			"pdfjs-dist/build/pdf.worker.min.mjs",
-		),
+		localRequire.resolve("pdfjs-dist/legacy/build/pdf.worker.min.mjs"),
+	);
+	const modernWorker = await readFile(
+		localRequire.resolve("pdfjs-dist/build/pdf.worker.min.mjs"),
 	);
 	// A URI with its payload, not the bare prefix: the worker source keeps
 	// `"data:text/javascript;base64,"` to build its URI from at runtime.
@@ -785,15 +790,19 @@ if (!argv.slice(2).length) {
 		);
 	for (const file of [umdEntry, ...chunks, esEntry])
 		for (const payload of payloads.get(file) ?? [])
-			if (!payload.equals(worker))
+			if (payload.equals(modernWorker))
 				problems.push(
-					`${file}: its deflated pdf.js worker (${payload.length} bytes) is not the installed pdfjs-dist worker (${worker.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+					`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${payload.length} bytes), not its legacy build (${worker.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which no supported browser has: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`,
+				);
+			else if (!payload.equals(worker))
+				problems.push(
+					`${file}: its deflated pdf.js worker (${payload.length} bytes) is not the installed pdfjs-dist legacy worker (${worker.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
 				);
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`pdf.js worker: deflated once in ${umdEntry} and once in the ES chunks (${carriers.join(", ")}), each equal to the installed pdfjs-dist worker (${worker.length} bytes), never in ${esEntry}; no data:text/javascript URI in ${files.length} bundle(s)`,
+			`pdf.js worker: deflated once in ${umdEntry} and once in the ES chunks (${carriers.join(", ")}), each equal to the installed pdfjs-dist legacy worker (${worker.length} bytes), never in ${esEntry}; no data:text/javascript URI in ${files.length} bundle(s)`,
 		);
 }
 
