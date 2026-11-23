@@ -471,3 +471,63 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			`${join("dist", "types", "src", "index.d.ts")}: relative specifier(s) without an extension ("./Manager.Colors") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 		]));
 });
+
+// Invariant 16 (plan 0019-fb7 Part 1): every published source map keeps
+// Classicy's own text and drops third-party and asset text. Run without named
+// files on a dist/ holding two empty entry bundles and the maps, so the other
+// invariants report what that dist lacks; only the lines naming a .js.map are
+// read.
+describe("check-dist-imports.mjs invariant 16: source map text (whole dist)", () => {
+	const map = (sources: string[], sourcesContent: Array<string | null>) =>
+		JSON.stringify({
+			version: 3,
+			sources,
+			sourcesContent,
+			names: [],
+			mappings: "",
+			x_google_ignoreList: sources.flatMap((source, i) =>
+				source.includes("node_modules/") ? [i] : [],
+			),
+		});
+	const maps = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const bundle of ["classicy.es.js", "classicy.umd.js"])
+			writeFileSync(join(dir, "dist", bundle), "export{};");
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const mapLines = (text: string) =>
+			text.split("\n").filter((line) => line.includes(".js.map"));
+		return { out: mapLines(result.stdout), err: mapLines(result.stderr) };
+	};
+	const VENDOR = "../node_modules/.pnpm/zod@4.1.12/node_modules/zod/index.js";
+
+	it("invariant 16 fails on a map that keeps node_modules text", () =>
+		expect(
+			maps({
+				"classicy.es.js.map": map(["../src/index.ts", VENDOR], ["x", "y"]),
+				"classicy.umd.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+				"pdf-DM8UBKbM.js.map": map([VENDOR], ["y"]),
+			}).err,
+		).toEqual([
+			`${join("dist", "classicy.es.js.map")}: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+			`${join("dist", "pdf-DM8UBKbM.js.map")}: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+		]));
+
+	it("invariant 16 passes a map with own text and null vendor text", () =>
+		expect(
+			maps({
+				"classicy.es.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+				"classicy.umd.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+			}),
+		).toEqual({
+			out: [
+				"source maps: 2 dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text",
+			],
+			err: [],
+		}));
+});

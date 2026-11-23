@@ -5,6 +5,7 @@ import dts from "vite-plugin-dts";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
+import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
 import { PLATINUM_FONT_FACES } from "./src/assets/platinumFonts.internal";
 
 // @classicy/appearance-platinum's library build: ES and UMD bundles of the
@@ -103,6 +104,9 @@ const platinumConfig = (mode: string): UserConfig => ({
 						}),
 					}),
 				]),
+		// Last: the published maps keep Classicy's own text and drop zod's
+		// and any embedded asset's (verify-dist invariant 10).
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,

@@ -79,11 +79,19 @@ const FONTS = classicyFontStylesheet(
 	(face) => `assets/${face.file}.woff2`,
 	"classicy-platinum.fonts.css",
 );
+// A source map as the library build writes it: Classicy's own text kept.
+const MAP = JSON.stringify({
+	version: 3,
+	sources: ["../src/index.ts"],
+	sourcesContent: ["x"],
+	names: [],
+	mappings: "",
+});
 const DIST: Record<string, string | Buffer> = {
 	"appearance-platinum.es.js": ES,
-	"appearance-platinum.es.js.map": "{}",
+	"appearance-platinum.es.js.map": MAP,
 	"appearance-platinum.umd.js": UMD,
-	"appearance-platinum.umd.js.map": "{}",
+	"appearance-platinum.umd.js.map": MAP,
 	"classicy-platinum.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-platinum.fonts.css": FONTS,
 	"types/index.d.ts": 'export * from "./hooks.js";\n',
@@ -444,6 +452,47 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/appearance-platinum\.umd\.js: calls jsxDEV\(\)/,
 			);
 		});
+	});
+
+	// Invariant 10 (the core's 16, plan 0019-fb7 Part 1): the maps keep
+	// Classicy's own text and drop third-party and asset text.
+	describe("10. the source maps carry Classicy's own text only", () => {
+		const VENDOR =
+			"../../../../node_modules/.pnpm/zod@4.1.12/node_modules/zod/index.js";
+
+		it("fails on vendor text in appearance-platinum.es.js.map", () =>
+			expect(
+				verify({
+					"appearance-platinum.es.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts", VENDOR],
+						sourcesContent: ["x", "y"],
+						names: [],
+						mappings: "",
+						x_google_ignoreList: [1],
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/appearance-platinum.es.js.map: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+			}));
+
+		it("fails on an own source with null text", () =>
+			expect(
+				verify({
+					"appearance-platinum.umd.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts"],
+						sourcesContent: [null],
+						names: [],
+						mappings: "",
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/appearance-platinum.umd.js.map: has no text for Classicy's own source ../src/index.ts -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.",
+			}));
 	});
 });
 

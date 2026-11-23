@@ -5,6 +5,7 @@ import dts from "vite-plugin-dts";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
+import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
 import { system7AssetFileName } from "./bin/system7AssetNames";
 import { SYSTEM7_FONT_FACES } from "./src/assets/system7Fonts.internal";
 
@@ -96,6 +97,9 @@ const system7Config = (mode: string): UserConfig => ({
 						}),
 					}),
 				]),
+		// Last: the published maps keep Classicy's own text and drop zod's
+		// and any embedded asset's (verify-dist invariant 10).
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,

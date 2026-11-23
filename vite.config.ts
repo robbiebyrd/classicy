@@ -12,6 +12,7 @@ import {
 	isClassicyAppearanceSourcePath,
 	noInlineAppearanceAssetsPlugin,
 } from "./bin/classicyNoInlineAssets";
+import { classicySourceMapTextPlugin } from "./bin/classicySourceMapText";
 import {
 	classicyStyleInjector,
 	prependLayerOrder,
@@ -230,6 +231,10 @@ const config = defineConfig({
 			enableDevWebp: true,
 		}),
 		injectCssPlugin(),
+		// Last: the published maps keep Classicy's own text and drop third-party
+		// and asset text (verify:dist invariant 16), after injectCssPlugin has
+		// changed the entry bundles.
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,

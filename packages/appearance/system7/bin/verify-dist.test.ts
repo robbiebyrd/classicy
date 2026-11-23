@@ -129,11 +129,19 @@ const FONTS = classicyFontStylesheet(
 	(face) => `assets/${face.file}.woff2`,
 	"classicy-system7.fonts.css",
 );
+// A source map as the library build writes it: Classicy's own text kept.
+const MAP = JSON.stringify({
+	version: 3,
+	sources: ["../src/index.ts"],
+	sourcesContent: ["x"],
+	names: [],
+	mappings: "",
+});
 const DIST: Record<string, string | Buffer> = {
 	"appearance-system7.es.js": ES,
-	"appearance-system7.es.js.map": "{}",
+	"appearance-system7.es.js.map": MAP,
 	"appearance-system7.umd.js": UMD,
-	"appearance-system7.umd.js.map": "{}",
+	"appearance-system7.umd.js.map": MAP,
 	"classicy-system7.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-system7.fonts.css": FONTS,
 	"types/index.d.ts": 'export * from "./hooks.js";\n',
@@ -687,6 +695,49 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/appearance-system7\.umd\.js: calls jsxDEV\(\)/,
 			);
 		});
+	});
+
+	// Invariant 10 (the core's 16, plan 0019-fb7 Part 1): the maps keep
+	// Classicy's own text, Platinum's savers that System 7 bundles included,
+	// and drop third-party and asset text.
+	describe("10. the source maps carry Classicy's own text only", () => {
+		const VENDOR =
+			"../../../../node_modules/.pnpm/zod@4.1.12/node_modules/zod/index.js";
+		const SAVER =
+			"../../platinum/src/screenSavers/Fish/ClassicyScreenSaverFish.tsx";
+
+		it("fails on vendor text in appearance-system7.es.js.map", () =>
+			expect(
+				verify({
+					"appearance-system7.es.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts", SAVER, VENDOR],
+						sourcesContent: ["x", "z", "y"],
+						names: [],
+						mappings: "",
+						x_google_ignoreList: [2],
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/appearance-system7.es.js.map: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+			}));
+
+		it("fails on an own source with null text", () =>
+			expect(
+				verify({
+					"appearance-system7.umd.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts", SAVER],
+						sourcesContent: ["x", null],
+						names: [],
+						mappings: "",
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/appearance-system7.umd.js.map: has no text for Classicy's own source ${SAVER} -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.`,
+			}));
 	});
 });
 

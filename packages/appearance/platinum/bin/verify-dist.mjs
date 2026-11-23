@@ -69,6 +69,12 @@
 //    Chrome 120, Safari 16.2 or Firefox 113 lacks carries a fallback, an
 //    earlier declaration of its property that calls none, or an enclosing
 //    `@supports` testing it (bin/classicyCssFloor.ts).
+//
+// 10. SOURCE MAPS CARRY CLASSICY'S OWN TEXT ONLY (the core's invariant 16,
+//    plan 0019-fb7 Part 1). Every dist/*.js.map has null text for each
+//    node_modules/ (zod) and embedded asset source, lists every vendor source
+//    in x_google_ignoreList, and keeps the text of each src/ source
+//    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts).
 
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
@@ -92,6 +98,7 @@ import {
 	findClassicyFontStylesheetProblems,
 } from "../../../../bin/classicyFontStylesheet.ts";
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
+import { findClassicySourceMapTextProblems } from "../../../../bin/classicySourceMapText.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
 import { PLATINUM_FONT_FACES } from "../src/assets/platinumFonts.internal.ts";
 
@@ -390,6 +397,23 @@ report(
 	report(
 		problems,
 		`browser floor: ${cssFiles.length} .css file(s), every newer CSS math function with a fallback`,
+	);
+}
+
+// Invariant 10: the source maps carry Classicy's own text only.
+{
+	const problems = [];
+	const maps = (await readdir(DIST).catch(() => []))
+		.filter((f) => f.endsWith(".js.map"))
+		.sort()
+		.map((f) => join(DIST, f));
+	for (const file of maps)
+		problems.push(
+			...findClassicySourceMapTextProblems(await readFile(file, "utf8"), file),
+		);
+	report(
+		problems,
+		`source maps: ${maps.length} dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text`,
 	);
 }
 

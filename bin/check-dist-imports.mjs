@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Fourteen invariants on the core's *published* bundle (and, for invariant 11,
-// on the sources it is built from), numbered 1-15: number 12 moved to the
+// Fifteen invariants on the core's *published* bundle (and, for invariant 11,
+// on the sources it is built from), numbered 1-16: number 12 moved to the
 // Platinum package's own dist check, packages/appearance/platinum/bin/
 // verify-dist.mjs (plan 0015-kxa §3.4). The first two have shipped
 // broken, and no other signal catches any of them. `vite build` in a consumer app
@@ -139,6 +139,14 @@
 //    enclosing `@supports` testing it (bin/classicyCssFloor.ts). The slider's
 //    rounded ghost shipped without one and lost its position on Chrome
 //    120-124 and Firefox 113-117.
+//
+// 16. SOURCE MAPS CARRY CLASSICY'S OWN TEXT ONLY (plan 0019-fb7 Part 1). Every
+//    dist/*.js.map (both entry bundles' and the pdf-*.js chunk's) has null
+//    text for each node_modules/ and embedded asset source, lists every vendor
+//    source in x_google_ignoreList, and keeps the text of each src/ source
+//    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts): third-party
+//    and asset text were half of the core's 22 MB of maps. Skipped when the
+//    caller names files.
 
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -164,6 +172,7 @@ import {
 	findClassicyTestDeclarations,
 } from "./classicyDistTypes.ts";
 import { findClassicyPackageCssProblems } from "./classicyPackageCss.ts";
+import { findClassicySourceMapTextProblems } from "./classicySourceMapText.ts";
 
 const DIST = "dist";
 
@@ -662,6 +671,26 @@ for (const entry of ["classicy.es.js", "classicy.umd.js"]) {
 	if (clean === cssFiles.length)
 		console.log(
 			`browser floor: ${clean} .css file(s), every newer CSS math function with a fallback`,
+		);
+}
+
+// Invariant 16: source maps carry Classicy's own text only. Skipped when the
+// caller names specific files.
+if (!argv.slice(2).length) {
+	const maps = (await readdir(DIST))
+		.filter((f) => f.endsWith(".js.map"))
+		.sort()
+		.map((f) => join(DIST, f));
+	const problems = [];
+	for (const file of maps)
+		problems.push(
+			...findClassicySourceMapTextProblems(await readFile(file, "utf8"), file),
+		);
+	for (const problem of problems) console.error(problem);
+	if (problems.length) failed = true;
+	else
+		console.log(
+			`source maps: ${maps.length} dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text`,
 		);
 }
 
