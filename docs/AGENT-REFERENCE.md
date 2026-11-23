@@ -208,9 +208,23 @@ Excluding them means any CommonJS dependency they pull in may then need to be
 listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
-a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's when you load it) next to your bundle.
+a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's when you load it) next to your bundle,
+and the core's `dist/sample.mp4` too: the Movie Player's sample movie, the one
+asset the core ships as a file (`new URL("sample.mp4", import.meta.url)`).
+The PDF viewer's pdf.js worker needs nothing: it is embedded in the core's
+bundles (compressed, rebuilt into a `data:` URI when the first PDF opens), so
+it is never fetched, on `file:`, CDN and custom-scheme hosts alike.
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
+
+**Source maps and declarations.** Every bundle ships its source map. A map
+holds the source text of Classicy's own modules only (3.6): a bundled
+third-party module (zod, pdf.js and the core's other bundled dependencies)
+and an embedded image, sound or font keep their entry in `sources`, their
+names and their mappings, but no text, and are listed in
+`x_google_ignoreList`, so DevTools steps over them and a stack trace still
+names the vendor file and line. `dist/types` holds no declaration maps
+(`.d.ts.map`, 3.6): Go to Definition lands on the declaration.
 
 ### Cascade layers (overriding Classicy styles)
 
@@ -1653,7 +1667,21 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   has no such file, else as `<package>|<file>`; else the value) and
   `withPortableClassicyWallpaper(theme)` (for `theme.package`), `listClassicyWallpapers(packageId?)`
   and `defaultClassicyWallpaper(packageId?)` (the package's `default.png`,
-  else its first, else Platinum's; `""` with none). `ClassicyThemeSchema`
+  else its first, else Platinum's; `""` with none). A wallpaper's `file` is
+  its identity, not the name of the file its `src` points at: since 3.6
+  Platinum's and System 7's wallpapers ship as WebP under unchanged
+  identities (`azul_dark.png` is the file `azul_dark.webp`, Platinum's
+  `default.jpg` is `default_photo.webp`), so saved themes, theme files and
+  2.x digests resolve as before. Each package's index also knows the
+  emitted file's name: when no package registers any of a value's names as
+  an identity, a bare `azul_dark.webp`, or a local path to that file from
+  any build, hashed or not (`/assets/azul_dark-AbC12345.webp`), resolves to
+  the wallpaper (`resolveClassicyWallpaper`) and stores as its identity,
+  `"azul_dark.png"` (`portableClassicyWallpaper`; `classicyWallpaperFilename`
+  takes the bare name only). A remote URL is stored that way only when its
+  name carries a bundler hash (another build's emitted file); an unhashed
+  `https://…/azul_dark.webp` may be a host's or user's own image and is kept
+  as a URL, which still renders. An identity name always wins. `ClassicyThemeSchema`
   (files, imports, `ClassicyDesktopLoadThemes`) accepts a wallpaper filename
   or `<package>|<file>` only once a package has registered it; a package's
   own `defaults` and `presets` (`ClassicyPackageThemeSchema`) may name any
@@ -1734,7 +1762,7 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   tree the first key, with one `classicyLog` warning per such `src`.
   `ClassicyInputDialog` draws its icon at the regular 32 px, so it draws the
   regular image. Platinum registers one small image of its own, the list
-  view's 16 px folder (`system.folders.directory`, `art/folder-small.png`,
+  view's 16 px folder (`system.folders.directory`, `art/folder-small.webp`,
   cut pixel for pixel from HIGOS8 Fig. 2-24), over the core's 32 px folder.
 - **Selected icon images** (3.5, story 0197-s0z):
   `registerClassicySelectedIconImages(packageId, { [image]: selectedImage },
@@ -2544,7 +2572,18 @@ wrapper: moves, dispatches `ClassicyAppFinderPathsMoved { moves: {from, to}[] }`
 for the first refusal.
 
 **Trash** (`ClassicyTrash.ts`): a root-level folder `CLASSICY_TRASH_PATH`
-(`"Trash"`), made by `ensureClassicyTrash(fs)`. `trashClassicyFileSystemItems(fs,
+(`"Trash"`), made by `ensureClassicyTrash(fs, icon?)` (Finder runs it on every
+tree change; it journals nothing once the Trash exists with that icon). The
+folder stores as its `_icon` the **default** package's (Platinum's)
+`trashEmpty` art by default, never the active package's, so a package or
+theme switch leaves the saved tree as it is; given a Trash whose stored
+`_icon` differs (saved by an older build, or under another package), it
+rewrites it through `fs.setMetadata`, never to `""` (with no default art
+registered the stored icon is left until there is). Nothing draws that
+`_icon`: the Trash window's title bar and a file browser's icon and list
+views draw the **active** package's `trashFull` or `trashEmpty` art at render,
+as the desktop's Trash icon does (3.6; before, the folder kept the art of the
+package active when it was made). `trashClassicyFileSystemItems(fs,
 paths, locations?)` records `_trashed`/`_trashedFrom`/`_trashedName`/
 `_trashedLocation` and numbers clashing names; `restoreClassicyFileSystemItems`
 puts items back (refusals add `no-origin`); `emptyClassicyTrash`;
@@ -2980,7 +3019,7 @@ registerClassicyAppearancePackage({
 | Field | Meaning |
 |---|---|
 | `id`, `name` | Kebab-case id (`"platinum"`); display name, 1–64 chars |
-| `icon` | Optional asset source (§5) shown beside the package's name in the Appearance Manager's Themes tab; a package without one shows the generic package glyph (the icon tree's `system.extension`). Platinum's is `platinum.png` in its art |
+| `icon` | Optional asset source (§5) shown beside the package's name in the Appearance Manager's Themes tab; a package without one shows the generic package glyph (the icon tree's `system.extension`). Platinum's is `platinum.webp` in its art |
 | `css` | The compiled stylesheet: exactly one `@layer classicy.package { … }` block, every rule scoped under `.classicyDesktop[data-classicy-appearance="<id>"]` |
 | `defaults` | The theme a switch to the package activates; `defaults.package` must be the package's `id` |
 | `presets` | Built-in themes offered with the package (Platinum's 21) |
@@ -5726,7 +5765,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
     id: 'my-pack',                     // /^[a-z0-9][a-z0-9-]{0,63}$/
     name: 'My Pack',                   // 1-64 chars
     packageId: 'my-package',           // optional provenance
-    src: ['https://cdn.example/my-pack.ogg', 'https://cdn.example/my-pack.mp3'],
+    src: ['https://cdn.example/my-pack.ogg', 'https://cdn.example/my-pack.m4a'],
     sprite: { ClassicyBeep: [0, 600], ClassicyWindowMoveMoving: [700, 400, true] },
 })
 ```
@@ -5750,8 +5789,11 @@ registerClassicySoundPack({            // module scope, like the other registrie
 
   A bundled pack does the same at build time with
   `new URL('./x.ogg', import.meta.url)` or asset imports. The Platinum pack
-  imports its four files (`packages/appearance/platinum/src/assets/sounds/platinum/`),
-  which its build emits in `dist/assets/`.
+  imports its two files, `platinum.ogg` and `platinum.m4a`
+  (`packages/appearance/platinum/src/assets/sounds/platinum/`), which its
+  build emits in `dist/assets/`; System 7's pack does the same with
+  `system7.{ogg,m4a}`. Before 3.6 both also shipped an mp3 and an ac3, which
+  no supported browser reached (Howler stops at the first it can play).
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`
   (registration order), `playingClassicySoundPack(packs, themePackId)` (the
