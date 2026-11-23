@@ -1,0 +1,7 @@
+import{j as e,C as o,i as a,b as i}from"./iframe-HMp_PDl_.js";import{S as n}from"./helpers-Bx8noE47.js";import{s as d,W as c}from"./system7-C-NGuH3C.js";import"./preload-helper-DcSy7nYr.js";import"./index-Bi1wfCX0.js";const u={title:"Appearance/System 7",parameters:d};function t(){return e.jsx(n,{id:"storybook.app",name:"Storybook",children:e.jsx(o,{id:"system7",appId:"storybook.app",title:"Untitled",initialSize:[360,220],initialPosition:[80,60],children:e.jsxs("div",{style:{padding:"1em"},children:[e.jsx("p",{children:"A System 7 document window."}),e.jsx(a,{id:"system7-checkbox",label:"Show Balloons"}),e.jsx(i,{isDefault:!0,children:"OK"})]})})})}const s={render:()=>e.jsx(t,{})},r={render:()=>e.jsx(c,{id:"system7-color",children:e.jsx(t,{})})};s.parameters={...s.parameters,docs:{...s.parameters?.docs,source:{originalSource:`{
+  render: () => <System7Window />
+}`,...s.parameters?.docs?.source},description:{story:`The black-and-white "System 7" theme, the package's defaults.`,...s.parameters?.docs?.description}}};r.parameters={...r.parameters,docs:{...r.parameters?.docs,source:{originalSource:`{
+  render: () => <WithTheme id="system7-color">
+            <System7Window />
+        </WithTheme>
+}`,...r.parameters?.docs?.source},description:{story:'The "System 7 Color" theme: the Standard lavender window colors.',...r.parameters?.docs?.description}}};const x=["BlackAndWhite","Color"];export{s as BlackAndWhite,r as Color,x as __namedExportsOrder,u as default};
