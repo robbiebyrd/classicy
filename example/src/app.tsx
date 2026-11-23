@@ -1,11 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./app.css";
-import {
-	ClassicyAppManagerProvider,
-	ClassicyDesktop,
-	registerClassicyIcons,
-} from "@classicy/classicy";
+import { Classicy, registerClassicyIcons } from "@classicy/classicy";
 // The Appearance Packages: the core draws no desktop without one. Platinum
 // registers first, so it stays the default; System 7 adds its two themes
 // to the Appearance Manager (Themes tab).
@@ -31,13 +27,11 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root element not found");
 createRoot(rootElement).render(
 	<StrictMode>
-		<ClassicyAppManagerProvider>
-			<ClassicyDesktop>
-				<Browser />
-				<BlueBox />
-				<Demo />
-				<DemoExtension />
-			</ClassicyDesktop>
-		</ClassicyAppManagerProvider>
+		<Classicy>
+			<Browser />
+			<BlueBox />
+			<Demo />
+			<DemoExtension />
+		</Classicy>
 	</StrictMode>,
 );

@@ -183,6 +183,7 @@ export * from "./SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 export * from "./SystemFolder/SystemResources/Cursor/useClassicyCursor";
 export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePicker";
 export * from "./SystemFolder/SystemResources/DatePicker/ClassicyDatePickerUtils";
+export * from "./SystemFolder/SystemResources/Desktop/Classicy";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIcon";
 export * from "./SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";

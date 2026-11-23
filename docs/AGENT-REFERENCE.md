@@ -49,7 +49,7 @@ its sound pack, assets and fonts:
 
 ```tsx
 import '@classicy/appearance-platinum'
-import { ClassicyAppManagerProvider, ClassicyDesktop } from '@classicy/classicy'
+import { Classicy } from '@classicy/classicy'
 ```
 
 The System 7 package, `@classicy/appearance-system7` (§8, "System 7"), is
@@ -350,8 +350,7 @@ Package `exports` map:
 ```tsx
 import '@classicy/appearance-platinum' // registers the Platinum look; the core draws no desktop without one
 import {
-    ClassicyAppManagerProvider,
-    ClassicyDesktop,
+    Classicy,
     ClassicyApp,
     ClassicyWindow,
     ClassicyButton,
@@ -364,22 +363,41 @@ export const AppIcons = registerClassicyIcons({ demo: { app: myIcon } })
 
 export default function App() {
     return (
-        <ClassicyAppManagerProvider>
-            <ClassicyDesktop>
-                <ClassicyApp id="MyApp.app" name="My App" icon={AppIcons.demo.app}>
-                    <ClassicyWindow id="main" appId="MyApp.app" title="Hello" defaultWindow>
-                        <ClassicyButton>OK</ClassicyButton>
-                    </ClassicyWindow>
-                </ClassicyApp>
-            </ClassicyDesktop>
-        </ClassicyAppManagerProvider>
+        <Classicy>
+            <ClassicyApp id="MyApp.app" name="My App" icon={AppIcons.demo.app}>
+                <ClassicyWindow id="main" appId="MyApp.app" title="Hello" defaultWindow>
+                    <ClassicyButton>OK</ClassicyButton>
+                </ClassicyWindow>
+            </ClassicyApp>
+        </Classicy>
     )
 }
 ```
 
+### Classicy (the one root tag)
+
+`Classicy` (`Classicy.tsx`, type `ClassicyProps`) is
+`ClassicyAppManagerProvider` with `ClassicyDesktop` inside it: mount it once,
+with your apps as its children. It takes every prop of both, all optional:
+the provider's (below) go to the provider, and the desktop's (`children`,
+`startupScreen`, `startupDuration`, `preBootScreen`, `startupLogo`,
+`startupWordmark`, `bootScreen`, `controlStrip`, `className`, `style`; §4)
+go to the desktop, whose root `#classicyDesktop` takes `className` and
+`style`. The two sets share no name. It mounts the desktop in the provider's
+own commit, so the lazy-mount hazard (the desktop a tick after the provider)
+cannot happen. Both components stay exported (their props as
+`ClassicyAppManagerProviderProps` and `ClassicyDesktopProps`); nest them
+yourself only when something must sit between them.
+
+```tsx
+<Classicy defaultMuted disablePDFViewer controlStrip={{ defaultCollapsed: true }}>
+    <MyApp />
+</Classicy>
+```
+
 ### ClassicyAppManagerProvider props (root provider)
 
-All optional:
+All optional, and all accepted by `Classicy` too:
 
 | Prop | Type | Default | Purpose |
 |---|---|---|---|
@@ -937,8 +955,8 @@ and icon states own:
   root is showing: `ClassicyBootSequence` (the power-on overlay, then the
   default startup screen; a custom `bootScreen` gets neither),
   `PDFViewerDocument` (the loading and error messages, then the viewer),
-  `ClassicyDesktop` (`ClassicyNoAppearancePackage` while no Appearance
-  Package is registered, then `#classicyDesktop`) and
+  `ClassicyDesktop` and `Classicy` (`ClassicyNoAppearancePackage`
+  while no Appearance Package is registered, then `#classicyDesktop`) and
   `ClassicyCrashScreen` (only the Sad Mac screen — the boundary has no element
   until a descendant throws). The built-in screen savers (Platinum's) take them through
   `ClassicyScreenSaverProps`; the screen-saver overlay passes none, so they
@@ -1371,6 +1389,7 @@ plain integers (`0xRRGGBB`).
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
+| `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
 | `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
