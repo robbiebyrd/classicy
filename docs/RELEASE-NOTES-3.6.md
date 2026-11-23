@@ -15,14 +15,20 @@ Most of what the packages shipped was never used by a browser: third-party
 source text in the source maps, two audio formats no supported browser plays,
 declaration maps pointing at files the tarballs do not hold, and the pdf.js
 worker embedded uncompressed in both core bundles. 3.6 drops or compresses
-each of them and stores the Appearance Packages' images as WebP. Nothing a
-host imports changed: no export was added, removed or renamed, every saved
-desktop, theme and theme file loads as before, and Platinum draws pixel for
-pixel as it did. Two fixes ride along: pdf.js's modern build, which every
+each of them and stores the Appearance Packages' images as WebP. No export
+was added, removed or renamed, every saved desktop, theme and theme file
+loads as before, and Platinum draws pixel for pixel as it did, except the
+About This Computer box's Earth picture, which draws within two levels a
+channel of 3.5's (59.38 dB PSNR over its panel in Chromium; see "WebP
+images" below). Two fixes ride along: pdf.js's modern build, which every
 release from 0.71.6 through 3.5.0 bundled (every 1.x, 2.x and 3.x release
 among them), drew no PDF page on the browsers at Classicy's floor, and the
 Trash folder kept the art of whichever package was active when it was first
-made.
+made. The PDF fix has one effect beyond the viewer: pdf.js's legacy build
+installs core-js polyfills on the page's built-in prototypes (`Map`, `Set`,
+`WeakMap`, `Iterator`, `Uint8Array.prototype.toBase64` and others) where a
+method is missing or nonconforming, in the UMD bundle when it loads and in
+the ES build when the first PDF opens (see Fixes).
 
 ## Sizes
 
@@ -163,7 +169,9 @@ seven runs each).
 
 **Who must act:** nobody. A host that serves the core's ES build unbundled
 already serves its `pdf-*.js` chunk beside `classicy.es.js`; the second
-chunk sits beside it in the same `dist/`.
+chunk sits beside it in the same `dist/`. Neither chunk imports
+`classicy.es.js`, so the entry may be served under any URL (a query string,
+a CDN redirect, another name).
 
 ## Fixes
 
@@ -183,8 +191,13 @@ chunk sits beside it in the same `dist/`.
   (`Map.prototype.getOrInsertComputed`,
   `Uint8Array.prototype.toBase64`, iterator and `Set` methods, among
   others): in the ES build when the first PDF opens, and in the UMD bundle
-  when the bundle loads. A pdf.js chunk that fails to load (a dropped
-  connection) is no longer remembered: the next document tries again.
+  when the bundle loads. So a page that tests for one of those methods, or
+  ships its own polyfill of it, sees core-js's from then on. A pdf.js chunk
+  that fails to load (a dropped connection) is no longer remembered: the
+  next document tries again. A document that fails to load, and a page that
+  fails to draw, are now logged through `classicyLog` (subsystem
+  `PDFViewer`, the error as a detail), so a host's log sink sees them; a
+  cancelled render is not logged.
 - **The Trash folder's icon follows the active package.** The Trash folder
   stored, as its `_icon`, the art URL of the package active when it was
   first made, and every surface drew that, so after a package switch its
@@ -201,7 +214,10 @@ chunk sits beside it in the same `dist/`.
   file-system adapter (`registerClassicyFileSystemAdapter`) sees one
   `setMetadata` journal entry for `Trash` when that happens. A host that
   loads only System 7 has no default package's art, so its stored icon is
-  left as it is.
+  left as it is. The stored icon is the default package's emitted art URL,
+  which differs between builds and origins, so two origins (or a dev and a
+  production build) sharing one file-system tree through a sync adapter each
+  heal it once per boot, writing one journal entry each time.
 
   `ensureClassicyTrash(fs, icon?)` takes the icon to store (default: the
   default package's empty-Trash art) and, for a Trash that exists already
@@ -225,7 +241,9 @@ chunk sits beside it in the same `dist/`.
 - **Dist checks** (for contributors): the core's `verify:dist` gains
   invariant 16 (maps keep Classicy's own text only), 17 (the worker ships
   deflated, once in the UMD bundle and once among the ES chunks, never in
-  `classicy.es.js`, and inflates to the installed legacy worker) and 18
+  `classicy.es.js`, and inflates to the installed legacy worker; the UMD
+  bundle and the ES chunks carrying pdf.js carry its legacy build; and no
+  bundle but `classicy.es.js` imports `classicy.es.js`) and 18
   (both entry bundles embed `earth.webp` byte for byte, once), and its
   invariant 8 fails on a `.d.ts.map`. Each Appearance Package's check gains
   invariant 10 (maps) and its invariant 7 fails on a `.d.ts.map`; their
@@ -263,4 +281,10 @@ chunk sits beside it in the same `dist/`.
 3. On a bundler that does not handle `new URL(…, import.meta.url)`, copy the
    core's `dist/sample.mp4` next to your bundle with each package's
    `dist/assets/`.
-4. Nothing else: no code, configuration or Content-Security-Policy change.
+4. If your page tests for, or polyfills, a built-in method core-js covers
+   (`Map.prototype.getOrInsertComputed`, `Uint8Array.prototype.toBase64`,
+   iterator or `Set` methods, among others), know that pdf.js's legacy build
+   installs core-js's where the browser lacks it or core-js finds it
+   nonconforming: when the UMD bundle loads, or when the ES build opens its
+   first PDF (Fixes, above).
+5. Nothing else: no code, configuration or Content-Security-Policy change.

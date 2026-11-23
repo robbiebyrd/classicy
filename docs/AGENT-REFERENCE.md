@@ -213,7 +213,12 @@ and the core's `dist/sample.mp4` too: the Movie Player's sample movie, the one
 asset the core ships as a file (`new URL("sample.mp4", import.meta.url)`).
 The PDF viewer's pdf.js worker needs nothing: it is embedded in the core's
 bundles (compressed, rebuilt into a `data:` URI when the first PDF opens), so
-it is never fetched, on `file:`, CDN and custom-scheme hosts alike.
+it is never fetched, on `file:`, CDN and custom-scheme hosts alike. The viewer
+uses pdf.js's legacy build, which installs core-js polyfills on the page's
+built-in prototypes (`Map`, `Set`, `WeakMap`, `Iterator`,
+`Uint8Array.prototype.toBase64` and others) where a method is missing or
+nonconforming: in the UMD bundle when it loads, in the ES build when the first
+PDF opens.
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
 
