@@ -1,10 +1,10 @@
-# Release notes: 3.6
+# Release notes: 3.7
 
 The three packages are smaller, PDFs render on every supported browser (no
-release from 0.71.6 through 3.5.0, every 3.x release among them, drew a PDF
+release from 0.71.6 through 3.6.0, every 3.x release among them, drew a PDF
 page on the browsers at Classicy's floor), and the Trash folder's icon
 follows the active Appearance Package. These notes list every change a host
-can see, measured from 3.5.x, with the step each change needs; a host on an
+can see, measured against 3.5.x, with the step each change needs; a host on an
 earlier 3.x reads each version's notes in turn, and the PDF fix applies to it
 too. The API is described in [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§1
 "Installation & Setup", §5 "Asset registries", §10 "Sound").
@@ -14,14 +14,14 @@ too. The API is described in [`AGENT-REFERENCE.md`](AGENT-REFERENCE.md) (§1
 Most of what the packages shipped was never used by a browser: third-party
 source text in the source maps, two audio formats no supported browser plays,
 declaration maps pointing at files the tarballs do not hold, and the pdf.js
-worker embedded uncompressed in both core bundles. 3.6 drops or compresses
+worker embedded uncompressed in both core bundles. 3.7 drops or compresses
 each of them and stores the Appearance Packages' images as WebP. No export
 was added, removed or renamed, every saved desktop, theme and theme file
 loads as before, and Platinum draws pixel for pixel as it did, except the
 About This Computer box's Earth picture, which draws within two levels a
-channel of 3.5's (59.38 dB PSNR over its panel in Chromium; see "WebP
+channel of 3.6's (59.38 dB PSNR over its panel in Chromium; see "WebP
 images" below). Two fixes ride along: pdf.js's modern build, which every
-release from 0.71.6 through 3.5.0 bundled (every 1.x, 2.x and 3.x release
+release from 0.71.6 through 3.6.0 bundled (every 1.x, 2.x and 3.x release
 among them), drew no PDF page on the browsers at Classicy's floor, and the
 Trash folder kept the art of whichever package was active when it was first
 made. The PDF fix has one effect beyond the viewer: pdf.js's legacy build
@@ -33,12 +33,17 @@ the ES build when the first PDF opens (see Fixes).
 ## Sizes
 
 Measured with `npm pack --dry-run --json` (MB are 10^6 bytes), before the
-change (3.5.0) and after it (3.6.0). The 3.5.0 columns were packed from this
-change's base, 3.5.0 plus the `ClassicyControlLabel` change below; npm lists
-the published 3.5.0 packages within 4 KB of them unpacked, and their
-tarballs, packed by the release, 0.5% to 0.7% larger.
+change (the 3.5.0 base) and after it (3.7.0). The 3.5.0 columns were packed
+from this change's base, 3.5.0 plus the `ClassicyControlLabel` change that
+3.6.0 later shipped; npm lists the published 3.5.0 packages within 4 KB of
+them unpacked, and their tarballs, packed by the release, 0.5% to 0.7%
+larger. 3.6.0's own change
+(PR #344: the `Classicy` component, `ClassicyControlLabel`'s rich labels and
+Storybook's Package toolbar) does not materially change the sizes: packed
+again on the merged tree, the unpacked sizes are 20.84, 4.80 and 3.20 MB and
+the tarballs 6.95, 1.75 and 1.07 MB.
 
-| Package | Unpacked, 3.5.0 | Unpacked, 3.6.0 | Tarball, 3.5.0 | Tarball, 3.6.0 |
+| Package | Unpacked, 3.5.0 | Unpacked, 3.7.0 | Tarball, 3.5.0 | Tarball, 3.7.0 |
 |---|---|---|---|---|
 | `@classicy/classicy` | 34.96 MB | 20.82 MB (−40.4%) | 11.51 MB | 6.95 MB (−39.6%) |
 | `@classicy/appearance-platinum` | 8.57 MB | 4.80 MB (−44.0%) | 2.60 MB | 1.75 MB (−32.7%) |
@@ -62,7 +67,7 @@ in that order in the pack's `src`. Howler plays the first file the browser
 can, and every supported browser plays the ogg or the m4a (ogg in Chrome,
 Edge and Firefox, m4a in Safari), so none ever reached the mp3 or the ac3.
 They are gone: Platinum ships `platinum.ogg` and `platinum.m4a`, System 7
-`system7.ogg` and `system7.m4a`, each byte for byte the 3.5 file, with every
+`system7.ogg` and `system7.m4a`, each byte for byte the 3.6 file, with every
 sprite's offset unchanged. No browser plays a different file or a different
 sound.
 
@@ -154,9 +159,9 @@ opens, is rebuilt into the same `data:text/javascript;base64,…` URI pdf.js
 received before. pdf.js then starts it exactly as before (a `blob:` module
 worker importing that URI, with its main-thread fallback), so the worker is
 still never fetched: PDFs open on `file:` (Electron), CDN and custom-scheme
-hosts as they did, and a Content-Security-Policy that admitted 3.5's PDF
+hosts as they did, and a Content-Security-Policy that admitted 3.6's PDF
 worker admits this one. (On a `file:` page Chromium starts no module worker
-from a `blob:` URL, so there pdf.js takes its fallback, in 3.5 as now.)
+from a `blob:` URL, so there pdf.js takes its fallback, in 3.6 as now.)
 
 In the ES build, pdf.js and the compressed worker are two lazily loaded
 chunks (`pdf-*.js` and `ClassicyPdfWorkerSource.internal-*.js`), so a host
@@ -164,7 +169,7 @@ that never opens a PDF loads neither. The UMD bundle carries both inline.
 The worker is inflated once per page load, when the first PDF opens, and
 later PDFs reuse it. In Chromium 143 inflating took 116 ms (the median of
 nine runs), and the first PDF's document loaded about 0.1 s later than with
-3.5's bundle (430 ms against 324 ms from the viewer's mount, the median of
+3.6's bundle (430 ms against 324 ms from the viewer's mount, the median of
 seven runs each).
 
 **Who must act:** nobody. A host that serves the core's ES build unbundled
@@ -176,7 +181,7 @@ a CDN redirect, another name).
 ## Fixes
 
 - **PDFs render on every supported browser.** Every release from 0.71.6
-  through 3.5.0, every 3.x release among them (3.0.0 through 3.5.0), bundled
+  through 3.6.0, every 3.x release among them (3.0.0 through 3.6.0), bundled
   pdfjs-dist 6.2.108's modern build, which calls
   `Map.prototype.getOrInsertComputed` natively, in its API and its worker. No
   browser on Classicy's floor (Chrome and Edge 120, Safari 16.2, Firefox 113)
@@ -227,13 +232,6 @@ a CDN redirect, another name).
 
 ## Other changes you may notice
 
-- **`ClassicyControlLabel`'s `label` takes rich content** (any `ReactNode`,
-  such as emphasized or linked words), not just a string. It still renders
-  nothing when the label is empty, now also for `null`, `undefined` or
-  `false`. An icon beside a rich label gets an empty `alt`, since the label
-  next to it names the control. `ClassicyInputDialog`'s `prompt` is now a
-  `ClassicyControlLabel` tied to its field, flush left, and kept on narrow
-  screens.
 - **The copy instructions for non-URL bundlers name `dist/sample.mp4`.** A
   host on plain esbuild, or Rollup without a URL plugin, copies each
   Appearance Package's `dist/assets/` next to its bundle (as before) and the
@@ -263,8 +261,6 @@ a CDN redirect, another name).
   `bin/check-webp-in-browsers.ts` compares each WebP with its original as
   Chromium and Firefox draw them, and System 7's asset exporters write WebP
   (cursors PNG).
-- Storybook gains a Package toolbar (Platinum, System 7); its Theme toolbar
-  also lists System 7's themes.
 - No published manifest gained a dependency: `fflate` (bundled into the core
   to inflate the worker), `@jsquash/webp`, `pngjs` and `jpeg-js` are
   devDependencies.
@@ -273,8 +269,8 @@ a CDN redirect, another name).
 
 1. Bump every Classicy package you load (`@classicy/classicy`,
    `@classicy/appearance-platinum`, `@classicy/appearance-system7`) together
-   to 3.6.0. From any 3.x before 3.5, follow each version's notes in turn
-   (3.1, 3.5); every 3.x release before 3.6 has the PDF bug above, so 3.6 is
+   to 3.7.0. From any 3.x before 3.6, follow each version's notes in turn
+   (3.1, 3.5); every 3.x release before 3.7 has the PDF bug above, so 3.7 is
    the first 3.x release whose PDF viewer draws pages on the browsers at
    Classicy's floor.
 2. If you load a sound sprite or an image from a package's `dist/assets/` by

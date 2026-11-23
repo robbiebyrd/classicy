@@ -223,13 +223,13 @@ PDF opens.
 package registers its fonts), and `dist/fonts.css` no longer exists.
 
 **Source maps and declarations.** Every bundle ships its source map. A map
-holds the source text of Classicy's own modules only (3.6): a bundled
+holds the source text of Classicy's own modules only (3.7): a bundled
 third-party module (zod, pdf.js and the core's other bundled dependencies)
 and an embedded image, sound or font keep their entry in `sources`, their
 names and their mappings, but no text, and are listed in
 `x_google_ignoreList`, so DevTools steps over them and a stack trace still
 names the vendor file and line. `dist/types` holds no declaration maps
-(`.d.ts.map`, 3.6): Go to Definition lands on the declaration.
+(`.d.ts.map`, 3.7): Go to Definition lands on the declaration.
 
 ### Cascade layers (overriding Classicy styles)
 
@@ -1692,7 +1692,7 @@ registerClassicyFonts('platinum', [{ family: 'MyFace', src: [myWoff2, myTtf] }])
   `withPortableClassicyWallpaper(theme)` (for `theme.package`), `listClassicyWallpapers(packageId?)`
   and `defaultClassicyWallpaper(packageId?)` (the package's `default.png`,
   else its first, else Platinum's; `""` with none). A wallpaper's `file` is
-  its identity, not the name of the file its `src` points at: since 3.6
+  its identity, not the name of the file its `src` points at: since 3.7
   Platinum's and System 7's wallpapers ship as WebP under unchanged
   identities (`azul_dark.png` is the file `azul_dark.webp`, Platinum's
   `default.jpg` is `default_photo.webp`), so saved themes, theme files and
@@ -2606,7 +2606,7 @@ rewrites it through `fs.setMetadata`, never to `""` (with no default art
 registered the stored icon is left until there is). Nothing draws that
 `_icon`: the Trash window's title bar and a file browser's icon and list
 views draw the **active** package's `trashFull` or `trashEmpty` art at render,
-as the desktop's Trash icon does (3.6; before, the folder kept the art of the
+as the desktop's Trash icon does (3.7; before, the folder kept the art of the
 package active when it was made). `trashClassicyFileSystemItems(fs,
 paths, locations?)` records `_trashed`/`_trashedFrom`/`_trashedName`/
 `_trashedLocation` and numbers clashing names; `restoreClassicyFileSystemItems`
@@ -5816,7 +5816,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
   imports its two files, `platinum.ogg` and `platinum.m4a`
   (`packages/appearance/platinum/src/assets/sounds/platinum/`), which its
   build emits in `dist/assets/`; System 7's pack does the same with
-  `system7.{ogg,m4a}`. Before 3.6 both also shipped an mp3 and an ac3, which
+  `system7.{ogg,m4a}`. Before 3.7 both also shipped an mp3 and an ac3, which
   no supported browser reached (Howler stops at the first it can play).
 - Registry: `registerClassicySoundPack(pack)` (re-registering an id replaces
   the pack in place), `getClassicySoundPack(id)`, `listClassicySoundPacks()`

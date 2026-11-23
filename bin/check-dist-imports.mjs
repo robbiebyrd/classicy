@@ -173,7 +173,7 @@
 //    each ES chunk other than the entry that carries pdf.js's API carry
 //    core-js's polyfill of that method, and at least one ES chunk carries
 //    it. And no bundle but classicy.es.js imports the ES entry: a lazy chunk
-//    that did (3.6's worker chunk imported classicyLog) names it as
+//    that did (3.7's worker chunk imported classicyLog) names it as
 //    "./classicy.es.js", so a host serving the entry under another URL
 //    loads a second copy of the library, or none, on the first PDF. Skipped
 //    when the caller names files.

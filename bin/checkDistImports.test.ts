@@ -843,7 +843,7 @@ describe("check-dist-imports.mjs invariant 17: lazy chunks and pdf.js's legacy b
 	});
 
 	it("invariant 17 fails on a lazy chunk that imports the ES entry", () => {
-		// 3.6's worker chunk before the fix: its first line.
+		// 3.7's worker chunk before the fix: its first line.
 		const STATIC = `import { classicyLog as fr } from "./classicy.es.js";\nvar v=1;export{v};`;
 		expect(lines17(dist({ [WORKER_CHUNK]: STATIC })).err).toEqual([
 			ENTRY_MESSAGE(LAZY, "./classicy.es.js"),

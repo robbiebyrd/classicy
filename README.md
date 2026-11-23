@@ -63,7 +63,7 @@ and icon art go missing.
 
 **Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
-**Upgrading from 3.5.x?** [`docs/RELEASE-NOTES-3.6.md`](docs/RELEASE-NOTES-3.6.md): smaller packages (sound sprites in ogg and m4a only, source maps with Classicy's own text only, no declaration maps, WebP art, a compressed PDF worker), PDFs render on the supported browsers, and the Trash folder's icon follows the active package. Most hosts change nothing. On any earlier 3.x the PDF viewer draws no page on the browsers at Classicy's floor either (every release from 0.71.6 through 3.5.0 bundled the same pdf.js build), so 3.6 fixes it there too; read each version's notes above in turn.
+**Upgrading from 3.6.x?** [`docs/RELEASE-NOTES-3.7.md`](docs/RELEASE-NOTES-3.7.md): smaller packages (sound sprites in ogg and m4a only, source maps with Classicy's own text only, no declaration maps, WebP art, a compressed PDF worker), PDFs render on the supported browsers, and the Trash folder's icon follows the active package. Most hosts change nothing. On any earlier 3.x the PDF viewer draws no page on the browsers at Classicy's floor either (every release from 0.71.6 through 3.6.0 bundled the same pdf.js build), so 3.7 fixes it there too; read each version's notes above in turn.
 
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
