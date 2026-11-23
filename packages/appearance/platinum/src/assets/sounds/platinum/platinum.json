@@ -3,9 +3,7 @@
 	"name": "Platinum",
 	"src": [
 		"./platinum.ogg",
-		"./platinum.m4a",
-		"./platinum.mp3",
-		"./platinum.ac3"
+		"./platinum.m4a"
 	],
 	"sprite": {
 		"ClassicyAlertBonk": [

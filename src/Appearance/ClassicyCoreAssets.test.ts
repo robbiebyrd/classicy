@@ -97,8 +97,6 @@ describe("the core's assets/ folder", () => {
 					"platinum.json",
 					"platinum.ogg",
 					"platinum.m4a",
-					"platinum.mp3",
-					"platinum.ac3",
 					"sprites/ClassicyBeep.mp3",
 				].map((file) => `${PLATINUM_ASSETS}sounds/platinum/${file}`),
 			),

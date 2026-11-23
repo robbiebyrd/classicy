@@ -17,9 +17,6 @@ export default defineConfig({
 	// `?classicy-deflate` imports (the pdf.js worker) load as in the core's
 	// library build (bin/classicyDeflateAsset.ts).
 	plugins: [classicyDeflateAssetPlugin()],
-	// The sound sprites' formats Vite does not know as assets (it knows ogg,
-	// m4a and mp3): the ac3 file is imported too (src/assets/sounds/platinum.ts).
-	assetsInclude: ["**/*.ac3"],
 	test: {
 		name: "appearance-platinum",
 		environment: "jsdom",

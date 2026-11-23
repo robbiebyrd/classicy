@@ -60,10 +60,9 @@ describe("System 7's configs", () => {
 			isSsrBuild: false,
 			isPreview: false,
 		});
-		// ogg, m4a, mp3 and wav are Vite's own asset types; ac3 is not, and
-		// the sound sheet ships one (assets/sounds/system7/system7.ac3).
-		expect(config.assetsInclude).toEqual(["**/*.ac3"]);
+		// ogg and m4a are Vite's own asset types: the config adds none.
+		expect(config.assetsInclude).toBeUndefined();
 		const files = filesUnder(path.join(packageDir, "src"));
-		expect(files.some((file) => file.endsWith(".ac3"))).toBe(true);
+		expect(files.some((file) => file.endsWith(".ac3"))).toBe(false);
 	}, 60_000);
 });

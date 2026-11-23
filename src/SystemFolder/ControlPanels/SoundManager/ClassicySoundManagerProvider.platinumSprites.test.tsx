@@ -54,9 +54,7 @@ describe("a desktop with Platinum loaded", () => {
 		expect(created.length).toBeGreaterThan(0);
 		for (const src of created)
 			expect(src.map((url) => assetSourceFile(url, process.cwd()))).toEqual(
-				["ogg", "m4a", "mp3", "ac3"].map((ext) =>
-					path.join(SPRITES, `platinum.${ext}`),
-				),
+				["ogg", "m4a"].map((ext) => path.join(SPRITES, `platinum.${ext}`)),
 			);
 	});
 });

@@ -53,9 +53,6 @@ const system7Config = (mode: string): UserConfig => ({
 	// build (verify-dist invariant 5).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	// The sound sheet's ac3 file is the one asset type Vite does not know
-	// (its ogg, m4a and mp3 siblings are Vite's own).
-	assetsInclude: ["**/*.ac3"],
 	css: {
 		preprocessorOptions: {
 			// The vocabulary is `pkg:@classicy/classicy/scss/<module>`.

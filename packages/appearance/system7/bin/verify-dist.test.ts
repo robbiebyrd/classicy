@@ -86,8 +86,6 @@ const SOURCES: Record<string, Buffer> = {
 	"src/assets/wallpapers/pattern.png": bytes(43),
 	"src/assets/sounds/system7/system7.ogg": bytes(50),
 	"src/assets/sounds/system7/system7.m4a": bytes(51),
-	"src/assets/sounds/system7/system7.mp3": bytes(52),
-	"src/assets/sounds/system7/system7.ac3": bytes(53),
 	"src/assets/sounds/system7/system7.json": Buffer.from("{}"),
 	"src/assets/sounds/system7/system7.sprites.sha256": Buffer.from("0"),
 	"src/assets/sounds/system7/sprites/ClassicyBeep.wav": bytes(60),
@@ -275,6 +273,11 @@ describe("bin/verify-dist.mjs", () => {
 				stderr: `${path.join("dist", "assets", "fish-angel.webp")}: differs from ${path.join("..", "platinum", "src", "screenSavers", "Fish", "fish-angel.webp")} -> package files ship byte for byte; check the build's plugins (an image optimizer?).`,
 			}));
 
+		it("fails a leftover system7.mp3 in dist/assets", () =>
+			expect(verify({ "assets/system7.mp3": bytes(1) }).stderr).toMatch(
+				/^dist\/assets: missing none; extra system7\.mp3 /,
+			));
+
 		it("fails a file nothing ships, a .webp included", () =>
 			expect(verify({ "assets/apple.webp": bytes(1) })).toEqual({
 				status: 1,
@@ -290,7 +293,7 @@ describe("bin/verify-dist.mjs", () => {
 			"pattern.png",
 			"zoom.svg",
 			"system7.ogg",
-			"system7.ac3",
+			"system7.m4a",
 			"Geneva-bold-normal.woff2",
 			"Monaco-normal-normal.woff2",
 		])("fails %s when it differs from its source", (file) =>

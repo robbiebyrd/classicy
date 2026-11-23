@@ -196,7 +196,7 @@ const sources = [
 	...(await listFiles("src/assets/wallpapers", (n) =>
 		/\.(?:png|jpg)$/.test(n),
 	)),
-	...["ogg", "m4a", "mp3", "ac3"].map((ext) =>
+	...["ogg", "m4a"].map((ext) =>
 		join("src", "assets", "sounds", "platinum", `platinum.${ext}`),
 	),
 	...(

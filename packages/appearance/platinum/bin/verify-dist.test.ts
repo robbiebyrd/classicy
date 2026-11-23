@@ -51,7 +51,7 @@ const SOURCES: Record<string, Buffer> = {
 	"src/assets/wallpapers/default.jpg": bytes(44),
 	"src/assets/wallpapers/photos/beach.jpg": bytes(45),
 	...Object.fromEntries(
-		["ogg", "m4a", "mp3", "ac3"].map((ext, i) => [
+		["ogg", "m4a"].map((ext, i) => [
 			`src/assets/sounds/platinum/platinum.${ext}`,
 			bytes(50 + i),
 		]),
@@ -198,6 +198,11 @@ describe("bin/verify-dist.mjs", () => {
 					"dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/default.jpg",
 				].join("\n"),
 			}));
+
+		it("fails a leftover platinum.mp3 in dist/assets", () =>
+			expect(verify({ "assets/platinum.mp3": bytes(1) }).stderr).toMatch(
+				/^dist\/assets: missing none; extra platinum\.mp3 /,
+			));
 
 		it("fails a file nothing ships, a .webp included", () =>
 			expect(verify({ "assets/sad-mac.webp": bytes(1) })).toEqual({

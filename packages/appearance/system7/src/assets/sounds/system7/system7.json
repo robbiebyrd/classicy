@@ -3,9 +3,7 @@
 	"name": "System7",
 	"src": [
 		"./system7.ogg",
-		"./system7.m4a",
-		"./system7.mp3",
-		"./system7.ac3"
+		"./system7.m4a"
 	],
 	"sprite": {
 		"ClassicyAlertDroplet": [

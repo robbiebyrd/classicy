@@ -11,7 +11,7 @@ export LC_ALL=C
 dir=${1:-./packages/appearance/platinum/src/assets/sounds}
 outputDir=${2:-./packages/appearance/platinum/src/assets/sounds}
 fileExt=${3:-mp3}
-formats=${4:-ogg,m4a,mp3,ac3}
+formats=${4:-ogg,m4a}
 loops=${5:-ClassicyWindowMoveMoving,ClassicyWindowMoveIdle,ClassicyWindowResizeIdle,ClassicyWindowResizeResizing}
 
 # audiosprite is a pinned devDependency (no network at build time). The

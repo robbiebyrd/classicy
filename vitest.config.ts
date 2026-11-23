@@ -44,9 +44,6 @@ export default defineConfig({
 		// library build does.
 		classicyDeflateAssetPlugin(),
 	],
-	// Platinum's sound sprites include an ac3 file, a format Vite does not
-	// know as an asset (src/assets/sounds/platinum.ts imports it).
-	assetsInclude: ["**/*.ac3"],
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./src/__tests__/setup.ts"],

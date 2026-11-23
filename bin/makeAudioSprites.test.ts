@@ -77,7 +77,7 @@ describe("pnpm build:audio", () => {
 		// looping sprite: "," is a loop list with no names (an empty argument
 		// would take the script's default, Platinum's four loops).
 		expect(scripts["build:audio"]).toBe(
-			"./bin/make_audio_sprites.sh && ./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a,mp3,ac3 ,",
+			"./bin/make_audio_sprites.sh && ./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a ,",
 		);
 		for (const pkg of ["platinum", "system7"])
 			expect(scripts["build:watchaudio"]).toContain(
@@ -100,7 +100,7 @@ describe("pnpm build:audio", () => {
 		expect(calls).toHaveLength(2);
 		expect(calls[0]).toMatch(/^audiosprite -f howler2 /);
 		expect(calls[0]).toContain(` -o ${out}/platinum/platinum `);
-		expect(calls[0]).toContain(" -e ogg,m4a,mp3,ac3 ");
+		expect(calls[0]).toContain(" -e ogg,m4a ");
 		expect(calls[0].endsWith(` ${dir}/platinum/sprites/*.mp3`)).toBe(true);
 		// The JSON rewrite (id, name, relative src) of the pack it wrote.
 		expect(calls[1].endsWith(` ${out}/platinum/platinum.json`)).toBe(true);
@@ -108,10 +108,10 @@ describe("pnpm build:audio", () => {
 
 	it("builds System 7's pack from its WAV sprites, with no looping sprite", () => {
 		const dir = "./packages/appearance/system7/src/assets/sounds";
-		const { calls, out } = runWithStubs(dir, ["wav", "ogg,m4a,mp3,ac3", ","]);
+		const { calls, out } = runWithStubs(dir, ["wav", "ogg,m4a", ","]);
 		expect(calls).toHaveLength(2);
 		expect(calls[0]).toContain(` -o ${out}/system7/system7 `);
-		expect(calls[0]).toContain(" -e ogg,m4a,mp3,ac3 ");
+		expect(calls[0]).toContain(" -e ogg,m4a ");
 		expect(calls[0]).not.toContain("--loop");
 		expect(calls[0].endsWith(` ${dir}/system7/sprites/*.wav`)).toBe(true);
 		expect(calls[1].endsWith(` ${out}/system7/system7.json`)).toBe(true);
@@ -199,7 +199,7 @@ const setup = (packs: Record<string, string[]> = { tone: ["A.mp3"] }) => {
 out=""; while [ $# -gt 0 ]; do [ "$1" = "-o" ] && out="$2"; shift; done
 echo "$out" >> "${calls}"
 mkdir -p "$(dirname "$out")"
-for ext in ogg m4a mp3 ac3; do ffmpeg -y -ar 44100 -f s16le -i in.raw "$out.$ext"; echo bytes > "$out.$ext"; done
+for ext in ogg m4a; do ffmpeg -y -ar 44100 -f s16le -i in.raw "$out.$ext"; echo bytes > "$out.$ext"; done
 echo '{"src":["x/tone.ogg"],"sprite":{}}' > "$out.json"
 `,
 	);
@@ -251,17 +251,17 @@ describe("deterministic, change-driven sprites", () => {
 	it("encodes bit-exact with no metadata, flags placed just before the output", () => {
 		const { run } = setup();
 		const encodes = run();
-		expect(encodes).toHaveLength(4);
+		expect(encodes).toHaveLength(2);
 		for (const line of encodes) {
 			expect(line).toMatch(
-				/^-y -ar 44100 -f s16le -i in\.raw -fflags \+bitexact -map_metadata -1 \S+tone\.(ogg|m4a|mp3|ac3)$/,
+				/^-y -ar 44100 -f s16le -i in\.raw -fflags \+bitexact -map_metadata -1 \S+tone\.(ogg|m4a)$/,
 			);
 		}
 	});
 
 	it("skips the encode when the sources and script are unchanged", () => {
 		const { sounds, run } = setup();
-		expect(run()).toHaveLength(4);
+		expect(run()).toHaveLength(2);
 		const stamp = path.join(sounds, "tone", "tone.sprites.sha256");
 		expect(readFileSync(stamp, "utf8").trim()).toMatch(/^[0-9a-f]{64}$/);
 		const before = readFileSync(path.join(sounds, "tone", "tone.ogg"));
@@ -274,14 +274,14 @@ describe("deterministic, change-driven sprites", () => {
 		run();
 		expect(run()).toHaveLength(0);
 		writeFileSync(path.join(sounds, "tone", "sprites", "A.mp3"), "changed");
-		expect(run()).toHaveLength(4);
+		expect(run()).toHaveLength(2);
 		expect(run()).toHaveLength(0);
 		writeFileSync(path.join(sounds, "tone", "sprites", "B.mp3"), "added");
-		expect(run()).toHaveLength(4);
+		expect(run()).toHaveLength(2);
 		rmSync(path.join(sounds, "tone", "tone.m4a"));
-		expect(run()).toHaveLength(4);
+		expect(run()).toHaveLength(2);
 		expect(run()).toHaveLength(0);
-		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(4);
+		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(2);
 	});
 });
 
@@ -310,7 +310,7 @@ describe("locale-independent stamps and a restamp mode", () => {
 			rmSync(stampFile("tone"), { force: true });
 			expect(
 				run({ LANG: lang, LC_ALL: undefined, LC_COLLATE: undefined }),
-			).toHaveLength(4);
+			).toHaveLength(2);
 			return stamp();
 		};
 		const english = under("en_US.UTF-8");
@@ -320,7 +320,7 @@ describe("locale-independent stamps and a restamp mode", () => {
 
 	it("CLASSICY_AUDIO_RESTAMP=1 rewrites the stamp without calling audiosprite", () => {
 		const { sounds, invoke, run, stamp, stampFile } = setup();
-		expect(run()).toHaveLength(4);
+		expect(run()).toHaveLength(2);
 		const built = stamp();
 		const ogg = readFileSync(path.join(sounds, "tone", "tone.ogg"));
 		writeFileSync(stampFile("tone"), "stale\n");
@@ -337,7 +337,7 @@ describe("locale-independent stamps and a restamp mode", () => {
 		expect(invoke({ CLASSICY_AUDIO_RESTAMP: "1" }).audiosprite).toEqual([]);
 		const restamped = stamp();
 		expect(restamped).not.toBe(built);
-		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(4);
+		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(2);
 		expect(stamp()).toBe(restamped);
 	});
 

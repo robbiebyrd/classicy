@@ -59,8 +59,7 @@ const READERS: ReadonlyArray<{
 
 /** Sound sprite sources: bin/make_audio_sprites.sh builds the pack from them. */
 const SPRITE_SOURCE = /^src\/assets\/sounds\/platinum\/sprites\/(.+)\.mp3$/;
-const SOUND_PACK =
-	/^src\/assets\/sounds\/platinum\/platinum\.(ogg|m4a|mp3|ac3|json)$/;
+const SOUND_PACK = /^src\/assets\/sounds\/platinum\/platinum\.(ogg|m4a|json)$/;
 
 /** Why a file is read, or "" when nothing reads it. */
 const readBy = (file: string): string => {

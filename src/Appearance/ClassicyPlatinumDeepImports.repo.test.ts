@@ -29,6 +29,8 @@ const ALLOWED: Record<string, string> = {
 		"the cursor art file, for the cursor test",
 	"packages/appearance/platinum/src/assets/sounds/platinum/platinum.json":
 		"the sound pack's sprite map, read by the sound-pack tests (it moved out of the core's assets/ in 3.3)",
+	"packages/appearance/platinum/src/a.png?no-inline":
+		"a fixture asset id in bin/classicySourceMapText.test.ts: a string, never imported",
 	"packages/appearance/platinum/src":
 		"the source directory, to build a module-copy path (a query makes a new instance)",
 	"packages/appearance/platinum/src/**/*.stories.@(ts|tsx)":

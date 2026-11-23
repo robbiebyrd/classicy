@@ -167,7 +167,7 @@ describe("the built bundle and the core's registries", () => {
 			expect(inlined).toEqual(masks);
 		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(es).toContain(`new URL("assets/system7.${ext}"`);
 		expect(es).toContain(
 			'new URL("assets/icons-color-32-system-files-document.png"',
@@ -197,9 +197,7 @@ describe("the built bundle and the core's registries", () => {
 				.filter(
 					(file) =>
 						/\.(png|svg|woff2)$/.test(file) ||
-						/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a|mp3|ac3)$/.test(
-							file,
-						),
+						/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a)$/.test(file),
 				),
 			...saverArt,
 		];
@@ -230,7 +228,7 @@ describe("the built bundle and the core's registries", () => {
 			).toBe(true);
 		for (const { file } of SYSTEM7_FONT_FACES)
 			expect(assets, file).toContain(`${file}.woff2`);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(assets).toContain(`system7.${ext}`);
 		for (const file of saverArt) expect(assets).toContain(path.basename(file));
 	});

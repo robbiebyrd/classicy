@@ -18,9 +18,6 @@ export default defineConfig({
 	// `?classicy-deflate` imports (the pdf.js worker) load as in the core's
 	// library build (bin/classicyDeflateAsset.ts).
 	plugins: [classicyDeflateAssetPlugin()],
-	// Platinum's sound sprites include an ac3 file, a format Vite does not know
-	// as an asset: tests that register Platinum beside System 7 import it.
-	assetsInclude: ["**/*.ac3"],
 	test: {
 		name: "appearance-system7",
 		environment: "jsdom",

@@ -124,7 +124,7 @@ describe("the built bundle and the core's registries", () => {
 		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.png["']/);
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(es).toContain(`new URL("assets/platinum.${ext}"`);
 	});
 
@@ -136,8 +136,6 @@ describe("the built bundle and the core's registries", () => {
 			expect.arrayContaining([
 				"platinum.ogg",
 				"platinum.m4a",
-				"platinum.mp3",
-				"platinum.ac3",
 				...PLATINUM_WALLPAPERS.map(({ file }) => file),
 				"apple.png",
 				"alias.png",
@@ -162,9 +160,9 @@ describe("the built bundle and the core's registries", () => {
 		);
 		// Nothing else is in dist/assets: the fonts, the package's art (the
 		// small folder its last), and the savers' 23 images.
-		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12 + 1 + 23);
+		expect(assets).toHaveLength(13 + 19 + 47 + 2 + 12 + 1 + 23);
 		// The sprites are the files bin/make_audio_sprites.sh wrote, byte for byte.
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(
 				readFileSync(path.join(outDir, "assets", `platinum.${ext}`)).equals(
 					readFileSync(

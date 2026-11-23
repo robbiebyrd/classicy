@@ -16,7 +16,7 @@
 //    (src/assets/fonts), the art (src/assets/art and its variant folders,
 //    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
 //    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
-//    the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a,mp3,ac3},
+//    the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a},
 //    not its JSON, its hash or its sprites/ WAV sources) and the screen
 //    savers' art, which stays in Platinum's source
 //    (../platinum/src/screenSavers/<Saver>/*.webp; plan 0018-dbd §3.8), each
@@ -227,10 +227,10 @@ const sources = [
 	...(await listFiles("src/assets/wallpapers", (n) =>
 		/\.(?:png|jpg)$/.test(n),
 	)),
-	// The sheet's four formats, not its JSON, its hash or its sprites/ WAV
+	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "system7"), (n) =>
-		/^system7\.(?:ogg|m4a|mp3|ac3)$/.test(n),
+		/^system7\.(?:ogg|m4a)$/.test(n),
 	)),
 	...(
 		await Promise.all(
