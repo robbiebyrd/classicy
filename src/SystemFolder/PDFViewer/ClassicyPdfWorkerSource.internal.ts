@@ -1,6 +1,5 @@
 import { inflateSync } from "fflate";
 import deflatedWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate";
-import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 
 // The pdf.js worker ships raw-deflated as base64 text (plan 0019-fb7 Part 2,
 // bin/classicyDeflateAsset.ts), about a third of the data: URI a `?url`
@@ -9,8 +8,17 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 // importing the data: URI, its main-thread fallback included) and fetches
 // nothing: PDFs open on file:, CDN and custom-scheme hosts alike. It is the
 // legacy build's worker, as PDFViewerDocument loads the legacy build's API:
-// the modern worker calls Map.prototype.getOrInsertComputed, which no
-// browser Classicy supports has.
+// the modern worker calls Map.prototype.getOrInsertComputed, which the oldest
+// supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack.
+//
+// This module imports nothing from Classicy (only fflate and the deflated
+// worker): in the ES build it is a lazy chunk, and a chunk that imported
+// from the entry would name it as "./classicy.es.js". A host serving the
+// entry under any other URL (a query string, a CDN redirect, a renamed file)
+// would then load a second copy of the library on the first PDF, or none at
+// all. So it reports a failure as data, and PDFViewerDocument, in the entry,
+// logs it (verify:dist invariant 17 fails on a lazy chunk that imports the
+// entry).
 
 /**
  * What the build plugin's payload starts with: CLASSICY_DEFLATE_MARK in
@@ -46,43 +54,55 @@ function bytesOfBase64(base64: string): Uint8Array {
 }
 
 /**
- * The pdf.js worker's `data:text/javascript;base64,…` URI, rebuilt from a
- * `?classicy-deflate` payload; `""` (with an error logged) when the payload
- * has no mark or does not inflate.
+ * The pdf.js worker's `data:text/javascript;base64,…` URI (`ok`), or why it
+ * could not be rebuilt: `problem`, a sentence for the log, and `error`, what
+ * inflating threw, when it threw.
  */
-export function classicyPdfWorkerSrcFrom(deflated: string): string {
-	if (!deflated.startsWith(CLASSICY_PDF_WORKER_DEFLATE_MARK)) {
-		classicyLog(
-			"error",
-			"PDFViewer",
-			"The pdf.js worker's compressed copy has no deflate mark, so no PDF can open.",
-		);
-		return "";
-	}
+export type ClassicyPdfWorkerSrc =
+	| { readonly ok: true; readonly src: string }
+	| {
+			readonly ok: false;
+			readonly problem: string;
+			readonly error?: unknown;
+	  };
+
+/**
+ * The pdf.js worker's URI, rebuilt from a `?classicy-deflate` payload; a
+ * problem when the payload has no mark or does not inflate. Logs nothing.
+ */
+export function classicyPdfWorkerSrcFrom(
+	deflated: string,
+): ClassicyPdfWorkerSrc {
+	if (!deflated.startsWith(CLASSICY_PDF_WORKER_DEFLATE_MARK))
+		return {
+			ok: false,
+			problem:
+				"The pdf.js worker's compressed copy has no deflate mark, so no PDF can open.",
+		};
 	try {
 		const worker = inflateSync(
 			bytesOfBase64(deflated.slice(CLASSICY_PDF_WORKER_DEFLATE_MARK.length)),
 		);
-		return WORKER_DATA_URI_PREFIX + base64Of(worker);
+		return { ok: true, src: WORKER_DATA_URI_PREFIX + base64Of(worker) };
 	} catch (error) {
-		classicyLog(
-			"error",
-			"PDFViewer",
-			"The pdf.js worker's compressed copy did not inflate, so no PDF can open.",
+		return {
+			ok: false,
+			problem:
+				"The pdf.js worker's compressed copy did not inflate, so no PDF can open.",
 			error,
-		);
-		return "";
+		};
 	}
 }
 
-let workerSrc = "";
+let workerSrc: ClassicyPdfWorkerSrc | null = null;
 
 /**
- * The pdf.js worker's data: URI, inflated on the first call. Only a URI is
- * kept: after a failure (`""`, logged) the next call inflates, and logs,
- * again.
+ * The pdf.js worker's URI, inflated on the first call. Only a rebuilt URI is
+ * kept: after a problem the next call inflates again.
  */
-export function classicyPdfWorkerSrc(): string {
-	if (!workerSrc) workerSrc = classicyPdfWorkerSrcFrom(deflatedWorker);
-	return workerSrc;
+export function classicyPdfWorkerSrc(): ClassicyPdfWorkerSrc {
+	if (workerSrc) return workerSrc;
+	const result = classicyPdfWorkerSrcFrom(deflatedWorker);
+	if (result.ok) workerSrc = result;
+	return result;
 }

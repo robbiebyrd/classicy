@@ -19,6 +19,7 @@ import { ClassicyButton } from "@/SystemFolder/SystemResources/Button/ClassicyBu
 import { ClassicyControlLabel } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import { onClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
+import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
@@ -34,17 +35,18 @@ import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base6
 // Both are pdf.js's legacy build (its API here, its worker in
 // ClassicyPdfWorkerSource.internal.ts; one version, one place). The modern
 // build calls methods newer than the browsers Classicy supports without
-// polyfills, Map.prototype.getOrInsertComputed among them, which none of
-// them has, so no page would draw ("Couldn't render this page."). The legacy
-// build carries the polyfills. Its declarations re-export pdfjs-dist's own,
-// so the types above still come from "pdfjs-dist".
+// polyfills, Map.prototype.getOrInsertComputed among them, which the oldest
+// supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack, so no page
+// would draw ("Couldn't render this page."). The legacy build carries the
+// polyfills (core-js's, installed on the page's own globals where a method
+// is missing or nonconforming, when pdf.js loads). Its declarations
+// re-export pdfjs-dist's own, so the types above still come from
+// "pdfjs-dist".
+type Pdfjs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 let pdfjsModules: Promise<
-	[
-		typeof import("pdfjs-dist/legacy/build/pdf.mjs"),
-		typeof import("./ClassicyPdfWorkerSource.internal"),
-	]
+	[Pdfjs, typeof import("./ClassicyPdfWorkerSource.internal")]
 > | null = null;
-function loadPdfjs() {
+function loadPdfjs(): Promise<Pdfjs> {
 	// A load that failed (a chunk that did not arrive) is not kept: the next
 	// document imports again, which loads it wherever the browser fetches a
 	// failed module anew. Only these imports are retried; pdf.js keeps its own
@@ -56,14 +58,34 @@ function loadPdfjs() {
 		pdfjsModules = null;
 		throw error;
 	});
-	// Set on every load: the worker source keeps only a rebuilt URI, so after
-	// a failed inflate (`""`, logged; getDocument() then throws, which shows
-	// the load error) the next document inflates, and logs, again.
+	// Set on every load. The worker source keeps only a rebuilt URI and logs
+	// nothing (its chunk imports nothing of Classicy's): when it cannot
+	// rebuild one, pdf.js is left no worker, and the load rejects with the
+	// reason, which the caller logs and shows as the load error. The next
+	// document inflates again.
 	return pdfjsModules.then(([pdfjs, { classicyPdfWorkerSrc }]) => {
-		pdfjs.GlobalWorkerOptions.workerSrc = classicyPdfWorkerSrc();
+		const worker = classicyPdfWorkerSrc();
+		if (!worker.ok) {
+			pdfjs.GlobalWorkerOptions.workerSrc = "";
+			throw new Error(
+				worker.problem,
+				worker.error === undefined ? undefined : { cause: worker.error },
+			);
+		}
+		pdfjs.GlobalWorkerOptions.workerSrc = worker.src;
 		return pdfjs;
 	});
 }
+
+/**
+ * Is `reason` pdf.js's RenderingCancelledException, the rejection of a
+ * render task that was cancelled on purpose? By class when pdf.js is at
+ * hand, else by the name pdf.js gives it.
+ */
+const isRenderingCancelled = (reason: unknown, pdfjs?: Pdfjs): boolean =>
+	(pdfjs !== undefined &&
+		reason instanceof pdfjs.RenderingCancelledException) ||
+	(reason instanceof Error && reason.name === "RenderingCancelledException");
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 3.0;
@@ -166,8 +188,12 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				loadingTask = pdfjs.getDocument(source);
 				const loadedDoc = await loadingTask.promise;
 				if (!canceled) setDoc(loadedDoc);
-			} catch {
-				if (!canceled) setError(true);
+			} catch (error) {
+				// A load abandoned by this effect's cleanup (a new document, an
+				// unmount) is not a failure.
+				if (canceled) return;
+				classicyLog("error", "PDFViewer", "Couldn't load this PDF.", error);
+				setError(true);
 			}
 		})();
 		return () => {
@@ -186,6 +212,13 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 		// failed to render should give the new page a clean slate rather than
 		// inheriting the old error.
 		setPageError(false);
+		const logPageFailure = (reason: unknown) =>
+			classicyLog(
+				"error",
+				"PDFViewer",
+				`Couldn't render page ${currentPage} of this PDF.`,
+				reason,
+			);
 		Promise.all([doc.getPage(currentPage), loadPdfjs()])
 			.then(([page, pdfjs]) => {
 				if (canceled || !canvasRef.current) return;
@@ -214,18 +247,22 @@ export const PDFViewerDocument: FunctionalComponent<PDFViewerDocumentProps> = ({
 				// whenever cleanup calls `renderTask.cancel()` below (e.g. a fast
 				// Next/Previous or Zoom click while a page is still rendering).
 				// That's expected, routine behavior, not a real error — swallow
-				// only that case so it never surfaces as an unhandled promise
-				// rejection. Any other rejection reason is a genuine render
-				// failure, so surface it the same way the catch handlers above
-				// do. This is a *page*-render failure (the document already
-				// loaded fine), so it sets `pageError`, not `error`.
+				// only that case, unlogged, so it never surfaces as an unhandled
+				// promise rejection. Any other rejection reason is a genuine
+				// render failure, so log it and surface it. This is a
+				// *page*-render failure (the document already loaded fine), so it
+				// sets `pageError`, not `error`.
 				renderTask.promise.catch((reason: unknown) => {
-					if (reason instanceof pdfjs.RenderingCancelledException) return;
-					if (!canceled) setPageError(true);
+					if (isRenderingCancelled(reason, pdfjs) || canceled) return;
+					logPageFailure(reason);
+					setPageError(true);
 				});
 			})
-			.catch(() => {
-				if (!canceled) setPageError(true);
+			.catch((reason: unknown) => {
+				// The page did not load, or pdf.js threw starting its render.
+				if (isRenderingCancelled(reason) || canceled) return;
+				logPageFailure(reason);
+				setPageError(true);
 			});
 		return () => {
 			canceled = true;
