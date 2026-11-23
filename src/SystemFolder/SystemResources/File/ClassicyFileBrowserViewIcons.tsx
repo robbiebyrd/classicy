@@ -30,6 +30,11 @@ import type {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	isClassicyTrashFolder,
+	listClassicyTrashItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { useClassicyTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
 export type ClassicyFileBrowserViewIconsProps = {
@@ -104,6 +109,11 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 		}) => {
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
+			);
+			// A listing of the root shows the Trash (when invisibles show):
+			// drawn with the active package's art, not its stored `_icon`.
+			const trashIcon = useClassicyTrashIcon(
+				listClassicyTrashItems(fs).length > 0,
 			);
 
 			// Falls back to an internally-owned ref when the caller does not pass
@@ -246,7 +256,9 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						appId: appId,
 						name: filename,
 						invisible: properties._invisible,
-						icon: properties._icon || iconImageByType(properties._type),
+						icon: isClassicyTrashFolder(fs, path, filename)
+							? trashIcon
+							: properties._icon || iconImageByType(properties._type),
 						onClickFunc: () => openFileOrFolder(properties, path, filename),
 						holder: resolvedHolderRef,
 						initialPosition: cleanupIcon(
@@ -279,6 +291,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				keepArrangedBy,
 				iconSizeStep,
 				onMoveItems,
+				trashIcon,
 			]);
 
 			return (

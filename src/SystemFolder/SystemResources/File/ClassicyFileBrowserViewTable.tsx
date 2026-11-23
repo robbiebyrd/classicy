@@ -37,6 +37,11 @@ import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import {
+	isClassicyTrashFolder,
+	listClassicyTrashItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { useClassicyTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	ClassicyTable,
@@ -209,6 +214,10 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// (not inside ClassicyTable) because the lazily-materialized `subRows`
 			// below depend on it.
 			const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
+			// The active package's Trash art, for a listing of the root.
+			const trashIcon = useClassicyTrashIcon(
+				listClassicyTrashItems(fs).length > 0,
+			);
 
 			// Takes the row's own full path rather than rebuilding one from the
 			// table's `path` prop: disclosed rows can sit several levels below it,
@@ -254,6 +263,12 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						}
 						filtered._name = filename;
 						filtered._path = rowPath;
+						// A listing of the root shows the Trash (when invisibles
+						// show): drawn with the active package's art, not its
+						// stored `_icon`.
+						if (isClassicyTrashFolder(fs, dirPath, filename)) {
+							filtered._icon = trashIcon;
+						}
 						filtered._size = sizes.has(rowPath)
 							? sizes.get(rowPath)
 							: typeof metadata._size === "number"
@@ -277,6 +292,7 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 				expandedPathSet,
 				hideFilesCreatedAfter,
 				showInvisible,
+				trashIcon,
 			]);
 
 			// Resolve sizes for any visible row we don't have a size for yet, keyed by

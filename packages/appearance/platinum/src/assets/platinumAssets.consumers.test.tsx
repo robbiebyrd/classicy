@@ -2,6 +2,7 @@
 import "../index";
 import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
 	registerClassicySystemArt,
 	resolveClassicyAsset,
@@ -17,7 +18,11 @@ import { Finder } from "@/SystemFolder/Finder/Finder";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
-import { ensureClassicyTrash } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { flushClassicyFileSystemPendingForStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemAdapter";
+import {
+	ensureClassicyTrash,
+	trashClassicyFileSystemItems,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { ClassicyHelpButton } from "@/SystemFolder/SystemResources/HelpButton/ClassicyHelpButton";
 
 // Every consumer of system art reads the registry at render or call time, so a
@@ -135,6 +140,92 @@ describe("system art consumers read the registry", () => {
 			registerClassicySystemArt(PLATINUM, { trashEmpty: "trash-later.png" });
 		});
 		await waitFor(() => expect(trashIcon()).toBe("trash-later.png"));
+	});
+
+	it("the Trash window's title-bar icon follows a trashEmpty registered after mount", async () => {
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false}>
+					<Finder />
+				</ClassicyDesktop>
+			</ClassicyAppManagerProvider>,
+		);
+		act(() => {
+			dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		});
+		const titleIcon = () =>
+			container
+				.querySelector('.classicyWindowIcon img[alt="Trash"]')
+				?.getAttribute("src");
+		await waitFor(() => expect(titleIcon()).toBe(platinumArt.trashEmpty));
+		act(() => {
+			registerClassicySystemArt(PLATINUM, { trashEmpty: "trash-later.png" });
+		});
+		await waitFor(() => expect(titleIcon()).toBe("trash-later.png"));
+		// The default package registered it, so the stored icon heals too.
+		await waitFor(() =>
+			expect(new ClassicyFileSystem().resolve("Trash")?._icon).toBe(
+				"trash-later.png",
+			),
+		);
+		// Full while anything is in it, as the desktop icon is.
+		act(() => {
+			const fs = new ClassicyFileSystem();
+			fs.writeFile("Macintosh HD:Documents:Old Note.txt", "");
+			trashClassicyFileSystemItems(fs, ["Macintosh HD:Documents:Old Note.txt"]);
+		});
+		await waitFor(() => expect(titleIcon()).toBe(platinumArt.trashFull));
+	});
+
+	it("a desktop saved with another package's trash art draws the active package's after Finder mounts", async () => {
+		// An earlier test's debounced write would land on the seed below when
+		// Finder's file system is built (the constructor drains it first).
+		flushClassicyFileSystemPendingForStorageKey("classicyStorage");
+		// A tree saved while another package was active: its Trash holds that
+		// package's art, a URL this build may not even ship.
+		const saved = new ClassicyFileSystem("platinumAssets.consumers.saved");
+		ensureClassicyTrash(saved);
+		saved.setMetadata("Trash", { _icon: "/assets/other-trash-AbC12345.png" });
+		saved.writeFile("Macintosh HD:Documents:Saved.txt", "");
+		localStorage.setItem("classicyStorage", saved.snapshot());
+
+		const { container } = render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false}>
+					<Finder />
+				</ClassicyDesktop>
+			</ClassicyAppManagerProvider>,
+		);
+		const live = new ClassicyFileSystem();
+		// The saved tree, not a fresh seed, is the one Finder mounted on.
+		expect(live.resolve("Macintosh HD:Documents:Saved.txt")).toBeDefined();
+		// The folder stores the default package's art (ruling R14), whichever
+		// package is active; the window below draws the active package's.
+		const defaultTrashEmpty = resolveClassicyAsset(
+			"systemArt",
+			"trashEmpty",
+			CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+			"",
+		);
+		expect(defaultTrashEmpty).toBeTruthy();
+		await waitFor(() =>
+			expect(live.resolve("Trash")?._icon).toBe(defaultTrashEmpty),
+		);
+		// And it is the healed icon that is saved.
+		flushClassicyFileSystemPendingForStorageKey("classicyStorage");
+		expect(
+			JSON.parse(localStorage.getItem("classicyStorage") ?? "{}").Trash?._icon,
+		).toBe(defaultTrashEmpty);
+		act(() => {
+			dispatch({ type: "ClassicyAppFinderOpenFolder", path: "Trash" });
+		});
+		await waitFor(() =>
+			expect(
+				container
+					.querySelector('.classicyWindowIcon img[alt="Trash"]')
+					?.getAttribute("src"),
+			).toBe(platinumArt.trashEmpty),
+		);
 	});
 
 	it("About This Computer draws the registered aboutLogo", async () => {

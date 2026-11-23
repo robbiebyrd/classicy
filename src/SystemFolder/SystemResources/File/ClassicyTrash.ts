@@ -1,9 +1,9 @@
-import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import type {
 	ClassicyFileSystem,
 	ClassicyFileSystemMoveRefusal,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { classicyStoredTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 
 /**
  * The Trash: a folder at the root of the tree, beside the drives — what the
@@ -57,21 +57,47 @@ export const isClassicyTrashItem = (
 	path !== CLASSICY_TRASH_PATH && parentPath(fs, path) === CLASSICY_TRASH_PATH;
 
 /**
- * Create the Trash folder if the tree has none (a fresh tree, or one from
- * before the Trash existed). Idempotent: it journals nothing once it exists.
- * The folder is a system folder, so it can't itself be moved or trashed, and
- * invisible, so it isn't offered as a volume in Open and Save dialogs.
+ * Is the entry `name`, listed in `folder`, the Trash itself? Only the root
+ * holds it, however the root is spelled (`""`, `":"`). For listings, which
+ * draw the Trash with the active package's art rather than its stored
+ * `_icon`.
  */
-export function ensureClassicyTrash(fs: ClassicyFileSystem): string {
-	if (!fs.resolve(CLASSICY_TRASH_PATH)) {
+export const isClassicyTrashFolder = (
+	fs: ClassicyFileSystem,
+	folder: string,
+	name: string,
+): boolean =>
+	name === CLASSICY_TRASH_PATH && fs.pathArray(folder)?.length === 0;
+
+/**
+ * Create the Trash folder if the tree has none (a fresh tree, or one from
+ * before the Trash existed), with `icon` as its `_icon`: by default the
+ * default package's empty-Trash art (`classicyStoredTrashIcon`), never the
+ * active package's, so a package or theme switch leaves the saved tree as it
+ * is. A Trash that exists already has a stale `_icon` rewritten to `icon`:
+ * one saved by an older build under another package, or naming art this
+ * build no longer ships. Idempotent: it journals nothing once the Trash
+ * exists with that icon. Surfaces draw the active package's art, not this
+ * `_icon`. The folder is a system folder, so it can't itself be moved or
+ * trashed, and invisible, so it isn't offered as a volume in Open and Save
+ * dialogs.
+ */
+export function ensureClassicyTrash(
+	fs: ClassicyFileSystem,
+	icon: string = classicyStoredTrashIcon(),
+): string {
+	const trash = fs.resolve(CLASSICY_TRASH_PATH);
+	if (!trash) {
 		fs.mkDir(CLASSICY_TRASH_PATH);
 		fs.setMetadata(CLASSICY_TRASH_PATH, {
-			_icon: resolveClassicyAsset("systemArt", "trashEmpty") ?? "",
+			_icon: icon,
 			_system: true,
 			_nameLocked: true,
 			// Not a volume: Open and Save dialogs, which list the root, skip it.
 			_invisible: true,
 		});
+	} else if (trash._icon !== icon) {
+		fs.setMetadata(CLASSICY_TRASH_PATH, { _icon: icon });
 	}
 	return CLASSICY_TRASH_PATH;
 }
