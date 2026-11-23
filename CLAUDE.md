@@ -741,7 +741,9 @@ fs-only operations; `ClassicyFileMove.ts` the dispatching wrappers.
   folder (its window's title bar, a file browser's icon and list views)
   draws the **active** package's `trashFull`/`trashEmpty` art at render
   (`useClassicyTrashIcon`, `isClassicyTrashFolder`,
-  `ClassicyTrashIcon.internal.ts`), never the stored `_icon`. The stored
+  `ClassicyTrashIcon.internal.ts`), not the stored `_icon`; only while no
+  package has Trash art does it fall back to the stored `_icon`, else
+  `iconImageByType`, as every entry does (`Finder.trashIconNoArt.test.tsx`). The stored
   `_icon` is the **default** package's `trashEmpty` from its base tree
   (`classicyStoredTrashIcon`, `ClassicyTrashStoredIcon.internal.ts`), so a
   package or theme switch never changes the saved tree;

@@ -111,7 +111,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				(s) => s.System.Manager.Appearance.activeTheme,
 			);
 			// A listing of the root shows the Trash (when invisibles show):
-			// drawn with the active package's art, not its stored `_icon`.
+			// drawn with the active package's art, not its stored `_icon`
+			// (the fallback when no package has Trash art).
 			const trashIcon = useClassicyTrashIcon(
 				listClassicyTrashItems(fs).length > 0,
 			);
@@ -256,9 +257,12 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 						appId: appId,
 						name: filename,
 						invisible: properties._invisible,
-						icon: isClassicyTrashFolder(fs, path, filename)
-							? trashIcon
-							: properties._icon || iconImageByType(properties._type),
+						// The Trash draws the active package's art; with none
+						// registered, its stored `_icon`, as every entry does.
+						icon:
+							(isClassicyTrashFolder(fs, path, filename) && trashIcon) ||
+							properties._icon ||
+							iconImageByType(properties._type),
 						onClickFunc: () => openFileOrFolder(properties, path, filename),
 						holder: resolvedHolderRef,
 						initialPosition: cleanupIcon(

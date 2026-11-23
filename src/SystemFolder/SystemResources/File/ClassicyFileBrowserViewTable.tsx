@@ -265,8 +265,8 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 						filtered._path = rowPath;
 						// A listing of the root shows the Trash (when invisibles
 						// show): drawn with the active package's art, not its
-						// stored `_icon`.
-						if (isClassicyTrashFolder(fs, dirPath, filename)) {
+						// stored `_icon` (kept when no package has Trash art).
+						if (trashIcon && isClassicyTrashFolder(fs, dirPath, filename)) {
 							filtered._icon = trashIcon;
 						}
 						filtered._size = sizes.has(rowPath)

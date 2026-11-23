@@ -42,6 +42,7 @@ import {
 	ClassicyFileBrowser,
 	type ClassicyFileBrowserCommands,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
@@ -286,8 +287,13 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			id={op}
 			title={dir._name}
 			// The Trash draws the active package's art at render, as its desktop
-			// icon does, never the `_icon` stored with the folder.
-			icon={op === CLASSICY_TRASH_PATH ? trashIcon : dir._icon}
+			// icon does, not the `_icon` stored with the folder; with no Trash
+			// art registered, that `_icon`, else the directory icon.
+			icon={
+				op === CLASSICY_TRASH_PATH
+					? trashIcon || dir._icon || iconImageByType(dir._type)
+					: dir._icon
+			}
 			appId={appId}
 			defaultWindow={false}
 			hidden={false}

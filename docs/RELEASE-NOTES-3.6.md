@@ -205,7 +205,8 @@ a CDN redirect, another name).
   art. Every surface that draws the Trash folder (its window's title bar, a
   file browser's icon and list views) now draws the active package's art at
   render, full while anything is in it and empty otherwise, as the desktop's
-  Trash icon already did. The stored `_icon` is now always the default
+  Trash icon already did (with no package's Trash art registered, the
+  stored `_icon`, else the folder icon, as before). The stored `_icon` is now always the default
   package's (Platinum's) empty-Trash art, so a package or theme switch never
   changes the saved file system. When Finder mounts, it rewrites a stored
   `_icon` that differs from that art (one saved under another package, or by
