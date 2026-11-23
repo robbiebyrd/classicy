@@ -14,8 +14,10 @@
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
 //    (src/assets/fonts), the art (src/assets/art and its variant folders,
-//    art/color and art/bw), the icons (src/assets/icons/<variant>/<size>),
-//    the cursors (src/assets/cursors), the wallpapers (src/assets/wallpapers)
+//    art/color and art/bw: SVG and WebP), the icons
+//    (src/assets/icons/<variant>/<size>: WebP), the cursors
+//    (src/assets/cursors: PNG), the wallpapers (src/assets/wallpapers: WebP;
+//    plan 0019-fb7 §6.5, the art, icons and wallpapers converted from PNG),
 //    the sound sheet (src/assets/sounds/system7/system7.{ogg,m4a},
 //    not its JSON, its hash or its sprites/ WAV sources) and the screen
 //    savers' art, which stays in Platinum's source
@@ -23,9 +25,10 @@
 //    byte-identical to its source, so an image optimizer added to
 //    vite.config.ts fails here. Each ships under the name
 //    bin/system7AssetNames.ts gives it: its own, or, in a variant or size
-//    folder, its folders and its own (`icons-bw-16-system-files-document.png`),
+//    folder, its folders and its own (`icons-bw-16-system-files-document.webp`),
 //    so no two share one. A folder the package does not have yet holds
-//    nothing. dist/ itself holds only the two bundles and their maps, the two
+//    nothing. A PNG left in a WebP folder is no source: nothing ships it.
+//    dist/ itself holds only the two bundles and their maps, the two
 //    strict-CSP stylesheets, assets/ and types/.
 //
 // 3. NOTHING IS INLINED BUT THE MASKS. The only `data:` URIs in either
@@ -33,11 +36,12 @@
 //    in CORS mode (Platinum's halftone, ruling E17): src/assets/art/
 //    dither-checker.svg, the dither vocabulary's mask, and the title bar's
 //    racing stripes and the windoid's drag-bar dots, art/{color,bw}/
-//    window-stripes.png and window-utility-texture.png, and the 1-bit open
-//    Apple and Help titles' inversion masks, art/bw/apple-menu.png and
-//    help-button.png, each byte for byte its file (base64). The ES bundle's
-//    `new URL("assets/…", import.meta.url)` references each name a file in
-//    dist/assets, and every file there is referenced.
+//    window-stripes.webp and window-utility-texture.webp, and the 1-bit open
+//    Apple and Help titles' inversion masks, art/bw/apple-menu.webp and
+//    help-button.webp, each typed image/webp and byte for byte its file
+//    (base64). The ES bundle's `new URL("assets/…", import.meta.url)`
+//    references each name a file in dist/assets, and every file there is
+//    referenced.
 //
 // 4. THE LOOK SHIPS IN BOTH BUNDLES AND AS dist/classicy-system7.css. Each
 //    bundle carries the package stylesheet (`system7.scss?inline`) as exactly
@@ -209,7 +213,10 @@ const iconDirs = (
 		(await subfolders(join("src", "assets", "icons"))).map(subfolders),
 	)
 ).flat();
-const IMAGE = /\.(?:svg|png)$/;
+// The art and icons are SVG and WebP, the cursors PNG, the wallpapers WebP.
+const ART = /\.(?:svg|webp)$/;
+const CURSOR = /\.png$/;
+const WALLPAPER = /\.webp$/;
 // The screen savers' folders in Platinum's source, one per saver, each
 // holding its art: System 7 bundles the savers' registration module.
 const SAVERS = join("..", "platinum", "src", "screenSavers");
@@ -219,14 +226,12 @@ const sources = [
 	...(
 		await Promise.all(
 			[...artDirs, ...iconDirs].map((dir) =>
-				listFiles(dir, (n) => IMAGE.test(n)),
+				listFiles(dir, (n) => ART.test(n)),
 			),
 		)
 	).flat(),
-	...(await listFiles("src/assets/cursors", (n) => IMAGE.test(n))),
-	...(await listFiles("src/assets/wallpapers", (n) =>
-		/\.(?:png|jpg)$/.test(n),
-	)),
+	...(await listFiles("src/assets/cursors", (n) => CURSOR.test(n))),
+	...(await listFiles("src/assets/wallpapers", (n) => WALLPAPER.test(n))),
 	// The sheet's two formats, not its JSON, its hash or its sprites/ WAV
 	// sources.
 	...(await listFiles(join("src", "assets", "sounds", "system7"), (n) =>
@@ -313,23 +318,23 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 // Invariant 3: nothing but the masks is inlined; the files are referenced
 // from the ES bundle.
 const DITHER_CHECKER = join("src", "assets", "art", "dither-checker.svg");
-const PNG_MASKS = [
+const WEBP_MASKS = [
 	...["color", "bw"].flatMap((variant) =>
-		["window-stripes.png", "window-utility-texture.png"].map((name) =>
+		["window-stripes.webp", "window-utility-texture.webp"].map((name) =>
 			join("src", "assets", "art", variant, name),
 		),
 	),
-	...["apple-menu.png", "help-button.png"].map((name) =>
+	...["apple-menu.webp", "help-button.webp"].map((name) =>
 		join("src", "assets", "art", "bw", name),
 	),
 ];
 {
 	const problems = [];
 	const checker = ((await read(DITHER_CHECKER)) ?? "").trim();
-	const pngMasks = new Set();
-	for (const file of PNG_MASKS) {
+	const webpMasks = new Set();
+	for (const file of WEBP_MASKS) {
 		const bytes = await readFile(file).catch(() => null);
-		if (bytes) pngMasks.add(`base64,${bytes.toString("base64")}`);
+		if (bytes) webpMasks.add(`base64,${bytes.toString("base64")}`);
 		else problems.push(`${file}: missing -> a mask the bundles inline.`);
 	}
 	for (const { file, source } of bundles) {
@@ -346,9 +351,9 @@ const PNG_MASKS = [
 				decoded = decodeURIComponent(body).replaceAll("'", '"');
 			} catch {}
 			if (type === "image/svg+xml" && checker && decoded === checker) continue;
-			if (type === "image/png" && pngMasks.has(body)) continue;
+			if (type === "image/webp" && webpMasks.has(body)) continue;
 			problems.push(
-				`${file}: inlines ${type} -> System 7 inlines only its masks (${[DITHER_CHECKER, ...PNG_MASKS].join(", ")}); check noInlineAppearanceAssetsPlugin.`,
+				`${file}: inlines ${type} -> System 7 inlines only its masks (${[DITHER_CHECKER, ...WEBP_MASKS].join(", ")}); check noInlineAppearanceAssetsPlugin.`,
 			);
 		}
 	}

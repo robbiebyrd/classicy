@@ -38,28 +38,28 @@ const PACKAGE =
 const PACKAGE_LITERAL = String.raw`"@layer classicy.package{.classicyDesktop[data-classicy-appearance=\"system7\"] .classicyWindow{border:1px solid}}"`;
 // The masks, the files the bundles inline: the dither checker (as Vite
 // writes an SVG `data:` URI: single quotes, the rest percent-encoded), and
-// the stripe and dot PNGs and the 1-bit Apple and Help titles' art (base64),
-// whose files ship too.
+// the stripe and dot WebPs and the 1-bit Apple and Help titles' art
+// (base64, plan 0019-fb7 §6.5), whose files ship too.
 const DITHER_CHECKER =
 	'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect x="1" width="1" height="1"/></svg>';
 const DITHER_URI = `data:image/svg+xml,${encodeURIComponent(DITHER_CHECKER.replaceAll('"', "'")).replaceAll("%27", "'")}`;
 const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
-const PNG_MASKS: Record<string, Buffer> = {
-	"src/assets/art/color/window-stripes.png": bytes(80, 84),
-	"src/assets/art/bw/window-stripes.png": bytes(81, 82),
-	"src/assets/art/color/window-utility-texture.png": bytes(82, 73),
-	"src/assets/art/bw/window-utility-texture.png": bytes(83, 73),
-	"src/assets/art/bw/apple-menu.png": bytes(84, 60),
-	"src/assets/art/bw/help-button.png": bytes(85, 61),
+const WEBP_MASKS: Record<string, Buffer> = {
+	"src/assets/art/color/window-stripes.webp": bytes(80, 84),
+	"src/assets/art/bw/window-stripes.webp": bytes(81, 82),
+	"src/assets/art/color/window-utility-texture.webp": bytes(82, 73),
+	"src/assets/art/bw/window-utility-texture.webp": bytes(83, 73),
+	"src/assets/art/bw/apple-menu.webp": bytes(84, 60),
+	"src/assets/art/bw/help-button.webp": bytes(85, 61),
 };
-const pngUri = (file: string) =>
-	`data:image/png;base64,${PNG_MASKS[file]?.toString("base64")}`;
-const MASK_URIS = Object.keys(PNG_MASKS)
-	.map((file, i) => `const m${i}="${pngUri(file)}";`)
+const webpUri = (file: string) =>
+	`data:image/webp;base64,${WEBP_MASKS[file]?.toString("base64")}`;
+const MASK_URIS = Object.keys(WEBP_MASKS)
+	.map((file, i) => `const m${i}="${webpUri(file)}";`)
 	.join("");
 const MASKS_NAMED =
-	"src/assets/art/dither-checker.svg, src/assets/art/color/window-stripes.png, src/assets/art/color/window-utility-texture.png, src/assets/art/bw/window-stripes.png, src/assets/art/bw/window-utility-texture.png, src/assets/art/bw/apple-menu.png, src/assets/art/bw/help-button.png";
+	"src/assets/art/dither-checker.svg, src/assets/art/color/window-stripes.webp, src/assets/art/color/window-utility-texture.webp, src/assets/art/bw/window-stripes.webp, src/assets/art/bw/window-utility-texture.webp, src/assets/art/bw/apple-menu.webp, src/assets/art/bw/help-button.webp";
 
 // Source file → its bytes. Every one ships in dist/assets under its name,
 // except the wallpaper photos, which nothing imports.
@@ -72,18 +72,19 @@ const SOURCES: Record<string, Buffer> = {
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
 	"src/assets/art/dither-checker.svg": Buffer.from(DITHER_CHECKER),
-	...PNG_MASKS,
-	"src/assets/art/bw/apple-bw.png": bytes(40),
-	"src/assets/art/color/apple.png": bytes(41),
+	...WEBP_MASKS,
+	"src/assets/art/bw/apple-bw.webp": bytes(40),
+	"src/assets/art/color/apple.webp": bytes(41),
 	// One name in two variant folders, and in an icon's four folders.
-	"src/assets/art/bw/trash.png": bytes(44),
-	"src/assets/art/color/trash.png": bytes(45),
-	"src/assets/icons/color/32/disk.png": bytes(46),
-	"src/assets/icons/color/16/disk.png": bytes(47),
-	"src/assets/icons/bw/32/disk.png": bytes(48),
-	"src/assets/icons/bw/16/disk.png": bytes(49),
+	"src/assets/art/bw/trash.webp": bytes(44),
+	"src/assets/art/color/trash.webp": bytes(45),
+	"src/assets/icons/color/32/disk.webp": bytes(46),
+	"src/assets/icons/color/16/disk.webp": bytes(47),
+	"src/assets/icons/bw/32/disk.webp": bytes(48),
+	"src/assets/icons/bw/16/disk.webp": bytes(49),
+	// The cursors stay PNG.
 	"src/assets/cursors/cursor-watch.png": bytes(42),
-	"src/assets/wallpapers/pattern.png": bytes(43),
+	"src/assets/wallpapers/pattern.webp": bytes(43),
 	"src/assets/sounds/system7/system7.ogg": bytes(50),
 	"src/assets/sounds/system7/system7.m4a": bytes(51),
 	"src/assets/sounds/system7/system7.json": Buffer.from("{}"),
@@ -246,12 +247,12 @@ describe("bin/verify-dist.mjs", () => {
 	// package's files, each byte for byte.
 	describe("2. dist/assets holds every package file, as authored", () => {
 		it("fails a missing file, by name", () =>
-			expect(verify({ "assets/pattern.png": null })).toEqual({
+			expect(verify({ "assets/pattern.webp": null })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing pattern.png; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/assets: missing pattern.webp; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 					// And the bundle's reference to it dangles (invariant 3).
-					"dist/appearance-system7.es.js: new URL() names no file in dist/assets: assets/pattern.png",
+					"dist/appearance-system7.es.js: new URL() names no file in dist/assets: assets/pattern.webp",
 				].join("\n"),
 			}));
 
@@ -278,19 +279,25 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/assets: missing none; extra system7\.mp3 /,
 			));
 
-		it("fails a file nothing ships, a .webp included", () =>
-			expect(verify({ "assets/apple.webp": bytes(1) })).toEqual({
+		// The art, icons and wallpapers ship as WebP (plan 0019-fb7 §6.5): a
+		// PNG of one in dist/assets is a file nothing ships.
+		it.each([
+			"art-color-apple.png",
+			"icons-color-32-disk.png",
+			"pattern.png",
+		])("fails a file nothing ships, the PNG %s included", (file) =>
+			expect(verify({ [`assets/${file}`]: bytes(1) })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing none; extra apple.webp -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					`dist/assets: missing none; extra ${file} -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.`,
 					// And nothing loads it (invariant 3).
-					"dist/appearance-system7.es.js: references no new URL() for apple.webp in dist/assets -> nothing loads it.",
+					`dist/appearance-system7.es.js: references no new URL() for ${file} in dist/assets -> nothing loads it.`,
 				].join("\n"),
 			}));
 
 		it.each([
 			"cursor-watch.png",
-			"pattern.png",
+			"pattern.webp",
 			"zoom.svg",
 			"system7.ogg",
 			"system7.m4a",
@@ -309,10 +316,10 @@ describe("bin/verify-dist.mjs", () => {
 		// A variant or size folder's file ships with its folders in its name
 		// (bin/system7AssetNames.ts), so one name in two folders never clashes.
 		it.each([
-			["art-bw-trash.png", "art/bw/trash.png"],
-			["art-color-trash.png", "art/color/trash.png"],
-			["icons-color-32-disk.png", "icons/color/32/disk.png"],
-			["icons-bw-16-disk.png", "icons/bw/16/disk.png"],
+			["art-bw-trash.webp", "art/bw/trash.webp"],
+			["art-color-trash.webp", "art/color/trash.webp"],
+			["icons-color-32-disk.webp", "icons/color/32/disk.webp"],
+			["icons-bw-16-disk.webp", "icons/bw/16/disk.webp"],
 		])("fails the folder image %s when it differs from %s", (file, source) =>
 			expect(verify({ [`assets/${file}`]: Buffer.from("changed") })).toEqual({
 				status: 1,
@@ -321,24 +328,24 @@ describe("bin/verify-dist.mjs", () => {
 
 		it("fails a folder image shipped under its bare name", () => {
 			const { status, stderr } = verify({
-				"assets/icons-color-32-disk.png": null,
-				"assets/disk.png": SOURCES["src/assets/icons/color/32/disk.png"],
+				"assets/icons-color-32-disk.webp": null,
+				"assets/disk.webp": SOURCES["src/assets/icons/color/32/disk.webp"],
 			});
 			expect(status).toBe(1);
 			expect(stderr.split("\n")[0]).toBe(
-				"dist/assets: missing icons-color-32-disk.png; extra disk.png -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+				"dist/assets: missing icons-color-32-disk.webp; extra disk.webp -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 			);
 		});
 
 		// The build emits byte-identical files once, under either name.
 		it("passes identical sources shipped once, under either name", () => {
-			const twin = { "src/assets/icons/bw/32/disk.png": bytes(46) };
+			const twin = { "src/assets/icons/bw/32/disk.webp": bytes(46) };
 			expect(
 				verify(
 					{
-						"assets/icons-bw-32-disk.png": null,
+						"assets/icons-bw-32-disk.webp": null,
 						"appearance-system7.es.js": ES.replace(
-							'new URL("assets/icons-bw-32-disk.png",import.meta.url).href,',
+							'new URL("assets/icons-bw-32-disk.webp",import.meta.url).href,',
 							"",
 						),
 					},
@@ -348,17 +355,17 @@ describe("bin/verify-dist.mjs", () => {
 		});
 
 		it("fails identical sources when neither ships", () => {
-			const twin = { "src/assets/icons/bw/32/disk.png": bytes(46) };
+			const twin = { "src/assets/icons/bw/32/disk.webp": bytes(46) };
 			const { status, stderr } = verify(
 				{
-					"assets/icons-bw-32-disk.png": null,
-					"assets/icons-color-32-disk.png": null,
+					"assets/icons-bw-32-disk.webp": null,
+					"assets/icons-color-32-disk.webp": null,
 				},
 				twin,
 			);
 			expect(status).toBe(1);
 			expect(stderr.split("\n")[0]).toBe(
-				"dist/assets: missing icons-bw-32-disk.png or icons-color-32-disk.png; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+				"dist/assets: missing icons-bw-32-disk.webp or icons-color-32-disk.webp; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 			);
 		});
 
@@ -414,8 +421,8 @@ describe("bin/verify-dist.mjs", () => {
 			));
 
 		it.each([
-			["a stripe mask", "src/assets/art/bw/window-stripes.png"],
-			["a 1-bit title's mask", "src/assets/art/bw/apple-menu.png"],
+			["a stripe mask", "src/assets/art/bw/window-stripes.webp"],
+			["a 1-bit title's mask", "src/assets/art/bw/apple-menu.webp"],
 		])("fails %s inlined when its source changed", (_kind, file) =>
 			expect(
 				verify(
@@ -426,29 +433,47 @@ describe("bin/verify-dist.mjs", () => {
 				).stderr.split("\n"),
 			).toEqual(
 				expect.arrayContaining([
-					`dist/appearance-system7.es.js: inlines image/png -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
-					`dist/appearance-system7.umd.js: inlines image/png -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+					`dist/appearance-system7.es.js: inlines image/webp -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+					`dist/appearance-system7.umd.js: inlines image/webp -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
 				]),
 			));
+
+		// The masks ship inline as WebP (plan 0019-fb7 §6.5): their bytes
+		// typed as a PNG are no mask.
+		it("fails on an inlined PNG mask", () =>
+			expect(
+				verify({
+					"appearance-system7.es.js": ES.replace(
+						webpUri("src/assets/art/bw/apple-menu.webp"),
+						webpUri("src/assets/art/bw/apple-menu.webp").replace(
+							"data:image/webp;",
+							"data:image/png;",
+						),
+					),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/appearance-system7.es.js: inlines image/png -> System 7 inlines only its masks (${MASKS_NAMED}); check noInlineAppearanceAssetsPlugin.`,
+			}));
 
 		it("fails a mask's source gone", () =>
 			expect(
 				verify(
 					{
 						"appearance-system7.es.js": ES.replace(
-							`const m3="${pngUri("src/assets/art/bw/window-utility-texture.png")}";`,
+							`const m3="${webpUri("src/assets/art/bw/window-utility-texture.webp")}";`,
 							"",
 						),
 						"appearance-system7.umd.js": UMD.replace(
-							`const m3="${pngUri("src/assets/art/bw/window-utility-texture.png")}";`,
+							`const m3="${webpUri("src/assets/art/bw/window-utility-texture.webp")}";`,
 							"",
 						),
 					},
 					{},
-					["src/assets/art/bw/window-utility-texture.png"],
+					["src/assets/art/bw/window-utility-texture.webp"],
 				).stderr.split("\n"),
 			).toContain(
-				"src/assets/art/bw/window-utility-texture.png: missing -> a mask the bundles inline.",
+				"src/assets/art/bw/window-utility-texture.webp: missing -> a mask the bundles inline.",
 			));
 
 		it("fails a reference to a file that is not in dist/assets", () =>

@@ -20,14 +20,15 @@ import {
 // layer draws nothing, so their art stays a file). `mask-image` URLs are
 // fetched in CORS mode, so a host serving dist/assets from another origin
 // without CORS headers would lose them: as `data:` URIs they need no fetch,
-// as Platinum's halftone (ruling E17). The files are still emitted by the
-// art glob below.
-import appleMenuBw from "./art/bw/apple-menu.png?inline";
-import helpMenuTitleBw from "./art/bw/help-button.png?inline";
-import windowStripesBw from "./art/bw/window-stripes.png?inline";
-import windowUtilityTextureBw from "./art/bw/window-utility-texture.png?inline";
-import windowStripes from "./art/color/window-stripes.png?inline";
-import windowUtilityTexture from "./art/color/window-utility-texture.png?inline";
+// as Platinum's halftone (ruling E17). The six raster masks are WebP
+// (`data:image/webp`, plan 0019-fb7 §6.5), like every raster file here but
+// the cursors. The files are still emitted by the art glob below.
+import appleMenuBw from "./art/bw/apple-menu.webp?inline";
+import helpMenuTitleBw from "./art/bw/help-button.webp?inline";
+import windowStripesBw from "./art/bw/window-stripes.webp?inline";
+import windowUtilityTextureBw from "./art/bw/window-utility-texture.webp?inline";
+import windowStripes from "./art/color/window-stripes.webp?inline";
+import windowUtilityTexture from "./art/color/window-utility-texture.webp?inline";
 import ditherChecker from "./art/dither-checker.svg?inline";
 import controlStripCollapse from "./pixelart/control-strip-collapse.txt?raw";
 import controlStripCollapseBw from "./pixelart/control-strip-collapse-bw.txt?raw";
@@ -67,12 +68,14 @@ type Variant = "color" | "bw";
 
 // Plain (query-less) imports, so the build emits each file to dist/assets
 // instead of inlining it (`noInlineAppearanceAssetsPlugin`, vite.config.ts),
-// under a name that keeps its folder (`system7AssetFileName`).
-const iconFiles = import.meta.glob("./icons/*/*/*.png", {
+// under a name that keeps its folder (`system7AssetFileName`). The icons and
+// the raster art are lossless WebP (plan 0019-fb7 §6.5); the cursors stay
+// PNG.
+const iconFiles = import.meta.glob("./icons/*/*/*.webp", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
-const artFiles = import.meta.glob("./art/**/*.{png,svg}", {
+const artFiles = import.meta.glob("./art/**/*.{webp,svg}", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
@@ -89,8 +92,8 @@ const cursorFiles = import.meta.glob("./cursors/*.png", {
  * System file) draws that at every size.
  */
 const iconLeaf = (variant: Variant, stem: string): ClassicyIconLeaf => {
-	const large = iconFiles[`./icons/${variant}/32/${stem}.png`];
-	const small = iconFiles[`./icons/${variant}/16/${stem}.png`];
+	const large = iconFiles[`./icons/${variant}/32/${stem}.webp`];
+	const small = iconFiles[`./icons/${variant}/16/${stem}.webp`];
 	const src = large ?? small ?? "";
 	return small ? { src, small } : { src };
 };
@@ -135,8 +138,8 @@ registerClassicyAssets("icons", SYSTEM7, iconTree("bw"), {
  * Every color icon image's selected rendering (story 0197-s0z): System 7
  * drew a selected color icon through a darkened copy of its color table, in
  * the 8-bit screen's colors (bin/selectedIcons.mjs), which no CSS filter
- * draws exactly, so each is pre-rendered, `icons/selected/<size>/<stem>.png`
- * beside `icons/color/<size>/<stem>.png`. The 1-bit icons invert instead
+ * draws exactly, so each is pre-rendered, `icons/selected/<size>/<stem>.webp`
+ * beside `icons/color/<size>/<stem>.webp`. The 1-bit icons invert instead
  * (the stylesheet), and have none.
  */
 export const SYSTEM7_SELECTED_ICON_IMAGES: Readonly<Record<string, string>> =
@@ -151,8 +154,8 @@ export const SYSTEM7_SELECTED_ICON_IMAGES: Readonly<Record<string, string>> =
 registerClassicySelectedIconImages(SYSTEM7, SYSTEM7_SELECTED_ICON_IMAGES);
 
 /**
- * The emitted URL of a file in art/ (`"sad-mac.png"`) or one of its variant
- * folders (`"color/apple-menu.png"`), or `""` when there is none (which
+ * The emitted URL of a file in art/ (`"sad-mac.webp"`) or one of its variant
+ * folders (`"color/apple-menu.webp"`), or `""` when there is none (which
  * `registerClassicySystemArt` reports as an invalid source).
  */
 const art = (name: string): ClassicyAssetSource =>
@@ -180,31 +183,31 @@ const pixelArt = (text: string): ClassicyAssetSource =>
 const SYSTEM7_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
 > = {
-	appleMenu: art("color/apple-menu.png"),
-	sadMac: art("sad-mac.png"),
-	startupLogo: art("color/startup-logo.png"),
-	trashEmpty: art("color/trash-empty.png"),
-	trashFull: art("color/trash-full.png"),
+	appleMenu: art("color/apple-menu.webp"),
+	sadMac: art("sad-mac.webp"),
+	startupLogo: art("color/startup-logo.webp"),
+	trashEmpty: art("color/trash-empty.webp"),
+	trashFull: art("color/trash-full.webp"),
 	// System 7 has no alias badge (an alias shows only its italic name).
 	aliasBadge: art("alias-badge.svg"),
 	// The Help menu's title, the balloon (HIG p.52, fig 4-2), is System 7's
 	// nearest help glyph.
-	helpButton: art("color/help-button.png"),
-	helpMenuTitle: art("color/help-button.png"),
+	helpButton: art("color/help-button.webp"),
+	helpMenuTitle: art("color/help-button.webp"),
 	aboutLogo: ClassicyIcons.classicy.logo,
 	aboutBackground: art("about-background.svg"),
 	windowStripes,
 	// System 7 has no red stripes; nothing reads them.
 	windowStripesRed: windowStripes,
 	windowUtilityTexture,
-	windowGrip: art("color/window-grip.png"),
+	windowGrip: art("color/window-grip.webp"),
 	windowDither: art("window-dither.svg"),
-	zoomGlyph: art("color/zoom-glyph.png"),
+	zoomGlyph: art("color/zoom-glyph.webp"),
 	collapseGlyph: art("collapse-glyph.svg"),
-	submenuArrow: art("color/submenu-arrow.png"),
-	popupArrows: art("color/popup-arrows.png"),
-	sliderThumb: art("color/slider-thumb.png"),
-	sliderThumbRect: art("color/slider-thumb.png"),
+	submenuArrow: art("color/submenu-arrow.webp"),
+	popupArrows: art("color/popup-arrows.webp"),
+	sliderThumb: art("color/slider-thumb.webp"),
+	sliderThumbRect: art("color/slider-thumb.webp"),
 	sliderStrikes: art("slider-strikes.svg"),
 	tabOutline: art("tab-outline.svg"),
 	halftone: art("halftone.svg"),
@@ -223,11 +226,11 @@ const SYSTEM7_ART: Readonly<
 	newFolderGlyph: pixelArt(newFolderGlyph),
 	// The folder pop-up's open folder (`*-dialog-standardfile-save.png`,
 	// its 16 x 16 rect at 209,77): black at both depths.
-	openFolderIcon: art("color/open-folder-icon.png"),
+	openFolderIcon: art("color/open-folder-icon.webp"),
 	// Standard File's list draws its small folder two rows higher than the
 	// Finder's (`*-755-dialog-standardfile-layout.png`, the folder rows' ink
 	// two rows under the row's top): the folder icon moved up two rows.
-	fileDialogFolderIcon: art("color/file-dialog-folder-icon.png"),
+	fileDialogFolderIcon: art("color/file-dialog-folder-icon.webp"),
 	controlStripCollapse: pixelArt(controlStripCollapse),
 	controlStripScrollLeft: pixelArt(controlStripScrollLeft),
 	controlStripScrollLeftDisabled: pixelArt(controlStripScrollLeftDisabled),
@@ -250,17 +253,17 @@ const SYSTEM7_BW_ART: Readonly<
 	Partial<Record<ClassicySystemArtKey, ClassicyAssetSource>>
 > = {
 	appleMenu: appleMenuBw,
-	startupLogo: art("bw/startup-logo.png"),
-	trashEmpty: art("bw/trash-empty.png"),
-	trashFull: art("bw/trash-full.png"),
-	helpButton: art("bw/help-button.png"),
+	startupLogo: art("bw/startup-logo.webp"),
+	trashEmpty: art("bw/trash-empty.webp"),
+	trashFull: art("bw/trash-full.webp"),
+	helpButton: art("bw/help-button.webp"),
 	helpMenuTitle: helpMenuTitleBw,
 	windowStripes: windowStripesBw,
 	windowStripesRed: windowStripesBw,
 	windowUtilityTexture: windowUtilityTextureBw,
-	windowGrip: art("bw/window-grip.png"),
-	zoomGlyph: art("bw/zoom-glyph.png"),
-	fileDialogFolderIcon: art("bw/file-dialog-folder-icon.png"),
+	windowGrip: art("bw/window-grip.webp"),
+	zoomGlyph: art("bw/zoom-glyph.webp"),
+	fileDialogFolderIcon: art("bw/file-dialog-folder-icon.webp"),
 	// The Control Strip's 1-bit art: the `ics#` glyphs and PICT -4043 and
 	// -4048, black on white, with no bevel. The 1-bit disabled arrow is the
 	// arrow itself, as the panel's 1-bit picture of the strip draws it.
@@ -305,10 +308,20 @@ registerClassicyCursors(SYSTEM7, {
 	resizeR: { src: cursor("resize-r"), hotspot: [8, 8] },
 });
 
-const wallpaperFiles = import.meta.glob("./wallpapers/*.png", {
+const wallpaperFiles = import.meta.glob("./wallpapers/*.webp", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
+
+/**
+ * The file in ./wallpapers a wallpaper's identity filename ships as: its stem
+ * with `.webp` (`desktop-gray.png` is `desktop-gray.webp`, plan 0019-fb7
+ * §6.5). The converter that wrote them (`classicyWebpTarget`,
+ * bin/convert-images-to-webp.ts) names them the same way; runtime code cannot
+ * import bin/, so system7Webp.test.ts pins the two equal.
+ */
+export const system7WallpaperFile = (file: string): string =>
+	file.replace(/\.png$/, ".webp");
 
 /**
  * System 7's desktop patterns, the Desktop tab's label and the filename each
@@ -316,6 +329,8 @@ const wallpaperFiles = import.meta.glob("./wallpapers/*.png", {
  * default desktop pattern, a 50% checker drawn as an 8 × 8 tile, its color
  * pixel map (#666666 and #AAAAAA, as a 256-color screen draws it) for "System
  * 7 Color" and its 1-bit pattern for "System 7" (bin/export-pixel-art.mjs).
+ * Each `file` is the identity filename themes, saved states and theme files
+ * name; it ships as `system7WallpaperFile(file)`.
  */
 export const SYSTEM7_WALLPAPERS: ReadonlyArray<{
 	label: string;
@@ -329,7 +344,7 @@ registerClassicyWallpapers(
 	SYSTEM7,
 	SYSTEM7_WALLPAPERS.map(({ label, file }) => ({
 		name: label,
-		src: wallpaperFiles[`./wallpapers/${file}`] ?? "",
+		src: wallpaperFiles[`./wallpapers/${system7WallpaperFile(file)}`] ?? "",
 		file,
 	})),
 );

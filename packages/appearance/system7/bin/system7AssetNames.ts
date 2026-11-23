@@ -2,10 +2,10 @@
 // 0018-dbd §4.1), shared by vite.config.ts (`assetFileNames`) and
 // bin/verify-dist.mjs. Every file ships flat under its own name, except the
 // variant and size folders' files, which share names across folders
-// (`icons/color/32/system-files-document.png` and
-// `icons/bw/16/system-files-document.png`, `art/color/apple-menu.png` and
-// `art/bw/apple-menu.png`): those ship with their folders in the name,
-// `icons-color-32-system-files-document.png`, `art-bw-apple-menu.png`.
+// (`icons/color/32/system-files-document.webp` and
+// `icons/bw/16/system-files-document.webp`, `art/color/apple-menu.webp` and
+// `art/bw/apple-menu.webp`): those ship with their folders in the name,
+// `icons-color-32-system-files-document.webp`, `art-bw-apple-menu.webp`.
 
 const FOLDERED =
 	/(?:^|\/)assets\/((?:icons\/[^/]+\/[^/]+)|(?:art\/[^/]+))\/([^/]+)$/;

@@ -12,3 +12,8 @@ export declare const selectedColor: (rgb: number[]) => number[];
 
 /** `img` as its selected rendering. */
 export declare const selectedIcon: (img: RgbaImage) => RgbaImage;
+
+/** A color icon's WebP bytes as its selected rendering's (lossless WebP). */
+export declare const selectedIconWebp: (
+	colorWebp: Uint8Array,
+) => Promise<Uint8Array>;

@@ -113,8 +113,8 @@ const system7Config = (mode: string): UserConfig => ({
 			output: {
 				// Package assets go under dist/assets, each under its source
 				// name, the variant and size folders' files with their folders
-				// in it (bin/system7AssetNames.ts), so `icons/color/32/x.png`
-				// and `icons/bw/32/x.png` never collide.
+				// in it (bin/system7AssetNames.ts), so `icons/color/32/x.webp`
+				// and `icons/bw/32/x.webp` never collide.
 				assetFileNames: ({ names, originalFileNames }) =>
 					`assets/${system7AssetFileName(originalFileNames[0] ?? names[0] ?? "")}`,
 				globals: {
