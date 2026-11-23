@@ -6,6 +6,7 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
+import { classicyDeflateAssetPlugin } from "./bin/classicyDeflateAsset";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import {
@@ -234,6 +235,9 @@ const config = defineConfig({
 			enableDevWebp: true,
 		}),
 		injectCssPlugin(),
+		// `?classicy-deflate` imports embed a file raw-deflated as base64 text
+		// (the pdf.js worker, plan 0019-fb7 Part 2; bin/classicyDeflateAsset.ts).
+		classicyDeflateAssetPlugin(),
 		// Last: the published maps keep Classicy's own text and drop third-party
 		// and asset text (verify:dist invariant 16), after injectCssPlugin has
 		// changed the entry bundles.

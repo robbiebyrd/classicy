@@ -5,6 +5,7 @@ import { mergeConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "../../bin/classicyCssLayerPlugin";
+import { classicyDeflateAssetPlugin } from "../../bin/classicyDeflateAsset";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "../../bin/classicyImageTools";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
@@ -82,6 +83,9 @@ const config: StorybookConfig = {
 				// Storybook compiles the SCSS itself, so the component stylesheets
 				// are layered here too (@layer classicy.base), as in the library build.
 				classicyCssLayerPlugin(),
+				// `?classicy-deflate` imports (the pdf.js worker), as in the library
+				// build (bin/classicyDeflateAsset.ts).
+				classicyDeflateAssetPlugin(),
 				richSvg(),
 				VitePluginImageTools({
 					// Package art is served and built exactly as authored (no svgo),
