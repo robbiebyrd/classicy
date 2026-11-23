@@ -120,7 +120,7 @@ import "../../../index.css";
 // Stored package ids already reported as unregistered, once per page each.
 const reportedUnregisteredPackageIds = new Set<string>();
 
-interface ClassicyDesktopProps {
+export interface ClassicyDesktopProps {
 	/** Your apps (`ClassicyApp`) and anything else to mount on the desktop. */
 	children?: ReactNode;
 	/**
@@ -901,7 +901,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 /**
  * The Mac OS 8 desktop: the root surface every Classicy app renders on, with
  * no HTML counterpart. Mount it once inside `ClassicyAppManagerProvider`, with
- * your `ClassicyApp`s as children.
+ * your `ClassicyApp`s as children, or mount `Classicy`, which is the two
+ * in one tag.
  *
  * It mounts the whole shell for you: the menu bar (`ClassicyDesktopMenuBar`),
  * the Control Strip, Finder, the built-in apps and control panels, the Trash

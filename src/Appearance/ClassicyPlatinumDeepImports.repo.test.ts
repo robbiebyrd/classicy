@@ -31,14 +31,14 @@ const ALLOWED: Record<string, string> = {
 		"the sound pack's sprite map, read by the sound-pack tests (it moved out of the core's assets/ in 3.3)",
 	"packages/appearance/platinum/src/a.png?no-inline":
 		"a fixture asset id in bin/classicySourceMapText.test.ts: a string, never imported",
+	"packages/appearance/system7/src/system7.json":
+		"System 7's theme data, for Storybook's Theme toolbar to list its presets before the package is chosen (and registered)",
 	"packages/appearance/platinum/src":
 		"the source directory, to build a module-copy path (a query makes a new instance)",
 	"packages/appearance/platinum/src/**/*.stories.@(ts|tsx)":
 		"Storybook's stories glob (main.ts): Platinum's own stories, its screen savers'",
 	"packages/appearance/system7/src/**/*.stories.@(ts|tsx)":
 		"Storybook's stories glob (main.ts): System 7's own stories",
-	"packages/appearance/system7/src/system7.json":
-		"System 7's theme data, for Storybook's Theme toolbar (StorybookPackages.ts), which lists an unregistered package's presets from its JSON without registering it",
 };
 
 const RELATIVE_INTO_PACKAGES = /["'`]((?:\.\.\/)+packages\/[^"'`]*)["'`]/g;
