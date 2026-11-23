@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
 	chmodSync,
 	existsSync,
@@ -21,7 +21,10 @@ import { afterEach, describe, expect, it } from "vitest";
 // audiosprite stand-in that writes placeholder outputs and calls the `ffmpeg`
 // the script puts first on PATH, to pin the bit-exact flags and the skip when
 // no source changed (a byte-identical rebuild; the real-encoder check is in
-// the story report, as it is too slow for the suite).
+// the story report, as it is too slow for the suite). A third, on the same
+// scratch packs, pins a stamp that no locale reorders and the restamp mode
+// (CLASSICY_AUDIO_RESTAMP=1), which rewrites stamps and encodes nothing
+// (plan 0019-fb7 §4.1).
 
 let stubs = "";
 
@@ -156,60 +159,95 @@ describe("an empty loop list under set -u", () => {
 	});
 });
 
-describe("deterministic, change-driven sprites", () => {
-	let work = "";
-	afterEach(() => {
-		if (work) rmSync(work, { recursive: true, force: true });
-		work = "";
-	});
+let work = "";
+afterEach(() => {
+	if (work) rmSync(work, { recursive: true, force: true });
+	work = "";
+});
 
-	// A scratch pack "tone" with one source; returns a runner that reports the
-	// stand-in audiosprite's runs and the flags its ffmpeg encode call got.
-	const setup = () => {
-		work = mkdtempSync(path.join(tmpdir(), "classicy-audio-pack-"));
-		const sounds = path.join(work, "sounds");
-		mkdirSync(path.join(sounds, "tone", "sprites"), { recursive: true });
-		writeFileSync(path.join(sounds, "tone", "sprites", "A.mp3"), "source-a");
-		const log = path.join(work, "ffmpeg.log");
-		const bin = path.join(work, "bin");
-		mkdirSync(bin);
-		const write = (name: string, body: string) => {
-			writeFileSync(path.join(bin, name), body);
-			chmodSync(path.join(bin, name), 0o755);
-		};
-		// "Real" ffmpeg: records the arguments it finally gets.
-		write("ffmpeg", `#!/bin/sh\necho "$*" >> "${log}"\n`);
-		// audiosprite: writes the outputs, encoding through PATH's ffmpeg (the
-		// script's shim), the way audiosprite does.
-		write(
-			"audiosprite",
-			`#!/bin/sh
+// Scratch packs, by default "tone" with one source. `invoke` runs the script
+// and reports its exit status and output, the stand-in audiosprite's runs
+// and the flags its ffmpeg encode calls got; `run` is `invoke` that must
+// succeed, returning the encode calls. An `undefined` in the environment
+// removes that variable.
+const setup = (packs: Record<string, string[]> = { tone: ["A.mp3"] }) => {
+	work = mkdtempSync(path.join(tmpdir(), "classicy-audio-pack-"));
+	const sounds = path.join(work, "sounds");
+	for (const [name, sources] of Object.entries(packs)) {
+		mkdirSync(path.join(sounds, name, "sprites"), { recursive: true });
+		for (const source of sources)
+			writeFileSync(
+				path.join(sounds, name, "sprites", source),
+				`source-${source}`,
+			);
+	}
+	const log = path.join(work, "ffmpeg.log");
+	const calls = path.join(work, "audiosprite.log");
+	const bin = path.join(work, "bin");
+	mkdirSync(bin);
+	const write = (name: string, body: string) => {
+		writeFileSync(path.join(bin, name), body);
+		chmodSync(path.join(bin, name), 0o755);
+	};
+	// "Real" ffmpeg: records the arguments it finally gets.
+	write("ffmpeg", `#!/bin/sh\necho "$*" >> "${log}"\n`);
+	// audiosprite: records its output base and writes the outputs, encoding
+	// through PATH's ffmpeg (the script's shim), the way audiosprite does.
+	write(
+		"audiosprite",
+		`#!/bin/sh
 out=""; while [ $# -gt 0 ]; do [ "$1" = "-o" ] && out="$2"; shift; done
+echo "$out" >> "${calls}"
 mkdir -p "$(dirname "$out")"
 for ext in ogg m4a mp3 ac3; do ffmpeg -y -ar 44100 -f s16le -i in.raw "$out.$ext"; echo bytes > "$out.$ext"; done
 echo '{"src":["x/tone.ogg"],"sprite":{}}' > "$out.json"
 `,
+	);
+	// `node` (the JSON rewrite) is not needed: the stand-in's JSON is final.
+	write("node", "#!/bin/sh\nexit 0\n");
+	const lines = (file: string): string[] =>
+		existsSync(file)
+			? readFileSync(file, "utf8").trim().split("\n").filter(Boolean)
+			: [];
+	const invoke = (extraEnv: Record<string, string | undefined> = {}) => {
+		for (const file of [log, calls])
+			if (existsSync(file)) writeFileSync(file, "");
+		const env = Object.fromEntries(
+			Object.entries({
+				...process.env,
+				PATH: `${bin}:${process.env.PATH}`,
+				AUDIOSPRITE_BIN: path.join(bin, "audiosprite"),
+				...extraEnv,
+			}).filter((entry): entry is [string, string] => entry[1] != null),
 		);
-		// `node` (the JSON rewrite) is not needed: the stand-in's JSON is final.
-		write("node", "#!/bin/sh\nexit 0\n");
-		const run = (extraEnv: Record<string, string> = {}): string[] => {
-			if (existsSync(log)) writeFileSync(log, "");
-			execFileSync("bash", ["bin/make_audio_sprites.sh", sounds, sounds], {
-				env: {
-					...process.env,
-					PATH: `${bin}:${process.env.PATH}`,
-					AUDIOSPRITE_BIN: path.join(bin, "audiosprite"),
-					...extraEnv,
-				},
-				stdio: "pipe",
-			});
-			return existsSync(log)
-				? readFileSync(log, "utf8").trim().split("\n").filter(Boolean)
-				: [];
+		const result = spawnSync(
+			"bash",
+			["bin/make_audio_sprites.sh", sounds, sounds],
+			{ env, encoding: "utf8" },
+		);
+		return {
+			status: result.status,
+			stdout: result.stdout,
+			stderr: result.stderr,
+			encodes: lines(log),
+			audiosprite: lines(calls),
 		};
-		return { sounds, run };
 	};
+	const run = (extraEnv: Record<string, string | undefined> = {}) => {
+		const result = invoke(extraEnv);
+		if (result.status !== 0)
+			throw new Error(
+				`make_audio_sprites.sh exited ${result.status}: ${result.stderr}`,
+			);
+		return result.encodes;
+	};
+	const stampFile = (name: string) =>
+		path.join(sounds, name, `${name}.sprites.sha256`);
+	const stamp = (name = "tone") => readFileSync(stampFile(name), "utf8");
+	return { sounds, invoke, run, stamp, stampFile };
+};
 
+describe("deterministic, change-driven sprites", () => {
 	it("encodes bit-exact with no metadata, flags placed just before the output", () => {
 		const { run } = setup();
 		const encodes = run();
@@ -244,6 +282,100 @@ echo '{"src":["x/tone.ogg"],"sprite":{}}' > "$out.json"
 		expect(run()).toHaveLength(4);
 		expect(run()).toHaveLength(0);
 		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(4);
+	});
+});
+
+describe("locale-independent stamps and a restamp mode", () => {
+	it("sets LC_ALL=C before its first glob", () => {
+		// The behavioral check below needs an en_US.UTF-8 locale to tell the
+		// orders apart (bash falls back to C without one); this one needs none.
+		const lines = readFileSync("bin/make_audio_sprites.sh", "utf8")
+			.split("\n")
+			.filter((line) => !line.trim().startsWith("#"));
+		const exported = lines.indexOf("export LC_ALL=C");
+		expect(exported).toBeGreaterThan(-1);
+		expect(exported).toBeLessThan(
+			lines.findIndex((line) => /\bfor\b.*\bin\b.*\*/.test(line)),
+		);
+	});
+
+	it("the stamp is the same under LANG=en_US.UTF-8 and LANG=C", () => {
+		// en_US.UTF-8 collation passes over the dot, so a bash glob there lists
+		// TabClickDown.mp3 before TabClick.mp3; C sorts by byte, TabClick first.
+		// Platinum's pack holds these three names, prefixed "Classicy".
+		const { run, stamp, stampFile } = setup({
+			tone: ["TabClick.mp3", "TabClickDown.mp3", "TabClickUp.mp3"],
+		});
+		const under = (lang: string) => {
+			rmSync(stampFile("tone"), { force: true });
+			expect(
+				run({ LANG: lang, LC_ALL: undefined, LC_COLLATE: undefined }),
+			).toHaveLength(4);
+			return stamp();
+		};
+		const english = under("en_US.UTF-8");
+		expect(english).toMatch(/^[0-9a-f]{64}\n$/);
+		expect(under("C")).toBe(english);
+	});
+
+	it("CLASSICY_AUDIO_RESTAMP=1 rewrites the stamp without calling audiosprite", () => {
+		const { sounds, invoke, run, stamp, stampFile } = setup();
+		expect(run()).toHaveLength(4);
+		const built = stamp();
+		const ogg = readFileSync(path.join(sounds, "tone", "tone.ogg"));
+		writeFileSync(stampFile("tone"), "stale\n");
+		const restamp = invoke({ CLASSICY_AUDIO_RESTAMP: "1" });
+		expect(restamp.status).toBe(0);
+		expect(restamp.audiosprite).toEqual([]);
+		expect(restamp.encodes).toEqual([]);
+		expect(restamp.stdout).toContain("audio: tone restamped");
+		expect(stamp()).toBe(built);
+		expect(readFileSync(path.join(sounds, "tone", "tone.ogg"))).toEqual(ogg);
+		// From the current inputs: after a source changes, the restamp is the
+		// stamp a build of the changed source writes.
+		writeFileSync(path.join(sounds, "tone", "sprites", "A.mp3"), "changed");
+		expect(invoke({ CLASSICY_AUDIO_RESTAMP: "1" }).audiosprite).toEqual([]);
+		const restamped = stamp();
+		expect(restamped).not.toBe(built);
+		expect(run({ CLASSICY_AUDIO_FORCE: "1" })).toHaveLength(4);
+		expect(stamp()).toBe(restamped);
+	});
+
+	it("CLASSICY_AUDIO_RESTAMP=1 fails when a listed output is missing", () => {
+		const { sounds, invoke, run, stamp, stampFile } = setup({
+			hum: ["A.mp3"],
+			tone: ["A.mp3"],
+		});
+		run();
+		for (const name of ["hum", "tone"])
+			writeFileSync(stampFile(name), "stale\n");
+		rmSync(path.join(sounds, "hum", "hum.m4a"));
+		rmSync(path.join(sounds, "hum", "hum.json"));
+		const result = invoke({ CLASSICY_AUDIO_RESTAMP: "1" });
+		expect(result.status).not.toBe(0);
+		expect(result.stderr).toContain(path.join(sounds, "hum", "hum.m4a"));
+		expect(result.stderr).toContain(path.join(sounds, "hum", "hum.json"));
+		expect(result.audiosprite).toEqual([]);
+		// Nothing is written for the pack that lacks an output...
+		expect(stamp("hum")).toBe("stale\n");
+		expect(result.stdout).not.toContain("audio: hum restamped");
+		// ...while a pack with all of its outputs is restamped all the same.
+		expect(result.stdout).toContain("audio: tone restamped");
+		expect(stamp("tone")).toMatch(/^[0-9a-f]{64}\n$/);
+	});
+
+	it("a restamped pack is up to date on the next run", () => {
+		const { invoke, run, stampFile } = setup();
+		run();
+		writeFileSync(stampFile("tone"), "stale\n");
+		const restamp = invoke({ CLASSICY_AUDIO_RESTAMP: "1" });
+		expect(restamp.status).toBe(0);
+		expect(restamp.stdout).toContain("audio: tone restamped");
+		const next = invoke();
+		expect(next.status).toBe(0);
+		expect(next.stdout).toContain("audio: tone is up to date");
+		expect(next.encodes).toEqual([]);
+		expect(next.audiosprite).toEqual([]);
 	});
 });
 
