@@ -10,7 +10,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 | Section | Rows | Your work |
 | --- | --- | --- |
-| Icons | 296 keys | 64 export (up to 4 PNGs each; the Map control panel's world map is a picture, one PNG at both depths); 91 reuse and 141 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
+| Icons | 296 keys | 64 export (up to 4 WebP files each; the Map control panel's world map is a picture, one file at both depths); 91 reuse and 141 core need nothing. Every ID is settled (each row's Source); five exports became reuses, their files not in the 7.5.5 install |
 | System art | 45 keys | the export and crop rows |
 | Cursors | 13 roles | 3 exports (`CURS` 1, 2, 4) |
 | Sounds | 6 alerts | Done: 5 sampled `snd ` written as WAV, Simple Beep rendered from its synthesizer commands, and one copy (plan 0018-dbd §4.2) |
@@ -21,7 +21,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 **Source files.** Work on copies of the System 7.5 files (System, Finder, control panels, extensions, applications from the install disks), never on a running System Folder. ResEdit 2.1 or Resorcerer in an emulator (Infinite Mac, Basilisk II) works; any tool that shows a resource's raw pixels is fine.
 
-**Target root:** `packages/appearance/system7/src/assets/`
+**Target root:** `packages/appearance/system7/src/assets/`. The icons, the art and the wallpapers are lossless WebP, the cursors PNG (plan 0019-fb7 §6.5: the export once wrote PNGs, converted by `bin/convert-images-to-webp.ts`; the scripts below write WebP).
 
 | Folder | Holds | Pixels from |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ Every icon, system-art key, cursor, alert sound and window color the System 7 Ap
 
 Reference crops for art the implementer draws go to `packages/appearance/system7/resources/reference/` (never published).
 
-**Four files per exported icon.** An icon row marked export is four PNGs with the File name: `icons/color/32/`, `icons/color/16/`, `icons/bw/32/`, `icons/bw/16/`. The Resources column says which families exist:
+**Four files per exported icon.** An icon row marked export is four WebP files with the File name: `icons/color/32/`, `icons/color/16/`, `icons/bw/32/`, `icons/bw/16/`. The Resources column says which families exist:
 
 - `ICN#` `icl8` `ics#` `ics8`: all four files.
 - No `ics#` in the file: skip both 16 px files (the 32 px image is scaled down).
@@ -45,15 +45,16 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 - `ICON` (alert icons): 32 px only and 1-bit. Put the image in both `icons/bw/32/` and `icons/color/32/`; if the System file also has a `cicn` of the same ID, use it for `icons/color/32/`. `ICON` has no mask: export white as opaque white.
 - `icl4`/`ics4` exist too; skip them, the 8-bit families supersede them.
 
-**File names** are the key path in kebab case: dots become hyphens, a hyphen goes before each capital and before a run of digits, everything lowercase, leading underscores dropped. `system.folders.controlPanels` → `system-folders-control-panels.png`; `system.files._1292` → `system-files-1292.png`. Every File cell already holds the name; copy it.
+**File names** are the key path in kebab case: dots become hyphens, a hyphen goes before each capital and before a run of digits, everything lowercase, leading underscores dropped. `system.folders.controlPanels` → `system-folders-control-panels.webp`; `system.files._1292` → `system-files-1292.webp`. Every File cell already holds the name; copy it.
 
-**PNG rules (all files):**
+**Image rules (all files):**
 
 - Exactly the native size (32×32, 16×16, or the crop named). No scaling, smoothing, anti-aliasing, dithering or color correction.
-- No color profile: strip `iCCP`, `gAMA`, `cHRM` and `sRGB` chunks so the stored values are the exact System colors.
+- Formats: the icons, the art and the wallpapers are lossless WebP (`exact`), the cursors PNG.
+- No color profile or metadata, so the stored values are the exact System colors: a WebP is a single `VP8L` chunk (no `VP8X`, `ICCP`, `EXIF` or `XMP`); a cursor PNG has no `iCCP`, `gAMA`, `cHRM` or `sRGB` chunk.
 - Mask to transparency: mask bit 0 is fully transparent, 1 is fully opaque. No partial alpha anywhere.
 - 1-bit files (`bw`, cursors): every pixel is opaque black `#000000`, opaque white `#FFFFFF` or transparent.
-- Color files: the exact `icl8`/`ics8` colors (the System 8-bit palette), as an 8-bit indexed PNG with a transparent entry, or RGBA.
+- Color files: the exact `icl8`/`ics8` colors (the System 8-bit palette), RGBA.
 - Crops: from 1x screenshots of System 7.5 in an emulator at 100% with no scaling filter. Color crops with Monitors set to 256 colors; B&W crops with Monitors set to Black & White. Crop exactly the pixels the row names.
 
 **Cursors.** From each `CURS`: image 1 + mask 1 is black, image 0 + mask 1 is white, image 0 + mask 0 is transparent, and image 1 + mask 0 (which inverts the screen) is black, since a PNG cannot invert. Write the hotspot in the Hotspot cell as (x, y): ResEdit's `CURS` editor shows it; in the raw resource it is the last four bytes, v then h, so x = h and y = v.
@@ -83,7 +84,7 @@ Reference crops for art the implementer draws go to `packages/appearance/system7
 
 ## Reproducing the files
 
-The files were made from the owner's System 7.5.5 install (2026-11-12), with no emulator: the resources are read straight from the files, the crops come from the reference screenshots (`docs/system7-reference-screenshots.md`, kept out of git in `.playwright-mcp/parity/system7/reference/`). Nothing below is committed but the PNGs; the raw resources, BMPs and the archive stay outside the repo.
+The files were made from the owner's System 7.5.5 install (2026-11-12), with no emulator: the resources are read straight from the files, the crops come from the reference screenshots (`docs/system7-reference-screenshots.md`, kept out of git in `.playwright-mcp/parity/system7/reference/`). Nothing below is committed but the images (WebP, the cursors PNG) and the sounds; the raw resources, BMPs and the archive stay outside the repo.
 
 1. **Extract the install** so each file's resource fork sits beside it as an AppleDouble file (`unar -forks visible <archive>`, which writes `<name>.rsrc`).
 2. **Build resource_dasm** (github.com/fuzziqersoftware/resource_dasm, with its `phosg` dependency; `cmake . && make`).
@@ -101,17 +102,17 @@ The files were made from the owner's System 7.5.5 install (2026-11-12), with no 
 
 4. **Decode the pictures** the export reads, which resource_dasm renders, into one folder: the System file's (the startup panel, `PICT` -16501 and -16503), `resource_dasm --index-format=as/ad --target-type=PICT "<extracted>/System Folder/System.rsrc" <decoded>`, and the Map control panel's world map (`PICT` -4064), `resource_dasm --index-format=as/ad --target-type=PICT "<extracted>/System Folder/Control Panels/Map.rsrc" <decoded>`.
 5. **Run the export**: `node packages/appearance/system7/bin/export-assets.mjs "<raw>/<archive folder>" <decoded> .playwright-mcp/parity/system7/reference`. It writes every icon, the exported and cropped system art, the cursors and the alert sounds' WAV sources into `packages/appearance/system7/src/assets/`, prints each cursor's hotspot, each sound's format, and the System file's `wctb` 0 and `cctb` 0 by part, and rewrites the same bytes on a rerun. Its tables (`ICONS`, `ALERTS` and `PARTS` in the script) are each row's Source: file, resource type and ID.
-6. **Build the sound pack's sprite sheet**: `pnpm build:audio`, whose second step is `./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a,mp3,ac3 ,` (the WAVs in `sounds/system7/sprites/`, the four formats, and `,`, a loop list naming no sprite: System 7's alerts never loop). It writes `system7.{ogg,m4a,mp3,ac3}`, `system7.json` and the `system7.sprites.sha256` stamp beside the sprites, encoding bit-exact, and skips the encode while the stamp matches. The sheet, its JSON, the stamp and the WAVs are committed, as Platinum's are.
+6. **Build the sound pack's sprite sheet**: `pnpm build:audio`, whose second step is `./bin/make_audio_sprites.sh ./packages/appearance/system7/src/assets/sounds ./packages/appearance/system7/src/assets/sounds wav ogg,m4a ,` (the WAVs in `sounds/system7/sprites/`, the two formats (ogg first, m4a for Safari), and `,`, a loop list naming no sprite: System 7's alerts never loop). It writes `system7.{ogg,m4a}`, `system7.json` and the `system7.sprites.sha256` stamp beside the sprites, encoding bit-exact, and skips the encode while the stamp matches. The sheet, its JSON, the stamp and the WAVs are committed, as Platinum's are.
 
-How the script decodes (`bin/macResources.mjs`, `bin/png.mjs`):
+How the script decodes and writes (`bin/macResources.mjs`, the repo's `bin/classicyWebp.ts`, `bin/png.mjs`):
 
 - `ICN#`/`ics#`: the image, then the mask; mask 0 is transparent, image 1 black, 0 white. `icl8`/`ics8`: one byte per pixel into the standard 8-bit color table (`clut` 8, in ROM, so computed: the 6×6×6 cube from white, then the red, green, blue and gray ramps, then black), masked by the family's `ICN#`/`ics#`. Checked against resource_dasm's own decode of every System icon: identical.
 - `ICON`: 32 px 1-bit, white opaque. `CURS`: image, mask, then the hotspot as v, h; image 1 under mask 0 (the I-beam's inverting pixels) is black.
 - `snd ` (`bin/macSound.ts`, after Inside Macintosh: Sound): a format 1 resource lists its data types (synthesizer id, init option) and its commands (`cmd`, `param1`, `param2`). A sampled alert is a `bufferCmd` whose offset points at a standard sound header (`encode` 0): the samples are written as stored, 8-bit unsigned mono, at the header's rate rounded down to a whole number (11127 and 22254 Hz); checked against resource_dasm's own decode, sample for sample. Simple Beep (`snd ` 1) is the square-wave synthesizer (id 1) running `timbreCmd` 90, `ampCmd` 224, `freqCmd` 69 (A, 440 Hz), then twelve 20 ms waits (`waitCmd` 40 half-milliseconds) with the amplitude stepping down 224, 200, 192, 184, 176, 168, 160, 144, 128, 96, 64, 32 and to 0: 240 ms. Apple documents the timbre only at its ends (0, "a clear tone"; 254, "a buzzing tone"); the waveform is System 7.5.5's Sound Manager's own, recorded playing Simple Beep on Infinite Mac's Quadra 650 (`capture-references.mjs beep`): a plain 8-bit square whatever the timbre, half of each cycle at 127 + amplitude / 8 and half at 127 - amplitude / 8, high first (224: 155 and 99; under 8, silence at 128). The script plays that into 8-bit unsigned mono at 22,050 Hz, the commands' 240 ms. Against the recording (below), every steady sample of the recording is one the render draws for that step, its steps come in the render's order, and its frequency agrees within 0.1% (440.0 Hz); what differs is the timing: the emulator runs the commands on its sound buffers' schedule, so it holds the first step about 100 ms, steps every 16 to 36 ms after it, sometimes passes a step over, and lasts 331 ms, and it interpolates one or two samples at each edge (its 22,254.5 Hz stream resampled to 22,050).
 - `wctb`/`cctb`: color tables (`ColorTable`) whose entry values are part codes, read like a `clut`, printed as the high byte of each channel.
-- PNGs are 8-bit RGBA with no ancillary chunks at all (no `iCCP`, `gAMA`, `cHRM` or `sRGB`), unfiltered, so the stored values are the exact System colors.
+- The icons, their selected renderings and the art are lossless WebP from 8-bit RGBA (`encodeClassicyWebp(img, { lossless: true })`, the pinned WebAssembly libwebp the one-time conversion used, so a rerun writes the same bytes on any machine), one `VP8L` chunk with no profile or metadata; the cursors are 8-bit RGBA PNGs with no ancillary chunks at all (no `iCCP`, `gAMA`, `cHRM` or `sRGB`), unfiltered. Either way the stored values are the exact System colors.
 - Crops are read from the screenshots' raw pixels; each row's Source gives the file, the position and what is made transparent.
-- The SVGs in `art/` (the transparent stand-ins, the halftone, the menu check and dash, the dither checker) and the `.txt` pixel art in `pixelart/` are hand-written; `sad-mac.png` and the resize cursors are Platinum's files, copied by the script.
+- The SVGs in `art/` (the transparent stand-ins, the halftone, the menu check and dash, the dither checker) and the `.txt` pixel art in `pixelart/` are hand-written; the Sad Mac is Platinum's image, `art/sad-mac.webp`, decoded and written again by the script without the ICC profile Platinum's file carries (its VP8L chunk byte for byte), and the resize cursors are Platinum's files, re-encoded by the script.
 
 ### Desktop pattern and Control Strip
 
@@ -130,7 +131,7 @@ The Control Strip panel is decoded unfiltered, every resource type. The strip it
 - `ics#`/`ics8` -4045: the collapse box; -4046 and -4047: the right and left scroll arrows, enabled in the left 8 columns and dimmed in the right 8 (one bitmap for both in `ics#`); -4043 and -4044 are a module's drag outline, which Classicy does not draw.
 - `ppat` -4048: a 50% gray pattern for dragging.
 
-**Desktop pattern.** System `ppat` 16 is the 7.5 default desktop pattern, an 8 × 8 50% checker whose (0, 0) cell is dark. Its pixel map holds `#5F5F5F` and `#9F9F9F`, which a 256-color screen draws as the color table's `#666666` and `#AAAAAA` (`color-desktop-menubar-icons.png`, MWD 4); the script writes those, as `wallpapers/desktop-gray.png`. Its 1-bit pattern (resource_dasm's `_bitmap`) is the black-and-white checker (CIC "default 1-bit desktop pattern"), `wallpapers/desktop-gray-bw.png`. Both are opaque 8 × 8 PNGs, registered as the package's wallpapers "Gray" and "Gray (Black & White)" (`SYSTEM7_WALLPAPERS`, `assets/system7Assets.ts`) and named by "System 7 Color" and "System 7" as their desktop picture, repeated from the top left.
+**Desktop pattern.** System `ppat` 16 is the 7.5 default desktop pattern, an 8 × 8 50% checker whose (0, 0) cell is dark. Its pixel map holds `#5F5F5F` and `#9F9F9F`, which a 256-color screen draws as the color table's `#666666` and `#AAAAAA` (`color-desktop-menubar-icons.png`, MWD 4); the script writes those, as `wallpapers/desktop-gray.webp`. Its 1-bit pattern (resource_dasm's `_bitmap`) is the black-and-white checker (CIC "default 1-bit desktop pattern"), `wallpapers/desktop-gray-bw.webp`. Both are opaque 8 × 8 lossless WebP files, registered under their identity filenames `desktop-gray.png` and `desktop-gray-bw.png` (`system7WallpaperFile` maps each to its file) as the package's wallpapers "Gray" and "Gray (Black & White)" (`SYSTEM7_WALLPAPERS`, `assets/system7Assets.ts`) and named by "System 7 Color" and "System 7" as their desktop picture, repeated from the top left.
 
 **Control Strip crops**, each a rectangle of the decoded BMP (width × height at x, y):
 
@@ -167,7 +168,7 @@ The script stops on any other color. The face and the tab's lowest row are Syste
 
 ### Selected color icons
 
-A selected color icon is drawn the way System 7.5 drew it, through a darkened copy of its color table in the 256-color screen's colors (story 0197-s0z), which no CSS filter reproduces, so each one is pre-rendered: `icons/selected/<16|32>/<stem>.png` beside every `icons/color/<16|32>/<stem>.png`, written by `packages/appearance/system7/bin/selectedIcons.mjs` (run directly, from the committed color icons; `export-assets.mjs`'s icon export calls the same transform). The rule:
+A selected color icon is drawn the way System 7.5 drew it, through a darkened copy of its color table in the 256-color screen's colors (story 0197-s0z), which no CSS filter reproduces, so each one is pre-rendered: `icons/selected/<16|32>/<stem>.webp` beside every `icons/color/<16|32>/<stem>.webp`, written by `packages/appearance/system7/bin/selectedIcons.mjs` (run directly, from the committed color icons; `export-assets.mjs`'s icon export calls the same transform). The rule:
 
 1. Darken (IconUtils.c, `MakeClut` and `Darken`): every 16-bit component halved; unless the color is gray (components within 512 of each other), the smallest component and the smaller of the other two halved again, so the value halves and the saturation stays. Apple's IconDimming sample (`DimColor`) describes the same rule.
 2. Draw in the screen's color (the Color Manager's inverse table, resolution 4 bits a component): the 8-bit system table's entry whose cell (each component's top four bits) is nearest the darkened color's cell, the lower index on a tie. So `#CCCCFF` darkens to `#3333/#3333/#7FFF`, cell 3, 3, 7, and draws `#333366` (cell 3, 3, 6), not the RGB-nearer `#333399`.
@@ -236,9 +237,9 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.radio.app` | Radio application | core | Classicy brand (Classicy-only app) | — | — |
 | — | `applications.registerWithApple.app` | Register with Apple application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.setupAssistant.setupAssistant` | Mac OS Setup Assistant application | reuse | `system.files.application` (System 7's generic application) | — | — |
-| [x] | `applications.stickies.app` | Stickies application | export | Stickies (Apple Menu Items), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-app.png` |
+| [x] | `applications.stickies.app` | Stickies application | export | Stickies (Apple Menu Items), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-app.webp` |
 | — | `applications.stickies.controlButtonSprites` | Stickies window button sprite sheet | core | Classicy UI glyph (a sprite sheet) | — | — |
-| [x] | `applications.stickies.notes` | Stickies notes | export | Stickies (Apple Menu Items), ID 129 (`notz`, the Stickies file, in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-notes.png` |
+| [x] | `applications.stickies.notes` | Stickies notes | export | Stickies (Apple Menu Items), ID 129 (`notz`, the Stickies file, in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-stickies-notes.webp` |
 | — | `applications.stickies.stack` | Stack of sticky notes | reuse | `applications.stickies.notes` (the Stickies file) | — | — |
 | — | `applications.stuffit.app` | StuffIt application | reuse | `system.files.application` (System 7's generic application) | — | — |
 | — | `applications.stuffit.compressing` | StuffIt application, compressing | reuse | `system.files.application` (System 7's generic application) | — | — |
@@ -247,26 +248,26 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `applications.usenet.search` | Usenet search | core | Classicy UI glyph | — | — |
 | — | `applications.usenet.server` | Usenet server | core | Classicy UI glyph | — | — |
 | — | `applications.systemProfiler.app` | Apple System Profiler application | reuse | `system.files.application` (System 7's generic application) | — | — |
-| [x] | `applications.simpletext.app` | SimpleText application | export | SimpleText (Apple Extras), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.png` |
-| [x] | `applications.calculator.app` | Calculator desk accessory | export | Calculator (Apple Menu Items), ID -16000 (`dfil`, the desk accessory file, in its `BNDL`: a desk accessory's own resources are numbered from -16000) | `ICN#` `icl8` `ics#` `ics8` | `applications-calculator-app.png` |
+| [x] | `applications.simpletext.app` | SimpleText application | export | SimpleText (Apple Extras), ID 128 (`APPL` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `applications-simpletext-app.webp` |
+| [x] | `applications.calculator.app` | Calculator desk accessory | export | Calculator (Apple Menu Items), ID -16000 (`dfil`, the desk accessory file, in its `BNDL`: a desk accessory's own resources are numbered from -16000) | `ICN#` `icl8` `ics#` `ics8` | `applications-calculator-app.webp` |
 
 ### Control panels
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `controlPanels.appearanceManager.app` | Appearance control panel | export | Color control panel (its nearest System 7.5 counterpart: window and highlight colors), ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-appearance-manager-app.png` |
+| [x] | `controlPanels.appearanceManager.app` | Appearance control panel | export | Color control panel (its nearest System 7.5 counterpart: window and highlight colors), ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-appearance-manager-app.webp` |
 | — | `controlPanels.appearanceManager.backgroundCenter` | Wallpaper position glyph: center | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.backgroundFill` | Wallpaper position glyph: fill | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.backgroundScale` | Wallpaper position glyph: scale | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.backgroundTile` | Wallpaper position glyph: tile | core | Classicy UI glyph | — | — |
 | — | `controlPanels.appearanceManager.file` | Appearance theme file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `controlPanels.appearanceManager.preferences` | Appearance preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
-| [x] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.png` |
-| [x] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.png` |
-| [x] | `controlPanels.keyboard.app` | Keyboard control panel | export | Keyboard control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-keyboard-app.png` |
-| [x] | `controlPanels.location.app` | Location Manager control panel | export | Map control panel (its nearest System 7.5 counterpart), ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-location-app.png` |
-| [x] | `controlPanels.location.map` | World map picture (Location panel) | export | Map control panel (the Location panel's nearest System 7.5 counterpart, as for `controlPanels.location.app`), its own world map, `PICT` -4064: a 360 × 180 picture, black land on white, one image at both depths, decoded by resource_dasm (step 4 of "Reproducing the files") | `PICT` | `control-panels-location-map.png` |
-| [x] | `controlPanels.soundManager.app` | Sound control panel (also the menu-bar sound widget) | export | Sound control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-app.png` |
+| [x] | `controlPanels.controlStripManager.app` | Control Strip control panel | export | Control Strip control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-control-strip-manager-app.webp` |
+| [x] | `controlPanels.dateTimeManager.dateTimeManager` | Date & Time control panel | export | Date & Time control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-date-time-manager-date-time-manager.webp` |
+| [x] | `controlPanels.keyboard.app` | Keyboard control panel | export | Keyboard control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-keyboard-app.webp` |
+| [x] | `controlPanels.location.app` | Location Manager control panel | export | Map control panel (its nearest System 7.5 counterpart), ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-location-app.webp` |
+| [x] | `controlPanels.location.map` | World map picture (Location panel) | export | Map control panel (the Location panel's nearest System 7.5 counterpart, as for `controlPanels.location.app`), its own world map, `PICT` -4064: a 360 × 180 picture, black land on white, one image at both depths, decoded by resource_dasm (step 4 of "Reproducing the files") | `PICT` | `control-panels-location-map.webp` |
+| [x] | `controlPanels.soundManager.app` | Sound control panel (also the menu-bar sound widget) | export | Sound control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-app.webp` |
 | — | `controlPanels.soundManager.extension` | Sound Manager extension | reuse | `system.extension` (the Sound Manager extension's generic, below) | — | — |
 | — | `controlPanels.soundManager.preferences` | Sound preferences file | reuse | `system.files.preferences` (generic preferences) | — | — |
 | — | `controlPanels.soundManager.sound33` | Speaker at one third volume | core | Classicy UI glyph | — | — |
@@ -274,8 +275,8 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `controlPanels.soundManager.soundMute` | Speaker, muted | core | Classicy UI glyph | — | — |
 | — | `controlPanels.soundManager.soundOff` | Speaker, off (menu-bar widget) | core | Classicy UI glyph | — | — |
 | — | `controlPanels.soundManager.soundOn` | Speaker, on (menu-bar widget) | core | Classicy UI glyph | — | — |
-| [x] | `controlPanels.soundManager.stt` | Speech recognition (ear) | export | Speech control panel (7.5.5's PlainTalk panel), ID -4047, its ear icon (the panel's own -4064 is a mouth). No small family: the 32 px image scales | `ICN#` `icl8` | `control-panels-sound-manager-stt.png` |
-| [x] | `controlPanels.soundManager.tts` | Text to speech (face) | export | Speech Manager (Extensions), ID -4064 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-tts.png` |
+| [x] | `controlPanels.soundManager.stt` | Speech recognition (ear) | export | Speech control panel (7.5.5's PlainTalk panel), ID -4047, its ear icon (the panel's own -4064 is a mouth). No small family: the 32 px image scales | `ICN#` `icl8` | `control-panels-sound-manager-stt.webp` |
+| [x] | `controlPanels.soundManager.tts` | Text to speech (face) | export | Speech Manager (Extensions), ID -4064 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `control-panels-sound-manager-tts.webp` |
 
 ### System: Control Strip modules
 
@@ -283,18 +284,18 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | --- | --- | --- | --- | --- | --- | --- |
 | — | `system.controlStrip.appearance` | Control Strip Appearance module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
 | — | `system.controlStrip.cd` | Control Strip CD module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
-| [x] | `system.controlStrip.fileSharing` | Control Strip File Sharing module (16 px) | export | File Sharing module (Control Strip Modules (Disabled), 7.5.5), ID 257, the folder its strip draws while sharing is on (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-file-sharing.png` |
-| [x] | `system.controlStrip.moduleFile` | Control Strip module file (32 px) | export | Monitor Resolution module (Control Strip Modules), ID 128 (`sdev`): no module file is generic, and this one's glyph, a small monitor, is the plainest | `ICN#` `icl8` `ics#` `ics8` | `system-control-strip-module-file.png` |
+| [x] | `system.controlStrip.fileSharing` | Control Strip File Sharing module (16 px) | export | File Sharing module (Control Strip Modules (Disabled), 7.5.5), ID 257, the folder its strip draws while sharing is on (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-file-sharing.webp` |
+| [x] | `system.controlStrip.moduleFile` | Control Strip module file (32 px) | export | Monitor Resolution module (Control Strip Modules), ID 128 (`sdev`): no module file is generic, and this one's glyph, a small monitor, is the plainest | `ICN#` `icl8` `ics#` `ics8` | `system-control-strip-module-file.webp` |
 | — | `system.controlStrip.screenSaver` | Control Strip Screen Saver module (16 px) | reuse | `system.controlStrip.moduleFile` (the generic Control Strip module: a module System 7.5 lacked shows as a module, not an extension) | — | — |
-| [x] | `system.controlStrip.sleep` | Control Strip Sleep Now module (16 px) | export | Sleep Now module (Control Strip Modules (Disabled), 7.5.5), ID 256, its strip glyph (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-sleep.png` |
-| [x] | `system.controlStrip.sound` | Control Strip Sound Volume module (16 px) | export | Sound Volume module (Control Strip Modules), ID 256, its strip glyph (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-sound.png` |
+| [x] | `system.controlStrip.sleep` | Control Strip Sleep Now module (16 px) | export | Sleep Now module (Control Strip Modules (Disabled), 7.5.5), ID 256, its strip glyph (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-sleep.webp` |
+| [x] | `system.controlStrip.sound` | Control Strip Sound Volume module (16 px) | export | Sound Volume module (Control Strip Modules), ID 256, its strip glyph (128 is the module file's icon) | `ics#` `ics8` | `system-control-strip-sound.webp` |
 | — | `system.controlStrip.soundOff` | Control Strip Sound module, sound off (16 px) | reuse | `system.controlStrip.sound` (the 7.5 Sound Volume module has one icon) | — | — |
 
 ### System: colors
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.colors.extension` | Color Picker extension | export | Color Picker (Extensions), ID 128 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-colors-extension.png` |
+| [x] | `system.colors.extension` | Color Picker extension | export | Color Picker (Extensions), ID 128 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-colors-extension.webp` |
 | — | `system.colors.pickerCmyk` | CMYK picker | core | Classicy UI glyph | — | — |
 | — | `system.colors.pickerCrayon` | Crayon picker | core | Classicy UI glyph | — | — |
 | — | `system.colors.pickerHex` | HTML (hex) picker | core | Classicy UI glyph | — | — |
@@ -306,7 +307,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.desktop.desktop` | Desktop | export | System, ID -3992 (`kDesktopIconResource`): the System has only the small family, so the 16 px image is drawn at every size | `ics#` | `system-desktop-desktop.png` |
+| [x] | `system.desktop.desktop` | Desktop | export | System, ID -3992 (`kDesktopIconResource`): the System has only the small family, so the 16 px image is drawn at every size | `ics#` | `system-desktop-desktop.webp` |
 | — | `system.display.brightness` | Brightness glyph (sun) | core | Classicy UI glyph | — | — |
 | — | `system.display.contrast` | Contrast glyph | core | Classicy UI glyph | — | — |
 
@@ -314,17 +315,17 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.drives.cdrom` | CD-ROM disc | export | System, ID -3987 (`kGenericCDROMIconResource`): only the small family (the 32 px CD icon is the CD-ROM driver's), so the 16 px image is drawn at every size | `ics#` | `system-drives-cdrom.png` |
-| [x] | `system.drives.disk` | Hard disk (startup disk) | export | System, ID -3995 (`kGenericHardDiskIconResource`), small family only (the 32 px hard disk is the disk driver's): the 32 px files are the Macintosh HD icon from `color-desktop-menubar-icons.png`, the 32 × 32 cell at 584,28, the gray desktop made transparent (1-bit, the same in both themes) | crop (32 px), `ics#` | `system-drives-disk.png` |
+| [x] | `system.drives.cdrom` | CD-ROM disc | export | System, ID -3987 (`kGenericCDROMIconResource`): only the small family (the 32 px CD icon is the CD-ROM driver's), so the 16 px image is drawn at every size | `ics#` | `system-drives-cdrom.webp` |
+| [x] | `system.drives.disk` | Hard disk (startup disk) | export | System, ID -3995 (`kGenericHardDiskIconResource`), small family only (the 32 px hard disk is the disk driver's): the 32 px files are the Macintosh HD icon from `color-desktop-menubar-icons.png`, the 32 × 32 cell at 584,28, the gray desktop made transparent (1-bit, the same in both themes) | crop (32 px), `ics#` | `system-drives-disk.webp` |
 | — | `system.drives.driveExternal` | External hard disk | reuse | `system.drives.disk` (System 7 has one hard disk icon) | — | — |
 | — | `system.drives.dvdAudio` | DVD-Audio disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
 | — | `system.drives.dvdVideo` | DVD-Video disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
 | — | `system.drives.dvd` | DVD disc | reuse | `system.drives.cdrom` (System 7's optical disc) | — | — |
 | — | `system.drives.floppyMac` | Macintosh floppy disk | reuse | `system.drives.floppy` | — | — |
-| [x] | `system.drives.floppyPc` | PC (DOS) floppy disk | export | PC Exchange (Control Panels), ID -4048, the DOS floppy it mounts. No small family: the 32 px image scales | `ICN#` `icl8` | `system-drives-floppy-pc.png` |
-| [x] | `system.drives.floppy` | Floppy disk | export | System, ID -3998 (`kFloppyIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-floppy.png` |
+| [x] | `system.drives.floppyPc` | PC (DOS) floppy disk | export | PC Exchange (Control Panels), ID -4048, the DOS floppy it mounts. No small family: the 32 px image scales | `ICN#` `icl8` | `system-drives-floppy-pc.webp` |
+| [x] | `system.drives.floppy` | Floppy disk | export | System, ID -3998 (`kFloppyIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-drives-floppy.webp` |
 | — | `system.drives.internetDrive` | Internet drive | reuse | `system.drives.networkDrive` (System 7's remote volume) | — | — |
-| [x] | `system.drives.networkDrive` | Network (AppleShare) volume | export | System, ID -3972 (`kGenericFileServerIconResource`), small family only: the 32 px files are the file server icon from `color-desktop-menubar-icons.png`, the 32 × 32 cell at 584,80, the gray desktop made transparent (1-bit, the same in both themes) | crop (32 px), `ics#` `ics8` | `system-drives-network-drive.png` |
+| [x] | `system.drives.networkDrive` | Network (AppleShare) volume | export | System, ID -3972 (`kGenericFileServerIconResource`), small family only: the 32 px files are the file server icon from `color-desktop-menubar-icons.png`, the 32 × 32 cell at 584,80, the gray desktop made transparent (1-bit, the same in both themes) | crop (32 px), `ics#` `ics8` | `system-drives-network-drive.webp` |
 | — | `system.drives.raid` | RAID volume | reuse | `system.drives.disk` (System 7's hard disk) | — | — |
 | — | `system.drives.rom` | ROM disk | reuse | `system.drives.disk` (System 7's hard disk) | — | — |
 
@@ -332,15 +333,15 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.extensions.appleGuide` | Apple Guide extension (also the Apple Guide app) | export | Apple Guide (Extensions), ID 128 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-guide.png` |
-| [x] | `system.extensions.appleShare` | AppleShare extension | export | AppleShare (Extensions), ID -4080 (`RDEV`, the icon the Chooser shows) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-share.png` |
+| [x] | `system.extensions.appleGuide` | Apple Guide extension (also the Apple Guide app) | export | Apple Guide (Extensions), ID 128 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-guide.webp` |
+| [x] | `system.extensions.appleShare` | AppleShare extension | export | AppleShare (Extensions), ID -4080 (`RDEV`, the icon the Chooser shows) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-apple-share.webp` |
 | — | `system.extensions.appleVision` | AppleVision extension (boot parade) | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.contextMenus` | Contextual Menu extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.dateAndTime` | Date & Time extension | reuse | `controlPanels.dateTimeManager.dateTimeManager` | — | — |
-| [x] | `system.extensions.ethernet` | Ethernet extension | export | EtherTalk Phase 2 (Extensions), ID 128 (`adev`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-ethernet.png` |
+| [x] | `system.extensions.ethernet` | Ethernet extension | export | EtherTalk Phase 2 (Extensions), ID 128 (`adev`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-ethernet.webp` |
 | — | `system.extensions.fmRadio` | FM radio extension (boot parade) | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.quickdraw` | QuickDraw extension | reuse | `system.extension` (QuickDraw GX is not in the 7.5.5 install: System 7 shows the generic extension) | — | — |
-| [x] | `system.extensions.quicktime` | QuickTime extension | export | QuickTime™ (Extensions), ID -19071 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-quicktime.png` |
+| [x] | `system.extensions.quicktime` | QuickTime extension | export | QuickTime™ (Extensions), ID -19071 (`INIT`) | `ICN#` `icl8` `ics#` `ics8` | `system-extensions-quicktime.webp` |
 | — | `system.extensions.quicktimeMpeg` | QuickTime MPEG extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.screensaver` | Screen Saver extension | reuse | `system.extension` (System 7 shows the generic extension) | — | — |
 | — | `system.extensions.soundManager` | Sound Manager extension | reuse | `system.extension` (7.5.5's Sound Manager is in the System file, with no extension of its own: the generic extension) | — | — |
@@ -351,38 +352,38 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | --- | --- | --- | --- | --- | --- | --- |
 | — | `system.files._1292` | Flowchart document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `system.files._1294` | Yellow note stack document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
-| [x] | `system.files.application` | Generic application | export | System, ID -3996 (`kGenericApplicationIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-application.png` |
-| [x] | `system.files.document` | Generic document | export | System, ID -4000 (`kGenericDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-document.png` |
-| [x] | `system.files.edition` | Edition file | export | System, ID -3989 (`kGenericEditionFileIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-edition.png` |
+| [x] | `system.files.application` | Generic application | export | System, ID -3996 (`kGenericApplicationIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-application.webp` |
+| [x] | `system.files.document` | Generic document | export | System, ID -4000 (`kGenericDocumentIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-document.webp` |
+| [x] | `system.files.edition` | Edition file | export | System, ID -3989 (`kGenericEditionFileIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-edition.webp` |
 | — | `system.files.fileInvisible` | Invisible file (dotted outline) | reuse | `system.files.document` (System 7's generic document; Classicy's file browsers dim invisible files themselves) | — | — |
 | — | `system.files.filePc` | PC file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
-| [x] | `system.files.fileText` | Text document | export | SimpleText, ID 129 (`TEXT` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-file-text.png` |
+| [x] | `system.files.fileText` | Text document | export | SimpleText, ID 129 (`TEXT` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-file-text.webp` |
 | — | `system.files.file` | Plain file | reuse | `system.files.document` | — | — |
 | — | `system.files.internationalization` | International (flags) file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
-| [x] | `system.files.note` | Note Pad file | export | Note Pad (Apple Menu Items), ID 129 (`npad` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-note.png` |
-| [x] | `system.files.photo` | Picture document | export | SimpleText, ID 131 (`PICT` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-photo.png` |
-| [x] | `system.files.preferences` | Generic preferences file | export | System, ID -3971 (`kGenericPreferencesIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-preferences.png` |
-| [x] | `system.files.script` | Script | export | Script Editor (Apple Extras, AppleScript), ID 129 (`osas`, the compiled script, in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-script.png` |
+| [x] | `system.files.note` | Note Pad file | export | Note Pad (Apple Menu Items), ID 129 (`npad` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-note.webp` |
+| [x] | `system.files.photo` | Picture document | export | SimpleText, ID 131 (`PICT` in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-photo.webp` |
+| [x] | `system.files.preferences` | Generic preferences file | export | System, ID -3971 (`kGenericPreferencesIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-preferences.webp` |
+| [x] | `system.files.script` | Script | export | Script Editor (Apple Extras, AppleScript), ID 129 (`osas`, the compiled script, in its `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-script.webp` |
 | — | `system.files.settingsSync` | Settings sync file | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
 | — | `system.files.slideshow` | Slide show document | reuse | `system.files.document` (System 7 shows the generic document) | — | — |
-| [x] | `system.files.sound` | Sound file | export | Finder, ID 14000, the sound file (`sfil`) icon; the System's own `BNDL` has no `sfil` | `ICN#` `icl8` `ics#` `ics8` | `system-files-sound.png` |
-| [x] | `system.files.stationaryBlack` | Generic stationery | export | System, ID -3985 (`kGenericStationeryIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-stationary-black.png` |
+| [x] | `system.files.sound` | Sound file | export | Finder, ID 14000, the sound file (`sfil`) icon; the System's own `BNDL` has no `sfil` | `ICN#` `icl8` `ics#` `ics8` | `system-files-sound.webp` |
+| [x] | `system.files.stationaryBlack` | Generic stationery | export | System, ID -3985 (`kGenericStationeryIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-files-stationary-black.webp` |
 
 ### System: folders
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.folders.appleMenuItem` | Apple Menu Items folder | export | System, ID -3982 (`kAppleMenuFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-apple-menu-item.png` |
+| [x] | `system.folders.appleMenuItem` | Apple Menu Items folder | export | System, ID -3982 (`kAppleMenuFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-apple-menu-item.webp` |
 | — | `system.folders.applicationSupport` | Application Support folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.applications` | Applications folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.assistant` | Assistants folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.colorsyncProfiles` | ColorSync Profiles folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.compressed` | Compressed folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.contextualMenuItems` | Contextual Menu Items folder | reuse | `system.folders.directory` (generic folder) | — | — |
-| [x] | `system.folders.controlPanels` | Control Panels folder | export | System, ID -3976 (`kControlPanelFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-control-panels.png` |
+| [x] | `system.folders.controlPanels` | Control Panels folder | export | System, ID -3976 (`kControlPanelFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-control-panels.webp` |
 | — | `system.folders.controlStrip` | Control Strip Modules folder | reuse | `system.folders.directory` (generic folder) | — | — |
-| [x] | `system.folders.directory` | Generic folder | export | System, ID -3999 (`kGenericFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-directory.png` |
-| [x] | `system.folders.extensions` | Extensions folder | export | System, ID -3973 (`kExtensionsFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-extensions.png` |
+| [x] | `system.folders.directory` | Generic folder | export | System, ID -3999 (`kGenericFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-directory.webp` |
+| [x] | `system.folders.extensions` | Extensions folder | export | System, ID -3973 (`kExtensionsFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-extensions.webp` |
 | — | `system.folders.extras` | Apple Extras folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.favorites` | Favorites folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.folderApple` | Folder with an Apple | reuse | `system.folders.appleMenuItem` | — | — |
@@ -391,22 +392,22 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.folders.folderFonts` | Fonts folder (alternate) | reuse | `system.folders.fonts` | — | — |
 | — | `system.folders.folderLdap` | LDAP folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.folderPreferences` | Preferences folder (alternate) | reuse | `system.folders.preferences` | — | — |
-| [x] | `system.folders.folderPrinters` | Printers folder | export | System, ID -3975 (`kPrintMonitorFolderIconResource`, PrintMonitor Documents) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-folder-printers.png` |
+| [x] | `system.folders.folderPrinters` | Printers folder | export | System, ID -3975 (`kPrintMonitorFolderIconResource`, PrintMonitor Documents) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-folder-printers.webp` |
 | — | `system.folders.folderSystemProtected` | Locked System Folder | reuse | `system.folders.system` | — | — |
 | — | `system.folders.folderSystem` | System Folder (alternate) | reuse | `system.folders.system` | — | — |
-| [x] | `system.folders.fonts` | Fonts folder | export | System, ID -3968 (`kFontsFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-fonts.png` |
+| [x] | `system.folders.fonts` | Fonts folder | export | System, ID -3968 (`kFontsFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-fonts.webp` |
 | — | `system.folders.help` | Help folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.internet` | Internet folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.internetSearchSites` | Internet Search Sites folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.languageAndRegion` | Language & Region folder | reuse | `system.folders.directory` (generic folder) | — | — |
-| [x] | `system.folders.preferences` | Preferences folder | export | System, ID -3974 (`kPreferencesFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-preferences.png` |
+| [x] | `system.folders.preferences` | Preferences folder | export | System, ID -3974 (`kPreferencesFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-preferences.webp` |
 | — | `system.folders.recentDocuments` | Recent Documents folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.scripts` | Scripts folder | reuse | `system.folders.directory` (generic folder) | — | — |
-| [x] | `system.folders.startupItems` | Startup Items folder | export | System, ID -3981 (`kStartupFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-startup-items.png` |
-| [x] | `system.folders.suitcaseSystem` | System file (suitcase with a Mac) | export | System, ID -16494 (`zsys` in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-suitcase-system.png` |
-| [x] | `system.folders.suitcase` | Suitcase (font or DA suitcase) | export | Finder, ID 15500, the font suitcase (`FFIL`); the 7.5.5 System has no -3970 | `ICN#` `icl8` `ics#` `ics8` | `system-folders-suitcase.png` |
+| [x] | `system.folders.startupItems` | Startup Items folder | export | System, ID -3981 (`kStartupFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-startup-items.webp` |
+| [x] | `system.folders.suitcaseSystem` | System file (suitcase with a Mac) | export | System, ID -16494 (`zsys` in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-suitcase-system.webp` |
+| [x] | `system.folders.suitcase` | Suitcase (font or DA suitcase) | export | Finder, ID 15500, the font suitcase (`FFIL`); the 7.5.5 System has no -3970 | `ICN#` `icl8` `ics#` `ics8` | `system-folders-suitcase.webp` |
 | — | `system.folders.suitecaseSystem` | System suitcase (misspelled duplicate key) | reuse | `system.folders.suitcaseSystem` | — | — |
-| [x] | `system.folders.system` | System Folder | export | System, ID -3983 (`kSystemFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-system.png` |
+| [x] | `system.folders.system` | System Folder | export | System, ID -3983 (`kSystemFolderIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-folders-system.webp` |
 | — | `system.folders.textEncodings` | Text Encodings folder | reuse | `system.folders.directory` (generic folder) | — | — |
 | — | `system.folders.utilities` | Utilities folder | reuse | `system.folders.directory` (generic folder) | — | — |
 
@@ -414,7 +415,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 
 | Done | Key | Depicts | Decision | Source | Resources | File |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `system.network.chooser` | Chooser | export | Chooser (Apple Menu Items), ID -15904 (`dfil`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-chooser.png` |
+| [x] | `system.network.chooser` | Chooser | export | Chooser (Apple Menu Items), ID -15904 (`dfil`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-chooser.webp` |
 | — | `system.network.controlpanelInternet` | Internet control panel | reuse | `system.files.document` (System 7's generic for a control panel with no icon, as `system.quicktime.controlPanel`) | — | — |
 | — | `system.network.crypto` | Encryption | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.fileServer` | File server | reuse | `system.drives.networkDrive` (the same -3972 server icon) | — | — |
@@ -425,14 +426,14 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.network.internet` | Internet | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.ldapDirectory` | LDAP directory | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.modem` | Modem | core | Hardware glyph with no file-kind meaning | — | — |
-| [x] | `system.network.networkLocal` | Local network | export | Network control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-network-local.png` |
+| [x] | `system.network.networkLocal` | Local network | export | Network control panel, ID -4064 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-network-local.webp` |
 | — | `system.network.networkPublic` | Public network | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.sslInvalid` | Invalid certificate | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.sslWeb` | Secure web | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.ssl` | Lock (secure) | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.terminal` | Terminal | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.network.usenet` | Usenet | core | Concept glyph with no file-kind meaning | — | — |
-| [x] | `system.network.userDirectory` | User directory (person with a folder) | export | Users & Groups control panel, ID 128 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-user-directory.png` |
+| [x] | `system.network.userDirectory` | User directory (person with a folder) | export | Users & Groups control panel, ID 128 (`cdev`) | `ICN#` `icl8` `ics#` `ics8` | `system-network-user-directory.webp` |
 
 ### System: QuickTime
 
@@ -445,7 +446,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.quicktime.forwardButton` | Step forward button | core | Classicy UI glyph (the movie controller) | — | — |
 | — | `system.quicktime.fullscreenButton` | Full screen button | core | Classicy UI glyph (the movie controller) | — | — |
 | — | `system.quicktime.movieStationary` | Movie stationery | reuse | `system.files.stationaryBlack` (a stationery pad whose application has no stationery icon gets System 7's generic stationery; stationery-ness is what the icon says) | — | — |
-| [x] | `system.quicktime.movie` | QuickTime movie document | export | SimpleText, ID 133 (`MooV` in its `BNDL`): MoviePlayer is not in the 7.5.5 install | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-movie.png` |
+| [x] | `system.quicktime.movie` | QuickTime movie document | export | SimpleText, ID 133 (`MooV` in its `BNDL`): MoviePlayer is not in the 7.5.5 install | `ICN#` `icl8` `ics#` `ics8` | `system-quicktime-movie.webp` |
 | — | `system.quicktime.pauseButton` | Pause button | core | Classicy UI glyph (the movie controller) | — | — |
 | — | `system.quicktime.playButton` | Play button | core | Classicy UI glyph (the movie controller) | — | — |
 | — | `system.quicktime.player` | Movie player application | reuse | `system.files.application` (MoviePlayer is not in the 7.5.5 install: System 7's generic application) | — | — |
@@ -506,7 +507,7 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.sherlock.searchData` | Search data | reuse | `system.sherlock.sherlock` (Find File) | — | — |
 | — | `system.sherlock.searchFiles` | Search files | reuse | `system.sherlock.sherlock` (Find File) | — | — |
 | — | `system.sherlock.search` | Search (PDF viewer find) | reuse | `system.sherlock.sherlock` (Find File) | — | — |
-| [x] | `system.sherlock.sherlock` | Sherlock (find) | export | Find File (Apple Menu Items, System 7.5's find), ID 128 (`APPL`) | `ICN#` `icl8` `ics#` `ics8` | `system-sherlock-sherlock.png` |
+| [x] | `system.sherlock.sherlock` | Sherlock (find) | export | Find File (Apple Menu Items, System 7.5's find), ID 128 (`APPL`) | `ICN#` `icl8` `ics#` `ics8` | `system-sherlock-sherlock.webp` |
 
 ### System: tag colors
 
@@ -537,25 +538,25 @@ Every leaf of the core icon tree (`src/SystemFolder/ControlPanels/AppearanceMana
 | — | `system.appleWhiteOnBlack` | White Apple logo on black | core | Brand (Apple logo) | — | — |
 | — | `system.bigSwitchOff` | Power switch, off | core | Classicy UI glyph | — | — |
 | — | `system.bigSwitchOn` | Power switch, on | core | Classicy UI glyph | — | — |
-| [x] | `system.clipboard` | Clipboard file | export | System, ID -16509 (`CLIP` in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-clipboard.png` |
+| [x] | `system.clipboard` | Clipboard file | export | System, ID -16509 (`CLIP` in the System's `BNDL`) | `ICN#` `icl8` `ics#` `ics8` | `system-clipboard.webp` |
 | — | `system.comport1` | COM1 serial port | core | Hardware glyph with no file-kind meaning | — | — |
 | — | `system.comport2` | COM2 serial port | core | Hardware glyph with no file-kind meaning | — | — |
-| [x] | `system.error` | Stop alert icon | export | System, ID 0 (`kStopIcon`). 1-bit, no mask, no small size. The System has no `cicn` 0: color alerts draw the 1-bit icon (`color-alert-stop-pagesetup.png`) | `ICON` (`cicn` if present) | `system-error.png` |
-| [x] | `system.extension` | Generic extension (puzzle piece) | export | System, ID -16415 (`kGenericExtensionIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-extension.png` |
-| [x] | `system.help` | Help (Finder Preferences) | export | Apple Guide (Extensions), ID 130 (the Guide file, `help`): -20271 is not in the 7.5.5 System | `ICN#` `icl8` `ics#` `ics8` | `system-help.png` |
-| [x] | `system.info` | Note alert icon | export | System, ID 1 (`kNoteIcon`). 1-bit, no mask, no small size. The System has no `cicn` 1 | `ICON` (`cicn` if present) | `system-info.png` |
+| [x] | `system.error` | Stop alert icon | export | System, ID 0 (`kStopIcon`). 1-bit, no mask, no small size. The System has no `cicn` 0: color alerts draw the 1-bit icon (`color-alert-stop-pagesetup.png`) | `ICON` (`cicn` if present) | `system-error.webp` |
+| [x] | `system.extension` | Generic extension (puzzle piece) | export | System, ID -16415 (`kGenericExtensionIconResource`) | `ICN#` `icl8` `ics#` `ics8` | `system-extension.webp` |
+| [x] | `system.help` | Help (Finder Preferences) | export | Apple Guide (Extensions), ID 130 (the Guide file, `help`): -20271 is not in the 7.5.5 System | `ICN#` `icl8` `ics#` `ics8` | `system-help.webp` |
+| [x] | `system.info` | Note alert icon | export | System, ID 1 (`kNoteIcon`). 1-bit, no mask, no small size. The System has no `cicn` 1 | `ICON` (`cicn` if present) | `system-info.webp` |
 | — | `system.internet` | Internet (hand and globe) | core | Concept glyph with no file-kind meaning | — | — |
 | — | `system.macClassic` | Macintosh Classic with mouse | reuse | `system.mac` (the compact Mac machine icon) | — | — |
 | — | `system.macWink` | Winking compact Mac | core | Hardware glyph with no file-kind meaning | — | — |
-| [x] | `system.mac` | Compact Macintosh (About This Computer, file dialogs) | export | System, ID -16482, the compact Mac | `ICN#` `icl8` `ics#` `ics8` | `system-mac.png` |
-| [x] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | Finder (System Folder), ID 3967, the Finder's own icon (a hand inserting a disk); the System's ID 3, which its `BNDL` gives `FNDR`, `ZSYS`, `FDOC` and `gbly` alike, is the generic compact Mac, the same image as `system.mac` | `ICN#` `icl8` `ics#` `ics8` | `system-macos.png` |
+| [x] | `system.mac` | Compact Macintosh (About This Computer, file dialogs) | export | System, ID -16482, the compact Mac | `ICN#` `icl8` `ics#` `ics8` | `system-mac.webp` |
+| [x] | `system.macos` | Finder / Mac OS face (Finder's application icon, desktop) | export | Finder (System Folder), ID 3967, the Finder's own icon (a hand inserting a disk); the System's ID 3, which its `BNDL` gives `FNDR`, `ZSYS`, `FDOC` and `gbly` alike, is the generic compact Mac, the same image as `system.mac` | `ICN#` `icl8` `ics#` `ics8` | `system-macos.webp` |
 | — | `system.macosSvg` | Mac OS face logo, vector (Platinum startup screen) | core | Brand (Mac OS logo) | — | — |
 | — | `system.pig` | Piggy bank | core | Concept glyph with no file-kind meaning | — | — |
-| [x] | `system.printer` | Printer | export | LaserWriter 8 (Extensions), ID -4096 (`PRER`, the icon the Chooser shows) | `ICN#` `icl8` `ics#` `ics8` | `system-printer.png` |
-| [x] | `system.question` | Document with a question mark | export | System, ID -5696, the document with a "?" (`help` in the System's `BNDL`); -16506, which Icons.h names the generic query document, is a database query form. 1-bit only: the color files are the `ICN#` and `ics#` images | `ICN#` `ics#` | `system-question.png` |
+| [x] | `system.printer` | Printer | export | LaserWriter 8 (Extensions), ID -4096 (`PRER`, the icon the Chooser shows) | `ICN#` `icl8` `ics#` `ics8` | `system-printer.webp` |
+| [x] | `system.question` | Document with a question mark | export | System, ID -5696, the document with a "?" (`help` in the System's `BNDL`); -16506, which Icons.h names the generic query document, is a database query form. 1-bit only: the color files are the `ICN#` and `ics#` images | `ICN#` `ics#` | `system-question.webp` |
 | — | `system.shockwave` | Shockwave logo | core | Brand (Macromedia) | — | — |
 | — | `system.systemResources` | System Resources file | reuse | `system.folders.suitcaseSystem` (the System file) | — | — |
-| [x] | `system.warn` | Caution alert icon | export | System, ID 2 (`kCautionIcon`). 1-bit, no mask, no small size. The System has no `cicn` 2 (`color-alert-caution-savechanges.png` draws the 1-bit icon) | `ICON` (`cicn` if present) | `system-warn.png` |
+| [x] | `system.warn` | Caution alert icon | export | System, ID 2 (`kCautionIcon`). 1-bit, no mask, no small size. The System has no `cicn` 2 (`color-alert-caution-savechanges.png` draws the 1-bit icon) | `ICON` (`cicn` if present) | `system-warn.webp` |
 | — | `system.windows` | Windows logo | core | Brand (Microsoft) | — | — |
 
 ### UI
@@ -572,25 +573,25 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 
 | Done | Key | What | Decision | Source | Color file | B&W file |
 | --- | --- | --- | --- | --- | --- | --- |
-| [x] | `appleMenu` | Apple menu title glyph | crop | Color: System `ics8` -16386, the rainbow Apple the color menu bar draws (it is the screenshot's apple at 15,1, pixel for pixel), exported with its `ics#` mask; B&W: Chicago's apple character, which the 1-bit menu bar draws, the 16 × 16 cell at 15,1 of `bw-desktop-menubar-icons.png`, white made transparent. Both 16 × 16, the glyph where the menu bar draws it | `art/color/apple-menu.png` | `art/bw/apple-menu.png` |
-| — | `sadMac` | Sad Mac on the crash screen | draw | ROM art, the same on every Mac: copy Platinum's `sad-mac.png` (implementer) | — | — |
-| [x] | `startupLogo` | Startup screen logo | export | The 7.5.5 "Mac OS" startup panel: System PICT -16503 (256 colors) and -16501 (B&W), cropped to the panel's black frame (225 × 143) | `art/color/startup-logo.png` | `art/bw/startup-logo.png` |
-| [x] | `trashEmpty` | Trash, empty (desktop icon) | export | System, ID -3993 (`kTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-empty.png` | `art/bw/trash-empty.png` |
-| [x] | `trashFull` | Trash, full (desktop icon) | export | System, ID -3984 (`kFullTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-full.png` | `art/bw/trash-full.png` |
+| [x] | `appleMenu` | Apple menu title glyph | crop | Color: System `ics8` -16386, the rainbow Apple the color menu bar draws (it is the screenshot's apple at 15,1, pixel for pixel), exported with its `ics#` mask; B&W: Chicago's apple character, which the 1-bit menu bar draws, the 16 × 16 cell at 15,1 of `bw-desktop-menubar-icons.png`, white made transparent. Both 16 × 16, the glyph where the menu bar draws it | `art/color/apple-menu.webp` | `art/bw/apple-menu.webp` |
+| — | `sadMac` | Sad Mac on the crash screen | draw | ROM art, the same on every Mac: Platinum's image (`art/sad-mac.webp`), written again by the script without Platinum's ICC profile | — | — |
+| [x] | `startupLogo` | Startup screen logo | export | The 7.5.5 "Mac OS" startup panel: System PICT -16503 (256 colors) and -16501 (B&W), cropped to the panel's black frame (225 × 143) | `art/color/startup-logo.webp` | `art/bw/startup-logo.webp` |
+| [x] | `trashEmpty` | Trash, empty (desktop icon) | export | System, ID -3993 (`kTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-empty.webp` | `art/bw/trash-empty.webp` |
+| [x] | `trashFull` | Trash, full (desktop icon) | export | System, ID -3984 (`kFullTrashIconResource`): `icl8` with the `ICN#` mask for color, `ICN#` for B&W, 32 px only (the desktop's Trash icon is the only reader; no 16 px file) | `art/color/trash-full.webp` | `art/bw/trash-full.webp` |
 | — | `aliasBadge` | Alias arrow over an alias's icon | draw | System 7 has no alias badge: aliases show only an italic name. A transparent 32×32 SVG (implementer) | — | — |
-| [x] | `helpButton` | Help button glyph (round help button) | export | The Help (Balloon Help) menu's title, the balloon with a "?" (HIG p.52): System `ics8` -16490 for color, `ics#` -16490 for B&W, each the menu bar's title pixel for pixel (at 580,2 in both screenshots) | `art/color/help-button.png` | `art/bw/help-button.png` |
+| [x] | `helpButton` | Help button glyph (round help button) | export | The Help (Balloon Help) menu's title, the balloon with a "?" (HIG p.52): System `ics8` -16490 for color, `ics#` -16490 for B&W, each the menu bar's title pixel for pixel (at 580,2 in both screenshots) | `art/color/help-button.webp` | `art/bw/help-button.webp` |
 | — | `aboutLogo` | About This Computer logo | core | `classicy.logo`, as Platinum registers it | — | — |
 | — | `aboutBackground` | About box background | draw | No consumer today; About This Macintosh is plain white: an 8×8 white SVG (implementer) | — | — |
-| [x] | `windowStripes` | Title-bar racing stripes (active window) | crop | A repeating tile, 16 px wide × 15 px tall, from an active document window's title bar in a 1x screenshot. Count the window's top frame line as row 0: take rows 2 to 16, so the frame lines and the color bar's 1 px highlight and shadow rows are out (the package draws those); the six stripes land on tile rows 2, 4, 6, 8, 10 and 12. Columns: 16 px from the middle of the stripe run between the close box and the title, clear of both gaps. Black stripes in B&W, gray in color, the face (#EEEEEE, white) made transparent: the ink alone, which System 7 uses as the mask of a layer of its stripe token (`_Window.scss`), so the stripes stay whole pixels at any zoom. Platinum's consumer repeats its own across each stripe band. Cropped at 80,83 from `color-finder-window-fits-active.png` and `bw-finder-window-fits-active.png` | `art/color/window-stripes.png` | `art/bw/window-stripes.png` |
+| [x] | `windowStripes` | Title-bar racing stripes (active window) | crop | A repeating tile, 16 px wide × 15 px tall, from an active document window's title bar in a 1x screenshot. Count the window's top frame line as row 0: take rows 2 to 16, so the frame lines and the color bar's 1 px highlight and shadow rows are out (the package draws those); the six stripes land on tile rows 2, 4, 6, 8, 10 and 12. Columns: 16 px from the middle of the stripe run between the close box and the title, clear of both gaps. Black stripes in B&W, gray in color, the face (#EEEEEE, white) made transparent: the ink alone, which System 7 uses as the mask of a layer of its stripe token (`_Window.scss`), so the stripes stay whole pixels at any zoom. Platinum's consumer repeats its own across each stripe band. Cropped at 80,83 from `color-finder-window-fits-active.png` and `bw-finder-window-fits-active.png` | `art/color/window-stripes.webp` | `art/bw/window-stripes.webp` |
 | — | `windowStripesRed` | Red title-bar stripes (Platinum variant) | reuse | `windowStripes` (System 7 has no red variant; nothing reads it) | — | — |
-| [x] | `windowUtilityTexture` | Utility window (windoid) drag-bar texture | crop | A 3 × 3 tile, not 4 × 4: System 7.5's floating window drag region is one dot in every 3 × 3 (rows 4, 7 and 10 below the frame line, docs/system7-reference-screenshots.md, MWD 6). Cropped at 108,97 from `color-floating-appleguide.png` and `bw-floating-appleguide.png`, the dot top left, the face (#EEEEEE, white) made transparent: the dot alone, which System 7 masks its dot token with | `art/color/window-utility-texture.png` | `art/bw/window-utility-texture.png` |
-| [x] | `windowGrip` | Size box glyph (window grow box) | crop | The whole size box cell, glyph and face, from an active window with both scroll bars in a 1x screenshot: every pixel inside its four 1 px lines (the vertical scroll bar's left line, the horizontal scroll bar's top line, the window frame's right and bottom lines); all four lines out. The consumer expects the cell: Platinum's `resizer.svg` fills the whole resizer box as its background. Cropped at 413,283 (14 × 14) from `color-finder-window-fits-active.png` and `bw-finder-window-fits-active.png` | `art/color/window-grip.png` | `art/bw/window-grip.png` |
+| [x] | `windowUtilityTexture` | Utility window (windoid) drag-bar texture | crop | A 3 × 3 tile, not 4 × 4: System 7.5's floating window drag region is one dot in every 3 × 3 (rows 4, 7 and 10 below the frame line, docs/system7-reference-screenshots.md, MWD 6). Cropped at 108,97 from `color-floating-appleguide.png` and `bw-floating-appleguide.png`, the dot top left, the face (#EEEEEE, white) made transparent: the dot alone, which System 7 masks its dot token with | `art/color/window-utility-texture.webp` | `art/bw/window-utility-texture.webp` |
+| [x] | `windowGrip` | Size box glyph (window grow box) | crop | The whole size box cell, glyph and face, from an active window with both scroll bars in a 1x screenshot: every pixel inside its four 1 px lines (the vertical scroll bar's left line, the horizontal scroll bar's top line, the window frame's right and bottom lines); all four lines out. The consumer expects the cell: Platinum's `resizer.svg` fills the whole resizer box as its background. Cropped at 413,283 (14 × 14) from `color-finder-window-fits-active.png` and `bw-finder-window-fits-active.png` | `art/color/window-grip.webp` | `art/bw/window-grip.webp` |
 | — | `windowDither` | Control-box dither (Platinum) | draw | System 7 control boxes have no dither: a transparent 2×2 SVG (implementer) | — | — |
-| [x] | `zoomGlyph` | Zoom box glyph | crop | The glyph only, at its place in the box: crop the 11×11 zoom box from an active window's title bar in a 1x screenshot with its outer 1 px frame line in, then make the frame ring and the face (and, in color, the bevel pixels) transparent, keeping only the inner square's right and bottom edge lines. Platinum's consumer lays the glyph over the whole box (`.classicyWindowZoomBox::after`, `zoom.svg`) and the package draws the box frame and face. Cropped at 408,85 from `color-finder-window-fits-active.png` (the inner square's lines at x 6, y 2–6 and y 6, x 2–6) and `bw-finder-window-fits-active.png` (x 6, y 1–6 and y 6, x 1–6) | `art/color/zoom-glyph.png` | `art/bw/zoom-glyph.png` |
+| [x] | `zoomGlyph` | Zoom box glyph | crop | The glyph only, at its place in the box: crop the 11×11 zoom box from an active window's title bar in a 1x screenshot with its outer 1 px frame line in, then make the frame ring and the face (and, in color, the bevel pixels) transparent, keeping only the inner square's right and bottom edge lines. Platinum's consumer lays the glyph over the whole box (`.classicyWindowZoomBox::after`, `zoom.svg`) and the package draws the box frame and face. Cropped at 408,85 from `color-finder-window-fits-active.png` (the inner square's lines at x 6, y 2–6 and y 6, x 2–6) and `bw-finder-window-fits-active.png` (x 6, y 1–6 and y 6, x 1–6) | `art/color/zoom-glyph.webp` | `art/bw/zoom-glyph.webp` |
 | — | `collapseGlyph` | Collapse box glyph | draw | System 7 has no collapse box (the package hides it): a transparent 11×11 SVG (implementer) | — | — |
-| [x] | `submenuArrow` | Hierarchical menu triangle | crop | The solid black right-pointing triangle: crop it from an item with a submenu (Apple menu ▸ Recent Applications, Apple Menu Options) in a 1x screenshot, tight to the triangle. Cropped at 189,73 (6 × 11) from `color-menu-hierarchical-controlpanels.png`, white made transparent | `art/color/submenu-arrow.png` | same as color |
-| [x] | `popupArrows` | Pop-up menu indicator | crop | The single solid black down triangle (HIG p.87): crop it tight from a pop-up menu (the Monitors or Sound control panel) in a 1x screenshot. Cropped at 369,125 (11 × 6) from `color-dialog-standardfile-open.png`, white made transparent | `art/color/popup-arrows.png` | same as color |
-| [x] | `sliderThumb` | Slider thumb | crop | No Toolbox slider (HIG p.214); crop the thumb of the Sound control panel's volume slider in a 1x screenshot. Cropped at 163,112 (23 × 11) from `color-controlpanel-sound-slider.png`, the white outside its outline made transparent | `art/color/slider-thumb.png` | same as color |
+| [x] | `submenuArrow` | Hierarchical menu triangle | crop | The solid black right-pointing triangle: crop it from an item with a submenu (Apple menu ▸ Recent Applications, Apple Menu Options) in a 1x screenshot, tight to the triangle. Cropped at 189,73 (6 × 11) from `color-menu-hierarchical-controlpanels.png`, white made transparent | `art/color/submenu-arrow.webp` | same as color |
+| [x] | `popupArrows` | Pop-up menu indicator | crop | The single solid black down triangle (HIG p.87): crop it tight from a pop-up menu (the Monitors or Sound control panel) in a 1x screenshot. Cropped at 369,125 (11 × 6) from `color-dialog-standardfile-open.png`, white made transparent | `art/color/popup-arrows.webp` | same as color |
+| [x] | `sliderThumb` | Slider thumb | crop | No Toolbox slider (HIG p.214); crop the thumb of the Sound control panel's volume slider in a 1x screenshot. Cropped at 163,112 (23 × 11) from `color-controlpanel-sound-slider.png`, the white outside its outline made transparent | `art/color/slider-thumb.webp` | same as color |
 | — | `sliderThumbRect` | Rectangular slider thumb | reuse | `sliderThumb` (System 7 has one slider look) | — | — |
 | — | `sliderStrikes` | Grip strikes on a slider thumb | draw | System 7 thumbs have no strikes: a transparent 2×2 SVG (implementer) | — | — |
 | — | `tabOutline` | Tab control outline | draw | System 7 has no tab control: a flat 1 px black outline in Platinum's tab geometry, as an SVG (implementer) | — | — |
@@ -601,8 +602,8 @@ Every `ClassicySystemArtKey` (`src/Appearance/ClassicyAssetRegistry.ts`; Platinu
 | — | `controlStripTab` | Control Strip tab | draw | Pixel-art rows transcribed from the 7.5.5 Control Strip control panel (Control Strip 1.3.1, the strip Mac OS 8 kept) by its own picture of the strip's right end, `PICT` -4044 (color) and -4043 (1-bit), columns 44-60: its outline and dots as drawn, the colors in System 7 Color's nearest tokens (see "Desktop pattern and Control Strip" under Reproducing the files); the 1-bit rows are the `bw` variant. No reference crop was made | — | — |
 | — | `controlStripTabRight` | Control Strip tab, docked right | draw | Pixel-art rows read from the 7.5.5 strip docked right, `*-755-controlstrip-right.png` (the capture script's `controlstripright` scene), columns 487-503: its own art, not the left tab mirrored (the grip a column apart), each color the token `controlStripTab` gives it; the 1-bit rows are the `bw` variant | — | — |
 | — | `newFolderGlyph` | Standard File's New button folder | draw | Pixel-art rows read from 7.5's Save box, `*-dialog-standardfile-save.png`, columns 452-467, rows 159-171: the 1-bit folder outline the New button draws after its word, black at both depths | — | — |
-| — | `openFolderIcon` | Standard File's open folder (the pop-up's folder shown) | crop | Cropped from 7.5's Save box, `*-dialog-standardfile-save.png` at 209,77 (16 x 16, the icon's rect: four columns inside the pop-up's frame, two rows under its top), its black outline kept and every other pixel clear: black at both depths | `art/color/open-folder-icon.png` | same as color |
-| — | `fileDialogFolderIcon` | Standard File's list folder (a folder row's small icon) | draw | The 16 px folder icon (`icons/{color,bw}/16/system-folders-directory.png`) moved up two rows, its bottom two rows clear: Standard File draws its folder two rows higher in an 18-pixel row than the Finder (`*-755-dialog-standardfile-layout.png`, Apple Extras and System Folder: ink two rows under the row's top, the 16 x 16 shape AE 0 once aligned) | `art/color/file-dialog-folder-icon.png` | `art/bw/file-dialog-folder-icon.png` |
+| — | `openFolderIcon` | Standard File's open folder (the pop-up's folder shown) | crop | Cropped from 7.5's Save box, `*-dialog-standardfile-save.png` at 209,77 (16 x 16, the icon's rect: four columns inside the pop-up's frame, two rows under its top), its black outline kept and every other pixel clear: black at both depths | `art/color/open-folder-icon.webp` | same as color |
+| — | `fileDialogFolderIcon` | Standard File's list folder (a folder row's small icon) | draw | The 16 px folder icon (`icons/{color,bw}/16/system-folders-directory.webp`) moved up two rows, its bottom two rows clear: Standard File draws its folder two rows higher in an 18-pixel row than the Finder (`*-755-dialog-standardfile-layout.png`, Apple Extras and System Folder: ink two rows under the row's top, the 16 x 16 shape AE 0 once aligned) | `art/color/file-dialog-folder-icon.webp` | `art/bw/file-dialog-folder-icon.webp` |
 | — | `controlStripCollapse` | Control Strip collapse box | draw | Pixel-art rows transcribed from the panel's `ics8` -4045 (color) and `ics#` -4045 (1-bit, the `bw` variant), as `controlStripTab`'s | — | — |
 | — | `controlStripScrollLeft` | Control Strip scroll arrow, left | draw | Pixel-art rows transcribed from the panel's `ics8` -4047, its left 8 columns (color), and `ics#` -4047 (1-bit), as `controlStripTab`'s | — | — |
 | — | `controlStripScrollLeftDisabled` | Control Strip scroll arrow, left, dimmed | draw | Pixel-art rows transcribed from the panel's `ics8` -4047, its right 8 columns (color); in 1-bit the arrow itself, `ics#` -4047, as the panel's 1-bit picture draws a dimmed arrow | — | — |

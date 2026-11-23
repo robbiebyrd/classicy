@@ -13,7 +13,10 @@ import {
 	resolveClassicyAsset,
 } from "@classicy/classicy";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PLATINUM_WALLPAPERS } from "./assets/platinumWallpapers";
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperFile,
+} from "./assets/platinumWallpapers";
 
 // Review focus "one registry, not two" (plan 0015-kxa §3.1 step 5, design
 // 0014-ahm anti-goal "Two copies of the registries"): the package's built
@@ -123,8 +126,9 @@ describe("the built bundle and the core's registries", () => {
 			expect(inlined).toEqual(["image/svg+xml"]);
 		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.png["']/);
+		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.webp["']/);
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(es).toContain(`new URL("assets/platinum.${ext}"`);
 	});
 
@@ -136,16 +140,19 @@ describe("the built bundle and the core's registries", () => {
 			expect.arrayContaining([
 				"platinum.ogg",
 				"platinum.m4a",
-				"platinum.mp3",
-				"platinum.ac3",
-				...PLATINUM_WALLPAPERS.map(({ file }) => file),
-				"apple.png",
+				// Each wallpaper as the WebP the converter wrote for it (plan
+				// 0019-fb7 §6.4); its identity filename stays a .png or .jpg.
+				...PLATINUM_WALLPAPERS.map(({ file }) => platinumWallpaperFile(file)),
+				"apple.webp",
+				// Kept a PNG: Chromium draws it differently from its WebP.
 				"alias.png",
-				"trash-empty.png",
-				"trash-full.png",
-				"help-button.png",
+				"trash-empty.webp",
+				"trash-full.webp",
+				"help-button.webp",
+				"sad-mac.webp",
+				"platinum.webp",
 				// The list view's 16 px folder (HIGOS8 Fig. 2-24, story 0214-c61).
-				"folder-small.png",
+				"folder-small.webp",
 				"cursor-watch.png",
 				...["lr", "ud", "u", "d", "l", "r"].map(
 					(dir) => `cursor-resize-${dir}.png`,
@@ -162,9 +169,21 @@ describe("the built bundle and the core's registries", () => {
 		);
 		// Nothing else is in dist/assets: the fonts, the package's art (the
 		// small folder its last), and the savers' 23 images.
-		expect(assets).toHaveLength(13 + 19 + 47 + 4 + 12 + 1 + 23);
+		expect(assets).toHaveLength(13 + 19 + 47 + 2 + 12 + 1 + 23);
+		// The only PNGs left are the cursors and the alias badge; no JPG.
+		expect(
+			assets.filter((name) => /\.(?:png|jpe?g)$/.test(name)).sort(),
+		).toEqual(
+			[
+				"alias.png",
+				"cursor-watch.png",
+				...["d", "l", "lr", "r", "u", "ud"].map(
+					(dir) => `cursor-resize-${dir}.png`,
+				),
+			].sort(),
+		);
 		// The sprites are the files bin/make_audio_sprites.sh wrote, byte for byte.
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(
 				readFileSync(path.join(outDir, "assets", `platinum.${ext}`)).equals(
 					readFileSync(

@@ -189,7 +189,7 @@ describe("System 7 asset inventory", () => {
 				const decision = row.Decision ?? "";
 				expect(["export", "reuse", "core"], key).toContain(decision);
 				if (decision === "export") {
-					expect(code(row.File), key).toBe(`${kebab(key)}.png`);
+					expect(code(row.File), key).toBe(`${kebab(key)}.webp`);
 					expect(row.Source, key).toMatch(/\S/);
 				} else {
 					expect(row.File, key).toBe("—");
@@ -224,10 +224,10 @@ describe("System 7 asset inventory", () => {
 				);
 				if (decision === "export" || decision === "crop") {
 					expect(code(row["Color file"]), key).toBe(
-						`art/color/${kebab(key)}.png`,
+						`art/color/${kebab(key)}.webp`,
 					);
 					expect(row["B&W file"], key).toMatch(
-						new RegExp(`^(\`art/bw/${kebab(key)}\\.png\`|same as color)$`),
+						new RegExp(`^(\`art/bw/${kebab(key)}\\.webp\`|same as color)$`),
 					);
 				}
 				if (decision === "reuse") {

@@ -7,6 +7,7 @@ import { resolveClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import "./platinumAssets";
 import {
 	PLATINUM_WALLPAPERS,
+	platinumWallpaperFile,
 	platinumWallpaperUrl,
 } from "./platinumWallpapers";
 import { platinumSoundPack } from "./sounds/platinum";
@@ -83,12 +84,35 @@ describe("the Platinum package's assets folder", () => {
 		}
 	});
 
-	it("reads every wallpaper from src/assets/wallpapers", () => {
+	it("reads every wallpaper from src/assets/wallpapers, as its WebP", () => {
 		for (const { file } of PLATINUM_WALLPAPERS) {
 			expect(assetSourceFile(platinumWallpaperUrl(file), PACKAGE), file).toBe(
-				path.join(SRC_ASSETS, "wallpapers", file),
+				path.join(SRC_ASSETS, "wallpapers", platinumWallpaperFile(file)),
 			);
 		}
+	});
+
+	// Plan 0019-fb7 §6.4: the art and wallpapers ship as WebP, and their
+	// originals left the tree, except art/alias.png, which Chromium draws
+	// differently from its WebP (CLASSICY_WEBP_KEEP_ORIGINAL). Cursors stay
+	// PNG, the format every browser takes for a CSS cursor.
+	it("tracks its art and wallpapers as WebP (and SVG), alias.png excepted", () => {
+		const images = [
+			...tracked("src/assets/art"),
+			...tracked("src/assets/wallpapers"),
+		].filter((file) => /\.(?:png|jpe?g|webp|svg)$/.test(file));
+		expect(images.filter((file) => /\.(?:png|jpe?g)$/.test(file))).toEqual([
+			"src/assets/art/alias.png",
+		]);
+		expect(
+			tracked("src/assets/wallpapers").filter((file) => file.endsWith(".webp")),
+		).toHaveLength(PLATINUM_WALLPAPERS.length);
+		expect(
+			tracked("src/assets/art").filter((file) => file.endsWith(".webp")),
+		).toHaveLength(7);
+		expect(
+			tracked("src/assets/cursors").every((file) => file.endsWith(".png")),
+		).toBe(true);
 	});
 
 	it("loads the sound sprites from src/assets/sounds/platinum", () => {

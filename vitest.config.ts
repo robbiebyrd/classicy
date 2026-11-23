@@ -1,6 +1,10 @@
 import path from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
+import {
+	CLASSICY_DEFLATE_ID_RE,
+	classicyDeflateAssetPlugin,
+} from "./bin/classicyDeflateAsset";
 
 // Platinum's source, the workspace package @classicy/appearance-platinum
 // (plan 0015-kxa §3.1).
@@ -33,13 +37,18 @@ const platinumCoreImportsPlugin = (): Plugin => ({
 });
 
 export default defineConfig({
-	plugins: [platinumCoreImportsPlugin()],
-	// Platinum's sound sprites include an ac3 file, a format Vite does not
-	// know as an asset (src/assets/sounds/platinum.ts imports it).
-	assetsInclude: ["**/*.ac3"],
+	plugins: [
+		platinumCoreImportsPlugin(),
+		// `?classicy-deflate` imports (the pdf.js worker): the inline `classicy`
+		// project extends this config, so the core's tests load them as the
+		// library build does.
+		classicyDeflateAssetPlugin(),
+	],
 	test: {
 		environment: "jsdom",
 		setupFiles: ["./src/__tests__/setup.ts"],
+		// A deflated file under node_modules goes through the plugin, not Node.
+		server: { deps: { inline: [CLASSICY_DEFLATE_ID_RE] } },
 		exclude: ["**/.claude/**", "**/.trunk/**", "**/node_modules/**"],
 		// The core's tests here; each workspace package's under its own config
 		// (`pnpm --filter <name> exec vitest run` runs it alone).

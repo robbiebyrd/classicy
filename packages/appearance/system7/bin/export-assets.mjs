@@ -17,16 +17,23 @@
 //              (docs/system7-reference-screenshots.md)
 // <out>        the package's src/assets (default: beside this script)
 //
-// Every PNG it writes is exactly its native size, RGBA, with no color profile
-// (bin/png.mjs), and is deterministic: a rerun on the same inputs rewrites
-// the same bytes. It prints each cursor's hotspot, the System file's `wctb` 0
-// and `cctb` 0, and every file it writes. The sounds are WAV sources for the
+// It writes WebP (plan 0019-fb7 §6.5): every icon, selected icon and piece
+// of art is lossless WebP, encoded by the repo's pinned libwebp
+// (bin/classicyWebp.ts, the encoder the one-time conversion used), and the
+// cursors stay PNG (bin/png.mjs). Every file is exactly its native size, RGBA,
+// with no color profile or metadata, and is deterministic: a rerun on the same
+// inputs rewrites the same bytes. It prints each cursor's hotspot, the System
+// file's `wctb` 0 and `cctb` 0, and every file it writes. The sounds are WAV sources for the
 // audio pipeline: rebuild the sprite sheet from them with
 // `pnpm build:audio` (bin/make_audio_sprites.sh).
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit } from "node:process";
+import {
+	decodeClassicyWebp,
+	encodeClassicyWebp,
+} from "../../../../bin/classicyWebp.ts";
 import { readBmp } from "./bmp.mjs";
 import {
 	decodeClut,
@@ -170,35 +177,32 @@ const ICONS = [
 ];
 
 const written = [];
-const write = (file, img) => {
+/**
+ * Writes `img` (`{ width, height, pixels }`, RGBA) as `file`, in the format
+ * its extension names: a `.webp` (the icons, their selected renderings and
+ * the art) lossless WebP, `encodeClassicyWebp(img, { lossless: true })`, a
+ * `.png` (the cursors) bin/png.mjs's PNG. Neither carries a color profile or
+ * metadata: libwebp writes a lossless image with none as one `VP8L` chunk.
+ */
+const write = async (file, img) => {
 	const path = join(out, file);
 	mkdirSync(dirname(path), { recursive: true });
-	writeFileSync(path, encodePng(img));
+	let bytes;
+	if (file.endsWith(".webp"))
+		bytes = await encodeClassicyWebp(
+			{ width: img.width, height: img.height, data: img.pixels },
+			{ lossless: true },
+		);
+	else if (file.endsWith(".png")) bytes = encodePng(img);
+	else throw new Error(`${file}: neither .webp nor .png`);
+	writeFileSync(path, bytes);
 	written.push(file);
 	// Every color icon's selected rendering beside it (bin/selectedIcons.mjs).
 	if (file.startsWith("icons/color/"))
-		write(file.replace("icons/color/", "icons/selected/"), selectedIcon(img));
-};
-/**
- * A PNG copied with only the chunks that hold its pixels (`IHDR`, `PLTE`,
- * `tRNS`, `IDAT`, `IEND`), so no color-space chunk (`iCCP`, `gAMA`,
- * `cHRM`, `sRGB`) corrects its stored values and no metadata (an editor's
- * timestamp) rides along, as the export's own files.
- */
-const copy = (from, file) => {
-	const bytes = readFileSync(from);
-	const chunks = [bytes.subarray(0, 8)];
-	for (let at = 8; at < bytes.length; ) {
-		const end = at + 12 + bytes.readUInt32BE(at);
-		const type = bytes.toString("latin1", at + 4, at + 8);
-		if (["IHDR", "PLTE", "tRNS", "IDAT", "IEND"].includes(type))
-			chunks.push(bytes.subarray(at, end));
-		at = end;
-	}
-	const path = join(out, file);
-	mkdirSync(dirname(path), { recursive: true });
-	writeFileSync(path, Buffer.concat(chunks));
-	written.push(file);
+		await write(
+			file.replace("icons/color/", "icons/selected/"),
+			selectedIcon(img),
+		);
 };
 
 const resourceCache = new Map();
@@ -288,24 +292,24 @@ const cropIcon = ([file, x, y]) =>
 	);
 
 for (const [stem, file, id, options = {}] of ICONS) {
-	const png = `${stem}.png`;
+	const webp = `${stem}.webp`;
 	if (options.alert) {
 		const icon = decodeIcon(need(file, "ICON", id));
-		write(`icons/color/32/${png}`, icon);
-		write(`icons/bw/32/${png}`, icon);
+		await write(`icons/color/32/${webp}`, icon);
+		await write(`icons/bw/32/${webp}`, icon);
 		continue;
 	}
 	if (options.size !== 16) {
 		if (options.crop) {
 			const icon = cropIcon(options.crop);
-			write(`icons/color/32/${png}`, icon);
-			write(`icons/bw/32/${png}`, icon);
+			await write(`icons/color/32/${webp}`, icon);
+			await write(`icons/bw/32/${webp}`, icon);
 		} else {
 			const list = need(file, "ICN#", id);
 			const bw = decodeIconList(list, 32);
-			write(`icons/bw/32/${png}`, bw);
-			write(
-				`icons/color/32/${png}`,
+			await write(`icons/bw/32/${webp}`, bw);
+			await write(
+				`icons/color/32/${webp}`,
 				has(file, "icl8", id)
 					? decodeIcon8(need(file, "icl8", id), list, clut, 32)
 					: bw,
@@ -315,9 +319,9 @@ for (const [stem, file, id, options = {}] of ICONS) {
 	if (has(file, "ics#", id)) {
 		const list = need(file, "ics#", id);
 		const bw = decodeIconList(list, 16);
-		write(`icons/bw/16/${png}`, bw);
-		write(
-			`icons/color/16/${png}`,
+		await write(`icons/bw/16/${webp}`, bw);
+		await write(
+			`icons/color/16/${webp}`,
 			has(file, "ics8", id)
 				? decodeIcon8(need(file, "ics8", id), list, clut, 16)
 				: bw,
@@ -331,8 +335,8 @@ for (const [stem, file, id, options = {}] of ICONS) {
 // the decoded folder beside the System file's pictures.
 {
 	const map = readBmp(join(decodedRoot, "Map.rsrc_PICT_-4064.bmp"));
-	write("icons/color/32/control-panels-location-map.png", map);
-	write("icons/bw/32/control-panels-location-map.png", map);
+	await write("icons/color/32/control-panels-location-map.webp", map);
+	await write("icons/bw/32/control-panels-location-map.webp", map);
 }
 
 // --- System art -------------------------------------------------------
@@ -345,11 +349,11 @@ for (const [name, id] of [
 	["trash-full", -3984],
 ]) {
 	const list = need(SYSTEM, "ICN#", id);
-	write(
-		`art/color/${name}.png`,
+	await write(
+		`art/color/${name}.webp`,
 		decodeIcon8(need(SYSTEM, "icl8", id), list, clut, 32),
 	);
-	write(`art/bw/${name}.png`, decodeIconList(list, 32));
+	await write(`art/bw/${name}.webp`, decodeIconList(list, 32));
 }
 
 // The Apple and Help menu titles. On a color screen the menu bar draws the
@@ -359,16 +363,16 @@ for (const [name, id] of [
 // Chicago's apple character, cropped from the same 16 × 16 cell.
 const ics8 = (file, id) =>
 	decodeIcon8(need(file, "ics8", id), need(file, "ics#", id), clut, 16);
-write("art/color/apple-menu.png", ics8(SYSTEM, -16386));
-write(
-	"art/bw/apple-menu.png",
+await write("art/color/apple-menu.webp", ics8(SYSTEM, -16386));
+await write(
+	"art/bw/apple-menu.webp",
 	clearWhere(crop(ref("bw-desktop-menubar-icons.png"), 15, 1, 16, 16), (p) =>
 		isColor(p, WHITE),
 	),
 );
-write("art/color/help-button.png", ics8(SYSTEM, -16490));
-write(
-	"art/bw/help-button.png",
+await write("art/color/help-button.webp", ics8(SYSTEM, -16490));
+await write(
+	"art/bw/help-button.webp",
 	decodeIconList(need(SYSTEM, "ics#", -16490), 16),
 );
 
@@ -394,8 +398,8 @@ for (const [variant, id] of [
 	const right = inward(pict.width - 1, -1, (i) => [i, midY]);
 	const top = inward(0, 1, (i) => [left + 2, i]);
 	const bottom = inward(pict.height - 1, -1, (i) => [left + 2, i]);
-	write(
-		`art/${variant}/startup-logo.png`,
+	await write(
+		`art/${variant}/startup-logo.webp`,
 		crop(pict, left, top, right - left + 1, bottom - top + 1),
 	);
 }
@@ -410,8 +414,8 @@ const FACE = { color: [0xee, 0xee, 0xee], bw: WHITE };
 // rows 2–16 below the top frame line (y 81), between the close box and the
 // title.
 for (const variant of ["color", "bw"])
-	write(
-		`art/${variant}/window-stripes.png`,
+	await write(
+		`art/${variant}/window-stripes.webp`,
 		clearWhere(
 			crop(ref(`${variant}-finder-window-fits-active.png`), 80, 83, 16, 15),
 			(p) => isColor(p, FACE[variant]),
@@ -422,8 +426,8 @@ for (const variant of ["color", "bw"])
 // and 10 below the frame line, measured on Apple Guide's window), so the
 // tile is one 3 × 3 period, its dot top left.
 for (const variant of ["color", "bw"])
-	write(
-		`art/${variant}/window-utility-texture.png`,
+	await write(
+		`art/${variant}/window-utility-texture.webp`,
 		clearWhere(
 			crop(ref(`${variant}-floating-appleguide.png`), 108, 97, 3, 3),
 			(p) => isColor(p, FACE[variant]),
@@ -432,12 +436,12 @@ for (const variant of ["color", "bw"])
 
 // The size box cell: inside the vertical bar's left line (x 412), the
 // horizontal bar's top line (y 282) and the frame (x 427, y 297).
-write(
-	"art/color/window-grip.png",
+await write(
+	"art/color/window-grip.webp",
 	crop(ref("color-finder-window-fits-active.png"), 413, 283, 14, 14),
 );
-write(
-	"art/bw/window-grip.png",
+await write(
+	"art/bw/window-grip.webp",
 	crop(ref("bw-finder-window-fits-active.png"), 413, 283, 14, 14),
 );
 
@@ -451,12 +455,12 @@ const zoomGlyph = (file, from) =>
 		(_, x, y) =>
 			!((x === 6 && y >= from && y <= 6) || (y === 6 && x >= from && x <= 6)),
 	);
-write(
-	"art/color/zoom-glyph.png",
+await write(
+	"art/color/zoom-glyph.webp",
 	zoomGlyph("color-finder-window-fits-active.png", 2),
 );
-write(
-	"art/bw/zoom-glyph.png",
+await write(
+	"art/bw/zoom-glyph.webp",
 	zoomGlyph("bw-finder-window-fits-active.png", 1),
 );
 
@@ -464,29 +468,38 @@ write(
 // Sound panel's slider thumb: solid black or black-and-white shapes, the
 // same at both depths, so one file in art/color serves both (the bw variant
 // falls back to the base tree).
-write(
-	"art/color/submenu-arrow.png",
+await write(
+	"art/color/submenu-arrow.webp",
 	clearWhere(
 		crop(ref("color-menu-hierarchical-controlpanels.png"), 189, 73, 6, 11),
 		(p) => isColor(p, WHITE),
 	),
 );
-write(
-	"art/color/popup-arrows.png",
+await write(
+	"art/color/popup-arrows.webp",
 	clearWhere(
 		crop(ref("color-dialog-standardfile-open.png"), 369, 125, 11, 6),
 		(p) => isColor(p, WHITE),
 	),
 );
-write(
-	"art/color/slider-thumb.png",
+await write(
+	"art/color/slider-thumb.webp",
 	clearOutside(
 		crop(ref("color-controlpanel-sound-slider.png"), 163, 112, 23, 11),
 	),
 );
 
-// The Sad Mac is ROM art, the same on every Mac: Platinum's file.
-copy(join(platinumAssets, "art", "sad-mac.png"), "art/sad-mac.png");
+// The Sad Mac is ROM art, the same on every Mac: Platinum's image. Its file
+// carries the ICC profile its old PNG's gAMA and cHRM stood for (plan
+// 0019-fb7 §6.2), which no file of the export's does, so it is decoded and
+// written again, the stored values alone: Platinum's VP8L chunk without its
+// VP8X and ICCP (ruling R19; system7Webp.test.ts).
+{
+	const { width, height, data } = await decodeClassicyWebp(
+		new Uint8Array(readFileSync(join(platinumAssets, "art", "sad-mac.webp"))),
+	);
+	await write("art/sad-mac.webp", { width, height, pixels: Buffer.from(data) });
+}
 
 // --- Cursors ----------------------------------------------------------
 
@@ -497,7 +510,7 @@ for (const [role, id] of [
 	["watch", 4],
 ]) {
 	const { image, hotspot } = decodeCursor(need(SYSTEM, "CURS", id));
-	write(`cursors/${role}.png`, image);
+	await write(`cursors/${role}.png`, image);
 	console.log(
 		`cursor ${role}: CURS ${id}, hotspot (${hotspot.x}, ${hotspot.y})`,
 	);
@@ -521,14 +534,14 @@ for (const [role, id] of [
 				for (let i = x; i < x + w; i++) setPixel(arrow, i, j, rgba);
 		}
 	}
-	write("cursors/arrow.png", arrow);
+	await write("cursors/arrow.png", arrow);
 }
 
 // System 7 has no resize cursors: Platinum's, which are 1-bit in the same
 // style, re-encoded as the export's own RGBA files (Platinum stores them as
 // gray with alpha).
 for (const role of ["lr", "ud", "u", "d", "l", "r"])
-	write(
+	await write(
 		`cursors/resize-${role}.png`,
 		readPng(join(platinumAssets, "cursors", `cursor-resize-${role}.png`)),
 	);
@@ -554,8 +567,8 @@ const diagonal = (mirror) => {
 		}
 	return img;
 };
-write("cursors/resize-nwse.png", diagonal(false));
-write("cursors/resize-nesw.png", diagonal(true));
+await write("cursors/resize-nwse.png", diagonal(false));
+await write("cursors/resize-nesw.png", diagonal(true));
 
 // --- Sounds -----------------------------------------------------------
 

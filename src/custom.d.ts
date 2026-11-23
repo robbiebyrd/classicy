@@ -1,5 +1,12 @@
 // Image, font and other asset imports are typed by vite/client (tsconfig "types").
 
+// A file embedded raw-deflated as base64 text (bin/classicyDeflateAsset.ts):
+// CLASSICY_DEFLATE_MARK, then the payload.
+declare module "*?classicy-deflate" {
+	const deflated: string;
+	export default deflated;
+}
+
 declare module "@analytics/google-tag-manager" {
 	type AnalyticsPlugin = import("analytics").AnalyticsPlugin;
 

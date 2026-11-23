@@ -67,20 +67,15 @@ describe("System 7's sound pack", () => {
 		).toBe(true);
 	});
 
-	it("loads its four sprite files from the package's src/assets/sounds/system7", () => {
+	it("loads its two sprite files from the package's src/assets/sounds/system7", () => {
 		expect(
 			system7SoundPack.src.map((src) => assetSourceFile(src, pkg)),
 		).toEqual(
-			["ogg", "m4a", "mp3", "ac3"].map((ext) =>
+			["ogg", "m4a"].map((ext) =>
 				path.join(pkg, "src/assets/sounds/system7", `system7.${ext}`),
 			),
 		);
-		expect(system7Json.src).toEqual([
-			"./system7.ogg",
-			"./system7.m4a",
-			"./system7.mp3",
-			"./system7.ac3",
-		]);
+		expect(system7Json.src).toEqual(["./system7.ogg", "./system7.m4a"]);
 	});
 
 	it("plays Simple Beep for a stored alert it lacks", () => {
@@ -114,12 +109,7 @@ describe("System 7's sound pack src consistency check", () => {
 	});
 
 	it("logs an error when the JSON names a file that is not bundled", async () => {
-		const log = await loadSystem7([
-			"./system7.ogg",
-			"./system7.m4a",
-			"./system7.mp3",
-			"./other.ac3",
-		]);
+		const log = await loadSystem7(["./system7.ogg", "./other.m4a"]);
 		expect(log).toHaveBeenCalledWith(
 			"error",
 			"ClassicySoundPacks",

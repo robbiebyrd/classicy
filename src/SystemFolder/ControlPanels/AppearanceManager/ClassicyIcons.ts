@@ -10,7 +10,7 @@ const iconModules = import.meta.glob(
 ) as Record<string, string>;
 
 const uiModules = import.meta.glob(
-	"../../../../assets/img/ui/**/*.{png,gif,jpg,svg}",
+	"../../../../assets/img/ui/**/*.{png,gif,jpg,svg,webp}",
 	{ eager: true, import: "default" },
 ) as Record<string, string>;
 
@@ -55,7 +55,7 @@ export function registerClassicyIcons<T extends ClassicyAssetTree>(
 export const ClassicyIcons = {
 	classicy: {
 		logo: ui("classicy-logo.svg"),
-		bg: ui("earth.png"),
+		bg: ui("earth.webp"),
 	},
 	applications: {
 		// The EPG icon set (station logos, ratings badges, cc/language marks)

@@ -18,6 +18,7 @@ import platinumJson from "../platinum.json";
 import { PLATINUM_LEGACY_WALLPAPER_DIGESTS } from "./platinumLegacyWallpapers";
 import {
 	PLATINUM_WALLPAPERS,
+	platinumWallpaperFile,
 	platinumWallpaperUrl,
 } from "./platinumWallpapers";
 
@@ -30,13 +31,28 @@ describe("Platinum's wallpapers", () => {
 		expect(new Set(PLATINUM_WALLPAPERS.map((w) => w.file)).size).toBe(47);
 	});
 
-	it("reads every one from the package's own src/assets/wallpapers", () => {
-		// Moved out of the core's assets/img/wallpapers (plan 0015-kxa §3.3).
+	it("reads every one from the package's own src/assets/wallpapers, as its WebP", () => {
+		// Moved out of the core's assets/img/wallpapers (plan 0015-kxa §3.3),
+		// then converted (plan 0019-fb7 §6.4): the identity filename stays, the
+		// file is its WebP (platinumWebp.test.ts pins the name to the
+		// converter's).
 		const pkg = path.resolve(import.meta.dirname, "../..");
 		for (const { file } of PLATINUM_WALLPAPERS)
 			expect(assetSourceFile(platinumWallpaperUrl(file), pkg), file).toBe(
-				path.join(pkg, "src/assets/wallpapers", file),
+				path.join(pkg, "src/assets/wallpapers", platinumWallpaperFile(file)),
 			);
+	});
+
+	it("ships each one as its stem's WebP, the photo as default_photo.webp", () => {
+		// default.png takes default.webp, so the photo is default_photo.webp.
+		expect(platinumWallpaperFile("default.png")).toBe("default.webp");
+		expect(platinumWallpaperFile("default.jpg")).toBe("default_photo.webp");
+		expect(platinumWallpaperFile("azul_dark.png")).toBe("azul_dark.webp");
+		expect(
+			new Set(
+				PLATINUM_WALLPAPERS.map(({ file }) => platinumWallpaperFile(file)),
+			).size,
+		).toBe(PLATINUM_WALLPAPERS.length);
 	});
 
 	it("registers every one by label, with its filename", () => {
@@ -53,13 +69,18 @@ describe("Platinum's wallpapers", () => {
 		);
 	});
 
-	it("includes the jpg wallpaper", () => {
+	it("includes the photo, named default.jpg and shipped as default_photo.webp", () => {
 		expect(
 			PLATINUM_WALLPAPERS.some(
 				(w) => w.label === "Default Photo" && w.file === "default.jpg",
 			),
 		).toBe(true);
-		expect(resolveClassicyWallpaper("default.jpg")).not.toBe("");
+		expect(resolveClassicyWallpaper("default.jpg")).toMatch(
+			/\/wallpapers\/default_photo\.webp$/,
+		);
+		expect(resolveClassicyWallpaper("default.png")).toMatch(
+			/\/wallpapers\/default\.webp$/,
+		);
 	});
 
 	it("resolves each filename to this build's URL, and back", () => {

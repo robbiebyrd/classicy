@@ -63,6 +63,8 @@ and icon art go missing.
 
 **Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
+**Upgrading from 3.6.x?** [`docs/RELEASE-NOTES-3.7.md`](docs/RELEASE-NOTES-3.7.md): smaller packages (sound sprites in ogg and m4a only, source maps with Classicy's own text only, no declaration maps, WebP art, a compressed PDF worker), PDFs render on the supported browsers, and the Trash folder's icon follows the active package. Most hosts change nothing. On any earlier 3.x the PDF viewer draws no page on the browsers at Classicy's floor either (every release from 0.71.6 through 3.6.0 bundled the same pdf.js build), so 3.7 fixes it there too; read each version's notes above in turn.
+
 **Breaking change: the package is renamed.** `classicy` is now
 `@classicy/classicy` (the unscoped name stops at 2.x). Replace the dependency,
 and rewrite every specifier, strings included: `from "classicy"`, deep paths
@@ -100,7 +102,9 @@ Any CommonJS dependency they pull in may then need to go in
 (a Vite production build, webpack 5, Rollup with a URL plugin) need no
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
 each package's `dist/assets/` (Platinum's, and System 7's when you load it)
-next to your bundle.
+next to your bundle, and `@classicy/classicy`'s `dist/sample.mp4` (the Movie
+Player's sample movie) too. The PDF viewer's worker needs nothing: it is
+embedded in the core's bundles.
 `import "@classicy/classicy/fonts"` is now a deprecated no-op (the Platinum package
 registers its fonts), and `classicy/dist/fonts.css` is gone: a strict-CSP host
 links `@classicy/appearance-platinum/classicy-platinum.fonts.css` in its place

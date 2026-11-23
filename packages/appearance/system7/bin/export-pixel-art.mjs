@@ -15,15 +15,16 @@
 //                  `Control Strip.rsrc_ics*_*.bmp`
 // <out>            the package's src/assets (default: beside this script)
 //
-// It writes the two desktop pattern PNGs into wallpapers/ and the pixel-art
-// rows into pixelart/, and rewrites the same bytes on a rerun. Every color it
-// meets must be in its table: an unknown one stops it.
+// It writes the two desktop patterns into wallpapers/ as lossless WebP (plan
+// 0019-fb7 §6.5; bin/classicyWebp.ts, the repo's pinned libwebp) and the
+// pixel-art rows into pixelart/, and rewrites the same bytes on a rerun.
+// Every color it meets must be in its table: an unknown one stops it.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit } from "node:process";
+import { encodeClassicyWebp } from "../../../../bin/classicyWebp.ts";
 import { readBmp } from "./bmp.mjs";
-import { encodePng } from "./png.mjs";
 
 const [systemRoot, stripRoot, outArg] = argv.slice(2);
 if (!systemRoot || !stripRoot) {
@@ -79,13 +80,21 @@ const pattern = (file, table) => {
 	return tile;
 };
 
+// Each ships as WebP under the identity filename themes name it by
+// (`desktop-gray.png`, system7Assets.ts's `system7WallpaperFile`).
 const wallpapers = join(out, "wallpapers");
 mkdirSync(wallpapers, { recursive: true });
 for (const [file, tile] of [
-	["desktop-gray.png", pattern("System.rsrc_ppat_16.bmp", SCREEN)],
-	["desktop-gray-bw.png", pattern("System.rsrc_ppat_16_bitmap.bmp", ONE_BIT)],
+	["desktop-gray.webp", pattern("System.rsrc_ppat_16.bmp", SCREEN)],
+	["desktop-gray-bw.webp", pattern("System.rsrc_ppat_16_bitmap.bmp", ONE_BIT)],
 ]) {
-	writeFileSync(join(wallpapers, file), encodePng(tile));
+	writeFileSync(
+		join(wallpapers, file),
+		await encodeClassicyWebp(
+			{ width: tile.width, height: tile.height, data: tile.pixels },
+			{ lossless: true },
+		),
+	);
 	console.log(`wrote wallpapers/${file}`);
 }
 

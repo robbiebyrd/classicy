@@ -55,7 +55,7 @@ import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/Cl
 
 // The document loads, but its page never renders: the rows only need the
 // viewer's root element.
-vi.mock("pdfjs-dist", () => ({
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
 	getDocument: () => ({
 		promise: Promise.resolve({
 			numPages: 1,
@@ -66,8 +66,8 @@ vi.mock("pdfjs-dist", () => ({
 	GlobalWorkerOptions: { workerSrc: "" },
 	RenderingCancelledException: class extends Error {},
 }));
-vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
-	default: "mock-worker-url",
+vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
+	classicyPdfWorkerSrc: () => ({ ok: true, src: "mock-worker-url" }),
 }));
 // No audio: the rows only need the components' DOM.
 vi.mock(

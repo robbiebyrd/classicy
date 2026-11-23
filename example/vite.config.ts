@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "../bin/classicyCssLayerPlugin";
+import { classicyDeflateAssetPlugin } from "../bin/classicyDeflateAsset";
 
 // Repo root (this config lives in example/).
 const root = path.resolve(__dirname, "..");
@@ -67,6 +68,9 @@ export default defineConfig(({ command }) => {
 						// Layer the library's component stylesheets as dist does
 						// (@layer classicy.base); the app's own stylesheets stay unlayered.
 						classicyCssLayerPlugin(),
+						// `?classicy-deflate` imports (the pdf.js worker), as dist
+						// embeds them (bin/classicyDeflateAsset.ts).
+						classicyDeflateAssetPlugin(),
 						richSvg(),
 						VitePluginImageTools({
 							quality: 100,
@@ -79,7 +83,7 @@ export default defineConfig(({ command }) => {
 		],
 		// Audio sprite formats the library source imports (mirror ../vite.config.ts).
 		assetsInclude: useLiveSource
-			? ["**/*.ogg", "**/*.m4a", "**/*.mp3", "**/*.ac3", "**/*.wav", "**/*.caf"]
+			? ["**/*.ogg", "**/*.m4a", "**/*.wav", "**/*.caf"]
 			: [],
 		server: {
 			headers: {

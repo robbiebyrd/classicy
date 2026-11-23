@@ -1,12 +1,17 @@
 #!/bin/bash
 set -euo pipefail
+# A glob lists its matches in the locale's collation order, and the stamp below
+# hashes the sources in glob order: en_US.UTF-8 passes over the dot and lists
+# ClassicyTabClickDown.mp3 before ClassicyTabClick.mp3, C sorts by byte. C
+# makes a stamp the same on every machine.
+export LC_ALL=C
 # Platinum's sound packs live in its package (plan 0015-kxa §3.3); the core
 # ships no sprites. Each <dir>/<name>/sprites/*.<ext> becomes <name>.<format>
 # and <name>.json beside it.
 dir=${1:-./packages/appearance/platinum/src/assets/sounds}
 outputDir=${2:-./packages/appearance/platinum/src/assets/sounds}
 fileExt=${3:-mp3}
-formats=${4:-ogg,m4a,mp3,ac3}
+formats=${4:-ogg,m4a}
 loops=${5:-ClassicyWindowMoveMoving,ClassicyWindowMoveIdle,ClassicyWindowResizeIdle,ClassicyWindowResizeResizing}
 
 # audiosprite is a pinned devDependency (no network at build time). The
@@ -27,6 +32,12 @@ audiosprite_bin=${AUDIOSPRITE_BIN:-./node_modules/.bin/audiosprite}
 #    version is left out on purpose: a distro ffmpeg and mise's encode the same
 #    sources to different bytes, and the committed sprites must stay put across
 #    them. CLASSICY_AUDIO_FORCE=1 encodes anyway.
+#
+# CLASSICY_AUDIO_RESTAMP=1 encodes nothing: it rewrites the stamp of each pack
+# whose outputs all exist from the current inputs, for a change that leaves the
+# committed sprites as they are but changes the hash (this script, the format
+# list). A pack missing an output is named and left alone, and the run fails.
+# It wins over CLASSICY_AUDIO_FORCE.
 
 if command -v sha256sum > /dev/null; then
 	sha256() { sha256sum | cut -d' ' -f1; }
@@ -47,13 +58,15 @@ pack_hash() {
 	} | sha256
 }
 
-pack_outputs_exist() {
-	local base=$1 ext
-	[[ -f "${base}.json" ]] || return 1
+# The outputs a pack's build writes (a sprite per format, then its JSON) that
+# are not there, one per line.
+pack_missing_outputs() {
+	local base=$1 ext exts
 	IFS=',' read -ra exts <<< "${formats}"
 	for ext in ${exts[@]+"${exts[@]}"}; do
-		[[ -f "${base}.${ext}" ]] || return 1
+		[[ -f "${base}.${ext}" ]] || printf '%s\n' "${base}.${ext}"
 	done
+	[[ -f "${base}.json" ]] || printf '%s\n' "${base}.json"
 }
 
 # Rewrite an audiosprite JSON in place: id, name and relative src, then sprite.
@@ -95,13 +108,27 @@ exec "${real_ffmpeg}" "\$@"
 SHIM
 chmod +x "${shim_dir}/ffmpeg"
 
+restamp_failed=""
 for eachDir in "${dir}"/*/; do
 	eachDir=${eachDir%*/}
 	name=${eachDir##*/}
 	base="${outputDir}/${name}/${name}"
 	stamp="${base}.sprites.sha256"
 	hash=$(pack_hash "${dir}/${name}")
-	if [[ -z "${CLASSICY_AUDIO_FORCE:-}" && -f "${stamp}" && "$(cat "${stamp}")" == "${hash}" ]] && pack_outputs_exist "${base}"; then
+	missing=$(pack_missing_outputs "${base}")
+	if [[ -n "${CLASSICY_AUDIO_RESTAMP:-}" ]]; then
+		if [[ -n "${missing}" ]]; then
+			while IFS= read -r output; do
+				echo "audio: ${name} cannot be restamped: ${output} is missing" >&2
+			done <<< "${missing}"
+			restamp_failed=1
+			continue
+		fi
+		printf '%s\n' "${hash}" > "${stamp}"
+		echo "audio: ${name} restamped"
+		continue
+	fi
+	if [[ -z "${CLASSICY_AUDIO_FORCE:-}" && -f "${stamp}" && "$(cat "${stamp}")" == "${hash}" && -z "${missing}" ]]; then
 		echo "audio: ${name} is up to date"
 		continue
 	fi
@@ -112,3 +139,6 @@ for eachDir in "${dir}"/*/; do
 	normalize_sprite_json "${base}.json"
 	printf '%s\n' "${hash}" > "${stamp}"
 done
+if [[ -n "${restamp_failed}" ]]; then
+	exit 1
+fi

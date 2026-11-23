@@ -879,7 +879,7 @@ describe("the System 7 appearance package", () => {
 	it("shows the System file's suitcase as its icon", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("system7")?.icon).toMatch(
-			/\/icons\/color\/32\/system-folders-suitcase-system\.png$/,
+			/\/icons\/color\/32\/system-folders-suitcase-system\.webp$/,
 		);
 	});
 

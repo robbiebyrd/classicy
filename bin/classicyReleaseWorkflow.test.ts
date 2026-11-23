@@ -355,6 +355,8 @@ describe("push.yml wait loop, run against a fake npm", () => {
 	const root = mkdtempSync(join(tmpdir(), "classicy-wait-"));
 	afterAll(() => rmSync(root, { recursive: true, force: true }));
 	const script = scriptOf(step(/^Wait for the release/));
+	// ~90 fake-npm polls, a bash process each: past vitest's 5 s default under load.
+	const POLLING_TIMEOUT_MS = 30_000;
 
 	/**
 	 * Runs the real script. The fake `npm view <name>` fails (a 404) until it
@@ -434,7 +436,9 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 		expect(r.calls.filter((c) => c === "@fake/platinum")).toHaveLength(3);
 	});
 
-	it("fails when only the core lists, so nothing is dispatched", () => {
+	it("fails when only the core lists, so nothing is dispatched", {
+		timeout: POLLING_TIMEOUT_MS,
+	}, () => {
 		const r = run({
 			platinum: true,
 			lagFor: { "@fake/core": 0, "@fake/platinum": 1000 },
@@ -448,7 +452,9 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 
 	// npm listed @classicy/classicy 3.0.0 on attempt 52 and 3.1.0 on attempt 51
 	// of the old 60 (30 minutes): the wait now runs 90 polls, 45 minutes.
-	it("waits up to 45 minutes for a package npm is slow to list", () => {
+	it("waits up to 45 minutes for a package npm is slow to list", {
+		timeout: POLLING_TIMEOUT_MS,
+	}, () => {
 		const r = run({
 			platinum: true,
 			lagFor: { "@fake/core": 85, "@fake/platinum": 0 },
@@ -458,7 +464,9 @@ if [ "$n" -gt "$lag" ]; then echo 3.0.0; else exit 1; fi
 		expect(r.out).toContain("attempt 85/90");
 	});
 
-	it("waits for System 7 as well, and fails if only the others list", () => {
+	it("waits for System 7 as well, and fails if only the others list", {
+		timeout: POLLING_TIMEOUT_MS,
+	}, () => {
 		const slow = run({
 			platinum: true,
 			system7: true,

@@ -1,8 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { deflateRawSync } from "node:zlib";
 import { afterAll, describe, expect, it } from "vitest";
+import { CLASSICY_DEFLATE_MARK } from "./classicyDeflateAsset";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
 // The real bin/check-dist-imports.mjs, run in
@@ -459,6 +468,17 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			err: [],
 		}));
 
+	it("invariant 8 fails on a .d.ts.map in dist/types", () =>
+		expect(
+			types({
+				"src/index.d.ts": "export {};\n",
+				"src/index.d.ts.map": "{}",
+				"src/a/b.d.ts.map": "{}",
+			}).err,
+		).toEqual([
+			`${join("dist", "types")}: 2 declaration map(s) (${join("src", "a", "b.d.ts.map")}, ${join("src", "index.d.ts.map")}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
+		]));
+
 	it("fails each declaration with an extensionless relative specifier", () =>
 		expect(
 			types({
@@ -470,4 +490,444 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			`${join("dist", "types", "src", "a", "b.d.ts")}: relative specifier(s) without an extension ("../Manager.Colors") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 			`${join("dist", "types", "src", "index.d.ts")}: relative specifier(s) without an extension ("./Manager.Colors") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 		]));
+});
+
+// Invariant 16 (plan 0019-fb7 Part 1): every published source map keeps
+// Classicy's own text and drops third-party and asset text. Run without named
+// files on a dist/ holding two empty entry bundles and the maps, so the other
+// invariants report what that dist lacks; only the lines naming a .js.map are
+// read.
+describe("check-dist-imports.mjs invariant 16: source map text (whole dist)", () => {
+	const map = (sources: string[], sourcesContent: Array<string | null>) =>
+		JSON.stringify({
+			version: 3,
+			sources,
+			sourcesContent,
+			names: [],
+			mappings: "",
+			x_google_ignoreList: sources.flatMap((source, i) =>
+				source.includes("node_modules/") ? [i] : [],
+			),
+		});
+	const maps = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const bundle of ["classicy.es.js", "classicy.umd.js"])
+			writeFileSync(join(dir, "dist", bundle), "export{};");
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const mapLines = (text: string) =>
+			text.split("\n").filter((line) => line.includes(".js.map"));
+		return { out: mapLines(result.stdout), err: mapLines(result.stderr) };
+	};
+	const VENDOR = "../node_modules/.pnpm/zod@4.1.12/node_modules/zod/index.js";
+
+	it("invariant 16 fails on a map that keeps node_modules text", () =>
+		expect(
+			maps({
+				"classicy.es.js.map": map(["../src/index.ts", VENDOR], ["x", "y"]),
+				"classicy.umd.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+				"pdf-DM8UBKbM.js.map": map([VENDOR], ["y"]),
+			}).err,
+		).toEqual([
+			`${join("dist", "classicy.es.js.map")}: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+			`${join("dist", "pdf-DM8UBKbM.js.map")}: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+		]));
+
+	it("invariant 16 passes a map with own text and null vendor text", () =>
+		expect(
+			maps({
+				"classicy.es.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+				"classicy.umd.js.map": map(["../src/index.ts", VENDOR], ["x", null]),
+			}),
+		).toEqual({
+			out: [
+				"source maps: 2 dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text",
+			],
+			err: [],
+		}));
+});
+
+// Invariant 2: pdfjs-dist and fflate stay bundled. The worker is embedded
+// from this repo's pdfjs-dist, and fflate (which inflates it) is a
+// devDependency no host installs.
+describe("check-dist-imports.mjs invariant 2: packages that stay bundled (named files)", () => {
+	const FILE = join("fx", "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js");
+
+	it("passes a chunk that carries fflate inline", () =>
+		expect(
+			check({}, { [FILE]: "function i(){}export{i as inflateSync};" }),
+		).toEqual({ status: 0, stderr: "" }));
+
+	it.each([
+		[
+			"fflate",
+			'import{inflateSync as i}from"fflate";export{i};',
+			"fflate: a devDependency (it inflates the embedded pdf.js worker), so a host has no copy to import.",
+		],
+		[
+			"pdfjs-dist",
+			'const p=()=>import("pdfjs-dist");export{p};',
+			"pdfjs-dist: its worker is embedded here at build time; the consumer would supply a mismatched API version and every PDF would fail to load.",
+		],
+	])("fails a chunk that imports %s", (name, code, reason) => {
+		const { status, stderr } = check({}, { [FILE]: code });
+		expect(status).toBe(1);
+		expect(stderr.trim().split("\n")).toEqual([
+			`${FILE}: externalized a package that must stay bundled:`,
+			`  import "${name}"`,
+			`  -> ${reason}`,
+		]);
+	});
+});
+
+// Invariant 17 (plan 0019-fb7 Part 2): the pdf.js worker ships deflated
+// (`?classicy-deflate`), never as a data:text/javascript URI; the UMD bundle
+// carries it once, the ES build once in a lazy chunk, and the ES entry not at
+// all; each copy inflates to the installed pdfjs-dist worker. Run without
+// named files on a dist/ holding only the bundles given, so the other
+// invariants report what that dist lacks; only the pdf.js worker lines are
+// read.
+describe("check-dist-imports.mjs invariant 17: the deflated pdf.js worker (whole dist)", () => {
+	// The legacy build's worker (plan 0019-fb7 §3.4); the modern one calls
+	// Map.prototype.getOrInsertComputed, which the oldest supported browsers
+	// (Chrome 120, Safari 16.2, Firefox 113) lack.
+	const resolveWorker = (path: string) =>
+		readFileSync(createRequire(import.meta.url).resolve(path));
+	const WORKER = resolveWorker("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
+	const MODERN_WORKER = resolveWorker("pdfjs-dist/build/pdf.worker.min.mjs");
+	const payload = (bytes: Buffer) =>
+		`a=${JSON.stringify(
+			CLASSICY_DEFLATE_MARK +
+				deflateRawSync(bytes, { level: 9 }).toString("base64"),
+		)};export{a};`;
+	const DEFLATED = payload(WORKER);
+	const CHUNK = "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js";
+	const worker17 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const workerLines = (text: string) =>
+			text.split("\n").filter((line) => line.includes("pdf.js worker"));
+		return { out: workerLines(result.stdout), err: workerLines(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const LAZY = join("dist", CHUNK);
+
+	it("passes with one payload in the UMD bundle and one in an ES chunk", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": "export{};",
+				[CHUNK]: DEFLATED,
+			}),
+		).toEqual({
+			out: [
+				`pdf.js worker: deflated once in ${UMD} and once in the ES chunks (${LAZY}), each equal to the installed pdfjs-dist legacy worker (${WORKER.length} bytes), never in ${ES}; no data:text/javascript URI in 4 bundle(s)`,
+			],
+			err: [],
+		}));
+
+	// The bare prefix is how the worker source builds its URI at runtime.
+	it("passes the bare data:text/javascript prefix", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": `p="data:text/javascript;base64,";${DEFLATED}`,
+				[CHUNK]: `p="data:text/javascript;base64,",u=p+b;${DEFLATED}`,
+			}).err,
+		).toEqual([]));
+
+	it("invariant 17 fails on a data:text/javascript URI", () =>
+		expect(
+			worker17({
+				"classicy.es.js": `w="data:text/javascript;base64,${WORKER.subarray(0, 48).toString("base64")}";export{w};`,
+				"classicy.umd.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${ES}: carries a data:text/javascript URI -> the pdf.js worker is embedded deflated (\`?classicy-deflate\`, bin/classicyDeflateAsset.ts), never as a \`?url\` data: URI.`,
+		]));
+
+	it("fails when the deflated worker differs from the installed one", () => {
+		const OTHER = payload(Buffer.concat([WORKER, Buffer.from("\n")]));
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": OTHER,
+				[CHUNK]: OTHER,
+			}).err,
+		).toEqual([
+			`${UMD}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist legacy worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+			`${LAZY}: its deflated pdf.js worker (${WORKER.length + 1} bytes) is not the installed pdfjs-dist legacy worker (${WORKER.length} bytes) -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts.`,
+		]);
+	});
+
+	it("invariant 17 fails when the bundles carry the modern worker instead of the legacy one", () => {
+		const MODERN = payload(MODERN_WORKER);
+		const message = (file: string) =>
+			`${file}: its deflated pdf.js worker is pdfjs-dist's modern build (${MODERN_WORKER.length} bytes), not its legacy build (${WORKER.length} bytes) -> the modern build calls Map.prototype.getOrInsertComputed, which the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack: import pdfjs-dist/legacy/build/pdf.worker.min.mjs?classicy-deflate in ClassicyPdfWorkerSource.internal.ts.`;
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": MODERN,
+				[CHUNK]: MODERN,
+			}).err,
+		).toEqual([message(UMD), message(LAZY)]);
+	});
+
+	it("fails when classicy.es.js carries it", () =>
+		expect(
+			worker17({
+				"classicy.es.js": DEFLATED,
+				"classicy.umd.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${ES}: carries 1 deflated pdf.js worker(s) -> the ES entry carries none: PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`,
+		]));
+
+	it("fails when classicy.umd.js lacks it", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": "export{};",
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			`${UMD}: carries 0 deflated pdf.js workers, not 1 -> check the \`?classicy-deflate\` import in ClassicyPdfWorkerSource.internal.ts and classicyDeflateAssetPlugin in vite.config.ts.`,
+		]));
+
+	it("fails when no ES chunk carries it, or two do", () => {
+		const message = (count: number, chunks: string) =>
+			`dist: the ES chunks other than ${ES} carry ${count} deflated pdf.js workers, not 1 (${chunks}) -> PDFViewerDocument loads the worker source with import(), beside pdf.js, in a lazy chunk.`;
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": "export{};",
+			}).err,
+		).toEqual([message(0, "none")]);
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": DEFLATED,
+				"pdf-DM8UBKbM.js": DEFLATED,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([message(2, `${LAZY}, ${join("dist", "pdf-DM8UBKbM.js")}`)]);
+	});
+
+	it("fails on a payload that does not inflate", () =>
+		expect(
+			worker17({
+				"classicy.es.js": "export{};",
+				"classicy.umd.js": `a="${CLASSICY_DEFLATE_MARK}AAAAAAAA";export{a};`,
+				[CHUNK]: DEFLATED,
+			}).err,
+		).toEqual([
+			expect.stringMatching(
+				new RegExp(
+					`^${UMD.replaceAll(".", "\\.")}: carries a deflated pdf.js worker that does not inflate \\(.+\\) -> check classicyDeflateAssetPlugin in vite.config.ts\\.$`,
+				),
+			),
+		]));
+});
+
+// Invariant 17, its lazy chunks and its pdf.js (plan 0019-fb7's final
+// review). No bundle but classicy.es.js imports the ES entry: a lazy chunk
+// that did would make a host serving the entry under another URL load a
+// second copy of the library, or none, on the first PDF. And classicy.umd.js
+// and the ES chunks that carry pdf.js's API carry its legacy build, known by
+// core-js's polyfill of Map.prototype.getOrInsertComputed, which the modern
+// build lacks (it calls the method natively). Fixtures are the installed
+// pdf.mjs files themselves, and the legacy one minified as the UMD bundle
+// is. Only these lines are read.
+describe("check-dist-imports.mjs invariant 17: lazy chunks and pdf.js's legacy build (whole dist)", () => {
+	const pdfjs = (path: string) =>
+		readFileSync(createRequire(import.meta.url).resolve(path), "utf8");
+	const LEGACY = pdfjs("pdfjs-dist/legacy/build/pdf.mjs");
+	const MODERN = pdfjs("pdfjs-dist/build/pdf.mjs");
+	const PDF_CHUNK = "pdf-DM8UBKbM.js";
+	const WORKER_CHUNK = "ClassicyPdfWorkerSource.internal-Bq3x9Zt1.js";
+	const lines17 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const ours = (text: string) =>
+			text
+				.split("\n")
+				.filter(
+					(line) => line.includes("pdf.js API") || line.includes("ES entry"),
+				);
+		return { out: ours(result.stdout), err: ours(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const PDF = join("dist", PDF_CHUNK);
+	const LAZY = join("dist", WORKER_CHUNK);
+	const MODERN_MESSAGE = (file: string) =>
+		`${file}: carries the pdf.js API's modern build, not its legacy build (no core-js polyfill of Map.prototype.getOrInsertComputed) -> import pdfjs-dist/legacy/build/pdf.mjs in PDFViewerDocument.tsx: the modern build calls the method natively, and the oldest supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack it.`;
+	const ENTRY_MESSAGE = (file: string, specifier: string) =>
+		`${file}: imports the ES entry ("${specifier}") -> a lazy chunk imports nothing of classicy.es.js, or a host serving the entry under another URL (a query string, a CDN redirect, a renamed file) loads a second copy of the library, or none: keep the chunk's modules free of Classicy imports (ClassicyPdfWorkerSource.internal.ts imports only fflate and the deflated worker).`;
+	const dist = (overrides: Record<string, string> = {}) => ({
+		"classicy.es.js": "export{};",
+		"classicy.umd.js": LEGACY,
+		[PDF_CHUNK]: LEGACY,
+		[WORKER_CHUNK]: "var v=1;export{v as classicyPdfWorkerSrc};",
+		...overrides,
+	});
+
+	it("passes the legacy build in the UMD bundle and an ES chunk, and chunks that import no entry", () =>
+		expect(lines17(dist())).toEqual({
+			out: [
+				`pdf.js API: the legacy build (core-js's Map.prototype.getOrInsertComputed polyfill) in ${UMD} and ${PDF}`,
+				`lazy chunks: none of 3 bundle(s) other than ${ES} imports the ES entry`,
+			],
+			err: [],
+		}));
+
+	// The marker is object keys and a string, which a minifier never renames.
+	// Minified by esbuild (through Vite) in a child Node: esbuild refuses
+	// jsdom's TextEncoder.
+	it("passes the legacy build minified", () => {
+		const minify = spawnSync(
+			process.execPath,
+			[
+				"--input-type=module",
+				"-e",
+				`import { transformWithEsbuild } from "vite";
+				import { text } from "node:stream/consumers";
+				const { code } = await transformWithEsbuild(await text(process.stdin), "pdf.mjs", { minify: true });
+				process.stdout.write(code);`,
+			],
+			{ input: LEGACY, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+		);
+		expect(minify.status).toBe(0);
+		const minified = minify.stdout;
+		expect(minified.length).toBeLessThan(LEGACY.length / 2);
+		expect(minified).not.toContain("target: 'Map'");
+		expect(
+			lines17(dist({ "classicy.umd.js": minified, [PDF_CHUNK]: minified })).err,
+		).toEqual([]);
+	}, 60_000);
+
+	it("invariant 17 fails on pdf.js's modern build, in the UMD bundle or an ES chunk", () =>
+		expect(
+			lines17(dist({ "classicy.umd.js": MODERN, [PDF_CHUNK]: MODERN })).err,
+		).toEqual([MODERN_MESSAGE(UMD), MODERN_MESSAGE(PDF)]));
+
+	it("fails when no ES chunk carries the pdf.js API, or the UMD bundle carries none", () => {
+		expect(lines17(dist({ [PDF_CHUNK]: "export{};" })).err).toEqual([
+			`dist: no ES chunk other than ${ES} carries the pdf.js API -> PDFViewerDocument loads pdfjs-dist/legacy/build/pdf.mjs with import(), in a lazy chunk.`,
+		]);
+		expect(lines17(dist({ "classicy.umd.js": "var a=1;" })).err).toEqual([
+			`${UMD}: carries no pdf.js API -> the UMD bundle carries pdfjs-dist/legacy/build/pdf.mjs inline (PDFViewerDocument's import()).`,
+		]);
+	});
+
+	it("invariant 17 fails on a lazy chunk that imports the ES entry", () => {
+		// 3.7's worker chunk before the fix: its first line.
+		const STATIC = `import { classicyLog as fr } from "./classicy.es.js";\nvar v=1;export{v};`;
+		expect(lines17(dist({ [WORKER_CHUNK]: STATIC })).err).toEqual([
+			ENTRY_MESSAGE(LAZY, "./classicy.es.js"),
+		]);
+		expect(
+			lines17(
+				dist({
+					[WORKER_CHUNK]: `var v=1;export{v};export { a as b } from "./classicy.es.js";`,
+					"other-Cx1.js": `import "./classicy.es.js";const l=()=>import("./classicy.es.js");export{l};`,
+				}),
+			).err,
+		).toEqual([
+			ENTRY_MESSAGE(LAZY, "./classicy.es.js"),
+			ENTRY_MESSAGE(join("dist", "other-Cx1.js"), "./classicy.es.js"),
+		]);
+	});
+
+	it("passes a chunk that imports another chunk", () =>
+		expect(
+			lines17(
+				dist({
+					[WORKER_CHUNK]: `import { i } from "./${PDF_CHUNK}";export{i};`,
+				}),
+			).err,
+		).toEqual([]));
+});
+
+// Invariant 18 (plan 0019-fb7 §6.6): both core entry bundles embed
+// assets/img/ui/earth.webp byte for byte, as the only data:image/webp in
+// them, so the image plugin never re-encoded it. Whole-dist mode, reading
+// assets/img/ui/earth.webp from the working directory.
+describe("check-dist-imports.mjs invariant 18: the embedded earth WebP (whole dist)", () => {
+	const EARTH = Buffer.from("RIFF....WEBPVP8X earth fixture bytes", "latin1");
+	const uri = (bytes: Buffer) =>
+		`data:image/webp;base64,${bytes.toString("base64")}`;
+	const earth18 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		mkdirSync(join(dir, "dist"), { recursive: true });
+		mkdirSync(join(dir, "assets", "img", "ui"), { recursive: true });
+		writeFileSync(join(dir, "assets", "img", "ui", "earth.webp"), EARTH);
+		for (const [file, text] of Object.entries(files))
+			writeFileSync(join(dir, "dist", file), text);
+		const result = spawnSync(process.execPath, [SCRIPT], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		const lines = (text: string) =>
+			text.split("\n").filter((line) => line.includes("earth WebP"));
+		return { out: lines(result.stdout), err: lines(result.stderr) };
+	};
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+
+	it("invariant 18 passes when both bundles embed it byte-identical", () => {
+		const bundle = `a="${uri(EARTH)}";export{a};`;
+		expect(
+			earth18({ "classicy.es.js": bundle, "classicy.umd.js": bundle }).err,
+		).toEqual([]);
+		expect(
+			earth18({ "classicy.es.js": bundle, "classicy.umd.js": bundle }).out,
+		).toHaveLength(1);
+	});
+
+	it("invariant 18 fails when the embedded earth WebP differs from assets/img/ui/earth.webp", () => {
+		const other = `a="${uri(Buffer.concat([EARTH, Buffer.from("!")]))}";export{a};`;
+		const same = `a="${uri(EARTH)}";export{a};`;
+		const { err } = earth18({
+			"classicy.es.js": other,
+			"classicy.umd.js": same,
+		});
+		expect(err).toHaveLength(1);
+		expect(err[0]).toContain(ES);
+		expect(err[0]).toContain("assets/img/ui/earth.webp");
+	});
+
+	it("invariant 18 fails when a bundle lacks it or carries another data:image/webp", () => {
+		const same = `a="${uri(EARTH)}";export{a};`;
+		const extra = `${same}b="data:image/webp;base64,AAAA";`;
+		const none = "export{};";
+		expect(
+			earth18({ "classicy.es.js": same, "classicy.umd.js": none }).err,
+		).toHaveLength(1);
+		expect(
+			earth18({ "classicy.es.js": same, "classicy.umd.js": extra }).err[0],
+		).toContain(UMD);
+	});
 });

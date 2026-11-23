@@ -35,7 +35,9 @@ const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
 
 // Source file → its bytes. Every one ships in dist/assets under its name,
-// except the wallpaper photos, which nothing imports.
+// except the wallpaper photos, which nothing imports. The art and wallpapers
+// are WebP (plan 0019-fb7 §6.4), except alias.png, the one original kept
+// (PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS); the cursors stay PNG.
 const SOURCES: Record<string, Buffer> = {
 	...Object.fromEntries(
 		PLATINUM_FONT_FACES.map((face, i) => [
@@ -44,14 +46,15 @@ const SOURCES: Record<string, Buffer> = {
 		]),
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
-	"src/assets/art/sad-mac.png": bytes(40),
-	"src/assets/art/apple.png": bytes(41),
+	"src/assets/art/sad-mac.webp": bytes(40),
+	"src/assets/art/apple.webp": bytes(41),
+	"src/assets/art/alias.png": bytes(46),
 	"src/assets/cursors/cursor-watch.png": bytes(42),
-	"src/assets/wallpapers/azul_dark.png": bytes(43),
-	"src/assets/wallpapers/default.jpg": bytes(44),
+	"src/assets/wallpapers/azul_dark.webp": bytes(43),
+	"src/assets/wallpapers/default_photo.webp": bytes(44),
 	"src/assets/wallpapers/photos/beach.jpg": bytes(45),
 	...Object.fromEntries(
-		["ogg", "m4a", "mp3", "ac3"].map((ext, i) => [
+		["ogg", "m4a"].map((ext, i) => [
 			`src/assets/sounds/platinum/platinum.${ext}`,
 			bytes(50 + i),
 		]),
@@ -79,11 +82,19 @@ const FONTS = classicyFontStylesheet(
 	(face) => `assets/${face.file}.woff2`,
 	"classicy-platinum.fonts.css",
 );
+// A source map as the library build writes it: Classicy's own text kept.
+const MAP = JSON.stringify({
+	version: 3,
+	sources: ["../src/index.ts"],
+	sourcesContent: ["x"],
+	names: [],
+	mappings: "",
+});
 const DIST: Record<string, string | Buffer> = {
 	"appearance-platinum.es.js": ES,
-	"appearance-platinum.es.js.map": "{}",
+	"appearance-platinum.es.js.map": MAP,
 	"appearance-platinum.umd.js": UMD,
-	"appearance-platinum.umd.js.map": "{}",
+	"appearance-platinum.umd.js.map": MAP,
 	"classicy-platinum.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-platinum.fonts.css": FONTS,
 	"types/index.d.ts": 'export * from "./hooks.js";\n',
@@ -95,13 +106,20 @@ const DIST: Record<string, string | Buffer> = {
 
 let run = 0;
 /**
- * Writes the fixture package (the sources, then dist/ with `changes`
- * applied: a path to new content, or `null` to delete it) and runs the
- * script in it.
+ * Writes the fixture package (the sources with `sourceChanges` applied, then
+ * dist/ with `changes` applied: a path to new content, or `null` to delete
+ * it) and runs the script in it.
  */
-const verify = (changes: Record<string, string | Buffer | null> = {}) => {
+const verify = (
+	changes: Record<string, string | Buffer | null> = {},
+	sourceChanges: Record<string, Buffer | null> = {},
+) => {
 	const dir = path.join(root, `case-${run++}`);
-	for (const [file, content] of Object.entries(SOURCES)) {
+	for (const [file, content] of Object.entries({
+		...SOURCES,
+		...sourceChanges,
+	})) {
+		if (content === null) continue;
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
@@ -182,28 +200,55 @@ describe("bin/verify-dist.mjs", () => {
 	// package's files, each byte for byte.
 	describe("2. dist/assets holds every package file, as authored", () => {
 		it("fails a missing file, by name", () =>
-			expect(verify({ "assets/default.jpg": null })).toEqual({
+			expect(verify({ "assets/default_photo.webp": null })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing default.jpg; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/assets: missing default_photo.webp; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 					// And the bundle's reference to it dangles (invariant 3).
-					"dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/default.jpg",
+					"dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/default_photo.webp",
 				].join("\n"),
 			}));
 
-		it("fails a file nothing ships, a .webp included", () =>
-			expect(verify({ "assets/sad-mac.webp": bytes(1) })).toEqual({
+		it("fails a leftover platinum.mp3 in dist/assets", () =>
+			expect(verify({ "assets/platinum.mp3": bytes(1) }).stderr).toMatch(
+				/^dist\/assets: missing none; extra platinum\.mp3 /,
+			));
+
+		it("fails a file nothing ships, a leftover original included", () =>
+			expect(verify({ "assets/sad-mac.png": bytes(1) })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing none; extra sad-mac.webp -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/assets: missing none; extra sad-mac.png -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 					// And nothing loads it (invariant 3).
-					"dist/appearance-platinum.es.js: references no new URL() for sad-mac.webp in dist/assets -> nothing loads it.",
+					"dist/appearance-platinum.es.js: references no new URL() for sad-mac.png in dist/assets -> nothing loads it.",
 				].join("\n"),
 			}));
+
+		// Plan 0019-fb7 §6.4: the art and wallpapers ship as WebP; only a file
+		// PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS names keeps its PNG or JPG.
+		it.each([
+			"src/assets/art/apple.png",
+			"src/assets/wallpapers/azul_dark.png",
+			"src/assets/wallpapers/default.jpg",
+		])("fails %s, an original that is not an exception", (file) =>
+			expect(verify({}, { [file]: bytes(9) })).toEqual({
+				status: 1,
+				stderr: `${file}: ships in its original format -> the package's art and wallpapers ship as WebP: convert it (node bin/convert-images-to-webp.ts packages/appearance/platinum) and git rm the original, or list it in PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS if the browser check keeps it.`,
+			}));
+
+		// The exception list itself is pinned to the converter's kept
+		// originals by src/assets/platinumWebp.test.ts.
+		it("passes alias.png, the one exception, in its PNG", () => {
+			expect(SOURCES["src/assets/art/alias.png"]).toBeDefined();
+			expect(verify()).toEqual({ status: 0, stderr: "" });
+		});
 
 		it.each([
 			"cursor-watch.png",
-			"azul_dark.png",
+			"azul_dark.webp",
+			"default_photo.webp",
+			"apple.webp",
+			"alias.png",
 			"zoom.svg",
 			"platinum.ogg",
 			"Monaco-normal-normal.woff2",
@@ -280,13 +325,13 @@ describe("bin/verify-dist.mjs", () => {
 		it("fails a file in dist/assets the bundle never references", () => {
 			const { status, stderr } = verify({
 				"appearance-platinum.es.js": ES.replace(
-					'new URL("assets/apple.png",import.meta.url).href,',
+					'new URL("assets/apple.webp",import.meta.url).href,',
 					"",
 				),
 			});
 			expect(status).toBe(1);
 			expect(stderr).toBe(
-				"dist/appearance-platinum.es.js: references no new URL() for apple.png in dist/assets -> nothing loads it.",
+				"dist/appearance-platinum.es.js: references no new URL() for apple.webp in dist/assets -> nothing loads it.",
 			);
 		});
 	});
@@ -397,6 +442,13 @@ describe("bin/verify-dist.mjs", () => {
 					'dist/types/index.d.ts: relative specifier(s) without an extension ("./hooks") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.',
 			}));
 
+		it("fails a declaration map", () =>
+			expect(verify({ "types/index.d.ts.map": "{}" })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types: 1 declaration map(s) (index.d.ts.map) -> each dts() call must pass compilerOptions: { declarationMap: false }.",
+			}));
+
 		it("fails a test declaration", () =>
 			expect(verify({ "types/hooks.test.d.ts": "export {};\n" })).toEqual({
 				status: 1,
@@ -444,6 +496,47 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/appearance-platinum\.umd\.js: calls jsxDEV\(\)/,
 			);
 		});
+	});
+
+	// Invariant 10 (the core's 16, plan 0019-fb7 Part 1): the maps keep
+	// Classicy's own text and drop third-party and asset text.
+	describe("10. the source maps carry Classicy's own text only", () => {
+		const VENDOR =
+			"../../../../node_modules/.pnpm/zod@4.1.12/node_modules/zod/index.js";
+
+		it("fails on vendor text in appearance-platinum.es.js.map", () =>
+			expect(
+				verify({
+					"appearance-platinum.es.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts", VENDOR],
+						sourcesContent: ["x", "y"],
+						names: [],
+						mappings: "",
+						x_google_ignoreList: [1],
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr: `dist/appearance-platinum.es.js.map: keeps the text of vendor source ${VENDOR} -> the library build must run classicySourceMapTextPlugin.`,
+			}));
+
+		it("fails on an own source with null text", () =>
+			expect(
+				verify({
+					"appearance-platinum.umd.js.map": JSON.stringify({
+						version: 3,
+						sources: ["../src/index.ts"],
+						sourcesContent: [null],
+						names: [],
+						mappings: "",
+					}),
+				}),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/appearance-platinum.umd.js.map: has no text for Classicy's own source ../src/index.ts -> only third-party and asset text may be dropped; if it is an embedded asset, add its extension to CLASSICY_MAP_ASSET_EXTENSIONS.",
+			}));
 	});
 });
 

@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import "../index";
 import { AZUL_DARK_2_1_8 } from "@/Appearance/__tests__/platinumLegacyWallpaperFixture";
@@ -14,13 +12,10 @@ import {
 	platinumWallpaperUrl,
 } from "./platinumWallpapers";
 
-// The package's own wallpaper files (moved out of the core's
-// assets/img/wallpapers, plan 0015-kxa §3.3, byte for byte).
-const WALLPAPERS = path.resolve(import.meta.dirname, "wallpapers");
-
-/** The data: URI a 2.x library build inlines for a wallpaper file. */
-const inlined = (file: string) =>
-	`data:${file.endsWith(".jpg") ? "image/jpeg" : "image/png"};base64,${readFileSync(`${WALLPAPERS}/${file}`).toString("base64")}`;
+// The wallpapers ship as WebP since plan 0019-fb7 §6.4, and their PNG and
+// JPG originals are gone from the tree, so every digest below is a fixed
+// constant of the original bytes a 2.x build inlined; nothing here reads a
+// file.
 
 /**
  * The digest of every wallpaper the published 2.1.8 tarball inlines (tarball
@@ -78,11 +73,20 @@ const DIGESTS_2_1_8: Readonly<Record<string, string>> = Object.freeze({
 	"waves_sunny.png": "23348:5accdddbdab362ce",
 });
 
+/**
+ * default.jpg's digest, which 2.1.8 did not ship (a later 2.x build inlined
+ * it): computed from the original default.jpg (28,532 base64 characters)
+ * before it was converted to default_photo.webp. Frozen like the rest.
+ */
+const DEFAULT_JPG_DIGEST = "28532:ffc9c30a5e94db76";
+
 describe("Platinum's legacy wallpaper digests", () => {
 	it("pins the 2.1.8 fixture", () => {
-		expect(AZUL_DARK_2_1_8).toBe(inlined("azul_dark.png"));
 		expect(classicyWallpaperDigest(AZUL_DARK_2_1_8)).toBe(
 			DIGESTS_2_1_8["azul_dark.png"],
+		);
+		expect(PLATINUM_LEGACY_WALLPAPER_DIGESTS["azul_dark.png"]).toContain(
+			classicyWallpaperDigest(AZUL_DARK_2_1_8),
 		);
 	});
 
@@ -93,25 +97,26 @@ describe("Platinum's legacy wallpaper digests", () => {
 		}
 	});
 
-	// 2.x builds inlined each wallpaper byte for byte, so each file's own
-	// digest is what a later 2.x build (default.jpg included) wrote.
-	it("holds each current wallpaper file's digest as a 2.x build inlined it", () => {
-		const files = readdirSync(WALLPAPERS)
-			.filter((f) => /\.(png|jpg)$/.test(f))
-			.sort();
-		for (const file of files) {
-			expect(PLATINUM_LEGACY_WALLPAPER_DIGESTS[file], file).toContain(
-				classicyWallpaperDigest(inlined(file)),
-			);
-		}
+	it("holds default.jpg's digest, as a later 2.x build inlined it", () => {
+		expect(DIGESTS_2_1_8["default.jpg"]).toBeUndefined();
+		expect(PLATINUM_LEGACY_WALLPAPER_DIGESTS["default.jpg"]).toEqual([
+			DEFAULT_JPG_DIGEST,
+		]);
+	});
+
+	it("keys the map by exactly PLATINUM_WALLPAPERS' files", () => {
 		expect(Object.keys(PLATINUM_LEGACY_WALLPAPER_DIGESTS).sort()).toEqual(
 			PLATINUM_WALLPAPERS.map((w) => w.file).sort(),
 		);
 	});
 
 	it("maps 2.1.8's inlined Azul Dark to its filename while Azul's source is a plain URL", () => {
-		// Under vitest the source is a path, as it is a file URL after 3.3.
+		// Under vitest the source is a path, as it is a file URL after 3.3,
+		// and the file is the WebP (plan 0019-fb7 §6.4).
 		expect(platinumWallpaperUrl("azul_dark.png")).not.toMatch(/^data:/);
+		expect(platinumWallpaperUrl("azul_dark.png")).toMatch(
+			/\/wallpapers\/azul_dark\.webp$/,
+		);
 		expect(classicyWallpaperFilename(AZUL_DARK_2_1_8)).toBe("azul_dark.png");
 		expect(resolveClassicyWallpaper("azul_dark.png")).toBe(
 			platinumWallpaperUrl("azul_dark.png"),

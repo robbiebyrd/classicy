@@ -196,10 +196,10 @@ Every icon, piece of art, cursor, the desktop pattern and the alert sounds
 were extracted from a Mac OS 7.5.5 install, read straight from its resource
 forks with no emulator: `bin/export-assets.mjs` and
 `bin/export-pixel-art.mjs` decode the raw resources (exported by
-resource_dasm) into the committed PNGs and WAVs, and rewrite the same bytes
-on a rerun. Simple Beep, which System 7 plays from its square-wave
-synthesizer, is rendered from the resource's own commands, in the square
-wave the 7.5.5 Sound Manager was recorded drawing. The commands, the
+resource_dasm) into the committed images (lossless WebP, the cursors PNG) and
+WAVs, and rewrite the same bytes on a rerun. Simple Beep, which System 7
+plays from its square-wave synthesizer, is rendered from the resource's own
+commands, in the square wave the 7.5.5 Sound Manager was recorded drawing. The commands, the
 waveform and each file's source resource, are in
 [`docs/system7-asset-inventory.md`](../../../docs/system7-asset-inventory.md)
 in the repository.

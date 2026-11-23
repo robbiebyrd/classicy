@@ -135,6 +135,7 @@ describe("the built bundle and the core's registries", () => {
 		}
 	});
 
+	// The dither checker and the six WebP masks (plan 0019-fb7 §6.5).
 	it("ships its files as files: only the masks are inlined", () => {
 		const masks = new Set([
 			`data:image/svg+xml,${readFileSync(
@@ -144,16 +145,16 @@ describe("the built bundle and the core's registries", () => {
 				.trim()
 				.replaceAll('"', "'")}`,
 			...["color", "bw"].flatMap((variant) =>
-				["window-stripes.png", "window-utility-texture.png"].map(
+				["window-stripes.webp", "window-utility-texture.webp"].map(
 					(name) =>
-						`data:image/png;base64,${readFileSync(
+						`data:image/webp;base64,${readFileSync(
 							path.join(packageDir, "src/assets/art", variant, name),
 						).toString("base64")}`,
 				),
 			),
-			...["apple-menu.png", "help-button.png"].map(
+			...["apple-menu.webp", "help-button.webp"].map(
 				(name) =>
-					`data:image/png;base64,${readFileSync(
+					`data:image/webp;base64,${readFileSync(
 						path.join(packageDir, "src/assets/art/bw", name),
 					).toString("base64")}`,
 			),
@@ -165,12 +166,15 @@ describe("the built bundle and the core's registries", () => {
 				),
 			);
 			expect(inlined).toEqual(masks);
+			expect(
+				[...inlined].filter((uri) => uri.startsWith("data:image/webp;")),
+			).toHaveLength(6);
 		}
 		expect(es).toMatch(/new URL\(["']assets\/[^"']+\.woff2["']/);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(es).toContain(`new URL("assets/system7.${ext}"`);
 		expect(es).toContain(
-			'new URL("assets/icons-color-32-system-files-document.png"',
+			'new URL("assets/icons-color-32-system-files-document.webp"',
 		);
 	});
 
@@ -196,10 +200,8 @@ describe("the built bundle and the core's registries", () => {
 				.map((file) => path.join("src/assets", file))
 				.filter(
 					(file) =>
-						/\.(png|svg|woff2)$/.test(file) ||
-						/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a|mp3|ac3)$/.test(
-							file,
-						),
+						/\.(webp|png|svg|woff2)$/.test(file) ||
+						/^src\/assets\/sounds\/system7\/system7\.(ogg|m4a)$/.test(file),
 				),
 			...saverArt,
 		];
@@ -230,9 +232,16 @@ describe("the built bundle and the core's registries", () => {
 			).toBe(true);
 		for (const { file } of SYSTEM7_FONT_FACES)
 			expect(assets, file).toContain(`${file}.woff2`);
-		for (const ext of ["ogg", "m4a", "mp3", "ac3"])
+		for (const ext of ["ogg", "m4a"])
 			expect(assets).toContain(`system7.${ext}`);
 		for (const file of saverArt) expect(assets).toContain(path.basename(file));
+		// The art, icons and wallpapers ship as WebP (plan 0019-fb7 §6.5): the
+		// only PNGs are the cursors.
+		expect(assets.filter((name) => name.endsWith(".png"))).toEqual(
+			readdirSync(path.join(packageDir, "src/assets/cursors")).sort(),
+		);
+		expect(assets).toContain("art-color-apple-menu.webp");
+		expect(assets).toContain("desktop-gray.webp");
 	});
 
 	it("emits the two strict-CSP stylesheets", () => {

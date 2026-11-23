@@ -28,6 +28,12 @@ export { CLASSICY_WALLPAPER_PACKAGE_SEPARATOR };
  * whether a stored one is bare never depends on the active package
  * (`storedReferenceTo`).
  *
+ * A wallpaper's identity `file` need not be the name of the file its `src`
+ * points at (`azul_dark.png` ships as `azul_dark.webp`, `default.jpg` as
+ * `default_photo.webp`), so each package's index also knows that file's name
+ * (`fileBySrcBasename`): a URL of it, from this build or another, stores and
+ * draws as the wallpaper. An identity name always comes first.
+ *
  * Store-free, like the registry it reads, so reducers and the theme schema may
  * import it. The index is rebuilt lazily, on the first lookup after any asset
  * registration.
@@ -38,6 +44,9 @@ const PLATINUM = "platinum";
 /** Values that are already loadable: `data:`/`blob:` URIs, remote URLs (any
  * case, as the theme schema accepts them). */
 const LOADABLE = /^(data:|blob:|https?:\/\/|\/\/)/i;
+
+/** A remote URL: http(s) or protocol-relative, any case. */
+const REMOTE = /^(https?:\/\/|\/\/)/i;
 
 /**
  * A base64 `data:` URI, every character of it inert inside a quoted CSS
@@ -59,6 +68,13 @@ type PackageIndex = {
 	entries: ClassicyWallpaperRecord[];
 	byFile: Map<string, string>;
 	fileBySrc: Map<string, string>;
+	/**
+	 * The identity `file` by the name of the file its `src` points at: every
+	 * name `basenames()` gives the source (`azul_dark-AbC12345.webp` and
+	 * `azul_dark.webp` for `/assets/azul_dark-AbC12345.webp`), each a plain
+	 * wallpaper filename; never a `data:` source's.
+	 */
+	fileBySrcBasename: Map<string, string>;
 	fileByDigest: Map<string, string>;
 	sources: Set<string>;
 	byName: Map<string, string>;
@@ -122,6 +138,7 @@ const buildPackageIndex = (
 		entries,
 		byFile: new Map(),
 		fileBySrc: new Map(),
+		fileBySrcBasename: new Map(),
 		fileByDigest: new Map(),
 		sources: new Set(),
 		byName: new Map(),
@@ -132,6 +149,14 @@ const buildPackageIndex = (
 		if (file === undefined) continue;
 		if (!index.byFile.has(file)) index.byFile.set(file, src);
 		if (!index.fileBySrc.has(src)) index.fileBySrc.set(src, file);
+		// A `data:` URI's last "segment" is part of its payload, not a name.
+		if (!/^data:/i.test(src)) {
+			for (const basename of basenames(src)) {
+				if (!isPlainClassicyWallpaperFile(basename)) continue;
+				if (!index.fileBySrcBasename.has(basename))
+					index.fileBySrcBasename.set(basename, file);
+			}
+		}
 		for (const digest of legacyDigests ?? []) {
 			if (!index.fileByDigest.has(digest)) index.fileByDigest.set(digest, file);
 		}
@@ -188,15 +213,23 @@ const warnUnknown = (value: string): void => {
 };
 
 /**
- * The registered wallpaper `value` names exactly: a package-qualified
- * reference its package registers; else, searching `packageId` (default: the
- * active package), Platinum, the active package, then every other package in
- * registration order, a registered filename, the source registered for one, or a base64 `data:`
- * URI matching one's `legacyDigests`. Never by basename. The search's first
- * three steps are `resolveClassicyWallpaper`'s, so a bare filename names the
- * wallpaper it renders as, when it renders.
+ * `packageId` (default: the active package), Platinum, the active package,
+ * then every other package in registration order: `lookupOrder`, then the
+ * rest.
  */
-const exactIdentity = (
+const searchOrder = (packageId?: string): string[] => [
+	...new Set([...lookupOrder(packageId), ...packages().keys()]),
+];
+
+/**
+ * The registered wallpaper `value` names by what a package registered for
+ * it: a package-qualified reference its package registers; else, searching
+ * `searchOrder(packageId)`, a registered filename, the source registered for
+ * one, or a base64 `data:` URI matching one's `legacyDigests`. Never by
+ * basename. The search's first three steps are `resolveClassicyWallpaper`'s,
+ * so a bare filename names the wallpaper it renders as, when it renders.
+ */
+const registeredIdentity = (
 	value: string,
 	packageId?: string,
 ): WallpaperIdentity | undefined => {
@@ -205,7 +238,7 @@ const exactIdentity = (
 	const ref = parseClassicyWallpaperReference(value);
 	if (ref)
 		return all.get(ref.packageId)?.byFile.has(ref.file) ? ref : undefined;
-	const order = [...new Set([...lookupOrder(packageId), ...all.keys()])];
+	const order = searchOrder(packageId);
 	for (const id of order) {
 		const index = all.get(id);
 		if (!index) continue;
@@ -222,6 +255,38 @@ const exactIdentity = (
 	}
 	return undefined;
 };
+
+/**
+ * The registered wallpaper whose source points at a file named `name`
+ * (`azul_dark.webp`, or `azul_dark-AbC12345.webp` for a hashed source),
+ * searching `searchOrder(packageId)`. Only a bare name matches: the keys are
+ * plain filenames, so a path, URL or package-qualified reference never does.
+ */
+const emittedFileIdentity = (
+	name: string,
+	packageId?: string,
+): WallpaperIdentity | undefined => {
+	const all = packages();
+	for (const id of searchOrder(packageId)) {
+		const file = all.get(id)?.fileBySrcBasename.get(name);
+		if (file !== undefined) return { packageId: id, file };
+	}
+	return undefined;
+};
+
+/**
+ * The registered wallpaper `value` names exactly: what a package registered
+ * for it (`registeredIdentity`); else, for a bare name no package registers,
+ * the wallpaper whose source points at a file of that name
+ * (`emittedFileIdentity`), so an identity name always wins, in every package.
+ * Never by a path's basename.
+ */
+const exactIdentity = (
+	value: string,
+	packageId?: string,
+): WallpaperIdentity | undefined =>
+	registeredIdentity(value, packageId) ??
+	(value ? emittedFileIdentity(value, packageId) : undefined);
 
 /**
  * The reference a theme of `themePackage` stores for `file` of package
@@ -292,6 +357,10 @@ export const classicyWallpaperReferenceFor = (
  * - A registered filename, or a path whose basename is one (an older build's
  *   `/assets/img/wallpapers/…`), resolves to its source; so does the name of
  *   a wallpaper registered without a file.
+ * - Else, when no package registers any of those names, the name of the file
+ *   a registered source points at, or a path to that file from any build
+ *   (`/assets/azul_dark-AbC12345.webp` for `azul_dark.png`'s
+ *   `/assets/azul_dark.webp`), resolves to that wallpaper's source.
  * - A package-qualified reference (`"foo|default.png"`) resolves to that
  *   package's wallpaper only, whichever package the theme is.
  * - Anything else is `""`, with one warning per value: an unloadable path
@@ -323,6 +392,19 @@ export const resolveClassicyWallpaper = (
 		resolved ??= index.byName.get(value);
 		if (resolved !== undefined) return resolved;
 	}
+	// The name of an emitted file, only when no package registers any of the
+	// value's names (an identity name always wins, as `portableClassicyWallpaper`
+	// has it), drawn as its identity is, so both forms show the same image.
+	if (!names.some((name) => registeredIdentity(name, packageId))) {
+		const chain = lookupChain(packageId);
+		for (const name of names) {
+			for (const index of chain) {
+				const file = index.fileBySrcBasename.get(name);
+				const src = file === undefined ? undefined : index.byFile.get(file);
+				if (src !== undefined) return src;
+			}
+		}
+	}
 	warnUnknown(value);
 	return "";
 };
@@ -330,11 +412,12 @@ export const resolveClassicyWallpaper = (
 /**
  * The registered filename for a `backgroundImage` value — a registered
  * filename itself, the exact source (URL or `data:` URI) a package
- * registered for it, or a base64 `data:` URI whose `classicyWallpaperDigest`
- * is one of its `legacyDigests` (what an older build inlined) — or, for a
+ * registered for it, a base64 `data:` URI whose `classicyWallpaperDigest`
+ * is one of its `legacyDigests` (what an older build inlined), or the bare
+ * name of the file its source points at (`azul_dark.webp`) — or, for a
  * package-qualified reference its package registers, the reference itself;
  * else `undefined` (an http(s) URL a user chose, an unknown value, a
- * wallpaper registered without a file). Never by basename. Searches the
+ * wallpaper registered without a file). Never by a path's basename. Searches the
  * active package, Platinum, then every other package. The theme schema reads
  * it as "a registered wallpaper"; `classicyWallpaperReferenceFor` is the
  * package-aware form writers use.
@@ -355,10 +438,18 @@ export const classicyWallpaperFilename = (
  * way — the source a package registered for it, a `data:` URI an older build
  * inlined it as, or a path whose basename is its filename, bundler hash
  * stripped (an older build's `/assets/img/wallpapers/azul_dark.png` or
- * `/assets/azul_dark-0a1b2c3d.png`) — is stored by its filename when that
+ * `/assets/azul_dark-0a1b2c3d.png`), else, when no package registers any of
+ * the path's names, is the name of the file its source points at
+ * (`/assets/azul_dark-AbC12345.webp` for `azul_dark.png`, whose source is
+ * `azul_dark.webp`) — is stored by its filename when that
  * resolves to it for the theme, else as `"<package>|<file>"` (only a
  * filename two packages share needs it). Without `packageId`, as its bare
- * filename. Any other value is kept as it is (`""`, a URL the user chose, a
+ * filename. A remote URL may be the user's own image that shares a
+ * wallpaper's name, so it is matched only by the file name a registered
+ * source points at, and only when its basename carries a bundler hash and
+ * no package registers any of its names as a filename: another build's
+ * emitted file (`https://cdn.example/x/azul_dark-AbC12345.webp`).
+ * Any other value is kept as it is (`""`, a URL the user chose, a
  * `data:` URI or path no registered wallpaper matches, a reference no
  * package registers yet). Idempotent.
  */
@@ -382,9 +473,19 @@ export const portableClassicyWallpaper = (
 			return identity.packageId === packageId ? identity.file : value;
 		return store(identity);
 	}
-	if (qualified || LOADABLE.test(value) || !value.includes("/")) return value;
-	for (const name of basenames(value)) {
-		const found = exactIdentity(name, packageId);
+	if (qualified) return value;
+	const remote = REMOTE.test(value);
+	if (!remote && (LOADABLE.test(value) || !value.includes("/"))) return value;
+	const names = basenames(value);
+	// A remote URL may be the user's own image: only a bundler-hashed name
+	// (another build's emitted file) is matched, and never by a filename.
+	if (remote && names.length < 2) return value;
+	// Every name's identity first, so an identity name always wins.
+	let registered: WallpaperIdentity | undefined;
+	for (const name of names) registered ??= registeredIdentity(name, packageId);
+	if (registered) return remote ? value : store(registered);
+	for (const name of names) {
+		const found = emittedFileIdentity(name, packageId);
 		if (found !== undefined) return store(found);
 	}
 	return value;

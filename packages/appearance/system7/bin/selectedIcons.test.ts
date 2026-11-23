@@ -1,12 +1,17 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { encodePng, readPng } from "./png.mjs";
+import {
+	classicyPixelsEqual,
+	decodeClassicyWebp,
+	encodeClassicyWebp,
+} from "../../../../bin/classicyWebp";
 import {
 	darken,
 	screenColor,
 	selectedColor,
 	selectedIcon,
+	selectedIconWebp,
 } from "./selectedIcons.mjs";
 
 // Story 0197-s0z: System 7 draws a selected color icon through a darkened
@@ -71,23 +76,59 @@ describe("System 7's selected color icons", () => {
 		]);
 	});
 
-	it("commits every color icon's selected rendering, the script's own bytes", () => {
-		for (const size of ["16", "32"]) {
-			const color = readdirSync(path.join(assets, "color", size)).sort();
-			expect(readdirSync(path.join(assets, "selected", size)).sort()).toEqual(
-				color,
-			);
-			for (const file of color) {
-				const expected = encodePng(
-					selectedIcon(readPng(path.join(assets, "color", size, file))),
-				);
-				expect(
-					readFileSync(path.join(assets, "selected", size, file)).equals(
-						expected,
-					),
-					`${size}/${file}`,
-				).toBe(true);
-			}
-		}
+	// The committed icons are lossless WebP (plan 0019-fb7 §6.5).
+	const read = (size: string, variant: string, file: string) =>
+		new Uint8Array(readFileSync(path.join(assets, variant, size, file)));
+	const pairs = ["16", "32"].flatMap((size) => {
+		const color = readdirSync(path.join(assets, "color", size)).sort();
+		return color.map((file) => [size, file] as const);
 	});
+
+	it("commits a selected rendering for every color icon, and no other", () => {
+		for (const size of ["16", "32"])
+			expect(readdirSync(path.join(assets, "selected", size)).sort()).toEqual(
+				readdirSync(path.join(assets, "color", size)).sort(),
+			);
+		expect(pairs.length).toBeGreaterThan(100);
+		for (const [, file] of pairs) expect(file).toMatch(/\.webp$/);
+	});
+
+	it("the committed selected icon decodes to selectedIcon(the decoded color icon)", async () => {
+		for (const [size, file] of pairs) {
+			const color = await decodeClassicyWebp(read(size, "color", file));
+			const { pixels } = selectedIcon({
+				width: color.width,
+				height: color.height,
+				pixels: Buffer.from(color.data),
+			});
+			expect(
+				classicyPixelsEqual(
+					await decodeClassicyWebp(read(size, "selected", file)),
+					{ width: color.width, height: color.height, data: pixels },
+				),
+				`${size}/${file}`,
+			).toBe(true);
+		}
+	}, 120_000);
+
+	it("re-encoding it reproduces the committed bytes", async () => {
+		for (const [size, file] of pairs) {
+			const committed = read(size, "selected", file);
+			const reencoded = await encodeClassicyWebp(
+				await decodeClassicyWebp(committed),
+				{ lossless: true },
+			);
+			expect(Buffer.from(reencoded).equals(committed), `${size}/${file}`).toBe(
+				true,
+			);
+			// And the script, run directly, writes the same bytes from the
+			// committed color icon.
+			expect(
+				Buffer.from(await selectedIconWebp(read(size, "color", file))).equals(
+					committed,
+				),
+				`${size}/${file} from its color icon`,
+			).toBe(true);
+		}
+	}, 120_000);
 });

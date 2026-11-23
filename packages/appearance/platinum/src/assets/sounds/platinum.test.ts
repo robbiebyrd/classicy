@@ -39,23 +39,21 @@ describe("platinum sound pack", () => {
 			expect(platinumSoundPack.sprite).toHaveProperty(a.value);
 	});
 
-	it("has four src URLs whose basenames match the JSON", () => {
+	it("has two src URLs whose basenames match the JSON", () => {
 		expect(platinumSoundPack.src.map((u) => u.split("/").pop())).toEqual([
 			"platinum.ogg",
 			"platinum.m4a",
-			"platinum.mp3",
-			"platinum.ac3",
 		]);
 	});
 
-	it("loads its four sprite files from the package's own src/assets/sounds/platinum", () => {
+	it("loads its two sprite files from the package's own src/assets/sounds/platinum", () => {
 		// Moved out of the core's assets/sounds (plan 0015-kxa §3.3), beside
 		// the JSON bin/make_audio_sprites.sh writes with them.
 		const pkg = path.resolve(import.meta.dirname, "../../..");
 		expect(
 			platinumSoundPack.src.map((src) => assetSourceFile(src, pkg)),
 		).toEqual(
-			["ogg", "m4a", "mp3", "ac3"].map((ext) =>
+			["ogg", "m4a"].map((ext) =>
 				path.join(pkg, "src/assets/sounds/platinum", `platinum.${ext}`),
 			),
 		);
@@ -75,12 +73,7 @@ describe("platinum sound pack", () => {
 	it("the committed pack JSON carries id, name and relative src", () => {
 		expect(platinumJson.id).toBe("platinum");
 		expect(platinumJson.name).toBe("Platinum");
-		expect(platinumJson.src).toEqual([
-			"./platinum.ogg",
-			"./platinum.m4a",
-			"./platinum.mp3",
-			"./platinum.ac3",
-		]);
+		expect(platinumJson.src).toEqual(["./platinum.ogg", "./platinum.m4a"]);
 	});
 });
 
@@ -105,12 +98,7 @@ describe("platinum sound pack src consistency check", () => {
 	});
 
 	it("logs an error when the JSON names a file that is not bundled", async () => {
-		const log = await loadPlatinum([
-			"./platinum.ogg",
-			"./platinum.m4a",
-			"./platinum.mp3",
-			"./other.ac3",
-		]);
+		const log = await loadPlatinum(["./platinum.ogg", "./other.m4a"]);
 		expect(log).toHaveBeenCalledWith(
 			"error",
 			"ClassicySoundPacks",

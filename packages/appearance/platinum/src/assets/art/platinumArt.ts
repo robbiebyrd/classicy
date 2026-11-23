@@ -12,13 +12,17 @@ import halftoneInline from "./halftone.svg?inline";
 
 // Plain (query-less) imports, so the build emits each file to dist/assets/
 // instead of inlining it (`noInlineAppearanceAssetsPlugin`, vite.config.ts).
-const files = import.meta.glob("./*.{svg,png}", {
+// The raster art is WebP (plan 0019-fb7 §6.4); the glob takes PNG too for
+// the one original kept in its own format, alias.png, which Chromium draws
+// differently from its WebP (verify-dist.mjs lists it, and refuses any other
+// PNG here).
+const files = import.meta.glob("./*.{svg,webp,png}", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
 
 /**
- * The emitted URL of a file in this folder, by file name (`"sad-mac.png"`), or
+ * The emitted URL of a file in this folder, by file name (`"sad-mac.webp"`), or
  * `""` when there is no such file (which `registerClassicySystemArt` reports as
  * an invalid source). Every lookup of Platinum's art folder goes through this.
  */

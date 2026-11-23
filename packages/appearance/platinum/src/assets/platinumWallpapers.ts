@@ -5,15 +5,35 @@
 // filename as its `file`); the core resolves a theme's wallpaper filename
 // through the asset registry (`resolveClassicyWallpaper`), never through this
 // module.
+//
+// Each ships as WebP (plan 0019-fb7 §6.4) under the identity filename it has
+// always had (`"azul_dark.png"`), which themes, saved states, theme files and
+// 2.x digests name: only its file, and so its URL, changed.
 
-const wallpaperModules = import.meta.glob("./wallpapers/*.{png,jpg}", {
+const wallpaperModules = import.meta.glob("./wallpapers/*.webp", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
 
-/** This build's URL for a Platinum wallpaper file, or "" when there is none. */
+/**
+ * The file in ./wallpapers a wallpaper's identity filename ships as: its stem
+ * with `.webp`, except `default.jpg`, which is `default_photo.webp`, since
+ * `default.png` takes `default.webp`. The converter that wrote them
+ * (`classicyWebpTarget`, bin/convert-images-to-webp.ts) names them the same
+ * way; runtime code cannot import bin/, so platinumWebp.test.ts
+ * pins the two equal.
+ */
+export const platinumWallpaperFile = (file: string): string =>
+	file === "default.jpg"
+		? "default_photo.webp"
+		: file.replace(/\.(?:png|jpg)$/, ".webp");
+
+/**
+ * This build's URL for a Platinum wallpaper, by its identity filename
+ * (`"azul_dark.png"`, the URL of `azul_dark.webp`), or "" when there is none.
+ */
 export const platinumWallpaperUrl = (file: string): string =>
-	wallpaperModules[`./wallpapers/${file}`] ?? "";
+	wallpaperModules[`./wallpapers/${platinumWallpaperFile(file)}`] ?? "";
 
 /**
  * Platinum's 47 wallpapers: the Desktop tab's label and the filename themes

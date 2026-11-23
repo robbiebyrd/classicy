@@ -12,6 +12,7 @@ import {
 } from "@/Appearance/ClassicyAssetRegistry";
 import { decodeClassicyPixelArtRows } from "@/Appearance/ClassicyPixelArtSource";
 import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
+import { decodeClassicyWebp } from "../../../../../bin/classicyWebp";
 import "../index";
 import system7Json from "../system7.json";
 import {
@@ -106,7 +107,7 @@ const STRIP_ART: Partial<Record<ClassicySystemArtKey, [string, string]>> = {
 const CURSOR_ROLES = unionMembers("ClassicyCursorRole") as ClassicyCursorRole[];
 const ICON_KEYS = iconLeaves(ClassicyIcons);
 
-/** A PNG's chunk types, and its RGBA pixels when it is 8-bit RGBA, unfiltered (the export's own writer). */
+/** A cursor PNG's chunk types, and its RGBA pixels when it is 8-bit RGBA, unfiltered (the export's own writer). */
 const png = (file: string) => {
 	const bytes = readFileSync(file);
 	const types: string[] = [];
@@ -141,10 +142,35 @@ const png = (file: string) => {
 	return { types, pixels: rgba ? pixels : undefined };
 };
 
-const pngsUnder = (dir: string): string[] =>
+const filesUnder = (dir: string, extension: string): string[] =>
 	(readdirSync(path.join(assets, dir), { recursive: true }) as string[])
-		.filter((file) => file.endsWith(".png"))
+		.filter((file) => file.endsWith(extension))
 		.map((file) => path.join(assets, dir, file));
+const pngsUnder = (dir: string): string[] => filesUnder(dir, ".png");
+const webpsUnder = (dir: string): string[] => filesUnder(dir, ".webp");
+
+/** A WebP's RIFF chunk types (after the `WEBP` form type). */
+const webpChunks = (file: string): string[] => {
+	const bytes = readFileSync(file);
+	expect(bytes.toString("latin1", 0, 4), file).toBe("RIFF");
+	expect(bytes.toString("latin1", 8, 12), file).toBe("WEBP");
+	const types: string[] = [];
+	for (let at = 12; at + 8 <= bytes.length; ) {
+		const length = bytes.readUInt32LE(at + 4);
+		types.push(bytes.toString("latin1", at, at + 4));
+		at += 8 + length + (length & 1);
+	}
+	return types;
+};
+
+/** A WebP's pixels, as RGBA quadruples. */
+const webpPixels = async (file: string): Promise<number[][]> => {
+	const { data } = await decodeClassicyWebp(new Uint8Array(readFileSync(file)));
+	const pixels: number[][] = [];
+	for (let at = 0; at < data.length; at += 4)
+		pixels.push([...data.subarray(at, at + 4)]);
+	return pixels;
+};
 
 describe("System 7's assets", () => {
 	it("draws the bw variant in the 1-bit theme and the base tree in color", () => {
@@ -158,17 +184,31 @@ describe("System 7's assets", () => {
 		]);
 	});
 
-	// docs/system7-asset-inventory.md, "PNG rules".
+	// docs/system7-asset-inventory.md, "Image rules": the icons, art and
+	// wallpapers are lossless WebP (plan 0019-fb7 §6.5), the cursors PNG.
 	describe("files", () => {
-		const all = [
-			...pngsUnder("icons"),
-			...pngsUnder("art"),
-			...pngsUnder("cursors"),
+		const webps = [
+			...webpsUnder("icons"),
+			...webpsUnder("art"),
+			...webpsUnder("wallpapers"),
 		];
+		const cursors = pngsUnder("cursors");
 
-		it("carry no color profile or metadata: only the chunks that hold pixels", () => {
-			expect(all.length).toBeGreaterThan(250);
-			for (const file of all)
+		it("are WebP, but for the cursors, which are PNG", () => {
+			expect(webps.length).toBe(375);
+			for (const dir of ["icons", "art", "wallpapers"])
+				expect(pngsUnder(dir), dir).toEqual([]);
+			expect(cursors.length).toBe(12);
+			expect(webpsUnder("cursors")).toEqual([]);
+		});
+
+		it("carry no color profile or metadata: a WebP is one lossless VP8L chunk", () => {
+			for (const file of webps)
+				expect(webpChunks(file), file).toEqual(["VP8L"]);
+		});
+
+		it("carry no color profile or metadata: a cursor holds only the chunks that hold pixels", () => {
+			for (const file of cursors)
 				expect(
 					png(file).types.filter(
 						(type) => !["IHDR", "PLTE", "tRNS", "IDAT", "IEND"].includes(type),
@@ -177,18 +217,32 @@ describe("System 7's assets", () => {
 				).toEqual([]);
 		});
 
-		it("keep 1-bit files and cursors to opaque black, opaque white and clear", () => {
+		/** Each file with its pixels: the WebPs decoded, the cursors read. */
+		const drawn = async (files: readonly string[]) =>
+			Promise.all(
+				files.map(
+					async (file) =>
+						[
+							file,
+							file.endsWith(".webp")
+								? await webpPixels(file)
+								: // Every cursor is the export's own RGBA, so none goes
+									// unchecked.
+									png(file).pixels,
+						] as const,
+				),
+			);
+
+		it("keep 1-bit files and cursors to opaque black, opaque white and clear", async () => {
 			const oneBit = [
-				...pngsUnder("icons/bw"),
-				...pngsUnder("art/bw"),
-				...pngsUnder("cursors"),
+				...webpsUnder("icons/bw"),
+				...webpsUnder("art/bw"),
+				...cursors,
 			];
 			let checked = 0;
-			for (const file of oneBit) {
-				// Every 1-bit file is the export's own RGBA, so none goes unchecked.
-				const { pixels } = png(file);
-				expect(pixels, `${file} is 8-bit RGBA, unfiltered`).toBeDefined();
+			for (const [file, pixels] of await drawn(oneBit)) {
 				checked++;
+				expect(pixels, `${file} is 8-bit RGBA, unfiltered`).toBeDefined();
 				for (const [r, g, b, a] of pixels ?? []) {
 					const ok =
 						(a === 0 && r === 0 && g === 0 && b === 0) ||
@@ -200,9 +254,9 @@ describe("System 7's assets", () => {
 			expect(checked).toBeGreaterThan(100);
 		});
 
-		it("never hold partial alpha", () => {
-			for (const file of all)
-				for (const [, , , a] of png(file).pixels ?? [])
+		it("never hold partial alpha", async () => {
+			for (const [file, pixels] of await drawn([...webps, ...cursors]))
+				for (const [, , , a] of pixels ?? [])
 					if (a !== 0 && a !== 255) expect(a, file).toBe("0 or 255");
 		});
 	});
@@ -263,17 +317,19 @@ describe("System 7's assets", () => {
 			for (const [key, file] of Object.entries(MASK_FILES))
 				for (const variant of [BW, BASE]) {
 					const bytes = readFileSync(
-						path.join(assets, "art", variant, `${file}.png`),
+						path.join(assets, "art", variant, `${file}.webp`),
 					);
 					expect(
 						resolveClassicyAsset("systemArt", key, SYSTEM7, variant),
 						`${key} ${variant}`,
-					).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+					).toBe(`data:image/webp;base64,${bytes.toString("base64")}`);
 				}
 			for (const [key, file] of Object.entries(BW_MASK_FILES)) {
-				const bytes = readFileSync(path.join(assets, "art", BW, `${file}.png`));
+				const bytes = readFileSync(
+					path.join(assets, "art", BW, `${file}.webp`),
+				);
 				expect(resolveClassicyAsset("systemArt", key, SYSTEM7, BW), key).toBe(
-					`data:image/png;base64,${bytes.toString("base64")}`,
+					`data:image/webp;base64,${bytes.toString("base64")}`,
 				);
 				expect(
 					resolveClassicyAsset("systemArt", key, SYSTEM7, BASE),
@@ -401,7 +457,7 @@ describe("System 7's assets", () => {
 		const reused = Object.keys(SYSTEM7_ICON_REUSE);
 
 		// Story 0197-s0z: every color icon image has its pre-rendered selected
-		// rendering, icons/selected/<size>/<stem>.png, registered for it; the
+		// rendering, icons/selected/<size>/<stem>.webp, registered for it; the
 		// 1-bit images (which invert) have none.
 		it("registers every color icon image's selected rendering, and no 1-bit one's", () => {
 			const pairs = Object.entries(SYSTEM7_SELECTED_ICON_IMAGES);
@@ -438,14 +494,14 @@ describe("System 7's assets", () => {
 				const color = resolveClassicyIcon(key, SYSTEM7, BASE);
 				const bw = resolveClassicyIcon(key, SYSTEM7, BW);
 				expect(color?.src, key).toMatch(
-					new RegExp(`/icons/color/(32|16)/${stem}\\.png$`),
+					new RegExp(`/icons/color/(32|16)/${stem}\\.webp$`),
 				);
 				expect(bw?.src, key).toMatch(
-					new RegExp(`/icons/bw/(32|16)/${stem}\\.png$`),
+					new RegExp(`/icons/bw/(32|16)/${stem}\\.webp$`),
 				);
 				// A family with a 16 px image draws it at the small size.
 				const has16 = existsSync(
-					path.join(assets, `icons/color/16/${stem}.png`),
+					path.join(assets, `icons/color/16/${stem}.webp`),
 				);
 				expect(color?.small !== undefined, key).toBe(has16);
 				if (has16) {
@@ -468,8 +524,8 @@ describe("System 7's assets", () => {
 						size,
 					);
 					expect(
-						readFileSync(path.join(dir, "system-macos.png")).equals(
-							readFileSync(path.join(dir, "system-mac.png")),
+						readFileSync(path.join(dir, "system-macos.webp")).equals(
+							readFileSync(path.join(dir, "system-mac.webp")),
 						),
 						`${variant} ${size}`,
 					).toBe(false);
@@ -526,7 +582,7 @@ describe("System 7's assets", () => {
 				const key = code(keyCell);
 				if (decision === "export") {
 					expect(done, key).toBe("[x]");
-					expect(`${SYSTEM7_ICON_FILES[key]}.png`, key).toBe(code(file));
+					expect(`${SYSTEM7_ICON_FILES[key]}.webp`, key).toBe(code(file));
 				} else if (decision === "reuse") {
 					expect(SYSTEM7_ICON_REUSE[key], key).toBe(code(source));
 				} else {
@@ -548,7 +604,7 @@ describe("System 7's assets", () => {
 			);
 			const stems = new Set(Object.values(SYSTEM7_ICON_FILES));
 			expect(
-				onDisk.filter((file) => !stems.has(path.basename(file, ".png"))),
+				onDisk.filter((file) => !stems.has(path.basename(file, ".webp"))),
 			).toEqual([]);
 			// Every family has the same files in both variants.
 			for (const size of ["32", "16"])
@@ -560,7 +616,7 @@ describe("System 7's assets", () => {
 				);
 			for (const stem of stems)
 				expect(
-					onDisk.some((file) => file.endsWith(`/${stem}.png`)),
+					onDisk.some((file) => file.endsWith(`/${stem}.webp`)),
 					stem,
 				).toBe(true);
 		});

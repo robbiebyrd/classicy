@@ -36,7 +36,7 @@ import "./assets/system7Assets";
 import "../../platinum/src/screenSavers/platinumScreenSavers";
 // The package's own icon (the Appearance Manager's Themes tab): the System
 // file's icon, System 7's suitcase with a Mac.
-import system7Icon from "./assets/icons/color/32/system-folders-suitcase-system.png";
+import system7Icon from "./assets/icons/color/32/system-folders-suitcase-system.webp";
 import { system7SoundPack } from "./assets/sounds/system7";
 import { system7AppearanceHooks } from "./hooks";
 import system7Css from "./styles/system7.scss?inline";

@@ -18,15 +18,19 @@
 //    release was built with (plan 0016-vbq §2.1).
 //
 // 2. DIST/ASSETS HOLDS EVERY PACKAGE FILE, AS AUTHORED. Exactly the fonts
-//    (src/assets/fonts), the art (src/assets/art), the cursors
-//    (src/assets/cursors), the wallpapers (src/assets/wallpapers, not its
-//    photos/ folder), the four sound sprites
-//    (src/assets/sounds/platinum/platinum.*) and the screen savers' art
-//    (src/screenSavers/**/*.webp, plan 0016-vbq §2.1),
+//    (src/assets/fonts), the art (src/assets/art, SVG and WebP), the cursors
+//    (src/assets/cursors), the wallpapers (src/assets/wallpapers, WebP, not
+//    its photos/ folder), the two sound sprites
+//    (src/assets/sounds/platinum/platinum.{ogg,m4a}) and the screen savers'
+//    art (src/screenSavers/**/*.webp, plan 0016-vbq §2.1),
 //    each under its source name and byte-identical to its source, so an
 //    image optimizer or a WebP pass added to vite.config.ts fails here
-//    (0131-ku3's review). dist/ itself holds only the two bundles and their
-//    maps, the two strict-CSP stylesheets, assets/ and types/.
+//    (0131-ku3's review). The art and wallpapers are WebP since plan 0019-fb7
+//    §6.4: a PNG or JPG there fails, unless PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS
+//    names it (an image the browser check, bin/check-webp-in-browsers.ts,
+//    found drawn differently from its WebP, kept in its own format). dist/
+//    itself holds only the two bundles and their maps, the two strict-CSP
+//    stylesheets, assets/ and types/.
 //
 // 3. NOTHING BUT THE HALFTONE MASK IS INLINED. Every `data:` URI in either
 //    bundle is an image/svg+xml (ruling E17: Platinum's only mask, which needs
@@ -56,7 +60,9 @@
 //    PlatinumJson, on the core's types; nothing imports platinum.json.d.ts).
 //    Every relative specifier in a declaration carries its extension
 //    (`./hooks.js`): the package is `"type": "module"`, so a host on
-//    `moduleResolution: node16` or `nodenext` resolves no other.
+//    `moduleResolution: node16` or `nodenext` resolves no other. And no
+//    declaration map (.d.ts.map): the dts() call passes
+//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
 //
 // 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
@@ -69,9 +75,15 @@
 //    Chrome 120, Safari 16.2 or Firefox 113 lacks carries a fallback, an
 //    earlier declaration of its property that calls none, or an enclosing
 //    `@supports` testing it (bin/classicyCssFloor.ts).
+//
+// 10. SOURCE MAPS CARRY CLASSICY'S OWN TEXT ONLY (the core's invariant 16,
+//    plan 0019-fb7 Part 1). Every dist/*.js.map has null text for each
+//    node_modules/ (zod) and embedded asset source, lists every vendor source
+//    in x_google_ignoreList, and keeps the text of each src/ source
+//    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts).
 
 import { readdir, readFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import { exit } from "node:process";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
 import { findClassicyCssFloorProblems } from "../../../../bin/classicyCssFloor.ts";
@@ -92,6 +104,7 @@ import {
 	findClassicyFontStylesheetProblems,
 } from "../../../../bin/classicyFontStylesheet.ts";
 import { findClassicyPackageCssProblems } from "../../../../bin/classicyPackageCss.ts";
+import { findClassicySourceMapTextProblems } from "../../../../bin/classicySourceMapText.ts";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector.ts";
 import { PLATINUM_FONT_FACES } from "../src/assets/platinumFonts.internal.ts";
 
@@ -172,6 +185,29 @@ const listFiles = async (dir, accept = () => true) =>
 	(await readdir(dir, { withFileTypes: true }).catch(() => []))
 		.filter((entry) => entry.isFile() && accept(entry.name))
 		.map((entry) => join(dir, entry.name));
+// The originals kept in their own format, by path under src/assets: the
+// sources CLASSICY_WEBP_KEEP_ORIGINAL (bin/convert-images-to-webp.ts) keeps.
+// alias.png: Chromium draws seven of its nine translucent pixels one level
+// darker from its WebP.
+const PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS = ["art/alias.png"];
+const ORIGINAL_FORMAT = /\.(?:png|jpe?g)$/i;
+const SRC_ASSETS = join("src", "assets");
+const isOriginalFormatException = (file) =>
+	PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS.includes(
+		relative(SRC_ASSETS, file).split(sep).join("/"),
+	);
+// The art and the wallpapers, each folder's images in any format.
+const images = [
+	...(await listFiles(join(SRC_ASSETS, "art"), (n) =>
+		/\.(?:svg|webp|png|jpe?g)$/i.test(n),
+	)),
+	...(await listFiles(join(SRC_ASSETS, "wallpapers"), (n) =>
+		/\.(?:webp|png|jpe?g)$/i.test(n),
+	)),
+];
+const originals = images.filter(
+	(file) => ORIGINAL_FORMAT.test(file) && !isOriginalFormatException(file),
+);
 // The screen savers' folders, one per saver, each holding its art.
 const saverDirs = (
 	await readdir(join("src", "screenSavers"), { withFileTypes: true }).catch(
@@ -182,12 +218,9 @@ const saverDirs = (
 	.map((entry) => join("src", "screenSavers", entry.name));
 const sources = [
 	...(await listFiles("src/assets/fonts", (n) => n.endsWith(".woff2"))),
-	...(await listFiles("src/assets/art", (n) => /\.(?:svg|png)$/.test(n))),
+	...images.filter((file) => !originals.includes(file)),
 	...(await listFiles("src/assets/cursors")),
-	...(await listFiles("src/assets/wallpapers", (n) =>
-		/\.(?:png|jpg)$/.test(n),
-	)),
-	...["ogg", "m4a", "mp3", "ac3"].map((ext) =>
+	...["ogg", "m4a"].map((ext) =>
 		join("src", "assets", "sounds", "platinum", `platinum.${ext}`),
 	),
 	...(
@@ -198,7 +231,10 @@ const sources = [
 ];
 const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 {
-	const problems = [];
+	const problems = originals.map(
+		(file) =>
+			`${file}: ships in its original format -> the package's art and wallpapers ship as WebP: convert it (node bin/convert-images-to-webp.ts packages/appearance/platinum) and git rm the original, or list it in PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS if the browser check keeps it.`,
+	);
 	const sourceOf = new Map();
 	for (const source of sources) {
 		const name = basename(source);
@@ -337,6 +373,11 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		problems.push(
 			`${join(TYPES, "index.d.ts")}: missing -> the package's \`types\` export points at it; check dts in vite.config.ts.`,
 		);
+	const maps = declarations.filter((file) => file.endsWith(".d.ts.map")).sort();
+	if (maps.length)
+		problems.push(
+			`${TYPES}: ${maps.length} declaration map(s) (${maps.slice(0, 5).join(", ")}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
+		);
 	const tests = findClassicyTestDeclarations(declarations);
 	if (tests.length)
 		problems.push(
@@ -390,6 +431,23 @@ report(
 	report(
 		problems,
 		`browser floor: ${cssFiles.length} .css file(s), every newer CSS math function with a fallback`,
+	);
+}
+
+// Invariant 10: the source maps carry Classicy's own text only.
+{
+	const problems = [];
+	const maps = (await readdir(DIST).catch(() => []))
+		.filter((f) => f.endsWith(".js.map"))
+		.sort()
+		.map((f) => join(DIST, f));
+	for (const file of maps)
+		problems.push(
+			...findClassicySourceMapTextProblems(await readFile(file, "utf8"), file),
+		);
+	report(
+		problems,
+		`source maps: ${maps.length} dist/*.js.map file(s), each with Classicy's own text and no third-party or asset text`,
 	);
 }
 

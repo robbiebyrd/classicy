@@ -95,15 +95,18 @@ describe("Platinum system art", () => {
 		expect(UNREGISTERED).toHaveLength(9);
 	});
 
-	it("draws the Apple menu, trash, alias badge and help button from its own src/assets/art", () => {
+	it("draws the Apple menu, trash, alias badge, help button and Sad Mac from its own src/assets/art", () => {
 		// Moved out of the core's assets/ with their icon-tree entries (plan
-		// 0015-kxa §3.3): Platinum was their only reader.
+		// 0015-kxa §3.3): Platinum was their only reader. WebP since plan
+		// 0019-fb7 §6.4, except the alias badge, which Chromium draws
+		// differently from its WebP, so it stays a PNG.
 		for (const [key, file] of [
-			["appleMenu", "apple.png"],
-			["trashEmpty", "trash-empty.png"],
-			["trashFull", "trash-full.png"],
+			["appleMenu", "apple.webp"],
+			["trashEmpty", "trash-empty.webp"],
+			["trashFull", "trash-full.webp"],
 			["aliasBadge", "alias.png"],
-			["helpButton", "help-button.png"],
+			["helpButton", "help-button.webp"],
+			["sadMac", "sad-mac.webp"],
 		] as const) {
 			expect(fileOf(resolveClassicyAsset("systemArt", key)), key).toBe(
 				path.join(PACKAGE, "src/assets/art", file),
@@ -193,7 +196,7 @@ describe("Platinum small icons", () => {
 
 	it("draws the folder's own 16 px image at the small size", () => {
 		expect(fileOf(resolveClassicyIconImage(DIRECTORY, 16))).toBe(
-			path.join(PACKAGE, "src/assets/art/folder-small.png"),
+			path.join(PACKAGE, "src/assets/art/folder-small.webp"),
 		);
 	});
 

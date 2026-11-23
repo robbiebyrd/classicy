@@ -4,7 +4,10 @@ import {
 	moveClassicyItemsToTrash,
 	restoreClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileMove";
-import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import {
+	ClassicyFileSystem,
+	subscribeClassicyFileSystem,
+} from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import {
 	CLASSICY_TRASH_PATH,
@@ -56,6 +59,54 @@ describe("the Trash folder", () => {
 		const before = JSON.stringify(fs.fs);
 		ensureClassicyTrash(fs);
 		expect(JSON.stringify(fs.fs)).toBe(before);
+	});
+
+	it("rewrites a stale stored _icon to the current trash art", () => {
+		const fs = makeFs();
+		ensureClassicyTrash(fs);
+		fs.setMetadata(CLASSICY_TRASH_PATH, {
+			_icon: "/assets/trash-empty-AbC12345.png",
+		});
+		ensureClassicyTrash(fs, "trash-empty.webp");
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe("trash-empty.webp");
+	});
+
+	it("journals nothing when the stored _icon is current", () => {
+		const fs = makeFs();
+		ensureClassicyTrash(fs, "trash-empty.webp");
+		const listener = vi.fn();
+		const unsubscribe = subscribeClassicyFileSystem(fs.storageKey, listener);
+		try {
+			ensureClassicyTrash(fs, "trash-empty.webp");
+		} finally {
+			unsubscribe();
+		}
+		expect(listener).not.toHaveBeenCalled();
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe("trash-empty.webp");
+	});
+
+	it("never replaces a stored _icon with nothing", () => {
+		// No default art registered yet: the heal waits for it.
+		const fs = makeFs();
+		ensureClassicyTrash(fs, "/assets/trash-empty-AbC12345.png");
+		const listener = vi.fn();
+		const unsubscribe = subscribeClassicyFileSystem(fs.storageKey, listener);
+		try {
+			ensureClassicyTrash(fs, "");
+		} finally {
+			unsubscribe();
+		}
+		expect(listener).not.toHaveBeenCalled();
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe(
+			"/assets/trash-empty-AbC12345.png",
+		);
+	});
+
+	it("is still created with no default art, its _icon empty", () => {
+		const fs = makeFs();
+		ensureClassicyTrash(fs, "");
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe("");
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._system).toBe(true);
 	});
 
 	it("knows what is in it", () => {

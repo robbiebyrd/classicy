@@ -1,5 +1,13 @@
 import { Blob as NodeBlob } from "node:buffer";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type MockInstance,
+	vi,
+} from "vitest";
 import {
 	losePointerStream,
 	POINTER_STREAM_LOSSES,
@@ -33,10 +41,14 @@ vi.mock(
 
 const {
 	getDocumentMock,
+	globalWorkerOptions,
 	mockDoc,
 	mockPage,
 	mockLoadingTaskDestroy,
+	pdfjsImports,
+	pdfjsModule,
 	RenderingCancelledExceptionMock,
+	workerSrcMock,
 } = vi.hoisted(() => {
 	// Mirrors the real pdf.js RenderingCancelledException (a concrete,
 	// instanceof-checkable class) closely enough for the component's
@@ -79,23 +91,57 @@ const {
 			destroy: mockLoadingTaskDestroy,
 		}),
 	);
+	// pdf.js's worker options, one object for the whole file, so a test can
+	// read what the viewer set before getDocument() ran.
+	const globalWorkerOptions = { workerSrc: "" };
+	// The worker source the viewer hands pdf.js: the real module rebuilds the
+	// data: URI from the deflated worker (ClassicyPdfWorkerSource.internal.ts,
+	// tested on its own), or says why it could not.
+	const workerSrcMock = vi.fn(
+		():
+			| { ok: true; src: string }
+			| { ok: false; problem: string; error?: unknown } => ({
+			ok: true,
+			src: "mock-worker-url",
+		}),
+	);
+	// Which pdf.js builds the viewer imported ("legacy", "modern"), and how
+	// many of its next legacy imports fail, as a chunk that does not load.
+	const pdfjsImports = { builds: [] as string[], failuresLeft: 0 };
+	const pdfjsModule = (build: "legacy" | "modern") => {
+		pdfjsImports.builds.push(build);
+		if (build === "legacy" && pdfjsImports.failuresLeft > 0) {
+			pdfjsImports.failuresLeft--;
+			throw new TypeError("Failed to fetch dynamically imported module");
+		}
+		return {
+			getDocument: getDocumentMock,
+			GlobalWorkerOptions: globalWorkerOptions,
+			RenderingCancelledException: RenderingCancelledExceptionMock,
+		};
+	};
 	return {
 		getDocumentMock,
+		globalWorkerOptions,
 		mockDoc,
 		mockPage,
 		mockLoadingTaskDestroy,
+		pdfjsImports,
+		pdfjsModule,
 		RenderingCancelledExceptionMock,
+		workerSrcMock,
 	};
 });
 
-vi.mock("pdfjs-dist", () => ({
-	getDocument: getDocumentMock,
-	GlobalWorkerOptions: { workerSrc: "" },
-	RenderingCancelledException: RenderingCancelledExceptionMock,
-}));
+// pdf.js's legacy build is the one the viewer loads (plan 0019-fb7 §3.4):
+// the modern build calls Map.prototype.getOrInsertComputed, which the oldest
+// supported browsers (Chrome 120, Safari 16.2, Firefox 113) lack. The modern build is mocked too, only to record
+// that it is never imported.
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => pdfjsModule("legacy"));
+vi.mock("pdfjs-dist", () => pdfjsModule("modern"));
 
-vi.mock("pdfjs-dist/build/pdf.worker.min.mjs?url", () => ({
-	default: "mock-worker-url",
+vi.mock("@/SystemFolder/PDFViewer/ClassicyPdfWorkerSource.internal", () => ({
+	classicyPdfWorkerSrc: workerSrcMock,
 }));
 
 import { act } from "react";
@@ -104,9 +150,21 @@ import {
 	registerClassicyIcons,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { PDFViewerDocument } from "@/SystemFolder/PDFViewer/PDFViewerDocument";
+import * as ClassicyLog from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { compressToBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
+// Every failure the viewer shows it also logs (plan 0019-fb7's final review:
+// PDFs failed from 0.71.6 through 3.5.0 with nothing reaching a host's log
+// sink). Silenced and counted.
+let logged: MockInstance<typeof ClassicyLog.classicyLog>;
+afterEach(() => {
+	logged.mockRestore();
+});
+
 beforeEach(() => {
+	logged = vi
+		.spyOn(ClassicyLog, "classicyLog")
+		.mockImplementation(() => undefined);
 	HTMLCanvasElement.prototype.getContext = vi.fn(
 		() => ({}),
 	) as unknown as typeof HTMLCanvasElement.prototype.getContext;
@@ -114,6 +172,8 @@ beforeEach(() => {
 	// test that fails before its first render can't leak its render task
 	// into the next test. It restores each vi.fn's original implementation.
 	getDocumentMock.mockReset();
+	workerSrcMock.mockReset();
+	globalWorkerOptions.workerSrc = "";
 	mockDoc.getPage.mockReset();
 	mockLoadingTaskDestroy.mockReset();
 	mockPage.render.mockReset();
@@ -174,9 +234,101 @@ describe("PDFViewerDocument", () => {
 		expect(screen.getByRole("button", { name: "Zoom Out" })).toBeDisabled();
 	});
 
-	it("shows an error message (no toolbar) when the document fails to load", async () => {
+	it("loads pdf.js's legacy build", async () => {
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+		expect(pdfjsImports.builds).toContain("legacy");
+		expect(pdfjsImports.builds).not.toContain("modern");
+	});
+
+	// pdf.js's chunk did not load (a network blip, or a deploy that replaced
+	// it): that document shows its load error, and the next one imports the
+	// chunk again rather than failing on the first attempt's rejection. A
+	// fresh copy of the viewer, and the mock registered again (doMock drops
+	// its cached module), so no earlier test's pdf.js is kept.
+	it("a failed chunk load is retried on the next document", async () => {
+		vi.resetModules();
+		vi.doMock("pdfjs-dist/legacy/build/pdf.mjs", () => pdfjsModule("legacy"));
+		const { PDFViewerDocument: FreshViewer } = await import(
+			"@/SystemFolder/PDFViewer/PDFViewerDocument"
+		);
+		const freshLog = await import(
+			"@/SystemFolder/SystemResources/Log/ClassicyLog"
+		);
+		const freshLogged = vi
+			.spyOn(freshLog, "classicyLog")
+			.mockImplementation(() => undefined);
+		pdfjsImports.failuresLeft = 1;
+		const { rerender } = render(
+			<FreshViewer url="http://example.com/first.pdf" />,
+		);
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
+		expect(pdfjsImports.failuresLeft).toBe(0);
+		expect(getDocumentMock).not.toHaveBeenCalled();
+		expect(freshLogged).toHaveBeenCalledTimes(1);
+		expect(freshLogged).toHaveBeenCalledWith(
+			"error",
+			"PDFViewer",
+			"Couldn't load this PDF.",
+			// vitest wraps the mock factory's TypeError in its own Error.
+			expect.any(Error),
+		);
+		rerender(<FreshViewer url="http://example.com/second.pdf" />);
+		expect(await screen.findByText("Page 1 of 3")).toBeInTheDocument();
+		expect(getDocumentMock).toHaveBeenCalledTimes(1);
+		expect(getDocumentMock).toHaveBeenCalledWith({
+			url: "http://example.com/second.pdf",
+		});
+	});
+
+	it("sets the worker source before loading a document", async () => {
+		let workerSrcAtLoad: string | undefined;
+		getDocumentMock.mockImplementationOnce(() => {
+			workerSrcAtLoad = globalWorkerOptions.workerSrc;
+			return {
+				promise: Promise.resolve(mockDoc),
+				destroy: mockLoadingTaskDestroy,
+			};
+		});
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		await screen.findByText("Page 1 of 3");
+		expect(workerSrcAtLoad).toBe("mock-worker-url");
+		expect(globalWorkerOptions.workerSrc).toBe("mock-worker-url");
+	});
+
+	// The worker's compressed copy did not inflate: the worker source says
+	// why (it logs nothing itself: its chunk imports nothing of Classicy's),
+	// pdf.js is left no worker and is never asked for the document, and the
+	// viewer logs the reason once and shows its load error rather than
+	// spinning on "Loading…".
+	it("logs the worker's problem once and shows its load error when the worker source cannot be rebuilt", async () => {
+		const invalid = new Error("invalid block type");
+		const problem =
+			"The pdf.js worker's compressed copy did not inflate, so no PDF can open.";
+		workerSrcMock.mockReturnValue({ ok: false, problem, error: invalid });
+		globalWorkerOptions.workerSrc = "stale";
+		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
+		expect(
+			await screen.findByText("Couldn't load this PDF."),
+		).toBeInTheDocument();
+		expect(getDocumentMock).not.toHaveBeenCalled();
+		expect(globalWorkerOptions.workerSrc).toBe("");
+		expect(screen.queryByText("Next")).not.toBeInTheDocument();
+		expect(logged).toHaveBeenCalledTimes(1);
+		expect(logged).toHaveBeenCalledWith(
+			"error",
+			"PDFViewer",
+			"Couldn't load this PDF.",
+			expect.objectContaining({ message: problem, cause: invalid }),
+		);
+	});
+
+	it("shows an error message (no toolbar), and logs it once, when the document fails to load", async () => {
+		const boom = new Error("boom");
 		getDocumentMock.mockReturnValueOnce({
-			promise: Promise.reject(new Error("boom")),
+			promise: Promise.reject(boom),
 			destroy: vi.fn(),
 		});
 		render(<PDFViewerDocument url="http://example.com/broken.pdf" />);
@@ -188,12 +340,39 @@ describe("PDFViewerDocument", () => {
 		// replacement is correct for this case.
 		expect(screen.queryByText("Next")).not.toBeInTheDocument();
 		expect(screen.queryByText("Previous")).not.toBeInTheDocument();
+		expect(logged).toHaveBeenCalledTimes(1);
+		expect(logged).toHaveBeenCalledWith(
+			"error",
+			"PDFViewer",
+			"Couldn't load this PDF.",
+			boom,
+		);
 	});
 
-	it("shows a page error but keeps the toolbar visible and usable when a specific page fails to load", async () => {
-		mockDoc.getPage.mockImplementationOnce(() =>
-			Promise.reject(new Error("page boom")),
+	// A load this effect abandoned (here: an unmount, whose destroy() makes
+	// pdf.js reject the load) is not a failure.
+	it("logs nothing for a load abandoned by an unmount", async () => {
+		let rejectLoad: (reason?: unknown) => void = () => {};
+		getDocumentMock.mockReturnValueOnce({
+			promise: new Promise((_resolve, reject) => {
+				rejectLoad = reject;
+			}),
+			destroy: vi.fn(() => rejectLoad(new Error("Worker was destroyed"))),
+		});
+		const { unmount } = render(
+			<PDFViewerDocument url="http://example.com/sample.pdf" />,
 		);
+		await waitFor(() => expect(getDocumentMock).toHaveBeenCalledTimes(1));
+		unmount();
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+		expect(logged).not.toHaveBeenCalled();
+	});
+
+	it("shows a page error, logged once, but keeps the toolbar visible and usable when a specific page fails to load", async () => {
+		const pageBoom = new Error("page boom");
+		mockDoc.getPage.mockImplementationOnce(() => Promise.reject(pageBoom));
 		const user = userEvent.setup();
 		render(<PDFViewerDocument url="http://example.com/sample.pdf" />);
 
@@ -211,6 +390,13 @@ describe("PDFViewerDocument", () => {
 		expect(
 			screen.queryByText("Couldn't load this PDF."),
 		).not.toBeInTheDocument();
+		expect(logged).toHaveBeenCalledTimes(1);
+		expect(logged).toHaveBeenCalledWith(
+			"error",
+			"PDFViewer",
+			"Couldn't render page 1 of this PDF.",
+			pageBoom,
+		);
 
 		// Clicking Next should be possible from the error state, and should
 		// clear the per-page error once the next page renders successfully.
@@ -259,7 +445,7 @@ describe("PDFViewerDocument", () => {
 		expect(cancel).toHaveBeenCalledTimes(1);
 	});
 
-	it("does not leave an unhandled rejection when a canceled render task's promise rejects, and does not show an error", async () => {
+	it("does not leave an unhandled rejection when a canceled render task's promise rejects, and neither shows nor logs an error", async () => {
 		// Unlike the never-settling promise above, pdf.js actually rejects
 		// `renderTask.promise` with a RenderingCancelledException once
 		// `cancel()` runs. Wire `cancel` to reject the same promise the
@@ -307,13 +493,15 @@ describe("PDFViewerDocument", () => {
 		expect(
 			screen.queryByText("Couldn't render this page."),
 		).not.toBeInTheDocument();
+		expect(logged).not.toHaveBeenCalled();
 	});
 
-	it("shows a page error (toolbar still visible) when a render task fails for a reason other than cancellation", async () => {
+	it("shows a page error (toolbar still visible), and logs it once, when a render task fails for a reason other than cancellation", async () => {
 		// A genuine pdf.js rendering failure (not a RenderingCancelledException)
 		// must still surface to the user instead of being silently swallowed.
 		// Like pdf.js, create the render promise inside page.render(), so it
 		// can only be rejected once the component holds it.
+		const contextLost = new Error("canvas context lost");
 		let rejectRender: (reason?: unknown) => void = () => {};
 		mockPage.render.mockImplementationOnce(() => ({
 			promise: new Promise<void>((_resolve, reject) => {
@@ -336,7 +524,7 @@ describe("PDFViewerDocument", () => {
 			// is listening to — an unhandled rejection that fails the run.
 			await waitForFirstPageRender();
 
-			rejectRender(new Error("canvas context lost"));
+			rejectRender(contextLost);
 
 			expect(
 				await screen.findByText("Couldn't render this page."),
@@ -350,6 +538,13 @@ describe("PDFViewerDocument", () => {
 		// The document loaded fine, so the toolbar must stay usable.
 		expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
 		expect(screen.getByText("Next")).not.toBeDisabled();
+		expect(logged).toHaveBeenCalledTimes(1);
+		expect(logged).toHaveBeenCalledWith(
+			"error",
+			"PDFViewer",
+			"Couldn't render page 1 of this PDF.",
+			contextLost,
+		);
 	});
 
 	it("loads via the data prop, decoding it for real before calling getDocument", async () => {

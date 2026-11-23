@@ -82,14 +82,14 @@ describe("the Platinum appearance package", () => {
 		});
 	});
 
-	it("carries its icon, the platinum.png in its own art", async () => {
+	it("carries its icon, the platinum.webp in its own art", async () => {
 		await import("./index");
 		const { platinumArt } = await import("./assets/art/platinumArt");
 		const icon = getClassicyAppearancePackage("platinum")?.icon;
 		expect(icon).toBeTruthy();
-		expect(icon).toBe(platinumArt("platinum.png"));
+		expect(icon).toBe(platinumArt("platinum.webp"));
 		expect(
-			readFileSync(path.join(import.meta.dirname, "assets/art/platinum.png"))
+			readFileSync(path.join(import.meta.dirname, "assets/art/platinum.webp"))
 				.length,
 		).toBeGreaterThan(0);
 	});

@@ -8,13 +8,18 @@ import {
 	registerClassicySystemArt,
 	registerClassicyWallpapers,
 } from "@classicy/classicy";
+// The raster art is WebP (plan 0019-fb7 §6.4), except the alias badge:
+// Chromium draws seven of its nine translucent pixels one level darker from a
+// WebP, so it stays a PNG (CLASSICY_WEBP_KEEP_ORIGINAL in
+// bin/convert-images-to-webp.ts). The cursors stay PNG, the format every
+// browser takes for a CSS cursor.
 import aliasBadge from "./art/alias.png";
-import appleMenu from "./art/apple.png";
-import folderSmall from "./art/folder-small.png";
-import helpButton from "./art/help-button.png";
+import appleMenu from "./art/apple.webp";
+import folderSmall from "./art/folder-small.webp";
+import helpButton from "./art/help-button.webp";
 import { platinumArt as art, PLATINUM_SYSTEM_ART } from "./art/platinumArt";
-import trashEmpty from "./art/trash-empty.png";
-import trashFull from "./art/trash-full.png";
+import trashEmpty from "./art/trash-empty.webp";
+import trashFull from "./art/trash-full.webp";
 import resizeD from "./cursors/cursor-resize-d.png";
 import resizeL from "./cursors/cursor-resize-l.png";
 import resizeLr from "./cursors/cursor-resize-lr.png";
@@ -64,7 +69,7 @@ const PLATINUM = "platinum";
  */
 registerClassicySystemArt(PLATINUM, {
 	appleMenu,
-	sadMac: art("sad-mac.png"),
+	sadMac: art("sad-mac.webp"),
 	startupLogo: ClassicyIcons.system.macosSvg,
 	trashEmpty,
 	trashFull,
@@ -124,7 +129,8 @@ registerClassicyCursors(PLATINUM, {
  * Platinum's wallpapers by label, each with the filename themes name it by,
  * so a theme's `"azul_dark.png"` resolves through the registry, and the
  * digests of the `data:` URIs 2.x builds inlined it as, so a 2.x save maps
- * to the filename too.
+ * to the filename too. The source is the file's WebP (`azul_dark.webp`, plan
+ * 0019-fb7 §6.4), whose name the wallpaper index maps back to the filename.
  */
 registerClassicyWallpapers(
 	PLATINUM,

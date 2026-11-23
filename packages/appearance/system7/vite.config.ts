@@ -5,6 +5,7 @@ import dts from "vite-plugin-dts";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
+import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
 import { system7AssetFileName } from "./bin/system7AssetNames";
 import { SYSTEM7_FONT_FACES } from "./src/assets/system7Fonts.internal";
 
@@ -52,9 +53,6 @@ const system7Config = (mode: string): UserConfig => ({
 	// build (verify-dist invariant 5).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	// The sound sheet's ac3 file is the one asset type Vite does not know
-	// (its ogg, m4a and mp3 siblings are Vite's own).
-	assetsInclude: ["**/*.ac3"],
 	css: {
 		preprocessorOptions: {
 			// The vocabulary is `pkg:@classicy/classicy/scss/<module>`.
@@ -77,6 +75,8 @@ const system7Config = (mode: string): UserConfig => ({
 			: [
 					dts({
 						tsconfigPath: "tsconfig.build.json",
+						// No declaration maps (verify:dist, invariant 7).
+						compilerOptions: { declarationMap: false },
 						entryRoot: "src",
 						outDir: "dist/types",
 						exclude: [
@@ -96,6 +96,9 @@ const system7Config = (mode: string): UserConfig => ({
 						}),
 					}),
 				]),
+		// Last: the published maps keep Classicy's own text and drop zod's
+		// and any embedded asset's (verify-dist invariant 10).
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,
@@ -110,8 +113,8 @@ const system7Config = (mode: string): UserConfig => ({
 			output: {
 				// Package assets go under dist/assets, each under its source
 				// name, the variant and size folders' files with their folders
-				// in it (bin/system7AssetNames.ts), so `icons/color/32/x.png`
-				// and `icons/bw/32/x.png` never collide.
+				// in it (bin/system7AssetNames.ts), so `icons/color/32/x.webp`
+				// and `icons/bw/32/x.webp` never collide.
 				assetFileNames: ({ names, originalFileNames }) =>
 					`assets/${system7AssetFileName(originalFileNames[0] ?? names[0] ?? "")}`,
 				globals: {

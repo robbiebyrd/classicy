@@ -24,16 +24,21 @@
 //
 // Imported by bin/export-assets.mjs, which writes `icons/selected/<size>/`
 // beside each `icons/color/<size>/` icon it exports. Run directly, it
-// writes them from the committed color icons, the same bytes:
+// writes them from the committed color icons, the same bytes: each is
+// lossless WebP (plan 0019-fb7 §6.5), decoded and encoded by the repo's
+// pinned libwebp (bin/classicyWebp.ts), as the export writes them:
 //
 //   node packages/appearance/system7/bin/selectedIcons.mjs [<assets>]
 
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv } from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+	decodeClassicyWebp,
+	encodeClassicyWebp,
+} from "../../../../bin/classicyWebp.ts";
 import { standardClut8 } from "./macResources.mjs";
-import { encodePng, readPng } from "./png.mjs";
 
 const ACCEPTABLE_DELTA = 2 * 256;
 
@@ -105,6 +110,20 @@ export const selectedIcon = (img) => {
 	return { width: img.width, height: img.height, pixels };
 };
 
+/**
+ * A color icon's WebP bytes as its selected rendering's: decoded, every
+ * color darkened (`selectedIcon`), and encoded lossless, as the export
+ * writes every icon.
+ */
+export const selectedIconWebp = async (colorWebp) => {
+	const { width, height, data } = await decodeClassicyWebp(colorWebp);
+	const { pixels } = selectedIcon({ width, height, pixels: Buffer.from(data) });
+	return encodeClassicyWebp(
+		{ width, height, data: pixels },
+		{ lossless: true },
+	);
+};
+
 // Run directly: every committed color icon's selected rendering.
 if (resolve(argv[1] ?? "") === fileURLToPath(import.meta.url)) {
 	const here = dirname(fileURLToPath(import.meta.url));
@@ -113,10 +132,10 @@ if (resolve(argv[1] ?? "") === fileURLToPath(import.meta.url)) {
 		const from = join(assets, "icons", "color", size);
 		const to = join(assets, "icons", "selected", size);
 		mkdirSync(to, { recursive: true });
-		for (const file of readdirSync(from).filter((f) => f.endsWith(".png"))) {
+		for (const file of readdirSync(from).filter((f) => f.endsWith(".webp"))) {
 			writeFileSync(
 				join(to, file),
-				encodePng(selectedIcon(readPng(join(from, file)))),
+				await selectedIconWebp(new Uint8Array(readFileSync(join(from, file)))),
 			);
 			console.log(`wrote icons/selected/${size}/${file}`);
 		}

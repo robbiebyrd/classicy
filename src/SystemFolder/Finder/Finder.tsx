@@ -42,6 +42,7 @@ import {
 	ClassicyFileBrowser,
 	type ClassicyFileBrowserCommands,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowser";
+import { iconImageByType } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserUtils";
 import type { ClassicyFileBrowserMoveItems } from "@/SystemFolder/SystemResources/File/ClassicyFileBrowserViewIcons";
 import {
 	CLASSICY_DESKTOP_ITEM_ICON_PREFIX,
@@ -65,6 +66,10 @@ import {
 	isInClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import {
+	useClassicyStoredTrashIcon,
+	useClassicyTrashIcon,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
@@ -97,6 +102,8 @@ type FinderWindowProps = {
 		path: string,
 		selectedPaths: string[],
 	) => ClassicyMenuItem[] | undefined;
+	/** The active package's Trash art, full or empty: the Trash window's icon. */
+	trashIcon: string;
 };
 
 const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
@@ -124,6 +131,7 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	trashItems,
 	restoreItems,
 	itemContextMenu,
+	trashIcon,
 }) => {
 	const desktopEventDispatch = useAppManagerDispatch();
 	// The browser's selection, for File ▸ Move To Trash and Restore.
@@ -278,7 +286,14 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 		<ClassicyWindow
 			id={op}
 			title={dir._name}
-			icon={dir._icon}
+			// The Trash draws the active package's art at render, as its desktop
+			// icon does, not the `_icon` stored with the folder; with no Trash
+			// art registered, that `_icon`, else the directory icon.
+			icon={
+				op === CLASSICY_TRASH_PATH
+					? trashIcon || dir._icon || iconImageByType(dir._type)
+					: dir._icon
+			}
 			appId={appId}
 			defaultWindow={false}
 			hidden={false}
@@ -551,20 +566,26 @@ export const Finder = () => {
 	);
 
 	// The Trash: a folder at the root of the tree, opened by the desktop's
-	// Trash icon — which shows full while anything is in it.
+	// Trash icon — which shows full while anything is in it. The desktop icon
+	// and the Trash window draw the active package's art at render.
+	const trashIcon = useClassicyTrashIcon(listClassicyTrashItems(fs).length > 0);
+	// The folder stores the default package's art, never the active one's, so
+	// a package switch writes nothing. Runs on every tree change (`fs` is
+	// handed out afresh), so it must stay idempotent: it writes only to create
+	// the Trash or to heal a stale stored `_icon` (an older build's art under
+	// another package, or a file this build no longer ships), and again when
+	// the default package registers its art after mount.
+	const storedTrashIcon = useClassicyStoredTrashIcon();
 	useEffect(() => {
-		ensureClassicyTrash(fs);
-	}, [fs]);
-	const trashFull = listClassicyTrashItems(fs).length > 0;
-	const trashFullIcon = useClassicyAsset("systemArt", "trashFull") ?? "";
-	const trashEmptyIcon = useClassicyAsset("systemArt", "trashEmpty") ?? "";
+		ensureClassicyTrash(fs, storedTrashIcon);
+	}, [fs, storedTrashIcon]);
 	useEffect(() => {
 		desktopEventDispatch({
 			type: "ClassicyDesktopIconAdd",
 			app: {
 				id: "Trash",
 				name: "Trash",
-				icon: trashFull ? trashFullIcon : trashEmptyIcon,
+				icon: trashIcon,
 			},
 			kind: "trash",
 			filePath: CLASSICY_TRASH_PATH,
@@ -592,7 +613,7 @@ export const Finder = () => {
 				},
 			],
 		});
-	}, [trashFull, trashFullIcon, trashEmptyIcon, desktopEventDispatch]);
+	}, [trashIcon, desktopEventDispatch]);
 
 	const trashItems = useCallback(
 		(paths: string[]) => {
@@ -738,6 +759,7 @@ export const Finder = () => {
 							trashItems={trashItems}
 							restoreItems={restoreItems}
 							itemContextMenu={itemContextMenu}
+							trashIcon={trashIcon}
 						/>
 					))
 				: null}

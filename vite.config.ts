@@ -6,12 +6,14 @@ import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
+import { classicyDeflateAssetPlugin } from "./bin/classicyDeflateAsset";
 import { CLASSICY_DTS_EXCLUDE } from "./bin/classicyDistTypes";
 import { CLASSICY_IMAGE_TOOLS_EXCLUDES } from "./bin/classicyImageTools";
 import {
 	isClassicyAppearanceSourcePath,
 	noInlineAppearanceAssetsPlugin,
 } from "./bin/classicyNoInlineAssets";
+import { classicySourceMapTextPlugin } from "./bin/classicySourceMapText";
 import {
 	classicyStyleInjector,
 	prependLayerOrder,
@@ -112,16 +114,20 @@ function injectCssPlugin(): Plugin {
 // took 911realtime.org down (classicy 0.70.0/0.70.1). Keeping it bundled
 // keeps prismjs inside a Rollup build that handles it correctly.
 //
-// DO NOT add "pdfjs-dist" here either, for an unrelated reason: because
-// build.lib forces asset inlining, PDFViewerDocument's `?url` import bakes
-// *this repo's* pdf.worker into dist as a data: URI. pdf.js refuses to run
+// DO NOT add "pdfjs-dist" here either, for an unrelated reason: the PDF
+// viewer embeds *this repo's* pdf.worker in dist, raw-deflated as base64 text
+// (`?classicy-deflate`, bin/classicyDeflateAsset.ts, plan 0019-fb7 Part 2),
+// and rebuilds its data: URI when the first PDF opens. pdf.js refuses to run
 // when the worker and the API disagree on version, so externalizing the
-// library while still inlining the worker means the consumer supplies the API
-// from their own node_modules and the two drift apart on the next release.
-// That shipped: classicy inlined the 6.1.200 worker while rt911 resolved the
-// 6.2.108 API, and every PDF failed with "Couldn't load this PDF." The two
-// halves have to come from one place, and the worker is already pinned here,
-// so the library belongs here too.
+// library while still embedding the worker means the consumer supplies the
+// API from their own node_modules and the two drift apart on the next
+// release. That shipped (then as a `?url` data: URI): classicy inlined the
+// 6.1.200 worker while rt911 resolved the 6.2.108 API, and every PDF failed
+// with "Couldn't load this PDF." The two halves have to come from one place,
+// and the worker is already pinned here, so the library belongs here too.
+// fflate, which inflates the worker, is bundled the same way: it is a
+// devDependency, so a host installs no copy of it (verify:dist invariants 2
+// and 17).
 const externalPackages = [
 	"react",
 	"react-dom",
@@ -140,9 +146,11 @@ const externalPackages = [
 // `vite dev` (rolldown pre-bundles deps, "No such file or directory") and
 // vitest (externalizes node_modules to Node ESM, "does not provide an export
 // named 'default'"). `vite build` still works, so the breakage is invisible
-// here. Let vite:asset claim these and inline them instead.
+// here. Let vite:asset claim these and inline them instead. Our own
+// `?classicy-deflate` query (classicyDeflateAssetPlugin) is one of them: the
+// plugin embeds the file, and nothing else could resolve it.
 const isAssetQuery = (id: string) =>
-	/\?(?:.*&)?(?:url|raw|worker|inline)\b/.test(id);
+	/\?(?:.*&)?(?:url|raw|worker|inline|classicy-deflate)\b/.test(id);
 
 const isExternal = (id: string) =>
 	!isAssetQuery(id) &&
@@ -182,14 +190,7 @@ const config = defineConfig({
 	// and 9).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	assetsInclude: [
-		"**/*.ogg",
-		"**/*.m4a",
-		"**/*.mp3",
-		"**/*.ac3",
-		"**/*.wav",
-		"**/*.caf",
-	],
+	assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.wav", "**/*.caf"],
 	resolve: {
 		alias: [
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },
@@ -208,6 +209,9 @@ const config = defineConfig({
 		react(),
 		dts({
 			outDir: "dist/types",
+			// The root tsconfig keeps declarationMap for the editor; the
+			// published declarations ship none (verify:dist, invariant 8).
+			compilerOptions: { declarationMap: false },
 			// No declarations for tests, test helpers or stories (verify:dist,
 			// invariant 8, fails the build if one ships).
 			exclude: CLASSICY_DTS_EXCLUDE,
@@ -230,6 +234,13 @@ const config = defineConfig({
 			enableDevWebp: true,
 		}),
 		injectCssPlugin(),
+		// `?classicy-deflate` imports embed a file raw-deflated as base64 text
+		// (the pdf.js worker, plan 0019-fb7 Part 2; bin/classicyDeflateAsset.ts).
+		classicyDeflateAssetPlugin(),
+		// Last: the published maps keep Classicy's own text and drop third-party
+		// and asset text (verify:dist invariant 16), after injectCssPlugin has
+		// changed the entry bundles.
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,

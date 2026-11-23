@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { PLATINUM_FONT_FACES } from "./platinumFonts.internal";
-import { PLATINUM_WALLPAPERS } from "./platinumWallpapers";
+import {
+	PLATINUM_WALLPAPERS,
+	platinumWallpaperFile,
+} from "./platinumWallpapers";
 
 /**
  * The package ships no unread asset (story 0159-tf5, after 0150 did the same
@@ -59,8 +62,7 @@ const READERS: ReadonlyArray<{
 
 /** Sound sprite sources: bin/make_audio_sprites.sh builds the pack from them. */
 const SPRITE_SOURCE = /^src\/assets\/sounds\/platinum\/sprites\/(.+)\.mp3$/;
-const SOUND_PACK =
-	/^src\/assets\/sounds\/platinum\/platinum\.(ogg|m4a|mp3|ac3|json)$/;
+const SOUND_PACK = /^src\/assets\/sounds\/platinum\/platinum\.(ogg|m4a|json)$/;
 
 /** Why a file is read, or "" when nothing reads it. */
 const readBy = (file: string): string => {
@@ -80,8 +82,12 @@ const readBy = (file: string): string => {
 			? "a bundled font face"
 			: "";
 
+	// A wallpaper's file is its WebP (plan 0019-fb7 §6.4), under the name
+	// platinumWallpaperFile gives its identity filename.
 	if (/^wallpapers\/[^/]+$/.test(inAssets))
-		return PLATINUM_WALLPAPERS.some(({ file: wall }) => wall === base)
+		return PLATINUM_WALLPAPERS.some(
+			({ file: wall }) => platinumWallpaperFile(wall) === base,
+		)
 			? "a registered wallpaper"
 			: "";
 

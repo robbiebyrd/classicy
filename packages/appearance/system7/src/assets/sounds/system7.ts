@@ -13,23 +13,18 @@ const SYSTEM7 = "system7";
 // System file's alert sounds (`snd ` 1 and 5 to 9), written by
 // bin/export-assets.mjs. Imported as files, like the art and fonts: the
 // package's build emits them in dist/assets.
-const spriteModules = import.meta.glob("./system7/system7.{ogg,m4a,mp3,ac3}", {
+const spriteModules = import.meta.glob("./system7/system7.{ogg,m4a}", {
 	eager: true,
 	import: "default",
 }) as Record<string, string>;
 
-const SYSTEM7_FILE_NAMES = [
-	"system7.ogg",
-	"system7.m4a",
-	"system7.mp3",
-	"system7.ac3",
-];
+const SYSTEM7_FILE_NAMES = ["system7.ogg", "system7.m4a"];
 const system7Urls = SYSTEM7_FILE_NAMES.map(
 	(file) => spriteModules[`./system7/${file}`] ?? "",
 );
 
 // A resolved URL may be a `data:` URI, so it cannot be compared with the
-// JSON; instead the JSON's relative `src` must name exactly the four bundled
+// JSON; instead the JSON's relative `src` must name exactly the two bundled
 // files, in the same order.
 if (
 	JSON.stringify(system7Json.src.map((src) => src.split("/").pop())) !==

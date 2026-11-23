@@ -40,9 +40,11 @@ describe("System 7's desktop picture", () => {
 			{ label: "Gray", file: "desktop-gray.png" },
 			{ label: "Gray (Black & White)", file: "desktop-gray-bw.png" },
 		]);
+		// Each draws its WebP (plan 0019-fb7 §6.5) under the identity filename
+		// themes name.
 		for (const { file } of SYSTEM7_WALLPAPERS)
 			expect(resolveClassicyWallpaper(file, "system7")).toMatch(
-				new RegExp(`wallpapers/${file.replace(".", "\\.")}$`),
+				new RegExp(`wallpapers/${file.replace(".png", "\\.webp")}$`),
 			);
 	});
 
@@ -70,7 +72,7 @@ describe("System 7's desktop picture", () => {
 		expect(active(ds).id).toBe("system7");
 		const vars = getThemeVars(active(ds));
 		expect(vars["--desktop-background-image"]).toMatch(
-			/wallpapers\/desktop-gray-bw\.png"\)$/,
+			/wallpapers\/desktop-gray-bw\.webp"\)$/,
 		);
 		expect(vars["--desktop-background-color"]).toBe("#ffffff");
 	});
