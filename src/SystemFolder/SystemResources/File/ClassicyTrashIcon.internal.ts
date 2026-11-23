@@ -1,27 +1,11 @@
 import { useSyncExternalStore } from "react";
-import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import {
-	resolveClassicyAsset,
 	subscribeClassicyAssets,
 	useClassicyAsset,
 } from "@/Appearance/ClassicyAssetRegistry";
-
-/**
- * The icon the Trash folder stores as its `_icon`: the default package's
- * empty-Trash art, from its base tree, whatever package or theme is active.
- * It is never the active package's art, so a package or theme switch never
- * changes the saved tree, as with every other stored icon. Surfaces that
- * draw the Trash draw the active package's art instead
- * (`useClassicyTrashIcon`). `""` while the default package has registered
- * no `trashEmpty`.
- */
-export const classicyStoredTrashIcon = (): string =>
-	resolveClassicyAsset(
-		"systemArt",
-		"trashEmpty",
-		CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-		"",
-	) ?? "";
+import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
+import { CLASSICY_TRASH_PATH } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
+import { classicyStoredTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashStoredIcon.internal";
 
 /** `classicyStoredTrashIcon`, read again whenever assets register. */
 export const useClassicyStoredTrashIcon = (): string =>
@@ -40,3 +24,16 @@ export const useClassicyTrashIcon = (full: boolean): string => {
 	const emptyIcon = useClassicyAsset("systemArt", "trashEmpty") ?? "";
 	return full ? fullIcon : emptyIcon;
 };
+
+/**
+ * Is the entry `name`, listed in `folder`, the Trash itself? Only the root
+ * holds it, however the root is spelled (`""`, `":"`). For listings, which
+ * draw the Trash with the active package's art rather than its stored
+ * `_icon`.
+ */
+export const isClassicyTrashFolder = (
+	fs: ClassicyFileSystem,
+	folder: string,
+	name: string,
+): boolean =>
+	name === CLASSICY_TRASH_PATH && fs.pathArray(folder)?.length === 0;

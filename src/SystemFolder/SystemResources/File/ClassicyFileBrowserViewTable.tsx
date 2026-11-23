@@ -37,11 +37,11 @@ import {
 	ClassicyFileSystemEntryFileType,
 	type ClassicyFileSystemEntryMetadata,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { listClassicyTrashItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import {
 	isClassicyTrashFolder,
-	listClassicyTrashItems,
-} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
-import { useClassicyTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+	useClassicyTrashIcon,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import {
 	ClassicyTable,

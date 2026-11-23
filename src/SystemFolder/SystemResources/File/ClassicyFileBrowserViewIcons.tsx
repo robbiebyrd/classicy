@@ -30,11 +30,11 @@ import type {
 } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyFileSystemEntryMetadata } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
+import { listClassicyTrashItems } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import {
 	isClassicyTrashFolder,
-	listClassicyTrashItems,
-} from "@/SystemFolder/SystemResources/File/ClassicyTrash";
-import { useClassicyTrashIcon } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
+	useClassicyTrashIcon,
+} from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import { ClassicyIcon } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 
 export type ClassicyFileBrowserViewIconsProps = {

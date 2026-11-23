@@ -85,6 +85,30 @@ describe("the Trash folder", () => {
 		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe("trash-empty.webp");
 	});
 
+	it("never replaces a stored _icon with nothing", () => {
+		// No default art registered yet: the heal waits for it.
+		const fs = makeFs();
+		ensureClassicyTrash(fs, "/assets/trash-empty-AbC12345.png");
+		const listener = vi.fn();
+		const unsubscribe = subscribeClassicyFileSystem(fs.storageKey, listener);
+		try {
+			ensureClassicyTrash(fs, "");
+		} finally {
+			unsubscribe();
+		}
+		expect(listener).not.toHaveBeenCalled();
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe(
+			"/assets/trash-empty-AbC12345.png",
+		);
+	});
+
+	it("is still created with no default art, its _icon empty", () => {
+		const fs = makeFs();
+		ensureClassicyTrash(fs, "");
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._icon).toBe("");
+		expect(fs.resolve(CLASSICY_TRASH_PATH)?._system).toBe(true);
+	});
+
 	it("knows what is in it", () => {
 		const fs = makeFs();
 		expect(isInClassicyTrash(fs, "Trash")).toBe(true);
