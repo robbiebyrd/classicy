@@ -87,8 +87,11 @@
 //    package is `"type": "module"`, so a host on `moduleResolution: node16`
 //    or `nodenext` resolves no other, and until beforeWriteFile on dts gave
 //    them one every core name was missing there (TS2305, 0151-0cc;
-//    bin/check-host-types.ts type-checks a packed host). Checked by walking
-//    dist/types (skipped when the caller names files).
+//    bin/check-host-types.ts type-checks a packed host). And no declaration
+//    map: every .d.ts.map is dead weight for a host (its `sources` point at
+//    files the tarball does not hold), so each dts() call passes
+//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
+//    Checked by walking dist/types (skipped when the caller names files).
 //
 // 9. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`.
 //    Strict-CSP hosts link dist/classicy.css and dist/classicy-<id>.css
@@ -469,6 +472,16 @@ if (!argv.slice(2).length) {
 		declarations === null ? [] : findClassicyJsonDeclarations(declarations);
 	const listed = (paths) =>
 		`${paths.slice(0, 5).join(", ")}${paths.length > 5 ? ", …" : ""}`;
+	const maps = (declarations ?? [])
+		.map(String)
+		.filter((file) => file.endsWith(".d.ts.map"))
+		.sort();
+	if (maps.length) {
+		failed = true;
+		console.error(
+			`${typesDir}: ${maps.length} declaration map(s) (${listed(maps)}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
+		);
+	}
 	if (declarations === null) {
 		failed = true;
 		console.error(`${typesDir}: missing -> check dts in vite.config.ts.`);

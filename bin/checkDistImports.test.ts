@@ -459,6 +459,17 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			err: [],
 		}));
 
+	it("invariant 8 fails on a .d.ts.map in dist/types", () =>
+		expect(
+			types({
+				"src/index.d.ts": "export {};\n",
+				"src/index.d.ts.map": "{}",
+				"src/a/b.d.ts.map": "{}",
+			}).err,
+		).toEqual([
+			`${join("dist", "types")}: 2 declaration map(s) (${join("src", "a", "b.d.ts.map")}, ${join("src", "index.d.ts.map")}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
+		]));
+
 	it("fails each declaration with an extensionless relative specifier", () =>
 		expect(
 			types({

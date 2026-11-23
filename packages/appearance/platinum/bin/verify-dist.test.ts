@@ -405,6 +405,13 @@ describe("bin/verify-dist.mjs", () => {
 					'dist/types/index.d.ts: relative specifier(s) without an extension ("./hooks") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.',
 			}));
 
+		it("fails a declaration map", () =>
+			expect(verify({ "types/index.d.ts.map": "{}" })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types: 1 declaration map(s) (index.d.ts.map) -> each dts() call must pass compilerOptions: { declarationMap: false }.",
+			}));
+
 		it("fails a test declaration", () =>
 			expect(verify({ "types/hooks.test.d.ts": "export {};\n" })).toEqual({
 				status: 1,

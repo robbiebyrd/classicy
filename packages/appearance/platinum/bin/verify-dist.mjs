@@ -56,7 +56,9 @@
 //    PlatinumJson, on the core's types; nothing imports platinum.json.d.ts).
 //    Every relative specifier in a declaration carries its extension
 //    (`./hooks.js`): the package is `"type": "module"`, so a host on
-//    `moduleResolution: node16` or `nodenext` resolves no other.
+//    `moduleResolution: node16` or `nodenext` resolves no other. And no
+//    declaration map (.d.ts.map): the dts() call passes
+//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
 //
 // 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
@@ -343,6 +345,11 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 	if (!declarations.includes("index.d.ts"))
 		problems.push(
 			`${join(TYPES, "index.d.ts")}: missing -> the package's \`types\` export points at it; check dts in vite.config.ts.`,
+		);
+	const maps = declarations.filter((file) => file.endsWith(".d.ts.map")).sort();
+	if (maps.length)
+		problems.push(
+			`${TYPES}: ${maps.length} declaration map(s) (${maps.slice(0, 5).join(", ")}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
 		);
 	const tests = findClassicyTestDeclarations(declarations);
 	if (tests.length)

@@ -65,7 +65,8 @@
 //    declaration of a Platinum module (the bundled savers), no relative
 //    specifier out of dist/types, no `@classicy/appearance-*` import, so a
 //    host that installs only System 7 resolves every type (plan 0018-dbd
-//    §3.8).
+//    §3.8). And no declaration map (.d.ts.map): the dts() call passes
+//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
 //
 // 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
@@ -425,6 +426,11 @@ const PNG_MASKS = [
 	if (!declarations.includes("index.d.ts"))
 		problems.push(
 			`${join(TYPES, "index.d.ts")}: missing -> the package's \`types\` export points at it; check dts in vite.config.ts.`,
+		);
+	const maps = declarations.filter((file) => file.endsWith(".d.ts.map")).sort();
+	if (maps.length)
+		problems.push(
+			`${TYPES}: ${maps.length} declaration map(s) (${maps.slice(0, 5).join(", ")}) -> each dts() call must pass compilerOptions: { declarationMap: false }.`,
 		);
 	const tests = findClassicyTestDeclarations(declarations);
 	if (tests.length)

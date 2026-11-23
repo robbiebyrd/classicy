@@ -209,6 +209,9 @@ const config = defineConfig({
 		react(),
 		dts({
 			outDir: "dist/types",
+			// The root tsconfig keeps declarationMap for the editor; the
+			// published declarations ship none (verify:dist, invariant 8).
+			compilerOptions: { declarationMap: false },
 			// No declarations for tests, test helpers or stories (verify:dist,
 			// invariant 8, fails the build if one ships).
 			exclude: CLASSICY_DTS_EXCLUDE,

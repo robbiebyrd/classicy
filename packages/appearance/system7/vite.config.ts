@@ -78,6 +78,8 @@ const system7Config = (mode: string): UserConfig => ({
 			: [
 					dts({
 						tsconfigPath: "tsconfig.build.json",
+						// No declaration maps (verify:dist, invariant 7).
+						compilerOptions: { declarationMap: false },
 						entryRoot: "src",
 						outDir: "dist/types",
 						exclude: [
