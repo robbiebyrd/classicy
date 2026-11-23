@@ -16,13 +16,17 @@ import { ClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/Cl
 
 const PLATINUM_ASSETS = "packages/appearance/platinum/src/assets/";
 
-/** Each moved file, from its old place in assets/ to its place in the package. */
+/**
+ * Each moved file, from its old place in assets/ to its place in the package:
+ * the art as the WebP it became there (plan 0019-fb7 §6.4), except the alias
+ * badge, kept a PNG; the cursors stay PNG.
+ */
 const MOVED: ReadonlyArray<readonly [from: string, to: string]> = [
-	["assets/img/icons/system/apple.png", "art/apple.png"],
+	["assets/img/icons/system/apple.png", "art/apple.webp"],
 	["assets/img/icons/system/alias.png", "art/alias.png"],
-	["assets/img/icons/system/desktop/trash-empty.png", "art/trash-empty.png"],
-	["assets/img/icons/system/desktop/trash-full.png", "art/trash-full.png"],
-	["assets/img/ui/help-button.png", "art/help-button.png"],
+	["assets/img/icons/system/desktop/trash-empty.png", "art/trash-empty.webp"],
+	["assets/img/icons/system/desktop/trash-full.png", "art/trash-full.webp"],
+	["assets/img/ui/help-button.png", "art/help-button.webp"],
 	...[
 		"watch",
 		"resize-lr",
@@ -102,8 +106,11 @@ describe("the core's assets/ folder", () => {
 			),
 		);
 		const wallpapers = tracked(`${PLATINUM_ASSETS}wallpapers`);
-		expect(wallpapers).toContain(`${PLATINUM_ASSETS}wallpapers/azul_dark.png`);
-		expect(wallpapers).toContain(`${PLATINUM_ASSETS}wallpapers/default.jpg`);
+		// As WebP since plan 0019-fb7 §6.4 (default.jpg as default_photo.webp).
+		expect(wallpapers).toContain(`${PLATINUM_ASSETS}wallpapers/azul_dark.webp`);
+		expect(wallpapers).toContain(
+			`${PLATINUM_ASSETS}wallpapers/default_photo.webp`,
+		);
 		// Nothing read the 83 photos (about 15 MB); story 0159-tf5 deleted them.
 		expect(
 			wallpapers.some((file) =>
@@ -120,7 +127,8 @@ describe("the core's assets/ folder", () => {
 	});
 
 	it("dropped the Appearance Manager's copy of Platinum's package icon", () => {
-		// Byte-identical to the package's own icon (its art/platinum.png).
+		// Byte-identical to the package's own icon (its art/platinum.png, now
+		// art/platinum.webp).
 		expect(
 			tracked(
 				"assets/img/icons/control-panels/appearance-manager/platinum.png",

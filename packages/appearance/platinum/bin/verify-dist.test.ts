@@ -35,7 +35,9 @@ const bytes = (seed: number, n = 64) =>
 	Buffer.from(Array.from({ length: n }, (_, i) => (i * 31 + seed) % 256));
 
 // Source file → its bytes. Every one ships in dist/assets under its name,
-// except the wallpaper photos, which nothing imports.
+// except the wallpaper photos, which nothing imports. The art and wallpapers
+// are WebP (plan 0019-fb7 §6.4), except alias.png, the one original kept
+// (PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS); the cursors stay PNG.
 const SOURCES: Record<string, Buffer> = {
 	...Object.fromEntries(
 		PLATINUM_FONT_FACES.map((face, i) => [
@@ -44,11 +46,12 @@ const SOURCES: Record<string, Buffer> = {
 		]),
 	),
 	"src/assets/art/zoom.svg": Buffer.from("<svg/>"),
-	"src/assets/art/sad-mac.png": bytes(40),
-	"src/assets/art/apple.png": bytes(41),
+	"src/assets/art/sad-mac.webp": bytes(40),
+	"src/assets/art/apple.webp": bytes(41),
+	"src/assets/art/alias.png": bytes(46),
 	"src/assets/cursors/cursor-watch.png": bytes(42),
-	"src/assets/wallpapers/azul_dark.png": bytes(43),
-	"src/assets/wallpapers/default.jpg": bytes(44),
+	"src/assets/wallpapers/azul_dark.webp": bytes(43),
+	"src/assets/wallpapers/default_photo.webp": bytes(44),
 	"src/assets/wallpapers/photos/beach.jpg": bytes(45),
 	...Object.fromEntries(
 		["ogg", "m4a"].map((ext, i) => [
@@ -103,13 +106,20 @@ const DIST: Record<string, string | Buffer> = {
 
 let run = 0;
 /**
- * Writes the fixture package (the sources, then dist/ with `changes`
- * applied: a path to new content, or `null` to delete it) and runs the
- * script in it.
+ * Writes the fixture package (the sources with `sourceChanges` applied, then
+ * dist/ with `changes` applied: a path to new content, or `null` to delete
+ * it) and runs the script in it.
  */
-const verify = (changes: Record<string, string | Buffer | null> = {}) => {
+const verify = (
+	changes: Record<string, string | Buffer | null> = {},
+	sourceChanges: Record<string, Buffer | null> = {},
+) => {
 	const dir = path.join(root, `case-${run++}`);
-	for (const [file, content] of Object.entries(SOURCES)) {
+	for (const [file, content] of Object.entries({
+		...SOURCES,
+		...sourceChanges,
+	})) {
+		if (content === null) continue;
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
@@ -190,12 +200,12 @@ describe("bin/verify-dist.mjs", () => {
 	// package's files, each byte for byte.
 	describe("2. dist/assets holds every package file, as authored", () => {
 		it("fails a missing file, by name", () =>
-			expect(verify({ "assets/default.jpg": null })).toEqual({
+			expect(verify({ "assets/default_photo.webp": null })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing default.jpg; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/assets: missing default_photo.webp; extra none -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 					// And the bundle's reference to it dangles (invariant 3).
-					"dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/default.jpg",
+					"dist/appearance-platinum.es.js: new URL() names no file in dist/assets: assets/default_photo.webp",
 				].join("\n"),
 			}));
 
@@ -204,19 +214,41 @@ describe("bin/verify-dist.mjs", () => {
 				/^dist\/assets: missing none; extra platinum\.mp3 /,
 			));
 
-		it("fails a file nothing ships, a .webp included", () =>
-			expect(verify({ "assets/sad-mac.webp": bytes(1) })).toEqual({
+		it("fails a file nothing ships, a leftover original included", () =>
+			expect(verify({ "assets/sad-mac.png": bytes(1) })).toEqual({
 				status: 1,
 				stderr: [
-					"dist/assets: missing none; extra sad-mac.webp -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
+					"dist/assets: missing none; extra sad-mac.png -> check noInlineAppearanceAssetsPlugin and assetFileNames in vite.config.ts.",
 					// And nothing loads it (invariant 3).
-					"dist/appearance-platinum.es.js: references no new URL() for sad-mac.webp in dist/assets -> nothing loads it.",
+					"dist/appearance-platinum.es.js: references no new URL() for sad-mac.png in dist/assets -> nothing loads it.",
 				].join("\n"),
 			}));
 
+		// Plan 0019-fb7 §6.4: the art and wallpapers ship as WebP; only a file
+		// PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS names keeps its PNG or JPG.
+		it.each([
+			"src/assets/art/apple.png",
+			"src/assets/wallpapers/azul_dark.png",
+			"src/assets/wallpapers/default.jpg",
+		])("fails %s, an original that is not an exception", (file) =>
+			expect(verify({}, { [file]: bytes(9) })).toEqual({
+				status: 1,
+				stderr: `${file}: ships in its original format -> the package's art and wallpapers ship as WebP: convert it (node bin/convert-images-to-webp.ts packages/appearance/platinum) and git rm the original, or list it in PLATINUM_ORIGINAL_FORMAT_EXCEPTIONS if the browser check keeps it.`,
+			}));
+
+		// The exception list itself is pinned to the converter's kept
+		// originals by src/assets/platinumWebp.test.ts.
+		it("passes alias.png, the one exception, in its PNG", () => {
+			expect(SOURCES["src/assets/art/alias.png"]).toBeDefined();
+			expect(verify()).toEqual({ status: 0, stderr: "" });
+		});
+
 		it.each([
 			"cursor-watch.png",
-			"azul_dark.png",
+			"azul_dark.webp",
+			"default_photo.webp",
+			"apple.webp",
+			"alias.png",
 			"zoom.svg",
 			"platinum.ogg",
 			"Monaco-normal-normal.woff2",
@@ -293,13 +325,13 @@ describe("bin/verify-dist.mjs", () => {
 		it("fails a file in dist/assets the bundle never references", () => {
 			const { status, stderr } = verify({
 				"appearance-platinum.es.js": ES.replace(
-					'new URL("assets/apple.png",import.meta.url).href,',
+					'new URL("assets/apple.webp",import.meta.url).href,',
 					"",
 				),
 			});
 			expect(status).toBe(1);
 			expect(stderr).toBe(
-				"dist/appearance-platinum.es.js: references no new URL() for apple.png in dist/assets -> nothing loads it.",
+				"dist/appearance-platinum.es.js: references no new URL() for apple.webp in dist/assets -> nothing loads it.",
 			);
 		});
 	});

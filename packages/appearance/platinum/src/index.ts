@@ -133,7 +133,7 @@ const platinumDefaults =
 registerClassicyAppearancePackage({
 	id: PLATINUM_APPEARANCE_PACKAGE_ID,
 	name: platinumJsonSource.name,
-	icon: platinumArt("platinum.png"),
+	icon: platinumArt("platinum.webp"),
 	defaults: platinumDefaults,
 	presets: platinumPresets,
 	css: platinumCss,

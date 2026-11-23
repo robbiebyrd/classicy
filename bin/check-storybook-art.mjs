@@ -1,13 +1,14 @@
-// verify:storybook (run after `storybook build`): every .svg/.png under an
-// Appearance Package's assets that the static Storybook emitted is
-// byte-identical to its source. Fails when the image plugin rewrote any.
+// verify:storybook (run after `storybook build`): every .svg/.png/.webp under
+// an Appearance Package's assets that the static Storybook emitted is
+// byte-identical to its source. Fails when the image plugin rewrote any (the
+// packages' raster art and wallpapers are WebP since plan 0019-fb7 §6.4).
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { findAlteredStorybookArt } from "./classicyStorybookArt.ts";
 
 const STATIC = join("storybook", "storybook-static");
 const ROOTS = ["src/Appearance", "packages/appearance"];
-const ART = /\.(?:svg|png)$/;
+const ART = /\.(?:svg|png|webp)$/;
 
 const walk = async (dir) => {
 	const out = [];
