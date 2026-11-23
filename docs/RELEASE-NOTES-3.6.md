@@ -197,7 +197,7 @@ a CDN redirect, another name).
   next document tries again. A document that fails to load, and a page that
   fails to draw, are now logged through `classicyLog` (subsystem
   `PDFViewer`, the error as a detail), so a host's log sink sees them; a
-  cancelled render is not logged.
+  canceled render is not logged.
 - **The Trash folder's icon follows the active package.** The Trash folder
   stored, as its `_icon`, the art URL of the package active when it was
   first made, and every surface drew that, so after a package switch its

@@ -79,7 +79,7 @@ function loadPdfjs(): Promise<Pdfjs> {
 
 /**
  * Is `reason` pdf.js's RenderingCancelledException, the rejection of a
- * render task that was cancelled on purpose? By class when pdf.js is at
+ * render task that was canceled on purpose? By class when pdf.js is at
  * hand, else by the name pdf.js gives it.
  */
 const isRenderingCancelled = (reason: unknown, pdfjs?: Pdfjs): boolean =>
