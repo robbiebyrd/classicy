@@ -1,6 +1,14 @@
 // @vitest-environment node
 // (A build tool: Node's own modules, no DOM.)
-import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+	CLASSICY_WEBP_FIREFOX_PREFS,
+	classicyWebpLaunchOptions,
+} from "./check-webp-in-browsers.ts";
 import {
 	CLASSICY_WEBP_KEEP_ORIGINAL,
 	CLASSICY_WEBP_PHOTO_FLOOR_DB,
@@ -10,6 +18,8 @@ import {
 	chooseClassicyWebpEncoding,
 	classicyWebpScopeFiles,
 	classicyWebpTarget,
+	isClassicyTrackedFile,
+	removeClassicyStaleWebp,
 } from "./convert-images-to-webp.ts";
 
 // The one-time PNG and JPG to WebP conversion (plan 0019-fb7 §6.2): which
@@ -181,5 +191,70 @@ describe("classicyWebpScopeFiles", () => {
 		expect(classicyWebpScopeFiles(noIcons, [SYSTEM7]).problems).toEqual([
 			`${SYSTEM7}/icons/**/*.png matches no tracked file`,
 		]);
+	});
+});
+
+describe("removeClassicyStaleWebp", () => {
+	const dirs: string[] = [];
+	afterEach(() => {
+		for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true });
+	});
+	const scratch = () => {
+		const dir = mkdtempSync(join(tmpdir(), "classicy-stale-webp-"));
+		dirs.push(dir);
+		return dir;
+	};
+
+	it("deletes only an untracked WebP left for a kept original, never a tracked file", () => {
+		// The converter runs in place (6.4 to 6.6): a target that git tracks is
+		// only ever removed with `git rm`, so the converter refuses it.
+		const repo = scratch();
+		const git = (...args: string[]) =>
+			spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+		expect(git("init", "-q").status).toBe(0);
+		const tracked = join(repo, "alias.webp");
+		const untracked = join(repo, "stale.webp");
+		const notWebp = join(repo, "alias.png");
+		for (const file of [tracked, untracked, notWebp]) writeFileSync(file, "x");
+		expect(git("add", "--", "alias.webp").status).toBe(0);
+
+		expect(isClassicyTrackedFile(repo, tracked)).toBe(true);
+		expect(isClassicyTrackedFile(repo, untracked)).toBe(false);
+		expect(removeClassicyStaleWebp(repo, tracked)).toBe("refused");
+		expect(existsSync(tracked)).toBe(true);
+		expect(removeClassicyStaleWebp(repo, notWebp)).toBe("refused");
+		expect(existsSync(notWebp)).toBe(true);
+		expect(removeClassicyStaleWebp(repo, untracked)).toBe("deleted");
+		expect(existsSync(untracked)).toBe(false);
+		expect(removeClassicyStaleWebp(repo, untracked)).toBe("absent");
+
+		// A mirror outside the repository (--out-dir) holds nothing git tracks.
+		const mirror = join(scratch(), "alias.webp");
+		writeFileSync(mirror, "x");
+		expect(isClassicyTrackedFile(repo, mirror)).toBe(false);
+		expect(removeClassicyStaleWebp(repo, mirror)).toBe("deleted");
+		expect(existsSync(mirror)).toBe(false);
+	});
+});
+
+describe("classicyWebpLaunchOptions", () => {
+	it("launches Firefox with release color management, which Playwright's builds turn off", () => {
+		// Playwright's Firefox (playwright.cfg) sets mode 0 and intent 3: an
+		// untagged WebP and a color-managed PNG would then draw alike.
+		expect(CLASSICY_WEBP_FIREFOX_PREFS).toEqual({
+			"gfx.color_management.mode": 2,
+			"gfx.color_management.rendering_intent": 0,
+		});
+		expect(classicyWebpLaunchOptions("firefox")).toEqual({
+			firefoxUserPrefs: CLASSICY_WEBP_FIREFOX_PREFS,
+		});
+		// Chromium manages color by default; only the parity flags are added.
+		const chromium = classicyWebpLaunchOptions("chromium");
+		expect(chromium.args).toEqual([
+			"--disable-gpu",
+			"--disable-lcd-text",
+			"--disable-partial-raster",
+		]);
+		expect(chromium.firefoxUserPrefs).toBeUndefined();
 	});
 });

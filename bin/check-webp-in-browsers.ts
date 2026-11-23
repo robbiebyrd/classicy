@@ -22,6 +22,24 @@
 //   Playwright version (a Firefox the workspace's 1.57.0 lacks, say) needs
 //   that version's package.
 //
+// Color management, as a release browser has it:
+// - Firefox: Playwright's builds turn it off (their playwright.cfg sets
+//   gfx.color_management.mode 0 and rendering_intent 3, for reproducible
+//   screenshots), so the check launches Firefox with
+//   CLASSICY_WEBP_FIREFOX_PREFS, the release defaults: mode 2 (tagged images
+//   managed) and rendering_intent 0 (perceptual; Playwright's 3 drew every
+//   pair here the same). ICC v4 profiles are left at the build's default,
+//   which honors them (the control below shows it).
+// - Chromium: Playwright adds --force-color-profile=srgb, which sets the
+//   display's profile to sRGB, as on an sRGB display; images are still
+//   converted from their own profiles into the canvas's sRGB. The parity
+//   flags (no GPU, no LCD text, no partial raster) do not touch color.
+// - A control proves it before any pair is drawn: a gray at 128 tagged with
+//   gamma 1.0 (gAMA and cHRM) must draw differently from the same pixels in
+//   an untagged WebP, and exactly as they do in a WebP carrying the
+//   profile classicyIccFromPngChunks builds (128 draws as 188 in both). A
+//   browser that does not color-manage fails it, and the check exits 2.
+//
 // Exit codes: 0 when every image matches, 1 when one does not (or is missing
 // or fails to load), 2 on a usage or environment error. Build script, not
 // library code: it reports through stdout/stderr. Erasable TypeScript only.
@@ -31,8 +49,15 @@ import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Browser } from "playwright";
-import { classicyPsnr } from "./classicyWebp.ts";
+import { crc32, deflateSync } from "node:zlib";
+import type { Browser, LaunchOptions } from "playwright";
+import {
+	classicyIccFromPngChunks,
+	classicyPsnr,
+	decodeClassicySourceImage,
+	encodeClassicyWebp,
+	withClassicyIccProfile,
+} from "./classicyWebp.ts";
 import {
 	CLASSICY_WEBP_KEEP_ORIGINAL,
 	CLASSICY_WEBP_PHOTO_FLOOR_DB,
@@ -47,6 +72,73 @@ import { PARITY_CHROMIUM_ARGS } from "./parity/parityBrowser.ts";
 
 type Playwright = typeof import("playwright");
 type BrowserName = "chromium" | "firefox";
+
+/**
+ * Firefox's release color management, which Playwright's Firefox builds turn
+ * off: tagged images managed (mode 2), perceptual intent (0).
+ */
+export const CLASSICY_WEBP_FIREFOX_PREFS: Readonly<Record<string, number>> = {
+	"gfx.color_management.mode": 2,
+	"gfx.color_management.rendering_intent": 0,
+};
+
+/** How the check launches each browser. */
+export function classicyWebpLaunchOptions(name: BrowserName): LaunchOptions {
+	return name === "chromium"
+		? { args: [...PARITY_CHROMIUM_ARGS] }
+		: { firefoxUserPrefs: { ...CLASSICY_WEBP_FIREFOX_PREFS } };
+}
+
+function pngChunk(type: string, data: Uint8Array) {
+	const head = Buffer.alloc(4);
+	head.writeUInt32BE(data.length);
+	const typed = Buffer.concat([Buffer.from(type, "latin1"), data]);
+	const crc = Buffer.alloc(4);
+	crc.writeUInt32BE(crc32(typed));
+	return Buffer.concat([head, typed, crc]);
+}
+
+const be32 = (...values: number[]) => {
+	const bytes = Buffer.alloc(values.length * 4);
+	for (const [i, v] of values.entries()) bytes.writeUInt32BE(v, i * 4);
+	return bytes;
+};
+
+/**
+ * The control: a 4x4 8-bit gray PNG at 128 with gAMA 1.0 and sRGB's cHRM, a
+ * WebP of its pixels with no profile, and one with classicyIccFromPngChunks'
+ * profile.
+ */
+async function colorControl() {
+	const header = Buffer.alloc(13);
+	header.writeUInt32BE(4, 0);
+	header.writeUInt32BE(4, 4);
+	header[8] = 8; // depth
+	header[9] = 0; // gray
+	const rows = Buffer.from(
+		Array.from({ length: 4 }, () => [0, 128, 128, 128, 128]).flat(),
+	);
+	const png = new Uint8Array(
+		Buffer.concat([
+			Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+			pngChunk("IHDR", header),
+			pngChunk("gAMA", be32(100000)),
+			pngChunk(
+				"cHRM",
+				be32(31270, 32900, 64000, 33000, 30000, 60000, 15000, 6000),
+			),
+			pngChunk("IDAT", deflateSync(rows)),
+			pngChunk("IEND", new Uint8Array(0)),
+		]),
+	);
+	const icc = classicyIccFromPngChunks(png);
+	if (!icc) throw new Error("the control PNG gave no ICC profile");
+	const untagged = await encodeClassicyWebp(
+		decodeClassicySourceImage(png, "png"),
+		{ lossless: true },
+	);
+	return { png, untagged, tagged: withClassicyIccProfile(untagged, icc) };
+}
 
 /** Pairs drawn per round trip to the page. */
 const BATCH = 24;
@@ -251,7 +343,14 @@ async function main(argv: readonly string[]): Promise<number> {
 		(source) => !CLASSICY_WEBP_KEEP_ORIGINAL.includes(source),
 	);
 	const verdicts: Verdict[] = [];
-	const served = new Map<string, { file: string; type: string }>();
+	const served = new Map<string, { read: () => Uint8Array; type: string }>();
+	const control = await colorControl();
+	for (const [path, bytes, type] of [
+		["/control/gamma-1.png", control.png, CONTENT_TYPES[".png"]],
+		["/control/untagged.webp", control.untagged, CONTENT_TYPES[".webp"]],
+		["/control/tagged.webp", control.tagged, CONTENT_TYPES[".webp"]],
+	] as const)
+		served.set(path, { read: () => bytes, type });
 	const pairs: Pair[] = [];
 	for (const source of sources) {
 		const target = classicyWebpTarget(source);
@@ -263,11 +362,11 @@ async function main(argv: readonly string[]): Promise<number> {
 		const original = urlPath("original", source);
 		const webp = urlPath("webp", target);
 		served.set(decodeURIComponent(original), {
-			file: join(root, source),
+			read: () => readFileSync(join(root, source)),
 			type: CONTENT_TYPES[source.slice(source.lastIndexOf("."))],
 		});
 		served.set(decodeURIComponent(webp), {
-			file: webpFile,
+			read: () => readFileSync(webpFile),
 			type: CONTENT_TYPES[".webp"],
 		});
 		pairs.push({
@@ -298,7 +397,7 @@ async function main(argv: readonly string[]): Promise<number> {
 			"content-type": entry.type,
 			"cache-control": "no-store",
 		});
-		response.end(readFileSync(entry.file));
+		response.end(entry.read());
 	});
 	await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
 	const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -308,7 +407,7 @@ async function main(argv: readonly string[]): Promise<number> {
 		const playwright = loadPlaywright();
 		try {
 			browser = await playwright[browserName].launch(
-				browserName === "chromium" ? { args: [...PARITY_CHROMIUM_ARGS] } : {},
+				classicyWebpLaunchOptions(browserName),
 			);
 		} catch (e) {
 			throw new Error(
@@ -320,6 +419,33 @@ async function main(argv: readonly string[]): Promise<number> {
 		);
 		const page = await browser.newPage();
 		await page.goto(`${base}/`);
+
+		// The control: color-managed, or the check could not see a profile.
+		const [untagged, tagged] = await page.evaluate(drawPairs, [
+			{
+				original: `${base}/control/gamma-1.png`,
+				webp: `${base}/control/untagged.webp`,
+				photo: false,
+			},
+			{
+				original: `${base}/control/gamma-1.png`,
+				webp: `${base}/control/tagged.webp`,
+				photo: false,
+			},
+		]);
+		const differing = (drawn: Drawn) =>
+			"error" in drawn ? drawn.error : drawn.differing;
+		const managed = differing(untagged) === 16 && differing(tagged) === 0;
+		process.stdout.write(
+			`color management ${managed ? "on" : "OFF"}: a gamma-1.0 gray PNG differs from its untagged WebP in ${differing(untagged)} of 16 pixels and from its tagged WebP in ${differing(tagged)}\n`,
+		);
+		if (!managed) {
+			process.stderr.write(
+				`check-webp-in-browsers: ${browserName} does not draw images color-managed (the control expects 16 and 0), so it could not see a profile's effect\n`,
+			);
+			return 2;
+		}
+
 		for (let start = 0; start < pairs.length; start += BATCH) {
 			const batch = pairs.slice(start, start + BATCH);
 			const drawn = await page.evaluate(

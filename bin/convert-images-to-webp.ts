@@ -24,18 +24,27 @@
 //   channels (earth.png, 16-bit, against its samples rounded to 8 bits).
 // - A source in CLASSICY_WEBP_KEEP_ORIGINAL (a non-photo the browser check,
 //   bin/check-webp-in-browsers.ts, found drawn differently) is skipped, and a
-//   WebP written for it earlier is deleted.
+//   WebP written for it earlier is deleted, only when git does not track it
+//   (removeClassicyStaleWebp): a tracked file at the target is refused, since
+//   tracked files leave the tree only through `git rm`.
 //
 // It prints a line per file as it goes, then a table (source, bytes, WebP
 // bytes, mode, PSNR) and the totals per package. Exit codes: 0 when every
 // file converted, 1 when a lossless output differs from its source (that
-// file is not written), 2 on a usage or environment error, a scope glob or a
-// prefix selecting no file included.
+// file is not written) or a kept original's target is a tracked file (left
+// in place), 2 on a usage or environment error, a scope glob or a prefix
+// selecting no file included.
 //
 // Build script, not library code: it reports through stdout/stderr. Erasable
 // TypeScript only, so Node runs it directly.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -238,6 +247,38 @@ export function classicyWebpPackageOf(path: string): string {
 	return match ? match[1] : "core";
 }
 
+/** Whether git tracks the file at `path` (absolute) in the repository at `root`. */
+export function isClassicyTrackedFile(root: string, path: string): boolean {
+	const inRepo = relative(root, path);
+	if (inRepo.startsWith("..") || isAbsolute(inRepo)) return false;
+	const listed = spawnSync(
+		"git",
+		["ls-files", "--error-unmatch", "--", inRepo],
+		{ cwd: root, encoding: "utf8" },
+	);
+	if (listed.status === 0) return true;
+	if (listed.status === 1) return false;
+	throw new Error(
+		`git ls-files --error-unmatch ${inRepo} failed:\n${listed.stderr}`,
+	);
+}
+
+/**
+ * Deletes the WebP an earlier run wrote for a source now kept in its own
+ * format: only an untracked `.webp`. Anything else at `path`, a file git
+ * tracks above all, is left alone and reported as refused.
+ */
+export function removeClassicyStaleWebp(
+	root: string,
+	path: string,
+): "absent" | "deleted" | "refused" {
+	if (!existsSync(path)) return "absent";
+	if (!path.endsWith(".webp") || isClassicyTrackedFile(root, path))
+		return "refused";
+	rmSync(path);
+	return "deleted";
+}
+
 export const formatClassicyPsnr = (db: number) =>
 	db === Infinity ? "inf" : db.toFixed(2);
 
@@ -246,7 +287,8 @@ type Converted = {
 	target: string;
 	sourceBytes: number;
 	webpBytes: number;
-	mode: "lossless" | "lossy" | "kept" | "DIFFERS";
+	/** REFUSED: a kept original whose target is a tracked file, left alone. */
+	mode: "lossless" | "lossy" | "kept" | "DIFFERS" | "REFUSED";
 	/** Whether the WebP carries an ICC profile (classicyIccFromPngChunks). */
 	icc?: boolean;
 	/** The lossy candidate's PSNR, for a photo. */
@@ -270,8 +312,12 @@ async function convert(
 		...rest,
 	});
 	if (CLASSICY_WEBP_KEEP_ORIGINAL.includes(source)) {
-		rmSync(destination, { force: true });
-		return done({ sourceBytes: bytes.length, webpBytes: 0, mode: "kept" });
+		const removed = removeClassicyStaleWebp(root, destination);
+		return done({
+			sourceBytes: bytes.length,
+			webpBytes: 0,
+			mode: removed === "refused" ? "REFUSED" : "kept",
+		});
 	}
 
 	let image: ReturnType<typeof decodeClassicySourceImage>;
@@ -339,7 +385,7 @@ async function convert(
 const modeColumn = (row: Converted) => `${row.mode}${row.icc ? "+ICC" : ""}`;
 
 const psnrColumn = (row: Converted) => {
-	if (row.mode === "kept") return "-";
+	if (row.mode === "kept" || row.mode === "REFUSED") return "-";
 	if (row.psnr) {
 		const scores = `white ${formatClassicyPsnr(row.psnr.white)} dB, black ${formatClassicyPsnr(row.psnr.black)} dB`;
 		return `q${CLASSICY_WEBP_PHOTO_QUALITY} ${scores}`;
@@ -353,7 +399,9 @@ function printTable(rows: readonly Converted[]) {
 		...rows.map((row) => [
 			row.source,
 			String(row.sourceBytes),
-			row.mode === "kept" ? "-" : String(row.webpBytes),
+			row.mode === "kept" || row.mode === "REFUSED"
+				? "-"
+				: String(row.webpBytes),
 			modeColumn(row),
 			psnrColumn(row),
 		]),
@@ -381,7 +429,7 @@ function printTotals(rows: readonly Converted[]) {
 		{ files: number; sourceBytes: number; webpBytes: number }
 	>();
 	for (const row of rows) {
-		if (row.mode === "kept" || row.mode === "DIFFERS") continue;
+		if (row.mode !== "lossless" && row.mode !== "lossy") continue;
 		const name = classicyWebpPackageOf(row.source);
 		const total = totals.get(name) ?? {
 			files: 0,
@@ -438,8 +486,8 @@ async function main(argv: readonly string[]): Promise<number> {
 		rows.push(row);
 		const counter = `[${String(index + 1).padStart(width)}/${scope.files.length}]`;
 		process.stdout.write(
-			row.mode === "kept"
-				? `${counter} ${row.source}  ${row.sourceBytes} B  kept in its own format (no ${row.target})\n`
+			row.mode === "kept" || row.mode === "REFUSED"
+				? `${counter} ${row.source}  ${row.sourceBytes} B  kept in its own format (${row.mode === "kept" ? `no ${row.target}` : `REFUSED: ${row.target} is tracked or not a WebP, left in place`})\n`
 				: `${counter} ${row.source} -> ${row.target}  ${row.sourceBytes} B -> ${row.webpBytes} B  ${modeColumn(row)}  ${psnrColumn(row)}  ${row.seconds.toFixed(2)} s\n`,
 		);
 	}
@@ -453,14 +501,19 @@ async function main(argv: readonly string[]): Promise<number> {
 	);
 	const kept = rows.filter((row) => row.mode === "kept");
 	const differs = rows.filter((row) => row.mode === "DIFFERS");
+	const refused = rows.filter((row) => row.mode === "REFUSED");
 	process.stdout.write(
-		`${written.length} written (${written.filter((row) => row.mode === "lossy").length} lossy), ${kept.length} kept in their original format, ${differs.length} differing\n`,
+		`${written.length} written (${written.filter((row) => row.mode === "lossy").length} lossy), ${kept.length + refused.length} kept in their original format, ${differs.length} differing, ${refused.length} refused\n`,
 	);
 	for (const row of differs)
 		process.stderr.write(
 			`convert-images-to-webp: ${row.source}'s lossless WebP does not decode to its pixels; not written\n`,
 		);
-	return differs.length > 0 ? 1 : 0;
+	for (const row of refused)
+		process.stderr.write(
+			`convert-images-to-webp: ${join(outDir, row.target)} is tracked by git (or not a .webp); not deleting it for ${row.source}, kept in its own format. Remove it with git rm.\n`,
+		);
+	return differs.length > 0 || refused.length > 0 ? 1 : 0;
 }
 
 if (
