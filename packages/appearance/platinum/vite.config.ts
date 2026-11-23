@@ -60,7 +60,7 @@ const platinumConfig = (mode: string): UserConfig => ({
 	// build (verify:dist invariant 9).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.mp3", "**/*.ac3", "**/*.wav"],
+	assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.wav"],
 	css: {
 		preprocessorOptions: {
 			// The vocabulary is `pkg:@classicy/classicy/scss/<module>`.

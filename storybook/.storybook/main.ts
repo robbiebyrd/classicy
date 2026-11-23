@@ -41,14 +41,7 @@ const config: StorybookConfig = {
 			// build's charset is repeated here: stories exercise the same escaped
 			// glyph CSS that dist ships (verify:dist invariant 9).
 			esbuild: { charset: "ascii" },
-			assetsInclude: [
-				"**/*.ogg",
-				"**/*.m4a",
-				"**/*.mp3",
-				"**/*.ac3",
-				"**/*.wav",
-				"**/*.caf",
-			],
+			assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.wav", "**/*.caf"],
 			// Platinum's SCSS uses the vocabulary as `pkg:@classicy/classicy/scss/*`.
 			css: {
 				preprocessorOptions: {

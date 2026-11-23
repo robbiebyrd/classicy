@@ -190,14 +190,7 @@ const config = defineConfig({
 	// and 9).
 	esbuild: { charset: "ascii" },
 	base: "./",
-	assetsInclude: [
-		"**/*.ogg",
-		"**/*.m4a",
-		"**/*.mp3",
-		"**/*.ac3",
-		"**/*.wav",
-		"**/*.caf",
-	],
+	assetsInclude: ["**/*.ogg", "**/*.m4a", "**/*.wav", "**/*.caf"],
 	resolve: {
 		alias: [
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },

@@ -83,7 +83,7 @@ export default defineConfig(({ command }) => {
 		],
 		// Audio sprite formats the library source imports (mirror ../vite.config.ts).
 		assetsInclude: useLiveSource
-			? ["**/*.ogg", "**/*.m4a", "**/*.mp3", "**/*.ac3", "**/*.wav", "**/*.caf"]
+			? ["**/*.ogg", "**/*.m4a", "**/*.wav", "**/*.caf"]
 			: [],
 		server: {
 			headers: {

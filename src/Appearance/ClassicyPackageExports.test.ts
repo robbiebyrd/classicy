@@ -147,6 +147,29 @@ describe("package.json: the Appearance Packages surface", () => {
 		);
 	});
 
+	// The packs ship ogg and m4a only since plan 0019-fb7 Part 3, and nothing
+	// imports an mp3 or an ac3 (Platinum's mp3 sources under sprites/ are
+	// audiosprite's input, never imported).
+	it.each([
+		"vite.config.ts",
+		"storybook/.storybook/main.ts",
+		"packages/appearance/platinum/vite.config.ts",
+		"example/vite.config.ts",
+	])("%s adds no mp3 or ac3 asset type", (file) => {
+		const config = read(file);
+		expect(config).toContain("assetsInclude");
+		expect(config).not.toMatch(/"\*\*\/\*\.(?:mp3|ac3)"/);
+	});
+
+	// Package art is WebP since plan 0019-fb7 Part 5, so editing it must
+	// rebuild too; the other image types stay watched.
+	it("watch mode rebuilds on every image type the packages ship", () => {
+		const ext = /--ext "([^"]*)"/.exec(pkg.scripts["build:watchsource"]);
+		expect(ext?.[1].split(",")).toEqual(
+			expect.arrayContaining(["png", "jpg", "svg", "webp"]),
+		);
+	});
+
 	// One build and one dist check per package (plan 0015-kxa §3.4, plan
 	// 0018-dbd §2.2): the core's, then Platinum's and System 7's, whose
 	// `build` runs its own verify-dist. Then the packed packages type-check in
