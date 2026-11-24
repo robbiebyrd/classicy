@@ -141,8 +141,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 	// window's Select All drive whichever table mounted last.
 	const selectionApiRef = useRef<ClassicyTableSelectionApi | null>(null);
 	// #270: likewise one keyboard target per window — the list view's list
-	// box (null in icon view). The window focuses it whenever it becomes the
-	// focused window, so arrows/Return work without clicking the list first.
+	// box, or the icon view's icons' holder (story 0228-e9l). The window
+	// focuses it whenever it becomes the focused window, so the arrow keys,
+	// Tab, Return and Select All work without a click first.
 	const focusTargetRef = useRef<HTMLDivElement | null>(null);
 	const windowFocused = useAppManager(
 		(state) =>
@@ -152,8 +153,9 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 
 	// Switching View as Icons/List swaps the browser's content but is no
 	// window-focus transition, so ClassicyWindow won't refocus on its own.
-	// Hand the freshly mounted list box focus when this window is the focused
-	// one and focus isn't already on something else inside it.
+	// Hand the freshly mounted list box (or icons' holder) focus when this
+	// window is the focused one and focus isn't already on something else
+	// inside it.
 	const prevViewTypeRef = useRef(viewType);
 	useEffect(() => {
 		if (prevViewTypeRef.current === viewType) return;

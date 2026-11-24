@@ -744,13 +744,17 @@ The desktop selects through `ClassicyDesktopIconSelectBox` (Shift-press:
 `ClassicyDesktopFocus { keepSelection: true }`); the icon view keeps its
 icons' selection (`ClassicyIcon` `selected`/`onSelectedChange`/
 `onSelectionGesture`: a click selects alone, Shift or Command toggles; the
-click ending a drag is none) and drags a selection as one (`fileDragParts`,
+click ending a drag, a press past `CLASSICY_FILE_DRAG_THRESHOLD` (4 px), is
+none, a `detail` 0 click always counts) and drags a selection as one (`fileDragParts`,
 `moveBy`), moves it with the arrow keys and Tab as 8.1 did, by the same rules
 as the desktop's (`iconForArrowKey`, `iconForTabKey` in
 `ClassicyDesktopKeyNav.ts`: an arrow from the icon selected last for
 Right/Down, first for Left/Up, with none the first or last icon in reading
-order; Tab/Shift-Tab the next or previous name, wrapping, with none the first
-or last),
+order; Tab/Shift-Tab the next or previous name, with none the first or
+last, and past the last (first) name the keyboard leaves the icons for the
+page's next (previous) stop, `moveClassicyFocusOutOf`
+(`Keyboard/ClassicyTabbable.internal.ts`), where 8.1 wrapped: in a page a
+wrap is a keyboard trap, WCAG 2.2 SC 2.1.2),
 takes the keyboard from a press on its empty space (the `mousedown`
 `preventDefault`ed, so the browser's focus never lands on the desktop) and
 from window activation (its holder is the browser's `focusTargetRef`), and
