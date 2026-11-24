@@ -2,6 +2,17 @@
 // sits, never how it looks. The active Appearance Package draws it, on
 // `[data-classicy-part="selection-marquee"]`.
 //
+// The clip box is the part of the surface that shows (a window's contents);
+// the part inside it keeps the whole rectangle's geometry, so a side cut at
+// the window's edge is cut, not framed again, as QuickDraw clipped the
+// Finder's frame. The clip box must make no stacking context (no z-index,
+// opacity, transform or isolation): the part blends with what lies under it.
+.classicySelectionMarqueeClip {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 // Inside its surface, above the icons it passes over (10, ClassicyIcon.scss
 // and ClassicyDesktopIcon.scss) and, on the desktop, below every window
 // (20 and up, ClassicyWindow.scss): the Mac OS 8.1 Finder drew the desktop's

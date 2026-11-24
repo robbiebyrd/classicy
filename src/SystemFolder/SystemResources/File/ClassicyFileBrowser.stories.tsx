@@ -1,6 +1,7 @@
 import {
 	desktopParameters,
 	dragClassicySelectionRectangle,
+	dragClassicySelectionRectanglePastEdge,
 	StoryApp,
 } from "@sb/helpers";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -136,4 +137,14 @@ export const IconViewKeptArranged: Story = {
 export const IconViewSelectionRectangle: Story = {
 	render: () => <BrowserWindow display="icons" variant="icons-marquee" />,
 	play: dragClassicySelectionRectangle,
+};
+
+/**
+ * The selection rectangle held past the window's bottom edge (story
+ * 0228-e9l): the window's contents clip it, so its sides run to the edge and
+ * no line is drawn along it, as the Mac OS 8.1 Finder clipped its frame.
+ */
+export const IconViewSelectionRectanglePastEdge: Story = {
+	render: () => <BrowserWindow display="icons" variant="icons-marquee-edge" />,
+	play: dragClassicySelectionRectanglePastEdge,
 };

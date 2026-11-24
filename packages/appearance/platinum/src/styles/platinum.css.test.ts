@@ -438,12 +438,13 @@ describe("platinum.scss (compiled)", () => {
 
 	// Story 0228-e9l: the Mac OS 8.1 Finder's selection rectangle, a two-
 	// pixel frame of the 50% checker drawn in XOR, its white cells (inverted
-	// to black over white) at the screen's odd x + y.
+	// to black over white) at the desktop's odd x + y, laid from the corner
+	// the core publishes on the part.
 	it("draws the selection rectangle as a two-pixel XOR checker frame", () => {
 		const marquee = rule(`${P} [data-classicy-part=selection-marquee]`).props;
 		expect(marquee.padding).toBe("var(--selection-marquee-width)");
 		expect(marquee.background).toBe(
-			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) left top/var(--selection-marquee-tile-size) var(--selection-marquee-tile-size) fixed",
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)/var(--selection-marquee-tile-size) var(--selection-marquee-tile-size)",
 		);
 		expect(marquee["mask-composite"]).toBe("exclude");
 		expect(marquee["mix-blend-mode"]).toBe("difference");

@@ -174,7 +174,7 @@ describe("system7.scss (compiled)", () => {
 		const marquee = rule("[data-classicy-part=selection-marquee]");
 		expect(marquee).toMatch(/padding: var\(--selection-marquee-width\);/);
 		expect(marquee).toMatch(
-			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) left top ?\/ ?var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\) fixed;/,
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\) ?\/ ?var\(--selection-marquee-tile-size\) var\(--selection-marquee-tile-size\);/,
 		);
 		expect(marquee).toMatch(/mask-composite: exclude;/);
 		expect(marquee).toMatch(/mix-blend-mode: difference;/);
@@ -3308,6 +3308,11 @@ describe("system7.scss (compiled)", () => {
 				),
 			);
 
+	// Parts the core publishes the origin on itself, whatever the layout
+	// declares: the selection rectangle carries the desktop's corner
+	// (useClassicyMarqueeSelection, story 0228-e9l).
+	const CORE_PUBLISHED = new Set(["[data-classicy-part=selection-marquee]"]);
+
 	it("reads the origin only where the package has it published", () => {
 		const declared = system7JsonSource.layout.patternOrigin as Record<
 			string,
@@ -3317,7 +3322,9 @@ describe("system7.scss (compiled)", () => {
 		expect(declared.elements.every((entry) => entry.origin === "window")).toBe(
 			true,
 		);
-		const found = [...new Set(readers().map(([host]) => host))].sort();
+		const hosts = new Set(readers().map(([host]) => host));
+		for (const host of CORE_PUBLISHED) expect(hosts, host).toContain(host);
+		const found = [...hosts].filter((host) => !CORE_PUBLISHED.has(host)).sort();
 		expect(found).toEqual(Object.keys(READERS).sort());
 		for (const [host, [by]] of Object.entries(READERS)) {
 			if (/^[A-Z]/.test(by)) expect(declared[by], host).toBe("window");

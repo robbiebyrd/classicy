@@ -18,7 +18,11 @@ import {
 	useAppManagerDispatch,
 	useClassicyAsset,
 } from "@classicy/classicy";
-import { dragClassicySelectionRectangle, StoryApp } from "@sb/helpers";
+import {
+	dragClassicySelectionRectangle,
+	dragClassicySelectionRectanglePastEdge,
+	StoryApp,
+} from "@sb/helpers";
 import { system7Parameters, WithTheme } from "@sb/system7";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactElement, useEffect } from "react";
@@ -283,6 +287,15 @@ export const FinderSelectionRectangle: Story = {
 export const FinderSelectionRectangleColor: Story = {
 	render: () => themed(true, <FinderFolderWindows />),
 	play: dragClassicySelectionRectangle,
+};
+
+/**
+ * The rectangle held past the bottom edge of the first window's contents:
+ * clipped there, its sides running to the edge.
+ */
+export const FinderSelectionRectanglePastEdge: Story = {
+	render: () => <FinderFolderWindows />,
+	play: dragClassicySelectionRectanglePastEdge,
 };
 
 /** The list-view window, and the item the story selects in it. */

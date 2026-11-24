@@ -13,23 +13,35 @@
  * - With Shift held at the press the selection is kept, and the icons the
  *   rectangle touches toggle against it (HIG7 p.290: Shift-selecting
  *   highlighted objects deselects them). Command does nothing more than a
- *   plain press, as in the 8.1 Finder.
+ *   plain press, as in the 8.1 Finder. A Control-press is not a rectangle
+ *   at all: it is the contextual-menu click (the surfaces never call
+ *   `start` for one; `openClassicyControlPressContextMenu`).
  * - Release ends it, keeping the selection. Escape cancels it and restores
  *   the selection from before the press (the 8.1 Finder did not; story
  *   0228-e9l asks for it, as every other Classicy gesture cancels on Escape).
  *   Losing the pointer stream ends it where it is, as a release would.
+ *   Every other key is held off while it lasts (8.1 tracked the mouse alone
+ *   and took the keys after the release), so no arrow key or type-ahead can
+ *   change the selection under it.
  * - Past the edge of the surface's scroller (a window's contents) the
  *   contents scroll a line at a time at the scroll arrows' rate (HIG7
- *   p.167), the press point scrolling with them.
+ *   p.167), the press point scrolling with them. Past that edge the
+ *   rectangle is clipped, not re-framed: its sides run to the edge, as
+ *   QuickDraw clipped its frame to the window's contents.
  *
  * The rectangle is drawn by the `ClassicySelectionMarqueeLayer` element the
- * hook returns, a `data-classicy-part="selection-marquee"` element the
- * active Appearance Package draws.
+ * hook returns: a clip box (`classicySelectionMarqueeClip`, the part of the
+ * surface that shows) holding the `data-classicy-part="selection-marquee"`
+ * element at the whole rectangle's geometry, which the active Appearance
+ * Package draws. The part carries the desktop's corner as
+ * `--classicy-pattern-origin-x` / `-y`, so a package lays its checker from
+ * the desktop, as QuickDraw laid the pattern from the screen.
  */
 
 import "./ClassicySelectionMarquee.scss";
 import classNames from "classnames";
 import {
+	type CSSProperties,
 	createElement,
 	type ReactElement,
 	type RefObject,
@@ -203,6 +215,35 @@ const contentBox = (
 		: null;
 };
 
+// Opaque masks already read, by image source and drawn size: icons share a
+// handful of images, so a folder of hundreds of items reads each once, not
+// once per item per gesture. Bounded, as image sources are host data.
+const MASK_CACHE_LIMIT = 256;
+const maskCache = new Map<string, Uint8Array | null>();
+
+/** Forget every cached icon mask (tests). @internal */
+export const resetClassicyMarqueeMaskCacheForTests = (): void => {
+	maskCache.clear();
+};
+
+const opaqueMaskOf = (
+	image: HTMLImageElement,
+	width: number,
+	height: number,
+): Uint8Array | null => {
+	const src = image.currentSrc || image.src;
+	// Not loaded yet: read it now and keep nothing.
+	if (!src || !image.complete)
+		return readClassicyIconOpaqueMask(image, width, height);
+	const key = `${width}x${height} ${src}`;
+	const cached = maskCache.get(key);
+	if (cached !== undefined) return cached;
+	const mask = readClassicyIconOpaqueMask(image, width, height);
+	if (maskCache.size >= MASK_CACHE_LIMIT) maskCache.clear();
+	maskCache.set(key, mask);
+	return mask;
+};
+
 /** Measure the items as they are drawn, in the surface's coordinates. */
 export const measureClassicyMarqueeItems = (
 	items: readonly ClassicyMarqueeItem[],
@@ -215,7 +256,7 @@ export const measureClassicyMarqueeItems = (
 			image: imageBox,
 			mask:
 				image && imageBox
-					? readClassicyIconOpaqueMask(
+					? opaqueMaskOf(
 							image,
 							Math.round(imageBox.width),
 							Math.round(imageBox.height),
@@ -224,6 +265,14 @@ export const measureClassicyMarqueeItems = (
 			label: label ? contentBox(label, origin) : null,
 		};
 	});
+
+/** A box in client coordinates, edges as `getBoundingClientRect` gives them. */
+export type ClassicyMarqueeBounds = {
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+};
 
 export type ClassicyMarqueeOptions = {
 	/**
@@ -243,33 +292,53 @@ export type ClassicyMarqueeOptions = {
 	 * surface.
 	 */
 	getScroller?: () => HTMLElement | null;
+	/**
+	 * The part of the scroller the items show in, in client coordinates,
+	 * where it is less than the scroller's box (a list's column titles
+	 * inside it): the rectangle is clipped to it and scrolls past its edges.
+	 * Left out or null, the scroller's box.
+	 */
+	getVisibleBounds?: () => ClassicyMarqueeBounds | null;
 	/** Extra class names for the rectangle's element. */
 	className?: string;
 };
 
-type MarqueeStore = {
-	box: ClassicyMarqueeBox | null;
-	listeners: Set<() => void>;
-	set: (box: ClassicyMarqueeBox | null) => void;
+/** What the layer draws: the rectangle, the box it is clipped to, and the desktop's corner from the rectangle's. */
+type MarqueeFrame = {
+	rect: ClassicyMarqueeBox;
+	clip: ClassicyMarqueeBox;
+	origin: [number, number];
 };
+
+type MarqueeStore = {
+	frame: MarqueeFrame | null;
+	listeners: Set<() => void>;
+	set: (frame: MarqueeFrame | null) => void;
+};
+
+const sameBox = (a: ClassicyMarqueeBox, b: ClassicyMarqueeBox) =>
+	a.left === b.left &&
+	a.top === b.top &&
+	a.width === b.width &&
+	a.height === b.height;
 
 const createMarqueeStore = (): MarqueeStore => {
 	const store: MarqueeStore = {
-		box: null,
+		frame: null,
 		listeners: new Set(),
-		set: (box) => {
-			const old = store.box;
+		set: (frame) => {
+			const old = store.frame;
 			if (
-				old === box ||
+				old === frame ||
 				(old &&
-					box &&
-					old.left === box.left &&
-					old.top === box.top &&
-					old.width === box.width &&
-					old.height === box.height)
+					frame &&
+					sameBox(old.rect, frame.rect) &&
+					sameBox(old.clip, frame.clip) &&
+					old.origin[0] === frame.origin[0] &&
+					old.origin[1] === frame.origin[1])
 			)
 				return;
-			store.box = box;
+			store.frame = frame;
 			for (const listener of store.listeners) listener();
 		},
 	};
@@ -277,8 +346,11 @@ const createMarqueeStore = (): MarqueeStore => {
 };
 
 /**
- * The rectangle's element, re-rendered on its own as the rectangle changes
- * (not its surface). Draws nothing until a rectangle has started.
+ * The rectangle's elements, re-rendered on their own as the rectangle
+ * changes (not its surface). Nothing until a rectangle has started. The clip
+ * box sets no `z-index`, `opacity`, `transform` or `isolation`, so it makes
+ * no stacking context: the part blends with what lies under it, and its
+ * `z-index` places it among the icons.
  */
 const ClassicySelectionMarqueeLayer = ({
 	store,
@@ -296,23 +368,38 @@ const ClassicySelectionMarqueeLayer = ({
 		},
 		[store],
 	);
-	const box = useSyncExternalStore(
+	const frame = useSyncExternalStore(
 		subscribe,
-		() => store.box,
+		() => store.frame,
 		() => null,
 	);
-	if (!box) return null;
-	return createElement("div", {
-		"aria-hidden": "true",
-		"data-classicy-part": "selection-marquee",
-		className: classNames("classicySelectionMarquee", className),
-		style: {
-			left: box.left,
-			top: box.top,
-			width: box.width,
-			height: box.height,
+	if (!frame) return null;
+	const { rect, clip, origin } = frame;
+	return createElement(
+		"div",
+		{
+			"aria-hidden": "true",
+			className: "classicySelectionMarqueeClip",
+			style: {
+				left: clip.left,
+				top: clip.top,
+				width: clip.width,
+				height: clip.height,
+			},
 		},
-	});
+		createElement("div", {
+			"data-classicy-part": "selection-marquee",
+			className: classNames("classicySelectionMarquee", className),
+			style: {
+				left: rect.left - clip.left,
+				top: rect.top - clip.top,
+				width: rect.width,
+				height: rect.height,
+				"--classicy-pattern-origin-x": `${origin[0]}px`,
+				"--classicy-pattern-origin-y": `${origin[1]}px`,
+			} as CSSProperties,
+		}),
+	);
 };
 
 /** What a press hands `start`. */
@@ -322,10 +409,13 @@ export type ClassicyMarqueePress = {
 	shiftKey: boolean;
 };
 
+// Modifier keys alone never act, so they pass while the rectangle is held.
+const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock"]);
+
 /**
  * Selection by dragging a rectangle over a surface's icons. Call `start`
- * from the surface's mousedown on empty space (the primary button), and
- * render `marquee` inside the surface.
+ * from the surface's mousedown on empty space (the primary button, no
+ * Control), and render `marquee` inside the surface.
  */
 export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 	start: (press: ClassicyMarqueePress) => void;
@@ -351,10 +441,10 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 			const toggle = press.shiftKey;
 			const before = optionsRef.current.getSelection();
 			const base = toggle ? before : [];
-			let current = before;
+			// Against the selection as it is, so a change made by anything
+			// else is never mistaken for the one this rectangle last made.
 			const select = (ids: string[]) => {
-				if (sameIds(ids, current)) return;
-				current = ids;
+				if (sameIds(ids, optionsRef.current.getSelection())) return;
 				optionsRef.current.onSelect(ids);
 			};
 			// A plain press deselects everything at once.
@@ -375,19 +465,16 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 			let scrollTimer: ReturnType<typeof setInterval> | null = null;
 
 			const scroller = () => optionsRef.current.getScroller?.() ?? null;
+			// The desktop, whose corner the pattern is laid from.
+			const desktop = surface.closest<HTMLElement>(".classicyDesktop") ?? null;
 
-			// The part of the surface the rectangle may be drawn in: what its
-			// scroller shows of it, else the surface's own box; none when it
-			// has no size (not laid out), and then the rectangle is not cut.
-			const visible = (o: { left: number; top: number }) => {
-				const r = (scroller() ?? surface).getBoundingClientRect();
-				if (r.width <= 0 || r.height <= 0) return null;
-				return {
-					left: r.left - o.left,
-					top: r.top - o.top,
-					right: r.right - o.left,
-					bottom: r.bottom - o.top,
-				};
+			// Where the items show, in client coordinates: the visible bounds
+			// given, else the scroller's box, else the surface's; none when it
+			// has no size (not laid out).
+			const shown = (): ClassicyMarqueeBounds | null => {
+				const given = optionsRef.current.getVisibleBounds?.() ?? null;
+				const r = given ?? (scroller() ?? surface).getBoundingClientRect();
+				return r.right - r.left > 0 && r.bottom - r.top > 0 ? r : null;
 			};
 
 			const update = () => {
@@ -411,18 +498,52 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 						toggle,
 					),
 				);
-				// Drawn only where the surface shows, so the rectangle
-				// never widens what its scroller can scroll to.
-				const v = visible(o) ?? rect;
-				const left = Math.max(rect.left, v.left);
-				const top = Math.max(rect.top, v.top);
-				const right = Math.min(rect.right, v.right);
-				const bottom = Math.min(rect.bottom, v.bottom);
-				store.set(
-					right > left && bottom > top
-						? { left, top, width: right - left, height: bottom - top }
-						: null,
-				);
+				if (rect.right <= rect.left || rect.bottom <= rect.top) {
+					store.set(null);
+					return;
+				}
+				// Clipped to where the surface shows, so the rectangle never
+				// widens what its scroller can scroll to; whole where it is
+				// not laid out.
+				const v = shown();
+				const clip = v
+					? {
+							left: Math.max(rect.left, v.left - o.left),
+							top: Math.max(rect.top, v.top - o.top),
+							right: Math.min(rect.right, v.right - o.left),
+							bottom: Math.min(rect.bottom, v.bottom - o.top),
+						}
+					: rect;
+				if (clip.right <= clip.left || clip.bottom <= clip.top) {
+					store.set(null);
+					return;
+				}
+				// The desktop's padding-box corner from the rectangle's.
+				const d = desktop?.getBoundingClientRect();
+				const corner: [number, number] = d
+					? [
+							d.left + (desktop?.clientLeft ?? 0),
+							d.top + (desktop?.clientTop ?? 0),
+						]
+					: [0, 0];
+				store.set({
+					rect: {
+						left: rect.left,
+						top: rect.top,
+						width: rect.right - rect.left,
+						height: rect.bottom - rect.top,
+					},
+					clip: {
+						left: clip.left,
+						top: clip.top,
+						width: clip.right - clip.left,
+						height: clip.bottom - clip.top,
+					},
+					origin: [
+						Math.round(corner[0] - (o.left + rect.left)),
+						Math.round(corner[1] - (o.top + rect.top)),
+					],
+				});
 			};
 
 			const stopScrolling = () => {
@@ -430,24 +551,23 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 				scrollTimer = null;
 			};
 			// Which way the scroller scrolls toward the pointer; not at all
-			// when there is none, or it has no size (not laid out).
-			const scrollDirection = (el: HTMLElement | null): [number, number] => {
-				const r = el?.getBoundingClientRect();
-				return r && r.width > 0 && r.height > 0
-					? classicyMarqueeScrollDirection(pointer, r)
-					: [0, 0];
+			// when there is none, or it shows nothing (not laid out).
+			const scrollDirection = (): [number, number] => {
+				if (!scroller()) return [0, 0];
+				const v = shown();
+				return v ? classicyMarqueeScrollDirection(pointer, v) : [0, 0];
 			};
 			// One line toward the pointer, as a scroll arrow steps.
 			const scrollStep = () => {
 				const el = scroller();
-				const [dx, dy] = scrollDirection(el);
+				const [dx, dy] = scrollDirection();
 				if (!el || !shapes || (dx === 0 && dy === 0)) return stopScrolling();
 				el.scrollLeft += dx * CLASSICY_SCROLL_LINE_STEP;
 				el.scrollTop += dy * CLASSICY_SCROLL_LINE_STEP;
 				update();
 			};
 			const followScroll = () => {
-				const [dx, dy] = scrollDirection(scroller());
+				const [dx, dy] = scrollDirection();
 				if (dx === 0 && dy === 0) return stopScrolling();
 				if (scrollTimer !== null) return;
 				scrollStep();
@@ -482,9 +602,10 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 				end();
 			}
 			function onKey(e: KeyboardEvent) {
-				if (e.key !== "Escape") return;
+				if (MODIFIER_KEYS.has(e.key)) return;
 				e.preventDefault();
 				e.stopPropagation();
+				if (e.key !== "Escape") return;
 				end();
 				select(before);
 			}
@@ -504,3 +625,38 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 	);
 	return { start, marquee };
 }
+
+/**
+ * A Control-press on a surface's empty space, as the Mac OS 8.1 Finder takes
+ * it (Infinite Mac): no rectangle, the selection cleared (the caller's), and
+ * the contextual menu under the pointer. A macOS browser fires `contextmenu`
+ * for a Control-click itself; elsewhere none comes, so one is sent from the
+ * press's target once the press's own task has passed without one.
+ * @internal
+ */
+export const openClassicyControlPressContextMenu = (
+	press: MouseEvent,
+): void => {
+	const target = press.target;
+	if (!(target instanceof Element)) return;
+	let native = false;
+	const heard = () => {
+		native = true;
+	};
+	document.addEventListener("contextmenu", heard, true);
+	setTimeout(() => {
+		document.removeEventListener("contextmenu", heard, true);
+		if (native || !target.isConnected) return;
+		target.dispatchEvent(
+			new MouseEvent("contextmenu", {
+				bubbles: true,
+				cancelable: true,
+				clientX: press.clientX,
+				clientY: press.clientY,
+				ctrlKey: true,
+				button: 2,
+				buttons: 0,
+			}),
+		);
+	}, 0);
+};

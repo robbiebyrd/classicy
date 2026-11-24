@@ -16,6 +16,8 @@ import {
 	classicyMarqueeSelection,
 	classicyMarqueeStarted,
 	classicyMarqueeTouches,
+	measureClassicyMarqueeItems,
+	resetClassicyMarqueeMaskCacheForTests,
 	useClassicyMarqueeSelection,
 } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 import { CLASSICY_PRESS_REPEAT_INTERVAL_MS } from "@/SystemFolder/SystemResources/LittleArrows/useClassicyPressRepeat.internal";
@@ -127,6 +129,42 @@ describe("the rectangle's arithmetic", () => {
 		expect(classicyMarqueeScrollDirection([50, 120], bounds)).toEqual([0, 1]);
 		expect(classicyMarqueeScrollDirection([-3, -3], bounds)).toEqual([-1, -1]);
 		expect(classicyMarqueeScrollDirection([100, 50], bounds)).toEqual([1, 0]);
+	});
+});
+
+describe("measureClassicyMarqueeItems", () => {
+	afterEach(() => resetClassicyMarqueeMaskCacheForTests());
+
+	it("reads each loaded image's mask once per size, however many items share it", () => {
+		resetClassicyMarqueeMaskCacheForTests();
+		const getContext = vi
+			.spyOn(HTMLCanvasElement.prototype, "getContext")
+			.mockReturnValue({
+				drawImage: () => {},
+				getImageData: () => ({ data: new Uint8ClampedArray(32 * 32 * 4) }),
+			} as unknown as CanvasRenderingContext2D);
+		const rect = vi
+			.spyOn(Element.prototype, "getBoundingClientRect")
+			.mockReturnValue(DOMRect.fromRect({ x: 0, y: 0, width: 32, height: 32 }));
+		try {
+			const image = (src: string) => {
+				const img = document.createElement("img");
+				img.src = src;
+				Object.defineProperty(img, "complete", { value: true });
+				return img;
+			};
+			const items = Array.from({ length: 300 }, (_, i) => ({
+				id: `item${i}`,
+				image: image(i % 2 ? "/folder.png" : "/document.png"),
+			}));
+			measureClassicyMarqueeItems(items, { left: 0, top: 0 });
+			measureClassicyMarqueeItems(items, { left: 0, top: 0 });
+			// Two images, one size: two reads for 600 measured items.
+			expect(getContext).toHaveBeenCalledTimes(2);
+		} finally {
+			getContext.mockRestore();
+			rect.mockRestore();
+		}
 	});
 });
 
@@ -286,9 +324,16 @@ describe("useClassicyMarqueeSelection", () => {
 		t.move(130, 130);
 		const part = t.marquee();
 		expect(part?.className).toContain("classicySelectionMarquee");
-		expect(part?.getAttribute("aria-hidden")).toBe("true");
-		expect(part?.style.left).toBe("5px");
-		expect(part?.style.top).toBe("5px");
+		// Its clip box, at the rectangle where the surface shows all of it.
+		const clip = part?.parentElement;
+		expect(clip?.className).toBe("classicySelectionMarqueeClip");
+		expect(clip?.getAttribute("aria-hidden")).toBe("true");
+		expect(clip?.style.left).toBe("5px");
+		expect(clip?.style.top).toBe("5px");
+		expect(clip?.style.width).toBe("25px");
+		expect(clip?.style.height).toBe("25px");
+		expect(part?.style.left).toBe("0px");
+		expect(part?.style.top).toBe("0px");
 		expect(part?.style.width).toBe("25px");
 		expect(part?.style.height).toBe("25px");
 		expect(t.onSelect).toHaveBeenLastCalledWith(["a"]);
@@ -383,13 +428,141 @@ describe("useClassicyMarqueeSelection", () => {
 		expect(live.size).toBe(before);
 	});
 
-	it("cuts the drawn rectangle at the surface's edge", () => {
+	it("clips the rectangle at the surface's edge, never framing the cut", () => {
 		const t = setup();
 		t.press(450, 350);
 		t.move(600, 500);
 		const part = t.marquee();
-		expect(part?.style.width).toBe("50px");
-		expect(part?.style.height).toBe("50px");
+		// The part keeps the whole rectangle, so its frame runs out past the
+		// edge; the clip box cuts it there, as QuickDraw clipped the frame.
+		expect(part?.style.width).toBe("150px");
+		expect(part?.style.height).toBe("150px");
+		expect(part?.style.left).toBe("0px");
+		expect(part?.style.top).toBe("0px");
+		const clip = part?.parentElement;
+		expect(clip?.style.left).toBe("350px");
+		expect(clip?.style.top).toBe("250px");
+		expect(clip?.style.width).toBe("50px");
+		expect(clip?.style.height).toBe("50px");
+	});
+
+	it("draws nothing for an empty rectangle (a move along one axis only)", () => {
+		const t = setup();
+		t.press(105, 105);
+		t.move(140, 105);
+		expect(t.marquee()).toBeNull();
+		t.move(140, 108);
+		expect(t.marquee()).not.toBeNull();
+	});
+
+	it("publishes the desktop's corner from the rectangle's, for the checker's phase", () => {
+		const onSelect = vi.fn();
+		const view = render(
+			<div className="classicyDesktop" data-testid="desktop">
+				<Harness onSelect={onSelect} />
+			</div>,
+		);
+		lay(view.container);
+		boxes.set(view.getByTestId("desktop"), [10, 20, 1000, 700]);
+		fireEvent.mouseDown(view.getByTestId("surface"), {
+			button: 0,
+			clientX: 105,
+			clientY: 106,
+		});
+		fireEvent.mouseMove(document, { clientX: 130, clientY: 130 });
+		const part = view.container.querySelector<HTMLElement>(
+			'[data-classicy-part="selection-marquee"]',
+		);
+		// The rectangle's corner is at (105, 106) on the screen, the
+		// desktop's at (10, 20).
+		expect(part?.style.getPropertyValue("--classicy-pattern-origin-x")).toBe(
+			"-95px",
+		);
+		expect(part?.style.getPropertyValue("--classicy-pattern-origin-y")).toBe(
+			"-86px",
+		);
+	});
+
+	it("holds off every key but Escape and the modifiers while it lasts", () => {
+		const t = setup({ initial: ["c"] });
+		const heard = vi.fn();
+		document.body.addEventListener("keydown", heard);
+		t.press(105, 105);
+		t.move(130, 130);
+		for (const key of ["ArrowDown", "a", "Delete", "Enter"]) {
+			const e = new KeyboardEvent("keydown", {
+				key,
+				bubbles: true,
+				cancelable: true,
+			});
+			act(() => {
+				document.body.dispatchEvent(e);
+			});
+			expect(e.defaultPrevented, key).toBe(true);
+		}
+		fireEvent.keyDown(document.body, { key: "Shift" });
+		expect(heard.mock.calls.map(([e]) => e.key)).toEqual(["Shift"]);
+		t.release(130, 130);
+		// Over: keys reach the page again.
+		fireEvent.keyDown(document.body, { key: "ArrowDown" });
+		expect(heard).toHaveBeenCalledTimes(2);
+		document.body.removeEventListener("keydown", heard);
+	});
+
+	it("keeps to the selection as it is, if something else changes it mid-gesture", () => {
+		let current: string[] = [];
+		const onSelect = vi.fn((ids: string[]) => {
+			current = ids;
+		});
+		const surfaceRef = { current: null as HTMLDivElement | null };
+		const Probe = () => {
+			const { start, marquee } = useClassicyMarqueeSelection({
+				surfaceRef,
+				getItems: () =>
+					Array.from(
+						surfaceRef.current?.querySelectorAll(".item") ?? [],
+						(el) => ({
+							id: el.id,
+							image: el.querySelector("img"),
+							label: el.querySelector("p"),
+						}),
+					),
+				getSelection: () => current,
+				onSelect,
+			});
+			return (
+				// biome-ignore lint/a11y/noStaticElementInteractions: a test surface
+				<div
+					ref={(el) => {
+						surfaceRef.current = el;
+					}}
+					data-testid="surface"
+					onMouseDown={(e) => start(e)}
+				>
+					{["a", "b", "c"].map((id) => (
+						<div key={id} id={id} className="item">
+							<img alt="" />
+							<p>{id}</p>
+						</div>
+					))}
+					{marquee}
+				</div>
+			);
+		};
+		const view = render(<Probe />);
+		lay(view.container);
+		fireEvent.mouseDown(view.getByTestId("surface"), {
+			button: 0,
+			clientX: 105,
+			clientY: 105,
+		});
+		fireEvent.mouseMove(document, { clientX: 130, clientY: 130 });
+		expect(current).toEqual(["a"]);
+		// Something else (code, not a key: keys are held off) selects c.
+		current = ["c"];
+		fireEvent.mouseMove(document, { clientX: 131, clientY: 131 });
+		// The rectangle's own selection again, not left to the stale one.
+		expect(current).toEqual(["a"]);
 	});
 
 	describe("past the scroller's edge", () => {
@@ -427,10 +600,16 @@ describe("useClassicyMarqueeSelection", () => {
 			// Icon c scrolled up under the pointer and is selected; the press
 			// point went up with the contents, so the rectangle still holds a.
 			expect(t.onSelect).toHaveBeenLastCalledWith(["a", "b", "c"]);
-			// Drawn only where the window shows.
+			// Clipped to where the window shows; the part keeps the whole
+			// rectangle, its top (the press point) scrolled away above.
 			const part = t.marquee();
-			expect(part?.style.top).toBe(`${CLASSICY_SCROLL_LINE_STEP * 10}px`);
-			expect(part?.style.height).toBe("200px");
+			const clip = part?.parentElement;
+			expect(clip?.style.top).toBe(`${CLASSICY_SCROLL_LINE_STEP * 10}px`);
+			expect(clip?.style.height).toBe("200px");
+			expect(part?.style.top).toBe(`${5 - CLASSICY_SCROLL_LINE_STEP * 10}px`);
+			expect(part?.style.height).toBe(
+				`${320 + CLASSICY_SCROLL_LINE_STEP * 10 - 100 - 5}px`,
+			);
 		});
 
 		it("stops when the pointer comes back inside", () => {

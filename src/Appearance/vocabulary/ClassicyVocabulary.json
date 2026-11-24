@@ -18,7 +18,8 @@
 			"classicyFileDragGhost",
 			"classicyFileDragging",
 			"classicyFileDropTarget",
-			"classicySelectionMarquee"
+			"classicySelectionMarquee",
+			"classicySelectionMarqueeClip"
 		],
 		"MenuItem": ["classicyMenuWrapper"],
 		"PixelArt": [
