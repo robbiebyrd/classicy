@@ -85,6 +85,15 @@ export type ClassicyAlertProps = {
 	 */
 	movable?: boolean;
 	/**
+	 * With `movable`: draw the alert in a movable modal dialog box's frame
+	 * (HIGOS8 p.59, Figure 3-2: the plain title bar) instead of a movable alert
+	 * box's (p.61, Figure 3-4: red highlights on the title bar), for an alert
+	 * the Mac put in a dialog box, such as Mac OS 8.1's SimpleText "Save
+	 * changes…" box. Its content, buttons and keys are an alert's. Defaults to
+	 * `false`; ignored without `movable`.
+	 */
+	dialogBox?: boolean;
+	/**
 	 * Called after any enabled button is activated (in addition to that
 	 * button's `onClick`). The alert does not unmount itself — stop rendering
 	 * it here.
@@ -187,6 +196,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	buttons,
 	defaultButtonId,
 	movable = false,
+	dialogBox = false,
 	onClose,
 	className,
 	style,
@@ -291,9 +301,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	return (
 		<ClassicyWindow
 			id={id}
-			// The movable alert's red title bar is keyed on its window's class
-			// (no `:has(.classicyAlertMovable)`, which Firefox 113-120 lacks).
-			className={classNames(movable && "classicyAlertMovableWindow", className)}
+			// The movable alert box's look (Platinum's red title bar) is keyed on
+			// its window's class (no `:has(.classicyAlertMovable)`, which
+			// Firefox 113-120 lacks); one drawn as a dialog box has none.
+			className={classNames(
+				movable && !dialogBox && "classicyAlertMovableWindow",
+				className,
+			)}
 			style={style}
 			appId={appId}
 			title={title}

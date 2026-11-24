@@ -273,6 +273,25 @@ describe("platinum.scss (compiled)", () => {
 		return { at, props };
 	};
 
+	// HIGOS8 p.61, Figure 3-4: a movable alert box has red highlights on its
+	// title bar, whatever the alert's type (the window is marked, not the
+	// icon); Platinum draws them now that the base sheet holds no look
+	// (story 0226-a6f, found in its second re-review).
+	it("draws a movable alert box's red title bar, through the error token", () => {
+		const bar = rule(
+			`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar`,
+		).props;
+		expect(bar["background-color"]).toContain("var(--color-error)");
+		expect(flat).toContain(
+			`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
+		);
+		expect(
+			rule(
+				`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
+			).props.background,
+		).toBe("var(--classicy-art-window-stripes-red)");
+	});
+
 	it("scopes the window chrome", () => {
 		const window_ = rule(`${P} .classicyWindow`).props;
 		expect(window_.border).toBeDefined();

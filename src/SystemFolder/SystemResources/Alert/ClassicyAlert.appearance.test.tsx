@@ -148,6 +148,27 @@ describe("Alert's window and the fixed-modal marker", () => {
 		expect(alertWindow()).toHaveClass("hostAlert");
 	});
 
+	// Every alert type's movable window is marked alike: the highlight marks
+	// an alert box (HIGOS8 p.61), the icon its type.
+	it("marks every alert type's movable window alike", () => {
+		for (const alertType of ["note", "caution", "stop"] as const) {
+			const { unmount } = render(
+				<ClassicyAlert label={alertType} alertType={alertType} movable />,
+			);
+			expect(alertWindow(), alertType).toHaveClass(
+				"classicyAlertMovableWindow",
+			);
+			unmount();
+		}
+	});
+
+	// `dialogBox`: an alert in a movable modal dialog box's frame (Mac OS
+	// 8.1's SimpleText "Save changes" box), so no alert highlight.
+	it("leaves a movable alert drawn as a dialog box unmarked", () => {
+		render(<ClassicyAlert label="Save changes?" movable dialogBox />);
+		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");
+	});
+
 	it("leaves a fixed alert's window without it", () => {
 		render(<ClassicyAlert label="Note" className="hostAlert" />);
 		expect(alertWindow()).not.toHaveClass("classicyAlertMovableWindow");

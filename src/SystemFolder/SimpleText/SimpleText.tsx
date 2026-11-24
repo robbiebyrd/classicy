@@ -776,6 +776,9 @@ export const SimpleText = () => {
 					appId={appId}
 					alertType={"caution"}
 					movable={true}
+					// Mac OS 8.1's SimpleText asks in a movable modal dialog box
+					// (gray title bar), not a movable alert box (red highlights).
+					dialogBox={true}
 					label={`Save changes to the document “${saveAlert.title}” before closing?`}
 					defaultButtonId={"save"}
 					buttons={[
