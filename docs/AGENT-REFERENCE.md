@@ -1855,10 +1855,11 @@ window record yet opens), `showNames` (default `true`), `iconSize`
 None is scriptable. Helpers: `nextClassicyAppSwitcherAppId(ids, frontId,
 direction)`, `classicyAppSwitcherChordDirection(shortcut, event)` (`1`,
 `-1` or `0`), `classicyAppSwitcherReverseShortcut(shortcut)`,
-`isClassicyAppSwitcherShortcut(shortcut)`, `classicyAppSwitcherTearOffPosition(outline,
-desktop, menuBarHeight)`, `classicyAppSwitcherPaletteLines(room, chromeAfter,
-buttonSize)`, `classicyAppMenuEquivalentsInUse(sources)`,
-`classicyAppSwitcherChordConflicts(inUse)`.
+`isClassicyAppSwitcherShortcut(shortcut)`, `classicyAppMenuEquivalentsInUse(sources)`,
+`classicyAppSwitcherChordConflicts(inUse)`; internal (in the `.internal`
+tracker and palette modules, out of the barrel):
+`classicyAppSwitcherTearOffPosition(outline, desktop, menuBarHeight)`,
+`classicyAppSwitcherPaletteLines(room, chromeAfter, buttonSize)`.
 
 **Per package.** A package's `layout.applicationSwitcher.palette` (§8,
 "Layout declarations") is `"tearOff"` (the default) or `"none"`. System 7
