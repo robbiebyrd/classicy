@@ -206,7 +206,7 @@ describe("ClassicyDesktop themeLinks", {
 		const imported = appearance().activeTheme;
 		// A new custom theme, named apart from the built-in Azul, as any
 		// import is (assignImportedClassicyThemeIdentity).
-		expect(imported.name).toBe("Azul 2");
+		expect(imported.name).toBe("Azul copy");
 		expect(appearance().customThemes?.map((t) => t.id)).toEqual([imported.id]);
 		expect(imported.color).toEqual(getTheme("azul").color);
 		expect(imported.typography).toEqual(getTheme("azul").typography);
@@ -301,6 +301,9 @@ describe("ClassicyDesktop themeLinks", {
 		expect(appearance().customThemes?.map((t) => t.package)).toEqual([
 			"system7",
 		]);
+		// Named apart from the built-in it copies, the Finder's way, its own
+		// number untouched.
+		expect(appearance().activeTheme.name).toBe(`${system7.name} copy`);
 	});
 
 	it("refuses a theme for a package that is not installed", async () => {

@@ -82,8 +82,8 @@ describe("ClassicyDesktopImportTheme", () => {
 		const before = appearance(makeStore()).availableThemes;
 		const state = run(makeStore(), importTheme(fileTheme({ name: "Bondi" })));
 		expect(appearance(state).availableThemes).toEqual(before);
-		expect(appearance(state).activeTheme.id).toBe("custom-bondi-2");
-		expect(appearance(state).activeTheme.name).toBe("Bondi 2");
+		expect(appearance(state).activeTheme.id).toBe("custom-bondi-copy");
+		expect(appearance(state).activeTheme.name).toBe("Bondi copy");
 	});
 
 	it("imports a parsed theme file end to end", () => {
@@ -92,7 +92,7 @@ describe("ClassicyDesktopImportTheme", () => {
 		);
 		if (!parsed.ok) throw new Error(parsed.error);
 		const state = run(makeStore(), importTheme(parsed.theme));
-		expect(appearance(state).activeTheme.name).toBe("Azul 2");
+		expect(appearance(state).activeTheme.name).toBe("Azul copy");
 		expect(appearance(state).activeTheme.desktop.backgroundImage).toBe(
 			"azul_dark.png",
 		);
@@ -133,10 +133,10 @@ describe("ClassicyDesktopImportTheme", () => {
 		const customs = appearance(state).customThemes ?? [];
 		expect(customs.map((t) => t.id)).toEqual([
 			"custom-ocean",
-			"custom-ocean-2",
+			"custom-ocean-copy",
 		]);
-		expect(customs.map((t) => t.name)).toEqual(["Ocean", "Ocean 2"]);
-		expect(appearance(state).activeTheme.id).toBe("custom-ocean-2");
+		expect(customs.map((t) => t.name)).toEqual(["Ocean", "Ocean copy"]);
+		expect(appearance(state).activeTheme.id).toBe("custom-ocean-copy");
 	});
 
 	it("cannot take over the Custom fork slot or a built-in id", () => {
@@ -153,7 +153,7 @@ describe("ClassicyDesktopImportTheme", () => {
 		const customs = appearance(state).customThemes ?? [];
 		expect(customs.map((t) => t.id)).toEqual([
 			"custom",
-			"custom-custom-2",
+			"custom-custom-copy",
 			"custom-x",
 		]);
 		expect(customs[0].color.select).toBe(0x123456);
@@ -493,7 +493,7 @@ describe("ClassicyDesktopImportTheme — appearance packages", () => {
 		expect(
 			(appearance(state).customThemes ?? []).map((t) => [t.id, t.name]),
 		).toEqual([
-			["custom-tp-one-2", "TP One 2"],
+			["custom-tp-one-copy", "TP One copy"],
 			// custom-sea is a preset's id: an import there would be unreachable.
 			["custom-sea-2", "Sea"],
 		]);

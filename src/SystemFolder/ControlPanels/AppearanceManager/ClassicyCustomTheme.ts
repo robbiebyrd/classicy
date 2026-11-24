@@ -227,8 +227,12 @@ export const slugifyClassicyThemeName = (name: string): string =>
  * theme. Returns a copy; `theme` is not mutated.
  *
  * - **Name**: kept, unless a theme (built-in or custom) already has it,
- *   ignoring case — then " 2", " 3", … is appended (a trailing number already
- *   on the name is counted up from instead of stacking: "Azul 2" → "Azul 3").
+ *   ignoring case — then named as the Mac OS Finder names a duplicate:
+ *   " copy" appended to the whole name, then " copy 1", " copy 2", … while
+ *   that is taken too ("Azul" → "Azul copy" → "Azul copy 1"). A number the
+ *   name already ends with is part of the name, never counted up: "System 7"
+ *   → "System 7 copy". The name is shortened, never the suffix, to stay
+ *   within 64 characters.
  * - **Id**: `custom-<slug of the final name>` (`custom-theme` for a name with
  *   no letters or digits), with "-2", "-3", … appended on collision. The id in
  *   the file is ignored — it is untrusted, and honoring it could overwrite an
@@ -236,6 +240,12 @@ export const slugifyClassicyThemeName = (name: string): string =>
  *   slot (`"custom"`, the theme's own package's, or any id in `reservedIds`):
  *   the next edit made on a built-in of that package overwrites the slot.
  */
+/** A theme name's longest length (`ClassicyThemeSchema`'s `name`). */
+const CLASSICY_THEME_NAME_MAX_LENGTH = 64;
+/** What the Finder appends to a duplicate's name (Mac OS 9 Help, "Duplicating
+ * items in the Finder": "with the word 'copy' at the end"). */
+const COPY_SUFFIX = " copy";
+
 export const assignImportedClassicyThemeIdentity = (
 	theme: ClassicyTheme,
 	existing: ClassicyTheme[],
@@ -244,13 +254,15 @@ export const assignImportedClassicyThemeIdentity = (
 	const names = new Set(existing.map((t) => t.name.toLowerCase()));
 	let name = theme.name;
 	if (names.has(name.toLowerCase())) {
-		const numbered = /^(.*\S) (\d+)$/.exec(name);
-		const base = numbered ? numbered[1] : name;
-		let n = numbered ? Number(numbered[2]) + 1 : 2;
-		// Names are capped at 64 characters; leave room for the suffix.
-		const stem = base.slice(0, 58).trimEnd();
-		while (names.has(`${stem} ${n}`.toLowerCase())) n++;
-		name = `${stem} ${n}`;
+		// The Finder's Duplicate naming: "<name> copy", then "<name> copy 1",
+		// "<name> copy 2", … Names are capped at 64 characters, so the name
+		// gives way to the suffix.
+		const withSuffix = (suffix: string) =>
+			`${theme.name.slice(0, CLASSICY_THEME_NAME_MAX_LENGTH - suffix.length).trimEnd()}${suffix}`;
+		name = withSuffix(COPY_SUFFIX);
+		for (let n = 1; names.has(name.toLowerCase()); n++) {
+			name = withSuffix(`${COPY_SUFFIX} ${n}`);
+		}
 	}
 
 	const ids = new Set([...existing.map((t) => t.id), ...reservedIds]);

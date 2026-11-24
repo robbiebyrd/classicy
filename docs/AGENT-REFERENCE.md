@@ -4535,9 +4535,14 @@ Identity rules (`assignImportedClassicyThemeIdentity`):
   overwrite an existing theme or hide behind a preset ChangeTheme finds
   first, and re-importing the same file adds a second entry.
 - The name is kept unless a theme already has it (case-insensitive, the
-  active package's presets included); then
-  `" 2"`, `" 3"`, … is appended, counting up from an existing trailing number
-  (`"Azul 2"` → `"Azul 3"`).
+  active package's presets included); then it is named as the Mac OS
+  Finder names a duplicate (Mac OS 9 Help, "Duplicating items in the
+  Finder": "with the word 'copy' at the end"): `" copy"` appended to the
+  whole name, then `" copy 1"`, `" copy 2"`, … while that is taken too
+  (`"Azul"` → `"Azul copy"` → `"Azul copy 1"`). A number the name already
+  ends with is part of the name and never counted up (`"System 7"` →
+  `"System 7 copy"`). The name, never the suffix, is shortened to keep
+  within 64 characters.
 
 An imported theme is a custom theme, so edits modify it in place (no fork).
 Like every `ClassicyDesktop*` action it is unreachable to untrusted
