@@ -9,6 +9,7 @@ import {
 	MoviePlayerDataSchema,
 	MoviePlayerOpenFileSchema,
 } from "@/SystemFolder/QuickTime/MoviePlayer/MoviePlayerUtils";
+import { recordClassicyRecentDocument } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 export type ClassicyQuickTimeDocument = {
 	url: string;
@@ -54,11 +55,18 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				!openDocUrls.includes(action.document.url)
 			) {
 				appData.openFiles = [...appData.openFiles, action.document];
+				// A document open: its window opens as it mounts; a
+				// file-system path is remembered under Recent Documents.
 				openApp(
 					ds,
 					MoviePlayerAppInfo.id,
 					MoviePlayerAppInfo.name,
 					MoviePlayerAppInfo.icon,
+					// A document is a URL object; one given as a path string
+					// (untyped callers) is a file-system path.
+					typeof (action.document as unknown) === "string"
+						? { document: action.document as unknown as string }
+						: { windows: [] },
 				);
 			}
 			break;
@@ -76,7 +84,9 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				MoviePlayerAppInfo.id,
 				MoviePlayerAppInfo.name,
 				MoviePlayerAppInfo.icon,
+				{ windows: [] },
 			);
+			for (const doc of docs) recordClassicyRecentDocument(ds, doc);
 			break;
 		}
 		case "ClassicyAppMoviePlayerCloseDocument": {
@@ -102,6 +112,7 @@ export const classicyQuickTimeMoviePlayerEventHandler = (
 				MoviePlayerAppInfo.id,
 				MoviePlayerAppInfo.name,
 				MoviePlayerAppInfo.icon,
+				{ document: action.path },
 			);
 			break;
 		}

@@ -130,6 +130,14 @@ export const SimpleText = () => {
 		}
 	}, [appState?.open, openFiles.length, untitledDocs.length, makeUntitled]);
 
+	// Quitting discards the untitled documents, as quitting SimpleText did: a
+	// later launch by a document shows that document alone, and a plain one
+	// a fresh Untitled window (found during story 0226-a6f).
+	const quit = appState !== undefined && !appState.open;
+	useEffect(() => {
+		if (quit) setUntitledDocs([]);
+	}, [quit]);
+
 	// Keep a working-content entry for every open path, seeding new ones from the
 	// file system and pruning ones that were closed. Existing entries are left
 	// untouched so in-progress edits survive unrelated file-system rebuilds.

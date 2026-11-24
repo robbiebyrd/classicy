@@ -411,10 +411,16 @@ export const classicyFinderEventHandler = (
 					) {
 						return ds;
 					}
-					ds = classicyAppEventHandler(ds, {
-						type: "ClassicyAppOpen",
-						app: MoviePlayerAppInfo,
-					});
+					// A document open: Movie Player comes forward with only the
+					// movie's window, and Recent Documents remembers the file
+					// (the movie it names is a URL).
+					openApp(
+						ds,
+						MoviePlayerAppInfo.id,
+						MoviePlayerAppInfo.name,
+						MoviePlayerAppInfo.icon,
+						hasPath(action) ? { document: action.path } : { windows: [] },
+					);
 					ds = dispatchToPlugin(ds, "ClassicyAppMoviePlayer", {
 						type: "ClassicyAppMoviePlayerOpenDocument",
 						document: document as { url: string },

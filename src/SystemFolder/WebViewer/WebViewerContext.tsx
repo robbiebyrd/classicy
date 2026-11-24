@@ -47,7 +47,12 @@ export const classicyWebViewerEventHandler = (
 					{ url: action.url, title: action.title || action.url },
 				];
 			}
-			openApp(ds, appId, appName, appIcon);
+			// A document open (a page): only the page's own window
+			// (WebViewer.tsx's `${appId}_url_${url}`) reopens, never one the
+			// user closed. A URL is not a file, so Recent Documents skips it.
+			openApp(ds, appId, appName, appIcon, {
+				windows: [`${appId}_url_${action.url}`],
+			});
 			break;
 		}
 		case "ClassicyAppWebViewerCloseUrl": {

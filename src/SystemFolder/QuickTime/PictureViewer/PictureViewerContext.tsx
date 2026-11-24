@@ -13,6 +13,7 @@ import {
 	PictureViewerDataSchema,
 	PictureViewerOpenFileSchema,
 } from "@/SystemFolder/QuickTime/PictureViewer/PictureViewerUtils";
+import { recordClassicyRecentDocument } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 type classicyQuickTimeEvent = {
 	type: string;
@@ -54,11 +55,18 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				!openDocUrls.includes(action.document.url)
 			) {
 				appData.openFiles = [...appData.openFiles, action.document];
+				// A document open: its window opens as it mounts; a
+				// file-system path is remembered under Recent Documents.
 				openApp(
 					ds,
 					PictureViewerAppInfo.id,
 					PictureViewerAppInfo.name,
 					PictureViewerAppInfo.icon,
+					// A document is a URL object; one given as a path string
+					// (untyped callers) is a file-system path.
+					typeof (action.document as unknown) === "string"
+						? { document: action.document as unknown as string }
+						: { windows: [] },
 				);
 			}
 			break;
@@ -76,7 +84,9 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				PictureViewerAppInfo.id,
 				PictureViewerAppInfo.name,
 				PictureViewerAppInfo.icon,
+				{ windows: [] },
 			);
+			for (const doc of docs) recordClassicyRecentDocument(ds, doc);
 			break;
 		}
 		case "ClassicyAppPictureViewerCloseDocument": {
@@ -99,6 +109,7 @@ export const classicyQuickTimePictureViewerEventHandler = (
 				PictureViewerAppInfo.id,
 				PictureViewerAppInfo.name,
 				PictureViewerAppInfo.icon,
+				{ document: action.path },
 			);
 			break;
 		}

@@ -10,6 +10,10 @@ import {
 	dispatch,
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import {
+	getAppWindow,
+	listAppWindows,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 
@@ -214,6 +218,70 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		openFileInSimpleText(READ_ME);
 		await waitFor(() => {
 			expect(screen.getByDisplayValue("PERSISTED EDIT")).toBeInTheDocument();
+		});
+	});
+
+	// Found during story 0226-a6f: opening a document into SimpleText reopened
+	// every window it had closed, its Untitled window too. Mac OS 8.1
+	// (Infinite Mac) shows only the document's window when a document opens
+	// SimpleText, and a document opened into SimpleText comes to the front.
+	describe("a document open (openApp's document mode)", () => {
+		const simpleText = () =>
+			useAppManager.getState().System.Manager.Applications.apps[SIMPLE_TEXT.id];
+		const docWindowId = `${SIMPLE_TEXT.id}_file_${READ_ME}`;
+
+		it("leaves the Untitled window the user closed closed", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => {
+				expect(windowTitled("Untitled")).toBeInTheDocument();
+			});
+			const untitledId = listAppWindows(simpleText()).find((w) => !w.closed)
+				?.id as string;
+			// Quit SimpleText: every window closes, the app stays mounted.
+			act(() => {
+				dispatch({ type: "ClassicyAppClose", app: { id: SIMPLE_TEXT.id } });
+			});
+			expect(getAppWindow(simpleText(), untitledId)?.closed).toBe(true);
+			openFileInSimpleText(READ_ME);
+			await waitFor(() => {
+				expect(windowTitled("Read Me.txt")).toBeInTheDocument();
+			});
+			expect(getAppWindow(simpleText(), untitledId)?.closed).toBe(true);
+			expect(getAppWindow(simpleText(), docWindowId)?.closed).toBe(false);
+		});
+
+		it("brings the document's window in front of the Untitled window", async () => {
+			renderDesktop();
+			openFileInSimpleText(READ_ME);
+			await waitFor(() => {
+				expect(windowTitled("Read Me.txt")).toBeInTheDocument();
+			});
+			// Close the document: SimpleText seeds an Untitled window.
+			act(() => {
+				dispatch({
+					type: "ClassicyWindowClose",
+					app: { id: SIMPLE_TEXT.id },
+					window: { id: docWindowId },
+				});
+				dispatch({
+					type: "ClassicyAppSimpleTextCloseFile",
+					app: { id: SIMPLE_TEXT.id },
+					path: READ_ME,
+				});
+			});
+			await waitFor(() => {
+				expect(windowTitled("Untitled")).toBeInTheDocument();
+			});
+			openFileInSimpleText(READ_ME);
+			await waitFor(() => {
+				expect(windowTitled("Read Me.txt")).toBeInTheDocument();
+			});
+			const front = listAppWindows(simpleText())
+				.filter((w) => !w.closed)
+				.sort((a, b) => (b.zOrder ?? 0) - (a.zOrder ?? 0))[0];
+			expect(front?.id).toBe(docWindowId);
+			expect(simpleText().lastAccessedWindowId).toBe(docWindowId);
 		});
 	});
 });

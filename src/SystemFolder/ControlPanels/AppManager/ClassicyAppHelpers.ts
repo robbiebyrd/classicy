@@ -10,7 +10,10 @@ import {
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
-import { recordClassicyRecentApp } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
+import {
+	recordClassicyRecentApp,
+	recordClassicyRecentDocument,
+} from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 
 // An app id is library input (a host's `ClassicyApp` id, a stack's
 // `ClassicyAppOpen`). Indexed plainly, `apps["__proto__"]` is
@@ -232,23 +235,62 @@ export function showAllApps(ds: ClassicyStore) {
 		if (app.hidden) app.hidden = false;
 }
 
+/**
+ * How `openApp` opens an app: plainly (a launch: the Apple menu, a desktop
+ * icon) or for a document (`document` or `windows` given).
+ */
+export interface ClassicyOpenAppOptions {
+	/**
+	 * The file-system path of the document the app is opened for. It is
+	 * remembered under Recent Documents when it names a file
+	 * (`recordClassicyRecentDocument`), and the open is a document open.
+	 */
+	document?: string;
+	/**
+	 * The ids of the windows to reopen (the document's own, when the caller
+	 * knows it). Given, or with `document`, the open is a document open: only
+	 * these windows are reopened, and brought to the front; every other
+	 * window the app closed stays closed (a document's window that is new
+	 * opens itself, in front, as it mounts). Omitted with no `document`, a
+	 * plain open reopens every window.
+	 */
+	windows?: readonly string[];
+}
+
+/**
+ * Open `appId` (creating its record when nothing loaded it and the id is
+ * assignable) and bring it forward. A plain open reopens every window the
+ * app closed, as relaunching it does; a document open (`options.document`
+ * or `options.windows`) reopens only the windows named, so opening a
+ * document never brings back a window the user closed. Every open of an app
+ * that is there is remembered under Recent Applications, and a document's
+ * path under Recent Documents (Apple Menu Options).
+ */
 export function openApp(
 	ds: ClassicyStore,
 	appId: string,
 	appName: string,
 	appIcon: string,
+	options: ClassicyOpenAppOptions = {},
 ) {
+	const forDocument =
+		options.document !== undefined || options.windows !== undefined;
+	const reopen = new Set(options.windows ?? []);
 	const findApp = ownApp(ds, appId);
 	if (findApp) {
 		findApp.open = true;
+		let reopened: string | undefined;
 		for (const w of listAppWindows(findApp)) {
+			if (forDocument && !reopen.has(w.id)) continue;
 			w.closed = false;
 			w.closedThisSession = false;
+			reopened = w.id;
 		}
 		focusApp(ds, appId);
-		// A launch: Recent Applications remembers it (not an app record this
-		// call conjured for an id nothing loaded).
-		recordClassicyRecentApp(ds, appId);
+		// The document's window comes to the front, over every other window
+		// of the app (its ClassicyWindowOpen, when it mounts again, finds it
+		// open already and leaves the focus where it is).
+		if (forDocument && reopened !== undefined) focusWindow(ds, appId, reopened);
 	} else if (isAssignableAppId(appId)) {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
@@ -259,6 +301,11 @@ export function openApp(
 			data: {},
 		};
 	}
+	// A launch (only of an app that is really there: recordClassicyRecentApp),
+	// then the document it opened, the newer of the two.
+	recordClassicyRecentApp(ds, appId);
+	if (options.document !== undefined)
+		recordClassicyRecentDocument(ds, options.document);
 }
 
 export function loadApp(
@@ -309,6 +356,12 @@ export function loadApp(
 	}
 }
 
+/**
+ * Quit `appId`: it closes, and so do its windows and the documents it had
+ * open (the kernel's `data.openFiles` queue empties), as quitting a Mac
+ * application closed its documents. So a later launch, plain or by a
+ * document, never brings back a document the app had open before it quit.
+ */
 export function closeApp(ds: ClassicyStore, appId: string) {
 	const findApp = ownApp(ds, appId);
 	if (findApp) {
@@ -318,6 +371,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
 		}
+		if (Array.isArray(findApp.data?.openFiles)) findApp.data.openFiles = [];
 	}
 }
 

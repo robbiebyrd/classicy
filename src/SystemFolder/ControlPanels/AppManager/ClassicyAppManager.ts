@@ -48,7 +48,6 @@ import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/Class
 import {
 	classicyRecentItemsEventHandler,
 	defaultClassicyRecentItemsState,
-	recordClassicyRecentDocument,
 } from "@/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
@@ -448,9 +447,13 @@ export const classicyAppEventHandler = (
 					} else if (!openFiles.includes(action.path)) {
 						app.data.openFiles = [...openFiles, action.path];
 					}
-					openApp(ds, app.id, app.name, app.icon);
-					// A document opened: Recent Documents remembers it.
-					recordClassicyRecentDocument(ds, action.path);
+					// A document open: only the document's window (ClassicyApp's
+					// `${id}_file_${path}`) reopens, and Recent Documents remembers
+					// the path when it names a file.
+					openApp(ds, app.id, app.name, app.icon, {
+						document: action.path,
+						windows: [`${app.id}_file_${action.path}`],
+					});
 				}
 			} else if (action.type.endsWith("CloseFile") && hasAppAndPath(action)) {
 				const app = ds.System.Manager.Applications.apps[action.app.id];
