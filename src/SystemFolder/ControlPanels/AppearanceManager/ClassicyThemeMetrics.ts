@@ -1,3 +1,4 @@
+import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "@/Appearance/ClassicyAppearanceDefaults";
 import { CLASSICY_CORE_MEASUREMENT_DEFAULTS } from "@/Appearance/ClassicyCoreTheme";
 import type {
 	ClassicyTheme,
@@ -9,7 +10,11 @@ import {
 	CLASSICY_THEME_DERIVATIONS,
 	CLASSICY_THEME_DERIVED_VARS,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
-import { getClassicyPackageMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
+import {
+	getClassicyDrawnPackageId,
+	getClassicyForeignPackageMeasurements,
+	getClassicyPackageMeasurements,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementSource.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { DeepPartial } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
@@ -185,11 +190,48 @@ export function withDefaultThemeMetricsList<
 	return next ?? (themes as T[]);
 }
 
+/** Family → keys of a theme's explicit-edit record. */
+export type ClassicyThemeMeasurementPins = ReadonlyMap<
+	string,
+	ReadonlySet<string>
+>;
+
+const NO_PINS: ClassicyThemeMeasurementPins = new Map();
+
+/**
+ * The explicit-edit record of `theme` (`measurementPins`, story 0235-xgi):
+ * family → the keys whose value is the theme's own although it equals its
+ * package's default. Read through own properties; a family that is not an
+ * array of strings, and a name `classicyMeasurementVars` would not emit, is
+ * ignored.
+ */
+export const classicyThemeMeasurementPins = (theme: {
+	measurementPins?: unknown;
+}): ClassicyThemeMeasurementPins => {
+	const record = theme.measurementPins;
+	if (!isPlainObject(record)) return NO_PINS;
+	let pins: Map<string, Set<string>> | undefined;
+	for (const [family, keys] of Object.entries(record)) {
+		if (!CLASSICY_MEASUREMENT_NAME.test(family) || !Array.isArray(keys))
+			continue;
+		for (const key of keys) {
+			if (typeof key !== "string" || !CLASSICY_MEASUREMENT_NAME.test(key))
+				continue;
+			pins ??= new Map();
+			const set = pins.get(family) ?? new Set<string>();
+			set.add(key);
+			pins.set(family, set);
+		}
+	}
+	return pins ?? NO_PINS;
+};
+
 /**
  * The inverse of `withDefaultThemeMetrics` for the families beyond the core
  * five (H-R17): `theme` without every package-family leaf equal to its
  * `defaults` value, and without a family that this empties. The core five,
- * keys `defaults` does not name and changed values are kept. Copy-on-write:
+ * keys `defaults` does not name, changed values and the leaves the theme's
+ * explicit-edit record names (`measurementPins`) are kept. Copy-on-write:
  * the same theme back when there is nothing to drop.
  *
  * `sanitizeStateForPersistence` stores themes this way, so persisted state
@@ -202,21 +244,43 @@ export function withoutDefaultThemeMeasurements<
 >(theme: T, defaults: ClassicyThemeMeasurementDefaults): T {
 	const current = theme.measurements as Record<string, unknown> | undefined;
 	if (!isPlainObject(current)) return theme;
+	const next = withoutDefaultLeaves(
+		current,
+		defaults,
+		true,
+		classicyThemeMeasurementPins(theme),
+	);
+	return next ? ({ ...theme, measurements: next } as T) : theme;
+}
+
+/**
+ * `measurements` without every leaf equal to its `defaults` value, but those
+ * `pins` names, and without a family that this empties; the core five too
+ * unless `keepCore`. `undefined` when there is nothing to drop.
+ */
+const withoutDefaultLeaves = (
+	current: Record<string, unknown>,
+	defaults: ClassicyThemeMeasurementDefaults,
+	keepCore: boolean,
+	pins: ClassicyThemeMeasurementPins = NO_PINS,
+): Record<string, unknown> | undefined => {
 	let next: Record<string, unknown> | undefined;
 	for (const [family, value] of Object.entries(current)) {
 		const familyDefaults = Object.hasOwn(defaults, family)
 			? defaults[family]
 			: undefined;
 		if (
-			(METRIC_GROUPS as string[]).includes(family) ||
+			(keepCore && (METRIC_GROUPS as string[]).includes(family)) ||
 			!familyDefaults ||
 			!isPlainObject(value)
 		) {
 			continue;
 		}
+		const pinned = pins.get(family);
 		const kept = Object.fromEntries(
 			Object.entries(value).filter(
 				([key, v]) =>
+					pinned?.has(key) ||
 					!(Object.hasOwn(familyDefaults, key) && familyDefaults[key] === v),
 			),
 		);
@@ -226,8 +290,8 @@ export function withoutDefaultThemeMeasurements<
 		if (keptCount === 0) delete next[family];
 		else next[family] = kept;
 	}
-	return next ? ({ ...theme, measurements: next } as T) : theme;
-}
+	return next;
+};
 
 /**
  * `base` with `over`'s finite numeric leaves merged in key by key (`over`
@@ -292,6 +356,134 @@ export function classicyThemeMeasurementDefaults(
 		packageDefaultsCache.set(own, merged);
 	}
 	return merged as ClassicyThemeMeasurements;
+}
+
+// One merge per foreign reference theme's measurements object.
+const foreignDefaultsCache = new WeakMap<
+	object,
+	ClassicyThemeMeasurementDefaults
+>();
+
+/**
+ * The measurements a theme of another package is completed with while
+ * `packageId` draws it (story 0235-xgi): the package's defaults over the
+ * core floor (`classicyThemeMeasurementDefaults`), with the measurements of
+ * a built-in theme merged in key by key, that theme's values winning. The
+ * built-in is the one naming the foreign theme's `assetVariant`, when the
+ * package ships one (System 7's 1-bit defaults for `bw`, whose art the theme
+ * then draws too), else the one its `foreignThemeDefaults` names (System 7's
+ * color preset), else the package's defaults. Frozen, and the same object
+ * for the same registration and built-in.
+ */
+export function classicyForeignThemeMeasurementDefaults(
+	packageId: string,
+	assetVariant?: string,
+): ClassicyThemeMeasurements {
+	const base = classicyThemeMeasurementDefaults(packageId);
+	const reference = getClassicyForeignPackageMeasurements(
+		packageId,
+		assetVariant,
+	);
+	if (
+		!isPlainObject(reference) ||
+		reference === getClassicyPackageMeasurements(packageId)
+	)
+		return base;
+	let merged = foreignDefaultsCache.get(reference);
+	if (merged === undefined) {
+		merged = mergeMeasurementDefaults(base, reference);
+		foreignDefaultsCache.set(reference, merged);
+	}
+	return merged as ClassicyThemeMeasurements;
+}
+
+/**
+ * The measurements `theme` draws with while `drawnPackageId` is the drawing
+ * package (the store's `Appearance.packageId`, resolved as the desktop
+ * resolves it: that package when registered, else the registered default,
+ * else the first registered). Story 0235-xgi.
+ *
+ * Under its own package (or with no `drawnPackageId`), the theme completed
+ * from `classicyThemeMeasurementDefaults(theme.package)`, as before. Under
+ * another package, key by key: the core floor, then the drawing package's
+ * defaults, then the measurements of its built-in for a foreign theme
+ * (`classicyForeignThemeMeasurementDefaults`: the one naming the theme's
+ * `assetVariant`, else the one `foreignThemeDefaults` names, System 7's
+ * color preset), then the theme's own values: every value that
+ * differs from its own package's default (the core five included), and
+ * every value its explicit-edit record names (`measurementPins`). So the
+ * drawing package's knobs are all present, whatever the theme's package
+ * declared (a Platinum theme under System 7 keeps System 7's color title
+ * bars, menus and Standard File layout, and the reverse), and an edit the
+ * theme carries still wins. A value equal to its package's default and not
+ * in the record follows the drawing package's, as persistence has it
+ * (`withoutDefaultThemeMeasurements`, H-R17); `ClassicyDesktopChangeMetric`
+ * records a value the user sets to that default while another package
+ * draws (`updateClassicyMeasurementPin`), so the Metrics and Options tabs
+ * can set any value. That holds for an opt-in too: a theme carrying its
+ * package's `zoomRects.enabled: 1` draws no zoom under a package that has
+ * not opted in, while a theme that turned it off keeps it off everywhere.
+ * A theme of a package that is not registered keeps all its values, its
+ * core five included, since nothing tells its edits from its package's
+ * defaults (as persistence keeps all of them).
+ *
+ * Only what is drawn: nothing here is written to the theme, so persistence
+ * still stores the theme's own values alone. Colors are not completed here
+ * (`classicyThemeColorFamilyDefaults(theme.package)`): a package's color
+ * families are the theme's palette, and every stylesheet read of one carries
+ * a `--color-*` fallback for another package's theme.
+ */
+export function classicyDrawnThemeMeasurements(
+	theme: ClassicyThemeWithPartialMetrics,
+	drawnPackageId?: string,
+): ClassicyThemeMeasurements {
+	const ownId = theme.package ?? CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID;
+	const ownDefaults = classicyThemeMeasurementDefaults(ownId);
+	const drawnId =
+		drawnPackageId === undefined
+			? undefined
+			: getClassicyDrawnPackageId(drawnPackageId);
+	if (drawnId === undefined || drawnId === ownId) {
+		return withDefaultThemeMetrics(theme, ownDefaults).measurements;
+	}
+	const current = isPlainObject(theme.measurements)
+		? (theme.measurements as Record<string, unknown>)
+		: {};
+	const own =
+		getClassicyDrawnPackageId(ownId) === ownId
+			? (withoutDefaultLeaves(
+					current,
+					ownDefaults,
+					false,
+					classicyThemeMeasurementPins(theme),
+				) ?? current)
+			: current;
+	const drawnDefaults = classicyForeignThemeMeasurementDefaults(
+		drawnId,
+		typeof theme.assetVariant === "string" ? theme.assetVariant : undefined,
+	);
+	const drawn: Record<string, unknown> = {};
+	for (const family of Object.keys(drawnDefaults)) {
+		drawn[family] = fillFamily(drawnDefaults[family], own[family]);
+	}
+	for (const [family, value] of Object.entries(own)) {
+		if (!Object.hasOwn(drawn, family)) drawn[family] = value;
+	}
+	return drawn as ClassicyThemeMeasurements;
+}
+
+/**
+ * `theme` with the measurements it draws with under `drawnPackageId`
+ * (`classicyDrawnThemeMeasurements`). The same theme back when they are its
+ * own (its own package draws it, and it carries every default key).
+ */
+export function withDrawnThemeMetrics<
+	T extends ClassicyThemeWithPartialMetrics,
+>(theme: T, drawnPackageId?: string): ClassicyThemeWithMetrics<T> {
+	const measurements = classicyDrawnThemeMeasurements(theme, drawnPackageId);
+	return measurements === theme.measurements
+		? (theme as ClassicyThemeWithMetrics<T>)
+		: { ...theme, measurements };
 }
 
 /**

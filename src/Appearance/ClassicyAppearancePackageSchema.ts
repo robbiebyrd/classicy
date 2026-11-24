@@ -326,6 +326,13 @@ export const ClassicyAppearancePackageSchema = z
 			),
 		defaults: ClassicyPackageThemeSchema,
 		presets: z.array(ClassicyPackageThemeSchema).max(256).optional(),
+		foreignThemeDefaults: z
+			.string()
+			.min(1)
+			.optional()
+			.describe(
+				"The id of the built-in theme (defaults or a preset) whose measurements complete another package's theme while this package draws it; absent, the defaults.",
+			),
 		knobs: z.record(z.string(), z.record(z.string(), knob)).optional(),
 		colorFamilies: colorFamilies
 			.optional()
@@ -385,6 +392,23 @@ export const ClassicyAppearancePackageSchema = z
 					});
 				}
 			}
+		}
+	})
+	// The theme that completes a foreign theme must be one of the package's
+	// own built-ins (story 0235-xgi).
+	.check((ctx) => {
+		const { defaults, presets, foreignThemeDefaults } = ctx.value;
+		if (
+			foreignThemeDefaults !== undefined &&
+			defaults.id !== foreignThemeDefaults &&
+			!(presets ?? []).some((theme) => theme.id === foreignThemeDefaults)
+		) {
+			ctx.issues.push({
+				code: "custom",
+				input: foreignThemeDefaults,
+				path: ["foreignThemeDefaults"],
+				message: `must be the id of the defaults or of a preset, not "${foreignThemeDefaults}"`,
+			});
 		}
 	})
 	.check((ctx) => {

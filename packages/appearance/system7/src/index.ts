@@ -120,6 +120,12 @@ registerClassicyAppearancePackage({
 	hooks: system7AppearanceHooks,
 	sounds: [system7SoundPack],
 	defaultScreenSaver: "bouncing-ball",
+	// Another package's theme drawn under System 7 takes the color preset's
+	// knobs (beveled boxes, scroll-bar grips, no 1-bit dither), not the
+	// black-and-white defaults' (story 0235-xgi): such a theme carries no
+	// `assetVariant`, so it draws the color art. One naming `bw` takes the
+	// 1-bit defaults' knobs and art, since the defaults name `bw`.
+	foreignThemeDefaults: "system7-color",
 	// The Help menu's first item, as HIGOS7 Figure 4-88 (p. 125) words it.
 	helpMenu: { aboutTitle: "About Balloon Help\u2026" },
 	// The Finder is shown by the System file's Macintosh, its small icon

@@ -320,8 +320,11 @@ const ClassicyStory = ({
 	// (its package swapped in) and leaves the store alone; a switched package
 	// also takes the store (StoryPackageScope), so its hooks follow.
 	const theme = getTheme(storyPackage ? toolbarThemeId : themeId);
+	// Drawn by the frame's package, as the desktop frame draws (story
+	// 0235-xgi): a theme of another package takes its knobs.
 	const vars = getThemeVars(
 		storyPackage ? { ...theme, package: storyPackage } : theme,
+		packageId,
 	) as CSSProperties;
 	const isCanvas = context.viewMode === "story";
 	const typography: CSSProperties = {

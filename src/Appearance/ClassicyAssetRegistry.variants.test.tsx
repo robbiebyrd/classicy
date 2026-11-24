@@ -224,7 +224,8 @@ describe("resolution with a theme naming a variant", () => {
 	});
 
 	it("a variant of the package never reaches another package's lookups", () => {
-		// The active theme is sys7's, but the drawn package is Platinum.
+		// The active theme is sys7's, but the drawn package is Platinum, which
+		// registers a `bw` tree but ships no built-in theme naming it.
 		registerClassicyAssets(
 			"icons",
 			"platinum",
@@ -235,6 +236,42 @@ describe("resolution with a theme naming a variant", () => {
 		);
 		activate("platinum", themeOf("sys7", "bw"));
 		expect(resolveClassicyAsset("icons", "app")).toBe("/platinum-app.png");
+	});
+
+	// Story 0235-xgi, fix round 2: another package's theme naming a variant
+	// one of the drawn package's built-in themes names draws the drawn
+	// package's trees of that variant, as its knobs complete from that
+	// built-in (classicyDrawnThemeMeasurements): one look, art and knobs.
+	it("another package's theme draws the drawn package's variant when one of its built-ins names it", () => {
+		const id = "sys7v";
+		registerClassicyAppearancePackage({
+			...stub(id),
+			defaults: { ...stub(id).defaults, assetVariant: "bw" },
+		});
+		registerClassicyAssets("icons", id, { app: "/sys7v-app.png" });
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-bw-app.png" },
+			{ variant: "bw" },
+		);
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-sepia-app.png" },
+			{ variant: "sepia" },
+		);
+		activate(id, themeOf("platinum", "bw"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-bw-app.png");
+		// A variant it registers but no built-in names: its base tree.
+		activate(id, themeOf("platinum", "sepia"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-app.png");
+		// A theme naming no variant: its base tree.
+		activate(id, themeOf("platinum"));
+		expect(resolveClassicyAsset("icons", "app")).toBe("/sys7v-app.png");
+		// Not the drawn package: none of its variants.
+		activate("platinum", themeOf("sys7", "bw"));
+		expect(resolveClassicyAsset("icons", "app", id)).toBe("/sys7v-app.png");
 	});
 });
 

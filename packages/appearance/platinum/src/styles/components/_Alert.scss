@@ -1,23 +1,120 @@
-// The Platinum movable alert box (HIGOS8 p.61, Figure 3-4): "a movable alert
-// box has red highlights on its title bar, which distinguish it from a
-// movable modal dialog box" — the red stripes `.classicyWindowRed` draws, over
-// a red tint, for an alert that is not error-typed. Every alert type alike:
-// the highlight marks the window as an alert box, the icon gives its type.
-// An alert drawn as a dialog box (`dialogBox`, Mac OS 8.1's SimpleText "Save
+// Platinum's alert boxes (HIGOS8 pp.61-64). A movable alert box (Figures
+// 3-4, 3-6, 3-7 and 3-8) "has red highlights on its title bar, which
+// distinguish it from a movable modal dialog box" (p.61): the red stripes
+// over a red tint, for every alert type (the highlight marks the window as
+// an alert box, the icon gives its type). A fixed one (Figure 3-5, and Mac
+// OS 8.1's Finder alerts) has no title bar (`_Window.scss` drops every fixed
+// modal's) and "a red border around the placard which forms the content
+// region" (p.62). Both draw the same red frame around their contents. An
+// alert drawn as a dialog box (`dialogBox`, Mac OS 8.1's SimpleText "Save
 // changes" box) carries no `classicyAlertMovableWindow` and keeps the gray
-// movable modal title bar.
+// movable modal title bar and frame.
 @use "pkg:@classicy/classicy/scss/color" as c;
 @use "../mixins";
 
+// The frame's colors, from the theme (story 0236-2f8): Figures 3-6 and 3-8,
+// which the PDF prints in the screen's own palette, and Mac OS 8.1's fixed
+// alert (resources/screenshots/mac-os-8.1/platinum-81-finder-startup-disk-
+// alert.png) draw a light red #FF9999 and a dark red #FF6666, the error red
+// mixed with white 60% and 40%; the inner ring's shadow #999999,
+// `--color-system-04` (#AAAAAA) mixed with black 10%; and the movable box's
+// title bar #FFCCCC, the error red mixed with white 80% (story 0226-a6f).
+// Figures 3-4, 3-5 and 3-7 print the same pixels in a lifted palette
+// (#FDABA9, #FC7D78, #A9A9A9, #FED6D5).
+$frame-light: c.classicy-tint("--color-error", 60%);
+$frame-dark: c.classicy-tint("--color-error", 40%);
+$frame-shadow: c.classicy-shade("--color-system-04", 10%);
+$title-face: c.classicy-tint("--color-error", 80%);
+
 @mixin alert {
-  // The shorthand alone on the side bands resets the focused bands' 99.8%.
-  // Keyed on the class ClassicyAlert puts on a movable alert's window (no
-  // `:has()`, which Firefox 113-120 lacks).
+  // The title bar's stripes (Figures 3-6 and 3-8): six white rows over six
+  // dark red rows, white first, the art's white rows over the dark red the
+  // bands draw from the theme. The shorthand alone on the side bands resets
+  // the focused bands' 99.8%. Keyed on the class ClassicyAlert puts on a
+  // movable alert's window (no `:has()`, which Firefox 113-120 lacks).
   .classicyWindow.classicyAlertMovableWindow {
     .classicyWindowTitleBar {
-      background-color: c.classicy-tint("--color-error", 80%);
+      background-color: $title-face;
     }
 
-    @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%);
+    @include mixins.platinum-title-bar-stripes("-red", $center-size: auto 100%, $ground: $frame-dark);
+
+    // A title-less alert's band (Figures 3-6 and 3-8 have no title) is as
+    // tall as the bands beside a title, so its six pairs draw a pixel a row
+    // as theirs do: the base's `--window-title-stripe-height` would stretch
+    // the art's twelve rows over fifteen.
+    .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {
+      height: var(--window-control-size);
+    }
+  }
+
+  // The frame, pixel for pixel at a one-pixel border (`--window-border-size`,
+  // so it follows the editable metric). Solid fills only, box shadows and
+  // pseudo-elements: Chromium dithers a gradient band of a tint one level
+  // off in places. Child combinators, so a window nested in the alert keeps
+  // its own frame.
+  //
+  // Inside the black border, the movable box's title-bar bevel: white along
+  // its top and left, light red along its bottom and right, its two far
+  // corners its own face (the pseudo-elements, over the shadows' ends).
+  .classicyWindow.classicyAlertMovableWindow > .classicyWindowTitleBar {
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 var(--color-white),
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 $frame-light;
+
+    &::before,
+    &::after {
+      position: absolute;
+      width: var(--window-border-size);
+      height: var(--window-border-size);
+      content: "";
+      background-color: $title-face;
+    }
+
+    &::before {
+      top: 0;
+      right: 0;
+    }
+
+    &::after {
+      bottom: 0;
+      left: 0;
+    }
+  }
+
+  // Two rings around the contents, below the black line under the movable
+  // box's title bar (the contents' top border), or right inside the fixed
+  // box's black border (a red window: `type="error"` on a modal, the fixed
+  // alert): the outer one the red bevel, light red along the top and left
+  // (both of its far corners included, the first shadow on top), dark red
+  // along the right and bottom; the inner one white along the top and left,
+  // the shadow gray along the right and bottom, its two far corners light
+  // red (the pseudo-elements). They replace the gray ring the contents draw
+  // elsewhere.
+  .classicyWindow.classicyAlertMovableWindow > .classicyWindowContentsModal,
+  .classicyWindow.classicyWindowRed > .classicyWindowContentsModal {
+    position: relative;
+    box-shadow: inset var(--window-border-size) var(--window-border-size) 0 0 $frame-light,
+      inset calc(var(--window-border-size) * -1) calc(var(--window-border-size) * -1) 0 0 $frame-dark,
+      inset var(--control-frame-width) var(--control-frame-width) 0 0 var(--color-white),
+      inset calc(var(--control-frame-width) * -1) calc(var(--control-frame-width) * -1) 0 0 $frame-shadow;
+
+    &::before,
+    &::after {
+      position: absolute;
+      width: var(--window-border-size);
+      height: var(--window-border-size);
+      content: "";
+      background-color: $frame-light;
+    }
+
+    &::before {
+      top: var(--window-border-size);
+      right: var(--window-border-size);
+    }
+
+    &::after {
+      bottom: var(--window-border-size);
+      left: var(--window-border-size);
+    }
   }
 }

@@ -9,6 +9,7 @@ import {
 	withClassicyThemeFontSizesClamped,
 	withClassicyThemeFontSizesClampedList,
 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
+import { withValidClassicyMeasurementPins } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementPins";
 import {
 	withDefaultThemeMetrics,
 	withDefaultThemeMetricsList,
@@ -69,6 +70,11 @@ import { normalizeClassicyRecentItems } from "@/SystemFolder/SystemResources/Rec
  *   only matched once its package has registered.
  * - Recent Items (story 0226-a6f): a malformed stored `Desktop.recentItems`
  *   is normalized (`migrateRecentItems`).
+ * - A theme's explicit-edit record (`measurementPins`, story 0235-xgi) is
+ *   kept in the shape the theme schema accepts: camelCase families, each an
+ *   array of camelCase keys named once; an empty or malformed record is
+ *   dropped (`withValidClassicyMeasurementPins`), on the active, built-in
+ *   and custom themes.
  * - Every window's gesture flags (`resizing`, `dragging`, `moving`) are
  *   dropped (`stripWindowGestureFlags`). They belong to a gesture in
  *   progress, which a load ends; `sanitizeStateForPersistence` drops them on
@@ -77,12 +83,14 @@ import { normalizeClassicyRecentItems } from "@/SystemFolder/SystemResources/Rec
  */
 export function migrateClassicyState(state: ClassicyStore): ClassicyStore {
 	return migrateRecentItems(
-		migrateThemeWallpapers(
-			migrateThemeFontSizes(
-				migrateAppearancePackage(
-					migrateThemeSoundPack(
-						migrateThemeMetrics(
-							stripWindowGestureFlags(migrateAppWindows(state)),
+		migrateThemeMeasurementPins(
+			migrateThemeWallpapers(
+				migrateThemeFontSizes(
+					migrateAppearancePackage(
+						migrateThemeSoundPack(
+							migrateThemeMetrics(
+								stripWindowGestureFlags(migrateAppWindows(state)),
+							),
 						),
 					),
 				),
@@ -424,6 +432,61 @@ function migrateThemeWallpapers(state: ClassicyStore): ClassicyStore {
 	const customThemes = migrateThemeList(
 		appearance.customThemes,
 		withPortableClassicyWallpaperList,
+	);
+	if (
+		activeTheme === appearance.activeTheme &&
+		availableThemes === appearance.availableThemes &&
+		customThemes === appearance.customThemes
+	) {
+		return state;
+	}
+
+	const { System } = state;
+	return {
+		...state,
+		System: {
+			...System,
+			Manager: {
+				...System.Manager,
+				Appearance: {
+					...appearance,
+					activeTheme,
+					availableThemes,
+					customThemes,
+				},
+			},
+		},
+	};
+}
+
+function withValidClassicyMeasurementPinsList(
+	themes: ClassicyTheme[],
+): ClassicyTheme[] {
+	let next: ClassicyTheme[] | undefined;
+	themes.forEach((theme, i) => {
+		const valid = withValidClassicyMeasurementPins(theme);
+		if (valid === theme) return;
+		next ??= [...themes];
+		next[i] = valid;
+	});
+	return next ?? themes;
+}
+
+function migrateThemeMeasurementPins(state: ClassicyStore): ClassicyStore {
+	const appearance = state?.System?.Manager?.Appearance;
+	if (!appearance || typeof appearance !== "object") return state;
+
+	const activeTheme =
+		appearance.activeTheme && typeof appearance.activeTheme === "object"
+			? withValidClassicyMeasurementPins(appearance.activeTheme)
+			: appearance.activeTheme;
+	const availableThemes = migrateThemeList(
+		appearance.availableThemes,
+		withValidClassicyMeasurementPinsList,
+	);
+	const customThemes = migrateThemeList(
+		appearance.customThemes,
+		withValidClassicyMeasurementPinsList,
 	);
 	if (
 		activeTheme === appearance.activeTheme &&

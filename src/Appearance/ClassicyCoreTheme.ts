@@ -33,7 +33,10 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * variables (story 0225-ci7: the menu marks' grid, the checkbox's, the
  * slider, the menu frame, the scroll-bar grip, the windoid texture, the
  * Control Strip's bevel and the QuickTime caption's shadow; stories 0228-e9l
- * and 0230-n6c: the selection and zoom rectangles' pens and checkers). Only
+ * and 0230-n6c: the selection and zoom rectangles' pens and checkers; since
+ * story 0235-xgi such a theme is also completed from the drawing package's
+ * own defaults, `classicyDrawnThemeMeasurements`, and they stay here so no
+ * theme's variables change). Only
  * Platinum's three optional knobs stay in its `platinum.json` alone: the two
  * `fileBrowserList` knobs, which the file browser reads with a fallback, and
  * `zoomRects.enabled`, the zoom rectangles' opt-in, a package's own (read

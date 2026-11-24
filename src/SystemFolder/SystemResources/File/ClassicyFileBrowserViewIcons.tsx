@@ -160,6 +160,11 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			const activeTheme = useAppManager(
 				(s) => s.System.Manager.Appearance.activeTheme,
 			);
+			// The package drawing it: the metrics' fallback before the desktop
+			// mounts follows its knobs (story 0235-xgi).
+			const drawnPackageId = useAppManager(
+				(s) => s.System.Manager.Appearance.packageId,
+			);
 			// A listing of the root shows the Trash (when invisibles show):
 			// drawn with the active package's art, not its stored `_icon`
 			// (the fallback when no package has Trash art).
@@ -434,6 +439,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 			// variables to #classicyDesktop.
 			const iconMetricsRef = useRef<{
 				theme: ClassicyTheme;
+				packageId: string | undefined;
 				metrics: ClassicyDesktopIconMetrics;
 			} | null>(null);
 
@@ -506,10 +512,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							)
 						: entries;
 
-				if (iconMetricsRef.current?.theme !== activeTheme) {
+				if (
+					iconMetricsRef.current?.theme !== activeTheme ||
+					iconMetricsRef.current.packageId !== drawnPackageId
+				) {
 					iconMetricsRef.current = {
 						theme: activeTheme,
-						metrics: readClassicyDesktopIconMetrics(activeTheme),
+						packageId: drawnPackageId,
+						metrics: readClassicyDesktopIconMetrics(
+							activeTheme,
+							undefined,
+							drawnPackageId,
+						),
 					};
 				}
 				const iconMetrics = iconMetricsRef.current.metrics;
@@ -604,6 +618,7 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 				dirOnClickFunc,
 				fileOnClickFunc,
 				activeTheme,
+				drawnPackageId,
 				resolvedHolderRef.current,
 				resolvedHolderRef,
 				hideFilesCreatedAfter,

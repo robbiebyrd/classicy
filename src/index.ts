@@ -59,6 +59,7 @@ export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDeriv
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFile";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeFontSizes";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeLink";
+export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMeasurementPins";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricTargets";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";

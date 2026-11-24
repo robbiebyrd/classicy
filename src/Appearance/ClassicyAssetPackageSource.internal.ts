@@ -1,8 +1,9 @@
 // Library-internal: the link from the asset registry to the active Appearance
 // Package. Not public API — `.internal.ts` modules are excluded from the
-// barrels (.ts-barrel.json), so only the store module (which connects it) and
-// the asset registry (which reads it) import this file, by path. A leaf: no
-// runtime imports, so either side may evaluate first.
+// barrels (.ts-barrel.json), so only the store module (which connects it),
+// the package registry (which sets the variant lookup below) and the asset
+// registry (which reads both) import this file, by path. A leaf: no runtime
+// imports, so any side may evaluate first.
 
 /** Where the asset registry learns which Appearance Package is active. */
 export type ClassicyAssetPackageSource = {
@@ -47,3 +48,38 @@ export const onClassicyAssetPackageSourceConnect = (
 ): void => {
 	onConnect = handler;
 };
+
+// Whether a registered package ships a built-in theme (its defaults or a
+// preset) naming an asset variant, set by the package registry (story
+// 0235-xgi). Another package's theme naming that variant then draws the
+// drawing package's variant trees, as its knobs complete from that built-in
+// (`classicyDrawnThemeMeasurements`); a variant no built-in of the drawing
+// package names selects none of its trees.
+
+/** Whether `packageId` ships a built-in theme whose `assetVariant` is
+ * `variant`; `false` for an unregistered id. */
+export type ClassicyPackageVariantThemeLookup = (
+	packageId: string,
+	variant: string,
+) => boolean;
+
+let variantThemeLookup: ClassicyPackageVariantThemeLookup = () => false;
+
+/**
+ * Sets the variant lookup. Called once, by ClassicyAppearancePackageRegistry.
+ * @internal
+ */
+export const setClassicyPackageVariantThemeLookup = (
+	next: ClassicyPackageVariantThemeLookup,
+): void => {
+	variantThemeLookup = next;
+};
+
+/**
+ * Whether `packageId` ships a built-in theme naming `variant`.
+ * @internal
+ */
+export const hasClassicyPackageVariantTheme = (
+	packageId: string,
+	variant: string,
+): boolean => variantThemeLookup(packageId, variant);

@@ -2,13 +2,16 @@ import { CLASSICY_DEFAULT_APPEARANCE_LAYOUT } from "@/Appearance/ClassicyAppeara
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import { resolveClassicyAppIdentity } from "@/Appearance/ClassicyAppIdentity";
 import { getClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
-import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
-import { CLASSICY_THEME_DERIVATIONS } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
-import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
+import type {
+	ClassicyTheme,
+	ClassicyThemeMeasurements,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 import {
-	classicyThemeMeasurementDefaults,
-	withDefaultThemeMetrics,
-} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
+	CLASSICY_THEME_DERIVATIONS,
+	type ClassicyThemeDerivationInputs,
+} from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations";
+import { px3 } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeDerivations.internal";
+import { classicyDrawnThemeMeasurements } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	hasApp,
 	hasDesktopAppRef,
@@ -62,19 +65,19 @@ export type ClassicyDesktopIconMetrics = {
 
 // An optional package knob of the `desktopIconGrid` family, not a structural
 // one: the core floor has none, so Platinum's grid keeps following its
-// formula. Read from the theme completed by its package's defaults, as
-// getThemeVars reads it: persistence stores a theme without the knob values
-// equal to those defaults (H-R17) and the load path refills only the core
-// five families, so a saved Custom theme of the package has no family of its
-// own. A value that is not a finite number of zero or more is ignored.
+// formula. Read from the measurements the theme draws with under the
+// drawing package (`classicyDrawnThemeMeasurements`), as getThemeVars reads
+// them: persistence stores a theme without the knob values equal to its
+// package's defaults (H-R17) and the load path refills only the core five
+// families, so a saved Custom theme of the package has no family of its
+// own, and a theme of another package takes the drawing package's grid
+// (story 0235-xgi). A value that is not a finite number of zero or more is
+// ignored.
 const desktopIconGridKnob = (
-	theme: ClassicyTheme,
+	measurements: ClassicyThemeMeasurements,
 	key: "rowGap" | "top",
 ): number | undefined => {
-	const value = withDefaultThemeMetrics(
-		theme,
-		classicyThemeMeasurementDefaults(theme.package),
-	).measurements?.desktopIconGrid?.[key];
+	const value = measurements.desktopIconGrid?.[key];
 	return typeof value === "number" && Number.isFinite(value) && value >= 0
 		? value
 		: undefined;
@@ -90,7 +93,10 @@ const firstRowTop = ({ padding, top }: ClassicyDesktopIconMetrics) =>
 
 // One named derivation's value in px, rounded exactly as getThemeVars emits
 // it (px3), so the reducer's number equals the stylesheet's.
-const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
+const derivedPx = (
+	inputs: ClassicyThemeDerivationInputs,
+	cssVar: string,
+): number => {
 	const derivation = CLASSICY_THEME_DERIVATIONS.find(
 		(d) => d.cssVar === cssVar,
 	);
@@ -99,7 +105,7 @@ const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
 		classicyLog("error", "Theme", message);
 		throw new Error(message);
 	}
-	return Number.parseFloat(px3(derivation.compute(theme)));
+	return Number.parseFloat(px3(derivation.compute(inputs)));
 };
 
 /**
@@ -116,16 +122,24 @@ const derivedPx = (theme: ClassicyTheme, cssVar: string): number => {
  */
 export const classicyDesktopIconMetrics = (
 	theme: ClassicyTheme,
+	drawnPackageId?: string,
 ): ClassicyDesktopIconMetrics => {
+	// The measurements the drawing package draws the theme with (its own
+	// package's when `drawnPackageId` is left out), as getThemeVars has them.
+	const inputs: ClassicyThemeDerivationInputs = {
+		measurements: classicyDrawnThemeMeasurements(theme, drawnPackageId),
+		typography: theme.typography,
+		desktop: theme.desktop,
+	};
 	const metrics: ClassicyDesktopIconMetrics = {
 		size: theme.desktop.iconSize,
-		padding: derivedPx(theme, "--desktop-icon-padding"),
-		cell: derivedPx(theme, "--desktop-icon-cell"),
+		padding: derivedPx(inputs, "--desktop-icon-padding"),
+		cell: derivedPx(inputs, "--desktop-icon-cell"),
 	};
 	// Each only when the package sets it, so Platinum's metrics are as before.
-	const rowGap = desktopIconGridKnob(theme, "rowGap");
+	const rowGap = desktopIconGridKnob(inputs.measurements, "rowGap");
 	if (rowGap !== undefined) metrics.rowPitch = metrics.size + rowGap;
-	const top = desktopIconGridKnob(theme, "top");
+	const top = desktopIconGridKnob(inputs.measurements, "top");
 	if (top !== undefined) metrics.top = top;
 	return metrics;
 };
@@ -201,8 +215,11 @@ export const classicyDesktopIconGridPosition = (
  * `[iconSize, iconPadding]` for `theme`, from `classicyDesktopIconMetrics`:
  * pure, never the DOM (it is reached from the reducer).
  */
-export const getIconSize = (theme: ClassicyTheme): [number, number] => {
-	const { size, padding } = classicyDesktopIconMetrics(theme);
+export const getIconSize = (
+	theme: ClassicyTheme,
+	drawnPackageId?: string,
+): [number, number] => {
+	const { size, padding } = classicyDesktopIconMetrics(theme, drawnPackageId);
 	return [size, padding];
 };
 
@@ -260,13 +277,14 @@ const cleanupDesktopIcons = (
 	icons: ClassicyStoreSystemDesktopManagerIcon[],
 	origin: ClassicyAppearanceLayout["desktop"]["iconGridOrigin"] = CLASSICY_DEFAULT_APPEARANCE_LAYOUT
 		.desktop.iconGridOrigin,
+	drawnPackageId?: string,
 ) => {
 	const newDesktopIcons: ClassicyStoreSystemDesktopManagerIcon[] = [];
 	let startX: number = 1;
 	let startY: number = 0;
 	// Runs inside the store's `set`: the metrics come from the theme in
-	// state, never from the DOM.
-	const metrics = classicyDesktopIconMetrics(theme);
+	// state, as the drawing package draws it, never from the DOM.
+	const metrics = classicyDesktopIconMetrics(theme, drawnPackageId);
 
 	const grid = createGrid(metrics, origin);
 
@@ -337,6 +355,7 @@ export const classicyDesktopIconEventHandler = (
 				ds.System.Manager.Appearance.activeTheme,
 				ds.System.Manager.Desktop.icons,
 				iconGridOrigin(ds),
+				ds.System.Manager.Appearance.packageId,
 			);
 			break;
 		}
@@ -350,6 +369,7 @@ export const classicyDesktopIconEventHandler = (
 					ds.System.Manager.Appearance.packageId,
 				),
 				iconGridOrigin(ds),
+				ds.System.Manager.Appearance.packageId,
 			);
 			break;
 		}
@@ -426,6 +446,7 @@ export const classicyDesktopIconEventHandler = (
 							ds.System.Manager.Appearance.packageId,
 						),
 						iconGridOrigin(ds),
+						ds.System.Manager.Appearance.packageId,
 					);
 				}
 			} else {
@@ -488,6 +509,7 @@ export const classicyDesktopIconEventHandler = (
 							ds.System.Manager.Appearance.activeTheme,
 							ds.System.Manager.Desktop.icons,
 							iconGridOrigin(ds),
+							ds.System.Manager.Appearance.packageId,
 						);
 					}
 				}

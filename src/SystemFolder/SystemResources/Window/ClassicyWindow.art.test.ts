@@ -78,25 +78,32 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 		}
 	});
 
-	it("red windows and movable alerts draw the red stripes", () => {
-		for (const chain of [RED, ALERT]) {
-			const center = rule(`${chain} .classicyWindowTitleCenter`);
-			expect(center.background, chain).toBe(
+	// Story 0236-2f8: the red stripes are white rows over the dark red the
+	// bands draw from the theme (HIGOS8 Figures 3-6 and 3-8). The fixed alert
+	// (a red window) has no title bar under Platinum, so no stripes.
+	it("movable alerts draw the red stripes; red windows draw none", () => {
+		const center = rule(`${ALERT} .classicyWindowTitleCenter`);
+		expect(center.background).toBe("var(--classicy-art-window-stripes-red)");
+		expect(center["background-size"]).toBe("auto 100%");
+		expect(center["background-color"]).toBe(
+			"color-mix(in srgb, var(--color-error), white 40%)",
+		);
+		// The shorthand resets the active side bands' 99.8% to auto.
+		for (const band of [
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
+		]) {
+			const side = rule(`${ALERT} ${band}`);
+			expect(side.background, band).toBe(
 				"var(--classicy-art-window-stripes-red)",
 			);
-			expect(center["background-size"], chain).toBe("auto 100%");
-			// The shorthand resets the active side bands' 99.8% to auto.
-			for (const band of [
-				".classicyWindowTitleLeft",
-				".classicyWindowTitleRight",
-			]) {
-				const side = rule(`${chain} ${band}`);
-				expect(side.background, `${chain} ${band}`).toBe(
-					"var(--classicy-art-window-stripes-red)",
-				);
-				expect(side["background-size"], `${chain} ${band}`).toBeUndefined();
-			}
+			expect(side["background-size"], band).toBeUndefined();
+			expect(side["background-color"], band).toBe(
+				"color-mix(in srgb, var(--color-error), white 40%)",
+			);
 		}
+		for (const band of BANDS)
+			expect(() => rule(`${RED} ${band}`), band).toThrow(/no rule/);
 	});
 
 	it("the window frame's title bar draws the focused window's stripes", () => {
@@ -132,8 +139,9 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 	});
 
 	// No band draws a layer of its own: no mask, no position, no stripe
-	// color, and the title-less center band and the windoid's bands have no
-	// pseudo-element at all.
+	// color (the movable alert's ground under its art's clear rows is the
+	// band's own background color), and the title-less center band and the
+	// windoid's bands have no pseudo-element at all.
 	it("the bands carry no stripe layers, masks or stripe colors", () => {
 		for (const chain of [ACTIVE, RED, ALERT, FRAME, UTILITY])
 			for (const band of BANDS) {
@@ -163,7 +171,7 @@ describe("ClassicyWindow title-bar art (Platinum package)", () => {
 	// control boxes' luminosity dither one level differently, so deleting the
 	// "useless" gradient breaks pixel parity (ruling E25).
 	it("keeps the empty end-box layer Chromium needs to blend the control-box dither exactly (E25)", () => {
-		for (const chain of [ACTIVE, RED, ALERT, FRAME])
+		for (const chain of [ACTIVE, ALERT, FRAME])
 			for (const band of [
 				".classicyWindowTitleLeft",
 				".classicyWindowTitleRight",

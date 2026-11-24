@@ -1,6 +1,7 @@
 import "./ClassicyAppearanceManager.Colors.scss";
 import { useMemo } from "react";
 import type { ClassicyTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { withDrawnThemeMetrics } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetrics";
 import {
 	CLASSICY_THEME_METRIC_GROUPS,
 	CLASSICY_THEME_METRIC_TARGETS,
@@ -17,6 +18,10 @@ import type { TabIndividual } from "@/SystemFolder/SystemResources/Tabs/Classicy
 interface MetricsTabProps {
 	/** The active theme, whose metrics the spinners show. */
 	theme: ClassicyTheme;
+	/** The active package's id: the spinners show the metrics it draws the
+	 * theme with (`classicyDrawnThemeMeasurements`; a theme of another
+	 * package takes its values where it carries no edit of its own). */
+	packageId?: string;
 	/** True when the active theme is a custom theme (edits apply in place);
 	 * false when it is a built-in (the first edit forks it into "Custom"). */
 	editingCustomTheme: boolean;
@@ -53,11 +58,13 @@ export const appearanceMetricSpinnerId = (target: {
  */
 export const useMetricsTab = ({
 	theme,
+	packageId,
 	editingCustomTheme,
 	changeMetric,
 }: MetricsTabProps): TabIndividual =>
-	useMemo(
-		() => ({
+	useMemo(() => {
+		const drawn = withDrawnThemeMetrics(theme, packageId);
+		return {
 			title: "Metrics",
 			children: (
 				<div className={"classicyAppearanceManagerColors"}>
@@ -90,7 +97,7 @@ export const useMetricsTab = ({
 												labelPosition={"left"}
 												minValue={info.min}
 												maxValue={info.max}
-												prefillValue={getThemeMetric(theme, info.target)}
+												prefillValue={getThemeMetric(drawn, info.target)}
 												onChangeFunc={(e) => {
 													// An empty or non-numeric entry parses to NaN and is
 													// ignored (`Number("")` would be 0). The spinner still
@@ -119,6 +126,5 @@ export const useMetricsTab = ({
 					</ClassicyScrollArea>
 				</div>
 			),
-		}),
-		[theme, editingCustomTheme, changeMetric],
-	);
+		};
+	}, [theme, packageId, editingCustomTheme, changeMetric]);
