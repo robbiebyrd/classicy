@@ -3,7 +3,10 @@
 // so two browser profiles opened with the same `?stateSync=<account>` share
 // one desktop, as a signed-in user's devices would through a real backend.
 // The same shape as a production adapter: debounced pushes deduplicated by
-// hash, and a boot reconcile in which the account's saved copy wins.
+// hash, and a reconcile in which the account's saved copy wins. Classicy
+// holds its snapshots until a reconcile with it succeeds, so a slow or
+// failed boot never pushes this device's defaults over the account's copy;
+// a failed PUT throws, so the next change sends again.
 import type {
 	ClassicyStateAdapter,
 	ClassicyStateReconcileContext,
@@ -14,8 +17,15 @@ import type {
 /** What the mock backend holds for an account. */
 type SavedSnapshot = Pick<
 	ClassicyStateSnapshot,
-	"state" | "hash" | "seq" | "timestamp"
+	"state" | "hash" | "seq" | "version" | "timestamp"
 >;
+
+/**
+ * Browsers cap the bodies of in-flight `keepalive` requests at 64 KiB in
+ * all, and refuse a larger one outright: a snapshot under this size is sent
+ * with `keepalive`, so the one sent as the tab closes (`pagehide`) arrives.
+ */
+const KEEPALIVE_MAX_BYTES = 60 * 1024;
 
 export function mockStateAdapter(account: string): ClassicyStateAdapter {
 	const url = `/__mock-state/${encodeURIComponent(account)}`;
@@ -32,12 +42,15 @@ export function mockStateAdapter(account: string): ClassicyStateAdapter {
 				state: snapshot.state,
 				hash: snapshot.hash,
 				seq: snapshot.seq,
+				version: snapshot.version,
 				timestamp: snapshot.timestamp,
 			};
+			const body = JSON.stringify(saved);
 			const response = await fetch(url, {
 				method: "PUT",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(saved),
+				body,
+				keepalive: new Blob([body]).size <= KEEPALIVE_MAX_BYTES,
 			});
 			// A throw is logged by Classicy, which sends the next change again.
 			if (!response.ok) throw new Error(`PUT ${url}: ${response.status}`);
