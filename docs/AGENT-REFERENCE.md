@@ -1675,7 +1675,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `defaultButtonId={null}`: no default at all, for a choice whose answers may each lose data (HIG7 p.206): no ring, Return and Enter do nothing, and the alert itself (`tabIndex={-1}`, no outline) takes the focus on open, never a button, so a keystroke meant for a field answers nothing; Tab and Shift-Tab still cycle its buttons. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `defaultButtonId={null}`: no default at all, for a choice whose answers may each lose data (HIG7 p.206): no ring, Return and Enter do nothing, and the alert itself (`tabIndex={-1}`, no outline) takes the focus on open, never a button, so a keystroke meant for a field answers nothing; Tab and Shift-Tab still cycle its buttons. The `alertdialog` is named by its `label` (`aria-labelledby`) and described by its `message` (`aria-describedby`, absent without one), so a screen reader reads the whole question. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -3137,22 +3137,29 @@ localStorage stays the primary store either way.
   asking again after a failure, or an adapter registered after the first
   reconcile) or `"request"` (the host's `reconcileClassicyState()`).
   `userActed` is true when this computer holds work the adapter never took:
-  the page has had a trusted `pointerdown` or `keydown` since the desktop
-  was last drawn (loaded, or an adopted state) and since the latest state
-  the adapter holds (the last snapshot it took, counted when that snapshot
-  was built, or its own adopted state; an adapter that has taken none
-  counts every press since the desktop was drawn), or an earlier session
-  left its work unsent (below). One capture-phase listener counts the
-  presses from the page's first reconcile on, whatever is registered, so
-  the work done while a failing request runs, or before an adapter
-  registers late, counts too.
+  an earlier session left its work unsent (below), or the page has had a
+  trusted `pointerdown` or `keydown` since the desktop was last drawn
+  (loaded, or an adopted state) and either a press came after the latest
+  state the adapter holds (the last snapshot it took, counted when that
+  snapshot was built, or its own adopted state; an adapter that has taken
+  none counts every press since the desktop was drawn), or the live state
+  is not that state. A press counts even when it changes no saved state
+  (typing in an open document, which a restart onto another state would
+  drop); the state test catches a press's change that lands after a
+  snapshot built while the press was down (on release, after a menu's
+  flash, from an async handler), which a count cannot bound. One
+  capture-phase listener counts the presses from the page's first
+  reconcile on, whatever is registered, so the work done while a failing
+  request runs, or before an adapter registers late, counts too.
 - **Unsent work survives the page.** `localStorage["classicyDesktopState:unsent"]`
   (beside `:seq` and `:reset`) lists, as a JSON array, the ids of the
   adapters this browser holds work for that they never took. An id is
   added, synchronously, when a snapshot comes due for an adapter that is
-  held while `userActed` is true, when a delivery to it fails while it is,
-  and when the user is asked (below); it is removed when the adapter takes a
-  snapshot built after it was added (or one it already had), when its state
+  held while `userActed` is true, or comes due while a reconcile holds every
+  snapshot (a host's request or a retry under way, sent once it settles),
+  when a delivery to it fails while `userActed` is true, and when the user
+  is asked (below); it is removed when the adapter takes a snapshot built
+  after it was added (or one it already had), when its state
   is adopted (Use Saved, a `merged` replace, a host's request), and for
   every adapter by Reset PRAM. Only adapters that take snapshots are
   listed: one that never does could never take the work. At the next boot,
@@ -3165,7 +3172,11 @@ localStorage stays the primary store either way.
   down for the whole session, never drops the work unasked. An id whose
   adapter is not registered is ignored (and kept). A snapshot sent as the
   page hides is taken to have landed: the page is gone before it can learn
-  otherwise.
+  otherwise. A host can close that gap itself: a snapshot carries this
+  browser's `seq` and `hash`, and `reconcile` gets `local` with both, so an
+  adapter that keeps, per browser, the last `seq` it stored sees at the next
+  boot that `local.seq` is past it, and can answer `useLocal` or a `merged`
+  replace (Classicy gives no browser identity; the host keeps one).
 - **A boot or a retry never replaces the user's work unasked.** On a
   `"boot"` or a `"retry"` with `userActed`, a valid `replace` is not adopted
   on the spot: the adapter stays held, its retry timer stops, and the

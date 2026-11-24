@@ -811,11 +811,14 @@ pushes a fresh or stale desktop over the account's copy. The context also
 carries `reason` (`boot`, `retry`, `request`) and `userActed`: work the
 adapter never took, a trusted `pointerdown`/`keydown` (one capture-phase
 listener from the page's first reconcile on) since the desktop was drawn and
-since the last snapshot it took (or its adopted state), or an earlier
-session's, listed in `localStorage["classicyDesktopState:unsent"]` (adapter
-ids that take snapshots: added when a held adapter's snapshot comes due or a
-delivery fails while `userActed`, and when the user is asked; removed when
-it takes a later snapshot or its state is adopted, all by Reset PRAM). A
+either since the last snapshot it took (or its adopted state) or with the
+live state no longer that state (a change landing after its press's
+snapshot), or an earlier session's, listed in
+`localStorage["classicyDesktopState:unsent"]` (adapter ids that take
+snapshots: added when a held adapter's snapshot comes due, a snapshot comes
+due while a reconcile holds them, or a delivery fails while `userActed`, and
+when the user is asked; removed when it takes a snapshot built after the
+mark or its state is adopted, all by Reset PRAM). A
 boot's or a retry's unmerged `replace` while `userActed` is not adopted
 unasked: the adapter stays held (no timer) and the desktop shows the caution
 alert `systemDialog: "syncChoice"` ("Use your saved settings on this
