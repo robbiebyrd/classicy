@@ -380,11 +380,16 @@ describe("the Application Switcher", () => {
 
 		describe("wrapping (re-review I-R1)", () => {
 			// A laid-out desktop for jsdom: the floating layer is the desktop,
-			// `desktopHeight` tall; the palette sits where its style puts it, a
-			// 16-pixel frame above its buttons (24 pixels each, 112 wide) and
-			// none below.
+			// `desktopHeight` tall. The palette sits where its style puts it and
+			// is laid out as its stylesheet lays it: a 16-pixel frame above its
+			// buttons (24 pixels each, 112 wide), a 4-pixel frame at either side
+			// and none below, the buttons in one column, or in columns of
+			// `--application-switcher-lines` when it wraps. So the palette's
+			// size is measured from its shape, not fixed.
 			let desktopHeight = 600;
 			const BUTTON = 24;
+			const BUTTON_WIDTH = 112;
+			const SIDE_FRAME = 4;
 			const FRAME_ABOVE = 16;
 			const rect = (left: number, top: number, width: number, height: number) =>
 				({
@@ -412,6 +417,20 @@ describe("the Application Switcher", () => {
 						disconnect() {}
 					},
 				);
+				// The buttons' grid: how many there are, and how many a column holds.
+				const grid = (win: HTMLElement) => {
+					const list = win.querySelector<HTMLElement>(
+						".classicyApplicationSwitcherButtons",
+					);
+					const count = list?.children.length ?? 0;
+					const perColumn =
+						Number.parseInt(
+							list?.style.getPropertyValue("--application-switcher-lines") ??
+								"",
+							10,
+						) || count;
+					return { count, perColumn: Math.max(1, perColumn) };
+				};
 				const original = Element.prototype.getBoundingClientRect;
 				vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
 					function (this: Element) {
@@ -422,13 +441,26 @@ describe("the Application Switcher", () => {
 						);
 						const left = Number.parseFloat(win?.style.left ?? "") || 0;
 						const top = Number.parseFloat(win?.style.top ?? "") || 0;
-						if (this === win) return rect(left, top, 120, 100);
-						if (this.classList.contains("classicyApplicationSwitcherButton")) {
+						if (win && this === win) {
+							const { count, perColumn } = grid(win);
+							const columns = Math.max(1, Math.ceil(count / perColumn));
+							return rect(
+								left,
+								top,
+								SIDE_FRAME + BUTTON_WIDTH * columns + SIDE_FRAME,
+								FRAME_ABOVE + BUTTON * Math.min(perColumn, count),
+							);
+						}
+						if (
+							win &&
+							this.classList.contains("classicyApplicationSwitcherButton")
+						) {
+							const { perColumn } = grid(win);
 							const i = [...(this.parentElement?.children ?? [])].indexOf(this);
 							return rect(
-								left + 4,
-								top + FRAME_ABOVE + BUTTON * i,
-								112,
+								left + SIDE_FRAME + BUTTON_WIDTH * Math.floor(i / perColumn),
+								top + FRAME_ABOVE + BUTTON * (i % perColumn),
+								BUTTON_WIDTH,
 								BUTTON,
 							);
 						}
@@ -468,6 +500,9 @@ describe("the Application Switcher", () => {
 				);
 				const size = () => palette()?.getBoundingClientRect();
 				const before = size();
+				// One column of its three buttons, measured from its layout.
+				expect(before?.width).toBe(SIDE_FRAME + BUTTON_WIDTH + SIDE_FRAME);
+				expect(before?.height).toBe(FRAME_ABOVE + BUTTON * 3);
 				for (const position of [
 					[300, desktopHeight - 30],
 					[-90, 200],
@@ -499,6 +534,10 @@ describe("the Application Switcher", () => {
 					"classicyApplicationSwitcherWrapped",
 				);
 				expect(lines()).toBe("1");
+				// Three columns of one button, measured from its layout.
+				expect(palette()?.getBoundingClientRect().width).toBe(
+					SIDE_FRAME + BUTTON_WIDTH * 3 + SIDE_FRAME,
+				);
 				// Moving it changes nothing.
 				moveTo([10, 10]);
 				expect(lines()).toBe("1");
