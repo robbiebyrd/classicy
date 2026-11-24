@@ -903,7 +903,7 @@ on Classicy's internal class names carry one of four attributes
 | `data-classicy-control` | `close`, `zoom`, `collapse` | the window title bar's control boxes |
 | `data-classicy-role` | `default`, `cancel`, `other` | every `ClassicyAlert` button (the default button, the `role: "cancel"` button, any other including Help) |
 | `data-classicy-selection` | `all`, `tail` | a `ClassicyInput`'s `<input>` while it is `selected`: `all` when the selection starts at the text's first character (the whole text), `tail` when it starts at a later one. A tail scrolled so its first character sits at the field's left edge publishes `--classicy-input-selection-start: 0px`, as the whole text does, so this is what tells them apart (System 7 highlights a tail from its first character's pen position, the whole line a pixel left of the text's). Absent while the field is not `selected` |
-| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down`; `selection-marquee` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and the selection rectangle a drag from empty space draws on the desktop and in a file browser (`classicySelectionMarquee`; on the desktop also `classicyDesktopSelect`; §7, "Selection rectangle") |
+| `data-classicy-part` | `apple`, `app`, `help`, `switcher`, `extensions`, `clock`, `window-menu-bar`; `modifier-control`, `modifier-option`, `modifier-shift`, `modifier-command`; `scrollbar`, `scroll-arrow-start`, `scroll-track`, `scroll-arrow-end`, `scroll-thumb`, `scroll-corner`, `scroll-drag-outline`; `menu-scroll-up`, `menu-scroll-down`; `selection-marquee`; `zoom-rect` | the menu bar's clusters: Apple menu, each app menu title, Help, the application switcher, the menu-bar extensions and the clock; the root of a window's own menu bar (`ClassicyWindowMenuBar`); each modifier glyph span (`classicyKbdModifier`) a `ClassicyKbd` renders; and a `ClassicyScrollArea`'s parts: each bar, its arrow toward the start (up or left) and toward the end, its track, its thumb, the corner where two bars meet, and the outline an on-release thumb drag moves (`layout.scrollBar.thumbDrag`, §8); and a scrolling pop-up or combo box menu's indicators over its first and last rows (§4.3); and the selection rectangle a drag from empty space draws on the desktop and in a file browser (`classicySelectionMarquee`; on the desktop also `classicyDesktopSelect`; §7, "Selection rectangle"); and each zoom rectangle a window opening from an icon or closing back to it draws on the desktop (`classicyZoomRect`, in the `classicyZoomRects` layer; §4.1, "Zoom rectangles") |
 
 ```ts
 document.querySelector('.classicyWindow.active [data-classicy-control="close"]')
@@ -1048,6 +1048,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `type` | `"default" \| "error"` | `"default"` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
+| `zoomIconPath` | `string` (a folder's or drive's path) | — (closes with no zoom) |
 
 `initialFocusRef` names the element that takes keyboard focus whenever the
 window *becomes* the focused window (the store's `focused` flag turning true
@@ -1140,6 +1141,119 @@ drag keeps the opposite corner fixed (`computeClassicyWindowResize`); with
 `layout.menuBar.placement: "window"` a window with an `appMenu` draws it in
 its own menu bar under the title bar. See §8, "Layout declarations".
 
+#### Zoom rectangles
+
+A window opened from an icon zooms out of it, and a folder's window zooms
+back to its icon when it closes, with the Finder's outline rectangles
+(story 0230-n6c; `Window/ClassicyZoomRects.ts`). Measured in Infinite Mac
+(Mac OS 8.1 and System 7.5, frames read off the emulator's canvas at the
+display's rate) and documented by the Drag Manager's `ZoomRects` (Apple's
+patent US5754178, which reproduces the Drag Manager reference: "gray
+dithered rectangles incrementally toward the destination rectangle", at
+most one step per tick, `kZoomAccelerate` making each step larger than the
+last):
+
+- **The path.** From the icon's box (step 0: the icon's image, not its
+  label) to the window's (step `steps`), step k lies
+  `(growth^k − 1) / (growth^steps − 1)` of the way
+  (`classicyZoomFraction`), each step `growth` times the one before; both
+  Finders measured lay 11 steps of 1.4. Rectangles are whole pixels
+  (`computeClassicyZoomRects`).
+- **Opening** draws steps `firstStep` … `steps − 1`, one each
+  `1000 / rate` ms (a tick, 1/60 s), the first at once, then erases them all
+  one step after the last, when the window is drawn. It ends at the window's
+  content box (inside its frame, below its title bar,
+  `classicyWindowContentRect`), as 8.1's did. Mac OS 8.1 (Platinum,
+  `firstStep` 5) draws the six steps nearest the window and keeps them all
+  (`trail` 0): 100 ms. System 7.5 (`firstStep` 0, `trail` 4) draws all 11,
+  erasing each four steps after it is drawn: 183 ms. Until then the window
+  is laid out but not drawn (`classicyWindowZoomHidden`: `opacity: 0`, no
+  pointer events), as the Finder drew it after its rectangles; it is in the
+  store, focused and given the keyboard as soon as it opens.
+- **Closing** (a window with `zoomIconPath`) draws the same steps the other
+  way, `steps` … `firstStep + 1`, from the window's whole box (its frame and
+  title bar) toward the icon, after the window is gone. The icon is the one
+  for `zoomIconPath`, else the nearest enclosing folder's or drive's that
+  shows (`findClassicyZoomIcon`; 8.1 zoomed a window whose parent window was
+  closed to the disk's icon): a desktop icon, an icon in an icon view or a row
+  of a list view, counted only where its window shows it (not scrolled out of
+  its window's box); one covered by another window counts (8.1 zoomed to an
+  icon under a Stickies note). None found, no zoom. It runs a tick after the
+  window leaves the DOM, and only when the window's record is `closed` then
+  (not for a window unmounting open, StrictMode's phantom detach, or a
+  folder renamed under a new id).
+- **Launching** an application from its icon (a desktop app shortcut, or a
+  document or application opened from a Finder window or the desktop) zooms
+  from the icon to the whole desktop, only when the open started the
+  application (8.1: opening a document in SimpleText while it ran drew none;
+  `withClassicyLaunchZoom`, `ClassicyLaunchZoom.ts`, compares the open apps
+  before and after the dispatch). The application's own windows open
+  without a zoom.
+- **Not zoomed:** a folder whose window is already open (it comes to the
+  front; 7.5 drew none), a window opened by anything but an icon (a menu
+  command, a restored session, a direct `ClassicyAppFinderOpenFolder`), and
+  a user who prefers reduced motion (`prefers-reduced-motion: reduce`: no
+  rectangles, the window drawn at once).
+
+**The open path carries the source.** An icon that opens a window passes its
+zoom origin, `ClassicyZoomOrigin` (`{ rect, desktop }`: its image's box in
+viewport pixels and the `.classicyDesktop` it is on, `classicyZoomOriginOf`),
+on the open path: `ClassicyIcon`'s `onClickFunc(origin)`,
+`ClassicyFileBrowser`'s `dirOnClickFunc(path, origin)` and
+`fileOnClickFunc(path, origin)` (from the icon view's icon, or the list
+view's row, found by its path, `classicyZoomOriginForPath`), and
+`ClassicyDesktopIcon`'s `onOpenFilePath(path, origin)`. Whoever opens the
+window records it for the window just before the open dispatch:
+`noteClassicyWindowZoomSource(appId, windowId, origin)` (Finder's
+`openFolder` and the desktop's folder and drive icons, for a window not open
+yet). The window takes it (`takeClassicyWindowZoomSource`, once, within
+`CLASSICY_ZOOM_SOURCE_TTL_MS`, 1 s) when it becomes open, mounting open or
+going from closed to open, in a layout effect, so it never shows before its
+rectangles. Nothing goes in the store: no action, record or persisted byte
+changes. A host app opening its own window from its own icon does the same:
+
+```ts
+noteClassicyWindowZoomSource("Notes.app", "note-1", classicyZoomOriginOf(iconEl));
+dispatch({ type: "ClassicyAppOpen", app: { id: "Notes.app", name: "Notes", icon } });
+```
+
+`playClassicyZoomRects({ desktop, icon, window, direction, settings?, onEnd? })`
+draws one (null when it draws nothing; else `{ durationMs, cancel }`), and
+`playClassicyLaunchZoom(origin)` the launch.
+
+**The look and the package's control.** The rectangles are drawn in a layer
+the core appends to the desktop (`classicyZoomRects`, `aria-hidden`: absolute,
+covering the desktop, no stacking context), outside React, one element per
+rectangle (`classicyZoomRect`, part `data-classicy-part="zoom-rect"`, base
+`z-index` 1000: over windows, the menu bar, the Control Strip and contextual
+menus, as `ZoomRects` drew on the whole screen; under open pull-down menus),
+each carrying the desktop's corner from its own as
+`--classicy-pattern-origin-x` / `-y`. The core draws no look: each package
+draws the part in its stylesheet (`_ZoomRects.scss`): Platinum Mac OS 8.1's
+two-pixel frame, System 7 the 7.5 Finder's one-pixel frame, both the 50%
+checker in XOR laid from the desktop (`mix-blend-mode: difference`, as the
+selection rectangle), sized by the look-only knobs `zoomRects.width` and
+`zoomRects.tileSize`. A package turns the animation on or off and sets its
+path and pace with the structural `zoomRects` knobs the core reads from the
+desktop (`readClassicyZoomRectsSettings`, through `readClassicyThemeVar`):
+`enabled` (1 on, 0 off), `steps`, `growthPercent` (each step's length over
+the last's: 140, the growth of 1.4), `firstStep`, `trail` (rectangles kept;
+0 keeps all) and `rate` (steps per second), whole numbers like every knob, on
+the core floor at Mac OS 8.1's values (1, 11, 140, 5, 0, 60), System 7 overriding `firstStep` 0 and
+`trail` 4 (§8, "Package knob families"). A package that does not style the
+part draws invisible rectangles, with the window still hidden while they
+run: set `zoomRects.enabled` to 0 to open windows at once.
+
+**Not measured.** The emulator's pace equals a real Mac's only as far as the
+Finder waits on ticks: one rectangle came each 1/60 s frame in both systems,
+as the Drag Manager's one step per tick says, so the 100 ms (8.1) and 183
+ms (7.5) are taken as the real pace. The Finder's own icon box was a few
+pixels larger than the icon (7.5's first rectangle, 39 × 34 around a 32 ×
+32 icon); Classicy starts from the icon image's box. 8.1's desktop icons
+started their zoom from a box offset from where the icon was drawn
+(Infinite Mac lays the disks out for its screen size); Classicy starts from
+the icon.
+
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
 window's own title bar (`ClassicyWindowTitleBar`, always focused, with no
@@ -1231,7 +1345,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
-| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?` (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft, travel) → handled` (`travel`: how far the pointer went from the press), `fileDragParts?()` (the outline's parts, read at the press; default its own image and label), `moveBy?: { id, dx, dy }` (moves the icon by `dx`, `dy`, snapped, each time `id` changes; not at mount), `selected?`/`onSelectedChange?(selected)` (the container keeps the selection: the icon shows `selected` and reports the click, drag or open that would change it), `onSelectionGesture?({ type: "press" \| "click", shiftKey, metaKey })` (with `selected`: presses and clicks go to the container, which applies its own rules, and a click no longer toggles the icon itself; a contextual-menu press comes as a `press` with no modifiers, and the click ending a drag is not reported) | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target. Alone, a click toggles its selection, except the click ending a drag (a press counts as a drag only past `CLASSICY_FILE_DRAG_THRESHOLD`, 4 px, the Finder drag's threshold, so an unsteady click still toggles; a click with `detail` 0, a keyboard's or a script's, always counts); after its own drag the icon stays selected (no `select { selected: false }`); a Control-press or right-press is the contextual-menu click: it selects the icon, never drags it, and a Control-press opens the menu where the browser does not (§7, "Selection rectangle"). The file browser's icon view keeps the selection for its icons (`selected`, `onSelectedChange`, `onSelectionGesture`) and drags a selection as one (`fileDragParts`, `moveBy`) |
+| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?(origin?)` (open: double-click, Enter or Space; passed the icon's zoom origin, its image's box and desktop, when it has one, §4.1 "Zoom rectangles"), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?` (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft, travel) → handled` (`travel`: how far the pointer went from the press), `fileDragParts?()` (the outline's parts, read at the press; default its own image and label), `moveBy?: { id, dx, dy }` (moves the icon by `dx`, `dy`, snapped, each time `id` changes; not at mount), `selected?`/`onSelectedChange?(selected)` (the container keeps the selection: the icon shows `selected` and reports the click, drag or open that would change it), `onSelectionGesture?({ type: "press" \| "click", shiftKey, metaKey })` (with `selected`: presses and clicks go to the container, which applies its own rules, and a click no longer toggles the icon itself; a contextual-menu press comes as a `press` with no modifiers, and the click ending a drag is not reported) | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target. Alone, a click toggles its selection, except the click ending a drag (a press counts as a drag only past `CLASSICY_FILE_DRAG_THRESHOLD`, 4 px, the Finder drag's threshold, so an unsteady click still toggles; a click with `detail` 0, a keyboard's or a script's, always counts); after its own drag the icon stays selected (no `select { selected: false }`); a Control-press or right-press is the contextual-menu click: it selects the icon, never drags it, and a Control-press opens the menu where the browser does not (§7, "Selection rectangle"). The file browser's icon view keeps the selection for its icons (`selected`, `onSelectedChange`, `onSelectionGesture`) and drags a selection as one (`fileDragParts`, `moveBy`) |
 
 ### 4.5 Menus
 
@@ -1410,7 +1524,7 @@ plain integers (`0xRRGGBB`).
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. A Control-press or right-press is the contextual-menu click (§7, "Selection rectangle"): it selects an unselected icon alone and keeps a selection the icon is in (the selection is kept; what a `contextMenu` item acts on is its handler's: Finder's drive menu acts on its one drive), never drags, and a Control-press opens the menu where the browser does not; the click ending a file drag is no click, so a dragged selection stays selected. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Open and analytics payloads carry `appName`/`icon` |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?(path, origin?)` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. A Control-press or right-press is the contextual-menu click (§7, "Selection rectangle"): it selects an unselected icon alone and keeps a selection the icon is in (the selection is kept; what a `contextMenu` item acts on is its handler's: Finder's drive menu acts on its one drive), never drags, and a Control-press opens the menu where the browser does not; the click ending a file drag is no click, so a dragged selection stays selected. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Opening a drive's, the Trash's or a folder's icon whose Finder window is not open zooms that window out of the icon, and opening an icon that starts its application zooms to the desktop (§4.1, "Zoom rectangles"). Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
@@ -2653,7 +2767,9 @@ A live tree is seeded from a deep copy of its default tree, so neither
 `DefaultFSContent` nor a host's `defaultFileSystem` is ever changed by edits.
 
 Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
-`display? ("icons"|"list")`, `dirOnClickFunc?`, `fileOnClickFunc?`,
+`display? ("icons"|"list")`, `dirOnClickFunc?(path, origin?)`,
+`fileOnClickFunc?(path, origin?)` — the opened item's zoom origin, when it
+has a box, for a window it opens (§4.1, "Zoom rectangles"),
 `onMoveItems?(paths, destination, outlineTopLeft)`,
 `showInvisible? (true)` — list `_invisible` entries (Finder passes false),
 `onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
@@ -4929,7 +5045,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 25 families of its own (107 keys)
+**Package knob families.** Platinum adds 26 families of its own (115 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4944,7 +5060,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 19 families are emitted and editable in
+  groups under Platinum. The other 20 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -4954,13 +5070,13 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 107 are
+  overriding the knob's value, never the base CSS. 91 of the 115 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
   table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 20 are
+  the optional `fileBrowserList` knobs (below). The other 22 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`, `_SelectionMarquee.scss`), they are not in the floor and come only from
+  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`, `_SelectionMarquee.scss`, `_ZoomRects.scss`), they are not in the floor and come only from
   Platinum's `platinum.json`. A package with stylesheets of its own may
   ignore them, unless it `@use`s Platinum's published mixins
   (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
@@ -5166,6 +5282,14 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 | `selectionMarquee.width` | `--selection-marquee-width` | 2 | — | no | _SelectionMarquee.scss |
 | `selectionMarquee.tileSize` | `--selection-marquee-tile-size` | 2 | — | no | _SelectionMarquee.scss |
+| `zoomRects.enabled` | `--zoom-rects-enabled` | 1 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.steps` | `--zoom-rects-steps` | 11 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.growthPercent` | `--zoom-rects-growth-percent` | 140 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.firstStep` | `--zoom-rects-first-step` | 5 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.trail` | `--zoom-rects-trail` | 0 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.rate` | `--zoom-rects-rate` | 60 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.width` | `--zoom-rects-width` | 2 | — | no | _ZoomRects.scss |
+| `zoomRects.tileSize` | `--zoom-rects-tile-size` | 2 | — | no | _ZoomRects.scss |
 
 `formControl.fileInputHiddenSize` is the `formControl` family's first knob.
 The family holds the sizes of form-control parts outside dialogs, which no
