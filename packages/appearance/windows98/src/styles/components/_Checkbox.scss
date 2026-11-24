@@ -25,9 +25,15 @@
 // - Pressed (the mouse down on the box or its label), the face turns
 //   ButtonFace with the mark kept; disabled, the face is ButtonFace and the
 //   mark GrayText (Windows embosses no check mark).
-// - Mixed (BST_INDETERMINATE): Windows 9x fills the box with the 50% checker
-//   of ButtonFace and ButtonHilight and draws no mark, whether or not the box
-//   is also on, so a mixed box is the checker in every state.
+// - Mixed (BST_INDETERMINATE, the 3-state box's third state): Windows 9x
+//   fills the box with the 50% checker of ButtonFace and ButtonHilight and
+//   draws the mark in GrayText over it (Wine's DFC_ButtonCheck: a
+//   DFCS_BUTTON3STATE box's mark takes COLOR_BTNSHADOW), whether or not the
+//   box is also on; pressed or disabled, its face is ButtonFace, as any
+//   box's, the mark GrayText still.
+// - The label starts six pixels after the box (98.css: a 19-pixel label
+//   inset less the 13-pixel box): the holder's gap is the core's label
+//   spacing less the box's margin, and the label's own margin is none.
 // - The keyboard focus is the dotted rectangle around the label's text (the
 //   box's own, a pixel out, when it has no label), while anything in the
 //   holder has focus (`:focus-within`: the label precedes the box in the DOM,
@@ -98,9 +104,16 @@ $ink: var(--windows98-checkbox-ink);
 }
 
 @mixin checkbox {
-  // The box and its label on one line, centered on each other.
+  // The box and its label on one line, centered on each other, the label
+  // six pixels after the box (the gap plus the box's margin).
   .classicyCheckboxHolder {
     align-items: center;
+    gap: calc(var(--control-label-spacing) - var(--checkbox-margin));
+  }
+
+  .classicyCheckboxHolder > .classicyControlLabelHolder > .classicyControlLabel {
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .classicyCheckbox {
@@ -144,11 +157,22 @@ $ink: var(--windows98-checkbox-ink);
     background: marked($x-mark);
   }
 
-  // Mixed: the checker, no mark, on or off, whichever mark the box uses.
-  .classicyCheckbox.mixed,
-  .classicyCheckbox.mixed:checked,
-  .classicyCheckbox.mixed.classicyCheckboxX:checked {
-    background: $checker;
+  // Mixed: the checker face with the mark in GrayText, on or off (each rule
+  // at or above its checked counterpart's weight, and after it); pressed or
+  // disabled, the face is ButtonFace, as any box's.
+  .classicyCheckbox.mixed {
+    --windows98-checkbox-face: #{$checker};
+    --windows98-checkbox-ink: #{b.$gray-text};
+    background: marked($check);
+  }
+
+  .classicyCheckbox.mixed.classicyCheckboxX {
+    background: marked($x-mark);
+  }
+
+  .classicyCheckbox.mixed:active:not(:disabled),
+  .classicyCheckbox.mixed:disabled {
+    --windows98-checkbox-face: #{b.$face};
   }
 
   // The focus rectangle: around the label while the box has focus, around

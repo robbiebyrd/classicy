@@ -26,9 +26,15 @@
 //   the input, keyboard and form rows). Rows stay right-aligned (98.css's
 //   dialogs; the base sheets' `justify-content: flex-end`).
 // - The hot-key box (the read-only combination of the keyboard-equivalent
-//   dialog) is an edit control: Window white under a two-ring sunken edge
-//   (WS_EX_CLIENTEDGE, `b.sunken`), its text centered; disabled, ButtonFace
-//   with embossed GrayText, as a disabled edit control reads.
+//   dialog, and the field above the button that redefines it) is the hot key
+//   control, an edit control: Window white under a two-ring sunken edge
+//   (WS_EX_CLIENTEDGE, `b.sunken`), the edit control's height and text
+//   inset (`--pop-up-height`, `--field-padding-*`, the text fields' own), its
+//   text left-aligned as an edit's is (the base centers it, HIGOS8's figure);
+//   in the dialog it spans the dialog's width (the base insets it 24 pixels
+//   for the figure). Disabled, ButtonFace with plain GrayText: an edit
+//   control draws its disabled text plain, where a static control embosses
+//   it (the text fields' partial reads the same).
 // - The file dialogs' list is a list view: white, sunken two rings, the
 //   viewport and its scroll bar inside the rings; a selected row Hilight
 //   with HilightText across the row, the focused row's dotted rectangle;
@@ -76,11 +82,12 @@ $edge: var(--layout-dialog-edge);
   @include b.sunken;
 }
 
-// The same control disabled: ButtonFace under embossed GrayText.
+// The same control disabled: plain GrayText on ButtonFace, no emboss (the
+// base's dimmed static text, in GrayText already, keeps its color).
 @mixin edit-box-disabled {
+  color: b.$gray-text;
+  text-shadow: none;
   background: b.$face;
-
-  @include b.disabled-text;
 }
 
 @mixin dialog {
@@ -134,6 +141,11 @@ $edge: var(--layout-dialog-edge);
       font-size: var(--ui-font-size);
     }
 
+    // The hot-key box spans the dialog's width (the base's HIG inset goes).
+    .classicyKeyboardEquivalentDisplay {
+      margin: 0;
+    }
+
     .classicyKeyboardEquivalentButtons {
       @include button-row;
     }
@@ -141,12 +153,15 @@ $edge: var(--layout-dialog-edge);
 
   // The hot-key box, in the dialog and in the field a control panel shows
   // (the base names the element and both classes, so this does too): the
-  // edit field's height, its text centered on it, Window white under the
-  // sunken edge; disabled, a disabled edit control.
+  // edit control's height (`--pop-up-height`, 21: Windows' edit and combo
+  // box stand at one height, the text fields' partial's choice), its text on
+  // the line left inside the field's inset, left-aligned, Window white under
+  // the sunken edge; disabled, a disabled edit control.
   output.classicyOutput.classicyKeyboardEquivalentDisplay {
-    min-height: var(--edit-field-height);
-    line-height: var(--edit-field-height);
-    padding: 0 var(--field-padding-x);
+    min-height: var(--pop-up-height);
+    line-height: calc(var(--pop-up-height) - var(--field-padding-y) - var(--field-padding-y));
+    padding: var(--field-padding-y) var(--field-padding-x);
+    text-align: left;
 
     @include edit-box;
 

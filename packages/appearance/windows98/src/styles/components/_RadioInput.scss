@@ -33,6 +33,9 @@
 //   circle's own, a pixel out, when it has no label), while anything in the
 //   item has focus (`:focus-within`, as the checkbox's). A disabled label is
 //   embossed: GrayText over a ButtonHilight copy one ring down and right.
+// - The label starts six pixels after the circle, as the checkbox's after
+//   its box: the label's margin is the core's label spacing less the
+//   circle's margin.
 //
 // The wrapper draws the circle, its inside and, while `checked`, the dot;
 // the native input lies over the whole circle (its hit area and focus),
@@ -109,9 +112,15 @@ $ink: var(--windows98-radio-ink);
 }
 
 @mixin radio-input {
-  // Each button and its label on one line, centered on each other.
+  // Each button and its label on one line, centered on each other, the
+  // label six pixels after the circle (its margin plus the circle's).
   .classicyRadioInputMargin {
     align-items: center;
+  }
+
+  .classicyRadioInputMargin > .classicyControlLabelHolder > .classicyControlLabel {
+    margin-left: calc(var(--control-label-spacing) - var(--checkbox-margin));
+    margin-right: 0;
   }
 
   // The circle, the checkbox's margin at its sides, its inside white.

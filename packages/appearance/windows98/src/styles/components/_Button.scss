@@ -38,9 +38,15 @@
 //   registered art (the package registers none).
 // - The disclosure triangle: Windows' tree-view button, a 9 x 9 box in a
 //   ButtonShadow line on Window white with a black + while closed and a -
-//   while open, drawn on the component's own 17 x 17 box in place of its
-//   triangle, the rotations undone; a disclosure header's keyboard focus is
-//   the dotted rectangle.
+//   while open, drawn centered on the component's 17 x 17 box in place of
+//   its triangle, the rotations undone (the box is held at that size here,
+//   since the Finder's list view shortens the svg to 15, which would set the
+//   art a pixel low); a disclosure header's keyboard focus is the dotted
+//   rectangle.
+// - Every label is in the one UI font size: Windows has no small button, so
+//   the base's smaller sizes for a small push button and for a toolbar's
+//   size variants give way to `--ui-font-size`, which the pixel face is cut
+//   for.
 //
 //   Windows color     token
 //   ButtonFace        --color-system-03        every face
@@ -212,13 +218,15 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
   }
 
   // A square (icon) button has no padding, as the base has it; a small one
-  // is a row's height.
+  // is a row's height, its label in the UI font size still (Windows has no
+  // smaller button face).
   .classicyButton.classicyButtonShapeSquare {
     padding: 0;
   }
 
   .classicyButton.classicyButtonSmall {
     min-height: var(--control-row-height);
+    font-size: var(--ui-font-size);
   }
 
   // Pressed: the rings turn, the label a pixel down and right (a square
@@ -270,6 +278,8 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
   .classicyBevelButton {
     border: 0;
     border-radius: 0;
+    // The one UI font size, in a toolbar's size variants too.
+    font-size: var(--ui-font-size);
     color: b.$text;
     text-shadow: none;
     background: b.$face;
@@ -348,8 +358,12 @@ $down: ":is(:active, .pressed, .checked, .mixed, .open)";
 
   // ----- The disclosure triangle --------------------------------------------
   // The tree-view button on the triangle's box, upright whichever way the
-  // component turns it: the + while closed, the - while open.
+  // component turns it: the + while closed, the - while open. The box keeps
+  // the component's 17 x 17 wherever it is drawn (the Finder's list view
+  // shortens the svg to the glyph size), so the art stays centered on it.
   .classicyTriangle {
+    width: calc(var(--window-control-size) + var(--window-padding-size));
+    height: calc(var(--window-control-size) + var(--window-padding-size));
     transition: none;
     transform: none;
     background: tree-button($tree-plus);

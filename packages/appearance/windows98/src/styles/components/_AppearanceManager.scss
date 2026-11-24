@@ -21,19 +21,17 @@
 // - Drive Setup's list selects a drive in Hilight with HilightText, as a
 //   list view does, not the Mac's inverted black row (DriveSetupList.scss).
 //
-// Every length is a ring (`b.$b`), every color a token.
+// Every length is a ring (`b.$b`, and its negative `b.$neg-b`), every color
+// a token.
 @use "../bevels" as b;
 
-// One ring, negative: a shadow's offset toward the bottom or right (the
-// bevel module keeps its own private).
-$neg-b: calc(#{b.$b} * -1);
-
 // A one-ring sunken edge, ButtonShadow at the top and left over ButtonHilight
-// at the bottom and right: a small well's.
+// at the bottom and right: a small well's (the bevel module's `raised-thin`
+// the other way round).
 @mixin sunken-thin {
   box-shadow:
     inset b.$b b.$b b.$shadow,
-    inset $neg-b $neg-b b.$hilight;
+    inset b.$neg-b b.$neg-b b.$hilight;
 }
 
 @mixin appearance-manager {
