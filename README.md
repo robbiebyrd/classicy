@@ -409,18 +409,22 @@ pixel-literal purge (Part H)", and §8, "Package knob families".
 
 ## Server rendering (Next.js, Remix, Astro)
 
-The bundles load in Node with no DOM, on Node 22 through 26, so a
+The bundles load in Node with no DOM (checked on Node 20.18 through 26), so a
 server-rendering host imports Classicy as it is, without
 `dynamic(() => import(…), { ssr: false })` or a client-only island.
 
 Which format to use:
 
 - A browser app, through any bundler: `import`.
-- A Node server: `import`, or `require()` (Node 20.16 or 22.3 and later),
-  which reaches `dist/classicy.umd.cjs`, a small CommonJS loader for the
-  unchanged UMD bundle. `require()` is for Node only: a browser bundle that
-  `require()`s a Classicy package fails at its build (esbuild and webpack both
-  report the package's `require` entry as disabled), so `import` there.
+- A Node server: `import`, or `require()`, which reaches
+  `dist/classicy.umd.cjs`, a small CommonJS loader for the unchanged UMD
+  bundle. `require()` needs Node 20.19, 22.12 or later, the first whose own
+  `require()` loads an ES module without a flag (the core requires
+  `react-player`, which ships ES modules only); on an older Node the loader
+  throws an error that names them. `require()` is for Node only: a browser
+  bundle that `require()`s a Classicy package fails at its build (esbuild and
+  webpack both report the package's `require` entry as disabled), so `import`
+  there.
 - A `<script>` tag (unpkg, jsDelivr): `dist/classicy.umd.js`, as before.
 
 On the server the desktop renders an empty shell, `<div
@@ -444,10 +448,14 @@ stylesheets, as a strict-CSP host does (above).
   libraries, each with its own registries.
 - TypeScript hosts in CommonJS type-check `require()` too: the packages ship
   `.d.cts` declarations for it.
-- Jest works through `require()` in its node and jsdom environments with two
-  settings of your own: transform `react-player` (ES modules only) and give
-  jsdom `structuredClone`. `docs/AGENT-REFERENCE.md` §1 has the snippet, and
-  more on stack traces and source maps.
+- Jest works through `require()` in its node and jsdom environments with
+  settings of your own: transform `react-player` (ES modules only), and give
+  jsdom `structuredClone`, `TextEncoder` and `TextDecoder`. Jest 29's jsdom
+  environment also needs
+  `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`,
+  since it resolves under `browser`, for which the packages' `require` entry
+  is disabled; Jest 30 resolves under `node` already. `docs/AGENT-REFERENCE.md`
+  §1 has the snippets, and more on stack traces and source maps.
 
 ## System 7
 

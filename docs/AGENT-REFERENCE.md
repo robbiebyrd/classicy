@@ -228,7 +228,7 @@ package registers its fonts), and `dist/fonts.css` no longer exists.
 |---|---|---|
 | A browser app through a bundler (Vite, webpack, esbuild, Rollup) | `import` | `dist/classicy.es.js` |
 | A Node server (Next.js, Remix, Astro), ES modules | `import` | `dist/classicy.es.js` |
-| A Node server or test runner in CommonJS | `require()` | `dist/classicy.umd.cjs`, which runs `dist/classicy.umd.js` |
+| A Node server or test runner in CommonJS | `require()` (Node 20.19, 22.12 or later) | `dist/classicy.umd.cjs`, which runs `dist/classicy.umd.js` |
 | A page's `<script>` tag (unpkg, jsDelivr) | the file | `dist/classicy.umd.js`, globals `classicy`, `classicyAppearancePlatinum`, … |
 
 Each Appearance Package is the same with its own names
@@ -236,15 +236,29 @@ Each Appearance Package is the same with its own names
 supported in Node only: these packages are `"type": "module"`, so Node reads
 `dist/classicy.umd.js` as an ES module and cannot `require()` it itself, and
 the exports map's `require` names, under `node`, a few-line CommonJS loader
-beside it that runs it as CommonJS (Node 20.16 or 22.3 and later: the UMD
-bundle reaches Node's `url` module with `process.getBuiltinModule`, never a
-static `require("url")`; on an older Node the loader throws an error naming
-the versions it needs). For every other `require` resolver the exports map's
-`require` is `null`, so a browser bundle that `require()`s a Classicy package
-fails at its build, at the `require()`: esbuild (`--platform=browser`) reports
-that `"."` `cannot be imported from package "@classicy/classicy" because it
-was explicitly disabled by the package author`, pointing at the `"default":
-null` under `"require"`, and webpack (`target: "web"`) that `"." is not
+beside it that runs it as CommonJS. It needs Node 20.19, 22.12 or later
+(and every Node from 23.0): the core's UMD bundle requires `react-player`,
+which ships ES modules only, and those are the first releases whose own
+`require()` loads an ES module without a flag (nodejs/node#55085, "module:
+unflag --experimental-require-module", in the
+[22.12.0](https://nodejs.org/en/blog/release/v22.12.0) and
+[20.19.0](https://nodejs.org/en/blog/release/v20.19.0) notes). The loader asks
+Node itself, `process.features.require_module`, so on an older Node, on 22.10
+and 22.11 (where that is off by default) or under `--no-require-module` it
+throws an error naming those versions (`import` works there: checked on
+20.18.3 and 22.11.0). Node 22.12.x and Node 23 before 23.5 print Node's own
+`ExperimentalWarning` the first time `require()` loads an ES module (22.12 and
+23.4 only when the `require()` comes from a path outside `node_modules`, a
+linked checkout: nodejs/node#55960); 20.19, 22.13 and 23.5 on print it only
+under `--trace-require-module` (nodejs/node#56194). Every such Node has
+`process.getBuiltinModule` (20.16, 22.3), with which the UMD bundle reaches
+Node's `url` module, never a static `require("url")`. For every other
+`require` resolver the exports map's `require` is `null`, so a browser bundle
+that `require()`s a Classicy package fails at its build, at the `require()`:
+esbuild (`--platform=browser`) reports that `"."` `cannot be imported from
+package "@classicy/classicy" because it was explicitly disabled by the package
+author`, pointing at the `"default": null` under `"require"`, and webpack
+(`target: "web"`) that `"." is not
 exported under the conditions […"require"…"browser"]`. Use `import` there:
 both bundlers would otherwise bundle `dist/classicy.umd.js` as the ES module
 it is in a `"type": "module"` package, whose UMD wrapper then finds no
@@ -253,11 +267,14 @@ runs. `main` still names `dist/classicy.umd.js` for resolvers that read no
 exports map.
 
 **Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
-Node with no DOM, on Node 22, 24, 25 and 26 alike (verify:dist invariant 19,
-the packages' invariant 11: each bundle imported and each loader required in
-a child Node, once with the browser's globals deleted and once with Node's
-own, `localStorage` and `sessionStorage` failing on any read), so a
-server-rendering host imports Classicy as it is, without
+Node with no DOM (verify:dist invariant 19, the packages' invariant 11: each
+bundle imported and each loader required in a child Node, once with the
+browser's globals deleted and once with Node's own, `localStorage` and
+`sessionStorage` failing on any read; story 0223-a0y ran it under Node
+20.19.0, 22.23.1, 24.19.0, 25.2.0, 25.5.0 and 26.7.0, under 22.12.0, whose
+only output was the `ExperimentalWarning` above, since the gate loads the
+packages from outside `node_modules`, and the `import` half under 20.18.3
+and 22.11.0), so a server-rendering host imports Classicy as it is, without
 `dynamic(() => import(…), { ssr: false })` or a client-only island.
 
 What renders where: on the server, `ClassicyDesktop` (and `Classicy`) renders
@@ -309,12 +326,21 @@ strict-CSP host does.
   `module: node16` or `nodenext`, type-checks `require("@classicy/classicy")`
   with or without `skipLibCheck` (`verify:host-types` checks `node16-cjs`,
   `node16-cjs-lib-check` and `nodenext-cjs`).
-- **Jest.** Jest's CommonJS runtime reaches the loader in both its `node` and
-  `jsdom` environments, and the bundle runs in the test's own realm (its
-  globals and fake timers). Two settings are the host's: `react-player`, one
-  of the core's dependencies, ships ES modules only, which Jest cannot
-  `require()`, so transform it, and jsdom has no `structuredClone`, which
-  Platinum calls when it registers, so hand the environment Node's:
+- **Jest.** Jest's CommonJS runtime reaches the loader, and the bundle runs
+  in the test's own realm (its globals and fake timers). Jest 30 resolves a
+  `require()` under `node` in every environment, `jsdom` included. Jest 29's
+  `jsdom` environment resolves under `browser` instead, for which the exports
+  map's `require` is `null` (`Cannot find module '@classicy/classicy'`), so
+  give that environment Node's conditions,
+  `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`
+  (every package with a `node` entry, not only Classicy, then resolves to it
+  in those tests); its `node` environment needs nothing. The rest is the
+  host's in both versions: `react-player`, one of the core's dependencies,
+  ships ES modules only, which Jest cannot `require()`, so transform it, and
+  jsdom has no `structuredClone` (Platinum calls it when it registers),
+  `TextEncoder` (the file system hashes with it when it boots) or
+  `TextDecoder` (HyperCard reads stacks with it), so hand the environment
+  Node's:
 
   ```js
   // jest.config.cjs (with @babel/plugin-transform-modules-commonjs installed)
@@ -323,7 +349,8 @@ strict-CSP host does.
   		"^.+\\.js$": ["babel-jest", { plugins: ["@babel/plugin-transform-modules-commonjs"] }],
   	},
   	transformIgnorePatterns: ["/node_modules/(?!react-player/)"],
-  	// testEnvironment: "./jsdom-environment.cjs" for the jsdom tests
+  	// testEnvironment: "./jsdom-environment.cjs" for the jsdom tests, and on Jest 29:
+  	// testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] },
   };
 
   // jsdom-environment.cjs
@@ -331,13 +358,35 @@ strict-CSP host does.
   module.exports = class extends TestEnvironment {
   	constructor(...args) {
   		super(...args);
-  		this.global.structuredClone = structuredClone;
+  		Object.assign(this.global, { structuredClone, TextEncoder, TextDecoder });
   	}
   };
   ```
 
-  Checked with Jest 30.5.2 and jest-environment-jsdom 30.5.2 against the
-  packed packages (story 0223-a0y).
+  Jest 29's jsdom (20.0) cannot parse CSS cascade layers, so in each test
+  file that loads the core it reports `Could not parse CSS stylesheet` for
+  Classicy's stylesheet (Jest 30's jsdom 26 parses it), and Jest maps that
+  report's stack through `classicy.umd.js.map`, which cost 1 to 2 s per test
+  file where it was measured. An environment that drops those reports, and
+  only those, saves both; add this to the constructor above:
+
+  ```js
+  	// Jest 29: jsdom 20 cannot parse CSS cascade layers.
+  	const virtualConsole = this.dom.virtualConsole;
+  	const report = virtualConsole.listeners("jsdomError");
+  	virtualConsole.removeAllListeners("jsdomError");
+  	virtualConsole.on("jsdomError", (error) => {
+  		if (error.type !== "css parsing") for (const listener of report) listener(error);
+  	});
+  ```
+
+  jsdom plays no audio, so in either version a test that draws the desktop
+  logs the sound manager's `Failed to load audio sprite` error (`No codec
+  support for selected audio sources.`). Checked against the packed
+  packages with Jest 29.7.0 (jest-environment-jsdom 29.7.0, jsdom 20.0.3) and
+  Jest 30.5.2 (jest-environment-jsdom 30.5.2, jsdom 26.1.0), each in its
+  `node` and `jsdom` environments, with and without the setting: only Jest
+  29's `jsdom` environment without it fails (story 0223-a0y).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled
