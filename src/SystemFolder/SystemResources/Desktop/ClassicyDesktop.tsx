@@ -27,6 +27,10 @@ import {
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
+import {
+	ClassicyFloatingLayer,
+	ClassicyFloatingLayerProvider,
+} from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
 // Static, never lazy: WebViewer.tsx registers the "ClassicyAppWebViewer" plugin
 // handler as a module-graph side effect (it imports ./WebViewerContext), not a
 // mount side effect. A static import means the handler exists even when
@@ -772,6 +776,8 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			onKeyDown={handleKeyDown}
 			{...{ [CLASSICY_DROP_DESKTOP_ATTRIBUTE]: "" }}
 		>
+			{/* The one floating layer (extension windows float in it). */}
+			<ClassicyFloatingLayer />
 			{selectBox && (
 				<div
 					className={"classicyDesktopSelect"}
@@ -944,19 +950,21 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	return (
 		<ClassicyCrashScreen>
 			<ClassicyContextualMenuProvider>
-				<ClassicyDesktopInner
-					startupScreen={startupScreen}
-					startupDuration={startupDuration}
-					preBootScreen={preBootScreen}
-					startupLogo={startupLogo}
-					startupWordmark={startupWordmark}
-					bootScreen={bootScreen}
-					controlStrip={controlStrip}
-					className={className}
-					style={style}
-				>
-					{children}
-				</ClassicyDesktopInner>
+				<ClassicyFloatingLayerProvider>
+					<ClassicyDesktopInner
+						startupScreen={startupScreen}
+						startupDuration={startupDuration}
+						preBootScreen={preBootScreen}
+						startupLogo={startupLogo}
+						startupWordmark={startupWordmark}
+						bootScreen={bootScreen}
+						controlStrip={controlStrip}
+						className={className}
+						style={style}
+					>
+						{children}
+					</ClassicyDesktopInner>
+				</ClassicyFloatingLayerProvider>
 			</ClassicyContextualMenuProvider>
 		</ClassicyCrashScreen>
 	);

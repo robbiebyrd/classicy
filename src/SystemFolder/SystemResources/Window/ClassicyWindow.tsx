@@ -23,6 +23,7 @@ import {
 	type ReactNode,
 	type RefObject,
 	useCallback,
+	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
@@ -63,6 +64,10 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 import { ClassicyScrollArea } from "@/SystemFolder/SystemResources/ScrollArea/ClassicyScrollArea";
 import { useClassicyFitsScrollBars } from "@/SystemFolder/SystemResources/ScrollArea/useClassicyFitsScrollBars";
+import {
+	ClassicyFloatingLayerContext,
+	classicyFallbackFloatingLayer,
+} from "@/SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
 import { ClassicyWindowActiveContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 import { ClassicyWindowMenuBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowMenuBar";
 import {
@@ -563,37 +568,6 @@ const withoutStateOwnedStyle = withoutZIndex;
 const mountedWindowKeys = new Map<string, number>();
 
 /**
- * The shared stacking context of every extension's floating windows (Apple
- * Guide's topics), created on first use under the desktop root: a full-size,
- * pointer-transparent layer at z-index 354, above the palettes (350) and under the Control Strip
- * (355) and the modal bands (360 and up). The floating windows portal into it
- * and stack there by recency with z-indices 1..N, so any number of them (of
- * any number of extensions) order correctly and none is ever moved in the DOM
- * (moving a node resets its scroll offsets, blurs its focus and can drop the
- * click in flight).
- */
-const FLOATING_LAYER_ID = "classicy-floating-layer";
-const floatingLayerOf = (root: HTMLElement): HTMLElement => {
-	const existing = root.querySelector<HTMLElement>(`#${FLOATING_LAYER_ID}`);
-	if (existing) return existing;
-	const layer = document.createElement("div");
-	layer.id = FLOATING_LAYER_ID;
-	Object.assign(layer.style, {
-		position: "absolute",
-		left: "0",
-		top: "0",
-		width: "100%",
-		height: "100%",
-		zIndex: "354",
-		// The layer spans the desktop (percentage sizes of its windows resolve
-		// against it) but must not catch the pointer: its windows opt back in.
-		pointerEvents: "none",
-	});
-	root.appendChild(layer);
-	return layer;
-};
-
-/**
  * A Mac OS 8 Platinum window (HIGOS8 Ch.5, p.99): title bar with close box on
  * the left and zoom and collapse boxes on the right (p.101), a draggable frame,
  * Platinum scroll bars and a grow box. It is the component for any app window
@@ -676,6 +650,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// windows, and floating windows stack among themselves by recency: its rank
 	// among every extension's open floating windows by `zOrder`, and how many
 	// there are.
+	const floatingLayerCtx = useContext(ClassicyFloatingLayerContext);
 	const isFloatingWindow = isFloatingExtensionWindow(
 		currentApp ?? { extension: false },
 		appMenu,
@@ -711,9 +686,17 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const { showContextMenu } = useClassicyContextualMenu();
 
 	const windowRef = useRef<HTMLDivElement | null>(null);
+	// The window's live element, mirrored into state so the observers on it
+	// re-attach when the node changes (a remount into another parent).
+	const [windowNode, setWindowNode] = useState<HTMLDivElement | null>(null);
+	const setWindowEl = useCallback((node: HTMLDivElement | null) => {
+		windowRef.current = node;
+		setWindowNode(node);
+	}, []);
+	const nodeKeyedRef = useMemo(() => ({ current: windowNode }), [windowNode]);
 	// The elements a package lays a pattern in from a fixed origin
 	// (`layout.patternOrigin.elements`): this window's.
-	useClassicyPatternOriginElements(windowRef);
+	useClassicyPatternOriginElements(nodeKeyedRef);
 	const layout = useClassicyAppearanceLayout();
 	const centering: ClassicyWindowCentering = layout.window.centering ?? "exact";
 
@@ -1034,12 +1017,14 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ws.closed isn't read in the effect body — it's an intentional re-attachment trigger so a window that starts hidden re-observes once it becomes visible
 	useEffect(() => {
 		if (typeof ResizeObserver === "undefined") return;
-		const el = windowRef.current;
+		// The live node (mirrored into state by the ref callback), so the
+		// observer follows the window if its element is replaced.
+		const el = windowNode;
 		if (!el) return;
 		const observer = new ResizeObserver(() => handleContentResizeRef.current());
 		observer.observe(el);
 		return () => observer.disconnect();
-	}, [ws.closed]);
+	}, [ws.closed, windowNode]);
 
 	// Scroll bars only while there is something to scroll. The contents'
 	// ClassicyScrollArea draws both bars (Mac OS 8 style) only while its
@@ -2105,7 +2090,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		<div
 			{...appearance.attrs}
 			id={[appId, id].join("_")}
-			ref={windowRef}
+			ref={setWindowEl}
 			role="application"
 			aria-label={title || undefined}
 			// Package, then consumer, then the window's own geometry; neither
@@ -2305,9 +2290,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		);
 	}
 
-	// A floating window draws in the shared floating layer, not in place.
-	if (isFloatingWindow && desktopRoot && !ws.closed) {
-		return createPortal(windowContent, floatingLayerOf(desktopRoot));
+	// A floating window draws in the desktop's floating layer, not in place:
+	// the desktop's own element when there is one (nothing is drawn until the
+	// layer has committed, so the window mounts once, in it), else, outside a
+	// desktop, a layer found or appended under the root.
+	if (isFloatingWindow && !ws.closed) {
+		const layer = floatingLayerCtx
+			? floatingLayerCtx.element
+			: desktopRoot && classicyFallbackFloatingLayer(desktopRoot);
+		return layer ? createPortal(windowContent, layer) : null;
 	}
 
 	return <>{windowContent}</>;

@@ -294,6 +294,7 @@ export * from "./SystemFolder/SystemResources/Utils/base64Compression";
 export * from "./SystemFolder/SystemResources/Utils/deepMerge";
 export * from "./SystemFolder/SystemResources/Utils/urlValidation";
 export * from "./SystemFolder/SystemResources/Window/ClassicyActivationKeyAimedAtOtherWindow";
+export * from "./SystemFolder/SystemResources/Window/ClassicyFloatingLayer";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindow";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowActiveContext";
 export * from "./SystemFolder/SystemResources/Window/ClassicyWindowContext";
