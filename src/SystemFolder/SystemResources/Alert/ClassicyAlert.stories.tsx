@@ -142,7 +142,9 @@ export const WithHelpButton: Story = {
 /**
  * The movable variant (`movable`): a draggable window whose title bar carries
  * the red highlight and shows `title`, instead of the fixed alert's red
- * content border (HIGOS8 p.57). It plays the alert sound itself on open.
+ * content border (HIGOS8 p.57), and whose frame carries the red bevel of
+ * HIGOS8 p.61, Figure 3-4 (under Platinum). It plays the alert sound itself
+ * on open.
  */
 export const Movable: Story = {
 	render: () => (
