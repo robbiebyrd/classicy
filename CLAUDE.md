@@ -199,8 +199,10 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   true`) is cascaded to `30 + 10·n` (G18). `ClassicyWindow` always sends one.
 - `ClassicyWindowOpen` focuses a brand-new window, and a window **reopened**
   after being closed this session (`closedThisSession`, set by
-  `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`). A window
-  re-registering after a reload never steals focus.
+  `ClassicyWindowClose`, stripped in `sanitizeStateForPersistence`), and a
+  closed window reopening as it mounts in the front app while none of its
+  windows is focused (a relaunch). A window re-registering after a reload
+  never steals focus.
 - A non-modal `ClassicyWindow` that unmounts while its record is open
   dispatches `ClassicyWindowClose` on the next tick, unless a window with the
   same app+id has mounted again by then (StrictMode's phantom remount, or a
@@ -638,17 +640,34 @@ The Apple menu's **Recent Applications** and **Recent Documents** (story
 0226-a6f; Mac OS 8.1 and System 7.5.3 observed on Infinite Mac) are fed by
 the kernel (`src/SystemFolder/SystemResources/RecentItems/`, store-free):
 `openApp` records an app that is really there (its `ClassicyApp` mounted,
-its record held; never the Finder, an extension, or an app whose manifest
+its record held, an `app_shortcut` icon record: on the desktop or in
+Applications; never the Finder, an extension, or an app whose manifest
 says `controlPanel: true`), and every document open records through one
 helper, `recordClassicyRecentDocument`, which keeps a path only when it
-names a file (`peekClassicyFileSystemEntry`): the generic
+names a file of the desktop's file system (`peekClassicyFileSystemEntry`
+under the provider's `fileSystemStorageKey`, default `"classicyStorage"`,
+which every `useClassicyFileSystem()`/accessor without a key of its own
+follows too): the generic
 `ClassicyApp${name}OpenFile` queue, `routeClassicyAppOpenFile`, the Finder's
 QuickTime hand-off, the bundled apps' own open actions, and the Open dialog
-(`ClassicyFileDialog` dispatches `ClassicyDesktopRecentItemsRecordDocument`).
-`openApp(ds, id, name, icon, { document?, windows? })` is a **document open**
-when either is given: only those windows reopen (and come to the front),
-never one the user closed; a plain open still reopens every window. `closeApp`
-empties the app's `data.openFiles` (quitting closes its documents). State is
+(`ClassicyFileDialog` dispatches `ClassicyDesktopRecentItemsRecordDocument`,
+so any app's Open dialog choice is one; `ClassicyFileInput`'s host files are
+not). `openApp(ds, id, name, icon, { document?, windows? })` reopens only
+windows whose `ClassicyWindow` is mounted (`ClassicyMountedWindows.internal.ts`;
+the rest reopen as they mount), and is a **document open** when either
+option is given: only the document's windows (`${id}_file_${path}`,
+`classicyDocumentWindowId`, plus `windows`) reopen and come to the front;
+a document launch holds the windows mounting with it to that rule
+(`launchedFor`, `mayClassicyWindowReopen`, ended by `ClassicyApp`'s
+`ClassicyAppLaunchSettled`; session state). `closeApp` (Quit) empties
+`data.openFiles` and runs the app's quit handler
+(`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages, HyperCard's
+stacks); on relaunch the viewers show their sample again, PDF Viewer its
+Open dialog. SimpleText asks before closing or quitting with unsaved text
+(Mac OS 8.1's alert: Don’t Save, Cancel, Save). A `handlesOwnFiles` app
+names a document window `${id}_file_${path}` and dispatches its
+`CloseFile` on close (the window-id convention, `docs/AGENT-REFERENCE.md`
+§11). State is
 `System.Manager.Desktop.recentItems` `{ enabled, counts: { application,
 document } (0–99, default 10), items }`, persisted and normalized on load (a
 `migrateClassicyState` step); `ClassicyDesktopRecentItems{SetEnabled,SetCount,

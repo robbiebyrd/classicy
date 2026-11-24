@@ -427,6 +427,7 @@ All optional, and all accepted by `Classicy` too:
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
+| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents) |
 | `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps. `ClassicyDesktop` also clears what a disabled app saved earlier (Apple-menu entry, icon record, open record; `classicyDisabledDefaultAppCleanup`, `ClassicyDisabledDefaultApps.ts`) unless the app is mounted anyway |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
@@ -569,9 +570,12 @@ Common built-in actions:
 
 Helper functions (exported, callable inside custom handlers): `openApp`
 (`(ds, id, name, icon, { document?, windows? }?)`: a plain open reopens every
-window the app closed; a document open reopens and fronts only `windows` and
-remembers `document` under Recent Documents, §11 "Recent Items"),
-`closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
+window the app closed that is mounted; a document open reopens and fronts
+only the document's windows (`${id}_file_${document}`,
+`classicyDocumentWindowId`, and `windows`), holds a launch to the same rule,
+and remembers `document` under Recent Documents, §11 "Recent Items"),
+`closeApp` (quit: closes the windows and the documents, `data.openFiles`
+and what the app's quit handler closes), `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
 `loadApp`, `getDefaultAppForFileType`, `pickSuccessorApp`,
 `dispatchToPlugin(ds, prefix, action)` (cross-app orchestration without a
 direct import; it carries no trust and always reduces as **trusted**, so never
@@ -619,7 +623,7 @@ Full props:
 | `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon) |
 | `debug` | `boolean` | `false` | |
 | `handlesFileTypes` | `ClassicyFileSystemEntryFileType[]` | — | register as a file-type handler |
-| `handlesOwnFiles` | `boolean` | `false` | |
+| `handlesOwnFiles` | `boolean` | `false` | draw your own windows for the queued `data.openFiles` (else `ClassicyApp` draws one plain window per path). Give a document's window the id `` `${id}_file_${path}` `` (`classicyDocumentWindowId`) and dispatch `` `ClassicyApp${name}CloseFile` `` with the path when it closes (§11, "Recent Items": the window-id convention) |
 | `contextMenu` | `ClassicyMenuItem[]` | — | app-level right-click menu |
 | `noDesktopIcon`, `inApplicationsFolder` | `boolean` | — | **deprecated** aliases; note `noDesktopIcon` alone no longer hides the app from Applications |
 
@@ -6127,17 +6131,24 @@ store-free, called by the kernel):
   HyperCard script), a desktop icon (`ClassicyDesktopIconOpen`), a Finder
   app shortcut and a document that opens its app all count, while an id
   nothing mounted (a stack script's invention, a removed app's saved record)
-  never does, however often it is opened, trusted or not. Never the Finder,
-  an extension, or an app whose manifest says `controlPanel: true` (the Mac
-  remembered applications; a control panel opened from the Apple menu was not
-  added). It is remembered by its **internal** name; the menu shows the name
+  never does, however often it is opened, trusted or not. Only an app the
+  user can find, on the desktop or in the Applications folder (it has an
+  `app_shortcut` icon record, which `ClassicyApp` registers for either): an
+  app with `showDesktopIcon={false}` and `showInApplicationsFolder={false}`
+  (Web Viewer, opened only by its pages) is never listed, since chosen on its
+  own it would have nothing to show. Never the Finder, an extension, or an
+  app whose manifest says `controlPanel: true` (the Mac remembered
+  applications; a control panel opened from the Apple menu was not added). It is remembered by its **internal** name; the menu shows the name
   its record holds now, by the active package's display name (§8, "App
   display overrides").
 - A **document** each time one is opened, through the one helper
   `recordClassicyRecentDocument(ds, path)`, which remembers a path only when
   it names a file in the desktop's file system (`isClassicyRecentDocumentPath`:
   an entry that is not a folder or disk, read with `peekClassicyFileSystemEntry`,
-  which looks at the live tree without building a file system). So a
+  which looks at the live tree without building a file system), the one the
+  provider's `fileSystemStorageKey` names (default `"classicyStorage"`; §1
+  provider props), as the Finder, the apps and the Recent Documents menu all
+  read it. So a
   generic-queue `path` that is a URL or a key is queued as before but not
   remembered. The opens that record: the Finder's routing
   (`ClassicyAppFinderOpenFile` → `routeClassicyAppOpenFile`, an app's own
@@ -6150,7 +6161,12 @@ store-free, called by the kernel):
   `ClassicyAppHyperCardOpenStack` with a `stackSource` path), and the Open
   dialog: `ClassicyFileDialog` (Standard File) dispatches
   `ClassicyDesktopRecentItemsRecordDocument { path }` for each chosen file of
-  the Classicy file system before calling `onOpenFunc`. A host app that opens
+  the Classicy file system before calling `onOpenFunc`. So **a file chosen in
+  any app's Open dialog is a recent document**, a host app's
+  `ClassicyFileOpenDialog` included, whatever the app then does with it, as
+  every file chosen in Standard File was on the Mac. `ClassicyFileInput`
+  records nothing: it picks files from the host computer (the browser's own
+  picker), which are not in the Classicy file system. A host app that opens
   documents by its own action calls `openApp(ds, id, name, icon, { document:
   path })`, or `recordClassicyRecentDocument(ds, path)`.
 - Each use moves the item to the front; one per app or path; the oldest past
@@ -6162,18 +6178,72 @@ store-free, called by the kernel):
   original item is in the trash.", opens nothing, and keeps the item (Mac OS
   8.1, observed); Restore makes it open again, Empty Trash makes it missing.
 
-`openApp(ds, appId, name, icon, options?)` (§2 helpers) opens an app plainly
-(reopening every window it closed, as a launch does) or, with
-`options.document` or `options.windows`, **for a document**: only the windows
-named are reopened and brought to the front, and every other window the app
-closed stays closed, so opening a document never brings back a window the
-user closed (Mac OS 8.1: a document launching SimpleText shows that document
-alone). `closeApp` (quit) empties the app's `data.openFiles`, so a later
-launch never brings back a document the app had open before it quit (Mac
-OS 8.1: SimpleText quit with a document open, relaunched, shows a new
-untitled window only), and SimpleText discards its untitled documents on
-quit. The bundled apps' document opens (the generic queue, PDF Viewer,
-Picture Viewer, Movie Player, HyperCard, Web Viewer) use the document mode.
+**Opening and quitting an app** (`ClassicyAppHelpers.ts`). Mac OS 8.1,
+observed on Infinite Mac: a document launching SimpleText shows that
+document alone; quitting with a document open and relaunching shows a new
+untitled window only.
+
+- `openApp(ds, appId, name, icon, options?)` (§2 helpers) opens an app
+  **plainly**, reopening every window it closed whose `ClassicyWindow` is
+  mounted (`ClassicyMountedWindows.internal.ts`); a window that is not
+  mounted (its app was quit, or the document it showed closed) reopens itself
+  if and when it mounts (`ClassicyWindowOpen` on a closed record), so no
+  window record ever reads open with nothing on screen.
+- With `options.document` (a path) or `options.windows` (ids), it opens the
+  app **for a document**: only the document's windows reopen and come to the
+  front (`` `${appId}_file_${document}` ``, which `classicyDocumentWindowId`
+  builds, and the ids in `windows`), and every other window the app closed
+  stays closed. When this launches the app (it was not open), the windows
+  that mount with the launch are held to the same rule (`launchedFor`,
+  `mayClassicyWindowReopen`, read by `ClassicyWindowOpen`): after a quit, or
+  on a first launch, a document open shows only that document, never a main
+  window or one the user closed. `ClassicyApp` ends the launch once those
+  windows have registered (`ClassicyAppLaunchSettled`, `settleAppLaunch`,
+  which also fronts the window the app last had in front when none is);
+  `launching` and `launchedFor` are session state, stripped on save.
+- `closeApp` (Quit) closes the app's windows and its documents: it empties
+  `data.openFiles`, and runs the app's quit handler for documents kept
+  elsewhere (`registerClassicyAppQuitHandler`, internal: Web Viewer's
+  `openUrls`, HyperCard's `openStacks` and `activeStackId`; a stack's edit
+  session stays, and HyperCard's Quit asks about it first). So a later
+  launch never brings back a document the app had open before it quit. On a
+  plain relaunch Movie Player and Picture Viewer load their sample again,
+  as on their first launch; PDF Viewer, which has no window without a
+  document, shows its Open dialog (PDF files) on a launch that opens none;
+  HyperCard shows its empty window; SimpleText a new Untitled window.
+- **SimpleText asks before it discards text** (Mac OS 8.1's SimpleText,
+  observed): closing a window, or quitting, with unsaved text (an Untitled
+  window typed in, a file edited since it was opened or saved) shows a
+  caution alert, "Save changes to the document “<title>” before closing?"
+  (the same words for a Quit), with **Don’t Save**, **Cancel** and **Save**,
+  Save the default. Cancel keeps the document, and stops the Quit; Save
+  writes a file (an Untitled one through the Save dialog, whose Cancel
+  cancels the close). A Quit asks about each unsaved document in turn, the
+  front window first.
+
+**The window-id convention** (a host app's document windows). The kernel
+names a document's window `` `${appId}_file_${path}` ``. `ClassicyApp` draws
+its own windows for `data.openFiles` under that id (`handlesOwnFiles`
+`false`). An app that draws its own (`handlesOwnFiles`), as SimpleText and
+PDF Viewer do, should:
+
+1. give the window it draws for a queued path the id
+   `` `${appId}_file_${path}` `` (`classicyDocumentWindowId(appId, path)`), so
+   a document open reopens and fronts that window only, and a document
+   launch after a quit shows it alone; and
+2. dispatch `` `ClassicyApp${name}CloseFile` `` with the path when that
+   window closes, so the path leaves the queue: the window unmounts, and the
+   next open of the document queues it again and the window opens, in front.
+
+An app whose document window has an id of its own and keeps its path queued
+after the window closes still reopens it: when a document already queued
+has no `` `${appId}_file_${path}` `` window, the generic queue reopens every
+window the app closed, as a plain open, that one among them. And a launch
+for a document never holds back the windows of such an app (it names none
+of the convention's ids), so they open as on a plain launch. Apps that queue
+documents elsewhere name their windows to `openApp` (`windows`): Movie
+Player and Picture Viewer (`moviePlayerWindowId`, `pictureViewerWindowId`),
+Web Viewer (`` `${appId}_url_${url}` ``), HyperCard (`hypercard_main`).
 
 State, persisted with the desktop (`System.Manager.Desktop.recentItems`,
 `ClassicyStoreRecentItems`; `defaultClassicyRecentItemsState()` in the
