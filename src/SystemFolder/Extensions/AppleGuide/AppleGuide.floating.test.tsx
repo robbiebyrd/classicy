@@ -1,5 +1,5 @@
 import { act, fireEvent } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@/__tests__/test-utils";
 import { Calculator } from "@/SystemFolder/Calculator/Calculator";
 import { CALCULATOR_APP_ID } from "@/SystemFolder/Calculator/CalculatorManifest";
@@ -136,12 +136,16 @@ describe("Apple Guide: a floating window over the front application", () => {
 		expect(display()).toBe("1");
 	});
 
-	it("keeps any number of floating topics inside 351-354, under the Control Strip (355)", () => {
+	it("keeps any number of floating topics inside 351-354, under the Control Strip (355)", async () => {
 		const ids = Array.from({ length: 10 }, (_, i) => `many-topic-${i}`);
 		for (const id of ids)
 			registerAppleGuideTopic({ id, title: id, pages: [<p key={id}>{id}</p>] });
 		mount();
 		for (const id of ids) show(id);
+		// Let the topics' DOM order settle (it is applied one task later).
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 5));
+		});
 		const zs = ids.map((id) => Number(guideWindow(id)?.style.zIndex));
 		for (const z of zs) {
 			expect(z).toBeGreaterThanOrEqual(351);
@@ -155,12 +159,79 @@ describe("Apple Guide: a floating window over the front application", () => {
 		fireEvent.click(bottom);
 		expect(Number(guideWindow(ids[0])?.style.zIndex)).toBe(354);
 		expect(Number(guideWindow(ids[9])?.style.zIndex)).toBeLessThan(354);
-		// Below the top four the DOM order decides, and it follows recency: the
-		// raised window is last, the previous top one just before it.
+		// Right after the click the DOM has not moved: a node moved between
+		// mouseup and click makes Chromium drop the click.
+		const ids0 = () =>
+			[...document.querySelectorAll(".appleGuideWindowFrame")].map((e) =>
+				e.id.replace(`${APPLE_GUIDE_APP_ID}_apple_guide_`, ""),
+			);
+		expect(ids0().at(-1)).toBe(ids[9]);
+		// A task later it follows recency: the raised window is last, the
+		// previous top one just before it.
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 5));
+		});
 		const order = [...document.querySelectorAll(".appleGuideWindowFrame")].map(
 			(e) => e.id.replace(`${APPLE_GUIDE_APP_ID}_apple_guide_`, ""),
 		);
 		expect(order.slice(-2)).toEqual([ids[9], ids[0]]);
 		expect(order.slice(0, 3)).toEqual([ids[1], ids[2], ids[3]]);
+	});
+
+	it("a reorder on raising a topic keeps focus on the button the user clicked in it", () => {
+		mount();
+		show(KEYBOARD_SHORTCUTS_TOPIC_ID);
+		show(ABOUT_BALLOON_HELP_TOPIC_ID);
+		// Keyboard Shortcuts (three pages, an enabled pager button) is the
+		// lower one; focus its button as a click does, then the click raises it
+		// (the DOM reorders).
+		const lower = guideWindow(KEYBOARD_SHORTCUTS_TOPIC_ID) as HTMLElement;
+		// The pager's enabled arrow (the previous one is disabled on page 1).
+		const buttons = lower.querySelectorAll("button:not(:disabled)");
+		const button = buttons[buttons.length - 1] as HTMLButtonElement;
+		act(() => {
+			button.focus();
+		});
+		expect(document.activeElement).toBe(button);
+		// jsdom keeps focus on a node that is moved; Chrome and Firefox blur it.
+		// Emulate them: moving a node that holds the focused element blurs it.
+		const realInsertBefore = Node.prototype.insertBefore;
+		const insertBefore = vi
+			.spyOn(Node.prototype, "insertBefore")
+			.mockImplementation(function <T extends Node>(
+				this: Node,
+				node: T,
+				child: Node | null,
+			) {
+				const active = document.activeElement;
+				if (active && node.contains(active) && node.parentNode) {
+					(active as HTMLElement).blur();
+				}
+				return realInsertBefore.call(this, node, child) as T;
+			});
+		const realAppendChild = Node.prototype.appendChild;
+		const appendChild = vi
+			.spyOn(Node.prototype, "appendChild")
+			.mockImplementation(function <T extends Node>(this: Node, node: T) {
+				const active = document.activeElement;
+				if (active && node.contains(active) && node.parentNode) {
+					(active as HTMLElement).blur();
+				}
+				return realAppendChild.call(this, node) as T;
+			});
+		try {
+			fireEvent.mouseUp(lower);
+			fireEvent.click(lower);
+		} finally {
+			insertBefore.mockRestore();
+			appendChild.mockRestore();
+		}
+		const order = [...document.querySelectorAll(".appleGuideWindowFrame")].map(
+			(e) => e.id,
+		);
+		expect(order.at(-1)).toBe(lower.id);
+		// React restores the focus the move blurred (its commit's
+		// `restoreSelection`), so the clicked button keeps the keyboard.
+		expect(document.activeElement).toBe(button);
 	});
 });

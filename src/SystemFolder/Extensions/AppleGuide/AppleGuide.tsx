@@ -1,4 +1,4 @@
-import type { FC as FunctionalComponent } from "react";
+import { type FC as FunctionalComponent, useEffect, useState } from "react";
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import {
@@ -29,15 +29,31 @@ export const AppleGuide: FunctionalComponent = () => {
 	const guideApp = useAppManager(
 		(s) => s.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID],
 	);
-	// Rendered by recency (the window's `zOrder`, a window not yet registered
-	// last): floating windows past the fourth share one z-index, where the DOM
-	// order decides, so this keeps the most recent topic on top at any count.
+	// Floating windows past the fourth share one z-index, where the DOM order
+	// decides, so the topics are rendered by recency (the window's `zOrder`, a
+	// window not yet registered last). The reorder is applied one task after a
+	// raise: raising happens on mouseup, and moving a node between mouseup and
+	// the click that follows makes Chromium drop that click, so a button
+	// clicked in a lower topic would not activate. React restores the focus a
+	// later move blurs (`restoreSelection` in its commit).
 	const recency = (id: string) =>
 		getAppWindow(guideApp, appleGuideWindowId(id))?.zOrder ??
 		Number.MAX_SAFE_INTEGER;
-	const openTopics = [...(data.openTopics ?? [])].sort(
-		(a, b) => recency(a) - recency(b),
-	);
+	const open = data.openTopics ?? [];
+	const byRecency = [...open].sort((a, b) => recency(a) - recency(b));
+	const recencyKey = byRecency.join("|");
+	const [domOrder, setDomOrder] = useState<string[]>(byRecency);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: recencyKey stands for byRecency
+	useEffect(() => {
+		const t = setTimeout(() => setDomOrder(byRecency), 0);
+		return () => clearTimeout(t);
+	}, [recencyKey]);
+	// What is drawn now: the settled order for topics still open, then any
+	// newly opened one, so a topic appears at once and a closed one goes at once.
+	const openTopics = [
+		...domOrder.filter((id) => open.includes(id)),
+		...byRecency.filter((id) => !domOrder.includes(id)),
+	];
 
 	return (
 		<ClassicyApp
