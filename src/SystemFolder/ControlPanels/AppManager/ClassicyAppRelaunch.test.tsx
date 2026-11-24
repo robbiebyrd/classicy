@@ -741,7 +741,11 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 		});
 	});
 
-	describe("PDF Viewer is never left running with nothing to show (re-review 2, A2)", () => {
+	// Story 0226-a6f quit PDF Viewer whenever it had no document (re-review
+	// 2, A2), because an app with no window had no menu bar to quit it
+	// from; with windowless menus (story 0233-c79) it keeps running, as a
+	// Mac application with every window closed does (re-review 3, N4).
+	describe("PDF Viewer with no document keeps running, its menus in the bar", () => {
 		const PDF = "PDFViewer.app";
 		const GUIDE = "Macintosh HD:Documents:Guide.pdf";
 		const dialog = () =>
@@ -755,25 +759,40 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 		const savedOpen = () =>
 			sanitizeStateForPersistence(useAppManager.getState()).System.Manager
 				.Applications.apps[PDF]?.open;
+		const barItem = (id: string) =>
+			(useAppManager.getState().System.Manager.Desktop.appMenu ?? [])
+				.flatMap((m) => m.menuChildren ?? [])
+				.find((item) => item.id === id);
 
-		it("quits on Cancel in its Open dialog, on the first launch and on a relaunch", async () => {
+		it("keeps running on Cancel in its Open dialog, with File ▸ Open… and Quit, on a launch and a relaunch", async () => {
 			renderDesktop();
 			launch(PDF, "PDF Viewer");
 			await waitFor(() => expect(dialog()).not.toBeNull());
 			cancelDialog();
-			await waitFor(() => expect(apps()[PDF].open).toBe(false));
-			expect(savedOpen()).toBe(false);
+			await waitFor(() => expect(dialog()).toBeNull());
+			expect(apps()[PDF].open).toBe(true);
+			expect(savedOpen()).toBe(true);
 			expect(phantomWindows()).toEqual([]);
+			await waitFor(() => expect(barItem(`${PDF}_open`)).toBeDefined());
+			expect(barItem(`${PDF}_quit`)).toBeDefined();
 
+			// File ▸ Open… asks again.
+			act(() => barItem(`${PDF}_open`)?.onClickFunc?.());
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			cancelDialog();
+			await waitFor(() => expect(dialog()).toBeNull());
+
+			// Quit, and a relaunch asks again.
+			quit(PDF);
+			expect(apps()[PDF].open).toBe(false);
 			launch(PDF, "PDF Viewer");
 			await waitFor(() => expect(dialog()).not.toBeNull());
-			expect(apps()[PDF].open).toBe(true);
 			cancelDialog();
-			await waitFor(() => expect(apps()[PDF].open).toBe(false));
-			expect(savedOpen()).toBe(false);
+			await waitFor(() => expect(dialog()).toBeNull());
+			expect(apps()[PDF].open).toBe(true);
 		});
 
-		it("quits when its last document closes", async () => {
+		it("keeps running when its last document closes, and asks for one when opened again", async () => {
 			renderDesktop();
 			send({
 				type: "ClassicyAppPDFViewerOpenFile",
@@ -793,11 +812,22 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 				app: { id: PDF },
 				path: GUIDE,
 			});
-			await waitFor(() => expect(apps()[PDF].open).toBe(false));
-			expect(savedOpen()).toBe(false);
+			await waitFor(() => expect(barItem(`${PDF}_open`)).toBeDefined());
+			expect(apps()[PDF].open).toBe(true);
+			expect(dialog()).toBeNull();
+			expect(phantomWindows()).toEqual([]);
+
+			// Opened again with no window (Finder 8's reopen, TN1102): as a
+			// launch, it asks for a document; the closed one stays closed.
+			launch(PDF, "PDF Viewer");
+			await waitFor(() => expect(dialog()).not.toBeNull());
+			expect(getAppWindow(apps()[PDF], `${PDF}_file_${GUIDE}`)?.closed).toBe(
+				true,
+			);
+			expect(phantomWindows()).toEqual([]);
 		});
 
-		it("quits when a saved session left it running with no document", async () => {
+		it("stays running, asking nothing, when a saved session left it open with no document", async () => {
 			useAppManager.setState((s) => {
 				const next = structuredClone(s);
 				next.System.Manager.Applications.apps[PDF] = {
@@ -811,7 +841,10 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 				return next;
 			});
 			renderDesktop();
-			await waitFor(() => expect(apps()[PDF].open).toBe(false));
+			await act(async () => {
+				await new Promise((r) => setTimeout(r, 50));
+			});
+			expect(apps()[PDF].open).toBe(true);
 			expect(dialog()).toBeNull();
 		});
 	});

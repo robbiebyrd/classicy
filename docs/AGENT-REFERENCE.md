@@ -7595,12 +7595,16 @@ untitled window only.
   their first launch (the check restarts on every launch, a Quit and a
   relaunch in one tick included); HyperCard shows its empty window;
   SimpleText a new untitled window. **PDF Viewer** opens only documents and
-  has no window without one (and an app with no window has no menu bar in
-  Classicy, so nothing could quit it), so a launch that opens none shows its
-  Open dialog, and once it has no document and is not asking for one
-  (Cancel in that dialog, its last document closed, or a saved session that
-  left it open with none) it quits, as the Mac's document-only utilities
-  did: it is never saved `open` with no window.
+  has no window without one, so a launch that opens none shows its Open
+  dialog (a Quit and a relaunch in one tick included: it reads the launch's
+  `launching` mark), and so does opening it again while it runs with no
+  window (`onReopen`, Finder 8's reopen). With no document (Cancel in that
+  dialog, its last document closed, or a saved session that left it open
+  with none) it keeps running with no window, its File (Open…, Quit) and
+  Help menus in the bar (`windowlessMenu`), as a Mac application with every
+  window closed does. (Story 0226-a6f had it quit there, while an app with
+  no window had no menu bar to quit it from; re-review 3's N4, done when
+  windowless menus arrived.)
 - `ClassicyAppClose` is the immediate quit: it discards what the app has
   not saved. `requestClassicyAppQuit(appId)` (§2, "Quitting with unsaved
   work") quits as the app's File > Quit does, asking first.

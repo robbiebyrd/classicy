@@ -763,7 +763,9 @@ session state) fails open, reopening the mounted windows when none of the
 app's held windows opened (dialogs and palettes do not count). `closeApp` (Quit) empties `data.openFiles` and runs the app's
 quit handler (`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages,
 HyperCard's stacks); on relaunch the viewers show their sample again; PDF
-Viewer asks for a document and quits whenever it has none. `ClassicyAppClose`
+Viewer asks for a document on a launch and when opened again with none, and
+with none keeps running, its File and Help menus in the bar
+(`windowlessMenu`). `ClassicyAppClose`
 quits at once; `requestClassicyAppQuit(appId)` (`ClassicyAppQuit.ts`) runs the
 app's quit guard first (`registerClassicyAppQuitGuard`; SimpleText's and
 HyperCard's File > Quit use it); it never rejects (a guard that throws is a

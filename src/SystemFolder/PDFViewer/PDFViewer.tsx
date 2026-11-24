@@ -21,7 +21,6 @@ import {
 import {
 	closeAllWindowsMenuItemHelper,
 	closeWindowMenuItemHelper,
-	quitAppHelper,
 	quitMenuItemHelper,
 } from "@/SystemFolder/SystemResources/App/ClassicyAppUtils";
 import { resolveFileSystemEntrySource } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemContentResolver";
@@ -30,6 +29,7 @@ import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/
 import type { ClassicyFileOpenSelection } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialog";
 import { desktopVolume } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileDialogVolume";
 import { ClassicyFileOpenDialog } from "@/SystemFolder/SystemResources/FileDialog/ClassicyFileOpenDialog";
+import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 
 const { name: appName, id: appId } = PDFViewerAppInfo;
@@ -54,48 +54,37 @@ export const PDFViewer: FunctionalComponent = () => {
 	const rawOpenFiles = appState?.data?.openFiles;
 	const openFiles: string[] = Array.isArray(rawOpenFiles) ? rawOpenFiles : [];
 
-	// PDF Viewer opens only documents, and has no window without one, so it
-	// is never left running with nothing to show (an app with no window has
-	// no menu bar in Classicy, so nothing could quit it). A launch that opens
-	// no document (the Apple menu, Recent Applications, a relaunch after a
-	// quit) asks for one, the Open dialog; and once it has none and is not
-	// asking (Cancel, its last document closed, or a saved session that left
-	// it open with none) it quits, as the Mac's document-only utilities did.
-	// So `open: true` is never saved for a PDF Viewer with no window (story
-	// 0226-a6f).
+	// PDF Viewer opens only documents. A launch that opens none (the Apple
+	// menu, Recent Applications, a relaunch after a quit) asks for one, the
+	// Open dialog, and so does opening it again while it runs with no window
+	// (`onReopen`: Finder 8's reopen application Apple event asks a running
+	// application for what its launch does, TN1102). Cancel, or closing its
+	// last document, leaves it running with no window and its File and Help
+	// menus in the bar (`windowlessMenu`), as a Mac application with every
+	// window closed keeps running (story 0226-a6f's N4: it quit instead while
+	// an app with no window had no menu bar to quit it from).
 	const appOpen = appState?.open === true;
+	// A launch's mark (the kernel's, session state) also catches a Quit and
+	// a relaunch in one tick, which `open` alone never shows.
+	const launching = appState?.launching === true;
 	const [showOpenDialog, setShowOpenDialog] = useState(false);
 	const wasOpenRef = useRef(appOpen);
-	const quittingRef = useRef(false);
 	useEffect(() => {
-		const launched = appOpen && !wasOpenRef.current;
+		const launched = appOpen && (!wasOpenRef.current || launching);
 		wasOpenRef.current = appOpen;
 		if (!appOpen) {
-			quittingRef.current = false;
 			setShowOpenDialog(false);
 			return;
 		}
-		if (openFiles.length > 0 || showOpenDialog) return;
-		if (launched) {
-			setShowOpenDialog(true);
-			return;
-		}
-		if (quittingRef.current) return;
-		quittingRef.current = true;
-		desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
-	}, [
-		appOpen,
-		openFiles.length,
-		showOpenDialog,
-		desktopEventDispatch,
-		appIcon,
-	]);
+		if (launched && openFiles.length === 0) setShowOpenDialog(true);
+	}, [appOpen, launching, openFiles.length]);
+	const askForDocument = useCallback(() => setShowOpenDialog(true), []);
 
 	const volumes = useMemo(() => [desktopVolume(fs)], [fs]);
 	const openSelections = useCallback(
 		(selections: ClassicyFileOpenSelection[]) => {
-			// The document first, so no render sees PDF Viewer with neither a
-			// document nor its dialog (which quits it).
+			// The document first, so no render draws PDF Viewer with neither a
+			// document nor its dialog (its windowless menu would flash).
 			for (const selection of selections) {
 				desktopEventDispatch({
 					type: OPEN_FILE,
@@ -167,6 +156,31 @@ export const PDFViewer: FunctionalComponent = () => {
 		[closeWindow, openFiles, aboutMenuItem, appIcon],
 	);
 
+	// The menus PDF Viewer keeps in the bar with no window open: File (Open…,
+	// Quit) and Help; Close Window and Close All need a document.
+	const windowlessMenu = useMemo<ClassicyMenuItem[]>(
+		() => [
+			{
+				id: `${appId}_file`,
+				title: "File",
+				menuChildren: [
+					{
+						id: `${appId}_open`,
+						title: "Open…",
+						onClickFunc: askForDocument,
+					},
+					quitMenuItemHelper(appId, appName, appIcon),
+				],
+			},
+			{
+				id: `${appId}_help`,
+				title: "Help",
+				menuChildren: [aboutMenuItem],
+			},
+		],
+		[askForDocument, aboutMenuItem, appIcon],
+	);
+
 	return (
 		<ClassicyApp
 			id={appId}
@@ -175,6 +189,8 @@ export const PDFViewer: FunctionalComponent = () => {
 			handlesFileTypes={[ClassicyFileSystemEntryFileType.Pdf]}
 			handlesOwnFiles={true}
 			showDesktopIcon={false}
+			windowlessMenu={windowlessMenu}
+			onReopen={askForDocument}
 		>
 			{openFiles.map((filePath: string, idx: number) => {
 				const entry = fs.resolve(filePath);
