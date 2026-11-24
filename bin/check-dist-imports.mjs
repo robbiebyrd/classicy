@@ -205,7 +205,10 @@
 //    file as an ES module, so the UMD bundle itself cannot be required), and
 //    classicy.umd.js requires no Node built-in, which a browser bundler could
 //    not resolve (Rollup's `require("url")` for import.meta.url becomes
-//    process.getBuiltinModule, bin/classicyUmdNodeUrl.ts). 3.7.0 threw
+//    process.getBuiltinModule, bin/classicyUmdNodeUrl.ts), and declares
+//    nothing at its top level: a `<script>` page would get it as a global,
+//    and it would make every global name the bundle reads a slow lookup
+//    under the loader's eval (25 to 60% slower). 3.7.0 threw
 //    `document is not defined` on import (a dependency's `browser` entry,
 //    bin/classicyNodeEntry.ts), and its UMD bundle could not be required at
 //    all. Skipped when the caller names files.
@@ -215,6 +218,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { argv, exit } from "node:process";
+import { parseAst } from "vite";
 import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
@@ -244,7 +248,10 @@ import {
 	classicyUmdLoaderFile,
 	findClassicyUmdLoaderProblems,
 } from "./classicyUmdLoader.ts";
-import { findClassicyUmdNodeBuiltinProblems } from "./classicyUmdNodeUrl.ts";
+import {
+	findClassicyUmdNodeBuiltinProblems,
+	findClassicyUmdTopLevelDeclarations,
+} from "./classicyUmdNodeUrl.ts";
 
 const DIST = "dist";
 
@@ -987,6 +994,7 @@ if (!argv.slice(2).length) {
 			read,
 		),
 		...findClassicyUmdNodeBuiltinProblems(umd, read(umd) ?? ""),
+		...findClassicyUmdTopLevelDeclarations(umd, read(umd) ?? "", parseAst),
 	];
 	if (!problems.length)
 		problems.push(...(await findClassicyNodeImportProblems(entries)));
@@ -994,7 +1002,7 @@ if (!argv.slice(2).length) {
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals and with Node's own, silently; ${loader} is the CommonJS loader of classicy.umd.js, which requires no Node built-in`,
+			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals and with Node's own, silently; ${loader} is the CommonJS loader of classicy.umd.js, which requires no Node built-in and declares nothing at its top level`,
 		);
 }
 

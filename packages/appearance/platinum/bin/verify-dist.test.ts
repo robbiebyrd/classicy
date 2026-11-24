@@ -82,7 +82,7 @@ const urls = SHIPPED.map(
 	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
 ).join(",");
 const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const h="${HALFTONE}";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-platinum.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?$classicyUrl().pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\nfunction $classicyUrl(){return process.getBuiltinModule("node:url")}\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?$classicyUrl().pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});function $classicyUrl(){return process.getBuiltinModule("node:url")}});\n`;
 const FONTS = classicyFontStylesheet(
 	PLATINUM_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -218,6 +218,21 @@ describe("bin/verify-dist.mjs", () => {
 				}).stderr,
 			).toBe(
 				'dist/appearance-platinum.umd.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
+			));
+
+		// Inside the factory, never at the top level: a <script> page's global,
+		// and slow global lookups under the CommonJS loader's eval (invariant
+		// 11).
+		it("fails a UMD bundle that declares anything at its top level", () =>
+			expect(
+				verify({
+					"appearance-platinum.umd.js": `${UMD.replace(
+						'function $classicyUrl(){return process.getBuiltinModule("node:url")}',
+						"",
+					)}function $classicyUrl(){return process.getBuiltinModule("node:url")}\n`,
+				}).stderr,
+			).toBe(
+				"dist/appearance-platinum.umd.js: declares $classicyUrl at its top level (FunctionDeclaration) -> a <script> page gets it as a global, and the CommonJS loader's eval slows every global name the bundle reads; keep it inside the UMD factory (bin/classicyUmdNodeUrl.ts).",
 			));
 
 		it("fails a bundle that carries the core's registries", () =>

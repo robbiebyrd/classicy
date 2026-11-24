@@ -99,13 +99,16 @@
 //    CommonJS (in this "type": "module" package Node reads a .js file as an
 //    ES module), and the UMD bundle requires no Node built-in (its asset
 //    URLs reach Node's url module through process.getBuiltinModule,
-//    bin/classicyUmdNodeUrl.ts; invariant 1 allows only the core and React).
+//    bin/classicyUmdNodeUrl.ts; invariant 1 allows only the core and React)
+//    and declares nothing at its top level (no global on a `<script>` page,
+//    no slow global lookups under the loader's eval).
 //    The core must be built first: the bundles import it.
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
 import { exit } from "node:process";
+import { parseAst } from "vite";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
 import { findClassicyCommonJsDeclarationProblems } from "../../../../bin/classicyCommonJsDeclarations.ts";
 import { findClassicyCssFloorProblems } from "../../../../bin/classicyCssFloor.ts";
@@ -133,6 +136,7 @@ import {
 	classicyUmdLoaderFile,
 	findClassicyUmdLoaderProblems,
 } from "../../../../bin/classicyUmdLoader.ts";
+import { findClassicyUmdTopLevelDeclarations } from "../../../../bin/classicyUmdNodeUrl.ts";
 import { PLATINUM_FONT_FACES } from "../src/assets/platinumFonts.internal.ts";
 
 const DIST = "dist";
@@ -484,12 +488,19 @@ report(
 // Invariant 11: both bundles load in Node with no browser globals, the UMD
 // bundle through its CommonJS loader.
 {
-	const problems = findClassicyUmdLoaderProblems(
-		UMD_LOADER,
-		basename(UMD),
-		"@classicy/appearance-platinum",
-		(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
-	);
+	const problems = [
+		...findClassicyUmdLoaderProblems(
+			UMD_LOADER,
+			basename(UMD),
+			"@classicy/appearance-platinum",
+			(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
+		),
+		...findClassicyUmdTopLevelDeclarations(
+			UMD,
+			existsSync(UMD) ? readFileSync(UMD, "utf8") : "",
+			parseAst,
+		),
+	];
 	if (!problems.length)
 		problems.push(
 			...(await findClassicyNodeImportProblems([
@@ -499,7 +510,7 @@ report(
 		);
 	report(
 		problems,
-		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals and with Node's own, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}`,
+		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals and with Node's own, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}, which declares nothing at its top level`,
 	);
 }
 
