@@ -156,6 +156,33 @@ drawn on a canvas and shown from a `data:` URL.
   the title-bar, HilightText and InfoWindow colors the package's color
   families.
 
+## References and resources
+
+The look was checked against these; keep them at hand for later work on the
+package.
+
+- [98.css](https://jdan.github.io/98.css/) (jdan): the CSS recipes for the
+  bevels, the title-bar buttons' marks and the controls, and the
+  `"Pixelated MS Sans Serif"` face the themes name first.
+- [os-gui](https://os-gui.js.org) (1j01): Windows 98's menus, windows and
+  the classic color schemes' `.theme` files (`[Control Panel\Colors]`),
+  which the sixteen schemes here are read from.
+- [React95](https://storybook.react95.io/) and
+  [windows98-ui](https://windows98-ui.netlify.app): component galleries to
+  compare states against.
+- [Chicago95](https://github.com/npjg/Chicago95) (Nathanael Gentry and
+  contributors): a Windows 95 desktop theme for Linux with a large body of
+  Windows 9x-era imagery (icons, cursors, wallpapers, the boot and
+  shutdown screens), fonts and sounds, and the metrics behind them. The
+  theme is GPL-3.0, and its Windows-derived artwork remains Microsoft's, so
+  it is a reference for shapes, sizes and palettes; nothing from it ships
+  in this package.
+- Wine's `user32` and `comctl32` (`msgbox.c`, `uitools.c`, `button.c`,
+  `scroll.c`, `trackbar.c`, `progress.c`, `listbox.c`), whose drawing code
+  documents Windows 95/98's pixel-level behavior: the centered message-box
+  buttons, the pressed default button, the focus rectangle's inset, the
+  indeterminate checkbox, the inverted page area of a held scroll bar.
+
 ## Developing
 
 This package lives in the Classicy repository, at
