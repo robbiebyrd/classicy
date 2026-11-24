@@ -68,20 +68,38 @@ export type ClassicySoundState = {
 	 */
 	fallbackPackId?: string | null;
 	/**
-	 * Sound commands (play, stop) not yet run, oldest first. The reducer only
-	 * queues them; `ClassicySoundManagerProvider` runs each once, in an
-	 * effect (`runClassicySoundCommand`), so the reducer stays pure (React
-	 * calls it twice in StrictMode).
+	 * Sound commands (play, stop) not yet run, oldest first.
+	 * `classicySoundStateReducer` only queues them; `ClassicySoundManagerProvider`
+	 * runs each once, in an effect (`runClassicySoundCommand`), so the reducer
+	 * stays pure (React calls it twice in StrictMode). The deprecated
+	 * `ClassicySoundStateEventReducer` runs them itself and leaves none.
 	 */
 	commands?: readonly ClassicySoundCommand[];
 	/** The id the next queued command takes. */
 	nextCommandId?: number;
+	/**
+	 * The pack `soundPlayer` and `fallbackPlayer` were set for
+	 * (`ClassicySoundSetPlayers`, `ClassicySoundSet`); queued commands wait
+	 * while it is not `packId`.
+	 */
+	playersPackId?: string | null;
 };
+
+/**
+ * What a command is judged by, as it was when the command was queued: a
+ * play followed by a mute in one batch still plays, as it did when the
+ * reducer played at once.
+ */
+export type ClassicySoundCommandPolicy = Readonly<
+	Pick<ClassicySoundState, "disabled" | "alertSound" | "alertVolume" | "volume">
+>;
 
 /** A queued sound command: a play or stop action, with its queue id. */
 export type ClassicySoundCommand = Readonly<{
 	id: number;
 	action: ClassicySoundAction;
+	/** The state's mute, alert sound and levels when it was queued. */
+	policy: ClassicySoundCommandPolicy;
 }>;
 
 export enum ClassicySoundActionTypes {
@@ -216,6 +234,15 @@ const warnClassicySoundPackMissingSprites = (pack: ClassicySoundPack) => {
 	);
 };
 
+/**
+ * Unload a player, if it can be: a host's stand-in for Howler (a test's
+ * mock) may lack `unload`, and an unload is housekeeping, never worth an
+ * exception (the provider's runs from a timer after it unmounts).
+ */
+export const unloadClassicySoundPlayer = (player: Howl | null | undefined) => {
+	if (typeof player?.unload === "function") player.unload();
+};
+
 /** The players a sound state plays through. */
 export type ClassicySoundPlayers = {
 	soundPlayer: Howl | null;
@@ -239,7 +266,7 @@ export function buildClassicySoundPlayers(
 	);
 	for (const [id, player] of cache) {
 		if (!wanted.includes(id)) {
-			player.unload();
+			unloadClassicySoundPlayer(player);
 			cache.delete(id);
 		}
 	}
@@ -281,6 +308,33 @@ const playerFor = (ss: ClassicySoundState, sound: string): Howl | null =>
  * child's mount effect asks for (the boot chime) waits in the queue until
  * they are. Returns `base` when neither pack is registered (each missing id
  * is logged once), and without a window: a server render touches no audio.
+ */
+export const seedClassicySoundState = (
+	base: ClassicySoundState,
+	packId: string,
+	muted: boolean | undefined,
+): ClassicySoundState => {
+	const start = muted ? { ...base, disabled: ["*"] } : base;
+	if (typeof window === "undefined") return start;
+	const pack =
+		findClassicySoundPack(packId) ??
+		findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+	return pack
+		? classicySoundStateReducer(start, {
+				type: ClassicySoundActionTypes.ClassicySoundLoad,
+				pack,
+			})
+		: start;
+};
+
+/**
+ * @deprecated For a provider of your own on the deprecated
+ * `ClassicySoundStateEventReducer`. Initial sound state with the player
+ * already built from `packId`'s pack, or the default pack when that one is
+ * not registered (yet), so children's mount effects find a player. Returns
+ * `base`, with no player, when neither is registered; each missing id is
+ * logged once. `ClassicySoundManagerProvider` uses the pure
+ * `seedClassicySoundState`.
  */
 export const seedSoundState = (
 	base: ClassicySoundState,
@@ -413,13 +467,15 @@ export function runClassicySoundCommand(
 }
 
 /**
- * The sound manager's reducer. Pure: a play or stop is queued in
- * `commands` (`isClassicySoundCommand`), and loading a pack only records
- * which pack to play (`packId`, `sprites`, `fallbackPackId`); the provider
- * builds the players and runs the commands in effects, each once. React
- * calls a reducer twice in StrictMode, so nothing here may play or build.
+ * The sound manager's reducer, as `ClassicySoundManagerProvider` uses it.
+ * Pure: a play or stop is queued in `commands` (`isClassicySoundCommand`),
+ * with the mute, alert sound and levels it is to be judged by, and loading
+ * a pack only records which pack to play (`packId`, `pack`, `sprites`,
+ * `fallbackPackId`); the provider builds the players and runs the commands
+ * in effects, each once. React calls a reducer twice in StrictMode, so
+ * nothing here may play or build.
  */
-export const ClassicySoundStateEventReducer = (
+export const classicySoundStateReducer = (
 	ss: ClassicySoundState,
 	action: ClassicySoundAction,
 ): ClassicySoundState => {
@@ -437,9 +493,15 @@ export const ClassicySoundStateEventReducer = (
 		case ClassicySoundActionTypes.ClassicySoundPlayError:
 		case ClassicySoundActionTypes.ClassicyAlertSound: {
 			const id = ss.nextCommandId ?? 1;
+			const policy: ClassicySoundCommandPolicy = {
+				disabled: ss.disabled,
+				alertSound: ss.alertSound,
+				alertVolume: ss.alertVolume,
+				volume: ss.volume,
+			};
 			next = {
 				...ss,
-				commands: [...(ss.commands ?? []), { id, action }],
+				commands: [...(ss.commands ?? []), { id, action, policy }],
 				nextCommandId: id + 1,
 			};
 			break;
@@ -458,6 +520,7 @@ export const ClassicySoundStateEventReducer = (
 				...ss,
 				soundPlayer: action.soundPlayer ?? null,
 				fallbackPlayer: action.fallbackPlayer ?? null,
+				playersPackId: ss.packId,
 			};
 			break;
 		}
@@ -519,7 +582,13 @@ export const ClassicySoundStateEventReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundSet: {
-			next = { ...ss, soundPlayer: action.soundPlayer ?? null };
+			// A player of the host's own: commands run on it from now on, as
+			// they did when the reducer played (until a pack load replaces it).
+			next = {
+				...ss,
+				soundPlayer: action.soundPlayer ?? null,
+				playersPackId: ss.packId,
+			};
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicyVolumeSet: {
@@ -588,4 +657,56 @@ export const ClassicySoundStateEventReducer = (
 	}
 
 	return next;
+};
+
+/** The default pack's player, or null while that pack is not registered. */
+const createDefaultPackPlayer = (): Howl | null => {
+	const fallback = getClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);
+	return fallback ? createSoundPlayer({ soundData: fallback }) : null;
+};
+
+/**
+ * @deprecated Use `ClassicySoundManagerProvider`, which reduces with the
+ * pure `classicySoundStateReducer`. Kept for a provider of the host's own
+ * (`useReducer(ClassicySoundStateEventReducer, initialPlayer)` with the
+ * exported contexts) and for direct callers: it behaves as it did before
+ * the reducer was made pure. A pack load builds the new pack's player (and
+ * the default pack's as the stand-in), unloading the one it replaces; a
+ * play or stop runs at once, against the state it was dispatched to; and
+ * the state it returns holds no queued commands. Under React's StrictMode
+ * it plays and builds twice, as it always did.
+ */
+export const ClassicySoundStateEventReducer = (
+	ss: ClassicySoundState,
+	action: ClassicySoundAction,
+): ClassicySoundState => {
+	let next = classicySoundStateReducer(ss, action);
+	if (
+		action.type === ClassicySoundActionTypes.ClassicySoundLoad &&
+		action.pack
+	) {
+		const isDefault = action.pack.id === CLASSICY_DEFAULT_SOUND_PACK_ID;
+		warnClassicySoundPackMissingSprites(action.pack);
+		unloadClassicySoundPlayer(ss.soundPlayer);
+		if (isDefault) unloadClassicySoundPlayer(ss.fallbackPlayer);
+		next = {
+			...next,
+			soundPlayer: createSoundPlayer({ soundData: action.pack }),
+			fallbackPlayer: isDefault
+				? null
+				: (ss.fallbackPlayer ?? createDefaultPackPlayer()),
+			playersPackId: next.packId,
+		};
+	} else if (
+		action.type === ClassicySoundActionTypes.ClassicySoundLoadFallback &&
+		next !== ss
+	) {
+		const fallbackPlayer = ss.fallbackPlayer ? null : createDefaultPackPlayer();
+		next = fallbackPlayer ? { ...next, fallbackPlayer } : ss;
+	}
+	const commands = next.commands ?? [];
+	if (commands.length === 0) return next;
+	for (const command of commands)
+		runClassicySoundCommand({ ...next, ...command.policy }, command.action);
+	return { ...next, commands: [] };
 };

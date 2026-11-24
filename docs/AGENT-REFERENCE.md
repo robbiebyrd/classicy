@@ -5877,21 +5877,35 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 pack loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
 (`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
-**The reducer is pure** (`ClassicySoundStateEventReducer`; React calls it
-twice in StrictMode): the plays and stops (`ClassicySoundPlay`,
+**The provider's reducer is pure** (`classicySoundStateReducer`; React calls
+a reducer twice in StrictMode): the plays and stops (`ClassicySoundPlay`,
 `…PlayInterrupt`, `…PlayError`, `ClassicyAlertSound`, `ClassicySoundStop`;
-`isClassicySoundCommand`) are queued in the state's `commands`, and
-`ClassicySoundLoad` only records the pack to play (`packId`, `pack`,
-`sprites`, `fallbackPackId`). `ClassicySoundManagerProvider` builds the
-players in an effect (`buildClassicySoundPlayers`, one Howl per pack, kept
-across StrictMode's rehearsal unmount and unloaded on a real unmount; they
-reach the state as `soundPlayer`/`fallbackPlayer` through
-`ClassicySoundSetPlayers`) and runs each queued command once
-(`runClassicySoundCommand`, then `ClassicySoundCommandsRun { through }`), a
-command queued before the players exist (a child's mount effect) waiting
-for them. A test that calls the reducer directly runs the commands itself
-with `runClassicySoundCommand`. `seedSoundState` builds no player, and
-returns its start state without a window.
+`isClassicySoundCommand`) are queued in the state's `commands`, each with
+the mute, alert sound and levels it was queued under (`policy`: a play
+followed by a mute in one batch still plays), and `ClassicySoundLoad` only
+records the pack to play (`packId`, `pack`, `sprites`, `fallbackPackId`).
+`ClassicySoundManagerProvider` builds the players in an effect
+(`buildClassicySoundPlayers`, one Howl per pack, kept across StrictMode's
+rehearsal unmount and unloaded, if the player has `unload`, a tick after a
+real unmount; they reach the state as `soundPlayer`/`fallbackPlayer`
+through `ClassicySoundSetPlayers`), sets each new player's gain, then runs
+each queued command once on the state's players (`runClassicySoundCommand`,
+then `ClassicySoundCommandsRun { through }`), so an alert keeps system gain
+× alert volume even when it plays in the commit its player arrives. A
+command queued before the players for the state's pack are set (a child's
+mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
+player of the host's own, which the commands then play on. The seed
+(`seedClassicySoundState`) builds no player and returns its start state
+without a window; the provider reads the persisted alert sound and volume
+into it at once.
+**Deprecated: `ClassicySoundStateEventReducer` and `seedSoundState`.** They
+keep their old behavior for a provider of the host's own
+(`useReducer(ClassicySoundStateEventReducer, initialPlayer, (b) =>
+seedSoundState(b, packId, muted))` with the exported contexts) and for
+direct callers: a pack load builds the players (unloading the one it
+replaces), a play or stop runs at once, and the returned state holds no
+queued commands. They play and build twice under StrictMode, as they always
+did; move to `ClassicySoundManagerProvider`.
 **Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
 `ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
 mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and
