@@ -69,6 +69,12 @@ import {
 } from "@/SystemFolder/SystemResources/Window/ClassicyWindowResize";
 import { ClassicyWindowSelfPaddingContext } from "@/SystemFolder/SystemResources/Window/ClassicyWindowSelfPadding.internal";
 import { ClassicyWindowTitleBar } from "@/SystemFolder/SystemResources/Window/ClassicyWindowTitleBar";
+import {
+	classicyWindowContentRect,
+	findClassicyZoomIcon,
+	playClassicyZoomRects,
+	takeClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 export type ClassicyWindowPositionX = number | "left" | "center" | "right";
 export type ClassicyWindowPositionY = number | "top" | "center" | "bottom";
@@ -425,6 +431,14 @@ interface ClassicyWindowProps {
 	 */
 	analyticsExclude?: boolean;
 	/**
+	 * The file system path of the folder (or drive) this window shows. When
+	 * the window closes it zooms back to that item's icon, or the nearest
+	 * enclosing folder's or drive's that shows, as the Finder's windows do
+	 * (`findClassicyZoomIcon`). The zoom out of an icon when the window opens
+	 * needs no prop: it follows `noteClassicyWindowZoomSource`.
+	 */
+	zoomIconPath?: string;
+	/**
 	 * Fade the contents while the window is inactive (not applied to modals).
 	 * `false` uses a contrast-only inactive treatment instead. Defaults to
 	 * `true`.
@@ -614,6 +628,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	contextMenu,
 	analyticsPath,
 	analyticsExclude,
+	zoomIconPath,
 	onCloseFunc,
 	onBeforeClose,
 	children,
@@ -1087,6 +1102,82 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		wasKeyboardFocusedRef.current = ownsKeyboard;
 		if (becameFocused) focusInitialTarget();
 	}, [modal, ws.closed, ws.collapsed, ws.focused, focusInitialTarget]);
+
+	// Zoom rectangles (ClassicyZoomRects.ts). Opening: a window that becomes
+	// open (mounting open, or closed → open) takes the source an icon left
+	// for it (`noteClassicyWindowZoomSource`) and, when a zoom draws, stays
+	// laid out but undrawn (`classicyWindowZoomHidden`) until its last
+	// rectangle is erased. Measured in a layout effect, so the window never
+	// shows before its rectangles. A window that was already open takes none
+	// (the 7.5 Finder drew none for a folder whose window was open).
+	const [zoomHidden, setZoomHidden] = useState(false);
+	const zoomWasOpenRef = useRef(false);
+	useLayoutEffect(() => {
+		const open = !ws.closed;
+		const opened = open && !zoomWasOpenRef.current;
+		zoomWasOpenRef.current = open;
+		if (!opened) return;
+		const origin = takeClassicyWindowZoomSource(appId, id);
+		const el = windowRef.current;
+		if (!origin || !el) return;
+		const desktop =
+			origin.desktop ?? el.closest<HTMLElement>(".classicyDesktop");
+		if (!desktop) return;
+		const zoom = playClassicyZoomRects({
+			desktop,
+			icon: origin.rect,
+			window: classicyWindowContentRect(el),
+			direction: "open",
+			onEnd: () => setZoomHidden(false),
+		});
+		if (zoom) setZoomHidden(true);
+	}, [ws.closed, appId, id]);
+
+	// Closing: the root element leaves the DOM (the record closed, or the
+	// window unmounted). Its box is read as it goes (a callback ref is
+	// detached before its element is removed), and a tick later, unless the
+	// element came back (StrictMode's phantom detach) or the record is not
+	// closed (a window unmounting open, or renamed under a new id), the
+	// rectangles run from that box back to the icon `zoomIconPath` names.
+	const zoomIconPathRef = useRef(zoomIconPath);
+	useLayoutEffect(() => {
+		zoomIconPathRef.current = zoomIconPath;
+	}, [zoomIconPath]);
+	const setWindowElement = useCallback(
+		(el: HTMLDivElement | null) => {
+			const previous = windowRef.current;
+			windowRef.current = el;
+			if (el || !previous?.isConnected) return;
+			const path = zoomIconPathRef.current;
+			if (path === undefined) return;
+			const desktop = previous.closest<HTMLElement>(".classicyDesktop");
+			if (!desktop) return;
+			const box = previous.getBoundingClientRect();
+			setTimeout(() => {
+				if (windowRef.current || !desktop.isConnected) return;
+				if (typeof useAppManager.getState !== "function") return;
+				const record = getAppWindow(
+					useAppManager.getState().System.Manager.Applications.apps[appId],
+					id,
+				);
+				if (!record?.closed) return;
+				const icon = findClassicyZoomIcon(desktop, path);
+				if (!icon) return;
+				playClassicyZoomRects({
+					desktop,
+					icon: icon.rect,
+					window: {
+						left: box.left,
+						top: box.top,
+						width: box.width,
+						height: box.height,
+					},
+					direction: "close",
+				});
+			}, 0);
+		},
+		[appId, id],
+	);
 
 	const windowRegistered = useRef(false);
 	const lastMenuBarSignatureRef = useRef<string | undefined>(undefined);
@@ -1994,7 +2085,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 		<div
 			{...appearance.attrs}
 			id={[appId, id].join("_")}
-			ref={windowRef}
+			ref={setWindowElement}
 			role="application"
 			aria-label={title || undefined}
 			// Package, then consumer, then the window's own geometry; neither
@@ -2031,6 +2122,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",
 				showsMenuBar ? "classicyWindowWithMenuBar" : "",
+				zoomHidden ? "classicyWindowZoomHidden" : "",
 				className,
 			)}
 			onMouseMove={changeWindow}

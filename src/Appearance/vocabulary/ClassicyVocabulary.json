@@ -56,7 +56,8 @@
 			"classicyTabsHolder",
 			"classicyTabsSizeLarge",
 			"classicyTabsSizeSmall"
-		]
+		],
+		"Window": ["classicyZoomRect", "classicyZoomRects"]
 	},
 	"components": {
 		"Alert": [
@@ -585,7 +586,8 @@
 			"TitleText",
 			"Utility",
 			"WithMenuBar",
-			"ZoomBox"
+			"ZoomBox",
+			"ZoomHidden"
 		]
 	},
 	"states": [
@@ -631,7 +633,8 @@
 			"scroll-drag-outline",
 			"menu-scroll-up",
 			"menu-scroll-down",
-			"selection-marquee"
+			"selection-marquee",
+			"zoom-rect"
 		]
 	}
 }

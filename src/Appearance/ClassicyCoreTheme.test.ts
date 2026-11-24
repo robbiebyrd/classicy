@@ -57,6 +57,9 @@ const LOOK_ONLY = [
 	// The selection rectangle's pen and checker (_SelectionMarquee.scss).
 	"selectionMarquee.width",
 	"selectionMarquee.tileSize",
+	// The zoom rectangles' pen and checker (_ZoomRects.scss).
+	"zoomRects.width",
+	"zoomRects.tileSize",
 ];
 
 const platinumMeasurements = platinumJson.defaults.measurements as Record<
@@ -118,12 +121,12 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 
 	it("holds exactly the knobs AGENT-REFERENCE §8 marks structural", () => {
 		const documented = documentedKnobs();
-		expect(documented.size).toBe(107);
+		expect(documented.size).toBe(115);
 		const structural = [...documented]
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(85);
+		expect(structural).toHaveLength(91);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();

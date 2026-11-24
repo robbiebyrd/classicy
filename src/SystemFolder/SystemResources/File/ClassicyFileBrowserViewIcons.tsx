@@ -65,6 +65,7 @@ import {
 } from "@/SystemFolder/SystemResources/Icon/ClassicyIcon";
 import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/ClassicyTabbable.internal";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 const ARROW_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
@@ -83,8 +84,8 @@ export type ClassicyFileBrowserViewIconsProps = {
 	fs: ClassicyFileSystem;
 	path: string;
 	appId: string;
-	dirOnClickFunc?: (path: string) => void;
-	fileOnClickFunc?: (path: string) => void;
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible` (drawn dimmed). Defaults to true. */
@@ -451,20 +452,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					return;
 				}
 
+				// The icon passes its zoom origin, for a window it opens.
 				const openFileOrFolder = (
 					properties: ClassicyFileSystemEntryMetadata,
 					path: string,
 					filename: string,
+					origin?: ClassicyZoomOrigin,
 				) => {
-					if (properties._type === "directory") {
-						if (dirOnClickFunc) {
-							return dirOnClickFunc(`${path}:${filename}`);
-						}
-						return;
-					}
-					if (fileOnClickFunc) {
-						return fileOnClickFunc(`${path}:${filename}`);
-					}
+					const open =
+						properties._type === "directory" ? dirOnClickFunc : fileOnClickFunc;
+					if (!open) return;
+					const itemPath = `${path}:${filename}`;
+					return origin ? open(itemPath, origin) : open(itemPath);
 				};
 
 				const containerMeasure: [number, number] = [
@@ -580,7 +579,8 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 							(isClassicyTrashFolder(fs, path, filename) && trashIcon) ||
 							properties._icon ||
 							iconImageByType(properties._type),
-						onClickFunc: () => openFileOrFolder(properties, path, filename),
+						onClickFunc: (origin?: ClassicyZoomOrigin) =>
+							openFileOrFolder(properties, path, filename, origin),
 						holder: resolvedHolderRef,
 						initialPosition: cleanupIcon(
 							activeTheme,

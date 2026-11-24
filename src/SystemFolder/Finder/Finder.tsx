@@ -72,7 +72,12 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import {
+	type ClassicyZoomOrigin,
+	noteClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 type FinderWindowProps = {
 	appId: string;
@@ -305,6 +310,8 @@ const FinderWindow: FunctionalComponent<FinderWindowProps> = ({
 			initialSize={[425, 300]}
 			initialPosition={[50 + idx * 50, 50 + idx * 50]}
 			header={<span>{getHeaderString(dir)}</span>}
+			// Closing zooms back to the folder's icon.
+			zoomIconPath={op}
 			onCloseFunc={closeFolder}
 			appMenu={appMenu}
 			initialFocusRef={focusTargetRef}
@@ -444,13 +451,16 @@ export const Finder = () => {
 	// callback (passed to every folder window) is stable across data changes.
 	const finderWindows = appState.windows;
 	const openFolder = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
+			const ws = getAppWindow({ windows: finderWindows }, path);
+			// Opened from an icon, a window that is not open yet zooms out of
+			// it; an open one only comes to the front (7.5 drew no zoom).
+			if (!ws || ws.closed) noteClassicyWindowZoomSource(appId, path, origin);
 			desktopEventDispatch({
 				type: "ClassicyAppFinderOpenFolder",
 				path,
 			});
 
-			const ws = getAppWindow({ windows: finderWindows }, path);
 			if (ws) {
 				desktopEventDispatch({
 					type: "ClassicyWindowOpen",
@@ -472,13 +482,16 @@ export const Finder = () => {
 	);
 
 	const openFile = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
 			const file = fs.resolve(path);
-			desktopEventDispatch({
-				type: "ClassicyAppFinderOpenFile",
-				file,
-				path,
-			});
+			// An application this open starts zooms out of the item's icon.
+			withClassicyLaunchZoom(origin, () =>
+				desktopEventDispatch({
+					type: "ClassicyAppFinderOpenFile",
+					file,
+					path,
+				}),
+			);
 		},
 		[fs, desktopEventDispatch],
 	);

@@ -557,3 +557,12 @@
 .classicyWindowContentsFramedDimmed {
   border-color: var(--color-system-05);
 }
+
+// While a window zooms open out of an icon (ClassicyZoomRects.ts) it is laid
+// out but not drawn, and takes no pointer, until the last rectangle is
+// erased, as the Finder drew the window after its rectangles. It still takes
+// the keyboard focus its opening gives it.
+.classicyWindowZoomHidden {
+  opacity: 0;
+  pointer-events: none;
+}

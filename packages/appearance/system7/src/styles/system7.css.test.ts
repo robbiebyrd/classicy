@@ -184,6 +184,26 @@ describe("system7.scss (compiled)", () => {
 		});
 	});
 
+	// Story 0230-n6c: the System 7.5 Finder's zoom rectangles, a one-pixel
+	// XOR checker frame (Mac OS 8's is two); 7.5 drew every step of the
+	// path from the icon and kept four at a time, so System 7 overrides the
+	// core floor's (Mac OS 8.1's) first step and trail.
+	it("draws the zoom rectangles as a one-pixel XOR checker frame, every step, four kept", () => {
+		const zoom = rule("[data-classicy-part=zoom-rect]");
+		expect(zoom).toMatch(/padding: var\(--zoom-rects-width\);/);
+		expect(zoom).toMatch(
+			/background: conic-gradient\(var\(--color-white\) 0 25%, transparent 0 50%, var\(--color-white\) 0 75%, transparent 0\) var\(--classicy-pattern-origin-x\) var\(--classicy-pattern-origin-y\) ?\/ ?var\(--zoom-rects-tile-size\) var\(--zoom-rects-tile-size\);/,
+		);
+		expect(zoom).toMatch(/mask-composite: exclude;/);
+		expect(zoom).toMatch(/mix-blend-mode: difference;/);
+		expect(system7JsonSource.defaults.measurements.zoomRects).toEqual({
+			firstStep: 0,
+			trail: 4,
+			width: 1,
+			tileSize: 2,
+		});
+	});
+
 	// Plan 0018-dbd §3.2: the window chrome, from the 7.5 captures.
 	describe("windows", () => {
 		it("frames a window in one pixel with a one-pixel drop shadow and no frame ring", () => {
@@ -3309,9 +3329,13 @@ describe("system7.scss (compiled)", () => {
 			);
 
 	// Parts the core publishes the origin on itself, whatever the layout
-	// declares: the selection rectangle carries the desktop's corner
-	// (useClassicyMarqueeSelection, story 0228-e9l).
-	const CORE_PUBLISHED = new Set(["[data-classicy-part=selection-marquee]"]);
+	// declares: the selection rectangle and each zoom rectangle carry the
+	// desktop's corner (useClassicyMarqueeSelection, story 0228-e9l;
+	// ClassicyZoomRects.ts, story 0230-n6c).
+	const CORE_PUBLISHED = new Set([
+		"[data-classicy-part=selection-marquee]",
+		"[data-classicy-part=zoom-rect]",
+	]);
 
 	it("reads the origin only where the package has it published", () => {
 		const declared = system7JsonSource.layout.patternOrigin as Record<

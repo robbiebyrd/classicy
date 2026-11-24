@@ -35,6 +35,7 @@
 @use "components/ScrollArea";
 @use "components/DesktopIcon";
 @use "components/SelectionMarquee";
+@use "components/ZoomRects";
 @use "components/HyperCard";
 @use "components/FileInput";
 @use "components/Meter";
@@ -81,6 +82,8 @@
   @include DesktopIcon.desktopIcon;
   // The selection rectangle, over the icons.
   @include SelectionMarquee.selectionMarquee;
+  // The zoom rectangles, over the windows.
+  @include ZoomRects.zoomRects;
   @include HyperCard.hyperCard;
   @include FileInput.fileInput;
   @include Meter.meter;

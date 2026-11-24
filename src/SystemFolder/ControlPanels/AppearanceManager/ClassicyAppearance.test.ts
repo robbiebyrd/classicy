@@ -54,7 +54,9 @@ import {
 // --package-color-gray-ramp-step* variables after --color-theme-07; story
 // 0228-e9l added the selectionMarquee family's two knobs
 // (--selection-marquee-width, --selection-marquee-tile-size, 2px each) after
-// --dither-tile-size (every other key and value unchanged each time).
+// --dither-tile-size; story 0230-n6c added the zoomRects family's eight
+// knobs (--zoom-rects-enabled to --zoom-rects-tile-size) after those
+// (every other key and value unchanged each time).
 // Regenerate it only for an intended change to the emitted variables, by
 // running getThemeVars over getAllThemes() in a throwaway vitest file:
 //   writeFileSync("src/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance.themeVars.baseline.json",
@@ -80,8 +82,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // view's HIGOS8 Figure 2-24 icon size and row padding, the optional
 // fileBrowserList family, made 24 families and 105 keys; story 0228-e9l's
 // selection rectangle, the selectionMarquee family's pen and checker, made
-// 25 families and 107 keys).
-const PLATINUM_KNOB_COUNT = 107;
+// 25 families and 107 keys; story 0230-n6c's zoom rectangles, the zoomRects
+// family's six structural path and pace knobs and its pen and checker, made
+// 26 families and 115 keys).
+const PLATINUM_KNOB_COUNT = 115;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

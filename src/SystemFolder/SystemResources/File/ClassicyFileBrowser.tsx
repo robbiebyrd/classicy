@@ -40,6 +40,7 @@ import {
 import type { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import type { ClassicyTableSelectionApi } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 /** Commands a host (e.g. a window's menu) can run on a file browser. */
 export type ClassicyFileBrowserCommands = {
@@ -56,10 +57,18 @@ type ClassicyFileBrowserProps = {
 	appId: string;
 	/** `"icons"` (free-form icon view) or `"list"` (sortable list view). Defaults to `"icons"`. */
 	display?: "icons" | "list";
-	/** Called with a folder's full path when it is opened (double-click; Return in the list view). */
-	dirOnClickFunc?: (path: string) => void;
-	/** Called with a file's full path when it is opened (double-click; Return in the list view). */
-	fileOnClickFunc?: (path: string) => void;
+	/**
+	 * Called with a folder's full path when it is opened (double-click; Return
+	 * in the list view), and the zoom origin of the item it was opened from
+	 * (its icon's box and desktop), for a window it opens to zoom out of it
+	 * (`noteClassicyWindowZoomSource`).
+	 */
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	/**
+	 * Called with a file's full path when it is opened (double-click; Return
+	 * in the list view), and the item's zoom origin, as `dirOnClickFunc`.
+	 */
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	/**
 	 * When set, files whose `_createdOn` is after this moment are hidden from
 	 * the listing. Pass the current Classicy date/time to hide "future" files.

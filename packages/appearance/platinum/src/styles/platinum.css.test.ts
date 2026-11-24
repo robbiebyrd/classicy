@@ -453,6 +453,33 @@ describe("platinum.scss (compiled)", () => {
 		);
 	});
 
+	// Story 0230-n6c: the Mac OS 8.1 Finder's zoom rectangles, the selection
+	// rectangle's two-pixel XOR checker frame, laid from the desktop's
+	// corner the core publishes on each rectangle; the path and pace are
+	// 8.1's (six steps nearest the window of 11, each 140% of the last, one
+	// a tick, all kept).
+	it("draws the zoom rectangles as a two-pixel XOR checker frame", () => {
+		const zoom = rule(`${P} [data-classicy-part=zoom-rect]`).props;
+		expect(zoom.padding).toBe("var(--zoom-rects-width)");
+		expect(zoom.background).toBe(
+			"conic-gradient(var(--color-white) 0 25%, transparent 0 50%, var(--color-white) 0 75%, transparent 0) var(--classicy-pattern-origin-x) var(--classicy-pattern-origin-y)/var(--zoom-rects-tile-size) var(--zoom-rects-tile-size)",
+		);
+		expect(zoom["mask-composite"]).toBe("exclude");
+		expect(zoom["mix-blend-mode"]).toBe("difference");
+		expect(
+			JSON.parse(readPlatinum("platinum.json")).defaults.measurements.zoomRects,
+		).toEqual({
+			enabled: 1,
+			steps: 11,
+			growthPercent: 140,
+			firstStep: 5,
+			trail: 0,
+			rate: 60,
+			width: 2,
+			tileSize: 2,
+		});
+	});
+
 	it("scopes the desktop scrollbars", () => {
 		expect(flat).toContain(`${P} *::-webkit-scrollbar {`);
 		expect(flat).toContain(`${P}.classicyDesktopSplitArrows`);

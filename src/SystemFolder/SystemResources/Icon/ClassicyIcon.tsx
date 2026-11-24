@@ -39,6 +39,10 @@ import type { ClassicyFileDragOutlinePart } from "@/SystemFolder/SystemResources
 import { useClassicyPointerStreamLost } from "@/SystemFolder/SystemResources/File/ClassicyPointerStreamLost.internal";
 import { useClassicySelectedIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicySelectedIconImage.internal";
 import { withoutZIndex } from "@/SystemFolder/SystemResources/Utils/withoutZIndex.internal";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginOf,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 interface ClassicyIconProps {
 	/** Owning app id; prefixes the element's DOM id (`<appId>.shortcut-…`). */
@@ -58,8 +62,13 @@ interface ClassicyIconProps {
 	 * measured against it, so without it the icon cannot be dragged.
 	 */
 	holder?: RefObject<HTMLElement | null>;
-	/** "Open" action: called on double-click, or Enter/Space while focused. A single click only selects. */
-	onClickFunc?: () => void;
+	/**
+	 * "Open" action: called on double-click, or Enter/Space while focused. A
+	 * single click only selects. It is passed the icon's zoom origin (its
+	 * image's box and its desktop, `classicyZoomOriginOf`), for a window that
+	 * opens from it to zoom out of the icon (`noteClassicyWindowZoomSource`).
+	 */
+	onClickFunc?: (origin?: ClassicyZoomOrigin) => void;
 	/**
 	 * Draws the icon and caption faded (45% opacity) — the file browser sets it
 	 * for entries marked `_invisible` when invisible files are shown. Defaults
@@ -308,7 +317,11 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 			// A double-click or Enter/Space.
 			appearance.emit("open", withClassicyAppearanceInput());
 			clearFocus();
-			onClickFunc();
+			// The origin only when there is one, so a call without it is
+			// the call it always was.
+			const origin = classicyZoomOriginOf(iconRef.current);
+			if (origin) onClickFunc(origin);
+			else onClickFunc();
 		}
 	};
 

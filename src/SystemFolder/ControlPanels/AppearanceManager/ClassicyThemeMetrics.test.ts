@@ -176,6 +176,7 @@ const PLATINUM_KNOB_FAMILIES = [
 	"slider",
 	"dither",
 	"selectionMarquee",
+	"zoomRects",
 ];
 
 // A package shaped like Storybook's Test Pack: a partial controlStrip (one

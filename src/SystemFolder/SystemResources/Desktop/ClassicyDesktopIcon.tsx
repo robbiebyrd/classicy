@@ -52,6 +52,12 @@ import {
 	useState,
 } from "react";
 import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginOf,
+	noteClassicyWindowZoomSource,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 interface ClassicyDesktopIconProps {
 	/**
@@ -130,9 +136,11 @@ interface ClassicyDesktopIconProps {
 	/**
 	 * Open a file-backed icon's item (a folder in Finder, a file in its app).
 	 * Called with `filePath` when a non-drive file-backed icon is opened, in
-	 * addition to `onClickFunc`/`event`. `ClassicyDesktop` supplies it.
+	 * addition to `onClickFunc`/`event`, and the icon's zoom origin (its
+	 * image's box and desktop, `classicyZoomOriginOf`). `ClassicyDesktop`
+	 * supplies it.
 	 */
-	onOpenFilePath?: (path: string) => void;
+	onOpenFilePath?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
 	className?: string;
 	/**
@@ -367,11 +375,18 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 			const launchIcon = () => {
 				// A double-click or Enter/Space.
 				appearance.emit("open", withClassicyAppearanceInput());
+				// Zoom rectangles (ClassicyZoomRects.ts): a Finder folder's
+				// window not open yet zooms out of this icon when it opens.
+				const origin = classicyZoomOriginOf(iconRef.current);
+				if (typeof finderFolderPath === "string" && !finderPathWindowOpen) {
+					noteClassicyWindowZoomSource("Finder.app", finderFolderPath, origin);
+				}
 				if (onClickFunc) {
 					onClickFunc();
 				}
 				if (filePath !== undefined && draggedAsFile(kind, filePath)) {
-					onOpenFilePath?.(filePath);
+					if (origin) onOpenFilePath?.(filePath, origin);
+					else onOpenFilePath?.(filePath);
 				}
 				if (event && eventData) {
 					desktopEventDispatch({
@@ -381,15 +396,18 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 				}
 				track("open", { type: "ClassicyDesktopIcon", ...analyticsArgs });
 				if (!noLaunch) {
-					desktopEventDispatch({
-						type: "ClassicyDesktopIconOpen",
-						iconId: id,
-						app: {
-							id: appId,
-							name: appName,
-							icon: icon,
-						},
-					});
+					// An application this starts zooms out of its icon.
+					withClassicyLaunchZoom(origin, () =>
+						desktopEventDispatch({
+							type: "ClassicyDesktopIconOpen",
+							iconId: id,
+							app: {
+								id: appId,
+								name: appName,
+								icon: icon,
+							},
+						}),
+					);
 				}
 			};
 

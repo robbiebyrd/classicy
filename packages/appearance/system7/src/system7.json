@@ -323,6 +323,12 @@
 			"selectionMarquee": {
 				"width": 1,
 				"tileSize": 2
+			},
+			"zoomRects": {
+				"firstStep": 0,
+				"trail": 4,
+				"width": 1,
+				"tileSize": 2
 			}
 		},
 		"desktop": {

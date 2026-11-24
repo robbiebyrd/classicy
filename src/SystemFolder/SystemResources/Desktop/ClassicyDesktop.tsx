@@ -120,6 +120,8 @@ import { moveClassicyFocusOutOf } from "@/SystemFolder/SystemResources/Keyboard/
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
+import { withClassicyLaunchZoom } from "@/SystemFolder/SystemResources/Window/ClassicyLaunchZoom";
+import type { ClassicyZoomOrigin } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 import "../../../index.css";
 
@@ -669,8 +671,10 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 		[currentTheme, layoutVars, assetVars, style],
 	);
 
+	// The icon's zoom origin: a folder's window zooms out of it (the icon
+	// left the source), an application a file starts zooms to the desktop.
 	const openDesktopItem = useCallback(
-		(path: string) => {
+		(path: string, origin?: ClassicyZoomOrigin) => {
 			const entry = getFileSystem().resolve(path);
 			if (!entry) return;
 			if (
@@ -679,11 +683,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			) {
 				desktopEventDispatch({ type: "ClassicyAppFinderOpenFolder", path });
 			} else {
-				desktopEventDispatch({
-					type: "ClassicyAppFinderOpenFile",
-					file: entry,
-					path,
-				});
+				withClassicyLaunchZoom(origin, () =>
+					desktopEventDispatch({
+						type: "ClassicyAppFinderOpenFile",
+						file: entry,
+						path,
+					}),
+				);
 			}
 		},
 		[getFileSystem, desktopEventDispatch],

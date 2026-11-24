@@ -55,6 +55,10 @@ import {
 	type ClassicyTableSelectionApi,
 } from "@/SystemFolder/SystemResources/Table/ClassicyTable";
 import { ClassicyTriangle } from "@/SystemFolder/SystemResources/Triangle/ClassicyTriangle";
+import {
+	type ClassicyZoomOrigin,
+	classicyZoomOriginForPath,
+} from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 
 /**
  * A directory-list row. Mirrors the file-system metadata but adds `subRows`,
@@ -85,8 +89,8 @@ type ClassicyFileBrowserViewTableProps = {
 	path: string;
 	appId: string;
 	iconSize?: number;
-	dirOnClickFunc?: (path: string) => void;
-	fileOnClickFunc?: (path: string) => void;
+	dirOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
+	fileOnClickFunc?: (path: string, origin?: ClassicyZoomOrigin) => void;
 	holderRef?: RefObject<HTMLDivElement | null>;
 	hideFilesCreatedAfter?: Date | string | number | null;
 	/** List entries marked `_invisible`. Defaults to true. */
@@ -227,14 +231,23 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 			// Takes the row's own full path rather than rebuilding one from the
 			// table's `path` prop: disclosed rows can sit several levels below it,
 			// and rebuilding would drop the intervening directories.
+			//
+			// The row's icon is its zoom origin, for a window it opens: the
+			// row the table activated, found by its path in this list (in the
+			// document, for a table given no container ref).
 			const openFileOrFolder = (
 				properties: ClassicyFileSystemEntryMetadata,
 				entryPath: string,
 			) => {
-				if (properties._type === "directory") {
-					return dirOnClickFunc(entryPath);
-				}
-				return fileOnClickFunc(entryPath);
+				const scope =
+					focusTargetRef?.current ??
+					(typeof document === "undefined" ? null : document);
+				const origin = scope
+					? classicyZoomOriginForPath(scope, entryPath)
+					: undefined;
+				const open =
+					properties._type === "directory" ? dirOnClickFunc : fileOnClickFunc;
+				return origin ? open(entryPath, origin) : open(entryPath);
 			};
 
 			// Folder sizes resolve asynchronously; cache them by path so a rebuild of
