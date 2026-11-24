@@ -235,12 +235,11 @@ describe("ClassicyApp windowlessMenu: the front app with no window", () => {
 		expect(appMenuInBar()).toEqual(WINDOW_MENU);
 	});
 
-	// RR2-4 (for the controller to carry onto the integration branch): a
-	// relaunch (`ClassicyAppOpen`) must not reopen a window record nothing
-	// draws, or the windowless menu is lost for the phantom window's menus.
-	// `openApp` is rewritten on `feat/fr-recent-find`, which reopens only
-	// mounted windows; this test is skipped here until both land.
-	it.skip("a relaunch does not reopen an undrawn window record (skipped on this branch: openApp is rewritten by 0226-a6f's feat/fr-recent-find; the controller enables this on the integration branch)", () => {
+	// RR2-4: an open (`ClassicyAppOpen`) of the running app must not reopen
+	// a window record nothing draws, or the windowless menu is lost for the
+	// phantom window's menus. `openApp` reopens only mounted windows
+	// (story 0226-a6f); the rest reopen themselves if they mount.
+	it("an open does not reopen an undrawn window record", () => {
 		render(
 			<ClassicyApp
 				id="Notes.app"
