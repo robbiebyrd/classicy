@@ -134,12 +134,20 @@ const FindFileSession: FunctionalComponent<{ appIcon: string }> = ({
 			)?.location,
 	);
 	const location = classicyFindUsableLocation(fs, storedLocation);
-	const dateTime = useAppManager((s) => s.System.Manager.DateAndTime.dateTime);
-	const timeZoneOffset = useAppManager(
-		(s) => s.System.Manager.DateAndTime.timeZoneOffset,
+	// Today's day on Classicy's clock: selected as a day, so the clock's
+	// ticks re-render nothing until the day changes.
+	const offsetHours = useAppManager(
+		(s) =>
+			Number.parseFloat(String(s.System.Manager.DateAndTime.timeZoneOffset)) ||
+			0,
 	);
-	const offsetHours = Number.parseFloat(String(timeZoneOffset)) || 0;
-	const today = classicyFindClockDay(String(dateTime), offsetHours);
+	const today = useAppManager((s) =>
+		classicyFindClockDay(
+			String(s.System.Manager.DateAndTime.dateTime),
+			Number.parseFloat(String(s.System.Manager.DateAndTime.timeZoneOffset)) ||
+				0,
+		),
+	);
 
 	const [rows, setRows] = useState<ClassicyFindCriterion[]>(() => [
 		classicyFindCriterion("name", today),
