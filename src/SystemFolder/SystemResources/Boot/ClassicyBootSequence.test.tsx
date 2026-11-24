@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@/__tests__/test-utils";
 import { registerClassicyIcons } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyIcons";
 import { ClassicyBootSequence } from "@/SystemFolder/SystemResources/Boot/ClassicyBootSequence";
+import { useClassicyStartupShowing } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
 
 const mockPlayer = vi.hoisted(() => vi.fn());
 
@@ -54,6 +55,32 @@ describe("ClassicyBootSequence", () => {
 	});
 	afterEach(() => {
 		vi.useRealTimers();
+	});
+
+	// Story 0225-ci7: notifications wait for Classicy's own startup screens
+	// (Inside Macintosh: Processes, p. 5-10).
+	it("holds notifications while the power-on overlay, then the startup screen, shows", () => {
+		let showing: boolean[] = [];
+		const Probe = () => {
+			showing = [...showing, useClassicyStartupShowing()];
+			return null;
+		};
+		render(
+			<>
+				<Probe />
+				<ClassicyBootSequence
+					preBootScreen={powerOnScreen}
+					startupDuration={1000}
+				/>
+			</>,
+		);
+		expect(showing.at(-1)).toBe(true);
+		fireEvent.click(screen.getByText("POWER ON"));
+		expect(showing.at(-1)).toBe(true);
+		act(() => {
+			vi.advanceTimersByTime(1100);
+		});
+		expect(showing.at(-1)).toBe(false);
 	});
 
 	it("goes straight to the startup screen (chime fires) with no preBootScreen", () => {

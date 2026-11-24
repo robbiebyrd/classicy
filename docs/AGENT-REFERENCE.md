@@ -734,7 +734,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -1046,6 +1046,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
+| `alertSound` | `boolean` (an error modal's beep on open) | `true` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
 
@@ -1378,7 +1379,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `playSound? (true)`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound when it opens, unless `playSound` is `false` (a notification's alert, §4.11). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -1547,6 +1548,104 @@ Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 `isPictureViewerData`, `PDFViewerData`/`isPDFViewerData`,
 `WebViewerOpenUrlSchema`, `WebViewerData`/`isWebViewerData` (prefer
 `parseAppData` for new code).
+
+### 4.11 Notifications (the Notification Manager)
+
+An app or a host asks for the user's attention, from anywhere (outside React
+included), the way the Mac OS Notification Manager let a background
+application do (Inside Macintosh: Processes, ch. 5, pp. 5-3 to 5-11):
+
+```ts
+import { classicyNotify, removeClassicyNotification } from '@classicy/classicy'
+
+const id = classicyNotify({
+    appId: 'Mail.app',                      // required: the app asking
+    message: 'You have 3 new messages.',    // optional: a note alert with OK
+    sound: true,                            // optional: the user's alert sound
+    onResponse: (id) => {},                 // optional: after OK
+})
+removeClassicyNotification(id)              // NMRemove
+```
+
+| Field | Default | What it does (the `NMRec` field) |
+|---|---|---|
+| `appId` * | — | the app asking; a missing or empty one posts nothing (`""` returned, one `classicyLog` error) |
+| `mark?` | `true` | a ◆ beside the app in the Application menu (`nmMark`), while the app is listed there and in the background: the front app keeps its ✓ ("the diamond is replaced by a checkmark", p. 5-4) |
+| `icon?` | the app's icon, as the Application menu shows it | the small icon that blinks in the menu bar (`nmIcon`); `false` for none |
+| `sound?` | none | `true`, the user's alert sound; a string, a sprite of the loaded sound packs (`nmSound`). Played once through the sound manager at the alert volume (system volume × `Appearance.alertVolume`), silent while muted (`classicyAlertVolumeSoundAction`) |
+| `message?` | none | a non-empty string shows a note alert with that text and an OK button (`nmStr`, Figure 5-2), once |
+| `onResponse?` | — | called once with the id, last (`nmResp`): after the alert's OK, or, with no alert, once the request is presented; never for a request removed first. An exception it throws is logged, not rethrown |
+| `removeOnActivate?` | `true` | remove the request when its app comes to the front (below) |
+
+What the user sees, in the reference's order (p. 5-4): the mark, the
+blinking icon, the sound, then the alert.
+
+- **The icon** blinks over the Application menu's title when the request
+  marks an app that menu lists, else over the Apple menu's (p. 5-4; a
+  request from an app that is not open, or with `mark: false`, blinks over
+  the Apple menu). Each title shows its requests' icons in turn, then its
+  own, each for `CLASSICY_NOTIFICATION_BLINK_MS` (1000 ms: the System 7.1
+  Notification Manager's 60-tick wait; Inside Macintosh says only
+  "periodically"), so one request's icon alternates with the title's own;
+  with icons over both titles the two alternate half a period apart. For
+  users who prefer reduced motion (`prefers-reduced-motion: reduce`) nothing
+  blinks: each title shows its first request's icon steadily. While a menu
+  of the bar is open, both titles show their own icons. The Application
+  menu's title swaps only its image; its name stays.
+- **The alert** is a `ClassicyAlert` (note icon, the message as its label,
+  OK), one request at a time, oldest first; the others wait their turn. It
+  opens over the front application, as a window of that app, so it makes no
+  other app active, and it plays no sound of its own (`playSound={false}`):
+  the request's `sound` is its only sound.
+- **Requests stay** until they are removed, as the reference's do: the mark
+  and the icon remain; the sound and the alert are presented once (p. 5-5).
+  A request is removed by `removeClassicyNotification(id)` (which also
+  dismisses its alert, unanswered, if it is showing or waiting); when its
+  app comes to the front (a change of `focusedAppId` to that app), unless
+  `removeOnActivate` is `false`, which is what Inside Macintosh asks an
+  application to do ("you can do this in the response procedure or when
+  your application returns to the foreground", p. 5-6): the Notification
+  Manager itself never removed a request; and when its app quits (an open
+  app closing), as the Notification Manager flushed a quitting
+  application's requests. A request posted by the front app for itself
+  stays until the app comes forward again. A request for an app that is
+  not open stays until it opens (which brings it forward).
+- **Presentation needs a desktop.** `ClassicyDesktop` mounts the controller
+  that plays the sound, shows the alert, calls `onResponse` and removes
+  requests; a request posted before it mounts is presented once it does,
+  and each request's sound and alert are presented once, across remounts.
+  While Classicy's own startup screen (or the power-on overlay before it)
+  covers the desktop, presentation waits, as the system notified the user
+  "after the startup process completes" (p. 5-10); a host's own
+  `bootScreen` owns its timing and holds nothing, so post after it ends.
+  Under a package whose `layout.menuBar.placement` is `"window"` there is no
+  Apple or Application menu, so the mark and the icon are not drawn; the
+  sound and the alert still are.
+- **Session state.** Requests live in a module store, never persisted.
+
+Reading: `useClassicyNotifications()` (the installed requests, oldest first;
+`useSyncExternalStore`), `listClassicyNotifications()`,
+`getClassicyNotification(id)`, `subscribeClassicyNotifications(listener)`,
+`useClassicyNotifiedAppIds()` / `getClassicyNotifiedAppIds()` (the apps a
+request marks). Each `ClassicyNotification` is `{ id, appId, message?, mark,
+icon?, sound?, removeOnActivate, onResponse? }`, frozen. For a list of apps
+of your own (a palette of the same apps), pass the marked set to
+`appSwitcherAppsFrom(apps, overrides, notifiedAppIds)`: each entry gets
+`notified: true`, and `appSwitcherEntryMark(entry, front)` gives the menu
+item's `{ checked, mark? }`. `classicyNotificationMenuBarIcons(requests,
+listed, iconFor)` sorts the icons onto the two titles.
+
+The ◆ is `ClassicyMenuItem.mark: "diamond"`: the item's mark column carries
+`classicyMenuItemDiamond` beside `classicyMenuItemCheck`, unless the item is
+checked, and the package draws it (Platinum: `"\25C6"` as `::before`
+content, like its check; System 7: Chicago 12's 7 × 7 diamond from Figure
+5-1's bitmap as pixel art, its top on the check's).
+
+**HyperCard stacks may not post notifications** (story 0225-ci7's ruling):
+there is no scriptable action for it. HyperTalk had no Notification Manager
+command of its own that we found, and a request can play a sound and put up
+a modal alert, which an untrusted stack should not be able to repeat at the
+user. A host that wants it builds it on its own action and allowlist.
 
 ---
 
@@ -3107,7 +3206,7 @@ set.
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
-`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+`.mixed`), the Notification Manager's ◆ (`.classicyMenuItemCheck.classicyMenuItemDiamond`, §4.11), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
@@ -3409,7 +3508,7 @@ The helpers built on it:
 
 - `ClassicyAppSwitcherUtils.ts` (`src/SystemFolder/SystemResources/Desktop/MenuBar/`)
   holds the menu helpers, including the one the window menu bar uses:
-  `appSwitcherAppsFrom(apps, overrides?)`;
+  `appSwitcherAppsFrom(apps, overrides?, notifiedAppIds?)` (§4.11);
   `withClassicyAppIdentityMenuItems(items, overrides)`, which retitles and
   re-images the Apple-menu app entries (ids
   `` `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}` ``, `"system_menu_<appId>"`)

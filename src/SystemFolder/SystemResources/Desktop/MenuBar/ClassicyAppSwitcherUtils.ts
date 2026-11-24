@@ -14,18 +14,43 @@ export type ClassicyAppSwitcherEntry = {
 	open: boolean;
 	/** Hidden by the Application menu's Hide commands. */
 	hidden?: boolean;
+	/**
+	 * A Notification Manager request marks the app (`classicyNotify` with
+	 * `mark`): its name carries a ◆ while it is in the background.
+	 */
+	notified?: boolean;
 };
+
+const CLASSICY_NO_NOTIFIED_APPS: ReadonlySet<string> = new Set();
+
+/**
+ * The mark an Application menu row draws in its mark column: the front
+ * application's check, else a ◆ for an app a notification marks (Inside
+ * Macintosh: Processes, p. 5-4: "the diamond is replaced by a checkmark if
+ * your application is the active application"), else none.
+ */
+export const appSwitcherEntryMark = (
+	entry: Pick<ClassicyAppSwitcherEntry, "notified">,
+	front: boolean,
+): Pick<ClassicyMenuItem, "checked" | "mark"> =>
+	front
+		? { checked: true }
+		: entry.notified
+			? { checked: false, mark: "diamond" }
+			: { checked: false };
 
 /**
  * Apps eligible for the menu-bar App Switcher: open (or transiently focused)
  * and not background extensions — extensions run with open: true but must
  * never surface in the switcher. Each entry shows the app's display
  * identity: its name and icon as `overrides` (the active package's `apps`)
- * resolve them, else the record's own.
+ * resolve them, else the record's own. An app in `notifiedAppIds`
+ * (`useClassicyNotifiedAppIds()`) is `notified`.
  */
 export function appSwitcherAppsFrom(
 	apps: Record<string, ClassicyStoreSystemApp>,
 	overrides: ClassicyAppIdentityOverrides = CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+	notifiedAppIds: ReadonlySet<string> = CLASSICY_NO_NOTIFIED_APPS,
 ): ClassicyAppSwitcherEntry[] {
 	return Object.values(apps)
 		.filter((a) => (a.open || a.focused) && !a.extension)
@@ -38,6 +63,7 @@ export function appSwitcherAppsFrom(
 				focused: a.focused,
 				open: a.open,
 				...(a.hidden ? { hidden: true } : {}),
+				...(notifiedAppIds.has(a.id) ? { notified: true } : {}),
 			};
 		});
 }

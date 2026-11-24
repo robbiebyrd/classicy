@@ -15,12 +15,17 @@ import {
 	ClassicySlider,
 	ClassicyTabs,
 	ClassicyWindow,
+	classicyNotify,
 	quitAppHelper,
 	quitMenuItemHelper,
 	useAppManagerDispatch,
 } from "@classicy/classicy";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppIcons } from "../../app";
+
+// How long a Notification Manager demo waits before posting, so there is
+// time to bring another application (the Finder) to the front first.
+const NOTIFY_DELAY_MS = 5000;
 
 const RADIO_INPUTS = [
 	{
@@ -57,6 +62,20 @@ export const Demo = () => {
 
 	const desktopEventDispatch = useAppManagerDispatch();
 	const [pickedColor, setPickedColor] = useState(0x2060c0);
+
+	// The Notification Manager (Inside Macintosh: Processes, ch. 5): post a
+	// request a few seconds from now, as a background task finishing would.
+	const [notifyPending, setNotifyPending] = useState(false);
+	const notifyLater = useCallback(
+		(request: Omit<Parameters<typeof classicyNotify>[0], "appId">) => {
+			setNotifyPending(true);
+			window.setTimeout(() => {
+				classicyNotify({ ...request, appId });
+				setNotifyPending(false);
+			}, NOTIFY_DELAY_MS);
+		},
+		[],
+	);
 
 	const quitApp = useCallback(() => {
 		desktopEventDispatch(quitAppHelper(appId, appName, appIcon));
@@ -221,6 +240,41 @@ export const Demo = () => {
 						<p style={{ fontFamily: "var(--header-font)" }}>HELLO!</p>
 					</ClassicyDisclosure>
 				</>
+			),
+		},
+		{
+			title: "Notify",
+			children: (
+				<ClassicyControlGroup label={"Notification Manager"}>
+					<ClassicyControlLabel
+						label={
+							"Each button posts a notification from Demo five seconds later. Bring the Finder to the front meanwhile: Demo's name gets a diamond in the Application menu and its icon blinks in the menu bar until Demo comes back to the front."
+						}
+					/>
+					<ClassicyButton
+						disabled={notifyPending}
+						onClickFunc={() =>
+							notifyLater({
+								message: "Demo has finished its background task.",
+								sound: true,
+							})
+						}
+					>
+						Alert, Sound, Mark and Icon
+					</ClassicyButton>
+					<ClassicyButton
+						disabled={notifyPending}
+						onClickFunc={() => notifyLater({})}
+					>
+						Mark and Icon
+					</ClassicyButton>
+					<ClassicyButton
+						disabled={notifyPending}
+						onClickFunc={() => notifyLater({ mark: false })}
+					>
+						Icon over the Apple Menu
+					</ClassicyButton>
+				</ClassicyControlGroup>
 			),
 		},
 		{

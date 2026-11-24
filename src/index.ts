@@ -250,6 +250,7 @@ export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuContext";
 export * from "./SystemFolder/SystemResources/Menu/ClassicyMenuProvider";
 export * from "./SystemFolder/SystemResources/Menu/useClassicyMenuCloseOnOutsideMouseDown";
 export * from "./SystemFolder/SystemResources/Meter/ClassicyMeter";
+export * from "./SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
 export * from "./SystemFolder/SystemResources/Output/ClassicyOutput";
 export * from "./SystemFolder/SystemResources/Pager/ClassicyPager";
 export * from "./SystemFolder/SystemResources/PixelArt/ClassicyPixelArt";

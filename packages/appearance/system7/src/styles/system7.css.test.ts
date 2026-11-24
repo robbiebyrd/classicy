@@ -521,6 +521,14 @@ describe("system7.scss (compiled)", () => {
 					"currentColor",
 				),
 			).toBe(10);
+			// The Notification Manager's ◆, Chicago 12's from Inside
+			// Macintosh: Processes, Figure 5-1: 7 runs, its top on the check's
+			// (story 0225-ci7).
+			const diamond = rule(
+				".classicyMenuItemCheck.classicyMenuItemDiamond::before",
+			);
+			expect(layersOf(diamond, "currentColor")).toBe(7);
+			expect(diamond).toMatch(/top: var\(--menu-item-mark-top\);/);
 			expect(
 				layersOf(
 					rule(`${MENUS} .classicyMenuItemChildMenuIndicator::after`),

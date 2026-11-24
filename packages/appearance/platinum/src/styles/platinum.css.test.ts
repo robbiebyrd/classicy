@@ -418,6 +418,8 @@ describe("platinum.scss (compiled)", () => {
 		const glyphs: [string, string][] = [
 			[".classicyMenuItemCheck.checked::before", '"\\2713"'],
 			[".classicyMenuItemCheck.mixed::before", '"\\2013"'],
+			// The Notification Manager's mark (story 0225-ci7).
+			[".classicyMenuItemCheck.classicyMenuItemDiamond::before", '"\\25C6"'],
 			[".classicyPopUpMenuCheck.checked::before", '"\\2713"'],
 			[".classicyPopUpMenuScrollArrowUp::before", '"\\25B2"'],
 			[".classicyPopUpMenuScrollArrowDown::before", '"\\25BC"'],

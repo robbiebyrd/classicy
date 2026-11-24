@@ -33,10 +33,17 @@ import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGui
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryMark,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { useClassicyNotificationBlink } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationBlink.internal";
+import {
+	classicyNotificationMenuBarIcons,
+	useClassicyNotifications,
+	useClassicyNotifiedAppIds,
+} from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
 
 export type ClassicyDesktopMenuBarProps = {
 	/** Extra class names, merged onto the `<nav>` after the component's own. */
@@ -177,7 +184,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 > = ({ className, style, placement }) => {
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
-	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
+	const appleMenuArt = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
 	// p.52): a package that registers the art gets it in place of the word.
 	const helpMenuTitleArt = useClassicyAsset("systemArt", "helpMenuTitle");
@@ -197,7 +204,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// open at the switch (a keyboard equivalent or host code changed the
 	// package, with no mouse-down to close it) would leave the provider
 	// active: back on the screen, hovering a title would open its menu.
-	const { closeAll } = useContext(ClassicyMenuContext);
+	const { closeAll, menuBarActive } = useContext(ClassicyMenuContext);
 	useEffect(() => {
 		if (resolvedPlacement === "window") closeAll();
 	}, [resolvedPlacement, closeAll]);
@@ -211,10 +218,35 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		icon: "",
 	}).name;
 
+	// Notification Manager requests (Inside Macintosh: Processes, p. 5-4):
+	// a ◆ beside each app a request marks, and each request's icon blinking
+	// over the Application menu's title (a marked app it lists) or the Apple
+	// menu's (any other).
+	const notifiedAppIds = useClassicyNotifiedAppIds();
+	const notifications = useClassicyNotifications();
 	const appSwitcherData = useMemo(
-		() => appSwitcherAppsFrom(apps, overrides),
-		[apps, overrides],
+		() => appSwitcherAppsFrom(apps, overrides, notifiedAppIds),
+		[apps, overrides, notifiedAppIds],
 	);
+	const notificationIcons = useMemo(
+		() =>
+			classicyNotificationMenuBarIcons(
+				notifications,
+				new Set(appSwitcherData.map((a) => a.id)),
+				(appId) =>
+					classicyAppIdentityFrom(
+						overrides,
+						appId,
+						apps[appId] ?? { name: appId, icon: "" },
+					).icon,
+			),
+		[notifications, appSwitcherData, overrides, apps],
+	);
+	const blinkingIcons = useClassicyNotificationBlink(
+		notificationIcons,
+		menuBarActive,
+	);
+	const appleMenuIcon = blinkingIcons.apple ?? appleMenuArt;
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({
@@ -261,7 +293,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		];
 		return {
 			id: "app-switcher",
-			image: focusedApp?.icon || "",
+			image: blinkingIcons.application ?? (focusedApp?.icon || ""),
 			title: focusedApp?.name || finderName,
 			className: "classicyDesktopMenuAppSwitcher",
 			part: "switcher",
@@ -276,11 +308,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					id: app.id,
 					icon: app.icon,
 					title: app.name,
-					// The front application is checked, beside its icon; a hidden
-					// one's icon is dimmed: by the package's rule on a canvas
-					// (`imageDimmed`), else by its stylesheet
-					// (`classicyDesktopMenuAppHidden`).
-					checked: app.id === focusedApp?.id,
+					// The front application is checked, beside its icon, and one a
+					// notification marks has a ◆; a hidden one's icon is dimmed:
+					// by the package's rule on a canvas (`imageDimmed`), else by
+					// its stylesheet (`classicyDesktopMenuAppHidden`).
+					...appSwitcherEntryMark(app, app.id === focusedApp?.id),
 					...(app.hidden
 						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
 						: {}),
@@ -291,7 +323,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			],
 		};
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
-	}, [appSwitcherData, finderName, setActiveApp]);
+	}, [appSwitcherData, finderName, setActiveApp, blinkingIcons.application]);
 
 	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
 	// take window focus but must never be treated as "the focused app" here —

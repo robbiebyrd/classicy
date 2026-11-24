@@ -632,6 +632,31 @@ follows the theme. Widths snap to whole modules (module width plus its
 separator, `--control-strip-module-width` + `--control-strip-border-width`,
 31 px under Platinum).
 
+### Notification Manager
+
+`classicyNotify({ appId, message?, mark?, icon?, sound?, removeOnActivate?,
+onResponse? })` → id and `removeClassicyNotification(id)`
+(`src/SystemFolder/SystemResources/Notification/`; Inside Macintosh:
+Processes, ch. 5) let an app or host ask for attention from anywhere: a
+module store (`ClassicyNotificationStore.internal.ts`, read with
+`useClassicyNotifications`/`useClassicyNotifiedAppIds`), session state only.
+The menu bar draws a ◆ beside a marked background app in the Application
+menu (`ClassicyMenuItem.mark: "diamond"`, class `classicyMenuItemDiamond` in
+the mark column, drawn by each package; entries carry `notified` from
+`appSwitcherAppsFrom(apps, overrides, notifiedAppIds)`) and blinks each
+request's icon (default the app's) over the Application menu's title (a
+marked, listed app) or the Apple menu's, 1 s per frame, steady under
+reduced motion, own icons while a menu is open
+(`ClassicyNotificationBlink.internal.ts`). `ClassicyDesktop` mounts
+`ClassicyNotificationController` (`.internal.tsx`): the sound once at the
+alert volume (`classicyAlertVolumeSoundAction`; silent when muted), one
+`ClassicyAlert` at a time over the front app (`playSound={false}`; the
+window's `alertSound={false}`), `onResponse` after OK, and removal when the
+app comes forward (`focusedAppId` changes to it, unless `removeOnActivate:
+false`) or quits; it waits for its second commit and for Classicy's own
+startup screen (`ClassicyStartupHold.internal.ts`). HyperCard stacks cannot
+post (no scriptable action). Details: `docs/AGENT-REFERENCE.md` §4.11.
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.

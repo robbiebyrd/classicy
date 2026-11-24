@@ -138,4 +138,11 @@
   .classicyMenuItemCheck.mixed::before {
     content: string.unquote('"\\2013"'); // –
   }
+
+  // The Notification Manager's mark (Inside Macintosh: Processes, p. 5-4,
+  // Figure 5-1): a diamond in the mark column, where the front
+  // application's check goes, beside an application asking for attention.
+  .classicyMenuItemCheck.classicyMenuItemDiamond::before {
+    content: string.unquote('"\\25C6"'); // ◆
+  }
 }

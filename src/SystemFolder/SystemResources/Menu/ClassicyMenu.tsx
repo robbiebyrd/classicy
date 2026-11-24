@@ -75,6 +75,13 @@ export interface ClassicyMenuItem {
 	 * checkmark, which means it applies to the whole selection).
 	 */
 	checked?: boolean | "mixed";
+	/**
+	 * A mark drawn in the item's mark column when it is not checked:
+	 * `"diamond"` (◆), the Notification Manager's mark beside an application
+	 * asking for attention (Inside Macintosh: Processes, p. 5-4), drawn by the
+	 * package. A check (`checked: true`) or dash wins over it.
+	 */
+	mark?: "diamond";
 	/** Icon drawn before the title. */
 	icon?: string;
 	/**
@@ -785,7 +792,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 			style={appearance.style}
 		>
 			<p>
-				{menuItem.checked !== undefined && (
+				{(menuItem.checked !== undefined || menuItem.mark) && (
 					<span
 						className={classNames(
 							"classicyMenuItemCheck",
@@ -793,6 +800,9 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 								checked: menuItem.checked === true,
 								mixed: menuItem.checked === "mixed",
 							}),
+							menuItem.mark === "diamond" &&
+								!menuItem.checked &&
+								"classicyMenuItemDiamond",
 						)}
 						aria-hidden={"true"}
 					/>

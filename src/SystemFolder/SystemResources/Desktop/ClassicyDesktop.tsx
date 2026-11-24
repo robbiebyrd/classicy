@@ -113,6 +113,7 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
+import { ClassicyNotificationController } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationController.internal";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
 
 import "../../../index.css";
@@ -802,6 +803,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			{!disableWebViewer && <WebViewer />}
 			{!disableCalculator && <Calculator />}
 			<ClassicyOpenUrlController />
+			<ClassicyNotificationController />
 			<ClassicyControlPanels />
 			{controlStrip !== false && (
 				<ClassicyControlStrip

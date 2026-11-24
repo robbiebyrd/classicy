@@ -14,6 +14,7 @@ import {
 import { useClassicyAsset } from "@/Appearance/ClassicyAssetRegistry";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
+import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/ClassicyStartupHold.internal";
 import {
 	hasShownStartupScreenThisSession,
 	markStartupScreenShownThisSession,
@@ -120,6 +121,9 @@ export const ClassicyStartupScreen: FunctionalComponent<
 		0,
 		Math.min(paradeEntries.length, Math.floor(elapsed / revealInterval)),
 	);
+
+	// While it shows, notifications wait (ClassicyStartupHold.internal.ts).
+	useEffect(() => (visible ? holdClassicyStartup() : undefined), [visible]);
 
 	useEffect(() => {
 		if (!visible) return;
