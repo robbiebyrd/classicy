@@ -1868,6 +1868,13 @@ corner, and the contextual menu at that corner, and fails when one passes
 its bounds on either axis. `--embed` puts the desktop in a W x H box at
 (L, T) of the viewport, as a host page embeds it.
 
+`node bin/check-list-view-marquee.ts --port <n> [--browser chromium|firefox]`
+drags a selection rectangle in the `FileBrowser` list-view story, under
+Platinum and System 7, from below the last row and from beside a name, and
+fails unless the rectangle draws and every row it crosses is selected (a
+press below the rows lands on the list's own box in a browser; jsdom lays
+nothing out). Firefox needs a Playwright that has it (`$PARITY_PLAYWRIGHT`).
+
 `ClassicyMenuItem.link` is analytics only: it is reported with the item's
 analytics event, and choosing the item does not navigate. Open a URL with
 `onClickFunc` or `event: "ClassicyDesktopOpenUrl"` (§13).

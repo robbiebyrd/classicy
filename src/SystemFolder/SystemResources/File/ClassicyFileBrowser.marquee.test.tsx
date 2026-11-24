@@ -916,8 +916,8 @@ describe("ClassicyFileBrowser list view selection rectangle", () => {
 	// browser's root), not on the window contents around the browser (found
 	// at integration, Chromium). jsdom lays nothing out, so these tests name
 	// the element pressed; which element a real press lands on is a browser
-	// fact only a real browser shows (the integration's Chromium and Firefox
-	// checks, integration-D report).
+	// fact only a real browser shows (bin/check-list-view-marquee.ts, in
+	// Chromium and Firefox).
 	it("starts from a press on the list's own box below its rows", async () => {
 		const t = await setup("marquee-list-own-box");
 		boxes.unshift([".classicyTableContainer", [0, 0, 400, 200]]);

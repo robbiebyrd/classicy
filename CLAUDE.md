@@ -927,6 +927,7 @@ get `.classicyFileDropTarget` (darkened icon/row, framed window).
   accessor.
 - Dropped back in its own folder, an icon-view icon repositions by the pointer's
   travel (snapping when the arrangement is a grid).
+- Which element a press below a list view's rows lands on (the list's own box, which fills the window) is a browser fact jsdom cannot show: `bin/check-list-view-marquee.ts --port <n> [--browser chromium|firefox]` drags from there and from beside a name in the `FileBrowser` list-view story under Platinum and System 7, and fails unless the rectangle draws and the rows are selected.
 
 ### Selection Rectangle
 
