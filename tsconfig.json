@@ -41,6 +41,11 @@
 			"@classicy/appearance-system7": [
 				"./packages/appearance/system7/src/index.ts"
 			],
+			// Windows 98, the workspace package @classicy/appearance-windows98,
+			// the same way.
+			"@classicy/appearance-windows98": [
+				"./packages/appearance/windows98/src/index.ts"
+			],
 			"@/*": ["./src/*"],
 			"@img/*": ["./assets/img/*"],
 			"@vid/*": ["./assets/vid/*"]

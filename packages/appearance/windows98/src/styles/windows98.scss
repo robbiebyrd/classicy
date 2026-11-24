@@ -1,0 +1,85 @@
+// The Windows 98 package stylesheet, imported `?inline` by ../index.ts and
+// registered as the package's `css`: one `@layer classicy.package` block
+// scoped under `.classicyDesktop[data-classicy-appearance="windows98"]`. The
+// look is built element by element, each a components/_<Name>.scss partial
+// exposing one mixin, included inside the wrapper below: the windows, the
+// menus and menu bar, the pop-up menus, the dialogs and alerts, the push
+// buttons, the checkboxes and radio buttons, the text fields and lists, the
+// group boxes, the progress bars, the scroll bars, the desktop and its
+// icons, the tab control, the sliders, the placards and bevel buttons, the
+// ToolTips, the tables, the separators, the little arrows, the Appearance
+// Manager and the Control Strip.
+@use "pkg:@classicy/classicy/scss/package";
+@use "bevels" as b;
+@use "components/Window";
+@use "components/Menu";
+@use "components/MenuBar";
+@use "components/PopUpMenu";
+@use "components/Dialog";
+@use "components/Alert";
+@use "components/Button";
+@use "components/Checkbox";
+@use "components/RadioInput";
+@use "components/TextField";
+@use "components/ListBox";
+@use "components/ControlGroup";
+@use "components/ProgressBar";
+@use "components/ScrollBar";
+@use "components/Desktop";
+@use "components/Icon";
+@use "components/Tabs";
+@use "components/Slider";
+@use "components/Placard";
+@use "components/BalloonHelp";
+@use "components/Table";
+@use "components/Separator";
+@use "components/LittleArrows";
+@use "components/AppearanceManager";
+@use "components/ControlStrip";
+
+@include package.classicy-package("windows98") {
+  @include Window.window;
+  @include Menu.menu;
+  @include MenuBar.menu-bar;
+  @include PopUpMenu.pop-up-menu;
+  @include Dialog.dialog;
+  @include Alert.alert;
+  @include Button.button;
+  @include Checkbox.checkbox;
+  @include RadioInput.radio-input;
+  @include TextField.text-field;
+  @include ListBox.list-box;
+  @include ControlGroup.control-group;
+  @include ProgressBar.progress-bar;
+  @include ScrollBar.scroll-bar;
+  @include Desktop.desktop;
+  @include Icon.icon;
+  @include Tabs.tabs;
+  @include Slider.slider;
+  @include Placard.placard;
+  @include BalloonHelp.balloon-help;
+  @include Table.table;
+  @include Separator.separator;
+  @include LittleArrows.little-arrows;
+  @include AppearanceManager.appearance-manager;
+  @include ControlStrip.control-strip;
+
+  // The browser's own controls take the highlight color (Hilight, navy in
+  // Windows Standard), where the base sheet's accent is `--color-theme-04`.
+  &,
+  * {
+    accent-color: b.$highlight;
+  }
+
+  // List markers take their text's color, as Windows drew them.
+  *::marker {
+    color: currentColor;
+  }
+
+  // Selected text is HilightText on Hilight everywhere, where the base sheet
+  // paints `--color-theme-02`.
+  *::selection {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+}

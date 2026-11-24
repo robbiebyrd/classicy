@@ -1,0 +1,168 @@
+# @classicy/appearance-windows98
+
+Windows 95 and 98, the classic Windows look, as an Appearance Package for
+[Classicy](https://github.com/robbiebyrd/classicy). It draws Windows 98's
+chrome on Classicy's Mac OS structure, the way a Kaleidoscope scheme once
+dressed a Mac as a PC: gradient title bars with Minimize, Maximize and Close
+at the right, two-pixel bevels from the system colors, dithered scroll-bar
+tracks with an arrow at each end, raised menus and rectangular controls, in
+Windows 98's own color scheme and the sixteen classic schemes of its Display
+control panel.
+
+The core, `@classicy/classicy`, registers no Appearance Package. Without one,
+`ClassicyDesktop` shows a message telling you to load one instead of the
+desktop. Import this package once, at your app's entry, to register Windows 98:
+
+```ts
+import "@classicy/appearance-windows98";
+```
+
+`@classicy/classicy` is a peer dependency. Install both, at the same version:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-windows98
+```
+
+A host may load Windows 98 alone or beside Platinum
+(`@classicy/appearance-platinum`) and System 7
+(`@classicy/appearance-system7`); the Appearance Manager switches between
+them. A host that loads several installs them all at one version and bumps
+them together. The package ships its type declarations (`bundler`, `node16`
+and `nodenext` resolution).
+
+## What it ships
+
+- **Eighteen themes.** **Windows Standard** (id `windows98`, the package's
+  defaults): the Windows 98 scheme, navy title bars shading to light blue,
+  the `#C0C0C0` face and the teal desktop. **Windows 95** (id `windows95`):
+  the same palette with flat navy title bars, as Windows 95 drew them. And
+  the classic schemes, each from the `[Control Panel\Colors]` block of its
+  Windows theme file: Brick, Desert, Eggplant, Lilac, Maple, Marine (high
+  color), Plum (high color), Pumpkin (large), Rainy Day, Red, White, and
+  Blue (VGA), Rose, Slate, Spruce, Storm (VGA), Teal (VGA) and Wheat (ids
+  `windows98Brick` and so on). Every scheme is a recoloring of one
+  stylesheet: the title-bar colors, the selected text's, the ToolTip's and
+  the desktop labels' are the package's own color families, editable in the
+  Colors tab beside the palette.
+- **Its layout.** The grow box at the bottom right, the menu bar on the
+  screen, desktop icons from the top left, as Windows laid them.
+- **Its look**, one stylesheet in the package layer:
+  - windows: the four-ring frame, the title bar's gradient with the window's
+    icon and bold title at the left and the Minimize (Classicy's collapse),
+    Maximize (zoom) and Close buttons at the right, the gray inactive bar,
+    the sunken client edge, the size grip, dialogs on a flat face;
+  - menus: the flat menu bar, raised pull-down and contextual menus with an
+    inverted highlight and embossed dimmed items, etched separators;
+  - controls: 23-pixel push buttons with the default button's dark ring and
+    the dotted focus rectangle, 13-pixel checkboxes, 12-pixel radio buttons,
+    sunken text fields and lists, pop-up menus with their drop-down button,
+    rectangular tabs on a raised panel, the block progress bar, etched group
+    boxes, trackbar sliders, raised placards and bevel buttons;
+  - scroll bars: an arrow at each end on a checkered track, a raised scroll
+    box, the arrows and track kept in an inactive window;
+  - the desktop: icons with plain labels that take the highlight when
+    selected, ToolTips in place of balloon help, and the Appearance Manager
+    and Control Strip under the same bevels.
+- **A sound pack**, `windows98`: four alert tones, Chimes, Chord, Ding (the
+  default) and Exclamation, named after the roles Windows gave its sounds
+  but synthesized for the package (Windows' own sounds are Microsoft's), plus
+  the beep. The package plays no interface feedback.
+- **No fonts.** MS Sans Serif is Microsoft's, so the themes name a stack a
+  host may satisfy: `"Pixelated MS Sans Serif"` first (the face 98.css
+  ships, if the host loads it), then Microsoft Sans Serif, Tahoma and Arial,
+  at 11 px; Fixedsys, Lucida Console or Courier New for monospaced text.
+- **No art, icons, cursors, wallpapers or screen savers of its own.** Every
+  glyph is drawn from theme tokens in the stylesheet. Icons, cursors and
+  system art resolve to the default package's (Platinum's, when it is
+  loaded, else the core's icon tree), and the Screen Saver control panel
+  reads "This appearance has no screen savers."
+
+## Exports
+
+- `.`: the package entry (ES and UMD bundles, with types). Importing it
+  registers Windows 98 and its sound pack. It also exports
+  `WINDOWS98_APPEARANCE_PACKAGE_ID`, `windows98Json` (the themes, layout,
+  knobs and color families, deep-frozen and typed with the core's types, as
+  `Windows98Json`) and `windows98SoundPack`.
+- `./scss/*`: the package's SCSS: `bevels`, `pixel` and the `components/*`
+  partials, and `windows98`, the whole sheet, which a host may compile
+  through `pkg:@classicy/classicy/scss/*` (the package loads nothing of
+  another package's).
+- `./classicy-windows98.css`: the look as a stylesheet, for hosts whose
+  Content-Security-Policy blocks inline `<style>` (below).
+
+The art and the sound sheet are files in `dist/assets/`, loaded as
+`new URL("assets/…", import.meta.url)`. A Vite host keeps the packages out
+of the dev server's dependency pre-bundle, which would break those URLs:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ["@classicy/classicy", "@classicy/appearance-windows98"],
+  },
+})
+```
+
+List `@classicy/appearance-platinum` and `@classicy/appearance-system7`
+there too when the host loads them.
+
+## Strict CSP
+
+The package injects its look as `<style id="classicy-appearance-windows98">`.
+Under a policy that blocks inline `<style>`, link the stylesheets first in
+`<head>`, in this order: the core's, then this package's.
+
+```html
+<link rel="stylesheet" href="/node_modules/@classicy/classicy/dist/classicy.css">
+<link rel="stylesheet" href="/node_modules/@classicy/appearance-windows98/dist/classicy-windows98.css">
+```
+
+Serve this package's `dist/assets/` beside them. Allow `data:` in `img-src`
+as well: a dimmed icon (a hidden application's in the Application menu) is
+drawn on a canvas and shown from a `data:` URL.
+
+## Design notes
+
+- **Mac structure, Windows dress.** Classicy's behavior is shared by every
+  package: the menu bar stays at the top of the screen, the collapse box
+  window-shades (it is drawn as Minimize), the zoom box is drawn as Maximize,
+  and the desktop keeps its icons. There is no taskbar and no Start menu.
+- **Every pixel from a token.** The title-bar buttons' marks, the scroll
+  arrows, the checkmark, the radio ring, the pop-up and menu arrows and the
+  slider's thumb are one-pixel rectangles placed on a grid
+  (`--pixel-unit`), inked in theme tokens, so each color scheme draws them
+  in its own colors; the scroll track's checker is a two-color
+  `repeating-conic-gradient` of the face and highlight tokens.
+- **Where the schemes come from.** The sixteen classic schemes' values are
+  the `[Control Panel\Colors]` blocks of the classic Windows theme files
+  (ButtonFace, ButtonShadow, ActiveTitle, GradientActiveTitle, Hilight, …),
+  mapped onto Classicy's palette: ButtonHilight, ButtonLight, ButtonFace,
+  ButtonShadow and ButtonDkShadow are `system` 1, 2, 3, 5 and 7, Window the
+  document color, Hilight the highlight, Background the desktop color, and
+  the title-bar, HilightText and InfoWindow colors the package's color
+  families.
+
+## Developing
+
+This package lives in the Classicy repository, at
+`packages/appearance/windows98`. Its tests run against the workspace core's
+source. Its build needs the core's built declarations, so build the core
+first (the root `pnpm build:source` builds the core, Platinum, System 7 and
+Windows 98, in order); `build` runs the package's dist check,
+`bin/verify-dist.mjs`, after `vite build`:
+
+```sh
+pnpm --filter @classicy/appearance-windows98 exec vitest run
+pnpm --filter @classicy/appearance-windows98 build
+```
+
+`pnpm build:audio` rebuilds the sound pack's sprite sheet from
+`src/assets/sounds/windows98/sprites/`.
+
+## License
+
+This software is provided free and in the public domain under
+[The Unlicense](https://unlicense.org/). See [LICENSE](LICENSE). Microsoft
+maintains the copyright on the interface Windows 95 and 98 drew; nothing of
+Microsoft's (no font, icon, sound or image) is included.

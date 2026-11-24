@@ -56,6 +56,7 @@ export default defineConfig({
 			{ test: { name: "classicy", exclude: ["packages/**"] } },
 			"./packages/appearance/platinum",
 			"./packages/appearance/system7",
+			"./packages/appearance/windows98",
 		],
 	},
 	resolve: {
@@ -72,6 +73,15 @@ export default defineConfig({
 				replacement: path.resolve(
 					__dirname,
 					"./packages/appearance/system7/src/index.ts",
+				),
+			},
+			// Windows 98's source, the workspace package
+			// @classicy/appearance-windows98, the same way.
+			{
+				find: /^@classicy\/appearance-windows98$/,
+				replacement: path.resolve(
+					__dirname,
+					"./packages/appearance/windows98/src/index.ts",
 				),
 			},
 			{ find: "@", replacement: path.resolve(__dirname, "./src/") },

@@ -39,9 +39,10 @@ pnpm add react react-dom # for a new app
 The package was published as `classicy` through 2.x; every specifier is
 `@classicy/classicy` now (§5, "Migrating to the scoped packages"). A host that
 auto-bumps its dependencies must list every Classicy package it loads
-(`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads it,
-`@classicy/appearance-system7`) and move them together. The core and Platinum
-exist from 3.0.0, System 7 from 3.5.0.
+(`@classicy/classicy`, `@classicy/appearance-platinum` and, when it loads
+them, `@classicy/appearance-system7` and `@classicy/appearance-windows98`) and
+move them together. The core and Platinum exist from 3.0.0, System 7 from
+3.5.0, Windows 98 from 3.8.0.
 
 **Import an Appearance Package at the entry.** The core registers none.
 Import Platinum once, before rendering; importing it registers Platinum and
@@ -60,7 +61,10 @@ at one version and bumps them together; mixing versions of the two
 Appearance Packages is unsupported. Everything below that names Platinum's
 files has a System 7 twin: `classicy-system7.css`,
 `classicy-system7.fonts.css` (the same Chicago, Geneva and Monaco faces) and
-its own `dist/assets/`.
+its own `dist/assets/`. The Windows 98 package, `@classicy/appearance-windows98`
+(§8, "Windows 98"), is installed and imported the same way; it ships
+`classicy-windows98.css` and its `dist/assets/` (its icon and sprites), and
+no fonts stylesheet, since it registers no fonts.
 
 The desktop fills the window with no host CSS. When it is the page (mounted
 in a child of `body`, directly or through up to four wrappers that each hold
@@ -199,6 +203,7 @@ export default defineConfig({
             '@classicy/classicy',
             '@classicy/appearance-platinum',
             '@classicy/appearance-system7', // when you load it
+            '@classicy/appearance-windows98', // when you load it
         ],
     },
 })
@@ -208,7 +213,7 @@ Excluding them means any CommonJS dependency they pull in may then need to be
 listed in `optimizeDeps.include`. Bundlers that handle
 `new URL(…, import.meta.url)` (a Vite production build, webpack 5, Rollup with a
 URL plugin) need no setting; with any other (plain esbuild, Rollup without such
-a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's when you load it) next to your bundle,
+a plugin), copy each package's `dist/assets/` (Platinum's, and System 7's and Windows 98's when you load them) next to your bundle,
 and the core's `dist/sample.mp4` too: the Movie Player's sample movie, the one
 asset the core ships as a file (`new URL("sample.mp4", import.meta.url)`).
 The PDF viewer's pdf.js worker needs nothing: it is embedded in the core's
@@ -3008,12 +3013,14 @@ registered by `packages/appearance/platinum/src/assets/platinumWallpapers.ts`.
 
 An **Appearance Package** is a complete look the desktop switches to as a
 unit: its CSS, its default theme and presets, its arrangement, and the assets,
-sound packs and hooks that go with it. Classicy ships two, each its own npm
+sound packs and hooks that go with it. Classicy ships three, each its own npm
 package, which the core neither imports nor exports: Platinum,
 `@classicy/appearance-platinum` (`packages/appearance/platinum/` in the
-repository), and System 7, `@classicy/appearance-system7`
-(`packages/appearance/system7/`; "System 7", below). A host imports one or
-both at its entry (`import '@classicy/appearance-platinum'`), and the desktop
+repository), System 7, `@classicy/appearance-system7`
+(`packages/appearance/system7/`; "System 7", below), and Windows 98,
+`@classicy/appearance-windows98` (`packages/appearance/windows98/`; "Windows
+98", below). A host imports any of them at its entry
+(`import '@classicy/appearance-platinum'`), and the desktop
 draws only the stop screen until some package registers. Themes are presets of a
 package, and every theme names its package in `theme.package`.
 
@@ -4224,6 +4231,70 @@ list, and one record of the stock logos whose missing icon was logged, so
 each warning shows once. Mixing versions of the two Appearance Packages is unsupported: an
 older Platinum can re-register the savers under `platinum` only, or keep its
 own logo registry, which then diverges from System 7's.
+
+#### Windows 98
+
+`@classicy/appearance-windows98` (`packages/appearance/windows98/`) is the
+third Appearance Package: Windows 95 and 98, as 98.css, os-gui and React95
+re-create them, on Classicy's structure. It is built as a third-party
+package would be (it reaches the core only as `@classicy/classicy`, and
+nothing of Platinum's or System 7's; `Windows98SourceImports.test.ts`), and
+it is the worked example of a package that registers **no assets**: no
+fonts, art, icons, cursors, wallpapers or screen savers. Install and import
+it like Platinum (§1); its README lists what it ships.
+
+- **Themes.** Eighteen, every one `package: "windows98"`, `sound.pack:
+  "windows98"`, no `assetVariant`, `dither.tileSize: 0`: `windows98`
+  ("Windows Standard", the defaults: the Windows 98 scheme, its `system`
+  palette ButtonHilight, ButtonLight, ButtonFace, a mid gray, ButtonShadow,
+  a dark gray and ButtonDkShadow in slots 01 to 07, `window.document`
+  Window, `highlight` Hilight, the teal desktop with no picture),
+  `windows95` ("Windows 95": the same palette, flat title bars) and the
+  sixteen classic schemes from the `[Control Panel\Colors]` block of each
+  Windows theme file (`windows98Brick` … `windows98Wheat`, named as the
+  Display control panel named them). The typography is a font stack
+  (`"Pixelated MS Sans Serif"`, MS Sans Serif, Microsoft Sans Serif, Tahoma,
+  Arial, at 11 px; Fixedsys, Lucida Console, Courier New for monospaced
+  text), since MS Sans Serif is Microsoft's; a host that loads 98.css's face
+  gets the bitmap look.
+- **Color families** ("Package color families"): `titleBar` (`active`,
+  `activeGradient`, `inactive`, `inactiveGradient`, `text`, `inactiveText`:
+  ActiveTitle, GradientActiveTitle, InactiveTitle, GradientInactiveTitle,
+  TitleText, InactiveTitleText), `selection` (`text`: HilightText),
+  `tooltip` (`face`, `text`: InfoWindow, InfoText) and `desktop` (`text`:
+  the desktop labels'), the Windows colors no palette slot holds, editable
+  in the Colors tab. Every stylesheet read carries a `--color-*` fallback.
+- **Knob families** ("Package knob families"): `pixel` (`unit`, the
+  pixel-art grid), `titleBar` (button width and height, the gap before
+  Close, the end, icon and text insets, the gap below), `pushButton`,
+  `checkbox`, `radio`, `popUp`, `field`, `tabControl`, `progressBar` (block
+  width and gap, the stripe, the inset), `tooltip`, `menuFrame`,
+  `menuItem`, `slider`, `growBox` and `utilityTitleBar`; `knobs`, and so
+  the Options tab, covers `titleBar` and `progressBar`. Layout: grow box
+  bottom right, menu bar on the screen, icon grid from the top left.
+- **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
+  partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
+  bevels as inset box-shadows of the system tokens (`raised`, `pressed`,
+  `sunken`, `window-frame`, `etched`), every glyph (the title-bar buttons'
+  marks, scroll arrows, the check and the radio dot, menu and pop-up
+  arrows, the slider's thumb) as `classicy-px-rect` layers in units of
+  `--pixel-unit` (`px()`, `pixel-art()`, `runs()`), the title bar's
+  gradient from `title-bar-gradient`, the title-bar buttons reordered by
+  CSS `order` (Minimize is Classicy's `collapse`, Maximize its `zoom`, Close
+  last after `--title-bar-close-gap`) and shown on inactive windows too,
+  balloon help drawn as a ToolTip with no tail. Icons, cursors and system
+  art resolve to the default package's (§5), and with no package offering
+  a screen saver the panel reads "This appearance has no screen savers."
+- **Sound.** One pack, `windows98`: `ClassicyBeep` and four alert tones
+  (Chimes, Chord, Ding, Exclamation; `defaultAlert` Ding), synthesized for
+  the package (Windows' sounds are Microsoft's), ogg and m4a. The package
+  declares no `hooks`, so controls play no feedback.
+- **Build.** `pnpm --filter @classicy/appearance-windows98 build`: its
+  `verify:dist` holds System 7's invariants for its own files, with no
+  fonts stylesheet and nothing inlined (its `dist/assets` is its icon and
+  the two sprites). Storybook registers it only through
+  `storybook/.storybook/windows98.ts` (its own stories) or the Package
+  toolbar.
 
 ### Layout declarations
 

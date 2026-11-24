@@ -17,7 +17,7 @@ const toolbarItems = async (
 		[]) as ToolbarItem[];
 
 describe("Storybook preview theme toolbar", () => {
-	it("lists Platinum's presets from the registry, then System 7's", async () => {
+	it("lists Platinum's presets from the registry, then System 7's, then Windows 98's", async () => {
 		vi.resetModules();
 		const items = await toolbarItems("theme");
 		const { getClassicyAppearancePackage } = await import(
@@ -31,12 +31,27 @@ describe("Storybook preview theme toolbar", () => {
 			right: "Platinum",
 		}));
 		expect(items.slice(0, platinumItems?.length)).toEqual(platinumItems);
+		const { default: windows98Json } = await import(
+			"../../packages/appearance/windows98/src/windows98.json"
+		);
+		expect(windows98Json.presets).toHaveLength(18);
 		expect(items.slice(platinumItems?.length)).toEqual([
 			{ value: "system7", title: "System 7", right: "System 7" },
 			{ value: "system7-color", title: "System 7 Color", right: "System 7" },
+			...windows98Json.presets.map((theme) => ({
+				value: theme.id,
+				title: theme.name,
+				right: "Windows 98",
+			})),
 		]);
-		// Listed from its JSON: loading the preview never registers it.
+		expect(items.slice(platinumItems?.length)[2]).toEqual({
+			value: "windows98",
+			title: "Windows Standard",
+			right: "Windows 98",
+		});
+		// Listed from their JSON: loading the preview never registers them.
 		expect(getClassicyAppearancePackage("system7")).toBeUndefined();
+		expect(getClassicyAppearancePackage("windows98")).toBeUndefined();
 	}, 60000);
 
 	it("gives every theme a distinct value", async () => {
@@ -110,6 +125,7 @@ describe("Storybook preview package toolbar", () => {
 		expect(await toolbarItems("appearancePackage")).toEqual([
 			{ value: "platinum", title: "Platinum" },
 			{ value: "system7", title: "System 7" },
+			{ value: "windows98", title: "Windows 98" },
 		]);
 		expect((await loadPreview()).initialGlobals?.appearancePackage).toBe(
 			"platinum",

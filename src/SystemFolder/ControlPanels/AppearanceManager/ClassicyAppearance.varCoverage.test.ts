@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-// getTheme/getAllThemes serve the registered packages' themes: Platinum's
-// and System 7's.
+// getTheme/getAllThemes serve the registered packages' themes: Platinum's,
+// System 7's and Windows 98's.
 import "@classicy/appearance-platinum";
 import "@classicy/appearance-system7";
+import "@classicy/appearance-windows98";
 import { getClassicyAppearancePackage } from "@/Appearance/ClassicyAppearancePackageRegistry";
 import {
 	getTheme,
@@ -84,7 +85,7 @@ const sheets = scssFiles.map((full) =>
 
 // A workspace Appearance Package's sheet may also read what its own themes
 // emit beyond the default theme's: the knob families only it declares
-// (System 7's `titleBar`, `box`, `growBox`). Keyed by package id.
+// (System 7's `titleBar`, `box`, `growBox`; Windows 98's `pixel`, `titleBar`, …). Keyed by package id.
 const PACKAGE_SHEET = /^packages\/appearance\/([^/]+)\/src\//;
 const packageOf = (full: string): string | undefined =>
 	PACKAGE_SHEET.exec(repoPath(full))?.[1];

@@ -261,6 +261,7 @@ describe("where the plugin is registered", () => {
 			"vitest.config.ts",
 			"packages/appearance/platinum/vitest.config.ts",
 			"packages/appearance/system7/vitest.config.ts",
+			"packages/appearance/windows98/vitest.config.ts",
 			"storybook/.storybook/main.ts",
 			"example/vite.config.ts",
 		])
@@ -274,6 +275,7 @@ describe("where the plugin is registered", () => {
 			"vitest.config.ts",
 			"packages/appearance/platinum/vitest.config.ts",
 			"packages/appearance/system7/vitest.config.ts",
+			"packages/appearance/windows98/vitest.config.ts",
 		])
 			expect(readFileSync(config, "utf8"), config).toContain(
 				"server: { deps: { inline: [CLASSICY_DEFLATE_ID_RE] } }",

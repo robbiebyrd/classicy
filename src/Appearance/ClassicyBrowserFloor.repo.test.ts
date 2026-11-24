@@ -62,6 +62,9 @@ describe("the browser floor's CSS math", () => {
 		expect(sheets).toContain(
 			"packages/appearance/system7/src/styles/system7.scss",
 		);
+		expect(sheets).toContain(
+			"packages/appearance/windows98/src/styles/windows98.scss",
+		);
 	});
 
 	it(

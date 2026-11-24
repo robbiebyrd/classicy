@@ -15,6 +15,9 @@ const platinumSrc = path.join(repoRoot, "packages/appearance/platinum/src");
 // registered only in the iframes of its own stories (./system7.ts) or where
 // the Package toolbar chose it (./StorybookPackages.ts).
 const system7Src = path.join(repoRoot, "packages/appearance/system7/src");
+// Windows 98's source, the workspace package @classicy/appearance-windows98,
+// registered the same way (./windows98.ts, ./StorybookPackages.ts).
+const windows98Src = path.join(repoRoot, "packages/appearance/windows98/src");
 
 const config: StorybookConfig = {
 	framework: "@storybook/react-vite",
@@ -26,6 +29,8 @@ const config: StorybookConfig = {
 		"../../packages/appearance/platinum/src/**/*.stories.@(ts|tsx)",
 		// System 7's own stories (plan 0018-dbd §2.2).
 		"../../packages/appearance/system7/src/**/*.stories.@(ts|tsx)",
+		// Windows 98's own stories.
+		"../../packages/appearance/windows98/src/**/*.stories.@(ts|tsx)",
 	],
 	addons: ["@storybook/addon-docs"],
 	staticDirs: [{ from: "../../assets", to: "/assets" }],
@@ -65,6 +70,10 @@ const config: StorybookConfig = {
 					{
 						find: /^@classicy\/appearance-system7$/,
 						replacement: path.join(system7Src, "index.ts"),
+					},
+					{
+						find: /^@classicy\/appearance-windows98$/,
+						replacement: path.join(windows98Src, "index.ts"),
 					},
 					{ find: "@sb", replacement: path.resolve(import.meta.dirname) },
 					{ find: "@", replacement: path.join(repoRoot, "src") },

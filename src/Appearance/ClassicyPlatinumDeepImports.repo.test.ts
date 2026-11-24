@@ -39,6 +39,10 @@ const ALLOWED: Record<string, string> = {
 		"Storybook's stories glob (main.ts): Platinum's own stories, its screen savers'",
 	"packages/appearance/system7/src/**/*.stories.@(ts|tsx)":
 		"Storybook's stories glob (main.ts): System 7's own stories",
+	"packages/appearance/windows98/src/windows98.json":
+		"Windows 98's theme data, for Storybook's Theme toolbar to list its presets before the package is chosen (and registered)",
+	"packages/appearance/windows98/src/**/*.stories.@(ts|tsx)":
+		"Storybook's stories glob (main.ts): Windows 98's own stories",
 };
 
 const RELATIVE_INTO_PACKAGES = /["'`]((?:\.\.\/)+packages\/[^"'`]*)["'`]/g;
@@ -85,12 +89,14 @@ describe("relative imports from root code into packages/", () => {
 		);
 	});
 
-	// Platinum's, or System 7's stories glob (plan 0018-dbd §2.2).
+	// Platinum's, System 7's or Windows 98's stories glob (plan 0018-dbd §2.2).
 	it("are all inside a workspace Appearance Package", () => {
 		expect(
 			Object.keys(ALLOWED).filter(
 				(target) =>
-					!/^packages\/appearance\/(?:platinum|system7)\//.test(target),
+					!/^packages\/appearance\/(?:platinum|system7|windows98)\//.test(
+						target,
+					),
 			),
 		).toEqual([]);
 	});

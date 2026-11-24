@@ -1,0 +1,3622 @@
+{
+	"id": "windows98",
+	"name": "Windows 98",
+	"defaults": {
+		"id": "windows98",
+		"name": "Windows Standard",
+		"package": "windows98",
+		"color": {
+			"outline": 0,
+			"select": 128,
+			"highlight": 128,
+			"window": {
+				"border": 0,
+				"borderOutset": 16777215,
+				"borderInset": 8421504,
+				"frame": 12632256,
+				"title": 16777215,
+				"document": 16777215
+			},
+			"black": 0,
+			"white": 16777215,
+			"alert": 16776960,
+			"error": 16711680,
+			"system": [16777215, 14671839, 12632256, 10526880, 8421504, 4210752, 0],
+			"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+			"families": {
+				"titleBar": {
+					"active": 128,
+					"activeGradient": 1082576,
+					"inactive": 8421504,
+					"inactiveGradient": 11908533,
+					"text": 16777215,
+					"inactiveText": 12632256
+				},
+				"selection": {
+					"text": 16777215
+				},
+				"tooltip": {
+					"face": 16777185,
+					"text": 0
+				},
+				"desktop": {
+					"text": 16777215
+				}
+			}
+		},
+		"sound": {
+			"pack": "windows98",
+			"disabled": []
+		},
+		"typography": {
+			"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+			"uiSize": 11,
+			"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+			"headerSize": 11,
+			"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+			"bodySize": 11,
+			"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+			"monoSize": 12,
+			"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+			"digitalSize": 12
+		},
+		"measurements": {
+			"window": {
+				"borderSize": 1,
+				"controlSize": 12,
+				"paddingSize": 5,
+				"scrollbarSize": 16,
+				"titleBarHeight": 18,
+				"utilityTitleBarHeight": 13
+			},
+			"control": {
+				"height": 20,
+				"labelGap": 5,
+				"staticTextHeight": 16
+			},
+			"button": {
+				"minWidth": 75,
+				"textPadding": 12,
+				"gap": 6
+			},
+			"groupBox": {
+				"marginSide": 10,
+				"marginTop": 12,
+				"marginBottom": 10,
+				"titlePad": 3,
+				"gap": 12
+			},
+			"layout": {
+				"itemGap": 4,
+				"groupGap": 12,
+				"dialogEdge": 11
+			},
+			"dither": {
+				"tileSize": 0
+			},
+			"pixel": {
+				"unit": 1
+			},
+			"titleBar": {
+				"buttonWidth": 16,
+				"buttonHeight": 14,
+				"buttonGap": 0,
+				"closeGap": 2,
+				"endInset": 2,
+				"iconInset": 2,
+				"textInset": 3,
+				"gap": 2
+			},
+			"pushButton": {
+				"height": 23,
+				"focusInset": 4
+			},
+			"checkbox": {
+				"size": 13,
+				"margin": 2
+			},
+			"radio": {
+				"size": 12
+			},
+			"popUp": {
+				"height": 21,
+				"buttonWidth": 16,
+				"inset": 2,
+				"textInset": 4
+			},
+			"field": {
+				"paddingX": 4,
+				"paddingY": 3
+			},
+			"tabControl": {
+				"radius": 3,
+				"lift": 2,
+				"paddingX": 10,
+				"padding": 12
+			},
+			"progressBar": {
+				"stripeWidth": 10,
+				"height": 16,
+				"blockWidth": 8,
+				"blockGap": 2,
+				"inset": 2
+			},
+			"tooltip": {
+				"paddingX": 4,
+				"paddingY": 2
+			},
+			"menuFrame": {
+				"borderWidth": 1,
+				"bevelWidth": 1,
+				"shadowWidth": 0,
+				"shadowStart": 0,
+				"shadowGap": 0
+			},
+			"menuItem": {
+				"paddingX": 6
+			},
+			"slider": {
+				"pixel": 1,
+				"channel": 4,
+				"thumbAlong": 11,
+				"thumbAcross": 21,
+				"thumbRise": 5,
+				"tickWidth": 1,
+				"tickHeight": 4
+			},
+			"growBox": {
+				"inset": 2
+			},
+			"utilityTitleBar": {
+				"textureWidth": 4,
+				"textureHeight": 3,
+				"buttonWidth": 12,
+				"buttonHeight": 11
+			}
+		},
+		"desktop": {
+			"iconSize": 32,
+			"iconFontSize": 11,
+			"backgroundImage": "",
+			"backgroundColor": 32896,
+			"backgroundRepeat": "repeat",
+			"backgroundPosition": "center",
+			"backgroundSize": "auto"
+		}
+	},
+	"presets": [
+		{
+			"id": "windows98",
+			"name": "Windows Standard",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 128,
+				"highlight": 128,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 14671839, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"families": {
+					"titleBar": {
+						"active": 128,
+						"activeGradient": 1082576,
+						"inactive": 8421504,
+						"inactiveGradient": 11908533,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 32896,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows95",
+			"name": "Windows 95",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 128,
+				"highlight": 128,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 12632256, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"families": {
+					"titleBar": {
+						"active": 128,
+						"activeGradient": 128,
+						"inactive": 8421504,
+						"inactiveGradient": 8421504,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 32896,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Brick",
+			"name": "Brick",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 9275745,
+				"highlight": 9275745,
+				"window": {
+					"border": 0,
+					"borderOutset": 14803154,
+					"borderInset": 9275745,
+					"frame": 12763045,
+					"title": 14803154,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [14803154, 12763045, 12763045, 11052163, 9275745, 4604976, 0],
+				"theme": [
+					15263711, 13421240, 11512976, 9275745, 7433806, 5591610, 3684135
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388608,
+						"activeGradient": 11564096,
+						"inactive": 9275745,
+						"inactiveGradient": 13154416,
+						"text": 14803154,
+						"inactiveText": 14803154
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 4325376,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Desert",
+			"name": "Desert",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 32896,
+				"highlight": 32896,
+				"window": {
+					"border": 0,
+					"borderOutset": 15394525,
+					"borderInset": 10653032,
+					"frame": 14011579,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15394525, 14011579, 14011579, 12364946, 10653032, 5326388, 0
+				],
+				"theme": [13428454, 9225926, 5023398, 32896, 26214, 19789, 13107],
+				"families": {
+					"titleBar": {
+						"active": 32896,
+						"activeGradient": 8699306,
+						"inactive": 10653032,
+						"inactiveGradient": 15257728,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 10653032,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Eggplant",
+			"name": "Eggplant",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 5800056,
+				"highlight": 5800056,
+				"window": {
+					"border": 0,
+					"borderOutset": 13162712,
+					"borderInset": 5800056,
+					"frame": 9482408,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [13162712, 9482408, 9482408, 7641232, 5800056, 2900028, 0],
+				"theme": [
+					14608100, 11847362, 9086624, 5800056, 4613728, 3493192, 2306864
+				],
+				"families": {
+					"titleBar": {
+						"active": 5800056,
+						"activeGradient": 8604547,
+						"inactive": 9482408,
+						"inactiveGradient": 13352402,
+						"text": 16777215,
+						"inactiveText": 5800056
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 4194368,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Lilac",
+			"name": "Lilac",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 5918385,
+				"highlight": 5918385,
+				"window": {
+					"border": 0,
+					"borderOutset": 14210540,
+					"borderInset": 5918385,
+					"frame": 11446489,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [14210540, 11446489, 11446489, 8682437, 5918385, 2959192, 0],
+				"theme": [
+					14605551, 11907036, 9208776, 5918385, 4734606, 3551082, 2367303
+				],
+				"families": {
+					"titleBar": {
+						"active": 5918385,
+						"activeGradient": 11964363,
+						"inactive": 8421504,
+						"inactiveGradient": 12104912,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Maple",
+			"name": "Maple",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 13018694,
+				"highlight": 13018694,
+				"window": {
+					"border": 0,
+					"borderOutset": 15920343,
+					"borderInset": 13018694,
+					"frame": 15128750,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15920343, 15128750, 15128750, 14073722, 13018694, 6509347, 0
+				],
+				"theme": [
+					16051674, 15062956, 14139774, 13018694, 10388792, 7824426, 5194268
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388608,
+						"activeGradient": 12622904,
+						"inactive": 13018694,
+						"inactiveGradient": 14731400,
+						"text": 16777215,
+						"inactiveText": 15920343
+					},
+					"selection": {
+						"text": 0
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Marine",
+			"name": "Marine (high color)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 128,
+				"highlight": 128,
+				"window": {
+					"border": 0,
+					"borderOutset": 13164760,
+					"borderInset": 4755592,
+					"frame": 8962232,
+					"title": 16777215,
+					"document": 13164760
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [13164760, 8962232, 8962232, 6858912, 4755592, 2377796, 0],
+				"theme": [13421798, 9211078, 5000358, 128, 102, 77, 51],
+				"families": {
+					"titleBar": {
+						"active": 128,
+						"activeGradient": 1619136,
+						"inactive": 4755592,
+						"inactiveGradient": 7916760,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 2903623,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Plum",
+			"name": "Plum (high color)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 32896,
+				"highlight": 32896,
+				"window": {
+					"border": 0,
+					"borderOutset": 14209224,
+					"borderInset": 7888984,
+					"frame": 11049104,
+					"title": 16777215,
+					"document": 14209224
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [14209224, 11049104, 11049104, 9469044, 7888984, 3944492, 0],
+				"theme": [13428454, 9225926, 5023398, 32896, 26214, 19789, 13107],
+				"families": {
+					"titleBar": {
+						"active": 4735072,
+						"activeGradient": 10519736,
+						"inactive": 7888984,
+						"inactiveGradient": 11049080,
+						"text": 16777215,
+						"inactiveText": 11049104
+					},
+					"selection": {
+						"text": 14209224
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 4204608,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Pumpkin",
+			"name": "Pumpkin (large)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 8388736,
+				"highlight": 8388736,
+				"window": {
+					"border": 0,
+					"borderOutset": 16116431,
+					"borderInset": 14132527,
+					"frame": 15521181,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					16116431, 15521181, 15521181, 14859622, 14132527, 7098904, 0
+				],
+				"theme": [
+					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+				],
+				"families": {
+					"titleBar": {
+						"active": 14132527,
+						"activeGradient": 14732424,
+						"inactive": 10526884,
+						"inactiveGradient": 13683856,
+						"text": 16777215,
+						"inactiveText": 16116431
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 4325442,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98RainyDay",
+			"name": "Rainy Day",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 5203325,
+				"highlight": 5203325,
+				"window": {
+					"border": 0,
+					"borderOutset": 12700889,
+					"borderInset": 5203325,
+					"frame": 8624561,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [12700889, 8624561, 8624561, 6913943, 5203325, 2634302, 0],
+				"theme": [
+					14475493, 11582148, 8688548, 5203325, 4149604, 3095883, 2107442
+				],
+				"families": {
+					"titleBar": {
+						"active": 5203325,
+						"activeGradient": 8434896,
+						"inactive": 8421504,
+						"inactiveGradient": 11582672,
+						"text": 16777215,
+						"inactiveText": 12700889
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98RedWhiteBlue",
+			"name": "Red, White, and Blue (VGA)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 8388608,
+				"highlight": 8388608,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 12632256, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [
+					15125708, 13012108, 10898508, 8388608, 6684672, 5046272, 3342336
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388608,
+						"activeGradient": 4264,
+						"inactive": 8421504,
+						"inactiveGradient": 12238537,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 66,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Rose",
+			"name": "Rose",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 10444912,
+				"highlight": 10444912,
+				"window": {
+					"border": 0,
+					"borderOutset": 15194332,
+					"borderInset": 10444912,
+					"frame": 13610935,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15194332, 13610935, 13610935, 12028052, 10444912, 5255224, 0
+				],
+				"theme": [
+					15523810, 13940671, 12357787, 10444912, 8342874, 6240835, 4204077
+				],
+				"families": {
+					"titleBar": {
+						"active": 10444912,
+						"activeGradient": 14208208,
+						"inactive": 10526884,
+						"inactiveGradient": 13685968,
+						"text": 16777215,
+						"inactiveText": 8224125
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 8421504,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Slate",
+			"name": "Slate",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 5603479,
+				"highlight": 5603479,
+				"window": {
+					"border": 0,
+					"borderOutset": 13556963,
+					"borderInset": 5603479,
+					"frame": 10336712,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [13556963, 10336712, 10336712, 7969968, 5603479, 2768972, 0],
+				"theme": [
+					14542570, 11716304, 8955574, 5603479, 4482681, 3362139, 2241340
+				],
+				"families": {
+					"titleBar": {
+						"active": 5603479,
+						"activeGradient": 8960216,
+						"inactive": 8421504,
+						"inactiveGradient": 10534088,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 4276545,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Spruce",
+			"name": "Spruce",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 5871460,
+				"highlight": 5871460,
+				"window": {
+					"border": 0,
+					"borderOutset": 13689811,
+					"borderInset": 5871460,
+					"frame": 10668201,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [13689811, 10668201, 10668201, 8302726, 5871460, 2903090, 0],
+				"theme": [
+					14609120, 11849913, 9156242, 5871460, 4684112, 3496764, 2374696
+				],
+				"families": {
+					"titleBar": {
+						"active": 5871460,
+						"activeGradient": 10012904,
+						"inactive": 8421504,
+						"inactiveGradient": 11062448,
+						"text": 16777215,
+						"inactiveText": 13689811
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 2178849,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Storm",
+			"name": "Storm (VGA)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 8388736,
+				"highlight": 8388736,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 12632256, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [
+					15125734, 13012166, 10898598, 8388736, 6684774, 5046349, 3342387
+				],
+				"families": {
+					"titleBar": {
+						"active": 8388736,
+						"activeGradient": 3706032,
+						"inactive": 8421504,
+						"inactiveGradient": 11054248,
+						"text": 16777215,
+						"inactiveText": 12632256
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 0,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Teal",
+			"name": "Teal (VGA)",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 32896,
+				"highlight": 32896,
+				"window": {
+					"border": 0,
+					"borderOutset": 16777215,
+					"borderInset": 8421504,
+					"frame": 12632256,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [16777215, 12632256, 12632256, 10526880, 8421504, 4210752, 0],
+				"theme": [13428454, 9225926, 5023398, 32896, 26214, 19789, 13107],
+				"families": {
+					"titleBar": {
+						"active": 32896,
+						"activeGradient": 52440,
+						"inactive": 8421504,
+						"inactiveGradient": 10012856,
+						"text": 16777215,
+						"inactiveText": 16776176
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 16448,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		},
+		{
+			"id": "windows98Wheat",
+			"name": "Wheat",
+			"package": "windows98",
+			"color": {
+				"outline": 0,
+				"select": 8421376,
+				"highlight": 8421376,
+				"window": {
+					"border": 0,
+					"borderOutset": 15658704,
+					"borderInset": 12368961,
+					"frame": 14605984,
+					"title": 16777215,
+					"document": 16777215
+				},
+				"black": 0,
+				"white": 16777215,
+				"alert": 16776960,
+				"error": 16711680,
+				"system": [
+					15658704, 14605984, 14605984, 13487472, 12368961, 6184480, 0
+				],
+				"theme": [
+					15132364, 13026956, 10921548, 8421376, 6710784, 5065984, 3355392
+				],
+				"families": {
+					"titleBar": {
+						"active": 8421376,
+						"activeGradient": 13152328,
+						"inactive": 12368961,
+						"inactiveGradient": 12105856,
+						"text": 16777215,
+						"inactiveText": 16777215
+					},
+					"selection": {
+						"text": 16777215
+					},
+					"tooltip": {
+						"face": 16777185,
+						"text": 0
+					},
+					"desktop": {
+						"text": 16777215
+					}
+				}
+			},
+			"sound": {
+				"pack": "windows98",
+				"disabled": []
+			},
+			"typography": {
+				"ui": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"uiSize": 11,
+				"header": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"headerSize": 11,
+				"body": "\"Pixelated MS Sans Serif\", \"MS Sans Serif\", \"Microsoft Sans Serif\", Tahoma, Arial, sans-serif",
+				"bodySize": 11,
+				"mono": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"monoSize": 12,
+				"digital": "\"Fixedsys\", \"Lucida Console\", \"Courier New\", monospace",
+				"digitalSize": 12
+			},
+			"measurements": {
+				"window": {
+					"borderSize": 1,
+					"controlSize": 12,
+					"paddingSize": 5,
+					"scrollbarSize": 16,
+					"titleBarHeight": 18,
+					"utilityTitleBarHeight": 13
+				},
+				"control": {
+					"height": 20,
+					"labelGap": 5,
+					"staticTextHeight": 16
+				},
+				"button": {
+					"minWidth": 75,
+					"textPadding": 12,
+					"gap": 6
+				},
+				"groupBox": {
+					"marginSide": 10,
+					"marginTop": 12,
+					"marginBottom": 10,
+					"titlePad": 3,
+					"gap": 12
+				},
+				"layout": {
+					"itemGap": 4,
+					"groupGap": 12,
+					"dialogEdge": 11
+				},
+				"dither": {
+					"tileSize": 0
+				},
+				"pixel": {
+					"unit": 1
+				},
+				"titleBar": {
+					"buttonWidth": 16,
+					"buttonHeight": 14,
+					"buttonGap": 0,
+					"closeGap": 2,
+					"endInset": 2,
+					"iconInset": 2,
+					"textInset": 3,
+					"gap": 2
+				},
+				"pushButton": {
+					"height": 23,
+					"focusInset": 4
+				},
+				"checkbox": {
+					"size": 13,
+					"margin": 2
+				},
+				"radio": {
+					"size": 12
+				},
+				"popUp": {
+					"height": 21,
+					"buttonWidth": 16,
+					"inset": 2,
+					"textInset": 4
+				},
+				"field": {
+					"paddingX": 4,
+					"paddingY": 3
+				},
+				"tabControl": {
+					"radius": 3,
+					"lift": 2,
+					"paddingX": 10,
+					"padding": 12
+				},
+				"progressBar": {
+					"stripeWidth": 10,
+					"height": 16,
+					"blockWidth": 8,
+					"blockGap": 2,
+					"inset": 2
+				},
+				"tooltip": {
+					"paddingX": 4,
+					"paddingY": 2
+				},
+				"menuFrame": {
+					"borderWidth": 1,
+					"bevelWidth": 1,
+					"shadowWidth": 0,
+					"shadowStart": 0,
+					"shadowGap": 0
+				},
+				"menuItem": {
+					"paddingX": 6
+				},
+				"slider": {
+					"pixel": 1,
+					"channel": 4,
+					"thumbAlong": 11,
+					"thumbAcross": 21,
+					"thumbRise": 5,
+					"tickWidth": 1,
+					"tickHeight": 4
+				},
+				"growBox": {
+					"inset": 2
+				},
+				"utilityTitleBar": {
+					"textureWidth": 4,
+					"textureHeight": 3,
+					"buttonWidth": 12,
+					"buttonHeight": 11
+				}
+			},
+			"desktop": {
+				"iconSize": 32,
+				"iconFontSize": 11,
+				"backgroundImage": "",
+				"backgroundColor": 16413,
+				"backgroundRepeat": "repeat",
+				"backgroundPosition": "center",
+				"backgroundSize": "auto"
+			}
+		}
+	],
+	"layout": {
+		"window": {
+			"growBoxCorner": "bottom-right"
+		},
+		"menuBar": {
+			"placement": "screen"
+		},
+		"desktop": {
+			"iconGridOrigin": "top-left"
+		}
+	},
+	"knobs": {
+		"titleBar": {
+			"buttonWidth": {
+				"label": "Button width",
+				"min": 8,
+				"max": 32,
+				"default": 16
+			},
+			"buttonHeight": {
+				"label": "Button height",
+				"min": 8,
+				"max": 32,
+				"default": 14
+			},
+			"closeGap": {
+				"label": "Close button gap",
+				"min": 0,
+				"max": 8,
+				"default": 2
+			},
+			"gap": {
+				"label": "Gap below",
+				"min": 0,
+				"max": 8,
+				"default": 2
+			}
+		},
+		"progressBar": {
+			"blockWidth": {
+				"label": "Block width",
+				"min": 2,
+				"max": 32,
+				"default": 8
+			},
+			"blockGap": {
+				"label": "Block gap",
+				"min": 0,
+				"max": 8,
+				"default": 2
+			}
+		}
+	},
+	"colorFamilies": {
+		"titleBar": {
+			"label": "Title bar",
+			"colors": {
+				"active": {
+					"label": "Active"
+				},
+				"activeGradient": {
+					"label": "Active gradient"
+				},
+				"inactive": {
+					"label": "Inactive"
+				},
+				"inactiveGradient": {
+					"label": "Inactive gradient"
+				},
+				"text": {
+					"label": "Active text"
+				},
+				"inactiveText": {
+					"label": "Inactive text"
+				}
+			}
+		},
+		"selection": {
+			"label": "Selection",
+			"colors": {
+				"text": {
+					"label": "Selected text"
+				}
+			}
+		},
+		"tooltip": {
+			"label": "ToolTip",
+			"colors": {
+				"face": {
+					"label": "Face"
+				},
+				"text": {
+					"label": "Text"
+				}
+			}
+		},
+		"desktop": {
+			"label": "Desktop",
+			"colors": {
+				"text": {
+					"label": "Icon label text"
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,117 @@
+// The Windows 98 bevels, shared by the component partials: the classic
+// four-ring edge, an outer and an inner one-pixel ring, light at the top and
+// left and dark at the bottom and right (or the reverse, pressed or sunken),
+// as `DrawEdge` drew them from the system colors. Each is a stack of inset
+// box-shadows (the first listed on top), so it sits inside the element's
+// box and never changes its size. One ring is `--window-border-size`.
+//
+// The system colors, as the theme holds them (windows98.json):
+//
+//   Windows color     token
+//   ButtonHilight     --color-system-01  (the light ring's bright side)
+//   ButtonLight       --color-system-02
+//   ButtonFace        --color-system-03  (every face)
+//   ButtonShadow      --color-system-05
+//   ButtonDkShadow    --color-system-07
+//   Window            --color-window-document
+//   WindowText        --color-black
+//   Hilight           --color-highlight
+//   HilightText       --package-color-selection-text
+//   GrayText          --color-system-05
+//   InfoWindow/Text   --package-color-tooltip-face / -text
+//   ActiveTitle…      --package-color-title-bar-*
+$b: var(--window-border-size);
+$b2: calc(#{$b} + #{$b});
+$-b: calc(#{$b} * -1);
+$-b2: calc(#{$b2} * -1);
+
+$hilight: var(--color-system-01);
+$light: var(--color-system-02);
+$face: var(--color-system-03);
+$shadow: var(--color-system-05);
+$dkshadow: var(--color-system-07);
+$window: var(--color-window-document);
+$text: var(--color-black);
+$gray-text: var(--color-system-05);
+$highlight: var(--color-highlight);
+$highlight-text: var(--package-color-selection-text, var(--color-white));
+
+// Push buttons, scroll-bar arrows and thumbs, tabs, title-bar buttons.
+@mixin raised {
+  box-shadow:
+    inset $-b $-b $dkshadow,
+    inset $b $b $hilight,
+    inset $-b2 $-b2 $shadow,
+    inset $b2 $b2 $light;
+}
+
+// The same control while the mouse is down: the rings swap sides.
+@mixin pressed {
+  box-shadow:
+    inset $-b $-b $hilight,
+    inset $b $b $dkshadow,
+    inset $-b2 $-b2 $light,
+    inset $b2 $b2 $shadow;
+}
+
+// A pressed control drawn flat, one ring of shadow all round (scroll-bar
+// arrows, the pop-up's button).
+@mixin pressed-flat {
+  box-shadow: inset 0 0 0 $b $shadow;
+}
+
+// Edit fields, list boxes, checkboxes, document areas (WS_EX_CLIENTEDGE).
+@mixin sunken {
+  box-shadow:
+    inset $-b $-b $hilight,
+    inset $b $b $shadow,
+    inset $-b2 $-b2 $light,
+    inset $b2 $b2 $dkshadow;
+}
+
+// Window frames and menus: ButtonLight, not ButtonHilight, on the outer
+// ring's top and left, which is what makes a window edge read softer than a
+// button's.
+@mixin window-frame {
+  box-shadow:
+    inset $-b $-b $dkshadow,
+    inset $b $b $light,
+    inset $-b2 $-b2 $shadow,
+    inset $b2 $b2 $hilight;
+}
+
+// Group boxes: an engraved two-pixel line, shadow over highlight.
+@mixin etched {
+  box-shadow:
+    inset $-b $-b $hilight,
+    inset $b $b $shadow,
+    inset $-b2 $-b2 $shadow,
+    inset $b2 $b2 $hilight;
+}
+
+// A one-ring raised edge (status-bar panes, the menu bar's bottom edge).
+@mixin raised-thin {
+  box-shadow:
+    inset $-b $-b $shadow,
+    inset $b $b $hilight;
+}
+
+// Disabled text: GrayText with a one-pixel ButtonHilight emboss below right.
+@mixin disabled-text {
+  color: $gray-text;
+  text-shadow: $b $b 0 $hilight;
+}
+
+// The dotted keyboard-focus rectangle Windows draws inside a control,
+// `$inset` inside its edge.
+@mixin focus-rect($inset) {
+  outline: $b dotted $text;
+  outline-offset: calc(#{$inset} * -1);
+}
+
+// A title bar's face: the left-to-right gradient Windows 98 draws from the
+// active (or inactive) title color to its gradient color; a theme whose two
+// colors are equal (Windows 95's) draws a flat bar.
+@mixin title-bar-gradient($from, $to) {
+  background: linear-gradient(90deg, $from, $to);
+}

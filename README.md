@@ -18,7 +18,8 @@ A UI framework using native CSS/JS replications of the Mac OS 8 interface compon
 
 Classicy is a framework, `@classicy/classicy`, and the looks it draws, its
 Appearance Packages: `@classicy/appearance-platinum`, the Platinum look (Mac
-OS 8), and `@classicy/appearance-system7`, System 7 (below). Install the
+OS 8), `@classicy/appearance-system7`, System 7, and
+`@classicy/appearance-windows98`, Windows 98 (both below). Install the
 framework and a package, at the same version:
 
 ```sh
@@ -63,6 +64,8 @@ and icon art go missing.
 
 **Upgrading from 3.4.x?** [`docs/RELEASE-NOTES-3.5.md`](docs/RELEASE-NOTES-3.5.md): the new System 7 package, and the core capabilities it brought (per-theme asset variants, 16 px icon images, alert sounds from the sound pack, Classicy's own scroll bars); `ClassicyControlGroup` no longer paints its title's background inline.
 
+**Upgrading from 3.7.x?** [`docs/RELEASE-NOTES-3.8.md`](docs/RELEASE-NOTES-3.8.md): the new Windows 98 package, `@classicy/appearance-windows98`, Windows 95 and 98 as a third look; nothing changes for a host that does not load it.
+
 **Upgrading from 3.6.x?** [`docs/RELEASE-NOTES-3.7.md`](docs/RELEASE-NOTES-3.7.md): smaller packages (sound sprites in ogg and m4a only, source maps with Classicy's own text only, no declaration maps, WebP art, a compressed PDF worker), PDFs render on the supported browsers, and the Trash folder's icon follows the active package. Most hosts change nothing. On any earlier 3.x the PDF viewer draws no page on the browsers at Classicy's floor either (every release from 0.71.6 through 3.6.0 bundled the same pdf.js build), so 3.7 fixes it there too; read each version's notes above in turn.
 
 **Breaking change: the package is renamed.** `classicy` is now
@@ -72,16 +75,17 @@ and rewrite every specifier, strings included: `from "classicy"`, deep paths
 `typeof import("classicy")`. A host that auto-bumps dependencies (Renovate, a
 script, pnpm's `minimumReleaseAgeExclude`) must list **every** Classicy package
 it loads (`@classicy/classicy`, `@classicy/appearance-platinum` and, when you
-load it, `@classicy/appearance-system7`) and move them together. The core and
-Platinum exist from 3.0.0 on, System 7 from 3.5.0; a lower range does not
-resolve. The release notes give a one-pass `sed`.
+load them, `@classicy/appearance-system7` and `@classicy/appearance-windows98`)
+and move them together. The core and Platinum exist from 3.0.0 on, System 7
+from 3.5.0, Windows 98 from 3.8.0; a lower range does not resolve. The release notes give a one-pass `sed`.
 
 Importing `@classicy/classicy` injects its stylesheet. Platinum's fonts, art,
 wallpapers and sound sprites are files in `@classicy/appearance-platinum`'s
 `dist/assets/`. **Breaking change for Vite consumers:** Vite's dev server
 pre-bundles dependencies into `node_modules/.vite/deps/`, which breaks those
 file URLs (they return the SPA fallback page). Exclude both packages from
-the pre-bundle (and `@classicy/appearance-system7`, when you load it, as
+the pre-bundle (and `@classicy/appearance-system7` and
+`@classicy/appearance-windows98`, when you load them, as
 `example/vite.config.ts` does):
 
 ```ts
@@ -92,6 +96,7 @@ export default defineConfig({
       "@classicy/classicy",
       "@classicy/appearance-platinum",
       "@classicy/appearance-system7", // when you load it
+      "@classicy/appearance-windows98", // when you load it
     ],
   },
 })
@@ -101,7 +106,8 @@ Any CommonJS dependency they pull in may then need to go in
 `optimizeDeps.include`. Bundlers that handle `new URL(…, import.meta.url)`
 (a Vite production build, webpack 5, Rollup with a URL plugin) need no
 setting; with any other (plain esbuild, Rollup without such a plugin), copy
-each package's `dist/assets/` (Platinum's, and System 7's when you load it)
+each package's `dist/assets/` (Platinum's, and System 7's and Windows 98's
+when you load them)
 next to your bundle, and `@classicy/classicy`'s `dist/sample.mp4` (the Movie
 Player's sample movie) too. The PDF viewer's worker needs nothing: it is
 embedded in the core's bundles.
@@ -430,6 +436,34 @@ import "@classicy/appearance-system7";
 A Vite host lists it in `optimizeDeps.exclude` too (above). Its README,
 [`packages/appearance/system7/README.md`](packages/appearance/system7/README.md),
 has its exports and its strict-CSP stylesheets.
+
+## Windows 98
+
+`@classicy/appearance-windows98` draws Windows 95 and 98 on Classicy's
+structure: gradient title bars with Minimize, Maximize and Close at the
+right, two-pixel bevels from the system colors, checkered scroll-bar tracks
+with an arrow at each end, raised menus and rectangular controls, in
+"Windows Standard", "Windows 95" and the sixteen classic color schemes of
+the Display control panel (Brick, Desert, Rainy Day, …), each a recoloring
+of one stylesheet. It ships its own alert tones but no fonts, art, icons,
+cursors, wallpapers or screen savers: every glyph is drawn from the theme's
+colors, and icons and cursors come from the default package's. Use it alone
+or beside the other packages; the Appearance Manager switches between them:
+
+```sh
+pnpm add @classicy/classicy @classicy/appearance-windows98
+# or, with every look:
+pnpm add @classicy/classicy @classicy/appearance-platinum @classicy/appearance-system7 @classicy/appearance-windows98
+```
+
+```tsx
+import "@classicy/appearance-platinum"; // optional
+import "@classicy/appearance-windows98";
+```
+
+A Vite host lists it in `optimizeDeps.exclude` too (above). Its README,
+[`packages/appearance/windows98/README.md`](packages/appearance/windows98/README.md),
+has its themes, exports and strict-CSP stylesheet.
 
 ## Building and running on localhost
 

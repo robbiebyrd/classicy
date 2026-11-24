@@ -1,0 +1,76 @@
+// Windows 98's pixel-grid art, shared by the component partials: lengths in
+// grid pixels and stacks of one-pixel rectangles (`classicy-px-rect`
+// layers), for the glyphs Windows drew pixel by pixel (the title-bar
+// buttons' close, minimize and maximize marks, the scroll arrows, the
+// checkbox's check, the radio button's ring and dot, the pop-up's arrow, the
+// menu's checkmark and submenu arrow, the slider's thumb). One grid pixel is
+// `--pixel-unit` (1); the multiplier allowlist names this file's one site,
+// the `px()` helper, as it names System 7's.
+@use "sass:list";
+@use "sass:string";
+@use "pkg:@classicy/classicy/scss/layout";
+
+$px: var(--pixel-unit);
+
+// A length of `$n` grid pixels.
+@function px($n) {
+  @if $n == 0 {
+    @return 0;
+  }
+  @if $n == 1 {
+    @return $px;
+  }
+  @return calc(#{$px} * #{$n});
+}
+
+// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
+// `(x y)` is one pixel), inked in `$ink`, from the element's top-left
+// corner, or offset by `$dx`, `$dy` (lengths) to place the art inside a
+// larger box.
+@function pixel-art($ink, $rects, $dx: 0, $dy: 0) {
+  $layers: ();
+  @each $rect in $rects {
+    $w: 1;
+    $h: 1;
+    @if list.length($rect) > 2 {
+      $w: list.nth($rect, 3);
+      $h: list.nth($rect, 4);
+    }
+    $x: px(list.nth($rect, 1));
+    $y: px(list.nth($rect, 2));
+    @if $dx != 0 {
+      $x: calc(#{$dx} + #{$x});
+    }
+    @if $dy != 0 {
+      $y: calc(#{$dy} + #{$y});
+    }
+    $layers: list.append(
+      $layers,
+      layout.classicy-px-rect($ink, $x, $y, px($w), px($h)),
+      $separator: comma
+    );
+  }
+  @return $layers;
+}
+
+// The `(x y w)` runs of `$char` in `$rows` (strings of one character per
+// pixel), one per stretch of a row, as `(x y w 1)` rectangles: art written
+// as a picture rather than as coordinates.
+@function runs($rows, $char) {
+  $rects: ();
+  $y: 0;
+  @each $row in $rows {
+    $start: null;
+    @for $i from 1 through string.length($row) + 1 {
+      $hit: $i <= string.length($row) and string.slice($row, $i, $i) == $char;
+      @if $hit and $start == null {
+        $start: $i - 1;
+      } @else if not $hit and $start != null {
+        $rects: list.append($rects, ($start $y ($i - 1 - $start) 1), $separator: comma);
+        $start: null;
+      }
+    }
+    $y: $y + 1;
+  }
+  @return $rects;
+}

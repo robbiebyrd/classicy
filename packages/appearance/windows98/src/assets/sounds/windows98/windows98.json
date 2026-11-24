@@ -1,0 +1,30 @@
+{
+	"id": "windows98",
+	"name": "Windows98",
+	"src": [
+		"./windows98.ogg",
+		"./windows98.m4a"
+	],
+	"sprite": {
+		"ClassicyAlertChimes": [
+			0,
+			840
+		],
+		"ClassicyAlertChord": [
+			2000,
+			600.0000000000001
+		],
+		"ClassicyAlertDing": [
+			4000,
+			450.00000000000017
+		],
+		"ClassicyAlertExclamation": [
+			6000,
+			419.99999999999994
+		],
+		"ClassicyBeep": [
+			8000,
+			449.9999999999993
+		]
+	}
+}

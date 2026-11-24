@@ -58,6 +58,8 @@ const scriptOf = (s: Step): string => {
 const PLATINUM_PKG = "packages/appearance/platinum/package.json";
 const SYSTEM7_PKG = "packages/appearance/system7/package.json";
 const HAS_SYSTEM7 = `hashFiles('${SYSTEM7_PKG}') != ''`;
+const WINDOWS98_PKG = "packages/appearance/windows98/package.json";
+const HAS_WINDOWS98 = `hashFiles('${WINDOWS98_PKG}') != ''`;
 const HAS_PLATINUM = `hashFiles('${PLATINUM_PKG}') != ''`;
 const NO_PLATINUM = `hashFiles('${PLATINUM_PKG}') == ''`;
 const NEW_TAG = "steps.bump_version.outputs.newTag != ''";
@@ -189,6 +191,24 @@ describe("push.yml release workflow", () => {
 		expect(step(/Sync the Platinum/).text).not.toContain("system7");
 	});
 
+	it("syncs the Windows 98 version into its own commit before the tag, only when its folder exists", () => {
+		const sync = step(/Sync the Windows 98/);
+		expect(sync.text).toContain(WINDOWS98_PKG.replace("/package.json", ""));
+		expect(sync.text).toMatch(
+			/npm pkg set version="\$VERSION" --prefix packages\/appearance\/windows98/,
+		);
+		expect(sync.text).toContain(`git add ${WINDOWS98_PKG}`);
+		expect(sync.text).toMatch(
+			/git diff --cached --quiet \|\| git commit -m "ci: set @classicy\/appearance-windows98 to \$VERSION \[skip ci\]"/,
+		);
+		expect(sync.text).not.toContain("git push");
+		expect(sync.text).not.toContain("git tag");
+		expect(ifOf(sync)).toContain(NEW_TAG);
+		expect(ifOf(sync)).toContain(HAS_WINDOWS98);
+		expect(step(/Sync the Platinum/).text).not.toContain("windows98");
+		expect(step(/Sync the System 7/).text).not.toContain("windows98");
+	});
+
 	it("pushes once, branch and tag together, after the commits are made", () => {
 		const tagStep = step(/^Push the release commit and tag/);
 		const tag = scriptOf(tagStep);
@@ -240,7 +260,7 @@ describe("push.yml release workflow", () => {
 		expect(WORKFLOW).not.toContain("JS-DevTools");
 		const publish = step(/^Publish to npm$/);
 		expect(publish.text).toContain(
-			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --access public --no-git-checks",
+			"pnpm -r publish --filter @classicy/classicy --filter @classicy/appearance-platinum --filter @classicy/appearance-system7 --filter @classicy/appearance-windows98 --access public --no-git-checks",
 		);
 		expect(step(/^Setup Node/).text).toMatch(/registry-url:/);
 	});
