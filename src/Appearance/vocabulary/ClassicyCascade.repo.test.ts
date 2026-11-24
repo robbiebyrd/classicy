@@ -436,13 +436,6 @@ describe("cross-file overrides do not depend on import order", () => {
 	// [override, its sheet, overridden rule, its sheet, property].
 	const KNOWN_OVERRIDES: [string, string, string, string, string][] = [
 		[
-			".classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar",
-			`${W}Alert/ClassicyAlert.scss`,
-			".classicyWindowRed .classicyWindowTitleBar",
-			`${W}Window/ClassicyWindow.scss`,
-			"background-color",
-		],
-		[
 			".classicyControlStrip .classicyBevelButton.classicyControlStripModule",
 			`${W}ControlStrip/ClassicyControlStrip.scss`,
 			".classicyBevelButton.classicyBevelButtonSquare",

@@ -83,10 +83,10 @@ describe("literal colors are theme tokens (G 1.2)", () => {
 			"background-color: color-mix(in srgb, var(--color-error), white 80%);",
 		));
 
-	it("ClassicyAlert movable title bar uses the same tint", () =>
-		expect(alert).toContain(
-			"background-color: color-mix(in srgb, var(--color-error), white 80%);",
-		));
+	// The movable alert box's tint is look, so Platinum's (_Alert.scss,
+	// pinned by platinum.css.test.ts), not the base sheet's (story 0226-a6f).
+	it("ClassicyAlert's base sheet holds no movable title-bar tint", () =>
+		expect(alert).not.toContain("--color-error"));
 
 	it("FileInput error text is a 20% shade of --color-error", () =>
 		expect(fileInput).toContain(
