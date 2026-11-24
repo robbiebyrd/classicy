@@ -1146,8 +1146,10 @@ its own menu bar under the title bar. See §8, "Layout declarations".
 A window opened from an icon zooms out of it, and a folder's window zooms
 back to its icon when it closes, with the Finder's outline rectangles
 (story 0230-n6c; `Window/ClassicyZoomRects.ts`). Measured in Infinite Mac
-(Mac OS 8.1 and System 7.5, frames read off the emulator's canvas at the
-display's rate) and documented by the Drag Manager's `ZoomRects` (Apple's
+(Mac OS 8.1 and System 7.5, every frame read off the emulator's canvas at
+the display's rate; the captures cited are in
+`packages/appearance/platinum/resources/screenshots/zoom-rects/`, never
+published) and documented by the Drag Manager's `ZoomRects` (Apple's
 patent US5754178, which reproduces the Drag Manager reference: "gray
 dithered rectangles incrementally toward the destination rectangle", at
 most one step per tick, `kZoomAccelerate` making each step larger than the
@@ -1159,41 +1161,75 @@ last):
   (`classicyZoomFraction`), each step `growth` times the one before; both
   Finders measured lay 11 steps of 1.4. Rectangles are whole pixels
   (`computeClassicyZoomRects`).
-- **Opening** draws steps `firstStep` … `steps − 1`, one each
-  `1000 / rate` ms (a tick, 1/60 s), the first at once, then erases them all
-  one step after the last, when the window is drawn. It ends at the window's
-  content box (inside its frame, below its title bar,
-  `classicyWindowContentRect`), as 8.1's did. Mac OS 8.1 (Platinum,
-  `firstStep` 5) draws the six steps nearest the window and keeps them all
-  (`trail` 0): 100 ms. System 7.5 (`firstStep` 0, `trail` 4) draws all 11,
-  erasing each four steps after it is drawn: 183 ms. Until then the window
-  is laid out but not drawn (`classicyWindowZoomHidden`: `opacity: 0`, no
-  pointer events), as the Finder drew it after its rectangles; it is in the
-  store, focused and given the keyboard as soon as it opens.
+- **Opening** draws steps `firstStep` … `steps − 1`, then erases them all a
+  tick after the last, when the window is drawn. It ends at the window's
+  content area (`classicyWindowContentRect`: the union of its own menu bar,
+  header, contents with their scroll bars, and placard, inside the frame and
+  below the title bar), where 8.1's ended (`[45,89,421,249)` for a window
+  whose frame was `[40,68,427,255)`, `mac-os-8.1/open-from-window/`). Mac OS
+  8.1 (Platinum, `firstStep` 5) draws the six steps nearest the window and
+  keeps them all (`trail` 0): 100 ms at 60 Hz. System 7.5 (`firstStep` 0,
+  `trail` 4) draws all 11, erasing each four steps after it is drawn: 183 ms.
+  Until then the window is laid out but transparent
+  (`classicyWindowZoomHidden`: `opacity: 0`), as the Finder drew it after its
+  rectangles; it is in the store, focused and given the keyboard as soon as
+  it opens, and it takes the pointer: a click made during the zoom (a third
+  click after the double-click) lands on the new window, never on the
+  window or desktop under it, as the Mac queued it for the window drawn
+  next.
+- **Pacing.** The first rectangle is drawn at once, with the window's box
+  known (in the window's layout effect), and the display frame that shows it
+  starts the clock. Each later frame (`requestAnimationFrame`) draws the next
+  step once its tick is due (`1000 / rate` ms after the one before, within a
+  quarter of a tick), never more than one a frame, as `ZoomRects` drew one a
+  tick: one a frame at 60 Hz, one every other frame at 120 Hz, and a frame
+  the page is late to draw delays the rest without skipping or bunching any.
+  A page with no display frames paces by a timer at `1000 / rate` ms; a
+  hidden page draws no zoom.
 - **Closing** (a window with `zoomIconPath`) draws the same steps the other
   way, `steps` … `firstStep + 1`, from the window's whole box (its frame and
   title bar) toward the icon, after the window is gone. The icon is the one
   for `zoomIconPath`, else the nearest enclosing folder's or drive's that
   shows (`findClassicyZoomIcon`; 8.1 zoomed a window whose parent window was
-  closed to the disk's icon): a desktop icon, an icon in an icon view or a row
-  of a list view, counted only where its window shows it (not scrolled out of
-  its window's box); one covered by another window counts (8.1 zoomed to an
-  icon under a Stickies note). None found, no zoom. It runs a tick after the
-  window leaves the DOM, and only when the window's record is `closed` then
-  (not for a window unmounting open, StrictMode's phantom detach, or a
-  folder renamed under a new id).
+  closed to the disk's icon, `mac-os-8.1/close-after-parent/`): a desktop
+  icon, an icon in an icon view or a row of a list view, counted only where
+  its window shows it (not scrolled out of its window's box); one covered by
+  another window counts (8.1 zoomed to an icon under a Stickies note,
+  `mac-os-8.1/close-to-covered-icon/`). None found, no zoom. It runs a tick
+  after the window leaves the DOM, and only when the window's record is
+  `closed` then (not for a window unmounting open, StrictMode's phantom
+  detach, or a folder renamed under a new id).
+- **Close All** (File ▸ Close All Windows in a Finder window) closes every
+  folder window at once and zooms back only the window it was chosen from
+  (else the focused one); the others close with no zoom
+  (`skipClassicyWindowCloseZoom`, internal). Measured: 8.1's Option-click on
+  a close box erased all three windows in one frame and drew one zoom, the
+  clicked window's, back to its disk icon (`mac-os-8.1/close-all/`).
+- **The open zoom ends early** when the window closes, unmounts or opens
+  again during it: its rectangles go and the window is no longer hidden; an
+  effect torn down and run again at once (StrictMode) starts the same zoom
+  over.
+- **Menu opens zoom too.** Mac OS 8.1's File ▸ Open (⌘O) on a selected icon
+  and its contextual Open zoomed from the icon exactly as a double-click
+  (`mac-os-8.1/file-open/`, `mac-os-8.1/contextual-open/`). Classicy's one
+  menu open of an icon, the Trash's contextual Open, records the Trash
+  icon's origin the same way.
 - **Launching** an application from its icon (a desktop app shortcut, or a
   document or application opened from a Finder window or the desktop) zooms
   from the icon to the whole desktop, only when the open started the
-  application (8.1: opening a document in SimpleText while it ran drew none;
+  application (8.1: opening a document in SimpleText while it ran drew none,
+  `mac-os-8.1/launch/` and `mac-os-8.1/document-in-running-app/`;
   `withClassicyLaunchZoom`, `ClassicyLaunchZoom.ts`, compares the open apps
-  before and after the dispatch). The application's own windows open
-  without a zoom.
+  before and after the dispatch). The started application's windows that
+  open while it runs wait for it (hidden the same way) and are drawn when it
+  ends, as 8.1 drew SimpleText's window after its zoom; they open without a
+  zoom of their own. Quitting draws none (`mac-os-8.1/quit/`).
 - **Not zoomed:** a folder whose window is already open (it comes to the
-  front; 7.5 drew none), a window opened by anything but an icon (a menu
-  command, a restored session, a direct `ClassicyAppFinderOpenFolder`), and
-  a user who prefers reduced motion (`prefers-reduced-motion: reduce`: no
-  rectangles, the window drawn at once).
+  front; 7.5 drew none, `system-7.5/reopen-open-folder/`), a window opened by
+  anything but an icon (a restored session, a direct
+  `ClassicyAppFinderOpenFolder` with no source), a package that has not opted
+  in, and a user who prefers reduced motion (`prefers-reduced-motion:
+  reduce`: no rectangles, the window drawn at once).
 
 **The open path carries the source.** An icon that opens a window passes its
 zoom origin, `ClassicyZoomOrigin` (`{ rect, desktop }`: its image's box in
@@ -1202,15 +1238,18 @@ on the open path: `ClassicyIcon`'s `onClickFunc(origin)`,
 `ClassicyFileBrowser`'s `dirOnClickFunc(path, origin)` and
 `fileOnClickFunc(path, origin)` (from the icon view's icon, or the list
 view's row, found by its path, `classicyZoomOriginForPath`), and
-`ClassicyDesktopIcon`'s `onOpenFilePath(path, origin)`. Whoever opens the
-window records it for the window just before the open dispatch:
+`ClassicyDesktopIcon`'s `onOpenFilePath(path, origin)`, by the mouse and by
+the keyboard (Enter on an icon, Return in a list), and only when there is
+one (a call without it keeps its old arguments). Whoever opens the window
+records it for the window just before the open dispatch:
 `noteClassicyWindowZoomSource(appId, windowId, origin)` (Finder's
-`openFolder` and the desktop's folder and drive icons, for a window not open
-yet). The window takes it (`takeClassicyWindowZoomSource`, once, within
-`CLASSICY_ZOOM_SOURCE_TTL_MS`, 1 s) when it becomes open, mounting open or
-going from closed to open, in a layout effect, so it never shows before its
-rectangles. Nothing goes in the store: no action, record or persisted byte
-changes. A host app opening its own window from its own icon does the same:
+`openFolder`, the desktop's folder and drive icons, the Trash's contextual
+Open, for a window not open yet). The window takes it
+(`takeClassicyWindowZoomSource`, once, within `CLASSICY_ZOOM_SOURCE_TTL_MS`,
+1 s) when it becomes open, mounting open or going from closed to open, in a
+layout effect, so it never shows before its rectangles. Nothing goes in the
+store: no action, record or persisted byte changes. A host app opening its
+own window from its own icon does the same:
 
 ```ts
 noteClassicyWindowZoomSource("Notes.app", "note-1", classicyZoomOriginOf(iconEl));
@@ -1219,40 +1258,45 @@ dispatch({ type: "ClassicyAppOpen", app: { id: "Notes.app", name: "Notes", icon 
 
 `playClassicyZoomRects({ desktop, icon, window, direction, settings?, onEnd? })`
 draws one (null when it draws nothing; else `{ durationMs, cancel }`), and
-`playClassicyLaunchZoom(origin)` the launch.
+`playClassicyLaunchZoom(origin, appIds?)` the launch.
 
-**The look and the package's control.** The rectangles are drawn in a layer
-the core appends to the desktop (`classicyZoomRects`, `aria-hidden`: absolute,
-covering the desktop, no stacking context), outside React, one element per
-rectangle (`classicyZoomRect`, part `data-classicy-part="zoom-rect"`, base
-`z-index` 1000: over windows, the menu bar, the Control Strip and contextual
-menus, as `ZoomRects` drew on the whole screen; under open pull-down menus),
-each carrying the desktop's corner from its own as
-`--classicy-pattern-origin-x` / `-y`. The core draws no look: each package
-draws the part in its stylesheet (`_ZoomRects.scss`): Platinum Mac OS 8.1's
-two-pixel frame, System 7 the 7.5 Finder's one-pixel frame, both the 50%
-checker in XOR laid from the desktop (`mix-blend-mode: difference`, as the
-selection rectangle), sized by the look-only knobs `zoomRects.width` and
-`zoomRects.tileSize`. A package turns the animation on or off and sets its
-path and pace with the structural `zoomRects` knobs the core reads from the
-desktop (`readClassicyZoomRectsSettings`, through `readClassicyThemeVar`):
-`enabled` (1 on, 0 off), `steps`, `growthPercent` (each step's length over
-the last's: 140, the growth of 1.4), `firstStep`, `trail` (rectangles kept;
-0 keeps all) and `rate` (steps per second), whole numbers like every knob, on
-the core floor at Mac OS 8.1's values (1, 11, 140, 5, 0, 60), System 7 overriding `firstStep` 0 and
-`trail` 4 (§8, "Package knob families"). A package that does not style the
-part draws invisible rectangles, with the window still hidden while they
-run: set `zoomRects.enabled` to 0 to open windows at once.
+**The package opts in and draws the look.** The rectangles are drawn in a
+layer the core appends to the desktop (`classicyZoomRects`, `aria-hidden`:
+absolute, covering the desktop, no stacking context), outside React, one
+element per rectangle (`classicyZoomRect`, part
+`data-classicy-part="zoom-rect"`, base `z-index` 1000: over windows, the
+menu bar, the Control Strip and contextual menus, as `ZoomRects` drew on the
+whole screen; under open pull-down menus), each carrying the desktop's
+corner from its own as `--classicy-pattern-origin-x` / `-y`. The core draws
+no look, so the zoom is opt-in: a package that wants it sets its themes'
+`zoomRects.enabled` to 1 (a package's own knob, not on the core floor; the
+core reads it with a fallback of 0, `readClassicyZoomRectsSettings`) **and**
+draws the part in its stylesheet. A package that sets neither (a host's own
+package written before this release, Storybook's probe) has no zoom: no
+rectangles and no hidden window. Platinum and System 7 opt in and draw it in
+`_ZoomRects.scss`: Platinum Mac OS 8.1's two-pixel frame, System 7 the 7.5
+Finder's one-pixel frame, both the 50% checker in XOR laid from the desktop
+(`mix-blend-mode: difference`, the selection rectangle's pen:
+`platinum-xor-checker-frame` in Platinum's `_mixins.scss`, System 7's
+`xor-checker-frame` in `_checkerFrame.scss`), sized by the look-only knobs
+`zoomRects.width` and `zoomRects.tileSize`. The path and pace are the
+structural `zoomRects` knobs the core reads from the desktop: `steps`,
+`growthPercent` (each step's length over the last's: 140, the growth of
+1.4), `firstStep`, `trail` (rectangles kept; 0 keeps all) and `rate` (steps
+per second), whole numbers like every knob, on the core floor at Mac OS
+8.1's values (11, 140, 5, 0, 60), System 7 overriding `firstStep` 0 and
+`trail` 4 (§8, "Package knob families").
 
-**Not measured.** The emulator's pace equals a real Mac's only as far as the
+**Not measured.** The emulator's pace equals a real Mac's as far as the
 Finder waits on ticks: one rectangle came each 1/60 s frame in both systems,
 as the Drag Manager's one step per tick says, so the 100 ms (8.1) and 183
-ms (7.5) are taken as the real pace. The Finder's own icon box was a few
-pixels larger than the icon (7.5's first rectangle, 39 × 34 around a 32 ×
-32 icon); Classicy starts from the icon image's box. 8.1's desktop icons
-started their zoom from a box offset from where the icon was drawn
-(Infinite Mac lays the disks out for its screen size); Classicy starts from
-the icon.
+ms (7.5) are taken as the real pace on any machine fast enough to draw a
+step a tick. The Finder's own icon box was a few pixels larger than the icon
+(7.5's first rectangle, 39 × 34 around a 32 × 32 icon); Classicy starts from
+the icon image's box. 8.1's desktop icons started their zoom from a box
+offset from where the icon was drawn (Infinite Mac lays the disks out for
+its screen size); Classicy starts from the icon. Whether 8.1 zoomed from an
+already-open folder's icon was captured only in 7.5 (none).
 
 **`ClassicyWindowFrame`** — presentational chrome only (no store coupling;
 usable pre-boot): `title?`, `children` *, `className?`, `width?`. It draws the
@@ -1524,7 +1568,7 @@ plain integers (`0xRRGGBB`).
 |---|---|---|
 | `Classicy` | every `ClassicyAppManagerProvider` prop (§1) and every `ClassicyDesktop` prop (next row) | `ClassicyAppManagerProvider` around `ClassicyDesktop`, in one tag; `className`/`style` reach `#classicyDesktop` (§1, "Classicy") |
 | `ClassicyDesktop` | `children?`, `startupScreen? (true)`, `startupDuration? (4000)`, `startupLogo?`, `startupWordmark?`, `bootScreen?` (`ReactNode`), `preBootScreen?((powerOn) => ReactNode)`, `controlStrip?` (`ClassicyControlStripProps \| false`) | the desktop surface; mounts the menu bar, the contextual menu provider, the Control Strip and a `ClassicyCrashScreen`. `startupLogo`/`startupWordmark` replace the startup screen's art; `bootScreen` replaces the whole splash (pair it with `hasShownStartupScreenThisSession` / `markStartupScreenShownThisSession` to show it once per session); `controlStrip={false}` hides the strip |
-| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?(path, origin?)` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. A Control-press or right-press is the contextual-menu click (§7, "Selection rectangle"): it selects an unselected icon alone and keeps a selection the icon is in (the selection is kept; what a `contextMenu` item acts on is its handler's: Finder's drive menu acts on its one drive), never drags, and a Control-press opens the menu where the browser does not; the click ending a file drag is no click, so a dragged selection stays selected. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Opening a drive's, the Trash's or a folder's icon whose Finder window is not open zooms that window out of the icon, and opening an icon that starts its application zooms to the desktop (§4.1, "Zoom rectangles"). Open and analytics payloads carry `appName`/`icon` |
+| `ClassicyDesktopIcon` | `appId` *, `appName` *, `icon` *, `kind? ("icon")`, `label?`, `event?`/`eventData?`, `onClickFunc?`, `noLaunch?`, `contextMenu?`, `balloonHelp?`, `filePath?`, `onMoveFilePaths?`, `onOpenFilePath?(path, origin?)` | usually created for you by `ClassicyApp`. With `filePath` (icon records carry it, `ClassicyDesktopIconAdd { filePath }`): drive/`directory`/`trash` icons are drop targets; other kinds drag as files — let go on the desktop they move, on a folder `onMoveFilePaths(paths, destination)` moves the selection's items. `ClassicyDesktop` wires both callbacks. A Control-press or right-press is the contextual-menu click (§7, "Selection rectangle"): it selects an unselected icon alone and keeps a selection the icon is in (the selection is kept; what a `contextMenu` item acts on is its handler's: Finder's drive menu acts on its one drive), never drags, and a Control-press opens the menu where the browser does not; the click ending a file drag is no click, so a dragged selection stays selected. For `kind: "app_shortcut"` only, the label, image, alt text and mask show the active package's display name and icon for `appId` (other kinds, Finder's drives among them, share `Finder.app` and keep their own); a non-empty `label` still wins. The balloon is resolved at render: `balloonHelp` as given (untitled, it is titled with the shown name, for every kind), else, for an app shortcut, the package's `apps[appId].description` or the manifest `description`, else the kind's stock copy. Opening a drive's, the Trash's or a folder's icon whose Finder window is not open zooms that window out of the icon, and opening an icon that starts its application zooms to the desktop, when the active package opts in (§4.1, "Zoom rectangles"). Open and analytics payloads carry `appName`/`icon` |
 | `ClassicyCrashScreen` | `children?` | error boundary → Sad Mac screen. `ClassicyDesktop` already wraps itself in one, so don't add another around it; use it only for a shell you build without `ClassicyDesktop` |
 | `ClassicyBoot` / `ClassicyBootSequence` / `ClassicyStartupScreen` | see source | boot parade; normally managed by `ClassicyDesktop` |
 | `ClassicyDesktopMenuWidgetTime` | none | stock menu bar clock widget; the menu bar shows only Time |
@@ -5070,10 +5114,13 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 91 of the 115 are
+  overriding the knob's value, never the base CSS. 90 of the 115 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 22 are
+  table, so the floor and the column cannot drift). Three of the rest are
+  optional: the two `fileBrowserList` knobs (below) and
+  `zoomRects.enabled`, the zoom rectangles' opt-in (§4.1, "Zoom
+  rectangles"), which the core reads with a fallback of 0 so a package
+  that does not set it, and draws no rectangles, has no zoom. The other 22 are
   look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
   `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
   `_QuickTimeMovieEmbed.scss`, `_Slider.scss`, `_SelectionMarquee.scss`, `_ZoomRects.scss`), they are not in the floor and come only from
@@ -5282,7 +5329,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 | `selectionMarquee.width` | `--selection-marquee-width` | 2 | — | no | _SelectionMarquee.scss |
 | `selectionMarquee.tileSize` | `--selection-marquee-tile-size` | 2 | — | no | _SelectionMarquee.scss |
-| `zoomRects.enabled` | `--zoom-rects-enabled` | 1 | — | yes | ClassicyZoomRects.ts |
+| `zoomRects.enabled` | `--zoom-rects-enabled` | 1 | — | no | ClassicyZoomRects.ts (optional, the package's opt-in; fallback 0) |
 | `zoomRects.steps` | `--zoom-rects-steps` | 11 | — | yes | ClassicyZoomRects.ts |
 | `zoomRects.growthPercent` | `--zoom-rects-growth-percent` | 140 | — | yes | ClassicyZoomRects.ts |
 | `zoomRects.firstStep` | `--zoom-rects-first-step` | 5 | — | yes | ClassicyZoomRects.ts |
