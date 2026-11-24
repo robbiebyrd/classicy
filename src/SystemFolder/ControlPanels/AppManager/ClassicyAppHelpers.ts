@@ -320,6 +320,11 @@ const showsClassicyDocument = (
  *   windows after all when none of the app's windows opened); a plain open
  *   or a quit ends it too.
  *
+ * - A plain open of an app that is **already running** with no window open
+ *   (after the reopening above) counts a reopen (`reopened`), Finder 8's
+ *   reopen application Apple event (TN1102): `ClassicyApp`'s `onReopen`
+ *   shows a window, as on launch (SimpleText opens an untitled one).
+ *
  * Every open of an app that is there is remembered under Recent
  * Applications, and a document's path under Recent Documents.
  */
@@ -338,9 +343,10 @@ export function openApp(
 	};
 	const findApp = ownApp(ds, appId);
 	if (findApp) {
+		const wasOpen = findApp.open;
 		// A launch is tracked only for an app whose ClassicyApp is mounted:
 		// that is what ends it (ClassicyAppLaunchSettled).
-		const launching = !findApp.open && isClassicyAppMounted(appId);
+		const launching = !wasOpen && isClassicyAppMounted(appId);
 		findApp.open = true;
 		if (launching) findApp.launching = true;
 		if (!forDocument) {
@@ -368,6 +374,19 @@ export function openApp(
 		// of the app (its ClassicyWindowOpen, when it mounts again, finds it
 		// open already and leaves the focus where it is).
 		if (forDocument && reopened !== undefined) focusWindow(ds, appId, reopened);
+		// Opened again while it runs with no window open: Finder 8's reopen
+		// application Apple event (TN1102: "If no windows are open in the
+		// application, the action taken should be similar to what happens
+		// when the open application ('oapp') Apple event is received after
+		// the application is launched"). The app shows a window, as on
+		// launch, through ClassicyApp's onReopen; one with a window open,
+		// even a palette or dialog, needs nothing more.
+		if (
+			wasOpen &&
+			!forDocument &&
+			!listAppWindows(findApp).some((w) => !w.closed)
+		)
+			findApp.reopened = (findApp.reopened ?? 0) + 1;
 	} else if (isAssignableAppId(appId)) {
 		ds.System.Manager.Applications.apps[appId] = {
 			id: appId,
@@ -512,6 +531,7 @@ export function closeApp(ds: ClassicyStore, appId: string) {
 		delete findApp.hidden;
 		delete findApp.launching;
 		delete findApp.launchedFor;
+		delete findApp.reopened;
 		for (const w of listAppWindows(findApp)) {
 			w.closed = true;
 		}

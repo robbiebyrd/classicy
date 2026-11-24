@@ -102,6 +102,14 @@ export interface ClassicyStoreSystemApp {
 	 */
 	launchedFor?: { documents: string[]; windows: string[] };
 	/**
+	 * Session state (stripped on save): how many times the running app was
+	 * opened again with no window open (a plain `openApp` of an open app),
+	 * as Finder 8 sends a running application the reopen application Apple
+	 * event (TN1102). `ClassicyApp` calls its `onReopen` on each change, for
+	 * the app to show a window as on launch. A quit clears it.
+	 */
+	reopened?: number;
+	/**
 	 * Hidden by the Application menu's Hide commands (HIG7 p.127): the app
 	 * stays open, its windows out of sight, until Show All or until it takes
 	 * focus again (`focusApp` shows it). Never set on an extension.

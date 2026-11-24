@@ -956,6 +956,8 @@ export function sanitizeStateForPersistence(
 			// mount with it ends with the session (story 0226-a6f).
 			delete app.launching;
 			delete app.launchedFor;
+			// A reopen request (TN1102) is answered at once, by the mounted app.
+			delete app.reopened;
 			for (const [id, w] of Object.entries(app.windows ?? {})) {
 				// A modal window's record lives only while it is mounted (it is
 				// destroyed on unmount, which a reload never runs): an alert open

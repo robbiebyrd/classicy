@@ -725,6 +725,9 @@ export const SimpleText = () => {
 			]}
 			handlesOwnFiles={true}
 			windowlessMenu={noWindowMenu}
+			// Opened again with no window (Finder 8's reopen event, TN1102;
+			// Mac OS 8.1's SimpleText, observed): a new untitled window.
+			onReopen={newFile}
 		>
 			{docs.map((doc, idx) => (
 				<ClassicyWindow

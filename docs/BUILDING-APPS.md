@@ -836,7 +836,7 @@ useClassicyEditMenu(idPrefix)                  // → a standard Edit menu item
 
 `useClassicyHelpMenu` is the way to add help items: they join the one standard Help menu (About, Show/Hide Balloons, Keyboard Shortcuts, then yours). A top-level "Help" menu in your `appMenu` is folded into that same menu, right after Keyboard Shortcuts, so the bar never draws two; prefer the hook.
 
-`ClassicyApp`'s optional `windowlessMenu` prop holds the menus shown while the app is the front application with no open window (File ▸ New, Open, Quit: the Mac keeps an application's menu bar with every window closed); it is not `ClassicyWindow`'s `appMenu`, and any open window record keeps it out. Memoize it.
+`ClassicyApp`'s optional `windowlessMenu` prop holds the menus shown while the app is the front application with no open window (File ▸ New, Open, Quit: the Mac keeps an application's menu bar with every window closed); it is not `ClassicyWindow`'s `appMenu`, and any open window record keeps it out. Memoize it. Its `onReopen` prop is called when the app, running with no window open, is opened again (its icon, the Apple menu, Recent Applications), as Finder 8 sends a running application the reopen Apple event: show a window as on launch, as SimpleText opens an untitled one.
 
 `useClassicyAboutMenu` returns both a menu item and the window that renders it.
 Put the item in your File menu and render `aboutWindow` as a `ClassicyApp` child:

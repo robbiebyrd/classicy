@@ -260,6 +260,114 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		);
 	});
 
+	// Opened again while it runs with no window, and quit and relaunched with
+	// none: the windowless menu and the app's windows never disagree (story
+	// 0233-c79's RR2-4, on top of 0226-a6f's openApp and closeApp).
+	describe("running with no window", () => {
+		const simpleText = () =>
+			useAppManager.getState().System.Manager.Applications.apps[SIMPLE_TEXT.id];
+		const openRecords = () =>
+			listAppWindows(simpleText())
+				.filter((w) => !w.closed)
+				.map((w) => w.id);
+		const barTitles = () =>
+			(useAppManager.getState().System.Manager.Desktop.appMenu ?? []).map(
+				(m) => m.title,
+			);
+		const fileMenuIds = () =>
+			(
+				(useAppManager.getState().System.Manager.Desktop.appMenu ?? []).find(
+					(m) => m.title === "File",
+				)?.menuChildren ?? []
+			).map((m) => m.id);
+		const WINDOWLESS_FILE = [
+			`${SIMPLE_TEXT.id}_new`,
+			`${SIMPLE_TEXT.id}_open`,
+			"spacer",
+			`${SIMPLE_TEXT.id}_quit`,
+		];
+		const clickCloseBox = (title: string) => {
+			const box = windowTitled(title)
+				?.closest(".classicyWindow")
+				?.querySelector(".classicyWindowCloseBox");
+			if (!box) throw new Error(`no close box on ${title}`);
+			fireEvent.click(box);
+		};
+
+		// RR2's S1. Mac OS 8.1 (story 0226-a6f, observed): SimpleText running
+		// with no window, chosen again, comes forward with a new untitled
+		// window, Finder 8's reopen application Apple event (TN1102). The
+		// closed untitled record, which nothing draws, stays closed.
+		it("opens a new untitled window when opened again, never the closed one", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			const [first] = openRecords();
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			expect(openRecords()).toEqual([]);
+			expect(fileMenuIds()).toEqual(WINDOWLESS_FILE);
+			expect(barTitles()).not.toContain("Format");
+
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			const now = openRecords();
+			expect(now).toHaveLength(1);
+			expect(now[0]).not.toBe(first);
+			expect(getAppWindow(simpleText(), first)?.closed).toBe(true);
+			// The new window's menus are the bar's.
+			await waitFor(() => expect(barTitles()).toContain("Format"));
+			expect(fileMenuIds()).toContain(`${now[0]}_close`);
+		});
+
+		// RR2's S3: launch, open and close Read Me, close the untitled window,
+		// Quit, relaunch, close the new untitled window. No record of a closed
+		// document is left open, and the windowless menu comes back.
+		it("brings the windowless menu back after a quit, a relaunch and a close", async () => {
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			openFileInSimpleText(READ_ME);
+			await waitFor(() =>
+				expect(windowTitled("Read Me.txt")).toBeInTheDocument(),
+			);
+			clickCloseBox("Read Me.txt");
+			await waitFor(() =>
+				expect(windowTitled("Read Me.txt")).not.toBeInTheDocument(),
+			);
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			expect(fileMenuIds()).toEqual(WINDOWLESS_FILE);
+
+			// Quit from the windowless File menu: the same quit request as a
+			// document window's Quit, which quits at once with nothing unsaved.
+			const quit = (
+				useAppManager.getState().System.Manager.Desktop.appMenu ?? []
+			)
+				.flatMap((m) => m.menuChildren ?? [])
+				.find((m) => m.id === `${SIMPLE_TEXT.id}_quit`);
+			act(() => quit?.onClickFunc?.());
+			await waitFor(() => expect(simpleText().open).toBe(false));
+
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			expect(windowTitled("Read Me.txt")).not.toBeInTheDocument();
+			expect(openRecords()).toHaveLength(1);
+			clickCloseBox("untitled");
+			await waitFor(() =>
+				expect(windowTitled("untitled")).not.toBeInTheDocument(),
+			);
+			expect(openRecords()).toEqual([]);
+			expect(simpleText().open).toBe(true);
+			await waitFor(() => expect(fileMenuIds()).toEqual(WINDOWLESS_FILE));
+			expect(barTitles()).toEqual(["File", "Edit", "Help"]);
+		});
+	});
+
 	// Found during story 0226-a6f: opening a document into SimpleText reopened
 	// every window it had closed, its untitled window too. Mac OS 8.1
 	// (Infinite Mac) shows only the document's window when a document opens

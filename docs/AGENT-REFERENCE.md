@@ -923,6 +923,7 @@ Full props:
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
 | `globalShortcuts` | `{ shortcut, event, eventData?, title? }[]` | — | honored only for extensions |
 | `windowlessMenu` | `ClassicyMenuItem[]` (memoize) | — | the menus shown while the app is the front application with **no open window record** (not `ClassicyWindow`'s `appMenu`: a dialog, About or palette keeps it out); under `menuBar.placement: "window"` only its chords act |
+| `onReopen` | `() => void` | — | called when the app, already running with **no open window record**, is opened again by a plain `ClassicyAppOpen` (its icon, the Apple menu, Recent Applications): Finder 8's reopen application Apple event (Apple Technote TN1102, "If no windows are open in the application, the action taken should be similar to what happens when the open application ('oapp') Apple event is received after the application is launched"). Show a window as on launch (SimpleText opens an untitled one, as Mac OS 8.1's did); never called for a document open or while any window, a palette or dialog included, is open. `openApp` counts the request in `apps[id].reopened` (session state); only a count that changes while the app is mounted is answered |
 | `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon) |
 | `debug` | `boolean` | `false` | |
 | `handlesFileTypes` | `ClassicyFileSystemEntryFileType[]` | — | register as a file-type handler |
@@ -7555,7 +7556,13 @@ untitled window only.
   mounted (`ClassicyMountedWindows.internal.ts`); a window that is not
   mounted (its app was quit, or the document it showed closed) reopens itself
   if and when it mounts (`ClassicyWindowOpen` on a closed record), so no
-  window record ever reads open with nothing on screen.
+  window record ever reads open with nothing on screen. A plain open of an app
+  **already running** with no window open afterward is Finder 8's reopen
+  (TN1102): `openApp` counts it (`reopened`, session state, cleared by a
+  quit) and `ClassicyApp`'s `onReopen` shows a window as on launch
+  (SimpleText: a new untitled window, as Mac OS 8.1's SimpleText did when
+  chosen again with every window closed); an app without `onReopen` just
+  comes to the front, its `windowlessMenu` in the bar.
 - With `options.document` (a path) or `options.windows` (ids), it opens the
   app **for a document**: only the document's windows reopen and come to the
   front (`` `${appId}_file_${document}` ``, which `classicyDocumentWindowId`

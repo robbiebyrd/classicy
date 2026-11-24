@@ -3,6 +3,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useRef,
 } from "react";
 import { pickWindowToRestore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppHelpers";
 import {
@@ -125,6 +126,14 @@ export interface ClassicyAppProps {
 	 *  `menuBar.placement: "window"` there is no window to draw it in, so only
 	 *  its chords act. Memoize it: a new array each render is re-sent. */
 	windowlessMenu?: ClassicyMenuItem[];
+	/** Called when the app, already running with **no open window**, is
+	 *  opened again: a plain `ClassicyAppOpen` (its desktop icon, the Apple
+	 *  menu, Recent Applications), as Finder 8 sends a running application
+	 *  the reopen application Apple event (TN1102). Show a window, as on
+	 *  launch: SimpleText opens an untitled one. Never called for a document
+	 *  open, or while any window of the app (a palette or dialog included)
+	 *  is open. Without it, the app just comes to the front. */
+	onReopen?: () => void;
 	/** The app's windows (`ClassicyWindow`) and other UI. Rendered only while
 	 *  the app is open. */
 	children?: ReactNode;
@@ -173,6 +182,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 	handlesOwnFiles = false,
 	contextMenu,
 	windowlessMenu,
+	onReopen,
 	children,
 }) => {
 	const appContext = useAppManager(
@@ -302,6 +312,20 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 		if (!launching) return;
 		desktopEventDispatch({ type: "ClassicyAppLaunchSettled", app: { id } });
 	}, [launching, desktopEventDispatch, id]);
+
+	// Opened again with no window open (`apps[id].reopened`, counted by
+	// `openApp`): the app's onReopen shows a window. Only a change seen
+	// while mounted counts, so a remount never answers an old request.
+	const reopened = appContext?.reopened;
+	const onReopenRef = useRef(onReopen);
+	onReopenRef.current = onReopen;
+	const answeredReopenRef = useRef(reopened);
+	useEffect(() => {
+		if (reopened === undefined || reopened === answeredReopenRef.current)
+			return;
+		answeredReopenRef.current = reopened;
+		onReopenRef.current?.();
+	}, [reopened]);
 
 	const handlesFileTypesKey = handlesFileTypes?.slice().sort().join(",") ?? "";
 	useEffect(() => {
