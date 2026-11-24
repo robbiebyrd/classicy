@@ -48,7 +48,7 @@ export const ClassicyOpenUrlController: FC = () => {
 		// queued then (a scheduler task) would run inside this effect, which
 		// React refuses ("Should not already be working."). Found during story
 		// 0227-815, opening a search result. Still within the click's user
-		// activation, so no popup blocker stops it; never cancelled, so two
+		// activation, so no popup blocker stops it; never canceled, so two
 		// requests in a row still open two tabs.
 		setTimeout(() => {
 			if (request.disposition === "browser-new") {

@@ -3,7 +3,7 @@
  * shared tree of the desktop's storage key, walked under the chosen
  * location, each item checked against every row (`ClassicyFindCriteria.ts`).
  * Asynchronous, so a search of a large tree never blocks the desktop, and
- * cancelled by its `AbortSignal` (a new search aborts the last).
+ * canceled by its `AbortSignal` (a new search aborts the last).
  *
  * As in Mac OS 8.1: an invisible item is never found unless a visibility row
  * asks for it, but the search still looks inside invisible folders (an item
