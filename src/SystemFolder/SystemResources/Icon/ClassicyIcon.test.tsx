@@ -130,6 +130,31 @@ describe("ClassicyIcon contextual-menu click, and the click after a drag", () =>
 		expect(icon.classList).not.toContain("selected");
 	});
 
+	it("takes an unsteady click, under the drag threshold, as a click: the icon stays put and toggles", () => {
+		const { icon } = renderHeld();
+		click(icon);
+		expect(icon.classList).toContain("selected");
+		// 3 px of travel, under CLASSICY_FILE_DRAG_THRESHOLD (4 px).
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 63, clientY: 62 });
+		fireEvent.mouseUp(icon, { clientX: 63, clientY: 62 });
+		fireEvent.click(icon, { detail: 1 });
+		expect(icon.style.left).toBe("50px");
+		expect(icon.style.top).toBe("50px");
+		expect(icon.classList).not.toContain("selected");
+	});
+
+	it("lets a keyboard's or a script's click (detail 0) through after a drag", () => {
+		const { icon } = renderHeld();
+		fireEvent.mouseDown(icon, { button: 0, clientX: 60, clientY: 60 });
+		fireEvent.mouseMove(icon, { clientX: 90, clientY: 90 });
+		// Let go off the icon: no click of the drag's own follows.
+		fireEvent.mouseUp(icon, { clientX: 90, clientY: 90 });
+		expect(icon.classList).toContain("selected");
+		fireEvent.click(icon, { detail: 0 });
+		expect(icon.classList).not.toContain("selected");
+	});
+
 	it("takes a Control-press as the contextual-menu click: selected, not dragged, the menu, no click after", async () => {
 		const { icon, container } = renderHeld();
 		const menus = vi.fn();

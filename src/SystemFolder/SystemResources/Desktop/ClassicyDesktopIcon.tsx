@@ -315,7 +315,9 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 
 			const clickFocus = (e: MouseEvent<HTMLDivElement>) => {
 				e.stopPropagation();
-				if (didDragRef.current || fileDraggedRef.current) {
+				// The click ending a drag is no click; a keyboard's or a
+				// script's (`detail` 0) never is a drag's.
+				if ((didDragRef.current || fileDraggedRef.current) && e.detail > 0) {
 					didDragRef.current = false;
 					fileDraggedRef.current = false;
 					selectedOnPressRef.current = false;

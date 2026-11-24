@@ -726,6 +726,9 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 			// Pressed and let go on the same icon: the browser clicks it.
 			fireEvent.click(t.icon(PATHS[0]), { detail: 1 });
 			expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
+			// A keyboard's or a script's click (detail 0) is never the drag's.
+			fireEvent.click(t.icon(PATHS[0]), { detail: 0 });
+			expect(t.selected()).toEqual([PATHS[0]]);
 			// The next click is a click again.
 			t.click(PATHS[1]);
 			expect(t.selected()).toEqual([PATHS[1]]);

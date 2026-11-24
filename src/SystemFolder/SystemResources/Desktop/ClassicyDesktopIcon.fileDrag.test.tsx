@@ -242,6 +242,10 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 			// Pressed and let go on the same icon: the browser clicks it.
 			fireEvent.click(t.plan, { detail: 1 });
 			expect(selectedIcons()).toEqual([ITEM_ID, OTHER_ID]);
+			// A keyboard's or a script's click (detail 0) is never the drag's.
+			dragTo(t.plan, [10, 10], [16, 10], desktop);
+			fireEvent.click(t.plan, { detail: 0 });
+			expect(selectedIcons()).toEqual([ITEM_ID]);
 			// The next click is a click again.
 			fireEvent.mouseDown(t.plan, { button: 0, clientX: 10, clientY: 10 });
 			fireEvent.mouseUp(document, { clientX: 10, clientY: 10 });

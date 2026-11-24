@@ -26,6 +26,7 @@ import {
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
 import {
 	CLASSICY_DROP_FOLDER_ATTRIBUTE,
+	CLASSICY_FILE_DRAG_THRESHOLD,
 	CLASSICY_FILE_PATH_ATTRIBUTE,
 	type ClassicyFileDropTarget,
 	startClassicyFileDrag,
@@ -243,6 +244,10 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	// A ref, not state: it must be readable inside the same mouseup that clears
 	// it, and it never affects what is rendered.
 	const movedWhileDragging = useRef<boolean>(false);
+	// Where the press was: the icon follows the pointer only once it has
+	// traveled `CLASSICY_FILE_DRAG_THRESHOLD` px from it (the Finder drag's
+	// threshold), so an unsteady click is a click.
+	const pressPointRef = useRef<[number, number]>([0, 0]);
 	// Whether the current press became a Finder drag. The click that ends it,
 	// when it is let go over the icon, is no click (Mac OS 8.1 keeps a
 	// selection it dragged): set when the drag starts, cleared at each press.
@@ -265,8 +270,10 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 	const analyticsArgs = { type: "ClassicyIcon", appId, name, icon, label };
 
 	const toggleFocus = (e: MouseEvent<HTMLDivElement>) => {
-		// The click ending a drag: the press was a drag, not a click.
-		if (pressDraggedRef.current) {
+		// The click ending a drag: the press was a drag, not a click. Only
+		// a click with a press behind it (`detail` above 0): a keyboard's or
+		// a script's click (`detail` 0) is never a drag's.
+		if (pressDraggedRef.current && e.detail > 0) {
 			pressDraggedRef.current = false;
 			return;
 		}
@@ -401,6 +408,7 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 		}
 		if (positionLocked) return;
 		movedWhileDragging.current = false;
+		pressPointRef.current = [e.clientX, e.clientY];
 		setDragging(true);
 		dragEmittedRef.current = true;
 		appearance.emit("dragStart");
@@ -408,6 +416,14 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const changeIcon = (e: MouseEvent<HTMLDivElement>) => {
 		if (holder?.current && dragging && iconRef.current) {
+			if (
+				!movedWhileDragging.current &&
+				Math.max(
+					Math.abs(e.clientX - pressPointRef.current[0]),
+					Math.abs(e.clientY - pressPointRef.current[1]),
+				) < CLASSICY_FILE_DRAG_THRESHOLD
+			)
+				return;
 			movedWhileDragging.current = true;
 			setFocus(true);
 			setPosition([
