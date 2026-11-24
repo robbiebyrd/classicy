@@ -34,18 +34,24 @@ true folio, anchor the numbering. The offsets used throughout this document:
 | --- | --- | --- | --- |
 | Ch.3 The Windows Environment | PDF 31 = p.15 | PDF − 16 | pp.15–19 (PDF 31–35) |
 | Ch.6 Windows | PDF 85 = p.75 | PDF − 10 | pp.75–96 (PDF 85–106) |
-| Ch.7 Menus, Controls, and Toolbars | PDF 107 = p.97 | PDF − 10 | Menus pp.97–110, Controls pp.110–138, Toolbars and Status Bars pp.139–143 (PDF 107–153) |
+| Ch.7 Menus, Controls, and Toolbars | PDF 107 = p.97 | PDF − 10 | Menus pp.97–110, Controls pp.110–135, Toolbars and Status Bars pp.136–140 (PDF 107–150) |
 | Ch.8 Secondary Windows | PDF 151 = p.145 | PDF − 6 | pp.145–170 (PDF 151–176) |
 | Ch.13 Visual Design | PDF 283 = p.295 | PDF + 12 | pp.295–321 (PDF 283–309) |
 | Ch.14 Special Design Considerations | PDF 310 = p.327 | PDF + 17 | pp.327–344 (PDF 310–327) |
 | Appendix C Guidelines Summary | PDF 341 = p.361 | PDF + 20 | pp.361–366 (PDF 341–346) |
 
-The code comments this pass wrote into the Ch.13 and Ch.14 partials used two
-other derivations (Ch.13 at PDF + 14, Ch.14 and App. C from the running head), so
-`_Button.scss`'s "Font and Size (p.312)" is this document's p.310, its
-"Button Border Styles (p.303)" p.301, "Option-Set Appearance (p.306)" p.304,
-"Mixed-Value Appearance (p.308)" p.306, "Unavailable Appearance (p.309)"
-pp.306–307, `_ProgressBar.scss`'s "Animation (p.325)" p.321, and
+The code comments this pass wrote into the Ch.7, Ch.13 and Ch.14 partials used
+other derivations (the Ch.7 Controls comments the offset this document's
+Controls section first carried, two or three pages high; Ch.13 at PDF + 14;
+Ch.14 and App. C from the running head), so `_PopUpMenu.scss`'s and
+`_AppearanceManager.scss`'s "Font and Size (p.312)" is this document's p.310
+and `_Button.scss`'s "Font and Size (p.313)" (the 24 × 22 toolbar button) its
+p.311, `_Button.scss`'s "Button Border Styles (p.303)" p.301, "Option-Set
+Appearance (p.306)" p.304, "Mixed-Value Appearance (p.308)" p.306, "Unavailable
+Appearance (p.309)" pp.306–307, its "Table 7.4 (p.115)" p.113 and "Support for
+User Options (p.140)" p.137, `_RadioInput.scss`'s "Option Buttons (p.117,
+Fig. 7.10)" p.115, `_ListBox.scss`'s "Single Selection List Boxes (p.122,
+Fig. 7.13)" p.120, `_ProgressBar.scss`'s "Animation (p.325)" p.321, and
 `_TextField.scss`'s and `_Table.scss`'s "Scalability (p.327)" and "The User's
 Point of Focus (p.327)" pp.334 and 333. Realigning them is on the Next pass
 list; the topic headings, which do not move, are the stable half of every
@@ -97,7 +103,8 @@ must be preserved:
 
 - ✅ **Compliant** — already conforms, no change needed.
 - 🔧 **Fixed** — deviation found and corrected in this pass (file named; the
-  changes are uncommitted edits on branch `claude/macos-ui-components-audit-li9fxm`).
+  changes are committed on branch `claude/macos-ui-components-audit-li9fxm`,
+  PR #346: e9e424f20 the package-scope fixes, 01758bd05 the two core hooks).
 - ⚠️ **Deferred** — real deviation, but out of scope for a package fix (needs
   a core change, art, a product decision or more than this pass); tracked in
   "Deferred and proposed core changes".
@@ -136,7 +143,7 @@ Normative checklist (WIG Ch.3 and Ch.6) and surface mapping:
 | Ch.6 "Title Text" (pp.78–79, Figure 6.6) | "Document - Application Name"; a tool shows its name; names as in the file system, no extension or path. | core `title` (each app's content; Finder titles by folder, the container convention) | ➖ |
 | Ch.6 "Title Text" (p.80) | Abbreviate a title too wide for the window; draw nothing else into the title area. | base ellipsis kept by `_Window.scss` `.classicyWindowTitleText`; the package adds nothing to the title area | ✅ |
 | Ch.6 "Title Bar Buttons" (p.80; Figure 6.1) | Close (X), Minimize (a bar at the bottom left of center), Maximize (a box with a thick top), Restore (two overlapping boxes), each a small raised ButtonFace button (16 × 14 in the 18-px caption; Minimize and Maximize adjacent, Close 2 px apart, 2 px in from the end); button 1 invokes, button 2 shows the window menu; no button for an unsupported command. | `_Window.scss` caption-boxes/caption-button, the marks `$close` 8 × 7, `$maximize` 9 × 9, `$minimize` 6 × 2; `measurements.titleBar` buttonWidth 16, buttonHeight 14, buttonGap 0, closeGap 2, endInset 2; core `zoomable`/`collapsible`/`closable` | ✅; ⚠️ Restore, see 6.7 |
-| Ch.6 "Activating and Deactivating Windows" (pp.80–81) | The active title bar in COLOR_ACTIVECAPTION (navy 0,0,128, white text), every other in COLOR_INACTIVECAPTION (gray 128,128,128 with 192,192,192 text); nothing else changes; a click anywhere in a window activates it. | `_Window.scss` title-bar/title-bar-inactive mixins, `.classicyWindow.inactive`; `color.families.titleBar` active 128, activeGradient 1082576, inactive 8421504, inactiveGradient 11908533, text #ffffff, inactiveText 12632256; core `setActive` | ✅ |
+| Ch.6 "Activating and Deactivating Windows" (pp.80–81) | The active title bar in COLOR_ACTIVECAPTION, every other in COLOR_INACTIVECAPTION (the two system colors by name, no values; Windows 95's scheme defaults are navy 0,0,128 with white text and gray 128,128,128 with 192,192,192 text); nothing else changes; a click anywhere in a window activates it. | `_Window.scss` title-bar/title-bar-inactive mixins, `.classicyWindow.inactive`; `color.families.titleBar` active 128, activeGradient 1082576, inactive 8421504, inactiveGradient 11908533, text #ffffff, inactiveText 12632256; core `setActive` | ✅ |
 | Ch.6 "Activating and Deactivating Windows" (p.81) | Hide a selection's feedback in an inactive window. | core ListBox/Table/Tree selection (no window-active state published) | ⚠️ see 6.4 |
 | Ch.6 "Activating and Deactivating Windows" (p.81) | Reactivating a primary window raises it with its secondaries, positions kept. | core z-order bands (app 150, focused window 300, palettes 350, modals 370) and `focusApp` | ✅ |
 | Ch.6 "Opening and Closing Windows" (pp.81–82) | Restore a reopened window's last size and position; a first open uses a default; opening activates; keep a stored rectangle on the display. | core persisted window records, `ClassicyWindowOpen` focus and cascade, `clampWindowPositionToViewport` | ✅ |
@@ -152,7 +159,7 @@ Normative checklist (WIG Ch.3 and Ch.6) and surface mapping:
 | Ch.6 "Scroll Arrows" (p.87) | Arrows point away from the center; a click scrolls one line; disable the arrow at the end of travel (the system does not by default); hold auto-repeats, pausing while the pointer is off the button. | core `useClassicyPressRepeat` (120 ms), `lineStep`; `_ScrollBar.scss` arrow glyphs, `.fits` emboss | ✅ repeat; ⚠️ per-arrow disabling, see 6.8 |
 | Ch.6 "Scroll Box" (pp.87–88, Figure 6.8) | Position and size proportional to the view; when everything is visible the box fills the bar and the arrows are disabled; minimum box no smaller than the sizing border; dragging updates the view continuously. | core `computeClassicyScrollThumb`, live `pressThumb`; `_ScrollBar.scss` `$thumb-min` 8 px (over the 4-px sizing border), `.fits` | ✅ proportion, minimum, live drag; ⚠️ full-length box, see 6.9 |
 | Ch.6 "Scroll Box" (p.89) | Dragging the box off the bar past a distance proportional to its width returns it to its start and cancels; dragging back resumes. | core `pressThumb` (snap-back only in `thumbDrag: "onRelease"`, System 7's) | ⚠️ see 6.10 |
-| Ch.6 "Scroll Bar Shaft" (pp.89–90, Figure 6.9) | A click in the shaft pages by the visible area with a line of overlap; hold repeats; leaving the shaft pauses. | core `pressTrack` (page = visible − lineStep; stops when the thumb reaches the pointer); `_ScrollBar.scss` inverts the paged side (`--classicy-scroll-page-start`/`-length`) | ✅ |
+| Ch.6 "Scroll Bar Shaft" (pp.89–90, Figure 6.9) | A click in the shaft pages by the visible area, with some overlap from the previous view; hold repeats; leaving the shaft pauses. | core `pressTrack` (page = visible − lineStep; stops when the thumb reaches the pointer); `_ScrollBar.scss` inverts the paged side (`--classicy-scroll-page-start`/`-length`) | ✅ |
 | Ch.6 "Automatic Scrolling" (p.91) | Scroll when a selection or a dragged object nears the edge, when typing at the edge, when an operation moves the cursor out of view. | core file drag (no auto-scroll), native caret scrolling | ⚠️ see 6.11 |
 | Ch.6 "Keyboard Scrolling" (p.92) | Arrow keys scroll at the edge; PAGE UP/DOWN are shaft clicks. | core ClassicyScrollArea keys on a focusable root | ✅ |
 | Ch.6 "Placing Adjacent Controls" (p.92) | Controls or status bars may shorten a scroll bar, not so much that scrolling gets hard. | core placard bar on the horizontal bar's line, `--window-placard-end-reserve`; `_Window.scss` placard inset | ✅ |
@@ -314,7 +321,7 @@ Normative checklist (WIG Ch.3 and Ch.6) and surface mapping:
   package adds `.classicyScrollBarVertical .classicyScrollBarArrowStart.disabled
   { @include arrow-glyph-disabled($arrow-up); }` and its three siblings beside
   the `.fits` rules. _WIG Ch.6 "Scroll Arrows" (p.87); Ch.7 "List Boxes"
-  (p.122), "Scroll Bars" (p.134)._
+  (p.120), "Scroll Bars" (p.131)._
 - **6.9** ⚠️ product decision, the OS as shipped kept: Windows 95/98 hides the
   scroll box of a disabled bar (ESB_DISABLE_BOTH) and leaves the halftone shaft
   with embossed arrows, which `_ScrollBar.scss` draws. If the 1995 text's
@@ -346,12 +353,12 @@ Normative checklist (WIG Ch.3 and Ch.6) and surface mapping:
 
 ## Chapter 7 — Menus
 
-Pages read: PDF 106–124 (pp.96–114). Ch.7 gives no pixel numbers for menus (item
-height, frame, gutter, overlap); the frame's pixel colors are Ch.13's, so the
-frame, the separator and the submenu overlap are judged against the figures and
-Windows 9x's known rendering. `_PopUpMenu.scss`'s open list is a Windows list
-box (the drop-down list), judged under Controls; only its bevel-button pop-up
-panel and arrows belong here.
+Pages read: PDF 107–120 (pp.97–110), plus Figure 7.8 at PDF 124 (p.114). Ch.7
+gives no pixel numbers for menus (item height, frame, gutter, overlap); the
+frame's pixel colors are Ch.13's, so the frame, the separator and the submenu
+overlap are judged against the figures and Windows 9x's known rendering.
+`_PopUpMenu.scss`'s open list is a Windows list box (the drop-down list), judged
+under Controls; only its bevel-button pop-up panel and arrows belong here.
 
 Normative checklist (WIG Ch.7, Menus) and surface mapping:
 
@@ -374,7 +381,7 @@ Normative checklist (WIG Ch.7, Menus) and surface mapping:
 | "Icon Pop-up Menus" (pp.102–103, Tables 7.1–7.2) | An application icon's menu: Open, Send To, Cut, Copy, Paste, Create Shortcut, Delete, Rename, Properties; a document icon's: Open, Print, Send To, Cut, Copy, Delete, Rename, Properties. | core Finder `itemContextMenu` / desktop icon menus (Open, Restore, Move To Trash) | ⚠️ see 7.11 |
 | "Cascading Menus" (p.104, Figure 7.5) | A triangular arrow at the item's right edge pointing right, in the item's ink (HilightText on the band, grayed when unavailable). | `_Menu.scss` `.classicyMenuItemChildMenuIndicator::after` (4 × 7 triangle at `--menu-item-padding-x` 6 from the right, embossed when disabled) | ✅ |
 | "Cascading Menus" (pp.104–105) | A cascade opens after a short time-out and, once open, is removed after a time-out when the pointer rests on another item of the parent, so a diagonal drag into it works. | core ClassicyMenu `handleMouseEnter` (opens at once, never closes on a leaf sibling) | ⚠️ see 7.12 |
-| "Cascading Menus" (p.104), Figures 7.5/7.8 | The cascade opens beside its parent, its first item level with the parent item, its frame overlapping the parent's; flips left where there is no room. | `_Menu.scss` (`left: 100%; margin: $neg-frame 0 0`, 3 px: the two rings and the ring of face; `classicySubMenuFlipLeft` at `right: 100%`) | ✅ |
+| Cascading menu placement (no WIG rule: Windows 9x's rendering, as os-gui and 98.css reproduce it) | The cascade opens beside its parent, its first item level with the parent item, its frame overlapping the parent's; flips left where there is no room. | `_Menu.scss` (`left: 100%; margin: $neg-frame 0 0`, 3 px: the two rings and the ring of face; `classicySubMenuFlipLeft` at `right: 100%`) | ✅ |
 | "Menu Titles" (p.105) | Single-word menu bar titles. | core bundled titles (File, Edit, View, Special, Help) | ✅ |
 | "Menu Titles" (p.106, Figure 7.4); "Menu Item Labels" (p.109) | One character of every title and item is its access key, unique in its menu, shown underlined. | core ClassicyMenuItem (no access-key field); `_Menu.scss`/`_MenuBar.scss` | ⚠️ see 7.1 |
 | "Menu Items" (p.106, Figure 7.5) | Items may be words, graphics or both. | `_Menu.scss` (`img` 16 px, `--layout-item-gap` 4 after it); core image/icon before the title | ✅ |
@@ -559,8 +566,8 @@ Normative checklist (WIG Ch.7, Menus) and surface mapping:
 
 ## Chapter 7 — Controls, Toolbars and Status Bars
 
-Pages read: PDF 120–153 (Controls pp.110–138, Toolbars and Status Bars
-pp.139–143). Where the text gives no number (the focus rectangle's row, Table
+Pages read: PDF 120–150 (Controls pp.110–135, Toolbars and Status Bars
+pp.136–140). Where the text gives no number (the focus rectangle's row, Table
 7.4), Windows' own `DrawFrameControl`/`DrawFocusRect` geometry decides, and
 where the 1995 figure and Windows 98 differ (raised toolbar buttons against
 TBSTYLE_FLAT), Windows 98 as shipped wins and the choice is recorded.
@@ -569,58 +576,58 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
 
 | Topic (page) | WIG rule | Classicy surface | Status |
 | --- | --- | --- | --- |
-| "Command Buttons" (p.114, Figure 7.7) | A rectangular control with a text or graphic label; mouse down shows the pressed look and moves the focus, dragging off restores it, the command runs on release over the button; the default button ringed in black outside its bevel. | `_Button.scss` `.classicyButton` (ButtonFace, `b.raised`, `--push-button-height` 23, `--button-min-width` 75, `--button-text-padding` 12; pressed `b.pressed` with the label +1,+1; `.default` ringed in WindowFrame, pressed flat); core ClassicyButton (native `<button>`) | ✅ |
-| "Command Buttons" (p.114) | SPACEBAR activates the focused button; TAB and arrows move between buttons. | core ClassicyButton (Enter/Space click and flash) | ✅ |
-| "Command Buttons" (p.114) | An unavailable button's label is displayed as unavailable (Table 7.4: embossed gray on the raised face). | `_Button.scss` `.classicyButton:disabled`, `.classicyBevelButton.disabled` (`b.disabled-text`) | ✅ |
-| "Command Buttons" (p.114) | Ellipsis for a command needing more information; `>>` on an unfold button. | host copy | ➖ |
-| "Command Buttons", Table 7.4 (p.115) | Seven appearances: normal, pressed, option-set (ButtonHilight checkerboard over the face), unavailable, option-set unavailable, mixed-value, input focus (a dotted rectangle inside the bevel). | `_Button.scss` `$checker` (`repeating-conic-gradient` of `--color-system-01` and `-03` on a 2 × 2 `--pixel-unit` tile), `.classicyBevelButton` `.checked`/`.mixed`/`.disabled`/`:focus-visible` | ✅ (the mixed and disabled-set refinements are 13.4, 13.5) |
-| "Command Buttons", Table 7.4 (p.115) | The focus rectangle lies inside the bevel with a pixel of face between (Windows: the client rectangle less the 2-px edge, deflated once more: the 4th pixel row, the 5th on a default button). | `_Button.scss` `focus-line(var(--push-button-focus-inset))`; `windows98.json` `pushButton.focusInset` | 🔧 see 7.16 |
-| "Command Buttons" (p.116, Figure 7.8) | A menu button is a command button with the cascade arrow; pressed it is pressed; while its menu shows it takes the option-set look; unavailable the unavailable look. | `_Button.scss` `.classicyBevelButton.open`; `_PopUpMenu.scss` arrows; `_ControlStrip.scss` module `.open` | 🔧 see 7.17 |
-| "Option Buttons" (p.117, Figure 7.9) | Small circles, a dot in the middle when set, empty when not; groups of two to seven; a text label in sentence capitalization. | `_RadioInput.scss` (the 12 × 12 circle as four arcs, ButtonShadow/ButtonDkShadow upper left, ButtonLight/ButtonHilight lower right, over Window white; the 4 × 4 dot, corners off, at (4,4) on `.checked`); `radio.size` 12 | ✅ |
-| "Option Buttons" (p.117, Figure 7.10) | Mixed value: every button without a setting dot. | `_RadioInput.scss` `.classicyRadioInput.mixed` | 🔧 see 7.18 |
-| "Option Buttons" (pp.117–118) | The label shows unavailability; clicking circle or label chooses; pressed look on mouse down, the setting changes on release; TAB and arrows navigate. | `_RadioInput.scss` (`:active` inside ButtonFace, `.disabled` inside ButtonFace with a GrayText dot, label embossed); core native radio + label | ✅ |
-| "Check Boxes" (p.119, Figure 7.11) | A square box with a label; a check mark when set; click box or label toggles; pressed on mouse down, toggled on release; SPACEBAR toggles; the label shows unavailability. | `_Checkbox.scss` (`--checkbox-size` 13 in a `--checkbox-margin` 2, Window white in `b.sunken`; the 7 × 7 WindowText check three pixels in; pressed ButtonFace with the mark kept; disabled ButtonFace with a GrayText mark; label embossed) | ✅ |
-| "Check Boxes" (pp.119–120, Figure 7.12) | Mixed value: a checkerboard inside the box; set, clear, mixed on successive clicks. | `_Checkbox.scss` `.classicyCheckbox.mixed` (the 50 % checker face with the mark in GrayText, Wine's DFCS_BUTTON3STATE; pressed or disabled ButtonFace); core `mixed` prop | ✅ |
-| "List Boxes" (pp.120–121) | Choices in a bordered box; no label of its own (a static text label); disabled: the label unavailable and, if possible, every entry. | `_ListBox.scss` (`client-edge`: Window white in `b.sunken`, the rows and scroll bar inside the rings; disabled rows GrayText on white, the selection kept, as user32 paints it); core label `disabled` | ✅ |
-| "List Boxes" (p.121) | Wide enough for the average entry; else ellipsis or a horizontal bar. | host sizing; base `white-space: nowrap` | ➖ |
-| "List Boxes" (p.121) | Click selects; scroll bars when the items exceed the area; arrows and text keys select. | core ClassicyListBox (`useListNavigation`), ClassicyScrollArea | ✅ |
-| "List Boxes" (p.122); "Scroll Bars" (p.134) | Disable the arrow at the beginning or end; both when everything fits (and, per Ch.6, enlarge the box to fill the shaft); the system does not disable arrows by default. | `_ScrollBar.scss` `.fits`; core ClassicyScrollArea states | ⚠️ see 7.24 (= 6.8); full-length box 6.9 |
-| "Single Selection List Boxes" (p.122, Figure 7.13) | Three to eight rows tall, always a vertical bar, the selected row Hilight under HilightText across the row; 8-pt MS Sans Serif rows (13 px). | `_ListBox.scss` (`--classicy-listbox-row-height`, the 8-row cap, `.selected`); `layout.scrollBar.fitsBars` | 🔧 see 7.19 |
-| "Single Selection List Boxes" (pp.122–123) | Arrows, HOME, END, PAGE UP/DOWN and text keys navigate; a mixed-value list shows no selection. | core ClassicyListBox | ✅ |
-| "Drop-down List Boxes" (p.123, Figure 7.14) | Closed: the value in a sunken field with a menu button at the right; open: a white list in a black line below, the current item highlighted; press on either part opens, choosing closes. | `_PopUpMenu.scss` (`field` Window white in `b.sunken`, `--pop-up-height` 21, the value `--pop-up-text-inset` 4 in; the raised ButtonFace button `--pop-up-button-width` 16 with the 7 × 4 triangle, pressed flat while open; the list Window white in a 1-px ButtonDkShadow line, 13-px rows, the tracked row a Hilight band; disabled ButtonFace with GrayText and an embossed triangle) | ✅ |
-| "Drop-down List Boxes" (p.123) | The closed field a few spaces wider than the average item; the open list three to eight items tall. | core `--menu-pop-up-max-height` (`menu.popUpMaxHeight`, core floor 300) | 🔧 see 7.20 |
-| "Drop-down List Boxes" (p.123) | UP/DOWN or ALT+UP/DOWN open; arrows and text keys select; leaving the control closes; a mixed drop-down shows no value. | core ClassicyPopUpMenu (`onButtonKeyDown`, placeholder) | ✅ |
-| "Extended and Multiple Selection List Boxes" (pp.124–125, Figure 7.15) | The single-selection height and width; a flat-style check box before each item of a multiple selection list. | core ClassicyListBox `selection="multiple"` (highlighted rows, no check part) | ⚠️ see 7.25 |
-| "List View Controls" (p.125) | Icon, small icon, list and report views; sorting, label editing, drag and drop, pop-up menus, region selection. | core Finder / ClassicyFileBrowser, ClassicyTable; `_Table.scss`, `_Icon.scss` | ✅ structure (label editing is the core's content) |
-| "Tree View Controls" (pp.125–126, Figure 7.16) | An indented outline with expand/collapse buttons and lines (best both); UP/DOWN between items, LEFT/RIGHT along a branch, RIGHT expands; ENTER or double-click runs the default. | `_Button.scss` `.classicyTriangle` (the 9 × 9 tree button: a ButtonShadow line on Window white with a black + or −); `_ListBox.scss` tree rules; core ClassicyTree keys | 🔧 lines, see 7.21; ⚠️ bare Right Arrow, see 7.21 |
-| "Text Fields" (pp.127–128) | No label of its own (a static text label shows unavailability); TAB reaches them; read-only fields show text that can be selected but not edited. | `_TextField.scss` (`.classicyControlLabel.disabled` embossed, disabled fields ButtonFace with plain GrayText, the read-only well) | ✅ |
-| "Text Boxes" (p.128, Figure 7.17) | A rectangular control for one or more lines; the border typical in dialogs (a white field in the sunken two-ring edge); scroll bars for multi-line boxes. | `_TextField.scss` (`client-edge`: Window white in `b.sunken`, `field.height` 21, `field.paddingX` 4, `field.paddingY` 3, caret WindowText, selection HilightText on Hilight, no focus ring; the multiline editor's bars inside the rings) | ✅ |
-| "Rich-Text Boxes" (pp.128–129, Figure 7.18) | A text box with character and paragraph formatting, in the same bordered box. | `_TextField.scss` `.classicyRichTextEditor` (the toolbar a ButtonFace band, the prose in the body face) | ✅ |
-| "Combo Boxes" (p.129, Figure 7.19) | A text box with an always-visible list below it. | none (Classicy has no always-open combo box) | ➖ |
-| "Drop-down Combo Boxes" (pp.129–130, Figure 7.20) | A drop-down list whose text box is editable; the menu button opens and closes the list. | `_PopUpMenu.scss` (`.classicyComboBox`, `-Input`, `-Indicator`); core ClassicyComboBox | ✅ |
-| "Spin Boxes" (p.131, Figure 7.21) | A text box with a pair of small up-down buttons flush at its right; the top increases, the bottom decreases by one unit; clicking either focuses the text box. | `_LittleArrows.scss` (the pair `--window-scrollbar-size` 16 wide, each a raised ButtonFace button with a 5 × 3 WindowText triangle one pixel left of center, pressed flat, disabled embossed; flush to the field, stretched to its height); `_TextField.scss` `.classicySpinner` | ✅ look |
-| "Spin Boxes" (p.131) | Typically wrap at either end; with the focus, UP/DOWN ARROW change the value. | core ClassicySpinner (clamps; arrow keys not bound) | ⚠️ see 7.26 |
-| "Static Text Fields" (p.131, Figure 7.22) | Read-only text on the dialog face; a label's access key moves the focus to its control. | `_TextField.scss` `.classicyControlLabel` (WindowText; disabled GrayText embossed), `.classicyOutput` | ✅ |
-| "Shortcut Key Input Controls" (pp.131–132) | A special text box accepting a key combination and displaying it with its modifiers; labeled by a static text field. | `_Dialog.scss` `output.classicyOutput.classicyKeyboardEquivalentDisplay` (an edit control: Window white in `b.sunken`, the field's height and inset, left-aligned; disabled ButtonFace with plain GrayText); core ClassicyKeyboardEquivalentField | ✅ |
-| "Group Boxes" (p.133, Figure 7.23) | An etched rectangular frame with an optional label breaking the top line at the upper left (sentence capitalization); processes no input. | `_ControlGroup.scss` (`.classicyControlGroupFieldsetPrimary::before` `b.etched`, two rings; the legend WindowText in the UI font on a ButtonFace strip, its ink 7 px from the frame's outer edge, GB_Paint's deflate-by-7) | ✅ |
-| "Column Headings" (pp.133–134, Figure 7.24) | Header parts over the columns acting as command buttons (sort on click); labels text and/or image, aligned left, right or center; draggable divisions. | `_Table.scss` (`.classicyTableColumnHeader` raised ButtonFace, pressed while the mouse is down, raised again sorted or not; no sort arrow or stripe, Windows 98's; `aria-sort` carries the order); core ClassicyTable (align, resizable) | ✅ |
-| "Tabs" (p.134, Figure 7.25) | One row of tabs by default; a tab sized to its label; the system font; raised tabs on the raised page, the chosen tab forward and joined to the page. | `_Tabs.scss` (raised ButtonFace tabs open at the bottom, `tabControl.radius` 3, `paddingX` 10, `height` 21; the chosen tab `lift` 2 higher and two rings wider, its face running over the panel's edge; the panel `b.raised`, content `padding` 12 in; scroll arrows 16 wide; one tab size: the small tabs keep the UI font) | ✅ |
-| "Tabs" (p.134) | Clicking a tab switches; LEFT/RIGHT move between tabs; CTRL+TAB switches. | core ClassicyTabs (roving tablist) | ✅ |
-| "Property Sheet Controls" (p.134) | Tabbed property pages (details Ch.8). | Ch.8 | see Ch.8 |
-| "Scroll Bars" (pp.134–135) | Scroll bar controls only for scrolling; disable an arrow at the end; no input focus on bars. | core ClassicyScrollArea (bars `aria-hidden`, never focusable) | ✅ focus; ⚠️ arrows 7.24 |
-| "Sliders" (p.135, Figure 7.26) | A bar defining the range and an indicator; drag or click in the bar's hot zone moves it; TAB reaches it, arrows move it; orientation, lengths, increments and ticks optional; a sunken channel, a pointed thumb pointing down, ticks below. | `_Slider.scss` (`slider.channel` 4 in `b.sunken`, the pointed raised thumb `thumbAlong` 11 × `thumbAcross` 21 with a 5-row point, `thumbRise` 5; dragged, highlighted or disabled the 55AA dithered face; ticks `tickWidth` 1 × `tickHeight` 4 WindowText on the pointed side, centered on the tip; the focus rectangle around the control); core ClassicySlider | ✅ |
-| "Progress Indicators" (p.135, Figure 7.27) | A bar filling left to right in highlight-colored blocks in a sunken bar; noninteractive. | `_ProgressBar.scss` (`progressBar.height` 16 in the one-ring sunken edge, `blockWidth` 8, `blockGap` 2, `inset` 2; Hilight blocks) | ✅ |
-| "Tooltip Controls" (p.136, Figure 7.28) | A small pop-up of descriptive text: a cream box in a 1-px black line, no tail. | `_BalloonHelp.scss` (`--package-color-tooltip-face` #ffffe1 and `-text`, a 1-px `--color-window-border` line, `tooltip.paddingX` 4, `paddingY` 2, square corners, the tail hidden) | ✅ |
-| "Tooltip Controls" (p.136) | Appears after a time-out, removed on click or when the pointer leaves; shown at the lower right of the pointer, adjusted at the screen edge. | core `useClassicyBalloonHelp` (600 ms; placed by the anchor; hides on mouse leave, not on click) | ⚠️ see 7.27 |
-| "Wells" (p.136, Figure 7.29) | A field for graphic values with the check box's or text box's sunken border; the set value marked by a special selection border around the control's edge; grouped and labeled. | `_Icon.scss` `.classicyImageWell` (`b.sunken` around Window white; `.selected` a dotted WindowText rectangle two rings in; drag-over dashed; disabled ButtonFace); `_AppearanceManager.scss` swatches (`b.sunken` wells) | ✅ border; ⚠️ set-value border, see 13.7 |
-| "Pen-Specific Controls" (pp.136–138, Figures 7.30–7.33) | Boxed edit, ink edit, writing tool and eraser controls. | none | ➖ |
-| "Toolbars and Status Bars" (p.139, Figure 7.34) | A toolbar is a panel of controls for quick access; Figure 7.34 shows raised 3-D buttons on the face. | `_Button.scss` `.classicyButtonToolbar .classicyBevelButton` (flat, TBSTYLE_FLAT); `_ControlStrip.scss` cells (`b.raised-thin`) | ⚠️ see 7.23 (product: Windows 98's flat buttons kept) |
-| "Toolbars and Status Bars" (p.139, Figure 7.35) | A status bar at the window's bottom with panes of read-only text, each a one-ring sunken field, the size grip at the right end. | `_Placard.scss` `.classicyPlacard` (ButtonFace in the one-ring sunken edge, BDR_SUNKENOUTER, text 3 px in); the grip `_Window.scss` | ✅ |
-| "Interaction with Controls in Toolbars and Status Bars" (p.140) | Property controls apply directly to the selection; always a tooltip for a control without a text label. | core ClassicyControlStrip (`aria-label` only); ClassicyBalloonHelp for host toolbars | ⚠️ see 7.28 |
-| "Support for User Options" (p.140) | Toolbar buttons in two sizes, 24 × 22 and 32 × 30, images no larger than 16 × 16 and 24 × 24; let the user switch sizes and show or hide bars. | `_Button.scss` toolbar sizes; `windows98.json` `toolbar` family | 🔧 see 7.22 |
-| "Support for User Options" (pp.140–141) | Toolbars docked by default and movable, a dotted outline as drag feedback; position, size and state preserved. | core ClassicyControlStrip (Control-drag docks left or right, position persisted) | ✅ (for the one toolbar Classicy has) |
-| "Support for User Options" (p.141) | With a status bar's size grip shown, hide the grip at the scroll bars' junction. | one grip, in the scroll bars' corner (Ch.6 "Size Grip") | ✅ |
-| "Common Toolbar Buttons", Table 7.5 (pp.142–143) | The standard 16 × 16 and 24 × 24 images for New, Open, Save, Print, Cut, Copy, Paste, Undo, the views and the rest, only for those functions. | none (the package registers no art) | ➖ |
+| "Command Buttons" (p.112, Figure 7.7) | A rectangular control with a text or graphic label; mouse down shows the pressed look and moves the focus, dragging off restores it, the command runs on release over the button; the default button ringed in black outside its bevel. | `_Button.scss` `.classicyButton` (ButtonFace, `b.raised`, `--push-button-height` 23, `--button-min-width` 75, `--button-text-padding` 12; pressed `b.pressed` with the label +1,+1; `.default` ringed in WindowFrame, pressed flat); core ClassicyButton (native `<button>`) | ✅ |
+| "Command Buttons" (pp.112–113) | SPACEBAR activates the focused button; TAB and arrows move between buttons. | core ClassicyButton (Enter/Space click and flash) | ✅ |
+| "Command Buttons" (pp.112–113) | An unavailable button's label is displayed as unavailable (Table 7.4: embossed gray on the raised face). | `_Button.scss` `.classicyButton:disabled`, `.classicyBevelButton.disabled` (`b.disabled-text`) | ✅ |
+| "Command Buttons" (p.112) | Ellipsis for a command needing more information; `>>` on an unfold button. | host copy | ➖ |
+| "Command Buttons", Table 7.4 (p.113) | Seven appearances: normal, pressed, option-set (ButtonHilight checkerboard over the face), unavailable, option-set unavailable, mixed-value, input focus (a dotted rectangle inside the bevel). | `_Button.scss` `$checker` (`repeating-conic-gradient` of `--color-system-01` and `-03` on a 2 × 2 `--pixel-unit` tile), `.classicyBevelButton` `.checked`/`.mixed`/`.disabled`/`:focus-visible` | ✅ (the mixed and disabled-set refinements are 13.4, 13.5) |
+| "Command Buttons", Table 7.4 (p.113) | The focus rectangle lies inside the bevel with a pixel of face between (Windows: the client rectangle less the 2-px edge, deflated once more: the 4th pixel row, the 5th on a default button). | `_Button.scss` `focus-line(var(--push-button-focus-inset))`; `windows98.json` `pushButton.focusInset` | 🔧 see 7.16 |
+| "Command Buttons" (pp.114–115, Figure 7.8) | A menu button is a command button with the cascade arrow; pressed it is pressed; while its menu shows it takes the option-set look; unavailable the unavailable look. | `_Button.scss` `.classicyBevelButton.open`; `_PopUpMenu.scss` arrows; `_ControlStrip.scss` module `.open` | 🔧 see 7.17 |
+| "Option Buttons" (p.115, Figure 7.9) | Small circles, a dot in the middle when set, empty when not; groups of two to seven; a text label in sentence capitalization. | `_RadioInput.scss` (the 12 × 12 circle as four arcs, ButtonShadow/ButtonDkShadow upper left, ButtonLight/ButtonHilight lower right, over Window white; the 4 × 4 dot, corners off, at (4,4) on `.checked`); `radio.size` 12 | ✅ |
+| "Option Buttons" (p.115, Figure 7.10) | Mixed value: every button without a setting dot. | `_RadioInput.scss` `.classicyRadioInput.mixed` | 🔧 see 7.18 |
+| "Option Buttons" (pp.115–116) | The label shows unavailability; clicking circle or label chooses; pressed look on mouse down, the setting changes on release; TAB and arrows navigate. | `_RadioInput.scss` (`:active` inside ButtonFace, `.disabled` inside ButtonFace with a GrayText dot, label embossed); core native radio + label | ✅ |
+| "Check Boxes" (p.117, Figure 7.11) | A square box with a label; a check mark when set; click box or label toggles; pressed on mouse down, toggled on release; SPACEBAR toggles; the label shows unavailability. | `_Checkbox.scss` (`--checkbox-size` 13 in a `--checkbox-margin` 2, Window white in `b.sunken`; the 7 × 7 WindowText check three pixels in; pressed ButtonFace with the mark kept; disabled ButtonFace with a GrayText mark; label embossed) | ✅ |
+| "Check Boxes" (pp.117–118, Figure 7.12) | Mixed value: a checkerboard inside the box; set, clear, mixed on successive clicks. | `_Checkbox.scss` `.classicyCheckbox.mixed` (the 50 % checker face with the mark in GrayText, Wine's DFCS_BUTTON3STATE; pressed or disabled ButtonFace); core `mixed` prop | ✅ |
+| "List Boxes" (pp.118–119) | Choices in a bordered box; no label of its own (a static text label); disabled: the label unavailable and, if possible, every entry. | `_ListBox.scss` (`client-edge`: Window white in `b.sunken`, the rows and scroll bar inside the rings; disabled rows GrayText on white, the selection kept, as user32 paints it); core label `disabled` | ✅ |
+| "List Boxes" (pp.118–119) | Wide enough for the average entry; else ellipsis or a horizontal bar. | host sizing; base `white-space: nowrap` | ➖ |
+| "List Boxes" (p.119) | Click selects; scroll bars when the items exceed the area; arrows and text keys select. | core ClassicyListBox (`useListNavigation`), ClassicyScrollArea | ✅ |
+| "List Boxes" (p.120); "Scroll Bars" (p.131) | Disable the arrow at the beginning or end; both when everything fits (and, per Ch.6, enlarge the box to fill the shaft); the system does not disable arrows by default. | `_ScrollBar.scss` `.fits`; core ClassicyScrollArea states | ⚠️ see 7.24 (= 6.8); full-length box 6.9 |
+| "Single Selection List Boxes" (p.120, Figure 7.13) | Three to eight rows tall, always a vertical bar, the selected row Hilight under HilightText across the row; 8-pt MS Sans Serif rows (13 px). | `_ListBox.scss` (`--classicy-listbox-row-height`, the 8-row cap, `.selected`); `layout.scrollBar.fitsBars` | 🔧 see 7.19 |
+| "Single Selection List Boxes" (pp.120–121) | Arrows, HOME, END, PAGE UP/DOWN and text keys navigate; a mixed-value list shows no selection. | core ClassicyListBox | ✅ |
+| "Drop-down List Boxes" (p.121, Figure 7.14) | Closed: the value in a sunken field with a menu button at the right; open: a white list in a black line below, the current item highlighted; press on either part opens, choosing closes. | `_PopUpMenu.scss` (`field` Window white in `b.sunken`, `--pop-up-height` 21, the value `--pop-up-text-inset` 4 in; the raised ButtonFace button `--pop-up-button-width` 16 with the 7 × 4 triangle, pressed flat while open; the list Window white in a 1-px ButtonDkShadow line, 13-px rows, the tracked row a Hilight band; disabled ButtonFace with GrayText and an embossed triangle) | ✅ |
+| "Drop-down List Boxes" (p.122) | The closed field a few spaces wider than the average item; the open list three to eight items tall. | core `--menu-pop-up-max-height` (`menu.popUpMaxHeight`, core floor 300) | 🔧 see 7.20 |
+| "Drop-down List Boxes" (p.122) | UP/DOWN or ALT+UP/DOWN open; arrows and text keys select; leaving the control closes; a mixed drop-down shows no value. | core ClassicyPopUpMenu (`onButtonKeyDown`, placeholder) | ✅ |
+| "Extended and Multiple Selection List Boxes" (pp.122–123, Figure 7.15) | The single-selection height and width; a flat-style check box before each item of a multiple selection list. | core ClassicyListBox `selection="multiple"` (highlighted rows, no check part) | ⚠️ see 7.25 |
+| "List View Controls" (p.123) | Icon, small icon, list and report views; sorting, label editing, drag and drop, pop-up menus, region selection. | core Finder / ClassicyFileBrowser, ClassicyTable; `_Table.scss`, `_Icon.scss` | ✅ structure (label editing is the core's content) |
+| "Tree View Controls" (pp.123–124, Figure 7.16) | An indented outline with expand/collapse buttons and lines (best both); UP/DOWN between items, LEFT/RIGHT along a branch, RIGHT expands; ENTER or double-click runs the default. | `_Button.scss` `.classicyTriangle` (the 9 × 9 tree button: a ButtonShadow line on Window white with a black + or −); `_ListBox.scss` tree rules; core ClassicyTree keys | 🔧 lines, see 7.21; ⚠️ bare Right Arrow, see 7.21 |
+| "Text Fields" (pp.124–125) | No label of its own (a static text label shows unavailability); TAB reaches them; read-only fields show text that can be selected but not edited. | `_TextField.scss` (`.classicyControlLabel.disabled` embossed, disabled fields ButtonFace with plain GrayText, the read-only well) | ✅ |
+| "Text Boxes" (p.125, Figure 7.17) | A rectangular control for one or more lines; the border typical in dialogs (a white field in the sunken two-ring edge); scroll bars for multi-line boxes. | `_TextField.scss` (`client-edge`: Window white in `b.sunken`, `field.height` 21, `field.paddingX` 4, `field.paddingY` 3, caret WindowText, selection HilightText on Hilight, no focus ring; the multiline editor's bars inside the rings) | ✅ |
+| "Rich-Text Boxes" (pp.125–126, Figure 7.18) | A text box with character and paragraph formatting, in the same bordered box. | `_TextField.scss` `.classicyRichTextEditor` (the toolbar a ButtonFace band, the prose in the body face) | ✅ |
+| "Combo Boxes" (p.127, Figure 7.19) | A text box with an always-visible list below it. | none (Classicy has no always-open combo box) | ➖ |
+| "Drop-down Combo Boxes" (pp.127–128, Figure 7.20) | A drop-down list whose text box is editable; the menu button opens and closes the list. | `_PopUpMenu.scss` (`.classicyComboBox`, `-Input`, `-Indicator`); core ClassicyComboBox | ✅ |
+| "Spin Boxes" (p.128, Figure 7.21) | A text box with a pair of small up-down buttons flush at its right; the top increases, the bottom decreases by one unit; clicking either focuses the text box. | `_LittleArrows.scss` (the pair `--window-scrollbar-size` 16 wide, each a raised ButtonFace button with a 5 × 3 WindowText triangle one pixel left of center, pressed flat, disabled embossed; flush to the field, stretched to its height); `_TextField.scss` `.classicySpinner` | ✅ look |
+| "Spin Boxes" (p.128) | Typically wrap at either end; with the focus, UP/DOWN ARROW change the value. | core ClassicySpinner (clamps; arrow keys not bound) | ⚠️ see 7.26 |
+| "Static Text Fields" (p.128, Figure 7.22) | Read-only text on the dialog face; a label's access key moves the focus to its control. | `_TextField.scss` `.classicyControlLabel` (WindowText; disabled GrayText embossed), `.classicyOutput` | ✅ |
+| "Shortcut Key Input Controls" (pp.128–129) | A special text box accepting a key combination and displaying it with its modifiers; labeled by a static text field. | `_Dialog.scss` `output.classicyOutput.classicyKeyboardEquivalentDisplay` (an edit control: Window white in `b.sunken`, the field's height and inset, left-aligned; disabled ButtonFace with plain GrayText); core ClassicyKeyboardEquivalentField | ✅ |
+| "Group Boxes" (p.130, Figure 7.23) | An etched rectangular frame with an optional label breaking the top line at the upper left (sentence capitalization); processes no input. | `_ControlGroup.scss` (`.classicyControlGroupFieldsetPrimary::before` `b.etched`, two rings; the legend WindowText in the UI font on a ButtonFace strip, its ink 7 px from the frame's outer edge, GB_Paint's deflate-by-7) | ✅ |
+| "Column Headings" (pp.130–131, Figure 7.24) | Header parts over the columns acting as command buttons (sort on click); labels text and/or image, aligned left, right or center; draggable divisions. | `_Table.scss` (`.classicyTableColumnHeader` raised ButtonFace, pressed while the mouse is down, raised again sorted or not; no sort arrow or stripe, Windows 98's; `aria-sort` carries the order); core ClassicyTable (align, resizable) | ✅ |
+| "Tabs" (p.131, Figure 7.25) | One row of tabs by default; a tab sized to its label; the system font; raised tabs on the raised page, the chosen tab forward and joined to the page. | `_Tabs.scss` (raised ButtonFace tabs open at the bottom, `tabControl.radius` 3, `paddingX` 10, `height` 21; the chosen tab `lift` 2 higher and two rings wider, its face running over the panel's edge; the panel `b.raised`, content `padding` 12 in; scroll arrows 16 wide; one tab size: the small tabs keep the UI font) | ✅ |
+| "Tabs" (p.131) | Clicking a tab switches; LEFT/RIGHT move between tabs; CTRL+TAB switches. | core ClassicyTabs (roving tablist) | ✅ |
+| "Property Sheet Controls" (p.131) | Tabbed property pages (details Ch.8). | Ch.8 | see Ch.8 |
+| "Scroll Bars" (pp.131–132) | Scroll bar controls only for scrolling; disable an arrow at the end; no input focus on bars. | core ClassicyScrollArea (bars `aria-hidden`, never focusable) | ✅ focus; ⚠️ arrows 7.24 |
+| "Sliders" (p.132, Figure 7.26) | A bar defining the range and an indicator; drag or click in the bar's hot zone moves it; TAB reaches it, arrows move it; orientation, lengths, increments and ticks optional; a sunken channel, a pointed thumb pointing down, ticks below. | `_Slider.scss` (`slider.channel` 4 in `b.sunken`, the pointed raised thumb `thumbAlong` 11 × `thumbAcross` 21 with a 5-row point, `thumbRise` 5; dragged, highlighted or disabled the 55AA dithered face; ticks `tickWidth` 1 × `tickHeight` 4 WindowText on the pointed side, centered on the tip; the focus rectangle around the control); core ClassicySlider | ✅ |
+| "Progress Indicators" (p.132, Figure 7.27) | A bar filling left to right in highlight-colored blocks in a sunken bar; noninteractive. | `_ProgressBar.scss` (`progressBar.height` 16 in the one-ring sunken edge, `blockWidth` 8, `blockGap` 2, `inset` 2; Hilight blocks) | ✅ |
+| "Tooltip Controls" (p.133, Figure 7.28) | A small pop-up of descriptive text: a cream box in a 1-px black line, no tail. | `_BalloonHelp.scss` (`--package-color-tooltip-face` #ffffe1 and `-text`, a 1-px `--color-window-border` line, `tooltip.paddingX` 4, `paddingY` 2, square corners, the tail hidden) | ✅ |
+| "Tooltip Controls" (p.133) | Appears after a time-out, removed on click or when the pointer leaves; shown at the lower right of the pointer, adjusted at the screen edge. | core `useClassicyBalloonHelp` (600 ms; placed by the anchor; hides on mouse leave, not on click) | ⚠️ see 7.27 |
+| "Wells" (p.133, Figure 7.29) | A field for graphic values with the check box's or text box's sunken border; the set value marked by a special selection border around the control's edge; grouped and labeled. | `_Icon.scss` `.classicyImageWell` (`b.sunken` around Window white; `.selected` a dotted WindowText rectangle two rings in; drag-over dashed; disabled ButtonFace); `_AppearanceManager.scss` swatches (`b.sunken` wells) | ✅ border; ⚠️ set-value border, see 13.7 |
+| "Pen-Specific Controls" (pp.133–135, Figures 7.30–7.33) | Boxed edit, ink edit, writing tool and eraser controls. | none | ➖ |
+| "Toolbars and Status Bars" (p.136, Figure 7.34) | A toolbar is a panel of controls for quick access; Figure 7.34 shows raised 3-D buttons on the face. | `_Button.scss` `.classicyButtonToolbar .classicyBevelButton` (flat, TBSTYLE_FLAT); `_ControlStrip.scss` cells (`b.raised-thin`) | ⚠️ see 7.23 (product: Windows 98's flat buttons kept) |
+| "Toolbars and Status Bars" (p.136, Figure 7.35) | A status bar at the window's bottom with panes of read-only text, each a one-ring sunken field, the size grip at the right end. | `_Placard.scss` `.classicyPlacard` (ButtonFace in the one-ring sunken edge, BDR_SUNKENOUTER, text 3 px in); the grip `_Window.scss` | ✅ |
+| "Interaction with Controls in Toolbars and Status Bars" (pp.136–137) | Property controls apply directly to the selection; always a tooltip for a control without a text label. | core ClassicyControlStrip (`aria-label` only); ClassicyBalloonHelp for host toolbars | ⚠️ see 7.28 |
+| "Support for User Options" (p.137) | Toolbar buttons in two sizes, 24 × 22 and 32 × 30, images no larger than 16 × 16 and 24 × 24; let the user switch sizes and show or hide bars. | `_Button.scss` toolbar sizes; `windows98.json` `toolbar` family | 🔧 see 7.22 |
+| "Support for User Options" (pp.137–138) | Toolbars docked by default and movable, a dotted outline as drag feedback; position, size and state preserved. | core ClassicyControlStrip (Control-drag docks left or right, position persisted) | ✅ (for the one toolbar Classicy has) |
+| "Support for User Options" (p.138) | With a status bar's size grip shown, hide the grip at the scroll bars' junction. | one grip, in the scroll bars' corner (Ch.6 "Size Grip") | ✅ |
+| "Common Toolbar Buttons", Table 7.5 (pp.139–140) | The standard 16 × 16 and 24 × 24 images for New, Open, Save, Print, Cut, Copy, Paste, Undo, the views and the rest, only for those functions. | none (the package registers no art) | ➖ |
 
 ### Findings — Chapter 7, Controls
 
@@ -649,17 +656,17 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   `focus-line(inset + 1)` on the 5th; the partial's header says so and cites the
   rule. The WIG gives no number (Table 7.4's tile cannot be counted); Windows'
   DrawFrameControl/PB_Paint/DrawFocusRect geometry and 98.css agree on the row.
-  _WIG Ch.7 "Command Buttons", Table 7.4 (p.115)._
+  _WIG Ch.7 "Command Buttons", Table 7.4 (p.113)._
 - **7.17** 🔧 (`_Button.scss`): `.classicyBevelButton:not(.disabled):is(.checked,
   .mixed, .open) { background: $checker; }` (was `.checked`/`.mixed` only), so an
   open pop-up bevel button shows the option-set face while its menu is up; the
   flat toolbar rule (one sunken ring while open) is unchanged. _WIG Ch.7
-  "Command Buttons" (p.116), Figure 7.8._
+  "Command Buttons" (p.115; Figure 7.8, p.114)._
 - **7.18** 🔧 (`_RadioInput.scss`): `.classicyRadioInput.mixed { opacity: 1;
   background: well(); }` draws the empty inside in the state's face over the
   wrapper's dot (so a checked-and-mixed button shows no dot and a pressed mixed
   button still shows the ButtonFace inside); the `$dash` art is removed. _WIG
-  Ch.7 "Option Buttons" (p.117), Figure 7.10._
+  Ch.7 "Option Buttons" (p.115), Figure 7.10._
 - **7.19** 🔧 (`windows98.json`, `_ListBox.scss`): new family `listBox {
   rowHeight: 13 }` in `defaults` and all presets (emitted as
   `--list-box-row-height`, the name System 7 already uses); `.classicyListBox {
@@ -667,14 +674,14 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   13 px and the eight-row cap (`max-height: 8 rows + the two rings each way`)
   follows. Not an editable knob (a fixed Windows metric, like `pushButton`), so
   no `knobs` entry; `docs/AGENT-REFERENCE.md`'s Windows 98 family list names
-  it. _WIG Ch.7 "Single Selection List Boxes" (p.122), Figure 7.13._
+  it. _WIG Ch.7 "Single Selection List Boxes" (p.120), Figure 7.13._
 - **7.20** 🔧 (`windows98.json`, `_PopUpMenu.scss`): new family `menu {
   popUpMaxHeight: 106 }` in `defaults` and all presets, the package's own value
   of the core's structural knob (`--menu-pop-up-max-height`, core floor 300):
   8 rows × 13 px + the list's two 1-px lines (the list is border-box), read by
   `ClassicyPopUpMenu.scss` and the core's placement for the pop-up and combo
   box lists; the partial's header notes the cap. _WIG Ch.7 "Drop-down List
-  Boxes" (p.123)._
+  Boxes" (p.122)._
 - **7.21** 🔧 (`_ListBox.scss`): Explorer's lines (TVS_HASLINES + TVS_LINESATROOT)
   as dotted ButtonShadow (`repeating-linear-gradient` on the `--pixel-unit`
   grid, 1 on / 1 off) drawn as each `.classicyTreeNodeRow`'s background from its
@@ -693,7 +700,7 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   + `paddingSize` 5), fixed by every preset. ⚠️ core (keys): ClassicyTree
   expands a closed branch on a bare ArrowRight (and collapses on ArrowLeft,
   moving to the parent when closed) when the active package's layout declares
-  `tree: { keys: "windows" }`. _WIG Ch.7 "Tree View Controls" (pp.125–126),
+  `tree: { keys: "windows" }`. _WIG Ch.7 "Tree View Controls" (pp.123–124),
   Figure 7.16._
 - **7.22** 🔧 (`windows98.json`, `_Button.scss`): new family `toolbar {
   buttonWidth: 24, buttonHeight: 22, largeButtonWidth: 32, largeButtonHeight:
@@ -706,8 +713,8 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   keeps its own size via `:not(.classicyHelpButton)` and a height restatement.
   comctl32's own 16-px-image buttons measured 23 × 22, one pixel narrower than
   the WIG's 24; the WIG's figure is applied. _WIG Ch.7 "Support for User
-  Options" (p.140); Ch.13 "Font and Size" (p.311)._
-- ✅ "Command Buttons" (p.114): `.classicyButton` is ButtonFace in `b.raised`
+  Options" (p.137); Ch.13 "Font and Size" (p.311)._
+- ✅ "Command Buttons" (p.112): `.classicyButton` is ButtonFace in `b.raised`
   (ButtonHilight and ButtonLight at the top and left, ButtonDkShadow and
   ButtonShadow at the bottom and right), 23 tall and 75 wide at least, the label
   12 px from each end; `:active`, `.pressed` and the keyboard flash turn the
@@ -717,14 +724,14 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   disabled, raised with the label embossed. The browser's `:active` drops when
   the pointer leaves a pressed `<button>` and returns over it; the click fires
   on release over it.
-- ✅ "Check Boxes" (pp.119–120): the 13-px box in a 2-px margin, Window white
+- ✅ "Check Boxes" (pp.117–118): the 13-px box in a 2-px margin, Window white
   in `b.sunken`; the 7 × 7 check three pixels in (two of bevel, one of face);
   the "x" mark kept as the HIG's localization opt-in; pressed ButtonFace with
   the mark; disabled ButtonFace with a GrayText mark (Windows embosses no check
   mark); mixed the 50 % checker with the mark in GrayText, on or off; the label
   6 px after the box (98.css's 19-px inset less the box), embossed when
   disabled, carrying the dotted focus rectangle.
-- ✅ "Drop-down List Boxes" (p.123), Figure 7.14: `_PopUpMenu.scss`'s field is
+- ✅ "Drop-down List Boxes" (p.121), Figure 7.14: `_PopUpMenu.scss`'s field is
   Window white in `b.sunken`, 21 tall, the value 4 px in; the drop-down button a
   raised ButtonFace box 16 wide inside the frame at the right with the 7 × 4
   triangle, pressed flat while the list is open; while focused (however it got
@@ -732,25 +739,25 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   and the dotted rectangle on its edge; the open list Window white in a 1-px
   ButtonDkShadow line, 13-px rows, the tracked row a band, no check against the
   current item (Windows drew none).
-- ✅ "Spin Boxes" (p.131), Figure 7.21: `_LittleArrows.scss` draws the pair
+- ✅ "Spin Boxes" (p.128), Figure 7.21: `_LittleArrows.scss` draws the pair
   16 wide, each button raised ButtonFace with a 5 × 3 WindowText triangle one
   pixel left of center, four pixels from the pair's outer edge (so both center
   in an 11-px button at any height), pressed flat with the triangle +1,+1,
   disabled embossed; the stepper's and the pickers' arrows stand flush to the
   field and stretch to its height (the up-down control on its buddy edit).
-- ✅ "Group Boxes" (p.133): `.classicyControlGroupFieldsetPrimary::before` is
+- ✅ "Group Boxes" (p.130): `.classicyControlGroupFieldsetPrimary::before` is
   `b.etched` over the fieldset's transparent two-ring border (an inset shadow
   stops at the padding box, so the pseudo-element lies in the border); the
   legend's ink 7 px from the frame's outer edge on a ButtonFace strip a pixel
   wider each side (GB_Paint), its line box the font and a pixel (14.1).
-- ✅ "Column Headings" (pp.133–134): `_Table.scss`'s header is a row of raised
+- ✅ "Column Headings" (pp.130–131): `_Table.scss`'s header is a row of raised
   ButtonFace buttons, titles `--field-padding-y` × `--field-padding-x` inside,
   pressed (`b.pressed`, the title +1,+1) while the mouse is down and raised
   again at once; Windows 98 marked the sorted column with no stripe, no pressed
   header and no arrow (the arrow came with Windows XP), so the base's arrow is
   not drawn and `aria-sort` carries the order; the WIG's "may include an image
   such as the sort direction" is permissive.
-- ✅ "Tabs" (p.134), Figure 7.25: `_Tabs.scss`'s tabs are raised ButtonFace
+- ✅ "Tabs" (p.131), Figure 7.25: `_Tabs.scss`'s tabs are raised ButtonFace
   boxes open at the bottom, the two top corners rounded by `--tab-control-radius`
   3 (Windows' two-pixel diagonal), labels 10 px from each side; the chosen tab
   stands `--tab-control-lift` 2 higher and two rings wider (TAB_DrawItem's
@@ -759,7 +766,7 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   arrows raised 16-px boxes with 3 × 5 triangles, pressed flat, disabled
   embossed; `.classicyTabsSizeSmall` keeps the UI font (Windows has no smaller
   tab).
-- ✅ "Sliders" (p.135), Figure 7.26: the 4-px channel in `b.sunken` lying
+- ✅ "Sliders" (p.132), Figure 7.26: the 4-px channel in `b.sunken` lying
   `--slider-thumb-rise` 5 from the thumb's flat side (comctl32's quarter of the
   thumb's length); the pointed raised thumb 11 along × 21 across with the point
   five rows deep, its diagonals continuing the raised bevel's rings, the tip
@@ -767,18 +774,18 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
   across; dragged, highlighted or disabled the 55AA checker face; 1 × 4
   WindowText ticks centered on the tip column; the Control Strip's pop-up
   slider the taskbar volume pop-up's vertical trackbar.
-- ✅ "Progress Indicators" (p.135), Figure 7.27: the 16-px ButtonFace track in
+- ✅ "Progress Indicators" (p.132), Figure 7.27: the 16-px ButtonFace track in
   the one-ring sunken edge comctl32 draws (`DrawEdge(BDR_SUNKENOUTER)`, not the
   two-ring client edge), the Hilight blocks 8 wide with a 2-px gap starting
   `--progress-bar-inset` 2 inside (the ring and one pixel of face, where comctl32
   starts its blocks); the browser cuts the last block where the value ends,
   where Windows drew whole blocks.
-- ✅ "Tooltip Controls" (p.136), Figure 7.28: `_BalloonHelp.scss` draws the
+- ✅ "Tooltip Controls" (p.133), Figure 7.28: `_BalloonHelp.scss` draws the
   balloon as a ToolTip: InfoWindow (`--package-color-tooltip-face`, #ffffe1 in
   Windows Standard) in a 1-px WindowFrame line, square corners, InfoText in the
   UI font 4 px from the sides and 2 px from the top and bottom, as wide as its
   text, no tail; a title the same text in bold (TTM_SETTITLE).
-- ✅ "Toolbars and Status Bars" (p.139), Figure 7.35: `.classicyPlacard` is a
+- ✅ "Toolbars and Status Bars" (p.136), Figure 7.35: `.classicyPlacard` is a
   status-bar pane, ButtonFace in the one-ring sunken edge (BDR_SUNKENOUTER:
   ButtonShadow top-left, ButtonHilight bottom-right), its text 3 px in; a
   placard with a menu shows the combo box's 7 × 4 triangle, pressed or open its
@@ -786,34 +793,34 @@ Normative checklist (WIG Ch.7, Controls, Toolbars and Status Bars) and surface m
 - **7.23** ⚠️ product decision, Windows 98 as shipped kept: the flat toolbar
   button is the 98 shell's and IE4's; a per-preset look (raised for the Windows
   95 preset) cannot be switched by a numeric knob and would need a core variant
-  hook (`assetVariant`-style). _WIG Ch.7 "Toolbars and Status Bars" (p.139),
+  hook (`assetVariant`-style). _WIG Ch.7 "Toolbars and Status Bars" (p.136),
   Figure 7.34._
 - **7.24** ⚠️ core hook: see 6.8 (`at-start`/`at-end` or `disabled` per arrow
   from `update()`'s measurement; added to `ClassicyVocabulary.json` and CLAUDE.md's
   Scroll Bars note; the package embosses the one arrow). _WIG Ch.7 "List
-  Boxes" (p.122), "Scroll Bars" (p.134)._
+  Boxes" (p.120), "Scroll Bars" (p.131)._
 - **7.25** ⚠️ core hook: ClassicyListBox takes an opt-in `checkboxes` prop for
   `selection="multiple"` rendering `data-classicy-part="list-check"` (a span,
   `aria-hidden`, the row's `aria-selected` carrying the state) before each row's
   label; the package draws it in `_ListBox.scss` as the 13-px Window-white box in
   a one-ring ButtonShadow line (the flat appearance style, Ch.13 "Flat
   Appearance" (p.309)) with the 7 × 7 check while the row is selected. _WIG Ch.7
-  "Extended and Multiple Selection List Boxes" (pp.124–125), Figure 7.15._
+  "Extended and Multiple Selection List Boxes" (pp.122–123), Figure 7.15._
 - **7.26** ⚠️ core: ClassicySpinner's `handleOnKeyDown` steps the value on
   ArrowUp/ArrowDown (`preventDefault`, the OS key repeat covering a held key) and
   a `wrap?: boolean` prop (default false) cycles past `minValue`/`maxValue`
-  instead of clamping. _WIG Ch.7 "Spin Boxes" (p.131)._
+  instead of clamping. _WIG Ch.7 "Spin Boxes" (p.128)._
 - **7.27** ⚠️ core layout flag: `balloonHelp: { placement: "anchor" | "pointer"
   }` (default `"anchor"`; Windows 98 `"pointer"`) read by `useClassicyBalloonHelp`:
   with `"pointer"` the box is placed below-right of the pointer's last position
   (tracked on mousemove while hovering), flipped at the desktop's edges, and a
   pointerdown on the anchor hides it. `_BalloonHelp.scss` already draws the
-  ToolTip box. _WIG Ch.7 "Tooltip Controls" (p.136)._
+  ToolTip box. _WIG Ch.7 "Tooltip Controls" (p.133)._
 - **7.28** ⚠️ core: ClassicyControlStrip wraps each cell in `useClassicyBalloonHelp`
   with the module's label (`classicyControlStripModuleLabel`) or the cell's
   `aria-label` as the content, so every unlabeled toolbar control carries a
   tooltip. _WIG Ch.7 "Interaction with Controls in Toolbars and Status Bars"
-  (p.140); App. C "User Assistance" (p.364)._
+  (p.137); App. C "User Assistance" (p.364)._
 
 ---
 
@@ -870,7 +877,7 @@ Normative checklist (WIG Ch.8) and surface mapping:
 | --- | --- | --- | --- | --- |
 | 8.1 | LOW | A dialog's caption drew the collapse (Minimize) box the core gives a `collapsable` modal and the icon it draws unless `hideIcon`; a secondary window has neither. | `_Window.scss` (`.classicyWindowTitleBarModal`) | 🔧 Fixed |
 | 8.2 | LOW | A palette (utility) window drew small Minimize and Maximize boxes beside Close; a palette's title bar holds Close alone. | `_Window.scss` (`.classicyWindow.classicyWindowUtility`) | 🔧 Fixed |
-| 8.3 | LOW | A modeless dialog's `contentFrame` (HIGOS8's two-pixel modeless frame) was drawn as a sunken white box inside the client area; Find and Replace are plain ButtonFace boxes with no inner frame. | `_Window.scss` (`.classicyWindowContentsFramed`) | 🔧 Fixed |
+| 8.3 | LOW | A modeless dialog's `contentFrame` (HIGOS8's two-pixel modeless frame) was drawn as a sunken white box inside the client area; Find and Replace are plain ButtonFace boxes with no inner frame. | `_Window.scss` (`.classicyWindowContentsFramed`, `.classicyWindowContentsWithFrame`); core ClassicyWindow | 🔧 Fixed |
 | 8.4 | MEDIUM | The Open and Save dialogs browsed the Mac's expanding tree (`fileDialog.navigation: "tree"`, the default); Windows' common dialogs show one folder at a time under Look in. | `windows98.json` (`layout.fileDialog`) | 🔧 Fixed |
 | 8.5 | LOW | Save As opened with its default name unselected; the WIG's default name is there to be overtyped. | `windows98.json` (`layout.fileDialog.saveName`) | 🔧 Fixed |
 | 8.6 | LOW | The file dialogs' list drew a disclosure cell before each row and ran the selection across the whole row; Figure 8.6's list view has small icons and names, the name alone highlighted, the icon untouched. | `_Dialog.scss` (`.classicyFileOpenDialogWell`) | 🔧 Fixed |
@@ -897,16 +904,18 @@ Normative checklist (WIG Ch.8) and surface mapping:
   at (3,3) on the 12 × 11 box) stays; the header comment records that a palette
   has no WindowShade box under this package. _WIG Ch.8 "Palette Windows" (p.163),
   Figure 8.15._
-- **8.3** 🔧 (`_Window.scss`): `.classicyWindowContentsFramed { padding: 0;
-  border: none; box-shadow: none }` (the frame draws nothing, active or not) and
-  `.classicyWindow .classicyWindowContents:has(.classicyWindowContentsFramed) {
-  padding: 0; box-shadow: none; background-color:
-  var(--classicy-window-contents-bg, b.$face) }`, so the client area around it
-  gives up its client edge and Window white for ButtonFace (a host's
-  `--classicy-window-contents-bg` first, as the modal body takes it); keyed on
-  `:has()` as the base keys its own menu-bar rule, so a browser without it
-  (Firefox 113–120) keeps a sunken white client area around a flat inner box.
-  _WIG Ch.8 "Find and Replace Dialog Boxes" (p.158), Figure 8.8._
+- **8.3** 🔧 (`_Window.scss`; core ClassicyWindow): `.classicyWindowContentsFramed
+  { padding: 0; border: none; box-shadow: none }` (the frame draws nothing,
+  active or not) and `.classicyWindow
+  .classicyWindowContents.classicyWindowContentsWithFrame { padding: 0;
+  box-shadow: none; background-color: var(--classicy-window-contents-bg,
+  b.$face) }`, so the client area around it gives up its client edge and Window
+  white for ButtonFace (a host's `--classicy-window-contents-bg` first, as the
+  modal body takes it). The holder is known by `classicyWindowContentsWithFrame`,
+  the class the core now sets on the contents holding a frame, beside
+  `classicyWindowContentsWithHeader` (commit 01758bd05; "Core changes made in
+  this pass" below), so the rule needs no `:has()` and holds in every browser of
+  the floor. _WIG Ch.8 "Find and Replace Dialog Boxes" (p.158), Figure 8.8._
 - **8.4, 8.5** 🔧 (`packages/appearance/windows98/src/windows98.json`,
   `src/ClassicyWindows98.test.ts`, `README.md`, `docs/AGENT-REFERENCE.md`):
   `layout.fileDialog: { frame: "movable", navigation: "flat", saveName:
@@ -1148,7 +1157,7 @@ Normative checklist (WIG Ch.13) and surface mapping:
   and `b.$hilight` (the text color outside the button highlight, Figure 13.13),
   keeping the dotted rectangle for `:focus-visible` alone; the same on the
   Appearance Manager's selected swatch. Not applied: found while writing this
-  document. _WIG Ch.7 "Wells" (p.136); Ch.13 "Option-Set Appearance" (p.305),
+  document. _WIG Ch.7 "Wells" (p.133); Ch.13 "Option-Set Appearance" (p.305),
   Figure 13.13._
 - **13.10** ⚠️ package, next pass: a `_HyperCard.scss` partial (or rules in
   `_Icon.scss`) drawing the editor's selection handles as `--window-border-size`
@@ -1160,7 +1169,7 @@ Normative checklist (WIG Ch.13) and surface mapping:
 
 ## Chapter 14 — Special Design Considerations; Appendix C — Guidelines Summary
 
-Pages read: PDF 310–328 (pp.327–344) and 341–346 (pp.361–366). Ch.14 is mostly
+Pages read: PDF 310–327 (pp.327–344) and 341–346 (pp.361–366). Ch.14 is mostly
 behavior and process (sound, accessibility aids, internationalization, network,
 records, telephony, Exchange); the rules a package can meet are scalability
 with the user's font, system colors, visible keyboard focus, time-outs and
@@ -1198,11 +1207,11 @@ Appendix C, "Guidelines Summary" (pp.361–366), mapped to this audit:
 
 | App. C section (page) | Item | Where covered | Status |
 | --- | --- | --- | --- |
-| "Input and Interaction" (p.361) | Visual feedback for selected objects (highlighting, handles); keyboard interface for all basic operations; single-click access to common operations. | Ch.13 "Highlighting", 13.10; Ch.7 7.7, 7.9, 7.26 | ✅ highlighting; ⚠️ handles, keyboard |
-| "Windows" (p.361) | Title text for all windows; saves and restores window state; adjusts size and position to the screen; uses common dialog boxes; modeless where possible; the appropriate message symbol; a brief statement of the problem in message boxes. | Ch.6 "Opening and Closing Windows"; Ch.8 8.4, 8.5, 8.11; message types | ✅; ⚠️ 8.11 |
-| "Windows" (p.362) | Property pages for peer properties; buttons that apply to the page inside it, to the window outside it. | Ch.8 "Property Sheet Commands" (inspector model) | ✅ |
-| "Controls" (p.362) | System-supplied controls; a pop-up menu for the title bar icon and for the window; the menu glyph (triangular arrow) for cascades, drop-down arrows and scroll arrows; pop-up menus by button 2 and SHIFT+F10, displayed on the button's release; the order of pop-up commands; toolbars user-configurable; custom controls consistent with the system's. | 6.2, 6.3, 7.9, 7.10; `_Menu.scss`, `_PopUpMenu.scss`, `_ScrollBar.scss` triangles; the Control Strip control panel | ✅ glyphs, toolbars; ⚠️ menus 6.2, 6.3, 7.9 |
-| "Integrating with the System" (pp.362–363) | Registry, file types, icons in 16, 32 and 48 px, the taskbar for notification, OLE. | ➖ (no Windows registry, taskbar or OLE; icons Platinum's) | ➖ |
+| "Input and Interaction" (p.362) | Visual feedback for selected objects (highlighting, handles); keyboard interface for all basic operations; single-click access to common operations. | Ch.13 "Highlighting", 13.10; Ch.7 7.7, 7.9, 7.26 | ✅ highlighting; ⚠️ handles, keyboard |
+| "Windows" (p.362) | Title text for all windows; saves and restores window state; adjusts size and position to the screen; uses common dialog boxes; modeless where possible; the appropriate message symbol; a brief statement of the problem in message boxes. | Ch.6 "Opening and Closing Windows"; Ch.8 8.4, 8.5, 8.11; message types | ✅; ⚠️ 8.11 |
+| "Windows" (p.363) | Property pages for peer properties; buttons that apply to the page inside it, to the window outside it. | Ch.8 "Property Sheet Commands" (inspector model) | ✅ |
+| "Controls" (p.363) | System-supplied controls; a pop-up menu for the title bar icon and for the window; the menu glyph (triangular arrow) for cascades, drop-down arrows and scroll arrows; pop-up menus by button 2 and SHIFT+F10, displayed on the button's release; the order of pop-up commands; toolbars user-configurable; custom controls consistent with the system's. | 6.2, 6.3, 7.9, 7.10; `_Menu.scss`, `_PopUpMenu.scss`, `_ScrollBar.scss` triangles; the Control Strip control panel | ✅ glyphs, toolbars; ⚠️ menus 6.2, 6.3, 7.9 |
+| "Integrating with the System" (p.363) | Registry, file types, icons in 16, 32 and 48 px, the taskbar for notification, OLE. | ➖ (no Windows registry, taskbar or OLE; icons Platinum's) | ➖ |
 | "User Assistance" (p.364) | Context-sensitive Help; tooltips for all unlabeled controls, particularly in toolbars. | 7.28 | ⚠️ 7.28 |
 | "Visual Design" (p.365) | Color only as an enhancing, secondary form of information; a limited set of colors; system metrics for all display elements; standard border styles; the appropriate appearance for every control state; a light source from the upper left; the layout and font guidelines; correct capitalization. | Ch.13 throughout; 13.1–13.6 fixed | ✅ |
 | "Sound" (p.365) | Audio for secondary cues; the system volume interface; ShowSounds. | Ch.14 "Sound" | ✅; ➖ ShowSounds |
@@ -1215,7 +1224,7 @@ Appendix C, "Guidelines Summary" (pp.361–366), mapped to this audit:
 | # | Severity | Finding | Component | Status |
 | --- | --- | --- | --- | --- |
 | 14.1 | LOW | The single-line fields (edit control, stepper field, output well, the pickers), the hot-key box, the pop-up menu's field and the group box's legend line box were fixed at their knobs (21 px, 12 px); a larger UI font set in the Fonts tab clipped their text or broke the legend's strip, where Windows sizes every control from the system font. | `_TextField.scss`, `_Dialog.scss`, `_PopUpMenu.scss`, `_ControlGroup.scss`, `windows98.json` | 🔧 Fixed |
-| 14.2 | LOW | A focused list with nothing selected showed no focus item; Windows' list view keeps its focus rectangle on the first item until one is selected (the row Down Arrow and Home select). | `_Table.scss` | 🔧 Fixed |
+| 14.2 | LOW | A focused list with nothing selected showed no focus item; Windows' list view keeps its focus rectangle on the first item until one is selected (the row Down Arrow and Home select). | `_Table.scss`; core ClassicyTable | 🔧 Fixed |
 | 14.3 | LOW | No High Contrast handling: no `forced-colors`/`prefers-contrast` rule and none of Windows 98's four High Contrast schemes among the presets. | `windows98.json`, `windows98.scss` | ⚠️ Deferred (product decision) |
 | 14.4 | LOW | An open menu closes itself after 15 s, a time-out the user cannot configure. Same as 7.6. | core ClassicyMenuProvider | ⚠️ Deferred (core layout flag) |
 | 14.5 | LOW | A meter tells its warning zones by block color alone (Hilight against `--color-alert`/`--color-error`), with no pattern or text. | `_ProgressBar.scss` (meter); core ClassicyMeter | ⚠️ Deferred (core/product) |
@@ -1243,14 +1252,20 @@ Appendix C, "Guidelines Summary" (pp.361–366), mapped to this audit:
   font; only a font the knob no longer holds raises the control. _WIG Ch.14
   "Scalability" (p.334), "Visual Disabilities" (p.328); Ch.13 "Font and Size"
   (p.310)._
-- **14.2** 🔧 (`_Table.scss`): `#{$list}:focus:not(:has(.classicyTableRow.selected))
-  .classicyTableContent > .classicyTableRow:first-child { @include
-  b.focus-rect(b.$b) }` rings the first row in WindowText on the white row, and
-  the Finder's list rings the first row's name alone
+- **14.2** 🔧 (`_Table.scss`; core ClassicyTable): the core's ClassicyTable now
+  emits the vocabulary state `focused` on its focus row, Windows' focus item and
+  the Mac list's cursor: the row the keyboard continues from while it is listed,
+  else the first selected row, else the first row, whether or not the list has
+  focus (`ClassicyTable.tsx`, commit 01758bd05; "Core changes made in this pass"
+  below). The package gates it under the list's `:focus`: `#{$list}:focus
+  :where(.classicyTableRow).focused { @include b.focus-rect(b.$b) }` rings that
+  row in WindowText on a white row, `.focused.selected` in HilightText, and the
+  Finder's list rings the `focused` row's name alone
   (`.classicyFileBrowserViewTableRowIconLabel`), as Explorer's details view keeps
-  its focus item; `:has()` stands alone in its selector, so a browser without it
-  (Firefox before 121) drops this rule only. _WIG Ch.14 "The User's Point of
-  Focus" (p.333); App. C "Accessibility" (p.365)._
+  its focus item; with nothing selected that is the first row, so a focused list
+  always shows one. No `:has()`, so the rule holds in every browser of the
+  floor. _WIG Ch.14 "The User's Point of Focus" (p.333); App. C "Accessibility"
+  (p.365)._
 - ✅ "Color" (pp.333–334): every partial's header carries its Windows-color
   table, pairing each foreground with the background Windows pairs it with
   (WindowText on Window, ButtonText on ButtonFace, HilightText on Hilight,
@@ -1292,7 +1307,20 @@ The package-scope fixes of this pass are applied (3.1, 3.2, 6.1 modal, 7.2–7.4
 (`node bin/check-pixel-literals.ts`, `node bin/classicyLiteralColorSweep.ts`,
 `ClassicyAppearance.varCoverage.test.ts`, `pnpm --filter
 @classicy/appearance-windows98 exec vitest run`, the whole sheet compiling to one
-`@layer classicy.package` block with no `!important`). Everything below is open.
+`@layer classicy.package` block with no `!important`). Everything below is open,
+except the core changes the next note records.
+
+**Core changes made in this pass** (commit 01758bd05, "fix(appearance): a
+table's focus row and a framed holder as classes, not :has()"): the one
+exception to "proposed, not applied" under "What is auditable", taken because
+the first pass's `:has()` rules for 8.3 and 14.2 failed the browser floor
+(Firefox 113–120 has no `:has()`). Two additive hooks, read by no other
+package: ClassicyTable emits the vocabulary state `focused` on its focus row
+(the keyboard cursor while it is listed, else the first selected row, else the
+first row, whether or not the list has focus; 14.2), and ClassicyWindow marks
+the contents holding a modeless-dialog frame `classicyWindowContentsWithFrame`,
+beside `classicyWindowContentsWithHeader` (8.3). The vocabulary entry, tests,
+`docs/AGENT-REFERENCE.md` and `docs/RELEASE-NOTES-3.8.md` went with them.
 
 **Additive core hooks** (a state class, a part or a layout flag; the package rule
 that uses each is written in its finding):
@@ -1381,14 +1409,20 @@ groups closed):
 
 ## Next pass
 
-- Realign the page citations the fix groups wrote into the Ch.13 and Ch.14
-  partials' comments to this document's opener-derived numbers (`_Button.scss`,
-  `_PopUpMenu.scss`, `_AppearanceManager.scss`, `_Placard.scss`,
-  `_TextField.scss`, `_ProgressBar.scss`, `_ControlGroup.scss`, `_Dialog.scss`,
-  `_Table.scss`: Ch.13 "Font and Size" p.310, "Button Border Styles" p.301,
-  "Option-Set Appearance" p.304, "Mixed-Value Appearance" p.306, "Unavailable
-  Appearance" pp.306–307, "Animation" p.321; Ch.14 "Scalability" p.334, "The
-  User's Point of Focus" p.333; App. C "Accessibility" p.365 is unchanged).
+- Realign the page citations the fix groups wrote into the Ch.7, Ch.13 and
+  Ch.14 partials' comments to this document's opener-derived numbers
+  (`_Button.scss`, `_RadioInput.scss`, `_ListBox.scss`, `_PopUpMenu.scss`,
+  `_AppearanceManager.scss`, `_Placard.scss`, `_TextField.scss`,
+  `_ProgressBar.scss`, `_ControlGroup.scss`, `_Dialog.scss`, `_Table.scss`:
+  Ch.7 `_Button.scss` l.23 "Table 7.4 (p.115)" → p.113 and l.48 "Support for
+  User Options (p.140)" → p.137, `_RadioInput.scss` l.32 "Option Buttons
+  (p.117, Fig. 7.10)" → p.115, `_ListBox.scss` l.7 "Single Selection List
+  Boxes (p.122, Fig. 7.13)" → p.120; Ch.13 "Font and Size" p.310
+  (`_PopUpMenu.scss`'s and `_AppearanceManager.scss`'s "(p.312)") and p.311
+  (`_Button.scss`'s "(p.313)"), "Button Border Styles" p.301, "Option-Set
+  Appearance" p.304, "Mixed-Value Appearance" p.306, "Unavailable Appearance"
+  pp.306–307, "Animation" p.321; Ch.14 "Scalability" p.334, "The User's Point
+  of Focus" p.333; App. C "Accessibility" p.365 is unchanged).
 - Apply the four package-scope items above (8.8, 8.10, 13.7, 13.10) and run
   the gates.
 - Wire or drop the dead `menuFrame.borderWidth`/`bevelWidth` knobs: the menu
