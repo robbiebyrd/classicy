@@ -186,6 +186,28 @@ describe("ClassicyAppleMenuOptions", () => {
 		expect(field("AppleMenuOptions_documents")?.value).toBe("10");
 	});
 
+	// Re-review N4: Return sets the count and leaves the keyboard focus in
+	// the field (the field is drawn again with the stored count).
+	it("keeps the keyboard focus in the field after Return", () => {
+		renderOpen();
+		typeInto("AppleMenuOptions_documents", "6");
+		const before = field("AppleMenuOptions_documents");
+		act(() => {
+			fireEvent.keyDown(before as HTMLElement, { key: "Enter" });
+		});
+		expect(recent()?.counts.document).toBe(6);
+		const after = field("AppleMenuOptions_documents");
+		expect(after?.value).toBe("6");
+		expect(document.activeElement).toBe(after);
+		// Typing on goes into the field, and leaving it sets the count.
+		typeInto("AppleMenuOptions_documents", "8");
+		leave("AppleMenuOptions_documents");
+		expect(recent()?.counts.document).toBe(8);
+		expect(document.activeElement).not.toBe(
+			field("AppleMenuOptions_documents"),
+		);
+	});
+
 	it("sets a count still being typed when the panel closes", () => {
 		const { unmount } = renderOpen();
 		typeInto("AppleMenuOptions_documents", "7");

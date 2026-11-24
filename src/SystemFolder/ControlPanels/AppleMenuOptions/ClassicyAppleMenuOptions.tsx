@@ -188,6 +188,8 @@ function AppleMenuOptionsCountField({
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	// Bumped to remount the field, so it shows the stored count again.
 	const [revision, setRevision] = useState(0);
+	// Return commits in place: the remounted field keeps the keyboard focus.
+	const refocusRef = useRef(false);
 
 	const commit = () => {
 		const draft = draftRef.current;
@@ -205,6 +207,10 @@ function AppleMenuOptionsCountField({
 	useEffect(() => {
 		const input = inputRef.current;
 		if (!input) return;
+		if (refocusRef.current) {
+			refocusRef.current = false;
+			input.focus();
+		}
 		const onBlur = () => commitRef.current();
 		input.addEventListener("blur", onBlur);
 		return () => input.removeEventListener("blur", onBlur);
@@ -238,7 +244,11 @@ function AppleMenuOptionsCountField({
 			onChangeFunc={(e) => {
 				draftRef.current = e.target.value;
 			}}
-			onEnterFunc={() => commitRef.current()}
+			onEnterFunc={() => {
+				// A draft remounts the field (commit); none leaves it as it is.
+				refocusRef.current = draftRef.current !== null;
+				commitRef.current();
+			}}
 		/>
 	);
 }
