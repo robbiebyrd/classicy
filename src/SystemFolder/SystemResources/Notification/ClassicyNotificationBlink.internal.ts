@@ -44,7 +44,8 @@ export type ClassicyNotificationBlinkFrame = Partial<
  * While `frozen` (a menu of the bar is open) the blink stops where it is,
  * as Mac OS 8.1's does while the Menu Manager tracks a menu (the Notification
  * Manager runs from `SystemTask`, which menu tracking does not call); the
- * caller draws an open title's own icon. For users who prefer reduced motion
+ * caller draws an open title's own icon. The 8.1 captures are Platinum's
+ * `resources/screenshots/mac-os-8.1/platinum-81-blink-*-sheet.png`. For users who prefer reduced motion
  * nothing blinks: each title shows its first request's icon steadily.
  */
 export function useClassicyNotificationBlink(

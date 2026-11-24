@@ -1598,7 +1598,10 @@ blinking icon, the sound, then the alert.
   icon, as Mac OS 8.1 draws them (observed on Infinite Mac: with the
   Finder's File menu open the Application title kept whichever icon it
   showed; with the Application menu open its title showed the front
-  application's icon, at every phase tried). The Apple title's case is
+  application's icon, at every phase tried; the title crops, twelve
+  frames each, are `packages/appearance/platinum/resources/screenshots/mac-os-8.1/platinum-81-blink-filemenu-open-sheet.png`
+  and `platinum-81-blink-appmenu-open-sheet.png`, the open menu
+  `platinum-81-appmenu-notification-open.png`). The Apple title's case is
   inferred from the Application title's, not observed: it is the same
   Menu Manager tracking and the same `NMTask` that does not run during it,
   but a stock 8.1 has nothing that posts an unmarked request (every
