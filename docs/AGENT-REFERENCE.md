@@ -292,7 +292,8 @@ and no sound player, and nothing reads `localStorage` or `sessionStorage` (from
 Node 25 Node defines both, and without `--localstorage-file` a read throws,
 returns an object without `setItem`, or warns), so a server render starts no
 timer, raises no warning and logs nothing. Import the Appearance Package
-where both sides load it (the module that renders the desktop). The
+in a module both the server and the browser load (in Next.js's App Router, a
+client module: "Next.js (App Router)", below). The
 stylesheet still arrives with the JS (`<style id="classicy-styles">`,
 inserted when the bundle loads in a browser); a host that wants it in the
 server's HTML links `dist/classicy.css` and the package stylesheets, as a
@@ -303,8 +304,9 @@ strict-CSP host does.
   "node"`) that bundles a `require()` copies the CommonJS loader without the
   UMD bundle it reads; the loader then throws `@classicy/classicy: its UMD
   bundle, … is missing beside its CommonJS loader`. Mark the packages
-  external (Next.js keeps `node_modules` external on the server by default),
-  or `import` them.
+  external, or `import` them. (Next.js's Pages Router keeps `node_modules`
+  external on the server by default; its App Router bundles them, and
+  `import`s Classicy, so the loader never takes part there.)
 - **One format per process.** A process that both `import`s and
   `require()`s Classicy loads two separate libraries, each with its own
   store and registries (Node's dual-package hazard): an Appearance Package
@@ -334,7 +336,20 @@ strict-CSP host does.
   give that environment Node's conditions,
   `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`
   (every package with a `node` entry, not only Classicy, then resolves to it
-  in those tests); its `node` environment needs nothing. The rest is the
+  in those tests), or, narrower, map only the Classicy packages to the files
+  Node's own resolution gives them, their CommonJS loaders, and every other
+  package keeps the environment's `browser` conditions:
+
+  ```js
+  // jest.config.cjs, on Jest 29, instead of customExportConditions
+  moduleNameMapper: {
+  	"^@classicy/classicy$": require.resolve("@classicy/classicy"), // …/dist/classicy.umd.cjs
+  	"^@classicy/appearance-platinum$": require.resolve("@classicy/appearance-platinum"),
+  	"^@classicy/appearance-system7$": require.resolve("@classicy/appearance-system7"), // when you load it
+  },
+  ```
+
+  Its `node` environment needs nothing. The rest is the
   host's in both versions: `react-player`, one of the core's dependencies,
   ships ES modules only, which Jest cannot `require()`, so transform it, and
   jsdom has no `structuredClone` (Platinum calls it when it registers),
@@ -386,7 +401,86 @@ strict-CSP host does.
   packages with Jest 29.7.0 (jest-environment-jsdom 29.7.0, jsdom 20.0.3) and
   Jest 30.5.2 (jest-environment-jsdom 30.5.2, jsdom 26.1.0), each in its
   `node` and `jsdom` environments, with and without the setting: only Jest
-  29's `jsdom` environment without it fails (story 0223-a0y).
+  29's `jsdom` environment without it fails (story 0223-a0y). The
+  `moduleNameMapper` alternative passed Jest 29.7.0's `node` and `jsdom`
+  environments too, with the same output (story 0224-siu).
+
+**Next.js (App Router).** The core's ES build starts with `"use client";`
+(verify:dist invariant 20), so Next.js treats `@classicy/classicy` as a
+client module: a server component (`app/page.tsx`, a layout) imports
+Classicy's components and renders them, with no `"use client"` wrapper file
+of the host's. (Without the directive Next.js evaluates the core as a
+server module, and the build fails: `TypeError: (0 , V.createContext) is not
+a function`.) In a server component every export of
+the core is a client reference: render the components, passing them
+serializable props (strings, numbers, plain objects, JSX children); a
+function prop (`onClick`, a menu item's `onClickFunc`), a call of a function
+export (`registerApp`, `registerClassicyIcons`, `classicyLog`) and a
+constant's value belong in a client module.
+
+The Appearance Packages carry no directive (their invariant 12): a package
+registers itself when it runs, which must happen in the browser, so import
+it from a client module, either the client component that renders the
+desktop or, when server components render it, a client component of one
+import that the root layout renders (the browser runs a client module a
+server component imports only when the page renders one of its exports).
+Imported from a server
+component, it fails the build (`Attempted to call
+encodeClassicyPixelArtRows() from the server but encodeClassicyPixelArtRows
+is on the client`); were it a client module, that import would build and
+never run, and the desktop would draw its "No Appearance Package is loaded"
+screen.
+
+```tsx
+// app/classicy-packages.tsx
+"use client";
+import "@classicy/appearance-platinum";
+
+export function ClassicyPackages() {
+    return null;
+}
+
+// app/layout.tsx (a server component)
+import { ClassicyPackages } from "./classicy-packages";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <html lang="en">
+            <body>
+                <ClassicyPackages />
+                {children}
+            </body>
+        </html>
+    );
+}
+
+// app/page.tsx (a server component)
+import { Classicy, ClassicyApp, ClassicyButton, ClassicyWindow } from "@classicy/classicy";
+
+export default function Page() {
+    return (
+        <Classicy style={{ height: "100vh" }}>
+            <ClassicyApp id="Hello.app" name="Hello" icon="/hello.svg">
+                <ClassicyWindow id="hello" appId="Hello.app" title="Hello" defaultWindow>
+                    <p>Rendered by a server component.</p>
+                    <ClassicyButton>OK</ClassicyButton>
+                </ClassicyWindow>
+            </ClassicyApp>
+        </Classicy>
+    );
+}
+```
+
+The page prerenders the desktop's empty shell (above), and the desktop
+draws after hydration, with no hydration warning. The packages' files need
+no setting: Next.js's bundler (Turbopack, its default, or webpack with
+`next build --webpack`) reads each `new URL("assets/…", import.meta.url)`,
+copies the file into its build and serves it under `/_next/static/media/`,
+so nothing is copied into `public/`; no `transpilePackages` or
+`serverExternalPackages` entry is needed either. Checked with Next.js 16.4.6
+(React 19.3.1) on both bundlers, from the packed packages: `next build` and
+`next start`, the Platinum desktop drawn in Chromium with its fonts, art and
+sprites loaded and no console error (story 0224-siu).
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled

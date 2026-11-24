@@ -454,8 +454,61 @@ stylesheets, as a strict-CSP host does (above).
   environment also needs
   `testEnvironmentOptions: { customExportConditions: ["node", "node-addons"] }`,
   since it resolves under `browser`, for which the packages' `require` entry
-  is disabled; Jest 30 resolves under `node` already. `docs/AGENT-REFERENCE.md`
+  is disabled, or, narrower, a `moduleNameMapper` that points each Classicy
+  package at `require.resolve(name)`, its CommonJS loader; Jest 30 resolves
+  under `node` already. `docs/AGENT-REFERENCE.md`
   §1 has the snippets, and more on stack traces and source maps.
+
+### Next.js (App Router)
+
+`@classicy/classicy` starts with `"use client";`, so a server component
+(`app/page.tsx`, a layout) imports Classicy's components and renders them
+directly, with no client wrapper of your own. Pass them serializable props
+(strings, numbers, plain objects, JSX children); function props
+(`onClick`) and calls of Classicy's functions (`registerApp`,
+`registerClassicyIcons`) belong in a client module.
+
+An Appearance Package registers itself when it runs, which must happen in
+the browser, so import it from a client module: the client component that
+renders the desktop, or a client component of one import that your root
+layout renders. Imported from a server component, it fails `next build`.
+
+```tsx
+// app/classicy-packages.tsx
+"use client";
+import "@classicy/appearance-platinum";
+
+export function ClassicyPackages() {
+  return null;
+}
+
+// app/layout.tsx
+import { ClassicyPackages } from "./classicy-packages";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <ClassicyPackages />
+        {children}
+      </body>
+    </html>
+  );
+}
+
+// app/page.tsx
+import { Classicy } from "@classicy/classicy";
+
+export default function Page() {
+  return <Classicy style={{ height: "100vh" }}>{/* your apps */}</Classicy>;
+}
+```
+
+The packages' fonts, art and sound files need no setting: Next.js's
+bundler (Turbopack, or webpack with `next build --webpack`) copies each one
+its code references and serves it under `/_next/static/media/`. Checked with
+Next.js 16.4.6 on both bundlers. `docs/AGENT-REFERENCE.md` §1 has the
+details.
 
 ## System 7
 
