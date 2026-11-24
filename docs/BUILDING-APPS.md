@@ -1149,6 +1149,7 @@ registerClassicyFindSource({
   labels: { tab: 'Search Archive', sites: 'Collections', site: 'Collection' } })`.
   Without labels they keep Sherlock's "Search Internet", "Search Sites" and
   "Site"; with several sources, the first registered with labels names them.
+  Registering a source again replaces its labels too.
 - `open()` runs when the user opens a result: open a window of your app,
   a URL (`ClassicyDesktopOpenUrl`, trusted from your code), or a file
   (`openClassicyFileSystemPath(fs, path, dispatch)`, the Finder's way, which
@@ -1164,7 +1165,8 @@ registerClassicyFindSource({
   request) only when Items Found draws its row or a size row asks, a few at
   a time. Record `_size` on such files to spare the requests. Its contents
   are never fetched for the contents criterion (Option), which reads
-  `_data` only.
+  `_data` only, and at most its first 5 MiB (the localStorage quota the
+  tree lives in).
 
 The example app registers one (`example/src/Applications/FindSources/`).
 Full reference: [AGENT-REFERENCE §11, "Find File and search

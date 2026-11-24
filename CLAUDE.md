@@ -711,9 +711,11 @@ its `AbortSignal`, over the live tree of the desktop's
 or one disk (the location is kept, `data.location`; its pop-up is
 `analyticsPrivate`). Rows needing no read are checked first; a size (`fs.size`
 takes a `signal`) or contents (Option's contents criterion, `_data` only,
-never a `_url` fetch) is read only for an item that passed them, at most
-four reads at once across the session (`ClassicyFindLookups.internal.ts`),
-under the search's signal; "is within N of" follows 8.1 as measured (N
+never a `_url` fetch; its first 5 MiB, `CLASSICY_FIND_CONTENTS_LIMIT`,
+inflated chunk by chunk when gzip, else read as text) is read only for an
+item that passed them, at most four reads at once across the session
+(`ClassicyFindLookups.internal.ts`), under the search's signal, yielding
+every 8 ms; "is within N of" follows 8.1 as measured (N
 weeks D−7N−1…D+7N, N months of 31 days D−31N−1…D+31N, days ±N). Invisible
 items are found only by a visibility row, but invisible folders are
 searched (the Trash's items are found); the Desktop Folder counts as
