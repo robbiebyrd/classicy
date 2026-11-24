@@ -206,7 +206,7 @@ Windows stack and refocus by recency (`zOrder` = last open/focus time;
   same app+id has mounted again by then (StrictMode's phantom remount, or a
   replacement instance). Modal windows are destroyed instead, as before.
 - `ClassicyWindowClose` promotes the app's highest-`zOrder` open sibling.
-- An extension (Apple Guide) never takes the **front application** (`frontAppIdOf`/`useFrontAppId`, `ClassicyFrontApp.ts`): its window floats over the app in use, which keeps its menus (`focusWindow` leaves `Desktop.appMenu` alone for an extension window that publishes none), its chords and its place in the Application menu; the front is the focused app, else the most recently focused open non-extension app, else Finder.
+- An extension (Apple Guide) never takes the **front application** (`frontAppIdOf`/`useFrontAppId`, `ClassicyFrontApp.ts`, `ClassicyFrontAppId.ts`): an extension window that publishes no menus is a floating window (`isFloatingExtensionWindow`), active beside the front app's windows without moving `focusedAppId`, the bar, the chords or the keyboard; one that publishes menus is the front app. A front app with no open window keeps its menus through `ClassicyApp`'s `appMenu` prop (SimpleText's File/Edit/Help; it opens Untitled on launch only).
 - The Application menu's Hide <app>, Hide Others and Show All dispatch
   `ClassicyAppHide`, `ClassicyAppHideOthers` and `ClassicyAppShowAll`
   (HIG7 p.127). `apps[id].hidden` is **session state**: `sanitizeStateForPersistence`

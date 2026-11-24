@@ -834,7 +834,7 @@ useClassicyHelpMenu(appId, items)              // items MUST be memoized
 useClassicyEditMenu(idPrefix)                  // → a standard Edit menu item
 ```
 
-`useClassicyHelpMenu` is the way to add help items: they join the one standard Help menu (About, Show/Hide Balloons, Keyboard Shortcuts, then yours). A top-level "Help" menu in your `appMenu` is folded into that same menu, after a divider, so the bar never draws two; prefer the hook.
+`useClassicyHelpMenu` is the way to add help items: they join the one standard Help menu (About, Show/Hide Balloons, Keyboard Shortcuts, then yours). A top-level "Help" menu in your `appMenu` is folded into that same menu, right after Keyboard Shortcuts, so the bar never draws two; prefer the hook.
 
 `useClassicyAboutMenu` returns both a menu item and the window that renders it.
 Put the item in your File menu and render `aboutWindow` as a `ClassicyApp` child:
