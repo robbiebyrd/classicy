@@ -138,7 +138,7 @@ describe("classicyUmdLoader", () => {
 		);
 		expect(
 			[...loader.matchAll(/require\("([^"]+)"\)/g)].map((m) => m[1]),
-		).toEqual(["node:fs", "node:vm", "node:url", "node:path"]);
+		).toEqual(["node:module", "node:fs", "node:vm", "node:url", "node:path"]);
 		expect(loader).toContain('join(__dirname, "classicy.umd.js")');
 		// The eval runs strict; the loader's own top level stays sloppy, as
 		// Node runs a CommonJS module.
@@ -210,16 +210,56 @@ describe("classicyUmdLoader", () => {
 		).toBe(JSON.stringify([true, true, "undefined", "undefined", false]));
 	});
 
-	// process.getBuiltinModule (Node 20.16, 22.3): the UMD bundle reaches
-	// Node's url module with it.
+	// The floor: Node 20.19, 22.12 (require() of an ES module on by default,
+	// nodejs/node#55085; the core requires react-player, ES modules only),
+	// whose every release also has process.getBuiltinModule.
+	const FLOOR = (detail = "") =>
+		`fixture: require() needs Node 20.19, 22.12 or later, whose require() can load an ES module (react-player, which @classicy/classicy requires, ships ES modules only); this is Node ${process.version}${detail}. Upgrade Node, or import fixture (the ES build).`;
+
 	it("names the Node it needs when process.getBuiltinModule is missing", () =>
 		expect(
 			host(
 				'delete process.getBuiltinModule; try { require("fixture"); } catch (e) { console.log(e.message); }',
 			).stdout,
-		).toBe(
-			`fixture: require() needs Node 20.16, 22.3 or later (process.getBuiltinModule); this is Node ${process.version}. Upgrade Node, or import fixture (the ES build).`,
-		));
+		).toBe(FLOOR()));
+
+	// As on Node 22.10 and 22.11, where require() of an ES module is off by
+	// default, or under --no-require-module.
+	it("names the Node it needs when Node's require() cannot load an ES module", () =>
+		expect(
+			host(
+				'try { require("fixture"); } catch (e) { console.log(e.message); }',
+				["--no-experimental-require-module"],
+			).stdout,
+		).toBe(FLOOR(" with require() of ES modules off")));
+
+	// Before 20.19 and 22.10 process.features has no require_module at all.
+	it("names the Node it needs when process.features.require_module is missing", () =>
+		expect(
+			host(
+				'delete process.features.require_module; try { require("fixture"); } catch (e) { console.log(e.message); }',
+			).stdout,
+		).toBe(FLOOR()));
+
+	// A test runner's require (Jest's) loads react-player its own way (a
+	// transform), so its sandbox is never refused for Node's own require().
+	it("does not refuse a test runner's sandbox for Node's own require()", () =>
+		expect(
+			host(`
+const vm = require("node:vm");
+const { createRequire } = require("node:module");
+const file = require.resolve("fixture");
+const sandboxProcess = Object.create(process, { features: { value: { require_module: false } } });
+const sandbox = vm.createContext({ process: sandboxProcess });
+const compiled = vm.runInContext(
+	"(function (exports, require, module, __filename, __dirname) {" + require("node:fs").readFileSync(file, "utf8") + "\\n})",
+	sandbox,
+	{ filename: file },
+);
+const mod = { exports: {} };
+compiled(mod.exports, createRequire(file), mod, file, require("node:path").dirname(file));
+console.log(mod.exports.value);`).stdout,
+		).toBe("42"));
 
 	// --disallow-code-generation-from-strings forbids eval: vm compiles it.
 	it("loads where code generation from strings is disallowed", () => {

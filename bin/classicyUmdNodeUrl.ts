@@ -9,10 +9,11 @@ import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
 // (esbuild's) then fails to resolve `url` (story 0223-a0y). This rewrites
 // each into a call of a function declared inside the UMD factory, at its
 // end, which reaches Node's url module with `process.getBuiltinModule` (Node
-// 20.16 and 22.3 on), named so the call is exactly as long as what it
-// replaces: every other character keeps its line and column, so the source
-// map stays right (only the factory's closing `}));` moves). Never at the
-// bundle's top level: a `<script>` page would get it as a global, and a
+// 20.16 and 22.3 on; `require()` as a whole needs 20.19 or 22.12,
+// CLASSICY_UMD_LOADER_NODE_FLOOR), named so the call is exactly as long as
+// what it replaces: every other character keeps its line and column, so the
+// source map stays right (only the factory's closing `}));` moves). Never at
+// the bundle's top level: a `<script>` page would get it as a global, and a
 // top-level declaration makes every global lookup in the bundle slow under
 // the CommonJS loader's eval (findClassicyUmdTopLevelDeclarations).
 

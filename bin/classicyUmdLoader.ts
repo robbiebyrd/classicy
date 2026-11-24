@@ -6,9 +6,10 @@ import type { Plugin } from "vite";
 // 0223-a0y). The bundle keeps its name, a public path (`./dist/*`) that CDN
 // script tags load, and beside it ships a small CommonJS loader, the bundle's
 // name with .cjs, which the exports map's `require` condition names under
-// `node`: it runs the unchanged bundle as CommonJS. Browser bundlers resolve
-// `require()` through `default`, the bundle itself, so none picks the loader;
-// they should `import` the ES build (story 0223-a0y).
+// `node`: it runs the unchanged bundle as CommonJS. For every other resolver,
+// a browser bundler's, the `require` entry is `null`, so a browser bundle
+// that `require()`s Classicy fails at its build; it should `import` the ES
+// build (story 0223-a0y).
 
 /** The loader's file name for a UMD bundle: `classicy.umd.js` → `classicy.umd.cjs`. */
 export const classicyUmdLoaderFile = (umdFile: string): string =>
@@ -17,9 +18,16 @@ export const classicyUmdLoaderFile = (umdFile: string): string =>
 /** The loader's size limit, in bytes: it must stay a few lines. */
 export const CLASSICY_UMD_LOADER_MAX_BYTES = 4096;
 
-/** The Node releases `require()` needs: the UMD bundle reaches Node's url
- * module with `process.getBuiltinModule` (bin/classicyUmdNodeUrl.ts). */
-export const CLASSICY_UMD_LOADER_NODE_FLOOR = "Node 20.16, 22.3 or later";
+/**
+ * The Node releases `require()` needs. The core's UMD bundle requires
+ * `react-player`, which ships ES modules only, so Node's `require()` must
+ * load an ES module: on by default from Node 20.19.0, 22.12.0 and 23.0.0
+ * (nodejs/node#55085; earlier only behind --experimental-require-module),
+ * and an Appearance Package requires the core. Every such Node also has
+ * `process.getBuiltinModule` (20.16.0, 22.3.0), with which the UMD bundles
+ * reach Node's url module (bin/classicyUmdNodeUrl.ts).
+ */
+export const CLASSICY_UMD_LOADER_NODE_FLOOR = "Node 20.19, 22.12 or later";
 
 /**
  * The loader's source for `packageName`'s UMD bundle `umdFile` (a bare file
@@ -41,7 +49,13 @@ export const CLASSICY_UMD_LOADER_NODE_FLOOR = "Node 20.16, 22.3 or later";
  * Its `require` is the loader's, which resolves from the same folder as the
  * bundle's would. A bundle missing beside it (a bundler copied the loader
  * alone into a server bundle) throws an error that says so, and so does a
- * Node older than CLASSICY_UMD_LOADER_NODE_FLOOR.
+ * Node that cannot run it: one without `process.getBuiltinModule`, or one
+ * whose own `require()` cannot load an ES module
+ * (`process.features.require_module`, 20.19.0, 22.10.0 and 23.0.0 on, false
+ * on 22.10 and 22.11 and under --no-require-module, missing before). The
+ * second is checked only when `module` is Node's own, never in a test
+ * runner's sandbox (Jest's), whose `require` loads `react-player` its own
+ * way (a transform).
  */
 export const classicyUmdLoader = (
 	umdFile: string,
@@ -55,10 +69,17 @@ function classicyUmdRun(exports, require, module, __filename, __dirname) {
 	eval(arguments[5]);
 }
 (function (file) {
-	if (typeof process.getBuiltinModule !== "function")
+	if (
+		typeof process.getBuiltinModule !== "function" ||
+		(module instanceof require("node:module") &&
+			!(process.features && process.features.require_module))
+	)
 		throw new Error(
-			${JSON.stringify(`${packageName}: require() needs ${CLASSICY_UMD_LOADER_NODE_FLOOR} (process.getBuiltinModule); this is Node `)} +
+			${JSON.stringify(`${packageName}: require() needs ${CLASSICY_UMD_LOADER_NODE_FLOOR}, whose require() can load an ES module (react-player, which @classicy/classicy requires, ships ES modules only); this is Node `)} +
 				process.version +
+				(process.features && process.features.require_module === false
+					? " with require() of ES modules off"
+					: "") +
 				${JSON.stringify(`. Upgrade Node, or import ${packageName} (the ES build).`)},
 		);
 	var source;
