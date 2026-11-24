@@ -7,6 +7,10 @@ import {
 	listAppWindows,
 	mostRecentAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	frontAppIdOf,
+	isFloatingExtensionWindow,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import type { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
@@ -43,7 +47,9 @@ export function deFocusApps(ds: ClassicyStore) {
 	for (const app of Object.values(ds.System.Manager.Applications.apps)) {
 		app.focused = false;
 		for (const w of listAppWindows(app)) {
-			w.focused = false;
+			// A floating extension window (Apple Guide's) stays active beside
+			// the front application's window.
+			if (!isFloatingExtensionWindow(app, w.menuBar)) w.focused = false;
 		}
 	}
 	ds.System.Manager.Applications.focusedAppId = undefined;
@@ -74,7 +80,14 @@ export function focusWindow(
 ) {
 	const app = ownApp(ds, appId);
 	if (!app) return ds;
-	markAppFocused(ds, appId);
+	const win0 = getAppWindow(app, windowId);
+	// A floating extension window (no menus of its own: Apple Guide's) comes
+	// to the top and is active, but leaves the front application, its menus,
+	// chords and windows alone.
+	const floating =
+		win0 !== undefined &&
+		isFloatingExtensionWindow(app, menuBar ?? win0.menuBar);
+	if (!floating) markAppFocused(ds, appId);
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
@@ -88,10 +101,7 @@ export function focusWindow(
 		win.zOrder = Math.max(Date.now(), topZOrder + 1);
 		app.lastAccessedWindowId = windowId;
 		const menu = menuBar ?? win.menuBar;
-		// An extension's window that publishes no menus (Apple Guide) floats
-		// over the application in use and leaves the bar to it.
-		const leavesBarAlone = app.extension === true && !menu?.length;
-		if (menu && !leavesBarAlone) {
+		if (menu && !floating) {
 			ds.System.Manager.Desktop.appMenu = menu;
 		}
 	}
@@ -212,8 +222,12 @@ export function hideApp(ds: ClassicyStore, appId: string) {
 	if (!app?.open || app.extension === true || app.hidden === true) return;
 	const successor = pickShownSuccessorApp(ds, appId);
 	if (!successor) return;
+	// The front application holds the bar even when an extension's window has
+	// the focus flag, so hiding it hands the bar on either way.
+	const holdsBar =
+		app.focused || frontAppIdOf(ds.System.Manager.Applications) === appId;
 	app.hidden = true;
-	if (app.focused) focusApp(ds, successor);
+	if (holdsBar) focusApp(ds, successor);
 }
 
 /**

@@ -28,21 +28,27 @@ export function appSwitcherAppsFrom(
 	overrides: ClassicyAppIdentityOverrides = CLASSICY_NO_APP_IDENTITY_OVERRIDES,
 	frontAppId?: string,
 ): ClassicyAppSwitcherEntry[] {
-	return Object.values(apps)
-		.filter((a) => (a.open || a.focused) && !a.extension)
-		.map((a) => {
-			const { name, icon } = classicyAppIdentityFrom(overrides, a.id, a);
-			return {
-				id: a.id,
-				name,
-				icon,
-				// With a front app given (`frontAppIdOf`) it alone is focused, so an
-				// extension's window holding focus leaves the title on the app in use.
-				focused: frontAppId === undefined ? a.focused : a.id === frontAppId,
-				open: a.open,
-				...(a.hidden ? { hidden: true } : {}),
-			};
-		});
+	return (
+		Object.values(apps)
+			// An extension is listed only while it is the front application (its
+			// window publishes menus), so the bar can name it.
+			.filter(
+				(a) => (a.open || a.focused) && (!a.extension || a.id === frontAppId),
+			)
+			.map((a) => {
+				const { name, icon } = classicyAppIdentityFrom(overrides, a.id, a);
+				return {
+					id: a.id,
+					name,
+					icon,
+					// With a front app given (`frontAppIdOf`) it alone is focused, so an
+					// extension's window holding focus leaves the title on the app in use.
+					focused: frontAppId === undefined ? a.focused : a.id === frontAppId,
+					open: a.open,
+					...(a.hidden ? { hidden: true } : {}),
+				};
+			})
+	);
 }
 
 /**

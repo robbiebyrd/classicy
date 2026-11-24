@@ -151,14 +151,15 @@ const FrontAppPage: FunctionalComponent = () => {
 
 /** Page 3: the system's equivalents, active whichever application is in front. */
 const SystemPage: FunctionalComponent = () => {
-	const frontId = useFrontAppId();
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const global = useAppManager((s) => s.System.Manager.Keyboard.global);
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
-	// The Help menu's own items, from the one builder both menu bars use.
+	const overrides = useClassicyAppIdentityOverrides();
+	// The standard Help menu's own items, from the one builder both menu bars
+	// use; the front app's help items are not "every application".
 	const { helpItem } = useClassicyStandardHelpMenu({
 		appMenu: undefined,
-		appId: frontId,
+		appId: undefined,
 	});
 	const entries = useMemo(
 		() => [
@@ -166,11 +167,15 @@ const SystemPage: FunctionalComponent = () => {
 			...collectShortcutEntries(helpItem.menuChildren, "Help"),
 			...Object.entries(global).map(([chord, g]) => ({
 				shortcut: g.shortcut ?? chord,
-				title: g.title ?? apps[g.appId]?.name ?? g.appId,
+				title:
+					g.title ??
+					(apps[g.appId]
+						? classicyAppIdentityFrom(overrides, g.appId, apps[g.appId]).name
+						: g.appId),
 				menu: "",
 			})),
 		],
-		[systemMenu, helpItem, global, apps],
+		[systemMenu, helpItem, global, apps, overrides],
 	);
 	return (
 		<>

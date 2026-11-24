@@ -150,7 +150,11 @@ describe("standard Help menu", () => {
 			});
 		});
 		const s = useAppManager.getState().System.Manager;
-		expect(s.Applications.focusedAppId).toBe("AppleGuide.app");
+		// The guide window floats: it is active, the front app keeps the focus.
+		expect(s.Applications.focusedAppId).toBe("Calculator.app");
+		expect(s.Applications.apps["AppleGuide.app"].windows.guide.focused).toBe(
+			true,
+		);
 		expect(s.Desktop.appMenu).toBe(menu);
 		// Calculator's File menu is still in the bar and its chord still claims.
 		expect(screen.getByText("File")).toBeInTheDocument();
@@ -202,5 +206,73 @@ describe("useClassicyStandardHelpMenu merge", () => {
 			(m.helpItem.menuChildren ?? []).find((i) => i.id === "a")
 				?.keyboardShortcut,
 		).toBe("⌥J");
+	});
+});
+
+describe("standard Help menu: merge edge cases through the bar", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("an About inside the app's own Help is hoisted into the Apple menu, not repeated in Help", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": makeApp("Finder.app", { focused: true }),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Finder.app";
+			draft.System.Manager.Desktop.appMenu = [
+				{
+					id: "Finder.app_help",
+					title: "Help",
+					menuChildren: [
+						{ id: "Finder.app_about", title: "About Finder" },
+						{ id: "Finder.app_tip", title: "Finder Tip" },
+					],
+				},
+			];
+		});
+		render(<ClassicyDesktopMenuBar />);
+		fireEvent.click(screen.getByText("Help"));
+		expect(screen.getByText("Finder Tip")).toBeInTheDocument();
+		const helpText = document.querySelector("#help-menu")?.textContent ?? "";
+		expect(helpText).not.toContain("About Finder");
+		// The Apple menu carries it.
+		expect(document.querySelector("#apple-menu")?.textContent ?? "").toContain(
+			"About Finder",
+		);
+	});
+
+	it("the useClassicyHelpMenu slot and an own Help merge together, and a merged chord dispatches", () => {
+		const run = vi.fn();
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": makeApp("Finder.app"),
+				"Weather.app": makeApp("Weather.app", { focused: true }),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Weather.app";
+			draft.System.Manager.Desktop.helpMenu = {
+				"Weather.app": [{ id: "w_slot", title: "Slot Item" }],
+			};
+			draft.System.Manager.Desktop.appMenu = [
+				{
+					id: "w_help",
+					title: "Help",
+					menuChildren: [
+						{
+							id: "w_own",
+							title: "Own Item",
+							keyboardShortcut: "⌥J",
+							onClickFunc: run,
+						},
+					],
+				},
+			];
+		});
+		render(<ClassicyDesktopMenuBar />);
+		fireEvent.click(screen.getByText("Help"));
+		expect(screen.getByText("Slot Item")).toBeInTheDocument();
+		expect(screen.getByText("Own Item")).toBeInTheDocument();
+		fireEvent.keyDown(document, { key: "j", code: "KeyJ", altKey: true });
+		expect(run).toHaveBeenCalledTimes(1);
 	});
 });

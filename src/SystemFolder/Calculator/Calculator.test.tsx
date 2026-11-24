@@ -93,6 +93,65 @@ describe("Calculator", () => {
 		expect(displayText()).toBe("42");
 	});
 
+	// Mac OS: Apple Guide's floating window leaves typing with the active
+	// application's window (HIGOS7 p. 145, floating windows float over the
+	// document windows; the guide has no field of its own to type into).
+	it("keeps taking typed keys while a floating Apple Guide window is open", () => {
+		renderOpen();
+		const apps = () => useAppManager.getState().System.Manager.Applications;
+		const calcWindow = () =>
+			getAppWindow(apps().apps[CALCULATOR_APP_ID], "Calculator_1");
+		expect(calcWindow()?.focused).toBe(true);
+		act(() => {
+			dispatch({
+				type: "ClassicyAppOpen",
+				app: { id: "AppleGuide.app", name: "Apple Guide", icon: "" },
+			});
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Applications: {
+							...s.System.Manager.Applications,
+							apps: {
+								...s.System.Manager.Applications.apps,
+								"AppleGuide.app": {
+									...s.System.Manager.Applications.apps["AppleGuide.app"],
+									extension: true,
+									windows: {
+										guide: {
+											id: "guide",
+											closed: false,
+											size: [10, 10],
+											position: [0, 0],
+											minimumSize: [1, 1],
+											menuBar: [],
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}));
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "AppleGuide.app" },
+				window: { id: "guide", menuBar: [] },
+			});
+		});
+		expect(apps().focusedAppId).toBe(CALCULATOR_APP_ID);
+		expect(calcWindow()?.focused).toBe(true);
+		act(() => {
+			for (const key of ["9", "/", "4", "Enter"]) {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key }));
+			}
+		});
+		expect(displayText()).toBe("2.25");
+	});
+
 	it("takes typed keys while its window is focused", () => {
 		renderOpen();
 		const window = getAppWindow(

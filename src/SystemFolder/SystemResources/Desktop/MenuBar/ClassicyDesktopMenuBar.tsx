@@ -163,8 +163,6 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
 	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
-	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
-	// p.52): a package that registers the art gets it in place of the word.
 	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
 	const frontAppId = useFrontAppId();
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
@@ -207,8 +205,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		const openApps = appSwitcherData.filter((a) => a.open);
 		// The Application menu's commands (HIG7 p.127): each dimmed when it
 		// would do nothing, as 7.5.5 draws them (`*-755-appmenu-open.png`).
-		// The front application: none while an extension holds focus, when
-		// Hide and Hide Others have no app to act on.
+		// The front application (`frontAppIdOf`: a floating extension window
+		// never replaces it); none only when no app is focused, when Hide and
+		// Hide Others have no app to act on.
 		const frontId = focusedApp?.id;
 		const othersShown =
 			frontId !== undefined &&

@@ -84,21 +84,21 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 	// About, Show/Hide Balloons, Keyboard Shortcuts and the app's own help
 	// items, with a "Help" the app publishes folded into it. The app's About
 	// stays in its own menus (no Apple menu to hoist it into).
+	// The About item is retitled first, so one inside the app's own "Help"
+	// menu (Finder's) keeps the display name when the menu is folded in.
+	const titled = useMemo(
+		() =>
+			withClassicyAppIdentityAboutItem(menuItems, appId, appName, overrides) ??
+			[],
+		[menuItems, appId, appName, overrides],
+	);
 	const { helpItem, appMenu } = useClassicyStandardHelpMenu({
-		appMenu: menuItems,
+		appMenu: titled,
 		appId,
 	});
 	const items = useMemo(
-		() => [
-			...(withClassicyAppIdentityAboutItem(
-				appMenu,
-				appId,
-				appName,
-				overrides,
-			) ?? []),
-			helpItem,
-		],
-		[appMenu, helpItem, appId, appName, overrides],
+		() => [...(appMenu ?? []), helpItem],
+		[appMenu, helpItem],
 	);
 	return (
 		<div

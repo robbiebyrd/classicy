@@ -26,6 +26,7 @@ import {
 	setAppWindow,
 	updateAppWindow,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 
 const initialWindowState = {
@@ -253,9 +254,25 @@ export const classicyWindowEventHandler = (
 				closedThisSession: true,
 				focused: false,
 			});
-			// Promote a sibling only when this app holds focus — closing a
-			// background app's window must not steal global focus.
-			if (ds.System.Manager.Applications.focusedAppId !== action.app.id) {
+			// An extension that held focus through a window with menus and has
+			// none left hands focus on to the front application.
+			if (
+				ds.System.Manager.Applications.focusedAppId === action.app.id &&
+				ds.System.Manager.Applications.apps[action.app.id]?.extension ===
+					true &&
+				!listAppWindows(
+					ds.System.Manager.Applications.apps[action.app.id],
+				).some((w) => !w.closed)
+			) {
+				const next = frontAppIdOf(ds.System.Manager.Applications);
+				if (next && next !== action.app.id) focusApp(ds, next);
+				break;
+			}
+			// Promote a sibling only when this app holds the bar — closing a
+			// background app's window must not steal global focus. The front
+			// application, not the raw focus flag, so a floating extension
+			// window holding the flag changes nothing.
+			if (frontAppIdOf(ds.System.Manager.Applications) !== action.app.id) {
 				break;
 			}
 			const nextFocus = mostRecentAppWindow(

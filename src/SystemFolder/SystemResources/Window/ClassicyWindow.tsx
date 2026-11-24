@@ -3,6 +3,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
 import {
@@ -635,6 +636,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	const currentApp = useAppManager(
 		(state) => state.System.Manager.Applications.apps[appId],
 	);
+	// The app holding the bar keeps its windows' layer and its menus' freshness
+	// while a floating extension window (Apple Guide) holds the focus flag.
+	const frontAppId = useFrontAppId();
+	const isFrontApp = !!currentApp?.focused || frontAppId === appId;
 	// #206: double-click-title-to-collapse is a desktop preference (Appearance
 	// checkbox in the HIG), defaulting on. Optional chaining keeps this safe when
 	// the Desktop slice is absent (e.g. isolated unit tests).
@@ -1192,13 +1197,29 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				menuBar: appMenu,
 			});
 		}
-		if (ws.focused) {
+		// The window holding the bar: the focused one, or the front app's last
+		// accessed one while a floating extension window holds the focus flag.
+		const holdsBar =
+			ws.focused ||
+			(frontAppId === appId && currentApp?.lastAccessedWindowId === id);
+		// An extension's window with an empty menu leaves the bar alone.
+		const leavesBar = currentApp?.extension === true && appMenu.length === 0;
+		if (holdsBar && !leavesBar) {
 			desktopEventDispatch({
 				type: "ClassicyWindowMenu",
 				menuBar: appMenu,
 			});
 		}
-	}, [ws.focused, appMenu, appId, id, desktopEventDispatch]);
+	}, [
+		ws.focused,
+		appMenu,
+		appId,
+		id,
+		desktopEventDispatch,
+		frontAppId,
+		currentApp?.lastAccessedWindowId,
+		currentApp?.extension,
+	]);
 
 	// Updated every render so the stable document listeners always see fresh state.
 	docMoveHandlerRef.current = (e: globalThis.MouseEvent) => {
@@ -1495,6 +1516,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	}, [ws.focused, windowType]);
 
 	const front = modal || isActive();
+
 	const appearance = useClassicyAppearance(
 		"Window",
 		{
@@ -2010,9 +2032,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 					? "classicyWindowUtility"
 					: "classicyWindowDocument",
 				appearance.className,
-				currentApp?.focused && !isActive() ? "classicyWindowActiveApp" : "",
+				isFrontApp && !isActive() ? "classicyWindowActiveApp" : "",
 				windowType === "utility"
-					? alwaysOnTop || currentApp?.focused
+					? alwaysOnTop || isFrontApp
 						? "classicyWindowFloating"
 						: "classicyWindowBackgrounded"
 					: "",

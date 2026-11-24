@@ -208,6 +208,27 @@ describe("Keyboard Shortcuts topic", () => {
 		).toBe(true);
 	});
 
+	it("marks a native Select All in a Finder-like Edit menu as the browser's own", () => {
+		setFront("Finder.app", "Finder", [
+			{
+				id: "fe",
+				title: "Edit",
+				menuChildren: [
+					{
+						id: "fsa",
+						title: "Select All",
+						keyboardShortcut: "⌘A",
+						nativeShortcut: true,
+					},
+				],
+			},
+		]);
+		const { container } = render(<>{page(1)}</>);
+		expect(container.textContent).toContain(
+			"Select All (Edit menu), the browser’s own",
+		);
+	});
+
 	it("page 1 explains the editing commands keep the browser's keys", () => {
 		const { container } = render(<>{page(0)}</>);
 		expect(container.textContent).toContain("keep the browser’s own keys");
