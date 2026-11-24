@@ -388,15 +388,29 @@ export function ClassicyTable<T>({
 	const drawnRows = rowWindow
 		? visualRows.slice(rowWindow.start, rowWindow.end)
 		: visualRows;
-	const drawnKey = drawnRows.map((row) => row.id).join("\n");
+	// A windowed table tells `onRowsShown` the rows it draws, when they
+	// change: compared id by id (no joined string), only while windowed and
+	// asked for.
 	const onRowsShownRef = useRef(onRowsShown);
 	onRowsShownRef.current = onRowsShown;
-	const reportedRowsRef = useRef<string | undefined>(undefined);
+	const reportedRowsRef = useRef<readonly string[] | undefined>(undefined);
 	useEffect(() => {
-		if (reportedRowsRef.current === drawnKey) return;
-		reportedRowsRef.current = drawnKey;
-		onRowsShownRef.current?.(drawnKey === "" ? [] : drawnKey.split("\n"));
-	}, [drawnKey]);
+		if (!rowWindow || !onRowsShownRef.current) return;
+		const reported = reportedRowsRef.current;
+		if (
+			reported !== undefined &&
+			reported.length === drawnRows.length &&
+			drawnRows.every((row, i) => row.id === reported[i])
+		) {
+			return;
+		}
+		const ids = drawnRows.map((row) => row.id);
+		reportedRowsRef.current = ids;
+		onRowsShownRef.current(ids);
+	});
+	// Rows numbered for assistive technology when windowed: the header rows
+	// first, then each body row by its place in the whole list.
+	const headerRowCount = table.getHeaderGroups().length;
 
 	// A column resize runs inside TanStack, on its own document listeners,
 	// with no cancel API: a lost pointer stream (blur, pointercancel, a hidden
@@ -679,8 +693,12 @@ export function ClassicyTable<T>({
 
 	// The header row, drawn in the table's own header and, above the list,
 	// in the detached copy too.
-	const headerRows = table.getHeaderGroups().map((headerGroup) => (
-		<tr key={headerGroup.id} className="classicyTableHeaderGroup">
+	const headerRows = table.getHeaderGroups().map((headerGroup, groupIndex) => (
+		<tr
+			key={headerGroup.id}
+			className="classicyTableHeaderGroup"
+			aria-rowindex={rowWindow ? groupIndex + 1 : undefined}
+		>
 			{headerGroup.headers.map((header) => {
 				const isSorted = sorting.length > 0 && header.id === sorting[0].id;
 				return (
@@ -759,7 +777,7 @@ export function ClassicyTable<T>({
 		<table
 			ref={tableRef}
 			className="classicyTable"
-			aria-rowcount={rowWindow ? visualRows.length + 1 : undefined}
+			aria-rowcount={rowWindow ? headerRowCount + visualRows.length : undefined}
 		>
 			<thead
 				className={classNames(
@@ -775,12 +793,13 @@ export function ClassicyTable<T>({
 			</thead>
 			<tbody ref={bodyRef} className="classicyTableContent">
 				{rowWindow && rowWindow.before > 0 && (
+					// biome-ignore lint/a11y/noAriaHiddenOnFocusable: a spacer row holds no content and is never focused: it only keeps the height of rows not drawn
 					<tr
+						aria-hidden="true"
 						className="classicyTableSpacer"
 						style={{ height: rowWindow.before }}
 					>
-						{/* Holds the height of the rows not drawn: nothing to read. */}
-						<td colSpan={columns.length} aria-hidden="true" />
+						<td colSpan={columns.length} />
 					</tr>
 				)}
 				{drawnRows.map((row, drawnIndex) => (
@@ -788,7 +807,9 @@ export function ClassicyTable<T>({
 						key={row.id}
 						data-row-id={row.id}
 						aria-rowindex={
-							rowWindow ? rowWindow.start + drawnIndex + 2 : undefined
+							rowWindow
+								? headerRowCount + rowWindow.start + drawnIndex + 1
+								: undefined
 						}
 						data-selected={effectiveSelected.includes(row.id) || undefined}
 						className={classNames(
@@ -837,12 +858,13 @@ export function ClassicyTable<T>({
 					</tr>
 				))}
 				{rowWindow && rowWindow.after > 0 && (
+					// biome-ignore lint/a11y/noAriaHiddenOnFocusable: a spacer row holds no content and is never focused: it only keeps the height of rows not drawn
 					<tr
+						aria-hidden="true"
 						className="classicyTableSpacer"
 						style={{ height: rowWindow.after }}
 					>
-						{/* Holds the height of the rows not drawn: nothing to read. */}
-						<td colSpan={columns.length} aria-hidden="true" />
+						<td colSpan={columns.length} />
 					</tr>
 				)}
 			</tbody>
