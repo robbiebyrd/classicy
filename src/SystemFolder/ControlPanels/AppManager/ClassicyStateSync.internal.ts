@@ -141,8 +141,9 @@ export interface ClassicyStateReconcileContext {
 	/**
 	 * This computer has work the adapter never took: the user pressed a key
 	 * or the pointer on the page since the desktop was last drawn (loaded, or
-	 * an adopted state) and since the last snapshot this adapter took, or an
-	 * earlier session left such work unsent
+	 * an adopted state), and pressed again since the last snapshot this
+	 * adapter took or the state is no longer that snapshot's; or an earlier
+	 * session left such work unsent
 	 * (`localStorage["classicyDesktopState:unsent"]`). On a `boot` or a
 	 * `retry`, a `replace` is then not adopted unasked: the desktop asks the
 	 * user first, unless the answer is `merged`.
@@ -187,11 +188,13 @@ export interface ClassicyStateAdapterOptions {
  */
 type ChangeKey = { content: string; clockEdits: number };
 
-/** A snapshot, the key it was built under and the user-action count then. */
+/** A snapshot, the key it was built under, the user-action count then, and
+ * its place among the page's builds (each later build holds a later state). */
 type Built = {
 	snapshot: ClassicyStateSnapshot;
 	key: ChangeKey;
 	actions: number;
+	serial: number;
 };
 
 type RegisteredStateAdapter = {
@@ -219,9 +222,17 @@ type RegisteredStateAdapter = {
 	 * drawn is work it lacks.
 	 */
 	cleanMark?: number;
-	/** The user-action count when this page marked its work unsent: a
-	 * snapshot built at or after it clears the mark (review 3, R2). */
-	unsentMark?: number;
+	/**
+	 * The key of that state: a press's change can land after a snapshot
+	 * built while the press was down (on release, after a menu's flash, from
+	 * an async handler), under the same count; it differs from this key
+	 * (review 4, R4a).
+	 */
+	heldKey?: ChangeKey;
+	/** How many snapshots this page had built when it marked the adapter's
+	 * work unsent: only one built after that clears the mark (review 3, H3;
+	 * review 4). */
+	unsentSerial?: number;
 	/** The latest snapshot due while one was under way, and who awaits it. */
 	queued?: Built;
 	waiters: Array<(delivered: boolean) => void>;
@@ -382,6 +393,32 @@ const seqFor = (key: ChangeKey): number => {
 	return seq;
 };
 
+/** The sha256 of a saved state without its clock (`DateAndTime.dateTime`). */
+const contentHashOf = (sanitized: ClassicyStore): string => {
+	const clock = sanitized.System?.Manager?.DateAndTime;
+	return classicySha256Hex(
+		JSON.stringify(
+			sanitized,
+			function (this: unknown, key: string, value: unknown) {
+				return key === "dateTime" && this === clock ? undefined : value;
+			},
+		),
+	);
+};
+
+/** The key of the live state now, with no snapshot built (no `seq`). */
+const currentKey = (): ChangeKey => {
+	const state = useAppManager.getState();
+	observeClock(state);
+	return {
+		content: contentHashOf(sanitizeStateForPersistence(state)),
+		clockEdits,
+	};
+};
+
+/** How many snapshots this page has built. */
+let buildSerial = 0;
+
 /** The snapshot of `state` (the live state by default): sanitized, hashed,
  * keyed and sequenced. */
 const build = (state: ClassicyStore = useAppManager.getState()): Built => {
@@ -389,20 +426,15 @@ const build = (state: ClassicyStore = useAppManager.getState()): Built => {
 	if (live) observeClock(state);
 	const sanitized = sanitizeStateForPersistence(state);
 	const serialized = JSON.stringify(sanitized);
-	const clock = sanitized.System?.Manager?.DateAndTime;
-	const content = JSON.stringify(
-		sanitized,
-		function (this: unknown, key: string, value: unknown) {
-			return key === "dateTime" && this === clock ? undefined : value;
-		},
-	);
 	const key: ChangeKey = {
-		content: classicySha256Hex(content),
+		content: contentHashOf(sanitized),
 		clockEdits: live ? clockEdits : 0,
 	};
+	buildSerial += 1;
 	return {
 		key,
 		actions: actionCount,
+		serial: buildSerial,
 		snapshot: {
 			state: JSON.parse(serialized) as ClassicyStore,
 			hash: classicySha256Hex(serialized),
@@ -573,7 +605,7 @@ const isUnsent = (entry: RegisteredStateAdapter): boolean =>
 const markUnsent = (entry: RegisteredStateAdapter): void => {
 	if (!entry.adapter.onSnapshot || resetting || typeof window === "undefined")
 		return;
-	entry.unsentMark = actionCount;
+	entry.unsentSerial = buildSerial;
 	const ids = readUnsent();
 	if (!ids.includes(entry.adapter.id)) writeUnsent([...ids, entry.adapter.id]);
 };
@@ -581,39 +613,67 @@ const markUnsent = (entry: RegisteredStateAdapter): void => {
 /** `entry` holds this browser's work now (it took it, or its state was
  * adopted). */
 const clearUnsent = (entry: RegisteredStateAdapter): void => {
-	entry.unsentMark = undefined;
+	entry.unsentSerial = undefined;
 	const ids = readUnsent();
 	if (ids.includes(entry.adapter.id)) {
 		writeUnsent(ids.filter((id) => id !== entry.adapter.id));
 	}
 };
 
-/** `entry` took (or already had) the state built at `actions`. */
-const markTaken = (entry: RegisteredStateAdapter, actions: number): void => {
-	entry.cleanMark = Math.max(entry.cleanMark ?? actions, actions);
-	if (actions >= (entry.unsentMark ?? Number.NEGATIVE_INFINITY)) {
+/** `entry` took (or already had) the state `built` holds. */
+const markTaken = (entry: RegisteredStateAdapter, built: Built): void => {
+	entry.cleanMark = Math.max(entry.cleanMark ?? built.actions, built.actions);
+	entry.heldKey = built.key;
+	if (built.serial > (entry.unsentSerial ?? Number.NEGATIVE_INFINITY)) {
 		clearUnsent(entry);
 	}
 };
 
-/** `entry`'s state was adopted: this desktop is its state now. */
-const markAdopted = (entry: RegisteredStateAdapter): void => {
+/** `entry`'s state, under `key`, was adopted: this desktop is its state now. */
+const markAdopted = (entry: RegisteredStateAdapter, key: ChangeKey): void => {
 	entry.cleanMark = actionCount;
+	entry.heldKey = key;
 	clearUnsent(entry);
 };
 
 /**
  * Does this computer hold work `entry` never took? An earlier session's
- * unsent mark, or a trusted press since the desktop was last drawn and since
- * the last state it holds (review 3, R4: never from when it was held, which
- * missed the work done while a failing request ran, nor from its
- * registration, which missed the work done before it).
+ * unsent mark, or, once the user has pressed since the desktop was last
+ * drawn:
+ * - a press since the last state it holds (review 3, R4: never from when it
+ *   was held, which missed the work done while a failing request ran, nor
+ *   from its registration, which missed the work done before it). A press
+ *   counts even when it changes no saved state: typing in an open document,
+ *   say, which a restart onto another state would drop;
+ * - or a state that is not the one it holds (review 4, R4a): a press's change
+ *   lands after it (on release, after a menu's flash, from an async
+ *   handler), so a snapshot built while it was down holds the press but not
+ *   its change. `now` is the live state's key (computed only if needed).
  */
-const userActedFor = (entry: RegisteredStateAdapter): boolean =>
-	isUnsent(entry) ||
-	(drawnMark !== undefined &&
-		actionCount >
-			Math.max(drawnMark, entry.cleanMark ?? Number.NEGATIVE_INFINITY));
+const userActedFor = (
+	entry: RegisteredStateAdapter,
+	now: () => ChangeKey = currentKey,
+): boolean => {
+	if (isUnsent(entry)) return true;
+	if (drawnMark === undefined || actionCount <= drawnMark) return false;
+	if (entry.cleanMark === undefined || actionCount > entry.cleanMark) {
+		return true;
+	}
+	return !sameKey(entry.heldKey, now());
+};
+
+/** `get`, computed once, when first asked. */
+const memoized = <T>(get: () => T): (() => T) => {
+	let done = false;
+	let value: T;
+	return () => {
+		if (!done) {
+			value = get();
+			done = true;
+		}
+		return value;
+	};
+};
 
 // ---------------------------------------------------------------------------
 // Asking the user (review R1)
@@ -661,8 +721,9 @@ export function resolveClassicyStateChoice(choice: "adopt" | "keep"): void {
 	}
 	if (adoptState(state)) {
 		markSynced(entry);
-		markAdopted(entry);
-		entry.sent = build().key;
+		const adopted = build().key;
+		markAdopted(entry, adopted);
+		entry.sent = adopted;
 		return;
 	}
 	classicyLog(
@@ -872,9 +933,9 @@ async function reconcileWithAdapters(
 		}
 		replaced = true;
 		markSynced(entry);
-		markAdopted(entry);
 		// Not sent back what it just handed over (review M6).
 		const adopted = build();
+		markAdopted(entry, adopted.key);
 		entry.sent = adopted.key;
 		local = adopted.snapshot;
 	}
@@ -1016,7 +1077,7 @@ function deliverTo(
 	if (!onSnapshot) return Promise.resolve(true);
 	if (!entry.synced) {
 		entry.held = true;
-		if (userActedFor(entry)) markUnsent(entry);
+		if (userActedFor(entry, () => built.key)) markUnsent(entry);
 		return Promise.resolve(false);
 	}
 	if (entry.inFlight > 0 && !now) {
@@ -1027,7 +1088,7 @@ function deliverTo(
 	if (now) entry.queued = undefined;
 	if (sameKey(entry.sent, built.key)) {
 		// Nothing under way: what it was last sent, it took.
-		if (entry.inFlight === 0) markTaken(entry, built.actions);
+		if (entry.inFlight === 0) markTaken(entry, built);
 		for (const resolve of superseded) resolve(true);
 		return Promise.resolve(true);
 	}
@@ -1041,7 +1102,7 @@ function deliverTo(
 		built.snapshot,
 	).then((delivered) => {
 		if (delivered) {
-			if (isCurrent(entry)) markTaken(entry, built.actions);
+			if (isCurrent(entry)) markTaken(entry, built);
 		} else {
 			// Failed: forget it, so the next change sends again, and keep the
 			// user's work it did not take marked for the next boot.
@@ -1084,6 +1145,12 @@ function deliverDueSnapshot(now = false): void {
 	if (resetting || !hasSnapshotAdapter()) return;
 	if (holdingSnapshots()) {
 		snapshotHeld = true;
+		// Sent once the reconcile settles; if the page goes first, the user's
+		// work in it is marked, so the next boot asks (review 4, R2a).
+		const current = memoized(currentKey);
+		for (const entry of registry.values()) {
+			if (userActedFor(entry, current)) markUnsent(entry);
+		}
 		return;
 	}
 	void deliverSnapshot(build(), now);
@@ -1314,6 +1381,7 @@ export function resetClassicyStateSyncForTests(): void {
 	seq = 0;
 	seqContent = undefined;
 	seqClockEdits = 0;
+	buildSerial = 0;
 	clockValue = undefined;
 	clockOffset = undefined;
 	clockEdits = 0;

@@ -1882,3 +1882,154 @@ describe("two adapters that both answer replace (review 3, N7)", () => {
 		expect(second.reconcile).toHaveBeenCalledTimes(2);
 	});
 });
+
+/** The next page load in this browser: Classicy starts over (the store keeps
+ * what localStorage saved) and the adapter answers `answer`. */
+async function nextBoot(answer: ClassicyStateReconcileResult) {
+	resetClassicyStateSyncForTests();
+	const next = scripted([answer]);
+	await reconcileClassicyState();
+	return next;
+}
+
+describe("review 4: work in the windows round 3 left (R2a, R4a)", () => {
+	it("marks work that comes due while a host's request runs, so a page closed then still asks (G2)", async () => {
+		const { snapshots } = scripted([
+			{ action: "useLocal" },
+			() => new Promise<ClassicyStateReconcileResult>(() => {}),
+		]);
+		await reconcileClassicyState();
+		void reconcileClassicyState();
+		await vi.advanceTimersByTimeAsync(1000);
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(1000);
+		window.dispatchEvent(new Event("pagehide"));
+		expect(
+			snapshots.some(
+				(s) => s.state.System.Manager.Applications.apps["Work.app"],
+			),
+		).toBe(false);
+		expect(unsent()).toEqual(["remote"]);
+		const next = await nextBoot({ action: "replace", state: remoteState() });
+		expect(next.contexts).toEqual([{ reason: "boot", userActed: true }]);
+		expect(appRecord("Work.app")).toBeDefined();
+		expect(systemDialog()).toBe("syncChoice");
+	});
+
+	it("marks work that comes due while a retry runs against a backend that hangs (G2b)", async () => {
+		scripted([
+			new Error("500"),
+			() => new Promise<ClassicyStateReconcileResult>(() => {}),
+		]);
+		await reconcileClassicyState();
+		await vi.advanceTimersByTimeAsync(10_500);
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(2000);
+		window.dispatchEvent(new Event("pagehide"));
+		expect(unsent()).toEqual(["remote"]);
+		const next = await nextBoot({ action: "replace", state: remoteState() });
+		expect(next.contexts).toEqual([{ reason: "boot", userActed: true }]);
+		expect(appRecord("Work.app")).toBeDefined();
+		expect(systemDialog()).toBe("syncChoice");
+	});
+
+	it("marks a change made after its press's snapshot was taken, when its send fails (G1)", async () => {
+		let down = false;
+		const { snapshots } = scripted([{ action: "useLocal" }], {
+			fail: () => down,
+		});
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("X.app");
+		await vi.advanceTimersByTimeAsync(300);
+		// A second press goes down and is held while X's snapshot is built.
+		noteClassicyStateUserAction();
+		await vi.advanceTimersByTimeAsync(250);
+		expect(snapshots).toHaveLength(1);
+		// Released: its change, which the backend never takes.
+		openApp("Y.app");
+		down = true;
+		await vi.advanceTimersByTimeAsync(600);
+		expect(unsent()).toEqual(["remote"]);
+		const next = await nextBoot({ action: "replace", state: remoteState() });
+		expect(next.contexts).toEqual([{ reason: "boot", userActed: true }]);
+		expect(appRecord("Y.app")).toBeDefined();
+		expect(systemDialog()).toBe("syncChoice");
+	});
+
+	it("asks on the retry after a failing request, the change having come after its press's snapshot (G1b)", async () => {
+		const hang = deferred<ClassicyStateReconcileResult>();
+		const { contexts, snapshots } = scripted([
+			{ action: "useLocal" },
+			() => hang.promise,
+			{ action: "replace", state: remoteState() },
+		]);
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("X.app");
+		await vi.advanceTimersByTimeAsync(300);
+		noteClassicyStateUserAction();
+		await vi.advanceTimersByTimeAsync(250);
+		openApp("Y.app");
+		const request = reconcileClassicyState();
+		await vi.advanceTimersByTimeAsync(5100);
+		await request;
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(contexts.map((c) => c.reason)).toEqual(["boot", "request", "retry"]);
+		expect(contexts[2].userActed).toBe(true);
+		expect(appRecord("Y.app")).toBeDefined();
+		expect(themeName()).not.toBe("Remote Theme");
+		expect(systemDialog()).toBe("syncChoice");
+		expect(
+			snapshots.some((s) => s.state.System.Manager.Applications.apps["Y.app"]),
+		).toBe(false);
+	});
+
+	it("tells a request the user acted when the change came after the last snapshot's press", async () => {
+		const { contexts } = scripted([
+			{ action: "useLocal" },
+			{ action: "useLocal" },
+		]);
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("X.app");
+		await vi.advanceTimersByTimeAsync(300);
+		noteClassicyStateUserAction();
+		await vi.advanceTimersByTimeAsync(250);
+		// The held press's change, not yet sent when the host asks.
+		openApp("Y.app");
+		await reconcileClassicyState();
+		expect(contexts[1]).toEqual({ reason: "request", userActed: true });
+	});
+
+	it("is not cleared by a snapshot built before it under the same press", async () => {
+		const landing = deferred<void>();
+		let slow = false;
+		const hang = deferred<ClassicyStateReconcileResult>();
+		let asked = 0;
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: () =>
+				asked++ === 0 ? Promise.resolve({ action: "useLocal" }) : hang.promise,
+			onSnapshot: () => (slow ? landing.promise : undefined),
+		});
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("X.app");
+		await vi.advanceTimersByTimeAsync(300);
+		// A press held while X's snapshot is built and sent, slowly.
+		noteClassicyStateUserAction();
+		slow = true;
+		await vi.advanceTimersByTimeAsync(250);
+		// A host's request holds every snapshot; the press's change comes due.
+		void reconcileClassicyState();
+		openApp("Y.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(unsent()).toEqual(["remote"]);
+		landing.resolve();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(unsent()).toEqual(["remote"]);
+	});
+});
