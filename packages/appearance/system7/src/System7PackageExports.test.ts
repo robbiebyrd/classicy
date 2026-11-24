@@ -40,12 +40,13 @@ describe("the exports", () => {
 					default: "./dist/appearance-system7.es.js",
 				},
 				// Node's require() takes the CommonJS loader of the UMD bundle,
-				// any other resolver the bundle itself; a CommonJS TypeScript
-				// host the .d.cts twins (story 0223-a0y).
+				// any other resolver null (a browser bundle fails at its build,
+				// not when it runs); a CommonJS TypeScript host the .d.cts twins
+				// (story 0223-a0y).
 				require: {
 					types: "./dist/types/index.d.cts",
 					node: "./dist/appearance-system7.umd.cjs",
-					default: "./dist/appearance-system7.umd.js",
+					default: null,
 				},
 			},
 			"./scss/*": "./src/styles/*",

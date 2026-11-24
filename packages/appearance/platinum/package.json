@@ -32,7 +32,7 @@
 			"require": {
 				"types": "./dist/types/index.d.cts",
 				"node": "./dist/appearance-platinum.umd.cjs",
-				"default": "./dist/appearance-platinum.umd.js"
+				"default": null
 			}
 		},
 		"./scss/*": "./src/styles/*",

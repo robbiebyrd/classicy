@@ -82,7 +82,7 @@
 			"require": {
 				"types": "./dist/types/src/index.d.cts",
 				"node": "./dist/classicy.umd.cjs",
-				"default": "./dist/classicy.umd.js"
+				"default": null
 			}
 		},
 		"./dist/classicy.css": "./dist/classicy.css",

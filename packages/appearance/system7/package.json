@@ -32,7 +32,7 @@
 			"require": {
 				"types": "./dist/types/index.d.cts",
 				"node": "./dist/appearance-system7.umd.cjs",
-				"default": "./dist/appearance-system7.umd.js"
+				"default": null
 			}
 		},
 		"./scss/*": "./src/styles/*",
