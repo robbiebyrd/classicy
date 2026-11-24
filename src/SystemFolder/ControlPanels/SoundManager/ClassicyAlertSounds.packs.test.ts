@@ -8,6 +8,7 @@ import {
 	type ClassicySoundActionTypes,
 	type ClassicySoundState,
 	ClassicySoundStateEventReducer,
+	runClassicySoundCommand,
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerUtils";
 import {
 	type ClassicySoundPack,
@@ -167,25 +168,27 @@ const alertAction = (type: string) => ({
 describe("alerts play from the active pack", () => {
 	it("plays the stored alert when the pack has it", () => {
 		const ss = stateFor("system-7", "ClassicyAlertDroplet");
-		ClassicySoundStateEventReducer(ss, alertAction("ClassicyAlertSound"));
+		runClassicySoundCommand(ss, alertAction("ClassicyAlertSound"));
 		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertDroplet");
 	});
 
 	it("plays the pack default when it lacks the stored alert, leaving the stored value", () => {
 		const ss = stateFor("system-7", "ClassicyAlertSosumi");
+		runClassicySoundCommand(ss, alertAction("ClassicySoundPlayError"));
+		expect(ss.soundPlayer?.play).toHaveBeenCalledWith(
+			"ClassicyAlertSimpleBeep",
+		);
+		// The reducer only queues the command: the stored choice stays.
 		const next = ClassicySoundStateEventReducer(
 			ss,
 			alertAction("ClassicySoundPlayError"),
-		);
-		expect(ss.soundPlayer?.play).toHaveBeenCalledWith(
-			"ClassicyAlertSimpleBeep",
 		);
 		expect(next.alertSound).toBe("ClassicyAlertSosumi");
 	});
 
 	it("switching back to the pack that has the stored alert plays it again", () => {
 		const ss = stateFor("platinum", "ClassicyAlertSosumi");
-		ClassicySoundStateEventReducer(ss, alertAction("ClassicyAlertSound"));
+		runClassicySoundCommand(ss, alertAction("ClassicyAlertSound"));
 		expect(ss.soundPlayer?.play).toHaveBeenCalledWith("ClassicyAlertSosumi");
 	});
 
@@ -193,7 +196,7 @@ describe("alerts play from the active pack", () => {
 		registerClassicySoundPack({ ...system7, id: "quiet", alerts: [] });
 		const ss = stateFor("quiet", "ClassicyAlertQuack");
 		expect(() =>
-			ClassicySoundStateEventReducer(ss, alertAction("ClassicyAlertSound")),
+			runClassicySoundCommand(ss, alertAction("ClassicyAlertSound")),
 		).not.toThrow();
 		expect(ss.soundPlayer?.play).not.toHaveBeenCalled();
 	});
