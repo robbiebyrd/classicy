@@ -79,7 +79,8 @@ export interface ClassicyMenuItem {
 	 * A mark drawn in the item's mark column when it is not checked:
 	 * `"diamond"` (◆), the Notification Manager's mark beside an application
 	 * asking for attention (Inside Macintosh: Processes, p. 5-4), drawn by the
-	 * package. A check (`checked: true`) or dash wins over it.
+	 * package; the item's `aria-description` says "Requests your attention".
+	 * A check (`checked: true`) or dash wins over it.
 	 */
 	mark?: "diamond";
 	/** Icon drawn before the title. */
@@ -726,6 +727,8 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 	// it the state would reach assistive technology only through the look.
 	// ARIA 1.2 allows "mixed" on menuitemcheckbox, not on menuitemradio.
 	const checkable = menuItem.checked !== undefined;
+	// The ◆ is package CSS in the same aria-hidden gutter: say what it means.
+	const diamond = menuItem.mark === "diamond" && !menuItem.checked;
 
 	// ClassicyMenu renders dividers itself, so every item here is a real one.
 	const li = (
@@ -740,6 +743,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 						: menuItem.checked === true
 					: undefined
 			}
+			aria-description={diamond ? "Requests your attention" : undefined}
 			tabIndex={-1}
 			ref={itemRef}
 			id={menuItem.id}
@@ -800,9 +804,7 @@ const ClassicyMenuItemComponent: FunctionalComponent<{
 								checked: menuItem.checked === true,
 								mixed: menuItem.checked === "mixed",
 							}),
-							menuItem.mark === "diamond" &&
-								!menuItem.checked &&
-								"classicyMenuItemDiamond",
+							diamond && "classicyMenuItemDiamond",
 						)}
 						aria-hidden={"true"}
 					/>

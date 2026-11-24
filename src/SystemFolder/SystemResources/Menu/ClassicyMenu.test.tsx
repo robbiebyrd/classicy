@@ -272,10 +272,18 @@ describe("ClassicyMenu", () => {
 		expect(gutter("both")).toHaveClass("checked");
 		expect(gutter("both")).not.toHaveClass("classicyMenuItemDiamond");
 		expect(gutter("plain")).not.toHaveClass("classicyMenuItemDiamond");
-		// A mark alone keeps the item a plain menuitem.
+		// A mark alone keeps the item a plain menuitem, described for
+		// assistive technology (the glyph itself is aria-hidden).
 		expect(container.querySelector("#marked")).toHaveAttribute(
 			"role",
 			"menuitem",
+		);
+		expect(container.querySelector("#marked")).toHaveAttribute(
+			"aria-description",
+			"Requests your attention",
+		);
+		expect(container.querySelector("#both")).not.toHaveAttribute(
+			"aria-description",
 		);
 	});
 

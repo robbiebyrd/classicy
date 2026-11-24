@@ -1639,7 +1639,9 @@ The ◆ is `ClassicyMenuItem.mark: "diamond"`: the item's mark column carries
 `classicyMenuItemDiamond` beside `classicyMenuItemCheck`, unless the item is
 checked, and the package draws it (Platinum: `"\25C6"` as `::before`
 content, like its check; System 7: Chicago 12's 7 × 7 diamond from Figure
-5-1's bitmap as pixel art, its top on the check's).
+5-1's bitmap as pixel art, its top on the check's). The glyph sits in the
+`aria-hidden` mark column, so the item carries `aria-description="Requests
+your attention"`.
 
 **HyperCard stacks may not post notifications** (story 0225-ci7's ruling):
 there is no scriptable action for it. HyperTalk had no Notification Manager
