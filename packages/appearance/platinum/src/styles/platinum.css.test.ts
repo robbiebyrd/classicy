@@ -1,5 +1,6 @@
 import { existsSync, globSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { PNG } from "pngjs";
 import { compile, compileString, NodePackageImporter } from "sass";
 import { describe, expect, it } from "vitest";
 import { isSingleClassicyLayerBlock } from "../../../../../bin/classicyPackageCss";
@@ -486,19 +487,20 @@ describe("platinum.scss (compiled)", () => {
 		expect(rule(`${P} .classicyMenuItemCheck`).props.display).toBe("block");
 	});
 
-	// Story 0225-ci7, fix round 2: the checkbox's check is the Appearance
-	// Manager's own bitmap, as HIGOS8 Figure 2-8 (1997, p.28,
-	// resources/Apple_HIGOS8_1997_Guidelines.pdf) prints it and Mac OS 8.1
-	// draws it (resources/screenshots/mac-os-8.1/platinum-81-finder-
-	// preferences.png). The figure's boxes, row by row (its inline images 9
-	// to 14, in gray levels): the art is every pixel where a checked box
-	// differs from the unchecked box of the same state, the columns past the
-	// box (12 and 13, page white elsewhere) included, one pixel up and left
-	// (the art's origin is the box's inner corner).
-	describe("the checkbox's check", () => {
+	// Story 0225-ci7, fix rounds 2 and 3: Platinum's checkbox is HIGOS8
+	// Figure 2-8 (1997, p.28, resources/Apple_HIGOS8_1997_Guidelines.pdf),
+	// pixel for pixel, as Mac OS 8.1 draws it (resources/screenshots/
+	// mac-os-8.1/platinum-81-finder-preferences.png): the box at rest,
+	// pressed and dimmed, and its check, mixed dash and X. The figure's
+	// boxes, row by row in gray levels (its inline images 9 to 19, decoded
+	// from the page's content stream). A mark is every pixel where a marked
+	// box differs from the empty box of the same state, the columns past the
+	// box (page white elsewhere) included, one pixel up and left: the art's
+	// origin is the box's inner corner.
+	describe("the checkbox, as Figure 2-8 draws it", () => {
 		const FIGURE_2_8 = {
 			// Inline image 9.
-			unchecked: [
+			empty: [
 				"000000000000000000000000",
 				"00FFFFFFFFFFFFFFFFFFDD00",
 				"00FFDDDDDDDDDDDDDDDD8800",
@@ -511,6 +513,36 @@ describe("platinum.scss (compiled)", () => {
 				"00FFDDDDDDDDDDDDDDDD8800",
 				"00DD88888888888888888800",
 				"000000000000000000000000",
+			],
+			// Inline image 10.
+			emptyPressed: [
+				"000000000000000000000000",
+				"005555555555555555557700",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"007799999999999999999900",
+				"000000000000000000000000",
+			],
+			// Inline image 11.
+			emptyDimmed: [
+				"888888888888888888888888",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"888888888888888888888888",
 			],
 			// Inline image 13.
 			checked: [
@@ -527,21 +559,6 @@ describe("platinum.scss (compiled)", () => {
 				"00DD88888888888888888800FFFF",
 				"000000000000000000000000FFFF",
 			],
-			// Inline image 10.
-			uncheckedPressed: [
-				"000000000000000000000000",
-				"005555555555555555557700",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"005577777777777777779900",
-				"007799999999999999999900",
-				"000000000000000000000000",
-			],
 			// Inline image 12.
 			checkedPressed: [
 				"000000000000000000000000FFFF",
@@ -556,21 +573,6 @@ describe("platinum.scss (compiled)", () => {
 				"005577777744557777779900FFFF",
 				"007799999999999999999900FFFF",
 				"000000000000000000000000FFFF",
-			],
-			// Inline image 11.
-			uncheckedDimmed: [
-				"888888888888888888888888",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"88DDDDDDDDDDDDDDDDDDDD88",
-				"888888888888888888888888",
 			],
 			// Inline image 14.
 			checkedDimmed: [
@@ -587,13 +589,88 @@ describe("platinum.scss (compiled)", () => {
 				"88DDDDDDDDDDDDDDDDDDDD88FF",
 				"888888888888888888888888FF",
 			],
+			// Inline image 16.
+			mixed: [
+				"000000000000000000000000",
+				"00FFFFFFFFFFFFFFFFFFDD00",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDD000000000000AA8800",
+				"00FFDD000000000000AA8800",
+				"00FFDDDDAAAAAAAAAAAA8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00FFDDDDDDDDDDDDDDDD8800",
+				"00DD88888888888888888800",
+				"000000000000000000000000",
+			],
+			// Inline image 15.
+			mixedPressed: [
+				"000000000000000000000000",
+				"005555555555555555557700",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"005577000000000000559900",
+				"005577000000000000559900",
+				"005577775555555555559900",
+				"005577777777777777779900",
+				"005577777777777777779900",
+				"007799999999999999999900",
+				"000000000000000000000000",
+			],
+			// Inline image 17.
+			mixedDimmed: [
+				"888888888888888888888888",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDD888888888888DDDD88",
+				"88DDDD888888888888DDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"88DDDDDDDDDDDDDDDDDDDD88",
+				"888888888888888888888888",
+			],
+			// Inline image 19.
+			x: [
+				"000000000000000000000000",
+				"00FFFFFFFFFFFFFFFFFFDD00",
+				"00FFDD00DDDDDDDD00DD8800",
+				"00FFDD0000DDDD0000778800",
+				"00FFDDDD0000000077AA8800",
+				"00FFDDDDDD000077AADD8800",
+				"00FFDDDD00000000DDDD8800",
+				"00FFDD000077AA0000DD8800",
+				"00FFDD0077AADDDD00778800",
+				"00FFDDDDAADDDDDDDDAA8800",
+				"00DD88888888888888888800",
+				"000000000000000000000000",
+			],
+			// Inline image 18.
+			xPressed: [
+				"000000000000000000000000",
+				"005555555555555555557700",
+				"005577007777777700779900",
+				"005577000077770000449900",
+				"005577770000000044559900",
+				"005577777700004455779900",
+				"005577770000000077779900",
+				"005577000044550000779900",
+				"005577004455777700449900",
+				"005577775577777777559900",
+				"007799999999999999999900",
+				"000000000000000000000000",
+			],
 		};
 		const ROWS = (rows: string[]) => rows.map((row) => row.match(/../g) ?? []);
-		// The art the figure implies: `checked` over `unchecked`, past the
-		// box only where the figure is not page white.
-		const expected = (checked: string[], unchecked: string[]) => {
-			const on = ROWS(checked);
-			const off = ROWS(unchecked);
+		// The mark the figure implies: `marked` over `empty`, past the box
+		// only where the figure is not page white.
+		const expected = (marked: string[], empty: string[]) => {
+			const on = ROWS(marked);
+			const off = ROWS(empty);
 			const art = new Map<string, string>();
 			for (const [y, row] of on.entries())
 				for (const [x, level] of row.entries()) {
@@ -603,29 +680,37 @@ describe("platinum.scss (compiled)", () => {
 				}
 			return art;
 		};
-		// The ramp step each figure level is, as `_marks.scss` reads it.
+		// The token each figure level is drawn in.
 		const INK: Record<string, string> = {
 			"00": "var(--color-black)",
+			FF: "var(--color-white)",
+			DD: "var(--color-system-02)",
 			"44": "var(--package-color-gray-ramp-step4, var(--color-system-06))",
 			"55": "var(--package-color-gray-ramp-step5, var(--color-system-06))",
 			"77": "var(--package-color-gray-ramp-step7, var(--color-system-05))",
 			"88": "var(--package-color-gray-ramp-step8, var(--color-system-05))",
+			"99": "var(--package-color-gray-ramp-step9, var(--color-system-04))",
 			AA: "var(--package-color-gray-ramp-step-a, var(--color-system-04))",
 		};
 		const grid = (n: string) => {
 			if (n === "0") return 0;
-			if (n === "var(--menu-mark-pixel)") return 1;
-			const m = n.match(/^calc\(var\(--menu-mark-pixel\) \* (\d+)\)$/);
+			if (n === "var(--checkbox-pixel)") return 1;
+			const m = n.match(/^calc\(var\(--checkbox-pixel\) \* (\d+)\)$/);
 			if (!m) throw new Error(`not a grid length: ${n}`);
 			return Number(m[1]);
 		};
-		// The layers' pixels, by ink: `linear-gradient(ink, ink) x y / w h`.
-		const pixels = (background: string) => {
+		// A background's pixel layers, by ink (`linear-gradient(ink, ink) x
+		// y / w h no-repeat`), and the color under them, if any.
+		const decode = (background: string) => {
 			const art = new Map<string, string>();
+			let color: string | undefined;
 			for (const layer of background.split(" no-repeat")) {
 				const text = layer.replace(/^,\s*/, "");
 				if (!text) continue;
-				expect(text.startsWith("linear-gradient(")).toBe(true);
+				if (!text.startsWith("linear-gradient(")) {
+					color = text;
+					continue;
+				}
 				let depth = 0;
 				let close = -1;
 				for (let i = "linear-gradient".length; i < text.length; i++) {
@@ -651,52 +736,207 @@ describe("platinum.scss (compiled)", () => {
 						art.set(key, ink);
 					}
 			}
-			return art;
+			return { art, color };
 		};
 		const asInks = (art: Map<string, string>) =>
 			new Map([...art].map(([key, level]) => [key, INK[level]]));
-		const CHECK = `${P} .classicyCheckbox:checked:not(.mixed):not(.classicyCheckboxX)`;
+		// The 12 x 12 box a rule draws: its frame, then the padding box's
+		// layers over its face color.
+		const box = (frame: string, background: string) => {
+			const { art, color } = decode(background);
+			const rows: string[][] = [];
+			for (let y = 0; y < 12; y++) {
+				const row: string[] = [];
+				for (let x = 0; x < 12; x++)
+					row.push(
+						x === 0 || y === 0 || x === 11 || y === 11
+							? frame
+							: (art.get(`${x - 1},${y - 1}`) ?? String(color)),
+					);
+				rows.push(row);
+			}
+			return rows;
+		};
+		const figureBox = (rows: string[], frame: string) =>
+			ROWS(rows).map((row, y) =>
+				row
+					.slice(0, 12)
+					.map((level, x) =>
+						x === 0 || y === 0 || x === 11 || y === 11 ? frame : INK[level],
+					),
+			);
+		// Mac OS 8.1 draws the figure's boxes: Finder Preferences' "Simple
+		// Finder" (empty) and "Spring-loaded folders" (checked), at rest and
+		// held down by their labels, read back through the emulator's display
+		// colors (resources/README.md), equal the figure's, the window face
+		// (#DDDDDD) where the figure's page is white.
+		it("is what Mac OS 8.1 draws, at rest and pressed", () => {
+			const SHOTS = path.resolve(
+				PLATINUM_SRC,
+				"../resources/screenshots/mac-os-8.1",
+			);
+			// The emulator's gray for each of the figure's.
+			const DISPLAY = new Map<number, string>([
+				[0x00, "00"],
+				[0xff, "FF"],
+				[0xe7, "DD"],
+				[0xa5, "88"],
+				[0xc0, "AA"],
+				[0xb3, "99"],
+				[0x96, "77"],
+				[0x77, "55"],
+				[0x66, "44"],
+			]);
+			const capture = (file: string, x0: number, y0: number, w: number) => {
+				const png = PNG.sync.read(readFileSync(path.join(SHOTS, file)));
+				const rows: string[] = [];
+				for (let y = y0; y < y0 + 12; y++) {
+					let row = "";
+					for (let x = x0; x < x0 + w; x++)
+						row += DISPLAY.get(png.data[(y * png.width + x) * 4]) ?? "??";
+					rows.push(row);
+				}
+				return rows;
+			};
+			const onFace = (rows: string[], w: number) =>
+				rows.map((row) =>
+					row
+						.padEnd(w * 2, "F")
+						.replace(/(..)/g, (pair, _p, at: number) =>
+							at >= 24 && pair === "FF" ? "DD" : pair,
+						),
+				);
+			const cases: [string, number, string[], number][] = [
+				["platinum-81-finder-preferences.png", 84, FIGURE_2_8.empty, 12],
+				["platinum-81-finder-preferences.png", 128, FIGURE_2_8.checked, 14],
+				[
+					"platinum-81-finder-preferences-pressed-empty.png",
+					84,
+					FIGURE_2_8.emptyPressed,
+					12,
+				],
+				[
+					"platinum-81-finder-preferences-pressed-checked.png",
+					128,
+					FIGURE_2_8.checkedPressed,
+					14,
+				],
+			];
+			for (const [file, y, figure, w] of cases)
+				expect(capture(file, 154, y, w), `${file} ${y}`).toEqual(
+					onFace(figure, w),
+				);
+		});
 
-		it("draws Figure 2-8's checked box, past the box's right side", () => {
-			const { props } = rule(`${CHECK}::after`);
+		const CB = `${P} .classicyCheckbox`;
+		const FRAME = "var(--color-window-border)";
+		const DIMMED_FRAME = INK["88"];
+
+		it("draws the empty box at rest, pressed and dimmed, with no shadow outside it", () => {
+			const rest = rule(CB).props;
+			expect(rest.border).toBe(
+				"var(--window-border-size) solid var(--color-window-border)",
+			);
+			expect(rest["box-shadow"]).toBeUndefined();
+			expect(rest["border-radius"]).toBe("0");
+			expect(FIGURE_2_8.empty[0]).toBe("00".repeat(12));
+			expect(box(FRAME, rest.background)).toEqual(
+				figureBox(FIGURE_2_8.empty, FRAME),
+			);
+			expect(box(FRAME, rule(`${CB}:active`).props.background)).toEqual(
+				figureBox(FIGURE_2_8.emptyPressed, FRAME),
+			);
+			const dimmed = rule(`${CB}:disabled, ${CB}:disabled:active`).props;
+			expect(dimmed["border-color"]).toBe(DIMMED_FRAME);
+			expect(FIGURE_2_8.emptyDimmed[0]).toBe("88".repeat(12));
+			expect(box(DIMMED_FRAME, dimmed.background)).toEqual(
+				figureBox(FIGURE_2_8.emptyDimmed, DIMMED_FRAME),
+			);
+			// No package rule anywhere gives the box a shadow.
+			expect(flat).not.toMatch(/\.classicyCheckbox[^{]*\{[^}]*box-shadow/);
+		});
+
+		const MARKS = `${CB}:checked::after, ${CB}.mixed::after`;
+		const CHECK = `${CB}:checked:not(.mixed):not(.classicyCheckboxX)`;
+		const X = `${CB}.classicyCheckboxX:checked:not(.mixed)`;
+		const MIXED = `${CB}.mixed`;
+		const art = (selector: string) =>
+			decode(rule(selector).props.background).art;
+
+		it("places every mark in one box from the inner corner, past the box's right side", () => {
+			const { props } = rule(MARKS);
 			expect(props.content).toBe('""');
 			expect(props.display).toBe("block");
-			expect(props.width).toBe("calc(var(--menu-mark-pixel) * 13)");
-			expect(props.height).toBe("calc(var(--menu-mark-pixel) * 9)");
-			const want = expected(FIGURE_2_8.checked, FIGURE_2_8.unchecked);
-			expect(want.size).toBe(34);
-			expect(pixels(props.background)).toEqual(asInks(want));
+			expect(props.width).toBe("calc(var(--checkbox-pixel) * 13)");
+			expect(props.height).toBe("calc(var(--checkbox-pixel) * 9)");
 		});
 
-		it("draws the pressed and dimmed checks as the figure does", () => {
-			expect(pixels(rule(`${CHECK}:active::after`).props.background)).toEqual(
-				asInks(
-					expected(FIGURE_2_8.checkedPressed, FIGURE_2_8.uncheckedPressed),
+		it("draws the check at rest, pressed and dimmed", () => {
+			const rest = expected(FIGURE_2_8.checked, FIGURE_2_8.empty);
+			expect(rest.size).toBe(34);
+			expect(art(`${CHECK}::after`)).toEqual(asInks(rest));
+			expect(art(`${CHECK}:active::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.checkedPressed, FIGURE_2_8.emptyPressed)),
+			);
+			expect(art(`${CHECK}:disabled::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.checkedDimmed, FIGURE_2_8.emptyDimmed)),
+			);
+		});
+
+		it("draws the mixed dash at rest, pressed and dimmed", () => {
+			expect(art(`${MIXED}::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.mixed, FIGURE_2_8.empty)),
+			);
+			expect(art(`${MIXED}:active::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.mixedPressed, FIGURE_2_8.emptyPressed)),
+			);
+			expect(art(`${MIXED}:disabled::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.mixedDimmed, FIGURE_2_8.emptyDimmed)),
+			);
+		});
+
+		// The figure prints its dimmed X only at another size (14 x 15), and
+		// draws every dimmed mark it prints at the box's size as the mark's
+		// black pixels alone, in #888888: so is the dimmed X.
+		it("draws the X at rest and pressed, and dimmed by the figure's rule", () => {
+			const rest = expected(FIGURE_2_8.x, FIGURE_2_8.empty);
+			expect(art(`${X}::after`)).toEqual(asInks(rest));
+			expect(art(`${X}:active::after`)).toEqual(
+				asInks(expected(FIGURE_2_8.xPressed, FIGURE_2_8.emptyPressed)),
+			);
+			const blackIn88 = (marked: Map<string, string>) =>
+				new Map(
+					[...marked]
+						.filter(([, level]) => level === "00")
+						.map(([key]) => [key, "88"]),
+				);
+			for (const [marked, dimmed] of [
+				[FIGURE_2_8.checked, FIGURE_2_8.checkedDimmed],
+				[FIGURE_2_8.mixed, FIGURE_2_8.mixedDimmed],
+			])
+				expect(expected(dimmed, FIGURE_2_8.emptyDimmed)).toEqual(
+					blackIn88(expected(marked, FIGURE_2_8.empty)),
+				);
+			expect(art(`${X}:disabled::after`)).toEqual(asInks(blackIn88(rest)));
+		});
+
+		// HIGOS8 p.66: keyboard focus, and its ring, belong to the edit text
+		// fields and lists that take keystrokes; a click on a checkbox shows
+		// nothing. The browser's keyboard focus gets a ring clear of the
+		// check's two columns past the box.
+		it("shows no focus ring for a click, and keeps the check clear of the keyboard's", () => {
+			expect(flat).not.toContain(`\n${CB}:focus {`);
+			const ring = rule(`${CB}:focus-visible`).props;
+			expect(ring.outline).toBe(
+				"var(--color-outline) solid var(--control-frame-width)",
+			);
+			expect(ring["outline-offset"]).toBe("calc(var(--checkbox-pixel) * 2)");
+			const overhang = Math.max(
+				...[...expected(FIGURE_2_8.checked, FIGURE_2_8.empty).keys()].map(
+					(key) => Number(key.split(",")[0]) + 1,
 				),
 			);
-			expect(pixels(rule(`${CHECK}:disabled::after`).props.background)).toEqual(
-				asInks(expected(FIGURE_2_8.checkedDimmed, FIGURE_2_8.uncheckedDimmed)),
-			);
-			// Dimmed, only the black pixels, in #888888: the shading goes.
-			const black = [
-				...expected(FIGURE_2_8.checked, FIGURE_2_8.unchecked),
-			].filter(([, level]) => level === "00");
-			expect([
-				...expected(
-					FIGURE_2_8.checkedDimmed,
-					FIGURE_2_8.uncheckedDimmed,
-				).keys(),
-			]).toEqual(black.map(([key]) => key));
-		});
-
-		it("leaves the X and the mixed dash their glyphs", () => {
-			expect(
-				rule(`${P} .classicyCheckbox.classicyCheckboxX:checked:after`).props
-					.content,
-			).toBe('"\\00D7"');
-			const mixed = rule(`${P} .classicyCheckbox.mixed:after`).props;
-			expect(mixed.content).toBe('"-"');
-			expect(mixed.background).toBeUndefined();
+			expect(overhang - 11).toBe(2);
 		});
 	});
 
@@ -1097,6 +1337,8 @@ describe("platinum.scss (compiled)", () => {
 			"--package-color-gray-ramp-step6": "--color-system-05",
 			"--package-color-gray-ramp-step7": "--color-system-05",
 			"--package-color-gray-ramp-step8": "--color-system-05",
+			// The checkbox's pressed shadow (story 0225-ci7, fix round 3).
+			"--package-color-gray-ramp-step9": "--color-system-04",
 			"--package-color-gray-ramp-step-a": "--color-system-04",
 			"--package-color-gray-ramp-step-b": "--color-system-03",
 			"--package-color-gray-ramp-step-d": "--color-system-02",
@@ -2118,22 +2360,26 @@ describe("platinum.scss (compiled)", () => {
 			);
 		});
 
+		// Story 0225-ci7, fix round 3: the box is Figure 2-8's (its pixels
+		// are tested above); its state rules still follow the base rule.
 		it("scopes the checkbox border and keeps its pressed, disabled and default overrides after it (P13)", () => {
 			expect(rules(".classicyCheckbox").props.border).toBe(BORDER);
+			const ramp8 =
+				"var(--package-color-gray-ramp-step8, var(--color-system-05))";
 			winsOver(
 				".classicyCheckbox:active",
 				".classicyCheckbox",
-				"box-shadow",
-				"none",
+				"background",
+				rules(".classicyCheckbox:active").props.background,
 			);
 			const disabled =
 				".classicyCheckbox:disabled, .classicyCheckbox:disabled:active";
-			winsOver(disabled, ".classicyCheckbox", "box-shadow", "none");
+			winsOver(disabled, ".classicyCheckbox", "border-color", ramp8);
 			winsOver(
 				disabled,
-				".classicyCheckbox",
-				"border",
-				"var(--window-border-size) solid var(--color-system-06)",
+				".classicyCheckbox:active",
+				"background",
+				"var(--color-system-02)",
 			);
 			winsOver(
 				".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
@@ -2145,7 +2391,7 @@ describe("platinum.scss (compiled)", () => {
 				".classicyCheckbox.default:disabled",
 				".classicyCheckbox.default:checked, .classicyCheckbox.default:active",
 				"border-color",
-				"var(--color-system-06)",
+				ramp8,
 			);
 		});
 

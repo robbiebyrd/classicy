@@ -1,31 +1,74 @@
-// The Platinum checkbox look (from ClassicyCheckbox.scss): the face, the
-// beveled box border, the checkmark (a bitmap) and the dash and X glyphs,
-// then the pressed, disabled, focus and default overrides, in their
-// original order. The size, margin and holder stay in the base sheet.
-@use "sass:string";
+// The Platinum checkbox look (from ClassicyCheckbox.scss), pixel for pixel
+// from HIGOS8 Figure 2-8 (1997, p.28), which Mac OS 8.1 draws the same
+// (resources/screenshots/mac-os-8.1/platinum-81-finder-preferences.png:
+// "Spring-loaded folders" empty and checked, through the emulator's display
+// colors): the box, at rest, pressed and dimmed, and its marks (the check,
+// the mixed dash and the localization X; `_marks.scss`). The size, margin
+// and holder stay in the base sheet.
+//
+// - At rest: a black frame, a white highlight along the top and left and a
+//   #888888 shadow along the right and bottom inside it, the two corners
+//   where they meet in the face's #DDDDDD, and the face. No shadow outside.
+// - Pressed: the face #777777, the highlight #555555 and the shadow #999999.
+// - Dimmed: a #888888 frame around the face alone.
+//
+// Every pixel is art on the checkbox's grid (`checkbox.pixel`), from the
+// padding box's corner; the grays are the gray ramp, each with the core
+// token nearest it for a theme of another package.
+@use "sass:list";
 @use "../marks";
-@use "../mixins";
 
-// A glyph mark (the localization X, the mixed dash), centered in the box.
-@mixin glyph-mark {
-  font-family: var(--ui-font), sans-serif;
-  font-size: var(--ui-font-size);
-  line-height: var(--ui-font-size-caption);
-  display: flex;
-  justify-content: center;
-  text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
+// The bevel: the highlight's top row and left column, the shadow's right
+// column and bottom row, in the padding box (10 x 10), its corners left to
+// the face.
+$highlight: (0 0 9 1) (0 1 1 8);
+$shadow: (9 1 1 9) (1 9 8 1);
+
+// The bevel's layers over the face's color.
+@function bevel($light, $dark, $face) {
+  $layers: list.join(
+    marks.pixel-art($light, $highlight, checkbox),
+    marks.pixel-art($dark, $shadow, checkbox),
+    $separator: comma
+  );
+  @return list.append($layers, $face, $separator: comma);
 }
 
 @mixin checkbox {
   .classicyCheckbox {
+    border: var(--window-border-size) solid var(--color-window-border);
     border-radius: 0;
-    background: var(--color-system-03);
+    background: bevel(var(--color-white), marks.ramp("8"), var(--color-system-02));
 
-    // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard on-state
-    // mark (the "X" is only a localization opt-in, see .classicyCheckboxX),
-    // drawn as the Appearance Manager's own bitmap (Figure 2-8; Mac OS 8.1,
-    // `_marks.scss`), pressed and dimmed as the figure draws them.
-    // The X and the mixed dash keep their glyphs (below).
+    &:active {
+      background: bevel(marks.ramp("5"), marks.ramp("9"), marks.ramp("7"));
+    }
+
+    &:disabled,
+    &:disabled:active {
+      border-color: marks.ramp("8");
+      background: var(--color-system-02);
+    }
+
+    // Mac OS 8 gives a checkbox no keyboard focus (HIGOS8 p.66: the focus
+    // ring marks the edit text field or list that takes keystrokes), so a
+    // click shows nothing. The browser's keyboard focus does reach it: that
+    // ring is the theme's outline color, drawn clear of the box by the
+    // check's overhang (two grid pixels past the box's right side), so the
+    // whole mark stays in view.
+    &:focus-visible {
+      outline: var(--color-outline) solid var(--control-frame-width);
+      outline-offset: marks.px(2, checkbox);
+    }
+
+    // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard
+    // on-state mark (the X is only a localization opt-in, below). The mixed
+    // state shows its dash whether or not it is also checked.
+    &:checked::after,
+    &.mixed::after {
+      @include marks.checkbox-mark-box;
+    }
+
     &:checked:not(.mixed):not(.classicyCheckboxX) {
       &::after {
         @include marks.checkbox-check;
@@ -40,39 +83,40 @@
       }
     }
 
-    &:disabled:checked {
-      color: var(--color-system-05);
+    // Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the
+    // checkmark is not culturally acceptable, the familiar "X" may be used
+    // instead; Figure 2-8 draws it too.
+    &.classicyCheckboxX:checked:not(.mixed) {
+      &::after {
+        @include marks.checkbox-x;
+      }
+
+      &:active::after {
+        @include marks.checkbox-x-pressed;
+      }
+
+      &:disabled::after {
+        @include marks.checkbox-x-dimmed;
+      }
     }
 
-    &:active {
-      background: var(--color-system-06);
-    }
+    &.mixed {
+      &::after {
+        @include marks.checkbox-dash;
+      }
 
-    &:focus {
-      border-radius: var(--window-border-size);
-      outline: var(--color-outline) solid var(--control-frame-width);
-    }
+      &:active::after {
+        @include marks.checkbox-dash-pressed;
+      }
 
-    &:disabled,
-    &:disabled:active {
-      background: transparent;
-    }
-
-    @include mixins.platinum-window-border;
-
-    &:active {
-      box-shadow: none;
-    }
-
-    &:disabled,
-    &:disabled:active {
-      border: var(--window-border-size) solid var(--color-system-06);
-      box-shadow: none;
+      &:disabled::after {
+        @include marks.checkbox-dash-dimmed;
+      }
     }
   }
 
   // `isDefault` emphasizes the box with the theme accent while it is on or
-  // pressed; a disabled default box keeps the disabled border.
+  // pressed; a dimmed default box keeps the dimmed frame.
   .classicyCheckbox.default {
     &:checked,
     &:active {
@@ -80,25 +124,7 @@
     }
 
     &:disabled {
-      border-color: var(--color-system-06);
+      border-color: marks.ramp("8");
     }
-  }
-
-  // Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the checkmark
-  // is not culturally acceptable, the familiar "X" may be used instead.
-  .classicyCheckbox.classicyCheckboxX {
-    &:checked:after {
-      @include glyph-mark;
-      font-size: var(--checkbox-x-mark-font-size);
-      line-height: var(--checkbox-x-mark-line-height);
-      content: string.unquote('"\\00D7"');
-    }
-  }
-
-  // The mixed state is a distinct third state: it shows its dash whether or
-  // not it is also checked.
-  .classicyCheckbox.mixed:after {
-    @include glyph-mark;
-    content: '-';
   }
 }

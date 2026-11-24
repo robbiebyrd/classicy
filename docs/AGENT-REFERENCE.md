@@ -3258,12 +3258,22 @@ pixel art in `currentColor` (`_marks.scss`, the grid knob
 Charcoal has neither glyph, so a font glyph fell back to whatever font the
 browser found), on the title's baseline at the mark column's left edge
 (a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). The
-checkbox's check is not Charcoal's but the Appearance Manager's own
-shaded bitmap, black with #555555, #777777 and #AAAAAA (the gray ramp,
-each with its core fallback), drawn from the box's inner corner over a
-13 × 9 area that reaches two pixels past the box's right side, on the same
-grid, pressed and dimmed as HIGOS8 Figure 2-8 (p.28) draws them; the X
-and the mixed dash keep their glyphs. The Mac OS 8.1 captures are
+checkbox is HIGOS8 Figure 2-8 (p.28) pixel for pixel, as Mac OS 8.1
+draws it (`_Checkbox.scss`, `_marks.scss`, on its own grid knob
+`checkbox.pixel`): the box (a black frame; inside it a white top and left
+edge and a #888888 right and bottom edge, the two corners where they meet
+in the #DDDDDD face; no shadow outside; pressed, a #777777 face between
+#555555 and #999999 edges; dimmed, a #888888 frame around the face alone)
+and its marks, the Appearance Manager's own shaded bitmaps, not a font's:
+the check (drawn from the box's inner corner over a 13 × 9 area that
+reaches two pixels past the box's right side), the mixed dash and the X
+(`mark="x"`), each at rest, pressed and dimmed as the figure draws them
+(the figure prints its dimmed X only at another size; the dimmed X follows
+its rule for the check and the dash, the black pixels alone in #888888).
+The grays are the gray ramp, each with its core fallback. A click shows
+no focus ring, as Mac OS 8 gives a checkbox no keyboard focus (HIGOS8
+p.66); the browser's keyboard focus (`:focus-visible`) draws the theme's
+outline two grid pixels out, clear of the check. The Mac OS 8.1 captures are
 committed in `packages/appearance/platinum/resources/screenshots/mac-os-8.1/` (never
 published): `platinum-81-appmenu-notification.png`,
 `platinum-81-finder-view-menu.png`, `platinum-81-popup-font.png` and
@@ -4842,9 +4852,9 @@ change), the way it declares measurement families. They are additive, 3.5.
   registers). Its slider reads them (the channel's #222222 border and
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
   it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays;
-  so does its checkbox check (Fig. 2-8's #444444, #555555, #777777,
-  #888888 and #AAAAAA, the new steps 5 and 7 falling back to
-  `--color-system-06` and `-05`). **System 7** declares
+  so does its checkbox (Fig. 2-8's #444444, #555555, #777777, #888888,
+  #999999 and #AAAAAA, the new steps 5, 7 and 9 falling back to
+  `--color-system-06`, `-05` and `-04`). **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
@@ -4886,7 +4896,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 24 families of its own (106 keys)
+**Package knob families.** Platinum adds 25 families of its own (107 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4901,7 +4911,7 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 18 families are emitted and editable in
+  groups under Platinum. The other 19 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
@@ -4911,7 +4921,7 @@ literals.
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 86 of the 106 are
+  overriding the knob's value, never the base CSS. 87 of the 107 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
   table, so the floor and the column cannot drift). Two of the rest are
   the optional `fileBrowserList` knobs (below). The other 18 are
@@ -5109,7 +5119,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
 | `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
-| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond, and the checkbox's check; on the floor so a theme of another package drawn under Platinum keeps its marks) |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
@@ -5120,6 +5130,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
 | `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
 | `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
+| `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _Checkbox.scss, _marks.scss (the grid of the checkbox's bevel, check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
 | `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 
@@ -5307,8 +5318,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
-| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | _Checkbox.scss |
-| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | _Checkbox.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | none: deprecated, still emitted for a host stylesheet that reads it (Platinum draws Figure 2-8's X since story 0225-ci7) |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | none: deprecated, as above |
 | `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
 | `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
 | `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |
@@ -5749,7 +5760,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 44 sites over 12 files, the sites kept on purpose
+the list ends at these 45 sites over 12 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -5784,10 +5795,11 @@ the list ends at these 44 sites over 12 files, the sites kept on purpose
   quarter turn swings it about its center, so its margin is the knobs' sum
   or difference halved; Firefox centers the box, so its translation is half
   the box's overhang of the channel), geometry, not a role (H-R21).
-- Platinum's `_marks.scss`, the one `menu-mark-pixel × n` in its `px()`
-  helper: Charcoal 12's menu check and diamond and the Appearance
-  Manager's checkbox check, pixel for pixel from Mac OS 8.1 and HIGOS8
-  Figure 2-8 (story 0225-ci7), one-pixel rectangles on the art's grid inside
+- Platinum's `_marks.scss`, the `menu-mark-pixel × n` and the
+  `checkbox-pixel × n` in its `px()` helper: Charcoal 12's menu check and
+  diamond from Mac OS 8.1, and the checkbox's bevel, check, mixed dash and
+  X from HIGOS8 Figure 2-8 (story 0225-ci7), one-pixel rectangles on each
+  art's grid inside
   `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks

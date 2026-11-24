@@ -10,29 +10,42 @@
 // Preferences' "Font for views" pop-up (`platinum-81-popup-font.png`). In
 // all three the mark's left column is the frame's fourth pixel and its
 // bottom row the title's baseline, the check 9 x 8, the diamond 7 x 7.
-// One grid pixel is `menu.markPixel` (1); the multiplier allowlist names
-// this file's one site, the `px()` helper. The captures are committed in
+// One grid pixel is `menu.markPixel` (1). The captures are committed in
 // `packages/appearance/platinum/resources/screenshots/mac-os-8.1/`.
 //
-// The checkbox's check is not a font's either: Mac OS 8.1's Appearance
-// Manager draws its own bitmap over the box, shaded, its stroke reaching two
-// pixels past the box's right side (`platinum-81-finder-preferences.png`,
-// "Spring-loaded folders"). HIGOS8 Figure 2-8 (1997, p.28) prints the same
-// bitmap with the pressed and dimmed states; the capture's colors are the
+// The checkbox's marks are not a font's either: Mac OS 8.1's Appearance
+// Manager draws its own shaded bitmaps over the box, the check's stroke
+// reaching two pixels past the box's right side
+// (`platinum-81-finder-preferences.png`, "Spring-loaded folders"). HIGOS8
+// Figure 2-8 (1997, p.28) prints the same check, with the mixed dash and
+// the X, at rest, pressed and dimmed; the capture's colors are the
 // figure's through the emulator's display (E7 for DD, A5 for 88, C0 for AA,
 // 96 for 77, 77 for 55), so the inks are the figure's, HIGOS8's gray ramp
 // (`grayRamp`, with the core token nearest each as the fallback for a theme
-// of another package). Drawn on the same grid as the menu marks.
+// of another package). They, and the box's bevel (_Checkbox.scss), are
+// drawn on the checkbox's own grid, `checkbox.pixel` (1). The multiplier
+// allowlist names this file's two sites, one per grid, in `px()`.
 @use "sass:list";
 @use "sass:map";
 @use "pkg:@classicy/classicy/scss/layout";
 
+// The grids: the menu marks' (`menu.markPixel`) and the checkbox's
+// (`checkbox.pixel`, its bevel and its marks).
 $px: var(--menu-mark-pixel);
+$checkbox-px: var(--checkbox-pixel);
 
-// A length of `$n` grid pixels.
-@function px($n) {
+// A length of `$n` pixels of a grid: `menu` (the menu marks') or
+// `checkbox`. Each grid's one multiplier site is here (the allowlist names
+// both).
+@function px($n, $grid: menu) {
   @if $n == 0 {
     @return 0;
+  }
+  @if $grid == checkbox {
+    @if $n == 1 {
+      @return $checkbox-px;
+    }
+    @return calc(#{$checkbox-px} * #{$n});
   }
   @if $n == 1 {
     @return $px;
@@ -40,9 +53,9 @@ $px: var(--menu-mark-pixel);
   @return calc(#{$px} * #{$n});
 }
 
-// One `classicy-px-rect` layer per `(x y w h)` in grid pixels (a bare
+// One `classicy-px-rect` layer per `(x y w h)` in pixels of `$grid` (a bare
 // `(x y)` is one pixel), inked in `$ink`, from the box's top left.
-@function pixel-art($ink, $rects) {
+@function pixel-art($ink, $rects, $grid: menu) {
   $layers: ();
   @each $rect in $rects {
     $w: 1;
@@ -53,7 +66,13 @@ $px: var(--menu-mark-pixel);
     }
     $layers: list.append(
       $layers,
-      layout.classicy-px-rect($ink, px(list.nth($rect, 1)), px(list.nth($rect, 2)), px($w), px($h)),
+      layout.classicy-px-rect(
+        $ink,
+        px(list.nth($rect, 1), $grid),
+        px(list.nth($rect, 2), $grid),
+        px($w, $grid),
+        px($h, $grid)
+      ),
       $separator: comma
     );
   }
@@ -85,60 +104,108 @@ $diamond: (3 0) (2 1 3 1) (1 2 5 1) (0 3 7 1) (1 4 5 1) (2 5 3 1) (3 6);
   @include mark($diamond, 7, 7);
 }
 
-// ── The checkbox's check ────────────────────────────────────────────────────
-// HIGOS8 Figure 2-8's checked boxes (12 x 12, the frame the box's border),
-// the stroke reaching to column 13: only the pixels the check changes, by
-// ink, in the figure's coordinates less one, so the art's origin is the
-// box's inner corner, inside its one-pixel frame (where the pseudo-element
-// sits). Normal (the figure's and the capture's): black, with #555555,
-// #777777 and #AAAAAA shading. Pressed: the same black, the shading darker
-// (#444444, #555555, #777777), as the figure's pressed box draws it.
-// Dimmed: the black pixels alone, in #888888.
-$checkbox-black: (11 0) (9 1) (8 2 2 1) (7 3 2 1) (1 4 2 1) (6 4 2 1) (2 5 2 1) (5 5 2 1) (3 6 3 1) (4 7);
-$checkbox-55: ((9 3),); // one pixel: a one-element list
-$checkbox-77: (11 1) (8 4 2 1) (7 5) (6 6) (5 7) (4 8);
-$checkbox-aa: (12 1) (11 2) (8 5) (2 6) (7 6) (3 7) (6 7) (5 8);
-$checkbox-pressed-44: (9 3) (8 4) (7 5) (6 6) (5 7) (4 8);
-$checkbox-pressed-55: (11 1) (9 4) (8 5) (2 6) (7 6) (3 7) (6 7) (5 8);
-$checkbox-pressed-77: (12 1) (11 2);
+// ── The checkbox's marks ────────────────────────────────────────────────────
+// HIGOS8 Figure 2-8's checkboxes (1997, p.28; 12 x 12, the frame the box's
+// border): the check, the mixed state's dash and the localization X, each
+// at rest, pressed and dimmed, as the figure prints them. Each mark is the
+// pixels where the figure's marked box differs from its empty box of the
+// same state (the check reaching two pixels past the box's right side), by
+// ink, in the figure's coordinates less one: the art's origin is the box's
+// inner corner, inside its one-pixel frame, where the pseudo-element sits.
+// The figure's dimmed check and dash keep their black pixels alone, in
+// #888888; its dimmed X is printed only at another size (14 x 15), with the
+// same rule, so the dimmed X is the X's black pixels in #888888.
+$check-black: (11 0) (9 1) (8 2 2 1) (7 3 2 1) (1 4 2 1) (6 4 2 1) (2 5 2 1) (5 5 2 1) (3 6 3 1) (4 7);
+$check-55: ((9 3),); // one pixel: a one-element list
+$check-77: (11 1) (8 4 2 1) (7 5) (6 6) (5 7) (4 8);
+$check-aa: (12 1) (11 2) (8 5) (2 6) (7 6) (3 7) (6 7) (5 8);
+$check-pressed-44: (9 3) (8 4) (7 5) (6 6) (5 7) (4 8);
+$check-pressed-55: (11 1) (9 4) (8 5) (2 6) (7 6) (3 7) (6 7) (5 8);
+$check-pressed-77: (12 1) (11 2);
+$dash-black: ((2 4 6 2),);
+$dash-shade: (8 4 1 2) (3 6 6 1);
+$x-black: (2 1) (7 1) (2 2 2 1) (6 2 2 1) (3 3 4 1) (4 4 2 1) (3 5 4 1) (2 6 2 1) (6 6 2 1) (2 7) (7 7);
+$x-77: (8 2) (7 3) (6 4) (4 6) (3 7) (8 7);
+$x-aa: (8 3) (7 4) (5 6) (4 7) (3 8) (8 8);
 
-// The ramp steps the check reads, each with the core token nearest it, for
-// a theme of another package (which emits no ramp).
-$checkbox-fallbacks: (
+// The ramp steps the marks and the box read, each with the core token
+// nearest it, for a theme of another package (which emits no ramp).
+$ramp-fallbacks: (
   "--package-color-gray-ramp-step4": "--color-system-06",
   "--package-color-gray-ramp-step5": "--color-system-06",
   "--package-color-gray-ramp-step7": "--color-system-05",
   "--package-color-gray-ramp-step8": "--color-system-05",
+  "--package-color-gray-ramp-step9": "--color-system-04",
   "--package-color-gray-ramp-step-a": "--color-system-04",
 );
 
 @function ramp($step) {
   $name: "--package-color-gray-ramp-step#{$step}";
-  @return var(#{$name}, var(#{map.get($checkbox-fallbacks, $name)}));
+  @return var(#{$name}, var(#{map.get($ramp-fallbacks, $name)}));
 }
 
-// The check's box: 13 x 9 grid pixels from the inner corner, overflowing
-// the box's right side by two.
-@mixin checkbox-check {
+$black: var(--color-black);
+
+// A layer per rect list, each `(ink rects)`, on the checkbox's grid.
+@function checkbox-art($inks...) {
+  $layers: ();
+  @each $ink, $rects in $inks {
+    $layers: list.join($layers, pixel-art($ink, $rects, checkbox), $separator: comma);
+  }
+  @return $layers;
+}
+
+// The mark's box: 13 x 9 grid pixels from the inner corner (the check's
+// extent, two pixels past the box's right side).
+@mixin checkbox-mark-box {
   content: "";
   display: block;
-  width: px(13);
-  height: px(9);
-  background:
-    pixel-art(var(--color-black), $checkbox-black),
-    pixel-art(ramp("5"), $checkbox-55),
-    pixel-art(ramp("7"), $checkbox-77),
-    pixel-art(ramp("-a"), $checkbox-aa);
+  width: px(13, checkbox);
+  height: px(9, checkbox);
+}
+
+@mixin checkbox-check {
+  background: checkbox-art(
+    ($black, $check-black),
+    (ramp("5"), $check-55),
+    (ramp("7"), $check-77),
+    (ramp("-a"), $check-aa)
+  );
 }
 
 @mixin checkbox-check-pressed {
-  background:
-    pixel-art(var(--color-black), $checkbox-black),
-    pixel-art(ramp("4"), $checkbox-pressed-44),
-    pixel-art(ramp("5"), $checkbox-pressed-55),
-    pixel-art(ramp("7"), $checkbox-pressed-77);
+  background: checkbox-art(
+    ($black, $check-black),
+    (ramp("4"), $check-pressed-44),
+    (ramp("5"), $check-pressed-55),
+    (ramp("7"), $check-pressed-77)
+  );
 }
 
 @mixin checkbox-check-dimmed {
-  background: pixel-art(ramp("8"), $checkbox-black);
+  background: checkbox-art((ramp("8"), $check-black));
+}
+
+@mixin checkbox-dash {
+  background: checkbox-art(($black, $dash-black), (ramp("-a"), $dash-shade));
+}
+
+@mixin checkbox-dash-pressed {
+  background: checkbox-art(($black, $dash-black), (ramp("5"), $dash-shade));
+}
+
+@mixin checkbox-dash-dimmed {
+  background: checkbox-art((ramp("8"), $dash-black));
+}
+
+@mixin checkbox-x {
+  background: checkbox-art(($black, $x-black), (ramp("7"), $x-77), (ramp("-a"), $x-aa));
+}
+
+@mixin checkbox-x-pressed {
+  background: checkbox-art(($black, $x-black), (ramp("4"), $x-77), (ramp("5"), $x-aa));
+}
+
+@mixin checkbox-x-dimmed {
+  background: checkbox-art((ramp("8"), $x-black));
 }

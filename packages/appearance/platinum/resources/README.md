@@ -10,8 +10,8 @@ captured from the emulator's own framebuffer with
 0225-ci7). They are the references for Platinum's menu marks and checkbox
 check (`src/styles/_marks.scss`) and for the Notification Manager's menu
 bar (`docs/AGENT-REFERENCE.md` §4.11). The emulator shows #DDDDDD as
-#E7E7E7, #888888 as #A5A5A5, #AAAAAA as #C0C0C0, #777777 as #969696 and
-#555555 as #777777.
+#E7E7E7, #888888 as #A5A5A5, #AAAAAA as #C0C0C0, #999999 as #B3B3B3,
+#777777 as #969696, #555555 as #777777 and #444444 as #666666.
 
 | File | Shows |
 | --- | --- |
@@ -21,4 +21,6 @@ bar (`docs/AGENT-REFERENCE.md` §4.11). The emulator shows #DDDDDD as
 | `platinum-81-blink-filemenu-open-sheet.png` | Twelve crops of the Application title with the Finder's File menu open, at six phases (rows), twice each (columns): the blink frozen on the frame it showed |
 | `platinum-81-finder-view-menu.png` | The Finder's View menu: the check in a text-only menu |
 | `platinum-81-popup-font.png` | Finder Preferences' "Font for views" pop-up, open: the check in a pop-up menu |
-| `platinum-81-finder-preferences.png` | Finder Preferences: "Spring-loaded folders" checked, the Appearance Manager's checkbox check (the box at 154,128; HIGOS8 Figure 2-8's checked box, pixel for pixel) |
+| `platinum-81-finder-preferences.png` | Finder Preferences: "Simple Finder" empty (the box at 154,84) and "Spring-loaded folders" checked (154,128), the Appearance Manager's checkbox and check, each HIGOS8 Figure 2-8's box pixel for pixel |
+| `platinum-81-finder-preferences-pressed-empty.png` | The same, the mouse held down on "Simple Finder"'s label (so the pointer is off the box): the pressed empty box, Figure 2-8's pixel for pixel (#999999 shows as #B3B3B3, #444444 as #666666) |
+| `platinum-81-finder-preferences-pressed-checked.png` | The mouse held down on "Spring-loaded folders"' label: the pressed checked box, Figure 2-8's pixel for pixel, the check reaching past the box |

@@ -79,8 +79,10 @@ import themeVarsBaseline from "./ClassicyAppearance.themeVars.baseline.json";
 // drawn from HIGOS8 Figure 2-17, made 23 families and 103 keys; the list
 // view's HIGOS8 Figure 2-24 icon size and row padding, the optional
 // fileBrowserList family, made 24 families and 105 keys; story 0225-ci7's
-// menu.markPixel, the grid of Charcoal's menu marks, made 106).
-const PLATINUM_KNOB_COUNT = 106;
+// menu.markPixel, the grid of Charcoal's menu marks, made 106, and its
+// checkbox.pixel, the grid of the checkbox's Figure 2-8 art, made 25
+// families and 107 keys).
+const PLATINUM_KNOB_COUNT = 107;
 
 describe("getAllThemes", () => {
 	it("returns an array", () => {

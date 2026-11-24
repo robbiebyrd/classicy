@@ -242,6 +242,9 @@
 				"tickWidth": 3,
 				"tickHeight": 8
 			},
+			"checkbox": {
+				"pixel": 1
+			},
 			"dither": {
 				"tileSize": 0
 			}

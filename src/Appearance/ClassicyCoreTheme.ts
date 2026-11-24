@@ -155,6 +155,10 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		menu: { popUpMaxHeight: 300, markPixel: 1 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
+		// `pixel`: the grid of Platinum's checkbox art, its bevel and its
+		// marks (_Checkbox.scss, _marks.scss), on the floor for the same
+		// reason (story 0225-ci7, fix round 3).
+		checkbox: { pixel: 1 },
 		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.
 		dither: { tileSize: 0 },
 	});
