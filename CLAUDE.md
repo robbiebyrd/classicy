@@ -661,13 +661,15 @@ a document launch holds the windows mounting with it to that rule
 (`launchedFor`, `mayClassicyWindowReopen`; never a modal or utility window),
 and its end (`ClassicyApp`'s `ClassicyAppLaunchSettled`, `settleAppLaunch`;
 session state) fails open, reopening the mounted windows when none of the
-app's opened. `closeApp` (Quit) empties `data.openFiles` and runs the app's
+app's held windows opened (dialogs and palettes do not count). `closeApp` (Quit) empties `data.openFiles` and runs the app's
 quit handler (`ClassicyAppQuitHandlers.internal.ts`: Web Viewer's pages,
 HyperCard's stacks); on relaunch the viewers show their sample again; PDF
 Viewer asks for a document and quits whenever it has none. `ClassicyAppClose`
 quits at once; `requestClassicyAppQuit(appId)` (`ClassicyAppQuit.ts`) runs the
 app's quit guard first (`registerClassicyAppQuitGuard`; SimpleText's and
-HyperCard's File > Quit use it). SimpleText asks before closing or quitting
+HyperCard's File > Quit use it); it never rejects (a guard that throws is a
+logged refusal), and a guard must always settle (one that never does holds
+its own app's requests only, until it is replaced or unregistered). SimpleText asks before closing or quitting
 with unsaved text (Mac OS 8.1's box: Don’t Save, Cancel, Save, in a movable
 modal dialog's frame, `ClassicyAlert`'s `dialogBox`), and registers a
 `beforeunload` handler while text is unsaved. A host names a document window

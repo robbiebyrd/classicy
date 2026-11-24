@@ -427,7 +427,7 @@ All optional, and all accepted by `Classicy` too:
 | `defaultState` | `DeepPartial<ClassicyStore>` | — | Initial store overrides; applied ONCE, and only when nothing was hydrated from localStorage |
 | `defaultFileSystem` | `ClassicyFileSystemTree` | — | Seed file system tree |
 | `defaultFileSystemMode` | `"merge" \| "exclusive"` | `"merge"` | How the seed combines with stored state |
-| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents, while the provider is mounted; with two providers on one page, which share one store, the first mounted that is still mounted wins) |
+| `fileSystemStorageKey` | `string` | `"classicyStorage"` | The `localStorage` key the desktop's file system is kept under: the Finder's, every built-in app's and Recent Items', and that of every `useClassicyFileSystem()` / `useClassicyFileSystemAccessor()` called without a key of its own (published to reducers store-free, for Recent Documents, while the provider is mounted: on commit, before any child's effects, never by a render that does not commit; with two providers on one page, which share one store, the first mounted that is still mounted wins) |
 | `defaultFileSystemSeedMigrations` | `ClassicyFileSystemSeedMigration[]` | — | Corrections applied to a **returning** visitor's persisted tree (see `ClassicyFileSystemSeedMigrations.ts`), after the core's own `DefaultFSSeedMigrations` (skipped in `"exclusive"` mode). Without an `id` an op runs every boot, kept harmless by its guards (`ifData`, or `ifUrl` on `delete`); with one it runs once per storage key, recorded in `localStorage["<key>:seedMigrations"]`, and a fresh seed records it unrun. Give every `add` an id, or a deleted entry returns on the next boot |
 | `disableSimpleText`, `disablePDFViewer`, `disableMoviePlayer`, `disablePictureViewer`, `disableHyperCard`, `disableWebViewer`, `disableCalculator` | `boolean` | `false` | Turn off individual built-in apps. `ClassicyDesktop` also clears what a disabled app saved earlier (Apple-menu entry, icon record, open record; `classicyDisabledDefaultAppCleanup`, `ClassicyDisabledDefaultApps.ts`) unless the app is mounted anyway |
 | `defaultMuted` | `boolean` | `false` | Boot with sound off (first mount only; not persisted) |
@@ -636,9 +636,16 @@ menu-item helpers `quitAppHelper`, `quitMenuItemHelper`,
 (and `quitAppHelper`'s action) quits at once and discards whatever the app
 has not saved. To quit the way an app's own File > Quit does, asking first,
 call `requestClassicyAppQuit(appId)`: it runs the app's quit guard and
-dispatches `ClassicyAppClose` only when the guard resolves `true` (resolves
-whether the app quit; a second request while one is asking joins it). An app
-with unsaved work registers its guard from an effect,
+dispatches `ClassicyAppClose` only when the guard resolves `true`. It resolves
+whether the app quit and never rejects: a guard that throws or rejects is a
+refusal (the app keeps running) and is logged through `classicyLog`
+(`ClassicyAppQuit`, `error`). A second request for the same app while one is
+asking joins it, but only while the guard it waits on is still the app's;
+requests for other apps never wait on it. **A guard must always settle**
+(resolve once the user answers, or at once with nothing to ask): one that
+never does holds every later request for its app until it is replaced or
+unregistered, which releases the app, so the next request asks afresh. An
+app with unsaved work registers its guard from an effect,
 `registerClassicyAppQuitGuard(appId, () => boolean | Promise<boolean>)`
 (returns the unregister), and points its Quit item at
 `requestClassicyAppQuit` (`{ ...quitMenuItemHelper(…), onClickFunc }`).
@@ -6215,11 +6222,12 @@ untitled window only.
   a quit, or on a first launch, a document open shows only that document and
   its dialogs and palettes, never a main window or one the user closed.
   `ClassicyApp` ends the launch once those windows have registered
-  (`ClassicyAppLaunchSettled`, `settleAppLaunch`). If no window of the app
-  opened (the launch named none the app draws: a host showing its documents
-  in a window of its own), the end **fails open**: every mounted window
+  (`ClassicyAppLaunchSettled`, `settleAppLaunch`). If none of the windows
+  the hold applies to opened (the launch named none the app draws: a host
+  showing its documents in a window of its own; a dialog or palette that
+  opened does not count), the end **fails open**: every mounted window
   reopens, as on a plain launch, so the app is never left in front with
-  nothing on screen. The end also fronts the window the app last had in
+  nothing on screen but a palette. The end also fronts the window the app last had in
   front when none is. `launching` and `launchedFor` are session state,
   stripped on save.
 - `closeApp` (Quit) closes the app's windows and its documents: it empties
@@ -6260,7 +6268,9 @@ untitled window only.
   registers a `beforeunload` handler while any document is unsaved), and a
   `ClassicyAppClose` dispatched from code, which quits at once and discards
   unsaved text (a host that wants the alert calls
-  `requestClassicyAppQuit("SimpleText.app")`).
+  `requestClassicyAppQuit("SimpleText.app")`); one dispatched while the
+  alert is up answers it Cancel and removes it (a request waiting on it
+  resolves `false`), so it never reappears beside a relaunched SimpleText.
 
 **The window-id convention** (a host app's document windows). The kernel
 names a document's window `` `${appId}_file_${path}` ``. `ClassicyApp` draws
