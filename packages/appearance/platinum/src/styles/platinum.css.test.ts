@@ -298,7 +298,7 @@ describe("platinum.scss (compiled)", () => {
 		expect(window_.border).toBeDefined();
 		expect(window_["box-shadow"]).toBeDefined();
 		expect(flat).toContain(
-			`${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
+			`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter {`,
 		);
 		expect(
 			rule(`${P} .classicyWindow .classicyWindowResizer`).props[
@@ -313,9 +313,11 @@ describe("platinum.scss (compiled)", () => {
 	// HIGOS8 p.60, figure 3-3: a (non-movable) modal dialog box has no title
 	// bar, the drag affordance of a movable one (p.59), and shows its items
 	// on one placard-like face inside the window's frame. The fixed alert
-	// (`classicyWindowRed`) keeps its red bar, unchanged.
-	it("draws a fixed modal that is not an alert as figure 3-3: no title bar, one face", () => {
-		const fixed = `${P} .classicyWindow.classicyWindowModalFixed:not(.classicyWindowRed)`;
+	// (`classicyWindowRed`) has none either (p.62, figure 3-5, and Mac OS
+	// 8.1's Finder alerts; story 0236-2f8): its contents draw the alert's red
+	// rings instead of the face's bevel (alertFrame.css.test.ts).
+	it("draws a fixed modal as figure 3-3: no title bar, one face", () => {
+		const fixed = `${P} .classicyWindow.classicyWindowModalFixed`;
 		expect(rule(`${fixed} > .classicyWindowTitleBar`).props).toEqual({
 			display: "none",
 		});
@@ -348,10 +350,11 @@ describe("platinum.scss (compiled)", () => {
 		expect(matched(dom.ownContents)).not.toEqual([]);
 		expect(matched(dom.nestedBar)).toEqual([]);
 		expect(matched(dom.nestedContents)).toEqual([]);
-		// No rule hides the fixed alert's (red) title bar.
-		expect(flat).not.toMatch(
-			/classicyWindowModalFixed(?!:not\(\.classicyWindowRed\))[^{,]*classicyWindowTitleBar/,
-		);
+		// The fixed alert's title bar goes with every other fixed modal's.
+		expect(flat).not.toMatch(/classicyWindowModalFixed:not\(/);
+		const alertBar = nestedWindowInFixedModal("platinum").ownBar;
+		alertBar.closest(".classicyWindow")?.classList.add("classicyWindowRed");
+		expect(matched(alertBar)).toEqual([`${fixed} > .classicyWindowTitleBar`]);
 	});
 
 	// Part E 2.2: the submenu triangle (ruling E24) and the pop-up double
@@ -1199,16 +1202,12 @@ describe("platinum.scss (compiled)", () => {
 				rule(`${P} ${loser}`).at,
 			);
 		};
-		// P1: the error border color, and P2: the dotted drag/resize outline.
-		winsOver(
-			".classicyWindow.classicyWindowRed",
-			".classicyWindowRed",
-			"border-color",
-			"var(--color-error)",
-		);
+		// P2: the dotted drag/resize outline. (P1, the error border color, is
+		// gone: the fixed alert's border is black, as Mac OS 8.1 draws it,
+		// HIGOS8 p.62, Figure 3-5; story 0236-2f8.)
 		winsOver(
 			":where(.classicyWindow).dragging",
-			".classicyWindow.classicyWindowRed",
+			".classicyWindow",
 			"box-shadow",
 			"none",
 		);
@@ -1295,12 +1294,14 @@ describe("platinum.scss (compiled)", () => {
 			group(active, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
 		);
 		expect(activeSides.props["background-size"]).toBe("auto 100%");
-		const red = `${P} .classicyWindowRed .classicyWindowTitleBar .classicyWindowTitle`;
+		// The movable alert's red side bands outrank the active ones, (0,7,0)
+		// against (0,6,0), though they come first, and their shorthand resets
+		// the size to auto. (The fixed alert, a red window, has no title bar
+		// under Platinum, so no stripes: story 0236-2f8.)
+		const red = `${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle`;
 		expect(
 			rule(`${red} .classicyWindowTitleCenter`).props["background-size"],
 		).toBe("auto 100%");
-		// The red side bands follow the active ones, and their shorthand resets
-		// the size to auto.
 		const redSides = rule(
 			group(red, ".classicyWindowTitleLeft", ".classicyWindowTitleRight"),
 		);
@@ -1308,12 +1309,14 @@ describe("platinum.scss (compiled)", () => {
 			"var(--classicy-art-window-stripes-red)",
 		);
 		expect(redSides.props["background-size"]).toBeUndefined();
-		expect(redSides.at).toBeGreaterThan(activeSides.at);
-		expect(
-			rule(
-				`${P} .classicyWindow.classicyAlertMovableWindow .classicyWindowTitleBar .classicyWindowTitle .classicyWindowTitleCenter`,
-			).props["background-size"],
-		).toBe("auto 100%");
+		for (const band of [
+			".classicyWindowTitleLeft",
+			".classicyWindowTitleRight",
+		])
+			expect(specificity(`${red} ${band}`), band).toEqual([0, 7, 0]);
+		expect(flat).not.toContain(
+			`${P} .classicyWindowRed .classicyWindowTitleBar`,
+		);
 		expect(
 			rule(
 				group(

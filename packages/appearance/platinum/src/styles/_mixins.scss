@@ -279,13 +279,19 @@
 // image, and no stack of masks, two or four layers or one per row, blends
 // them the same (up to 21 levels off in Chromium, 25 in Firefox). A package
 // recolors the stripes by registering recolored art.
-@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null) {
+// `$ground`, when given, is the bands' color under the art, for art whose
+// rows leave it clear (the movable alert's red stripes, `_Alert.scss`).
+@mixin platinum-title-bar-stripes($tone: "", $center-size: null, $side-size: null, $ground: null) {
   .classicyWindowTitleBar .classicyWindowTitle {
     .classicyWindowTitleCenter {
       background: var(--classicy-art-window-stripes#{$tone});
 
       @if $center-size {
         background-size: $center-size;
+      }
+
+      @if $ground {
+        background-color: $ground;
       }
     }
 
@@ -295,6 +301,10 @@
 
       @if $side-size {
         background-size: $side-size;
+      }
+
+      @if $ground {
+        background-color: $ground;
       }
 
       // The base sheet's zero-height end boxes get an empty image layer: it
