@@ -1,4 +1,231 @@
-// The Windows 98 ScrollBar look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 scroll bar, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyScrollArea.scss (the bar's
+// parts: the arrow at each end, the track, the thumb over it and the corner
+// where two bars meet) and ClassicySplitView.scss (the divider). The look
+// is the Windows 95/98 scroll bar as `DrawFrameControl` (DFC_SCROLL) drew
+// its buttons and the scroll bar its track and thumb from the system colors
+// (98.css, os-gui, React95; Wine's scroll.c and uitools.c):
+//
+// - The bar is `--window-scrollbar-size` (16, SM_CXVSCROLL) across, an
+//   arrow button at each end (Windows never groups them: the base sheet's
+//   split arrangement is kept), the track between them and the thumb over
+//   the track; the bar's own face is ButtonFace.
+// - Each arrow button is a raised ButtonFace box in the two-ring bevel
+//   (`b.raised`) with a WindowText triangle 7 wide and 4 tall (the Marlett
+//   scroll glyphs at 16 pixels), its wide row toward the track, set one
+//   pixel left of (or above) center as Windows sets its arrows: at (4, 6) in
+//   the 16 x 16 box for the up and down arrows, at (6, 4) for the left and
+//   right ones. Pressed, Windows draws a scroll button flat (`b.pressed-flat`:
+//   one ring of ButtonShadow) with the triangle a pixel down and right.
+// - The track is the 50% checker of ButtonFace and ButtonHilight that
+//   Windows fills a scroll bar's page area with (the SCROLLBAR's halftone
+//   brush), two gradient layers on the `--pixel-unit` grid, no image.
+//   Pressed (the page area held, the core's repeat paging), Windows inverts
+//   the track (`PatBlt DSTINVERT`): the checker turns ButtonDkShadow and
+//   `--color-system-06` (the inverse of ButtonFace). Windows inverts the
+//   clicked side alone; the core marks the whole track, so the whole track
+//   inverts.
+// - The thumb is a raised ButtonFace box (`b.raised`) with no grip, as long
+//   as the core computes it and never shorter than 8 pixels (half an arrow
+//   button, the proportional thumb's minimum); dragged, Windows redraws it
+//   where it is, so `dragging` changes nothing.
+// - Nothing to scroll (`fits`): Windows disables the bar, its arrows drawn
+//   embossed, GrayText over a ButtonHilight copy one pixel down and right,
+//   on the raised face, no thumb (the core draws none), the checker kept.
+// - Inactive (the window is): Windows draws a scroll bar the same in an
+//   inactive window, so nothing changes.
+// - The corner where two bars meet is plain ButtonFace (the window's own
+//   corner carries the size grip, _Window.scss).
+// - A split view's divider is the flat ButtonFace splitter bar of Explorer's
+//   panes, the full length of the view, no bevel of its own (the panes beside
+//   it carry the sunken client edge), the dotted focus rectangle when the
+//   keyboard moves it.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the faces, the checker's dark
+//   ButtonHilight     --color-system-01        the outer top-left ring, the
+//                                              checker's light, the emboss
+//   ButtonLight       --color-system-02        the inner top-left ring
+//   ButtonShadow      --color-system-05        the inner bottom-right ring,
+//                                              GrayText, the pressed ring
+//   ButtonDkShadow    --color-system-07        the outer bottom-right ring,
+//                                              the inverted checker's dark
+//   (ButtonFace inverted) --color-system-06    the inverted checker's light
+//   WindowText        --color-black            the triangles
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every glyph a stack of one-pixel rectangles on the `--pixel-unit` grid
+// (`pixel-art`, `runs`, ../_pixel.scss), every color a token.
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// --- Art --------------------------------------------------------------------
+// The four triangles (7 x 4, or 4 x 7), their wide side toward the track.
+$arrow-up: runs(("...x...", "..xxx..", ".xxxxx.", "xxxxxxx"), "x");
+$arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
+$arrow-left: runs(("...x", "..xx", ".xxx", "xxxx", ".xxx", "..xx", "...x"), "x");
+$arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
+
+// The 50% checker of ButtonFace and ButtonHilight on the pixel grid (the
+// page area), and the same inverted (the page area held).
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+$checker-inverted: repeating-conic-gradient(b.$dkshadow 0 25%, var(--color-system-06) 0 50%) 0 0 / px(2) px(2);
+
+// The proportional thumb's minimum length: half an arrow button.
+$thumb-min: px(8);
+
+// A glyph in WindowText; the same embossed, GrayText over its ButtonHilight
+// copy one pixel down and right.
+@function glyph($art) {
+  @return pixel-art(b.$text, $art);
+}
+
+@function glyph-embossed($art) {
+  @return list.join(pixel-art(b.$gray-text, $art), pixel-art(b.$hilight, $art, $px, $px), comma);
+}
+
+// --- The arrow button -------------------------------------------------------
+// The triangle is drawn by the button's `::before`, a box one pixel wider
+// and taller than the glyph (room for the emboss copy), its top left `$x`,
+// `$y` back from the button's center: 4 and 2 pixels for a 7 x 4 arrow, 2
+// and 4 for a 4 x 7 one, which puts a 7-pixel glyph at pixel 4 of 16, one
+// left of center, as Windows does (the box's half less the glyph's half,
+// rounded down).
+@mixin arrow-glyph($art, $w, $h, $x, $y) {
+  &::before {
+    content: "";
+    position: absolute;
+    top: calc(50% - #{px($y)});
+    left: calc(50% - #{px($x)});
+    width: px($w + 1);
+    height: px($h + 1);
+    pointer-events: none;
+    background: glyph($art);
+  }
+
+  // Held: flat, one ring of ButtonShadow, the triangle a pixel down and
+  // right.
+  &.pressed {
+    @include b.pressed-flat;
+
+    &::before {
+      translate: $px $px;
+    }
+  }
+}
+
+// Nothing to scroll: the triangle embossed on the raised face, pressed or
+// not.
+@mixin arrow-glyph-disabled($art) {
+  @include b.raised;
+
+  &::before {
+    translate: none;
+    background: glyph-embossed($art);
+  }
+}
+
 @mixin scroll-bar {
+  .classicyScrollBar {
+    background: b.$face;
+  }
+
+  // The arrow buttons: raised ButtonFace, the triangle on top.
+  .classicyScrollBarArrow {
+    position: relative;
+    background: b.$face;
+    @include b.raised;
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarArrowStart {
+    @include arrow-glyph($arrow-up, 7, 4, 4, 2);
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarArrowEnd {
+    @include arrow-glyph($arrow-down, 7, 4, 4, 2);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarArrowStart {
+    @include arrow-glyph($arrow-left, 4, 7, 2, 4);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarArrowEnd {
+    @include arrow-glyph($arrow-right, 4, 7, 2, 4);
+  }
+
+  // The track: the checker; inverted while the page area is held.
+  .classicyScrollBarTrack {
+    background: $checker;
+  }
+
+  .classicyScrollBar:not(.fits) .classicyScrollBarTrack.pressed {
+    background: $checker-inverted;
+  }
+
+  // The thumb: raised ButtonFace, no grip, never shorter than half an arrow
+  // button along its bar (the core reads the limit from the stylesheet).
+  .classicyScrollBarThumb {
+    border: 0;
+    background: b.$face;
+    @include b.raised;
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarThumb {
+    min-height: $thumb-min;
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarThumb {
+    min-width: $thumb-min;
+  }
+
+  // Nothing to scroll: the arrows embossed, the track as it is.
+  .classicyScrollBar.fits .classicyScrollBarArrow {
+    @include b.raised;
+  }
+
+  .classicyScrollBarVertical.fits .classicyScrollBarArrowStart {
+    @include arrow-glyph-disabled($arrow-up);
+  }
+
+  .classicyScrollBarVertical.fits .classicyScrollBarArrowEnd {
+    @include arrow-glyph-disabled($arrow-down);
+  }
+
+  .classicyScrollBarHorizontal.fits .classicyScrollBarArrowStart {
+    @include arrow-glyph-disabled($arrow-left);
+  }
+
+  .classicyScrollBarHorizontal.fits .classicyScrollBarArrowEnd {
+    @include arrow-glyph-disabled($arrow-right);
+  }
+
+  // Where two bars meet: ButtonFace, nothing drawn.
+  .classicyScrollAreaCorner {
+    border: 0;
+    box-shadow: none;
+    background: b.$face;
+  }
+
+  // The on-release drag outline is a part the package's layout never asks
+  // for (Windows drags the thumb live); should a host draw one, it is a
+  // dotted WindowText ring.
+  .classicyScrollBarDragOutline {
+    border: b.$b dotted b.$text;
+    background: none;
+  }
+
+  // ----- The split view's divider ------------------------------------------
+  // Explorer's splitter bar: flat ButtonFace, the full length of the view.
+  .classicySplitViewDivider {
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    background-color: b.$face;
+
+    &:focus-visible {
+      outline: b.$b dotted b.$text;
+      outline-offset: b.$neg-b;
+    }
+  }
 }

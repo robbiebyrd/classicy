@@ -1,4 +1,169 @@
-// The Windows 98 Icon look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// Windows 98's icons in windows, included by windows98.scss inside the
+// package wrapper: a window's icons (ClassicyIcon.scss: the Finder's icon
+// view, and any ClassicyIcon) and the image well (ClassicyImageWell.scss).
+// The list view's rows (a selected name's highlight, its icon's tint) are
+// _Table.scss's, and the menus' icons _Menu.scss's and _MenuBar.scss's; the
+// desktop's icons are _Desktop.scss's.
+//
+// - A large-icon view item, as Explorer drew it: the 32 x 32 image over its
+//   label in the UI font (MS Sans Serif 8pt), WindowText straight on the
+//   Window white with no box, 2 px of air between the image and the label,
+//   1 px above and below the text and 2 px either side inside the label's
+//   rectangle. Selected, the rectangle fills with Hilight under HilightText
+//   and the dotted focus rectangle lies on its outer pixel ring
+//   (DrawFocusRect over the highlighted label); the image is blended with
+//   Hilight pixel by pixel (ImageList_Draw with ILD_SELECTED: a 50% dither
+//   of the highlight color over the icon's opaque pixels), drawn as a
+//   two-pixel checker layer over the image and clipped by the icon's own
+//   mask. An icon drawing its pre-rendered selected image
+//   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
+//   exactly the icon's box, with no fringe (the base's black outline through
+//   the outer mask is Platinum's). An opened item looks like any other
+//   (Windows marks no opened icon), a folder under a drag is drawn selected,
+//   as the shell highlighted a drop target, and a hidden file stays ghosted
+//   as the base draws it (Explorer's "Show all files" draws hidden files
+//   faint).
+// - The image well: the client edge (`b.sunken`, WS_EX_CLIENTEDGE) around
+//   Window white, in place of the base's black line and its recess; selected,
+//   the dotted focus rectangle just inside the edge; a drop target the same
+//   rectangle dashed; disabled, ButtonFace behind the faded picture.
+//
+//   Windows color       token
+//   Window              --color-window-document   the well's face
+//   WindowText          --color-black             labels, the focus rectangle
+//   Hilight             --color-highlight         the selected label and the
+//                                                 blend
+//   HilightText         --package-color-selection-text (--color-white)
+//   ButtonFace          --color-system-03         the disabled well
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`) or
+// a count of grid pixels (`px()`, `--pixel-unit`); every color a token or a
+// package color with a token fallback.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The selected icon's blend: a 50% dither of Hilight on the pixel grid,
+// transparent where the icon shows through.
+$selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+
+// A selected label: Hilight under HilightText, the dotted focus rectangle
+// on its outer pixel ring.
+@mixin label-selected {
+  color: b.$highlight-text;
+  background: b.$highlight;
+  outline: b.$b dotted b.$highlight-text;
+  outline-offset: b.$neg-b;
+}
+
 @mixin icon {
+  // --- Icons in windows ------------------------------------------------------
+  .classicyIcon {
+    // No fringe: the outer mask draws nothing of its own.
+    .classicyIconMaskOuter {
+      position: relative;
+      width: var(--desktop-icon-size);
+      height: var(--desktop-icon-size);
+      mask-size: 100% 100%;
+      background: none;
+
+      > .classicyIconMask {
+        width: 100%;
+        height: 100%;
+        mask-size: 100% 100%;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+    }
+
+    // Over the image, inside its mask: the selection layer below.
+    .classicyIconMaskOuter::after {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    p {
+      margin-top: px(2);
+      padding: b.$b px(2);
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--desktop-icon-font-size);
+      line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+      color: b.$text;
+      background: transparent;
+    }
+  }
+
+  // Selected, or the folder under a drag: the label highlighted, the image
+  // blended with Hilight (unless it is the package's own selected image),
+  // the base's darkening and the drop target's dimming withdrawn.
+  .classicyIcon.selected,
+  .classicyIcon.classicyFileDropTarget {
+    filter: none;
+
+    .classicyIconMaskOuter img {
+      filter: none;
+    }
+
+    .classicyIconMaskOuter:not(.classicyIconSelectedImage)::after {
+      background: $selection-dither;
+    }
+
+    p {
+      @include label-selected;
+    }
+  }
+
+  // Opened: as any other icon. The base inverts the shape and hides the
+  // image; the image stays, unfiltered, selected or not.
+  .classicyIcon.open .classicyIconMaskOuter {
+    background: none;
+    filter: none;
+
+    .classicyIconMask {
+      filter: none;
+      backdrop-filter: none;
+      background-blend-mode: normal;
+
+      * {
+        opacity: 1;
+      }
+    }
+
+    img {
+      filter: none;
+    }
+  }
+
+  // --- The image well --------------------------------------------------------
+  .classicyImageWell {
+    padding: b.$b2;
+    background-color: b.$window;
+    border: 0;
+    @include b.sunken;
+  }
+
+  :where(.classicyImageWell).selected {
+    outline: b.$b dotted b.$text;
+    outline-offset: b.$neg-b2;
+  }
+
+  .classicyImageWellDragOver {
+    outline: b.$b dashed b.$text;
+    outline-offset: b.$neg-b2;
+  }
+
+  :where(.classicyImageWell).disabled {
+    background-color: b.$face;
+
+    .classicyImageWellImage {
+      opacity: 0.5;
+    }
+  }
 }

@@ -42,9 +42,10 @@
 $menus: ".classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu";
 
 // The frame's thickness: its two bevel rings and the ring of face inside
-// them, where the items start (3 px).
+// them, where the items start (3 px); and its negative (a Sass name
+// starting with `-` would be private to this module, as the helpers' are).
 $frame: calc(#{b.$b2} + #{b.$b});
-$-frame: calc(#{$frame} * -1);
+$neg-frame: calc(#{$frame} * -1);
 
 // The check mark (7 x 6), Marlett's menu check as Windows 98 drew it.
 $checkmark: runs(
@@ -288,9 +289,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 
   // A submenu beside its item: its first item level with the parent item
   // (its frame the frame's thickness above it), its frame over the parent
-  // menu's right side by the same; flipped left when the screen has no
-  // room on the right. The item's wrapper is pinned over the item, so the
-  // submenu is placed from the item's box.
+  // menu's right side by the frame's thickness, so its bevel stands where
+  // the parent's did; flipped left when the screen has no room on the
+  // right. The item's wrapper is pinned over the item, so the submenu is
+  // placed from the item's box, whose sides are the frame's thickness
+  // inside the menu's: hung from the item's side it overlaps the parent's
+  // frame exactly, with no margin across.
   :is(#{$menus}) .classicyMenuItem > .classicyMenuWrapper {
     position: absolute;
     top: 0;
@@ -302,12 +306,12 @@ $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
   :is(#{$menus}) .classicyMenuWrapper > :is(.classicySubMenu, .classicyContextSubMenu) {
     top: 0;
     left: 100%;
-    margin: $-frame 0 0 $-frame;
+    margin: $neg-frame 0 0;
 
     &.classicySubMenuFlipLeft {
       right: 100%;
       left: auto;
-      margin: $-frame $-frame 0 0;
+      margin: $neg-frame 0 0;
     }
   }
 

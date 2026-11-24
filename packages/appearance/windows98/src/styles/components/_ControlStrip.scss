@@ -1,4 +1,251 @@
-// The Windows 98 ControlStrip look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 Control Strip, included by windows98.scss inside the package
+// wrapper; overrides the look of ClassicyControlStrip.scss (the cells' size,
+// their separators and the glyphs' places stay the base's, HIGOS8 Figure
+// 6-15's). Windows has no Control Strip: the strip is drawn as a Windows
+// 95/98 toolbar band (the taskbar's and the shell's toolbars, as DrawEdge and
+// the toolbar control drew them from the system colors; 98.css, os-gui):
+//
+// - Every cell (the collapse box, the scroll arrows, the modules) is a
+//   raised one-ring ButtonFace button (`b.raised-thin`: ButtonHilight at the
+//   top and left, ButtonShadow at the bottom and right) inside its frame,
+//   the frame the base's black separator recolored ButtonFace, so two cells
+//   meet as shadow, face, hilight: an etched line between raised buttons,
+//   and the strip's edge is a face line over the buttons' rings. Held
+//   (`:active`, a module `.pressed`), the ring turns (one ring sunken); a
+//   module whose menu is open stays sunken on the 50% checker of ButtonFace
+//   and ButtonHilight that Windows fills a latched button with
+//   (DFCS_CHECKED). The keyboard focus is the dotted rectangle two pixels
+//   inside the frame. The package registers no art, so the Platinum glyphs
+//   the cells would fall back to are hidden and the Windows marks drawn in
+//   their place as pixel art on the cell's face, at the base's glyph
+//   positions plus a fixed offset: the collapse box's a 6 x 2 Minimize bar
+//   (the strip collapses to its tab as a window minimizes), the scroll
+//   arrows a 4 x 7 solid triangle each, a scroll bar's, embossed (GrayText
+//   over a ButtonHilight copy one ring down and right) when the arrow is
+//   disabled, and a module's pop-up arrow a 5 x 3 drop-down triangle, a
+//   toolbar button's, in place of the Mac's rightward one, since the menu
+//   opens below. Held, every mark steps down and right by the base's
+//   `--control-strip-pressed-shift`, as the base moves the glyphs.
+// - The tab, which sizes and collapses the strip, is a raised one-ring
+//   ButtonFace box of the Platinum tab's size (its art hidden in place, so
+//   the button keeps its box) carrying a toolbar gripper: a ButtonHilight
+//   line and a ButtonShadow line a face column apart, 18 rows tall, as the
+//   rebar's. Collapsed, the tab alone is the strip.
+// - A module's pop-up menu and panel are every menu's and bevel pop-up's
+//   (_Menu.scss, _PopUpMenu.scss), and the status line in a module menu
+//   stays the base's.
+//
+//   Windows color       token
+//   ButtonFace          --color-system-03   every face, the frame
+//   ButtonHilight       --color-system-01   the raised ring's top and left,
+//                                           the emboss, the checker's light
+//   ButtonShadow        --color-system-05   the raised ring's bottom and
+//                                           right, GrayText, the gripper's
+//                                           dark line
+//   WindowText          --color-black       the marks, the focus rectangle
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`) or
+// a count of grid pixels (`px()`, `--pixel-unit`); every glyph a stack of
+// one-pixel rectangles (`pixel-art`, `runs`, ../_pixel.scss); every color a
+// token.
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// --- Art --------------------------------------------------------------------
+// The scroll arrows (4 x 7): a scroll bar's solid triangles.
+$arrow-left: runs(("...x", "..xx", ".xxx", "xxxx", ".xxx", "..xx", "...x"), "x");
+$arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
+
+// The collapse box's mark (6 x 2): the Minimize bar.
+$minimize: ((0 0 6 2),);
+
+// A module's pop-up arrow (5 x 3): the toolbar drop-down's.
+$drop-arrow: runs(("xxxxx", ".xxx.", "..x.."), "x");
+
+// The tab's gripper, on the 17 x 24 tab: a light and a dark line, 18 rows
+// tall from the fourth row, a face column between them.
+$grip-light: ((7 3 1 18),);
+$grip-dark: ((9 3 1 18),);
+
+// --- Places -----------------------------------------------------------------
+// Each mark's place: the base's glyph position plus a fixed count of grid
+// pixels, so a theme nudging the glyphs moves the marks too.
+@function at($knob, $n) {
+  @return calc(#{$knob} + #{px($n)});
+}
+
+// The Minimize bar at (3, 15) of the 13 x 22 collapse box.
+$minimize-x: at(var(--control-strip-collapse-glyph-left), 1);
+$minimize-y: at(var(--control-strip-collapse-glyph-top), 8);
+
+// A scroll arrow at (4, 7) of its 13 x 22 cell.
+$arrow-x: at(var(--control-strip-scroll-glyph-left), 2);
+$arrow-y: at(var(--control-strip-scroll-glyph-top), 1);
+
+// A module's drop-down arrow at (22, 10) of its 30 x 22 cell.
+$drop-arrow-x: var(--control-strip-module-arrow-left);
+$drop-arrow-y: at(var(--control-strip-module-arrow-top), 3);
+
+// A length moved by the pressed shift.
+@function shifted($len) {
+  @return calc(#{$len} + var(--control-strip-pressed-shift));
+}
+
+// A mark embossed: GrayText over a ButtonHilight copy one ring down and
+// right.
+@function embossed($rects, $dx, $dy) {
+  @return list.join(
+    pixel-art(b.$gray-text, $rects, $dx, $dy),
+    pixel-art(b.$hilight, $rects, calc(#{$dx} + #{b.$b}), calc(#{$dy} + #{b.$b})),
+    $separator: comma
+  );
+}
+
+// --- Looks ------------------------------------------------------------------
+// The 50% checker of ButtonFace and ButtonHilight on the pixel grid, the
+// face of a latched button.
+$checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// One ring sunken: the held cell.
+@mixin sunken-thin {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset b.$neg-b b.$neg-b b.$hilight;
+}
+
+// The keyboard focus, two pixels inside the frame.
+@mixin focus {
+  outline: b.$b dotted b.$text;
+  outline-offset: b.$neg-b2;
+}
+
+// A scroll arrow's cell: its triangle at rest, shifted while held, embossed
+// while disabled.
+@mixin arrow-cell($art) {
+  background: pixel-art(b.$text, $art, $arrow-x, $arrow-y), b.$face;
+
+  &:active:not(:disabled) {
+    background: pixel-art(b.$text, $art, shifted($arrow-x), shifted($arrow-y)), b.$face;
+  }
+
+  &:disabled {
+    background: embossed($art, $arrow-x, $arrow-y), b.$face;
+  }
+}
+
 @mixin control-strip {
+  // --- The collapse box and scroll arrows -----------------------------------
+  .classicyControlStripCell {
+    border-color: b.$face;
+    background: b.$face;
+    @include b.raised-thin;
+
+    // The Platinum glyph the cell falls back to; the mark is drawn beneath.
+    svg {
+      display: none;
+    }
+
+    &:focus-visible {
+      @include focus;
+    }
+  }
+
+  .classicyControlStripCell:active:not(:disabled) {
+    @include sunken-thin;
+  }
+
+  .classicyControlStripCollapseBox {
+    background: pixel-art(b.$text, $minimize, $minimize-x, $minimize-y), b.$face;
+
+    &:active {
+      background: pixel-art(b.$text, $minimize, shifted($minimize-x), shifted($minimize-y)), b.$face;
+    }
+  }
+
+  .classicyControlStripScrollStart {
+    @include arrow-cell($arrow-left);
+  }
+
+  .classicyControlStripScroll:not(.classicyControlStripScrollStart) {
+    @include arrow-cell($arrow-right);
+  }
+
+  // --- The tab ----------------------------------------------------------------
+  .classicyControlStripTab {
+    background: pixel-art(b.$hilight, $grip-light), pixel-art(b.$shadow, $grip-dark), b.$face;
+    @include b.raised-thin;
+
+    // Hidden in place: the tab keeps the art's box.
+    svg {
+      visibility: hidden;
+    }
+
+    &:active {
+      @include sunken-thin;
+    }
+
+    &:focus-visible {
+      @include focus;
+    }
+  }
+
+  // --- The modules ------------------------------------------------------------
+  // Each module is a pop-up bevel button; the strip's cell replaces the bevel
+  // button's own look (_Button.scss), its frame restored (the bevel button
+  // has none there) and its cell geometry restated (the base's, which a
+  // bevel button rule in this layer would otherwise beat).
+  .classicyControlStrip .classicyBevelButton.classicyControlStripModule {
+    display: block;
+    box-sizing: content-box;
+    width: var(--control-strip-module-width);
+    height: var(--control-strip-cell-height);
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    border: var(--control-strip-border-width) solid b.$face;
+    border-left: none;
+    border-radius: 0;
+    background: b.$face;
+    @include b.raised-thin;
+
+    &:focus-visible {
+      @include focus;
+    }
+
+    // The drop-down arrow in the label's box, the Mac arrow hidden.
+    .classicyBevelButtonLabel {
+      top: $drop-arrow-y;
+      width: px(5);
+      height: px(3);
+      background: pixel-art(b.$text, $drop-arrow);
+
+      svg {
+        display: none;
+      }
+    }
+  }
+
+  // Held or open: one ring sunken, the icon and arrow a pixel down and right
+  // (the base moves them; the bevel button's own translate stands down).
+  .classicyControlStrip .classicyBevelButton.classicyControlStripModule:is(:active, .pressed, .open) {
+    background: b.$face;
+    @include sunken-thin;
+
+    > * {
+      translate: none;
+    }
+
+    .classicyBevelButtonLabel {
+      left: shifted($drop-arrow-x);
+      top: shifted($drop-arrow-y);
+    }
+  }
+
+  // Open: latched, on the checker.
+  .classicyControlStrip .classicyBevelButton.classicyControlStripModule.open {
+    background: $checker;
+  }
 }

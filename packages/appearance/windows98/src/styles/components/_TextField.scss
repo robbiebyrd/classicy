@@ -1,4 +1,297 @@
-// The Windows 98 TextField look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 text fields, included by windows98.scss inside the package
+// wrapper: the edit control (EDIT with WS_EX_CLIENTEDGE) as DrawEdge drew it
+// from the system colors (98.css, os-gui, React95): Window white under the
+// two-ring sunken edge (ButtonShadow over ButtonDkShadow at the top and
+// left, ButtonHilight over ButtonLight at the bottom and right: `b.sunken`,
+// one ring `--window-border-size` each), 21 px tall (`--pop-up-height`, the
+// combo box's: Windows' edit and combo box stand at one height, and the
+// package has no field-height knob), the text `--field-padding-y` x
+// `--field-padding-x` (3 x 4) inside the edge in WindowText, the insertion
+// point WindowText, selected text HilightText on Hilight, a placeholder in
+// GrayText. The keyboard focus adds nothing: Windows draws no ring on an
+// edit control, the caret is the focus. A read-only field (ES_READONLY)
+// keeps WindowText on a ButtonFace ground; a disabled one is ButtonFace
+// with GrayText and no emboss (the edit control draws its text plain, where
+// a static control embosses it).
+//
+// Overrides ClassicyInput.scss and ClassicySpinner.scss (the field of the
+// little arrows' stepper, which stretches to its arrows), ClassicyTextEditor.scss
+// and ClassicyRichTextEditor.scss (the multiline edit: the sunken edge
+// around the scroll area, its bars inside the rings, the text area's own
+// bevel, frame and focus ring gone; the rich editor's toolbar a ButtonFace
+// band, its prose in the body face), ClassicyOutput.scss (the inset result
+// well, a read-only edit; a disabled plain output embossed as a disabled
+// static), ClassicyDatePicker.scss and ClassicyTimePicker.scss (one edit
+// frame around the date's or time's fields, as the date and time picker
+// control draws), ClassicyFileInput.scss (a listed file's remove button
+// carries a 7 x 7 X in pixel art, never a font glyph; the error message in
+// the error color) and ClassicyControlLabel.scss (a static control:
+// WindowText; disabled, GrayText embossed one pixel of ButtonHilight below
+// right).
+//
+//   Windows color     token
+//   Window            --color-window-document   the field
+//   WindowText        --color-black             the text, the caret, the X
+//   ButtonFace        --color-system-03         a read-only or disabled
+//                                               field, the toolbar
+//   ButtonShadow      --color-system-05         the outer top-left ring,
+//                                               GrayText
+//   ButtonDkShadow    --color-system-07         the inner top-left ring
+//   ButtonHilight     --color-system-01         the outer bottom-right ring,
+//                                               the emboss
+//   ButtonLight       --color-system-02         the inner bottom-right ring
+//   Hilight           --color-highlight         selected text's ground
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob or a ring (`b.$b`), every glyph one-pixel
+// rectangles on the `--pixel-unit` grid (`pixel-art`, `runs`,
+// ../_pixel.scss), every color a token.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The single-line fields: the edit control and the stepper's field.
+$fields: ".classicyInput, .classicySpinner";
+
+// The 7 x 7 X on a listed file's remove button, one-pixel diagonals.
+$remove-x: runs(
+  ("x.....x", ".x...x.", "..x.x..", "...x...", "..x.x..", ".x...x.", "x.....x"),
+  "x"
+);
+
+// The text's colors inside any field: WindowText, its caret the same, its
+// selection HilightText on Hilight, its placeholder GrayText (full
+// strength: browsers fade a placeholder on their own).
+@mixin field-text {
+  color: b.$text;
+  caret-color: b.$text;
+
+  &::placeholder {
+    color: b.$gray-text;
+    opacity: 1;
+  }
+
+  &::selection {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+  }
+}
+
+// The client edge: Window white under the two sunken rings, square
+// cornered, no border of its own, no focus ring in any state.
+@mixin client-edge {
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background-color: b.$window;
+  @include b.sunken;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    @include b.sunken;
+  }
+}
+
+// The field's grounds off the Window white: read-only keeps WindowText on
+// ButtonFace; disabled is GrayText on ButtonFace, no emboss.
+@mixin field-grounds {
+  &[readonly] {
+    background-color: b.$face;
+  }
+
+  &:disabled {
+    color: b.$gray-text;
+    background-color: b.$face;
+  }
+}
+
 @mixin text-field {
+  // ----- The edit control -----------------------------------------------
+  #{$fields} {
+    box-sizing: border-box;
+    height: var(--pop-up-height);
+    padding: var(--field-padding-y) var(--field-padding-x);
+    font-size: var(--ui-font-size);
+    @include client-edge;
+    @include field-text;
+    @include field-grounds;
+  }
+
+  // A host's own field color (the `backgroundColor` prop), else Window
+  // white; the grounds above outrank it by their state.
+  .classicyInputHolder input {
+    background-color: var(--classicy-input-background, var(--color-window-document));
+  }
+
+  // The stepper's field stretches to its arrows in the little arrows group
+  // (the base's floor is the Mac square's); a host's color, else white.
+  .classicySpinner {
+    height: auto;
+    min-height: var(--pop-up-height);
+    background-color: var(--classicy-spinner-background, var(--color-window-document));
+  }
+
+  // ----- The multiline edit ----------------------------------------------
+  // The holder is bare (the dialog's face shows around the field); the
+  // scroll area is the field: white, and with the `border` prop the client
+  // edge around its viewport and bars (the base's black line goes). The text
+  // area draws no bevel, frame or focus ring of its own.
+  .classicyTextEditorHolder {
+    background-color: transparent;
+  }
+
+  .classicyTextEditorArea {
+    background-color: b.$window;
+  }
+
+  .classicyTextEditorArea.classicyTextEditorBorder {
+    box-sizing: border-box;
+    padding: b.$b2;
+    border: 0;
+    @include b.sunken;
+  }
+
+  .classicyTextEditorBevel {
+    box-shadow: none;
+  }
+
+  .classicyTextEditor {
+    padding: var(--field-padding-y) var(--field-padding-x);
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    background-color: b.$window;
+    box-shadow: none;
+    @include field-text;
+    @include field-grounds;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  // The rich text editor: the same edge around the whole editor, the
+  // toolbar a ButtonFace band (Windows' toolbars are the face, not a
+  // lighter gray), the prose in the body face (no Garamond).
+  .classicyRichTextEditor {
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: b.$b2;
+    color: b.$text;
+    @include client-edge;
+
+    div[role="toolbar"] {
+      background: b.$face;
+
+      div,
+      button {
+        background: b.$face;
+      }
+    }
+
+    .prose {
+      font-family: var(--body-font), sans-serif;
+    }
+  }
+
+  // ----- The static and read-only text -----------------------------------
+  // A static control's text is WindowText; disabled, GrayText embossed.
+  .classicyControlLabel {
+    color: b.$text;
+  }
+
+  :where(.classicyControlLabel).disabled {
+    @include b.disabled-text;
+  }
+
+  .classicyOutput {
+    color: b.$text;
+  }
+
+  // The inset result well is a read-only edit: the field's height, the text
+  // at the field's inset in the line that is left inside it.
+  .classicyOutputInset {
+    min-height: var(--pop-up-height);
+    line-height: calc(var(--pop-up-height) - var(--field-padding-y) - var(--field-padding-y));
+    padding: var(--field-padding-y) var(--field-padding-x);
+    @include client-edge;
+  }
+
+  // Disabled: the plain output as a disabled static (embossed), the well as
+  // a disabled edit (ButtonFace, plain GrayText). Equal specificity, so the
+  // well's rule follows the static's.
+  :where(.classicyOutput).disabled {
+    @include b.disabled-text;
+  }
+
+  :where(.classicyOutputInset).disabled {
+    color: b.$gray-text;
+    text-shadow: none;
+    background-color: b.$face;
+  }
+
+  // ----- The date and time pickers ---------------------------------------
+  // One edit frame around the fields (the date and time picker control):
+  // the fields inside bare, their text WindowText; every field disabled
+  // grays the whole on ButtonFace.
+  .classicyDatePicker,
+  .classicyTimePicker {
+    box-sizing: border-box;
+    min-height: var(--pop-up-height);
+    padding: 0 var(--field-padding-x);
+    color: b.$text;
+    @include client-edge;
+
+    input {
+      border: 0;
+      border-radius: 0;
+      outline: none;
+      box-shadow: none;
+      font-size: var(--ui-font-size);
+      background-color: transparent;
+      @include field-text;
+      color: inherit;
+
+      &:focus,
+      &:focus-visible {
+        outline: none;
+        box-shadow: none;
+      }
+
+      &:disabled {
+        color: b.$gray-text;
+      }
+    }
+
+    &:has(input:disabled) {
+      color: b.$gray-text;
+      background-color: b.$face;
+    }
+  }
+
+  .classicyDatePickerLabel,
+  .classicyTimePickerLabel {
+    color: inherit;
+  }
+
+  // ----- The file input ------------------------------------------------
+  // A listed file's name in WindowText; its remove button's X drawn in the
+  // button's ink (GrayText when the button is disabled); the error message
+  // in the error color, plain.
+  .classicyFileInputItem {
+    color: b.$text;
+  }
+
+  .classicyFileInputRemoveGlyph {
+    width: px(7);
+    height: px(7);
+    vertical-align: middle;
+    background: pixel-art(currentColor, $remove-x);
+  }
+
+  :where(.classicyFileInputMessage).error {
+    color: var(--color-error);
+  }
 }

@@ -1,4 +1,173 @@
-// The Windows 98 Table look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 list view, included by windows98.scss inside the package
+// wrapper: the report-view LISTVIEW with its HEADER control, as Windows 98
+// drew them (98.css's and os-gui's tables): Window white under the two-ring
+// sunken edge (`b.sunken`, one ring `--window-border-size` each; the header
+// and the rows inside the rings), WindowText in the UI face at the one UI
+// size (Windows has no small or condensed face). The header is a row of
+// raised ButtonFace buttons (`b.raised`), each column's title
+// `--field-padding-y` x `--field-padding-x` inside its bevel, pressed
+// (`b.pressed`, the title a pixel down and right) while the mouse is down
+// on it and raised again at once, sorted or not: Windows 98 marks the sorted
+// column with no stripe, no pressed header and no arrow (the header's sort
+// arrow came with Windows XP), so the base's arrow image is not drawn and
+// `aria-sort` carries the order; a column resize leaves the bevel alone.
+// The rows stand contiguous (no white rule between them); a selected row is
+// Hilight with HilightText across the row (LVS_EX_FULLROWSELECT), the row
+// that has the keyboard ringed by the dotted focus rectangle in HilightText
+// a pixel inside; the list's own focus ring (the base's) is not drawn. The
+// Finder's list (Explorer's details view) has the window's client edge for
+// its frame (_Window.scss) and no second one, and selects the name alone:
+// the label Hilight under HilightText with the focus rectangle on it, the
+// icon blended toward the highlight (a filter stands in for Explorer's 50%
+// Hilight dither; a package's own selected image,
+// `classicyIconSelectedImage`, stands as it is), the rest of the row white.
+//
+// Overrides ClassicyTable.scss and ClassicyFileBrowserViewTable.scss.
+//
+//   Windows color     token
+//   Window            --color-window-document   the list, the rows
+//   WindowText        --color-black             the text
+//   ButtonFace        --color-system-03         the header buttons
+//   ButtonHilight     --color-system-01         the frame's outer
+//                                               bottom-right ring, a
+//                                               button's outer top-left
+//   ButtonLight       --color-system-02         the inner rings' lights
+//   ButtonShadow      --color-system-05         the frame's outer top-left
+//                                               ring, a button's inner
+//                                               bottom-right
+//   ButtonDkShadow    --color-system-07         the frame's inner top-left
+//                                               ring, a button's outer
+//                                               bottom-right
+//   Hilight           --color-highlight         the selected row or name
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob or a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+
+// The generic list: the Finder's has the window's edge and its own
+// selection, below.
+$list: ".classicyTableContainer:not(.classicyFileBrowserViewTableContainer)";
+$finder: ".classicyFileBrowserViewTableContainer";
+
 @mixin table {
+  // ----- The list ----------------------------------------------------------
+  .classicyTableContainer {
+    color: b.$text;
+    background: b.$window;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  // The client edge: the rings in the padding, the header and rows inside.
+  #{$list} {
+    box-sizing: border-box;
+    padding: b.$b2;
+    border: 0;
+    @include b.sunken;
+  }
+
+  .classicyTable {
+    font-family: var(--ui-font), sans-serif;
+    font-weight: normal;
+  }
+
+  .classicyTableContent {
+    font-size: var(--ui-font-size);
+    font-weight: normal;
+  }
+
+  // ----- The header --------------------------------------------------------
+  .classicyTableHeaderGroup {
+    background: b.$face;
+  }
+
+  .classicyTableColumnHeader {
+    padding: var(--field-padding-y) var(--field-padding-x);
+    border: 0;
+    font-size: var(--ui-font-size);
+    font-weight: normal;
+    font-stretch: normal;
+    color: b.$text;
+    background: b.$face;
+    cursor: default;
+    @include b.raised;
+
+    // The mouse down on a title (not on its resizer, which the base marks
+    // `isResizing` while it drags): the bevel turns, the title steps a pixel
+    // down and right.
+    &:active:not(.isResizing) {
+      @include b.pressed;
+
+      > .classicyTableHeaderCellContent > span {
+        position: relative;
+        top: b.$b;
+        left: b.$b;
+      }
+    }
+  }
+
+  // The sorted column's header is a header like the rest.
+  :where(.classicyTableColumnHeader).selected {
+    background-color: b.$face;
+  }
+
+  // The header kept for assistive technology under a detached copy has no
+  // height: no padding, no bevel (the base's zeroes, restated in this
+  // layer, which the rule above would otherwise beat).
+  .classicyTableHeaderHidden .classicyTableColumnHeader {
+    padding-top: 0;
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
+  .classicyTableSortArrow {
+    display: none;
+  }
+
+  // ----- The rows ----------------------------------------------------------
+  .classicyTableRow {
+    border: 0;
+    background: b.$window;
+  }
+
+  :where(.classicyTableRow).selected {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+
+  #{$list}:focus :where(.classicyTableRow).selected {
+    outline: b.$b dotted b.$highlight-text;
+    outline-offset: b.$neg-b;
+  }
+
+  .classicyTableCellSorted {
+    background: transparent;
+  }
+
+  // ----- The Finder's list -------------------------------------------------
+  // The row stays white (the generic row's Hilight, in this layer, would
+  // beat the base's neutralizing rule); the name takes the selection.
+  #{$finder} :where(.classicyTableRow).selected {
+    color: inherit;
+    background: b.$window;
+  }
+
+  :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
+
+  #{$finder}:focus :where(.classicyFileBrowserViewTableRow).selected .classicyFileBrowserViewTableRowIconLabel {
+    outline: b.$b dotted b.$highlight-text;
+    outline-offset: b.$neg-b;
+  }
+
+  // The selected item's icon toward the highlight: darkened, drained to one
+  // hue and turned to the blues.
+  :where(.classicyFileBrowserViewTableRow).selected
+    .classicyFileBrowserViewTableRowIcon:not(.classicyIconSelectedImage) {
+    filter: brightness(0.6) sepia(1) hue-rotate(190deg) saturate(2);
+  }
 }

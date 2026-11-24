@@ -9,9 +9,11 @@
 // button `--pop-up-button-width` wide inside the frame at the right with a
 // 7 x 4 black triangle, pressed flat (one ring of ButtonShadow, the
 // triangle a pixel down and right) while the list is open or the mouse is
-// down on it; the keyboard's focus a Hilight band over the value with
-// HilightText and the dotted focus rectangle on it; disabled, a ButtonFace
-// field with GrayText and the triangle embossed. The open list is Windows':
+// down on it; while the control has the focus, however it got it (Windows
+// 98 hides no focus until the keyboard is used; that came with 2000), a
+// Hilight band over the value, a pixel inside the bevel, with HilightText
+// and the dotted focus rectangle on its edge; disabled, a ButtonFace field
+// with GrayText and the triangle embossed. The open list is Windows':
 // a Window-white box in a one-pixel ButtonDkShadow line, rows the face's
 // height in a pixel of padding, the tracked row a Hilight band, a group's
 // title in GrayText embossed, no check against the current item (Windows
@@ -53,9 +55,6 @@
 $arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
 $arrow-up: runs(("...x...", "..xxx..", ".xxxxx.", "xxxxxxx"), "x");
 $arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
-
-// One ring, negative (Sass keeps `b.$-b` private to its module).
-$-b: calc(#{b.$b} * -1);
 
 // A glyph in the ink, over its ButtonHilight emboss one pixel below right.
 @function embossed($rects) {
@@ -151,7 +150,8 @@ $-b: calc(#{b.$b} * -1);
   }
 
   // The trigger: the value from the text inset (a pixel before it, where
-  // the focus band starts), a pixel before the button.
+  // the focus band starts), a pixel before the button; no focus ring of its
+  // own (the band below is the focus).
   .classicyPopUpMenuButton {
     gap: b.$b;
     padding: 0 0 0 calc(var(--pop-up-text-inset) - #{b.$b});
@@ -164,19 +164,21 @@ $-b: calc(#{b.$b} * -1);
     }
   }
 
-  // The value: a band the face's height, which the keyboard's focus fills
-  // with Hilight and HilightText and rings with the dotted focus rectangle
-  // (a pointer's focus draws none).
+  // The value: a band two rings taller than the face, so it stands a pixel
+  // inside the bevel at the top and bottom (3 px in on a 21 px field), as
+  // Windows draws a drop-down list's selection; the control's focus,
+  // pointer or keyboard, fills it with Hilight and HilightText and draws the
+  // dotted focus rectangle on its outermost pixels.
   .classicyPopUpMenuValue {
     box-sizing: border-box;
-    padding: b.$b;
+    padding: b.$b2 b.$b;
   }
 
-  .classicyPopUpMenuButton:focus-visible .classicyPopUpMenuValue {
+  .classicyPopUpMenuButton:focus .classicyPopUpMenuValue {
     color: b.$highlight-text;
     background-color: b.$highlight;
     outline: b.$b dotted b.$highlight-text;
-    outline-offset: $-b;
+    outline-offset: b.$neg-b;
   }
 
   // The current item's small icon before its name, where an item has one
@@ -289,8 +291,10 @@ $-b: calc(#{b.$b} * -1);
     align-items: stretch;
     cursor: text;
 
-    &.disabled,
-    &:has(> .classicyComboBoxInput:disabled) {
+    // The root carries the `disabled` state (ClassicyComboBox's appearance
+    // hook), so no `:has()` is needed, and a selector list with one would
+    // lose this rule in a browser without it.
+    &.disabled {
       color: b.$gray-text;
       background: b.$face;
     }

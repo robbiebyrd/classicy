@@ -8,8 +8,10 @@
 // bevel; the Apple title a Start button (a raised ButtonFace button, its
 // label bold, pressed over the 50% ButtonHilight checker while its menu is
 // open, as the Start button is); the application's menu titles flat after
-// it, highlighted Hilight with HilightText while open or under the pointer,
-// as a window's menu bar highlights an open title; the Application menu a
+// it, highlighted Hilight with HilightText while open or tracked by the
+// keyboard, as a window's menu bar highlights an open title, and never
+// under the pointer alone (Windows 98 hot-tracks no menu bar); the
+// Application menu a
 // taskbar button for the front application (raised, pressed and checkered
 // while open), pushed to the bar's right end before the tray; the menu bar
 // extensions flat tray icons; the clock a sunken one-ring pane at the far
@@ -40,9 +42,6 @@ $titles: ".classicyDesktopMenu > .classicyMenuItem, .classicyDesktopMenu > .clas
 // The margin a button or pane keeps from the bar's top and bottom edges
 // (the taskbar's 2 px).
 $edge: b.$b2;
-
-// One ring, negative (Sass keeps `b.$-b` private to its module).
-$-b: calc(#{b.$b} * -1);
 
 // A taskbar button: raised ButtonFace, its label in ButtonText, never
 // highlighted under the pointer.
@@ -85,8 +84,10 @@ $-b: calc(#{b.$b} * -1);
 
   // A title: a row 2 px in from the bar's top and bottom, 6 px of padding
   // either side of its text, highlighted while its menu is open or the
-  // pointer is over it; no focus rectangle (the band marks the keyboard's
-  // title too).
+  // keyboard tracks it, plain under the pointer alone (the base sheet
+  // highlights a hovered title; Windows 98's menu bar does not); no focus
+  // rectangle (the band marks the keyboard's title). A title drawn as art
+  // (the Help balloon the default package registers) is a small icon.
   :is(#{$titles}) {
     position: relative;
     box-sizing: border-box;
@@ -108,7 +109,17 @@ $-b: calc(#{b.$b} * -1);
       color: inherit;
     }
 
-    &:hover,
+    > p > img {
+      width: var(--icon-small-size);
+      height: var(--icon-small-size);
+      margin: 0;
+    }
+
+    &:hover {
+      color: b.$text;
+      background-color: transparent;
+    }
+
     &.open,
     &:focus-visible {
       outline: none;
@@ -155,9 +166,12 @@ $-b: calc(#{b.$b} * -1);
     }
   }
 
-  // The Apple title is the Start button: raised, its label bold, its icon
-  // at its own size; pressed over the checker while the menu is open. Its
-  // keyboard focus is Windows' dotted rectangle inside the bevel.
+  // The Apple title is the Start button: raised, its label bold (the title
+  // is its art alone, so the weight waits for a text title), its icon at
+  // its own size; pressed over the checker while the menu is open, which
+  // outranks the raised face's hover rule. Its keyboard focus is Windows'
+  // dotted rectangle inside the bevel, on the raised and the pressed button
+  // alike (the two rules share no property).
   :is(#{$titles}).classicyDesktopMenuApple {
     margin-left: 0;
     padding: 0 var(--menu-item-padding-x);
@@ -168,23 +182,12 @@ $-b: calc(#{b.$b} * -1);
       height: auto;
     }
 
-    > p > img {
-      width: var(--icon-small-size);
-      height: var(--icon-small-size);
-      margin: 0;
-    }
-
     &.open {
       @include taskbar-button-open;
     }
 
     &:focus-visible {
-      @include taskbar-button;
       @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
-    }
-
-    &.open:focus-visible {
-      @include taskbar-button-open;
     }
   }
 
@@ -222,8 +225,6 @@ $-b: calc(#{b.$b} * -1);
     }
 
     > p > img {
-      width: var(--icon-small-size);
-      height: var(--icon-small-size);
       margin-right: var(--layout-item-gap);
     }
 
@@ -232,12 +233,7 @@ $-b: calc(#{b.$b} * -1);
     }
 
     &:focus-visible {
-      @include taskbar-button;
       @include b.focus-rect(calc(#{b.$b2} + #{b.$b}));
-    }
-
-    &.open:focus-visible {
-      @include taskbar-button-open;
     }
   }
 
@@ -251,7 +247,8 @@ $-b: calc(#{b.$b} * -1);
 
   // The tray's icons: the menu bar extensions and the Sound widget, flat
   // small icons on the bar, never highlighted; an extension's menu is a
-  // contextual menu (_Menu.scss).
+  // contextual menu (_Menu.scss). An extension's item carries no state
+  // class (its trigger opens the menu), so the pointer is all to quiet.
   .classicyDesktopMenuExtensions {
     height: 100%;
     margin-left: 0;
@@ -265,8 +262,7 @@ $-b: calc(#{b.$b} * -1);
     color: b.$text;
     background-color: transparent;
 
-    &:hover,
-    &.open {
+    &:hover {
       color: b.$text;
       background-color: transparent;
     }
@@ -282,22 +278,25 @@ $-b: calc(#{b.$b} * -1);
     }
   }
 
-  .classicyDesktopMenu .classicyDesktopMenuWidgetSound {
-    height: 100%;
-    margin: 0;
+  // The Sound widget, a title too when a host mounts it on the bar (the
+  // Control Strip holds the sound control): a flat small icon, quiet under
+  // the pointer and the keyboard (as specific as a title's rule and after
+  // it; the quieting rule two classes more than a title's hover).
+  .classicyDesktopMenu .classicyMenuItem.classicyDesktopMenuWidgetSound {
     padding: 0 var(--layout-item-gap-half);
     color: b.$text;
     background-color: transparent;
-
-    &:hover {
-      color: b.$text;
-      background-color: transparent;
-    }
 
     img {
       width: var(--icon-small-size);
       height: var(--icon-small-size);
     }
+  }
+
+  :is(#{$titles}).classicyDesktopMenuWidgetSound:is(:hover, :focus-visible) {
+    outline: none;
+    color: b.$text;
+    background-color: transparent;
   }
 
   // The clock, in the tray's sunken one-ring pane (ButtonShadow at the top
@@ -312,7 +311,7 @@ $-b: calc(#{b.$b} * -1);
     background-color: transparent;
     box-shadow:
       inset b.$b b.$b b.$shadow,
-      inset $-b $-b b.$hilight;
+      inset b.$neg-b b.$neg-b b.$hilight;
 
     &:hover,
     &:focus-visible {

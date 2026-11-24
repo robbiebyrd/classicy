@@ -1,4 +1,45 @@
-// The Windows 98 BalloonHelp look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 ToolTip, included by windows98.scss inside the package
+// wrapper; overrides the structure of ClassicyBalloonHelp.scss (the balloon,
+// its title and text, its tail). Balloon Help is Mac OS 8's; under Windows a
+// hovered control's help is a ToolTip (TOOLTIPS_CLASS), drawn from the
+// system colors (as 98.css and os-gui re-create it):
+//
+// - A plain box on InfoWindow (the ToolTip's own system color, cream in
+//   Windows Standard) in a one-ring WindowFrame line, square corners, the
+//   text InfoText in the UI font `--tooltip-padding-x` (4) in from the sides
+//   and `--tooltip-padding-y` (2) from the top and bottom; it is as wide as
+//   its text (no minimum), up to the balloon's own maximum.
+// - No tail: a ToolTip is a box beside the pointer, so the balloon's tail
+//   and its placements (top or bottom, left, center or right) are hidden.
+// - A title, where the help has one, is the same text in bold, as a
+//   ToolTip's title is (TTM_SETTITLE), with the balloon's gap below it.
+//
+//   Windows color     token
+//   InfoWindow        --package-color-tooltip-face (--color-window-document)
+//   InfoText          --package-color-tooltip-text (--color-black)
+//   WindowFrame       --color-window-border
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every color a token.
+@use "../bevels" as b;
+
 @mixin balloon-help {
+  .classicyBalloonHelp {
+    min-width: 0;
+    padding: var(--tooltip-padding-y) var(--tooltip-padding-x);
+    border: b.$b solid var(--color-window-border);
+    border-radius: 0;
+    color: var(--package-color-tooltip-text, var(--color-black));
+    background: var(--package-color-tooltip-face, var(--color-window-document));
+
+    p {
+      font-size: var(--ui-font-size);
+      color: var(--package-color-tooltip-text, var(--color-black));
+    }
+  }
+
+  // A ToolTip has no tail, whichever way the balloon would point.
+  .classicyBalloonHelpTail {
+    display: none;
+  }
 }

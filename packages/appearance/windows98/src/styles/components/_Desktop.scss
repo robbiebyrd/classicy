@@ -1,4 +1,192 @@
-// The Windows 98 Desktop look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 desktop, included by windows98.scss inside the package
+// wrapper, whose root is the desktop itself (`&`): the desktop and its
+// selection marquee (ClassicyDesktop.scss), the desktop icons
+// (ClassicyDesktopIcon.scss) and the startup screen
+// (ClassicyStartupScreen.scss), as the Windows 95/98 shell drew them (and as
+// 98.css, os-gui and React95 recall them). The crash screen (the Sad Mac on
+// black, ClassicyCrashScreen.scss) carries no Platinum look and is left
+// alone; the screen-saver overlay is Platinum's savers' own.
+//
+// - The desktop is a flat color, Background (`--desktop-background-color`,
+//   teal in Windows Standard), with no pattern: every Windows preset names
+//   no picture, and a picture a user picks in the Appearance Manager's
+//   Desktop tab is drawn by the base sheet as any wallpaper, so this partial
+//   leaves the face to the theme.
+// - The selection marquee is the one-pixel dotted rectangle the shell XORed
+//   onto the desktop, drawn in the desktop text color (the XOR over the
+//   Background read as a light dotted line), where the base draws a dotted
+//   two-ring box in black.
+// - A desktop icon is the 32 x 32 image over its label, the label in the UI
+//   font (MS Sans Serif 8pt) in the desktop text color
+//   (`--package-color-desktop-text`, white) straight on the Background with
+//   no box, a one-pixel black drop shadow under the text so it reads over
+//   any Background, as the Active Desktop drew labels; 3 px of air between
+//   the image and the label, 1 px above and below the text and 2 px either
+//   side inside the label's rectangle. A shortcut keeps its arrow badge (the
+//   alias badge, the default package's art) but its label is upright:
+//   Windows never italicized a shortcut.
+// - Selected, the label's rectangle fills with Hilight under HilightText,
+//   the drop shadow goes, and the dotted focus rectangle lies on the
+//   rectangle's outer pixel ring (DrawFocusRect over the highlighted label);
+//   the image is blended with Hilight pixel by pixel (ImageList_Draw with
+//   ILD_SELECTED: a 50% dither of the highlight color over the icon's
+//   opaque pixels), drawn as a two-pixel checker layer over the image and
+//   clipped by the icon's own mask, so the pixels between stay the icon's.
+//   An icon drawing its pre-rendered selected image
+//   (`registerClassicySelectedIconImages`) takes no layer. The mask pair is
+//   exactly the icon's box, with no fringe: the base's black outline through
+//   the outer mask is Platinum's.
+// - An icon whose window is open looks like any other (Windows marks no
+//   opened icon; the base's inverted shape is Mac OS's), and a folder under
+//   a drag is drawn selected, as the shell highlighted a drop target, where
+//   the base dims it.
+// - The startup screen's panel takes the window edge (`b.window-frame`)
+//   around its ButtonFace, its logo box the client edge (`b.sunken`) around
+//   Window white, as a dialog holding a picture frame; Windows' own boot
+//   screen is a bitmap, which no theme token draws.
+//
+//   Windows color       token
+//   Background          --desktop-background-color
+//   desktop text        --package-color-desktop-text (--color-white)
+//   Hilight             --color-highlight             the selected label and
+//                                                     the blend
+//   HilightText         --package-color-selection-text (--color-white)
+//   drop shadow         --color-black
+//   ButtonFace          --color-system-03             the startup panel
+//   Window              --color-window-document       the startup logo box
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`) or
+// a count of grid pixels (`px()`, `--pixel-unit`); every color a token or a
+// package color with a token fallback.
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The selected icon's blend: a 50% dither of Hilight on the pixel grid,
+// transparent where the icon shows through.
+$selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
+
+// A selected label: Hilight under HilightText, no shadow, the dotted focus
+// rectangle on its outer pixel ring.
+@mixin label-selected {
+  color: b.$highlight-text;
+  text-shadow: none;
+  background: b.$highlight;
+  outline: b.$b dotted b.$highlight-text;
+  outline-offset: b.$neg-b;
+}
+
 @mixin desktop {
+  // --- The marquee ----------------------------------------------------------
+  .classicyDesktopSelect {
+    border: b.$b dotted var(--package-color-desktop-text, var(--color-white));
+    outline: none;
+  }
+
+  // --- Desktop icons ---------------------------------------------------------
+  .classicyDesktopIcon {
+    // No fringe: the outer mask draws nothing of its own (the badge's too).
+    .classicyDesktopIconMaskOuter {
+      background: none;
+    }
+
+    // The box, exactly the icon's, holding the selection layer below.
+    .classicyDesktopIconMaskOuter:not(.classicyDesktopIconAliasBadge) {
+      position: relative;
+      width: var(--desktop-icon-size);
+      height: var(--desktop-icon-size);
+      mask-size: 100% 100%;
+
+      > .classicyDesktopIconMask {
+        width: 100%;
+        height: 100%;
+        mask-size: 100% 100%;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+    }
+
+    // Over the image, inside its mask: the badge's too (the base positions
+    // the badge absolutely).
+    .classicyDesktopIconMaskOuter::after {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    p {
+      margin-top: px(3);
+      padding: b.$b px(2);
+      font-family: var(--ui-font), sans-serif;
+      font-size: var(--desktop-icon-font-size);
+      line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
+      color: var(--package-color-desktop-text, var(--color-white));
+      text-shadow: b.$b b.$b 0 var(--color-black);
+      background: transparent;
+    }
+  }
+
+  // A shortcut's label is upright.
+  .classicyDesktopIconAlias > p {
+    font-style: normal;
+  }
+
+  // Selected, or the folder under a drag: the label highlighted, the image
+  // blended with Hilight (unless it is the package's own selected image),
+  // the base's darkening and the drop target's dimming withdrawn.
+  .classicyDesktopIcon.selected,
+  .classicyDesktopIcon.classicyFileDropTarget {
+    filter: none;
+
+    .classicyDesktopIconMaskOuter img {
+      filter: none;
+    }
+
+    .classicyDesktopIconMaskOuter:not(.classicyDesktopIconSelectedImage)::after {
+      background: $selection-dither;
+    }
+
+    p {
+      @include label-selected;
+    }
+  }
+
+  // Opened: as any other icon. The base inverts the shape and hides the
+  // image; the image stays, unfiltered, selected or not.
+  .classicyDesktopIcon.open .classicyDesktopIconMaskOuter {
+    background: none;
+    filter: none;
+
+    .classicyDesktopIconMask {
+      filter: none;
+      backdrop-filter: none;
+      background-blend-mode: normal;
+
+      * {
+        opacity: 1;
+      }
+    }
+
+    img {
+      filter: none;
+    }
+  }
+
+  // --- The startup screen ---------------------------------------------------
+  .classicyStartupScreenPanel {
+    background: b.$face;
+    @include b.window-frame;
+  }
+
+  .classicyStartupScreenLogo {
+    border: 0;
+    background: b.$window;
+    @include b.sunken;
+  }
 }

@@ -1,4 +1,153 @@
-// The Windows 98 ListBox look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 list box, included by windows98.scss inside the package
+// wrapper: the LISTBOX control under its client edge, as DrawEdge and the
+// list box drew them from the system colors (98.css, os-gui): Window white
+// under the two-ring sunken edge (`b.sunken`, one ring `--window-border-size`
+// each), the rows and the list's scroll bar inside the rings; rows 16 px
+// (`--control-static-text-height`, the knob nearest Windows' 13-pixel
+// MS Sans Serif rows: the package has no list-row knob) in WindowText, the
+// text two pixels in (`--layout-item-gap-half`); the selected row Hilight
+// with HilightText across the row; the row that has the keyboard ringed by
+// the dotted focus rectangle a pixel inside its edge (in HilightText on a
+// selected row, as the XOR'd rectangle reads over Hilight). A disabled row,
+// or every row of a disabled list, is GrayText on the list's own white: a
+// disabled LISTBOX keeps its Window ground and its selection, only the text
+// grays (GrayText over Hilight on the selected row, as user32 paints it),
+// where a disabled edit control turns ButtonFace. The tree view (TREEVIEW):
+// the same edge on a framed tree or list frame, and the selection on the
+// label alone, the text with a pixel of padding, Hilight under HilightText
+// with the focus rectangle on its edge, never the whole row; a disabled
+// item's label GrayText, its icon as it is (a tree view has no disabled
+// items).
+//
+// Overrides ClassicyListBox.scss and ClassicyTree.scss (`classicyListBoxFrame`
+// and `classicyTreeFramed` included). Standard File's well is the dialogs'
+// (_Dialog.scss draws it as a list view, the whole row the selection), so
+// the label rules below leave its tree alone.
+//
+//   Windows color     token
+//   Window            --color-window-document   the list
+//   WindowText        --color-black             the rows, the focus rectangle
+//   ButtonShadow      --color-system-05         the outer top-left ring,
+//                                               GrayText
+//   ButtonDkShadow    --color-system-07         the inner top-left ring
+//   ButtonHilight     --color-system-01         the outer bottom-right ring
+//   ButtonLight       --color-system-02         the inner bottom-right ring
+//   Hilight           --color-highlight         the selected row or label
+//   HilightText       --package-color-selection-text (--color-white)
+//
+// Every length is a knob or a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+
+// The client edge around a scrolling list: the two rings in the padding,
+// the viewport and bars inside them, Window white behind (the viewport
+// inherits it).
+@mixin client-edge {
+  box-sizing: border-box;
+  padding: b.$b2;
+  border: 0;
+  background: b.$window;
+  @include b.sunken;
+}
+
+// A tree row outside Standard File's well (whose rows the dialogs select
+// whole).
+$tree-row: ".classicyTreeNodeLabelHolder:not(.classicyFileOpenDialogWell *)";
+
 @mixin list-box {
+  // ----- The list box ----------------------------------------------------
+  // The rows' pitch, and the list's cap of so many rows plus the rings it
+  // took on (the base's cap counts the rows alone).
+  .classicyListBox {
+    --classicy-listbox-row-height: var(--control-static-text-height);
+
+    max-height: calc(
+      var(--classicy-listbox-visible-rows, 8) * var(--classicy-listbox-row-height) + #{b.$b2} + #{b.$b2}
+    );
+    color: b.$text;
+    @include client-edge;
+  }
+
+  .classicyListBoxViewport {
+    box-shadow: none;
+  }
+
+  .classicyListBoxOption {
+    padding: 0 var(--layout-item-gap-half);
+    color: b.$text;
+    outline: none;
+
+    &:focus {
+      @include b.focus-rect(b.$b);
+    }
+  }
+
+  :where(.classicyListBoxOption).selected {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+
+    &:focus {
+      outline-color: b.$highlight-text;
+    }
+  }
+
+  :where(.classicyListBoxOption).disabled {
+    color: b.$gray-text;
+  }
+
+  // A disabled list: white, its rows GrayText (the selected row's over
+  // Hilight), and no focus rectangle (a click still lands focus on a row).
+  :where(.classicyListBox).disabled {
+    color: b.$gray-text;
+
+    .classicyListBoxOption {
+      color: b.$gray-text;
+    }
+
+    .classicyListBoxOption:focus {
+      outline: none;
+    }
+  }
+
+  // ----- The framed list and the tree view -------------------------------
+  .classicyListBoxFrame,
+  .classicyTreeFramed {
+    @include client-edge;
+  }
+
+  .classicyTree {
+    color: b.$text;
+  }
+
+  // The row takes the keyboard; the rectangle is drawn on its label.
+  .classicyTreeNodeLabelHolder {
+    color: b.$text;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  #{$tree-row} .classicyTreeNodeLabel {
+    padding: 0 b.$b;
+  }
+
+  #{$tree-row}:focus .classicyTreeNodeLabel {
+    @include b.focus-rect(b.$b);
+  }
+
+  :where(#{$tree-row}).selected .classicyTreeNodeLabel {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+  }
+
+  // Written with the state class on the row, not in `:where()`: it must
+  // outrank the focus rule above, which sets the outline's color with its
+  // shorthand.
+  #{$tree-row}.selected:focus .classicyTreeNodeLabel {
+    outline-color: b.$highlight-text;
+  }
+
+  :where(.classicyTreeNodeLabelHolder).disabled .classicyTreeNodeLabel {
+    color: b.$gray-text;
+  }
 }

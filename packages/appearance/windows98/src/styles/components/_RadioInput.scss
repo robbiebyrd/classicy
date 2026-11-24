@@ -1,4 +1,201 @@
-// The Windows 98 RadioInput look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 radio button, included by windows98.scss inside the
+// package wrapper; overrides the structure of ClassicyRadioInput.scss (the
+// wrapper's size and offset, the native input's box) and dresses the
+// ControlLabel each button is paired with. The look is the Windows 95/98
+// radio button as `DrawFrameControl` (DFC_BUTTON, DFCS_BUTTONRADIO) drew it
+// from the system colors (98.css, os-gui, Wine's uitools.c):
+//
+// - The circle: `--radio-size` (12) square, four arcs on the pixel grid,
+//   the outer ring ButtonShadow (S) above left and ButtonHilight (H) below
+//   right, the inner ring ButtonDkShadow (D) above left and ButtonLight (L)
+//   below right, Window white (W) inside:
+//
+//     ....SSSS....
+//     ..SSDDDDSS..
+//     .SDDWWWWDDH.
+//     .SDWWWWWWLH.
+//     SDWWWWWWWWLH
+//     SDWWWWWWWWLH
+//     SDWWWWWWWWLH
+//     SDWWWWWWWWLH
+//     .SDWWWWWWLH.
+//     .SDLWWWWLLH.
+//     ..HHLLLLHH..
+//     ....HHHH....
+//
+// - On: the WindowText dot, 4 x 4 with its corners off, four pixels in.
+//   Pressed (the mouse down on the button or its label), the inside turns
+//   ButtonFace with the dot kept; disabled, the inside is ButtonFace and the
+//   dot GrayText.
+// - Mixed (no Windows state): a 6 x 2 dash across the inside in the dot's
+//   ink, in the dot's place.
+// - The keyboard focus is the dotted rectangle around the label's text (the
+//   circle's own, a pixel out, when it has no label), while anything in the
+//   item has focus (`:focus-within`, as the checkbox's). A disabled label is
+//   embossed: GrayText over a ButtonHilight copy one ring down and right.
+//
+// The wrapper draws the circle, its inside and, while `checked`, the dot;
+// the native input lies over the whole circle (its hit area and focus),
+// invisible, and draws the pressed inside and the mixed dash itself, since
+// those are its own states. The inside's face and the mark's ink are the
+// wrapper's custom properties, inherited by the input, which the disabled
+// state and the input's press reset.
+//
+//   Windows color     token
+//   Window            --color-window-document  the inside
+//   WindowText        --color-black            the dot, the dash
+//   ButtonFace        --color-system-03        the pressed and disabled inside
+//   ButtonHilight     --color-system-01        the outer lower-right arc, the
+//                                              emboss
+//   ButtonLight       --color-system-02        the inner lower-right arc
+//   ButtonShadow      --color-system-05        the outer upper-left arc,
+//                                              GrayText
+//   ButtonDkShadow    --color-system-07        the inner upper-left arc
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The circle, as the picture above, one run list per ink.
+$circle: (
+  "....SSSS....",
+  "..SSDDDDSS..",
+  ".SDDWWWWDDH.",
+  ".SDWWWWWWLH.",
+  "SDWWWWWWWWLH",
+  "SDWWWWWWWWLH",
+  "SDWWWWWWWWLH",
+  "SDWWWWWWWWLH",
+  ".SDWWWWWWLH.",
+  ".SDLWWWWLLH.",
+  "..HHLLLLHH..",
+  "....HHHH...."
+);
+$arc-shadow: runs($circle, "S");
+$arc-dkshadow: runs($circle, "D");
+$arc-light: runs($circle, "L");
+$arc-hilight: runs($circle, "H");
+$inside: runs($circle, "W");
+
+// The dot (4 x 4, its corners off) and the mixed dash (6 x 2).
+$dot: (5 4 2 1) (4 5 4 2) (5 7 2 1);
+$dash: ((3 5 6 2),);
+
+// The inside's face and the mark's ink, as the state sets them.
+$face: var(--windows98-radio-face);
+$ink: var(--windows98-radio-ink);
+
+// The four arcs.
+@function ring() {
+  @return list.join(
+    list.join(pixel-art(b.$shadow, $arc-shadow), pixel-art(b.$dkshadow, $arc-dkshadow), comma),
+    list.join(pixel-art(b.$light, $arc-light), pixel-art(b.$hilight, $arc-hilight), comma),
+    comma
+  );
+}
+
+// The inside in the state's face, with a mark in the state's ink over it.
+@function well() {
+  @return pixel-art($face, $inside);
+}
+
+@function marked($art) {
+  @return list.join(pixel-art($ink, $art), well(), comma);
+}
+
+// The dotted keyboard focus rectangle.
+@mixin focus-rect($offset) {
+  outline: b.$b dotted b.$text;
+  outline-offset: $offset;
+}
+
 @mixin radio-input {
+  // Each button and its label on one line, centered on each other.
+  .classicyRadioInputMargin {
+    align-items: center;
+  }
+
+  // The circle, the checkbox's margin at its sides, its inside white.
+  .classicyRadioInputWrapper {
+    --windows98-radio-face: #{b.$window};
+    --windows98-radio-ink: #{b.$text};
+    position: relative;
+    box-sizing: border-box;
+    flex: none;
+    width: var(--radio-size);
+    height: var(--radio-size);
+    margin: 0 var(--checkbox-margin);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: list.join(ring(), well(), comma);
+  }
+
+  :where(.classicyRadioInputWrapper).checked {
+    background: list.join(ring(), marked($dot), comma);
+  }
+
+  // Disabled: a ButtonFace inside, the dot GrayText.
+  :where(.classicyRadioInputWrapper).disabled {
+    --windows98-radio-face: #{b.$face};
+    --windows98-radio-ink: #{b.$gray-text};
+  }
+
+  // The native input over the whole circle, invisible: the wrapper draws
+  // the dot (the base shows the input while it is on).
+  .classicyRadioInput,
+  .classicyRadioInput:checked,
+  :where(.classicyRadioInput):disabled:checked {
+    position: absolute;
+    inset: 0;
+    box-sizing: border-box;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    appearance: none;
+    opacity: 0;
+    background: none;
+    cursor: default;
+  }
+
+  .classicyRadioInput:focus {
+    outline: none;
+  }
+
+  // Pressed, on the button or its label (whose control it is): the inside
+  // turns ButtonFace, drawn by the input over the wrapper's, with the dot
+  // over it while on. `:where()` keeps these at the input's own weight, so
+  // the mixed dash below wins pressed too.
+  .classicyRadioInput:where(:active:not(:disabled)) {
+    --windows98-radio-face: #{b.$face};
+    opacity: 1;
+    background: well();
+  }
+
+  .classicyRadioInput:where(:checked:active:not(:disabled)) {
+    background: marked($dot);
+  }
+
+  // Mixed: the dash in the dot's place, over the inside, on or off.
+  .classicyRadioInput.mixed {
+    opacity: 1;
+    background: marked($dash);
+  }
+
+  // The focus rectangle: around the label while the button has focus,
+  // around the circle itself (a pixel out) when it is the item's only child.
+  .classicyRadioInputMargin:focus-within > .classicyControlLabelHolder > .classicyControlLabel {
+    @include focus-rect(0);
+  }
+
+  .classicyRadioInputMargin > .classicyRadioInputWrapper:only-child:focus-within {
+    @include focus-rect($px);
+  }
+
+  // A disabled label, embossed.
+  .classicyRadioInputMargin > .classicyControlLabelHolder > .classicyControlLabel.disabled {
+    @include b.disabled-text;
+  }
 }

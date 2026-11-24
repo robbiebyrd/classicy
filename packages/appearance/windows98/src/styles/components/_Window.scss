@@ -21,9 +21,11 @@
 //   apart, Close, each a raised ButtonFace box `--title-bar-button-width` x
 //   `--title-bar-button-height` (16 x 14) with its mark in WindowText, a
 //   two-pixel X, a bar and a box, drawn as pixel art. Pressed, the bevel
-//   turns and the mark steps one pixel down and right; a disabled box's mark
-//   is embossed, GrayText over a ButtonHilight copy one pixel down and right.
-//   Windows shows the buttons on an inactive window too (the base hides them).
+//   turns and the mark steps one pixel down and right. Windows shows the
+//   buttons on an inactive window too (the base hides them). The core draws
+//   a box only for an action the window has and never a disabled one, so
+//   the embossed disabled mark Windows draws has no element to land on and
+//   is not emitted.
 // - `--title-bar-gap` (2) of frame below the caption, then the client area,
 //   sunken two pixels (WS_EX_CLIENTEDGE: `b.sunken`) around its viewport and
 //   scroll bars, white; the size grip in the scroll bars' corner, three
@@ -44,7 +46,8 @@
 //   anywhere: only the caption's colors change. Collapsed (WindowShade,
 //   which Windows has not) leaves the caption alone.
 // - The standalone frame (ClassicyWindowFrame) is the same frame and an
-//   active caption around a ButtonFace body.
+//   active caption around a ButtonFace body; it draws no boxes and no icon,
+//   so it takes the bar and title alone.
 //
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
 // every glyph a stack of one-pixel rectangles on the `--pixel-unit` grid
@@ -72,10 +75,6 @@ $title-text-inactive: var(--package-color-title-bar-inactive-text, var(--color-s
 // read as the base sheet reads it.
 $title-gap: var(--title-bar-gap);
 $client-edge: b.$b2;
-// One ring and two, negative (the bevel module keeps its own private): a
-// shadow's offset toward the bottom or right.
-$neg-b: calc(#{b.$b} * -1);
-$neg-b2: calc(#{b.$b2} * -1);
 $header: var(--control-row-height);
 $menu-bar: var(--classicy-window-menu-bar-height, var(--window-menu-bar-height));
 
@@ -138,9 +137,8 @@ $grip-hilight: runs($grip, "w");
 $grip-shadow: runs($grip, "s");
 
 // `$rects` moved `$dx`, `$dy` grid pixels: the art placed inside its button
-// by its coordinates (numbers, so each lands as one `px()` length), rather
-// than by `pixel-art`'s length offsets, which add a length to a rect's bare
-// `0` at the art's own edge, a sum no browser takes.
+// by its coordinates (numbers, so each lands as one `px()` length, where
+// `pixel-art`'s length offsets would add a second term to every rect).
 @function shift($rects, $dx, $dy) {
   $moved: ();
   @each $rect in $rects {
@@ -161,10 +159,7 @@ $grip-shadow: runs($grip, "s");
 
 // A caption button: raised ButtonFace with its mark `$art` at grid (`$x`,
 // `$y`); pressed (the mouse down on it), the bevel turns and the mark steps
-// one grid pixel down and right; disabled, the mark is embossed (GrayText
-// over its ButtonHilight copy one pixel down and right) on the raised face.
-// The `disabled` state class is the vocabulary's; the title bar draws a box
-// only for an action the window has, so today no box carries it.
+// one grid pixel down and right.
 @mixin caption-button($art, $x, $y) {
   background: pixel-art(b.$text, shift($art, $x, $y)), b.$face;
 
@@ -175,55 +170,12 @@ $grip-shadow: runs($grip, "s");
 
     @include b.pressed;
   }
-
-  &.disabled {
-    background:
-      pixel-art(b.$gray-text, shift($art, $x, $y)),
-      pixel-art(b.$hilight, shift($art, $x + 1, $y + 1)),
-      b.$face;
-
-    @include b.raised;
-  }
 }
 
-// The caption's buttons: the three faces, each with its mark at its Windows
-// position. Under `.classicyWindow` only: the standalone frame draws none
-// (ClassicyWindowFrame passes no handlers), so it carries no faces.
-@mixin caption-buttons {
+// The caption's boxes, under `.classicyWindow` only (the standalone frame
+// draws none): their arrangement, wrappers and geometry.
+@mixin caption-boxes {
   .classicyWindowTitleBar {
-    .classicyWindowCloseBox {
-      @include caption-button($close, 4, 3);
-    }
-
-    .classicyWindowZoomBox {
-      @include caption-button($maximize, 3, 2);
-    }
-
-    .classicyWindowCollapseBox {
-      @include caption-button($minimize, 4, 9);
-    }
-  }
-}
-
-// The caption and its parts, under a `.classicyWindow` or
-// `.classicyWindowFrame` root (both include the core's title bar structure
-// under their own selector). Drawn active; the inactive window recolors it
-// below.
-@mixin title-bar {
-  .classicyWindowTitleBar {
-    top: 0;
-    height: var(--window-title-bar-height);
-    min-height: var(--window-title-bar-height);
-    margin: 0 0 $title-gap;
-    padding: 0 var(--title-bar-end-inset) 0 var(--title-bar-icon-inset);
-    column-gap: 0;
-    align-items: center;
-    text-align: left;
-    border: none;
-    box-shadow: none;
-
-    @include b.title-bar-gradient($title-active, $title-active-to);
-
     // Arrangement: the title first, then Minimize, Maximize and Close at the
     // right end, Close apart by its gap (the base puts Close first and the
     // zoom and collapse boxes last).
@@ -253,8 +205,8 @@ $grip-shadow: runs($grip, "s");
 
     // The buttons themselves. The base's two layers (::before, the fill;
     // ::after, pulled back up over it for a glyph) are not drawn: the mark
-    // is the box's own background. A keyboard focus shows Windows' dotted
-    // rectangle inside the bevel.
+    // is the box's own background. A keyboard focus (the boxes are
+    // focusable buttons) shows Windows' dotted rectangle inside the bevel.
     .classicyWindowCloseBox,
     .classicyWindowZoomBox,
     .classicyWindowCollapseBox {
@@ -271,19 +223,61 @@ $grip-shadow: runs($grip, "s");
         @include b.focus-rect(b.$b2);
       }
     }
+  }
+}
 
-    // The window's small icon, 16 x 16, centered on the caption's height.
-    .classicyWindowIcon {
-      flex: none;
-      align-self: center;
-      width: var(--icon-small-size);
-      height: var(--icon-small-size);
-      max-width: var(--icon-small-size);
-      max-height: var(--icon-small-size);
-      padding: 0;
-      align-items: center;
-      justify-content: center;
+// The caption's buttons' faces: the three, each with its mark at its Windows
+// position.
+@mixin caption-buttons {
+  .classicyWindowTitleBar {
+    .classicyWindowCloseBox {
+      @include caption-button($close, 4, 3);
     }
+
+    .classicyWindowZoomBox {
+      @include caption-button($maximize, 3, 2);
+    }
+
+    .classicyWindowCollapseBox {
+      @include caption-button($minimize, 4, 9);
+    }
+  }
+}
+
+// The window's small icon, 16 x 16, centered on the caption's height, under
+// `.classicyWindow` only (the standalone frame hides its icon).
+@mixin caption-icon {
+  .classicyWindowTitleBar .classicyWindowIcon {
+    flex: none;
+    align-self: center;
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    max-width: var(--icon-small-size);
+    max-height: var(--icon-small-size);
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// The caption and its title area, under a `.classicyWindow` or
+// `.classicyWindowFrame` root (both include the core's title bar structure
+// under their own selector). Drawn active; the inactive window recolors it
+// below.
+@mixin title-bar {
+  .classicyWindowTitleBar {
+    top: 0;
+    height: var(--window-title-bar-height);
+    min-height: var(--window-title-bar-height);
+    margin: 0 0 $title-gap;
+    padding: 0 var(--title-bar-end-inset) 0 var(--title-bar-icon-inset);
+    column-gap: 0;
+    align-items: center;
+    text-align: left;
+    border: none;
+    box-shadow: none;
+
+    @include b.title-bar-gradient($title-active, $title-active-to);
 
     // The title area fills the caption's height and the room before the
     // buttons; the title is left-aligned after the icon, so the band before
@@ -394,6 +388,10 @@ $grip-shadow: runs($grip, "s");
 
     @include title-bar;
 
+    @include caption-icon;
+
+    @include caption-boxes;
+
     @include caption-buttons;
 
     // The client area: the caption and its gap above, then the sunken
@@ -453,8 +451,8 @@ $grip-shadow: runs($grip, "s");
     color: b.$text;
     background: b.$face;
     box-shadow:
-      inset 0 #{$neg-b} b.$hilight,
-      inset 0 #{$neg-b2} b.$shadow;
+      inset 0 #{b.$neg-b} b.$hilight,
+      inset 0 #{b.$neg-b2} b.$shadow;
   }
 
   // The list-view header (column headings) is not ruled off: the Table's
@@ -492,18 +490,16 @@ $grip-shadow: runs($grip, "s");
   }
 
   // A dialog: the same frame and caption as a window (the base gives a
-  // modal no frame and pads its caption instead), its body ButtonFace with
-  // no client edge or rule across the top.
+  // modal no frame and pads its caption instead; the caption's padding
+  // above covers the modal bar too), its body ButtonFace with no client edge
+  // or rule across the top, and under a header less the strip's height, as
+  // the base sheet's doubled rule has it.
   .classicyWindow.classicyWindowModal {
     padding: var(--window-frame-inset);
   }
 
-  .classicyWindow .classicyWindowTitleBarModal {
-    padding: 0 var(--title-bar-end-inset) 0 var(--title-bar-icon-inset);
-
-    .classicyWindowTitle {
-      width: auto;
-    }
+  .classicyWindow .classicyWindowTitleBarModal .classicyWindowTitle {
+    width: auto;
   }
 
   .classicyWindow .classicyWindowContentsModal {
@@ -516,8 +512,13 @@ $grip-shadow: runs($grip, "s");
     background-color: var(--classicy-window-contents-bg, b.$face);
   }
 
-  // A modeless dialog's content frame (`contentFrame`): sunken two rings
-  // (the base's two-pixel black border), inactive or not.
+  .classicyWindow .classicyWindowContentsModal.classicyWindowContentsWithHeader {
+    height: calc(100% - var(--window-title-bar-height) - #{$title-gap} - #{$header});
+  }
+
+  // A modeless dialog's content frame (`contentFrame`, on the contents'
+  // inner box): sunken two rings (the base's two-pixel black border),
+  // inactive or not.
   .classicyWindowContentsFramed {
     box-sizing: border-box;
     padding: $client-edge;
@@ -562,13 +563,6 @@ $grip-shadow: runs($grip, "s");
 
       .classicyWindowCollapseBox {
         @include caption-button($minimize-small, 3, 6);
-      }
-
-      // The drag band between the buttons fills the caption (the base gives
-      // it the windoid's height and side margins).
-      .classicyWindowTitle .classicyWindowTitleCenter {
-        height: auto;
-        margin: 0;
       }
     }
 

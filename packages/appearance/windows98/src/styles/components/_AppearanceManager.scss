@@ -1,4 +1,85 @@
-// The Windows 98 AppearanceManager look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The control panels under Windows 98, included by windows98.scss inside the
+// package wrapper: the Appearance Manager's own parts (ClassicyAppearance-
+// Manager.scss and .Colors.scss) and the one look the other panels' sheets
+// carry that is Platinum's (DriveSetupList.scss). The panels are property
+// sheets: ButtonFace pages (the tab control, the group boxes and the
+// controls are their own partials'), and only what reads wrong in them is
+// drawn here:
+//
+// - The pages' faces are ButtonFace with WindowText (the Appearance, Sound
+//   and Date & Time panels paint their content's background themselves).
+// - The Desktop tab's preview (Display Properties' Background page shows the
+//   desktop inside a monitor picture; the package registers no art) sits in
+//   a two-ring sunken well (`b.sunken`), the desktop's color behind its
+//   picture or standing alone as the None swatch, the picture inside the
+//   rings (the padding).
+// - Swatches are color wells: the Colors tab's color-picker swatches (the
+//   base: a black border under a raised Platinum bevel) sunken two rings,
+//   the dotted focus rectangle inside the rings when the keyboard has one;
+//   the Packages tab's 16-pixel theme-color swatches (the base: a black
+//   border) sunken one ring, ButtonShadow over ButtonHilight.
+// - Drive Setup's list selects a drive in Hilight with HilightText, as a
+//   list view does, not the Mac's inverted black row (DriveSetupList.scss).
+//
+// Every length is a ring (`b.$b`), every color a token.
+@use "../bevels" as b;
+
+// One ring, negative: a shadow's offset toward the bottom or right (the
+// bevel module keeps its own private).
+$neg-b: calc(#{b.$b} * -1);
+
+// A one-ring sunken edge, ButtonShadow at the top and left over ButtonHilight
+// at the bottom and right: a small well's.
+@mixin sunken-thin {
+  box-shadow:
+    inset b.$b b.$b b.$shadow,
+    inset $neg-b $neg-b b.$hilight;
+}
+
 @mixin appearance-manager {
+  // The pages' faces.
+  .classicyAppearanceManagerContent,
+  .classicySoundManagerContent,
+  .classicyDateAndTimeManagerContent {
+    color: b.$text;
+    background-color: b.$face;
+  }
+
+  // The Desktop tab's preview: the desktop's color in a sunken well, the
+  // picture inside the rings. The None swatch (a div with the base's color)
+  // and the picture (an img) alike; the picture's own box is its content
+  // box, so the color shows through the rings around it.
+  .classicyAppearanceManagerDesktopPreview {
+    box-sizing: border-box;
+    padding: b.$b2;
+    background-color: var(--desktop-background-color);
+
+    @include b.sunken;
+  }
+
+  // The Colors tab's swatches: color wells, sunken two rings over the color
+  // (the base's inline `--classicy-preview-color` fill), no border; the
+  // disabled swatch keeps the base's dimming.
+  .classicyAppearanceManagerColorsGrid .classicyColorPickerSwatch {
+    border: none;
+
+    @include b.sunken;
+
+    &:focus-visible {
+      @include b.focus-rect(b.$b2);
+    }
+  }
+
+  // The Packages tab's theme-color swatches: small wells, one ring.
+  .classicyAppearanceManagerPackageSwatch {
+    border: none;
+
+    @include sunken-thin;
+  }
+
+  // Drive Setup's selected drive: a list view's selection.
+  .classicyDriveSetupListTable :where(.classicyDriveSetupListRow).selected {
+    color: b.$highlight-text;
+    background: b.$highlight;
+  }
 }

@@ -1,4 +1,152 @@
-// The Windows 98 ProgressBar look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 progress bar and meter, included by windows98.scss inside
+// the package wrapper; overrides the structure of ClassicyProgressBar.scss
+// (the `<progress>` and its two engines' value parts, the indeterminate
+// bar's slide, the chasing arrows) and ClassicyMeter.scss (the gauge, its
+// continuous fill and its segments). The look is the Windows 95/98 progress
+// bar (PROGRESS_CLASS, comctl32 before the v6 themed control) as 98.css,
+// os-gui and React95 re-create it and Wine's progress.c draws it:
+//
+// - The track: a ButtonFace box `--progress-bar-height` (16) tall in the
+//   sunken two-ring bevel (`b.sunken`, the control's client edge), the fill
+//   `--progress-bar-inset` (2) inside it, where the rings end.
+// - The fill: Hilight blocks `--progress-bar-block-width` (8) wide with a
+//   `--progress-bar-block-gap` (2) of track between them (comctl32 draws a
+//   block two thirds of the inner height wide, then a two-pixel gap), one
+//   repeating gradient; Windows draws whole blocks only, where the browser
+//   sizes the fill to the value and the last block is cut where the fill
+//   ends.
+// - Indeterminate (the browser's barber pole; Windows 98 had no marquee
+//   style, the v6 control's): the same blocks slide right through the
+//   track, one period per second in whole-pixel steps, so the blocks stay
+//   sharp as they move; nothing fades at the ends. Reduced motion slows the
+//   slide.
+// - The chasing arrows (Mac OS 8's, no Windows equivalent) are Hilight.
+// - A meter is the progress bar: the sunken ButtonFace track, its fill the
+//   blocks in Hilight while the value is in its optimal range and in the
+//   zone's warning color (`--color-alert`, `--color-error`) outside it; a
+//   segmented meter's segments are the blocks themselves, a block gap apart,
+//   its padding the fill's inset.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03        the track
+//   ButtonHilight     --color-system-01        the outer bottom-right ring
+//   ButtonLight       --color-system-02        the inner bottom-right ring
+//   ButtonShadow      --color-system-05        the outer top-left ring
+//   ButtonDkShadow    --color-system-07        the inner top-left ring
+//   Hilight           --color-highlight        the blocks
+//
+// Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
+// every color a token.
+@use "../bevels" as b;
+
+// A block and its gap: the blocks' period.
+$period: calc(var(--progress-bar-block-width) + var(--progress-bar-block-gap));
+
+// The blocks in `$ink`, the track showing between them.
+@function blocks($ink) {
+  @return repeating-linear-gradient(to right, #{$ink} 0 var(--progress-bar-block-width), transparent 0 #{$period});
+}
+
+// The sunken ButtonFace track, the fill inset to where its rings end.
+@mixin track {
+  box-sizing: border-box;
+  height: var(--progress-bar-height);
+  padding: var(--progress-bar-inset);
+  border: 0;
+  border-radius: 0;
+  background: b.$face;
+  @include b.sunken;
+}
+
 @mixin progress-bar {
+  // The blocks slide one period right, a pixel a step (ten steps a period at
+  // the defaults), and are back where they began.
+  @keyframes classicyWindows98ProgressBlocks {
+    from {
+      background-position: 0 0;
+    }
+
+    to {
+      background-position: $period 0;
+    }
+  }
+
+  .classicyProgress {
+    progress[value] {
+      @include track;
+      appearance: none;
+
+      &::-webkit-progress-bar {
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      &::-webkit-progress-value {
+        transition: none;
+        background: blocks(b.$highlight);
+      }
+
+      &::-moz-progress-bar {
+        background: blocks(b.$highlight);
+      }
+    }
+  }
+
+  // Indeterminate: the blocks sliding, no stripes, no fade (the base sheet's
+  // mask), on both engines' value parts.
+  .classicyProgressIndeterminate progress[value] {
+    &::-webkit-progress-value {
+      background: blocks(b.$highlight);
+      mask: none;
+      animation: classicyWindows98ProgressBlocks 1s steps(10, end) infinite;
+    }
+
+    &::-moz-progress-bar {
+      animation: classicyWindows98ProgressBlocks 1s steps(10, end) infinite;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .classicyProgressIndeterminate progress[value] {
+      &::-webkit-progress-value,
+      &::-moz-progress-bar {
+        animation-duration: 3s;
+      }
+    }
+  }
+
+  .classicyProgressChasingArrows {
+    color: b.$highlight;
+  }
+
+  // ----- The meter ----------------------------------------------------------
+  .classicyMeter {
+    @include track;
+  }
+
+  // In range, the blocks are Hilight (the base sheet's zone fill is a
+  // gradient, which a block's color stop cannot take); the warning zones keep
+  // their colors.
+  .classicyMeterOptimal {
+    --classicy-meter-fill: #{b.$highlight};
+  }
+
+  .classicyMeterFill {
+    background: blocks(var(--classicy-meter-fill));
+  }
+
+  // Segments: the blocks themselves.
+  .classicyMeterSegmented {
+    gap: var(--progress-bar-block-gap);
+    padding: var(--progress-bar-inset);
+  }
+
+  .classicyMeterSegmentOn {
+    background: var(--classicy-meter-fill);
+  }
+
+  .classicyMeterValue {
+    color: b.$text;
+  }
 }
