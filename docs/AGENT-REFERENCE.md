@@ -611,7 +611,7 @@ Full props:
 | `desktopIconBalloonHelp` | `string \| ClassicyIconBalloonHelp` | — | stored on the icon record as given; an untitled balloon is titled at render with the name the icon shows. Omitted, the icon shows the package's `apps[id].description`, else the manifest `description`, resolved at render |
 | `addSystemMenu` | `boolean` | — | contribute to the system menu |
 | `extension` | `boolean` | — | background app: no windows UI affordances, no icons |
-| `globalShortcuts` | `{ shortcut, event, eventData? }[]` | — | honored only for extensions |
+| `globalShortcuts` | `{ shortcut, event, eventData?, title? }[]` | — | honored only for extensions |
 | `bootIcon` | `boolean \| string` | — | show in the boot icon parade (string = custom icon) |
 | `debug` | `boolean` | `false` | |
 | `handlesFileTypes` | `ClassicyFileSystemEntryFileType[]` | — | register as a file-type handler |
@@ -3050,6 +3050,7 @@ registerClassicyAppearancePackage({
 | `knobs` / `options` | Tunable measurement families (`family → key → { label, min, max, default }`, values under `theme.measurements.<family>`, emitted as `--<family>-<key>`), and the zod schema `classicyKnobsToSchema(knobs)` builds from them |
 | `layout` | `{ window.growBoxCorner, window.centering?, menuBar.placement, desktop.iconGridOrigin, scrollBar?, slider?, fileDialog?, fileBrowser? }`; read with `useClassicyAppearanceLayout()` / `getClassicyAppearanceLayout(packageId?)`, as CSS variables with `classicyLayoutVars(layout)`. See "Layout declarations" below |
 | `assets`, `sounds` | Descriptive: register the package's art with the asset registries under its id (§5) and its sound packs with `registerClassicySoundPack` (§10) |
+| `helpMenu` | `{ aboutTitle? }`: the standard Help menu's first item (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…") |
 | `apps` | `Record<appId, { name?, icon?, description? }>` (`ClassicyAppIdentityOverride`): display overrides per app; read with `useClassicyAppIdentity` / `resolveClassicyAppIdentity`. See "App display overrides" below |
 | `hooks` | `{ decorate?, on? }`: what the package adds to each component's root, and its handlers per component and event; components call them through `useClassicyAppearance` ("Package hooks", below) |
 
@@ -5893,8 +5894,6 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | `registerHyperCardPart` / `registerHyperCardCommand` / `registerHyperCardEffectHandler` / `registerHyperCardStack` / `registerHyperCardSaveProvider` (+ `registerHyperCardPartEditorMeta`, `registerHyperCardCommandEditorMeta`) | Extend HyperCard with custom parts, script commands, effects, preloaded stacks, and save backends |
 | `registerAppleGuideTopic(topic: HelpTopic)` | Add help topics to Apple Guide; open one programmatically by dispatching the exported `APPLE_GUIDE_SHOW_TOPIC_EVENT` action type; `getAppleGuideTopic(id)` reads back |
 
-**Keyboard Shortcuts topic** (`AppleGuideKeyboardShortcuts.tsx`, id `KEYBOARD_SHORTCUTS_TOPIC_ID`, opened by Help ▸ Keyboard Shortcuts…). Topics need no API change to be live: a page is a `ReactNode`, so a page that is a component reads the store when it renders. This topic has three such pages: why Control (⌃) and Option (⌥) stand in for Command (the browser keeps ⌘), drawn with `ClassicyKbd`; the items of the frontmost app's menus that carry a `keyboardShortcut` (`Desktop.appMenu`, which the focused window publishes, so Finder's Move To Trash ⌃⌫ appears while Finder is in front; the front app is the focused non-extension app, else Finder); and the system's (the Apple menu's `systemMenu` items plus Help's Show/Hide Balloons, `BALLOON_HELP_SHORTCUT`, ⌥H). The lists follow the front app as it changes, and keep the app that was in front while the Apple Guide window itself holds focus (an extension, whose window publishes an empty menu bar). `collectShortcutEntries(items)` is the exported walker.
-
 | `registerClassicyScreenSaver(def)` | Add screensavers to the idle-activated Screen Saver extension, offered under the Appearance Packages `def.packages` names (see "Screen savers" below) |
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
@@ -5904,6 +5903,12 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | `mergeClassicyState(base, overrides)`, `DefaultAppManagerState`, `sanitizeStateForPersistence` | Building custom `defaultState` for the provider |
 | `wasHydratedFromStorage()`, `startAppManagerPersistence()`, `stopAppManagerPersistence()` | Persistence lifecycle control (tests, SSR, demos) |
 | `resetStartupScreenSession()` (+ `hasShownStartupScreenThisSession`, `markStartupScreenShownThisSession`) | The startup screen shows once per browser session; reset in tests/demos |
+
+**Keyboard Shortcuts topic** (`AppleGuideKeyboardShortcuts.tsx`, id `KEYBOARD_SHORTCUTS_TOPIC_ID`, opened by Help ▸ Keyboard Shortcuts). Topics need no API change to be live: a page is a `ReactNode`, so a page that is a component reads the store when it renders. This topic has three such pages: why Control (⌃) and Option (⌥) stand in for Command (the browser keeps ⌘, except the editing commands, which keep the browser's own keys and are listed marked "the browser's own", Ctrl on Windows and Linux); the items of the front application's menus that carry a `keyboardShortcut` (`Desktop.appMenu`); and the system's (the Apple menu's `systemMenu` items, the standard Help menu's own items and extension `globalShortcuts`, listed by their optional `title`, else the extension's name). Titles are entity-decoded. `collectShortcutEntries(items)` is the exported walker.
+
+**The front application** is `frontAppIdOf` / `useFrontAppId` (`ClassicyFrontApp.ts`): the focused app, except that an extension (Apple Guide) never takes the front. Its window floats over the application in use, as Apple Guide's did in Mac OS, so while it holds focus the front is the most recently focused open non-extension app (`lastFocusedAt`), else Finder. `focusWindow` leaves `Desktop.appMenu` alone for an extension's window that publishes no menus; the menu bar's menus, Application menu, chord registration and the shortcut dispatcher's app scope all follow the front app.
+
+**The standard Help menu** is built by one hook, `useClassicyStandardHelpMenu` (`ClassicyStandardHelpMenu.ts`), for the screen bar and each window's own bar (`ClassicyWindowMenuBar`, window placement). In three groups divided as HIGOS8 Figure 4-2 and HIGOS7 Figure 4-88 divide them: the About item; Show/Hide Balloons (⌥H, `BALLOON_HELP_SHORTCUT`); Keyboard Shortcuts, then the app's `useClassicyHelpMenu` items and the items of any top-level "Help" menu the app publishes in `appMenu` (Finder did; the bar draws one Help menu, and a divider left at an end is trimmed). The About item's wording is the active package's `helpMenu.aboutTitle` (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…"). An extension's `ClassicyGlobalShortcut` takes an optional `title`, which the topic shows.
 
 ### Authoring HyperCard stacks
 
