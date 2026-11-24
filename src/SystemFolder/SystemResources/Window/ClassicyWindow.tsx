@@ -2272,8 +2272,9 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 				modal && type === "error" ? "classicyWindowRed" : "",
 				// A fixed modal (HIG7 p.190: no drag region, and so no title bar
 				// in System 7) as opposed to a movable one: the window the move
-				// gesture refuses, an alert or `movable={false}`. Platinum drops
-				// the bar of the second only (its alert keeps the red bar).
+				// gesture refuses, an alert or `movable={false}`. Both packages
+				// drop its bar; Platinum's fixed alert draws its red rings around
+				// the contents instead (HIGOS8 Figure 3-5, story 0236-2f8).
 				fixedModal ? "classicyWindowModalFixed" : "",
 				scrollable ? "" : "classicyWindowNoScroll",
 				scrollable && !showScrollBars ? "classicyWindowScrollBarsHidden" : "",

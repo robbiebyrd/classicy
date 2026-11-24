@@ -14,7 +14,7 @@
 //   (`--package-color-control-strip-face`, #CCCCCC, which no palette slot
 //   holds), the inner shadow its `controlStrip.shadow` (#AAAAAA), the outer
 //   `--color-system-05` (#888888).
-// - 1-bit: white cells in their black lines, bevelled as in color
+// - 1-bit: white cells in their black lines, beveled as in color
 //   (`controlStrip.bevelWidth` is 1 in both), every gray of a bevel the
 //   screen's 50% checker, which the strip running in 7.5.5 draws
 //   (`bw-controlstrip.png`; the panel's own 1-bit picture, PICT -4043, shows

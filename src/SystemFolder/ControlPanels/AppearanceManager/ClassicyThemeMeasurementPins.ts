@@ -22,8 +22,13 @@ import type { ClassicyThemeMetricKey } from "@/SystemFolder/ControlPanels/Appear
  * persistence keep a recorded value as the theme's own.
  *
  * The record is written only while another (registered) package draws the
- * theme; a host that draws only its own package's themes never has one, so
- * its persisted bytes are what they were.
+ * theme, so a host that draws only its own package's themes never writes
+ * one, and its persisted bytes are what they were. A theme file exported
+ * where another package drew the theme may carry one; importing it keeps
+ * the record, which changes nothing drawn while the theme's own package
+ * draws. A record also stays when the theme's own package draws it again,
+ * until each key is edited (an edit under the theme's own package clears
+ * its key), so the value still holds if the other package draws again.
  */
 
 /**

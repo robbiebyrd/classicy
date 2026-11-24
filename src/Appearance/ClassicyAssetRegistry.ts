@@ -3,6 +3,7 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID } from "./ClassicyAppearanceDefaults";
 import {
 	getClassicyAssetPackageSource,
+	hasClassicyPackageVariantTheme,
 	onClassicyAssetPackageSourceConnect,
 } from "./ClassicyAssetPackageSource.internal";
 import {
@@ -217,15 +218,21 @@ export const getActiveClassicyAppearancePackageId = (): string =>
 export const CLASSICY_ASSET_VARIANT_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 /**
- * The active theme's `assetVariant`, when that theme belongs to `packageId`:
- * a variant names one package's trees, so a theme drawn under another
- * package (its own not registered yet) selects none. Pure: no warning.
+ * The active theme's `assetVariant`, when that theme belongs to `packageId`.
+ * A variant names one package's trees, so another package's theme selects
+ * none of `packageId`'s, unless `packageId` is the drawn package and one of
+ * its built-in themes names that variant: the theme's knobs then complete
+ * from that built-in (`classicyDrawnThemeMeasurements`, story 0235-xgi), and
+ * its art follows (a Platinum theme naming `bw` draws System 7's 1-bit look
+ * under System 7). Pure: no warning.
  */
 const themeVariantFor = (packageId: string): string | undefined => {
 	const theme = getClassicyAssetPackageSource()?.getActiveTheme?.();
 	const variant = theme?.assetVariant;
 	if (typeof variant !== "string") return undefined;
-	return (theme?.package ?? DEFAULT_PACKAGE) === packageId
+	if ((theme?.package ?? DEFAULT_PACKAGE) === packageId) return variant;
+	return packageId === getActiveClassicyAppearancePackageId() &&
+		hasClassicyPackageVariantTheme(packageId, variant)
 		? variant
 		: undefined;
 };

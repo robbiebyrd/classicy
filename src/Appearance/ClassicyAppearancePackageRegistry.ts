@@ -22,6 +22,7 @@ import {
 	CLASSICY_APPEARANCE_STYLE_ELEMENT_PREFIX,
 	injectClassicyAppearanceStyles,
 } from "./ClassicyAppearanceStyles";
+import { setClassicyPackageVariantThemeLookup } from "./ClassicyAssetPackageSource.internal";
 import { CLASSICY_CORE_DEFAULT_THEME } from "./ClassicyCoreTheme";
 
 // The registry itself, apart from the store-reading hooks in
@@ -198,17 +199,43 @@ setClassicyDrawnPackageLookup(
 	(id) => getRegisteredClassicyAppearancePackageOrDefault(id)?.id,
 );
 
+// A package's built-in theme naming `variant` (`assetVariant`): its
+// defaults, else its first preset that does; none for no variant.
+const builtInThemeWithVariant = (
+	pkg: ClassicyAppearancePackage,
+	variant: string | undefined,
+) =>
+	variant === undefined
+		? undefined
+		: [pkg.defaults, ...(pkg.presets ?? [])].find(
+				(theme) => theme.assetVariant === variant,
+			);
+
 // The theme a package completes another package's theme from while it
-// draws it: its `foreignThemeDefaults` built-in, else its defaults.
-setClassicyForeignPackageMeasurementsLookup((id) => {
+// draws it: its built-in naming the theme's `assetVariant` (System 7's 1-bit
+// defaults for `bw`), else its `foreignThemeDefaults` built-in, else its
+// defaults.
+setClassicyForeignPackageMeasurementsLookup((id, assetVariant) => {
 	const pkg = registry.get(id);
 	if (!pkg) return undefined;
+	const byVariant = builtInThemeWithVariant(pkg, assetVariant);
+	if (byVariant) return byVariant.measurements;
 	const ref = pkg.foreignThemeDefaults;
 	const theme =
 		ref === undefined || ref === pkg.defaults.id
 			? pkg.defaults
 			: (pkg.presets?.find((t) => t.id === ref) ?? pkg.defaults);
 	return theme.measurements;
+});
+
+// The same built-in decides the art: another package's theme naming a
+// variant draws the drawing package's trees of that variant only when one
+// of its built-ins names it (`ClassicyAssetRegistry`, `themeVariantFor`).
+setClassicyPackageVariantThemeLookup((id, variant) => {
+	const pkg = registry.get(id);
+	return (
+		pkg !== undefined && builtInThemeWithVariant(pkg, variant) !== undefined
+	);
 });
 
 // Package color families (`classicyThemeColorFamilyDefaults`): the theme's

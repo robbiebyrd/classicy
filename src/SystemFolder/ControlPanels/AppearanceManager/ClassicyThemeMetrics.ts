@@ -368,16 +368,22 @@ const foreignDefaultsCache = new WeakMap<
  * The measurements a theme of another package is completed with while
  * `packageId` draws it (story 0235-xgi): the package's defaults over the
  * core floor (`classicyThemeMeasurementDefaults`), with the measurements of
- * the built-in theme its `foreignThemeDefaults` names merged in key by key,
- * that theme's values winning. Without `foreignThemeDefaults`, the
- * package's defaults; System 7 names its color preset. Frozen, and the same
- * object for the same registration.
+ * a built-in theme merged in key by key, that theme's values winning. The
+ * built-in is the one naming the foreign theme's `assetVariant`, when the
+ * package ships one (System 7's 1-bit defaults for `bw`, whose art the theme
+ * then draws too), else the one its `foreignThemeDefaults` names (System 7's
+ * color preset), else the package's defaults. Frozen, and the same object
+ * for the same registration and built-in.
  */
 export function classicyForeignThemeMeasurementDefaults(
 	packageId: string,
+	assetVariant?: string,
 ): ClassicyThemeMeasurements {
 	const base = classicyThemeMeasurementDefaults(packageId);
-	const reference = getClassicyForeignPackageMeasurements(packageId);
+	const reference = getClassicyForeignPackageMeasurements(
+		packageId,
+		assetVariant,
+	);
 	if (
 		!isPlainObject(reference) ||
 		reference === getClassicyPackageMeasurements(packageId)
@@ -400,9 +406,10 @@ export function classicyForeignThemeMeasurementDefaults(
  * Under its own package (or with no `drawnPackageId`), the theme completed
  * from `classicyThemeMeasurementDefaults(theme.package)`, as before. Under
  * another package, key by key: the core floor, then the drawing package's
- * defaults, then the measurements of the built-in it names for a foreign
- * theme (`foreignThemeDefaults`, `classicyForeignThemeMeasurementDefaults`;
- * System 7's color preset), then the theme's own values: every value that
+ * defaults, then the measurements of its built-in for a foreign theme
+ * (`classicyForeignThemeMeasurementDefaults`: the one naming the theme's
+ * `assetVariant`, else the one `foreignThemeDefaults` names, System 7's
+ * color preset), then the theme's own values: every value that
  * differs from its own package's default (the core five included), and
  * every value its explicit-edit record names (`measurementPins`). So the
  * drawing package's knobs are all present, whatever the theme's package
@@ -451,7 +458,10 @@ export function classicyDrawnThemeMeasurements(
 					classicyThemeMeasurementPins(theme),
 				) ?? current)
 			: current;
-	const drawnDefaults = classicyForeignThemeMeasurementDefaults(drawnId);
+	const drawnDefaults = classicyForeignThemeMeasurementDefaults(
+		drawnId,
+		typeof theme.assetVariant === "string" ? theme.assetVariant : undefined,
+	);
 	const drawn: Record<string, unknown> = {};
 	for (const family of Object.keys(drawnDefaults)) {
 		drawn[family] = fillFamily(drawnDefaults[family], own[family]);

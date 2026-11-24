@@ -228,8 +228,10 @@ export type ClassicyTheme = {
 	 * for drawing and persistence (`classicyDrawnThemeMeasurements`,
 	 * `withoutDefaultThemeMeasurements`). Written only by
 	 * `ClassicyDesktopChangeMetric` under another package
-	 * (`updateClassicyMeasurementPin`); absent on every theme a host drawing
-	 * only its own package's themes ever has.
+	 * (`updateClassicyMeasurementPin`), so never written by a host that draws
+	 * only its own package's themes. A theme file exported where another
+	 * package drew the theme may carry one, and importing it keeps it; it
+	 * changes nothing drawn while the theme's own package draws.
 	 */
 	measurementPins?: Record<string, string[]>;
 	desktop: ClassicyThemeDesktop;

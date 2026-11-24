@@ -40,13 +40,16 @@ export const getClassicyPackageMeasurements = (
 ): unknown => lookup(packageId);
 
 // The measurements of the built-in theme a registered package completes a
-// foreign theme from (`ClassicyAppearancePackage.foreignThemeDefaults`, else
-// its defaults), by package id; set by the registry too (story 0235-xgi).
+// foreign theme from, by package id and the foreign theme's `assetVariant`:
+// the package's built-in theme naming that variant, else the one its
+// `ClassicyAppearancePackage.foreignThemeDefaults` names, else its defaults;
+// set by the registry too (story 0235-xgi).
 
-/** A registered package's foreign-theme reference measurements, or
- * `undefined` for an unregistered id. */
+/** A registered package's foreign-theme reference measurements for a theme
+ * naming `assetVariant` (or none), or `undefined` for an unregistered id. */
 export type ClassicyForeignPackageMeasurementsLookup = (
 	packageId: string,
+	assetVariant?: string,
 ) => unknown;
 
 let foreignMeasurementsLookup: ClassicyForeignPackageMeasurementsLookup = () =>
@@ -64,13 +67,15 @@ export const setClassicyForeignPackageMeasurementsLookup = (
 };
 
 /**
- * The measurements of the theme `packageId` completes a foreign theme from,
- * or `undefined` while that package is not registered.
+ * The measurements of the theme `packageId` completes a foreign theme naming
+ * `assetVariant` (or none) from, or `undefined` while that package is not
+ * registered.
  * @internal
  */
 export const getClassicyForeignPackageMeasurements = (
 	packageId: string,
-): unknown => foreignMeasurementsLookup(packageId);
+	assetVariant?: string,
+): unknown => foreignMeasurementsLookup(packageId, assetVariant);
 
 // The package that draws for a stored `Appearance.packageId`
 // (`classicyDrawnThemeMeasurements`, story 0235-xgi): resolved as the

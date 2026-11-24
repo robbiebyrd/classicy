@@ -393,6 +393,10 @@ export type ClassicyAppearancePackage = {
 	 * fill every key the foreign theme carries no edit of. Absent, the
 	 * package's `defaults`. System 7 names its color preset, so a color theme
 	 * of another package draws System 7's color look, not its 1-bit one.
+	 * A foreign theme naming an `assetVariant` that one of this package's
+	 * built-ins names completes from that built-in instead (its defaults
+	 * first, then its presets in order) and draws this package's art of that
+	 * variant, so a theme naming `bw` draws System 7's 1-bit look.
 	 */
 	foreignThemeDefaults?: string;
 	/** UI metadata per measurements family/key. */

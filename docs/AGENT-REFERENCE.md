@@ -2416,11 +2416,14 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   the package (`CLASSICY_ASSET_VARIANT_NAME`: a letter or digit, then letters,
   digits, `_` or `-`, at most 64), deep-merged like the base tree. A theme
   selects it with `assetVariant: "bw"`, which the schema, theme files,
-  persistence and custom-theme forks keep. The variant applies only while the
-  active theme belongs to the drawn package; `variant` defaults to that
-  theme's, and every reader (`useClassicyAsset`, `useClassicyAssetTree`,
-  `resolveClassicyAsset`, the published `--classicy-art-*` /
-  `--classicy-cursor-*`) follows a theme switch. A variant the package never
+  persistence and custom-theme forks keep. The variant applies while the
+  active theme belongs to the drawn package, and to another package's theme
+  only when one of the drawn package's built-in themes names that variant
+  (its knobs then complete from that built-in, §8; story 0235-xgi: a
+  Platinum theme naming `bw` draws System 7's 1-bit art under System 7);
+  `variant` defaults to that theme's, and every reader (`useClassicyAsset`,
+  `useClassicyAssetTree`, `resolveClassicyAsset`, the published
+  `--classicy-art-*` / `--classicy-cursor-*`) follows a theme switch. A variant the package never
   registered draws the base tree, with one `classicyLog` warning per package
   and variant per page (checked after the current task, so trees registered
   in the same module evaluation never warn). A variant is registered by its
@@ -6415,10 +6418,16 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
        (the id of its defaults or of a preset; absent, its defaults;
        `classicyForeignThemeMeasurementDefaults(packageId)`). System 7
        names its color preset, `system7-color`, so a Platinum theme under
-       System 7 draws System 7's color look (bevelled boxes, scroll-bar
+       System 7 draws System 7's color look (beveled boxes, scroll-bar
        grips, no 1-bit dither), not its black-and-white one. Platinum
        names none. The registry refuses an id that names none of the
-       package's built-ins;
+       package's built-ins. A foreign theme naming an `assetVariant` that
+       one of the drawing package's built-ins names (its defaults first,
+       then its presets) completes from that built-in instead, and draws
+       the drawing package's art of that variant (§5, "Per-theme
+       variants"): a Platinum theme naming `bw` draws System 7's 1-bit
+       knobs and art under System 7; one naming a variant no built-in
+       names takes `foreignThemeDefaults` and the base art (fix round 2);
     4. the theme's own values: every value that differs from its own
        package's default (the core five included), and every value its
        explicit-edit record names (below).
@@ -6452,11 +6461,20 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
     - **Off-limits to options.** `ClassicyDesktopChangeAppearanceOption`
       cannot write it: `measurementPins` is a reserved root, like
       `measurements`.
-    - **Never written for a single-package host.** A host that draws only
+    - **Never written by a single-package host.** A host that draws only
       its own package's themes never writes the record, so its persisted
       bytes are what they were
       (`ClassicyThemeMeasurementPins.platinumOnly.test.ts` compares them
-      with the build's before the record).
+      with the build's before the record). A theme file exported where
+      another package drew the theme may carry one, and importing it keeps
+      it; it changes nothing drawn while the theme's own package draws.
+    - **Kept when the theme's own package draws again.** The record stays
+      on the theme after its own package draws it again, until each key is
+      edited (an edit under the theme's own package clears that key), so
+      the recorded value still holds if the other package draws again. A
+      recorded leaf of a non-core family stays in persisted state meanwhile,
+      though it equals the default; that is the record doing its job, not a
+      leak.
   - **A theme whose package is not registered** keeps all its values,
     since nothing tells its edits from its package's defaults (persistence
     keeps them all too). The visible effect: its core five and every knob

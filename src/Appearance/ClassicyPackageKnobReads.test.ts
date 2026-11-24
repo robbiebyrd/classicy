@@ -330,6 +330,48 @@ describe("what wins (0235-xgi)", () => {
 		expect(reverse).not.toHaveProperty("--title-bar-box-gap");
 	});
 
+	// Fix round 2 (review N3): a foreign theme naming an `assetVariant` that
+	// one of the drawing package's built-ins names completes from that
+	// built-in, so a Platinum theme naming `bw` draws System 7's 1-bit knobs
+	// under System 7, as it draws its 1-bit art
+	// (ClassicyAssetRegistry.variants.test.tsx); a variant no built-in names
+	// falls back to `foreignThemeDefaults`.
+	it("completes a foreign theme naming a variant from the drawing package's built-in with that variant", () => {
+		const bw: ClassicyTheme = {
+			...structuredClone(platinumDefault),
+			assetVariant: "bw",
+		};
+		expect(system7.assetVariant).toBe("bw");
+		expect(knobVars(bw, "system7")).toEqual(knobVars(system7, "system7"));
+		const vars = getThemeVars(bw, "system7") as Record<string, string>;
+		for (const [name, value] of [
+			["--window-control-size", "11px"],
+			["--dither-tile-size", "2px"],
+			["--scroll-bar-grip", "0px"],
+			["--box-bevel", "0px"],
+			["--icon-selection-invert", "1px"],
+			["--menu-bar-title-art-invert", "1px"],
+		] as const)
+			expect(vars[name], name).toBe(value);
+		// A variant no System 7 built-in names: its color reference.
+		const sepia: ClassicyTheme = {
+			...structuredClone(platinumDefault),
+			assetVariant: "sepia",
+		};
+		expect(knobVars(sepia, "system7")).toEqual(
+			knobVars(foreignReference("system7"), "system7"),
+		);
+		// Its own package draws it as before, whatever it names.
+		expect(knobVars(bw, "platinum")).toEqual(
+			knobVars(platinumDefault, "platinum"),
+		);
+		// Platinum ships no `bw` built-in: System 7's 1-bit theme under
+		// Platinum completes from Platinum's defaults, as before.
+		expect(knobVars(system7, "platinum")).toEqual(
+			knobVars(foreignReference("platinum"), "platinum"),
+		);
+	});
+
 	it("keeps a theme's own edits over the drawing package's defaults", () => {
 		const edited: ClassicyTheme = {
 			...structuredClone(platinumDefault),
