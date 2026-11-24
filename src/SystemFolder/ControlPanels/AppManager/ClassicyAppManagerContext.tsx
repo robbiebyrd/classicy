@@ -22,6 +22,7 @@ import {
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
+import { setClassicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
@@ -37,6 +38,11 @@ export type ClassicyAppManagerProviderProps = {
 	defaultState?: DeepPartial<ClassicyStore>;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	defaultFileSystemMode?: ClassicyDefaultFileSystemMode;
+	/** The localStorage key the desktop's file system is kept under (default
+	 *  `"classicyStorage"`): the Finder's, every built-in app's and Recent
+	 *  Items' file system, and any `useClassicyFileSystem()` or
+	 *  `useClassicyFileSystemAccessor()` called without a key of its own. */
+	fileSystemStorageKey?: string;
 	/** One-time corrections applied to a returning visitor's persisted
 	 *  filesystem tree — see ClassicyFileSystemSeedMigrations.ts. */
 	defaultFileSystemSeedMigrations?: ClassicyFileSystemSeedMigration[];
@@ -76,6 +82,7 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	defaultFileSystem,
 	defaultFileSystemMode,
 	defaultFileSystemSeedMigrations,
+	fileSystemStorageKey,
 	disableSimpleText,
 	disablePDFViewer,
 	disableMoviePlayer,
@@ -106,13 +113,22 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		);
 	}, [defaultState]);
 
+	// For reducers, which read no context (Recent Items' documents): published
+	// as the provider renders, before any child acts.
+	setClassicyDesktopFileSystemStorageKey(fileSystemStorageKey);
 	const fsContextValue = useMemo(
 		() => ({
+			storageKey: fileSystemStorageKey,
 			defaultFileSystem,
 			mode: defaultFileSystemMode ?? ("merge" as const),
 			seedMigrations: defaultFileSystemSeedMigrations,
 		}),
-		[defaultFileSystem, defaultFileSystemMode, defaultFileSystemSeedMigrations],
+		[
+			fileSystemStorageKey,
+			defaultFileSystem,
+			defaultFileSystemMode,
+			defaultFileSystemSeedMigrations,
+		],
 	);
 
 	const defaultAppsContextValue = useMemo(

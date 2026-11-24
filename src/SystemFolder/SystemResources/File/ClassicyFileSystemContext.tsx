@@ -17,6 +17,7 @@ import {
 	classicyControlStripModuleLabel,
 	useClassicyControlStripRegistrations,
 } from "@/SystemFolder/SystemResources/ControlStrip/ClassicyControlStripRegistry";
+import { CLASSICY_DEFAULT_FILE_SYSTEM_STORAGE_KEY } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import {
 	ClassicyFileSystem,
 	getClassicyFileSystemVersion,
@@ -44,6 +45,8 @@ import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 export type ClassicyDefaultFileSystemMode = "merge" | "exclusive";
 
 type ClassicyDefaultFileSystemContextValue = {
+	/** The desktop's file system's storage key (`fileSystemStorageKey`). */
+	storageKey?: string;
 	defaultFileSystem?: ClassicyFileSystemTree;
 	mode: ClassicyDefaultFileSystemMode;
 	seedMigrations?: ClassicyFileSystemSeedMigration[];
@@ -114,12 +117,17 @@ export function resolveSeedMigrations(
  * memoized views keyed on it re-read the tree.
  */
 export function useClassicyFileSystem(
-	storageKey?: string,
+	ownStorageKey?: string,
 	separator?: string,
 ): ClassicyFileSystem {
-	const { defaultFileSystem, mode, seedMigrations } = useContext(
-		ClassicyDefaultFileSystemContext,
-	);
+	const {
+		defaultFileSystem,
+		mode,
+		seedMigrations,
+		storageKey: desktopStorageKey,
+	} = useContext(ClassicyDefaultFileSystemContext);
+	// A key of the caller's own, else the desktop's.
+	const storageKey = ownStorageKey ?? desktopStorageKey;
 	const migrations = useMemo(
 		() => resolveSeedMigrations(defaultFileSystem, mode, seedMigrations),
 		[defaultFileSystem, mode, seedMigrations],
@@ -181,7 +189,8 @@ export function useClassicyFileSystem(
 	);
 
 	// Mutation counter of the shared tree: changes on every journaled write.
-	const resolvedStorageKey = storageKey ?? "classicyStorage";
+	const resolvedStorageKey =
+		storageKey ?? CLASSICY_DEFAULT_FILE_SYSTEM_STORAGE_KEY;
 	const subscribe = useCallback(
 		(listener: () => void) =>
 			subscribeClassicyFileSystem(resolvedStorageKey, listener),
@@ -285,12 +294,16 @@ export function useClassicyFileSystem(
  * the tree current at that moment.
  */
 export function useClassicyFileSystemAccessor(
-	storageKey?: string,
+	ownStorageKey?: string,
 	separator?: string,
 ): () => ClassicyFileSystem {
-	const { defaultFileSystem, mode, seedMigrations } = useContext(
-		ClassicyDefaultFileSystemContext,
-	);
+	const {
+		defaultFileSystem,
+		mode,
+		seedMigrations,
+		storageKey: desktopStorageKey,
+	} = useContext(ClassicyDefaultFileSystemContext);
+	const storageKey = ownStorageKey ?? desktopStorageKey;
 	const migrations = useMemo(
 		() => resolveSeedMigrations(defaultFileSystem, mode, seedMigrations),
 		[defaultFileSystem, mode, seedMigrations],

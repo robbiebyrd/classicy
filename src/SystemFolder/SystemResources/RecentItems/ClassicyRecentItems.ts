@@ -23,6 +23,7 @@
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { isClassicyControlPanelApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyControlPanelApps.internal";
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { classicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import { peekClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
@@ -272,12 +273,16 @@ export const classicyRecentDocumentName = (path: string): string =>
 
 /**
  * True when `path` names a file in the desktop's file system (the live tree
- * under the default storage key): an entry that is neither a folder nor a
- * disk. Read without building a file system (`peekClassicyFileSystemEntry`).
+ * under its storage key, the provider's `fileSystemStorageKey`): an entry
+ * that is neither a folder nor a disk. Read without building a file system
+ * (`peekClassicyFileSystemEntry`).
  */
 export const isClassicyRecentDocumentPath = (path: unknown): path is string => {
 	if (typeof path !== "string" || path === "") return false;
-	const entry = peekClassicyFileSystemEntry(path);
+	const entry = peekClassicyFileSystemEntry(
+		path,
+		classicyDesktopFileSystemStorageKey(),
+	);
 	return (
 		entry !== undefined &&
 		entry._type !== ClassicyFileSystemEntryFileType.Directory &&
