@@ -62,7 +62,10 @@
 //    (`./hooks.js`): the package is `"type": "module"`, so a host on
 //    `moduleResolution: node16` or `nodenext` resolves no other. And no
 //    declaration map (.d.ts.map): the dts() call passes
-//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
+//    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1). And
+//    each .d.ts has its .d.cts twin, its relative specifiers ending in .cjs
+//    (bin/classicyCommonJsDeclarations.ts): the exports map's `require`
+//    types for a CommonJS TypeScript host (story 0223-a0y).
 //
 // 8. BOTH BUNDLES USE THE PRODUCTION JSX RUNTIME (the core's invariant 13).
 //    No import of react/jsx-dev-runtime, no jsxDEV() call, no absolute
@@ -82,24 +85,29 @@
 //    in x_google_ignoreList, and keeps the text of each src/ source
 //    (classicySourceMapTextPlugin, bin/classicySourceMapText.ts).
 //
-// 11. BOTH BUNDLES LOAD IN NODE WITH NO BROWSER GLOBALS (the core's invariant
-//    19, story 0223-a0y). A server-rendering host imports the package in
-//    Node: appearance-platinum.es.js is imported, and appearance-platinum.umd.cjs,
+// 11. BOTH BUNDLES LOAD IN NODE, SILENTLY (the core's invariant 19, story
+//    0223-a0y). A server-rendering host imports the package in Node:
+//    appearance-platinum.es.js is imported, and appearance-platinum.umd.cjs,
 //    what `require()` resolves to there, required, each in a child Node
-//    process with `document`, `window`, `localStorage`, `navigator` and the
-//    rest deleted (bin/classicyNodeImport.ts); each must load, registering
-//    the package into the core it imports, without throwing, without a
-//    load-time task throwing and without logging. appearance-platinum.umd.cjs
-//    is the CommonJS loader bin/classicyUmdLoader.ts writes, which runs the
-//    UMD bundle beside it as CommonJS (in this "type": "module" package Node
-//    reads a .js file as an ES module). The core must be built first: the
-//    bundles import it.
+//    process (bin/classicyNodeImport.ts), once with the browser's globals
+//    deleted and once with Node's own globals but `localStorage` and
+//    `sessionStorage` failing on any read; each must load, registering the
+//    package into the core it imports, without throwing, without a
+//    load-time task throwing, without a process warning and without writing
+//    to the console. appearance-platinum.umd.cjs is the CommonJS loader
+//    bin/classicyUmdLoader.ts writes, which runs the UMD bundle beside it as
+//    CommonJS (in this "type": "module" package Node reads a .js file as an
+//    ES module), and the UMD bundle requires no Node built-in (its asset
+//    URLs reach Node's url module through process.getBuiltinModule,
+//    bin/classicyUmdNodeUrl.ts; invariant 1 allows only the core and React).
+//    The core must be built first: the bundles import it.
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join, relative, sep } from "node:path";
 import { exit } from "node:process";
 import { classicyBundleSpecifiers } from "../../../../bin/classicyBundleSpecifiers.ts";
+import { findClassicyCommonJsDeclarationProblems } from "../../../../bin/classicyCommonJsDeclarations.ts";
 import { findClassicyCssFloorProblems } from "../../../../bin/classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "../../../../bin/classicyDeclarationSpecifiers.ts";
 import {
@@ -157,10 +165,6 @@ const EXTERNAL = [
 	"react-dom",
 	"react/jsx-runtime",
 ];
-// Vite's UMD output resolves an asset's URL with
-// `require("url").pathToFileURL(__dirname + "/assets/…")` when there is no
-// document (Node), so the UMD bundle may name Node's own `url` too.
-const UMD_ONLY_EXTERNAL = ["url"];
 // Strings only the core's registries hold (their log messages): a bundle that
 // carried its own copy of a registry would carry its messages too
 // (verify-dist.test.ts checks each is still in the core).
@@ -179,10 +183,7 @@ const CORE_REGISTRY_MARKERS = [
 				problems.push(
 					`${file}: externalizes "${specifier}", which carries a Vite query -> an asset import must stay bundled.`,
 				);
-			else if (
-				!EXTERNAL.includes(specifier) &&
-				!(file === UMD && UMD_ONLY_EXTERNAL.includes(specifier))
-			)
+			else if (!EXTERNAL.includes(specifier))
 				problems.push(
 					`${file}: externalizes "${specifier}", which is not the core or React -> check \`external\` in vite.config.ts.`,
 				);
@@ -427,9 +428,14 @@ const shipped = await readdir(join(DIST, "assets")).catch(() => []);
 		problems.push(
 			`${TYPES}: ${scripts.length} declaration(s) of build scripts or configs (${scripts.slice(0, 5).join(", ")}) -> check the dts include in vite.config.ts.`,
 		);
+	problems.push(
+		...findClassicyCommonJsDeclarationProblems(TYPES, declarations, (file) =>
+			readFileSync(join(TYPES, file), "utf8"),
+		),
+	);
 	report(
 		problems,
-		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, none for a test, build script or JSON file`,
+		`${TYPES}: ${declarations.length} file(s), index.d.ts among them, each .d.ts with its .d.cts twin for require(), none for a test, build script or JSON file`,
 	);
 }
 
@@ -481,6 +487,7 @@ report(
 	const problems = findClassicyUmdLoaderProblems(
 		UMD_LOADER,
 		basename(UMD),
+		"@classicy/appearance-platinum",
 		(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
 	);
 	if (!problems.length)
@@ -492,7 +499,7 @@ report(
 		);
 	report(
 		problems,
-		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}`,
+		`server import: ${ES} (import) and ${UMD_LOADER} (require) load in Node with no browser globals and with Node's own, silently; ${UMD_LOADER} is the CommonJS loader of ${basename(UMD)}`,
 	);
 }
 

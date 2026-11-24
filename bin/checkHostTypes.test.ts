@@ -9,9 +9,14 @@ import {
 	classicyHostLinks,
 	classicyHostTsconfig,
 	findClassicyUndeclaredImports,
+	runClassicyHostRuntime,
 	summarizeClassicyTscOutput,
 	writeClassicyHost,
 } from "./check-host-types";
+import {
+	classicyCommonJsDeclaration,
+	classicyCommonJsDeclarationFile,
+} from "./classicyCommonJsDeclarations";
 
 // bin/check-host-types.ts packs the packages (the core, Platinum and System 7)
 // and type-checks a host against them under each mode (the end of `build:source`, stories 0151-0cc and
@@ -31,12 +36,37 @@ const write = (dir: string, files: Record<string, string>) => {
 	}
 };
 
-const manifest = (name: string) =>
+// As the real packages publish: the ES declarations for `import`, their
+// .d.cts twins for `require` (story 0223-a0y); `cjs: false` publishes the ES
+// ones only, as 3.7.0 did.
+const manifest = (name: string, cjs = true) =>
 	JSON.stringify({
 		name,
 		type: "module",
-		exports: { ".": { types: "./types/index.d.ts" } },
+		exports: {
+			".": cjs
+				? {
+						import: { types: "./types/index.d.ts" },
+						require: { types: "./types/index.d.cts" },
+					}
+				: { types: "./types/index.d.ts" },
+		},
 	});
+// Each .d.ts with its twin, as the build writes them.
+const withTwins = (files: Record<string, string>) =>
+	Object.fromEntries(
+		Object.entries(files).flatMap(([file, text]) =>
+			file.endsWith(".d.ts")
+				? [
+						[file, text],
+						[
+							classicyCommonJsDeclarationFile(file),
+							classicyCommonJsDeclaration(text),
+						],
+					]
+				: [[file, text]],
+		),
+	);
 
 let run = 0;
 /**
@@ -44,42 +74,54 @@ let run = 0;
  * `untyped`, the core's declarations also import `untyped`, a package the
  * host has installed that ships no types (`howler` without `@types/howler`).
  */
-const host = (extension: string, { untyped = false } = {}) => {
+const host = (
+	extension: string,
+	{ untyped = false, cjs = true }: { untyped?: boolean; cjs?: boolean } = {},
+) => {
 	const dir = join(root, `case-${run++}`);
 	writeClassicyHost(dir, {});
-	write(join(dir, "node_modules/@classicy/classicy"), {
-		"package.json": manifest("@classicy/classicy"),
-		"types/index.d.ts": `export * from './Manager.Colors${extension}';\n`,
-		"types/Manager.Colors.d.ts": [
-			...(untyped ? ["import { Player } from 'untyped';"] : []),
-			"export type ClassicyTheme = { id: string; name: string };",
-			"export type ClassicySoundPack = { id: string };",
-			"export declare const registerClassicyAppearancePackage: (id: string) => void;",
-		].join("\n"),
-	});
+	write(
+		join(dir, "node_modules/@classicy/classicy"),
+		withTwins({
+			"package.json": manifest("@classicy/classicy", cjs),
+			"types/index.d.ts": `export * from './Manager.Colors${extension}';\n`,
+			"types/Manager.Colors.d.ts": [
+				...(untyped ? ["import { Player } from 'untyped';"] : []),
+				"export type ClassicyTheme = { id: string; name: string };",
+				"export type ClassicySoundPack = { id: string };",
+				"export declare const registerClassicyAppearancePackage: (id: string) => void;",
+			].join("\n"),
+		}),
+	);
 	if (untyped)
 		write(join(dir, "node_modules/untyped"), {
 			"package.json": JSON.stringify({ name: "untyped", main: "index.js" }),
 			"index.js": "export const Player = class {};\n",
 		});
-	write(join(dir, "node_modules/@classicy/appearance-platinum"), {
-		"package.json": manifest("@classicy/appearance-platinum"),
-		"types/index.d.ts": `export * from './hooks${extension}';\n`,
-		"types/hooks.d.ts": [
-			"import type { ClassicyTheme } from '@classicy/classicy';",
-			"export declare const platinumAppearanceHooks: object;",
-			"export declare const platinumJson: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
-		].join("\n"),
-	});
-	write(join(dir, "node_modules/@classicy/appearance-system7"), {
-		"package.json": manifest("@classicy/appearance-system7"),
-		"types/index.d.ts": `export * from './assets.sounds${extension}';\n`,
-		"types/assets.sounds.d.ts": [
-			"import type { ClassicySoundPack, ClassicyTheme } from '@classicy/classicy';",
-			"export declare const system7SoundPack: ClassicySoundPack;",
-			"export declare const system7Json: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
-		].join("\n"),
-	});
+	write(
+		join(dir, "node_modules/@classicy/appearance-platinum"),
+		withTwins({
+			"package.json": manifest("@classicy/appearance-platinum", cjs),
+			"types/index.d.ts": `export * from './hooks${extension}';\n`,
+			"types/hooks.d.ts": [
+				"import type { ClassicyTheme } from '@classicy/classicy';",
+				"export declare const platinumAppearanceHooks: object;",
+				"export declare const platinumJson: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
+			].join("\n"),
+		}),
+	);
+	write(
+		join(dir, "node_modules/@classicy/appearance-system7"),
+		withTwins({
+			"package.json": manifest("@classicy/appearance-system7", cjs),
+			"types/index.d.ts": `export * from './assets.sounds${extension}';\n`,
+			"types/assets.sounds.d.ts": [
+				"import type { ClassicySoundPack, ClassicyTheme } from '@classicy/classicy';",
+				"export declare const system7SoundPack: ClassicySoundPack;",
+				"export declare const system7Json: { presets: ReadonlyArray<Readonly<ClassicyTheme>> };",
+			].join("\n"),
+		}),
+	);
 	return Object.fromEntries(
 		checkClassicyHost(dir, TSC).map(({ mode, status, output }) => [
 			mode,
@@ -97,6 +139,9 @@ describe("check-host-types.ts", () => {
 				"bundler-lib-check": { status: 0, output: "" },
 				node16: { status: 0, output: "" },
 				nodenext: { status: 0, output: "" },
+				"node16-cjs": { status: 0, output: "" },
+				"node16-cjs-lib-check": { status: 0, output: "" },
+				"nodenext-cjs": { status: 0, output: "" },
 			}),
 		60_000,
 	);
@@ -105,6 +150,7 @@ describe("check-host-types.ts", () => {
 		const results = host("");
 		expect(results.bundler).toEqual({ status: 0, output: "" });
 		expect(results["bundler-lib-check"]).toEqual({ status: 0, output: "" });
+		// (CommonJS resolution needs no extension, so the -cjs modes pass.)
 		for (const resolution of ["node16", "nodenext"]) {
 			expect(results[resolution].status, resolution).toBe(2);
 			expect(results[resolution].output, resolution).toContain(
@@ -123,21 +169,57 @@ describe("check-host-types.ts", () => {
 	// skipLibCheck and an error without it (0153-k0e: `howler`).
 	it("fails a declaration importing an untyped package only without skipLibCheck", () => {
 		const results = host(".js", { untyped: true });
-		for (const mode of ["bundler", "node16", "nodenext"])
+		for (const mode of [
+			"bundler",
+			"node16",
+			"nodenext",
+			"node16-cjs",
+			"nodenext-cjs",
+		])
 			expect(results[mode], mode).toEqual({ status: 0, output: "" });
-		expect(results["bundler-lib-check"].status).toBe(2);
-		expect(results["bundler-lib-check"].output).toContain(
-			"error TS7016: Could not find a declaration file for module 'untyped'.",
-		);
+		for (const mode of ["bundler-lib-check", "node16-cjs-lib-check"]) {
+			expect(results[mode].status, mode).toBe(2);
+			expect(results[mode].output, mode).toContain(
+				"error TS7016: Could not find a declaration file for module 'untyped'.",
+			);
+		}
 	}, 60_000);
 
-	it("checks under bundler, node16 and nodenext with skipLibCheck, and bundler without", () => {
+	// A CommonJS host's require() reads the ES declarations under node16 only
+	// as ES modules it cannot require (TS1479): 3.7.0 shipped no others.
+	it("fails a CommonJS host of packages that publish ES declarations only, under node16", () => {
+		const results = host(".js", { cjs: false });
+		for (const mode of ["bundler", "node16", "nodenext", "nodenext-cjs"])
+			expect(results[mode], mode).toEqual({ status: 0, output: "" });
+		for (const mode of ["node16-cjs", "node16-cjs-lib-check"]) {
+			expect(results[mode].status, mode).toBe(2);
+			expect(results[mode].output, mode).toContain("error TS1479:");
+		}
+	}, 60_000);
+
+	it("checks under bundler, node16 and nodenext with skipLibCheck, and bundler without, then a CommonJS host", () => {
 		expect(Object.keys(CLASSICY_HOST_MODES)).toEqual([
 			"bundler",
 			"bundler-lib-check",
 			"node16",
 			"nodenext",
+			"node16-cjs",
+			"node16-cjs-lib-check",
+			"nodenext-cjs",
 		]);
+		expect(classicyHostTsconfig("node16-cjs")).toMatchObject({
+			compilerOptions: { module: "node16", skipLibCheck: true },
+			files: ["host.cts"],
+		});
+		expect(classicyHostTsconfig("node16-cjs-lib-check")).toMatchObject({
+			compilerOptions: { module: "node16", skipLibCheck: false },
+			files: ["host.cts"],
+		});
+		expect(classicyHostTsconfig("nodenext-cjs")).toMatchObject({
+			compilerOptions: { module: "nodenext", skipLibCheck: true },
+			files: ["host.cts"],
+		});
+		expect(classicyHostTsconfig("nodenext").files).toEqual(["host.ts"]);
 		expect(classicyHostTsconfig("node16").compilerOptions).toMatchObject({
 			module: "node16",
 			moduleResolution: "node16",
@@ -262,4 +344,86 @@ describe("summarizeClassicyTscOutput", () => {
 			"c.d.ts(5,6): error TS2307: Cannot find module 'x'.",
 			"error TS5083: Cannot read file 'tsconfig.json'.",
 		]));
+});
+
+// The packed host's runtime checks (story 0223-a0y), run on stand-in
+// packages shaped like the real ones: an ES entry for `import` and a
+// CommonJS one for `require()`, each with registries of its own, and two
+// packages that register into whichever core they reach.
+describe("runClassicyHostRuntime", () => {
+	const reactDir = resolve("node_modules/react");
+	const reactDomDir = resolve("node_modules/react-dom");
+	const CORE = (format: "esm" | "cjs") => {
+		const body = [
+			"const registry = [];",
+			"const listClassicyAppearancePackages = () => registry.slice();",
+			"const registerClassicyAppearancePackage = (p) => { registry.push(p); };",
+			"const ClassicyAppManagerProvider = ({ children }) => children;",
+			'const ClassicyDesktop = () => R.createElement("div", { className: "classicyDesktop" });',
+		];
+		return format === "esm"
+			? `import * as R from "react";\n${body.join("\n")}\nexport { listClassicyAppearancePackages, registerClassicyAppearancePackage, ClassicyAppManagerProvider, ClassicyDesktop };\n`
+			: `const R = require("react");\n${body.join("\n")}\nmodule.exports = { listClassicyAppearancePackages, registerClassicyAppearancePackage, ClassicyAppManagerProvider, ClassicyDesktop };\n`;
+	};
+	const appearance = (id: string) => ({
+		"package.json": JSON.stringify({
+			name: `@classicy/appearance-${id}`,
+			type: "module",
+			exports: { ".": { import: "./es.js", require: "./umd.cjs" } },
+		}),
+		"es.js": `import { registerClassicyAppearancePackage } from "@classicy/classicy";\nregisterClassicyAppearancePackage({ id: "${id}" });\n`,
+		"umd.cjs": `require("@classicy/classicy").registerClassicyAppearancePackage({ id: "${id}" });\n`,
+	});
+	const runtimeHost = ({ requireEntry = true } = {}) => {
+		const dir = join(root, `runtime-${run++}`);
+		writeClassicyHost(dir, { react: reactDir, "react-dom": reactDomDir });
+		write(join(dir, "node_modules/@classicy/classicy"), {
+			"package.json": JSON.stringify({
+				name: "@classicy/classicy",
+				type: "module",
+				exports: {
+					".": requireEntry
+						? { import: "./es.js", require: "./umd.cjs" }
+						: { import: "./es.js" },
+				},
+			}),
+			"es.js": CORE("esm"),
+			"umd.cjs": CORE("cjs"),
+		});
+		write(
+			join(dir, "node_modules/@classicy/appearance-platinum"),
+			appearance("platinum"),
+		);
+		write(
+			join(dir, "node_modules/@classicy/appearance-system7"),
+			appearance("system7"),
+		);
+		return Object.fromEntries(
+			runClassicyHostRuntime(dir).map(({ script, ok, output }) => [
+				script,
+				{ ok, output },
+			]),
+		);
+	};
+
+	it("passes packages that load by import and by require(), each format its own library", () => {
+		const results = runtimeHost();
+		for (const script of [
+			"host-import.mjs",
+			"host-require.cjs",
+			"host-both.mjs",
+		])
+			expect(results[script].ok, results[script].output).toBe(true);
+	}, 60_000);
+
+	it("fails packages that require() cannot load", () => {
+		const results = runtimeHost({ requireEntry: false });
+		expect(results["host-import.mjs"].ok).toBe(true);
+		for (const script of ["host-require.cjs", "host-both.mjs"]) {
+			expect(results[script].ok, script).toBe(false);
+			expect(results[script].output, script).toMatch(
+				/^exit 1; printed nothing/,
+			);
+		}
+	}, 60_000);
 });

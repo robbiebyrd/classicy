@@ -25,9 +25,12 @@
 	"module": "./dist/appearance-system7.es.js",
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.ts",
-			"import": "./dist/appearance-system7.es.js",
+			"import": {
+				"types": "./dist/types/index.d.ts",
+				"default": "./dist/appearance-system7.es.js"
+			},
 			"require": {
+				"types": "./dist/types/index.d.cts",
 				"node": "./dist/appearance-system7.umd.cjs",
 				"default": "./dist/appearance-system7.umd.js"
 			}

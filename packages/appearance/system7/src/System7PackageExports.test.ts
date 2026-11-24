@@ -35,11 +35,15 @@ describe("the exports", () => {
 	it("are the bundles with their types, the SCSS and the two strict-CSP stylesheets", () =>
 		expect(pkg.exports).toEqual({
 			".": {
-				types: "./dist/types/index.d.ts",
-				import: "./dist/appearance-system7.es.js",
+				import: {
+					types: "./dist/types/index.d.ts",
+					default: "./dist/appearance-system7.es.js",
+				},
 				// Node's require() takes the CommonJS loader of the UMD bundle,
-				// any other resolver the bundle itself (story 0223-a0y).
+				// any other resolver the bundle itself; a CommonJS TypeScript
+				// host the .d.cts twins (story 0223-a0y).
 				require: {
+					types: "./dist/types/index.d.cts",
 					node: "./dist/appearance-system7.umd.cjs",
 					default: "./dist/appearance-system7.umd.js",
 				},

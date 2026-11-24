@@ -11,6 +11,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { deflateRawSync } from "node:zlib";
 import { afterAll, describe, expect, it } from "vitest";
+import {
+	classicyCommonJsDeclaration,
+	classicyCommonJsDeclarationFile,
+} from "./classicyCommonJsDeclarations";
 import { CLASSICY_DEFLATE_MARK } from "./classicyDeflateAsset";
 import { CLASSICY_LAYER_ORDER } from "./classicyStyleInjector";
 
@@ -434,12 +438,20 @@ describe("check-dist-imports.mjs invariant 5: saver art (whole dist)", () => {
 // and two empty entry bundles, so the other invariants report what that dist
 // lacks; only the dist/types lines are read.
 describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist)", () => {
-	const types = (declarations: Record<string, string>) => {
+	// Each .d.ts with its .d.cts twin, as the build writes them, unless
+	// `twins` is false.
+	const types = (declarations: Record<string, string>, twins = true) => {
 		const dir = join(root, `case-${run++}`);
 		mkdirSync(join(dir, "dist"), { recursive: true });
 		for (const bundle of ["classicy.es.js", "classicy.umd.js"])
 			writeFileSync(join(dir, "dist", bundle), "export{};");
-		for (const [file, text] of Object.entries(declarations)) {
+		const files = { ...declarations };
+		if (twins)
+			for (const [file, text] of Object.entries(declarations))
+				if (file.endsWith(".d.ts"))
+					files[classicyCommonJsDeclarationFile(file)] =
+						classicyCommonJsDeclaration(text);
+		for (const [file, text] of Object.entries(files)) {
 			const path = join(dir, "dist", "types", file);
 			mkdirSync(dirname(path), { recursive: true });
 			writeFileSync(path, text);
@@ -463,10 +475,27 @@ describe("check-dist-imports.mjs invariant 8: declaration specifiers (whole dist
 			}),
 		).toEqual({
 			out: [
-				`${join("dist", "types")}: 3 file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
+				`${join("dist", "types")}: 5 file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension; every .d.ts with its .d.cts twin for require()`,
 			],
 			err: [],
 		}));
+
+	// The exports map's `require` types (story 0223-a0y).
+	it("fails a declaration without its .d.cts twin, and a stray twin", () =>
+		expect(
+			types(
+				{
+					"src/index.d.ts": "export * from './a.js';\n",
+					"src/a.d.ts": "export type A = 1;\n",
+					"src/a.d.cts": "export type A = 1;\n",
+					"src/stray.d.cts": "export {};\n",
+				},
+				false,
+			).err,
+		).toEqual([
+			"dist/types/src/index.d.cts: missing -> a CommonJS TypeScript host reads it for require(); check afterBuild (classicyCommonJsDeclarationsWriter) on dts in vite.config.ts.",
+			"dist/types/src/stray.d.cts: has no src/stray.d.ts -> a .d.cts is only ever a .d.ts's CommonJS twin.",
+		]));
 
 	it("invariant 8 fails on a .d.ts.map in dist/types", () =>
 		expect(

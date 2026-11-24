@@ -10,6 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import {
+	classicyCommonJsDeclaration,
+	classicyCommonJsDeclarationFile,
+} from "../../../../bin/classicyCommonJsDeclarations";
 import { classicyFontStylesheet } from "../../../../bin/classicyFontStylesheet";
 import { CLASSICY_NODE_IMPORT_FIXTURE } from "../../../../bin/classicyNodeImportFixture";
 import { CLASSICY_LAYER_ORDER } from "../../../../bin/classicyStyleInjector";
@@ -78,7 +82,7 @@ const urls = SHIPPED.map(
 	(file) => `new URL("assets/${path.basename(file)}",import.meta.url).href`,
 ).join(",");
 const ES = `import{registerClassicyAppearancePackage as r}from"@classicy/classicy";import{jsx as j}from"react/jsx-runtime";const h="${HALFTONE}";const u=[${urls}];const css=${PACKAGE_LITERAL};r({css});export{u};\n//# sourceMappingURL=appearance-platinum.es.js.map\n`;
-const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?require("url").pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\n`;
+const UMD = `(function(g,f){typeof exports=="object"&&typeof module<"u"?f(exports,require("@classicy/classicy"),require("react/jsx-runtime")):f(g.classicyAppearancePlatinum={},g.classicy,g.React)})(this,function(e,c,j){const h="${HALFTONE}";const z=typeof document>"u"?$classicyUrl().pathToFileURL(__dirname+"/assets/zoom.svg").href:"";const css=${PACKAGE_LITERAL};c.registerClassicyAppearancePackage({css});});\nfunction $classicyUrl(){return process.getBuiltinModule("node:url")}\n`;
 const FONTS = classicyFontStylesheet(
 	PLATINUM_FONT_FACES,
 	(face) => `assets/${face.file}.woff2`,
@@ -99,6 +103,7 @@ const DIST: Record<string, string | Buffer> = {
 	"appearance-platinum.umd.js.map": MAP,
 	"appearance-platinum.umd.cjs": classicyUmdLoader(
 		"appearance-platinum.umd.js",
+		"@classicy/appearance-platinum",
 	),
 	"classicy-platinum.css": `${CLASSICY_LAYER_ORDER}\n${PACKAGE}`,
 	"classicy-platinum.fonts.css": FONTS,
@@ -133,7 +138,18 @@ const verify = (
 		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
 		writeFileSync(path.join(dir, file), content);
 	}
-	for (const [file, content] of Object.entries({ ...DIST, ...changes })) {
+	// Each declaration's .d.cts twin, as the build writes it (invariant 7),
+	// unless the case sets the twin itself.
+	const files: Record<string, string | Buffer | null> = { ...DIST, ...changes };
+	for (const [file, content] of Object.entries(files))
+		if (
+			file.endsWith(".d.ts") &&
+			typeof content === "string" &&
+			!(classicyCommonJsDeclarationFile(file) in changes)
+		)
+			files[classicyCommonJsDeclarationFile(file)] =
+				classicyCommonJsDeclaration(content);
+	for (const [file, content] of Object.entries(files)) {
 		if (content === null) continue;
 		const target = path.join(dir, "dist", file);
 		mkdirSync(path.dirname(target), { recursive: true });
@@ -169,9 +185,12 @@ describe("bin/verify-dist.mjs", () => {
 			expect(stderr.split("\n")).toEqual([
 				'dist/appearance-platinum.umd.js: externalizes "@classicy/classicy-copy", which is not the core or React -> check `external` in vite.config.ts.',
 				"dist/appearance-platinum.umd.js: does not import @classicy/classicy -> the core must stay external (a peer dependency), or Platinum registers into a copy of the registries nothing reads.",
-				// And Node cannot load it (invariant 11).
+				// And Node cannot load it (invariant 11), in either environment.
 				expect.stringMatching(
 					/^dist\/appearance-platinum\.umd\.cjs: does not require cleanly in Node with no browser globals: throws Error: Cannot find module '@classicy\/classicy-copy'/,
+				),
+				expect.stringMatching(
+					/^dist\/appearance-platinum\.umd\.cjs: does not require cleanly in Node with Node's own globals: throws Error: Cannot find module '@classicy\/classicy-copy'/,
 				),
 			]);
 		});
@@ -184,6 +203,21 @@ describe("bin/verify-dist.mjs", () => {
 				}).stderr,
 			).toBe(
 				'dist/appearance-platinum.es.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
+			));
+
+		// Rollup's UMD asset URL, require("url"), which a browser bundler that
+		// bundles the UMD bundle cannot resolve: the build rewrites it
+		// (bin/classicyUmdNodeUrl.ts).
+		it("fails Node's url module in the UMD bundle too", () =>
+			expect(
+				verify({
+					"appearance-platinum.umd.js": UMD.replace(
+						"$classicyUrl()",
+						'require("url")',
+					),
+				}).stderr,
+			).toBe(
+				'dist/appearance-platinum.umd.js: externalizes "url", which is not the core or React -> check `external` in vite.config.ts.',
 			));
 
 		it("fails a bundle that carries the core's registries", () =>
@@ -209,9 +243,12 @@ describe("bin/verify-dist.mjs", () => {
 				}).stderr.split("\n"),
 			).toEqual([
 				'dist/appearance-platinum.es.js: externalizes "@classicy/classicy/x.svg?url", which carries a Vite query -> an asset import must stay bundled.',
-				// Nor can Node resolve it (invariant 11).
+				// Nor can Node resolve it (invariant 11), in either environment.
 				expect.stringMatching(
 					/^dist\/appearance-platinum\.es\.js: does not import cleanly in Node with no browser globals: throws Error: Package subpath '\.\/x\.svg\?url' is not defined by "exports"/,
+				),
+				expect.stringMatching(
+					/^dist\/appearance-platinum\.es\.js: does not import cleanly in Node with Node's own globals: throws Error: Package subpath '\.\/x\.svg\?url' is not defined by "exports"/,
 				),
 			]));
 	});
@@ -460,6 +497,30 @@ describe("bin/verify-dist.mjs", () => {
 				status: 1,
 				stderr:
 					'dist/types/index.d.ts: relative specifier(s) without an extension ("./hooks") -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.',
+			}));
+
+		// The exports map's `require` types (story 0223-a0y).
+		it("fails a declaration without its .d.cts twin", () =>
+			expect(verify({ "types/hooks.d.cts": null })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/hooks.d.cts: missing -> a CommonJS TypeScript host reads it for require(); check afterBuild (classicyCommonJsDeclarationsWriter) on dts in vite.config.ts.",
+			}));
+
+		it("fails a .d.cts twin that is not its declaration's", () =>
+			expect(
+				verify({ "types/index.d.cts": 'export * from "./hooks.js";\n' }),
+			).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/index.d.cts: is not index.d.ts with its relative specifiers ending in .cjs -> it is written by classicyCommonJsDeclarationsWriter (bin/classicyCommonJsDeclarations.ts), not by hand.",
+			}));
+
+		it("fails a .d.cts with no declaration", () =>
+			expect(verify({ "types/stray.d.cts": "export {};\n" })).toEqual({
+				status: 1,
+				stderr:
+					"dist/types/stray.d.cts: has no stray.d.ts -> a .d.cts is only ever a .d.ts's CommonJS twin.",
 			}));
 
 		it("fails a declaration map", () =>

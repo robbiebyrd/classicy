@@ -72,6 +72,19 @@ export const withClassicyDeclarationExtensions = (
 		return `${keyword}${quote}${resolved}${quote}`;
 	});
 
+/**
+ * `code` with each relative specifier (in an import, an export or an
+ * `import("…")` type, never in a comment or another string) replaced by
+ * `rewrite(specifier)`.
+ */
+export const withClassicyRelativeSpecifiers = (
+	code: string,
+	rewrite: (specifier: string) => string,
+): string =>
+	code.replace(RELATIVE_SPECIFIER, (match, skip, keyword, quote, specifier) =>
+		skip ? match : `${keyword}${quote}${rewrite(specifier)}${quote}`,
+	);
+
 /** The relative specifiers a declaration's `code` imports, in order. */
 export const findClassicyRelativeSpecifiers = (code: string): string[] =>
 	[...code.matchAll(RELATIVE_SPECIFIER)]

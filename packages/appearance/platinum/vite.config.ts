@@ -2,11 +2,13 @@ import path from "node:path";
 import { NodePackageImporter } from "sass";
 import { defineConfig, type UserConfig } from "vite";
 import dts from "vite-plugin-dts";
+import { classicyCommonJsDeclarationsWriter } from "../../../bin/classicyCommonJsDeclarations";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
 import { classicyUmdLoaderPlugin } from "../../../bin/classicyUmdLoader";
+import { classicyUmdNodeUrlPlugin } from "../../../bin/classicyUmdNodeUrl";
 import { PLATINUM_FONT_FACES } from "./src/assets/platinumFonts.internal";
 
 // @classicy/appearance-platinum's library build: ES and UMD bundles of the
@@ -105,11 +107,20 @@ const platinumConfig = (mode: string): UserConfig => ({
 							root: import.meta.dirname,
 							entryRoot: "src",
 						}),
+						// And again as `.d.cts` twins, the exports map's `require` types
+						// (bin/classicyCommonJsDeclarations.ts, story 0223-a0y).
+						afterBuild: classicyCommonJsDeclarationsWriter(),
 					}),
 				]),
 		// dist/appearance-platinum.umd.cjs, the exports map's `require` under `node`:
 		// it runs the UMD bundle as CommonJS (story 0223-a0y).
-		classicyUmdLoaderPlugin("appearance-platinum.umd.js"),
+		classicyUmdLoaderPlugin(
+			"appearance-platinum.umd.js",
+			"@classicy/appearance-platinum",
+		),
+		// Node's url module through process.getBuiltinModule, not a static
+		// require("url") (bin/classicyUmdNodeUrl.ts, invariant 11).
+		classicyUmdNodeUrlPlugin(),
 		// Last: the published maps keep Classicy's own text and drop zod's
 		// and any embedded asset's (verify-dist invariant 10).
 		classicySourceMapTextPlugin(),

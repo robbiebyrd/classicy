@@ -2,11 +2,13 @@ import path from "node:path";
 import { NodePackageImporter } from "sass";
 import { defineConfig, type UserConfig } from "vite";
 import dts from "vite-plugin-dts";
+import { classicyCommonJsDeclarationsWriter } from "../../../bin/classicyCommonJsDeclarations";
 import { classicyDeclarationExtensionsWriter } from "../../../bin/classicyDeclarationSpecifiers";
 import { noInlineAppearanceAssetsPlugin } from "../../../bin/classicyNoInlineAssets";
 import { classicyPackageStylesheetsPlugin } from "../../../bin/classicyPackageStylesheets";
 import { classicySourceMapTextPlugin } from "../../../bin/classicySourceMapText";
 import { classicyUmdLoaderPlugin } from "../../../bin/classicyUmdLoader";
+import { classicyUmdNodeUrlPlugin } from "../../../bin/classicyUmdNodeUrl";
 import { system7AssetFileName } from "./bin/system7AssetNames";
 import { SYSTEM7_FONT_FACES } from "./src/assets/system7Fonts.internal";
 
@@ -95,11 +97,20 @@ const system7Config = (mode: string): UserConfig => ({
 							root: import.meta.dirname,
 							entryRoot: "src",
 						}),
+						// And again as `.d.cts` twins, the exports map's `require` types
+						// (bin/classicyCommonJsDeclarations.ts, story 0223-a0y).
+						afterBuild: classicyCommonJsDeclarationsWriter(),
 					}),
 				]),
 		// dist/appearance-system7.umd.cjs, the exports map's `require` under `node`:
 		// it runs the UMD bundle as CommonJS (story 0223-a0y).
-		classicyUmdLoaderPlugin("appearance-system7.umd.js"),
+		classicyUmdLoaderPlugin(
+			"appearance-system7.umd.js",
+			"@classicy/appearance-system7",
+		),
+		// Node's url module through process.getBuiltinModule, not a static
+		// require("url") (bin/classicyUmdNodeUrl.ts, invariant 11).
+		classicyUmdNodeUrlPlugin(),
 		// Last: the published maps keep Classicy's own text and drop zod's
 		// and any embedded asset's (verify-dist invariant 10).
 		classicySourceMapTextPlugin(),

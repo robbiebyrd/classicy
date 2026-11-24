@@ -4,6 +4,7 @@ import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 import VitePluginImageTools from "vite-plugin-image-tools";
 import richSvg from "vite-plugin-react-rich-svg";
+import { classicyCommonJsDeclarationsWriter } from "./bin/classicyCommonJsDeclarations";
 import { classicyCssLayerPlugin } from "./bin/classicyCssLayerPlugin";
 import { classicyDeclarationExtensionsWriter } from "./bin/classicyDeclarationSpecifiers";
 import { classicyDeferredModulePlugin } from "./bin/classicyDeferredModule";
@@ -21,6 +22,7 @@ import {
 	prependLayerOrder,
 } from "./bin/classicyStyleInjector";
 import { classicyUmdLoaderPlugin } from "./bin/classicyUmdLoader";
+import { classicyUmdNodeUrlPlugin } from "./bin/classicyUmdNodeUrl";
 
 // `import "@classicy/classicy"` should be enough to get a styled desktop (#303): no CSS
 // loader to configure, no second import to remember. This plugin embeds the
@@ -232,6 +234,10 @@ const config = defineConfig({
 			// `"type": "module"` package (verify:dist invariant 8,
 			// bin/check-host-types.ts).
 			beforeWriteFile: classicyDeclarationExtensionsWriter({ root: __dirname }),
+			// And again as `.d.cts` twins, the exports map's `require` types: a
+			// CommonJS TypeScript host reads the `.d.ts` ones as ES modules
+			// (bin/classicyCommonJsDeclarations.ts, story 0223-a0y).
+			afterBuild: classicyCommonJsDeclarationsWriter(),
 		}),
 		richSvg(),
 		VitePluginImageTools({
@@ -251,7 +257,11 @@ const config = defineConfig({
 		// dist/classicy.umd.cjs, the exports map's `require` under `node`: it
 		// runs classicy.umd.js as CommonJS, which this "type": "module" package
 		// cannot `require()` as it is (bin/classicyUmdLoader.ts, invariant 19).
-		classicyUmdLoaderPlugin("classicy.umd.js"),
+		classicyUmdLoaderPlugin("classicy.umd.js", "@classicy/classicy"),
+		// The UMD bundle reaches Node's url module with process.getBuiltinModule,
+		// not a static require("url") a browser bundler cannot resolve
+		// (bin/classicyUmdNodeUrl.ts, invariant 19).
+		classicyUmdNodeUrlPlugin(),
 		// Last: the published maps keep Classicy's own text and drop third-party
 		// and asset text (verify:dist invariant 16), after injectCssPlugin has
 		// changed the entry bundles.

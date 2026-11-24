@@ -25,6 +25,7 @@ const pkg = JSON.parse(read("package.json")) as {
 	name: string;
 	main: string;
 	module: string;
+	types: string;
 	publishConfig?: { access?: string };
 	exports: Record<string, string | Record<string, unknown>>;
 	files: string[];
@@ -68,16 +69,22 @@ describe("package.json: the npm name", () => {
 	it("requires the UMD bundle through its CommonJS loader in Node only", () => {
 		expect(pkg.main).toBe("./dist/classicy.umd.js");
 		expect(pkg.module).toBe("./dist/classicy.es.js");
+		// Each with its own declarations: TypeScript reads the `.d.ts` as ES
+		// modules, which a CommonJS host on node16 cannot require (TS1479).
 		expect(pkg.exports["."]).toEqual({
-			types: "./dist/types/src/index.d.ts",
-			import: "./dist/classicy.es.js",
+			import: {
+				types: "./dist/types/src/index.d.ts",
+				default: "./dist/classicy.es.js",
+			},
 			require: {
+				types: "./dist/types/src/index.d.cts",
 				node: "./dist/classicy.umd.cjs",
 				default: "./dist/classicy.umd.js",
 			},
 		});
+		expect(pkg.types).toBe("./dist/types/src/index.d.ts");
 		expect(read("vite.config.ts")).toMatch(
-			/classicyUmdLoaderPlugin\("classicy\.umd\.js"\)/,
+			/classicyUmdLoaderPlugin\("classicy\.umd\.js", "@classicy\/classicy"\)/,
 		);
 	});
 });

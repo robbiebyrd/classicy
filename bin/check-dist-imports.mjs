@@ -93,7 +93,11 @@
 //    map: every .d.ts.map is dead weight for a host (its `sources` point at
 //    files the tarball does not hold), so each dts() call passes
 //    `compilerOptions: { declarationMap: false }` (plan 0019-fb7 §2.1).
-//    Checked by walking dist/types (skipped when the caller names files).
+//    And each .d.ts has its .d.cts twin, its relative specifiers ending in
+//    .cjs (bin/classicyCommonJsDeclarations.ts): the exports map's `require`
+//    types, since a CommonJS TypeScript host on node16 cannot require() the
+//    ES-module .d.ts (TS1479; story 0223-a0y). Checked by walking dist/types
+//    (skipped when the caller names files).
 //
 // 9. EVERY STYLESHEET IN DIST/ IS ASCII ONLY, OR OPENS WITH `@charset "UTF-8";`.
 //    Strict-CSP hosts link dist/classicy.css and dist/classicy-<id>.css
@@ -185,20 +189,26 @@
 //    VitePluginImageTools never re-encoded it. Skipped when the caller names
 //    files.
 //
-// 19. THE LIBRARY LOADS IN NODE WITH NO BROWSER GLOBALS (story 0223-a0y). A
+// 19. THE LIBRARY LOADS IN NODE, SILENTLY (story 0223-a0y). A
 //    server-rendering host (Next.js, Remix, Astro) loads the library in Node:
 //    classicy.es.js is imported, and classicy.umd.cjs, what `require()`
-//    resolves to there, required, each in a child Node process with
-//    `document`, `window`, `localStorage`, `navigator` and the rest deleted
-//    (bin/classicyNodeImport.ts); each must load without throwing, without a
-//    load-time task throwing and without logging. classicy.umd.cjs is the
-//    CommonJS loader bin/classicyUmdLoader.ts writes, a few lines that run
-//    classicy.umd.js beside it as CommonJS: in this "type": "module" package
-//    Node reads a .js file as an ES module, so the UMD bundle itself cannot
-//    be required. 3.7.0 threw `document is not defined` on import (a
-//    dependency's `browser` entry, bin/classicyNodeEntry.ts), and its UMD
-//    bundle could not be required at all. Skipped when the caller names
-//    files.
+//    resolves to there, required, each in a child Node process
+//    (bin/classicyNodeImport.ts), twice: once with the browser's globals
+//    deleted (`document`, `window`, `navigator`, `localStorage` and the
+//    rest), and once with Node's own globals but `localStorage` and
+//    `sessionStorage` failing on any read, `typeof` included, as Node 25 and
+//    later throw or warn on one. Each must load without throwing, without a
+//    load-time task throwing, without a process warning and without writing
+//    to the console. classicy.umd.cjs is the CommonJS loader
+//    bin/classicyUmdLoader.ts writes, a few lines that run classicy.umd.js
+//    beside it as CommonJS (in this "type": "module" package Node reads a .js
+//    file as an ES module, so the UMD bundle itself cannot be required), and
+//    classicy.umd.js requires no Node built-in, which a browser bundler could
+//    not resolve (Rollup's `require("url")` for import.meta.url becomes
+//    process.getBuiltinModule, bin/classicyUmdNodeUrl.ts). 3.7.0 threw
+//    `document is not defined` on import (a dependency's `browser` entry,
+//    bin/classicyNodeEntry.ts), and its UMD bundle could not be required at
+//    all. Skipped when the caller names files.
 
 import { existsSync, readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
@@ -210,6 +220,7 @@ import {
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
 import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import { findClassicyCommonJsDeclarationProblems } from "./classicyCommonJsDeclarations.ts";
 import { findClassicyCssFloorProblems } from "./classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
 import { classicyDeflatePayloads } from "./classicyDeflateAsset.ts";
@@ -233,6 +244,7 @@ import {
 	classicyUmdLoaderFile,
 	findClassicyUmdLoaderProblems,
 } from "./classicyUmdLoader.ts";
+import { findClassicyUmdNodeBuiltinProblems } from "./classicyUmdNodeUrl.ts";
 
 const DIST = "dist";
 
@@ -580,15 +592,26 @@ if (!argv.slice(2).length) {
 			`${file}: relative specifier(s) without an extension (${listed(specifiers.map((s) => JSON.stringify(s)))}) -> a node16 or nodenext host resolves none of them; check beforeWriteFile on dts in vite.config.ts.`,
 		);
 	}
+	const twins =
+		declarations === null
+			? []
+			: findClassicyCommonJsDeclarationProblems(
+					typesDir,
+					declarations.map(String),
+					(file) => readFileSync(join(typesDir, file), "utf8"),
+				);
+	for (const problem of twins) console.error(problem);
+	if (twins.length) failed = true;
 	if (
 		declarations !== null &&
 		!shipped.length &&
 		!scripts.length &&
 		!json.length &&
-		!bare
+		!bare &&
+		!twins.length
 	) {
 		console.log(
-			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension`,
+			`${typesDir}: ${declarations.length} file(s), none for a test, test helper, story, build script in bin/, root build config or imported JSON; every relative specifier with its extension; every .d.ts with its .d.cts twin for require()`,
 		);
 	}
 }
@@ -954,18 +977,24 @@ if (!argv.slice(2).length) {
 		{ file: join(DIST, "classicy.es.js"), kind: "import" },
 		{ file: loader, kind: "require" },
 	];
-	const problems = findClassicyUmdLoaderProblems(
-		loader,
-		"classicy.umd.js",
-		(file) => (existsSync(file) ? readFileSync(file, "utf8") : null),
-	);
+	const read = (file) => (existsSync(file) ? readFileSync(file, "utf8") : null);
+	const umd = join(DIST, "classicy.umd.js");
+	const problems = [
+		...findClassicyUmdLoaderProblems(
+			loader,
+			"classicy.umd.js",
+			"@classicy/classicy",
+			read,
+		),
+		...findClassicyUmdNodeBuiltinProblems(umd, read(umd) ?? ""),
+	];
 	if (!problems.length)
 		problems.push(...(await findClassicyNodeImportProblems(entries)));
 	for (const problem of problems) console.error(problem);
 	if (problems.length) failed = true;
 	else
 		console.log(
-			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals, silently; ${loader} is the CommonJS loader of classicy.umd.js`,
+			`server import: ${entries.map(({ file, kind }) => `${file} (${kind})`).join(" and ")} load in Node with no browser globals and with Node's own, silently; ${loader} is the CommonJS loader of classicy.umd.js, which requires no Node built-in`,
 		);
 }
 

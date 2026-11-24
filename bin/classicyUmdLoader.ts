@@ -6,47 +6,84 @@ import type { Plugin } from "vite";
 // 0223-a0y). The bundle keeps its name, a public path (`./dist/*`) that CDN
 // script tags load, and beside it ships a small CommonJS loader, the bundle's
 // name with .cjs, which the exports map's `require` condition names under
-// `node`: it runs the unchanged bundle as CommonJS, with only documented Node
-// APIs. Browser bundlers resolve `require()` through `default`, the bundle
-// itself, so none picks the loader.
+// `node`: it runs the unchanged bundle as CommonJS. Browser bundlers resolve
+// `require()` through `default`, the bundle itself, so none picks the loader;
+// they should `import` the ES build (story 0223-a0y).
 
 /** The loader's file name for a UMD bundle: `classicy.umd.js` → `classicy.umd.cjs`. */
 export const classicyUmdLoaderFile = (umdFile: string): string =>
 	umdFile.replace(/\.js$/, ".cjs");
 
 /** The loader's size limit, in bytes: it must stay a few lines. */
-export const CLASSICY_UMD_LOADER_MAX_BYTES = 2048;
+export const CLASSICY_UMD_LOADER_MAX_BYTES = 4096;
 
 /**
- * The loader's source for the UMD bundle `umdFile` (a bare file name in the
- * same folder). The bundle runs in a CommonJS wrapper whose head is a line of
- * its own, offset away, so a stack trace from inside it names the bundle's
- * own file, lines and columns. Its `require` is the loader's, which resolves
- * from the same folder as the bundle's would.
+ * The loader's source for `packageName`'s UMD bundle `umdFile` (a bare file
+ * name in the same folder). It reads the bundle and runs it with a direct
+ * `eval` inside a function whose parameters are CommonJS's (`exports`,
+ * `require`, `module`, `__filename`, `__dirname`), the source ending in a
+ * `//# sourceURL` of the bundle's path. So the bundle runs in the realm of
+ * whoever required the loader (a test runner's sandbox, Jest's, included), a
+ * stack trace names the bundle's own file, lines and columns, and
+ * `--enable-source-maps` maps it through the bundle's source map (Node maps
+ * generated code with a source URL). Where code generation from strings is
+ * disallowed (`--disallow-code-generation-from-strings`) it compiles the
+ * bundle with `vm.runInThisContext` instead, in the main realm and without
+ * source maps. Its `require` is the loader's, which resolves from the same
+ * folder as the bundle's would. A bundle missing beside it (a bundler copied
+ * the loader alone into a server bundle) throws an error that says so.
+ * No `"use strict"`: Node runs CommonJS modules, and so the bundle, sloppy.
  */
-export const classicyUmdLoader = (umdFile: string): string =>
-	[
-		'"use strict";',
-		`// Runs ${umdFile}, the UMD bundle, as CommonJS: in this "type": "module"`,
-		"// package Node reads a .js file as an ES module (bin/classicyUmdLoader.ts).",
-		'const { readFileSync } = require("node:fs");',
-		'const { join } = require("node:path");',
-		'const { runInThisContext } = require("node:vm");',
-		`const file = join(__dirname, ${JSON.stringify(umdFile)});`,
-		"const factory = runInThisContext(",
-		'\t"(function (exports, require, module, __filename, __dirname) {\\n" +',
-		'\t\treadFileSync(file, "utf8") +',
-		'\t\t"\\n})",',
-		"\t{ filename: file, lineOffset: -1 },",
-		");",
-		"factory.call(module.exports, module.exports, require, module, file, __dirname);",
-		"",
-	].join("\n");
+export const classicyUmdLoader = (
+	umdFile: string,
+	packageName: string,
+): string =>
+	`// ${packageName}'s CommonJS entry: runs ${umdFile}, the UMD bundle beside it, as
+// CommonJS, since in this "type": "module" package Node reads a .js file as an
+// ES module (bin/classicyUmdLoader.ts in the Classicy repository).
+function classicyUmdRun(exports, require, module, __filename, __dirname) {
+	eval(arguments[5]);
+}
+(function (file) {
+	var source;
+	try {
+		source = require("node:fs").readFileSync(file, "utf8");
+	} catch (error) {
+		if (error && error.code === "ENOENT")
+			throw new Error(
+				${JSON.stringify(`${packageName}: its UMD bundle, `)} +
+					file +
+					${JSON.stringify(`, is missing beside its CommonJS loader. A bundler copied the loader into a server bundle without the bundle: keep @classicy/* external in a server bundle that require()s them, or import them (the ES build).`)},
+				{ cause: error },
+			);
+		throw error;
+	}
+	var args = [module.exports, require, module, file, __dirname];
+	try {
+		eval("");
+	} catch (_disallowed) {
+		return require("node:vm")
+			.runInThisContext(
+				"(function (exports, require, module, __filename, __dirname) {\\n" +
+					source +
+					"\\n})",
+				{ filename: file, lineOffset: -1 },
+			)
+			.apply(module.exports, args);
+	}
+	args.push(source + "\\n//# sourceURL=" + file);
+	classicyUmdRun.apply(module.exports, args);
+})(require("node:path").join(__dirname, ${JSON.stringify(umdFile)}));
+`;
 
 /**
- * Emits the loader beside the UMD bundle `umdFile` in the build's UMD output.
+ * Emits `packageName`'s loader beside the UMD bundle `umdFile` in the build's
+ * UMD output.
  */
-export function classicyUmdLoaderPlugin(umdFile: string): Plugin {
+export function classicyUmdLoaderPlugin(
+	umdFile: string,
+	packageName: string,
+): Plugin {
 	return {
 		name: "classicy-umd-loader",
 		generateBundle(options) {
@@ -54,14 +91,15 @@ export function classicyUmdLoaderPlugin(umdFile: string): Plugin {
 			this.emitFile({
 				type: "asset",
 				fileName: classicyUmdLoaderFile(umdFile),
-				source: classicyUmdLoader(umdFile),
+				source: classicyUmdLoader(umdFile, packageName),
 			});
 		},
 	};
 }
 
 /**
- * Problems with the loader `loaderPath` that should run `umdFile`: it must
+ * Problems with `packageName`'s loader `loaderPath` that should run
+ * `umdFile`: it must
  * be exactly the loader this module writes (so it is tiny and names its
  * sibling), and `umdFile` must be beside it. `read` returns a file's text, or
  * null when it is missing.
@@ -69,6 +107,7 @@ export function classicyUmdLoaderPlugin(umdFile: string): Plugin {
 export function findClassicyUmdLoaderProblems(
 	loaderPath: string,
 	umdFile: string,
+	packageName: string,
 	read: (path: string) => string | null,
 ): string[] {
 	const text = read(loaderPath);
@@ -77,7 +116,7 @@ export function findClassicyUmdLoaderProblems(
 			`${loaderPath}: missing -> the exports map's \`require\` condition names it; check classicyUmdLoaderPlugin in vite.config.ts (bin/classicyUmdLoader.ts).`,
 		];
 	const problems: string[] = [];
-	if (text !== classicyUmdLoader(umdFile))
+	if (text !== classicyUmdLoader(umdFile, packageName))
 		problems.push(
 			`${loaderPath}: is not the CommonJS loader for ${umdFile} -> it is written by classicyUmdLoaderPlugin (bin/classicyUmdLoader.ts), not by hand.`,
 		);
