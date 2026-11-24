@@ -218,6 +218,78 @@ describe("review S1: ClassicySoundSet takes effect under Classicy's provider", (
 		expect(host.play).toHaveBeenCalledWith("ClassicyBeep");
 		expect(log).not.toContain("platinum.ogg play ClassicyBeep");
 	});
+
+	const hostPlayer = () => ({
+		play: vi.fn(() => 1),
+		stop: vi.fn(),
+		volume: vi.fn(),
+		playing: vi.fn(() => false),
+		unload: vi.fn(),
+	});
+
+	// Re-review 2, N1: a child's mount effect runs before the provider's
+	// players are built; the provider's first ClassicySoundSetPlayers must
+	// leave the host's player in place.
+	const SetOnMount = ({
+		player,
+	}: {
+		player: ReturnType<typeof hostPlayer>;
+	}) => {
+		const soundDispatch = useSoundDispatch();
+		useEffect(() => {
+			soundDispatch({ type: "ClassicySoundSet", soundPlayer: player as never });
+		}, [soundDispatch, player]);
+		return null;
+	};
+
+	it("keeps a player the host sets from a mount effect", () => {
+		const host = hostPlayer();
+		render(
+			<ClassicySoundManagerProvider>
+				<SetOnMount player={host} />
+				<Dispatcher />
+			</ClassicySoundManagerProvider>,
+		);
+		act(() => dispatch({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }));
+		expect(host.play).toHaveBeenCalledTimes(1);
+		expect(host.play).toHaveBeenCalledWith("ClassicyBeep");
+		expect(log).not.toContain("platinum.ogg play ClassicyBeep");
+	});
+
+	it("keeps it under StrictMode too", () => {
+		const host = hostPlayer();
+		render(
+			<StrictMode>
+				<ClassicySoundManagerProvider>
+					<SetOnMount player={host} />
+					<Dispatcher />
+				</ClassicySoundManagerProvider>
+			</StrictMode>,
+		);
+		act(() => dispatch({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }));
+		expect(host.play).toHaveBeenCalledTimes(1);
+		expect(log).not.toContain("platinum.ogg play ClassicyBeep");
+	});
+
+	it("gives way to the new pack's player when the pack changes", () => {
+		const host = hostPlayer();
+		const ui = () => (
+			<ClassicySoundManagerProvider>
+				<SetOnMount player={host} />
+				<Dispatcher />
+			</ClassicySoundManagerProvider>
+		);
+		const r = render(ui());
+		act(() => dispatch({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }));
+		expect(host.play).toHaveBeenCalledTimes(1);
+		appearance.activeTheme.sound.pack = "remote";
+		act(() => r.rerender(ui()));
+		log.length = 0;
+		act(() => dispatch({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }));
+		// A pack load replaces the host's player, as it always did.
+		expect(host.play).toHaveBeenCalledTimes(1);
+		expect(log).toContain("remote.ogg play ClassicyBeep");
+	});
 });
 
 // A provider of the host's own on the exported (deprecated) reducer, as a

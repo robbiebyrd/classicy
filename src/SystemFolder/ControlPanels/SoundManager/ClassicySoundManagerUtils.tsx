@@ -87,6 +87,12 @@ export type ClassicySoundState = {
 	 * while it is not `packId`.
 	 */
 	playersPackId?: string | null;
+	/**
+	 * The pack the host's own player (`ClassicySoundSet`) was set for. The
+	 * provider's players for that pack (`ClassicySoundSetPlayers`) leave it
+	 * in place; a pack load replaces it, as it always did.
+	 */
+	hostPlayerPackId?: string | null;
 };
 
 /**
@@ -528,9 +534,13 @@ export const classicySoundStateReducer = (
 			break;
 		}
 		case ClassicySoundActionTypes.ClassicySoundSetPlayers: {
+			// A host's own player set for this pack stays: a child sets it from
+			// its mount effect, before the provider's players are built.
+			const hostKept =
+				ss.hostPlayerPackId !== undefined && ss.hostPlayerPackId === ss.packId;
 			next = {
 				...ss,
-				soundPlayer: action.soundPlayer ?? null,
+				soundPlayer: hostKept ? ss.soundPlayer : (action.soundPlayer ?? null),
 				fallbackPlayer: action.fallbackPlayer ?? null,
 				playersPackId: ss.packId,
 			};
@@ -600,6 +610,7 @@ export const classicySoundStateReducer = (
 				...ss,
 				soundPlayer: action.soundPlayer ?? null,
 				playersPackId: ss.packId,
+				hostPlayerPackId: ss.packId,
 			};
 			break;
 		}

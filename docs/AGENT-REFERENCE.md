@@ -5947,17 +5947,22 @@ then `ClassicySoundCommandsRun { through }`), so an alert keeps system gain
 × alert volume even when it plays in the commit its player arrives. A
 command queued before the players for the state's pack are set (a child's
 mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
-player of the host's own, which the commands then play on. The seed
+player of the host's own, which the commands then play on; the provider's
+own players for the same pack leave it in place (`hostPlayerPackId`), also
+when it was set from a child's mount effect, before they were built, and
+the next pack load replaces it, as it always did. The seed
 (`seedClassicySoundState`) builds no player and returns its start state
 without a window; the provider reads the persisted alert sound and volume
-into it at once. Where there is no usable audio (Howler's `noAudio`, or no
-codec for any of the pack's formats, by Howler's own reading of each
-source: jsdom, a browser with audio disabled), no Howl is built
+into it at once. Where the environment plays no audio at all (Howler's
+`noAudio`, or none of the formats Howler knows: jsdom, a browser with
+audio disabled; `classicyAudioAvailable`), no Howl is built
 (`createSoundPlayer` returns `null`), sounds play nothing, and one `info`
 entry per page (`ClassicySoundManager`, "Sound is unavailable here…") says
 so, where a Howl would have logged "Failed to load audio sprite … No codec
-support" as an error for every load; a load that fails where audio works
-is still an `error`.
+support" as an error for every load. Where audio works, every pack gets its
+Howl, so a pack whose own sources fail (an ogg-only pack where ogg does not
+play, a `blob:` or extensionless URL, a missing file) logs that error, per
+pack.
 **Deprecated: `ClassicySoundStateEventReducer` and `seedSoundState`.** They
 keep their old behavior for a provider of the host's own
 (`useReducer(ClassicySoundStateEventReducer, initialPlayer, (b) =>

@@ -170,4 +170,36 @@ describe("classicySoundStateReducer", () => {
 		});
 		expect(built.playersPackId).toBe("y");
 	});
+
+	// Re-review 2, N1: the provider's players for the pack leave a host's
+	// own player in place; a pack load ends that.
+	it("keeps a host's player through the provider's players for its pack", () => {
+		const host = player();
+		const built = player();
+		const set = classicySoundStateReducer(state({ packId: "x" }), {
+			type: "ClassicySoundSet" as ClassicySoundActionTypes,
+			soundPlayer: host,
+		});
+		const after = classicySoundStateReducer(set, {
+			type: "ClassicySoundSetPlayers" as ClassicySoundActionTypes,
+			soundPlayer: built,
+			fallbackPlayer: null,
+		});
+		expect(after.soundPlayer).toBe(host);
+		const loaded = classicySoundStateReducer(after, {
+			type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+			pack: {
+				id: "remote",
+				name: "Remote",
+				src: ["remote.ogg"],
+				sprite: { ClassicyBeep: [0, 100] },
+			},
+		});
+		const replaced = classicySoundStateReducer(loaded, {
+			type: "ClassicySoundSetPlayers" as ClassicySoundActionTypes,
+			soundPlayer: built,
+			fallbackPlayer: null,
+		});
+		expect(replaced.soundPlayer).toBe(built);
+	});
 });
