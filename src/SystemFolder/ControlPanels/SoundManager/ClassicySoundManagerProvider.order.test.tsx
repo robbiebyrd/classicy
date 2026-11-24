@@ -290,6 +290,39 @@ describe("review S1: ClassicySoundSet takes effect under Classicy's provider", (
 		expect(host.play).toHaveBeenCalledTimes(1);
 		expect(log).toContain("remote.ogg play ClassicyBeep");
 	});
+
+	// Re-review 3, N2: once a pack load has replaced the host's player,
+	// going back to its pack plays on that pack's player, not on the pack
+	// just left (whose Howl the provider has unloaded) nor on the host's.
+	const backToFirstPack = (setHost: "mount" | "after mount") => {
+		const host = hostPlayer();
+		const ui = () => (
+			<ClassicySoundManagerProvider>
+				{setHost === "mount" && <SetOnMount player={host} />}
+				<Dispatcher />
+			</ClassicySoundManagerProvider>
+		);
+		const r = render(ui());
+		if (setHost === "after mount")
+			act(() =>
+				dispatch({ type: "ClassicySoundSet", soundPlayer: host as never }),
+			);
+		appearance.activeTheme.sound.pack = "remote";
+		act(() => r.rerender(ui()));
+		appearance.activeTheme.sound.pack = "platinum";
+		act(() => r.rerender(ui()));
+		log.length = 0;
+		act(() => dispatch({ type: "ClassicySoundPlay", sound: "ClassicyBeep" }));
+		expect(host.play).not.toHaveBeenCalled();
+		expect(log).toContain("platinum.ogg play ClassicyBeep");
+		expect(log).not.toContain("remote.ogg play ClassicyBeep");
+	};
+
+	it("plays on the first pack's player after A, B, A (host set on mount)", () =>
+		backToFirstPack("mount"));
+
+	it("plays on the first pack's player after A, B, A (host set after mount)", () =>
+		backToFirstPack("after mount"));
 });
 
 // A provider of the host's own on the exported (deprecated) reducer, as a

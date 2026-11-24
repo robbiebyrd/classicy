@@ -5953,7 +5953,9 @@ mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
 player of the host's own, which the commands then play on; the provider's
 own players for the same pack leave it in place (`hostPlayerPackId`), also
 when it was set from a child's mount effect, before they were built, and
-the next pack load replaces it, as it always did. The seed
+the next load of another pack replaces it, as it always did, and forgets
+it, so coming back to its pack plays on the provider's player for that
+pack. The seed
 (`seedClassicySoundState`) builds no player and returns its start state
 without a window; the provider reads the persisted alert sound and volume
 into it at once. Where the environment plays no audio at all (Howler's

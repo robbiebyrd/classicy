@@ -90,7 +90,8 @@ export type ClassicySoundState = {
 	/**
 	 * The pack the host's own player (`ClassicySoundSet`) was set for. The
 	 * provider's players for that pack (`ClassicySoundSetPlayers`) leave it
-	 * in place; a pack load replaces it, as it always did.
+	 * in place; a load of another pack replaces it, as it always did, and
+	 * clears this, so returning to the pack takes the provider's player.
 	 */
 	hostPlayerPackId?: string | null;
 };
@@ -543,6 +544,7 @@ export const classicySoundStateReducer = (
 				soundPlayer: hostKept ? ss.soundPlayer : (action.soundPlayer ?? null),
 				fallbackPlayer: action.fallbackPlayer ?? null,
 				playersPackId: ss.packId,
+				hostPlayerPackId: hostKept ? ss.hostPlayerPackId : undefined,
 			};
 			break;
 		}
@@ -577,10 +579,14 @@ export const classicySoundStateReducer = (
 			// The pack to play, and the default pack as the stand-in for the
 			// sprites it lacks (when it is another pack and the default is
 			// registered). The provider builds both players, logging what the
-			// pack lacks, and unloads the previous pack's.
+			// pack lacks, and unloads the previous pack's. A load that moves to
+			// another pack ends a host's player (`hostPlayerPackId`), so coming
+			// back to the host's pack takes the provider's player for it.
 			next = {
 				...ss,
 				packId: pack.id,
+				hostPlayerPackId:
+					pack.id === ss.packId ? ss.hostPlayerPackId : undefined,
 				pack,
 				sprites: new Set(Object.keys(pack.sprite)),
 				fallbackPackId:

@@ -202,4 +202,38 @@ describe("classicySoundStateReducer", () => {
 		});
 		expect(replaced.soundPlayer).toBe(built);
 	});
+
+	// Re-review 3, N2: the host's pack is forgotten once a load moves on,
+	// so coming back to that pack takes the provider's player for it.
+	it("forgets the host's pack after a load, so A, B, A takes A's player", () => {
+		const host = player();
+		const remote = player();
+		const platinum = player();
+		const pack = (id: string) => ({
+			id,
+			name: id,
+			src: [`${id}.ogg`],
+			sprite: { ClassicyBeep: [0, 100] as [number, number] },
+		});
+		const load = (ss: ClassicySoundState, id: string) =>
+			classicySoundStateReducer(ss, {
+				type: "ClassicySoundLoad" as ClassicySoundActionTypes,
+				pack: pack(id),
+			});
+		const setPlayers = (ss: ClassicySoundState, soundPlayer: Howl) =>
+			classicySoundStateReducer(ss, {
+				type: "ClassicySoundSetPlayers" as ClassicySoundActionTypes,
+				soundPlayer,
+				fallbackPlayer: null,
+			});
+		let ss = classicySoundStateReducer(state({ packId: "platinum" }), {
+			type: "ClassicySoundSet" as ClassicySoundActionTypes,
+			soundPlayer: host,
+		});
+		ss = setPlayers(load(ss, "remote"), remote);
+		expect(ss.soundPlayer).toBe(remote);
+		expect(ss.hostPlayerPackId).toBeUndefined();
+		ss = setPlayers(load(ss, "platinum"), platinum);
+		expect(ss.soundPlayer).toBe(platinum);
+	});
 });
