@@ -209,8 +209,12 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		// never replaces it); none only when no app is focused, when Hide and
 		// Hide Others have no app to act on.
 		const frontId = focusedApp?.id;
+		// Hide and Hide Others have nothing to hide for an extension in front
+		// (HIG7 p.127: a command dims when it would do nothing; an extension is
+		// not a hideable application, as `hideApp` has it).
 		const othersShown =
 			frontId !== undefined &&
+			focusedApp?.extension !== true &&
 			openApps.some((a) => a.id !== frontId && !a.hidden);
 		const anyHidden = openApps.some((a) => a.hidden);
 		const commands: ClassicyMenuItem[] = [

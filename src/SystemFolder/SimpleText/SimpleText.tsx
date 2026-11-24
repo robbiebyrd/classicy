@@ -514,7 +514,7 @@ export const SimpleText = () => {
 				ClassicyFileSystemEntryFileType.Markdown,
 			]}
 			handlesOwnFiles={true}
-			appMenu={noWindowMenu}
+			windowlessMenu={noWindowMenu}
 		>
 			{docs.map((doc, idx) => (
 				<ClassicyWindow

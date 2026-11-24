@@ -11,6 +11,8 @@ export type ClassicyAppSwitcherEntry = {
 	name: string;
 	icon: string;
 	focused?: boolean;
+	/** An extension, listed only while it is the front application. */
+	extension?: boolean;
 	open: boolean;
 	/** Hidden by the Application menu's Hide commands. */
 	hidden?: boolean;
@@ -44,6 +46,7 @@ export function appSwitcherAppsFrom(
 					// With a front app given (`frontAppIdOf`) it alone is focused, so an
 					// extension's window holding focus leaves the title on the app in use.
 					focused: frontAppId === undefined ? a.focused : a.id === frontAppId,
+					...(a.extension ? { extension: true } : {}),
 					open: a.open,
 					...(a.hidden ? { hidden: true } : {}),
 				};

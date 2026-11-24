@@ -578,6 +578,72 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 	});
 });
 
+// Story 0233-c79: with an extension in front (its window publishes menus) Hide
+// and Hide Others have nothing to hide (`hideApp` and `hideOtherApps` ignore an
+// extension), so they dim (HIG7 p.127: a command dims when it would do nothing).
+describe("ClassicyDesktopMenuBar: an extension in front", () => {
+	beforeEach(() => {
+		useAppManager.setState(DefaultAppManagerState, true);
+	});
+
+	it("dims Hide and Hide Others", () => {
+		useAppManager.setState(
+			produce(DefaultAppManagerState, (draft) => {
+				draft.System.Manager.Applications.apps = {
+					"Finder.app": {
+						id: "Finder.app",
+						name: "Finder",
+						icon: "",
+						windows: {},
+						open: true,
+						focused: false,
+						data: {},
+					},
+					"Other.app": {
+						id: "Other.app",
+						name: "Other",
+						icon: "",
+						windows: {},
+						open: true,
+						focused: false,
+						data: {},
+					},
+					"Ext.app": {
+						id: "Ext.app",
+						name: "Ext",
+						icon: "",
+						extension: true,
+						open: true,
+						focused: true,
+						data: {},
+						windows: {
+							w: {
+								id: "w",
+								closed: false,
+								focused: true,
+								size: [1, 1],
+								position: [0, 0],
+								minimumSize: [1, 1],
+								menuBar: [{ id: "ext_m", title: "Ext" }],
+							},
+						},
+					},
+				};
+				draft.System.Manager.Applications.focusedAppId = "Ext.app";
+			}),
+			true,
+		);
+		render(<ClassicyDesktopMenuBar />);
+		const switcher = document.querySelector("#app-switcher") as HTMLElement;
+		fireEvent.click(switcher.querySelector("p") ?? switcher);
+		for (const id of ["app-switcher_hide", "app-switcher_hide-others"]) {
+			expect(document.getElementById(id)?.classList.contains("disabled")).toBe(
+				true,
+			);
+		}
+	});
+});
+
 // Story 0214-c61 fix round 3: a hidden application's icon is drawn with the
 // active package's dimming rule (`iconDimming.hiddenApp`), on a canvas.
 describe("ClassicyDesktopMenuBar — a hidden application's dimmed icon", () => {
