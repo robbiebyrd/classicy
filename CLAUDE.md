@@ -662,7 +662,8 @@ and `sanitizeStateForPersistence` drops every modal window record),
 `onResponse` after OK, and removal when the
 app comes forward (`focusedAppId` changes to it, unless `removeOnActivate:
 false`, or the alert's own window brought it forward, as with no app in
-front when the host is the notifying app) or quits; it waits for its second commit and for Classicy's own
+front when the host is the notifying app), when the user answers an alert
+its own app hosts (same opt-out), or when it quits; it waits for its second commit and for Classicy's own
 startup screen (`ClassicyStartupHold.internal.ts`). HyperCard stacks cannot
 post (no scriptable action). Details: `docs/AGENT-REFERENCE.md` §4.11.
 

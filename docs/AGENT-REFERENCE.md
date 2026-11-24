@@ -1634,14 +1634,17 @@ blinking icon, the sound, then the alert.
   Manager itself never removed a request; and when its app quits (an open
   app closing), as the Notification Manager flushed a quitting
   application's requests. A request posted by the front app for itself
-  stays until the app comes forward again. So does one whose own app the
-  alert brought forward: with no app in front the alert opens as a window
-  of the Finder or of the first shown application, which may be the
-  notifying app, and opening it focuses that app; that focus is the
-  alert's, not the user's (Mac OS's alert never changed the front
-  process), so it removes nothing, and the app's requests stay until it
-  comes forward again. A request for an app that is not open stays until
-  it opens (which brings it forward).
+  stays until the app comes forward again, or until the user answers its
+  alert (below). With no app in front the alert opens as a window of the
+  Finder or of the first shown application, which may be the notifying
+  app, and opening it focuses that app; that focus is the alert's, not the
+  user's (Mac OS's alert never changed the front process), so it removes
+  nothing. When the user answers an alert its own app hosts (the front
+  app's own request, or that fallback), they have attended to that app:
+  the request is removed after `onResponse`, unless `removeOnActivate` is
+  `false`; the app's other requests stay until it comes forward again. A
+  request for an app that is not open stays until it opens (which brings
+  it forward).
 - **Presentation needs a desktop.** `ClassicyDesktop` mounts the controller
   that plays the sound, shows the alert, calls `onResponse` and removes
   requests; a request posted before it mounts is presented once it does,

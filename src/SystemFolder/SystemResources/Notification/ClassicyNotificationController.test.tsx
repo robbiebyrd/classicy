@@ -181,10 +181,14 @@ describe("under StrictMode", () => {
 				</ClassicySoundManagerProvider>
 			</StrictMode>,
 		);
-		const id = notify({ appId: "Finder.app", message: "Finder." });
+		const onResponse = vi.fn();
+		const id = notify({ appId: "Finder.app", message: "Finder.", onResponse });
 		expect(focused()).toBe("Finder.app");
 		expect(alertTexts()).toEqual(["Finder."]);
 		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(onResponse).toHaveBeenCalledTimes(1);
+		expect(listClassicyNotifications()).toEqual([]);
 	});
 });
 
@@ -425,10 +429,11 @@ describe("the alert's owner", () => {
 
 	// Re-review, section 7: with no app in front the alert's host may be the
 	// notifying app itself. The alert opening brings that app forward, which
-	// is not the user activating it: the request and its alert stay, and the
-	// app is treated as one that was in front when it posted, its requests
-	// kept until it comes forward again.
-	it("keeps the request when its own app hosts the alert", () => {
+	// is not the user activating it: the request and its alert stay. The
+	// coordinator's ruling (fix round 3): answering an alert its own app
+	// hosts is attending to that app, so the request goes then, unless
+	// `removeOnActivate` is false.
+	it("keeps the request while its own app hosts the alert, and removes it when answered", () => {
 		setApps({ "Finder.app": {}, "Mail.app": {} }, undefined);
 		renderController();
 		const onResponse = vi.fn();
@@ -440,12 +445,20 @@ describe("the alert's owner", () => {
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));
 		expect(onResponse).toHaveBeenCalledWith(id);
 		expect(alertTexts()).toEqual([]);
-		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
-		act(() => dispatch({ type: "ClassicyAppFocus", app: { id: "Mail.app" } }));
-		act(() =>
-			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } }),
-		);
 		expect(listClassicyNotifications()).toEqual([]);
+	});
+
+	it("keeps an answered request that asks not to be removed on activation", () => {
+		setApps({ "Finder.app": {}, "Mail.app": {} }, undefined);
+		renderController();
+		const id = notify({
+			appId: "Finder.app",
+			message: "Finder.",
+			removeOnActivate: false,
+		});
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(alertTexts()).toEqual([]);
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
 	});
 
 	it("does the same for the only shown application", () => {
@@ -453,15 +466,19 @@ describe("the alert's owner", () => {
 		renderController();
 		const onResponse = vi.fn();
 		const id = notify({ appId: "Mail.app", message: "Mail.", onResponse });
+		const kept = notify({ appId: "Mail.app" });
 		expect(alertOwner(id)).toBe("Mail.app");
 		expect(focused()).toBe("Mail.app");
 		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id, kept]);
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));
 		expect(onResponse).toHaveBeenCalledWith(id);
-		expect(listClassicyNotifications().map((n) => n.id)).toEqual([id]);
+		// Only the answered request goes; the app's other one waits for it
+		// to come forward again.
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([kept]);
 	});
 
-	it("keeps the host's own requests queued behind another app's alert", () => {
+	it("keeps the host's own requests queued behind another app's alert, until answered", () => {
 		setApps({ "Finder.app": {}, "Mail.app": {} }, undefined);
 		renderController();
 		let first = "";
@@ -476,11 +493,27 @@ describe("the alert's owner", () => {
 			first,
 			second,
 		]);
+		// The Finder hosted Mail's alert: answering it attends to the Finder,
+		// not to Mail, so Mail's request stays.
 		fireEvent.click(screen.getByRole("button", { name: "OK" }));
 		expect(visibleAlertTexts()).toEqual(["Second."]);
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([
+			first,
+			second,
+		]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([first]);
 		// The user bringing an app forward still takes its requests down.
 		act(() => dispatch({ type: "ClassicyAppFocus", app: { id: "Mail.app" } }));
-		expect(listClassicyNotifications().map((n) => n.id)).toEqual([second]);
+		expect(listClassicyNotifications()).toEqual([]);
+	});
+
+	it("removes a front app's own request when its alert is answered", () => {
+		renderController();
+		const id = notify({ appId: "Finder.app", message: "Front." });
+		expect(alertOwner(id)).toBe("Finder.app");
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(listClassicyNotifications()).toEqual([]);
 	});
 
 	it("waits, drawing nothing, while no app is shown", () => {

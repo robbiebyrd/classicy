@@ -17,6 +17,7 @@ import {
 	completeClassicyNotificationAlert,
 	getClassicyNotificationEntries,
 	markClassicyNotificationSoundPlayed,
+	removeClassicyNotification,
 	removeClassicyNotificationsWhere,
 	respondToClassicyNotification,
 	subscribeClassicyNotifications,
@@ -166,9 +167,10 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	// a window of the Finder or of the first shown application, which may be
 	// the notifying app itself, and opening a window focuses its app. That is
 	// the Notification Manager's doing, not the user's (Mac OS's alert never
-	// changed the front process), so the app is treated as one that was in
-	// front when it posted: its requests stay until it comes forward again.
-	// `alertActivation` is set below, after this effect in each commit.
+	// changed the front process), so it removes nothing; the request goes
+	// when the user answers the alert (below), and the app's other requests
+	// stay until it comes forward again. `alertActivation` is set below,
+	// after this effect in each commit.
 	const lastFocused = useRef(focusedAppId);
 	const alertActivation = useRef<string | undefined>(undefined);
 	useEffect(() => {
@@ -245,6 +247,13 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	// No wrapper: the alert's own modal scrim blocks the desktop while it
 	// shows, and nothing is left over the desktop when it cannot show.
 	if (!alerting?.message || !ownerAppId) return null;
+	// Answering an alert its own app hosts is attending to that app: the
+	// request goes (unless `removeOnActivate` is false), after its response.
+	const answer = () => {
+		completeClassicyNotificationAlert(alerting.id);
+		if (ownerAppId === alerting.appId && alerting.removeOnActivate)
+			removeClassicyNotification(alerting.id);
+	};
 	return (
 		<ClassicyAlert
 			key={`${alerting.id}:${ownerAppId}`}
@@ -253,7 +262,7 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 			alertType={"note"}
 			label={alerting.message}
 			playSound={false}
-			onClose={() => completeClassicyNotificationAlert(alerting.id)}
+			onClose={answer}
 		/>
 	);
 };

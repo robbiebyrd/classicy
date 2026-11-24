@@ -1163,9 +1163,10 @@ sprite. The sound plays once at the alert volume (silent when muted); the
 alert shows once, one request's at a time.
 
 The mark and the icon **stay until the request is removed**. Classicy
-removes it for you when your app comes to the front (pass
-`removeOnActivate: false` to keep it, then call
-`removeClassicyNotification(id)` yourself) and when your app quits. Post one
+removes it for you when your app comes to the front, or when the user
+answers its alert while your own app hosts it (pass `removeOnActivate:
+false` to keep it, then call `removeClassicyNotification(id)` yourself),
+and when your app quits. Post one
 request per occurrence: each is presented separately. Requests are session
 state, never persisted; `useClassicyNotifications()` lists them.
 HyperCard stacks cannot post them. Full reference:
