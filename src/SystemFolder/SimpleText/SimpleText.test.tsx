@@ -21,6 +21,7 @@ import {
 	getAppWindow,
 	listAppWindows,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { requestClassicyAppQuit } from "@/SystemFolder/SystemResources/App/ClassicyAppQuit";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 
@@ -91,7 +92,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		renderDesktop();
 		openSimpleText();
 		await waitFor(() => {
-			expect(screen.getByText("Untitled")).toBeInTheDocument();
+			expect(screen.getByText("untitled")).toBeInTheDocument();
 		});
 		const editor = document.querySelector(
 			".classicyTextEditorArea",
@@ -103,11 +104,11 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 	// Regression test for a dispatch loop (7687143): the default window passes an
 	// inline appMenu literal and SimpleText selects its whole app slice, so a
 	// menuBar-write re-render used to re-fire the focused-menu effect forever.
-	it("opens its default Untitled window without an infinite menuBar dispatch loop", async () => {
+	it("opens its default untitled window without an infinite menuBar dispatch loop", async () => {
 		renderDesktop();
 		openSimpleText();
 		await waitFor(() => {
-			expect(screen.getByText("Untitled")).toBeInTheDocument();
+			expect(screen.getByText("untitled")).toBeInTheDocument();
 		});
 	});
 
@@ -206,7 +207,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		);
 
 		// Close the document, dropping its in-memory working copy. (Closing the
-		// last document re-seeds an empty Untitled window, so assert on the
+		// last document re-seeds an empty untitled window, so assert on the
 		// document's own window going away rather than on textbox count.)
 		act(() => {
 			dispatch({
@@ -221,7 +222,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 
 		// Reopen it: the editor seeds from the file system and shows the edit.
 		// getByDisplayValue targets the reopened document's textarea specifically,
-		// ignoring the empty Untitled editor.
+		// ignoring the empty untitled editor.
 		openFileInSimpleText(READ_ME);
 		await waitFor(() => {
 			expect(screen.getByDisplayValue("PERSISTED EDIT")).toBeInTheDocument();
@@ -229,7 +230,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 	});
 
 	// Found during story 0226-a6f: opening a document into SimpleText reopened
-	// every window it had closed, its Untitled window too. Mac OS 8.1
+	// every window it had closed, its untitled window too. Mac OS 8.1
 	// (Infinite Mac) shows only the document's window when a document opens
 	// SimpleText, and a document opened into SimpleText comes to the front.
 	describe("a document open (openApp's document mode)", () => {
@@ -237,11 +238,11 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			useAppManager.getState().System.Manager.Applications.apps[SIMPLE_TEXT.id];
 		const docWindowId = `${SIMPLE_TEXT.id}_file_${READ_ME}`;
 
-		it("leaves the Untitled window the user closed closed", async () => {
+		it("leaves the untitled window the user closed closed", async () => {
 			renderDesktop();
 			openSimpleText();
 			await waitFor(() => {
-				expect(windowTitled("Untitled")).toBeInTheDocument();
+				expect(windowTitled("untitled")).toBeInTheDocument();
 			});
 			const untitledId = listAppWindows(simpleText()).find((w) => !w.closed)
 				?.id as string;
@@ -258,13 +259,13 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			expect(getAppWindow(simpleText(), docWindowId)?.closed).toBe(false);
 		});
 
-		it("brings the document's window in front of the Untitled window", async () => {
+		it("brings the document's window in front of the untitled window", async () => {
 			renderDesktop();
 			openFileInSimpleText(READ_ME);
 			await waitFor(() => {
 				expect(windowTitled("Read Me.txt")).toBeInTheDocument();
 			});
-			// Close the document: SimpleText seeds an Untitled window.
+			// Close the document: SimpleText seeds an untitled window.
 			act(() => {
 				dispatch({
 					type: "ClassicyWindowClose",
@@ -278,7 +279,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 				});
 			});
 			await waitFor(() => {
-				expect(windowTitled("Untitled")).toBeInTheDocument();
+				expect(windowTitled("untitled")).toBeInTheDocument();
 			});
 			openFileInSimpleText(READ_ME);
 			await waitFor(() => {
@@ -301,7 +302,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		const simpleText = () =>
 			useAppManager.getState().System.Manager.Applications.apps[SIMPLE_TEXT.id];
 		const SAVE_PROMPT =
-			"Save changes to the document “Untitled” before closing?";
+			"Save changes to the document “untitled” before closing?";
 		const alert = () => screen.queryByRole("alertdialog");
 		const closeBoxOf = (title: string) => {
 			const win = windowTitled(title)?.closest(".classicyWindow");
@@ -312,7 +313,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		const typeIntoUntitled = async () => {
 			renderDesktop();
 			openSimpleText();
-			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
 			const textbox = screen.getByRole("textbox") as HTMLTextAreaElement;
 			fireEvent.change(textbox, { target: { value: "unsaved words" } });
 			expect(textbox.value).toBe("unsaved words");
@@ -329,7 +330,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 
 		it("asks on closing a window with unsaved text, in Mac OS 8.1's words and order", async () => {
 			await typeIntoUntitled();
-			fireEvent.click(closeBoxOf("Untitled"));
+			fireEvent.click(closeBoxOf("untitled"));
 			await waitFor(() => expect(alert()).toBeInTheDocument());
 			expect(
 				within(alert() as HTMLElement).getByText(SAVE_PROMPT),
@@ -349,7 +350,7 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			expect(screen.getByDisplayValue("unsaved words")).toBeInTheDocument();
 
 			// Don’t Save closes it, the text with it.
-			fireEvent.click(closeBoxOf("Untitled"));
+			fireEvent.click(closeBoxOf("untitled"));
 			await waitFor(() => expect(alert()).toBeInTheDocument());
 			fireEvent.click(within(alert() as HTMLElement).getByText("Don’t Save"));
 			await waitFor(() =>
@@ -362,10 +363,10 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 		it("closes a window with nothing unsaved without asking", async () => {
 			renderDesktop();
 			openSimpleText();
-			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
 			const untitledId = listAppWindows(simpleText()).find((w) => !w.closed)
 				?.id as string;
-			fireEvent.click(closeBoxOf("Untitled"));
+			fireEvent.click(closeBoxOf("untitled"));
 			await waitFor(() =>
 				expect(getAppWindow(simpleText(), untitledId)?.closed).toBe(true),
 			);
@@ -416,10 +417,108 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			await waitFor(() => expect(simpleText().open).toBe(false));
 		});
 
+		const menuItem = (suffix: string) => {
+			const item = (
+				useAppManager.getState().System.Manager.Desktop.appMenu ?? []
+			)
+				.flatMap((menu) => menu.menuChildren ?? [])
+				.find((i) => typeof i.id === "string" && i.id.endsWith(suffix));
+			if (!item?.onClickFunc) throw new Error(`no ${suffix} item`);
+			return item;
+		};
+
+		// Re-review 2, A4: what SimpleText cannot ask about itself.
+		it("has the browser confirm leaving the page while text is unsaved", async () => {
+			const leave = () => {
+				const event = new Event("beforeunload", { cancelable: true });
+				window.dispatchEvent(event);
+				return event.defaultPrevented;
+			};
+			renderDesktop();
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			expect(leave()).toBe(false);
+			fireEvent.change(screen.getByRole("textbox"), {
+				target: { value: "unsaved words" },
+			});
+			await waitFor(() => expect(leave()).toBe(true));
+			fireEvent.click(closeBoxOf("untitled"));
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Don’t Save"));
+			await waitFor(() => expect(leave()).toBe(false));
+		});
+
+		it("asks when a host quits it with requestClassicyAppQuit; a direct ClassicyAppClose quits at once", async () => {
+			await typeIntoUntitled();
+			let quit: Promise<boolean> | undefined;
+			act(() => {
+				quit = requestClassicyAppQuit(SIMPLE_TEXT.id);
+			});
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Cancel"));
+			await expect(quit).resolves.toBe(false);
+			expect(simpleText().open).toBe(true);
+
+			// ClassicyAppClose from code is the immediate quit (documented):
+			// it discards what SimpleText has not saved, without asking.
+			act(() => {
+				dispatch({ type: "ClassicyAppClose", app: { id: SIMPLE_TEXT.id } });
+			});
+			expect(simpleText().open).toBe(false);
+			expect(alert()).not.toBeInTheDocument();
+		});
+
+		// Re-review 2, M1: each document closes as it is answered.
+		it("closes each answered document during a Quit; Cancel keeps the rest", async () => {
+			await typeIntoUntitled();
+			act(() => menuItem("_new").onClickFunc?.());
+			await waitFor(() =>
+				expect(screen.getAllByRole("textbox")).toHaveLength(2),
+			);
+			const second = screen
+				.getAllByRole("textbox")
+				.find((t) => (t as HTMLTextAreaElement).value === "") as HTMLElement;
+			fireEvent.change(second, { target: { value: "second words" } });
+
+			quitFromFileMenu();
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Don’t Save"));
+			// The front document (the second) closed; the first is asked next.
+			await waitFor(() =>
+				expect(
+					screen.queryByDisplayValue("second words"),
+				).not.toBeInTheDocument(),
+			);
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Cancel"));
+			await waitFor(() => expect(alert()).not.toBeInTheDocument());
+			expect(simpleText().open).toBe(true);
+			expect(screen.getByDisplayValue("unsaved words")).toBeInTheDocument();
+		});
+
+		// Re-review 2, M8: a Save As… chosen while the alert is up is a Save
+		// As (the document becomes its file), and answers the alert.
+		it("treats a Save As… chosen during the alert as a Save As", async () => {
+			const user = setupUser();
+			await typeIntoUntitled();
+			const saveAs = menuItem("_save_as");
+			fireEvent.click(closeBoxOf("untitled"));
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			act(() => saveAs.onClickFunc?.());
+			const nameField = await screen.findByLabelText("Save As:");
+			await user.clear(nameField);
+			await user.type(nameField, "Plan");
+			const dialog = nameField.closest(".classicyWindow") as HTMLElement;
+			await user.click(within(dialog).getByRole("button", { name: "Save" }));
+			await waitFor(() => expect(windowTitled("Plan.txt")).toBeInTheDocument());
+			await waitFor(() => expect(alert()).not.toBeInTheDocument());
+			expect(screen.getByDisplayValue("unsaved words")).toBeInTheDocument();
+		});
+
 		it("quits at once with nothing unsaved", async () => {
 			renderDesktop();
 			openSimpleText();
-			await waitFor(() => expect(windowTitled("Untitled")).toBeInTheDocument());
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
 			quitFromFileMenu();
 			await waitFor(() => expect(simpleText().open).toBe(false));
 			expect(alert()).not.toBeInTheDocument();
