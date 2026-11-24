@@ -11,6 +11,8 @@ import {
 	adoptPersistedClassicyState,
 	CLASSICY_DESKTOP_STATE_STORAGE_KEY,
 	classicyFirstSessionState,
+	dispatch,
+	isAdoptablePersistedClassicyState,
 	persistAppManagerStateNow,
 	persistPendingAppManagerState,
 	sanitizeStateForPersistence,
@@ -109,7 +111,23 @@ export type ClassicyStateReconcileResult =
 			 * partial alone, a whole store is too deep for the compiler.)
 			 */
 			state: ClassicyStore | DeepPartial<ClassicyStore>;
+			/**
+			 * `state` already holds this computer's changes (the adapter merged
+			 * `local` into it): adopted without asking the user, even on a retry
+			 * after they acted.
+			 */
+			merged?: boolean;
 	  };
+
+/** Why an adapter is asked to reconcile. */
+export type ClassicyStateReconcileReason =
+	/** The page's first reconcile: the desktop waits for it. */
+	| "boot"
+	/** Classicy asks again: after a failed reconcile, or an adapter registered
+	 * after the first one. */
+	| "retry"
+	/** The host called `reconcileClassicyState()`. */
+	| "request";
 
 export interface ClassicyStateReconcileContext {
 	/**
@@ -117,6 +135,16 @@ export interface ClassicyStateReconcileContext {
 	 * ignored from then on, so it may cancel its requests.
 	 */
 	signal: AbortSignal;
+	/** Why it is asked. */
+	reason: ClassicyStateReconcileReason;
+	/**
+	 * The user has pressed a key or the pointer on the page since the desktop
+	 * was last drawn (loaded, or an adopted state) and this adapter's
+	 * snapshots were held, so this computer has changes the account's copy
+	 * may not have. On a `retry`, a `replace` is then not adopted unasked:
+	 * the desktop asks the user first, unless the answer is `merged`.
+	 */
+	userActed: boolean;
 }
 
 export interface ClassicyStateAdapter {
@@ -174,8 +202,11 @@ type RegisteredStateAdapter = {
 	held: boolean;
 	/** The key last handed to `onSnapshot`, forgotten if that delivery failed. */
 	sent?: ChangeKey;
-	/** A delivery to it is under way (one at a time: review M5). */
-	delivering: boolean;
+	/** Deliveries to it under way: one at a time (review M5), but for the
+	 * one sent as the page hides (review N2). */
+	inFlight: number;
+	/** The user-action count when its snapshots were last held. */
+	heldMark: number;
 	/** The latest snapshot due while one was under way, and who awaits it. */
 	queued?: Built;
 	waiters: Array<(delivered: boolean) => void>;
@@ -249,26 +280,33 @@ const clockOf = (state: ClassicyStore): unknown =>
 
 /**
  * Classify a change of the saved clock: the menu bar clock's minute tick
- * (`isClassicyClockTick`), or a write that moves the virtual clock with the
- * real one (a host running the clock), is no edit; any other change counts.
- * The value the page loads with is the baseline.
+ * (`isClassicyClockTick`), or a write that keeps the virtual clock within 1 s
+ * of where it would be running with the real one (a host running the clock),
+ * is no edit; any other change counts. The baseline, the virtual clock's
+ * offset from the real one, is the value the page loads with, then the last
+ * tick (the clock anchors anew on each) or edit; a host's writes do not move
+ * it, so a clock run faster in small steps is an edit once it is more than
+ * 1 s off (review N1).
  */
 const observeClock = (state: ClassicyStore): void => {
 	const value = clockOf(state);
 	if (clockSeen && value === clockValue) return;
 	const ms = typeof value === "string" ? Date.parse(value) : Number.NaN;
 	const offset = Number.isFinite(ms) ? ms - Date.now() : undefined;
-	if (clockSeen) {
-		const ran =
-			offset !== undefined &&
-			(isClassicyClockTick(ms) ||
-				(clockOffset !== undefined &&
-					Math.abs(offset - clockOffset) <= CLOCK_RUN_TOLERANCE_MS));
-		if (!ran) clockEdits += 1;
+	if (!clockSeen) {
+		clockOffset = offset;
+	} else if (offset !== undefined && isClassicyClockTick(ms)) {
+		clockOffset = offset;
+	} else if (
+		offset === undefined ||
+		clockOffset === undefined ||
+		Math.abs(offset - clockOffset) > CLOCK_RUN_TOLERANCE_MS
+	) {
+		clockEdits += 1;
+		clockOffset = offset;
 	}
 	clockSeen = true;
 	clockValue = value;
-	clockOffset = offset;
 };
 
 const sameKey = (a: ChangeKey | undefined, b: ChangeKey): boolean =>
@@ -299,11 +337,14 @@ const readStoredSeq = ():
 };
 
 /** The seq of a snapshot under `key`: the current one when the saved state
- * is unchanged, else one more, stored with its content hash. */
+ * is unchanged since this page's last (or, first, since the stored one),
+ * else one more than the larger of this page's and the stored number. */
 const seqFor = (key: ChangeKey): number => {
 	const stored = readStoredSeq();
 	const current = Math.max(seq, stored?.seq ?? 0);
-	const previous = stored ? stored.content : seqContent;
+	// This page's own last state, once it has one: another tab's stored
+	// content would make each tab's state look new to the other (review N3).
+	const previous = seqContent ?? stored?.content;
 	if (
 		current > 0 &&
 		key.content === previous &&
@@ -423,6 +464,9 @@ const takeResetMark = (): boolean => {
 
 const settle = (): void => {
 	inflight = null;
+	inflightReason = null;
+	// The gate opens: the desktop is drawn from the loaded state.
+	if (bootPhase !== "settled") markDrawn();
 	bootPhase = "settled";
 	if (snapshotHeld) {
 		snapshotHeld = false;
@@ -432,8 +476,116 @@ const settle = (): void => {
 };
 
 // ---------------------------------------------------------------------------
+// What the user did (review R1)
+// ---------------------------------------------------------------------------
+
+/** Trusted presses of a key or the pointer on the page, counted. */
+let actionCount = 0;
+/** The count when the desktop was last drawn (loaded, or an adopted state);
+ * undefined until it is. */
+let drawnMark: number | undefined;
+let actionListenerAttached = false;
+
+/** Counts one press by the user. @internal (tests: jsdom's events are never
+ * trusted) */
+export const noteClassicyStateUserAction = (): void => {
+	actionCount += 1;
+};
+
+const onUserAction = (event: Event): void => {
+	if (event.isTrusted) noteClassicyStateUserAction();
+};
+
+const markDrawn = (): void => {
+	drawnMark = actionCount;
+};
+
+/** Has the user acted since the desktop was last drawn and, while `entry`
+ * is held, since it was? */
+const userActedFor = (entry: RegisteredStateAdapter): boolean =>
+	drawnMark !== undefined &&
+	actionCount >
+		(entry.synced ? drawnMark : Math.max(drawnMark, entry.heldMark));
+
+/** One capture-phase listener for `pointerdown` and `keydown`, attached
+ * while an adapter that reconciles is registered. */
+const syncActionListener = (): void => {
+	if (typeof document === "undefined") return;
+	const wanted = [...registry.values()].some(
+		(entry) => !!entry.adapter.reconcile,
+	);
+	if (wanted === actionListenerAttached) return;
+	actionListenerAttached = wanted;
+	for (const type of ["pointerdown", "keydown"]) {
+		if (wanted) document.addEventListener(type, onUserAction, true);
+		else document.removeEventListener(type, onUserAction, true);
+	}
+};
+
+// ---------------------------------------------------------------------------
+// Asking the user (review R1)
+// ---------------------------------------------------------------------------
+
+/** A retry's `replace` awaiting the user's choice, with its adapter. */
+let pendingChoice: { entry: RegisteredStateAdapter; state: unknown } | null =
+	null;
+
+/** The desktop's alert for the pending choice, once no other alert is up
+ * (`Desktop.systemDialog`, `Desktop.errorDialog`; it waits for them). */
+const showPendingChoice = (): void => {
+	if (!pendingChoice || typeof window === "undefined") return;
+	const desktop = useAppManager.getState().System.Manager.Desktop;
+	if (desktop.systemDialog || desktop.errorDialog) return;
+	dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: "syncChoice" });
+};
+
+/** Forget the pending choice, closing its alert if it is up. */
+const dropPendingChoice = (): void => {
+	if (!pendingChoice) return;
+	pendingChoice = null;
+	if (
+		typeof window !== "undefined" &&
+		useAppManager.getState().System.Manager.Desktop.systemDialog ===
+			"syncChoice"
+	) {
+		dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: null });
+	}
+};
+
+/**
+ * The user's answer to the alert: `adopt` the account's copy (a restart) or
+ * `keep` this desktop, which is then sent to the adapter, now synced.
+ */
+export function resolveClassicyStateChoice(choice: "adopt" | "keep"): void {
+	const pending = pendingChoice;
+	pendingChoice = null;
+	if (!pending || resetting || !isCurrent(pending.entry)) return;
+	const { entry, state } = pending;
+	if (choice === "keep") {
+		markSynced(entry);
+		scheduleSnapshot();
+		return;
+	}
+	if (adoptState(state)) {
+		markSynced(entry);
+		entry.sent = build().key;
+		return;
+	}
+	classicyLog(
+		"warn",
+		SUBSYSTEM,
+		`adapter "${entry.adapter.id}" reconcile returned an invalid state; keeping the local state`,
+	);
+	markFailed(entry);
+}
+
+// ---------------------------------------------------------------------------
 // Reconcile
 // ---------------------------------------------------------------------------
+
+let inflightReason: ClassicyStateReconcileReason | null = null;
+/** A host's request made while a retry ran: run after it (review N4). */
+let requestAfterRetry: Promise<boolean> | null = null;
 
 /** `entry` may take snapshots now; one that came due while it could not is
  * sent. */
@@ -446,14 +598,23 @@ const markSynced = (entry: RegisteredStateAdapter): void => {
 		entry.held = false;
 		scheduleSnapshot();
 	}
+	syncActionListener();
+};
+
+/** `entry` takes no snapshot now; from when, if it took them until now. */
+const hold = (entry: RegisteredStateAdapter): void => {
+	if (entry.synced) entry.heldMark = actionCount;
+	entry.synced = false;
+	if (entry.retryTimer !== undefined) clearTimeout(entry.retryTimer);
+	entry.retryTimer = undefined;
+	syncActionListener();
 };
 
 /** `entry`'s reconcile failed: it takes no snapshot until one succeeds, and
  * is asked again after `retryMs` (after any reconcile then running), which
  * doubles, from `CLASSICY_STATE_RECONCILE_RETRY_MS` up to the maximum. */
 const markFailed = (entry: RegisteredStateAdapter): void => {
-	entry.synced = false;
-	if (entry.retryTimer !== undefined) clearTimeout(entry.retryTimer);
+	hold(entry);
 	const delay = entry.retryMs;
 	entry.retryMs = Math.min(
 		Math.max(delay * 2, CLASSICY_STATE_RECONCILE_RETRY_MS),
@@ -462,11 +623,12 @@ const markFailed = (entry: RegisteredStateAdapter): void => {
 	const retry = (): void => {
 		entry.retryTimer = undefined;
 		if (!isCurrent(entry) || entry.synced || resetting) return;
+		if (pendingChoice?.entry === entry) return;
 		if (inflight) {
 			void inflight.then(retry);
 			return;
 		}
-		void runReconcile([entry]);
+		void runReconcile([entry], "retry");
 	};
 	entry.retryTimer = setTimeout(retry, delay);
 };
@@ -475,13 +637,14 @@ const TIMED_OUT = Symbol("timed out");
 
 type Answer =
 	| { kind: "useLocal" }
-	| { kind: "replace"; state: unknown }
+	| { kind: "replace"; state: unknown; merged: boolean }
 	| { kind: "failed" };
 
 /** One adapter's answer, bounded by its timeout (failures logged). */
 async function askAdapter(
 	entry: RegisteredStateAdapter,
 	local: ClassicyStateSnapshot,
+	reason: ClassicyStateReconcileReason,
 ): Promise<Answer> {
 	const { adapter, reconcileTimeoutMs } = entry;
 	const controller = new AbortController();
@@ -489,7 +652,13 @@ async function askAdapter(
 	try {
 		const answer = await Promise.race([
 			new Promise<ClassicyStateReconcileResult | undefined>((resolve) => {
-				resolve(adapter.reconcile?.(local, { signal: controller.signal }));
+				resolve(
+					adapter.reconcile?.(local, {
+						signal: controller.signal,
+						reason,
+						userActed: userActedFor(entry),
+					}),
+				);
 			}),
 			new Promise<typeof TIMED_OUT>((resolve) => {
 				timer = setTimeout(() => resolve(TIMED_OUT), reconcileTimeoutMs);
@@ -505,7 +674,7 @@ async function askAdapter(
 			return { kind: "failed" };
 		}
 		return answer?.action === "replace"
-			? { kind: "replace", state: answer.state }
+			? { kind: "replace", state: answer.state, merged: answer.merged === true }
 			: { kind: "useLocal" };
 	} catch (error) {
 		classicyLog(
@@ -532,7 +701,10 @@ const adoptState = (state: unknown): boolean => {
 	let adopted = false;
 	try {
 		adopted = adoptPersistedClassicyState(state);
-		if (adopted) epoch += 1;
+		if (adopted) {
+			epoch += 1;
+			markDrawn();
+		}
 	} finally {
 		adopting = false;
 		emitGate();
@@ -540,47 +712,84 @@ const adoptState = (state: unknown): boolean => {
 	return adopted;
 };
 
-/** Offer the local snapshot to each of `entries` in registration order; the
- * first valid `replace` is adopted. True iff one was. */
+/**
+ * Offer the local snapshot to each of `entries` in registration order. The
+ * first valid `replace` is adopted, unless it answers a retry after the user
+ * acted, unmerged: then the user is asked (`pendingChoice`). The adapters
+ * after an adopted `replace` are asked too, with the adopted state as
+ * `local` (review N5); a `replace` of theirs is not adopted over it. True iff
+ * a state was adopted.
+ */
 async function reconcileWithAdapters(
 	entries: RegisteredStateAdapter[],
+	reason: ClassicyStateReconcileReason,
 ): Promise<boolean> {
-	const local = build().snapshot;
-	for (const [index, entry] of entries.entries()) {
+	let local = build().snapshot;
+	let replaced = false;
+	for (const entry of entries) {
 		if (!isCurrent(entry)) continue;
-		const answer = await askAdapter(entry, local);
+		if (pendingChoice?.entry === entry) dropPendingChoice();
+		const answer = await askAdapter(entry, local, reason);
 		if (resetting) return false;
 		if (!isCurrent(entry)) continue;
 		if (answer.kind === "useLocal") {
 			markSynced(entry);
 			continue;
 		}
-		if (answer.kind === "replace" && adoptState(answer.state)) {
-			// The first replace wins, as for the file system: the adapters not
-			// asked take the adopted state as their next snapshot, and this one
-			// is not sent back what it just handed over (review M6).
-			for (const rest of entries.slice(index)) {
-				if (isCurrent(rest)) markSynced(rest);
-			}
-			entry.sent = build().key;
-			return true;
+		if (answer.kind === "failed") {
+			markFailed(entry);
+			continue;
 		}
-		if (answer.kind === "replace") {
+		if (!isAdoptablePersistedClassicyState(answer.state)) {
 			classicyLog(
 				"warn",
 				SUBSYSTEM,
 				`adapter "${entry.adapter.id}" reconcile returned an invalid state; keeping the local state`,
 			);
+			markFailed(entry);
+			continue;
 		}
-		markFailed(entry);
+		if (replaced) {
+			classicyLog(
+				"warn",
+				SUBSYSTEM,
+				`adapter "${entry.adapter.id}" answered replace after another adapter's state was adopted; its snapshots stay held`,
+			);
+			markFailed(entry);
+			continue;
+		}
+		if (reason === "retry" && !answer.merged && userActedFor(entry)) {
+			// Not unasked over the user's work: the desktop asks them.
+			hold(entry);
+			if (pendingChoice) {
+				markFailed(entry);
+				continue;
+			}
+			pendingChoice = { entry, state: answer.state };
+			showPendingChoice();
+			continue;
+		}
+		if (!adoptState(answer.state)) {
+			markFailed(entry);
+			continue;
+		}
+		replaced = true;
+		markSynced(entry);
+		// Not sent back what it just handed over (review M6).
+		const adopted = build();
+		entry.sent = adopted.key;
+		local = adopted.snapshot;
 	}
-	return false;
+	return replaced;
 }
 
 /** Run a reconcile with `entries`, as the one in flight. */
-function runReconcile(entries: RegisteredStateAdapter[]): Promise<boolean> {
+function runReconcile(
+	entries: RegisteredStateAdapter[],
+	reason: ClassicyStateReconcileReason,
+): Promise<boolean> {
 	if (bootPhase === "idle") bootPhase = "pending";
-	const run = reconcileWithAdapters(entries).then(
+	const run = reconcileWithAdapters(entries, reason).then(
 		(replaced) => {
 			settle();
 			return replaced;
@@ -598,6 +807,7 @@ function runReconcile(entries: RegisteredStateAdapter[]): Promise<boolean> {
 		},
 	);
 	inflight = run;
+	inflightReason = reason;
 	emitGate();
 	return run;
 }
@@ -607,7 +817,8 @@ function runReconcile(entries: RegisteredStateAdapter[]): Promise<boolean> {
  * `reconcile`, in registration order, each bounded by its
  * `reconcileTimeoutMs`; the first valid `replace` is adopted (saved, and
  * applied as a restart: the desktop remounts). Resolves true iff the state
- * was replaced; never rejects. A call while one runs gets that one's promise.
+ * was replaced; never rejects. A call while one of its own runs gets that
+ * one's promise; one made while Classicy retries an adapter runs after it.
  *
  * The desktop runs the first one when it first mounts, drawing nothing until
  * it settles; call it again when the remote copy may have changed (a user
@@ -617,7 +828,14 @@ function runReconcile(entries: RegisteredStateAdapter[]): Promise<boolean> {
  */
 export function reconcileClassicyState(): Promise<boolean> {
 	if (typeof window === "undefined") return Promise.resolve(false);
-	if (inflight) return inflight;
+	if (inflight) {
+		if (inflightReason !== "retry") return inflight;
+		requestAfterRetry ??= inflight.then(() => {
+			requestAfterRetry = null;
+			return reconcileClassicyState();
+		});
+		return requestAfterRetry;
+	}
 	const entries = [...registry.values()].filter(
 		(entry) => entry.adapter.reconcile,
 	);
@@ -636,7 +854,7 @@ export function reconcileClassicyState(): Promise<boolean> {
 		settle();
 		return Promise.resolve(false);
 	}
-	return runReconcile(entries);
+	return runReconcile(entries, bootPhase === "idle" ? "boot" : "request");
 }
 
 /** The desktop's first client mount: run the boot reconcile, once a page. */
@@ -685,12 +903,15 @@ let pagehideAttached = false;
 /**
  * Hand `built` to `entry`, one delivery at a time: while one is under way the
  * latest due snapshot waits, and is sent when it ends (an older one is never
- * sent after a newer one). Skipped when the adapter has this key already;
- * held when it is not synced. True when the adapter took it.
+ * sent after a newer one). `now` (the page hides) sends it at once all the
+ * same, superseding a waiting one: the page is gone before the one under
+ * way ends (review N2). Skipped when the adapter has this key already; held
+ * when it is not synced. True when the adapter took it.
  */
 function deliverTo(
 	entry: RegisteredStateAdapter,
 	built: Built,
+	now = false,
 ): Promise<boolean> {
 	const onSnapshot = entry.adapter.onSnapshot;
 	if (!onSnapshot) return Promise.resolve(true);
@@ -698,14 +919,19 @@ function deliverTo(
 		entry.held = true;
 		return Promise.resolve(false);
 	}
-	if (entry.delivering) {
+	if (entry.inFlight > 0 && !now) {
 		entry.queued = built;
 		return new Promise((resolve) => entry.waiters.push(resolve));
 	}
-	if (sameKey(entry.sent, built.key)) return Promise.resolve(true);
-	entry.delivering = true;
+	const superseded = now ? entry.waiters.splice(0) : [];
+	if (now) entry.queued = undefined;
+	if (sameKey(entry.sent, built.key)) {
+		for (const resolve of superseded) resolve(true);
+		return Promise.resolve(true);
+	}
+	entry.inFlight += 1;
 	entry.sent = built.key;
-	return invokeClassicyAdapterHook(
+	const delivery = invokeClassicyAdapterHook(
 		SUBSYSTEM,
 		entry.adapter,
 		"onSnapshot",
@@ -714,11 +940,11 @@ function deliverTo(
 	).then((delivered) => {
 		// Failed: forget it, so the next change sends again.
 		if (!delivered && entry.sent === built.key) entry.sent = undefined;
-		entry.delivering = false;
-		const next = entry.queued;
-		const waiters = entry.waiters.splice(0);
-		entry.queued = undefined;
+		entry.inFlight -= 1;
+		const next = entry.inFlight === 0 ? entry.queued : undefined;
 		if (next) {
+			const waiters = entry.waiters.splice(0);
+			entry.queued = undefined;
 			const after = isCurrent(entry)
 				? deliverTo(entry, next)
 				: Promise.resolve(false);
@@ -728,42 +954,54 @@ function deliverTo(
 		}
 		return delivered;
 	});
+	if (superseded.length > 0) {
+		void delivery.then((result) => {
+			for (const resolve of superseded) resolve(result);
+		});
+	}
+	return delivery;
 }
 
-/** Hand `built` to every adapter implementing `onSnapshot`. True when every
- * one took it (or had it). */
-function deliverSnapshot(built: Built): Promise<boolean> {
+/** Hand `built` to every adapter implementing `onSnapshot` (`now`: at once,
+ * as the page hides). True when every one took it (or had it). */
+function deliverSnapshot(built: Built, now = false): Promise<boolean> {
 	const deliveries = [...registry.values()]
 		.filter((entry) => entry.adapter.onSnapshot)
-		.map((entry) => deliverTo(entry, built));
+		.map((entry) => deliverTo(entry, built, now));
 	return Promise.all(deliveries).then((results) => results.every(Boolean));
 }
 
-function deliverDueSnapshot(): void {
+function deliverDueSnapshot(now = false): void {
 	snapshotTimer = null;
 	if (resetting || !hasSnapshotAdapter()) return;
 	if (holdingSnapshots()) {
 		snapshotHeld = true;
 		return;
 	}
-	void deliverSnapshot(build());
+	void deliverSnapshot(build(), now);
 }
+
+/** The page hides: a snapshot still due, waiting on its debounce or behind a
+ * delivery under way, is sent at once, best-effort (an async delivery may
+ * not finish), as the file system's is, with the pending localStorage write
+ * made first, so the backend never gets a state this browser did not save
+ * (reviews M8, N2). */
+const onPagehide = (): void => {
+	if (resetting) return;
+	const waiting = [...registry.values()].some((entry) => entry.queued);
+	if (snapshotTimer === null && !waiting) return;
+	if (snapshotTimer !== null) clearTimeout(snapshotTimer);
+	persistPendingAppManagerState();
+	deliverDueSnapshot(true);
+};
 
 function scheduleSnapshot(): void {
 	if (resetting || !hasSnapshotAdapter()) return;
 	if (snapshotTimer !== null) clearTimeout(snapshotTimer);
-	snapshotTimer = setTimeout(deliverDueSnapshot, snapshotDebounceMs());
-	// A snapshot still waiting when the tab closes is sent then, best-effort
-	// (an async delivery may not finish), as the file system's is, and the
-	// state it holds is saved in this browser too (review M8).
+	snapshotTimer = setTimeout(() => deliverDueSnapshot(), snapshotDebounceMs());
 	if (!pagehideAttached) {
 		pagehideAttached = true;
-		window.addEventListener("pagehide", () => {
-			if (snapshotTimer === null || resetting) return;
-			clearTimeout(snapshotTimer);
-			persistPendingAppManagerState();
-			deliverDueSnapshot();
-		});
+		window.addEventListener("pagehide", onPagehide);
 	}
 }
 
@@ -773,6 +1011,8 @@ const onStoreChange = (state: ClassicyStore): void => {
 	if (typeof window === "undefined") return;
 	observeClock(state);
 	scheduleSnapshot();
+	// A choice waiting on another alert is shown once it closes.
+	showPendingChoice();
 };
 
 /**
@@ -788,6 +1028,7 @@ export function registerClassicyStateAdapter(
 ): void {
 	const previous = registry.get(adapter.id);
 	if (previous?.retryTimer !== undefined) clearTimeout(previous.retryTimer);
+	if (previous && pendingChoice?.entry === previous) dropPendingChoice();
 	const entry: RegisteredStateAdapter = {
 		adapter,
 		snapshotDebounceMs: validMs(
@@ -806,7 +1047,8 @@ export function registerClassicyStateAdapter(
 		),
 		synced: !adapter.reconcile,
 		held: false,
-		delivering: false,
+		inFlight: 0,
+		heldMark: actionCount,
 		waiters: [],
 		retryMs: CLASSICY_STATE_RECONCILE_RETRY_MS,
 	};
@@ -825,6 +1067,7 @@ export function registerClassicyStateAdapter(
 		entry.retryMs = 0;
 		markFailed(entry);
 	}
+	syncActionListener();
 	emitGate();
 }
 
@@ -833,7 +1076,9 @@ export function unregisterClassicyStateAdapter(id: string): void {
 	if (!entry) return;
 	registry.delete(id);
 	if (entry.retryTimer !== undefined) clearTimeout(entry.retryTimer);
+	if (pendingChoice?.entry === entry) dropPendingChoice();
 	for (const resolve of entry.waiters.splice(0)) resolve(false);
+	syncActionListener();
 	if (registry.size === 0) {
 		unsubscribeStore?.();
 		unsubscribeStore = null;
@@ -882,6 +1127,7 @@ export async function flushClassicyState(): Promise<boolean> {
 export function resetClassicyPersistedState(restart: () => void): void {
 	if (resetting) return;
 	resetting = true;
+	pendingChoice = null;
 	if (snapshotTimer !== null) clearTimeout(snapshotTimer);
 	snapshotTimer = null;
 	for (const entry of registry.values()) {
@@ -938,8 +1184,14 @@ export function resetClassicyStateSyncForTests(): void {
 		if (entry.retryTimer !== undefined) clearTimeout(entry.retryTimer);
 	}
 	registry.clear();
+	syncActionListener();
 	unsubscribeStore?.();
 	unsubscribeStore = null;
+	pendingChoice = null;
+	inflightReason = null;
+	requestAfterRetry = null;
+	actionCount = 0;
+	drawnMark = undefined;
 	if (snapshotTimer !== null) clearTimeout(snapshotTimer);
 	snapshotTimer = null;
 	bootPhase = "idle";

@@ -464,12 +464,33 @@ const matchesDefaultContainers = (
 	);
 };
 
-/** True when `state`, merged and migrated, can be handed to the kernel: the
- * default state's containers are containers of the same kind, and every app
- * record is an object (review M4). */
-const hasClassicyStateShape = (state: ClassicyStore): boolean =>
-	matchesDefaultContainers(state, DefaultAppManagerState) &&
-	Object.values(state.System.Manager.Applications.apps).every(isPlainRecord);
+/** True when `list` is absent or an array of objects. */
+const isRecordList = (list: unknown): boolean =>
+	list === undefined || (Array.isArray(list) && list.every(isPlainRecord));
+
+/**
+ * True when `state`, merged and migrated, can be handed to the kernel: the
+ * default state's containers are containers of the same kind (review M4),
+ * and the records the kernel walks are objects: every app record and each of
+ * its windows, every desktop icon and every custom theme (review N6). A
+ * window that is no record never gets here: the migration drops it, as it
+ * drops a `windows` value that is no record (`normalizeClassicyAppWindows`).
+ */
+const hasClassicyStateShape = (state: ClassicyStore): boolean => {
+	if (!matchesDefaultContainers(state, DefaultAppManagerState)) return false;
+	const { Applications, Desktop, Appearance } = state.System.Manager;
+	return (
+		Object.values(Applications.apps).every(
+			(app) =>
+				isPlainRecord(app) &&
+				(app.windows === undefined ||
+					(isPlainRecord(app.windows) &&
+						Object.values(app.windows).every(isPlainRecord))),
+		) &&
+		isRecordList(Desktop.icons) &&
+		isRecordList(Appearance.customThemes)
+	);
+};
 
 /**
  * Saved desktop state (`parsed`, as `localStorage["classicyDesktopState"]`
@@ -999,6 +1020,34 @@ export function persistPendingAppManagerState(): void {
 	if (debounceTimer !== null) persistAppManagerStateNow();
 }
 
+/** `state` read as `adoptPersistedClassicyState` reads it, or undefined
+ * when it is not saved desktop state. Touches no module state. */
+const readAdoptableState = (
+	state: unknown,
+): ReturnType<typeof readPersistedClassicyState> => {
+	try {
+		const json = JSON.stringify(state);
+		if (typeof json !== "string") return undefined;
+		return readPersistedClassicyState(parsePersistedClassicyJson(json));
+	} catch (error) {
+		classicyLog(
+			"warn",
+			"ClassicyAppManager",
+			"Could not read the desktop state to adopt; keeping the local state.",
+			error,
+		);
+		return undefined;
+	}
+};
+
+/**
+ * True when `adoptPersistedClassicyState(state)` would adopt `state`: it is
+ * saved desktop state as the load path reads it. Changes nothing.
+ * @internal
+ */
+export const isAdoptablePersistedClassicyState = (state: unknown): boolean =>
+	readAdoptableState(state) !== undefined;
+
 /**
  * Adopt `state`, desktop state a storage adapter's `reconcile` handed back
  * (ClassicyStateAdapter.ts), exactly as the store loads saved state: as JSON
@@ -1018,20 +1067,7 @@ export function persistPendingAppManagerState(): void {
  * @internal
  */
 export function adoptPersistedClassicyState(state: unknown): boolean {
-	let loaded: ReturnType<typeof readPersistedClassicyState>;
-	try {
-		const json = JSON.stringify(state);
-		if (typeof json !== "string") return false;
-		loaded = readPersistedClassicyState(parsePersistedClassicyJson(json));
-	} catch (error) {
-		classicyLog(
-			"warn",
-			"ClassicyAppManager",
-			"Could not read the desktop state to adopt; keeping the local state.",
-			error,
-		);
-		return false;
-	}
+	const loaded = readAdoptableState(state);
 	if (!loaded) return false;
 	const live = useAppManager.getState().System.Manager;
 	const availableThemes = live.Appearance.availableThemes;

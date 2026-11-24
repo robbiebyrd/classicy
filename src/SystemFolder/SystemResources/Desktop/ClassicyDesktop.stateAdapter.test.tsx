@@ -17,7 +17,10 @@ import {
 	reconcileClassicyState,
 	registerClassicyStateAdapter,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateAdapter";
-import { resetClassicyStateSyncForTests } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
+import {
+	noteClassicyStateUserAction,
+	resetClassicyStateSyncForTests,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 
 vi.mock("howler", () => ({
@@ -283,5 +286,84 @@ describe("Reset PRAM with a desktop state adapter (reviews M1, M2)", () => {
 			vi.unstubAllGlobals();
 			document.body.style.cursor = "";
 		}
+	});
+});
+
+describe("the choice after a retry found the account's copy (review R1)", () => {
+	/** Boot fails, the desktop draws, the user acts, the retry answers. */
+	async function bootThenRetry(sent: string[] = []) {
+		let calls = 0;
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async () => {
+				calls += 1;
+				if (calls === 1) throw new Error("500");
+				return { action: "replace", state: remoteState() };
+			},
+			onSnapshot: (snapshot) => {
+				sent.push(
+					snapshot.state.System.Manager.Desktop.controlStrip?.edge ?? "left",
+				);
+			},
+		});
+		renderDesktop();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		noteClassicyStateUserAction();
+		return sent;
+	}
+
+	const choiceText = "Use the settings saved on your other computers?";
+
+	it("asks, then Use Saved restarts the desktop on the account's copy", async () => {
+		await bootThenRetry();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		expect(screen.getByText(choiceText)).toBeInTheDocument();
+		expect(screen.getByTestId("probe").textContent).toBe("left");
+		fireEvent.click(screen.getByText("Use Saved"));
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(screen.queryByText(choiceText)).toBeNull();
+		expect(screen.getByTestId("probe").textContent).toBe("right");
+	});
+
+	it("Keep Current keeps this desktop and sends it", async () => {
+		const sent = await bootThenRetry();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		fireEvent.click(screen.getByText("Keep Current"));
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(500);
+		});
+		expect(screen.queryByText(choiceText)).toBeNull();
+		expect(screen.getByTestId("probe").textContent).toBe("left");
+		expect(sent).toEqual(["left"]);
+	});
+
+	it("waits while another alert is up", async () => {
+		await bootThenRetry();
+		act(() => {
+			dispatch({
+				type: "ClassicyDesktopShowSystemDialog",
+				dialog: "resetPram",
+			});
+		});
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		expect(
+			screen.getByText("Are you sure you want to reset PRAM?"),
+		).toBeInTheDocument();
+		expect(screen.queryByText(choiceText)).toBeNull();
+		fireEvent.click(screen.getByText("Cancel"));
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(screen.getByText(choiceText)).toBeInTheDocument();
 	});
 });

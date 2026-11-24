@@ -31,6 +31,7 @@ export type {
 	ClassicyStateAdapter,
 	ClassicyStateAdapterOptions,
 	ClassicyStateReconcileContext,
+	ClassicyStateReconcileReason,
 	ClassicyStateReconcileResult,
 	ClassicyStateSnapshot,
 } from "./ClassicyStateSync.internal";

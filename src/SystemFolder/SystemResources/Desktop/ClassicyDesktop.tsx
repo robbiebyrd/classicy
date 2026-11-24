@@ -71,6 +71,7 @@ import {
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import {
 	resetClassicyPersistedState,
+	resolveClassicyStateChoice,
 	useClassicyStateMirrored,
 	useClassicyStateSyncGate,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
@@ -876,6 +877,38 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 								label: "Reset",
 								role: "normal",
 								onClick: resetPram,
+							},
+						]}
+						onClose={closeSystemDialog}
+					/>
+				</div>
+			) : null}
+			{systemDialog === "syncChoice" ? (
+				// A desktop state adapter's retry found the account's saved
+				// desktop after the user had worked on this one: they choose
+				// (ClassicyStateSync.internal.ts; HIG7 pp.195, 206, 310-311).
+				<div className={"classicyDesktopDialogOverlay"}>
+					<ClassicyAlert
+						id={SYSTEM_DIALOG_WINDOW_IDS.syncChoice}
+						appId={"Finder.app"}
+						alertType={"caution"}
+						label={"Use the settings saved on your other computers?"}
+						message={
+							"They could not be reached when Classicy started up, so this computer has used its own settings since then. Using the saved settings replaces the changes made on this computer since startup. Keeping the current settings replaces the saved ones on every computer that shares them."
+						}
+						defaultButtonId={"useSaved"}
+						buttons={[
+							{
+								id: "keepCurrent",
+								label: "Keep Current",
+								role: "normal",
+								onClick: () => resolveClassicyStateChoice("keep"),
+							},
+							{
+								id: "useSaved",
+								label: "Use Saved",
+								role: "default",
+								onClick: () => resolveClassicyStateChoice("adopt"),
 							},
 						]}
 						onClose={closeSystemDialog}

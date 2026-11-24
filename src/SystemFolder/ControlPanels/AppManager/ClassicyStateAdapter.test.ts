@@ -26,8 +26,10 @@ import {
 	unregisterClassicyStateAdapter,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateAdapter";
 import {
+	noteClassicyStateUserAction,
 	resetClassicyPersistedState,
 	resetClassicyStateSyncForTests,
+	resolveClassicyStateChoice,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import {
 	noteClassicyClockTick,
@@ -544,8 +546,23 @@ describe("reconcile", () => {
 		expect(Object.getPrototypeOf(applications)).toBe(Object.prototype);
 	});
 
-	it("asks the adapters in order; the first replace wins", async () => {
-		const later = vi.fn(async () => ({ action: "useLocal" }) as const);
+	it("asks the adapters in order; the first replace wins, and those after it are asked with it (review N5)", async () => {
+		const later = vi.fn(
+			async (
+				local: ClassicyStateSnapshot,
+			): Promise<ClassicyStateReconcileResult> =>
+				local.state.System.Manager.Appearance.activeTheme.name === "One"
+					? { action: "useLocal" }
+					: { action: "replace", state: remoteState("Later") },
+		);
+		const laterSnapshots: ClassicyStateSnapshot[] = [];
+		const third = vi.fn(
+			async (): Promise<ClassicyStateReconcileResult> => ({
+				action: "replace",
+				state: remoteState("Third"),
+			}),
+		);
+		const thirdSnapshots: ClassicyStateSnapshot[] = [];
 		registerClassicyStateAdapter({
 			id: "local",
 			reconcile: async () => ({ action: "useLocal" }),
@@ -554,12 +571,37 @@ describe("reconcile", () => {
 			id: "first",
 			reconcile: async () => ({ action: "replace", state: remoteState("One") }),
 		});
-		registerClassicyStateAdapter({ id: "later", reconcile: later });
+		registerClassicyStateAdapter({
+			id: "later",
+			reconcile: later,
+			onSnapshot: (snapshot) => {
+				laterSnapshots.push(snapshot);
+			},
+		});
+		registerClassicyStateAdapter({
+			id: "third",
+			reconcile: third,
+			onSnapshot: (snapshot) => {
+				thirdSnapshots.push(snapshot);
+			},
+		});
 		await expect(reconcileClassicyState()).resolves.toBe(true);
 		expect(
 			useAppManager.getState().System.Manager.Appearance.activeTheme.name,
 		).toBe("One");
-		expect(later).not.toHaveBeenCalled();
+		// Asked, with the adopted state: it agrees, and takes snapshots.
+		expect(later).toHaveBeenCalledTimes(1);
+		// A replace after the winner's is not adopted; it stays held.
+		expect(third).toHaveBeenCalledTimes(1);
+		expect(
+			warnings().some((w) =>
+				w.message.includes("answered replace after another adapter's state"),
+			),
+		).toBe(true);
+		openApp("After.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(laterSnapshots).toHaveLength(1);
+		expect(thirdSnapshots).toHaveLength(0);
 	});
 
 	it("shares one run between concurrent calls", async () => {
@@ -1139,5 +1181,323 @@ describe("Reset PRAM (reviews M1, M3)", () => {
 		openApp("A.app");
 		await vi.advanceTimersByTimeAsync(500);
 		expect(snapshots).toHaveLength(1);
+	});
+});
+
+/** The system alert the desktop shows, if any. */
+const systemDialog = () =>
+	useAppManager.getState().System.Manager.Desktop.systemDialog ?? null;
+
+/** An adapter whose boot reconcile fails, then answers each retry with
+ * `answer` (a replace of the account's copy by default). */
+function failingAtBoot(
+	answer: () => ClassicyStateReconcileResult = () => ({
+		action: "replace",
+		state: remoteState(),
+	}),
+) {
+	const snapshots: ClassicyStateSnapshot[] = [];
+	const contexts: Array<{ reason: string; userActed: boolean }> = [];
+	const reconcile = vi.fn(
+		async (
+			_local: ClassicyStateSnapshot,
+			context: { reason: string; userActed: boolean },
+		): Promise<ClassicyStateReconcileResult> => {
+			contexts.push({ reason: context.reason, userActed: context.userActed });
+			if (contexts.length === 1) throw new Error("500");
+			return answer();
+		},
+	);
+	registerClassicyStateAdapter({
+		id: "remote",
+		reconcile,
+		onSnapshot: (snapshot) => {
+			snapshots.push(snapshot);
+		},
+	});
+	return { snapshots, contexts, reconcile };
+}
+
+const themeName = () =>
+	useAppManager.getState().System.Manager.Appearance.activeTheme.name;
+
+describe("a retry's replace after the user acted (review R1)", () => {
+	it("tells a boot reconcile it is the boot, with no user action (presses before the desktop is drawn do not count)", async () => {
+		const contexts: Array<{ reason: string; userActed: boolean }> = [];
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async (_local, context) => {
+				contexts.push({ reason: context.reason, userActed: context.userActed });
+				return { action: "replace", state: remoteState() };
+			},
+		});
+		noteClassicyStateUserAction();
+		await expect(reconcileClassicyState()).resolves.toBe(true);
+		expect(contexts).toEqual([{ reason: "boot", userActed: false }]);
+		expect(themeName()).toBe("Remote Theme");
+	});
+
+	it("adopts a retry's replace as before when the user has not acted", async () => {
+		const { contexts } = failingAtBoot();
+		await reconcileClassicyState();
+		// A press on the page before the desktop was drawn, or one no user
+		// made (an untrusted event), counts for nothing.
+		document.dispatchEvent(new Event("pointerdown"));
+		document.dispatchEvent(new Event("keydown"));
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(contexts[1]).toEqual({ reason: "retry", userActed: false });
+		expect(themeName()).toBe("Remote Theme");
+		expect(systemDialog()).toBeNull();
+	});
+
+	it("asks the user instead, holding the adapter and stopping its timer", async () => {
+		const { contexts, snapshots, reconcile } = failingAtBoot();
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(contexts[1]).toEqual({ reason: "retry", userActed: true });
+		expect(themeName()).not.toBe("Remote Theme");
+		expect(systemDialog()).toBe("syncChoice");
+		await vi.advanceTimersByTimeAsync(10 * 60_000);
+		expect(reconcile).toHaveBeenCalledTimes(2);
+		expect(snapshots).toHaveLength(0);
+	});
+
+	it("Use Saved adopts the account's copy, and sends it nothing back", async () => {
+		const { snapshots } = failingAtBoot();
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(10_000);
+		resolveClassicyStateChoice("adopt");
+		expect(themeName()).toBe("Remote Theme");
+		expect(
+			useAppManager.getState().System.Manager.Applications.apps["Work.app"],
+		).toBeUndefined();
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(0);
+		openApp("After.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+	});
+
+	it("Keep Current sends this desktop, and the adapter takes snapshots", async () => {
+		const { snapshots } = failingAtBoot();
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(10_000);
+		resolveClassicyStateChoice("keep");
+		expect(themeName()).not.toBe("Remote Theme");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		expect(
+			snapshots[0].state.System.Manager.Applications.apps["Work.app"],
+		).toBeDefined();
+	});
+
+	it("adopts a merged replace without asking", async () => {
+		const { contexts } = failingAtBoot(() => ({
+			action: "replace",
+			state: remoteState("Merged"),
+			merged: true,
+		}));
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(contexts[1].userActed).toBe(true);
+		expect(themeName()).toBe("Merged");
+		expect(systemDialog()).toBeNull();
+	});
+
+	it("a host's request adopts as before, telling it the user acted", async () => {
+		const contexts: Array<{ reason: string; userActed: boolean }> = [];
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async (_local, context) => {
+				contexts.push({ reason: context.reason, userActed: context.userActed });
+				return contexts.length === 1
+					? { action: "useLocal" }
+					: { action: "replace", state: remoteState() };
+			},
+		});
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		await expect(reconcileClassicyState()).resolves.toBe(true);
+		expect(contexts[1]).toEqual({ reason: "request", userActed: true });
+		expect(themeName()).toBe("Remote Theme");
+		expect(systemDialog()).toBeNull();
+	});
+
+	it("waits for another alert to close before asking", async () => {
+		failingAtBoot();
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: "emptyTrash" });
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(systemDialog()).toBe("emptyTrash");
+		dispatch({ type: "ClassicyDesktopShowSystemDialog", dialog: null });
+		expect(systemDialog()).toBe("syncChoice");
+	});
+
+	it("a host's request while the user is asked settles it and closes the alert", async () => {
+		let answer: ClassicyStateReconcileResult = {
+			action: "replace",
+			state: remoteState(),
+		};
+		const { snapshots } = failingAtBoot(() => answer);
+		await reconcileClassicyState();
+		noteClassicyStateUserAction();
+		openApp("Work.app");
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(systemDialog()).toBe("syncChoice");
+		answer = { action: "useLocal" };
+		await reconcileClassicyState();
+		expect(systemDialog()).toBeNull();
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots).toHaveLength(1);
+		// A late answer from the closed alert does nothing.
+		resolveClassicyStateChoice("adopt");
+		expect(themeName()).not.toBe("Remote Theme");
+	});
+});
+
+describe("review round 2 (N1-N6)", () => {
+	it("a host clock run fast in small steps is a change (N1)", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		let virtual = virtualNow();
+		for (let step = 0; step < 10; step++) {
+			await vi.advanceTimersByTimeAsync(1000);
+			virtual += 2000;
+			dispatch({
+				type: "ClassicyManagerDateTimeSet",
+				dateTime: new Date(virtual),
+			});
+		}
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots.length).toBeGreaterThan(1);
+	});
+
+	it("a snapshot due as the page hides goes at once, past a delivery under way (N2)", async () => {
+		const calls: ClassicyStateSnapshot[] = [];
+		registerClassicyStateAdapter({
+			id: "slow",
+			onSnapshot: (snapshot) => {
+				calls.push(snapshot);
+				return new Promise<void>(() => {});
+			},
+		});
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(calls).toHaveLength(1);
+		// Due on its debounce...
+		openApp("B.app");
+		window.dispatchEvent(new Event("pagehide"));
+		expect(calls).toHaveLength(2);
+		expect(
+			calls[1].state.System.Manager.Applications.apps["B.app"],
+		).toBeDefined();
+		// ...or already waiting behind the one under way.
+		openApp("C.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(calls).toHaveLength(2);
+		window.dispatchEvent(new Event("pagehide"));
+		expect(calls).toHaveLength(3);
+		expect(
+			calls[2].state.System.Manager.Applications.apps["C.app"],
+		).toBeDefined();
+	});
+
+	it("seq does not grow on another tab's stored state (N3)", async () => {
+		const { adapter, snapshots } = collector();
+		registerClassicyStateAdapter(adapter);
+		openApp("A.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots.map((s) => s.seq)).toEqual([1]);
+		// Another tab saved its own state, numbered 5.
+		localStorage.setItem(`${KEY}:seq`, "5");
+		localStorage.setItem(`${KEY}:seqContent`, "another tab's");
+		// This tab's clock ticks: its saved state is unchanged.
+		tick(new Date(virtualNow() + 60_000));
+		await vi.advanceTimersByTimeAsync(500);
+		openApp("B.app");
+		await vi.advanceTimersByTimeAsync(500);
+		expect(snapshots.at(-1)?.seq).toBe(6);
+	});
+
+	it("a host's request while Classicy retries runs after it, in full (N4)", async () => {
+		const answer = deferred<ClassicyStateReconcileResult>();
+		const reasons: string[] = [];
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: (_local, context) => {
+				reasons.push(context.reason);
+				if (reasons.length === 1) return Promise.reject(new Error("500"));
+				if (reasons.length === 2) return answer.promise;
+				return Promise.resolve({ action: "useLocal" });
+			},
+		});
+		await reconcileClassicyState();
+		await vi.advanceTimersByTimeAsync(10_000);
+		expect(reasons).toEqual(["boot", "retry"]);
+		const request = reconcileClassicyState();
+		answer.resolve({ action: "useLocal" });
+		await expect(request).resolves.toBe(false);
+		expect(reasons).toEqual(["boot", "retry", "request"]);
+	});
+
+	it("refuses a remote state with malformed icon or theme records, and heals its windows as a load does (N6)", async () => {
+		const base = remoteState();
+		const refused: unknown[] = [
+			produce(base, (draft) => {
+				(draft.System.Manager.Desktop as unknown as { icons: unknown }).icons =
+					[null];
+			}),
+			produce(base, (draft) => {
+				(
+					draft.System.Manager.Appearance as unknown as {
+						customThemes: unknown;
+					}
+				).customThemes = [1];
+			}),
+			produce(base, (draft) => {
+				(
+					draft.System.Manager.Appearance as unknown as {
+						customThemes: unknown;
+					}
+				).customThemes = ["x"];
+			}),
+		];
+		for (const state of refused) {
+			resetClassicyStateSyncForTests();
+			registerClassicyStateAdapter({
+				id: "bad",
+				reconcile: async () => ({ action: "replace", state }) as never,
+			});
+			await expect(reconcileClassicyState()).resolves.toBe(false);
+		}
+		for (const windows of ["x", { w: null }]) {
+			resetClassicyStateSyncForTests();
+			const state = produce(base, (draft) => {
+				(
+					draft.System.Manager.Applications.apps["Remote.app"] as unknown as {
+						windows: unknown;
+					}
+				).windows = windows;
+			});
+			registerClassicyStateAdapter({
+				id: "healed",
+				reconcile: async () => ({ action: "replace", state }) as never,
+			});
+			await expect(reconcileClassicyState()).resolves.toBe(true);
+			expect(
+				useAppManager.getState().System.Manager.Applications.apps["Remote.app"]
+					.windows,
+			).toEqual({});
+		}
 	});
 });
