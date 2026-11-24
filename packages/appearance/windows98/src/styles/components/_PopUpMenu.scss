@@ -1,4 +1,384 @@
-// The Windows 98 PopUpMenu look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 pop-up menu look, included by windows98.scss inside the
+// package wrapper; overrides ClassicyPopUpMenu.scss and ClassicyComboBox.scss
+// (structure alone) and the pop-up frame of ClassicyBevelButton.scss
+// (`popupContent` panels). Mac OS 8's pop-up menu is Windows' drop-down
+// list (a CBS_DROPDOWNLIST combo box) and the combo box its editable kind
+// (CBS_DROPDOWN), as `DrawFrameControl` drew them from the system colors
+// (98.css, os-gui): a Window-white field `--pop-up-height` tall in the
+// sunken two-ring bevel, its current value 4 px in, a raised ButtonFace
+// button `--pop-up-button-width` wide inside the frame at the right with a
+// 7 x 4 black triangle, pressed flat (one ring of ButtonShadow, the
+// triangle a pixel down and right) while the list is open or the mouse is
+// down on it; the keyboard's focus a Hilight band over the value with
+// HilightText and the dotted focus rectangle on it; disabled, a ButtonFace
+// field with GrayText and the triangle embossed. The open list is Windows':
+// a Window-white box in a one-pixel ButtonDkShadow line, rows the face's
+// height in a pixel of padding, the tracked row a Hilight band, a group's
+// title in GrayText embossed, no check against the current item (Windows
+// draws none; the core tracks the current item when the list opens). A
+// long list's scroll indicators are raised ButtonFace rows with the arrow
+// (_Menu.scss draws the shared indicator). A bevel button's pop-up panel is
+// a menu frame around a ButtonFace face; its pop-up arrows are the
+// triangle, pointing where the surface opens.
+//
+//   Windows color     token
+//   Window            --color-window-document   the field and the list
+//   WindowText        --color-black             the value, the rows, the
+//                                               triangle
+//   ButtonFace        --color-system-03         the button, a disabled field
+//   ButtonHilight     --color-system-01         the field's bottom-right
+//                                               outer ring, the button's
+//                                               top-left ring, the emboss
+//   ButtonLight       --color-system-02         the field's bottom-right
+//                                               inner ring, the button's
+//                                               inner top-left ring
+//   ButtonShadow      --color-system-05         the field's top-left outer
+//                                               ring, the button's inner
+//                                               bottom-right ring, GrayText,
+//                                               the pressed button's ring
+//   ButtonDkShadow    --color-system-07         the field's top-left inner
+//                                               ring, the button's
+//                                               bottom-right ring, the
+//                                               list's line
+//   Hilight           --color-highlight         the focused value, the
+//                                               tracked row
+//   HilightText       --package-color-selection-text (--color-white)
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The drop-down button's triangle (7 x 4), pointing down; the same pointing
+// up (a list's upper scroll indicator) and right (a bevel button's
+// horizontal pop-up arrow).
+$arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
+$arrow-up: runs(("...x...", "..xxx..", ".xxxxx.", "xxxxxxx"), "x");
+$arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
+
+// One ring, negative (Sass keeps `b.$-b` private to its module).
+$-b: calc(#{b.$b} * -1);
+
+// A glyph in the ink, over its ButtonHilight emboss one pixel below right.
+@function embossed($rects) {
+  @return list.join(pixel-art(currentColor, $rects), pixel-art(b.$hilight, $rects, b.$b, b.$b), $separator: comma);
+}
+
+// The field: Window white in the sunken bevel, the face's size.
+@mixin field {
+  box-sizing: border-box;
+  height: var(--pop-up-height);
+  border: 0;
+  border-radius: 0;
+  font-size: var(--ui-font-size);
+  line-height: 1;
+  color: b.$text;
+  background: b.$window;
+  @include b.sunken;
+  cursor: default;
+}
+
+// The drop-down button inside the field's frame, `--pop-up-inset` in from
+// its top, right and bottom: raised ButtonFace with the triangle centered
+// on it, in the button's ink.
+@mixin drop-down-button {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: var(--pop-up-button-width);
+  margin: var(--pop-up-inset) var(--pop-up-inset) var(--pop-up-inset) 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: b.$text;
+  background: b.$face;
+  @include b.raised;
+  cursor: default;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: px(7);
+    height: px(4);
+    margin: auto;
+    background: pixel-art(currentColor, $arrow-down);
+  }
+}
+
+// The button while the list is open or the mouse is down on it: flat, one
+// ring of ButtonShadow, the triangle a pixel down and right.
+@mixin drop-down-button-pressed {
+  @include b.pressed-flat;
+
+  &::before {
+    translate: b.$b b.$b;
+  }
+}
+
+// The button of a disabled control: the triangle in GrayText, embossed.
+@mixin drop-down-button-disabled {
+  color: b.$gray-text;
+
+  &::before {
+    background: embossed($arrow-down);
+  }
+}
+
 @mixin pop-up-menu {
+  // ----- The pop-up menu (the drop-down list) -------------------------------
+  .classicyPopUpMenu {
+    @include field;
+
+    &.disabled {
+      color: b.$gray-text;
+      background: b.$face;
+    }
+  }
+
+  // The size variants keep the face's field; the large one grows to its
+  // text.
+  .classicyPopUpMenu.classicyPopUpMenuSizeSmall {
+    font-size: var(--ui-font-size-small);
+  }
+
+  .classicyPopUpMenu.classicyPopUpMenuSizeMedium {
+    font-size: var(--ui-font-size);
+  }
+
+  .classicyPopUpMenu.classicyPopUpMenuSizeLarge {
+    height: auto;
+    min-height: var(--pop-up-height);
+    font-size: var(--ui-font-size-xlarge);
+  }
+
+  // The trigger: the value from the text inset (a pixel before it, where
+  // the focus band starts), a pixel before the button.
+  .classicyPopUpMenuButton {
+    gap: b.$b;
+    padding: 0 0 0 calc(var(--pop-up-text-inset) - #{b.$b});
+    color: inherit;
+    cursor: inherit;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  // The value: a band the face's height, which the keyboard's focus fills
+  // with Hilight and HilightText and rings with the dotted focus rectangle
+  // (a pointer's focus draws none).
+  .classicyPopUpMenuValue {
+    box-sizing: border-box;
+    padding: b.$b;
+  }
+
+  .classicyPopUpMenuButton:focus-visible .classicyPopUpMenuValue {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+    outline: b.$b dotted b.$highlight-text;
+    outline-offset: $-b;
+  }
+
+  // The current item's small icon before its name, where an item has one
+  // (the Save dialog's folder list shows one).
+  .classicyPopUpMenuButton > .classicyPopUpMenuValueIcon {
+    display: block;
+    flex: none;
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+    margin-right: var(--pop-up-inset);
+  }
+
+  .classicyPopUpMenuIndicator {
+    @include drop-down-button;
+
+    &.open {
+      @include drop-down-button-pressed;
+    }
+  }
+
+  .classicyPopUpMenu:active .classicyPopUpMenuIndicator {
+    @include drop-down-button-pressed;
+  }
+
+  .classicyPopUpMenu.disabled .classicyPopUpMenuIndicator {
+    @include drop-down-button-disabled;
+  }
+
+  // The mini pop-up is the button alone: a raised square with the triangle.
+  .classicyPopUpMenu.classicyPopUpMenuSizeMini {
+    width: var(--pop-up-button-width);
+    height: var(--pop-up-button-width);
+    background: b.$face;
+    box-shadow: none;
+
+    .classicyPopUpMenuButton {
+      padding: 0;
+    }
+
+    .classicyPopUpMenuIndicator {
+      width: 100%;
+      margin: 0;
+    }
+  }
+
+  // ----- The open list ------------------------------------------------------
+  // A Window-white box in a one-pixel ButtonDkShadow line, placed by the
+  // core; its rows the face's height in a pixel of padding. The browser's
+  // own bar stays hidden, whatever a desktop rule allows elsewhere.
+  .classicyPopUpMenuList {
+    box-sizing: border-box;
+    padding: 0;
+    border: b.$b solid b.$dkshadow;
+    font-size: var(--ui-font-size);
+    line-height: 1;
+    color: b.$text;
+    background: b.$window;
+    box-shadow: none;
+    scrollbar-width: none;
+  }
+
+  .classicyPopUpMenuListItem,
+  .classicyPopUpMenuGroupHeader {
+    gap: var(--pop-up-inset);
+    padding: b.$b var(--pop-up-inset);
+    color: b.$text;
+    cursor: default;
+  }
+
+  .classicyPopUpMenuListItemHighlight {
+    color: b.$highlight-text;
+    background-color: b.$highlight;
+  }
+
+  // A group's title is drawn as an unavailable item.
+  .classicyPopUpMenuGroupHeader {
+    @include b.disabled-text;
+  }
+
+  // Its members indent under it.
+  .classicyPopUpMenuListItemGrouped {
+    padding-left: calc(var(--pop-up-inset) + var(--pop-up-text-inset) + var(--pop-up-text-inset));
+  }
+
+  // Windows draws no check against the current item: the list opens with
+  // it tracked instead.
+  .classicyPopUpMenuCheck {
+    display: none;
+  }
+
+  .classicyPopUpMenuListItemIcon {
+    width: var(--icon-small-size);
+    height: var(--icon-small-size);
+  }
+
+  // A long list's scroll indicators, siblings of the list: the shared
+  // ButtonFace row and arrow (_Menu.scss) raised, as a list box's scroll
+  // arrows are.
+  .classicyPopUpMenuList ~ .classicyPopUpMenuScrollArrow {
+    @include b.raised;
+  }
+
+  // ----- The combo box (the editable drop-down) -----------------------------
+  // The frame is the composition's: the field around both the edit and the
+  // button, so the button sits inside the frame as Windows' does; the edit
+  // inside it is bare (its own sheet's bevel, frame and focus ring are the
+  // field's here).
+  .classicyComboBox {
+    @include field;
+    align-items: stretch;
+    cursor: text;
+
+    &.disabled,
+    &:has(> .classicyComboBoxInput:disabled) {
+      color: b.$gray-text;
+      background: b.$face;
+    }
+  }
+
+  .classicyComboBox > .classicyInput.classicyComboBoxInput {
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0 0 var(--pop-up-text-inset);
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    box-shadow: none;
+    font-family: var(--ui-font), sans-serif;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    background: transparent;
+
+    &:focus,
+    &:focus-visible,
+    &:disabled {
+      border: 0;
+      outline: none;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    &:disabled {
+      color: b.$gray-text;
+    }
+  }
+
+  .classicyComboBox > .classicyPopUpMenuIndicator.classicyComboBoxIndicator {
+    @include drop-down-button;
+    align-self: auto;
+    height: auto;
+
+    &:active {
+      @include drop-down-button-pressed;
+    }
+
+    &:disabled {
+      @include drop-down-button-disabled;
+    }
+  }
+
+  .classicyComboBox.open > .classicyPopUpMenuIndicator.classicyComboBoxIndicator {
+    @include drop-down-button-pressed;
+  }
+
+  // The "No matches" row reads as an unavailable item.
+  .classicyComboBoxNoMatches.classicyPopUpMenuListItem {
+    @include b.disabled-text;
+  }
+
+  // ----- A bevel button's pop-ups ------------------------------------------
+  // The pop-up arrow on the button: the triangle in the label's ink,
+  // pointing where the surface opens (right for horizontal, down for
+  // vertical); the base sheet sizes the small and large boxes.
+  .classicyBevelButtonArrow::before {
+    content: "";
+    display: block;
+  }
+
+  .classicyBevelButtonArrowHorizontal::before {
+    width: px(4);
+    height: px(7);
+    background: pixel-art(currentColor, $arrow-right);
+  }
+
+  .classicyBevelButtonArrowVertical::before {
+    width: px(7);
+    height: px(4);
+    background: pixel-art(currentColor, $arrow-down);
+  }
+
+  // A pop-up panel (a surface that is not a menu, such as a pop-up slider):
+  // the menu frame's bevel around a ButtonFace face, the content inside the
+  // rings (the panel is content-box, so the padding the rings take adds to
+  // the content's size).
+  .classicyBevelButtonPopup.classicyBevelButtonPopupPanel {
+    padding: b.$b2;
+    border: 0;
+    color: b.$text;
+    background: b.$face;
+    @include b.window-frame;
+  }
 }

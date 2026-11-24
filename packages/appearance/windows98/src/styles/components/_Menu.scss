@@ -1,4 +1,335 @@
-// The Windows 98 Menu look, included by windows98.scss inside the package
-// wrapper. To be drawn.
+// The Windows 98 menu look, included by windows98.scss inside the package
+// wrapper: the pull-down menus, their submenus and the contextual menus
+// (ClassicyMenu.scss, ClassicyContextualMenu.scss, which hold the structure
+// alone), and the scroll indicators a long menu list shows over its first
+// and last row (useClassicyMenuScrollArrows, parts `menu-scroll-up` and
+// `menu-scroll-down`; the pop-up and combo box lists share them,
+// _PopUpMenu.scss). A Windows 98 menu, as `DrawEdge` and the menu code drew
+// it from the system colors (98.css, os-gui): a ButtonFace box in the
+// window frame's two-ring bevel (ButtonLight and ButtonHilight at the top
+// and left, ButtonDkShadow and ButtonShadow at the bottom and right) with
+// one ring of face inside it, no drop shadow; items 17 px tall (the 11 px
+// face in 3 px of padding) with 6 px of side padding, the tracked item a
+// Hilight band with HilightText; unavailable items in GrayText embossed by a
+// ButtonHilight pixel below right, highlighted like any other item under
+// the pointer (Windows 9x selects a disabled item, it only does nothing);
+// separators an etched line, ButtonShadow over ButtonHilight, in a 9 px
+// slot; a 7 x 6 check mark and a 4 x 7 solid triangle for a submenu, both
+// drawn in the item's ink; accelerators in a column at the right in the
+// item's font; a submenu beside its item, level with it, over the parent's
+// frame. No menu flashes when chosen: Windows never did.
+//
+//   Windows color     token
+//   ButtonFace        --color-system-03   the face
+//   ButtonLight       --color-system-02   the frame's outer top-left ring
+//   ButtonHilight     --color-system-01   the frame's inner top-left ring,
+//                                         the separator's lower line, the
+//                                         disabled emboss
+//   ButtonShadow      --color-system-05   the frame's inner bottom-right
+//                                         ring, the separator's upper line,
+//                                         GrayText
+//   ButtonDkShadow    --color-system-07   the frame's outer bottom-right ring
+//   WindowText        --color-black       the ink
+//   Hilight           --color-highlight   the selected item's band
+//   HilightText       --package-color-selection-text (--color-white)
+@use "sass:list";
+@use "../bevels" as b;
+@use "../pixel" as *;
+
+// The menus the frame and the item rules apply to: the menu bar's
+// pull-downs and their submenus, a standalone menu, and the contextual menus
+// (a bevel button's pop-up menu is a contextual menu too).
+$menus: ".classicyMenu, .classicySubMenu, .classicyContextMenu, .classicyContextSubMenu";
+
+// The frame's thickness: its two bevel rings and the ring of face inside
+// them, where the items start (3 px).
+$frame: calc(#{b.$b2} + #{b.$b});
+$-frame: calc(#{$frame} * -1);
+
+// The check mark (7 x 6), Marlett's menu check as Windows 98 drew it.
+$checkmark: runs(
+  (
+    "......x",
+    ".....xx",
+    "x...xx.",
+    "xx.xx..",
+    ".xxx...",
+    "..x....",
+  ),
+  "x"
+);
+
+// The mixed-state mark, a dash as wide as the check (Windows has no mixed
+// menu item; the Mac's dash in Windows' terms).
+$dash: ((0 2 7 2),);
+
+// The submenu triangle (4 x 7), pointing right.
+$submenu-arrow: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x");
+
+// The scroll indicators' triangles (7 x 4), the scroll arrows' glyph.
+$arrow-up: runs(("...x...", "..xxx..", ".xxxxx.", "xxxxxxx"), "x");
+$arrow-down: runs(("xxxxxxx", ".xxxxx.", "..xxx..", "...x..."), "x");
+
+// A glyph in the ink, over its ButtonHilight emboss one pixel below right:
+// how Windows draws a disabled item's mark.
+@function embossed($rects) {
+  @return list.join(pixel-art(currentColor, $rects), pixel-art(b.$hilight, $rects, b.$b, b.$b), $separator: comma);
+}
+
+// The menu frame: the window frame's bevel around a ButtonFace box, the
+// items a ring of face inside it. Inset shadows, so a list that scrolls
+// keeps them in place; the frame is drawn again on the sibling ClassicyMenu
+// puts over a scrolling list (below).
+@mixin menu-frame {
+  box-sizing: border-box;
+  padding: $frame;
+  border: 0;
+  color: b.$text;
+  background: b.$face;
+  @include b.window-frame;
+}
+
 @mixin menu {
+  :is(#{$menus}) {
+    @include menu-frame;
+    // As wide as its widest item: Windows sizes a menu to its items.
+    min-width: 0;
+  }
+
+  // A menu too long for the screen scrolls (ClassicyMenu caps its height):
+  // its rows scroll over the padding where the bevel is, so the frame is
+  // drawn again on the sibling ClassicyMenu lays over the list's box
+  // (`.classicyMenuScrollShadow`), which puts the rings on the same pixels.
+  // The browser's own bar stays hidden, whatever a desktop rule allows
+  // elsewhere.
+  :is(#{$menus}).classicyMenuListScrolls {
+    scrollbar-width: none;
+  }
+
+  .classicyMenuScrollShadow {
+    box-sizing: border-box;
+    @include b.window-frame;
+  }
+
+  // An item: a row 17 px tall at the face's size, 6 px of padding either
+  // side, its title and its accelerator a column apart.
+  :is(#{$menus}) .classicyMenuItem {
+    position: relative;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    align-items: center;
+    column-gap: var(--layout-group-gap);
+    height: auto;
+    padding: px(3) var(--menu-item-padding-x);
+    line-height: 1;
+    color: b.$text;
+    background-color: transparent;
+    white-space: nowrap;
+    cursor: default;
+
+    > p {
+      height: auto;
+    }
+
+    // A link's ink is its item's (the base sheet pins it black).
+    > p a {
+      color: inherit;
+    }
+
+    // A small icon before the title.
+    img {
+      width: var(--icon-small-size);
+      height: var(--icon-small-size);
+      margin-right: var(--layout-item-gap);
+    }
+
+    // The tracked item: a Hilight band with HilightText, under the pointer
+    // or while its submenu is open.
+    &:hover,
+    &.open {
+      color: b.$highlight-text;
+      background-color: b.$highlight;
+    }
+
+    // The item the keyboard makes current is tracked the same way: Windows
+    // draws no focus rectangle in a menu.
+    &:focus-visible {
+      outline: none;
+      color: b.$highlight-text;
+      background-color: b.$highlight;
+    }
+  }
+
+  // While the pointer is over a menu it tracks the item under it alone, so
+  // a keyboard-current item elsewhere in it shows plain (one open on its
+  // submenu stays tracked).
+  :is(#{$menus}):hover .classicyMenuItem:not(:hover, .open):focus-visible {
+    color: b.$text;
+    background-color: transparent;
+  }
+
+  // An unavailable item: GrayText embossed by a ButtonHilight pixel below
+  // right (the shadow inherits to the title and the accelerator; the marks
+  // draw their own, below). Under the pointer it takes the band like any
+  // item, its text plain GrayText on it, as Windows 9x draws a selected
+  // disabled item.
+  :is(#{$menus}) .classicyMenuItem.disabled {
+    @include b.disabled-text;
+
+    > p,
+    > kbd {
+      color: inherit;
+    }
+
+    &:is(:hover, .open, :focus-visible) {
+      color: b.$gray-text;
+      background-color: b.$highlight;
+      text-shadow: none;
+    }
+  }
+
+  :is(#{$menus}):hover .classicyMenuItem.disabled:not(:hover, .open):focus-visible {
+    @include b.disabled-text;
+    background-color: transparent;
+  }
+
+  // The accelerator column: the item's font and ink, flush right.
+  :is(#{$menus}) .classicyMenuItem .classicyMenuItemKeyboardShortcut {
+    flex: none;
+    justify-content: flex-end;
+    padding: 0;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  // The mark column: a gutter an icon wide before every title in a menu
+  // that marks items, so marked and unmarked titles align; the check or the
+  // dash is pixel art in the item's ink, centered in it.
+  :is(#{$menus}) .classicyMenuItemCheck {
+    width: var(--icon-small-size);
+    margin-right: var(--layout-item-gap);
+
+    &::before {
+      content: "";
+      display: block;
+      width: px(7);
+      height: px(6);
+    }
+
+    &.checked::before {
+      background: pixel-art(currentColor, $checkmark);
+    }
+
+    &.mixed::before {
+      background: pixel-art(currentColor, $dash);
+    }
+  }
+
+  :is(#{$menus}) .classicyMenuItem.disabled .classicyMenuItemCheck {
+    &.checked::before {
+      background: embossed($checkmark);
+    }
+
+    &.mixed::before {
+      background: embossed($dash);
+    }
+  }
+
+  :is(#{$menus}) .classicyMenuItem.disabled:is(:hover, .open, :focus-visible) .classicyMenuItemCheck {
+    &.checked::before {
+      background: pixel-art(currentColor, $checkmark);
+    }
+
+    &.mixed::before {
+      background: pixel-art(currentColor, $dash);
+    }
+  }
+
+  // A separator: an etched line, ButtonShadow over ButtonHilight, across
+  // the items' width in a 9 px slot (the line at its fourth and fifth rows).
+  :is(#{$menus}) .classicySeparatorHorizontal {
+    box-sizing: border-box;
+    height: b.$b2;
+    margin: px(3) 0 px(4);
+    border: 0;
+    border-top: b.$b solid b.$shadow;
+    border-bottom: b.$b solid b.$hilight;
+    background: none;
+  }
+
+  // The submenu triangle in the accelerator column, the item's side padding
+  // in from its right edge and centered on its row, in the item's ink
+  // (HilightText while it is tracked); the item keeps the column clear of
+  // its title.
+  :is(#{$menus}) .classicyMenuItemChildMenuIndicator {
+    padding-right: calc(var(--menu-item-padding-x) + #{px(4)} + var(--menu-item-padding-x));
+
+    &::after {
+      content: "";
+      top: 0;
+      right: var(--menu-item-padding-x);
+      bottom: 0;
+      left: auto;
+      width: px(4);
+      height: px(7);
+      margin: auto 0;
+      background: pixel-art(currentColor, $submenu-arrow);
+    }
+
+    &.disabled::after {
+      background: embossed($submenu-arrow);
+    }
+
+    &.disabled:is(:hover, .open, :focus-visible)::after {
+      background: pixel-art(currentColor, $submenu-arrow);
+    }
+  }
+
+  // A submenu beside its item: its first item level with the parent item
+  // (its frame the frame's thickness above it), its frame over the parent
+  // menu's right side by the same; flipped left when the screen has no
+  // room on the right. The item's wrapper is pinned over the item, so the
+  // submenu is placed from the item's box.
+  :is(#{$menus}) .classicyMenuItem > .classicyMenuWrapper {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 0;
+  }
+
+  :is(#{$menus}) .classicyMenuWrapper > :is(.classicySubMenu, .classicyContextSubMenu) {
+    top: 0;
+    left: 100%;
+    margin: $-frame 0 0 $-frame;
+
+    &.classicySubMenuFlipLeft {
+      right: 100%;
+      left: auto;
+      margin: $-frame $-frame 0 0;
+    }
+  }
+
+  // A long list's scroll indicators, over its first and last row: a
+  // ButtonFace row with the scroll arrows' triangle centered on it, as a
+  // scrolling Windows 98 menu shows at each end.
+  .classicyPopUpMenuScrollArrow {
+    color: b.$text;
+    background: b.$face;
+
+    &::before {
+      content: "";
+      width: px(7);
+      height: px(4);
+    }
+  }
+
+  .classicyPopUpMenuScrollArrowUp::before {
+    background: pixel-art(currentColor, $arrow-up);
+  }
+
+  .classicyPopUpMenuScrollArrowDown::before {
+    background: pixel-art(currentColor, $arrow-down);
+  }
 }
