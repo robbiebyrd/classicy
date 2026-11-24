@@ -8,6 +8,7 @@ import {
 	useState,
 } from "react";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	useAppManager,
 	useAppManagerDispatch,
@@ -65,28 +66,32 @@ const useClassicyPaletteKeepsKeyboardOff = () => {
 };
 
 /**
- * How many buttons fit in a line (a column, or a row when the palette is
- * horizontal) before the desktop's edge: the room from the first button's
- * start to the edge, less the frame after the last line (`chromeAfter`), in
- * buttons of `buttonSize` (the tallest, or the widest), never under one.
+ * How many buttons a line (a column, or a row when the palette is
+ * horizontal) holds on the desktop: the room the desktop has for a window
+ * along it (`space`), less the palette's own frame around the buttons
+ * (`chrome`), in buttons of `buttonSize` (the tallest, or the widest), never
+ * under one. Where the palette sits never enters it.
  */
 export const classicyAppSwitcherPaletteLines = (
-	room: number,
-	chromeAfter: number,
+	space: number,
+	chrome: number,
 	buttonSize: number,
 ): number =>
 	buttonSize > 0
-		? Math.max(1, Math.floor((room - chromeAfter) / buttonSize))
+		? Math.max(1, Math.floor((space - chrome) / buttonSize))
 		: Number.POSITIVE_INFINITY;
 
 /**
- * The line length the palette's buttons wrap at, measured from where the
- * palette sits in its layer (the desktop) once laid out, and again when it
- * moves, its buttons or options change, or the desktop resizes. `undefined`
- * while every button fits in one line. Mac OS 8.5's palette with more
- * applications than the screen holds was not observed (the emulator hung
- * while they were launched): Classicy keeps every button on the desktop,
- * as it keeps every window's corner on it.
+ * The line length the palette's buttons wrap at, from how much the desktop
+ * can hold, not from where the palette sits: the desktop's height from the
+ * menu bar's underside to its bottom (no taller than a window's maximum
+ * height), its width when horizontal. Measured once the palette is laid
+ * out, and again when the desktop resizes or the buttons, the options or the
+ * collapse state change; never on a move, so a palette dragged partly past
+ * an edge keeps its shape and clips like any window. `undefined` while every
+ * button fits in one line. Mac OS 8.5's palette with more applications than
+ * the screen holds was not observed (the emulator hung while they were
+ * launched): Classicy wraps only a line the desktop cannot hold at all.
  */
 const useClassicyPaletteLines = (
 	count: number,
@@ -112,7 +117,7 @@ const useClassicyPaletteLines = (
 			).map((b) => b.getBoundingClientRect());
 			const contents = list?.closest<HTMLElement>(".classicyWindowContents");
 			if (!list || !contents || buttons.length === 0) return;
-			const edge = layer.getBoundingClientRect();
+			const desktop = layer.getBoundingClientRect();
 			const outer = palette.getBoundingClientRect();
 			// The frame after the last line, from the styles (the box itself
 			// may be cut off at the window's maximum height).
@@ -129,23 +134,30 @@ const useClassicyPaletteLines = (
 							: Number.parseFloat(cs.getPropertyValue(`margin-${side}`)) || 0)
 					);
 				}, 0);
-			// A window is never taller than its maximum height (the desktop's,
-			// less a reserve): the room ends there or at the desktop's edge.
-			const maxHeight = Number.parseFloat(getComputedStyle(palette).maxHeight);
-			const bottom = Number.isFinite(maxHeight)
-				? Math.min(edge.bottom, outer.top + maxHeight)
-				: edge.bottom;
 			const fit = horizontal
 				? classicyAppSwitcherPaletteLines(
-						edge.right - buttons[0].left,
-						after("right"),
+						desktop.width,
+						buttons[0].left - outer.left + after("right"),
 						Math.max(...buttons.map((b) => b.width)),
 					)
-				: classicyAppSwitcherPaletteLines(
-						bottom - buttons[0].top,
-						after("bottom"),
-						Math.max(...buttons.map((b) => b.height)),
-					);
+				: (() => {
+						// A window keeps below the menu bar, and is never taller than
+						// its maximum height (the desktop's, less a reserve).
+						const menuBar = readClassicyThemeVar(
+							"--menu-bar-height",
+							undefined,
+							layer,
+						);
+						const maxHeight = Number.parseFloat(
+							getComputedStyle(palette).maxHeight,
+						);
+						const room = desktop.height - menuBar;
+						return classicyAppSwitcherPaletteLines(
+							Number.isFinite(maxHeight) ? Math.min(room, maxHeight) : room,
+							buttons[0].top - outer.top + after("bottom"),
+							Math.max(...buttons.map((b) => b.height)),
+						);
+					})();
 			setLines(fit < count ? fit : undefined);
 		};
 		measure();
@@ -218,12 +230,13 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	// (`…-horizontal.png`); with names across the top it has both.
 	const narrow = !horizontal && !showNames && !large;
 	useClassicyPaletteKeepsKeyboardOff();
-	const position = useAppManager(
+	// The window's record exists once it has registered: the first measure.
+	const registered = useAppManager(
 		(s) =>
 			getAppWindow(
 				s.System.Manager.Applications.apps[APPLICATION_SWITCHER_APP_ID],
 				APPLICATION_SWITCHER_PALETTE_ID,
-			)?.position,
+			) !== undefined,
 	);
 	const collapsed = useAppManager(
 		(s) =>
@@ -232,14 +245,15 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 				APPLICATION_SWITCHER_PALETTE_ID,
 			)?.collapsed === true,
 	);
-	// More applications than the desktop has room for wrap into another
-	// column (another row, horizontal), so every button stays on it.
+	// More applications than the desktop can hold in a line wrap into
+	// another column (another row, horizontal), so every button can be
+	// brought onto it; a move never reshapes the palette.
 	const lines = useClassicyPaletteLines(entries.length, horizontal, [
-		position?.[0],
-		position?.[1],
+		registered,
 		collapsed,
 		large,
 		showNames,
+		entries.map((e) => e.name).join("\n"),
 	]);
 
 	return (

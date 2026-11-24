@@ -9,6 +9,7 @@ import {
 	resetClassicyAppearancePackagesForTests,
 } from "@/Appearance/ClassicyAppearancePackage";
 import { getTheme } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
+import { readClassicyThemeVar } from "@/SystemFolder/ControlPanels/AppearanceManager/ClassicyThemeMetricReader";
 import {
 	type ClassicyStore,
 	type ClassicyStoreSystemApp,
@@ -366,8 +367,8 @@ describe("the Application Switcher", () => {
 			expect(front()).toBe("Notes.app");
 		});
 
-		it("counts the buttons a line holds before the desktop's edge", () => {
-			// 300 pixels from the first button to the edge, 4 of frame after.
+		it("counts the buttons a line the desktop has room for holds", () => {
+			// 300 pixels of desktop, 4 of the palette's own frame.
 			expect(classicyAppSwitcherPaletteLines(300, 4, 24)).toBe(12);
 			expect(classicyAppSwitcherPaletteLines(300, 4, 40)).toBe(7);
 			// Never under one, and no wrap for a button not laid out.
@@ -377,10 +378,15 @@ describe("the Application Switcher", () => {
 			);
 		});
 
-		it("wraps into another column when the desktop has no room for every button", () => {
-			// A desktop 100 pixels tall from the first button down: two 40-pixel
-			// buttons fit, so three wrap after two.
-			const rect = (top: number, height: number, left = 0, width = 100) =>
+		describe("wrapping (re-review I-R1)", () => {
+			// A laid-out desktop for jsdom: the floating layer is the desktop,
+			// `desktopHeight` tall; the palette sits where its style puts it, a
+			// 16-pixel frame above its buttons (24 pixels each, 112 wide) and
+			// none below.
+			let desktopHeight = 600;
+			const BUTTON = 24;
+			const FRAME_ABOVE = 16;
+			const rect = (left: number, top: number, width: number, height: number) =>
 				({
 					top,
 					left,
@@ -392,31 +398,136 @@ describe("the Application Switcher", () => {
 					bottom: top + height,
 					toJSON: () => ({}),
 				}) as DOMRect;
-			const original = Element.prototype.getBoundingClientRect;
-			vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
-				function (this: Element) {
-					if (this.id === "classicy-floating-layer") return rect(0, 120);
-					if (this.classList.contains("classicyApplicationSwitcherButton"))
-						return rect(20, 40);
-					if (this.classList.contains("classicyApplicationSwitcherPalette"))
-						return rect(0, 150);
-					return original.call(this);
-				},
-			);
-			try {
-				setUp();
-				render(<ClassicyApplicationSwitcher />);
-				tearOff();
-				const list = palette()?.querySelector(
+			const observers: (() => void)[] = [];
+			beforeEach(() => {
+				desktopHeight = 600;
+				observers.length = 0;
+				vi.stubGlobal(
+					"ResizeObserver",
+					class {
+						constructor(private callback: () => void) {}
+						observe() {
+							observers.push(this.callback);
+						}
+						disconnect() {}
+					},
+				);
+				const original = Element.prototype.getBoundingClientRect;
+				vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+					function (this: Element) {
+						if (this.id === "classicy-floating-layer")
+							return rect(0, 0, 800, desktopHeight);
+						const win = this.closest<HTMLElement>(
+							".classicyApplicationSwitcherPalette",
+						);
+						const left = Number.parseFloat(win?.style.left ?? "") || 0;
+						const top = Number.parseFloat(win?.style.top ?? "") || 0;
+						if (this === win) return rect(left, top, 120, 100);
+						if (this.classList.contains("classicyApplicationSwitcherButton")) {
+							const i = [...(this.parentElement?.children ?? [])].indexOf(this);
+							return rect(
+								left + 4,
+								top + FRAME_ABOVE + BUTTON * i,
+								112,
+								BUTTON,
+							);
+						}
+						return original.call(this);
+					},
+				);
+			});
+			afterEach(() => {
+				vi.restoreAllMocks();
+				vi.unstubAllGlobals();
+			});
+			const list = () =>
+				palette()?.querySelector(
 					".classicyApplicationSwitcherButtons",
 				) as HTMLElement;
-				expect(list.classList).toContain("classicyApplicationSwitcherWrapped");
-				expect(
-					list.style.getPropertyValue("--application-switcher-lines"),
-				).toBe("2");
-			} finally {
-				vi.restoreAllMocks();
-			}
+			const lines = () =>
+				list().style.getPropertyValue("--application-switcher-lines");
+			const moveTo = (position: [number, number]) =>
+				act(() => {
+					dispatch({
+						type: "ClassicyWindowMove",
+						moving: false,
+						position,
+						app: { id: APPLICATION_SWITCHER_APP_ID },
+						window: { id: APPLICATION_SWITCHER_PALETTE_ID },
+					});
+				});
+			// The menu bar the room starts under, as the palette reads it.
+			const menuBar = () => readClassicyThemeVar("--menu-bar-height");
+
+			it("keeps its shape when dragged past each edge of the desktop", () => {
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 200]);
+				expect(list().classList).not.toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				const size = () => palette()?.getBoundingClientRect();
+				const before = size();
+				for (const position of [
+					[300, desktopHeight - 30],
+					[-90, 200],
+					[760, 200],
+					[300, 0],
+				] as [number, number][]) {
+					moveTo(position);
+					expect(
+						apps().apps[APPLICATION_SWITCHER_APP_ID].windows[
+							APPLICATION_SWITCHER_PALETTE_ID
+						]?.position,
+					).toEqual(position);
+					expect(list().classList).not.toContain(
+						"classicyApplicationSwitcherWrapped",
+					);
+					expect(lines()).toBe("");
+					expect(size()?.width).toBe(before?.width);
+					expect(size()?.height).toBe(before?.height);
+				}
+			});
+
+			it("wraps a column taller than the desktop, and only by its capacity", () => {
+				// Room for one 24-pixel button below the menu bar and the frame.
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON + BUTTON - 1;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				expect(lines()).toBe("1");
+				// Moving it changes nothing.
+				moveTo([10, 10]);
+				expect(lines()).toBe("1");
+			});
+
+			it("measures again when the desktop resizes", () => {
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 200]);
+				expect(lines()).toBe("");
+				expect(observers.length).toBeGreaterThan(0);
+				// The desktop shrinks to two buttons' room, then grows back.
+				desktopHeight = menuBar() + FRAME_ABOVE + BUTTON * 2;
+				act(() => {
+					for (const run of observers) run();
+				});
+				expect(list().classList).toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				expect(lines()).toBe("2");
+				desktopHeight = 600;
+				act(() => {
+					for (const run of observers) run();
+				});
+				expect(lines()).toBe("");
+				expect(list().classList).not.toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+			});
 		});
 
 		it("draws one column while every button fits", () => {
