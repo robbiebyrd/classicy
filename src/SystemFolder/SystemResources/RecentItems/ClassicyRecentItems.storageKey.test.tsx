@@ -2,7 +2,8 @@
 // file system, the one its `fileSystemStorageKey` names, not the default key.
 import "@/__tests__/withPlatinum";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { Component, type ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -126,5 +127,38 @@ describe("Recent Documents on a desktop with its own storage key", {
 		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyThirdKey");
 		second.unmount();
 		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyStorage");
+	});
+
+	// Re-review 3, N5: a provider render that never commits publishes
+	// nothing.
+	it("publishes no key for a provider render that never commits", () => {
+		class Catch extends Component<
+			{ children: ReactNode },
+			{ failed: boolean }
+		> {
+			state = { failed: false };
+			static getDerivedStateFromError() {
+				return { failed: true };
+			}
+			render() {
+				return this.state.failed ? null : this.props.children;
+			}
+		}
+		const Throw = (): never => {
+			throw new Error("never commits");
+		};
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => {});
+		const { unmount } = render(
+			<Catch>
+				<ClassicyAppManagerProvider fileSystemStorageKey="classicyLeakedKey">
+					<Throw />
+				</ClassicyAppManagerProvider>
+			</Catch>,
+		);
+		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyStorage");
+		unmount();
+		consoleError.mockRestore();
 	});
 });

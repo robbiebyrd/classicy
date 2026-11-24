@@ -5,6 +5,7 @@ import {
 	type FC as FunctionalComponent,
 	type PropsWithChildren,
 	useEffect,
+	useInsertionEffect,
 	useMemo,
 	useRef,
 } from "react";
@@ -117,20 +118,24 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	}, [defaultState]);
 
 	// For reducers, which read no context (Recent Items' documents):
-	// published as the provider renders, before any child acts, and
-	// withdrawn when it unmounts (a later effect run publishes it again, so
-	// StrictMode's phantom unmount keeps it).
+	// published only when the provider commits, and before any child's
+	// layout or passive effect runs (insertion effects run first in a
+	// commit), so a child dispatching as it mounts reads it; a render that
+	// never commits (an error above, a suspended tree) publishes nothing.
+	// Withdrawn when the provider unmounts; a changed key keeps the
+	// provider's place among mounted providers.
 	const fileSystemKeyToken = useRef<symbol>(
 		Symbol("ClassicyAppManagerProvider"),
 	);
-	publishClassicyDesktopFileSystemStorageKey(
-		fileSystemKeyToken.current,
-		fileSystemStorageKey,
-	);
-	useEffect(() => {
+	useInsertionEffect(() => {
 		const token = fileSystemKeyToken.current;
-		publishClassicyDesktopFileSystemStorageKey(token, fileSystemStorageKey);
 		return () => withdrawClassicyDesktopFileSystemStorageKey(token);
+	}, []);
+	useInsertionEffect(() => {
+		publishClassicyDesktopFileSystemStorageKey(
+			fileSystemKeyToken.current,
+			fileSystemStorageKey,
+		);
 	}, [fileSystemStorageKey]);
 	const fsContextValue = useMemo(
 		() => ({
