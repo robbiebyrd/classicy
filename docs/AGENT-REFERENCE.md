@@ -4279,7 +4279,9 @@ it like Platinum (§1); its README lists what it ships.
   sends the shadow out of the desktop, the stock Windows 98 label); `knobs`,
   and so the Options tab, covers `titleBar`, `progressBar`, `field`,
   `tabControl` and `desktopLabel`. Layout: grow box bottom right, menu bar
-  on the screen, icon grid from the top left.
+  on the screen, icon grid from the top left, and `scrollBar.fitsBars:
+  "shown"`, a window's bars drawn, disabled, where its content fits, as
+  Windows kept them.
 - **The look** (`src/styles/windows98.scss`, one `components/_<Name>.scss`
   partial per component, `_bevels.scss` and `_pixel.scss`): the four-ring
   bevels as inset box-shadows of the system tokens (`raised`, `pressed`,
