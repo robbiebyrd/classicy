@@ -1,7 +1,7 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compileScss, scssRule } from "@/__tests__/compiledCss";
 import { act, fireEvent, render } from "@/__tests__/test-utils";
@@ -23,6 +23,7 @@ import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
+import { noteClassicyWindowZoomSource } from "@/SystemFolder/SystemResources/Window/ClassicyZoomRects";
 import { resetClassicyZoomSourcesForTests } from "@/SystemFolder/SystemResources/Window/ClassicyZoomSources.internal";
 
 // Zoom rectangles on the desktop (story 0230-n6c): a folder opened from a
@@ -516,6 +517,79 @@ describe("zoom rectangles from an application's icon", () => {
 			fireEvent.doubleClick(appIcon());
 		});
 		expect(rects()).toHaveLength(0);
+	});
+});
+
+// A floating window (story 0233-c79: an extension's window that publishes no
+// menus, drawn in the desktop's floating layer) sets `pointer-events: auto`
+// inline, over the layer's own `none`. No icon opens one today, but if a
+// source is noted for it, its zoom must compose with that style as a
+// document window's does: transparent, and still taking the pointer
+// (0230-n6c's I-1), so the inline style and the hidden state agree
+// (0233-c79 RR6 n3).
+describe("a floating window that opens with a zoom", () => {
+	// An extension's windows mount open: this one mounts on demand, so it
+	// opens after its source is noted.
+	let showFloater: (show: boolean) => void = () => {};
+	const FloatingApp = () => {
+		const [show, setShow] = useState(false);
+		showFloater = setShow;
+		return (
+			<ClassicyApp id="Floater.app" name="Floater" icon="" extension>
+				{show && (
+					<ClassicyWindow
+						id="f"
+						appId="Floater.app"
+						title="Floater"
+						initialSize={[100, 60]}
+						initialPosition={[10, 10]}
+					>
+						<p>Floater</p>
+					</ClassicyWindow>
+				)}
+			</ClassicyApp>
+		);
+	};
+	const floater = () => document.getElementById("Floater.app_f");
+
+	it("is hidden by its opacity alone and takes a click during the zoom", () => {
+		renderDesktop(<FloatingApp />);
+		noteClassicyWindowZoomSource("Floater.app", "f", {
+			rect: { left: 700, top: 40, width: 32, height: 32 },
+			desktop: document.getElementById("classicyDesktop"),
+		});
+		act(() => {
+			showFloater(true);
+		});
+		const win = floater() as HTMLElement;
+		expect(win.parentElement?.id).toBe("classicy-floating-layer");
+		expect(win.classList.contains("classicyWindowZoomHidden")).toBe(true);
+		expect(rects().length).toBeGreaterThan(0);
+		// The layer's window keeps the pointer while hidden: the zoom-hidden
+		// rule sets only the opacity, so nothing overrides the inline style.
+		expect(win.style.pointerEvents).toBe("auto");
+		expect(
+			scssRule(
+				compileScss(
+					"src/SystemFolder/SystemResources/Window/ClassicyWindow.scss",
+				),
+				".classicyWindowZoomHidden",
+			),
+		).toEqual({ opacity: "0" });
+		act(() => {
+			fireEvent.mouseDown(win, { button: 0 });
+			fireEvent.mouseUp(win, { button: 0 });
+			fireEvent.click(win, { button: 0 });
+		});
+		frames(7);
+		expect(rects()).toHaveLength(0);
+		expect(floater()?.classList.contains("classicyWindowZoomHidden")).toBe(
+			false,
+		);
+		const state = useAppManager.getState().System.Manager.Applications;
+		expect(getAppWindow(state.apps["Floater.app"], "f")?.focused).toBe(true);
+		// A floating window never takes the front application.
+		expect(state.focusedAppId).not.toBe("Floater.app");
 	});
 });
 
