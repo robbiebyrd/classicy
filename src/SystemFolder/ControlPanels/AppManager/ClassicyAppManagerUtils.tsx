@@ -404,21 +404,104 @@ const defaultInitialState = (): ClassicyStore =>
 const getInitialState = (): ClassicyStore =>
 	withDrawnPackageDefaults(loadInitialState());
 
+/**
+ * The state a first session starts from now, with nothing saved: the store's
+ * first state after Reset PRAM, before a provider's `defaultState` seed.
+ * @internal
+ */
+export const classicyFirstSessionState = (): ClassicyStore =>
+	withDrawnPackageDefaults(defaultInitialState());
+
+/** The `localStorage` key the desktop state is saved under. */
+export const CLASSICY_DESKTOP_STATE_STORAGE_KEY = "classicyDesktopState";
+
+/**
+ * `text`, saved desktop state, parsed with every `__proto__` key dropped: the
+ * merge over the defaults assigns each key it reads, and an own `__proto__`
+ * would set the prototype of the object it lands on.
+ */
+const parsePersistedClassicyJson = (text: string): unknown =>
+	JSON.parse(text, (key, value) => (key === "__proto__" ? undefined : value));
+
+/**
+ * Saved desktop state (`parsed`, as `localStorage["classicyDesktopState"]`
+ * holds it) as the store's state: merged over the defaults and migrated, with
+ * the reference a built-in active theme was saved as, which
+ * `withRefreshedActiveTheme` resolves. `undefined` when `parsed` does not have
+ * the saved shape. The one load path: a load from `localStorage` and a state
+ * a storage adapter's `reconcile` hands back (`adoptPersistedClassicyState`)
+ * both go through it. Edits `parsed` (the saved theme list and a reference's
+ * flag are dropped); touches no module state.
+ */
+function readPersistedClassicyState(
+	parsed: unknown,
+): { state: ClassicyStore; reference?: ClassicyThemeReference } | undefined {
+	const saved = parsed as DeepPartial<ClassicyStore> | null;
+	// Schema validation — fall back on shape mismatch
+	if (
+		!saved ||
+		typeof saved !== "object" ||
+		!("System" in saved) ||
+		!saved.System?.Manager?.Applications?.apps ||
+		!saved.System?.Manager?.Desktop ||
+		!saved.System?.Manager?.Appearance?.activeTheme
+	) {
+		return undefined;
+	}
+	// Built-ins come from the code, never from saved state: drop the list a
+	// build before this rule stored (the defaults' current list applies), and
+	// note a built-in active theme saved as a reference, so it is resolved
+	// against the code (withRefreshedActiveTheme).
+	const savedAppearance = saved.System.Manager.Appearance as Record<
+		string,
+		unknown
+	>;
+	delete savedAppearance.availableThemes;
+	const savedTheme = savedAppearance.activeTheme as Record<string, unknown>;
+	const reference: ClassicyThemeReference | undefined =
+		isClassicyThemeReference(savedTheme)
+			? {
+					id: savedTheme.id as string,
+					package:
+						typeof savedTheme.package === "string"
+							? savedTheme.package
+							: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
+					...(savedTheme.defaults === true ? { defaults: true } : {}),
+				}
+			: undefined;
+	// The flag is the reference's, never theme data (0147-qyy).
+	if (reference) delete savedTheme.defaults;
+	// Merge persisted state on top of current defaults so any new fields
+	// added since the state was saved get their default values instead of
+	// being undefined (e.g. new typography.monoSize / digitalSize keys).
+	// Migrate AFTER the merge: arrays replace defaults wholesale, so a
+	// 0.x `windows` array survives the merge and is converted here.
+	// (mergeClassicyState already migrates its result; the explicit,
+	// idempotent pass keeps this load path correct on its own.)
+	// (The migration also stores a registered wallpaper by its
+	// filename; getThemeVars resolves it at render.)
+	return {
+		state: migrateClassicyState(
+			mergeClassicyState(
+				withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
+				saved,
+			),
+		),
+		reference,
+	};
+}
+
 function loadInitialState(): ClassicyStore {
 	if (typeof window !== "undefined") {
 		try {
-			const storedState = localStorage.getItem("classicyDesktopState");
+			const storedState = localStorage.getItem(
+				CLASSICY_DESKTOP_STATE_STORAGE_KEY,
+			);
 			if (storedState) {
-				const parsed = JSON.parse(storedState);
-				// Schema validation — fall back on shape mismatch
-				if (
-					!parsed ||
-					typeof parsed !== "object" ||
-					!("System" in parsed) ||
-					!parsed.System?.Manager?.Applications?.apps ||
-					!parsed.System?.Manager?.Desktop ||
-					!parsed.System?.Manager?.Appearance?.activeTheme
-				) {
+				const loaded = readPersistedClassicyState(
+					parsePersistedClassicyJson(storedState),
+				);
+				if (!loaded) {
 					classicyLog(
 						"warn",
 						"ClassicyAppManager",
@@ -427,44 +510,7 @@ function loadInitialState(): ClassicyStore {
 					return defaultInitialState();
 				}
 				hydratedFromStorage = true;
-				// Built-ins come from the code, never from saved state: drop
-				// the list a build before this rule stored (the defaults'
-				// current list applies), and note a built-in active theme saved
-				// as a reference, so it is resolved against the code below.
-				const savedAppearance = parsed.System.Manager.Appearance;
-				delete savedAppearance.availableThemes;
-				const saved = savedAppearance.activeTheme;
-				const reference: ClassicyThemeReference | undefined =
-					isClassicyThemeReference(saved)
-						? {
-								id: saved.id,
-								package:
-									typeof saved.package === "string"
-										? saved.package
-										: CLASSICY_DEFAULT_APPEARANCE_PACKAGE_ID,
-								...(saved.defaults === true ? { defaults: true } : {}),
-							}
-						: undefined;
-				// The flag is the reference's, never theme data (0147-qyy).
-				if (reference) delete saved.defaults;
-				// Merge persisted state on top of current defaults so any new fields
-				// added since the state was saved get their default values instead of
-				// being undefined (e.g. new typography.monoSize / digitalSize keys).
-				// Migrate AFTER the merge: arrays replace defaults wholesale, so a
-				// 0.x `windows` array survives the merge and is converted here.
-				// (mergeClassicyState already migrates its result; the explicit,
-				// idempotent pass keeps this load path correct on its own.)
-				// (The migration also stores a registered wallpaper by its
-				// filename; getThemeVars resolves it at render.)
-				return withRefreshedActiveTheme(
-					migrateClassicyState(
-						mergeClassicyState(
-							withoutDefaultActiveThemeMeasurements(DefaultAppManagerState),
-							parsed as DeepPartial<ClassicyStore>,
-						),
-					),
-					reference,
-				);
+				return withRefreshedActiveTheme(loaded.state, loaded.reference);
 			}
 		} catch (error) {
 			classicyLog(
@@ -842,6 +888,25 @@ export function sanitizeStateForPersistence(
 	});
 }
 
+/** Write `state`, sanitized, to localStorage now. No window, no write: never
+ * `typeof localStorage` (see `startAppManagerPersistence`). */
+function writePersistedClassicyState(state: ClassicyStore): void {
+	if (typeof window === "undefined") return;
+	try {
+		localStorage.setItem(
+			CLASSICY_DESKTOP_STATE_STORAGE_KEY,
+			JSON.stringify(sanitizeStateForPersistence(state)),
+		);
+	} catch (error) {
+		classicyLog(
+			"error",
+			"ClassicyAppManager",
+			"Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
+			error,
+		);
+	}
+}
+
 /** Start persisting state to localStorage. Returns an unsubscribe function. */
 export function startAppManagerPersistence(): () => void {
 	if (unsubscribeFn) return unsubscribeFn;
@@ -854,23 +919,78 @@ export function startAppManagerPersistence(): () => void {
 		if (typeof window === "undefined") return;
 		if (debounceTimer !== null) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
-			try {
-				const stateToSave = sanitizeStateForPersistence(state);
-				localStorage.setItem(
-					"classicyDesktopState",
-					JSON.stringify(stateToSave),
-				);
-			} catch (error) {
-				classicyLog(
-					"error",
-					"ClassicyAppManager",
-					"Failed to persist desktop state to localStorage. Storage quota may be exceeded.",
-					error,
-				);
-			}
+			debounceTimer = null;
+			writePersistedClassicyState(state);
 		}, 500);
 	});
 	return unsubscribeFn;
+}
+
+/**
+ * Write the desktop state to localStorage now, canceling the pending
+ * debounced write (`flushClassicyState`, ClassicyStateAdapter.ts). Nothing
+ * while persistence is stopped, or without a window.
+ * @internal
+ */
+export function persistAppManagerStateNow(): void {
+	if (!unsubscribeFn) return;
+	if (debounceTimer !== null) {
+		clearTimeout(debounceTimer);
+		debounceTimer = null;
+	}
+	writePersistedClassicyState(useAppManager.getState());
+}
+
+/**
+ * Adopt `state`, desktop state a storage adapter's `reconcile` handed back
+ * (ClassicyStateAdapter.ts), exactly as the store loads saved state: as JSON
+ * (so it holds plain data and nothing of the adapter's objects), through
+ * `readPersistedClassicyState` (merged over the defaults, migrated), with its
+ * active theme refreshed from the code and the drawn package's defaults in
+ * place of another package's, as the store starts. Then it is saved and
+ * applied, replacing the live state; a provider's `defaultState` seed no
+ * longer applies (`wasHydratedFromStorage`).
+ *
+ * One thing is kept from the live state: `availableThemes`, the session's
+ * built-in and host-loaded themes, which come from the code and the host,
+ * never from saved state. Returns false, changing nothing, when `state` is
+ * not saved desktop state.
+ * @internal
+ */
+export function adoptPersistedClassicyState(state: unknown): boolean {
+	let loaded: ReturnType<typeof readPersistedClassicyState>;
+	try {
+		const json = JSON.stringify(state);
+		if (typeof json !== "string") return false;
+		loaded = readPersistedClassicyState(parsePersistedClassicyJson(json));
+	} catch (error) {
+		classicyLog(
+			"warn",
+			"ClassicyAppManager",
+			"Could not read the desktop state to adopt; keeping the local state.",
+			error,
+		);
+		return false;
+	}
+	if (!loaded) return false;
+	const availableThemes =
+		useAppManager.getState().System.Manager.Appearance.availableThemes;
+	pendingActiveThemeReference = null;
+	seededThemeFork = null;
+	const next = produce(
+		withDrawnPackageDefaults(
+			withRefreshedActiveTheme(loaded.state, loaded.reference),
+		),
+		(draft) => {
+			draft.System.Manager.Appearance.availableThemes =
+				castDraft(availableThemes);
+		},
+	);
+	hydratedFromStorage = true;
+	drawnPackageId = drawnPackageIdOf(next.System.Manager.Appearance);
+	if (unsubscribeFn) writePersistedClassicyState(next);
+	useAppManager.setState(next, true);
+	return true;
 }
 
 /** Call this during app cleanup or test teardown to stop localStorage sync. */

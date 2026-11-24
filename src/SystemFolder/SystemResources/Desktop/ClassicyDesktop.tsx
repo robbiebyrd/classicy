@@ -69,6 +69,10 @@ import {
 	useClassicyAppearanceLayout,
 } from "@/Appearance/useClassicyAppearanceLayout";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import {
+	resetClassicyPersistedState,
+	useClassicyStateSyncGate,
+} from "@/SystemFolder/ControlPanels/AppManager/ClassicyStateSync.internal";
 import { ClassicyAlert } from "@/SystemFolder/SystemResources/Alert/ClassicyAlert";
 import { getClassicyDefaultParadeIcons } from "@/SystemFolder/SystemResources/Boot/ClassicyDefaultParadeIcons";
 import {
@@ -277,11 +281,13 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 			desktopEventDispatch(action);
 	}, [disabledAppsKey, desktopEventDispatch]);
 
-	// Special ▸ Reset PRAM: forget every saved setting and start over.
+	// Special ▸ Reset PRAM: forget every saved setting and start over (a
+	// desktop state adapter's copy too: ClassicyStateSync.internal.ts).
 	const resetPram = useCallback(() => {
-		localStorage.removeItem("classicyDesktopState");
-		resetStartupScreenSession();
-		window.location.reload();
+		resetClassicyPersistedState(() => {
+			resetStartupScreenSession();
+			window.location.reload();
+		});
 	}, []);
 
 	const closeSystemDialog = useCallback(() => {
@@ -949,14 +955,18 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 	// A server render (and the client's hydration of it) draws an empty shell,
 	// the desktop right after (useClassicyClientRender.internal.ts).
 	const clientRender = useClassicyClientRender();
-	if (!clientRender)
+	// A desktop state adapter's boot reconcile draws the shell too, for at
+	// most its timeout; an adopted state remounts the desktop, as a restart
+	// (ClassicyStateSync.internal.ts).
+	const stateSync = useClassicyStateSyncGate();
+	if (!clientRender || !stateSync.ready)
 		return (
 			<div className={classNames("classicyDesktop", className)} style={style} />
 		);
 	if (packages.length === 0)
 		return <ClassicyNoAppearancePackage className={className} style={style} />;
 	return (
-		<ClassicyCrashScreen>
+		<ClassicyCrashScreen key={stateSync.epoch}>
 			<ClassicyContextualMenuProvider>
 				<ClassicyDesktopInner
 					startupScreen={startupScreen}
