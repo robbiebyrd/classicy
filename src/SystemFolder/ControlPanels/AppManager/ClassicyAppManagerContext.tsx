@@ -22,7 +22,10 @@ import {
 import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerProvider";
 import { ClassicyAnalyticsPrefixContext } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import { ClassicyDefaultAppsContext } from "@/SystemFolder/SystemResources/App/ClassicyDefaultAppsContext";
-import { setClassicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
+import {
+	publishClassicyDesktopFileSystemStorageKey,
+	withdrawClassicyDesktopFileSystemStorageKey,
+} from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import {
 	ClassicyDefaultFileSystemContext,
 	type ClassicyDefaultFileSystemMode,
@@ -113,9 +116,22 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		);
 	}, [defaultState]);
 
-	// For reducers, which read no context (Recent Items' documents): published
-	// as the provider renders, before any child acts.
-	setClassicyDesktopFileSystemStorageKey(fileSystemStorageKey);
+	// For reducers, which read no context (Recent Items' documents):
+	// published as the provider renders, before any child acts, and
+	// withdrawn when it unmounts (a later effect run publishes it again, so
+	// StrictMode's phantom unmount keeps it).
+	const fileSystemKeyToken = useRef<symbol>(
+		Symbol("ClassicyAppManagerProvider"),
+	);
+	publishClassicyDesktopFileSystemStorageKey(
+		fileSystemKeyToken.current,
+		fileSystemStorageKey,
+	);
+	useEffect(() => {
+		const token = fileSystemKeyToken.current;
+		publishClassicyDesktopFileSystemStorageKey(token, fileSystemStorageKey);
+		return () => withdrawClassicyDesktopFileSystemStorageKey(token);
+	}, [fileSystemStorageKey]);
 	const fsContextValue = useMemo(
 		() => ({
 			storageKey: fileSystemStorageKey,

@@ -23,6 +23,7 @@
 import type { ClassicyStore } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { isClassicyControlPanelApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyControlPanelApps.internal";
 import { isClassicyAppMounted } from "@/SystemFolder/SystemResources/App/ClassicyMountedApps";
+import { CLASSICY_SYSTEM_MENU_APP_PREFIX } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { classicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import { peekClassicyFileSystemEntry } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { APP_SHORTCUT_ICON_KIND } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemApplications";
@@ -247,15 +248,21 @@ export function recordClassicyRecentApp(
 	if (!app || app.extension) return ds;
 	if (isClassicyControlPanelApp(appId)) return ds;
 	// An application the user can find: on the desktop or in the
-	// Applications folder (both built from its app-shortcut icon record). A
-	// helper with neither (Web Viewer, opened only by its pages) has nothing
-	// to show when it is chosen on its own.
-	const icons = ds.System?.Manager?.Desktop?.icons;
-	if (
-		!Array.isArray(icons) ||
-		!icons.some((i) => i.appId === appId && i.kind === APP_SHORTCUT_ICON_KIND)
-	)
-		return ds;
+	// Applications folder (both built from its app-shortcut icon record), or
+	// in the Apple menu (`addSystemMenu`). A helper with none of them (Web
+	// Viewer, opened only by its pages) has nothing to show when it is
+	// chosen on its own.
+	const desktop = ds.System?.Manager?.Desktop;
+	const findable =
+		(Array.isArray(desktop?.icons) &&
+			desktop.icons.some(
+				(i) => i.appId === appId && i.kind === APP_SHORTCUT_ICON_KIND,
+			)) ||
+		(Array.isArray(desktop?.systemMenu) &&
+			desktop.systemMenu.some(
+				(item) => item.id === `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}`,
+			));
+	if (!findable) return ds;
 	return recordClassicyRecentItem(ds, {
 		kind: "application",
 		appId,

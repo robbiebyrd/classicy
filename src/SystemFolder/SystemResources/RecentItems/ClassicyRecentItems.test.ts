@@ -354,6 +354,24 @@ describe("only what is really there (review I3, M3)", () => {
 		expect(targets(ds, "application")).toEqual(["PDFViewer.app"]);
 	});
 
+	// Re-review 2, M5: an app the Apple menu lists is one the user can find.
+	it("remembers an app listed in the Apple menu, with no icon surface", () => {
+		const appleMenuOnly = produce(base(), (draft) => {
+			draft.System.Manager.Desktop.icons =
+				draft.System.Manager.Desktop.icons.filter(
+					(i) => i.appId !== "Calculator.app",
+				);
+		});
+		const ds = reduceAll(appleMenuOnly, [
+			{
+				type: "ClassicyDesktopAppMenuAdd",
+				app: { id: "Calculator.app", name: "Calculator", icon: "" },
+			},
+			open("Calculator.app"),
+		]);
+		expect(targets(ds, "application")).toEqual(["Calculator.app"]);
+	});
+
 	it("remembers a generic-queue path only when it names a file", () => {
 		const ds = reduceAll(base(), [
 			{

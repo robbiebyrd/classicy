@@ -2,7 +2,7 @@
 // file system, the one its `fileSystemStorageKey` names, not the default key.
 import "@/__tests__/withPlatinum";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { DefaultAppManagerState } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { ClassicyAppManagerProvider } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerContext";
 import {
@@ -10,7 +10,7 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { ClassicyDesktop } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktop";
-import { setClassicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
+import { classicyDesktopFileSystemStorageKey } from "@/SystemFolder/SystemResources/File/ClassicyDesktopFileSystemKey.internal";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
 import { ClassicyFileSystemEntryFileType } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
 
@@ -50,7 +50,6 @@ describe("Recent Documents on a desktop with its own storage key", {
 			_type: ClassicyFileSystemEntryFileType.TextFile,
 		});
 	});
-	afterEach(() => setClassicyDesktopFileSystemStorageKey(undefined));
 
 	it("remembers a file of the desktop's file system, and SimpleText reads it there", async () => {
 		render(
@@ -97,5 +96,35 @@ describe("Recent Documents on a desktop with its own storage key", {
 			).toBeInTheDocument(),
 		);
 		expect(recentDocuments()).toEqual([ONLY_DEFAULT]);
+	});
+
+	// Re-review 2, M4: the key follows the providers that are mounted.
+	it("falls back to the default key once the provider unmounts", () => {
+		const { unmount } = render(
+			<ClassicyAppManagerProvider fileSystemStorageKey={OTHER_KEY}>
+				<span />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(classicyDesktopFileSystemStorageKey()).toBe(OTHER_KEY);
+		unmount();
+		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyStorage");
+	});
+
+	it("keeps the first mounted provider's key while it stays mounted", () => {
+		const first = render(
+			<ClassicyAppManagerProvider fileSystemStorageKey={OTHER_KEY}>
+				<span />
+			</ClassicyAppManagerProvider>,
+		);
+		const second = render(
+			<ClassicyAppManagerProvider fileSystemStorageKey="classicyThirdKey">
+				<span />
+			</ClassicyAppManagerProvider>,
+		);
+		expect(classicyDesktopFileSystemStorageKey()).toBe(OTHER_KEY);
+		first.unmount();
+		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyThirdKey");
+		second.unmount();
+		expect(classicyDesktopFileSystemStorageKey()).toBe("classicyStorage");
 	});
 });
