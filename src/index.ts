@@ -32,6 +32,7 @@ export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppManifest";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppOpenFileRouting";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
+export * from "./SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 export * from "./SystemFolder/ControlPanels/AppManager/ClassicyStateMigrations";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearance";
 export * from "./SystemFolder/ControlPanels/AppearanceManager/ClassicyAppearanceControlStripModule";
