@@ -94,6 +94,7 @@ import {
 	SYSTEM_DIALOG_WINDOW_IDS,
 } from "@/SystemFolder/SystemResources/Desktop/ClassicySpecialMenu";
 import { ClassicyDesktopMenuBar } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyDesktopMenuBar";
+import { useClassicyClientRender } from "@/SystemFolder/SystemResources/Desktop/useClassicyClientRender.internal";
 import {
 	CLASSICY_DROP_DESKTOP_ATTRIBUTE,
 	type ClassicyFileDropDestination,
@@ -918,6 +919,11 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
  * which takes `className` and `style`) until a package registers, and mounts
  * none of its children.
  *
+ * A server render draws only an empty `classicyDesktop` shell with the
+ * `className` and `style`, and so does the client's hydration of it; the
+ * desktop draws right after (`docs/AGENT-REFERENCE.md` §1, "Server
+ * rendering").
+ *
  * ```tsx
  * <ClassicyAppManagerProvider>
  *   <ClassicyDesktop controlStrip={{ defaultCollapsed: true }}>
@@ -940,6 +946,13 @@ export const ClassicyDesktop: FunctionalComponent<ClassicyDesktopProps> = ({
 }) => {
 	// No package, no desktop: nothing below can draw without one.
 	const packages = useClassicyAppearancePackages();
+	// A server render (and the client's hydration of it) draws an empty shell,
+	// the desktop right after (useClassicyClientRender.internal.ts).
+	const clientRender = useClassicyClientRender();
+	if (!clientRender)
+		return (
+			<div className={classNames("classicyDesktop", className)} style={style} />
+		);
 	if (packages.length === 0)
 		return <ClassicyNoAppearancePackage className={className} style={style} />;
 	return (

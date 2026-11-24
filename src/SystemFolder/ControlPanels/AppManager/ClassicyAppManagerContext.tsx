@@ -136,7 +136,12 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 		],
 	);
 
+	// Built only where there is a window: the instance starts a queue timer
+	// that is never cleared, so a server render would leak one per request
+	// (story 0223-a0y). Without it no AnalyticsProvider is mounted, and
+	// useClassicyAnalytics falls back to its no-ops.
 	const analytics = useMemo(() => {
+		if (typeof window === "undefined") return null;
 		const plugins: AnalyticsPlugin[] = [];
 
 		if (gaMeasurementIds && gaMeasurementIds.length > 0) {
@@ -151,19 +156,26 @@ export const ClassicyAppManagerProvider: FunctionalComponent<
 	}, [appName, gaMeasurementIds, gtmContainerId]);
 
 	useEffect(() => {
+		if (!analytics) return;
 		const userId = getOrCreateUserId(`${appName}_user_id`);
 		analytics.identify(userId);
 	}, [analytics, appName]);
+
+	const sound = (
+		<ClassicySoundManagerProvider defaultMuted={defaultMuted}>
+			{children}
+		</ClassicySoundManagerProvider>
+	);
 
 	return (
 		<ClassicyAnalyticsPrefixContext.Provider value={eventPrefix}>
 			<ClassicyDefaultFileSystemContext.Provider value={fsContextValue}>
 				<ClassicyDefaultAppsContext.Provider value={defaultAppsContextValue}>
-					<AnalyticsProvider instance={analytics}>
-						<ClassicySoundManagerProvider defaultMuted={defaultMuted}>
-							{children}
-						</ClassicySoundManagerProvider>
-					</AnalyticsProvider>
+					{analytics ? (
+						<AnalyticsProvider instance={analytics}>{sound}</AnalyticsProvider>
+					) : (
+						sound
+					)}
 				</ClassicyDefaultAppsContext.Provider>
 			</ClassicyDefaultFileSystemContext.Provider>
 		</ClassicyAnalyticsPrefixContext.Provider>

@@ -191,6 +191,10 @@ export const seedSoundState = (
 	muted: boolean | undefined,
 ): ClassicySoundState => {
 	const start = muted ? { ...base, disabled: ["*"] } : base;
+	// No window, no audio: a server render builds no player (Howler finds no
+	// audio there and logs a load error); the client's own render loads it
+	// (story 0223-a0y).
+	if (typeof window === "undefined") return start;
 	const pack =
 		findClassicySoundPack(packId) ??
 		findClassicySoundPack(CLASSICY_DEFAULT_SOUND_PACK_ID);

@@ -846,6 +846,9 @@ export function sanitizeStateForPersistence(
 export function startAppManagerPersistence(): () => void {
 	if (unsubscribeFn) return unsubscribeFn;
 	unsubscribeFn = useAppManager.subscribe((state) => {
+		// No storage, nothing to write: a server render, where an Appearance
+		// Package registering at import changes the store (story 0223-a0y).
+		if (typeof localStorage === "undefined") return;
 		if (debounceTimer !== null) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
 			try {
