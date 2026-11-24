@@ -14,6 +14,10 @@ import {
 } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundSchema";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { resolveClassicyAlertSound } from "./ClassicyAlertSounds";
+import {
+	classicySoundCanPlay,
+	logClassicySoundUnavailable,
+} from "./ClassicySoundAvailability.internal";
 import soundLabels from "./ClassicySoundManagerLabels.json";
 
 export interface ClassicyStoreSystemSoundManager
@@ -159,6 +163,13 @@ export const createSoundPlayer = ({
 	options,
 }: SoundPlayer): Howl | null => {
 	if ("src" in soundData && "sprite" in soundData) {
+		// No usable audio here (jsdom, audio disabled, no codec for the
+		// pack's formats): no player, and one quiet note per page, where a
+		// Howl would report a load error for every pack it tried.
+		if (classicySoundCanPlay(soundData.src) === false) {
+			logClassicySoundUnavailable(soundData.src);
+			return null;
+		}
 		return new Howl({
 			src: soundData.src,
 			sprite: soundData.sprite as Record<

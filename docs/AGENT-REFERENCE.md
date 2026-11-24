@@ -5928,7 +5928,14 @@ mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
 player of the host's own, which the commands then play on. The seed
 (`seedClassicySoundState`) builds no player and returns its start state
 without a window; the provider reads the persisted alert sound and volume
-into it at once.
+into it at once. Where there is no usable audio (Howler's `noAudio`, or no
+codec for any of the pack's formats, by Howler's own reading of each
+source: jsdom, a browser with audio disabled), no Howl is built
+(`createSoundPlayer` returns `null`), sounds play nothing, and one `info`
+entry per page (`ClassicySoundManager`, "Sound is unavailable here…") says
+so, where a Howl would have logged "Failed to load audio sprite … No codec
+support" as an error for every load; a load that fails where audio works
+is still an `error`.
 **Deprecated: `ClassicySoundStateEventReducer` and `seedSoundState`.** They
 keep their old behavior for a provider of the host's own
 (`useReducer(ClassicySoundStateEventReducer, initialPlayer, (b) =>
