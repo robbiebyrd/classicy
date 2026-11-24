@@ -266,11 +266,14 @@ describe("ClassicyDesktop shortcut icon noLaunch wiring", () => {
 		).toBeUndefined();
 		// The double-click was still handled — its wired event/eventData fired,
 		// reaching ClassicyOpenUrlController and actually navigating — which
-		// rules out the icon simply not being reachable by the click.
-		expect(windowOpen).toHaveBeenCalledWith(
-			"https://example.com/",
-			"_blank",
-			"noopener,noreferrer",
+		// rules out the icon simply not being reachable by the click. The
+		// controller opens the tab a task after React's commit (story 0227-815).
+		await waitFor(() =>
+			expect(windowOpen).toHaveBeenCalledWith(
+				"https://example.com/",
+				"_blank",
+				"noopener,noreferrer",
+			),
 		);
 
 		windowOpen.mockRestore();
