@@ -468,6 +468,42 @@ describe("SimpleText", { timeout: INTEGRATION_TIMEOUT_MS }, () => {
 			expect(alert()).not.toBeInTheDocument();
 		});
 
+		// Re-review 3, N1: a quit from code while the alert is up answers it
+		// Cancel and removes it, so it cannot come back and quit a later
+		// SimpleText.
+		it("drops its alert when quit from code, and asks afresh after a relaunch", async () => {
+			await typeIntoUntitled();
+			let first: Promise<boolean> | undefined;
+			act(() => {
+				first = requestClassicyAppQuit(SIMPLE_TEXT.id);
+			});
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			act(() => {
+				dispatch({ type: "ClassicyAppClose", app: { id: SIMPLE_TEXT.id } });
+			});
+			await expect(first).resolves.toBe(false);
+			await waitFor(() => expect(alert()).not.toBeInTheDocument());
+			expect(simpleText().open).toBe(false);
+
+			openSimpleText();
+			await waitFor(() => expect(windowTitled("untitled")).toBeInTheDocument());
+			expect(alert()).not.toBeInTheDocument();
+			expect(simpleText().open).toBe(true);
+			fireEvent.change(screen.getByRole("textbox"), {
+				target: { value: "fresh words" },
+			});
+			let second: Promise<boolean> | undefined;
+			act(() => {
+				second = requestClassicyAppQuit(SIMPLE_TEXT.id);
+			});
+			expect(second).not.toBe(first);
+			await waitFor(() => expect(alert()).toBeInTheDocument());
+			fireEvent.click(within(alert() as HTMLElement).getByText("Cancel"));
+			await expect(second).resolves.toBe(false);
+			expect(simpleText().open).toBe(true);
+			expect(screen.getByDisplayValue("fresh words")).toBeInTheDocument();
+		});
+
 		// Re-review 2, M1: each document closes as it is answered.
 		it("closes each answered document during a Quit; Cancel keeps the rest", async () => {
 			await typeIntoUntitled();

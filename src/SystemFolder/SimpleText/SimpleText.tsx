@@ -301,6 +301,17 @@ export const SimpleText = () => {
 		resolve?.(proceed);
 	}, []);
 
+	// Quit from code (a direct ClassicyAppClose) while the alert is up: the
+	// documents it asks about are gone, so it is answered Cancel and removed
+	// (a quit request waiting on it resolves false), and a Save dialog it
+	// opened closes. Left up, it came back with the next launch, and
+	// answering it quit that fresh SimpleText.
+	useEffect(() => {
+		if (!quit) return;
+		if (saveAlertResolveRef.current) settleSaveAlert(false);
+		setSaveTarget(null);
+	}, [quit, settleSaveAlert]);
+
 	const isUnsaved = useCallback(
 		(target: SaveTarget): boolean =>
 			target.kind === "untitled"
