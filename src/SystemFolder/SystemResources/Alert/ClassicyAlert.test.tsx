@@ -441,3 +441,67 @@ describe("ClassicyAlert with no default button (defaultButtonId={null})", () => 
 		expect(onUse).toHaveBeenCalledTimes(1);
 	});
 });
+
+// WAI-ARIA 1.2, alertdialog: "Authors SHOULD use aria-describedby on an
+// alertdialog to reference the alert message element in the dialog."
+describe("ClassicyAlert's accessible name and description", () => {
+	it("is named by its label and described by its message", () => {
+		render(
+			<ClassicyAlert
+				alertType="caution"
+				label="Empty the Trash?"
+				message="It holds 3 items. This cannot be undone."
+			/>,
+		);
+		const dialog = screen.getByRole("alertdialog");
+		expect(dialog).toHaveAccessibleName("Empty the Trash?");
+		expect(dialog).toHaveAccessibleDescription(
+			"It holds 3 items. This cannot be undone.",
+		);
+		const labelId = dialog.getAttribute("aria-labelledby") ?? "";
+		const messageId = dialog.getAttribute("aria-describedby") ?? "";
+		expect(document.getElementById(labelId)).toHaveClass("classicyAlertLabel");
+		expect(document.getElementById(messageId)).toHaveClass(
+			"classicyAlertMessage",
+		);
+		expect(dialog).not.toHaveAttribute("aria-label");
+	});
+
+	it("is described by a message that is markup too", () => {
+		render(
+			<ClassicyAlert
+				label="Replace “Notes”?"
+				message={
+					<>
+						An item named <b>Notes</b> already exists.
+					</>
+				}
+			/>,
+		);
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleDescription(
+			"An item named Notes already exists.",
+		);
+	});
+
+	it("has no description without a message", () => {
+		render(<ClassicyAlert label="Done." />);
+		const dialog = screen.getByRole("alertdialog");
+		expect(dialog).toHaveAccessibleName("Done.");
+		expect(dialog).not.toHaveAttribute("aria-describedby");
+	});
+
+	it("gives two alerts their own ids", () => {
+		render(
+			<>
+				<ClassicyAlert id="one" label="One?" message="First." />
+				<ClassicyAlert id="two" label="Two?" message="Second." />
+			</>,
+		);
+		const [one, two] = screen.getAllByRole("alertdialog");
+		expect(one).toHaveAccessibleDescription("First.");
+		expect(two).toHaveAccessibleDescription("Second.");
+		expect(one.getAttribute("aria-describedby")).not.toBe(
+			two.getAttribute("aria-describedby"),
+		);
+	});
+});

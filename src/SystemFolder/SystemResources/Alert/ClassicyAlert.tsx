@@ -6,6 +6,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useId,
 	useMemo,
 	useRef,
 } from "react";
@@ -62,9 +63,11 @@ export type ClassicyAlertProps = {
 	alertType?: ClassicyAlertType;
 	/** Title-bar text, shown on the movable variant. Defaults to `""`. */
 	title?: string;
-	/** Bold system-font heading (tier 1); also the dialog's accessible name. */
+	/** Bold system-font heading (tier 1); also the dialog's accessible name
+	 * (`aria-labelledby`). */
 	label: string;
-	/** Plain small-system-font narrative (tier 2). Omitted when empty. */
+	/** Plain small-system-font narrative (tier 2), the dialog's accessible
+	 * description (`aria-describedby`). Omitted when empty. */
 	message?: ReactNode;
 	/**
 	 * Up to four buttons (extras are dropped), laid out left to right in array
@@ -200,6 +203,9 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	style,
 }) => {
 	const player = useSoundDispatch();
+	const labelId = useId();
+	const messageId = useId();
+	const hasMessage = message != null && message !== "";
 	const contentRef = useRef<HTMLDivElement | null>(null);
 	const defaultButtonRef = useRef<HTMLButtonElement | null>(null);
 	const appearance = useClassicyAppearance("Alert", {}, contentRef);
@@ -335,7 +341,11 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 					style={appearance.style}
 					role="alertdialog"
 					aria-modal="true"
-					aria-label={label}
+					// Named by the label and described by the narrative, so a
+					// screen reader reads the whole question with the dialog
+					// (WAI-ARIA 1.2, alertdialog).
+					aria-labelledby={labelId}
+					aria-describedby={hasMessage ? messageId : undefined}
 					// Focusable by script only, so it holds the focus when no button
 					// is the default; never a Tab stop.
 					tabIndex={defaultButton ? undefined : -1}
@@ -345,9 +355,13 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 							<AlertIcon alertType={alertType} />
 						</div>
 						<div className={"classicyAlertBody"}>
-							<p className={"classicyAlertLabel"}>{label}</p>
-							{message != null && message !== "" && (
-								<div className={"classicyAlertMessage"}>{message}</div>
+							<p className={"classicyAlertLabel"} id={labelId}>
+								{label}
+							</p>
+							{hasMessage && (
+								<div className={"classicyAlertMessage"} id={messageId}>
+									{message}
+								</div>
 							)}
 						</div>
 					</div>
