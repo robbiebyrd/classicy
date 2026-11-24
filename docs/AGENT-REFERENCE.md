@@ -2419,8 +2419,11 @@ a file: the same mask is fetched there, but the layer it masks draws
 nothing in color (`menuBar.titleArtInvert` is 0), so a mask dropped there
 changes no pixel. The masks that remain are the icons'
 `--classicy-icon-mask` (the icon's own image, any URL the host gives, and
-the alias badge): a host serving those from another origin must send CORS
-headers, in every engine.
+the alias badge; `ClassicyFileBrowser`'s list rows,
+`classicyFileBrowserViewTableRowContainer`, carry it too, the row's icon,
+for a package that draws a selected icon through its shape, as Windows 98
+does, while the row's `<img>` is unchanged): a host serving those from
+another origin must send CORS headers, in every engine.
 
 The four title-bar cap keys (`titleBarCapLeft`, `-Right`, `-LeftRed`,
 `-RightRed`) and the split windoid keys (`windowUtilityShade`,
@@ -4292,7 +4295,7 @@ it like Platinum (§1); its README lists what it ships.
   selected icon blended with a 50% dither of the highlight (Explorer's
   ILD_BLEND50) through the icon's own shape, on the desktop, in the icon
   component and in the Finder's list (whose rows carry `--classicy-icon-mask`
-  for it, below), and the pressed side of a scroll-bar track inverted from
+  for it, §5), and the pressed side of a scroll-bar track inverted from
   the track's `--classicy-scroll-page-start`/`-length` (§4.4 "Scroll bars"). Icons, cursors and system
   art resolve to the default package's (§5), and with no package offering
   a screen saver the panel reads "This appearance has no screen savers."
