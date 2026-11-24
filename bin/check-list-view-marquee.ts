@@ -127,6 +127,12 @@ const drag = async (
 	return { hit, marquee, selected: await selected(page) };
 };
 
+// An environment error (exit 2): one line to stderr, no stack trace.
+const environmentError = (message: string): never => {
+	process.stderr.write(`check-list-view-marquee: ${message}\n`);
+	process.exit(2);
+};
+
 let browser: Awaited<ReturnType<typeof launchParityBrowser>>;
 try {
 	browser =
@@ -134,7 +140,9 @@ try {
 			? await launchParityBrowser()
 			: await (await loadPlaywright()).firefox.launch();
 } catch (e) {
-	process.stderr.write(`${String(e)}\n`);
+	process.stderr.write(
+		`check-list-view-marquee: ${String(e).split("\n")[0]}\n`,
+	);
 	process.exit(2);
 }
 
@@ -151,15 +159,25 @@ for (const pkg of PACKAGES) {
 	const errors: string[] = [];
 	page.on("pageerror", (e) => errors.push(e.message));
 	try {
-		await page.goto(
-			`${storyUrl(baseUrl, story)}&globals=appearancePackage:${pkg}`,
-			{
-				waitUntil: "load",
-				timeout: 90000,
-			},
-		);
-		await waitForStoryReady(page);
+		try {
+			await page.goto(
+				`${storyUrl(baseUrl, story)}&globals=appearancePackage:${pkg}`,
+				{ waitUntil: "load", timeout: 90000 },
+			);
+			await waitForStoryReady(page);
+		} catch (e) {
+			environmentError(
+				`cannot load story ${story} from ${baseUrl}: ${String(e).split("\n")[0]}`,
+			);
+		}
 		await page.waitForTimeout(600);
+		const storyError = await page.evaluate(() =>
+			document.body.classList.contains("sb-show-errordisplay"),
+		);
+		if (storyError || !(await page.$("tbody tr [data-classicy-file-path]")))
+			environmentError(
+				`story ${story} did not render a list view (is the id right?)`,
+			);
 		const drawn = await page.evaluate(
 			() =>
 				document
