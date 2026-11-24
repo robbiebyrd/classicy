@@ -230,12 +230,15 @@ describe("the Windows 98 appearance package", () => {
 		}
 	});
 
-	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen", async () => {
+	// Windows keeps a window's scroll bars drawn, disabled, where its content
+	// fits (Notepad's, say), so the bars stay in the `fits` state.
+	it("lays the desktop out as Windows did: icons from the top left, the menu bar on the screen, scroll bars kept where the content fits", async () => {
 		await import("./index");
 		expect(getClassicyAppearancePackage("windows98")?.layout).toEqual({
 			window: { growBoxCorner: "bottom-right" },
 			menuBar: { placement: "screen" },
 			desktop: { iconGridOrigin: "top-left" },
+			scrollBar: { fitsBars: "shown" },
 		});
 	});
 

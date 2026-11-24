@@ -21,10 +21,14 @@
 //   Windows fills a scroll bar's page area with (the SCROLLBAR's halftone
 //   brush), one conic-gradient layer on the `--pixel-unit` grid, no image.
 //   Held (the core's repeat paging), Windows inverts the page area on the
-//   clicked side of the thumb alone (`PatBlt DSTINVERT`); the core marks the
-//   whole track `pressed` and a stylesheet cannot tell the sides apart, and
-//   inverting both would draw what Windows never does, so the track stays
-//   as it is while held.
+//   clicked side of the thumb alone (`PatBlt DSTINVERT`): the core publishes
+//   that stretch on the held track as `--classicy-scroll-page-start` and
+//   `--classicy-scroll-page-length` (from the track's start along the bar,
+//   following the thumb as it pages, gone when the thumb reaches the pointer
+//   or the button comes up), and a `::after` over it draws the checker
+//   inverted, ButtonDkShadow where ButtonFace was and black where
+//   ButtonHilight was, laid from the track's origin so the two checkers
+//   interlock whatever the stretch's offset.
 // - The thumb is a raised ButtonFace box (`b.raised`) with no grip, as long
 //   as the core computes it and never shorter than 8 pixels (half an arrow
 //   button, the proportional thumb's minimum); dragged, Windows redraws it
@@ -68,6 +72,10 @@ $arrow-right: runs(("x...", "xx..", "xxx.", "xxxx", "xxx.", "xx..", "x..."), "x"
 // The 50% checker of ButtonFace and ButtonHilight on the pixel grid (the
 // page area).
 $checker: repeating-conic-gradient(b.$hilight 0 25%, b.$face 0 50%) 0 0 / px(2) px(2);
+
+// The same inverted (DSTINVERT): ButtonHilight's cells black, ButtonFace's
+// ButtonDkShadow (the complement of the light gray is the dark one).
+$checker-inverted: repeating-conic-gradient(b.$text 0 25%, b.$dkshadow 0 50%) 0 0 / px(2) px(2);
 
 // The proportional thumb's minimum length: half an arrow button.
 $thumb-min: px(8);
@@ -151,9 +159,33 @@ $thumb-min: px(8);
     @include arrow-glyph($arrow-right, 4, 7, 2, 4);
   }
 
-  // The track: the checker, held or not (the header says why).
+  // The track: the checker; held, the paged side inverted (the header).
   .classicyScrollBarTrack {
+    position: relative;
     background: $checker;
+
+    &.pressed::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      background: $checker-inverted;
+    }
+  }
+
+  .classicyScrollBarVertical .classicyScrollBarTrack.pressed::after {
+    left: 0;
+    right: 0;
+    top: var(--classicy-scroll-page-start);
+    height: var(--classicy-scroll-page-length);
+    background-position: 0 calc(var(--classicy-scroll-page-start) * -1);
+  }
+
+  .classicyScrollBarHorizontal .classicyScrollBarTrack.pressed::after {
+    top: 0;
+    bottom: 0;
+    left: var(--classicy-scroll-page-start);
+    width: var(--classicy-scroll-page-length);
+    background-position: calc(var(--classicy-scroll-page-start) * -1) 0;
   }
 
   // The thumb: raised ButtonFace, no grip, never shorter than half an arrow

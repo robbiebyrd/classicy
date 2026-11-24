@@ -45,7 +45,8 @@ and `nodenext` resolution).
   the desktop labels' are the package's own color families, editable in the
   Colors tab beside the palette.
 - **Its layout.** The grow box at the bottom right, the menu bar on the
-  screen, desktop icons from the top left, as Windows laid them.
+  screen, desktop icons from the top left, as Windows laid them, and a
+  window's scroll bars kept where its content fits.
 - **Its look**, one stylesheet in the package layer:
   - windows: the four-ring frame, the title bar's gradient with the window's
     icon and bold title at the left and the Minimize (Classicy's collapse),
@@ -59,7 +60,9 @@ and `nodenext` resolution).
     rectangular tabs on a raised panel, the block progress bar, etched group
     boxes, trackbar sliders, raised placards and bevel buttons;
   - scroll bars: an arrow at each end on a checkered track, a raised scroll
-    box, the arrows and track kept in an inactive window;
+    box, the paged side of the track inverted while the mouse holds it, the
+    bars kept in an inactive window and drawn, disabled, where the content
+    fits;
   - the desktop: icons with plain labels that take the highlight when
     selected, a selected icon blended with a 50% dither of the highlight
     (as Explorer drew it) on the desktop, in icon views and in the Finder's

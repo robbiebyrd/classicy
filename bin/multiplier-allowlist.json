@@ -33,6 +33,12 @@
 			"reason": "Windows 98's pixel-grid art: the title-bar buttons' close, minimize and maximize marks, the scroll arrows, the checkbox's check, the radio button's ring and dot, the pop-up's and menus' arrows and the slider's thumb are one-pixel rectangles placed in multiples of the one grid knob (--pixel-unit x n, one site in the px() helper), coordinates in the art, not theme proportions (H-R7, as System 7's)."
 		}
 	],
+	"packages/appearance/windows98/src/styles/components/_Desktop.scss": [
+		{
+			"count": 1,
+			"reason": "The desktop labels' shadow switch: the `desktopLabel.shadow` knob is the shadow's offset in pixels, and at 0 the shadow is sent ten thousand pixels away (max(0, 1px - knob) x 10000) rather than drawn under the glyphs, where a zero-offset shadow would still darken their anti-aliased edges; a shadow is ink overflow, clipped by the desktop, so nothing scrolls. An on/off switch, not a theme proportion (H-R7)."
+		}
+	],
 	"src/SystemFolder/HyperCard/HyperCard.scss": [
 		{
 			"count": 12,

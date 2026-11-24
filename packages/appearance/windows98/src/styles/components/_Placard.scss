@@ -17,8 +17,9 @@
 //   are embossed (GrayText over a ButtonHilight copy one pixel down and
 //   right). Its menu is a Windows menu: ButtonFace in the window frame
 //   (`b.window-frame`), items `--menu-item-padding-x` (6) in, the tracked
-//   item HilightText on Hilight, a disabled one embossed. The keyboard focus
-//   is the dotted rectangle inside the edge, `:focus-visible` only.
+//   item HilightText on Hilight, a disabled one embossed, framed and spaced
+//   as _Menu.scss frames the pull-downs. The keyboard focus is the dotted
+//   rectangle inside the edge, `:focus-visible` only.
 // - The pager (Mac OS 8 Help's page control): two raised ButtonFace push
 //   buttons (`b.raised`) with a WindowText triangle 6 x 11 pointing back and
 //   forward, pressed in the pressed bevel with the triangle a pixel down and
@@ -26,9 +27,10 @@
 //   number, bold WindowText on Window white in the client edge
 //   (`b.sunken`). The pager's own knobs keep its geometry.
 // - A link: the scheme's accent (`--color-theme-04`, navy in Windows
-//   Standard; the theme has no link color, and Windows' hyperlinks were
-//   navy) underlined, the same under the pointer (Windows 98's links do not
-//   change there), a shade darker while pressed, embossed when disabled; the
+//   Standard and the scheme's Hilight in every preset; the theme has no link
+//   color, and Windows' hyperlinks were navy) underlined, the same under the
+//   pointer (Windows 98's links do not change there), a shade darker while
+//   pressed, embossed when disabled (under the pointer and pressed too); the
 //   keyboard focus is the dotted rectangle around the text.
 // - A key cap (a keyboard shortcut drawn as keys): a raised ButtonFace box
 //   with WindowText in the UI font, square, no outline (a small push
@@ -128,16 +130,19 @@ $forward: runs(
     background: glyph-embossed($down, 0, 1);
   }
 
-  // Its menu: a Windows menu above the pane.
+  // Its menu: a Windows menu above the pane, framed as _Menu.scss frames the
+  // pull-downs (the two-ring bevel and a ring of face inside it), its rows
+  // 17 px tall (the 11 px face in 3 px of padding) as theirs are.
   .classicyPlacardMenu {
-    padding: b.$b2;
+    padding: calc(#{b.$b2} + #{b.$b});
     background-color: b.$face;
     @include b.window-frame;
   }
 
   .classicyPlacardMenuItem {
-    padding: px(2) var(--menu-item-padding-x);
+    padding: px(3) var(--menu-item-padding-x);
     font-size: var(--ui-font-size);
+    line-height: 1;
     color: b.$text;
 
     &:hover:not(:disabled),
@@ -243,8 +248,14 @@ $forward: runs(
     }
   }
 
+  // Unavailable, under the pointer or pressed alike: the state rule follows
+  // the hover and active rules it must beat at their specificity.
   :where(.classicyLink).disabled {
-    @include b.disabled-text;
+    &,
+    &:hover,
+    &:active {
+      @include b.disabled-text;
+    }
   }
 
   // ----- Key caps ------------------------------------------------------------

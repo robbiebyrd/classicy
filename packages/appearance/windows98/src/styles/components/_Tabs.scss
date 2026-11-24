@@ -31,7 +31,7 @@
 //   same, hung from the panel's bottom edge, the bottom corners rounded and
 //   the bevel open at the top.
 // - The keyboard focus is the dotted rectangle three pixels inside the
-//   tab's bevel, `:focus-visible` only.
+//   tab's outline (the chosen tab's wings included), `:focus-visible` only.
 // - One tab size: Windows has no smaller tab, so the small tabs keep the
 //   standard height and the UI font; the large tabs keep the base's height.
 //
@@ -139,13 +139,16 @@ $arrow-right: runs(("x..", "xx.", "xxx", "xx.", "x.."), "x");
     @include tab-bevel-top;
 
     // The chosen tab: lifted, two rings wider each side (over its
-    // neighbors' edges) and two rings down over the panel's edge.
+    // neighbors' edges) and two rings down over the panel's edge. The two
+    // rings of width are the button's own padding (below), not the
+    // wrapper's, so the focus rectangle keeps its distance from the tab's
+    // whole outline, wings included.
     &.selected {
       position: relative;
       z-index: 2;
       height: calc(var(--windows98-tab-height) + #{$lift});
       margin: 0 b.$neg-b2 0;
-      padding: 0 b.$b2 b.$b2;
+      padding: 0 0 b.$b2;
     }
   }
 
@@ -159,9 +162,15 @@ $arrow-right: runs(("x..", "xx.", "xxx", "xx.", "x.."), "x");
     padding: 0 var(--tab-control-padding-x);
     color: b.$text;
 
+    // Three pixels inside the tab's outline (TAB_DrawItemInterior deflates
+    // the item rectangle by three for DrawFocusRect).
     &:focus-visible {
       @include b.focus-rect(px(3));
     }
+  }
+
+  .classicyTabButtonWrapper.selected .classicyTabButton {
+    padding: 0 calc(var(--tab-control-padding-x) + #{b.$b2});
   }
 
   // Windows has no smaller tab: the small tabs keep the UI font.
@@ -266,7 +275,7 @@ $arrow-right: runs(("x..", "xx.", "xxx", "xx.", "x.."), "x");
 
       &.selected {
         margin: 0 b.$neg-b2;
-        padding: b.$b2 b.$b2 0;
+        padding: b.$b2 0 0;
       }
     }
 

@@ -12,9 +12,12 @@
 //   itself); the border stays, transparent, so the content keeps its place.
 // - The title: WindowText in the UI font (the same size as every label;
 //   Windows has no smaller caption face), on a ButtonFace ground that
-//   breaks the top line, centered on it, its ink ten pixels in from the
-//   frame's inner edge, `--group-box-title-pad` (3) of face before and
-//   after it.
+//   breaks the top line, centered on it, its ink seven pixels in from the
+//   frame's outer edge with a pixel of face before and after it (GB_Paint:
+//   the label rectangle is the box deflated by 7, the fill a pixel wider
+//   each side). Its line box is 12 px, an even height, so the base sheet's
+//   centering on the line (a half-height translate) lands the pixel font on
+//   whole pixels.
 // - The secondary group (Windows drew one kind; a plain one-ring line, as
 //   the old package spec had it): one ring of ButtonShadow.
 //
@@ -28,6 +31,7 @@
 // Every length is a knob or a ring (`b.$b`, one `--window-border-size`),
 // every color a token.
 @use "../bevels" as b;
+@use "../pixel" as *;
 
 @mixin control-group {
   .classicyControlGroupFieldsetPrimary {
@@ -48,13 +52,16 @@
     border: b.$b solid b.$shadow;
   }
 
-  // The title breaks the line on the window's face. Its line box is its
-  // font's height, so the half that overhangs the frame stays within the
-  // overhang the base sheet reserves for a caption-sized title.
+  // The title breaks the line on the window's face, its ink seven pixels
+  // from the frame's outer edge: the base sheet places it from the padding
+  // box, two rings in, so four pixels on, and a pixel of face before it.
+  // Its 12 px line box, centered on the line, overhangs the frame by five,
+  // within the overhang the base sheet reserves for a caption-sized title.
   .classicyControlGroupLegend {
-    left: calc(var(--group-box-margin-side) - var(--group-box-title-pad));
+    left: px(4);
+    padding: 0 $px;
     font-size: var(--ui-font-size);
-    line-height: 1;
+    line-height: px(12);
     color: b.$text;
     background-color: b.$face;
   }

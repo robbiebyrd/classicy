@@ -65,6 +65,16 @@
 // transparent where the icon shows through.
 $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50%) 0 0 / px(2) px(2);
 
+// The label's shadow, the theme's `desktopLabel.shadow` knob: its offset
+// down and right in pixels (1: the Active Desktop's shadow; stock Windows 98
+// drew none). At 0 the shadow is sent ten thousand pixels away instead of
+// drawn under the glyphs (where it would still darken their anti-aliased
+// edges): a shadow is ink overflow, so it is clipped by the desktop and
+// scrolls nothing. The multiplier is that switch, not a theme proportion
+// (bin/multiplier-allowlist.json).
+$label-shadow: var(--desktop-label-shadow);
+$label-shadow-offset: calc(#{$label-shadow} + max(0px, #{px(1)} - #{$label-shadow}) * 10000);
+
 // A selected label: Hilight under HilightText, no shadow, the dotted focus
 // rectangle on its outer pixel ring.
 @mixin label-selected {
@@ -127,7 +137,7 @@ $selection-dither: repeating-conic-gradient(b.$highlight 0 25%, transparent 0 50
       font-size: var(--desktop-icon-font-size);
       line-height: calc(var(--desktop-icon-font-size) + #{px(2)});
       color: var(--package-color-desktop-text, var(--color-white));
-      text-shadow: b.$b b.$b 0 var(--color-black);
+      text-shadow: $label-shadow-offset $label-shadow-offset 0 var(--color-black);
       background: transparent;
     }
   }
