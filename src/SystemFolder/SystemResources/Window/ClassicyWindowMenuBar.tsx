@@ -2,6 +2,7 @@ import classNames from "classnames";
 import {
 	type CSSProperties,
 	type FC as FunctionalComponent,
+	useId,
 	useMemo,
 	useRef,
 } from "react";
@@ -92,9 +93,13 @@ const ClassicyWindowMenuBarContent: FunctionalComponent<
 			[],
 		[menuItems, appId, appName, overrides],
 	);
+	// Ids are DOM ids: scope the standard Help items to this bar, since
+	// several windows each draw one.
+	const barId = useId();
 	const { helpItem, appMenu } = useClassicyStandardHelpMenu({
 		appMenu: titled,
 		appId,
+		idPrefix: `${barId}_`,
 	});
 	const items = useMemo(
 		() => [...(appMenu ?? []), helpItem],

@@ -99,6 +99,43 @@ describe("standard Help menu", () => {
 		expect(screen.getByText("Own Help Item")).toBeInTheDocument();
 	});
 
+	it("window placement: several window bars repeat no DOM id, Help items included", () => {
+		const menu = (n: string): ClassicyMenuItem[] => [
+			{
+				id: `${n}_file`,
+				title: "File",
+				menuChildren: [{ id: `${n}_x`, title: "X" }],
+			},
+		];
+		render(
+			<>
+				<ClassicyWindowMenuBar
+					appId="A.app"
+					windowId="w1"
+					menuItems={menu("a")}
+				/>
+				<ClassicyWindowMenuBar
+					appId="A.app"
+					windowId="w2"
+					menuItems={menu("b")}
+				/>
+				<ClassicyWindowMenuBar
+					appId="B.app"
+					windowId="w1"
+					menuItems={menu("c")}
+				/>
+			</>,
+		);
+		// Open each Help menu so its items are in the document.
+		for (const help of screen.getAllByText("Help")) fireEvent.click(help);
+		const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
+		const repeated = ids.filter((id, i) => ids.indexOf(id) !== i);
+		expect(repeated).toEqual([]);
+		expect(document.querySelectorAll('[id$="help-about-balloon"]').length).toBe(
+			3,
+		);
+	});
+
 	it("keeps the front app's menus and chords while an extension's window takes focus", () => {
 		const quit = vi.fn();
 		const menu: ClassicyMenuItem[] = [

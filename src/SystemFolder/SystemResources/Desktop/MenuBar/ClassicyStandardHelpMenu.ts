@@ -75,9 +75,16 @@ export type ClassicyStandardHelpMenu = {
 export function useClassicyStandardHelpMenu({
 	appMenu,
 	appId,
+	idPrefix = "",
 }: {
 	appMenu: ClassicyMenuItem[] | undefined;
 	appId: string | undefined;
+	/**
+	 * Prefixes the standard items' DOM ids. The screen bar is the only one of
+	 * its kind and keeps the bare ids; each window's own bar passes a prefix
+	 * of its own, so no id repeats when several bars are on screen.
+	 */
+	idPrefix?: string;
 }): ClassicyStandardHelpMenu {
 	const titleArt = useClassicyAsset("systemArt", "helpMenuTitle");
 	const disableBalloonHelp = useAppManager(
@@ -94,7 +101,7 @@ export function useClassicyStandardHelpMenu({
 		const own = (appMenu ?? []).filter(isOwnHelpMenu).flatMap(ownHelpItems);
 		const content = trimMenuSpacers([
 			{
-				id: "help-keyboard-shortcuts",
+				id: `${idPrefix}help-keyboard-shortcuts`,
 				title: "Keyboard Shortcuts",
 				event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
 				eventData: { topicId: KEYBOARD_SHORTCUTS_TOPIC_ID },
@@ -103,21 +110,21 @@ export function useClassicyStandardHelpMenu({
 			...own,
 		]);
 		const helpItem: ClassicyMenuItem = {
-			id: "help-menu",
+			id: `${idPrefix}help-menu`,
 			// The art replaces the word, which stays its accessible name.
 			...(titleArt ? { image: titleArt, imageAlt: "Help" } : { title: "Help" }),
 			className: "classicyDesktopMenuHelp",
 			part: "help",
 			menuChildren: [
 				{
-					id: "help-about-balloon",
+					id: `${idPrefix}help-about-balloon`,
 					title: aboutTitle,
 					event: APPLE_GUIDE_SHOW_TOPIC_EVENT,
 					eventData: { topicId: ABOUT_BALLOON_HELP_TOPIC_ID },
 				},
 				{ id: "spacer" },
 				{
-					id: "help-toggle-balloons",
+					id: `${idPrefix}help-toggle-balloons`,
 					title: disableBalloonHelp ? "Show Balloons" : "Hide Balloons",
 					// Real working equivalent: Option-H rather than a Command
 					// combination, since the browser reserves most of those.
@@ -133,5 +140,5 @@ export function useClassicyStandardHelpMenu({
 			helpItem,
 			appMenu: appMenu?.filter((item) => !isOwnHelpMenu(item)),
 		};
-	}, [appMenu, appHelp, titleArt, disableBalloonHelp, aboutTitle]);
+	}, [appMenu, appHelp, titleArt, disableBalloonHelp, aboutTitle, idPrefix]);
 }
