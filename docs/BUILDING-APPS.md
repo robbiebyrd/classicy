@@ -1099,6 +1099,61 @@ can follow an Appearance Package's display names: an entry never overwrites a
 static file of the same name, and takes "<own name> (<id>)" instead
 (AGENT-REFERENCE §8, "App display overrides").
 
+### Making your content findable: search sources
+
+The Finder's File ▸ Find… (⌥F) opens **Find File**, which searches the file
+system by name, kind, dates, size, label and more. To let users find your
+own content there too (an archive, a catalog, a remote API), register a
+**search source**. Find File then shows a Search Internet tab, after Mac OS
+8.5's Sherlock: the words typed, your source as a channel with an On box,
+and Search.
+
+```ts
+// At module scope (or in an effect, keeping the returned unregister).
+import { dispatch, registerClassicyFindSource } from '@classicy/classicy'
+
+registerClassicyFindSource({
+    id: 'tv-archive',
+    name: 'TV Archive',
+    search: async (words, { signal }) => {
+        // Pass `signal` on: a new search, Stop or Quit aborts this one.
+        const res = await fetch(`/api/search?q=${encodeURIComponent(words)}`, { signal })
+        const hits: { title: string; url: string }[] = await res.json()
+        return hits.map((hit) => ({
+            name: hit.title,
+            kind: 'broadcast',          // the results' Kind column
+            open: () => dispatch({
+                type: 'ClassicyDesktopOpenUrl',
+                url: hit.url,
+                disposition: 'browser-new',
+            }),
+        }))
+    },
+})
+```
+
+- `search` must return a promise. Each source switched on is asked at once,
+  and the results window lists each source's results under its name (the
+  Site column) as they arrive.
+- A source that throws or rejects only loses its own results: the error goes
+  to `classicyLog` (`"ClassicyFindFile"`, level `error`), and the other
+  sources' results still show. Results without a `name`, a `kind` and an
+  `open` function are dropped with a warning.
+- Once the search's `signal` aborts, whatever your source returns is
+  ignored; stop the work you started (a `fetch` given the signal does).
+- `open()` runs when the user opens a result: open a window of your app,
+  a URL (`ClassicyDesktopOpenUrl`, trusted from your code), or a file
+  (`openClassicyFileSystemPath(fs, path, dispatch)`, the Finder's way, which
+  also records a Recent Document).
+- Re-registering the same `id` replaces the source; the call returns the
+  unregister. `useClassicyFindSources()` lists the sources in a component.
+- With no source registered, Find File is Mac OS 8.1's window, with no tabs.
+  Both Appearance Packages show the tab once one is.
+
+The example app registers one (`example/src/Applications/FindSources/`).
+Full reference: [AGENT-REFERENCE §11, "Find File and search
+sources"](AGENT-REFERENCE.md#find-file-and-search-sources).
+
 ---
 
 ## 12. Dialogs and alerts

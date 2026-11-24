@@ -696,6 +696,41 @@ reaches `track`. The Apple Menu Options control panel (`AppleMenuOptions.app`,
 counts set when a field is left) is part of `ClassicyControlPanels`.
 Details: `docs/AGENT-REFERENCE.md` §11, "Recent Items".
 
+### Find File and search sources
+
+Find File (`FindFile.app`, `src/SystemFolder/FindFile/`, mounted by
+`ClassicyDesktop`; story 0227-815; Mac OS 8.1's, observed on Infinite Mac)
+opens from the Finder's File ▸ Find… (**⌥F**, on every Finder File menu, the
+desktop's too; `ClassicyAppFindFileShowFind`) and the Apple menu. Its rows
+(`ClassicyFindCriteria.ts`: 8.1's twelve criteria and operators, plus
+visibility and name/icon lock when the criterion pop-up opens with Option;
+More Choices adds the first unused criterion, ten at most) are matched by
+`searchClassicyFileSystem` (`ClassicyFindFileSearch.ts`): async, aborted by
+its `AbortSignal`, over the live tree of the desktop's
+`fileSystemStorageKey`, under every disk and the Trash, the Desktop Folder
+or one disk (the location is kept, `data.location`). Invisible items are
+found only by a visibility row, but invisible folders are searched (the
+Trash's items are found); the Desktop Folder counts as visible. Items Found
+(one window, reused; "No items were found." leaves the last results) lists
+Name/Size/Kind/Last Modified with the name highlighted as the Finder's list
+draws it, and a path pane (`ClassicyListBox` options' `depth`). Open Item
+(⌥O) uses `openClassicyFileSystemPath` (Finder routing, recorded as a recent
+document; a folder now opens in front, `ClassicyAppFinderOpenFolder`'s
+`focus`); Open Enclosing Folder (⌥E) uses `revealClassicyFileSystemPath` →
+`ClassicyAppFinderRevealItem` (the folder's Finder window in front, the item
+selected through `ClassicyFileBrowser`'s `reveal`, `Finder.app`
+`data.reveal`, stripped from persistence; a desktop item's icon selected),
+refusing an invisible place with 8.1's alert. Closing the last window quits.
+Hosts make their content findable with `registerClassicyFindSource({ id,
+name, icon?, search(words, { signal }) })` (`ClassicyFindSources.ts`):
+results `{ name, kind, icon?, open }`; Find File then shows Sherlock's
+Search Internet tab (both packages: a ruling, System 7.5 had no Sherlock);
+a new search, Stop or Quit aborts the last; a failing source is logged
+(`classicyLog("error", "ClassicyFindFile", …)`) and the others still show.
+Typed words stay out of analytics (`ClassicyInput`'s `analyticsPrivate`).
+Pop-up options take `dividerBefore` (each package draws its menu divider).
+Details: `docs/AGENT-REFERENCE.md` §11, "Find File and search sources".
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.

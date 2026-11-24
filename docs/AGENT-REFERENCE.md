@@ -555,6 +555,9 @@ Common built-in actions:
 | `ClassicyAppShowAll` | `{}` | Show every hidden app (Show All) |
 | `ClassicyWindowOpen` | `{ app: { id }, window: { id, size, minimumSize, position?, autoPosition?, menuBar?, windowType?, collapsable?, modal? } }` | Register (or reopen) a window. A new window opens at `position` as given, `[0, 0]` included. With no `position`, or with `autoPosition: true`, it is cascaded instead: `[30 + 10·n, 30 + 10·n]`, n being the app's window count. An existing window keeps its stored position. `ClassicyWindow` always passes a position (its `initialPosition`, default `[110, 110]`), so it never cascades |
 | `ClassicyWindowFocus` | `{ app: { id }, window: { id } }` | Focus a window |
+| `ClassicyAppFinderOpenFolder` | `{ path, focus? }` | Open a Finder window on a folder or disk; with `focus: true` the Finder and that window also come to the front (what `openClassicyFileSystemPath` sends, so a folder opened from another app is seen) |
+| `ClassicyAppFinderRevealItem` | `{ path }` | Find File's Open Enclosing Folder: the Finder comes to the front with the item selected, in its folder's window (opened or focused; `Finder.app` `data.reveal { path, seq }`, session only, which that window's `ClassicyFileBrowser` applies as its `reveal`), or, for an item mirrored on the desktop (`classicy-desktop-item:<path>`), its desktop icon selected and no window. Use `revealClassicyFileSystemPath`, which refuses invisible places first (§11, "Find File") |
+| `ClassicyAppFindFileShowFind` | `{}` | Launch Find File, or bring its Find window to the front (the Finder's File ▸ Find…, ⌥F) |
 | `ClassicyDesktopChangeTheme` | `{ activeTheme: "<themeId>" }` | Switch theme (the active package's loaded built-ins, then its defaults and presets, then custom themes, then other packages' built-ins) |
 | `ClassicyDesktopChangeAppearancePackage` | `{ packageId: string }` | Switch the active Appearance Package (`System.Manager.Appearance.packageId`, persisted, default `"platinum"`); activates a copy of the package's default theme unless the active theme already belongs to it (`theme.package`). An unregistered id is a logged no-op; untrusted dispatches never reach it (`ClassicyDesktop*` floor) |
 | `ClassicyDesktopChangeColor` | `{ colorKey, index?, color }` or `{ family, key, color }` | Set one theme color, or one of the active package's own colors (forks a built-in into "Custom"; see §8, "Package color families") |
@@ -1225,7 +1228,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?` | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1) |
+| `ClassicyInput` | `id` *, `onChangeFunc?`, `onEnterFunc?`, `onFocusFunc?`, `labelTitle?`, `labelPosition?`, `placeholder?`, `prefillValue?`, `type?`, `disabled?`, `analyticsPrivate?` (its `selected` analytics event carries neither the text typed nor the prefill; Find File's fields, which hold search words, set it) | forwardRef to `<input>`; carries the `selected` state while focused with a selection running to its text's end, and `--classicy-input-selection-start` and `data-classicy-selection` (`all` or `tail`) with it (§4.0.1) |
 | `ClassicySpinner` | `id` *, `minValue? (0)`, `maxValue?`, `prefillValue?`, `onChangeFunc?`, `onEnterFunc?` (Return in the field), `labelTitle?` | number field with little arrows. Holding an arrow speeds up tenfold for every 3 s it stays held (steps of 1, 10, 100…) |
 | `ClassicyLittleArrows` | `onStep(dir: 1\|-1, heldMs)` *, `disabled?`, `upLabel?`, `downLabel?`, `repeatIntervalMs? (120)`, `focusTarget?: RefObject<HTMLElement>` | standalone stepper, press-and-hold repeat; pair with its content inside a `classicyLittleArrowsGroup` element. A mouse press never takes focus from a focused sibling in the group (the ring and bevel are `:focus-within`); `focusTarget` makes it focus the field instead |
 | `ClassicySlider` | `id` *, `value` *, `min?/max?/step?`, `orientation?`, `onChangeFunc?`, `onCommitFunc?(value, { lost })`, `tickInterval?`, `tickLabels?`, `snapToTicks?`, `ghost?`, `indicatorDirection? ("down"\|"up"\|"left"\|"right"\|"nondirectional")`, `highlighted?`, `valueLabel?`, `ariaLabel?` | the thumb points down (horizontal) or left (vertical) by default, or is a pointless knob with `"nondirectional"`; `highlighted` draws the thumb pressed (Platinum); `ghost` draws a ghost indicator that follows the pointer while it drags, and under a package whose layout says `slider.thumbDrag: "onRelease"` (Platinum, §8 "Layout declarations") the indicator stays put meanwhile and the value changes, once, on release (live otherwise; a slider without a ghost always drags live, the HIG's "live feedback"); on a vertical slider the ghost travels up the track, where the indicator lies across it. A mouse or pen press (first button) is the slider's own, not the browser's: its `mousedown` default (the engine's range drag) is prevented, while the `pointerdown`, `mousedown` and `mouseup` still reach the page; a press on the thumb grabs it where it is, so a press that never moves changes nothing, in every engine (Firefox moved the thumb to the pointer on every press), and the value follows the pointer's travel from there, on the step grid; a press on the track puts the thumb's center under the pointer (onRelease: the ghost) and drags from there; the input captures the pointer, so the release reaches it, and a drag that loses the capture, sees a move with the button up or a release only the document hears ends where it is; the value is set through the input's prototype setter with a synthetic `input` event (which `onChangeFunc` receives), and a `change` event is dispatched by hand on a release that moved it. Touch, the keyboard and the wheel stay the browser's; `valueLabel` is the readout and screen-reader value text (defaults to the number); `ariaLabel` names a slider with no visible label. A vertical slider's track is the horizontal channel turned a quarter, and its length is `--slider-vertical-min-height` (`controlSize × 8`, 96 px under Platinum) in a container with no set height; given a height (`style`, or its container's), the track grows to fill it, less its label and the readout below it, and is never shorter; it is centered in its container, its track nudged onto the pixel grid by `left` (under half a pixel, as a submenu's wrapper; `nudgeClassicyOntoPixelGrid`) after every render. With ticks they run beside the track, and tick labels beside their ticks. The look is the package's: Platinum draws the HIGOS8 figures pixel for pixel (Figures 2-18 and 2-19 at rest: a 7 px etched channel with one-pixel pixel-art ends, a 15 × 16 pixel-art indicator in the theme's lavender ramp lit from the top left, its flat side 3 px past the channel and its point 6 px past it, Figure 2-18's 3 × 8 tick marks; the 1996 draft's Figure 13, a four-gray screenshot whose grays are the ramp's, for the vertical channel and the left-pointing indicator, which is lit from the top left too, not the down one turned; the up- and right-pointing indicators, which no figure draws, lit by the same rule; pressed or highlighted, the same art every ink a step down the ramp, Figure 2-17's tone, since that figure is 2-18's slider resampled a row and a column larger; a pointless knob centered on the channel, turned under the same light on a vertical one; a gray ghost; the `slider` knob family, every placement derived from it), its channel's three flat rows reading `--classicy-slider-track` (an image, e.g. a `linear-gradient`) first, which the color picker sets on its channel sliders. The base sheet resets Firefox's thumb border and 0.5em corner radius, which would clip a package's thumb art round, and raises the track layer (`z-index: 1`, the stack `isolation: isolate`) above the tick rail, so a thumb overhanging the input is never painted under a tick |
@@ -1234,8 +1237,8 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyFileInput` | `id` *, `accept?`, `multiple?`, `maxFiles?`, `maxFileSizeMb?`, `onChangeFunc?(files: File[])` | forwardRef handle `{ addFiles(File[]) }` |
 | `ClassicyDatePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock (`DateAndTime.dateTime`); re-syncs when `prefillValue` changes to a different moment |
 | `ClassicyTimePicker` | `id` *, `onChangeFunc?(date)`, `prefillValue?`, `minValue?/maxValue?` | defaults to the Classicy virtual clock, like the date picker; re-syncs when `prefillValue` changes to a different moment |
-| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?}` or `{groupLabel, options}` entries), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
-| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?}[]`), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
+| `ClassicyPopUpMenu` | `id` *, `options` * (`{value, label, icon?, dividerBefore?}` or `{groupLabel, options}` entries; `dividerBefore` draws a divider, a `ClassicySeparator`, above that item in the open menu, starting a group as Find File's location and date pop-ups do; ignored on the first item; each package draws it as its menus' divider), `selected?`, `onChangeFunc?`, `size? (incl. "mini")`, `label?`, `disabled?` | Platinum select; group entries render `<optgroup>`-style titled, non-selectable runs. A list too long for its space scrolls as Mac OS menus do (HIG7 pp.78, 83), with no scroll bar: an indicator over the first or last row while items lie hidden past that end (`data-classicy-part` `menu-scroll-up` / `menu-scroll-down`, `.classicyPopUpMenuScrollArrow` + `Up`/`Down`, `aria-hidden`, a fixed-position sibling of the list that the package draws), and the list scrolls a row at a time while the pointer rests on one; the wheel over an indicator scrolls it (by rows for a wheel that counts lines), and the keyboard's highlight scrolls it clear of the indicators (scroll padding a row tall). Opened aligned and scrolled, the selection never lands under an indicator: it sits a row in from that end |
+| `ClassicyListBox` | `id` *, `options` * (`{value, label, icon?, disabled?, depth?}[]`; `depth` indents the row one icon's width a level, published as `--classicy-listbox-depth`, as Find File's path pane does), `selectionMode? ("single"\|"multi")`, `selected?: string[]`, `onChangeFunc?(values)`, `onActivateFunc?(value)` (double-click/Enter), `visibleRows?`, `label?`, `disabled?` | List Manager scrolling list; multi = plain-click replaces, ⌘/Ctrl-click toggles, Shift-click/Shift-arrows extend; selection follows the keyboard. Its vertical bar shows while the rows overflow, or always (in the `fits` state while they fit) under a package whose layout says `scrollBar.fitsBars: "shown"` (§8) |
 | `ClassicyComboBox` | `id` *, `options` * (flat options and/or `{groupLabel, options}` groups), `prefillValue?`, `filter? ("startsWith"\|"contains"\|false)`, `freeText? (true)`, `onChangeFunc?(text)`, `onSelectFunc?(value, option)`, `placeholder?`, `label?`, `disabled?` | editable field + arrow; suggestion menu reuses the PopUpMenu look/flip logic and its scroll indicators; focus stays in the input (`aria-activedescendant`) |
 
 ### 4.4 Labels, grouping, display
@@ -1258,13 +1261,13 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicyKbd` | `shortcut?` (any `parseKeyboardShortcut` spelling) or children, `variant? ("inline"\|"keycaps")` | real `<kbd>` in canonical glyph order (⌃⌥⇧⌘ + key); each modifier is a `<span class="classicyKbdModifier" data-classicy-part="modifier-<name>">` holding its glyph (inside its own cap in `keycaps`), so the text is unchanged; menu items render their `keyboardShortcut` through it |
 | `ClassicyTabs` | `tabs` * (`{title?, icon?, children}[]`), `size? ("small"\|"medium"\|"large")`, `stripPosition? ("top"\|"bottom")` | tab height and label type scale; small tabs suit dense panels. `stripPosition="bottom"` puts the strip under the panel (same DOM order; the stylesheet moves it with `order`, root class `classicyTabStripBottom`); the tabs' outline art still points up |
 | `ClassicyTree` | `nodes` *, `direction?` (closed triangles' direction; default right), `selectionMode? ("none"\|"single"\|"multi")`, `selectedIds?`, `onSelectNode?`, `onActivateNode?`, `onToggleNode?` | hierarchical list; a `disabled` node's `leftIcon` is dimmed by the active package's `iconDimming.disabledItem` rule where it declares one (§8, "Icon dimming") |
-| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
+| `ClassicyTable` | `columns` * (`{id, title, accessor, render?, sortable?, resizable?, width?, align?}[]`), `rows` *, `getRowId` *, `selectionMode? ("none"\|"single"\|"multi")`, `selected?: string[]`, `onSelectionChange?`, `onActivateRow?`, `defaultSort?`, `onSortChange?({ columnId, desc } \| undefined)` (after a header click changes the sort, never for the one it starts with; Find File's View menu follows it), `stickyHeader? (true)`, `rowClassName?`; tree rows: `getSubRows?`, `rowCanExpand?`, `expanded?: string[]`, `onToggleRow?`; handles: `selectionApiRef?` (`{ selectAll }`), `containerRef?` (the focusable list box, e.g. for a window's `initialFocusRef`); `scrollable? (true)` (`false`: the rows scroll in an ancestor, as the Finder's list view does in its window); `headerPlacement? ("inList"\|"aboveList", "inList")` (`aboveList`: the column titles above the list's scrolling region, in its scroll area's head, its own or, with `scrollable={false}`, the scrolling ancestor's: a copy, `classicyTableDetachedHeader`, `aria-hidden`, taking the container's custom properties, its table and each column as wide as the list's, padded after by the head's room past the viewport so the two scroll as far sideways; the table's own header row stays for assistive technology, laid out with no height, `classicyTableHeaderHidden`; with no scroll area the titles stay in the list) | generic Platinum list view over `@tanstack/react-table` (a core dependency); semantic `<table>` + `aria-sort`; Shift/⌘ selection over the current sorted order; arrows/Home/End/Enter/type-select keyboard. A column resize whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is, keeping the width reached. `render(row, expansion)` receives `{ depth, canExpand, isExpanded, toggle, emitDrag? }` so a column can draw its own disclosure (this is how the Finder list view is built); `emitDrag("dragStart" \| "dragEnd", detail?)` reports a drag the cell starts to the Appearance Package from the table's root (§8, "Package hooks"; a `dragEnd` detail must carry `lost`, `ClassicyAppearanceDragEnd`, which the type enforces); always set by the table, optional in the type so a hand-built context still type-checks. The sorted column's body cells carry the part class `classicyTableCellSorted`, and the root publishes the sorted header's place from its left edge as `--classicy-table-sorted-start` and `--classicy-table-sorted-width` (px, both `0px` with nothing sorted; measured after each sort or column resize and as the table resizes), so a package can draw the sorted column below the last row too: Platinum draws it in `--color-system-02` in the Finder's list view only (`.classicyFileBrowserViewTableContainer`), cells and the empty list alike, as HIGOS8 Figs. 2-24 and 2-43 (Finder list views) do; generic tables keep one face |
 | `ClassicyPager` | `page` *, `pageCount` *, `onPageChange` *, `pageClassName?` (extra class for the page-number cell) | Apple Guide page control |
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
 | `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`
-(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
+(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled`, `selected?` + `onSelectedChange?(selected)` (a container that keeps the selection: the icon shows only what `selected` says and reports what a click, drag or open asks for; left out, the icon keeps its own, as before) | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
 
 ### 4.5 Menus
 
@@ -1528,6 +1531,7 @@ off:
 | Component | Purpose | Disable via provider prop |
 |---|---|---|
 | `Finder` | The Finder (file browsing, trash, Applications) | always on |
+| `FindFile` | Find File (the Finder's File ▸ Find…, ⌥F, and the Apple menu): search the file system, and the host's search sources (§11, "Find File") | always on |
 | `ClassicyControlPanels` | Appearance, Sound, Date & Time, Drive Setup, Screen Saver, Control Strip and Apple Menu Options panels | always on |
 | `SimpleText` | Text editor | `disableSimpleText` |
 | `HyperCard` | Stack player (+ `HyperCard/Editor/*` authoring UI) | `disableHyperCard` |
@@ -2693,7 +2697,11 @@ Browse UI: `ClassicyFileBrowser` (`fs` *, `path` *, `appId` *,
 `showInvisible? (true)` — list `_invisible` entries (Finder passes false),
 `onDeleteItems?(paths)` — Delete/⌃⌫ with a selection,
 `itemContextMenu?(path, selectedPaths) → ClassicyMenuItem[] | undefined` —
-right-click on an item, `commandsRef?` — `{ selectedPaths() }`), with
+right-click on an item, `commandsRef?` — `{ selectedPaths() }`,
+`reveal?: { paths, key }` — select those items whenever `key` changes, in
+either view, and scroll the first into view: the Finder's reveal for Find
+File's Open Enclosing Folder; from the first reveal on, the browser keeps the
+selection itself and both views show it), with
 `ClassicyFileBrowserViewIcons` / `ClassicyFileBrowserViewTable` as the
 individual views. With `onMoveItems`, items drag as Mac OS 8 Finder items: a
 dotted outline (icon shape ∪ label box) follows the pointer; let go on a folder
@@ -5937,6 +5945,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 | `registerClassicyLogSink(sink)` | Receive Classicy's logs, errors, and crash reports in the host app (see "Logging & diagnostics" below) |
 | `ClassicyMenuBarExtension` | Add menu bar items (see §4.5) |
 | `registerClassicyRecentItemsSource({ id, kind, list, subscribe? })` | Add a host's own recent items to the Apple menu's Recent Applications or Recent Documents, merged with the remembered ones by time (see "Recent Items" below) |
+| `registerClassicyFindSource({ id, name, icon?, search })` | Make a host's own content findable: Find File lists the source as a channel on its Search Internet tab and calls `search(words, { signal })`, a promise of `{ name, kind, icon?, open }` results (see "Find File and search sources" below) |
 | `classicyEditCommands`, `ensureEditTracker` | Programmatic Undo/Cut/Copy/Paste/Clear/Select All acting on the last-focused text field (native editing + Clipboard API); this is what `useClassicyEditMenu` uses — call directly from custom menus/toolbars |
 | `useFinderFolderSize`, `FinderContext` | Finder integration points |
 | `useClassicyCursor()` | Platinum cursor management |
@@ -6368,6 +6377,151 @@ only its id (`apple-recent-documents-3`), `disabled`, `event` and
 too. (A document reopened from the menu opens its window as the Finder would,
 and that window's *title* reaches GA as every window title does, §9.)
 
+### Find File and search sources
+
+**Find File** (`FindFile.app`, `src/SystemFolder/FindFile/`, mounted by
+`ClassicyDesktop`, always on; story 0227-815) is Mac OS 8.1's: the Finder's
+File ▸ Find… (**⌥F**; 8.1's ⌘F, HIG7 Table 4-3) on every Finder File menu,
+the desktop's included, and an Apple-menu entry, launch it or bring its Find
+window to the front (`ClassicyAppFindFileShowFind`). Reference, observed on
+Infinite Mac (Mac OS 8.1, System 7.5.3, and Sherlock in Mac OS 8.5;
+HIGOS8 1997 Figure 1-2 draws the window):
+
+- **The Find window**: "Find items [location] whose", then rows of
+  [criterion] [operator] [value], More Choices (dimmed at ten rows), Fewer
+  Choices (shown with two rows or more) and Find (the default; it reads Stop
+  while a search runs, and every control dims). The location pop-up: on all
+  disks, on local disks (the default), on the desktop, then on each disk by
+  name. 8.1's "on mounted servers" (dimmed with none mounted) is left out,
+  Classicy having no file servers, and so is "in the Finder selection":
+  the Finder keeps each window's selection inside that window and publishes
+  none to search. It is kept across launches (`data.location`,
+  `ClassicyAppFindFileSetLocation`); the rows start again as one empty name
+  row. More Choices adds the first criterion no row uses (8.1: name, then
+  size, then kind; after a row of size, name).
+- **Criteria and operators** (`CLASSICY_FIND_CRITERIA`,
+  `ClassicyFindCriteria.ts`; every row must match):
+
+  | Criterion | Operators | Value | Classicy reads |
+  |---|---|---|---|
+  | name | contains, starts with, ends with, is, is not, doesn't contain | text (case ignored) | the item's name |
+  | size | is less than, is greater than | K (128) | files only (`fs.size`) |
+  | kind | is, is not | alias, application, clipping file, control panel, document, extension, folder, font, letter, sound, stationery | `classicyFindKindOf`: a folder or disk is a folder, a shortcut an alias, an app shortcut an application, an extension an extension, audio (or a QuickTime file of format Audio) a sound, any other file a document; Classicy has no clipping files, control panel files, fonts, letters or stationery |
+  | label | is, is not | None, Essential, Hot, In Progress, Cool, Personal, Project 1, Project 2 | `_label`, when it is one of the seven, else None |
+  | date created, date modified | is, is before, is after, is not, is within 1/2/3 days of, 1/2/3 weeks of, 1/2/3/6 months of | a day (today on Classicy's clock) | `_createdOn` / `_modifiedOn`, by day in the clock's zone; "within N of" a day keeps N before through N after; an item without the date matches none |
+  | version | is, is not | text | `_version` |
+  | comments | contain, do not contain | text | `_comments` |
+  | lock attribute | is | locked, unlocked | files only: `_readOnly` |
+  | folder attribute | is, is not | empty, shared, mounted | folders only: empty is no visible item; none is shared or mounted |
+  | file type | is, is not | text | `_type` (`text_file`, `pdf`, …) |
+  | creator | is, is not | text | `_creator` |
+  | name/icon lock (Option) | is | locked, unlocked | `_nameLocked` |
+  | visibility (Option) | is | invisible, visible | `_invisible` |
+
+  The last two are 8.1's hidden criteria: they are listed only when the
+  criterion pop-up is opened with Option held (or the row already uses one);
+  8.1's other two, contents and custom icon, are left out (Classicy reads no
+  file contents to search, and an entry's `_icon` is how every special
+  folder is drawn, so "custom" has no meaning). Find refuses, with 8.1's
+  caution alert and words, an empty name ("Please enter a name before
+  searching."), and kind is folder with a size or a lock row ("You have
+  asked to search for items which are folders, but also specified a file
+  size. …", "… a lock status. Only files can be locked. …";
+  `classicyFindCriteriaProblem`).
+- **What is searched** (`searchClassicyFileSystem(fs, { location, criteria,
+  signal, timeZoneOffsetMinutes })`, async, abortable, yielding every 250
+  items): the live shared tree of the desktop's `fileSystemStorageKey`
+  (`useClassicyFileSystem()`), under the disks (and the Trash, its items
+  under the disk they came from, `_trashedFrom`), the Desktop Folder, or
+  one disk. An invisible item is never found unless a visibility row asks
+  for it (8.1 found Desktop DB only that way), but the search looks inside
+  invisible folders (8.1 found an item in the Trash). Classicy's Desktop
+  Folder is invisible only to keep it out of Finder windows; it counts as
+  visible, as the Mac's is. Disks themselves are never results.
+- **Items Found** (`FindFile.app_results`): one window, reused by each
+  search (results replace the last; "No items were found." is a note alert
+  and leaves the last results as they were). The list (Name, Size, Kind,
+  Last Modified; sorted by name, the first item selected, its name
+  highlighted as the Finder's list view does, the list holding the keyboard)
+  over the path pane, the selected item under its disk and folders,
+  indented, with icons (double-click one to open it); then "Found N Items"
+  ("Found 1 Item"). The View menu sorts by Name, Size, Kind or Date and
+  follows a header click; the Label menu sets the selected file's label (not
+  for a read-only, system or derived item). Results follow the live tree: an
+  item that has gone leaves the list. Closing Items Found leaves the Find
+  window; closing the last window quits Find File, as 8.1 did; a reload
+  closes an Items Found window saved open (its results were the session's).
+- **Opening and revealing**: Open Item (**⌥O**, double-click, Return) opens a
+  result with `openClassicyFileSystemPath`, the Finder's routing under the
+  trust of the dispatch (a document is recorded under Recent Documents
+  exactly as a Finder open is; a folder comes to the front in its Finder
+  window). Open Enclosing Folder (**⌥E**) uses
+  `revealClassicyFileSystemPath(fs, path, dispatch)` →
+  `"revealed" | "invisible" | "missing"`: the Finder comes to the front with
+  the item selected in its folder's window, or on the desktop for an item in
+  the Desktop Folder (`ClassicyAppFinderRevealItem`, §2); an invisible item,
+  or one inside an invisible folder (the Trash included), is refused with
+  8.1's alert, "Unable to open enclosing folder for “name” because it is
+  invisible (or is inside an invisible folder)."
+- **Menus**, on both windows: File (About, Find… ⌥F, Close Window ⌥W, More
+  Choices ⌥M, Fewer Choices ⌥R, Open Item ⌥O, Open Enclosing Folder ⌥E,
+  Quit ⌥Q: 8.1's ⌘ keys on Option, the browser keeping ⌘), Edit (the
+  standard text Edit menu), View, Label. 8.1's Print Item, Get Info,
+  Sharing… and Preferences (list font, "full descriptions") are left out:
+  Classicy has no printing, Get Info or file sharing, and the list draws in
+  the theme's font.
+
+**Search sources** (`registerClassicyFindSource`,
+`ClassicyFindSources.ts`) make a host's own content findable, after
+Sherlock's Search Internet (Mac OS 8.5: "Words", a list of sites each with an
+On box, Search). With one or more registered, Find File gains tabs, Find File
+and Search Internet (8.5's names; without any, it is 8.1's window, no tabs):
+
+```ts
+import { registerClassicyFindSource, dispatch } from '@classicy/classicy'
+
+registerClassicyFindSource({
+    id: 'my-archive',              // registering an id again replaces it in place
+    name: 'The Archive',           // the channel list and the results' Site column
+    icon: archiveIcon,             // optional
+    search: async (words, { signal }) => {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(words)}`, { signal })
+        const hits = await res.json()
+        return hits.map((hit) => ({
+            name: hit.title,           // required
+            kind: 'broadcast',         // required: the Kind column
+            icon: hit.thumb,           // optional
+            open: () => dispatch({ type: 'ClassicyDesktopOpenUrl', url: hit.url, disposition: 'browser-new' }),
+        }))
+    },
+})
+```
+
+- `search(query, { signal })` gets the words typed and returns a promise of
+  results; each source switched on is asked at once. `signal` aborts when a
+  new search starts (Return in the Words field while one runs), on Stop, or
+  when Find File quits: stop work and settle. Whatever a source answers
+  after its signal aborted is ignored.
+- Isolation: a source that throws, rejects or resolves with no array gives
+  no results and is logged, `classicyLog("error", "ClassicyFindFile",
+  'Search source "<id>" failed', { source, error })`; the others are shown.
+  Results without a string `name` and `kind` and an `open` function are
+  dropped with a `warn`. An aborted search logs nothing.
+- Results list each source's in registration order (its own order kept),
+  under Name, Kind and Site, then sorted by the list; the path pane shows
+  the site, then the result. Open Item calls `open()` (a throw is logged);
+  Open Enclosing Folder is dimmed for them.
+- `unregisterClassicyFindSource(id)`, `listClassicyFindSources()`,
+  `subscribeClassicyFindSources(listener)` and `useClassicyFindSources()`
+  read and follow the registry; `searchClassicyFindSources(query, {
+  sourceIds?, signal, onResults? })` runs them as Find File does.
+- **Both packages show the channels.** System 7.5 had Find File but no
+  Sherlock; System 7 shows them anyway (in its own tab look), so a host's
+  content stays findable whichever package is drawn. A host without sources
+  sees System 7.5's own Find File, which is 8.1's (observed on 7.5.3).
+- Privacy: the words typed (name, text rows, Words) never reach analytics
+  (`ClassicyInput`'s `analyticsPrivate`); Items Found's title is fixed.
+
 ### Logging & diagnostics
 
 All of Classicy's internal diagnostics flow through one pipeline that hosts
@@ -6450,7 +6604,11 @@ File-system entries with `_type: "shortcut"` carry `_url` plus `_openIn`, a
 Programmatic navigation dispatches
 `{ type: 'ClassicyDesktopOpenUrl', url: string, disposition?: ClassicyShortcutDisposition }`.
 Invalid/non-http URLs raise the desktop error dialog; browser dispositions
-are executed exactly once by the auto-mounted `ClassicyOpenUrlController`.
+are executed exactly once by the auto-mounted `ClassicyOpenUrlController`,
+in a task of its own after React's commit (Firefox's `window.open` runs the
+page's queued tasks before it returns, which inside the commit re-entered
+React: "Should not already be working."; found by story 0227-815), still
+within the click's user activation.
 Note the action is on the guarded `ClassicyDesktop*` floor — it can never be
 dispatched untrusted (stack scripts cannot navigate the page), so dispatch it
 trusted from your own code. `readShortcutDisposition(value)` normalizes
