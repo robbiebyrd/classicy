@@ -846,9 +846,12 @@ export function sanitizeStateForPersistence(
 export function startAppManagerPersistence(): () => void {
 	if (unsubscribeFn) return unsubscribeFn;
 	unsubscribeFn = useAppManager.subscribe((state) => {
-		// No storage, nothing to write: a server render, where an Appearance
-		// Package registering at import changes the store (story 0223-a0y).
-		if (typeof localStorage === "undefined") return;
+		// No window, nothing to write: a server, where an Appearance Package
+		// registering at import changes the store (story 0223-a0y). Never
+		// `typeof localStorage`: from Node 25 that is a read of Node's own
+		// accessor, which throws (25.2), hands back an object without
+		// setItem (25.5) or warns (26) when no --localstorage-file is given.
+		if (typeof window === "undefined") return;
 		if (debounceTimer !== null) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
 			try {

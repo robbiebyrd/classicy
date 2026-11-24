@@ -94,12 +94,44 @@ describe("ClassicyDesktop under server rendering", () => {
 	});
 
 	// An Appearance Package registering at import changes the store; with no
-	// storage, the persistence subscriber schedules no write (whose
+	// window, the persistence subscriber schedules no write (whose
 	// localStorage.setItem would throw, and log, half a second later).
 	it("schedules no storage write when the store changes", () => {
 		useAppManager.setState((state) => ({ ...state }));
 		expect(vi.getTimerCount()).toBe(0);
 		vi.runAllTimers();
+		expect(logged).toEqual([]);
+	});
+
+	// From Node 25, Node defines localStorage and sessionStorage itself, as
+	// accessors that throw (25.2), return an object with no setItem (25.5) or
+	// warn (26) when no --localstorage-file is given: even `typeof` reads them.
+	// A server render must never touch them.
+	it("never reads Node's localStorage or sessionStorage", () => {
+		const reads: string[] = [];
+		vi.unstubAllGlobals();
+		for (const name of ["window", "document"]) vi.stubGlobal(name, undefined);
+		for (const name of ["localStorage", "sessionStorage"])
+			Object.defineProperty(globalThis, name, {
+				configurable: true,
+				get() {
+					reads.push(name);
+					throw new Error(`${name} read on the server`);
+				},
+			});
+		try {
+			useAppManager.setState((state) => ({ ...state }));
+			renderToString(
+				<ClassicyAppManagerProvider>
+					<ClassicyDesktop />
+				</ClassicyAppManagerProvider>,
+			);
+			vi.runAllTimers();
+		} finally {
+			for (const name of ["localStorage", "sessionStorage"])
+				Reflect.deleteProperty(globalThis, name);
+		}
+		expect(reads).toEqual([]);
 		expect(logged).toEqual([]);
 	});
 });
