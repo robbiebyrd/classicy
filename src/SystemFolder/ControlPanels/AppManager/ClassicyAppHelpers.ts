@@ -96,12 +96,15 @@ export function focusWindow(
 	const win = getAppWindow(app, windowId);
 	if (win) {
 		win.focused = true;
-		// Strictly above every sibling, not just Date.now(): two focuses in the
+		// Strictly above every window, not just Date.now(): two focuses in the
 		// same millisecond would otherwise tie, and succession would break the
-		// tie by record order rather than recency.
+		// tie by record order rather than recency. Across apps too, since the
+		// floating windows of several extensions stack by recency together.
 		const topZOrder = Math.max(
 			0,
-			...listAppWindows(app).map((w) => w.zOrder ?? 0),
+			...Object.values(ds.System.Manager.Applications.apps).flatMap((a) =>
+				listAppWindows(a).map((w) => w.zOrder ?? 0),
+			),
 		);
 		win.zOrder = Math.max(Date.now(), topZOrder + 1);
 		app.lastAccessedWindowId = windowId;

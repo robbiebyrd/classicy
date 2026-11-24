@@ -23,10 +23,13 @@ import { KEYBOARD_SHORTCUTS_TOPIC_ID } from "@/SystemFolder/SystemResources/Desk
 const apps = () => useAppManager.getState().System.Manager.Applications;
 const display = () =>
 	document.getElementById("classicy-calculator-display")?.textContent;
+// Keys go to the focused element and bubble, as a browser sends them.
 const type = (keys: string[]) =>
 	act(() => {
 		for (const key of keys)
-			document.dispatchEvent(new KeyboardEvent("keydown", { key }));
+			(document.activeElement ?? document.body).dispatchEvent(
+				new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+			);
 	});
 const show = (topicId: string) =>
 	act(() => {
@@ -152,5 +155,12 @@ describe("Apple Guide: a floating window over the front application", () => {
 		fireEvent.click(bottom);
 		expect(Number(guideWindow(ids[0])?.style.zIndex)).toBe(354);
 		expect(Number(guideWindow(ids[9])?.style.zIndex)).toBeLessThan(354);
+		// Below the top four the DOM order decides, and it follows recency: the
+		// raised window is last, the previous top one just before it.
+		const order = [...document.querySelectorAll(".appleGuideWindowFrame")].map(
+			(e) => e.id.replace(`${APPLE_GUIDE_APP_ID}_apple_guide_`, ""),
+		);
+		expect(order.slice(-2)).toEqual([ids[9], ids[0]]);
+		expect(order.slice(0, 3)).toEqual([ids[1], ids[2], ids[3]]);
 	});
 });

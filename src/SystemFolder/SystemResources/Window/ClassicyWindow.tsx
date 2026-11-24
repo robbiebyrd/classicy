@@ -565,10 +565,13 @@ const mountedWindowKeys = new Map<string, number>();
 /**
  * The z-index of a floating extension window (Apple Guide's), `rank`th from
  * the bottom of `count` by recency. The band is 351-354, under the Control
- * Strip (355) and every system layer above it, and over the palettes (350):
- * the top window takes 354 and each one below the level beneath, so any
- * number of windows fit and the newest is always on top; windows past the
- * fourth share the bottom level, where a click still raises one to the top.
+ * Strip (355) and every system layer above it, and over the palettes (350).
+ * `rank` and `count` span every extension's floating windows: the top one
+ * takes 354 and each one below the level beneath it. Integers leave only four
+ * levels, so windows past the fourth share 351, where the DOM order decides:
+ * Apple Guide renders its topics by recency (`AppleGuide.tsx`), so the order
+ * holds for any number of them, and a click always raises the clicked window
+ * to the top.
  */
 const floatingZIndex = (rank: number, count: number): number =>
 	351 + Math.max(0, Math.min(3, 3 - (count - 1 - rank)));
@@ -662,13 +665,15 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	);
 	const floatingStack = useAppManager((s) => {
 		if (!isFloatingWindow) return "";
-		const app = s.System.Manager.Applications.apps[appId];
-		const record = getAppWindow(app, id);
+		const all = s.System.Manager.Applications.apps;
+		const record = getAppWindow(all[appId], id);
 		// Before its record registers, a new window is the top one.
 		const mine = record ? (record.zOrder ?? 0) : Number.POSITIVE_INFINITY;
-		const peers = listAppWindows(app).filter(
-			(w) => !w.closed && !w.modal && !w.menuBar?.length,
-		);
+		// Every extension's floating windows stack together, by recency.
+		const peers = Object.values(all)
+			.filter((a) => a.extension === true)
+			.flatMap((a) => listAppWindows(a))
+			.filter((w) => !w.closed && !w.modal && !w.menuBar?.length);
 		const below = peers.filter((w) => (w.zOrder ?? 0) < mine).length;
 		return `${below}/${peers.length + (record ? 0 : 1)}`;
 	});

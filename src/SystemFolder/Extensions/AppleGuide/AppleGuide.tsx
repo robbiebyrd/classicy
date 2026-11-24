@@ -8,6 +8,8 @@ import {
 } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideContext";
 // Registers the Keyboard Shortcuts topic the Help menu offers.
 import "@/SystemFolder/Extensions/AppleGuide/AppleGuideKeyboardShortcuts";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { appleGuideWindowId } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import { AppleGuideWindow } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideWindow";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 
@@ -24,7 +26,18 @@ export const AppleGuide: FunctionalComponent = () => {
 	);
 	const normalizedData = rawData ?? {};
 	const data = isAppleGuideData(normalizedData) ? normalizedData : {};
-	const openTopics = data.openTopics ?? [];
+	const guideApp = useAppManager(
+		(s) => s.System.Manager.Applications.apps[APPLE_GUIDE_APP_ID],
+	);
+	// Rendered by recency (the window's `zOrder`, a window not yet registered
+	// last): floating windows past the fourth share one z-index, where the DOM
+	// order decides, so this keeps the most recent topic on top at any count.
+	const recency = (id: string) =>
+		getAppWindow(guideApp, appleGuideWindowId(id))?.zOrder ??
+		Number.MAX_SAFE_INTEGER;
+	const openTopics = [...(data.openTopics ?? [])].sort(
+		(a, b) => recency(a) - recency(b),
+	);
 
 	return (
 		<ClassicyApp

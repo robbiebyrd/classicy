@@ -147,7 +147,7 @@ describe("QuickTimeVideoEmbed keyboard shortcuts (#306)", () => {
 			expect(seeks).toEqual([]);
 		});
 
-		it("plain typing and unconsumed arrows aimed at the guide still reach the movie", () => {
+		it("an arrow key aimed at the guide that no control consumed still seeks the movie", () => {
 			const { view } = renderMovie(`${APP_ID}_${FILE_WINDOW}`);
 			const button = view.container.querySelector("#guide-button") as Element;
 			key(button, "ArrowRight");
