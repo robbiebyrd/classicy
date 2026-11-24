@@ -26,6 +26,13 @@
   gap: var(--control-padding);
 }
 
+// While a search runs, the asynchronous arrows at the row's right end (8.1).
+.classicyFindFileBusy {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+}
+
 .classicyFindFileText {
   flex: none;
   white-space: nowrap;

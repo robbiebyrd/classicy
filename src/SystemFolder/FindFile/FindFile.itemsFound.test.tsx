@@ -234,6 +234,42 @@ describe("Items Found", { timeout: 60_000 }, () => {
 		expect(heads.fetchMock).toHaveBeenCalledTimes(CLASSICY_FIND_LOOKUPS);
 	});
 
+	it("spins the asynchronous arrows and counts what it found while it searches", async () => {
+		const heads = heldHeads();
+		seedArchive(new ClassicyFileSystem(), 6);
+		renderDesktop();
+		await openFindFile();
+		typeName("clip");
+		fireEvent.click(screen.getByRole("button", { name: "More Choices" }));
+		clickFind();
+		await waitFor(() => expect(heads.held.length).toBe(CLASSICY_FIND_LOOKUPS));
+		const find = findWindow() as HTMLElement;
+		expect(
+			find.querySelector(
+				".classicyFindFileBusy .classicyProgressChasingArrows",
+			),
+		).toBeTruthy();
+		expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
+			"Items Found:0",
+		);
+		await act(async () => {
+			for (const h of heads.held) h.answer(1024);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+		await waitFor(() =>
+			expect(find.querySelector(".classicyFindFileProgress")?.textContent).toBe(
+				"Items Found:4",
+			),
+		);
+		await act(async () => {
+			for (const h of heads.held) h.answer(1024);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+		await waitFor(() => expect(resultsWindow()).toBeTruthy());
+		expect(find.querySelector(".classicyFindFileBusy")).toBeNull();
+		expect(find.querySelector(".classicyFindFileProgress")).toBeNull();
+	});
+
 	it("sorted by size, reads every row's size", async () => {
 		const heads = heldHeads();
 		seedArchive(new ClassicyFileSystem(), 90);
@@ -431,24 +467,26 @@ describe("Find File's keys, its storage key, its labels", {
 				getAppWindow(apps()["Finder.app"], "Macintosh HD:Docs")?.focused,
 			).toBe(true),
 		);
-		// ⌥W closes Find File's front window; with Items Found gone and the
-		// Find window closed, ⌥Q has nothing left to quit.
-		act(() => {
-			dispatch({
-				type: "ClassicyWindowFocus",
-				app: { id: FIND_FILE_APP_ID },
-				window: { id: FIND_FILE_RESULTS_WINDOW_ID },
+		// ⌥O with Items Found in front opens the result.
+		const front = (windowId: string) =>
+			act(() => {
+				dispatch({
+					type: "ClassicyWindowFocus",
+					app: { id: FIND_FILE_APP_ID },
+					window: { id: windowId },
+				});
 			});
-		});
+		front(FIND_FILE_RESULTS_WINDOW_ID);
 		press("KeyO");
 		await waitFor(() => expect(apps()["SimpleText.app"]?.open).toBe(true));
-		act(() => {
-			dispatch({
-				type: "ClassicyWindowFocus",
-				app: { id: FIND_FILE_APP_ID },
-				window: { id: FIND_FILE_WINDOW_ID },
-			});
-		});
+		// ⌥W closes the Find window, leaving Items Found; ⌥Q quits.
+		front(FIND_FILE_WINDOW_ID);
+		press("KeyW");
+		await waitFor(() =>
+			expect(getAppWindow(findFile(), FIND_FILE_WINDOW_ID)?.closed).toBe(true),
+		);
+		expect(findFile()?.open).toBe(true);
+		front(FIND_FILE_RESULTS_WINDOW_ID);
 		press("KeyQ");
 		await waitFor(() => expect(findFile()?.open).toBe(false));
 	});

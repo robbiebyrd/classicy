@@ -724,7 +724,8 @@ the name highlighted as the Finder's list draws it, and a path pane
 (`ClassicyListBox` options' `depth`); it is memoized, draws only the rows
 in view (`ClassicyTable`'s `windowed`/`onRowsShown`) and reads a file's
 size as its row is drawn, so a keystroke or an unrelated write redraws
-nothing. Neither window has a title-bar icon (8.1). Captures:
+nothing. Neither window has a title-bar icon (8.1); a running search shows
+the asynchronous arrows and "Items Found:N" beside Stop. Captures:
 `packages/appearance/platinum/resources/screenshots/find-file/`. Open Item
 (⌥O) uses `openClassicyFileSystemPath` (Finder routing, recorded as a recent
 document; a folder now opens in front, `ClassicyAppFinderOpenFolder`'s

@@ -72,6 +72,9 @@ export const classicyFindLocationChoices = (
 	{ value: "local", label: "on local disks" },
 	null,
 	{ value: "desktop", label: "on the desktop" },
+	// 8.1's "in the Finder selection" belongs here, in the desktop's group
+	// (`81-location-popup.png`), dimmed with nothing selected: offered once
+	// the Finder's windows publish their selection.
 	null,
 	...classicyFindDisks(fs).map((disk) => ({
 		value: classicyFindDiskLocation(disk),

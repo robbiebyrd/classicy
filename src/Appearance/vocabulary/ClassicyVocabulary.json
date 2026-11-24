@@ -309,6 +309,7 @@
 			"WellViewport"
 		],
 		"FindFile": [
+			"Busy",
 			"Buttons",
 			"ButtonsSpacer",
 			"ChannelIcon",

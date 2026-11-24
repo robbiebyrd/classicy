@@ -26,6 +26,7 @@ import {
 	ClassicyPopUpMenu,
 	type ClassicyPopUpMenuOption,
 } from "@/SystemFolder/SystemResources/PopUpMenu/ClassicyPopUpMenu";
+import { ClassicyProgressBar } from "@/SystemFolder/SystemResources/ProgressBar/ClassicyProgressBar";
 import {
 	ClassicyTable,
 	type ClassicyTableColumn,
@@ -249,6 +250,15 @@ export const FindFileCriteriaForm: FunctionalComponent<
 				onChangeFunc={(e) => onLocationChange(e.target.value)}
 			/>
 			<span className="classicyFindFileText">whose</span>
+			{running && (
+				// 8.1 spins the asynchronous arrows at the row's right end while
+				// it searches (HIGOS8 p.53;
+				// `packages/appearance/platinum/resources/screenshots/find-file/81-contents-searching-count.png`);
+				// the count beside Stop says the same to assistive technology.
+				<span className="classicyFindFileBusy" aria-hidden="true">
+					<ClassicyProgressBar chasingArrows />
+				</span>
+			)}
 		</div>
 		<ClassicyControlGroup className="classicyFindFileCriteria">
 			{rows.map((row, index) => (

@@ -6393,9 +6393,11 @@ captures cited below are in `packages/appearance/platinum/resources/screenshots/
 - **The Find window** (no title-bar icon, as 8.1's): "Find items [location]
   whose", then rows of [criterion] [operator] [value], More Choices (dimmed
   at ten rows), Fewer Choices (shown with two rows or more) and Find (the
-  default; it reads Stop while a search runs, every control dims, and
-  "Items Found:N" counts what it has found so far beside Stop, as 8.1's
-  does, `81-contents-searching-count.png`). The location pop-up: on all
+  default; it reads Stop while a search runs, every control dims,
+  "Items Found:N" counts what it has found so far beside Stop, and the
+  asynchronous arrows spin after "whose" (`ClassicyProgressBar`'s
+  `chasingArrows`, HIGOS8 p.53), as 8.1's do,
+  `81-contents-searching-count.png`). The location pop-up: on all
   disks, on local disks (the default), on the desktop (the Desktop Folder
   itself and what is in it: 8.1 listed the Desktop Folder too,
   `81-within-2-months-of-09-22-desktop-folder-only.png`), then on each disk
