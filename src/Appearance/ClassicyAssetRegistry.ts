@@ -241,21 +241,52 @@ const isRegisteredVariant = (packageId: string, variant: string): boolean =>
 	registeredVariants.get(packageId)?.has(variant) ?? false;
 
 /**
+ * Whether the variant's art is drawn for the active theme although
+ * `packageId`, the theme's own package, has none: another package draws and
+ * takes the theme's variant (one of its built-ins names it,
+ * `themeVariantFor`) and registered its trees. Then `packageId`'s own
+ * lookups (the default package's fallback, the core icon mapping) read its
+ * base tree as they should, and no base assets stand in for the variant
+ * (story 0235-xgi, Re-review 2 N4).
+ */
+const isVariantDrawnElsewhere = (
+	packageId: string,
+	variant: string,
+): boolean => {
+	const drawn = getActiveClassicyAppearancePackageId();
+	return (
+		drawn !== packageId &&
+		themeVariantFor(drawn) === variant &&
+		isRegisteredVariant(drawn, variant)
+	);
+};
+
+/**
  * `themeVariantFor`, warning once per package and variant per page when the
- * package never registered that variant (its lookups then read the base
- * tree, which they do anyway: an unregistered variant has no tree). Checked
- * after the current task, so a package whose variant trees register in the
- * same module evaluation as a first lookup is never warned.
+ * package never registered that variant and no art of it is drawn (its
+ * lookups then read the base tree, which they do anyway: an unregistered
+ * variant has no tree), never while another package draws the theme's
+ * variant (`isVariantDrawnElsewhere`). Checked after the current task, so a
+ * package whose variant trees register in the same module evaluation as a
+ * first lookup is never warned; a variant drawn elsewhere leaves no mark, so
+ * it is warned if it later stops being drawn.
  */
 const activeVariantFor = (packageId: string): string | undefined => {
 	const variant = themeVariantFor(packageId);
-	if (variant === undefined || isRegisteredVariant(packageId, variant))
+	if (
+		variant === undefined ||
+		isRegisteredVariant(packageId, variant) ||
+		isVariantDrawnElsewhere(packageId, variant)
+	)
 		return variant;
 	const key = `${packageId}|${variant}`;
 	if (reportedVariants.has(key)) return variant;
 	reportedVariants.add(key);
 	queueMicrotask(() => {
-		if (isRegisteredVariant(packageId, variant)) {
+		if (
+			isRegisteredVariant(packageId, variant) ||
+			isVariantDrawnElsewhere(packageId, variant)
+		) {
 			reportedVariants.delete(key);
 			return;
 		}

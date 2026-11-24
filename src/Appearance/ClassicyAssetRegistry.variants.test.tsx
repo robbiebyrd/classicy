@@ -526,3 +526,76 @@ describe("registration", () => {
 		);
 	});
 });
+
+// Story 0235-xgi, Re-review 2 N4 and N5: a Platinum theme naming `bw`
+// drawn under a package whose built-in names `bw` draws that package's
+// 1-bit art. Lookups made with Platinum's id (the default package's
+// fallback, the core icon mapping) still see the theme as Platinum's own,
+// with no `bw` tree there, and warned "its base assets are used" while the
+// variant's art was drawn. The warning is for a variant no art is drawn for.
+describe("what a variant warns, for a theme of another package (0235-xgi N4, N5)", () => {
+	const drawnWithBw = () => {
+		const id = "sys7v";
+		registerClassicyAppearancePackage({
+			...stub(id),
+			defaults: { ...stub(id).defaults, assetVariant: "bw" },
+		});
+		registerClassicyAssets("icons", id, { app: "/sys7v-app.png" });
+		registerClassicyAssets(
+			"icons",
+			id,
+			{ app: "/sys7v-bw-app.png" },
+			{ variant: "bw" },
+		);
+		return id;
+	};
+	/** Lookups by the drawn package and by the default package's id. */
+	const lookUp = async () => {
+		const drawn = resolveClassicyAsset("icons", "app");
+		const core = resolveClassicyAsset("icons", "core", "platinum");
+		await Promise.resolve();
+		await Promise.resolve();
+		return { drawn, core };
+	};
+
+	it("logs nothing when the drawn package draws the theme's variant", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7v-bw-app.png");
+		expect(seen.core).toBe("/platinum-core.png");
+		expect(variantWarnings()).toEqual([]);
+	});
+
+	it("warns once, for the theme's own package, when no built-in of the drawn package names the variant", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "sepia"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/sys7v-app.png");
+		await lookUp();
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			'Theme asset variant "sepia" is not registered for package "platinum"; its base assets are used',
+		]);
+	});
+
+	it("warns for a variant its own package draws and never registered", async () => {
+		drawnWithBw();
+		activate("platinum", themeOf("platinum", "bw"));
+		const seen = await lookUp();
+		expect(seen.drawn).toBe("/platinum-app.png");
+		expect(variantWarnings().map((e) => e.message)).toEqual([
+			'Theme asset variant "bw" is not registered for package "platinum"; its base assets are used',
+		]);
+	});
+
+	it("still warns once the theme's own package draws, after a page that drew the variant elsewhere", async () => {
+		const id = drawnWithBw();
+		activate(id, themeOf("platinum", "bw"));
+		await lookUp();
+		expect(variantWarnings()).toEqual([]);
+		activate("platinum", themeOf("platinum", "bw"));
+		await lookUp();
+		expect(variantWarnings()).toHaveLength(1);
+		expect(variantWarnings()[0].message).toContain('"platinum"');
+	});
+});

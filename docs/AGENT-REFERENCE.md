@@ -2639,7 +2639,11 @@ const wallpapers = useClassicyAssetTree('wallpapers')
   `--classicy-art-*` / `--classicy-cursor-*`) follows a theme switch. A variant the package never
   registered draws the base tree, with one `classicyLog` warning per package
   and variant per page (checked after the current task, so trees registered
-  in the same module evaluation never warn). A variant is registered by its
+  in the same module evaluation never warn), and only when no art of the
+  variant is drawn: a foreign theme whose variant the drawn package takes
+  logs nothing for its own package, whose lookups (the default package's
+  fallback, the core icon mapping) read its base tree as they should, and
+  is warned if its own package later draws it (0235-xgi N4). A variant is registered by its
   first accepted leaf: a variant registration whose every leaf is dropped
   (or that holds none) registers nothing, so a theme naming it is still
   warned. Wallpapers vary by name only
