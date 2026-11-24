@@ -248,14 +248,14 @@ const config = defineConfig({
 		// `?classicy-deflate` imports embed a file raw-deflated as base64 text
 		// (the pdf.js worker, plan 0019-fb7 Part 2; bin/classicyDeflateAsset.ts).
 		classicyDeflateAssetPlugin(),
-		// Last: the published maps keep Classicy's own text and drop third-party
-		// and asset text (verify:dist invariant 16), after injectCssPlugin has
-		// changed the entry bundles.
-		classicySourceMapTextPlugin(),
 		// dist/classicy.umd.cjs, the exports map's `require` under `node`: it
 		// runs classicy.umd.js as CommonJS, which this "type": "module" package
 		// cannot `require()` as it is (bin/classicyUmdLoader.ts, invariant 19).
 		classicyUmdLoaderPlugin("classicy.umd.js"),
+		// Last: the published maps keep Classicy's own text and drop third-party
+		// and asset text (verify:dist invariant 16), after injectCssPlugin has
+		// changed the entry bundles.
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,

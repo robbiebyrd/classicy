@@ -107,12 +107,12 @@ const platinumConfig = (mode: string): UserConfig => ({
 						}),
 					}),
 				]),
-		// Last: the published maps keep Classicy's own text and drop zod's
-		// and any embedded asset's (verify-dist invariant 10).
-		classicySourceMapTextPlugin(),
 		// dist/appearance-platinum.umd.cjs, the exports map's `require` under `node`:
 		// it runs the UMD bundle as CommonJS (story 0223-a0y).
 		classicyUmdLoaderPlugin("appearance-platinum.umd.js"),
+		// Last: the published maps keep Classicy's own text and drop zod's
+		// and any embedded asset's (verify-dist invariant 10).
+		classicySourceMapTextPlugin(),
 	],
 	build: {
 		sourcemap: true,
