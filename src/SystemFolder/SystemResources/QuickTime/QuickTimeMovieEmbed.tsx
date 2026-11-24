@@ -1,4 +1,5 @@
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { isKeyAimedAtOtherWindow } from "@/SystemFolder/SystemResources/Window/ClassicyKeyAimedAtOtherWindow";
 import "./QuickTimeMovieEmbed.scss";
 import classNames from "classnames";
 import {
@@ -204,6 +205,10 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 			if (!playerWindowFocused) {
 				return;
 			}
+			// A control of another window (a floating guide) keeps its keys.
+			if (isKeyAimedAtOtherWindow(event, `${appId}_${shortcutWindowId}`)) {
+				return;
+			}
 			switch (event.key) {
 				case " ":
 					handlePlayPause();
@@ -239,6 +244,8 @@ export const QuickTimeVideoEmbed: FunctionalComponent<
 		hideControls,
 		handlePlayPause,
 		playerWindowFocused,
+		appId,
+		shortcutWindowId,
 		seekForward,
 		seekBackward,
 		toggleFullscreen,
