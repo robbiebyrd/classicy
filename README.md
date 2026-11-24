@@ -407,6 +407,25 @@ the theme (`--<family>-<key>`) instead of `Npx` literals.
 Details: `docs/AGENT-REFERENCE.md` §5, "Upgrading: package knobs and the
 pixel-literal purge (Part H)", and §8, "Package knob families".
 
+## Server rendering (Next.js, Remix, Astro)
+
+The bundles load in Node with no DOM, so a server-rendering host imports
+Classicy as it is, without `dynamic(() => import(…), { ssr: false })` or a
+client-only island. `import` takes the ES bundle; `require()` in Node takes
+`dist/classicy.umd.cjs` (and each Appearance Package's `.umd.cjs`), a small
+CommonJS loader for the unchanged UMD bundle, `dist/classicy.umd.js`, which
+browser bundlers, `main` and CDN script tags keep using.
+
+On the server the desktop renders an empty shell, `<div
+class="classicyDesktop">` with your `className` and `style`; hydration renders
+the same shell, so nothing mismatches, and the desktop draws right after it.
+Everything it shows waits for the client: the state saved in `localStorage`,
+the viewport, the theme, the asset URLs, sound and the startup screen. A
+server render starts no timer and logs nothing. A `createRoot` host draws the
+desktop on its first render, as before. The stylesheet arrives with the JS;
+to have it in the server's HTML, link `@classicy/classicy/dist/classicy.css`
+and the package stylesheets, as a strict-CSP host does (above).
+
 ## System 7
 
 `@classicy/appearance-system7` draws System 7.5, in black and white

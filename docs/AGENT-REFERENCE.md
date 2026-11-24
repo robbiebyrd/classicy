@@ -217,10 +217,38 @@ it is never fetched, on `file:`, CDN and custom-scheme hosts alike. The viewer
 uses pdf.js's legacy build, which installs core-js polyfills on the page's
 built-in prototypes (`Map`, `Set`, `WeakMap`, `Iterator`,
 `Uint8Array.prototype.toBase64` and others) where a method is missing or
-nonconforming: in the UMD bundle when it loads, in the ES build when the first
-PDF opens.
+nonconforming, when the first PDF opens (in both builds: the UMD bundle, which
+carries pdf.js inline, runs it only then too).
 `import '@classicy/classicy/fonts'` is a deprecated no-op (the Platinum
 package registers its fonts), and `dist/fonts.css` no longer exists.
+
+**Server rendering (Next.js, Remix, Astro).** Every package's bundles load in
+Node with no DOM (verify:dist invariant 19, the packages' invariant 11), so a
+server-rendering host imports Classicy as it is, without
+`dynamic(() => import(…), { ssr: false })` or a client-only island. `import`
+takes the ES bundle. `require()` in Node takes `dist/classicy.umd.cjs` (each
+Appearance Package's `dist/<name>.umd.cjs`), a few-line CommonJS loader that
+runs the unchanged UMD bundle beside it as CommonJS: these packages are
+`"type": "module"`, so Node reads `dist/classicy.umd.js` as an ES module and
+cannot `require()` it itself. Every other `require` resolver (a browser
+bundler's), `main` and CDN script tags keep `dist/classicy.umd.js`.
+
+What renders where: on the server, `ClassicyDesktop` (and `Classicy`) renders
+an empty shell, `<div class="classicyDesktop">` with the host's `className`
+and `style`. The client's hydration renders the same shell, so nothing can
+mismatch, and the desktop draws right after it. Everything the desktop shows
+waits for the client: the state saved in `localStorage`, the viewport, the
+theme's CSS variables, the asset URLs (relative to the bundle's own URL,
+which is a `file:` path on the server), sound and the startup screen. A host
+that renders with `createRoot` draws the desktop on its first render, as
+before. On the server the provider builds no analytics instance (its queue
+timer is never cleared) and no sound player, and the store schedules no
+storage write, so a server render starts no timer and logs nothing. Import the
+Appearance Package where both sides load it (the module that renders the
+desktop). The stylesheet still arrives with the JS (`<style
+id="classicy-styles">`, inserted when the bundle loads in a browser); a host
+that wants it in the server's HTML links `dist/classicy.css` and the package
+stylesheets, as a strict-CSP host does.
 
 **Source maps and declarations.** Every bundle ships its source map. A map
 holds the source text of Classicy's own modules only (3.7): a bundled
