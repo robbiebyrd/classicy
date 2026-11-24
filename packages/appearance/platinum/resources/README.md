@@ -19,6 +19,7 @@ bar (`docs/AGENT-REFERENCE.md` §4.11). The emulator shows #DDDDDD as
 | `platinum-81-appmenu-notification-open.png` | The same menu open: the title shows the front application's (the Finder's) own icon |
 | `platinum-81-blink-appmenu-open-sheet.png` | Twelve crops of the open Application menu, at six phases of the blink, twice each: the title always the Finder's icon |
 | `platinum-81-blink-filemenu-open-sheet.png` | Twelve crops of the Application title with the Finder's File menu open, at six phases (rows), twice each (columns): the blink frozen on the frame it showed |
+| `platinum-81-appmenu-order.png` | The Application menu after Scrapbook, Note Pad, Key Caps and Calculator were launched from the Apple menu, in that order, with the Finder and Stickies running from startup: Calculator, Finder, Key Caps, Note Pad, Scrapbook, Stickies, alphabetical as in 8.5, not in launch order (story 0231-8c6) |
 | `platinum-81-finder-view-menu.png` | The Finder's View menu: the check in a text-only menu |
 | `platinum-81-popup-font.png` | Finder Preferences' "Font for views" pop-up, open: the check in a pop-up menu |
 | `platinum-81-finder-preferences.png` | Finder Preferences: "Simple Finder" empty (the box at 154,84) and "Spring-loaded folders" checked (154,128), the Appearance Manager's checkbox and check, each HIGOS8 Figure 2-8's box pixel for pixel |
@@ -37,6 +38,7 @@ as #DDDDDD. They are the references for the Application Switcher
 | File | Shows |
 | --- | --- |
 | `platinum-85-appmenu-order.png` | The Application menu with Calculator, Finder, Note Pad and Stickies open: alphabetical |
+| `platinum-85-startup-parade.png` | The last frame of the startup screen, its parade of twelve extension icons complete: none is the Application Switcher's, so the switcher keeps out of Classicy's parade (story 0231-8c6) |
 | `platinum-85-tearoff-outline.png`, `…-outline-2.png` | Dragging past the menu's bottom: a dotted outline of the menu, centered on the pointer, its bottom at the pointer, the menu still drawn |
 | `platinum-85-tearoff-palette.png` | Let go: the palette where the outline was |
 | `platinum-85-switcher-palette.png` | The palette: a utility window titled "Applications", close box, zoom and collapse boxes, a bevel button per application with its small icon and name, the front application's held down |

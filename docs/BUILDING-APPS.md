@@ -191,7 +191,7 @@ interface ClassicyAppProps {
 | `addSystemMenu` | — | Add an Apple-menu entry. Forced off for extensions. |
 | `extension` | `false` | Background app: always open, no icon, no focus, no Apple-menu entry. |
 | `globalShortcuts` | — | Honored **only** when `extension` is set. |
-| `bootIcon` | — | Show an icon in the startup parade. `true` uses the app icon; a string uses that icon. |
+| `bootIcon` | — | Show an icon in the startup parade. `true` uses the app icon; a string uses that icon. An `extension` parades already; `false` keeps it out. |
 | `debug` | `false` | Render a JSON-tree debugger window over the app's store entry. |
 | `handlesFileTypes` | — | File types Finder should route to this app. |
 | `handlesOwnFiles` | `false` | Suppress the automatic file windows and render your own. |
