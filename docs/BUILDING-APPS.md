@@ -1149,7 +1149,10 @@ or a control is a window, not an alert.
 
 Button roles: `default` (Return triggers it, gets the ring), `cancel`
 (Escape / Command-period), `help` (far left), `normal`. Omit `buttons` and a
-sensible set is generated from `alertType`.
+sensible set is generated from `alertType`. `defaultButtonId={null}` makes
+no button the default (no ring, Return does nothing, the alert rather than a
+button takes the focus), for a choice where every answer can lose data
+(HIG7 p.206).
 
 > **`onClose` fires after *every* button**, in addition to that button's own
 > `onClick`. A handler pair that undoes itself is a real failure mode here.

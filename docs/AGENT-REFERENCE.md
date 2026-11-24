@@ -1675,7 +1675,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `defaultButtonId={null}`: no default at all, for a choice whose answers may each lose data (HIG7 p.206): no ring, Return and Enter do nothing, and the alert itself (`tabIndex={-1}`, no outline) takes the focus on open, never a button, so a keystroke meant for a field answers nothing; Tab and Shift-Tab still cycle its buttons. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -3093,7 +3093,8 @@ localStorage stays the primary store either way.
   (default 5000 ms; finite, above 0 and at most 2^31 − 1, else the default
   with a warning); then its `signal` aborts, a late answer is ignored and
   the next adapter is asked, so the desktop waits at most the sum of those
-  timeouts. The first valid `replace` wins: its `state` goes through the
+  timeouts. The first valid `replace` wins (unless this computer holds work
+  that adapter never took: the user is asked, below): its `state` goes through the
   localStorage load path itself, as JSON (no `__proto__` key survives), the
   same shape check (every container the default state holds must be a
   container of the same kind, before and after the merge, and every app
@@ -3108,7 +3109,8 @@ localStorage stays the primary store either way.
   longer seeds (`wasHydratedFromStorage()` is true). The adapters after the
   winner are asked too, with the adopted state as `local`: a `useLocal`
   makes them take it as their next snapshot; a `replace` of theirs is not
-  adopted over the winner's, and they stay held (retried) with a warning.
+  adopted over the winner's: they stay held, with a warning and no retry
+  timer, until the host's next `reconcileClassicyState()`.
   The winner is not sent back what it just handed over. An error, a
   timeout or a state without the saved shape keeps the local state with a
   `classicyLog` warning.
@@ -3134,31 +3136,62 @@ localStorage stays the primary store either way.
   `reason` is `"boot"` (the page's first reconcile), `"retry"` (Classicy
   asking again after a failure, or an adapter registered after the first
   reconcile) or `"request"` (the host's `reconcileClassicyState()`).
-  `userActed` is true once the page has had a trusted `pointerdown` or
-  `keydown` (one capture-phase listener, while an adapter that reconciles is
-  registered) since the desktop was last drawn (loaded, or an adopted state)
-  and, for a held adapter, since it was held: this computer then has
-  changes the account's copy lacks.
-- **A retry never replaces the user's work unasked.** On a `"retry"` with
-  `userActed`, a valid `replace` is not adopted on the spot: the adapter
-  stays held, its retry timer stops, and the desktop shows a caution alert
-  (`Desktop.systemDialog` `"syncChoice"`, never persisted; it waits while
-  another system or error alert is up): "Use the settings saved on your
-  other computers?" — "They could not be reached when Classicy started up,
-  so this computer has used its own settings since then. Using the saved
-  settings replaces the changes made on this computer since startup.
-  Keeping the current settings replaces the saved ones on every computer
-  that shares them." **Use Saved** (the default) adopts the answer, a
-  restart; **Keep Current** keeps this desktop, marks the adapter synced
-  and sends it. (A caution alert warns before a dangerous action, says
-  what happens in the user's words, and names its buttons with verbs of
-  three words at most: HIG7 pp.195, 206, 310–311; HIGOS8 1997 pp.62–63.)
-  An adapter that merged `local` into its answer says so with
+  `userActed` is true when this computer holds work the adapter never took:
+  the page has had a trusted `pointerdown` or `keydown` since the desktop
+  was last drawn (loaded, or an adopted state) and since the latest state
+  the adapter holds (the last snapshot it took, counted when that snapshot
+  was built, or its own adopted state; an adapter that has taken none
+  counts every press since the desktop was drawn), or an earlier session
+  left its work unsent (below). One capture-phase listener counts the
+  presses from the page's first reconcile on, whatever is registered, so
+  the work done while a failing request runs, or before an adapter
+  registers late, counts too.
+- **Unsent work survives the page.** `localStorage["classicyDesktopState:unsent"]`
+  (beside `:seq` and `:reset`) lists, as a JSON array, the ids of the
+  adapters this browser holds work for that they never took. An id is
+  added, synchronously, when a snapshot comes due for an adapter that is
+  held while `userActed` is true, when a delivery to it fails while it is,
+  and when the user is asked (below); it is removed when the adapter takes a
+  snapshot built after it was added (or one it already had), when its state
+  is adopted (Use Saved, a `merged` replace, a host's request), and for
+  every adapter by Reset PRAM. Only adapters that take snapshots are
+  listed: one that never does could never take the work. At the next boot,
+  a listed adapter's context carries `userActed: true`, and its `replace`
+  that is not `merged` is not adopted: the boot settles on the local state,
+  the desktop draws, the adapter is held with no timer, and the desktop
+  asks, as below; a `useLocal` syncs it and sends this computer's state
+  (after the snapshot debounce, with no change needed: any `useLocal` while
+  `userActed` does), which removes the id. So a reload out of the alert, or a backend
+  down for the whole session, never drops the work unasked. An id whose
+  adapter is not registered is ignored (and kept). A snapshot sent as the
+  page hides is taken to have landed: the page is gone before it can learn
+  otherwise.
+- **A boot or a retry never replaces the user's work unasked.** On a
+  `"boot"` or a `"retry"` with `userActed`, a valid `replace` is not adopted
+  on the spot: the adapter stays held, its retry timer stops, and the
+  desktop shows a caution alert (`Desktop.systemDialog` `"syncChoice"`,
+  never persisted; it waits while another system or error alert is up):
+  "Use your saved settings on this computer?" — "This computer has changes
+  that were never added to your saved settings. Using the saved settings
+  replaces this computer's, and those changes are lost. Keeping the
+  current settings replaces the saved ones on every computer that shares
+  them." That holds at boot, on a retry and after a late registration.
+  **Use Saved** adopts the answer, a restart; **Keep Current** keeps this
+  desktop, marks the adapter synced and sends it. Neither is the default,
+  since either may lose work (HIG7 p.206: "Don't use a default button if
+  the most likely action is dangerous ... When there is no default button,
+  pressing Return or Enter has no effect"), and the alert, not a button,
+  takes the keyboard focus (`ClassicyAlert`'s `defaultButtonId={null}`),
+  so a keystroke meant for a field the user was typing in answers nothing.
+  (The label summarizes the condition and the narrative its consequences,
+  HIGOS8 1997 p.61; the buttons are verbs of three words at most, HIG7
+  p.206; the message says what happens in the user's words, HIG7
+  pp.310–311.) An adapter that merged `local` into its answer says so with
   `{ action: "replace", state, merged: true }`, which is adopted without
-  asking. A boot reconcile and a host's request adopt as before; a host's
-  request while the alert is up settles it (the alert closes). Unanswered
-  when the page closes, the choice is gone: the adapter is still held,
-  and the next boot reconciles as usual.
+  asking. A host's request adopts as before (its `userActed` is
+  informative); a host's request while the alert is up settles it (the
+  alert closes). Unanswered when the page closes, the work stays listed as
+  unsent, and the next boot asks again.
 - **Later reconciles.** `reconcileClassicyState()` runs one again, when the
   remote copy may have changed under the page (a user signing in): it
   resolves true iff the state was replaced, never rejects, and concurrent

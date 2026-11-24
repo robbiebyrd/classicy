@@ -808,14 +808,25 @@ settles (`useClassicyStateSyncGate`), each adapter bounded by
 wins). An adapter that reconciles takes no snapshot until a reconcile with
 it succeeds (retried after 10 s, doubling to 5 min), so a failed boot never
 pushes a fresh or stale desktop over the account's copy. The context also
-carries `reason` (`boot`, `retry`, `request`) and `userActed` (a trusted
-`pointerdown`/`keydown` since the desktop was drawn and the adapter held);
-a retry's unmerged `replace` after the user acted is not adopted unasked:
-the adapter stays held and the desktop shows the caution alert
-`systemDialog: "syncChoice"` (Use Saved adopts, Keep Current sends this
-desktop; `resolveClassicyStateChoice`), waiting for any other alert;
-`merged: true` skips it. Adapters after a winning `replace` are asked with
-the adopted state; a host request during a retry runs after it. A `replace` goes
+carries `reason` (`boot`, `retry`, `request`) and `userActed`: work the
+adapter never took, a trusted `pointerdown`/`keydown` (one capture-phase
+listener from the page's first reconcile on) since the desktop was drawn and
+since the last snapshot it took (or its adopted state), or an earlier
+session's, listed in `localStorage["classicyDesktopState:unsent"]` (adapter
+ids that take snapshots: added when a held adapter's snapshot comes due or a
+delivery fails while `userActed`, and when the user is asked; removed when
+it takes a later snapshot or its state is adopted, all by Reset PRAM). A
+boot's or a retry's unmerged `replace` while `userActed` is not adopted
+unasked: the adapter stays held (no timer) and the desktop shows the caution
+alert `systemDialog: "syncChoice"` ("Use your saved settings on this
+computer?"; Use Saved adopts, Keep Current sends this desktop;
+`resolveClassicyStateChoice`), waiting for any other alert, with no default
+button and the focus on the alert, not a button (`ClassicyAlert`
+`defaultButtonId={null}`, HIG7 p.206); `merged: true` skips it, and a
+`useLocal` while `userActed` sends this desktop. Adapters after a winning
+`replace` are asked with the adopted state, and one that answers `replace`
+too stays held until the host's next request; a host request during a retry
+runs after it. A `replace` goes
 through the localStorage load path itself (`adoptPersistedClassicyState` in
 `ClassicyAppManagerUtils.tsx`: `readPersistedClassicyState` with its
 container-kind check, then the active-theme refresh and drawn package's
