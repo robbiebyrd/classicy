@@ -175,7 +175,9 @@ export interface ClassicyDesktopProps {
 	 * helpers. Still subject to the `startupScreen` gate. Call
 	 * `useClassicyBootScreenActive(visible)` from it, so the desktop holds
 	 * what must not open unseen behind it (a theme link's alerts, the
-	 * Notification Manager's sounds and alerts) until it ends.
+	 * Notification Manager's sounds and alerts) until it ends. Pass its real
+	 * visibility: one that stays mounted, hidden, while passing `true` holds
+	 * them for the whole session.
 	 */
 	bootScreen?: ReactNode;
 	/**

@@ -701,6 +701,66 @@ describe("the front application, not the focus flag", () => {
 			id,
 		]);
 	});
+
+	// Review M2: the extension's dialog goes while the alert it hosts is up.
+	// The alert stays the extension's (the extension is still shown, its
+	// alert open), keeps the focus, and answering it hands the focus to the
+	// front app; nothing is removed that was not before.
+	it("keeps the alert over an extension whose dialog closes under it", () => {
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = {
+				"Finder.app": app("Finder.app", { lastFocusedAt: 1 }),
+				"Calc.app": app("Calc.app", {
+					focused: true,
+					lastFocusedAt: 5,
+					windows: { main: win("main", { focused: true }) },
+				}),
+				"Mail.app": app("Mail.app", { lastFocusedAt: 3 }),
+				"Ext.app": app("Ext.app", {
+					extension: true,
+					windows: { dlg: win("dlg", { modal: true, menuBar: [] }) },
+				}),
+			};
+			draft.System.Manager.Applications.focusedAppId = "Calc.app";
+		});
+		renderController();
+		const calcRequest = notify({ appId: "Calc.app" });
+		act(() =>
+			dispatch({
+				type: "ClassicyWindowFocus",
+				app: { id: "Ext.app" },
+				window: { id: "dlg", menuBar: [] },
+			}),
+		);
+		const id = notify({ appId: "Mail.app", message: "Mail." });
+		expect(alertOwner(id)).toBe("Ext.app");
+		// The dialog is destroyed under the alert.
+		act(() =>
+			dispatch({
+				type: "ClassicyWindowDestroy",
+				app: { id: "Ext.app" },
+				window: { id: "dlg" },
+			}),
+		);
+		expect(alertOwner(id)).toBe("Ext.app");
+		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		expect(focused()).toBe("Ext.app");
+		expect(frontAppIdOf(applications())).toBe("Calc.app");
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([
+			calcRequest,
+			id,
+		]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(alertTexts()).toEqual([]);
+		expect(focused()).toBe("Calc.app");
+		expect(frontAppIdOf(applications())).toBe("Calc.app");
+		// Answered over an app other than Mail's, and Calc never left the
+		// front: both requests stay.
+		expect(listClassicyNotifications().map((n) => n.id)).toEqual([
+			calcRequest,
+			id,
+		]);
+	});
 });
 
 describe("removal", () => {

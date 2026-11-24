@@ -9,6 +9,7 @@ import {
 import type { ClassicyStoreSystemAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { listAppWindows } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
 import { classicyAlertVolumeSoundAction } from "@/SystemFolder/ControlPanels/SoundManager/ClassicyAlertSounds";
 import { useSoundDispatch } from "@/SystemFolder/ControlPanels/SoundManager/ClassicySoundManagerContext";
@@ -154,9 +155,7 @@ export const ClassicyNotificationController: FunctionalComponent = () => {
 	// The front application, not the raw `focusedAppId`: an extension that
 	// holds the focus flag with a floating window (Apple Guide) or with its
 	// own dialog is never in front.
-	const frontAppId = useAppManager((s) =>
-		frontAppIdOf(s.System.Manager.Applications),
-	);
+	const frontAppId = useFrontAppId();
 	const focusedAppId = useAppManager(
 		(s) => s.System.Manager.Applications.focusedAppId,
 	);

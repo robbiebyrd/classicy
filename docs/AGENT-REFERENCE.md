@@ -2179,7 +2179,11 @@ blinking icon, the sound, then the alert.
   `useClassicyBootScreenActive(visible)`. It is the same hold a theme
   link's alerts wait on (§8 "Theme links"; `Boot/ClassicyBootScreenActive.ts`,
   read with `useClassicyBooting()`); a host boot screen that does not call
-  it holds nothing.
+  it holds nothing. The hold lasts as long as a caller passes `true` and
+  stays mounted, so pass the screen's real visibility: a host boot screen
+  kept mounted and hidden by CSS while it still passes `true` silences
+  every notification for the session (no sound, no alert, no
+  `onResponse`) and holds every theme link's alert.
   Under a package whose `layout.menuBar.placement` is `"window"` there is no
   Apple or Application menu, so the mark and the icon are not drawn; the
   sound and the alert still are.
@@ -5816,7 +5820,8 @@ https://host/page#classicy-theme=<base64url(deflate(theme file JSON))>
   (`Boot/ClassicyBootScreenActive.ts`; `useClassicyBooting()` reads it); a
   host's own `bootScreen` should call it too, with its own visibility, or
   the desktop cannot tell when it ends and asks at once. The Notification
-  Manager waits on the same hold (§4.11).
+  Manager waits on the same hold (§4.11), so a host boot screen that passes
+  `true` and stays mounted after it is hidden holds both for the session.
 
   Once the alert closes, whatever the answer, the link is removed from the
   address (`history.replaceState` with `withoutClassicyThemeLink(href)`),

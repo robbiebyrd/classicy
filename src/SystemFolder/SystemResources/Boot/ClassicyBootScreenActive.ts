@@ -36,7 +36,11 @@ const change = (delta: number) => {
  * true and it is mounted. `ClassicyBootSequence` and `ClassicyStartupScreen`
  * call it; a host's own `bootScreen` (`ClassicyDesktop`'s prop) should too,
  * with its own visibility, or the desktop cannot tell when it ends and
- * shows what it holds (a theme link's alerts, notifications) at once.
+ * shows what it holds (a theme link's alerts, notifications) at once. The
+ * hold lasts while any caller passes `true` and stays mounted: a host boot
+ * screen hidden by CSS that still passes `true` silences every notification
+ * (sound, alert and `onResponse`) and holds every theme link's alert for the
+ * rest of the session, so pass `false` (or unmount it) once it is gone.
  */
 export const useClassicyBootScreenActive = (covering: boolean): void => {
 	useEffect(() => {
