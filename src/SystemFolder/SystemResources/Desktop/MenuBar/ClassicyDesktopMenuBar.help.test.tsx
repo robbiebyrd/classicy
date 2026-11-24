@@ -92,6 +92,44 @@ describe("Help menu — Keyboard Shortcuts", () => {
 	});
 });
 
+describe("Help menu — an app that publishes its own Help menu", () => {
+	it("shows one Help menu, with the app's items merged into it", async () => {
+		act(() => {
+			useAppManager.setState((s) => ({
+				...s,
+				System: {
+					...s.System,
+					Manager: {
+						...s.System.Manager,
+						Desktop: {
+							...s.System.Manager.Desktop,
+							appMenu: [
+								{
+									id: "f_file",
+									title: "File",
+									menuChildren: [{ id: "f_x", title: "Xx" }],
+								},
+								{
+									id: "f_help",
+									title: "Help",
+									menuChildren: [{ id: "f_h1", title: "Finder Help Item" }],
+								},
+							],
+						},
+					},
+				},
+			}));
+		});
+		render(<ClassicyDesktopMenuBar />);
+
+		expect(screen.getAllByText("Help")).toHaveLength(1);
+		await userEvent.click(screen.getByText("Help"));
+		expect(screen.getByText("About Balloon Help…")).toBeInTheDocument();
+		expect(screen.getByText("Keyboard Shortcuts…")).toBeInTheDocument();
+		expect(screen.getByText("Finder Help Item")).toBeInTheDocument();
+	});
+});
+
 /**
  * Seed an open+focused app plus its Help items.
  *

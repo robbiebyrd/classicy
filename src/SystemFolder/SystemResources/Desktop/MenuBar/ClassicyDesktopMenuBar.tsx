@@ -93,6 +93,10 @@ const findAppAboutItem = (
 	);
 };
 
+/** True for an app's own top-level "Help" menu, which the bar's Help menu absorbs. */
+const isAppHelpMenu = (item: ClassicyMenuItem): boolean =>
+	item.title === "Help" && (item.menuChildren?.length ?? 0) > 0;
+
 /** True for the systemMenu's own leading "About This Computer" entry. */
 const isAboutThisComputerItem = (item: ClassicyMenuItem): boolean =>
 	item.id === "about" || item.title === "About This Computer";
@@ -147,7 +151,7 @@ const stripAboutItem = (
  * <focused app>" when that app publishes an About item — the item is moved
  * out of the app's own menus), the focused window's `appMenu`, the standard
  * Help menu (always the rightmost: About Balloon Help…, Show/Hide Balloons
- * ⌥H, Keyboard Shortcuts…, then the focused app's `useClassicyHelpMenu` items), then, at the far
+ * ⌥H, Keyboard Shortcuts…, then the focused app's `useClassicyHelpMenu` items and the items of a top-level "Help" menu the app publishes itself, as Finder does: the bar draws one Help menu), then, at the far
  * right, menu bar extensions (`ClassicyMenuBarExtension`), the clock and the
  * App Switcher. Menus are sticky (HIGOS8 p.92): a click leaves one open, and
  * it closes after 15 seconds idle or on a click outside the bar.
@@ -346,6 +350,16 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		if (appHelpMenu && appHelpMenu.length > 0) {
 			helpChildren.push({ id: "spacer" }, ...appHelpMenu);
 		}
+		// An app that publishes its own top-level "Help" menu (Finder does)
+		// shares the bar's one Help menu rather than drawing a second.
+		// Its About entry is not carried over: the Apple menu hoists that.
+		const ownHelpItems = (appMenu ?? [])
+			.filter(isAppHelpMenu)
+			.flatMap((m) => m.menuChildren ?? [])
+			.filter((i) => !(i.id?.endsWith("_about") || i.title === "About"));
+		if (ownHelpItems.length > 0) {
+			helpChildren.push({ id: "spacer" }, ...ownHelpItems);
+		}
 		return {
 			id: "help-menu",
 			// The art replaces the word, which stays its accessible name.
@@ -356,7 +370,13 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 			part: "help",
 			menuChildren: helpChildren,
 		};
-	}, [disableBalloonHelp, helpMenus, focusedMenuApp, helpMenuTitleArt]);
+	}, [
+		disableBalloonHelp,
+		helpMenus,
+		focusedMenuApp,
+		helpMenuTitleArt,
+		appMenu,
+	]);
 
 	// HIG #209: the first Apple-menu item is "About <the focused app>". Resolve
 	// the focused app (fallback Finder), *move* its About entry out of the app's
@@ -422,7 +442,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	const defaultMenuItems: ClassicyMenuItem[] = useMemo(() => {
 		const items = [appleMenuItem] as ClassicyMenuItem[];
 		if (strippedAppMenu) {
-			items.push(...strippedAppMenu.map((item) => ({ ...item, part: "app" })));
+			items.push(
+				...strippedAppMenu
+					.filter((item) => !isAppHelpMenu(item))
+					.map((item) => ({ ...item, part: "app" })),
+			);
 		}
 		// Help is the rightmost standard menu; the App Switcher sits at the far
 		// right of the bar (8.5+ construct) and is kept last in the data. Where
