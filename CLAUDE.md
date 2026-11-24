@@ -673,6 +673,43 @@ screen covers the desktop (`useClassicyBooting`, the theme links' hold: Classicy
 startup screens, and a host's `bootScreen` that calls `useClassicyBootScreenActive`). HyperCard stacks cannot
 post (no scriptable action). Details: `docs/AGENT-REFERENCE.md` §4.11.
 
+### Application Switcher
+
+`ClassicyDesktop` mounts `ClassicyApplicationSwitcher`
+(`src/SystemFolder/Extensions/ApplicationSwitcher/`, extension
+`ApplicationSwitcher.app`, story 0231-8c6), Mac OS 8.5's Application
+Switcher (references: 8.5 on Infinite Mac,
+`packages/appearance/platinum/resources/screenshots/mac-os-8.5/`; HIG7
+pp.93-95). Dragging past the Application menu's bottom (3 px) with the
+button held from a press on it shows a dotted outline of the menu (centered
+on the pointer, bottom at the pointer) and, let go, opens the palette there
+(`ClassicyAppSwitcherTearOff.internal.tsx` in the screen bar; a pulled-down
+press on the closed title opens the menu first; Escape, a lost pointer
+stream or an open modal window cancels): a utility window titled "Applications" (`utilityTitle`)
+with a bevel button per app the menu lists (`appSwitcherAppsFrom`, now
+**alphabetical by display name**, which the menu, palette and chord share),
+the front app's held down, a hidden app's icon dimmed (`iconDimming`), no
+◆ (8.5 draws none there); click switches (`focusApp`, a hidden app shown),
+Option-click also hides the app that was in front; the zoom box sets names
+/ Option: icon size / Option-Shift: orientation (`onZoomBox`; horizontal
+puts the drag bar down the left side). It floats in the floating layer, an
+extension's menuless window, and never takes the bar; modals stay above it
+and dim its buttons (8.5 dims them under a dialog).
+State `apps["ApplicationSwitcher.app"].data` (`paletteOpen`, `paletteAt`,
+`showNames`, `iconSize`, `orientation`, `keyboardCycling`,
+`cyclingShortcut`; position in the window record `applications`), actions
+`ClassicyAppApplicationSwitcher{TearOff,Close,SetPalette,SetCycling,Cycle,Switch}`.
+The chord (default **⌃`**, Shift for the previous app; Control-Tab and
+Alt-Tab never reach a page) switches through the menu's order with no
+overlay, read on the document in the capture phase (ahead of the menu bar's
+dispatcher), skipped while a modal is open, matched by key or physical
+`code`, and registered as two global shortcuts; Help ▸ Keyboard Shortcuts…
+page 4 turns it off or records another (`ClassicyKeyboardEquivalentField`;
+Control, Option or Command, no Shift). A package's
+`layout.applicationSwitcher.palette` is `"tearOff"` (default) or `"none"`
+(System 7: no tear-off, palette not drawn, state kept). Details:
+`docs/AGENT-REFERENCE.md` §4.12.
+
 ### Contextual Menus
 
 Right-click menus resolve target-based, innermost wins: a `ClassicyContextualMenuTarget`-wrapped control > the window's `contextMenu` prop > the app's `contextMenu` prop (`ClassicyApp`) > the desktop default menu (empty desktop only). Desktop icons take an optional `contextMenu` prop. A single `ClassicyContextualMenuProvider` (mounted by `ClassicyDesktop`) renders the one open menu via portal.
