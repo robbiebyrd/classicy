@@ -1,6 +1,7 @@
 // The core registers no Appearance Package: these tests draw Platinum.
 import "@/__tests__/withPlatinum";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -101,6 +102,7 @@ beforeEach(() => {
 afterEach(() => {
 	resetClassicyStateSyncForTests();
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 
 describe("ClassicyDesktop with a desktop state adapter", () => {
@@ -314,7 +316,107 @@ describe("the choice after a retry found the account's copy (review R1)", () => 
 		return sent;
 	}
 
-	const choiceText = "Use the settings saved on your other computers?";
+	const choiceText = "Use your saved settings on this computer?";
+
+	it("says what each answer does, true at boot, on a retry and after a late registration (review 3, N8)", async () => {
+		await bootThenRetry();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		expect(
+			screen.getByText(
+				"This computer has changes that were never added to your saved settings. Using the saved settings replaces this computer's, and those changes are lost. Keeping the current settings replaces the saved ones on every computer that shares them.",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("has no default button, and a keystroke meant for a field answers nothing (review 3, R3)", async () => {
+		// As laid out in a browser: the buttons are focusable candidates.
+		vi.spyOn(HTMLElement.prototype, "offsetParent", "get").mockReturnValue(
+			document.body,
+		);
+		const sent: string[] = [];
+		let calls = 0;
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async () => {
+				calls += 1;
+				if (calls === 1) throw new Error("500");
+				return { action: "replace", state: remoteState() };
+			},
+			onSnapshot: (snapshot) => {
+				sent.push(
+					snapshot.state.System.Manager.Desktop.controlStrip?.edge ?? "left",
+				);
+			},
+		});
+		render(
+			<ClassicyAppManagerProvider>
+				<ClassicyDesktop startupScreen={false}>
+					<Probe />
+					<textarea data-testid="field" />
+				</ClassicyDesktop>
+			</ClassicyAppManagerProvider>,
+		);
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		// No delays of its own; Testing Library's wrapper still waits on a
+		// 0 ms timer, which the fake clock runs once advanced.
+		const user = userEvent.setup({ delay: null });
+		const settle = async (gesture: Promise<void>) => {
+			await vi.advanceTimersByTimeAsync(1);
+			await gesture;
+		};
+		const field = screen.getByTestId("field") as HTMLTextAreaElement;
+		await settle(user.click(field));
+		await settle(user.keyboard("Dear"));
+		// jsdom's events are untrusted; this is the user's press.
+		noteClassicyStateUserAction();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		const alert = screen.getByRole("alertdialog");
+		expect(alert).toHaveAccessibleName(choiceText);
+		for (const name of ["Keep Current", "Use Saved"]) {
+			expect(screen.getByRole("button", { name })).not.toHaveClass("default");
+		}
+		expect(document.activeElement?.tagName).not.toBe("BUTTON");
+		expect(document.activeElement).toBe(alert);
+		// The rest of what the user was typing, Return and Space included.
+		await settle(user.keyboard(" Sir,{Enter}{Enter} "));
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(500);
+		});
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleName(choiceText);
+		expect(screen.getByTestId("probe").textContent).toBe("left");
+		expect(sent).toEqual([]);
+		expect(field.value).toBe("Dear");
+	});
+
+	it("a boot that finds this browser's unsent work draws the desktop, then asks (review 3, R2)", async () => {
+		localStorage.setItem(
+			"classicyDesktopState:unsent",
+			JSON.stringify(["remote"]),
+		);
+		registerClassicyStateAdapter({
+			id: "remote",
+			reconcile: async () => ({ action: "replace", state: remoteState() }),
+			onSnapshot: () => {},
+		});
+		renderDesktop();
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(screen.getByTestId("probe").textContent).toBe("left");
+		expect(screen.getByRole("alertdialog")).toHaveAccessibleName(choiceText);
+		fireEvent.click(screen.getByText("Use Saved"));
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		expect(screen.getByTestId("probe").textContent).toBe("right");
+		expect(localStorage.getItem("classicyDesktopState:unsent")).toBeNull();
+	});
 
 	it("asks, then Use Saved restarts the desktop on the account's copy", async () => {
 		await bootThenRetry();

@@ -884,19 +884,22 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 				</div>
 			) : null}
 			{systemDialog === "syncChoice" ? (
-				// A desktop state adapter's retry found the account's saved
-				// desktop after the user had worked on this one: they choose
-				// (ClassicyStateSync.internal.ts; HIG7 pp.195, 206, 310-311).
+				// A desktop state adapter answered with the account's saved
+				// desktop while this computer holds work it never took (at boot,
+				// on a retry, after a late registration): the user chooses
+				// (ClassicyStateSync.internal.ts). Either answer loses something,
+				// so neither is the default and no button takes the focus
+				// (HIG7 p.206); copy per HIGOS8 p.61, HIG7 pp.206, 310-311.
 				<div className={"classicyDesktopDialogOverlay"}>
 					<ClassicyAlert
 						id={SYSTEM_DIALOG_WINDOW_IDS.syncChoice}
 						appId={"Finder.app"}
 						alertType={"caution"}
-						label={"Use the settings saved on your other computers?"}
+						label={"Use your saved settings on this computer?"}
 						message={
-							"They could not be reached when Classicy started up, so this computer has used its own settings since then. Using the saved settings replaces the changes made on this computer since startup. Keeping the current settings replaces the saved ones on every computer that shares them."
+							"This computer has changes that were never added to your saved settings. Using the saved settings replaces this computer's, and those changes are lost. Keeping the current settings replaces the saved ones on every computer that shares them."
 						}
-						defaultButtonId={"useSaved"}
+						defaultButtonId={null}
 						buttons={[
 							{
 								id: "keepCurrent",
@@ -907,7 +910,7 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 							{
 								id: "useSaved",
 								label: "Use Saved",
-								role: "default",
+								role: "normal",
 								onClick: () => resolveClassicyStateChoice("adopt"),
 							},
 						]}

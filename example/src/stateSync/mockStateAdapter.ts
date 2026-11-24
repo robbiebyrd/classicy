@@ -58,9 +58,10 @@ export function mockStateAdapter(account: string): ClassicyStateAdapter {
 		},
 
 		// `reason` says why it is asked ("boot", Classicy's "retry", or the
-		// host's "request"), and `userActed` whether the user has worked on
-		// this desktop since it was drawn. This adapter merges nothing, so on a
-		// retry after the user acted Classicy asks them before using the
+		// host's "request"), and `userActed` whether this computer holds work
+		// the account never took (this session's, or an earlier one's that
+		// never reached it). This adapter merges nothing, so at boot or on a
+		// retry with such work Classicy asks the user before using the
 		// account's copy; an adapter that merges `local` into its answer
 		// returns `merged: true` to skip that alert.
 		async reconcile(
