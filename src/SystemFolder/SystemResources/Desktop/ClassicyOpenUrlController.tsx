@@ -43,13 +43,22 @@ export const ClassicyOpenUrlController: FC = () => {
 		if (!request) return;
 		dispatch({ type: "ClassicyDesktopClearOpenUrlRequest" });
 
-		if (request.disposition === "browser-new") {
-			// noopener matters: without it the new tab keeps a live
-			// window.opener handle back into the desktop.
-			window.open(request.url, "_blank", "noopener,noreferrer");
-			return;
-		}
-		window.location.assign(request.url);
+		// In a task of its own, after React's commit: Firefox's window.open
+		// runs the page's queued tasks before it returns, and React work
+		// queued then (a scheduler task) would run inside this effect, which
+		// React refuses ("Should not already be working."). Found during story
+		// 0227-815, opening a search result. Still within the click's user
+		// activation, so no popup blocker stops it; never cancelled, so two
+		// requests in a row still open two tabs.
+		setTimeout(() => {
+			if (request.disposition === "browser-new") {
+				// noopener matters: without it the new tab keeps a live
+				// window.opener handle back into the desktop.
+				window.open(request.url, "_blank", "noopener,noreferrer");
+				return;
+			}
+			window.location.assign(request.url);
+		}, 0);
 	}, [requestId, dispatch]);
 
 	return null;
