@@ -721,8 +721,12 @@ deselects at once; the rectangle starts at 2 px of travel
 pixels (`readClassicyIconOpaqueMask`, the drag outline's alpha rule, cached
 by image and size) or its label's box, live as it grows and shrinks; Shift
 keeps the selection and toggles what it touches, Command does nothing more;
-a Control-press is the contextual-menu click (deselects, opens the menu,
-`openClassicyControlPressContextMenu`; no rectangle); release keeps it,
+a Control-press, like a right-press (HIGOS8 p.93), is the contextual-menu
+click on the desktop and in a file browser, icons, rows and empty space
+alike (`ContextualMenu/ClassicyContextualPress.internal.ts`, as 8.1 does it:
+empty space deselects, an item is selected as a press selects it, a
+selection it is in kept; no drag or rectangle; the menu, sent from the
+target off macOS, and the click after it swallowed); release keeps it,
 Escape restores the selection from before the press (8.1 did not cancel;
 the story asked), every other key but a modifier is held off while it lasts,
 a lost pointer stream ends it where it is; held past a window's contents
@@ -739,8 +743,14 @@ pixels, System 7 one, both the 50% checker in XOR laid from the desktop
 The desktop selects through `ClassicyDesktopIconSelectBox` (Shift-press:
 `ClassicyDesktopFocus { keepSelection: true }`); the icon view keeps its
 icons' selection (`ClassicyIcon` `selected`/`onSelectedChange`/
-`onSelectionGesture`: a click selects alone, Shift or Command toggles) and
-drags a selection as one (`fileDragParts`, `moveBy`), and lends Select All
+`onSelectionGesture`: a click selects alone, Shift or Command toggles; the
+click ending a drag is none) and drags a selection as one (`fileDragParts`,
+`moveBy`), moves it with the arrow keys as 8.1 did (from the icon selected
+last for Right/Down, first for Left/Up; with none, the first or last icon),
+takes the keyboard from a press on its empty space (the `mousedown`
+`preventDefault`ed, so the browser's focus never lands on the desktop) and
+from window activation (its holder is the browser's `focusTargetRef`), and
+lends Select All
 through the browser's `selectionApiRef` (Finder's Select All is ⌘A, marked
 `nativeShortcut` like every editing command: the focused file browser takes
 the key, a text field keeps it); the list view selects through
