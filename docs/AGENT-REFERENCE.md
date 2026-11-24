@@ -1598,7 +1598,12 @@ blinking icon, the sound, then the alert.
   icon, as Mac OS 8.1 draws them (observed on Infinite Mac: with the
   Finder's File menu open the Application title kept whichever icon it
   showed; with the Application menu open its title showed the front
-  application's icon, at every phase tried). The Application menu's title
+  application's icon, at every phase tried). The Apple title's case is
+  inferred from the Application title's, not observed: it is the same
+  Menu Manager tracking and the same `NMTask` that does not run during it,
+  but a stock 8.1 has nothing that posts an unmarked request (every
+  request there comes from an application, marked, so it blinks over the
+  Application menu), so no icon blinks over the Apple menu to watch. The Application menu's title
   swaps only its image; its name stays. While a title carries requests it
   carries an `aria-description` naming their apps ("Mail requests your
   attention", "Mail and Chat request your attention";

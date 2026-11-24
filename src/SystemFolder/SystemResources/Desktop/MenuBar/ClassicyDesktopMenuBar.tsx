@@ -231,8 +231,9 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 	// over the Application menu's title (a marked app it lists) or the Apple
 	// menu's (any other), described for assistive technology. While a menu
 	// is open the blink stops where it is, and an open title shows its own
-	// icon, as Mac OS 8.1 draws them; nothing blinks where this bar is not
-	// drawn (window placement).
+	// icon, as Mac OS 8.1 draws them (observed for the Application title; the
+	// Apple title's is inferred, as stock 8.1 blinks nothing there); nothing
+	// blinks where this bar is not drawn (window placement).
 	const notifiedAppIds = useClassicyNotifiedAppIds();
 	const notifications = useClassicyNotifications();
 	const [openTitle, setOpenTitle] = useState<string | null>(null);

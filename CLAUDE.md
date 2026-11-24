@@ -648,8 +648,9 @@ request's icon (default the app's) over the Application menu's title (a
 marked, listed app) or the Apple menu's, 1 s per frame
 (`CLASSICY_NOTIFICATION_BLINK_MS`, measured on Mac OS 8.1), steady under
 reduced motion; while a menu is open the blink stops on its frame and an
-open title shows its own icon (observed on 8.1; `ClassicyMenu`'s
-`onOpenItemChange`), no timer under window placement, and each carrying
+open title shows its own icon (observed on 8.1 for the Application title;
+the Apple title's case is inferred, since stock 8.1 posts no unmarked
+request to blink there; `ClassicyMenu`'s `onOpenItemChange`), no timer under window placement, and each carrying
 title has an `aria-description` naming its apps
 (`ClassicyNotificationBlink.internal.ts`). `ClassicyDesktop` mounts
 `ClassicyNotificationController` (`.internal.tsx`): the sound once at the
