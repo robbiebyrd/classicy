@@ -105,7 +105,8 @@
 			"NoNames",
 			"Palette",
 			"ShortcutPage",
-			"TearOffOutline"
+			"TearOffOutline",
+			"Wrapped"
 		],
 		"Assistant": [
 			"AccessoryIcon",

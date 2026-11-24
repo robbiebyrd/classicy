@@ -876,6 +876,40 @@ describe("ClassicyAppLoad — code-derived identity", () => {
 	});
 });
 
+describe("ClassicyAppLoad — an extension out of the startup parade", () => {
+	it("sets noBootParade from bootParade: false on every load, and clears it", () => {
+		const ds = makeStore();
+		const load = (extra: Record<string, unknown>) =>
+			classicyDesktopStateEventReducer(ds, {
+				type: "ClassicyAppLoad",
+				app: { id: "Bg.app", name: "Bg", icon: "bg.png" },
+				extension: true,
+				...extra,
+			});
+		load({ bootParade: false });
+		expect(ds.System.Manager.Applications.apps["Bg.app"].noBootParade).toBe(
+			true,
+		);
+		load({});
+		expect(
+			ds.System.Manager.Applications.apps["Bg.app"].noBootParade,
+		).toBeUndefined();
+		load({ bootParade: false });
+		expect(ds.System.Manager.Applications.apps["Bg.app"].noBootParade).toBe(
+			true,
+		);
+		// Only an extension takes it.
+		classicyDesktopStateEventReducer(ds, {
+			type: "ClassicyAppLoad",
+			app: { id: "Fg.app", name: "Fg", icon: "fg.png" },
+			bootParade: false,
+		});
+		expect(
+			ds.System.Manager.Applications.apps["Fg.app"].noBootParade,
+		).toBeUndefined();
+	});
+});
+
 describe("ClassicyAppLoad — app contextMenu", () => {
 	it("stores contextMenu on a newly loaded app", () => {
 		const ds = makeStore();

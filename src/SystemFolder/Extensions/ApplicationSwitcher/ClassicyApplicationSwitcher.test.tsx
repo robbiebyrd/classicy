@@ -1,7 +1,7 @@
 import { PLATINUM_APPEARANCE_PACKAGE_ID } from "@classicy/appearance-platinum";
 import { act, fireEvent, render } from "@testing-library/react";
 import { produce } from "immer";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyAppearancePackage,
 	getClassicyAppearancePackage,
@@ -29,6 +29,7 @@ import {
 	APPLICATION_SWITCHER_TEAR_OFF,
 	type ClassicyApplicationSwitcherData,
 } from "./ClassicyApplicationSwitcherContext";
+import { classicyAppSwitcherPaletteLines } from "./ClassicyApplicationSwitcherPalette.internal";
 
 const platinum = getClassicyAppearancePackage(
 	PLATINUM_APPEARANCE_PACKAGE_ID,
@@ -173,6 +174,12 @@ describe("the Application Switcher", () => {
 				useAppManager.getState().System.Manager.Keyboard.global["option+j"],
 			).toBeUndefined();
 		});
+	});
+
+	it("stays out of the startup parade, as 8.5's Application Switcher does", () => {
+		setUp();
+		render(<ClassicyApplicationSwitcher />);
+		expect(apps().apps[APPLICATION_SWITCHER_APP_ID].noBootParade).toBe(true);
 	});
 
 	describe("under the screen saver", () => {
@@ -357,6 +364,75 @@ describe("the Application Switcher", () => {
 			expect(buttons().every((b) => b.disabled)).toBe(true);
 			fireEvent.click(button("Finder"));
 			expect(front()).toBe("Notes.app");
+		});
+
+		it("counts the buttons a line holds before the desktop's edge", () => {
+			// 300 pixels from the first button to the edge, 4 of frame after.
+			expect(classicyAppSwitcherPaletteLines(300, 4, 24)).toBe(12);
+			expect(classicyAppSwitcherPaletteLines(300, 4, 40)).toBe(7);
+			// Never under one, and no wrap for a button not laid out.
+			expect(classicyAppSwitcherPaletteLines(10, 4, 40)).toBe(1);
+			expect(classicyAppSwitcherPaletteLines(300, 4, 0)).toBe(
+				Number.POSITIVE_INFINITY,
+			);
+		});
+
+		it("wraps into another column when the desktop has no room for every button", () => {
+			// A desktop 100 pixels tall from the first button down: two 40-pixel
+			// buttons fit, so three wrap after two.
+			const rect = (top: number, height: number, left = 0, width = 100) =>
+				({
+					top,
+					left,
+					width,
+					height,
+					x: left,
+					y: top,
+					right: left + width,
+					bottom: top + height,
+					toJSON: () => ({}),
+				}) as DOMRect;
+			const original = Element.prototype.getBoundingClientRect;
+			vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+				function (this: Element) {
+					if (this.id === "classicy-floating-layer") return rect(0, 120);
+					if (this.classList.contains("classicyApplicationSwitcherButton"))
+						return rect(20, 40);
+					if (this.classList.contains("classicyApplicationSwitcherPalette"))
+						return rect(0, 150);
+					return original.call(this);
+				},
+			);
+			try {
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff();
+				const list = palette()?.querySelector(
+					".classicyApplicationSwitcherButtons",
+				) as HTMLElement;
+				expect(list.classList).toContain("classicyApplicationSwitcherWrapped");
+				expect(
+					list.style.getPropertyValue("--application-switcher-lines"),
+				).toBe("2");
+			} finally {
+				vi.restoreAllMocks();
+			}
+		});
+
+		it("draws one column while every button fits", () => {
+			setUp();
+			render(<ClassicyApplicationSwitcher />);
+			tearOff();
+			const list = palette()?.querySelector(
+				".classicyApplicationSwitcherButtons",
+			) as HTMLElement;
+			// jsdom lays nothing out: no button has a size, so nothing wraps.
+			expect(list.classList).not.toContain(
+				"classicyApplicationSwitcherWrapped",
+			);
+			expect(list.style.getPropertyValue("--application-switcher-lines")).toBe(
+				"",
+			);
 		});
 
 		it("closes from its close box", () => {

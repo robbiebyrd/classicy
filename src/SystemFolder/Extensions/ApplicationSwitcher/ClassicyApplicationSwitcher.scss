@@ -11,6 +11,21 @@
   gap: var(--control-bevel-sm);
 }
 
+// More buttons than a line holds before the desktop's edge wrap into the
+// next column (the next row, horizontal), `--application-switcher-lines` a
+// line, which the palette measures from the room it has.
+.classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--application-switcher-lines), auto);
+}
+
+.classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
+  grid-auto-flow: row;
+  grid-template-rows: none;
+  grid-template-columns: repeat(var(--application-switcher-lines), auto);
+}
+
 // Three classes, so the palette's geometry beats the bevel button's own
 // (one class) and its toolbar and help variants (two).
 .classicyApplicationSwitcherButtons .classicyBevelButton.classicyApplicationSwitcherButton {

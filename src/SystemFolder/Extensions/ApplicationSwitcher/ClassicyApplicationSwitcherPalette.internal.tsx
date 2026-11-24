@@ -1,10 +1,18 @@
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
+import {
+	type CSSProperties,
+	type FC as FunctionalComponent,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useState,
+} from "react";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { getAppWindow } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppWindows";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
 import {
@@ -54,6 +62,99 @@ const useClassicyPaletteKeepsKeyboardOff = () => {
 		document.addEventListener("mousedown", onDown, true);
 		return () => document.removeEventListener("mousedown", onDown, true);
 	}, []);
+};
+
+/**
+ * How many buttons fit in a line (a column, or a row when the palette is
+ * horizontal) before the desktop's edge: the room from the first button's
+ * start to the edge, less the frame after the last line (`chromeAfter`), in
+ * buttons of `buttonSize` (the tallest, or the widest), never under one.
+ */
+export const classicyAppSwitcherPaletteLines = (
+	room: number,
+	chromeAfter: number,
+	buttonSize: number,
+): number =>
+	buttonSize > 0
+		? Math.max(1, Math.floor((room - chromeAfter) / buttonSize))
+		: Number.POSITIVE_INFINITY;
+
+/**
+ * The line length the palette's buttons wrap at, measured from where the
+ * palette sits in its layer (the desktop) once laid out, and again when it
+ * moves, its buttons or options change, or the desktop resizes. `undefined`
+ * while every button fits in one line. Mac OS 8.5's palette with more
+ * applications than the screen holds was not observed (the emulator hung
+ * while they were launched): Classicy keeps every button on the desktop,
+ * as it keeps every window's corner on it.
+ */
+const useClassicyPaletteLines = (
+	count: number,
+	horizontal: boolean,
+	deps: readonly unknown[],
+): number | undefined => {
+	const [lines, setLines] = useState<number | undefined>(undefined);
+	useLayoutEffect(() => {
+		if (typeof document === "undefined") return;
+		const palette = document.getElementById(
+			`${APPLICATION_SWITCHER_APP_ID}_${APPLICATION_SWITCHER_PALETTE_ID}`,
+		);
+		const layer = palette?.parentElement;
+		if (!palette || !layer) return;
+		const measure = () => {
+			const list = palette.querySelector<HTMLElement>(
+				".classicyApplicationSwitcherButtons",
+			);
+			const buttons = Array.from(
+				palette.querySelectorAll<HTMLElement>(
+					".classicyApplicationSwitcherButton",
+				),
+			).map((b) => b.getBoundingClientRect());
+			const contents = list?.closest<HTMLElement>(".classicyWindowContents");
+			if (!list || !contents || buttons.length === 0) return;
+			const edge = layer.getBoundingClientRect();
+			const outer = palette.getBoundingClientRect();
+			// The frame after the last line, from the styles (the box itself
+			// may be cut off at the window's maximum height).
+			const after = (side: "bottom" | "right") =>
+				[palette, contents, list].reduce((sum, el) => {
+					const cs = getComputedStyle(el);
+					return (
+						sum +
+						(Number.parseFloat(cs.getPropertyValue(`border-${side}-width`)) ||
+							0) +
+						(Number.parseFloat(cs.getPropertyValue(`padding-${side}`)) || 0) +
+						(el === palette
+							? 0
+							: Number.parseFloat(cs.getPropertyValue(`margin-${side}`)) || 0)
+					);
+				}, 0);
+			// A window is never taller than its maximum height (the desktop's,
+			// less a reserve): the room ends there or at the desktop's edge.
+			const maxHeight = Number.parseFloat(getComputedStyle(palette).maxHeight);
+			const bottom = Number.isFinite(maxHeight)
+				? Math.min(edge.bottom, outer.top + maxHeight)
+				: edge.bottom;
+			const fit = horizontal
+				? classicyAppSwitcherPaletteLines(
+						edge.right - buttons[0].left,
+						after("right"),
+						Math.max(...buttons.map((b) => b.width)),
+					)
+				: classicyAppSwitcherPaletteLines(
+						bottom - buttons[0].top,
+						after("bottom"),
+						Math.max(...buttons.map((b) => b.height)),
+					);
+			setLines(fit < count ? fit : undefined);
+		};
+		measure();
+		if (typeof ResizeObserver === "undefined") return;
+		const observer = new ResizeObserver(measure);
+		observer.observe(layer);
+		return () => observer.disconnect();
+	}, [count, horizontal, ...deps]);
+	return lines;
 };
 
 /**
@@ -117,6 +218,29 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	// (`…-horizontal.png`); with names across the top it has both.
 	const narrow = !horizontal && !showNames && !large;
 	useClassicyPaletteKeepsKeyboardOff();
+	const position = useAppManager(
+		(s) =>
+			getAppWindow(
+				s.System.Manager.Applications.apps[APPLICATION_SWITCHER_APP_ID],
+				APPLICATION_SWITCHER_PALETTE_ID,
+			)?.position,
+	);
+	const collapsed = useAppManager(
+		(s) =>
+			getAppWindow(
+				s.System.Manager.Applications.apps[APPLICATION_SWITCHER_APP_ID],
+				APPLICATION_SWITCHER_PALETTE_ID,
+			)?.collapsed === true,
+	);
+	// More applications than the desktop has room for wrap into another
+	// column (another row, horizontal), so every button stays on it.
+	const lines = useClassicyPaletteLines(entries.length, horizontal, [
+		position?.[0],
+		position?.[1],
+		collapsed,
+		large,
+		showNames,
+	]);
 
 	return (
 		<ClassicyWindow
@@ -162,7 +286,17 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 			)}
 		>
 			{/* The window carries the name ("Applications", its aria-label). */}
-			<div className="classicyApplicationSwitcherButtons">
+			<div
+				className={classNames(
+					"classicyApplicationSwitcherButtons",
+					lines !== undefined && "classicyApplicationSwitcherWrapped",
+				)}
+				style={
+					lines !== undefined
+						? ({ "--application-switcher-lines": lines } as CSSProperties)
+						: undefined
+				}
+			>
 				{entries.map((app) => (
 					<ClassicyBevelButton
 						key={app.id}

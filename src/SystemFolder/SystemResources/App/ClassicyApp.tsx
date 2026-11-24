@@ -91,8 +91,10 @@ export interface ClassicyAppProps {
 	globalShortcuts?: ClassicyGlobalShortcut[];
 	/** Show an icon in the startup parade without being an extension.
 	 *  `true` uses the app's own icon; a string (any icon URL, including
-	 *  ClassicyIcons.* values) shows that icon instead. Ignored when
-	 *  `extension` is set — extensions already parade. */
+	 *  ClassicyIcons.* values) shows that icon instead. An `extension`
+	 *  already parades: `true` and a string are ignored there, and `false`
+	 *  keeps it out of the parade (Mac OS 8.5's Application Switcher shows
+	 *  no icon there). */
 	bootIcon?: boolean | string;
 	/** File types Finder may open with this app. Opening one dispatches
 	 *  `` `ClassicyApp${name}OpenFile` ``; unless the app handles that action
@@ -205,6 +207,7 @@ export const ClassicyApp: FunctionalComponent<ClassicyAppProps> = ({
 			app: { id, name, icon },
 			contextMenu,
 			extension,
+			...(extension && bootIcon === false ? { bootParade: false } : {}),
 		});
 
 		// Extensions are background-only: no Apple-menu entry and no desktop

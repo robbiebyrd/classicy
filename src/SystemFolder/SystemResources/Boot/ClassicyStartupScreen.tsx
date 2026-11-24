@@ -48,7 +48,8 @@ interface ClassicyStartupScreenProps {
  *
  * Along the bottom, an extension parade reveals one icon at a time: icons
  * added with `ClassicyBootParadeIconAdd` (e.g. by `ClassicyApp`'s `bootIcon`)
- * first, then every `extension` app, each in registration order — the last
+ * first, then every `extension` app but one its `bootIcon={false}` keeps out,
+ * each in registration order — the last
  * lands before the bar completes.
  *
  * Shows once per browser-tab session (sessionStorage); call
@@ -102,7 +103,8 @@ export const ClassicyStartupScreen: FunctionalComponent<
 				};
 			}),
 			...Object.values(apps)
-				.filter((app) => app.extension)
+				// An extension kept out (`bootIcon={false}`) shows none.
+				.filter((app) => app.extension && app.noBootParade !== true)
 				.map((app) => {
 					const identity = classicyAppIdentityFrom(overrides, app.id, app);
 					return {

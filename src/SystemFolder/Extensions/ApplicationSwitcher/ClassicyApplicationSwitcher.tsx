@@ -104,6 +104,10 @@ export const ClassicyApplicationSwitcher: FunctionalComponent = () => {
 			name={APPLICATION_SWITCHER_APP_NAME}
 			icon={icon}
 			extension
+			// Mac OS 8.5's Application Switcher shows no icon in the startup
+			// parade (`resources/screenshots/mac-os-8.5/
+			// platinum-85-startup-parade.png`).
+			bootIcon={false}
 			globalShortcuts={globalShortcuts}
 		>
 			{drawsPalette && settings.paletteOpen && (

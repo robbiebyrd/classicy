@@ -35,4 +35,24 @@ describe("the Application Switcher's stylesheet", () => {
 			"var(--ui-font-small, var(--body-font)), sans-serif",
 		);
 	});
+
+	// More applications than the desktop has room for wrap into another
+	// column (another row, horizontal), the palette's measured line length.
+	it("wraps its buttons at the measured line length", () => {
+		const wrapped = declarations(
+			".classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped",
+		);
+		expect(wrapped.display).toBe("grid");
+		expect(wrapped["grid-auto-flow"]).toBe("column");
+		expect(wrapped["grid-template-rows"]).toBe(
+			"repeat(var(--application-switcher-lines), auto)",
+		);
+		const across = declarations(
+			".classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped",
+		);
+		expect(across["grid-auto-flow"]).toBe("row");
+		expect(across["grid-template-columns"]).toBe(
+			"repeat(var(--application-switcher-lines), auto)",
+		);
+	});
 });
