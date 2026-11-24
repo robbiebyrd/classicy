@@ -16,6 +16,11 @@ import { withClassicyAppearanceInput } from "@/Appearance/useClassicyAppearanceI
 import { useAppManager } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useClassicyAnalytics } from "@/SystemFolder/SystemResources/Analytics/useClassicyAnalytics";
 import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
+import {
 	type ClassicyLabelPosition,
 	labelPositionClass,
 } from "@/SystemFolder/SystemResources/ControlLabel/ClassicyControlLabel";
@@ -133,8 +138,9 @@ interface ClassicyIconProps {
 	 * modifiers, for the container to apply its own rules (the file
 	 * browser's icon view: a click selects the icon alone, Shift or Command
 	 * toggles it, a press on an unselected icon selects it alone so its drag
-	 * carries it alone). Given, a click no longer toggles the icon by itself,
-	 * and the click ending a drag is not reported.
+	 * carries it alone). Given, a click no longer toggles the icon by itself.
+	 * A contextual-menu press (Control or the right button) is reported as a
+	 * press with no modifiers; the click ending a drag is not reported.
 	 */
 	onSelectionGesture?: (gesture: ClassicyIconSelectionGesture) => void;
 	/** Extra class names, merged onto the root element after the component's own. */
@@ -182,7 +188,10 @@ export const snapToGrid = (
  * container; pass that container as `holder` to make it draggable, and
  * `snapTo` (with `snapOrigin`) to round drops onto a grid. A single click
  * toggles the selected (highlighted) look (the click ending a drag does
- * not); double-click or Enter/Space calls `onClickFunc`. Position and selection are local state — nothing is written
+ * not); double-click or Enter/Space calls `onClickFunc`. A Control-press or a
+ * right-press is the contextual-menu click: it selects the icon, never drags
+ * it, and a Control-press opens the contextual menu where the browser does
+ * not (off macOS), the click after it swallowed. Position and selection are local state — nothing is written
  * to the store — unless the container passes `selected` (and
  * `onSelectedChange`) to keep the selection itself, as the file browser's
  * icon view does. Size follows the theme's `--desktop-icon-size` unless
@@ -331,6 +340,21 @@ export const ClassicyIcon: FunctionalComponent<ClassicyIconProps> = ({
 
 	const startDrag = (e: MouseEvent<HTMLDivElement>) => {
 		pressDraggedRef.current = false;
+		// The contextual-menu click (a Control-press or a right-press, HIGOS8
+		// p.93), as the Mac OS 8.1 Finder takes it on an icon: it selects the
+		// icon as a press does (alone, unless it is already selected), never
+		// drags it, and opens the menu (`ClassicyContextualPress.internal.ts`).
+		if (isClassicyContextualPress(e)) {
+			if (onSelectionGesture)
+				onSelectionGesture({ type: "press", shiftKey: false, metaKey: false });
+			else if (!active) {
+				appearance.emit("select", { selected: true });
+				setFocus(true);
+			}
+			if (isClassicyControlPress(e))
+				openClassicyControlPressContextMenu(e.nativeEvent);
+			return;
+		}
 		if (e.button === 0)
 			onSelectionGesture?.({
 				type: "press",

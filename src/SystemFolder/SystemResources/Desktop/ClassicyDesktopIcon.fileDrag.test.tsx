@@ -248,6 +248,44 @@ describe("ClassicyDesktopIcon — file-backed icons", () => {
 			fireEvent.click(t.plan, { detail: 1 });
 			expect(selectedIcons()).toEqual([ITEM_ID]);
 		});
+
+		it("takes a Control-press as the contextual-menu click (8.1): kept, no drag, the menu, no click after", async () => {
+			const t = renderTwo();
+			const menus = vi.fn();
+			t.container.addEventListener("contextmenu", menus);
+			fireEvent.mouseDown(t.plan, {
+				button: 0,
+				clientX: 10,
+				clientY: 10,
+				ctrlKey: true,
+			});
+			fireEvent.mouseMove(document, { clientX: 80, clientY: 80 });
+			expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+			fireEvent.mouseUp(document, { clientX: 80, clientY: 80 });
+			fireEvent.click(t.plan, { detail: 1, ctrlKey: true });
+			expect(location(ITEM_ID)).toEqual([100, 100]);
+			await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+			expect(menus).toHaveBeenCalledTimes(1);
+			// The menu's own contextmenu kept the selection the icon is in.
+			expect(selectedIcons()).toEqual([ITEM_ID, OTHER_ID]);
+			// An unselected icon: selected alone.
+			fireEvent.mouseDown(t.third, {
+				button: 0,
+				clientX: 10,
+				clientY: 310,
+				ctrlKey: true,
+			});
+			expect(selectedIcons()).toEqual([THIRD_ID]);
+			fireEvent.mouseUp(document, { clientX: 10, clientY: 310 });
+		});
+
+		it("keeps the selection an icon is in on a right-click, and selects an unselected one alone", () => {
+			const t = renderTwo();
+			fireEvent.contextMenu(t.plan);
+			expect(selectedIcons()).toEqual([ITEM_ID, OTHER_ID]);
+			fireEvent.contextMenu(t.third);
+			expect(selectedIcons()).toEqual([THIRD_ID]);
+		});
 	});
 
 	it("opens its item through onOpenFilePath, and never launches an app", () => {

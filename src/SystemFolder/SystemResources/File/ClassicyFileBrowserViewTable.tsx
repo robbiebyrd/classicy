@@ -360,15 +360,18 @@ export const ClassicyFileBrowserViewTable: FunctionalComponent<ClassicyFileBrows
 								onMouseDown={(e) => {
 									// A press beside the icon and name starts the
 									// browser's selection rectangle, not a drag
-									// (alone, with no browser around it, it drags).
+									// (alone, with no browser around it, it drags),
+									// and a Control-press is the browser's
+									// contextual-menu click, never a drag.
 									if (
 										marqueeBesideNames &&
-										e.target instanceof Element &&
-										isClassicyFileBrowserListBlank(
-											e.target,
-											e.clientX,
-											e.clientY,
-										)
+										(e.ctrlKey ||
+											(e.target instanceof Element &&
+												isClassicyFileBrowserListBlank(
+													e.target,
+													e.clientX,
+													e.clientY,
+												)))
 									)
 										return;
 									if (row._path) startRowDrag(e, row._path, expansion.emitDrag);

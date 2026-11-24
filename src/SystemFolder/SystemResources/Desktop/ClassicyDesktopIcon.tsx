@@ -16,6 +16,11 @@ import {
 	useClassicyBalloonHelp,
 } from "@/SystemFolder/SystemResources/BalloonHelp/useClassicyBalloonHelp";
 import { useClassicyContextualMenu } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { defaultBalloonForKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconBalloons";
 import { takeClassicyDesktopIconKeyboardSelection } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKeyboardSelection.internal";
 import { isAliasKind } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconKinds";
@@ -481,6 +486,15 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					appearance.emit("select", withClassicyAppearanceInput());
 				}
 
+				// The contextual-menu click (a Control-press or a right-press,
+				// HIGOS8 p.93): selected as above, never dragged, and the menu
+				// (`ClassicyContextualPress.internal.ts`; Mac OS 8.1).
+				if (isClassicyContextualPress(e)) {
+					if (isClassicyControlPress(e))
+						openClassicyControlPressContextMenu(e.nativeEvent);
+					return;
+				}
+
 				if (draggedAsFile(kind, filePath)) {
 					if (e.button === 0) startFileDrag(e);
 					return;
@@ -597,7 +611,13 @@ export const ClassicyDesktopIcon: FunctionalComponent<ClassicyDesktopIconProps> 
 					onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
 						if (e.defaultPrevented) return;
 						e.preventDefault();
-						clickFocus(e); // selects the icon and stops propagation
+						// Selects an unselected icon alone; a selection the icon is
+						// in is kept, as Mac OS 8.1's contextual click keeps it.
+						// Either way the event stops here.
+						if (isSelected) {
+							e.stopPropagation();
+							iconRef.current?.focus({ preventScroll: true });
+						} else clickFocus(e);
 						if (contextMenu && contextMenu.length > 0) {
 							showContextMenu(contextMenu, [e.clientX, e.clientY]);
 						}

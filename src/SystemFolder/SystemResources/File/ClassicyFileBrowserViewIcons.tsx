@@ -19,6 +19,11 @@ import {
 	finderEntryComparator,
 	iconViewIconSize,
 } from "@/SystemFolder/Finder/FinderViewOptions";
+import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import type { ClassicyDesktopIconMetrics } from "@/SystemFolder/SystemResources/Desktop/ClassicyDesktopIconContext";
 import {
 	classicyFileBrowserScroller,
@@ -45,7 +50,6 @@ import {
 } from "@/SystemFolder/SystemResources/File/ClassicyTrashIcon.internal";
 import {
 	type ClassicyMarqueeItem,
-	openClassicyControlPressContextMenu,
 	useClassicyMarqueeSelection,
 } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 import {
@@ -320,15 +324,18 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					classicyFileBrowserScroller(resolvedHolderRef.current),
 			});
 			// A press on empty space: the icons' holder, or the window
-			// contents around it (below the holder once they scroll). A
-			// Control-press there is the contextual-menu click: it deselects
-			// and opens the menu, as in 8.1, and draws no rectangle.
+			// contents around it (below the holder once they scroll). The
+			// contextual-menu click there (a Control-press or a right-press)
+			// deselects, and a Control-press opens the menu, as in 8.1; it
+			// draws no rectangle.
 			useEffect(() => {
 				const holder = resolvedHolderRef.current;
 				if (!holder) return;
 				const area = classicyFileBrowserScroller(holder) ?? holder;
 				const onDown = (e: MouseEvent) => {
-					if (e.button !== 0 || e.defaultPrevented) return;
+					if (e.defaultPrevented) return;
+					const contextual = isClassicyContextualPress(e);
+					if (e.button !== 0 && !contextual) return;
 					const target = e.target;
 					if (
 						!(target instanceof Element) ||
@@ -338,9 +345,10 @@ export const ClassicyFileBrowserViewIcons: FunctionalComponent<ClassicyFileBrows
 					// The keyboard to the icons, as the desktop takes it on a
 					// press on itself: Select All, Delete and the like act here.
 					holder.focus({ preventScroll: true });
-					if (e.ctrlKey) {
+					if (contextual) {
 						updateSelection((prev) => (prev.size === 0 ? prev : new Set()));
-						openClassicyControlPressContextMenu(e);
+						if (isClassicyControlPress(e))
+							openClassicyControlPressContextMenu(e);
 						return;
 					}
 					startMarquee(e);

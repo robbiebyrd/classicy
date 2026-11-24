@@ -223,6 +223,48 @@ describe("ClassicyDesktop selection rectangle over the icons", () => {
 		fireEvent.mouseUp(document, { clientX: 910, clientY: 60 });
 	});
 
+	it("takes a right-press as it takes a Control-press: deselected, no rectangle, the desktop's menu", () => {
+		renderDesktop();
+		select(["Beta.app"]);
+		press(860, 20, { button: 2 });
+		expect(selected()).toEqual([]);
+		move(910, 60);
+		expect(selectBox()).toBeNull();
+		expect(
+			document.querySelector(".classicyContextMenuWrapper"),
+		).not.toBeNull();
+		fireEvent.mouseUp(document, { clientX: 910, clientY: 60 });
+	});
+
+	it("takes a Control-press on an icon as the contextual-menu click: selected, no drag, the menu", async () => {
+		renderDesktop();
+		select(["Beta.app"]);
+		const menus = vi.fn();
+		desktop().addEventListener("contextmenu", menus);
+		const alpha = document.getElementById("Alpha.app.shortcut") as HTMLElement;
+		const at = () =>
+			useAppManager
+				.getState()
+				.System.Manager.Desktop.icons.find((i) => i.appId === "Alpha.app")
+				?.location;
+		const before = at();
+		fireEvent.mouseDown(alpha, {
+			button: 0,
+			clientX: 910,
+			clientY: 50,
+			ctrlKey: true,
+		});
+		expect(selected()).toEqual(["Alpha.app"]);
+		fireEvent.mouseMove(alpha, { clientX: 980, clientY: 200 });
+		fireEvent.mouseUp(alpha, { clientX: 980, clientY: 200 });
+		fireEvent.click(alpha, { detail: 1, ctrlKey: true });
+		expect(at()).toEqual(before);
+		expect(selectBox()).toBeNull();
+		await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+		expect(menus).toHaveBeenCalledTimes(1);
+		expect(selected()).toEqual(["Alpha.app"]);
+	});
+
 	it("holds the arrow keys and type-ahead off while the rectangle lasts", () => {
 		renderDesktop();
 		press(860, 20);

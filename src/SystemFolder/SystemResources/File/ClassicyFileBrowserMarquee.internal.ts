@@ -5,11 +5,16 @@ import {
 	useEffect,
 	useRef,
 } from "react";
+import {
+	isClassicyContextualPress,
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+	swallowClassicyPressClick,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { CLASSICY_FILE_PATH_ATTRIBUTE } from "@/SystemFolder/SystemResources/File/ClassicyFileDrag";
 import {
 	type ClassicyMarqueeBounds,
 	type ClassicyMarqueeItem,
-	openClassicyControlPressContextMenu,
 	useClassicyMarqueeSelection,
 } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 
@@ -89,33 +94,6 @@ export const isClassicyFileBrowserListBlank = (
 	);
 };
 
-// The click (and the double-click) that end a press which started a
-// rectangle on a row are not the row's: swallowed before the table sees
-// them, so they neither select nor open it. Only the gesture's own: a click
-// with no press behind it (`detail` 0: the keyboard's Space or Enter, a
-// script's `click()`) passes, and the swallow ends a task after the first
-// click it takes (a double-click's `dblclick` follows its click in the same
-// task), or at the next press, whichever comes first.
-const swallowRowClicks = () => {
-	let ending: ReturnType<typeof setTimeout> | null = null;
-	const stop = () => {
-		if (ending !== null) clearTimeout(ending);
-		document.removeEventListener("click", swallow, true);
-		document.removeEventListener("dblclick", swallow, true);
-		document.removeEventListener("mousedown", stop, true);
-	};
-	const swallow = (e: MouseEvent) => {
-		if (e.detail === 0) return;
-		e.stopPropagation();
-		if (ending === null) ending = setTimeout(stop, 0);
-	};
-	document.addEventListener("click", swallow, true);
-	document.addEventListener("dblclick", swallow, true);
-	// Added during the press's own mousedown, so its capture phase has
-	// passed: the next press ends it.
-	document.addEventListener("mousedown", stop, true);
-};
-
 /**
  * Where a list's rows show in its scroller: the scroller's box, less the
  * column titles where they lie inside it (Platinum's, `inList`, sticky at its
@@ -185,27 +163,45 @@ export function useClassicyFileBrowserListMarquee({
 		if (!enabled || !root) return;
 		const area = classicyFileBrowserScroller(root) ?? root;
 		const onDown = (e: MouseEvent) => {
-			if (e.button !== 0) return;
+			if (e.defaultPrevented) return;
+			// The contextual-menu click: a Control-press or a right-press.
+			const contextual = isClassicyContextualPress(e);
+			if (e.button !== 0 && !contextual) return;
 			const target = e.target;
 			if (!(target instanceof Element)) return;
+			const current = selectionRef.current;
 			const onRow =
 				root.contains(target) &&
 				isClassicyFileBrowserListBlank(target, e.clientX, e.clientY);
-			if (!onRow && !isClassicyFileBrowserBackground(target, root, area))
+			if (!onRow && !isClassicyFileBrowserBackground(target, root, area)) {
+				// On a row's icon, name or other column, the contextual-menu
+				// click selects the row as 8.1 selects an item: alone, unless
+				// it is selected already (then the selection is kept). The row
+				// starts no drag (the row itself leaves it) and the menu opens.
+				if (!contextual || !root.contains(target)) return;
+				const row = target
+					.closest("tr[data-row-id]")
+					?.getAttribute("data-row-id");
+				if (!row) return;
+				if (!current.getSelection().includes(row)) current.select([row]);
+				if (isClassicyControlPress(e)) openClassicyControlPressContextMenu(e);
 				return;
-			if (onRow) swallowRowClicks();
+			}
 			// The keyboard to the list (a press on a row focuses it already;
 			// one below the rows does not), for its arrows and Select All.
 			root
 				.querySelector<HTMLElement>(".classicyTableContainer")
 				?.focus({ preventScroll: true });
-			// Control-press: the contextual-menu click, never a rectangle.
-			if (e.ctrlKey) {
-				const current = selectionRef.current;
+			// The contextual-menu click: it deselects and opens the menu,
+			// never a rectangle.
+			if (contextual) {
 				if (current.getSelection().length > 0) current.select([]);
-				openClassicyControlPressContextMenu(e);
+				if (isClassicyControlPress(e)) openClassicyControlPressContextMenu(e);
 				return;
 			}
+			// The click and double-click ending a rectangle on a row are
+			// not the row's: they neither select nor open it.
+			if (onRow) swallowClassicyPressClick();
 			start(e);
 		};
 		area.addEventListener("mousedown", onDown);

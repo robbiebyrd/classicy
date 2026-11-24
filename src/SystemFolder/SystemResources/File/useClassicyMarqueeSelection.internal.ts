@@ -13,9 +13,10 @@
  * - With Shift held at the press the selection is kept, and the icons the
  *   rectangle touches toggle against it (HIG7 p.290: Shift-selecting
  *   highlighted objects deselects them). Command does nothing more than a
- *   plain press, as in the 8.1 Finder. A Control-press is not a rectangle
- *   at all: it is the contextual-menu click (the surfaces never call
- *   `start` for one; `openClassicyControlPressContextMenu`).
+ *   plain press, as in the 8.1 Finder. A Control-press (or a right-press)
+ *   is not a rectangle at all: it is the contextual-menu click (the
+ *   surfaces never call `start` for one;
+ *   `ClassicyContextualPress.internal.ts`).
  * - Release ends it, keeping the selection. Escape cancels it and restores
  *   the selection from before the press (the 8.1 Finder did not; story
  *   0228-e9l asks for it, as every other Classicy gesture cancels on Escape).
@@ -625,38 +626,3 @@ export function useClassicyMarqueeSelection(options: ClassicyMarqueeOptions): {
 	);
 	return { start, marquee };
 }
-
-/**
- * A Control-press on a surface's empty space, as the Mac OS 8.1 Finder takes
- * it (Infinite Mac): no rectangle, the selection cleared (the caller's), and
- * the contextual menu under the pointer. A macOS browser fires `contextmenu`
- * for a Control-click itself; elsewhere none comes, so one is sent from the
- * press's target once the press's own task has passed without one.
- * @internal
- */
-export const openClassicyControlPressContextMenu = (
-	press: MouseEvent,
-): void => {
-	const target = press.target;
-	if (!(target instanceof Element)) return;
-	let native = false;
-	const heard = () => {
-		native = true;
-	};
-	document.addEventListener("contextmenu", heard, true);
-	setTimeout(() => {
-		document.removeEventListener("contextmenu", heard, true);
-		if (native || !target.isConnected) return;
-		target.dispatchEvent(
-			new MouseEvent("contextmenu", {
-				bubbles: true,
-				cancelable: true,
-				clientX: press.clientX,
-				clientY: press.clientY,
-				ctrlKey: true,
-				button: 2,
-				buttons: 0,
-			}),
-		);
-	}, 0);
-};

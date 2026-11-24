@@ -371,6 +371,74 @@ describe("ClassicyFileBrowser icon view selection rectangle", () => {
 		t.release(40, 230);
 	});
 
+	it("takes a Control-press on an icon as the contextual-menu click (8.1): selected as a press, no drag, the menu, no click after", async () => {
+		const onMoveItems = vi.fn();
+		const t = await setup("marquee-icons-control-icon", { onMoveItems });
+		t.click(PATHS[0]);
+		const menus = vi.fn();
+		t.container.addEventListener("contextmenu", menus);
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", "Macintosh HD:Elsewhere");
+		const restore = dropOn(folder);
+		try {
+			// An unselected icon: selected alone, at the press.
+			fireEvent.mouseDown(t.icon(PATHS[1]), {
+				button: 0,
+				clientX: 130,
+				clientY: 30,
+				ctrlKey: true,
+			});
+			expect(t.selected()).toEqual([PATHS[1]]);
+			// Moving tracks the menu, never drags the icon.
+			fireEvent.mouseMove(document, { clientX: 200, clientY: 120 });
+			expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+			fireEvent.mouseUp(document, { clientX: 200, clientY: 120 });
+		} finally {
+			restore();
+		}
+		expect(onMoveItems).not.toHaveBeenCalled();
+		await nextTask();
+		expect(menus).toHaveBeenCalledTimes(1);
+		expect(menus.mock.calls[0][0].target).toBe(t.icon(PATHS[1]));
+		// A selected icon of two: the selection is kept, and the click the
+		// browser sends after the press does not collapse it.
+		t.click(PATHS[0], { shiftKey: true });
+		expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
+		t.click(PATHS[0], { ctrlKey: true });
+		expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
+		await nextTask();
+		expect(menus).toHaveBeenCalledTimes(2);
+	});
+
+	it("takes a right-press as it takes a Control-press: an icon is selected, empty space deselects, no rectangle", async () => {
+		const t = await setup("marquee-icons-right-press");
+		fireEvent.mouseDown(t.icon(PATHS[1]), {
+			button: 2,
+			clientX: 130,
+			clientY: 30,
+		});
+		expect(t.selected()).toEqual([PATHS[1]]);
+		fireEvent.mouseUp(document, { button: 2 });
+		t.click(PATHS[0], { shiftKey: true });
+		fireEvent.mouseDown(t.icon(PATHS[0]), {
+			button: 2,
+			clientX: 30,
+			clientY: 30,
+		});
+		expect(t.selected()).toEqual([PATHS[0], PATHS[1]]);
+		fireEvent.mouseUp(document, { button: 2 });
+		fireEvent.mouseDown(t.viewport, {
+			button: 2,
+			clientX: 300,
+			clientY: 190,
+		});
+		expect(document.activeElement).toBe(t.holder);
+		expect(t.selected()).toEqual([]);
+		t.move(130, 30);
+		expect(t.marquee()).toBeNull();
+		t.release(130, 30);
+	});
+
 	describe("a drag of a selected icon carries the selection (8.1, as the desktop and list view)", () => {
 		const selectTwo = async (key: string) => {
 			const onMoveItems = vi.fn();
@@ -755,6 +823,91 @@ describe("ClassicyFileBrowser list view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[2]]);
 		fireEvent.keyDown(t.list, { key: "ArrowUp" });
 		expect(t.selected()).toEqual([PATHS[1]]);
+	});
+
+	it("takes the contextual-menu click on a row (8.1): selected as a press, no drag, the menu, no Control-click toggle", async () => {
+		const onMoveItems = vi.fn();
+		const t = await setup("marquee-list-control-row", { onMoveItems });
+		fireEvent.click(t.row(PATHS[0]), { detail: 1 });
+		const menus = vi.fn();
+		t.container.addEventListener("contextmenu", menus);
+		const folder = document.createElement("div");
+		folder.setAttribute("data-classicy-drop-folder", "Macintosh HD:Elsewhere");
+		const restore = dropOn(folder);
+		const name = (path: string) =>
+			t
+				.row(path)
+				.querySelector(".classicyFileBrowserViewTableRowIconLabel") as Element;
+		try {
+			// On an unselected row's name: that row alone, at the press.
+			fireEvent.mouseDown(name(PATHS[1]), {
+				button: 0,
+				clientX: 50,
+				clientY: 45,
+				ctrlKey: true,
+			});
+			expect(t.selected()).toEqual([PATHS[1]]);
+			fireEvent.mouseMove(document, { clientX: 260, clientY: 120 });
+			expect(document.querySelector(".classicyFileDragGhost")).toBeNull();
+			fireEvent.mouseUp(document, { clientX: 260, clientY: 120 });
+		} finally {
+			restore();
+		}
+		expect(onMoveItems).not.toHaveBeenCalled();
+		expect(t.marquee()).toBeNull();
+		await nextTask();
+		expect(menus).toHaveBeenCalledTimes(1);
+		expect(menus.mock.calls[0][0].target).toBe(name(PATHS[1]));
+		// On a selected row of two: kept, and the click after it (which
+		// would Control-click toggle the row) does nothing.
+		fireEvent.mouseDown(name(PATHS[2]), {
+			button: 0,
+			clientX: 50,
+			clientY: 65,
+			shiftKey: true,
+		});
+		fireEvent.mouseUp(document, { clientX: 50, clientY: 65 });
+		fireEvent.click(name(PATHS[2]), { detail: 1, shiftKey: true });
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+		fireEvent.mouseDown(name(PATHS[1]), {
+			button: 0,
+			clientX: 50,
+			clientY: 45,
+			ctrlKey: true,
+		});
+		fireEvent.mouseUp(name(PATHS[1]), {
+			clientX: 50,
+			clientY: 45,
+			ctrlKey: true,
+		});
+		fireEvent.click(name(PATHS[1]), { detail: 1, ctrlKey: true });
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+		await nextTask();
+		expect(menus).toHaveBeenCalledTimes(2);
+	});
+
+	it("takes a right-press on a row or beside it as it takes a Control-press", async () => {
+		const t = await setup("marquee-list-right-press");
+		const name = (path: string) =>
+			t
+				.row(path)
+				.querySelector(".classicyFileBrowserViewTableRowIconLabel") as Element;
+		fireEvent.mouseDown(name(PATHS[2]), {
+			button: 2,
+			clientX: 50,
+			clientY: 65,
+		});
+		expect(t.selected()).toEqual([PATHS[2]]);
+		fireEvent.mouseUp(document, { button: 2 });
+		fireEvent.mouseDown(t.row(PATHS[0]), {
+			button: 2,
+			clientX: 200,
+			clientY: 25,
+		});
+		expect(t.selected()).toEqual([]);
+		t.move(50, 65);
+		expect(t.marquee()).toBeNull();
+		t.release(50, 65);
 	});
 
 	it("takes a Control-press beside a name as the contextual-menu click", async () => {

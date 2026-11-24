@@ -25,6 +25,10 @@ import {
 	ClassicyContextualMenuProvider,
 	useClassicyContextualMenu,
 } from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualMenuProvider";
+import {
+	isClassicyControlPress,
+	openClassicyControlPressContextMenu,
+} from "@/SystemFolder/SystemResources/ContextualMenu/ClassicyContextualPress.internal";
 import { ClassicyCrashScreen } from "@/SystemFolder/SystemResources/CrashScreen/ClassicyCrashScreen";
 // Static, never lazy: WebViewer.tsx registers the "ClassicyAppWebViewer" plugin
 // handler as a module-graph side effect (it imports ./WebViewerContext), not a
@@ -111,7 +115,6 @@ import {
 	emptyClassicyTrash,
 	listClassicyTrashItems,
 } from "@/SystemFolder/SystemResources/File/ClassicyTrash";
-import { openClassicyControlPressContextMenu } from "@/SystemFolder/SystemResources/File/useClassicyMarqueeSelection.internal";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import type { ClassicyMenuItem } from "@/SystemFolder/SystemResources/Menu/ClassicyMenu";
 import { useClassicyPatternOriginElements } from "@/SystemFolder/SystemResources/PatternOrigin/ClassicyPatternOrigin.internal";
@@ -444,16 +447,19 @@ const ClassicyDesktopInner: FunctionalComponent<ClassicyDesktopProps> = ({
 	const startSelectBox = (e: MouseEvent<HTMLDivElement>) => {
 		if ("id" in e.target && e.target.id === "classicyDesktop") {
 			if (e.button > 1) {
+				// A right-press is the contextual-menu click, as a
+				// Control-press is (HIGOS8 p.93): it deselects too.
+				if (e.button === 2) clearActives(e);
 				toggleDesktopContextMenu(e);
 			} else {
 				desktopRef.current?.focus();
 				// The rectangle first, so Escape can restore the selection
 				// the press clears; Shift keeps it. A Control-press is the
 				// contextual-menu click (8.1): no rectangle, the menu.
-				if (e.button === 0 && !e.ctrlKey) desktopMarquee.start(e);
+				const controlPress = isClassicyControlPress(e);
+				if (e.button === 0 && !controlPress) desktopMarquee.start(e);
 				clearActives(e);
-				if (e.button === 0 && e.ctrlKey)
-					openClassicyControlPressContextMenu(e.nativeEvent);
+				if (controlPress) openClassicyControlPressContextMenu(e.nativeEvent);
 			}
 		}
 	};
