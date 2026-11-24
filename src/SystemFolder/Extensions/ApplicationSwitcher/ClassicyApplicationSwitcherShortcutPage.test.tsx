@@ -145,4 +145,91 @@ describe("the Keyboard Shortcuts topic's page on switching applications", () => 
 		).toBeInTheDocument();
 		expect(data()?.cyclingShortcut).toBeUndefined();
 	});
+
+	it("refuses a chord any open application's menus use, with or without Shift, naming the command and its application", async () => {
+		act(() => {
+			useAppManager.setState(
+				produce(useAppManager.getState(), (d) => {
+					const window = (menuBar: object[]) => ({
+						id: "main",
+						closed: false,
+						size: [100, 100] as [number, number],
+						position: [0, 0] as [number, number],
+						minimumSize: [0, 0] as [number, number],
+						menuBar: menuBar as never,
+					});
+					d.System.Manager.Applications.apps["Calculator.app"] = app(
+						"Calculator.app",
+						{
+							windows: {
+								main: window([
+									{
+										id: "file",
+										title: "File",
+										menuChildren: [
+											{ id: "quit", title: "Quit", keyboardShortcut: "⌥Q" },
+										],
+									},
+									{
+										id: "edit",
+										title: "Edit",
+										menuChildren: [
+											{ id: "copy", title: "Copy", keyboardShortcut: "⌘C" },
+										],
+									},
+								]),
+							},
+						},
+					);
+					d.System.Manager.Applications.apps["SimpleText.app"] = app(
+						"SimpleText.app",
+						{
+							windows: {
+								main: window([
+									{
+										id: "file",
+										title: "File",
+										menuChildren: [
+											{
+												id: "save-as",
+												title: "Save As&hellip;",
+												keyboardShortcut: "⇧⌘S",
+											},
+										],
+									},
+								]),
+							},
+						},
+					);
+					// A windowless menu's chords, claimed while its app was in front.
+					d.System.Manager.Applications.apps["Writer.app"] = app("Writer.app");
+					d.System.Manager.Keyboard.app = { "Writer.app": ["control+n"] };
+				}),
+				true,
+			);
+		});
+		render(<ClassicyApplicationSwitcherShortcutPage appId="AppleGuide.app" />);
+		await openDialog();
+		const refused = async (text: RegExp) => {
+			expect(await screen.findByText(text)).toBeInTheDocument();
+			fireEvent.click(
+				screen.getAllByRole("button", { name: "OK" }).at(-1) as HTMLElement,
+			);
+		};
+		press({ key: "q", code: "KeyQ", altKey: true });
+		await refused(/already used by “Quit in Calculator”/);
+		// Off a Mac a Control press records as ⌘, which a ⌘ item answers to.
+		press({ key: "c", code: "KeyC", ctrlKey: true });
+		await refused(/already used by “Copy in Calculator”/);
+		// The chord with Shift added is the previous application's.
+		press({ key: "s", code: "KeyS", ctrlKey: true });
+		await refused(/already used by “Save As… in SimpleText, with Shift”/);
+		press({ key: "n", code: "KeyN", ctrlKey: true });
+		await refused(/already used by “a menu command of Writer”/);
+		expect(data()?.cyclingShortcut).toBeUndefined();
+		// A chord nothing uses is taken.
+		press({ key: "j", code: "KeyJ", altKey: true });
+		press({ key: "Enter" });
+		expect(data().cyclingShortcut).toBe("⌥J");
+	});
 });

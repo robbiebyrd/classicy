@@ -546,6 +546,10 @@ describe("ClassicyDesktopMenuBar — the Application menu's commands", () => {
 			["Notes.app", "Notes", false, false, true, "hidden"],
 			["SimpleText.app", "SimpleText", false, true, true],
 		]);
+		// A screen reader hears what the dimmed icon shows (review M7).
+		const row = (id: string) => document.getElementById(id) as HTMLElement;
+		expect(row("Notes.app").getAttribute("aria-description")).toBe("Hidden");
+		expect(row("Finder.app").hasAttribute("aria-description")).toBe(false);
 	});
 
 	it("keeps the front application while an extension holds focus", () => {

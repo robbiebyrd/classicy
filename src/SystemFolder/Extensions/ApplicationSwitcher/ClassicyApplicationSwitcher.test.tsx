@@ -19,6 +19,8 @@ import {
 	useAppManager,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { frontAppIdOf } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontAppId";
+import { ClassicyScreenSaver } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaver";
+import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { ClassicyApplicationSwitcher } from "./ClassicyApplicationSwitcher";
 import {
 	APPLICATION_SWITCHER_APP_ID,
@@ -173,6 +175,53 @@ describe("the Application Switcher", () => {
 		});
 	});
 
+	describe("under the screen saver", () => {
+		const saverShowing = () =>
+			apps().apps[SCREEN_SAVER_APP_ID]?.data?.active === true;
+		const withSaverShowing = () => {
+			setUp();
+			act(() => {
+				useAppManager.setState(
+					produce(useAppManager.getState(), (d) => {
+						d.System.Manager.Applications.apps[SCREEN_SAVER_APP_ID] = app(
+							SCREEN_SAVER_APP_ID,
+							{ extension: true, data: { active: true } },
+						);
+					}),
+					true,
+				);
+			});
+		};
+
+		// Both listen on the document in the capture phase; which runs first is
+		// only their registration order (review M4).
+		for (const saverFirst of [true, false]) {
+			it(`the key that wakes the saver never also switches (${saverFirst ? "the saver's listener first" : "the switcher's listener first"})`, () => {
+				withSaverShowing();
+				render(
+					saverFirst ? (
+						<>
+							<ClassicyScreenSaver />
+							<ClassicyApplicationSwitcher />
+						</>
+					) : (
+						<>
+							<ClassicyApplicationSwitcher />
+							<ClassicyScreenSaver />
+						</>
+					),
+				);
+				expect(saverShowing()).toBe(true);
+				press(grave);
+				expect(saverShowing()).toBe(false);
+				expect(front()).toBe("Notes.app");
+				// Awake, the chord switches.
+				press(grave);
+				expect(front()).toBe("Calc.app");
+			});
+		}
+	});
+
 	describe("the palette", () => {
 		it("is drawn once torn off: a floating windoid titled Applications, in the menu's order", () => {
 			setUp();
@@ -212,6 +261,9 @@ describe("the Application Switcher", () => {
 			expect(button("Finder").classList).not.toContain(
 				"classicyApplicationSwitcherHidden",
 			);
+			// A screen reader hears what the dimmed icon shows (review M7).
+			expect(button("Calc").getAttribute("aria-description")).toBe("Hidden");
+			expect(button("Finder").hasAttribute("aria-description")).toBe(false);
 		});
 
 		it("switches on a click, and on an Option-click hides the application that was in front", () => {
@@ -230,7 +282,7 @@ describe("the Application Switcher", () => {
 			);
 		});
 
-		it("never takes the menu bar: a click on its bar leaves the front application", () => {
+		it("never takes the menu bar or the focus: a click on its bar leaves the front application", () => {
 			setUp();
 			render(<ClassicyApplicationSwitcher />);
 			tearOff();
@@ -238,6 +290,9 @@ describe("the Application Switcher", () => {
 			fireEvent.mouseUp(root);
 			fireEvent.click(root);
 			expect(front()).toBe("Notes.app");
+			// Not only the bar's fallback: the focus itself stays (review C1).
+			expect(apps().focusedAppId).toBe("Notes.app");
+			expect(apps().apps[APPLICATION_SWITCHER_APP_ID].focused).toBeFalsy();
 		});
 
 		it("sets its options from the zoom box: names, Option for the icon size, Option-Shift for the orientation", () => {

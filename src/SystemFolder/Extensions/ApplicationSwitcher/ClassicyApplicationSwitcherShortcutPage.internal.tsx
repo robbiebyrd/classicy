@@ -1,9 +1,11 @@
 import { type FC as FunctionalComponent, useMemo } from "react";
+import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import { useClassicyAppearanceLayout } from "@/Appearance/useClassicyAppearanceLayout";
 import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyCheckbox } from "@/SystemFolder/SystemResources/Checkbox/ClassicyCheckbox";
 import { useClassicyStandardHelpMenu } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyStandardHelpMenu";
 import { ClassicyKbd } from "@/SystemFolder/SystemResources/Kbd/ClassicyKbd";
@@ -12,6 +14,10 @@ import {
 	type ClassicyKeyboardEquivalentInUse,
 	keyboardEquivalentsInUse,
 } from "@/SystemFolder/SystemResources/KeyboardEquivalent/ClassicyKeyboardEquivalentRules";
+import {
+	classicyAppMenuEquivalentsInUse,
+	classicyAppSwitcherChordConflicts,
+} from "./ClassicyApplicationSwitcherChordConflicts";
 import {
 	APPLICATION_SWITCHER_APP_ID,
 	APPLICATION_SWITCHER_SET_CYCLING,
@@ -36,8 +42,11 @@ export const CLASSICY_APP_SWITCHER_SHORTCUT_FIELD_ID =
  * checkbox turns keyboard switching on or off, and a keyboard equivalent
  * field records the chord for the next application (Shift added goes to the
  * previous one). The chord must hold Control, Option or Command and no
- * Shift, and may not be one the system menus, the Help menu or another
- * extension already use.
+ * Shift, and may not be one the system menus, the Help menu, another
+ * extension or any open application's menus already use, with or without
+ * Shift, Control and Command counted as one (the chord is read ahead of
+ * every menu, and a ⌘ menu command answers to Control too):
+ * `classicyAppSwitcherChordConflicts`.
  *
  * `appId` owns the recording dialog: the topic's own app (Apple Guide).
  */
@@ -58,22 +67,44 @@ export const ClassicyApplicationSwitcherShortcutPage: FunctionalComponent<{
 
 	const systemMenu = useAppManager((s) => s.System.Manager.Desktop.systemMenu);
 	const global = useAppManager((s) => s.System.Manager.Keyboard.global);
+	const apps = useAppManager((s) => s.System.Manager.Applications.apps);
+	const frontMenu = useAppManager((s) => s.System.Manager.Desktop.appMenu);
+	const appChords = useAppManager((s) => s.System.Manager.Keyboard.app);
+	const frontAppId = useFrontAppId();
+	const overrides = useClassicyAppIdentityOverrides();
 	const { helpItem } = useClassicyStandardHelpMenu({
 		appMenu: undefined,
 		appId: undefined,
 	});
 	const inUse = useMemo<ClassicyKeyboardEquivalentInUse[]>(
-		() => [
-			...keyboardEquivalentsInUse(systemMenu ?? []),
-			...keyboardEquivalentsInUse([helpItem]),
-			...Object.entries(global)
-				.filter(([, g]) => g.appId !== APPLICATION_SWITCHER_APP_ID)
-				.map(([chord, g]) => ({
-					shortcut: g.shortcut ?? chord,
-					name: g.title ?? g.appId,
-				})),
+		() =>
+			classicyAppSwitcherChordConflicts([
+				...keyboardEquivalentsInUse(systemMenu ?? []),
+				...keyboardEquivalentsInUse([helpItem]),
+				...Object.entries(global)
+					.filter(([, g]) => g.appId !== APPLICATION_SWITCHER_APP_ID)
+					.map(([chord, g]) => ({
+						shortcut: g.shortcut ?? chord,
+						name: g.title ?? g.appId,
+					})),
+				...classicyAppMenuEquivalentsInUse({
+					apps,
+					frontAppId,
+					frontMenu,
+					appChords,
+					overrides,
+				}),
+			]),
+		[
+			systemMenu,
+			helpItem,
+			global,
+			apps,
+			frontAppId,
+			frontMenu,
+			appChords,
+			overrides,
 		],
-		[systemMenu, helpItem, global],
 	);
 
 	return (

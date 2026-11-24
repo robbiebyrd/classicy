@@ -41,6 +41,27 @@ export const appSwitcherEntryMark = (
 			? { checked: false, mark: "diamond" }
 			: { checked: false };
 
+/** The accessible description of a hidden application's entry. */
+export const CLASSICY_APP_SWITCHER_HIDDEN_DESCRIPTION = "Hidden";
+
+/**
+ * The accessible description of an Application menu row or an Application
+ * Switcher button, for the state only its look shows: a hidden application
+ * (its icon dimmed, HIG7 p.127) is "Hidden", and, with `marked` (the menu's
+ * ◆; the palette draws none), one a notification marks also "Requests your
+ * attention". `undefined` when there is neither.
+ */
+export const appSwitcherEntryDescription = (
+	entry: Pick<ClassicyAppSwitcherEntry, "hidden" | "notified">,
+	{ marked = false }: { marked?: boolean } = {},
+): string | undefined => {
+	const parts = [
+		...(entry.hidden ? [CLASSICY_APP_SWITCHER_HIDDEN_DESCRIPTION] : []),
+		...(marked && entry.notified ? ["Requests your attention"] : []),
+	];
+	return parts.length > 0 ? parts.join(", ") : undefined;
+};
+
 /** What `appSwitcherAppsFrom` needs beyond the apps and their identities. */
 export type ClassicyAppSwitcherOptions = {
 	/**

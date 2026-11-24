@@ -6,6 +6,7 @@ import {
 	useAppManager,
 	useAppManagerDispatch,
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
+import { SCREEN_SAVER_APP_ID } from "@/SystemFolder/Extensions/ScreenSaver/ClassicyScreenSaverContext";
 import { ClassicyApp } from "@/SystemFolder/SystemResources/App/ClassicyApp";
 import {
 	APPLICATION_SWITCHER_APP_ID,
@@ -37,6 +38,16 @@ import { ClassicyApplicationSwitcherPalette } from "./ClassicyApplicationSwitche
  * the Keyboard Shortcuts topic lists them and another extension cannot take
  * them.
  */
+/**
+ * Whether a screen saver is showing (`ScreenSaver.app`'s `active`): the key
+ * that wakes it is the saver's alone. Read from the live store when the key
+ * comes, since the saver's own capture listener on the document may run
+ * first and clear it (then it has also prevented the key) or after.
+ */
+const screenSaverShowing = (): boolean =>
+	useAppManager.getState().System.Manager.Applications.apps[SCREEN_SAVER_APP_ID]
+		?.data?.active === true;
+
 export const ClassicyApplicationSwitcher: FunctionalComponent = () => {
 	const icon = useClassicyAsset("icons", "system.extension") ?? "";
 	const rawData = useAppManager(
@@ -54,7 +65,9 @@ export const ClassicyApplicationSwitcher: FunctionalComponent = () => {
 	useEffect(() => {
 		if (!keyboardCycling) return;
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.defaultPrevented) return;
+			// A key another listener took (the saver waking, a keyboard
+			// equivalent dialog recording), or one that wakes the saver.
+			if (e.defaultPrevented || screenSaverShowing()) return;
 			const direction = classicyAppSwitcherChordDirection(cyclingShortcut, e);
 			if (direction === 0) return;
 			e.preventDefault();

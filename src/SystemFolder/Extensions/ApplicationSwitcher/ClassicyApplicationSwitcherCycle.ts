@@ -69,12 +69,31 @@ const physicalKey = (code: string): string | undefined => {
 	return PUNCTUATION_BY_CODE[code];
 };
 
+// The letter a keydown names, as a recorded chord names it
+// (`keyboardShortcutFromEvent`): the character typed, except where Option
+// composed another one (Option-J types "∆" on a Mac), which names the
+// physical letter.
+const typedLetter = (
+	e: Pick<KeyboardEvent, "key" | "code" | "altKey">,
+): string => {
+	const typed = (e.key ?? "").toLowerCase();
+	if (/^[a-z]$/.test(typed)) return typed;
+	const code = e.code ?? "";
+	return e.altKey && code.startsWith("Key") ? code.slice(3).toLowerCase() : "";
+};
+
 /**
  * Which way a keydown switches applications with `shortcut`: `1` for the
  * next application, `-1` for the previous one (the same chord with Shift),
  * `0` for neither. The modifiers follow `shortcutMatchesEvent`'s rules
- * (Command is Meta or Control; Option-only needs no Control or Meta), and
- * the key matches by the character typed or by the physical key.
+ * (Command is Meta or Control; Option-only needs no Control or Meta),
+ * except that a chord with both Control and Command needs both held. A
+ * letter matches by the character typed (the physical key only where Option
+ * composed another character), so on a layout that moves letters one key
+ * matches a letter chord (AZERTY's Z, not its W, for "⌃Z"); any other key
+ * matches by the character or by the physical key (`code`), so Shift-`
+ * (which types "~") goes back, and the key beside Tab switches on a layout
+ * that types another character there.
  */
 export const classicyAppSwitcherChordDirection = (
 	shortcut: string,
@@ -86,7 +105,9 @@ export const classicyAppSwitcherChordDirection = (
 	if (!isClassicyAppSwitcherShortcut(shortcut)) return 0;
 	const p = parseKeyboardShortcut(shortcut);
 	const cmdOrCtrl = e.metaKey || e.ctrlKey;
-	if (p.command) {
+	if (p.command && p.control) {
+		if (!e.ctrlKey || !e.metaKey) return 0;
+	} else if (p.command) {
 		if (!cmdOrCtrl) return 0;
 	} else if (p.control) {
 		if (!e.ctrlKey || e.metaKey) return 0;
@@ -95,8 +116,12 @@ export const classicyAppSwitcherChordDirection = (
 	}
 	if (p.option !== e.altKey) return 0;
 	const want = p.key.toLowerCase();
-	const typed = (e.key ?? "").toLowerCase();
-	if (typed !== want && physicalKey(e.code ?? "") !== want) return 0;
+	if (/^[a-z]$/.test(want)) {
+		if (typedLetter(e) !== want) return 0;
+	} else {
+		const typed = (e.key ?? "").toLowerCase();
+		if (typed !== want && physicalKey(e.code ?? "") !== want) return 0;
+	}
 	return e.shiftKey ? -1 : 1;
 };
 

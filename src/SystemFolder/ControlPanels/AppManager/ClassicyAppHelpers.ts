@@ -160,6 +160,19 @@ export function focusApp(ds: ClassicyStore, appId: string) {
 	const restore = pickWindowToRestore(app);
 	if (restore) {
 		focusWindow(ds, appId, restore.id);
+	} else if (app.extension === true) {
+		// An extension with no document window to restore never takes the focus
+		// on its own: marked focused, it would unfocus the front application's
+		// window while `frontAppIdOf` still names that application, so the bar
+		// would show one app and the keyboard reach none. Its most recent open
+		// window (a utility window: the Application Switcher's palette) comes
+		// forward through `focusWindow`, which floats a menuless one over the
+		// front application, as a click in it does (the container's
+		// `ClassicyAppActivate`); with no open window nothing changes.
+		const latest = mostRecentAppWindow(
+			listAppWindows(app).filter((w) => !w.closed),
+		);
+		if (latest) focusWindow(ds, appId, latest.id);
 	} else {
 		markAppFocused(ds, appId);
 	}

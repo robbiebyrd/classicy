@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { type FC as FunctionalComponent, useMemo } from "react";
+import { type FC as FunctionalComponent, useEffect, useMemo } from "react";
 import { useClassicyAppIdentityOverrides } from "@/Appearance/ClassicyAppIdentity";
 import {
 	useAppManager,
@@ -7,7 +7,10 @@ import {
 } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils";
 import { useFrontAppId } from "@/SystemFolder/ControlPanels/AppManager/ClassicyFrontApp";
 import { ClassicyBevelButton } from "@/SystemFolder/SystemResources/BevelButton/ClassicyBevelButton";
-import { appSwitcherAppsFrom } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
+import {
+	appSwitcherAppsFrom,
+	appSwitcherEntryDescription,
+} from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { ClassicyIconImage } from "@/SystemFolder/SystemResources/Icon/ClassicyIconImage.internal";
 import { ClassicyWindow } from "@/SystemFolder/SystemResources/Window/ClassicyWindow";
 import {
@@ -22,6 +25,52 @@ import {
 } from "./ClassicyApplicationSwitcherContext";
 
 type Settings = ReturnType<typeof classicyApplicationSwitcherSettings>;
+
+/** The palette window's root class (`ClassicyWindow`'s `className`). */
+const PALETTE_CLASS = "classicyApplicationSwitcherPalette";
+
+const inPalette = (node: EventTarget | null): boolean =>
+	node instanceof Element && node.closest(`.${PALETTE_CLASS}`) !== null;
+
+/**
+ * Keeps the keyboard off the palette under the mouse, as Mac OS 8.5's
+ * palette never took it from the application in front: a press anywhere in
+ * the palette (a button, the drag bar, a box, the space between) moves no
+ * focus, so keys go on to the front application, Enter and Space included
+ * (a focused palette control would take those: the front application leaves
+ * them to a control of another window,
+ * `isActivationKeyAimedAtOtherWindowControl`). The press's default is prevented in
+ * the capture phase, before anything inside sees it; nothing in the window
+ * reads `defaultPrevented` on a press, a pressed bevel button and a held box
+ * still draw pressed (`.pressed`, `:active`), and the click still comes. The
+ * buttons stay reachable with Tab.
+ */
+const useClassicyPaletteKeepsKeyboardOff = () => {
+	useEffect(() => {
+		if (typeof document === "undefined") return;
+		const onDown = (e: MouseEvent) => {
+			if (e.button === 0 && inPalette(e.target)) e.preventDefault();
+		};
+		document.addEventListener("mousedown", onDown, true);
+		return () => document.removeEventListener("mousedown", onDown, true);
+	}, []);
+};
+
+/**
+ * Hands the keyboard to the application a palette button switches to: the
+ * element that has DOM focus gives it up unless it is inside one of that
+ * application's windows (DOM id `${appId}_…`), so a control of the
+ * application left behind, or the palette's button pressed from the
+ * keyboard, never takes the next Enter or Space.
+ */
+const releaseKeyboardTo = (appId: string) => {
+	if (typeof document === "undefined") return;
+	const active = document.activeElement;
+	if (!(active instanceof HTMLElement) || active === document.body) return;
+	const win = active.closest(".classicyWindow");
+	if (win && !inPalette(win) && win.id.startsWith(`${appId}_`)) return;
+	active.blur();
+};
 
 /**
  * The Application Switcher palette (Mac OS 8.5): a floating utility window
@@ -67,6 +116,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	// `platinum-85-switcher-no-names.png`); down the side it has no title
 	// (`…-horizontal.png`); with names across the top it has both.
 	const narrow = !horizontal && !showNames && !large;
+	useClassicyPaletteKeepsKeyboardOff();
 
 	return (
 		<ClassicyWindow
@@ -105,7 +155,7 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 			}}
 			onCloseFunc={() => dispatch({ type: APPLICATION_SWITCHER_CLOSE })}
 			className={classNames(
-				"classicyApplicationSwitcherPalette",
+				PALETTE_CLASS,
 				horizontal && "classicyApplicationSwitcherHorizontal",
 				large && "classicyApplicationSwitcherLargeIcons",
 				!showNames && "classicyApplicationSwitcherNoNames",
@@ -121,17 +171,19 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 						on={app.focused === true}
 						disabled={modalOpen}
 						aria-label={app.name}
+						aria-description={appSwitcherEntryDescription(app)}
 						className={classNames(
 							"classicyApplicationSwitcherButton",
 							app.hidden && "classicyApplicationSwitcherHidden",
 						)}
-						onClickFunc={(e) =>
+						onClickFunc={(e) => {
 							dispatch({
 								type: APPLICATION_SWITCHER_SWITCH,
 								app: { id: app.id },
 								hideFront: e.altKey,
-							})
-						}
+							});
+							releaseKeyboardTo(app.id);
+						}}
 					>
 						<ClassicyIconImage
 							className="classicyApplicationSwitcherIcon"

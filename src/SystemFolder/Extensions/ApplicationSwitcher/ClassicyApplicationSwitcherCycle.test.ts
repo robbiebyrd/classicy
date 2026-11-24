@@ -169,4 +169,105 @@ describe("the switching chord", () => {
 		);
 		expect(classicyAppSwitcherShortcutProblem("⌃J")).toBe(null);
 	});
+
+	describe("the two loose cases (review M6)", () => {
+		const key = (
+			init: Partial<
+				Pick<
+					KeyboardEvent,
+					"key" | "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey"
+				>
+			>,
+		) => ({
+			key: "",
+			code: "",
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+			metaKey: false,
+			...init,
+		});
+
+		it("a chord with Control and Command needs both held", () => {
+			const chord = "⌃⌘J";
+			expect(
+				classicyAppSwitcherChordDirection(
+					chord,
+					key({ key: "j", code: "KeyJ", ctrlKey: true }),
+				),
+			).toBe(0);
+			expect(
+				classicyAppSwitcherChordDirection(
+					chord,
+					key({ key: "j", code: "KeyJ", metaKey: true }),
+				),
+			).toBe(0);
+			expect(
+				classicyAppSwitcherChordDirection(
+					chord,
+					key({ key: "j", code: "KeyJ", ctrlKey: true, metaKey: true }),
+				),
+			).toBe(1);
+			expect(
+				classicyAppSwitcherChordDirection(
+					chord,
+					key({
+						key: "J",
+						code: "KeyJ",
+						ctrlKey: true,
+						metaKey: true,
+						shiftKey: true,
+					}),
+				),
+			).toBe(-1);
+		});
+
+		it("a letter matches the key that types it, not the key in its place on a US keyboard (AZERTY's Z and W)", () => {
+			// On AZERTY the key in the US W place types "z", and the one in the
+			// US Z place types "w".
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌃Z",
+					key({ key: "z", code: "KeyW", ctrlKey: true }),
+				),
+			).toBe(1);
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌃Z",
+					key({ key: "w", code: "KeyZ", ctrlKey: true }),
+				),
+			).toBe(0);
+			// Shift types the capital, still the letter.
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌃Z",
+					key({ key: "Z", code: "KeyW", ctrlKey: true, shiftKey: true }),
+				),
+			).toBe(-1);
+		});
+
+		it("an Option letter a Mac composes into another character still matches by its key", () => {
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌥J",
+					key({ key: "∆", code: "KeyJ", altKey: true }),
+				),
+			).toBe(1);
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌥J",
+					key({ key: "∆", code: "KeyK", altKey: true }),
+				),
+			).toBe(0);
+		});
+
+		it("the key beside Tab still switches on a layout that types another character there", () => {
+			expect(
+				classicyAppSwitcherChordDirection(
+					"⌃`",
+					key({ key: "²", code: "Backquote", ctrlKey: true }),
+				),
+			).toBe(1);
+		});
+	});
 });
