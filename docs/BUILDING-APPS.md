@@ -1140,15 +1140,31 @@ registerClassicyFindSource({
   sources' results still show. Results without a `name`, a `kind` and an
   `open` function are dropped with a warning.
 - Once the search's `signal` aborts, whatever your source returns is
-  ignored; stop the work you started (a `fetch` given the signal does).
+  ignored; stop the work you started (a `fetch` given the signal does). A
+  source that has not answered within 30 seconds is given up (its signal
+  aborts, a warning is logged); set `timeoutMs` on the source for another
+  bound.
+- Not on the Internet? Name the tab, the list and the results' column in
+  your own words when you register: `registerClassicyFindSource(source, {
+  labels: { tab: 'Search Archive', sites: 'Collections', site: 'Collection' } })`.
+  Without labels they keep Sherlock's "Search Internet", "Search Sites" and
+  "Site"; with several sources, the first registered with labels names them.
 - `open()` runs when the user opens a result: open a window of your app,
   a URL (`ClassicyDesktopOpenUrl`, trusted from your code), or a file
   (`openClassicyFileSystemPath(fs, path, dispatch)`, the Finder's way, which
-  also records a Recent Document).
+  also records a Recent Document). It may return a promise; one that
+  rejects is logged like a throw.
 - Re-registering the same `id` replaces the source; the call returns the
   unregister. `useClassicyFindSources()` lists the sources in a component.
 - With no source registered, Find File is Mac OS 8.1's window, with no tabs.
   Both Appearance Packages show the tab once one is.
+- Your own files are found by Find File without a source: it searches the
+  desktop's file system (`fileSystemStorageKey`). A file whose bytes live
+  behind a `_url` is found without a request; its size is read (a HEAD
+  request) only when Items Found draws its row or a size row asks, a few at
+  a time. Record `_size` on such files to spare the requests. Its contents
+  are never fetched for the contents criterion (Option), which reads
+  `_data` only.
 
 The example app registers one (`example/src/Applications/FindSources/`).
 Full reference: [AGENT-REFERENCE §11, "Find File and search

@@ -708,25 +708,42 @@ More Choices adds the first unused criterion, ten at most) are matched by
 `searchClassicyFileSystem` (`ClassicyFindFileSearch.ts`): async, aborted by
 its `AbortSignal`, over the live tree of the desktop's
 `fileSystemStorageKey`, under every disk and the Trash, the Desktop Folder
-or one disk (the location is kept, `data.location`). Invisible items are
-found only by a visibility row, but invisible folders are searched (the
-Trash's items are found); the Desktop Folder counts as visible. Items Found
-(one window, reused; "No items were found." leaves the last results) lists
-Name/Size/Kind/Last Modified with the name highlighted as the Finder's list
-draws it, and a path pane (`ClassicyListBox` options' `depth`). Open Item
+or one disk (the location is kept, `data.location`; its pop-up is
+`analyticsPrivate`). Rows needing no read are checked first; a size (`fs.size`
+takes a `signal`) or contents (Option's contents criterion, `_data` only,
+never a `_url` fetch) is read only for an item that passed them, at most
+four reads at once across the session (`ClassicyFindLookups.internal.ts`),
+under the search's signal; "is within N of" follows 8.1 as measured (N
+weeks D−7N−1…D+7N, N months of 31 days D−31N−1…D+31N, days ±N). Invisible
+items are found only by a visibility row, but invisible folders are
+searched (the Trash's items are found); the Desktop Folder counts as
+visible, and "on the desktop" lists it too. Items Found (one window,
+reused; "No items were found." leaves the last results; a failed search
+is a stop alert) lists Name/Size/Kind/Last Modified (Classicy's clock) with
+the name highlighted as the Finder's list draws it, and a path pane
+(`ClassicyListBox` options' `depth`); it is memoized, draws only the rows
+in view (`ClassicyTable`'s `windowed`/`onRowsShown`) and reads a file's
+size as its row is drawn, so a keystroke or an unrelated write redraws
+nothing. Neither window has a title-bar icon (8.1). Captures:
+`packages/appearance/platinum/resources/screenshots/find-file/`. Open Item
 (⌥O) uses `openClassicyFileSystemPath` (Finder routing, recorded as a recent
 document; a folder now opens in front, `ClassicyAppFinderOpenFolder`'s
 `focus`); Open Enclosing Folder (⌥E) uses `revealClassicyFileSystemPath` →
 `ClassicyAppFinderRevealItem` (the folder's Finder window in front, the item
 selected through `ClassicyFileBrowser`'s `reveal`, `Finder.app`
-`data.reveal`, stripped from persistence; a desktop item's icon selected),
+`data.reveal`, stripped from persistence and forgotten once shown,
+`ClassicyAppFinderRevealDone`, or when that window closes; a desktop item's
+icon selected),
 refusing an invisible place with 8.1's alert. Closing the last window quits.
 Hosts make their content findable with `registerClassicyFindSource({ id,
 name, icon?, search(words, { signal }) })` (`ClassicyFindSources.ts`):
 results `{ name, kind, icon?, open }`; Find File then shows Sherlock's
-Search Internet tab (both packages: a ruling, System 7.5 had no Sherlock);
-a new search, Stop or Quit aborts the last; a failing source is logged
-(`classicyLog("error", "ClassicyFindFile", …)`) and the others still show.
+Search Internet tab (both packages: a ruling, System 7.5 had no Sherlock;
+`registerClassicyFindSource(source, { labels: { tab, sites, site } })`
+renames it, its list and the site column); a new search, Stop, Quit or the
+source's `timeoutMs` (30 s) aborts it; a failing source is logged
+(`classicyLog("error", "ClassicyFindFile", …)`) and the others still show;
+each tab dims only for its own search.
 Typed words stay out of analytics (`ClassicyInput`'s `analyticsPrivate`).
 Pop-up options take `dividerBefore` (each package draws its menu divider).
 Details: `docs/AGENT-REFERENCE.md` §11, "Find File and search sources".
