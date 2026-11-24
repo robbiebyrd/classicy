@@ -912,12 +912,29 @@ describe("ClassicyFileBrowser list view selection rectangle", () => {
 	});
 
 	// In a browser the list fills the window contents: below the rows, the
-	// press lands on the list's own box (its table's container), not on the
-	// window contents around the browser (found at integration, Chromium).
+	// press lands on the list's own box (its table's container, or the
+	// browser's root), not on the window contents around the browser (found
+	// at integration, Chromium). jsdom lays nothing out, so these tests name
+	// the element pressed; which element a real press lands on is a browser
+	// fact only a real browser shows (the integration's Chromium and Firefox
+	// checks, integration-D report).
 	it("starts from a press on the list's own box below its rows", async () => {
 		const t = await setup("marquee-list-own-box");
 		boxes.unshift([".classicyTableContainer", [0, 0, 400, 200]]);
 		fireEvent.mouseDown(t.list, { button: 0, clientX: 50, clientY: 150 });
+		t.move(60, 45);
+		expect(t.marquee()).not.toBeNull();
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+		t.release(60, 45);
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+	});
+
+	it("starts from a press on the browser's own root outside the list", async () => {
+		const t = await setup("marquee-list-root");
+		const root = t.container.querySelector(
+			".classicyFileBrowserFillList",
+		) as HTMLElement;
+		fireEvent.mouseDown(root, { button: 0, clientX: 50, clientY: 150 });
 		t.move(60, 45);
 		expect(t.marquee()).not.toBeNull();
 		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);

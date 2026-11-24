@@ -95,21 +95,23 @@ export const isClassicyFileBrowserListBlank = (
 };
 
 /**
- * Whether a press on `target` is on the list view's own box below its rows:
- * the browser's root or the list's container, outside the table. The list
- * fills the window contents (the root and the table's container are as
- * tall as the window), so a press below the rows lands on them rather than
- * on the window contents around the browser.
+ * Whether a press on `target` is on the list view's own empty space outside
+ * its table: below the rows, or beside a table narrower than the window.
+ * That is the list's container, outside the table; a press on the
+ * browser's root itself is the background already
+ * (`isClassicyFileBrowserBackground`: the root contains itself).
+ * The list fills the window contents (the root and the table's container
+ * are as tall as the window), so in a browser such a press lands on them
+ * rather than on the window contents around the browser.
  * @internal
  */
-export const isClassicyFileBrowserListBelowRows = (
+export const isClassicyFileBrowserListOutsideTable = (
 	target: Element,
 	root: Element,
 ): boolean =>
-	target === root ||
-	(root.contains(target) &&
-		target.matches(".classicyTableContainer") &&
-		target.closest("table") === null);
+	root.contains(target) &&
+	target.matches(".classicyTableContainer") &&
+	target.closest("table") === null;
 
 /**
  * Where a list's rows show in its scroller: the scroller's box, less the
@@ -192,7 +194,7 @@ export function useClassicyFileBrowserListMarquee({
 				isClassicyFileBrowserListBlank(target, e.clientX, e.clientY);
 			if (
 				!onRow &&
-				!isClassicyFileBrowserListBelowRows(target, root) &&
+				!isClassicyFileBrowserListOutsideTable(target, root) &&
 				!isClassicyFileBrowserBackground(target, root, area)
 			) {
 				// On a row's icon, name or other column, the contextual-menu
