@@ -1,62 +1,128 @@
-// The Platinum checkbox look (from ClassicyCheckbox.scss): the face, the
-// beveled box border, the checkmark, dash and X glyphs, then the pressed,
-// disabled, focus and default overrides, in their original order. The size,
-// margin and holder stay in the base sheet.
-@use "sass:string";
-@use "../mixins";
+// The Platinum checkbox look (from ClassicyCheckbox.scss), pixel for pixel
+// from HIGOS8 Figure 2-8 (1997, p.28), which Mac OS 8.1 draws the same
+// (resources/screenshots/mac-os-8.1/platinum-81-finder-preferences.png:
+// "Spring-loaded folders" empty and checked, through the emulator's display
+// colors): the box, at rest, pressed and dimmed, and its marks (the check,
+// the mixed dash and the localization X; `_marks.scss`). The size, margin
+// and holder stay in the base sheet.
+//
+// - At rest: a black frame, a white highlight along the top and left and a
+//   #888888 shadow along the right and bottom inside it, the two corners
+//   where they meet in the face's #DDDDDD, and the face. No shadow outside.
+// - Pressed: the face #777777, the highlight #555555 and the shadow #999999.
+// - Dimmed: a #888888 frame around the face alone.
+//
+// The bevel follows the box, as the inset shadows it replaced did: the box
+// is the base sheet's `window.controlSize` square in a `window.borderSize`
+// frame, both editable, so each band is a frame's width thick (Figure 2-8's
+// one pixel at the default metrics) and runs from an edge of the padding
+// box, its length the padding box's less the corner it leaves to the face.
+// The marks are fixed art on the checkbox's grid (`checkbox.pixel`), from
+// the padding box's corner. The grays are the gray ramp, each with the core
+// token nearest it for a theme of another package.
+@use "pkg:@classicy/classicy/scss/layout";
+@use "../marks";
+
+$band: var(--window-border-size);
+// Two bands: the frame's width doubled, a core derivation (`window.borderSize`
+// x 2), so no multiplier of the editable metric is written here.
+$two-bands: var(--control-frame-width);
+
+// The bevel's layers over the face's color: the highlight's top row (to the
+// corner it leaves at the top right) and left column (below that row, to
+// the corner at the bottom left), the shadow's right column (below the top
+// right corner, to the bottom) and bottom row (between the corners).
+@function bevel($light, $dark, $face) {
+  @return layout.classicy-px-rect($light, 0, 0, calc(100% - #{$band}), $band),
+    layout.classicy-px-rect($light, 0, $band, $band, calc(100% - #{$two-bands})),
+    layout.classicy-px-rect($dark, right 0, top $band, $band, calc(100% - #{$band})),
+    layout.classicy-px-rect($dark, left $band, bottom 0, calc(100% - #{$two-bands}), $band),
+    $face;
+}
 
 @mixin checkbox {
   .classicyCheckbox {
+    border: var(--window-border-size) solid var(--color-window-border);
     border-radius: 0;
-    background: var(--color-system-03);
+    background: bevel(var(--color-white), marks.ramp("8"), var(--color-system-02));
 
-    // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard on-state
-    // mark. (The "X" is only a localization opt-in, see .classicyCheckboxX.)
-    &:checked {
-      &:after {
-        font-family: var(--ui-font), sans-serif;
-        font-size: var(--ui-font-size);
-        line-height: var(--ui-font-size-caption);
-        display: flex;
-        justify-content: center;
-        content: string.unquote('"\\2713"');
-        text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
+    &:active {
+      background: bevel(marks.ramp("5"), marks.ramp("9"), marks.ramp("7"));
+    }
+
+    &:disabled,
+    &:disabled:active {
+      border-color: marks.ramp("8");
+      background: var(--color-system-02);
+    }
+
+    // Mac OS 8 gives a checkbox no keyboard focus (HIGOS8 p.66: the focus
+    // ring marks the edit text field or list that takes keystrokes), so a
+    // click shows nothing. The browser's keyboard focus does reach it: that
+    // ring is the theme's outline color, drawn clear of the box by the
+    // check's overhang (two grid pixels past the box's right side), so the
+    // whole mark stays in view.
+    &:focus-visible {
+      outline: var(--color-outline) solid var(--control-frame-width);
+      outline-offset: marks.px(2, checkbox);
+    }
+
+    // HIGOS8 Ch.2 "Checkboxes" (p.28): the checkmark is the standard
+    // on-state mark (the X is only a localization opt-in, below). The mixed
+    // state shows its dash whether or not it is also checked.
+    &:checked::after,
+    &.mixed::after {
+      @include marks.checkbox-mark-box;
+    }
+
+    &:checked:not(.mixed):not(.classicyCheckboxX) {
+      &::after {
+        @include marks.checkbox-check;
+      }
+
+      &:active::after {
+        @include marks.checkbox-check-pressed;
+      }
+
+      &:disabled::after {
+        @include marks.checkbox-check-dimmed;
       }
     }
 
-    &:disabled:checked {
-      color: var(--color-system-05);
+    // Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the
+    // checkmark is not culturally acceptable, the familiar "X" may be used
+    // instead; Figure 2-8 draws it too.
+    &.classicyCheckboxX:checked:not(.mixed) {
+      &::after {
+        @include marks.checkbox-x;
+      }
+
+      &:active::after {
+        @include marks.checkbox-x-pressed;
+      }
+
+      &:disabled::after {
+        @include marks.checkbox-x-dimmed;
+      }
     }
 
-    &:active {
-      background: var(--color-system-06);
-    }
+    &.mixed {
+      &::after {
+        @include marks.checkbox-dash;
+      }
 
-    &:focus {
-      border-radius: var(--window-border-size);
-      outline: var(--color-outline) solid var(--control-frame-width);
-    }
+      &:active::after {
+        @include marks.checkbox-dash-pressed;
+      }
 
-    &:disabled,
-    &:disabled:active {
-      background: transparent;
-    }
-
-    @include mixins.platinum-window-border;
-
-    &:active {
-      box-shadow: none;
-    }
-
-    &:disabled,
-    &:disabled:active {
-      border: var(--window-border-size) solid var(--color-system-06);
-      box-shadow: none;
+      &:disabled::after {
+        @include marks.checkbox-dash-dimmed;
+      }
     }
   }
 
   // `isDefault` emphasizes the box with the theme accent while it is on or
-  // pressed; a disabled default box keeps the disabled border.
+  // pressed; a dimmed default box keeps the dimmed frame.
   .classicyCheckbox.default {
     &:checked,
     &:active {
@@ -64,29 +130,7 @@
     }
 
     &:disabled {
-      border-color: var(--color-system-06);
+      border-color: marks.ramp("8");
     }
-  }
-
-  // Localization opt-in (HIGOS8 Ch.2 "Checkboxes", p.28): where the checkmark
-  // is not culturally acceptable, the familiar "X" may be used instead.
-  .classicyCheckbox.classicyCheckboxX {
-    &:checked:after {
-      font-size: var(--checkbox-x-mark-font-size);
-      line-height: var(--checkbox-x-mark-line-height);
-      content: string.unquote('"\\00D7"');
-    }
-  }
-
-  // The mixed state is a distinct third state: it shows its dash whether or
-  // not it is also checked.
-  .classicyCheckbox.mixed:after {
-    font-family: var(--ui-font), sans-serif;
-    font-size: var(--ui-font-size);
-    line-height: var(--ui-font-size-caption);
-    display: flex;
-    justify-content: center;
-    content: '-';
-    text-shadow: var(--color-system-05) var(--window-border-size) var(--window-border-size) var(--control-frame-width);
   }
 }

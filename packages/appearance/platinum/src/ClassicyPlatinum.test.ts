@@ -117,7 +117,7 @@ describe("the Platinum appearance package", () => {
 		const m = platinumJson.defaults.measurements;
 		for (const theme of pkg?.presets ?? []) {
 			expect(theme.package).toBe("platinum");
-			// The look-only knobs too: they are Platinum's, not the core floor's.
+			// Its own values, the families the core floor also holds included.
 			expect(theme.measurements.menuFrame).toEqual(m.menuFrame);
 			expect(theme.measurements.controlStrip).toEqual(m.controlStrip);
 			expect(Object.keys(theme.measurements)).toEqual(Object.keys(m));

@@ -735,7 +735,7 @@ throughout:
 
 - `ClassicyControlLabelSize = "small" | "medium" | "large"`
 - `ClassicyLabelPosition = "above" | "left" | "right" | "below"`
-- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`)
+- `ClassicyMenuItem = { id, title?, image?, imageAlt?, icon?, disabled?, checked?, mark?, description?, keyboardShortcut?, event?, eventData?, onClickFunc?, menuChildren?, part?, balloon?, ... }` (`imageAlt` is the `image`'s alt text, defaulting to `title`, for an item drawn as its image alone, as the menu bar's Apple menu is (`"Apple"`) and its Help menu is when the active package registers the `helpMenuTitle` system art; an item with no `title` carries `imageAlt` as the `title` of its analytics events; `part` renders as the item's `data-classicy-part`, never a DOM `part` attribute; an item with `checked` set, `true`, `false` or `"mixed"`, renders as `role="menuitemcheckbox"` with that `aria-checked`, every other item as `role="menuitem"`, so query checkable items by `menuitemcheckbox`; `mark: "diamond"` draws the Notification Manager's ◆ in the mark column of an item that is not checked, §4.11; `description` is the item's `aria-description`)
 - `ClassicyIconBalloonHelp = { title?, content, position?, delay? }`
 
 ### 4.0 HTML element ⇄ Classicy component map
@@ -1047,6 +1047,7 @@ manager. Must be a descendant of `ClassicyApp`.
 | `hidden` | `boolean` | `false` |
 | `growable` | `boolean` | `false` |
 | `type` | `"default" \| "error"` | `"default"` |
+| `playAlertSound` | `boolean` (an error modal's alert sound on open) | `true` |
 | `backgroundColor` | `string` | — |
 | `initialFocusRef` | `RefObject<HTMLElement \| null>` | — (nothing focused) |
 
@@ -1238,7 +1239,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
+| `ClassicyMenu` | `name` *, `menuItems` *, `open?` (whether the list is shown; a submenu's item passes it; omitted, shown on mount), `onOpenItemChange?(itemId \| null)` (the id of the item whose menu opens, `null` when it closes; the menu bar draws an open title's own icon with it) | renders a menu list; items support submenus via `menuChildren`. `isSubmenu` is deprecated and ignored. A shown list taller than the screen below it is capped so that its border box, padding and border included, ends 4 px above the screen's bottom (the bottom of its bounds: what shows of its desktop, "Where menus open" below) (the cap is a `max-height`, so the list's padding and border, read from its computed style, come off the room; placed on every render, so it follows a host that moves the menu after it mounts, such as a contextual menu flipping up or a bevel button's pop-up; its full height is read from its last laid-out row while uncapped) and scrolls as Mac OS menus do (HIG7 p.78): `classicyMenuListScrolls` (its rows, dividers and balloon anchors keep their height, `flex-shrink: 0`, and a row is as tall as its content unless its package sizes it), no scroll bar, the pop-up menu's indicators (`menu-scroll-up`/`-down`) over its first and last rows, a row per repeat while the pointer rests on one. The cap keeps at least 64 px of rows; a cap that holds all of the rows is no cap. An item's submenu in such a list opens fixed beside the item (the scrolling list would clip it), and a scroll closes it. The list clips its own frame-shadow pseudo-elements, so while capped `ClassicyMenu` renders an `aria-hidden` sibling over the list's box, `.classicyMenuScrollShadow`, absolute in their wrapper (the list's containing block) at the list's offset from the wrapper's padding box, fractions kept, so it moves with the list; on it each package draws its frame's shadow as it draws the frame's own (Platinum's `platinum-menu-frame-shadow` mixin, gap included; System 7's two strips), its transparent border the frame's so its padding edge is the list's, and Platinum lays its inner bevel there too (`platinum-menu-frame-bevel()`, the frame's layers less its face), over the rows, which scroll over the list's padding. That is the bevel-on-sibling contract: a package whose frame has a bevel draws it on `.classicyMenuScrollShadow` (the only surface over the rows), not on the list, so a row scrolled over the list's padding never shows through it. New items with the same number of rows keep the cap and the scroll position; another number measures a capped list again and restores its scroll position, which is forgotten once the list fits. A submenu's wrapper is nudged onto the pixel grid (under half a pixel across): a `position: relative` wrapper by `left`, any other (absolute, or fixed beside its item) by equal and opposite margins, each added in a `calc()` to the value the wrapper carries (a host's `style`, a fixed wrapper's place), which the nudge never replaces; its natural place is read with each nudge put back to that value, and a menu nudges its own wrapper and then its open descendants' in tree order, so a parent moves before its submenu; the contextual menu, a bevel button's pop-up and a pop-up menu's list are placed on whole pixels, and a pop-up's placement measures its room from the rounded edge it is placed by (an aligned pop-up slid back above the screen's bottom margin rounds its top down, so a fractional height never carries it into the margin) |
 | `ClassicyMenuProvider` | `children` *, `onClose?`, `startActive?`, `idleTimeoutMs? (15000)` | menu interaction state; an open menu closes after `idleTimeoutMs` of inactivity (`0` disables the timeout) |
 | `ClassicyContextualMenuTarget` | `menuItems` *, `children` | attach a right-click menu to any element |
 | `ClassicyContextualMenu` | `name` *, `position` *, `menuItems` *, `onClose?`, `flipLeftTo?` | low-level; usually not used directly. Placed as below ("Where menus open"), inside what shows of its desktop: at `position` where it fits, else flipped left with its right side at `flipLeftTo` (default `position[0]`, the point; a menu bar extension passes its item's right side) and up when it would pass the bottom, then pinned |
@@ -1379,7 +1380,7 @@ command: "⌘" }`), keyed by `ClassicyModifierName` and ordered by
 
 | Component | Key props (\* = required) | Notes |
 |---|---|---|
-| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound. A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
+| `ClassicyAlert` | `label` *, `alertType? ("note"\|"caution"\|"stop")`, `title?`, `message?`, `buttons?` (max 4, `{id, label, role?, onClick?, disabled?}`), `defaultButtonId?`, `movable?`, `playSound? (true)`, `onClose?`, `id?`, `appId? ("ClassicyAlert")` | modal alert window; plays the alert sound when it opens, unless `playSound` is `false` (a notification's alert, §4.11). A `role: "help"` button renders as `ClassicyHelpButton`, far left. `defaultButtonId` picks the default (Return) button, overriding `role: "default"`; for a caution about losing data, make it the Cancel button's id. `id` is the window id, needed when two alerts can be open at once |
 | `ClassicyInputDialog` | `onConfirm(value)` *, `onCancel?`, `id? ("inputDialog")`, `appId?`, `title?`, `prompt?` (text or rich content: a `ClassicyControlLabel` naming the field), `initialValue?`, `placeholder?`, `inputType? ("text")`, `confirmLabel? ("OK")`, `cancelLabel? ("Cancel")`, `validate?(value) → boolean`, `icon?` | movable-modal one-field prompt (HIGOS8 p.59), the "New Folder"/"Rename" shape; use it instead of `window.prompt()`. Field focused with its text selected; Return confirms, Escape/⌘-period cancels; the default button dims while `validate` fails (default: non-empty after trimming). Mount to show, unmount from the callbacks to dismiss; must sit inside a `ClassicyApp` |
 | `ClassicyKeyboardEquivalentField` | `id` *, `onChange(shortcut)` *, `value?`, `label? ("Current keyboard equivalent")`, `buttonLabel?`, `appId?`, `inUse?` (`{shortcut, name}[]`), `requireCommandKey? (true)`, `validate?(shortcut) → string\|null`, `prompt?`, `description?`, `onHelp?`, `disabled?` | user-definable keyboard equivalent (HIGOS8 pp.120–122): group box showing the equivalent spelled out (`⌃ + ⌘ + S`) and a button opening `ClassicyKeyboardEquivalentDialog`, which captures the next combination. A combination without ⌘ (or a function key), or one in `inUse`, is refused with an alert naming the owner. Pass your app's `appId`. Emits the menu-item form (`"⌃⌘S"`) |
 | `ClassicyKeyboardEquivalentDialog` | `onConfirm(shortcut)` *, `onCancel?`, `initialValue?`, plus the field's rule/text props | the capture dialog on its own |
@@ -1548,6 +1549,142 @@ Exported zod schemas / types / guards: `MoviePlayerOpenFileSchema`,
 `isPictureViewerData`, `PDFViewerData`/`isPDFViewerData`,
 `WebViewerOpenUrlSchema`, `WebViewerData`/`isWebViewerData` (prefer
 `parseAppData` for new code).
+
+### 4.11 Notifications (the Notification Manager)
+
+An app or a host asks for the user's attention, from anywhere (outside React
+included), the way the Mac OS Notification Manager let a background
+application do (Inside Macintosh: Processes, ch. 5, pp. 5-3 to 5-11):
+
+```ts
+import { classicyNotify, removeClassicyNotification } from '@classicy/classicy'
+
+const id = classicyNotify({
+    appId: 'Mail.app',                      // required: the app asking
+    message: 'You have 3 new messages.',    // optional: a note alert with OK
+    sound: true,                            // optional: the user's alert sound
+    onResponse: (id) => {},                 // optional: after OK
+})
+removeClassicyNotification(id)              // NMRemove
+```
+
+| Field | Default | What it does (the `NMRec` field) |
+|---|---|---|
+| `appId` * | — | the app asking; a missing or empty one posts nothing (`""` returned, one `classicyLog` error) |
+| `mark?` | `true` | a ◆ beside the app in the Application menu (`nmMark`), while the app is listed there and in the background: the front app keeps its ✓ ("the diamond is replaced by a checkmark", p. 5-4) |
+| `icon?` | the app's icon, as the Application menu shows it | the small icon that blinks in the menu bar (`nmIcon`); `false` for none |
+| `sound?` | none | `true`, the user's alert sound; a string, a sprite of the loaded sound packs (`nmSound`). Played once through the sound manager at the alert volume (system volume × `Appearance.alertVolume`), silent while muted (`classicyAlertVolumeSoundAction`) |
+| `message?` | none | a non-empty string shows a note alert with that text and an OK button (`nmStr`, Figure 5-2), once |
+| `onResponse?` | — | called once with the id, last (`nmResp`): after the alert's OK, or, with no alert, once the request is presented; never for a request removed first. An exception it throws is logged, not rethrown |
+| `removeOnActivate?` | `true` | remove the request when its app comes to the front (below) |
+
+What the user sees, in the reference's order (p. 5-4): the mark, the
+blinking icon, the sound, then the alert.
+
+- **The icon** blinks over the Application menu's title when the request
+  marks an app that menu lists, else over the Apple menu's (p. 5-4; a
+  request from an app that is not open, or with `mark: false`, blinks over
+  the Apple menu). Each title shows its requests' icons in turn, then its
+  own, each for `CLASSICY_NOTIFICATION_BLINK_MS` (exported; 1000 ms,
+  measured on Mac OS 8.1 under Infinite Mac, 1002 ms on average over 11
+  frames, and the System 7.1 Notification Manager's 60-tick wait; Inside
+  Macintosh says only "periodically"), so one request's icon alternates
+  with the title's own; with icons over both titles the two alternate half
+  a period apart. The timer runs only while a title blinks where it is
+  drawn: once a second, twice while both titles blink, never under window
+  placement. For users who prefer reduced motion
+  (`prefers-reduced-motion: reduce`) nothing blinks: each title shows its
+  first request's icon steadily. While a menu of the bar is open the blink
+  stops on the frame it showed, and the open title itself shows its own
+  icon, as Mac OS 8.1 draws them (observed on Infinite Mac: with the
+  Finder's File menu open the Application title kept whichever icon it
+  showed; with the Application menu open its title showed the front
+  application's icon, at every phase tried; the title crops, twelve
+  frames each, are `packages/appearance/platinum/resources/screenshots/mac-os-8.1/platinum-81-blink-filemenu-open-sheet.png`
+  and `platinum-81-blink-appmenu-open-sheet.png`, the open menu
+  `platinum-81-appmenu-notification-open.png`). The Apple title's case is
+  inferred from the Application title's, not observed: it is the same
+  Menu Manager tracking and the same `NMTask` that does not run during it,
+  but a stock 8.1 has nothing that posts an unmarked request (every
+  request there comes from an application, marked, so it blinks over the
+  Application menu), so no icon blinks over the Apple menu to watch. The Application menu's title
+  swaps only its image; its name stays. While a title carries requests it
+  carries an `aria-description` naming their apps ("Mail requests your
+  attention", "Mail and Chat request your attention";
+  `classicyNotificationMenuBarDescriptions`).
+- **The alert** is a `ClassicyAlert` (note icon, the message as its label,
+  OK), one request at a time, oldest first; the others wait their turn. It
+  opens over the front application, as a window of that app, so it makes no
+  other app active, and it plays no sound of its own (`playSound={false}`):
+  the request's `sound` is its only sound. It stays that app's window only
+  while the app is open and shown: should it quit or be hidden, the alert
+  moves to the app in front (else the Finder, else the first shown
+  application), and with no app shown it waits, drawing nothing. Its
+  window id carries a per-page token, and no modal window's record is
+  persisted, so an alert open at a reload leaves nothing behind. A `sound`
+  naming a sprite no registered pack has plays nothing and is logged once
+  (`ClassicyNotification`).
+- **Requests stay** until they are removed, as the reference's do: the mark
+  and the icon remain; the sound and the alert are presented once (p. 5-5).
+  A request is removed by `removeClassicyNotification(id)` (which also
+  dismisses its alert, unanswered, if it is showing or waiting); when its
+  app comes to the front (a change of `focusedAppId` to that app), unless
+  `removeOnActivate` is `false`, which is what Inside Macintosh asks an
+  application to do ("you can do this in the response procedure or when
+  your application returns to the foreground", p. 5-6): the Notification
+  Manager itself never removed a request; and when its app quits (an open
+  app closing), as the Notification Manager flushed a quitting
+  application's requests. A request posted by the front app for itself
+  stays until the app comes forward again, or until the user answers its
+  alert (below). With no app in front the alert opens as a window of the
+  Finder or of the first shown application, which may be the notifying
+  app, and opening it focuses that app; that focus is the alert's, not the
+  user's (Mac OS's alert never changed the front process), so it removes
+  nothing. When the user answers an alert its own app hosts (the front
+  app's own request, or that fallback), they have attended to that app:
+  the request is removed after `onResponse`, unless `removeOnActivate` is
+  `false`; the app's other requests stay until it comes forward again. A
+  request for an app that is not open stays until it opens (which brings
+  it forward).
+- **Presentation needs a desktop.** `ClassicyDesktop` mounts the controller
+  that plays the sound, shows the alert, calls `onResponse` and removes
+  requests; a request posted before it mounts is presented once it does,
+  and each request's sound and alert are presented once, across remounts.
+  While Classicy's own startup screen (or the power-on overlay before it)
+  covers the desktop, presentation waits, as the system notified the user
+  "after the startup process completes" (p. 5-10); a host's own
+  `bootScreen` owns its timing and holds nothing, so post after it ends.
+  Under a package whose `layout.menuBar.placement` is `"window"` there is no
+  Apple or Application menu, so the mark and the icon are not drawn; the
+  sound and the alert still are.
+- **Session state.** Requests live in a module store, never persisted.
+
+Reading: `useClassicyNotifications()` (the installed requests, oldest first;
+`useSyncExternalStore`), `listClassicyNotifications()`,
+`getClassicyNotification(id)`, `subscribeClassicyNotifications(listener)`,
+`useClassicyNotifiedAppIds()` / `getClassicyNotifiedAppIds()` (the apps a
+request marks). Each `ClassicyNotification` is `{ id, appId, message?, mark,
+icon?, sound?, removeOnActivate, onResponse? }`, frozen. For a list of apps
+of your own (a palette of the same apps), pass the marked set to
+`appSwitcherAppsFrom(apps, overrides, notifiedAppIds)`: each entry gets
+`notified: true`, and `appSwitcherEntryMark(entry, front)` gives the menu
+item's `{ checked, mark? }`. `classicyNotificationMenuBarIcons(requests,
+listed, iconFor)` sorts the icons onto the two titles.
+
+The ◆ is `ClassicyMenuItem.mark: "diamond"`: the item's mark column carries
+`classicyMenuItemDiamond` beside `classicyMenuItemCheck`, unless the item is
+checked, and the package draws it (Platinum: Charcoal 12's 7 × 7 diamond
+from Mac OS 8.1, pixel art on the title's baseline, as its check is;
+System 7: Chicago 12's 7 × 7 diamond from Figure 5-1's bitmap as pixel
+art, its top on the check's). The glyph sits in the
+`aria-hidden` mark column, so the item carries `aria-description="Requests
+your attention"`.
+
+**HyperCard stacks may not post notifications** (story 0225-ci7's ruling):
+there is no scriptable action for it. HyperTalk had no Notification Manager
+command of its own that we found, and a request can play a sound and put up
+a modal alert, which an untrusted stack should not be able to repeat at the
+user. A host that wants it builds it on its own action and allowlist.
 
 ---
 
@@ -2296,10 +2433,10 @@ authors:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
   `platinum-scrollbars` reads `--scrollbar-thumb-grip-width` and `-height`.
-  They are look-only knobs, Platinum's own: inside a desktop Platinum's
-  themes emit them, and a package that `@use`s the mixins declares them in
-  its own `defaults.measurements` (the core floor holds only the structural
-  knobs); a host that includes the mixins anywhere else spreads
+  Inside a desktop every theme emits them (they were Platinum's alone, and
+  a package that `@use`s the mixins declared them in its own
+  `defaults.measurements`, until story 0225-ci7 put them on the core
+  floor); a host that includes the mixins anywhere else spreads
   `getThemeVars(theme)` there too. The inset shadows of the `platinum-window-*` and
   `platinum-depressable-*` mixins and of the scroll-bar track now read the
   derivation `--control-frame-width` (border × 2) where they computed
@@ -3108,7 +3245,7 @@ set.
 **Glyphs and colors a package supplies.** Some text glyphs are look, so the
 components render an empty span and the package draws the glyph as `::before`
 content: the menu check and mixed dash (`.classicyMenuItemCheck.checked`,
-`.mixed`), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
+`.mixed`), the Notification Manager's ◆ (`.classicyMenuItemCheck.classicyMenuItemDiamond`, §4.11), the pop-up and combo-box check (`.classicyPopUpMenuCheck.checked`),
 the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 `.classicyBevelButtonArrowVertical`), the placard arrow
 (`.classicyPlacardArrow`) and the file input's remove cross
@@ -3116,8 +3253,37 @@ the bevel button arrows (`.classicyBevelButtonArrowHorizontal`,
 (`role="button"`, `aria-pressed`, `.selected`; a toggle: pressing the armed
 entry again disarms it) gets its " ✓" as `::after`
 content on the aria-hidden `.classicyHyperCardPaletteEntryMark` after its
-label. Platinum uses the font's ✓ – ▸ ▾ ✕ and
-writes them as escapes with `string.unquote('"\\2713"')`, because Sass
+label. Platinum draws its checks and the ◆ as Charcoal 12's own bitmaps,
+pixel art in `currentColor` (`_marks.scss`, the grid knob
+`menu.markPixel`; from Mac OS 8.1 captures, story 0225-ci7: the bundled
+Charcoal has neither glyph, so a font glyph fell back to whatever font the
+browser found), on the title's baseline at the mark column's left edge
+(a 9 × 8 check, a 7 × 7 diamond, the palette's check after a space). The
+checkbox is HIGOS8 Figure 2-8 (p.28) pixel for pixel, as Mac OS 8.1
+draws it at the default metrics (`_Checkbox.scss`, `_marks.scss`): the box
+(a black frame; inside it a white top and left edge and a #888888 right and
+bottom edge, the two corners where they meet in the #DDDDDD face; no shadow
+outside; pressed, a #777777 face between #555555 and #999999 edges; dimmed,
+a #888888 frame around the face alone), its bevel bands a
+`window.borderSize` wide and running from the box's edges, so it follows
+the editable `window.controlSize` and `window.borderSize` as the inset
+shadows it replaced did, and its marks, fixed art on their own grid knob
+`checkbox.pixel`, the Appearance Manager's own shaded bitmaps, not a font's:
+the check (drawn from the box's inner corner over a 13 × 9 area that
+reaches two pixels past the box's right side), the mixed dash and the X
+(`mark="x"`), each at rest, pressed and dimmed as the figure draws them
+(the figure prints its dimmed X only at another size; the dimmed X follows
+its rule for the check and the dash, the black pixels alone in #888888).
+The grays are the gray ramp, each with its core fallback. A click shows
+no focus ring, as Mac OS 8 gives a checkbox no keyboard focus (HIGOS8
+p.66); the browser's keyboard focus (`:focus-visible`) draws the theme's
+outline two grid pixels out, clear of the check. The Mac OS 8.1 captures are
+committed in `packages/appearance/platinum/resources/screenshots/mac-os-8.1/` (never
+published): `platinum-81-appmenu-notification.png`,
+`platinum-81-finder-view-menu.png`, `platinum-81-popup-font.png` and
+`platinum-81-finder-preferences.png` (the checkbox). It
+uses the font's – ▸ ▾ ✕ and
+writes them as escapes with `string.unquote('"\\2013"')`, because Sass
 decodes a quoted escape and prepends `@charset`; that keeps the Sass output
 ASCII. The shipped files stay ASCII because the library build sets
 `esbuild: { charset: "ascii" }` (Vite's CSS minifier would otherwise write
@@ -3410,7 +3576,7 @@ The helpers built on it:
 
 - `ClassicyAppSwitcherUtils.ts` (`src/SystemFolder/SystemResources/Desktop/MenuBar/`)
   holds the menu helpers, including the one the window menu bar uses:
-  `appSwitcherAppsFrom(apps, overrides?)`;
+  `appSwitcherAppsFrom(apps, overrides?, notifiedAppIds?)` (§4.11);
   `withClassicyAppIdentityMenuItems(items, overrides)`, which retitles and
   re-images the Apple-menu app entries (ids
   `` `${CLASSICY_SYSTEM_MENU_APP_PREFIX}${appId}` ``, `"system_menu_<appId>"`)
@@ -4835,7 +5001,10 @@ change), the way it declares measurement families. They are additive, 3.5.
   `defaults.color.families` only (the presets are filled when it
   registers). Its slider reads them (the channel's #222222 border and
   #AAAAAA etch and fill, the tick's #888888 shadow, the ghost's grays), so
-  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays. **System 7** declares
+  it draws Figs. 2-18 and 2-19 at rest, and Fig. 2-17's ghost in the figure's own grays;
+  so does its checkbox (Fig. 2-8's #444444, #555555, #777777, #888888,
+  #999999 and #AAAAAA, the new steps 5, 7 and 9 falling back to
+  `--color-system-06`, `-05` and `-04`). **System 7** declares
   `outlineTriangle.checker` (#9999FF in color, white in 1-bit) and
   `controlStrip.face` / `darkEdge` / `shadow` / `pressedFace` (#CCCCCC /
   #444444 / #AAAAAA / #888888; white / black / black / white, the 1-bit
@@ -4877,7 +5046,7 @@ collision is logged once as a `ClassicyAppearance` warning. The core inputs:
 | `measurements.layout.groupGap` | `--layout-group-gap` | 16 |
 | `measurements.layout.dialogEdge` | `--layout-dialog-edge` | 12 |
 
-**Package knob families.** Platinum adds 24 families of its own (105 keys)
+**Package knob families.** Platinum adds 25 families of its own (107 keys)
 to the core five, in `packages/appearance/platinum/src/platinum.json`
 `defaults.measurements` only (the 21 presets carry the core five and are
 filled from `defaults` when Platinum registers them, H-R8). Each key is
@@ -4892,28 +5061,35 @@ literals.
   `defaults.measurements` value, every value a whole number) for six
   families only: `controlStrip`, `menuFrame`, `pager`, `balloonHelp`,
   `popUpSlider` and `scrollbar`, 42 knobs. Those six are the Options tab's
-  groups under Platinum. The other 18 families are emitted and editable in
+  groups under Platinum. The other 19 families are emitted and editable in
   theme files, but have no knob and no spinner.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
   interface, not of Platinum's look: every package's themes must emit it.
+  So is one Platinum's own partials read without a fallback, since
+  `ChangeTheme` may draw any package's theme under Platinum, whose sheet
+  then reads that theme's variables (story 0225-ci7: a System 7 theme drawn
+  under Platinum emitted no `--slider-*`, and the slider lost its channel,
+  indicator and ticks).
   The core floor guarantees that: `CLASSICY_CORE_MEASUREMENT_DEFAULTS`
   (`src/Appearance/ClassicyCoreTheme.ts`, the core's own data at Platinum's
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 85 of the 105 are
+  overriding the knob's value, never the base CSS. 105 of the 107 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 18 are
-  look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
-  `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
-  Platinum's `platinum.json`. A package with stylesheets of its own may
-  ignore them, unless it `@use`s Platinum's published mixins
-  (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
-  and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
-  `defaults.measurements`.
+  table, so the floor and the column cannot drift), the 18 only Platinum's
+  partials read among them (`_ControlStrip.scss`'s bevel, the
+  `platinum-menu-frame` and `platinum-scrollbars` mixins'
+  `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
+  texture, `_QuickTimeMovieEmbed.scss`'s caption shadow and `_Slider.scss`'s
+  seven): until story 0225-ci7 they were look-only, Platinum's alone, and
+  a theme of another package drawn under Platinum emitted none of them.
+  `ClassicyPlatinumKnobReads.test.ts` checks that every variable Platinum's
+  sheet reads without a fallback is emitted by every registered package's
+  themes and by a package declaring only the core five. A package with
+  stylesheets of its own may ignore them; its themes emit them anyway. The
+  other two are the optional `fileBrowserList` knobs (below).
 - **Optional knobs.** A third kind of knob is read by a core derivation but
   has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
   `menuBar.bandHeight` when a theme sets it to a finite number of zero or
@@ -5011,7 +5187,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.narrowCellWidth` | `--control-strip-narrow-cell-width` | 13 | "Narrow cell width", 6–40 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleWidth` | `--control-strip-module-width` | 30 | "Module width", 16–96 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
 | `controlStrip.borderWidth` | `--control-strip-border-width` | 1 | "Border width", 0–4 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
-| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | no | _ControlStrip.scss |
+| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | yes | _ControlStrip.scss |
 | `controlStrip.pressedShift` | `--control-strip-pressed-shift` | 1 | "Pressed shift", 0–4 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphLeft` | `--control-strip-collapse-glyph-left` | 2 | "Collapse glyph left", 0–16 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphTop` | `--control-strip-collapse-glyph-top` | 7 | "Collapse glyph top", 0–32 | yes | ClassicyControlStrip.scss |
@@ -5021,11 +5197,11 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.moduleIconTop` | `--control-strip-module-icon-top` | 3 | "Module icon top", 0–32 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowLeft` | `--control-strip-module-arrow-left` | 22 | "Module arrow left", 0–64 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowTop` | `--control-strip-module-arrow-top` | 7 | "Module arrow top", 0–32 | yes | ClassicyControlStrip.scss |
-| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | no | _mixins.scss |
-| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | no | _mixins.scss, _BevelButton.scss |
-| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | no | _mixins.scss |
-| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | no | _mixins.scss |
-| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | no | _mixins.scss |
+| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | yes | _mixins.scss |
+| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | yes | _mixins.scss, _BevelButton.scss |
+| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | yes | _mixins.scss |
+| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | yes | _mixins.scss |
+| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | yes | _mixins.scss |
 | `pager.borderWidth` | `--pager-border-width` | 1 | "Border width", 0–4 | yes | ClassicyPager.scss |
 | `pager.arrowWidth` | `--pager-arrow-width` | 42 | "Arrow width", 16–96 | yes | ClassicyPager.scss |
 | `pager.cellHeight` | `--pager-cell-height` | 36 | "Row height", 16–96 | yes | ClassicyPager.scss |
@@ -5047,8 +5223,8 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `popUpSlider.trackLeft` | `--pop-up-slider-track-left` | 4 | "Track left", 4–4 | yes | ClassicyPopUpSlider.scss |
 | `popUpSlider.trackTop` | `--pop-up-slider-track-top` | 3 | "Track top", 0–32 | yes | ClassicyPopUpSlider.scss, ClassicyPopUpSlider.tsx |
 | `popUpSlider.thumbLeft` | `--pop-up-slider-thumb-left` | 1 | "Thumb left", 1–1 | yes | ClassicyPopUpSlider.scss |
-| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | no | _scrollbars.scss |
-| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | no | _scrollbars.scss |
+| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | yes | _scrollbars.scss |
+| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | yes | _scrollbars.scss |
 | `hyperCard.fontSize` | `--hyper-card-font-size` | 11 | — | yes | HyperCard.scss |
 | `hyperCard.handleSize` | `--hyper-card-handle-size` | 6 | — | yes | HyperCard.scss |
 | `hyperCard.paletteMaxWidth` | `--hyper-card-palette-max-width` | 220 | — | yes | HyperCard.scss |
@@ -5094,22 +5270,24 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
-| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | no | _Window.scss |
-| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | no | _Window.scss |
+| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | yes | _Window.scss |
+| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | yes | _Window.scss |
 | `boot.halftoneTile` | `--boot-halftone-tile` | 4 | — | yes | ClassicyBootSequence.scss |
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
-| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
+| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | yes | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
+| `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
-| `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
-| `slider.channel` | `--slider-channel` | 7 | — | no | _Slider.scss |
-| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
-| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
-| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
-| `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
-| `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
+| `slider.pixel` | `--slider-pixel` | 1 | — | yes | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 7 | — | yes | _Slider.scss |
+| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | yes | _Slider.scss |
+| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | yes | _Slider.scss |
+| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | yes | _Slider.scss |
+| `slider.tickWidth` | `--slider-tick-width` | 3 | — | yes | _Slider.scss |
+| `slider.tickHeight` | `--slider-tick-height` | 8 | — | yes | _Slider.scss |
+| `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _marks.scss (the grid of the checkbox's check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
 | `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
 
@@ -5137,7 +5315,9 @@ the thumb's margins on a vertical channel (`channel + thumbRise -
 (thumbAcross + thumbAlong) / 2` pointing left, `(thumbAcross - thumbAlong)
 / 2 - thumbRise` pointing right) and Firefox's translations of its centered
 thumb (`(thumbAcross - channel) / 2 - thumbRise`, and its negation) are
-derived from them. All look-only: only Platinum reads them.
+derived from them. Only Platinum reads them; they are on the core floor
+all the same (structural, story 0225-ci7), so a theme of another package
+drawn under Platinum keeps the slider.
 
 `dither.tileSize` is the switch of the dither vocabulary
 (`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
@@ -5174,11 +5354,12 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   floor, `CLASSICY_CORE_MEASUREMENT_DEFAULTS`), then the registered
   package's own `defaults.measurements`, merged key by key with the
   package's values winning. A package that declares part of a family keeps
-  the floor's structural keys it leaves out, but never a look-only knob: a
-  package that draws with Platinum's stylesheet declares those itself
-  (Storybook's Test Pack declares `controlStrip { cellHeight, tabWidth,
-  bevelWidth }`; `storybook/.storybook/StorybookPackageKnobs.test.ts` checks
-  every Storybook package). An unknown or missing id gets the registered
+  the floor's keys it leaves out, the knobs only Platinum's partials read
+  included (story 0225-ci7); only Platinum's optional `fileBrowserList`
+  knobs are never filled (Storybook's Test Pack declares `controlStrip {
+  cellHeight, tabWidth, bevelWidth }`;
+  `storybook/.storybook/StorybookPackageKnobs.test.ts` checks every
+  Storybook package). An unknown or missing id gets the registered
   default package's (never another registered package's), else the floor
   alone. The result is frozen and cached per package registration.
 - `withDefaultThemeMetrics(theme, defaults = CLASSICY_DEFAULT_THEME_METRICS)`
@@ -5297,8 +5478,8 @@ full precision, and a rounded `9.333px` moves the computed `font-size`
 | `--radio-mixed-mark-top` | `controlSize / 2.5` | 4.8 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-height` | `controlSize / 4` | 3 | ClassicyRadioInput.scss |
 | `--radio-mixed-mark-border` | `controlSize / 8` | 1.5 | ClassicyRadioInput.scss |
-| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | _Checkbox.scss |
-| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | _Checkbox.scss |
+| `--checkbox-x-mark-font-size` | `uiSize × 1.25` | 17.5 (unrounded) | none: deprecated, still emitted for a host stylesheet that reads it (Platinum draws Figure 2-8's X since story 0225-ci7) |
+| `--checkbox-x-mark-line-height` | `uiSize × 0.65` | 9.1 (unrounded) | none: deprecated, as above |
 | `--balloon-help-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | ClassicyBalloonHelp.scss |
 | `--quick-time-time-font-size` | `uiSize × 0.85` | 11.9 (unrounded) | QuickTimeMovieEmbed.scss |
 | `--quick-time-control-icon-size` | `controlSize × 0.875` | 10.5 | QuickTimeMovieEmbed.scss |
@@ -5739,7 +5920,7 @@ group, so the reasons describe a file's kept sites but are not matched to
 them site by site. The list is edited by hand, since
 every group needs its reason; `node bin/check-pixel-literals.ts
 --list-multipliers` prints every site. Every other multiplier is named, so
-the list ends at these 43 sites over 11 files, the sites kept on purpose
+the list ends at these 45 sites over 12 files, the sites kept on purpose
 (Part G), the H-R7 and H-R21 geometry and the button spacing scale:
 
 - `ClassicyIcon.scss`, the two `desktop-icon-size × 2`: the `size` prop sets
@@ -5774,6 +5955,12 @@ the list ends at these 43 sites over 11 files, the sites kept on purpose
   quarter turn swings it about its center, so its margin is the knobs' sum
   or difference halved; Firefox centers the box, so its translation is half
   the box's overhang of the channel), geometry, not a role (H-R21).
+- Platinum's `_marks.scss`, the `menu-mark-pixel × n` and the
+  `checkbox-pixel × n` in its `px()` helper: Charcoal 12's menu check and
+  diamond from Mac OS 8.1, and the checkbox's check, mixed dash and X from
+  HIGOS8 Figure 2-8 (story 0225-ci7), one-pixel rectangles on each
+  art's grid inside
+  `classicy-px-rect` (H-R7), as System 7's.
 - `HyperCard.scss`, the twelve `hyper-card-handle-size / -2`: a selection
   handle is pulled half its own size over the corner or edge it marks
   (H-R7); and the four `50% - hyper-card-handle-size / 2`: a side handle
@@ -5893,6 +6080,49 @@ Action types (string enum `ClassicySoundActionTypes`): `ClassicySoundPlay`
 pack loads),
 `ClassicyAlertSound`, `ClassicySoundSetAlertSound`, `ClassicySoundSetAlertVolume`
 (`{ alertVolume }` 0–100, clamped and rounded). `useSound()` reads state.
+**The provider's reducer is pure** (`classicySoundStateReducer`; React calls
+a reducer twice in StrictMode): the plays and stops (`ClassicySoundPlay`,
+`…PlayInterrupt`, `…PlayError`, `ClassicyAlertSound`, `ClassicySoundStop`;
+`isClassicySoundCommand`) are queued in the state's `commands`, each with
+the mute, alert sound and levels it was queued under (`policy`: a play
+followed by a mute in one batch still plays), and `ClassicySoundLoad` only
+records the pack to play (`packId`, `pack`, `sprites`, `fallbackPackId`).
+`ClassicySoundManagerProvider` builds the players in an effect
+(`buildClassicySoundPlayers`, one Howl per pack, kept across StrictMode's
+rehearsal unmount and unloaded, if the player has `unload`
+(`unloadClassicySoundPlayer`), a tick after a real unmount; they reach the state as `soundPlayer`/`fallbackPlayer`
+through `ClassicySoundSetPlayers`), sets each new player's gain, then runs
+each queued command once on the state's players (`runClassicySoundCommand`,
+then `ClassicySoundCommandsRun { through }`), so an alert keeps system gain
+× alert volume even when it plays in the commit its player arrives. A
+command queued before the players for the state's pack are set (a child's
+mount effect) waits for them. `ClassicySoundSet { soundPlayer }` sets a
+player of the host's own, which the commands then play on; the provider's
+own players for the same pack leave it in place (`hostPlayerPackId`), also
+when it was set from a child's mount effect, before they were built, and
+the next load of another pack replaces it, as it always did, and forgets
+it, so coming back to its pack plays on the provider's player for that
+pack. The seed
+(`seedClassicySoundState`) builds no player and returns its start state
+without a window; the provider reads the persisted alert sound and volume
+into it at once. Where the environment plays no audio at all (Howler's
+`noAudio`, or none of the formats Howler knows: jsdom, a browser with
+audio disabled; `classicyAudioAvailable`), no Howl is built
+(`createSoundPlayer` returns `null`), sounds play nothing, and one `info`
+entry per page (`ClassicySoundManager`, "Sound is unavailable here…") says
+so, where a Howl would have logged "Failed to load audio sprite … No codec
+support" as an error for every load. Where audio works, every pack gets its
+Howl, so a pack whose own sources fail (an ogg-only pack where ogg does not
+play, a `blob:` or extensionless URL, a missing file) logs that error, per
+pack.
+**Deprecated: `ClassicySoundStateEventReducer` and `seedSoundState`.** They
+keep their old behavior for a provider of the host's own
+(`useReducer(ClassicySoundStateEventReducer, initialPlayer, (b) =>
+seedSoundState(b, packId, muted))` with the exported contexts) and for
+direct callers: a pack load builds the players (unloading the one it
+replaces), a play or stop runs at once, and the returned state holds no
+queued commands. They play and build twice under StrictMode, as they always
+did; move to `ClassicySoundManagerProvider`.
 **Alert volume**: the persisted `Appearance.alertVolume` (default 100, set by
 `ClassicyDesktopChangeAlertVolume` from the Appearance Manager's Sound tab) is
 mirrored into sound state by the provider. Alerts — `ClassicyAlertSound` and

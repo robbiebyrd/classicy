@@ -42,6 +42,9 @@ $submenu-arrow: (0 0 1 11) (1 1 1 9) (2 2 1 7) (3 3 1 5) (4 4 1 3) (5 5 1 1);
 
 // Chicago 12's checkmark (9 x 8), from `color-menu-pulldown-checkmark-outline-sizes.png`.
 $checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2 1) (1 6 3 1) (2 7);
+// Chicago 12's diamond (7 x 7), the Notification Manager's mark, from Inside
+// Macintosh: Processes, Figure 5-1 (the figure's bitmap, 1:1).
+$diamond: (3 0) (2 1 3 1) (1 2 5 1) (0 3 7 1) (1 4 5 1) (2 5 3 1) (3 6);
 
 // The menu frame: a 1 px black border around a white face, no bevel, and a
 // 1 px black shadow on the right and bottom, drawn by ::before/::after from
@@ -259,6 +262,22 @@ $checkmark: (8 0) (7 1 2 1) (6 2 2 1) (5 3 2 1) (0 4) (4 4 2 1) (0 5 2 1) (3 5 2
 
   .classicyMenuItemCheck.mixed::before {
     content: string.unquote('"\\2013"'); // –
+  }
+
+  // The Notification Manager's mark beside an application asking for
+  // attention: Chicago 12's diamond, on the pixel grid in the item's ink,
+  // its top row on the check's top row, at the same inset (Inside
+  // Macintosh: Processes, p. 5-4, Figure 5-1, whose bitmap is the source:
+  // the diamond and the next row's check both start 7 rows above their
+  // titles' baselines, in the same column).
+  .classicyMenuItemCheck.classicyMenuItemDiamond::before {
+    content: "";
+    position: absolute;
+    top: var(--menu-item-mark-top);
+    left: 0;
+    width: px(7);
+    height: px(7);
+    background: pixel-art(currentColor, $diamond);
   }
 
   // A divider takes a whole item slot, its line of the dimmed ink at the

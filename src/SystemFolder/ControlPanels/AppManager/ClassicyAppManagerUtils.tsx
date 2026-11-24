@@ -832,7 +832,17 @@ export function sanitizeStateForPersistence(
 			// Hidden by the Application menu's Hide commands: session state, as
 			// Mac OS restores no hidden app (story 0214-c61, ruling R2).
 			delete app.hidden;
-			for (const w of Object.values(app.windows ?? {})) {
+			for (const [id, w] of Object.entries(app.windows ?? {})) {
+				// A modal window's record lives only while it is mounted (it is
+				// destroyed on unmount, which a reload never runs): an alert open
+				// at a reload, a notification's among them, must not come back
+				// as a known window that reopens unfocused.
+				if (w.modal === true) {
+					delete app.windows[id];
+					if (app.lastAccessedWindowId === id)
+						app.lastAccessedWindowId = undefined;
+					continue;
+				}
 				delete w.closedThisSession;
 				delete w.resizing;
 				delete w.dragging;

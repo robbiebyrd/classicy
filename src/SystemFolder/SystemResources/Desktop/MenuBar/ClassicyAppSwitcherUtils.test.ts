@@ -3,6 +3,7 @@ import { CLASSICY_NO_APP_IDENTITY_OVERRIDES } from "@/Appearance/ClassicyAppIden
 import type { ClassicyStoreSystemApp } from "@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryMark,
 	CLASSICY_SYSTEM_MENU_APP_PREFIX,
 	withClassicyAppIdentityAboutItem,
 	withClassicyAppIdentityMenuItems,
@@ -83,6 +84,37 @@ describe("appSwitcherAppsFrom — display identity", () => {
 			{ "B.app": { icon: "/icons/bee.png" } },
 		);
 		expect(entry).toMatchObject({ name: "B", icon: "/icons/bee.png" });
+	});
+});
+
+// Story 0225-ci7: the Notification Manager's ◆ (Inside Macintosh:
+// Processes, p. 5-4), carried on the entries so any list of the same apps
+// can draw it.
+describe("appSwitcherAppsFrom — notification marks", () => {
+	it("sets notified on each app the set names, and only those", () => {
+		const result = appSwitcherAppsFrom(
+			{ "A.app": app("A.app"), "B.app": app("B.app") },
+			CLASSICY_NO_APP_IDENTITY_OVERRIDES,
+			new Set(["B.app", "Closed.app"]),
+		);
+		expect(result.map((a) => [a.id, a.notified])).toEqual([
+			["A.app", undefined],
+			["B.app", true],
+		]);
+	});
+});
+
+describe("appSwitcherEntryMark", () => {
+	it("checks the front app, marks a notified background app with ◆, else nothing", () => {
+		expect(appSwitcherEntryMark({ notified: true }, true)).toEqual({
+			checked: true,
+		});
+		expect(appSwitcherEntryMark({ notified: true }, false)).toEqual({
+			checked: false,
+			mark: "diamond",
+		});
+		expect(appSwitcherEntryMark({}, false)).toEqual({ checked: false });
+		expect(appSwitcherEntryMark({}, true)).toEqual({ checked: true });
 	});
 });
 

@@ -25,11 +25,16 @@ const deepFreeze = <T>(value: T): Readonly<T> => {
  * The measurements every theme is completed with, whatever its package
  * (`classicyThemeMeasurementDefaults` merges the registered package's own
  * values over these): the core five families (`CLASSICY_DEFAULT_THEME_METRICS`)
- * and every structural knob, the 85 knobs a base stylesheet (`classicy.base`),
- * component code or the SCSS vocabulary (`dither.tileSize`) reads
- * ("Structural: yes", AGENT-REFERENCE §8). The 11 look-only knobs, read only
- * by Platinum's own partials, are Platinum's and stay in its
- * `platinum.json`. Frozen all the way down.
+ * and every structural knob ("Structural: yes", AGENT-REFERENCE §8), the 105
+ * knobs a base stylesheet (`classicy.base`), component code or the SCSS
+ * vocabulary (`dither.tileSize`) reads, and those Platinum's own partials
+ * read without a fallback: `ChangeTheme` may draw any package's theme under
+ * Platinum, whose sheet then reads that theme's variables (story 0225-ci7:
+ * the menu marks' grid, the checkbox's, the slider, the menu frame, the
+ * scroll-bar grip, the windoid texture, the Control Strip's bevel and the
+ * QuickTime caption's shadow). Only Platinum's two optional
+ * `fileBrowserList` knobs, which the file browser reads with a fallback,
+ * stay in its `platinum.json` alone. Frozen all the way down.
  */
 export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasurements> =
 	deepFreeze({
@@ -56,6 +61,7 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			narrowCellWidth: 13,
 			moduleWidth: 30,
 			borderWidth: 1,
+			bevelWidth: 1,
 			pressedShift: 1,
 			collapseGlyphLeft: 2,
 			collapseGlyphTop: 7,
@@ -65,6 +71,13 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			moduleIconTop: 3,
 			moduleArrowLeft: 22,
 			moduleArrowTop: 7,
+		},
+		menuFrame: {
+			borderWidth: 1,
+			bevelWidth: 1,
+			shadowWidth: 1,
+			shadowStart: 1,
+			shadowGap: 0,
 		},
 		pager: {
 			borderWidth: 1,
@@ -93,6 +106,7 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 			trackTop: 3,
 			thumbLeft: 1,
 		},
+		scrollbar: { thumbGripWidth: 7, thumbGripHeight: 8 },
 		hyperCard: {
 			fontSize: 11,
 			handleSize: 6,
@@ -149,9 +163,31 @@ export const CLASSICY_CORE_MEASUREMENT_DEFAULTS: Readonly<ClassicyThemeMeasureme
 		progressBar: { stripeWidth: 10 },
 		boot: { halftoneTile: 4 },
 		helpButton: { glyphSize: 14 },
-		menu: { popUpMaxHeight: 300 },
+		// `markPixel`: the grid of Platinum's menu marks (_marks.scss), on
+		// the floor so a theme of another package drawn under Platinum still
+		// draws its checks and diamond (story 0225-ci7, review K1).
+		menu: { popUpMaxHeight: 300, markPixel: 1 },
 		table: { resizerWidth: 15 },
 		stripMenu: { overlap: 3 },
+		// `pixel`: the grid of Platinum's checkbox marks (_marks.scss; the
+		// box's bevel follows the window metrics), on the floor for the same
+		// reason (story 0225-ci7, fix round 3).
+		checkbox: { pixel: 1 },
+		// Platinum's own partials' knobs (_Window.scss, _QuickTimeMovieEmbed
+		// .scss, _Slider.scss), on the floor for the same reason: a theme of
+		// another package drawn under Platinum emitted none of them, and its
+		// slider lost its art (story 0225-ci7).
+		utilityTitleBar: { textureWidth: 4, textureHeight: 3 },
+		quickTime: { captionShadowBlur: 3 },
+		slider: {
+			pixel: 1,
+			channel: 7,
+			thumbAlong: 15,
+			thumbAcross: 17,
+			thumbRise: 3,
+			tickWidth: 3,
+			tickHeight: 8,
+		},
 		// The dither vocabulary's switch (`_dither.scss`): 0 is plain ink.
 		dither: { tileSize: 0 },
 	});

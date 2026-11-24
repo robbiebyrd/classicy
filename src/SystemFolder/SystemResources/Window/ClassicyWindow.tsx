@@ -458,6 +458,13 @@ interface ClassicyWindowProps {
 	 */
 	type?: string;
 	/**
+	 * On a `type="error"` modal, `false` keeps it from playing the alert
+	 * sound when it opens (an alert whose sound is played elsewhere, as a
+	 * notification's is). Its scrim still beeps at a click outside. Defaults
+	 * to `true`. `ClassicyAlert` passes its `playSound` here.
+	 */
+	playAlertSound?: boolean;
+	/**
 	 * Platinum window class (#205). `"document"` (default) uses the standard
 	 * 19px HIG title bar; `"utility"` renders a tool-palette style crosshatch
 	 * top drag region with no title. A utility window always draws its active
@@ -603,6 +610,7 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	modal = false,
 	movable = true,
 	type = "default",
+	playAlertSound = true,
 	growable,
 	defaultWindow = false,
 	initialSize = DEFAULT_INITIAL_SIZE,
@@ -1533,10 +1541,10 @@ export const ClassicyWindow: FunctionalComponent<ClassicyWindowProps> = ({
 	useEffect(() => {
 		// This ensures that once a window has opened it becomes the focus.
 		// setActive();
-		if (modal && type === "error") {
+		if (modal && type === "error" && playAlertSound) {
 			player({ type: "ClassicySoundPlayError" });
 		}
-	}, [modal, player, type]);
+	}, [modal, player, type, playAlertSound]);
 
 	const toggleCollapse = () => {
 		if (collapsable) {

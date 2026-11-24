@@ -274,9 +274,10 @@ const packageDefaultsCache = new WeakMap<
  *
  * Key by key, not family by family: a package that declares part of a
  * family (`controlStrip { cellHeight, tabWidth }`) keeps the floor's keys it
- * leaves out, since base stylesheets read them. A package's look-only knobs
- * (Platinum's `menuFrame`, say) come from its own values alone. Frozen, and
- * the same object for the same package registration.
+ * leaves out, since base stylesheets, or Platinum's sheet drawing a theme
+ * of another package, read them. A package's optional knobs (Platinum's
+ * `fileBrowserList`) come from its own values alone. Frozen, and the same
+ * object for the same package registration.
  */
 export function classicyThemeMeasurementDefaults(
 	packageId: string | undefined,

@@ -34,11 +34,14 @@ import { ClassicySoundManagerProvider } from "@/SystemFolder/ControlPanels/Sound
 import { HyperCardScriptBuilder } from "@/SystemFolder/HyperCard/Editor/HyperCardScriptBuilder";
 import type { HCEventHandlers } from "@/SystemFolder/HyperCard/HyperCardModel";
 
+// Howler's API as the provider uses it: it unloads its players when it
+// unmounts (a tick later, past StrictMode's rehearsal unmount).
 vi.mock("howler", () => ({
 	Howl: class {
 		play = vi.fn();
 		stop = vi.fn();
 		volume = vi.fn();
+		unload = vi.fn();
 		playing = vi.fn().mockReturnValue(false);
 	},
 }));

@@ -4,6 +4,7 @@
 // (ComboBox shares the indicator and the menu). The disabled fill follows the
 // undepressable face it overrides.
 @use "sass:string";
+@use "../marks";
 @use "../mixins";
 
 @mixin popUpMenu {
@@ -95,10 +96,17 @@
     content: string.unquote('"\\25BC"'); // ▼
   }
 
-  // The HIG checkmark against the current selection, a font glyph in the
-  // fixed check gutter (an escape kept by `string.unquote`, so the Sass output
-  // stays ASCII; the build keeps dist ASCII, verify:dist invariant 9).
+  // The HIG checkmark against the current selection: Charcoal 12's check
+  // (_marks.scss), on the title's baseline at the gutter's left edge, as
+  // Mac OS 8.1's pop-up menus draw it (`platinum-81-popup-font.png` in
+  // resources/screenshots/mac-os-8.1/). The gutter takes the label's font,
+  // so its line, centered like the label's, has the label's baseline.
+  .classicyPopUpMenuCheck {
+    font-family: var(--ui-font);
+    text-align: left;
+  }
+
   .classicyPopUpMenuCheck.checked::before {
-    content: string.unquote('"\\2713"'); // ✓
+    @include marks.check;
   }
 }

@@ -85,6 +85,12 @@ export type ClassicyAlertProps = {
 	 */
 	movable?: boolean;
 	/**
+	 * Play the system alert sound when the alert opens. Defaults to `true`;
+	 * `false` opens it silently, for an alert whose sound, if any, is played
+	 * elsewhere (a notification's: Inside Macintosh: Processes, p. 5-5).
+	 */
+	playSound?: boolean;
+	/**
 	 * Called after any enabled button is activated (in addition to that
 	 * button's `onClick`). The alert does not unmount itself — stop rendering
 	 * it here.
@@ -153,7 +159,8 @@ const defaultButtonsForType = (
  *   triangle, Cancel + Continue) or `stop` (stop icon, OK).
  * - **Variants**: the default non-movable alert has a red border around its
  *   content; `movable` gives a draggable window with a red title bar
- *   (HIGOS8 p.57). Either way it plays the system alert sound on open.
+ *   (HIGOS8 p.57). Either way it plays the system alert sound on open,
+ *   unless `playSound` is `false`.
  * - **Keyboard**: the default button is focused on open and Tab is trapped
  *   inside; Return/Enter fires the default button and Escape or Command-period
  *   fires the `cancel`-role button (if any).
@@ -187,6 +194,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	buttons,
 	defaultButtonId,
 	movable = false,
+	playSound = true,
 	onClose,
 	className,
 	style,
@@ -283,10 +291,10 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 	// The non-movable variant is an error-typed window, so ClassicyWindow already
 	// plays the alert sound. The movable variant is a plain modal, so play here.
 	useEffect(() => {
-		if (movable) {
+		if (movable && playSound) {
 			player({ type: "ClassicySoundPlayError" });
 		}
-	}, [movable, player]);
+	}, [movable, player, playSound]);
 
 	return (
 		<ClassicyWindow
@@ -307,6 +315,7 @@ export const ClassicyAlert: FunctionalComponent<ClassicyAlertProps> = ({
 			// Non-movable → type="error" gives the red border AND blocks dragging.
 			// Movable → default type keeps dragging; red title bar comes from SCSS.
 			type={movable ? "default" : "error"}
+			playAlertSound={playSound}
 			initialSize={[0, 0]}
 			initialPosition={["center", "center"]}
 			analyticsExclude

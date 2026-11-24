@@ -253,6 +253,40 @@ describe("ClassicyMenu", () => {
 		expect(check?.textContent).toBe("");
 	});
 
+	// Story 0225-ci7: the Notification Manager's ◆, package CSS on
+	// `.classicyMenuItemDiamond::before` in the mark column.
+	it("draws a diamond mark in the gutter, unless the item is checked", () => {
+		const items = [
+			{ id: "marked", title: "Marked", mark: "diamond" as const },
+			{ id: "both", title: "Both", checked: true, mark: "diamond" as const },
+			{ id: "plain", title: "Plain", checked: false },
+		];
+		const { container } = render(
+			<ClassicyMenu name="test-menu" menuItems={items} />,
+		);
+		const gutter = (id: string) =>
+			container.querySelector(`#${id} .classicyMenuItemCheck`);
+		expect(gutter("marked")).toHaveClass("classicyMenuItemDiamond");
+		expect(gutter("marked")).not.toHaveClass("checked");
+		expect(gutter("marked")).toHaveAttribute("aria-hidden", "true");
+		expect(gutter("both")).toHaveClass("checked");
+		expect(gutter("both")).not.toHaveClass("classicyMenuItemDiamond");
+		expect(gutter("plain")).not.toHaveClass("classicyMenuItemDiamond");
+		// A mark alone keeps the item a plain menuitem, described for
+		// assistive technology (the glyph itself is aria-hidden).
+		expect(container.querySelector("#marked")).toHaveAttribute(
+			"role",
+			"menuitem",
+		);
+		expect(container.querySelector("#marked")).toHaveAttribute(
+			"aria-description",
+			"Requests your attention",
+		);
+		expect(container.querySelector("#both")).not.toHaveAttribute(
+			"aria-description",
+		);
+	});
+
 	it("renders no check gutter for an item without a checked prop", () => {
 		const items = [{ id: "plain", title: "Plain" }];
 		const { container } = render(

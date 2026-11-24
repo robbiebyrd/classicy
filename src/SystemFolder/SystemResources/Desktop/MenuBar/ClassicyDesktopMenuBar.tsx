@@ -20,6 +20,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { ClassicyAppearanceLayout } from "@/Appearance/ClassicyAppearancePackage";
 import {
@@ -33,10 +34,24 @@ import { APPLE_GUIDE_SHOW_TOPIC_EVENT } from "@/SystemFolder/Extensions/AppleGui
 import { ABOUT_BALLOON_HELP_TOPIC_ID } from "@/SystemFolder/Extensions/AppleGuide/AppleGuideTopics";
 import {
 	appSwitcherAppsFrom,
+	appSwitcherEntryMark,
 	withClassicyAppIdentityMenuItems,
 } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyAppSwitcherUtils";
 import { useClassicyShortcutDispatcher } from "@/SystemFolder/SystemResources/Desktop/MenuBar/ClassicyShortcutDispatcher";
 import { collectMenuChords } from "@/SystemFolder/SystemResources/Menu/ClassicyKeyboardShortcut";
+import { useClassicyNotificationBlink } from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationBlink.internal";
+import {
+	type ClassicyNotificationMenuBarIcons,
+	classicyNotificationMenuBarDescriptions,
+	classicyNotificationMenuBarIcons,
+	useClassicyNotifications,
+	useClassicyNotifiedAppIds,
+} from "@/SystemFolder/SystemResources/Notification/ClassicyNotificationManager";
+
+const NO_NOTIFICATION_ICONS: ClassicyNotificationMenuBarIcons = {
+	apple: [],
+	application: [],
+};
 
 export type ClassicyDesktopMenuBarProps = {
 	/** Extra class names, merged onto the `<nav>` after the component's own. */
@@ -177,7 +192,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 > = ({ className, style, placement }) => {
 	const layout = useClassicyAppearanceLayout();
 	const resolvedPlacement = placement ?? layout.menuBar.placement;
-	const appleMenuIcon = useClassicyAsset("systemArt", "appleMenu") ?? "";
+	const appleMenuArt = useClassicyAsset("systemArt", "appleMenu") ?? "";
 	// System 7 titles its Help menu with an icon, the balloon with a "?" (HIG
 	// p.52): a package that registers the art gets it in place of the word.
 	const helpMenuTitleArt = useClassicyAsset("systemArt", "helpMenuTitle");
@@ -211,10 +226,53 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		icon: "",
 	}).name;
 
+	// Notification Manager requests (Inside Macintosh: Processes, p. 5-4):
+	// a ◆ beside each app a request marks, and each request's icon blinking
+	// over the Application menu's title (a marked app it lists) or the Apple
+	// menu's (any other), described for assistive technology. While a menu
+	// is open the blink stops where it is, and an open title shows its own
+	// icon, as Mac OS 8.1 draws them (observed for the Application title; the
+	// Apple title's is inferred, as stock 8.1 blinks nothing there); nothing
+	// blinks where this bar is not drawn (window placement).
+	const notifiedAppIds = useClassicyNotifiedAppIds();
+	const notifications = useClassicyNotifications();
+	const [openTitle, setOpenTitle] = useState<string | null>(null);
 	const appSwitcherData = useMemo(
-		() => appSwitcherAppsFrom(apps, overrides),
-		[apps, overrides],
+		() => appSwitcherAppsFrom(apps, overrides, notifiedAppIds),
+		[apps, overrides, notifiedAppIds],
 	);
+	const { notificationIcons, notificationDescriptions } = useMemo(() => {
+		const listed = new Set(appSwitcherData.map((a) => a.id));
+		const identity = (appId: string) =>
+			classicyAppIdentityFrom(
+				overrides,
+				appId,
+				apps[appId] ?? { name: appId, icon: "" },
+			);
+		return {
+			notificationIcons: classicyNotificationMenuBarIcons(
+				notifications,
+				listed,
+				(appId) => identity(appId).icon,
+			),
+			notificationDescriptions: classicyNotificationMenuBarDescriptions(
+				notifications,
+				listed,
+				(appId) => identity(appId).name,
+			),
+		};
+	}, [notifications, appSwitcherData, overrides, apps]);
+	const blinkingIcons = useClassicyNotificationBlink(
+		resolvedPlacement === "window" ? NO_NOTIFICATION_ICONS : notificationIcons,
+		openTitle !== null,
+	);
+	const appleMenuDescription = notificationDescriptions.apple;
+	const appleMenuIcon =
+		openTitle === "apple-menu"
+			? appleMenuArt
+			: (blinkingIcons.apple ?? appleMenuArt);
+	const switcherTitleIcon =
+		openTitle === "app-switcher" ? undefined : blinkingIcons.application;
 
 	const setActiveApp = (appId: string) => {
 		desktopEventDispatch({
@@ -261,7 +319,10 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		];
 		return {
 			id: "app-switcher",
-			image: focusedApp?.icon || "",
+			image: switcherTitleIcon ?? (focusedApp?.icon || ""),
+			...(notificationDescriptions.application
+				? { description: notificationDescriptions.application }
+				: {}),
 			title: focusedApp?.name || finderName,
 			className: "classicyDesktopMenuAppSwitcher",
 			part: "switcher",
@@ -276,11 +337,11 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 					id: app.id,
 					icon: app.icon,
 					title: app.name,
-					// The front application is checked, beside its icon; a hidden
-					// one's icon is dimmed: by the package's rule on a canvas
-					// (`imageDimmed`), else by its stylesheet
-					// (`classicyDesktopMenuAppHidden`).
-					checked: app.id === focusedApp?.id,
+					// The front application is checked, beside its icon, and one a
+					// notification marks has a ◆; a hidden one's icon is dimmed:
+					// by the package's rule on a canvas (`imageDimmed`), else by
+					// its stylesheet (`classicyDesktopMenuAppHidden`).
+					...appSwitcherEntryMark(app, app.id === focusedApp?.id),
 					...(app.hidden
 						? { className: "classicyDesktopMenuAppHidden", imageDimmed: true }
 						: {}),
@@ -290,8 +351,14 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				})),
 			],
 		};
+	}, [
+		appSwitcherData,
+		finderName,
 		// biome-ignore lint/correctness/useExhaustiveDependencies: setActiveApp is defined inline and recreated each render; including it would cause infinite loops
-	}, [appSwitcherData, finderName, setActiveApp]);
+		setActiveApp,
+		switcherTitleIcon,
+		notificationDescriptions.application,
+	]);
 
 	// The app whose menus the bar is showing. Extensions (e.g. Apple Guide) can
 	// take window focus but must never be treated as "the focused app" here —
@@ -392,6 +459,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				image: appleMenuIcon,
 				// The art is the title: its accessible name.
 				imageAlt: "Apple",
+				description: appleMenuDescription,
 				menuChildren,
 				className: "classicyDesktopMenuApple",
 				part: "apple",
@@ -405,6 +473,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 		appMenu,
 		systemMenu,
 		appleMenuIcon,
+		appleMenuDescription,
 		overrides,
 		finderName,
 	]);
@@ -486,6 +555,7 @@ const ClassicyDesktopMenuBarContent: FunctionalComponent<
 				menuItems={defaultMenuItems}
 				navClass={"classicyDesktopMenu"}
 				subNavClass={"classicySubMenu"}
+				onOpenItemChange={setOpenTitle}
 			>
 				{/* Sound lives on the Control Strip (ClassicyDesktop mounts it). */}
 				<ClassicyDesktopMenuWidgetTime />

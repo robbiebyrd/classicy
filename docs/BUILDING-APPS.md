@@ -1133,6 +1133,45 @@ sensible set is generated from `alertType`.
 > **`onClose` fires after *every* button**, in addition to that button's own
 > `onClick`. A handler pair that undoes itself is a real failure mode here.
 
+### Notifications: asking for attention from the background
+
+An alert is for the app in front. When your app (or the host behind it)
+needs the user while they are elsewhere, a finished download, a new
+message, the end of a long job, post a **notification** instead, as a Mac OS
+application did through the Notification Manager (Inside Macintosh:
+Processes, ch. 5). It works from anywhere, outside React included:
+
+```ts
+import { classicyNotify, removeClassicyNotification } from '@classicy/classicy'
+
+const id = classicyNotify({
+    appId,                                   // your ClassicyApp id
+    message: "The download is complete.",    // optional: a note alert with OK
+    sound: true,                             // optional: the user's alert sound
+    onResponse: () => markSeen(),            // optional: after the user clicks OK
+})
+```
+
+By default the request puts a ◆ beside your app's name in the Application
+menu (while your app is in the background; in front it keeps its ✓) and
+blinks your app's icon over the Application menu's own, once a second
+(steady for users who prefer reduced motion). That is the reference's
+suggested default: no sound and no alert unless you ask. `mark: false`
+blinks the icon over the Apple menu instead, `icon: "/other.png"` or
+`icon: false` changes or drops it, and `sound: "ClassicyAlertQuack"` names a
+sprite. The sound plays once at the alert volume (silent when muted); the
+alert shows once, one request's at a time.
+
+The mark and the icon **stay until the request is removed**. Classicy
+removes it for you when your app comes to the front, or when the user
+answers its alert while your own app hosts it (pass `removeOnActivate:
+false` to keep it, then call `removeClassicyNotification(id)` yourself),
+and when your app quits. Post one
+request per occurrence: each is presented separately. Requests are session
+state, never persisted; `useClassicyNotifications()` lists them.
+HyperCard stacks cannot post them. Full reference:
+[`docs/AGENT-REFERENCE.md`](AGENT-REFERENCE.md) §4.11.
+
 ### File dialogs
 
 ```tsx

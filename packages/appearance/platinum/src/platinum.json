@@ -224,7 +224,8 @@
 				"captionShadowBlur": 3
 			},
 			"menu": {
-				"popUpMaxHeight": 300
+				"popUpMaxHeight": 300,
+				"markPixel": 1
 			},
 			"table": {
 				"resizerWidth": 15
@@ -240,6 +241,9 @@
 				"thumbRise": 3,
 				"tickWidth": 3,
 				"tickHeight": 8
+			},
+			"checkbox": {
+				"pixel": 1
 			},
 			"dither": {
 				"tileSize": 0

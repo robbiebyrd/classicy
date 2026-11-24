@@ -221,6 +221,27 @@ describe("ClassicyAlert", () => {
 		expect(onHelp).toHaveBeenCalledTimes(1);
 	});
 
+	// The fixed alert beeps through its error window, the movable one itself;
+	// `playSound={false}` silences both (a notification's alert, story
+	// 0225-ci7: its sound is the request's own).
+	it("plays the alert sound on open unless playSound is false", () => {
+		const beeps = () =>
+			mockPlayer.mock.calls.filter(
+				([action]) => action?.type === "ClassicySoundPlayError",
+			).length;
+		const { unmount } = render(<ClassicyAlert id="a" label="Fixed" />);
+		expect(beeps()).toBe(1);
+		unmount();
+		const movable = render(<ClassicyAlert id="b" label="Moves" movable />);
+		expect(beeps()).toBe(2);
+		movable.unmount();
+		render(<ClassicyAlert id="c" label="Quiet" playSound={false} />);
+		render(
+			<ClassicyAlert id="d" label="Quiet too" movable playSound={false} />,
+		);
+		expect(beeps()).toBe(2);
+	});
+
 	// ClassicyAlert is always modal={true} — ClassicyWindow's cleanup effect
 	// must dispatch ClassicyWindowDestroy for it on unmount (#222/#223). A real
 	// in-repo caller passes a real app id (not the "ClassicyAlert" default), so
