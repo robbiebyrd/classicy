@@ -2432,10 +2432,10 @@ authors:
   `platinum-menu-frame` reads `--menu-frame-border-width`, `-bevel-width`,
   `-shadow-start`, `-shadow-gap` and `-shadow-width`, and
   `platinum-scrollbars` reads `--scrollbar-thumb-grip-width` and `-height`.
-  They are look-only knobs, Platinum's own: inside a desktop Platinum's
-  themes emit them, and a package that `@use`s the mixins declares them in
-  its own `defaults.measurements` (the core floor holds only the structural
-  knobs); a host that includes the mixins anywhere else spreads
+  Inside a desktop every theme emits them (they were Platinum's alone, and
+  a package that `@use`s the mixins declared them in its own
+  `defaults.measurements`, until story 0225-ci7 put them on the core
+  floor); a host that includes the mixins anywhere else spreads
   `getThemeVars(theme)` there too. The inset shadows of the `platinum-window-*` and
   `platinum-depressable-*` mixins and of the scroll-bar track now read the
   derivation `--control-frame-width` (border × 2) where they computed
@@ -4916,23 +4916,30 @@ literals.
 - **Structural knobs (H-R13).** A knob variable that a base stylesheet
   (`classicy.base`) or component code reads is part of the component's
   interface, not of Platinum's look: every package's themes must emit it.
+  So is one Platinum's own partials read without a fallback, since
+  `ChangeTheme` may draw any package's theme under Platinum, whose sheet
+  then reads that theme's variables (story 0225-ci7: a System 7 theme drawn
+  under Platinum emitted no `--slider-*`, and the slider lost its channel,
+  indicator and ticks).
   The core floor guarantees that: `CLASSICY_CORE_MEASUREMENT_DEFAULTS`
   (`src/Appearance/ClassicyCoreTheme.ts`, the core's own data at Platinum's
   values) holds the core five and every structural knob, and
   `classicyThemeMeasurementDefaults` completes every theme from it before
   the package's own values, so a package changes such geometry by
-  overriding the knob's value, never the base CSS. 87 of the 107 are
+  overriding the knob's value, never the base CSS. 105 of the 107 are
   structural ("Structural: yes"; `ClassicyCoreTheme.test.ts` parses this
-  table, so the floor and the column cannot drift). Two of the rest are
-  the optional `fileBrowserList` knobs (below). The other 18 are
-  look-only: read only by Platinum's own partials (`_ControlStrip.scss`,
-  `_mixins.scss`, `_BevelButton.scss`, `_scrollbars.scss`, `_Window.scss`,
-  `_QuickTimeMovieEmbed.scss`, `_Slider.scss`), they are not in the floor and come only from
-  Platinum's `platinum.json`. A package with stylesheets of its own may
-  ignore them, unless it `@use`s Platinum's published mixins
-  (`platinum-menu-frame` and `platinum-scrollbars` read the `--menu-frame-*`
-  and `--scrollbar-thumb-grip-*` knobs): it then declares them in its own
-  `defaults.measurements`.
+  table, so the floor and the column cannot drift), the 18 only Platinum's
+  partials read among them (`_ControlStrip.scss`'s bevel, the
+  `platinum-menu-frame` and `platinum-scrollbars` mixins'
+  `--menu-frame-*` and `--scrollbar-thumb-grip-*`, `_Window.scss`'s windoid
+  texture, `_QuickTimeMovieEmbed.scss`'s caption shadow and `_Slider.scss`'s
+  seven): until story 0225-ci7 they were look-only, Platinum's alone, and
+  a theme of another package drawn under Platinum emitted none of them.
+  `ClassicyPlatinumKnobReads.test.ts` checks that every variable Platinum's
+  sheet reads without a fallback is emitted by every registered package's
+  themes and by a package declaring only the core five. A package with
+  stylesheets of its own may ignore them; its themes emit them anyway. The
+  other two are the optional `fileBrowserList` knobs (below).
 - **Optional knobs.** A third kind of knob is read by a core derivation but
   has no floor value: `menuBar.bandHeight`. `--menu-bar-height` is
   `menuBar.bandHeight` when a theme sets it to a finite number of zero or
@@ -5030,7 +5037,7 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.narrowCellWidth` | `--control-strip-narrow-cell-width` | 13 | "Narrow cell width", 6–40 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleWidth` | `--control-strip-module-width` | 30 | "Module width", 16–96 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
 | `controlStrip.borderWidth` | `--control-strip-border-width` | 1 | "Border width", 0–4 | yes | ClassicyControlStrip.scss, ClassicyControlStrip.tsx |
-| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | no | _ControlStrip.scss |
+| `controlStrip.bevelWidth` | `--control-strip-bevel-width` | 1 | "Bevel width", 0–4 | yes | _ControlStrip.scss |
 | `controlStrip.pressedShift` | `--control-strip-pressed-shift` | 1 | "Pressed shift", 0–4 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphLeft` | `--control-strip-collapse-glyph-left` | 2 | "Collapse glyph left", 0–16 | yes | ClassicyControlStrip.scss |
 | `controlStrip.collapseGlyphTop` | `--control-strip-collapse-glyph-top` | 7 | "Collapse glyph top", 0–32 | yes | ClassicyControlStrip.scss |
@@ -5040,11 +5047,11 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlStrip.moduleIconTop` | `--control-strip-module-icon-top` | 3 | "Module icon top", 0–32 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowLeft` | `--control-strip-module-arrow-left` | 22 | "Module arrow left", 0–64 | yes | ClassicyControlStrip.scss |
 | `controlStrip.moduleArrowTop` | `--control-strip-module-arrow-top` | 7 | "Module arrow top", 0–32 | yes | ClassicyControlStrip.scss |
-| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | no | _mixins.scss |
-| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | no | _mixins.scss, _BevelButton.scss |
-| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | no | _mixins.scss |
-| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | no | _mixins.scss |
-| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | no | _mixins.scss |
+| `menuFrame.borderWidth` | `--menu-frame-border-width` | 1 | "Border width", 0–4 | yes | _mixins.scss |
+| `menuFrame.bevelWidth` | `--menu-frame-bevel-width` | 1 | "Bevel width", 0–4 | yes | _mixins.scss, _BevelButton.scss |
+| `menuFrame.shadowWidth` | `--menu-frame-shadow-width` | 1 | "Shadow width", 0–4 | yes | _mixins.scss |
+| `menuFrame.shadowStart` | `--menu-frame-shadow-start` | 1 | "Shadow start", 0–8 | yes | _mixins.scss |
+| `menuFrame.shadowGap` | `--menu-frame-shadow-gap` | 0 | "Shadow gap", 0–4 | yes | _mixins.scss |
 | `pager.borderWidth` | `--pager-border-width` | 1 | "Border width", 0–4 | yes | ClassicyPager.scss |
 | `pager.arrowWidth` | `--pager-arrow-width` | 42 | "Arrow width", 16–96 | yes | ClassicyPager.scss |
 | `pager.cellHeight` | `--pager-cell-height` | 36 | "Row height", 16–96 | yes | ClassicyPager.scss |
@@ -5066,8 +5073,8 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `popUpSlider.trackLeft` | `--pop-up-slider-track-left` | 4 | "Track left", 4–4 | yes | ClassicyPopUpSlider.scss |
 | `popUpSlider.trackTop` | `--pop-up-slider-track-top` | 3 | "Track top", 0–32 | yes | ClassicyPopUpSlider.scss, ClassicyPopUpSlider.tsx |
 | `popUpSlider.thumbLeft` | `--pop-up-slider-thumb-left` | 1 | "Thumb left", 1–1 | yes | ClassicyPopUpSlider.scss |
-| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | no | _scrollbars.scss |
-| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | no | _scrollbars.scss |
+| `scrollbar.thumbGripWidth` | `--scrollbar-thumb-grip-width` | 7 | "Thumb grip width (across the bar)", 3–32 | yes | _scrollbars.scss |
+| `scrollbar.thumbGripHeight` | `--scrollbar-thumb-grip-height` | 8 | "Thumb grip height (along the bar)", 3–32 | yes | _scrollbars.scss |
 | `hyperCard.fontSize` | `--hyper-card-font-size` | 11 | — | yes | HyperCard.scss |
 | `hyperCard.handleSize` | `--hyper-card-handle-size` | 6 | — | yes | HyperCard.scss |
 | `hyperCard.paletteMaxWidth` | `--hyper-card-palette-max-width` | 220 | — | yes | HyperCard.scss |
@@ -5113,23 +5120,23 @@ variable's readers found by searching `src` (tests and stories excluded):
 | `controlPanel.listMaxHeight` | `--control-panel-list-max-height` | 180 | — | yes | DriveSetupList.scss |
 | `controlPanel.colorsScrollMaxHeight` | `--control-panel-colors-scroll-max-height` | 210 | — | yes | ClassicyAppearanceManager.Colors.scss |
 | `progressBar.stripeWidth` | `--progress-bar-stripe-width` | 10 | — | yes | ClassicyProgressBar.scss |
-| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | no | _Window.scss |
-| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | no | _Window.scss |
+| `utilityTitleBar.textureWidth` | `--utility-title-bar-texture-width` | 4 | — | yes | _Window.scss |
+| `utilityTitleBar.textureHeight` | `--utility-title-bar-texture-height` | 3 | — | yes | _Window.scss |
 | `boot.halftoneTile` | `--boot-halftone-tile` | 4 | — | yes | ClassicyBootSequence.scss |
 | `helpButton.glyphSize` | `--help-button-glyph-size` | 14 | — | yes | ClassicyHelpButton.scss |
-| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | no | _QuickTimeMovieEmbed.scss |
+| `quickTime.captionShadowBlur` | `--quick-time-caption-shadow-blur` | 3 | — | yes | _QuickTimeMovieEmbed.scss |
 | `menu.popUpMaxHeight` | `--menu-pop-up-max-height` | 300 | — | yes | ClassicyComboBox.tsx, ClassicyPopUpMenu.scss, ClassicyPopUpMenu.tsx |
 | `menu.markPixel` | `--menu-mark-pixel` | 1 | — | yes | _marks.scss (Charcoal's menu check and diamond; on the floor so a theme of another package drawn under Platinum keeps its marks) |
 | `table.resizerWidth` | `--table-resizer-width` | 15 | — | yes | ClassicyTable.scss |
 | `stripMenu.overlap` | `--strip-menu-overlap` | 3 | — | yes | ClassicyControlStrip.tsx |
 | `dither.tileSize` | `--dither-tile-size` | 0 | — | yes | _dither.scss |
-| `slider.pixel` | `--slider-pixel` | 1 | — | no | _Slider.scss |
-| `slider.channel` | `--slider-channel` | 7 | — | no | _Slider.scss |
-| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | no | _Slider.scss |
-| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | no | _Slider.scss |
-| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | no | _Slider.scss |
-| `slider.tickWidth` | `--slider-tick-width` | 3 | — | no | _Slider.scss |
-| `slider.tickHeight` | `--slider-tick-height` | 8 | — | no | _Slider.scss |
+| `slider.pixel` | `--slider-pixel` | 1 | — | yes | _Slider.scss |
+| `slider.channel` | `--slider-channel` | 7 | — | yes | _Slider.scss |
+| `slider.thumbAlong` | `--slider-thumb-along` | 15 | — | yes | _Slider.scss |
+| `slider.thumbAcross` | `--slider-thumb-across` | 17 | — | yes | _Slider.scss |
+| `slider.thumbRise` | `--slider-thumb-rise` | 3 | — | yes | _Slider.scss |
+| `slider.tickWidth` | `--slider-tick-width` | 3 | — | yes | _Slider.scss |
+| `slider.tickHeight` | `--slider-tick-height` | 8 | — | yes | _Slider.scss |
 | `checkbox.pixel` | `--checkbox-pixel` | 1 | — | yes | _Checkbox.scss, _marks.scss (the grid of the checkbox's bevel, check, mixed dash and X, Figure 2-8's bitmaps; on the floor so a theme of another package drawn under Platinum keeps its checkboxes) |
 | `fileBrowserList.mediumIconSize` | `--file-browser-list-medium-icon-size` | 16 | — | no | ClassicyFileBrowser.tsx (optional; HIGOS8 Fig. 2-24) |
 | `fileBrowserList.rowPadding` | `--file-browser-list-row-padding` | 1 | — | no | ClassicyFileBrowserViewTable.scss (optional; HIGOS8 Fig. 2-24) |
@@ -5158,7 +5165,9 @@ the thumb's margins on a vertical channel (`channel + thumbRise -
 (thumbAcross + thumbAlong) / 2` pointing left, `(thumbAcross - thumbAlong)
 / 2 - thumbRise` pointing right) and Firefox's translations of its centered
 thumb (`(thumbAcross - channel) / 2 - thumbRise`, and its negation) are
-derived from them. All look-only: only Platinum reads them.
+derived from them. Only Platinum reads them; they are on the core floor
+all the same (structural, story 0225-ci7), so a theme of another package
+drawn under Platinum keeps the slider.
 
 `dither.tileSize` is the switch of the dither vocabulary
 (`@classicy/classicy/scss/dither`, §8 "Dither vocabulary"): the edge of the
@@ -5195,11 +5204,12 @@ host's partial package. `ClassicyThemeMetrics.ts` fills it key by key:
   floor, `CLASSICY_CORE_MEASUREMENT_DEFAULTS`), then the registered
   package's own `defaults.measurements`, merged key by key with the
   package's values winning. A package that declares part of a family keeps
-  the floor's structural keys it leaves out, but never a look-only knob: a
-  package that draws with Platinum's stylesheet declares those itself
-  (Storybook's Test Pack declares `controlStrip { cellHeight, tabWidth,
-  bevelWidth }`; `storybook/.storybook/StorybookPackageKnobs.test.ts` checks
-  every Storybook package). An unknown or missing id gets the registered
+  the floor's keys it leaves out, the knobs only Platinum's partials read
+  included (story 0225-ci7); only Platinum's optional `fileBrowserList`
+  knobs are never filled (Storybook's Test Pack declares `controlStrip {
+  cellHeight, tabWidth, bevelWidth }`;
+  `storybook/.storybook/StorybookPackageKnobs.test.ts` checks every
+  Storybook package). An unknown or missing id gets the registered
   default package's (never another registered package's), else the floor
   alone. The result is frozen and cached per package registration.
 - `withDefaultThemeMetrics(theme, defaults = CLASSICY_DEFAULT_THEME_METRICS)`

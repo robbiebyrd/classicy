@@ -28,30 +28,13 @@ import {
 
 const CORE_FIVE = ["window", "control", "button", "groupBox", "layout"];
 
-// The knobs only Platinum's own partials read, and its optional ones
-// (AGENT-REFERENCE §8, "Structural: no"): Platinum's look, never the core's.
+// The knobs off the floor (AGENT-REFERENCE §8, "Structural: no"): only the
+// optional ones the file browser's list view reads with a fallback (HIGOS8
+// Figure 2-24), since a floor value would size every package's list. Every
+// knob Platinum's own partials read without a fallback is on the floor too,
+// since story 0225-ci7: `ChangeTheme` may draw any package's theme under
+// Platinum (ClassicyPlatinumKnobReads.test.ts).
 const LOOK_ONLY = [
-	"controlStrip.bevelWidth",
-	"menuFrame.borderWidth",
-	"menuFrame.bevelWidth",
-	"menuFrame.shadowWidth",
-	"menuFrame.shadowStart",
-	"menuFrame.shadowGap",
-	"scrollbar.thumbGripWidth",
-	"scrollbar.thumbGripHeight",
-	"utilityTitleBar.textureWidth",
-	"utilityTitleBar.textureHeight",
-	"quickTime.captionShadowBlur",
-	// Platinum's slider, drawn from HIGOS8 Figure 2-17 (_Slider.scss).
-	"slider.pixel",
-	"slider.channel",
-	"slider.thumbAlong",
-	"slider.thumbAcross",
-	"slider.thumbRise",
-	"slider.tickWidth",
-	"slider.tickHeight",
-	// Optional knobs the file browser's list view reads with a fallback
-	// (HIGOS8 Figure 2-24): a floor value would size every package's list.
 	"fileBrowserList.mediumIconSize",
 	"fileBrowserList.rowPadding",
 ];
@@ -120,7 +103,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 			.filter(([, isStructural]) => isStructural)
 			.map(([path]) => path)
 			.sort();
-		expect(structural).toHaveLength(87);
+		expect(structural).toHaveLength(105);
 		const knobs = leaves(CLASSICY_CORE_MEASUREMENT_DEFAULTS)
 			.filter((path) => !CORE_FIVE.includes(path.split(".")[0]))
 			.sort();
@@ -133,7 +116,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 		).toEqual([...documented.keys()].sort());
 	});
 
-	it("leaves out every look-only knob", () => {
+	it("leaves out only the optional knobs", () => {
 		const documented = documentedKnobs();
 		expect([...documented].filter(([, s]) => !s).map(([path]) => path)).toEqual(
 			LOOK_ONLY,
@@ -151,7 +134,7 @@ describe("CLASSICY_CORE_MEASUREMENT_DEFAULTS", () => {
 });
 
 describe("CLASSICY_CORE_DEFAULT_THEME", () => {
-	it("is Platinum's defaults without the wallpaper, the look-only knobs and Platinum's own colors", () => {
+	it("is Platinum's defaults without the wallpaper, the optional knobs and Platinum's own colors", () => {
 		const expected = structuredClone(platinumJson.defaults) as unknown as {
 			color: { families?: unknown };
 			desktop: { backgroundImage: string };

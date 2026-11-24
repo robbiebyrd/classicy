@@ -731,9 +731,8 @@ describe("Appearance Manager — Packages and Options tabs", {
 		});
 		fireEvent.change(cellHeight, { target: { value: "30" } });
 		// Test Pack declares two strip keys; the switch fills the other
-		// structural strip keys from the core floor (H-R2; Platinum's
-		// look-only bevelWidth is not one), and the edit changes only
-		// cellHeight.
+		// strip keys from the core floor (H-R2; the bevel width Platinum's
+		// sheet reads among them), and the edit changes only cellHeight.
 		await waitFor(() => {
 			expect(appearance().activeTheme.measurements.controlStrip).toEqual({
 				...CLASSICY_CORE_MEASUREMENT_DEFAULTS.controlStrip,
