@@ -137,6 +137,9 @@ export interface ClassicyFindFileSearchOptions {
 /** How many items are checked between yields to the event loop. */
 const ITEMS_PER_SLICE = 250;
 
+/** How long the read phase runs before it yields to the event loop. */
+const READ_SLICE_MS = 8;
+
 const isChild = (
 	key: string,
 	value: unknown,
@@ -309,10 +312,18 @@ export async function searchClassicyFileSystem(
 		await walkTrash();
 	}
 
-	// The reads, last: one per candidate, a few at a time, under the signal.
+	// The reads, last: one per candidate, a few at a time, under the signal,
+	// handing the event loop a turn every few milliseconds (an abort lands,
+	// the page draws) however fast the reads answer.
+	let sliceStart = performance.now();
 	await classicyFindEachBounded(
 		candidates,
 		async ({ path, item }) => {
+			if (performance.now() - sliceStart >= READ_SLICE_MS) {
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				sliceStart = performance.now();
+			}
+			if (signal?.aborted) return;
 			let read = item;
 			if (needSize && item.size === undefined) {
 				const size =
@@ -327,7 +338,7 @@ export async function searchClassicyFileSystem(
 			}
 			if (needText) {
 				const text = await classicyFindWithLookupPlace(memory, signal, () =>
-					classicyFindReadText(item.entry),
+					classicyFindReadText(item.entry, signal),
 				);
 				if (signal?.aborted) return;
 				if (text !== undefined) read = { ...read, text };

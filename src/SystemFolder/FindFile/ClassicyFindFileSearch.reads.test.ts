@@ -10,7 +10,9 @@ import type {
 } from "@/SystemFolder/FindFile/ClassicyFindCriteria";
 import { searchClassicyFileSystem } from "@/SystemFolder/FindFile/ClassicyFindFileSearch";
 import {
+	CLASSICY_FIND_CONTENTS_LIMIT,
 	CLASSICY_FIND_LOOKUPS,
+	classicyFindReadText,
 	createClassicyFindLookupMemory,
 } from "@/SystemFolder/FindFile/ClassicyFindLookups.internal";
 import { ClassicyFileSystem } from "@/SystemFolder/SystemResources/File/ClassicyFileSystem";
@@ -281,5 +283,157 @@ describe("the contents criterion", () => {
 		});
 		expect(results.map((r) => r.name)).toEqual(["Packed.txt"]);
 		expect(reads).not.toContain("Welcome.txt");
+	});
+});
+
+describe("the contents criterion's bounds (fix round 2)", {
+	timeout: 60_000,
+}, () => {
+	const fileOf = (data: string): ClassicyFileSystemEntry => ({
+		_type: T.TextFile,
+		_data: data,
+	});
+
+	it("reads data that only begins like compressed data as text", async () => {
+		const note = fileOf("H4sI is how a gzip stream begins in base64");
+		expect(await classicyFindReadText(note)).toBe(
+			"H4sI is how a gzip stream begins in base64",
+		);
+		// Valid base64 that begins "H4sI" but is no gzip stream: text too.
+		expect(await classicyFindReadText(fileOf("H4sIabcd"))).toBe("H4sIabcd");
+		const fs = new ClassicyFileSystem(`test-find-h4si-${++counter}`, {
+			"Macintosh HD": {
+				_type: T.Drive,
+				"Note.txt": note,
+			},
+		});
+		const found = await searchClassicyFileSystem(fs, {
+			location: "local",
+			criteria: [row("contents", "contain", "gzip stream")],
+		});
+		expect(found.map((r) => r.name)).toEqual(["Note.txt"]);
+		const missed = await searchClassicyFileSystem(fs, {
+			location: "local",
+			criteria: [row("contents", "doNotContain", "gzip stream")],
+		});
+		expect(missed).toEqual([]);
+	});
+
+	it("reads at most CLASSICY_FIND_CONTENTS_LIMIT of a file, compressed or not", async () => {
+		expect(CLASSICY_FIND_CONTENTS_LIMIT).toBe(5 * 1024 * 1024);
+		// A small limit, to see the cut: plain text and inflated text alike.
+		expect(await classicyFindReadText(fileOf("abcdefgh"), undefined, 4)).toBe(
+			"abcd",
+		);
+		const packed = await compressToBase64(new TextEncoder().encode("abcdefgh"));
+		expect(await classicyFindReadText(fileOf(packed), undefined, 4)).toBe(
+			"abcd",
+		);
+		// The real limit: a word 1 MiB in is found, one past 5 MiB is not.
+		const bytes = new Uint8Array(6 * 1024 * 1024).fill(0x2e);
+		bytes.set(new TextEncoder().encode("early-word"), 1024 * 1024);
+		bytes.set(new TextEncoder().encode("late-word"), 6 * 1024 * 1024 - 100);
+		const text = await classicyFindReadText(
+			fileOf(await compressToBase64(bytes)),
+		);
+		expect(text?.length).toBe(CLASSICY_FIND_CONTENTS_LIMIT);
+		expect(text?.includes("early-word")).toBe(true);
+		expect(text?.includes("late-word")).toBe(false);
+	});
+
+	it("ends an inflation in flight as soon as the search aborts (24 files of 16 MB)", async () => {
+		// The re-review's case: 24 files that inflate to 16 MB each. Every
+		// inflated chunk is counted, and those made after the abort.
+		const Real = globalThis.DecompressionStream;
+		let aborted = false;
+		let afterAbort = 0;
+		const perStream: number[] = [];
+		class Counting {
+			readable: ReadableStream<Uint8Array>;
+			writable: WritableStream<BufferSource>;
+			constructor(format: CompressionFormat) {
+				const real = new Real(format);
+				const at = perStream.push(0) - 1;
+				this.writable = real.writable;
+				this.readable = real.readable.pipeThrough(
+					new TransformStream<Uint8Array, Uint8Array>({
+						transform(chunk, out) {
+							perStream[at] += chunk.byteLength;
+							if (aborted) afterAbort += chunk.byteLength;
+							out.enqueue(chunk);
+						},
+					}),
+				);
+			}
+		}
+		vi.stubGlobal("DecompressionStream", Counting);
+		const blob = await compressToBase64(new Uint8Array(16 * 1024 * 1024));
+		const folder: ClassicyFileSystemEntry = { _type: T.Directory };
+		for (let i = 0; i < 24; i += 1) folder[`blob ${i}.bin`] = fileOf(blob);
+		const fs = new ClassicyFileSystem(`test-find-blobs-${++counter}`, {
+			"Macintosh HD": { _type: T.Drive, Blobs: folder },
+		});
+		const controller = new AbortController();
+		const search = searchClassicyFileSystem(fs, {
+			location: "local",
+			criteria: [row("contents", "contain", "needle")],
+			signal: controller.signal,
+			memory: createClassicyFindLookupMemory(),
+		});
+		await vi.waitFor(() => expect(perStream.length).toBeGreaterThan(0));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		aborted = true;
+		controller.abort(new DOMException("stopped", "AbortError"));
+		await expect(search).rejects.toThrow("stopped");
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		// At most four inflations ran, each cut at the limit, and the abort
+		// ended them: what came after is a chunk or so each, not 16 MB.
+		expect(perStream.length).toBeLessThanOrEqual(CLASSICY_FIND_LOOKUPS);
+		for (const bytes of perStream) {
+			expect(bytes).toBeLessThanOrEqual(
+				CLASSICY_FIND_CONTENTS_LIMIT + 1024 * 1024,
+			);
+		}
+		expect(afterAbort).toBeLessThan(CLASSICY_FIND_LOOKUPS * 1024 * 1024);
+	});
+
+	it("hands the event loop a turn between files, so an abort lands (400 files of 108 KB)", async () => {
+		const body = "lorem ipsum dolor sit amet ".repeat(4000);
+		const folder: ClassicyFileSystemEntry = { _type: T.Directory };
+		for (let i = 0; i < 400; i += 1) folder[`doc ${i}.txt`] = fileOf(body + i);
+		const fs = new ClassicyFileSystem(`test-find-docs-${++counter}`, {
+			"Macintosh HD": { _type: T.Drive, Docs: folder },
+		});
+		let last = performance.now();
+		let longest = 0;
+		let ticking = true;
+		const tick = () => {
+			const now = performance.now();
+			longest = Math.max(longest, now - last);
+			last = now;
+			if (ticking) setTimeout(tick, 0);
+		};
+		setTimeout(tick, 0);
+		const done = await searchClassicyFileSystem(fs, {
+			location: "local",
+			criteria: [row("contents", "contain", "not-there")],
+			memory: createClassicyFindLookupMemory(),
+		});
+		ticking = false;
+		expect(done).toEqual([]);
+		// The read phase yields every few milliseconds (8 ms slices).
+		expect(longest).toBeLessThan(250);
+		const controller = new AbortController();
+		const aborted = searchClassicyFileSystem(fs, {
+			location: "local",
+			criteria: [row("contents", "contain", "not-there")],
+			signal: controller.signal,
+			memory: createClassicyFindLookupMemory(),
+		});
+		setTimeout(
+			() => controller.abort(new DOMException("stopped", "AbortError")),
+			5,
+		);
+		await expect(aborted).rejects.toThrow("stopped");
 	});
 });

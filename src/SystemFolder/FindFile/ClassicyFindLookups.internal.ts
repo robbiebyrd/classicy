@@ -14,7 +14,6 @@ import {
 	type ClassicyFileSystemEntry,
 	ClassicyFileSystemEntryFileType,
 } from "@/SystemFolder/SystemResources/File/ClassicyFileSystemModel";
-import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
 
 /** How many reads run at once (sizes over the network, contents decoded). */
 export const CLASSICY_FIND_LOOKUPS = 4;
@@ -45,16 +44,20 @@ export async function classicyFindEachBounded<T>(
 	);
 }
 
-/** gzip + base64url (`compressToBase64`) always starts with these characters. */
+/**
+ * gzip + base64url (`compressToBase64`) always starts with these characters;
+ * text may too, so data that does is only compressed if it inflates.
+ */
 const GZIP_BASE64_PREFIX = "H4sI";
 
-const isCompressed = (data: string) => data.startsWith(GZIP_BASE64_PREFIX);
+const mayBeCompressed = (data: string) => data.startsWith(GZIP_BASE64_PREFIX);
 
 /**
  * The size `fs.size` gives, when it can be had without waiting: a shortcut's
  * 0, the length of plain `_data`, a recorded `_size`, or -1 for a file with
- * nothing to measure. `undefined` when it needs a read: compressed `_data`,
- * or a `_url` with no `_size` (a HEAD request). Folders have none.
+ * nothing to measure. `undefined` when it needs a read: `_data` that may be
+ * compressed (`fs.size` inflates it, or measures it as text), or a `_url`
+ * with no `_size` (a HEAD request). Folders have none.
  */
 export const classicyFindKnownSize = (
 	entry: ClassicyFileSystemEntry,
@@ -67,7 +70,7 @@ export const classicyFindKnownSize = (
 	}
 	if ("_data" in entry) {
 		const data = String(entry._data);
-		if (isCompressed(data)) return undefined;
+		if (mayBeCompressed(data)) return undefined;
 		return new TextEncoder().encode(data).byteLength;
 	}
 	if (entry._type === ClassicyFileSystemEntryFileType.Shortcut) return 0;
@@ -178,20 +181,101 @@ export async function classicyFindReadSize(
 }
 
 /**
+ * The most of a file's contents the contents criterion reads: 5 MiB (of
+ * text, or of inflated bytes). Classicy keeps its tree in localStorage,
+ * which holds 5 MiB per origin in every browser (MDN, "Storage quotas and
+ * eviction criteria", Web Storage), so no plain file of a stored tree is
+ * longer; a compressed one can inflate past it, and only its first 5 MiB
+ * are searched.
+ */
+export const CLASSICY_FIND_CONTENTS_LIMIT = 5 * 1024 * 1024;
+
+/** base64url (`compressToBase64`'s alphabet, unpadded) to bytes; throws on junk. */
+const base64UrlBytes = (data: string): Uint8Array => {
+	const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
+	const binary = atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4));
+	return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+};
+
+type Inflated =
+	| { kind: "text"; text: string }
+	| { kind: "notCompressed" }
+	| { kind: "aborted" };
+
+/**
+ * Inflate gzip + base64url `data` as UTF-8 text, chunk by chunk: at most
+ * `limit` bytes, ending at once when `signal` aborts. `notCompressed` when
+ * it is no gzip stream at all.
+ */
+async function inflateText(
+	data: string,
+	limit: number,
+	signal: AbortSignal | undefined,
+): Promise<Inflated> {
+	let bytes: Uint8Array;
+	try {
+		bytes = base64UrlBytes(data);
+	} catch {
+		return { kind: "notCompressed" };
+	}
+	if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return { kind: "notCompressed" };
+	const reader = new Blob([new Uint8Array(bytes)])
+		.stream()
+		.pipeThrough(new DecompressionStream("gzip"))
+		.getReader();
+	const stop = () => {
+		void reader.cancel().catch(() => {});
+	};
+	signal?.addEventListener("abort", stop, { once: true });
+	const decoder = new TextDecoder();
+	let text = "";
+	let inflated = 0;
+	try {
+		for (;;) {
+			if (signal?.aborted) return { kind: "aborted" };
+			const { done, value } = await reader.read();
+			if (signal?.aborted) return { kind: "aborted" };
+			if (done) break;
+			const chunk = value.subarray(0, limit - inflated);
+			inflated += chunk.byteLength;
+			text += decoder.decode(chunk, { stream: true });
+			if (inflated >= limit) {
+				stop();
+				break;
+			}
+		}
+		return { kind: "text", text: text + decoder.decode() };
+	} catch {
+		if (signal?.aborted) return { kind: "aborted" };
+		// Not a gzip stream after all: the caller reads it as text.
+		return inflated === 0
+			? { kind: "notCompressed" }
+			: { kind: "text", text: text + decoder.decode() };
+	} finally {
+		signal?.removeEventListener("abort", stop);
+	}
+}
+
+/**
  * A file's contents as text, for the contents criterion: its `_data`,
- * decompressed when it is stored compressed and decoded as UTF-8. `undefined`
- * for a file with no `_data` (a `_url` file is never fetched) or whose data
- * cannot be decoded.
+ * inflated when it is gzip + base64url (`compressToBase64`) and decoded as
+ * UTF-8, else the text itself (a note that merely begins "H4sI" is text);
+ * at most `CLASSICY_FIND_CONTENTS_LIMIT` of it, the inflation ending as soon
+ * as `signal` aborts. `undefined` for a file with no `_data` (a `_url` file
+ * is never fetched), and when `signal` aborted first.
  */
 export async function classicyFindReadText(
 	entry: ClassicyFileSystemEntry,
+	signal?: AbortSignal,
+	limit: number = CLASSICY_FIND_CONTENTS_LIMIT,
 ): Promise<string | undefined> {
 	if (!("_data" in entry) || typeof entry._data !== "string") return undefined;
+	if (signal?.aborted) return undefined;
 	const data = entry._data;
-	if (!isCompressed(data)) return data;
-	try {
-		return new TextDecoder().decode(await decompressFromBase64(data));
-	} catch {
-		return undefined;
+	if (mayBeCompressed(data)) {
+		const inflated = await inflateText(data, limit, signal);
+		if (inflated.kind === "aborted") return undefined;
+		if (inflated.kind === "text") return inflated.text;
 	}
+	return data.length > limit ? data.slice(0, limit) : data;
 }
