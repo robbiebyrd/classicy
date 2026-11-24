@@ -718,21 +718,34 @@ One engine, `useClassicyMarqueeSelection`
 (`File/useClassicyMarqueeSelection.internal.ts`): a press without Shift
 deselects at once; the rectangle starts at 2 px of travel
 (`CLASSICY_MARQUEE_THRESHOLD`); an item is touched by its icon's opaque
-pixels (`readClassicyIconOpaqueMask`, the drag outline's alpha rule) or its
-label's box, live as it grows and shrinks; Shift keeps the selection and
-toggles what it touches, Command does nothing more; release keeps it, Escape
-restores the selection from before the press (8.1 did not cancel; the story
-asked), a lost pointer stream ends it where it is; held past a window's
-contents it scrolls a line (`CLASSICY_SCROLL_LINE_STEP`) every
-`CLASSICY_PRESS_REPEAT_INTERVAL_MS`. The rectangle is the part
-`data-classicy-part="selection-marquee"` (`classicySelectionMarquee`, base:
-absolute, z-index 15, under the desktop's windows), drawn by the package:
-Platinum two pixels, System 7 one, both the 50% checker in XOR
+pixels (`readClassicyIconOpaqueMask`, the drag outline's alpha rule, cached
+by image and size) or its label's box, live as it grows and shrinks; Shift
+keeps the selection and toggles what it touches, Command does nothing more;
+a Control-press is the contextual-menu click (deselects, opens the menu,
+`openClassicyControlPressContextMenu`; no rectangle); release keeps it,
+Escape restores the selection from before the press (8.1 did not cancel;
+the story asked), every other key but a modifier is held off while it lasts,
+a lost pointer stream ends it where it is; held past a window's contents
+(less a list's sticky titles) it scrolls a line (`CLASSICY_SCROLL_LINE_STEP`)
+every `CLASSICY_PRESS_REPEAT_INTERVAL_MS`, and is clipped there, never
+re-framed: a clip box (`classicySelectionMarqueeClip`, no stacking context)
+holds the part `data-classicy-part="selection-marquee"`
+(`classicySelectionMarquee`, base: absolute, z-index 15, under the desktop's
+windows) at the whole rectangle, with the desktop's corner as
+`--classicy-pattern-origin-x`/`-y`. The package draws it (the core draws no
+look; a package that does not shows an invisible rectangle): Platinum two
+pixels, System 7 one, both the 50% checker in XOR laid from the desktop
 (`mix-blend-mode: difference`, knobs `selectionMarquee.width`/`tileSize`).
 The desktop selects through `ClassicyDesktopIconSelectBox` (Shift-press:
 `ClassicyDesktopFocus { keepSelection: true }`); the icon view keeps its
-icons' selection (`ClassicyIcon` `selected`/`onSelectedChange`); the list
-view selects through `ClassicyTableSelectionApi.select`. Details:
+icons' selection (`ClassicyIcon` `selected`/`onSelectedChange`/
+`onSelectionGesture`: a click selects alone, Shift or Command toggles) and
+drags a selection as one (`fileDragParts`, `moveBy`), and lends Select All
+through the browser's `selectionApiRef` (Finder's Select All is ⌘A, marked
+`nativeShortcut` like every editing command: the focused file browser takes
+the key, a text field keeps it); the list view selects through
+`ClassicyTableSelectionApi.select` (which moves the keyboard cursor), and
+swallows only the gesture's own click (`detail` > 0). Details:
 `docs/AGENT-REFERENCE.md` §7, "Selection rectangle".
 
 ### Trash

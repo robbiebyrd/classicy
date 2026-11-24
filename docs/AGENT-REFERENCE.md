@@ -1230,8 +1230,7 @@ unstyled. Platinum draws the stripes with `platinum-title-bar-stripes` (§5,
 | `ClassicySplitView` | `children` * (2–3 panes), `direction? ("horizontal"\|"vertical")`, `defaultSizes? (number[], pct, normalized)`, `minPaneSize? (48 px)`, `onResize?(sizes)`, `onResizeCommit?(sizes, { lost })` | resizable pane container; divider is draggable and keyboard-operable (ARIA separator, arrow keys). Max 3 panes — nest split views for grids. Uncontrolled after mount: persist via `onResizeCommit`, restore via `defaultSizes`. A drag whose pointer stream is lost (window `blur`, `pointercancel`, page hidden) ends where it is and commits, with `lost: true` (`ClassicyGestureEnd`; a release or key release passes `false`) |
 | `ClassicyScrollArea` | `children`, `vertical?`/`horizontal? ("auto"\|"always"\|"never", "auto")`, `pairBars?` (either drawn → both), `scrollable? (true)` (`false` clips), `inactive?` (default: its window's), `lineStep? (16)`, `viewportRef?` (`Ref<HTMLElement>`: the area's `<div>`, or a `renderViewport` scroller), `viewportClassName?`, `viewportProps?`, `onScroll?`, `onOverflowChange?({ vertical, horizontal })` (whether the content overflows each axis by more than a pixel, once measured and on each change; `ClassicyWindow` decides its bars from it), `renderViewport?(viewport)` (a scroller of your own, e.g. a `<textarea>`), `head?` (content above the viewport and the vertical bar, the area's full width, scrolled sideways with the viewport: the part `classicyScrollAreaHead`, which the vertical bar starts under; the area also draws one while a descendant asks for it, as a list with `scrollable={false}` does to put its titles there), `onHeadChange?(present)` (whether the head is drawn, once and on each change, and `false` when the area unmounts while drawing one; `ClassicyWindow` marks its header `classicyWindowHeaderAboveHead` from it), and any `<div>` attribute for the root (forwarded `ref`) | a scrolling area with Classicy's own scroll bars, which an Appearance Package draws (parts and states in §4.0.1). The content scrolls natively in the viewport (wheel, keyboard, touch, selection and accessibility are the browser's), whose own bars are hidden (`scrollbar-width: none` and `::-webkit-scrollbar`); the bars are `aria-hidden` and never take focus. An arrow press scrolls a line and repeats while held; a track press pages toward the pointer, repeating until the thumb reaches it; dragging the thumb scrolls in proportion, as it goes, or on release when the package's `layout.scrollBar.thumbDrag` is `"onRelease"` (§8, "Layout declarations": the thumb stays put while a `scroll-drag-outline` part follows the pointer, snapping back over the thumb while the pointer is more than the theme's `--scroll-bar-snap-back`, else the bar's thickness, from the bar; Escape cancels it, and the keys and the wheel wait while it is held); a lost pointer stream ends any of them (an on-release drag scrolling nothing). Content changes (elements, text, and the `class`, `style` and `hidden` attributes) are measured once an animation frame. A root made focusable by its caller scrolls for Page Up/Down, Space, Home/End and the arrows its own `onKeyDown` leaves. Thumb length and position follow Chromium's rules (`computeClassicyScrollThumb`), and each bar sits on the device-pixel grid, so a package draws exactly what the browser drew. Bars are sized by `--window-scrollbar-size`; the thumb's minimum length is the package's `min-height` (vertical) or `min-width` (horizontal), and its maximum the package's `max-height` or `max-width` (the minimum winning, as in CSS; equal limits fix its length, as System 7's square scroll box does); only px lengths count, any other value leaving that limit unset. Windows, list boxes, tables, text editors, split-view panes, the Assistant, file dialogs and the color picker scroll in one |
 | `ClassicySpinner` | see inputs | |
-| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?`, `selected?`/`onSelectedChange?(selected)` (the container keeps the selection: the icon shows `selected` and reports the click, drag or open that would change it; the file browser's icon view does, for its selection rectangle)
-(→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft) → handled` | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target |
+| `ClassicyIcon` | `appId` *, `name` *, `icon` *, `label?`, `labelPosition? (below)`, `size?` (px), `onClickFunc?` (open: double-click, Enter or Space), `initialPosition?`, `holder?`, `invisible?`, `snapTo?`/`snapOrigin?`, `positionLocked?`, `dropFolderPath?`, `filePath?` (→ `data-classicy-file-path`), `onFileDrag?(target, point, outlineTopLeft, travel) → handled` (`travel`: how far the pointer went from the press), `fileDragParts?()` (the outline's parts, read at the press; default its own image and label), `moveBy?: { id, dx, dy }` (moves the icon by `dx`, `dy`, snapped, each time `id` changes; not at mount), `selected?`/`onSelectedChange?(selected)` (the container keeps the selection: the icon shows `selected` and reports the click, drag or open that would change it), `onSelectionGesture?({ type: "press" \| "click", shiftKey, metaKey })` (with `selected`: presses and clicks go to the container, which applies its own rules, and a click no longer toggles the icon itself) | draggable icon (non-desktop surfaces). With `onFileDrag` it drags as a file (dotted outline, can leave its window); return `false` to have it reposition in place instead. `dropFolderPath` makes it a drop target. Alone, a click toggles its selection; the file browser's icon view keeps the selection for its icons (`selected`, `onSelectedChange`, `onSelectionGesture`) and drags a selection as one (`fileDragParts`, `moveBy`) |
 
 ### 4.5 Menus
 
@@ -2692,59 +2691,127 @@ serves all three:
   once the pointer has traveled `CLASSICY_MARQUEE_THRESHOLD` (2 px) on either
   axis from the press: a 1 px move draws none in 8.1, 2 px does.
 - It spans the press point and the pointer, half-open as QuickDraw's rects
-  (`classicyMarqueeRect`). An item is touched where the rectangle meets its
-  icon's opaque pixels (alpha above half, read once when it starts:
-  `readClassicyIconOpaqueMask`, the drag outline's rule; a transparent corner
-  of the icon's box does not count, and an icon a canvas cannot read counts
-  by its box) or its label's box (`classicyMarqueeTouches`). The selection
-  follows it live, as it grows and as it shrinks away.
+  (`classicyMarqueeRect`; an empty one, after a move along one axis, draws
+  nothing). An item is touched where the rectangle meets its icon's opaque
+  pixels (alpha above half, the drag outline's rule,
+  `readClassicyIconOpaqueMask`, read when the rectangle starts and cached by
+  image source and size, so a folder of hundreds of items sharing a few
+  images reads each image once; a transparent corner of the icon's box does
+  not count, and an icon a canvas cannot read counts by its box) or its
+  label's box (`classicyMarqueeTouches`). The selection follows it live, as
+  it grows and as it shrinks away.
 - With Shift held at the press the selection is kept and the touched items
   toggle against it (`classicyMarqueeSelection`; HIG7 p.290). Command (and
-  Control, Option) does nothing more than a plain press, as in 8.1.
+  Option) does nothing more than a plain press, as in 8.1.
+- A Control-press on empty space is not a rectangle: it is Mac OS 8's
+  contextual-menu click. As the 8.1 Finder does (Infinite Mac: a
+  Control-press beside a window's icons deselected them, opened the window's
+  contextual menu, and dragged no rectangle), it deselects and opens the
+  surface's contextual menu (`openClassicyControlPressContextMenu`): a macOS
+  browser fires `contextmenu` for a Control-click itself, and elsewhere,
+  where none comes, the press sends one from its target once its own task has
+  passed. In the list view the click ending it is swallowed, so the row is
+  not Control-click toggled.
 - Release ends it, keeping the selection. Escape cancels it and restores the
   selection from before the press (the 8.1 Finder kept dragging and cleared
   the selection on the queued Escape after the release; the story asks for
-  the cancel, as every other Classicy gesture has one), and is not passed
-  on. A lost pointer stream (`onClassicyPointerStreamLost`) ends it where it
-  is, as a release would.
+  the cancel, as every other Classicy gesture has one). Every other key but a
+  bare modifier is held off (`preventDefault`, not passed on) from the press
+  to the end, as 8.1 tracked the mouse alone, so an arrow key or type-ahead
+  never changes the selection under the rectangle; and the engine compares
+  each selection it makes with the selection as it is
+  (`getSelection()`), so a change made by code mid-gesture is put right on
+  the next move. A lost pointer stream (`onClassicyPointerStreamLost`) ends
+  it where it is, as a release would.
 - Held past the edge of the window's contents (the `ClassicyScrollArea`
-  viewport a file browser scrolls in), the contents scroll a line
+  viewport a file browser scrolls in, less a list's sticky column titles
+  where they lie inside it, Platinum's `inList`), the contents scroll a line
   (`CLASSICY_SCROLL_LINE_STEP`, 16 px) at once and every
   `CLASSICY_PRESS_REPEAT_INTERVAL_MS` (120 ms), the scroll arrows' rate
   (HIG7 p.167), until the pointer comes back or the rectangle ends; the press
   point scrolls with the contents, so items scrolled under the rectangle are
   selected.
-- The rectangle is the part `data-classicy-part="selection-marquee"`
-  (`classicySelectionMarquee`, `aria-hidden`, positioned in its surface's
-  coordinates and cut to what the surface's scroller shows), drawn by the
-  Appearance Package. The base sheet gives it only its place: absolute,
-  `z-index` 15 (over icons, 10; on the desktop under every window, 20 and
-  up, as 8.1 drew the desktop's under the windows over it), no pointer
-  events. Platinum draws Mac OS 8.1's two-pixel frame and System 7 the 7.5
-  Finder's one-pixel frame, both the 50% checker in XOR (`mix-blend-mode:
-  difference` with white, its white cells at the viewport's odd x + y, as
-  QuickDraw laid the pattern from the screen's origin); each package's
-  `selectionMarquee` knobs size the pen (`width`) and the checker's tile
+- Past that edge the rectangle is clipped, never framed again: its sides run
+  to the edge and no line is drawn along it, as QuickDraw clipped the
+  Finder's frame to the window's contents (8.1, `im/s3-past-3.png`). The
+  layer is a clip box, `classicySelectionMarqueeClip` (`aria-hidden`,
+  absolute, `overflow: hidden`, at the part of the surface that shows, so the
+  rectangle never widens what the scroller can scroll to; it sets no
+  `z-index`, `opacity`, `transform` or `isolation`, so it makes no stacking
+  context), holding the part `data-classicy-part="selection-marquee"`
+  (`classicySelectionMarquee`) at the whole rectangle's geometry, in its
+  surface's coordinates. The base sheet gives the part only its place:
+  absolute, `z-index` 15 (over icons, 10; on the desktop under every window,
+  20 and up, as 8.1 drew the desktop's under the windows over it), no
+  pointer events.
+- The part carries the desktop's padding-box corner from its own as
+  `--classicy-pattern-origin-x` / `-y` (whole px), so a package lays its
+  pattern from the desktop, as QuickDraw laid the Finder's from the screen
+  (8.1, Infinite Mac: moving the window by a pixel left the frame's checker
+  in the screen's phase).
+- Platinum draws Mac OS 8.1's two-pixel frame and System 7 the 7.5 Finder's
+  one-pixel frame, both the 50% checker in XOR (`mix-blend-mode: difference`
+  with white, its white cells at the desktop's odd x + y), each package's
+  `selectionMarquee` knobs sizing the pen (`width`) and the checker's tile
   (`tileSize`). QuickDraw inverted an 8-bit pixel's palette index, which no
   blend reproduces, so over a color the frame inverts as RGB does (exact in
   black and white).
+
+**For package authors.** The core draws no look for the rectangle. The base
+sheet used to give the desktop's `classicyDesktopSelect` two dotted black
+lines; story 0228-e9l removed that look, so an Appearance Package that does not
+style `[data-classicy-part="selection-marquee"]` shows an invisible
+rectangle (the selection still follows it). Draw the part in your package's
+stylesheet, as Platinum's and System 7's `_SelectionMarquee.scss` do, and
+give every theme the variables it reads (Platinum and System 7 read their
+look-only `selectionMarquee` knobs, which a theme of another package lacks:
+an undefined `var()` voids the declaration). Lay any pattern from
+`--classicy-pattern-origin-x` / `-y`, and keep the part's box: the core's
+clip box cuts it at a window's edge.
 
 The desktop selects through the store (`ClassicyDesktopIconSelectBox
 { iconIds }`; a Shift-press sends `ClassicyDesktopFocus { keepSelection:
 true }`, which focuses Finder without clearing the selection) and keeps the
 keyboard: the arrow keys and type-ahead continue from the selection it made
 (`ClassicyDesktopKeyNav.ts`), and a rectangle's selection reports no
-keyboard `select` (`ClassicyDesktopIconKeyboardSelection.internal.ts`). The
-icon view now keeps its icons' selection itself (`ClassicyIcon`'s
-`selected`/`onSelectedChange`), so a press on its empty space deselects every
-icon, and a click on an icon still toggles it. The list view selects through
-its table (`ClassicyTableSelectionApi.select`); the click and double-click
-ending a press that started a rectangle on a row are swallowed, so they
-neither select nor open it. The list's rectangle is `ClassicyFileBrowser`'s
-(it draws it over the list): a `ClassicyFileBrowserViewTable` used alone has
-none, and a press beside a name there neither drags the row nor starts one
-(its click still selects the row). A `ClassicyFileBrowserViewIcons` used
-alone keeps its own.
+keyboard `select` (`ClassicyDesktopIconKeyboardSelection.internal.ts`).
+
+The icon view keeps its icons' selection itself (`ClassicyIcon`'s
+`selected`, `onSelectedChange` and `onSelectionGesture`), with the 8.1
+Finder's rules: a click selects the icon alone, Shift or Command toggles it,
+a press on empty space deselects every icon, and a press on an unselected
+icon selects it alone at once, while a press on a selected one keeps the
+selection. A drag of a selected icon carries the whole selection, as on the
+desktop and in the list view: its outline traces every selected icon
+(`fileDragParts`), a drop on another folder or the desktop moves every
+selected item (`onMoveItems(paths)`), and a drop back in its own folder moves
+the selection's other icons as far as the dragged one (`moveBy`, snapped to
+the grid; not under "Keep arranged"). Its icons are memoized with stable
+handlers, so a selection change redraws only the icons it changes. Its
+selection handle (`selectionApiRef`, `{ selectAll, select }`) is lent
+through `ClassicyFileBrowser`'s `selectionApiRef` in either view, so the
+Finder's Edit → Select All works in icon view too. Its key is the browser's
+own, ⌘A (Ctrl-A where that is the browser's), declared `nativeShortcut` like
+every editing command (`useClassicyEditMenu`): the app-wide dispatcher leaves
+it alone, a text field selects its own text, and the file browser with the
+keyboard selects every icon or row (`ClassicyFileBrowser`'s key handler; the
+list's table takes it itself). A press on the icon view's empty space puts
+the keyboard on its icons (the holder takes focus, `tabIndex` -1), and one
+below a list's rows on the list, so Select All and Delete act there after a
+rectangle.
+
+The list view selects through its table (`ClassicyTableSelectionApi.select`,
+which also puts the keyboard cursor and the Shift-range anchor on the first
+selected row in the current order, so the arrow keys go on from the
+rectangle's rows). The click and double-click ending a press that started a
+rectangle on a row are swallowed, so they neither select nor open it: only
+the gesture's own (`detail` above 0; a keyboard Space or Enter on a button,
+a title-bar control or a link clicks with `detail` 0 and passes), and only
+until a task after the first one, or the next press. The list's rectangle is
+`ClassicyFileBrowser`'s (it draws it over the list, and tells the list
+through an internal context); a `ClassicyFileBrowserViewTable` used alone has
+none, and its rows still drag from anywhere in the name cell. A
+`ClassicyFileBrowserViewIcons` used alone keeps its own.
 
 ### Mirroring to a backend
 
