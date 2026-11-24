@@ -30,7 +30,7 @@ const appMenuInBar = () =>
 
 // Mac OS: an application in front with every window closed keeps its menu
 // bar (File ▸ New, Open, Quit); a window's own menus take over while it is open.
-describe("ClassicyApp appMenu: the front app with no window", () => {
+describe("ClassicyApp windowlessMenu: the front app with no window", () => {
 	beforeEach(() => {
 		useAppManager.setState(DefaultAppManagerState, true);
 	});

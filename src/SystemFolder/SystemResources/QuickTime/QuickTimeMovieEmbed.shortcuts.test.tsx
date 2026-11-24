@@ -135,14 +135,23 @@ describe("QuickTimeVideoEmbed keyboard shortcuts (#306)", () => {
 		const key = (target: Element, k: string) =>
 			fireEvent.keyDown(target, { key: k });
 
-		it("Space and the arrow keys aimed at a guide control are not the movie's", () => {
+		it("Space aimed at a guide control, and a key the guide consumed, are not the movie's", () => {
 			const { onPlayingChange, view } = renderMovie(`${APP_ID}_${FILE_WINDOW}`);
 			const button = view.container.querySelector("#guide-button") as Element;
 			key(button, " ");
+			expect(onPlayingChange).not.toHaveBeenCalled();
+			// The Assistant consumes the arrows with preventDefault.
+			button.addEventListener("keydown", (e) => e.preventDefault());
 			key(button, "ArrowRight");
 			key(button, "ArrowLeft");
-			expect(onPlayingChange).not.toHaveBeenCalled();
 			expect(seeks).toEqual([]);
+		});
+
+		it("plain typing and unconsumed arrows aimed at the guide still reach the movie", () => {
+			const { view } = renderMovie(`${APP_ID}_${FILE_WINDOW}`);
+			const button = view.container.querySelector("#guide-button") as Element;
+			key(button, "ArrowRight");
+			expect(seeks.length).toBe(1);
 		});
 
 		it("the same keys with the movie's own window in front still act on it", () => {

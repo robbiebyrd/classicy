@@ -1,4 +1,4 @@
-import { isKeyAimedAtOtherWindow } from "@/SystemFolder/SystemResources/Window/ClassicyKeyAimedAtOtherWindow";
+import { isActivationKeyAimedAtOtherWindowControl } from "@/SystemFolder/SystemResources/Window/ClassicyActivationKeyAimedAtOtherWindow";
 import "./Calculator.scss";
 import {
 	type FC as FunctionalComponent,
@@ -147,8 +147,10 @@ export const Calculator: FunctionalComponent = () => {
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
 			if (isTextEntryTarget(e.target)) return;
-			// A control of another window (a floating guide) keeps its keys.
-			if (isKeyAimedAtOtherWindow(e, `${APP_ID}_${WINDOW_ID}`)) return;
+			// Enter or Space on a control of another window (a floating guide) is
+			// that control's; typing stays with the front app.
+			if (isActivationKeyAimedAtOtherWindowControl(e, `${APP_ID}_${WINDOW_ID}`))
+				return;
 			// A key reached with Tab presses itself on Enter or Space.
 			if (
 				(e.key === "Enter" || e.key === " ") &&
