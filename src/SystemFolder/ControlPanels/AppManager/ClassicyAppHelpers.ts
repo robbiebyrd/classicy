@@ -381,8 +381,16 @@ export function settleAppLaunch(ds: ClassicyStore, appId: string) {
 	// A document launch that opened no window of the app (its document shows
 	// in a window of the app's own, not one the launch could name): fail
 	// open, reopening every mounted window as a plain launch does, so the
-	// app is never left in front with nothing on screen.
-	if (forDocument && !listAppWindows(app).some((w) => !w.closed)) {
+	// app is never left in front with nothing on screen but a palette.
+	// Its dialogs and palettes are not held (mayClassicyWindowReopen), so
+	// they do not count: the app opened a window only if one of the windows
+	// the hold applies to did.
+	if (
+		forDocument &&
+		!listAppWindows(app).some(
+			(w) => !w.closed && w.modal !== true && w.windowType !== "utility",
+		)
+	) {
 		for (const w of listAppWindows(app)) {
 			if (!w.closed || !isClassicyWindowMounted(appId, w.id)) continue;
 			w.closed = false;

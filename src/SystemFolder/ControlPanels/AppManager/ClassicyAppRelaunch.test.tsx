@@ -147,6 +147,48 @@ registerApp({
 	},
 });
 
+/** DocHost with a palette beside its own window (re-review 3, B1, T3). */
+registerApp({
+	id: "PalHost.app",
+	description: "Shows one document at a time, with a palette.",
+	prefix: "ClassicyAppPalHost",
+	handler: (ds, action) => {
+		if (
+			action.type === "ClassicyAppPalHostShow" &&
+			typeof action.path === "string"
+		)
+			openApp(ds, "PalHost.app", "PalHost", "", { document: action.path });
+		return ds;
+	},
+	actions: {
+		ClassicyAppPalHostShow: { description: "Show a document." },
+	},
+});
+
+const PalHostApp = () => (
+	<ClassicyApp id="PalHost.app" name="PalHost" icon="">
+		<ClassicyWindow
+			id="pal_main"
+			title="PalHost"
+			appId="PalHost.app"
+			initialSize={[200, 100]}
+			initialPosition={[60, 120]}
+		>
+			<span>current document</span>
+		</ClassicyWindow>
+		<ClassicyWindow
+			id="pal_tools"
+			title="Tools"
+			appId="PalHost.app"
+			windowType="utility"
+			initialSize={[100, 100]}
+			initialPosition={[300, 120]}
+		>
+			<span>tools</span>
+		</ClassicyWindow>
+	</ClassicyApp>
+);
+
 const DocHostApp = () => (
 	<ClassicyApp id="DocHost.app" name="DocHost" icon="">
 		<ClassicyWindow
@@ -208,6 +250,7 @@ const renderDesktop = () =>
 				<OwnIdsApp />
 				<DocHostApp />
 				<ConvHostApp />
+				<PalHostApp />
 			</ClassicyDesktop>
 		</ClassicyAppManagerProvider>,
 	);
@@ -654,6 +697,32 @@ describe("relaunching an app after Quit (story 0226-a6f)", {
 			await waitFor(() => {
 				expect(onScreen("DocHost.app", "dochost_main")).toBe(true);
 				expect(focusedWindow("DocHost.app")).toBe("dochost_main");
+			});
+			expect(phantomWindows()).toEqual([]);
+		});
+
+		// Re-review 3, B1: a palette (or a dialog) that opened with the launch
+		// is not the app's window opening.
+		it("shows the host's own window beside a palette, on a first launch and a relaunch", async () => {
+			const showPal = (path: string) =>
+				send({
+					type: "ClassicyAppPalHostShow",
+					app: { id: "PalHost.app" },
+					path,
+				});
+			renderDesktop();
+			showPal(READ_ME);
+			await waitFor(() => {
+				expect(onScreen("PalHost.app", "pal_main")).toBe(true);
+				expect(onScreen("PalHost.app", "pal_tools")).toBe(true);
+			});
+			expect(phantomWindows()).toEqual([]);
+			quit("PalHost.app");
+			showPal(NOTES);
+			await waitFor(() => {
+				expect(onScreen("PalHost.app", "pal_main")).toBe(true);
+				expect(onScreen("PalHost.app", "pal_tools")).toBe(true);
+				expect(focusedWindow("PalHost.app")).toBe("pal_main");
 			});
 			expect(phantomWindows()).toEqual([]);
 		});
