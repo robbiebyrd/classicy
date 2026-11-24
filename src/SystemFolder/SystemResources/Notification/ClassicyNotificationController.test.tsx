@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { produce } from "immer";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	type ClassicyStore,
@@ -17,6 +18,7 @@ import { holdClassicyStartup } from "@/SystemFolder/SystemResources/Boot/Classic
 import {
 	ClassicyNotificationController,
 	classicyNotificationAlertWindowId,
+	resetClassicyNotificationSpriteWarningsForTests,
 } from "./ClassicyNotificationController.internal";
 import {
 	classicyNotify,
@@ -109,6 +111,23 @@ const focused = () =>
 const alertTexts = () =>
 	screen.queryAllByRole("alertdialog").map((d) => d.getAttribute("aria-label"));
 
+/** The alerts the user can see: none inside a `display: none` box. */
+const visibleAlertTexts = () =>
+	screen
+		.queryAllByRole("alertdialog")
+		.filter((d) => {
+			for (let el: HTMLElement | null = d; el; el = el.parentElement)
+				if (el.style.display === "none") return false;
+			return true;
+		})
+		.map((d) => d.getAttribute("aria-label"));
+
+/** The app whose windows hold the request's alert, if any. */
+const alertOwner = (id: string) =>
+	Object.values(useAppManager.getState().System.Manager.Applications.apps).find(
+		(a) => getAppWindow(a, classicyNotificationAlertWindowId(id)),
+	)?.id;
+
 beforeEach(() => {
 	players.length = 0;
 	setStore((draft) => {
@@ -125,6 +144,49 @@ beforeEach(() => {
 
 afterEach(() => {
 	act(() => resetClassicyNotificationsForTests());
+	resetClassicyNotificationSpriteWarningsForTests();
+	vi.restoreAllMocks();
+});
+
+// Review M7: StrictMode double-runs effects and reducers; one request is
+// still one sound, one alert and one response.
+describe("under StrictMode", () => {
+	it("presents one request once", () => {
+		render(
+			<StrictMode>
+				<ClassicySoundManagerProvider>
+					<ClassicyNotificationController />
+				</ClassicySoundManagerProvider>
+			</StrictMode>,
+		);
+		const onResponse = vi.fn();
+		notify({ appId: "Mail.app", sound: true, message: "Once.", onResponse });
+		const played = players.flatMap((p) => p.play.mock.calls.map((c) => c[0]));
+		expect(played).toEqual(["ClassicyAlertQuack"]);
+		expect(alertTexts()).toEqual(["Once."]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(onResponse).toHaveBeenCalledTimes(1);
+		expect(alertTexts()).toEqual([]);
+	});
+});
+
+// Review M9: a sprite no registered pack has would play nothing, silently.
+describe("a sprite no pack has", () => {
+	it("is logged once by name", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		renderController();
+		notify({ appId: "Mail.app", sound: "ClassicyAlertQuak" });
+		notify({ appId: "Mail.app", sound: "ClassicyAlertQuak" });
+		notify({ appId: "Mail.app", sound: "ClassicyAlertSosumi" });
+		const logged = warn.mock.calls.filter((c) =>
+			String(c[0]).startsWith("[ClassicyNotification]"),
+		);
+		expect(logged).toEqual([
+			[
+				'[ClassicyNotification] No registered sound pack has the sprite "ClassicyAlertQuak"; the notification plays no sound.',
+			],
+		]);
+	});
 });
 
 describe("the sound", () => {
@@ -225,6 +287,11 @@ describe("the alert", () => {
 	it("opens over the front application without activating another", () => {
 		renderController();
 		const id = notify({ appId: "Mail.app", message: "Mail is here." });
+		// Review M5: its window id carries this page's token, so a record a
+		// reload left behind is never a known window.
+		expect(classicyNotificationAlertWindowId(id)).toMatch(
+			new RegExp(`^${id}-alert-[a-z0-9]+$`),
+		);
 		expect(focused()).toBe("Finder.app");
 		const finder =
 			useAppManager.getState().System.Manager.Applications.apps["Finder.app"];
@@ -256,6 +323,119 @@ describe("the alert", () => {
 		expect(onResponse).toHaveBeenCalledWith(id);
 		notify({ appId: "Mail.app" });
 		expect(onResponse).toHaveBeenCalledTimes(1);
+	});
+});
+
+// Review I1: the alert stays a window of the app that was in front only
+// while that app is open and shown; it never leaves an empty layer over the
+// desktop.
+describe("the alert's owner", () => {
+	const setApps = (
+		apps: Record<string, Partial<ClassicyStoreSystemApp>>,
+		front: string | undefined,
+	) =>
+		setStore((draft) => {
+			draft.System.Manager.Applications.apps = Object.fromEntries(
+				Object.entries(apps).map(([id, extra]) => [id, app(id, extra)]),
+			);
+			draft.System.Manager.Applications.focusedAppId = front;
+		});
+
+	const threeApps = () =>
+		setApps(
+			{
+				"Finder.app": { lastFocusedAt: 1 },
+				"Calc.app": { focused: true, lastFocusedAt: 4 },
+				"Mail.app": { lastFocusedAt: 2 },
+				"Chat.app": { lastFocusedAt: 3 },
+			},
+			"Calc.app",
+		);
+
+	it("moves the alert to the app in front when its owner quits", () => {
+		threeApps();
+		renderController();
+		const onResponse = vi.fn();
+		const id = notify({ appId: "Mail.app", message: "Mail.", onResponse });
+		expect(alertOwner(id)).toBe("Calc.app");
+		act(() => dispatch({ type: "ClassicyAppClose", app: { id: "Calc.app" } }));
+		expect(focused()).toBe("Chat.app");
+		expect(alertOwner(id)).toBe("Chat.app");
+		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(onResponse).toHaveBeenCalledWith(id);
+		expect(alertTexts()).toEqual([]);
+		expect(alertOwner(id)).toBeUndefined();
+	});
+
+	it("moves the alert to the app in front when its owner is hidden", () => {
+		threeApps();
+		renderController();
+		const onResponse = vi.fn();
+		const id = notify({ appId: "Mail.app", message: "Mail.", onResponse });
+		act(() => dispatch({ type: "ClassicyAppHide", app: { id: "Calc.app" } }));
+		expect(focused()).not.toBe("Calc.app");
+		expect(alertOwner(id)).toBe(focused());
+		expect(visibleAlertTexts()).toEqual(["Mail."]);
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		expect(onResponse).toHaveBeenCalledWith(id);
+		expect(alertTexts()).toEqual([]);
+	});
+
+	it("opens over the Finder when no app is in front, else over an open app", () => {
+		setApps({ "Finder.app": {}, "Mail.app": {}, "Chat.app": {} }, undefined);
+		renderController();
+		const a = notify({ appId: "Mail.app", message: "One." });
+		expect(alertOwner(a)).toBe("Finder.app");
+		fireEvent.click(screen.getByRole("button", { name: "OK" }));
+		act(() =>
+			useAppManager.setState(
+				produce(useAppManager.getState(), (draft) => {
+					const apps = draft.System.Manager.Applications.apps;
+					apps["Finder.app"].open = false;
+					apps["Finder.app"].focused = false;
+					apps["Chat.app"].focused = false;
+					draft.System.Manager.Applications.focusedAppId = undefined;
+				}),
+				true,
+			),
+		);
+		const b = notify({ appId: "Mail.app", message: "Two." });
+		expect(alertOwner(b)).toBe("Chat.app");
+		expect(visibleAlertTexts()).toEqual(["Two."]);
+	});
+
+	it("waits, drawing nothing, while no app is shown", () => {
+		setApps(
+			{ "Finder.app": { open: false }, "Mail.app": { open: false } },
+			undefined,
+		);
+		const { container } = renderController();
+		const id = notify({ appId: "Mail.app", message: "Later." });
+		expect(alertTexts()).toEqual([]);
+		expect(container.innerHTML).toBe("");
+		expect(document.querySelector(".classicyDesktopDialogOverlay")).toBeNull();
+		act(() =>
+			dispatch({ type: "ClassicyAppFocus", app: { id: "Finder.app" } }),
+		);
+		act(() =>
+			useAppManager.setState(
+				produce(useAppManager.getState(), (draft) => {
+					draft.System.Manager.Applications.apps["Finder.app"].open = true;
+					draft.System.Manager.Applications.focusedAppId = "Finder.app";
+				}),
+				true,
+			),
+		);
+		expect(alertOwner(id)).toBe("Finder.app");
+		expect(visibleAlertTexts()).toEqual(["Later."]);
+	});
+
+	it("leaves no layer over the desktop: the alert's own scrim blocks it", () => {
+		renderController();
+		notify({ appId: "Mail.app", message: "Hi" });
+		expect(document.querySelector(".classicyDesktopDialogOverlay")).toBeNull();
+		expect(document.querySelector(".classicyWindowModalScrim")).not.toBeNull();
 	});
 });
 

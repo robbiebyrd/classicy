@@ -736,6 +736,54 @@ describe("sanitizeStateForPersistence — closedThisSession", () => {
 	});
 });
 
+// Story 0225-ci7 (review M5): a modal is destroyed on unmount, which a
+// reload never runs, so its record must not outlive the session: a
+// notification's alert open at a reload would come back as a known window
+// and reopen unfocused.
+describe("sanitizeStateForPersistence — modal windows", () => {
+	it("drops every modal window's record, and a last-accessed id naming one", async () => {
+		const { sanitizeStateForPersistence } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManagerUtils"
+		);
+		const { DefaultAppManagerState } = await import(
+			"@/SystemFolder/ControlPanels/AppManager/ClassicyAppManager"
+		);
+		const state = structuredClone(DefaultAppManagerState);
+		const win = (id: string, modal?: boolean) => ({
+			id,
+			closed: false,
+			size: [100, 100] as [number, number],
+			position: [0, 0] as [number, number],
+			minimumSize: [0, 0] as [number, number],
+			...(modal === undefined ? {} : { modal }),
+		});
+		state.System.Manager.Applications.apps["X.app"] = {
+			id: "X.app",
+			name: "X",
+			icon: "",
+			open: true,
+			data: {},
+			lastAccessedWindowId: "classicy-notification-1-alert-abc",
+			windows: {
+				doc: win("doc", false),
+				plain: win("plain"),
+				"classicy-notification-1-alert-abc": win(
+					"classicy-notification-1-alert-abc",
+					true,
+				),
+			},
+		};
+		const out = sanitizeStateForPersistence(state);
+		const app = out.System.Manager.Applications.apps["X.app"];
+		expect(Object.keys(app.windows).sort()).toEqual(["doc", "plain"]);
+		expect(app.lastAccessedWindowId).toBeUndefined();
+		// The live state is untouched.
+		expect(
+			Object.keys(state.System.Manager.Applications.apps["X.app"].windows),
+		).toHaveLength(3);
+	});
+});
+
 describe("sanitizeStateForPersistence — gesture flags", () => {
 	// A reload ends any drag or resize; a persisted `resizing: true` would keep
 	// the window acting as if resized until its first click.
