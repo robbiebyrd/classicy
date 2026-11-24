@@ -1181,7 +1181,9 @@ last):
   it opens, and it takes the pointer: a click made during the zoom (a third
   click after the double-click) lands on the new window, never on the
   window or desktop under it, as the Mac queued it for the window drawn
-  next.
+  next. The hidden state sets only the opacity, so a floating window (§11,
+  drawn in the floating layer with an inline `pointer-events: auto`) zoomed
+  this way takes the pointer too; no icon opens one today.
 - **Pacing.** The first rectangle is drawn at once, with the window's box
   known (in the window's layout effect), and the display frame that shows it
   starts the clock. Each later frame (`requestAnimationFrame`) draws the next
@@ -6694,7 +6696,7 @@ registerClassicySoundPack({            // module scope, like the other registrie
 
 A **windowless front app keeps its menu bar** (Mac OS): `ClassicyApp`'s optional `windowlessMenu` prop is published to `Desktop.appMenu` while the app is the front application with no open window (SimpleText: File, Edit and Help; it opens an Untitled window on launch only).
 
-**Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): background windows 20, front app's inactive windows 150, active document 300, palettes 350, **the floating layer 354 (extension windows, stacked 1..N inside it)**, Control Strip 355, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
+**Layer order** (z-index of `.classicyWindow` and the system layers sharing the desktop's stacking context): the desktop's selection rectangle 15 (under every window, §7), background windows 20, front app's inactive windows 150, active document 300, palettes 350, **the floating layer 354 (extension windows, stacked 1..N inside it)**, Control Strip 355, modal scrim 360, modal band 370, menu bar and raised icons 500, contextual menu 900, zoom rectangles 1000 (§4.1), crash screen 2000, menus and pop-up lists 5000, drag ghost 99000, error scrim 99998, red band and desktop dialogs 99999, balloon help, startup and boot 100000, Screen Saver 100001, QuickTime full screen 999999.
 
 **The standard Help menu** is built by one hook, `useClassicyStandardHelpMenu` (`ClassicyStandardHelpMenu.ts`), for the screen bar and each window's own bar (`ClassicyWindowMenuBar`, window placement). In three groups divided as HIGOS8 Figure 4-2 and HIGOS7 Figure 4-88 divide them: the About item; Show/Hide Balloons (⌥H, `BALLOON_HELP_SHORTCUT`); Keyboard Shortcuts, then the app's `useClassicyHelpMenu` items and the items of any top-level "Help" menu the app publishes in `appMenu` (Finder did; the bar draws one Help menu, and a divider left at an end is trimmed). The About item's wording is the active package's `helpMenu.aboutTitle` (Platinum "About Help", HIGOS8 Figure 4-2; System 7 "About Balloon Help…", HIGOS7 Figure 4-88; absent, "About Balloon Help…"). An extension's `ClassicyGlobalShortcut` takes an optional `title`, which the topic shows.
 
