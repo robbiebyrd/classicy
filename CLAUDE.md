@@ -636,24 +636,38 @@ separator, `--control-strip-module-width` + `--control-strip-border-width`,
 
 The Apple menu's **Recent Applications** and **Recent Documents** (story
 0226-a6f; Mac OS 8.1 and System 7.5.3 observed on Infinite Mac) are fed by
-the kernel: `openApp` records an app it opens (never the Finder, an
-extension, or an app whose manifest says `controlPanel: true`), and the
-generic `ClassicyApp${name}OpenFile` queue and `routeClassicyAppOpenFile`
-record a document (`src/SystemFolder/SystemResources/RecentItems/`,
-store-free). State is `System.Manager.Desktop.recentItems` `{ enabled,
-counts: { application, document } (0–99, default 10), items }`, persisted;
-`ClassicyDesktopRecentItems{SetEnabled,SetCount,Forget,Missing}` are routed
-before `ClassicyDesktop*` (off forgets every item). Finder's `PathsMoved`
-moves a document's path with it. The menu lists the newest items up to the
-count, alphabetically, without icons, the Apple menu's items after the About
-section sorted alphabetically (HIG7 p.98); a document opens through
-`openClassicyFileSystemPath` (`File/ClassicyFileOpen.ts`, the Finder's way,
-reusable), and a missing one draws the Finder's alias alert and is dropped.
-Hosts add items with `registerClassicyRecentItemsSource({ id, kind, list,
-subscribe? })`, merged by time. Recent items carry
-`ClassicyMenuItem.analyticsPrivate`, so no name reaches `track`. The
-Apple Menu Options control panel (`AppleMenuOptions.app`) is part of
-`ClassicyControlPanels`. Details: `docs/AGENT-REFERENCE.md` §11, "Recent Items".
+the kernel (`src/SystemFolder/SystemResources/RecentItems/`, store-free):
+`openApp` records an app that is really there (its `ClassicyApp` mounted,
+its record held; never the Finder, an extension, or an app whose manifest
+says `controlPanel: true`), and every document open records through one
+helper, `recordClassicyRecentDocument`, which keeps a path only when it
+names a file (`peekClassicyFileSystemEntry`): the generic
+`ClassicyApp${name}OpenFile` queue, `routeClassicyAppOpenFile`, the Finder's
+QuickTime hand-off, the bundled apps' own open actions, and the Open dialog
+(`ClassicyFileDialog` dispatches `ClassicyDesktopRecentItemsRecordDocument`).
+`openApp(ds, id, name, icon, { document?, windows? })` is a **document open**
+when either is given: only those windows reopen (and come to the front),
+never one the user closed; a plain open still reopens every window. `closeApp`
+empties the app's `data.openFiles` (quitting closes its documents). State is
+`System.Manager.Desktop.recentItems` `{ enabled, counts: { application,
+document } (0–99, default 10), items }`, persisted and normalized on load (a
+`migrateClassicyState` step); `ClassicyDesktopRecentItems{SetEnabled,SetCount,
+RecordDocument,Forget,Missing}` are routed before `ClassicyDesktop*` (off
+forgets every item; a host turns it off with a `defaultState` seed of
+`recentItems: { enabled: false }` or that action). Finder's `PathsMoved`
+moves a document's path with it, into the Trash too, where choosing it draws
+the Finder's "original item is in the trash" alert and keeps it. **The Apple
+menu's items after the About section are sorted alphabetically** (HIG7 p.98;
+each divider-delimited group on its own), the Recent entries among them; the
+submenus list the newest items up to the count, alphabetically, without
+icons. A document opens through `openClassicyFileSystemPath`
+(`File/ClassicyFileOpen.ts`, the Finder's way, reusable); a missing one draws
+the Finder's alias alert and is dropped. Hosts add items with
+`registerClassicyRecentItemsSource({ id, kind, list, subscribe? })`, merged
+by time. Recent items carry `ClassicyMenuItem.analyticsPrivate`, so no name
+reaches `track`. The Apple Menu Options control panel (`AppleMenuOptions.app`,
+counts set when a field is left) is part of `ClassicyControlPanels`.
+Details: `docs/AGENT-REFERENCE.md` §11, "Recent Items".
 
 ### Contextual Menus
 

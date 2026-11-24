@@ -567,7 +567,10 @@ Common built-in actions:
 | `ClassicyDesktopChangeAlertSound` | `{ alertSound: string }` | Set the default alert sound (a `ClassicyAlert*` key) |
 | `ClassicyDesktopChangeAlertVolume` | `{ alertVolume: number }` | Set the alert level, 0–100 (clamped, rounded; non-finite ignored) |
 
-Helper functions (exported, callable inside custom handlers): `openApp`,
+Helper functions (exported, callable inside custom handlers): `openApp`
+(`(ds, id, name, icon, { document?, windows? }?)`: a plain open reopens every
+window the app closed; a document open reopens and fronts only `windows` and
+remembers `document` under Recent Documents, §11 "Recent Items"),
 `closeApp`, `focusApp` / `activateApp`, `deFocusApps`, `focusWindow`,
 `loadApp`, `getDefaultAppForFileType`, `pickSuccessorApp`,
 `dispatchToPlugin(ds, prefix, action)` (cross-app orchestration without a
@@ -6092,33 +6095,91 @@ turns them on and off and sets how many items each remembers. Story 0226-a6f.
 Reference, observed on Infinite Mac (Mac OS 8.1, System 7.5.3, Mac OS 8.5):
 the panel's "Recent Items" group, "Remember recently used items" (on),
 Documents 10, Applications 10 (each 0–99; 999 typed is stored as 99); the
-fields dim and empty while the box is off.
+fields dim and empty while the box is off. A count is set when its field is
+left, on Return, or when the panel closes, never per keystroke (a smaller
+count forgets the items past it, and "15" typed over "10" passes through
+"1"); a field left empty or not a number shows the stored count again.
+
+**Behavior change for every host: the Apple menu is alphabetical.** The
+Apple menu's items after the About section are now listed in alphabetical
+order (HIG7 p.98, "They appear in alphabetical order in the menu", and all
+three observed systems), the two Recent entries among them; before, they
+were in the order the apps mounted. A host that wants items kept apart puts
+them in their own group: each group a divider (`{ id: "spacer" }`) starts is
+sorted on its own, and a system menu with no divider is left as it is.
+
+**Turning Recent Items off** (it is on for every host, and keeps the user's
+history in `localStorage` with the rest of the desktop): seed it off in the
+provider's `defaultState`, `defaultState={{ System: { Manager: { Desktop: {
+recentItems: { enabled: false } } } } }}` (merged over the defaults, so the
+counts stay 10; like every seed, applied only when nothing was hydrated from
+`localStorage`, so a returning user keeps what they chose), or dispatch
+`ClassicyDesktopRecentItemsSetEnabled { enabled: false }` (trusted only),
+which also forgets every item. The Apple menu then has no Recent
+entries; the control panel stays, and the user can turn it back on.
 
 **What is remembered** (`src/SystemFolder/SystemResources/RecentItems/ClassicyRecentItems.ts`,
 store-free, called by the kernel):
 
-- An **application** each time `openApp` opens one the store has a record
-  for: `ClassicyAppOpen` (the Apple menu, the Control Strip, HyperCard), a
-  desktop icon (`ClassicyDesktopIconOpen`), a Finder app shortcut, and a
-  document that opens its app. Never the Finder, an extension, or an app
-  whose manifest says `controlPanel: true` (the Mac remembered applications;
-  a control panel opened from the Apple menu was not added), nor an id
-  nothing loaded. It is remembered by its **internal** name; the menu shows
-  the active package's display name (§8, "App display overrides").
-- A **document** each time one is opened through the Finder's routing
+- An **application** each time `openApp` opens one that is really there:
+  its `ClassicyApp` is mounted (`isClassicyAppMounted`) and the store holds
+  its record. So `ClassicyAppOpen` (the Apple menu, the Control Strip, a
+  HyperCard script), a desktop icon (`ClassicyDesktopIconOpen`), a Finder
+  app shortcut and a document that opens its app all count, while an id
+  nothing mounted (a stack script's invention, a removed app's saved record)
+  never does, however often it is opened, trusted or not. Never the Finder,
+  an extension, or an app whose manifest says `controlPanel: true` (the Mac
+  remembered applications; a control panel opened from the Apple menu was not
+  added). It is remembered by its **internal** name; the menu shows the name
+  its record holds now, by the active package's display name (§8, "App
+  display overrides").
+- A **document** each time one is opened, through the one helper
+  `recordClassicyRecentDocument(ds, path)`, which remembers a path only when
+  it names a file in the desktop's file system (`isClassicyRecentDocumentPath`:
+  an entry that is not a folder or disk, read with `peekClassicyFileSystemEntry`,
+  which looks at the live tree without building a file system). So a
+  generic-queue `path` that is a URL or a key is queued as before but not
+  remembered. The opens that record: the Finder's routing
   (`ClassicyAppFinderOpenFile` → `routeClassicyAppOpenFile`, an app's own
-  OpenFile case when its trust permits it) or the generic
-  `ClassicyApp${name}OpenFile` queue (`data.openFiles`), dispatched by
-  anything. Remembered by its path and file name.
+  OpenFile case when its trust permits it; a QuickTime document the Finder
+  hands to Movie Player), the generic `ClassicyApp${name}OpenFile` queue
+  (`data.openFiles`; SimpleText's File ▸ Open… and HyperCard's Open Stack…
+  use it), the apps' own actions (`ClassicyAppPDFViewerOpenFile`,
+  `ClassicyAppPictureViewerOpenFile`, `ClassicyAppMoviePlayerOpenFile`, a path
+  given to their `OpenDocument`/`OpenDocuments`, never a URL document, and
+  `ClassicyAppHyperCardOpenStack` with a `stackSource` path), and the Open
+  dialog: `ClassicyFileDialog` (Standard File) dispatches
+  `ClassicyDesktopRecentItemsRecordDocument { path }` for each chosen file of
+  the Classicy file system before calling `onOpenFunc`. A host app that opens
+  documents by its own action calls `openApp(ds, id, name, icon, { document:
+  path })`, or `recordClassicyRecentDocument(ds, path)`.
 - Each use moves the item to the front; one per app or path; the oldest past
   the count is forgotten. `ClassicyAppFinderPathsMoved` moves a document's
-  path with it (a moved document, or one in a moved folder, a trashed one
-  included), as the Mac's aliases followed their originals.
+  path with it (a moved document, or one in a moved folder), as the Mac's
+  aliases followed their originals, **into the Trash too**, and back out on
+  Restore. Choosing a document whose original is in the Trash draws the
+  Finder's alert, "The alias “<name>” could not be opened, because the
+  original item is in the trash.", opens nothing, and keeps the item (Mac OS
+  8.1, observed); Restore makes it open again, Empty Trash makes it missing.
+
+`openApp(ds, appId, name, icon, options?)` (§2 helpers) opens an app plainly
+(reopening every window it closed, as a launch does) or, with
+`options.document` or `options.windows`, **for a document**: only the windows
+named are reopened and brought to the front, and every other window the app
+closed stays closed, so opening a document never brings back a window the
+user closed (Mac OS 8.1: a document launching SimpleText shows that document
+alone). `closeApp` (quit) empties the app's `data.openFiles`, so a later
+launch never brings back a document the app had open before it quit (Mac
+OS 8.1: SimpleText quit with a document open, relaunched, shows a new
+untitled window only), and SimpleText discards its untitled documents on
+quit. The bundled apps' document opens (the generic queue, PDF Viewer,
+Picture Viewer, Movie Player, HyperCard, Web Viewer) use the document mode.
 
 State, persisted with the desktop (`System.Manager.Desktop.recentItems`,
 `ClassicyStoreRecentItems`; `defaultClassicyRecentItemsState()` in the
 default state; a state saved before it existed gets the defaults by the load
-merge; `normalizeClassicyRecentItems` reads any stored shape):
+merge; `normalizeClassicyRecentItems` reads any stored shape, and a
+`migrateClassicyState` step stores a malformed one normalized on load):
 
 ```ts
 { enabled: boolean, counts: { application: number, document: number },
@@ -6132,15 +6193,17 @@ so on the untrusted floor):
 |---|---|---|
 | `ClassicyDesktopRecentItemsSetEnabled` | `{ enabled }` | Off removes both entries from the Apple menu and **forgets every item** (the Mac emptied its Recent folders); on again starts empty |
 | `ClassicyDesktopRecentItemsSetCount` | `{ kind, count }` | Clamped to a whole number 0–99; items past it are forgotten |
+| `ClassicyDesktopRecentItemsRecordDocument` | `{ path }` | Remember a document opened outside the reducers (the Open dialog), when `path` names a file |
 | `ClassicyDesktopRecentItemsForget` | `{ kind, appId \| path }` | Forget one item |
-| `ClassicyDesktopRecentItemsMissing` | `{ kind, appId \| path, name? }` | Forget it and show the Finder's alert: "The alias “<name>” could not be opened, because the original item could not be found." (Mac OS 8.1's wording, a stop alert with OK) |
+| `ClassicyDesktopRecentItemsMissing` | `{ kind, appId \| path, name? }` | Forget it (when it is remembered) and show the Finder's alert: "The alias “<name>” could not be opened, because the original item could not be found." (Mac OS 8.1's wording, a stop alert with OK) |
 
 **In the Apple menu** (`ClassicyRecentItemsMenu.ts`,
 `useClassicyRecentItemsMenuItems`): each entry is drawn with its folder icon
-(`system.folders.applications`, `system.folders.recentDocuments`) among the
-Apple menu's items, which are listed **alphabetically** after the About
-section (HIG7 p.98; each later divider-delimited group sorted on its own,
-`withClassicyRecentItemsMenuItems`). Its submenu lists the newest items up to
+(`system.folders.applications`, the Applications folder's art, which is the
+Recent Applications folder's in the Mac OS 8.1 capture; and
+`system.folders.recentDocuments`; System 7 shows its generic folder for both)
+among the Apple menu's items, sorted as above
+(`withClassicyRecentItemsMenuItems`). Its submenu lists the newest items up to
 the count, **alphabetically, by name, without icons** (as all three systems
 draw them). An empty one is dimmed with no submenu (the Mac opened the empty
 folder; Classicy has none). Choosing a document opens it the way the Finder
@@ -6149,27 +6212,33 @@ would (`openClassicyFileSystemPath(fs, path, dispatch)`,
 window, anything else through `ClassicyAppFinderOpenFile`; reusable by any
 surface that opens a path it holds); choosing an application dispatches
 `ClassicyAppOpen` with its record. A document no longer at its path, or an
-application no longer mounted (`isClassicyAppMounted`), draws the alert and
-is dropped. The Mac's Recent Servers and the panel's Submenus group are left
-out: Classicy has no file servers, and its Apple menu no folders of its own.
+application no longer mounted, draws the missing-alias alert and is dropped
+(the Mac kept a broken alias, but the user could delete it from the Recent
+folder; Classicy has none). The Mac's Recent Servers and the panel's Submenus
+group are left out: Classicy has no file servers, and its Apple menu no
+folders of its own.
 
 **Host items**: `registerClassicyRecentItemsSource({ id, kind, list,
 subscribe? })` (`ClassicyRecentItemsSources.ts`; returns the unregister;
 registering an `id` again replaces it; `unregisterClassicyRecentItemsSource(id)`)
 adds items such as recently viewed pages. `list()` returns `{ name, at (Date
 or ms), key?, open?, appId?, path? }[]`, read whenever the menu bar draws; an
-item opens by `open()` first, else `appId`, else `path` (through the Finder).
-Its items merge with the remembered ones **by time** under the same count,
-and one naming a remembered document's path (or app id) meets it, the newer
-use winning; Classicy never stores them. Pass `subscribe(onChange)` to redraw
-an open menu when they change. An item with no name, time or opener, and a
-`list` that throws, are skipped with one `ClassicyRecentItems` warning per
-source.
+item opens by `open()` first (one that throws is logged and changes
+nothing), else `path` (through the Finder), else `appId`; it is shown by its
+own `name`, even when it names a known app. Its items merge with the
+remembered ones **by time** under the same count, and one naming a
+remembered document's path (or app id) meets it, the newer use winning;
+items of two sources stay apart even when they share a `key`; Classicy never
+stores them. One that cannot be opened draws the missing-alias alert, as its
+own kind, and forgets nothing remembered. Pass `subscribe(onChange)` to
+redraw an open menu when they change. An item with no name, time or opener,
+and a `list` that throws, are skipped with one `ClassicyRecentItems` warning
+per source.
 
 **Analytics**: every Recent item in the menu carries
 `ClassicyMenuItem.analyticsPrivate`, so its `hover`/`selected` payloads hold
 only its id (`apple-recent-documents-3`), `disabled`, `event` and
-`childrenCount`, never its name, icon or path; the alert is
+`childrenCount`, never its name, icon or path; the alerts are
 `analyticsExclude`. Any host menu item standing for user data can set the flag
 too. (A document reopened from the menu opens its window as the Finder would,
 and that window's *title* reaches GA as every window title does, §9.)
