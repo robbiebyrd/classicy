@@ -15,6 +15,12 @@
 //    in vite.config.ts. Shipped in 0.70.0: rt911's dev server refused to boot
 //    (rolldown: "No such file or directory") and its vitest failed to collect
 //    62 suites ("does not provide an export named 'default'").
+//    And the scan must have read the entry bundles' heads: classicy.es.js
+//    yields its static `react` import and classicy.umd.js its
+//    `require("react")`, or the check fails, since a head the parser cannot
+//    read (another quote style, a directive or comment it does not skip)
+//    yields no import and would pass unread. Story 0224-siu's first build did
+//    that: `"use client";` ahead of the imports read as "0 import(s), clean".
 //
 // 2. pdfjs-dist AND fflate MUST NOT BE EXTERNAL. The PDF viewer embeds *this
 //    repo's* pdf.worker in dist (deflated since plan 0019-fb7, invariant 17;
@@ -237,7 +243,10 @@ import {
 	findClassicyPlainCssFiles,
 	findClassicyUnlayeredCss,
 } from "./classicyBaseCss.ts";
-import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers.ts";
+import {
+	classicyBundleSpecifiers,
+	classicyBundleStaticImports,
+} from "./classicyBundleSpecifiers.ts";
 import { findClassicyCommonJsDeclarationProblems } from "./classicyCommonJsDeclarations.ts";
 import { findClassicyCssFloorProblems } from "./classicyCssFloor.ts";
 import { findClassicyExtensionlessSpecifiers } from "./classicyDeclarationSpecifiers.ts";
@@ -294,9 +303,33 @@ const MUST_BE_BUNDLED = {
 const bundledPackageOf = (s) =>
 	Object.keys(MUST_BE_BUNDLED).find((p) => s === p || s.startsWith(`${p}/`));
 
+// What each entry bundle's parsed imports must include, so the scan is known
+// to have read its head (invariant 1's floor): React, which every entry
+// imports, statically in the ES entry and by require() in the UMD bundle.
+const READ_FLOOR = {
+	[join(DIST, "classicy.es.js")]: {
+		read: (source) => classicyBundleStaticImports(source),
+		what: 'static import of "react"',
+	},
+	[join(DIST, "classicy.umd.js")]: {
+		read: (source) => classicyBundleSpecifiers(source),
+		what: 'require("react")',
+	},
+};
+
 let failed = false;
 for (const file of await bundles()) {
-	const specifiers = classicyBundleSpecifiers(await readFile(file, "utf8"));
+	const source = await readFile(file, "utf8");
+	const specifiers = classicyBundleSpecifiers(source);
+
+	const floor = READ_FLOOR[file];
+	const unread = floor && !floor.read(source).includes("react");
+	if (unread) {
+		failed = true;
+		console.error(
+			`${file}: the import scan read no ${floor.what} -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`,
+		);
+	}
 
 	const queried = specifiers.filter((s) => s.includes("?"));
 	if (queried.length) {
@@ -318,7 +351,7 @@ for (const file of await bundles()) {
 			console.error(`  -> ${p}: ${MUST_BE_BUNDLED[p]}`);
 	}
 
-	if (!queried.length && !leaked.length) {
+	if (!queried.length && !leaked.length && !unread) {
 		console.log(`${file}: ${specifiers.length} import(s), clean`);
 	}
 }

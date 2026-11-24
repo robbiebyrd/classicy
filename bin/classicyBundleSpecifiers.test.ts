@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { classicyBundleSpecifiers } from "./classicyBundleSpecifiers";
+import {
+	classicyBundleSpecifiers,
+	classicyBundleStaticImports,
+} from "./classicyBundleSpecifiers";
 
 // The external module specifiers a built bundle loads, as both dist checks
 // read them: the ES prologue's static imports, every dynamic import() and
@@ -56,4 +59,22 @@ describe("classicyBundleSpecifiers", () => {
 		expect(classicyBundleSpecifiers('import a from"x.svg?url";')).toEqual([
 			"x.svg?url",
 		]));
+});
+
+// The head's static imports alone, the bundle's own chunks included: what
+// check-dist-imports.mjs's invariant 1 floor reads, so a head it cannot parse
+// shows as no import at all.
+describe("classicyBundleStaticImports", () => {
+	it("reads every static import after the directives, its own chunks too", () =>
+		expect(
+			classicyBundleStaticImports(
+				'"use client";\nimport*as r from"react";import"./chunk.js";const a=import("pdfjs-dist");',
+			),
+		).toEqual(["react", "./chunk.js"]));
+
+	it.each([
+		["a directive with no semicolon", '"use client"\nimport"react";'],
+		["single-quoted imports", "import'react';"],
+	])("reads none past %s", (_name, source) =>
+		expect(classicyBundleStaticImports(source)).toEqual([]));
 });

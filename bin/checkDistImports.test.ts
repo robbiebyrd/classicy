@@ -360,6 +360,71 @@ describe("check-dist-imports.mjs invariant 13: production JSX runtime (named fil
 	});
 });
 
+// Invariant 1's floor (story 0224-siu review, M1): the scan must read each
+// entry bundle's head, or a head it cannot parse yields no import and passes.
+describe("check-dist-imports.mjs invariant 1: the scan reads the entry heads (named files)", () => {
+	const ES = join("dist", "classicy.es.js");
+	const UMD = join("dist", "classicy.umd.js");
+	const UMD_BODY =
+		'(function(g,f){typeof exports=="object"?f(exports,require("react")):f(g.classicy={},g.React)})(this,function(e,r){});';
+	const run1 = (files: Record<string, string>) => {
+		const dir = join(root, `case-${run++}`);
+		for (const [file, text] of Object.entries(files)) {
+			mkdirSync(dirname(join(dir, file)), { recursive: true });
+			writeFileSync(join(dir, file), text);
+		}
+		const r = spawnSync(process.execPath, [SCRIPT, ...Object.keys(files)], {
+			cwd: dir,
+			encoding: "utf8",
+		});
+		// Other invariants also fail on these stand-ins; only 1's lines count.
+		const lines = `${r.stdout}${r.stderr}`
+			.split("\n")
+			.filter((line) =>
+				/ import\(s\), clean$|the import scan read no/.test(line),
+			);
+		return { status: r.status, lines };
+	};
+	const ES_PROBLEM = `${ES}: the import scan read no static import of "react" -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`;
+
+	it("passes entry bundles whose heads it reads", () =>
+		expect(
+			run1({
+				[ES]: '"use client";\nimport*as r from"react";import{jsx as j}from"react/jsx-runtime";export{r,j};\n',
+				[UMD]: UMD_BODY,
+			}).lines,
+		).toEqual([`${ES}: 2 import(s), clean`, `${UMD}: 1 import(s), clean`]));
+
+	it.each([
+		[
+			"a directive with no semicolon",
+			'"use client"\nimport*as r from"react";export{r};\n',
+		],
+		["single-quoted imports", "import*as r from'react';export{r};\n"],
+		["a hashbang", '#!/usr/bin/env node\nimport*as r from"react";export{r};\n'],
+		["no import at all", "const a=1;export{a};\n"],
+	])("fails an ES entry with %s", (_name, text) => {
+		const { status, lines } = run1({ [ES]: text, [UMD]: UMD_BODY });
+		expect(status).toBe(1);
+		expect(lines).toEqual([`${UMD}: 1 import(s), clean`, ES_PROBLEM]);
+	});
+
+	it("fails a UMD bundle that requires no react", () => {
+		const { status, lines } = run1({
+			[UMD]: UMD_BODY.replace('require("react")', "require('react-dom')"),
+		});
+		expect(status).toBe(1);
+		expect(lines).toEqual([
+			`${UMD}: the import scan read no require("react") -> bin/classicyBundleSpecifiers.ts cannot read this bundle's head (a quote style, or a directive or comment it does not skip), so this check would pass it unread; teach the parser the new head.`,
+		]);
+	});
+
+	it("asks no floor of another bundle", () =>
+		expect(
+			run1({ [join("dist", "pdf-DcHjwfzs.js")]: "const a=1;export{a};" }).lines,
+		).toEqual([`${join("dist", "pdf-DcHjwfzs.js")}: 0 import(s), clean`]));
+});
+
 // Invariant 20 (story 0224-siu): the ES entry starts with "use client";, so a
 // React Server Components bundler treats it as a client module.
 describe('check-dist-imports.mjs invariant 20: the ES entry starts with "use client"; (named files)', () => {
