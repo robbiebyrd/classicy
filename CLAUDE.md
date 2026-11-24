@@ -884,8 +884,10 @@ does (`components/_ApplicationSwitcher.scss`: 1-px frame, 12-row bar of
 raised dots, packed buttons in a sunken well, names at
 `--ui-font-size-small`); more apps than a column the desktop can hold wrap
 into another column (`classicyAppSwitcherPaletteLines`, from the desktop's
-capacity, measured again when the desktop or a button resizes or the theme
-changes, never the palette's place: a move never reshapes it, and a
+capacity filled by the buttons' natural sizes, each laid out alone on a
+hidden copy, so the palette's own wrap never changes the count and it
+settles; measured again when the desktop resizes, a button's natural size
+changes or the theme changes, never the palette's place: a move never reshapes it, and a
 palette dragged past an edge clips like any window); hidden apps' buttons and menu
 rows carry `aria-description` "Hidden"; it shows no icon in the startup
 parade (`bootIcon={false}`, which an extension may now pass; 8.5's has

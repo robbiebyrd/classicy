@@ -27,6 +27,7 @@ import {
 	APPLICATION_SWITCHER_APP_ID,
 	APPLICATION_SWITCHER_PALETTE_ID,
 	APPLICATION_SWITCHER_SET_CYCLING,
+	APPLICATION_SWITCHER_SET_PALETTE,
 	APPLICATION_SWITCHER_TEAR_OFF,
 	type ClassicyApplicationSwitcherData,
 } from "./ClassicyApplicationSwitcherContext";
@@ -367,32 +368,52 @@ describe("the Application Switcher", () => {
 			expect(front()).toBe("Notes.app");
 		});
 
-		it("counts the buttons a line the desktop has room for holds", () => {
+		it("counts the buttons a line the desktop has room for holds, from their sizes", () => {
+			const twenty = (size: number) => Array.from({ length: 20 }, () => size);
 			// 300 pixels of desktop, 4 of the palette's own frame.
-			expect(classicyAppSwitcherPaletteLines(300, 4, 24)).toBe(12);
-			expect(classicyAppSwitcherPaletteLines(300, 4, 40)).toBe(7);
-			// Never under one, and no wrap for a button not laid out.
-			expect(classicyAppSwitcherPaletteLines(10, 4, 40)).toBe(1);
-			expect(classicyAppSwitcherPaletteLines(300, 4, 0)).toBe(
-				Number.POSITIVE_INFINITY,
+			expect(classicyAppSwitcherPaletteLines(300, 4, twenty(24))).toBe(12);
+			expect(classicyAppSwitcherPaletteLines(300, 4, twenty(40))).toBe(7);
+			// Never under one, and every button in one line when none is laid out.
+			expect(classicyAppSwitcherPaletteLines(10, 4, [40, 40])).toBe(1);
+			expect(classicyAppSwitcherPaletteLines(300, 4, [0, 0, 0])).toBe(3);
+			// By the sum, not the largest: 60 + 60 + 150 fits 284 (re-review IG-C1).
+			expect(classicyAppSwitcherPaletteLines(284, 4, [60, 60, 150])).toBe(3);
+			// In lines of two, each track is as large as its largest button: the
+			// first holds 60 and 150, the second 60, so the line is 210.
+			expect(classicyAppSwitcherPaletteLines(219, 4, [60, 60, 150])).toBe(2);
+			expect(classicyAppSwitcherPaletteLines(213, 4, [60, 60, 150])).toBe(1);
+			// The gap between tracks counts: two 100s and one gap of 10 in 300.
+			expect(classicyAppSwitcherPaletteLines(300, 0, [100, 100, 100], 10)).toBe(
+				2,
 			);
 		});
 
 		describe("wrapping (re-review I-R1)", () => {
 			// A laid-out desktop for jsdom: the floating layer is the desktop,
-			// `desktopHeight` tall. The palette sits where its style puts it and
-			// is laid out as its stylesheet lays it: `frameAbove` pixels of frame
-			// above its buttons (`buttonHeight` tall, 112 wide), a 4-pixel frame
-			// at either side and none below, the buttons in one column, or in
-			// columns of `--application-switcher-lines` when it wraps. So the
-			// palette's size is measured from its shape, not fixed.
+			// `desktopWidth` by `desktopHeight`. The palette sits where its style
+			// puts it and is laid out as its stylesheet lays it: `frameAbove`
+			// pixels of frame above its buttons (`buttonHeight` tall, each its
+			// natural width, 112 unless `naturalWidths` names it), a 4-pixel
+			// frame at either side and none below, the buttons in one column (one
+			// row, horizontal), or in lines of `--application-switcher-lines`
+			// when it wraps, where a browser may squeeze them: `narrowOnWrap`
+			// pixels off each along the line. So the palette's size is measured
+			// from its shape, not fixed. The buttons' copies the palette lays out
+			// alone, outside its own list, take their natural sizes.
 			let desktopHeight = 600;
+			let desktopWidth = 800;
 			const BUTTON = 24;
 			const BUTTON_WIDTH = 112;
 			const SIDE_FRAME = 4;
 			const FRAME_ABOVE = 16;
 			let buttonHeight = BUTTON;
 			let frameAbove = FRAME_ABOVE;
+			let narrowOnWrap = 0;
+			let naturalWidths: Record<string, number> = {};
+			// How often a measure read the desktop's box: each count does once.
+			let desktopReads = 0;
+			const naturalWidth = (button: Element) =>
+				naturalWidths[button.getAttribute("aria-label") ?? ""] ?? BUTTON_WIDTH;
 			const rect = (left: number, top: number, width: number, height: number) =>
 				({
 					top,
@@ -418,8 +439,12 @@ describe("the Application Switcher", () => {
 				target.classList.contains("classicyApplicationSwitcherButton");
 			beforeEach(() => {
 				desktopHeight = 600;
+				desktopWidth = 800;
 				buttonHeight = BUTTON;
 				frameAbove = FRAME_ABOVE;
+				narrowOnWrap = 0;
+				naturalWidths = {};
+				desktopReads = 0;
 				observed.length = 0;
 				vi.stubGlobal(
 					"ResizeObserver",
@@ -434,49 +459,92 @@ describe("the Application Switcher", () => {
 						}
 					},
 				);
-				// The buttons' grid: how many there are, and how many a column holds.
+				// The buttons' grid: the palette's own list, how many buttons it
+				// has, how many a line holds, and whether it wraps.
 				const grid = (win: HTMLElement) => {
 					const list = win.querySelector<HTMLElement>(
 						".classicyApplicationSwitcherButtons",
 					);
 					const count = list?.children.length ?? 0;
-					const perColumn =
-						Number.parseInt(
-							list?.style.getPropertyValue("--application-switcher-lines") ??
-								"",
-							10,
-						) || count;
-					return { count, perColumn: Math.max(1, perColumn) };
+					const set = Number.parseInt(
+						list?.style.getPropertyValue("--application-switcher-lines") ?? "",
+						10,
+					);
+					return {
+						list,
+						count,
+						perLine: Math.max(1, set || count),
+						wrapped: set > 0,
+						horizontal: win.classList.contains(
+							"classicyApplicationSwitcherHorizontal",
+						),
+					};
+				};
+				// A button as the palette's list lays it out: squeezed along the
+				// line when wrapped.
+				const laidOut = (button: Element, g: ReturnType<typeof grid>) => {
+					const squeeze = g.wrapped ? narrowOnWrap : 0;
+					return g.horizontal
+						? { width: naturalWidth(button) - squeeze, height: buttonHeight }
+						: { width: naturalWidth(button), height: buttonHeight - squeeze };
 				};
 				const original = Element.prototype.getBoundingClientRect;
 				vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
 					function (this: Element) {
-						if (this.id === "classicy-floating-layer")
-							return rect(0, 0, 800, desktopHeight);
+						if (this.id === "classicy-floating-layer") {
+							desktopReads++;
+							return rect(0, 0, desktopWidth, desktopHeight);
+						}
 						const win = this.closest<HTMLElement>(
 							".classicyApplicationSwitcherPalette",
 						);
 						const left = Number.parseFloat(win?.style.left ?? "") || 0;
 						const top = Number.parseFloat(win?.style.top ?? "") || 0;
 						if (win && this === win) {
-							const { count, perColumn } = grid(win);
-							const columns = Math.max(1, Math.ceil(count / perColumn));
-							return rect(
-								left,
-								top,
-								SIDE_FRAME + BUTTON_WIDTH * columns + SIDE_FRAME,
-								frameAbove + buttonHeight * Math.min(perColumn, count),
-							);
+							const g = grid(win);
+							const buttons = [...(g.list?.children ?? [])];
+							const lines = Math.max(1, Math.ceil(g.count / g.perLine));
+							const along = Math.min(g.perLine, g.count);
+							const sizes = buttons.map((b) => laidOut(b, g));
+							return g.horizontal
+								? rect(
+										left,
+										top,
+										SIDE_FRAME +
+											sizes.slice(0, along).reduce((s, b) => s + b.width, 0) +
+											SIDE_FRAME,
+										frameAbove + buttonHeight * lines,
+									)
+								: rect(
+										left,
+										top,
+										SIDE_FRAME + BUTTON_WIDTH * lines + SIDE_FRAME,
+										frameAbove +
+											sizes.slice(0, along).reduce((s, b) => s + b.height, 0),
+									);
 						}
 						if (win && isButton(this)) {
-							const { perColumn } = grid(win);
-							const i = [...(this.parentElement?.children ?? [])].indexOf(this);
-							return rect(
-								left + SIDE_FRAME + BUTTON_WIDTH * Math.floor(i / perColumn),
-								top + frameAbove + buttonHeight * (i % perColumn),
-								BUTTON_WIDTH,
-								buttonHeight,
-							);
+							const g = grid(win);
+							// A copy outside the palette's own list: its natural size.
+							if (this.parentElement !== g.list)
+								return rect(0, 0, naturalWidth(this), buttonHeight);
+							const i = [...(g.list?.children ?? [])].indexOf(this);
+							const size = laidOut(this, g);
+							const line = Math.floor(i / g.perLine);
+							const place = i % g.perLine;
+							return g.horizontal
+								? rect(
+										left + SIDE_FRAME + size.width * place,
+										top + frameAbove + buttonHeight * line,
+										size.width,
+										size.height,
+									)
+								: rect(
+										left + SIDE_FRAME + BUTTON_WIDTH * line,
+										top + frameAbove + size.height * place,
+										size.width,
+										size.height,
+									);
 						}
 						return original.call(this);
 					},
@@ -626,6 +694,75 @@ describe("the Application Switcher", () => {
 					useAppManager.getState().System.Manager.Appearance.activeTheme,
 				).not.toBe(theme);
 				expect(lines()).toBe("2");
+			});
+
+			// Re-review IG-C1: the palette's wrap changes how its list lays the
+			// buttons out (a browser squeezes them into the grid's tracks), so a
+			// count read from their laid-out sizes undid itself on every measure
+			// the button watch set off. The count reads their natural sizes.
+			const orient = (orientation: "vertical" | "horizontal") =>
+				act(() => {
+					dispatch({ type: APPLICATION_SWITCHER_SET_PALETTE, orientation });
+				});
+
+			it("holds its line count when wrapping squeezes its buttons (vertical)", () => {
+				// Room for two of its three 24-pixel buttons; wrapped, the list
+				// squeezes them to 18, three of which would fit.
+				desktopHeight = menuBar() + FRAME_ABOVE + 60;
+				narrowOnWrap = 6;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				tearOff([300, 0]);
+				expect(lines()).toBe("2");
+				const counted = desktopReads;
+				for (let round = 0; round < 4; round++) {
+					resize(isButton);
+					expect(lines()).toBe("2");
+					expect(list().classList).toContain(
+						"classicyApplicationSwitcherWrapped",
+					);
+				}
+				// The wrap's own resizes change no natural size: nothing is counted.
+				expect(desktopReads).toBe(counted);
+			});
+
+			it("holds its line count when wrapping squeezes its buttons (horizontal)", () => {
+				// Room for two of its three 112-pixel buttons in a row; wrapped,
+				// the list squeezes them to 72, three of which would fit.
+				desktopWidth = SIDE_FRAME + BUTTON_WIDTH * 2 + 72;
+				narrowOnWrap = 40;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				orient("horizontal");
+				tearOff([0, 200]);
+				expect(lines()).toBe("2");
+				const counted = desktopReads;
+				for (let round = 0; round < 4; round++) {
+					resize(isButton);
+					expect(lines()).toBe("2");
+					expect(list().classList).toContain(
+						"classicyApplicationSwitcherWrapped",
+					);
+				}
+				// The wrap's own resizes change no natural size: nothing is counted.
+				expect(desktopReads).toBe(counted);
+			});
+
+			it("keeps in one row a row that fits by the sum of its buttons' widths", () => {
+				// Calc, Finder and Notes are 60, 60 and 150 wide: 274 with the
+				// frame, in 284. The widest three times over (454) would not fit.
+				naturalWidths = { Calc: 60, Finder: 60, Notes: 150 };
+				desktopWidth = SIDE_FRAME + 270 + 10;
+				setUp();
+				render(<ClassicyApplicationSwitcher />);
+				orient("horizontal");
+				tearOff([0, 200]);
+				expect(lines()).toBe("");
+				expect(list().classList).not.toContain(
+					"classicyApplicationSwitcherWrapped",
+				);
+				resize(isButton);
+				expect(lines()).toBe("");
 			});
 		});
 

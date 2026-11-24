@@ -13,17 +13,22 @@
 
 // More buttons than a line holds before the desktop's edge wrap into the
 // next column (the next row, horizontal), `--application-switcher-lines` a
-// line, which the palette measures from the room it has.
+// line, which the palette measures from the room the desktop has. Each
+// track is as wide as its widest button (`max-content`), wherever the
+// palette sits: `auto` tracks over buttons with no minimum width let the
+// grid shrink to the room left of the window, squeezing the names and
+// reshaping the palette as it moved. It is the extent the count reads.
 .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(var(--application-switcher-lines), auto);
+  grid-auto-columns: max-content;
 }
 
 .classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped {
   grid-auto-flow: row;
   grid-template-rows: none;
-  grid-template-columns: repeat(var(--application-switcher-lines), auto);
+  grid-template-columns: repeat(var(--application-switcher-lines), max-content);
 }
 
 // Three classes, so the palette's geometry beats the bevel button's own

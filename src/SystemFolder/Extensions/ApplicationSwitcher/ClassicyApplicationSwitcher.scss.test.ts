@@ -51,8 +51,26 @@ describe("the Application Switcher's stylesheet", () => {
 			".classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped",
 		);
 		expect(across["grid-auto-flow"]).toBe("row");
-		expect(across["grid-template-columns"]).toBe(
+	});
+
+	// Integration review IG-C1: `auto` tracks over buttons with `min-width: 0`
+	// let the grid shrink to the room the window has where it sits, so a
+	// wrapped palette squeezed its names and changed shape when moved. Each
+	// track is as large as its largest button wherever the palette is, which
+	// is the extent the line count reads.
+	it("sizes a wrapped palette's tracks to their buttons, wherever it sits", () => {
+		const wrapped = declarations(
+			".classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped",
+		);
+		expect(wrapped["grid-auto-columns"]).toBe("max-content");
+		expect(wrapped["grid-template-rows"]).toBe(
 			"repeat(var(--application-switcher-lines), auto)",
+		);
+		const across = declarations(
+			".classicyApplicationSwitcherHorizontal .classicyApplicationSwitcherButtons.classicyApplicationSwitcherWrapped",
+		);
+		expect(across["grid-template-columns"]).toBe(
+			"repeat(var(--application-switcher-lines), max-content)",
 		);
 	});
 });
