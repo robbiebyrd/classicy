@@ -1,0 +1,14 @@
+# Infinite Mac (story 0230-n6c): each frame-NNN.png is a display frame (of 164 sampled at 60 Hz) that changed, ms after the recording began.
+frame-000 ms=0.0
+frame-001 ms=105.6
+frame-002 ms=138.9
+frame-003 ms=155.0
+frame-004 ms=188.2
+frame-005 ms=204.9
+frame-006 ms=222.5
+frame-007 ms=238.7
+frame-008 ms=271.5
+frame-009 ms=290.0
+frame-010 ms=305.5
+frame-011 ms=355.5
+frame-012 ms=388.5
