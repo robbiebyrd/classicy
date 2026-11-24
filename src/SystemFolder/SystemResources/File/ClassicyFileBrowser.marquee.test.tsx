@@ -911,6 +911,20 @@ describe("ClassicyFileBrowser list view selection rectangle", () => {
 		expect(t.selected()).toEqual([PATHS[0]]);
 	});
 
+	// In a browser the list fills the window contents: below the rows, the
+	// press lands on the list's own box (its table's container), not on the
+	// window contents around the browser (found at integration, Chromium).
+	it("starts from a press on the list's own box below its rows", async () => {
+		const t = await setup("marquee-list-own-box");
+		boxes.unshift([".classicyTableContainer", [0, 0, 400, 200]]);
+		fireEvent.mouseDown(t.list, { button: 0, clientX: 50, clientY: 150 });
+		t.move(60, 45);
+		expect(t.marquee()).not.toBeNull();
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+		t.release(60, 45);
+		expect(t.selected()).toEqual([PATHS[1], PATHS[2]]);
+	});
+
 	it("starts below the rows, and a double-click beside a name opens nothing", async () => {
 		const dirOnClickFunc = vi.fn();
 		const fileOnClickFunc = vi.fn();

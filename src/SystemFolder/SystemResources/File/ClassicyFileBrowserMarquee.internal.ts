@@ -95,6 +95,23 @@ export const isClassicyFileBrowserListBlank = (
 };
 
 /**
+ * Whether a press on `target` is on the list view's own box below its rows:
+ * the browser's root or the list's container, outside the table. The list
+ * fills the window contents (the root and the table's container are as
+ * tall as the window), so a press below the rows lands on them rather than
+ * on the window contents around the browser.
+ * @internal
+ */
+export const isClassicyFileBrowserListBelowRows = (
+	target: Element,
+	root: Element,
+): boolean =>
+	target === root ||
+	(root.contains(target) &&
+		target.matches(".classicyTableContainer") &&
+		target.closest("table") === null);
+
+/**
  * Where a list's rows show in its scroller: the scroller's box, less the
  * column titles where they lie inside it (Platinum's, `inList`, sticky at its
  * top), so the rectangle is cut under them and scrolls up past them. Null
@@ -173,7 +190,11 @@ export function useClassicyFileBrowserListMarquee({
 			const onRow =
 				root.contains(target) &&
 				isClassicyFileBrowserListBlank(target, e.clientX, e.clientY);
-			if (!onRow && !isClassicyFileBrowserBackground(target, root, area)) {
+			if (
+				!onRow &&
+				!isClassicyFileBrowserListBelowRows(target, root) &&
+				!isClassicyFileBrowserBackground(target, root, area)
+			) {
 				// On a row's icon, name or other column, the contextual-menu
 				// click selects the row as 8.1 selects an item: alone, unless
 				// it is selected already (then the selection is kept). The row
