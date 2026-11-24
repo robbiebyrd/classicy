@@ -67,8 +67,9 @@ const SWITCHER_SELECTOR = `[${CLASSICY_PART_ATTRIBUTE.part}="switcher"]`;
  * and closes the menu; back over the menu, the outline goes. A press on the
  * closed title pulled down past it opens the menu, as Mac OS opens a menu on
  * the press. Escape or a lost pointer stream ends the drag with nothing
- * torn off, and nothing tears off while a modal window is open. A palette already open moves to the new place: one copy at a
- * time (HIG7 p.93). Off when the active package's
+ * torn off, and nothing tears off while a modal window is open. A palette
+ * already open moves to the new place: one copy at a time (HIG7 p.93). Off
+ * when the active package's
  * `layout.applicationSwitcher.palette` is `"none"`.
  */
 export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
@@ -78,9 +79,9 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 		useClassicyAppearanceLayout().applicationSwitcher?.palette !== "none";
 	const dispatch = useAppManagerDispatch();
 	const { closeAll } = useContext(ClassicyMenuContext);
-	// Nothing tears off while a modal window is open: Mac OS 8.5 dims the
-	// Application menu's items under an alert, and a drag past it there
-	// tears nothing off.
+	// Nothing tears off while a modal window is open: under a dialog Mac OS
+	// 8.5 dims the Application menu's title and opens nothing
+	// (`resources/screenshots/mac-os-8.5/platinum-85-appmenu-modal.png`).
 	const modalOpen = useAppManager(classicyModalWindowOpen);
 	const modalOpenRef = useRef(modalOpen);
 	modalOpenRef.current = modalOpen;
@@ -90,6 +91,9 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 	useEffect(() => {
 		if (!enabled || typeof document === "undefined") return;
 		let tracking = false;
+		// The drag opened the closed menu once already: a second click on
+		// the title before it shows open would close it again.
+		let pulledOpen = false;
 		let current: ClassicyAppSwitcherTearOffOutline | null = null;
 		let stopWatching: (() => void) | null = null;
 
@@ -128,7 +132,10 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 			}
 			const list = openList(item);
 			if (!list) {
-				if (e.clientY > item.getBoundingClientRect().bottom) item.click();
+				if (!pulledOpen && e.clientY > item.getBoundingClientRect().bottom) {
+					pulledOpen = true;
+					item.click();
+				}
 				return;
 			}
 			const r = list.getBoundingClientRect();
@@ -170,6 +177,7 @@ export const ClassicyAppSwitcherTearOff: FunctionalComponent<{
 			if (!item || !(e.target instanceof Node) || !item.contains(e.target))
 				return;
 			tracking = true;
+			pulledOpen = false;
 			document.addEventListener("mousemove", onMove);
 			document.addEventListener("mouseup", onUp, true);
 			document.addEventListener("keydown", onKey, true);

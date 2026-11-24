@@ -62,9 +62,10 @@ export const ClassicyApplicationSwitcherPalette: FunctionalComponent<{
 	);
 	const horizontal = orientation === "horizontal";
 	const large = iconSize === "large";
-	// The drag bar is too short for a title or a collapse box when it runs
-	// across a column of small icons, or down the side (8.5:
-	// `platinum-85-switcher-no-names.png`, `…-horizontal.png`).
+	// Across a column of small icons without names the drag bar has room for
+	// neither a title nor a collapse box (8.5:
+	// `platinum-85-switcher-no-names.png`); down the side it has no title
+	// (`…-horizontal.png`); with names across the top it has both.
 	const narrow = !horizontal && !showNames && !large;
 
 	return (
