@@ -1,5 +1,3 @@
-import { sha256 } from "@noble/hashes/sha2.js";
-import { bytesToHex } from "@noble/hashes/utils.js";
 import {
 	type ClassicyFileSystemJournalEntry,
 	type ClassicyFileSystemSnapshot,
@@ -26,6 +24,7 @@ import { isValidFileSystemEntry } from "@/SystemFolder/SystemResources/File/Clas
 import { DefaultFSContent } from "@/SystemFolder/SystemResources/File/DefaultClassicyFileSystem";
 import { classicyLog } from "@/SystemFolder/SystemResources/Log/ClassicyLog";
 import { decompressFromBase64 } from "@/SystemFolder/SystemResources/Utils/base64Compression";
+import { classicySha256Hex } from "@/SystemFolder/SystemResources/Utils/ClassicySyncAdapterHook.internal";
 import { deepMergeReplacingArrays } from "@/SystemFolder/SystemResources/Utils/deepMerge";
 
 // filterByType's default allow-list: every ClassicyFileSystemEntryFileType
@@ -475,7 +474,7 @@ export class ClassicyFileSystem {
 		const serialized = this.snapshot();
 		return {
 			tree: JSON.parse(serialized) as ClassicyFileSystemEntry,
-			hash: bytesToHex(sha256(new TextEncoder().encode(serialized))),
+			hash: classicySha256Hex(serialized),
 			seq: this.seq,
 			storageKey: this.storageKey,
 			timestamp: new Date().toISOString(),
@@ -735,11 +734,11 @@ export class ClassicyFileSystem {
 			if (contents === undefined) {
 				return;
 			}
-			return bytesToHex(sha256(new TextEncoder().encode(contents)));
+			return classicySha256Hex(contents);
 		}
 
 		if ("_data" in path) {
-			return bytesToHex(sha256(new TextEncoder().encode(String(path._data))));
+			return classicySha256Hex(String(path._data));
 		}
 		return;
 	}
